@@ -1,0 +1,120 @@
+import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import dynamic from "next/dynamic";
+import { Toaster } from "sonner";
+import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ToastProvider } from "@/components/toast-provider";
+import { getArticles } from "@/lib/articles-data";
+import {
+  DEFAULT_OG_IMAGE_PATH,
+  SITE_DEFAULT_TITLE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE_TEMPLATE,
+  SITE_URL,
+  resolveSiteUrl,
+} from "@/lib/site-config";
+import "./globals.css";
+
+const CommandPalette = dynamic(() => import("@/components/command-palette").then((module) => module.CommandPalette));
+const BackToTop = dynamic(() => import("@/components/back-to-top").then((module) => module.BackToTop));
+const BottomNav = dynamic(() => import("@/components/bottom-nav").then((module) => module.BottomNav));
+
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_DEFAULT_TITLE,
+    template: SITE_TITLE_TEMPLATE,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: ["/icon.svg"],
+    apple: ["/icon.svg"],
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_DEFAULT_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: resolveSiteUrl(DEFAULT_OG_IMAGE_PATH),
+        width: 1200,
+        height: 630,
+        alt: SITE_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_DEFAULT_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [resolveSiteUrl(DEFAULT_OG_IMAGE_PATH)],
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  const articlesRecord = getArticles();
+  const searchItems = Object.values(articlesRecord).map((article) => ({
+    title: article.title,
+    slug: article.slug,
+    category: article.category,
+    description: article.description,
+  }));
+
+  return (
+    <html lang="tr" suppressHydrationWarning>
+      <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ToastProvider>
+            <div className="flex min-h-screen flex-col">
+              <Navbar searchItems={searchItems} />
+              <div className="flex-grow">{children}</div>
+              <Footer />
+              <BottomNav />
+            </div>
+            <BackToTop />
+            <CommandPalette />
+          </ToastProvider>
+        </ThemeProvider>
+        <Toaster position="top-center" richColors />
+      </body>
+    </html>
+  );
+}

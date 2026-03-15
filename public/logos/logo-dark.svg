@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="15 25 380 100" width="380" height="100" role="img" aria-label="İnşa Blog Logo">
+  <title>İnşa Blog</title>
+
+  <!-- Corner bracket mark (top-left) -->
+  <path d="M18,50 L18,26 L44,26" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="square"/>
+  <!-- Corner bracket mark (top-right) -->
+  <path d="M70,26 L70,50" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="square"/>
+  <!-- Corner bracket mark (bottom-left) -->
+  <path d="M18,76 L18,100 L44,100" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="square"/>
+  <!-- Corner bracket mark (bottom-right) -->
+  <path d="M70,76 L70,100 L44,100" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="square"/>
+
+  <!-- İB monogram -->
+  <text x="24" y="85"
+    font-family="'Barlow Condensed', sans-serif"
+    font-size="58"
+    font-weight="700"
+    fill="#FFFFFF"
+    letter-spacing="-3">İB</text>
+
+  <!-- Vertical divider -->
+  <rect x="88" y="28" width="1" height="84" fill="#ffffff20"/>
+
+  <!-- İNŞA main text -->
+  <text x="100" y="78"
+    font-family="'Cormorant Garamond', serif"
+    font-size="68"
+    font-weight="700"
+    letter-spacing="2"
+    fill="#FFFFFF">İNŞA</text>
+
+  <!-- BLOG subtext -->
+  <text x="102" y="108"
+    font-family="'Barlow Condensed', sans-serif"
+    font-size="34"
+    font-weight="500"
+    letter-spacing="12"
+    fill="#C8D8FF">BLOG</text>
+
+  <!-- Thin rule -->
+  <rect x="102" y="104" width="260" height="0.8" fill="#ffffff20"/>
+
+  <!-- Tagline -->
+  <text x="102" y="118"
+    font-family="'Courier New', Courier, monospace"
+    font-size="7.5"
+    letter-spacing="3"
+    fill="#ffffff45">MÜHENDİSLİK · YAPI · ANALİZ</text>
+</svg>

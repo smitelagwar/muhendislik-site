@@ -1,0 +1,194 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+}
+
+:root {
+  --radius: 0.9rem;
+  --background: #f4f0e8;
+  --foreground: #122033;
+  --card: #ffffff;
+  --card-foreground: #122033;
+  --popover: #ffffff;
+  --popover-foreground: #122033;
+  --primary: #143a6f;
+  --primary-foreground: #ffffff;
+  --secondary: #e8edf5;
+  --secondary-foreground: #193454;
+  --muted: #e9edf3;
+  --muted-foreground: #5e6b7c;
+  --accent: #dce8f8;
+  --accent-foreground: #143a6f;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #d7dee8;
+  --input: #d7dee8;
+  --ring: #2563eb;
+  --article-font-size: 17px;
+  --table-surface: #ffffff;
+  --table-surface-alt: #f7f9fc;
+  --table-header: #e7eef8;
+  --table-border: #c9d6e5;
+  --table-hover: #eef4ff;
+  --table-text: #132238;
+  --table-muted: #607089;
+}
+
+.dark {
+  --background: #09111e;
+  --foreground: #ecf3ff;
+  --card: #101a2c;
+  --card-foreground: #ecf3ff;
+  --popover: #0b1526;
+  --popover-foreground: #ecf3ff;
+  --primary: #cfe0ff;
+  --primary-foreground: #10284d;
+  --secondary: #14233a;
+  --secondary-foreground: #ecf3ff;
+  --muted: #14233a;
+  --muted-foreground: #9fb0c8;
+  --accent: #17304a;
+  --accent-foreground: #ecf3ff;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #ffffff;
+  --border: #223754;
+  --input: #223754;
+  --ring: #60a5fa;
+  --table-surface: #0f1728;
+  --table-surface-alt: #14233a;
+  --table-header: #19314d;
+  --table-border: #2a4466;
+  --table-hover: #1d3554;
+  --table-text: #eaf1ff;
+  --table-muted: #a8b6cb;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga" 1, "kern" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-sans;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply font-sans;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar,
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.h-pb-safe {
+  height: env(safe-area-inset-bottom);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollytelling-container * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.scrollytelling-container svg {
+  shape-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media print {
+  header,
+  footer,
+  .no-print,
+  .fixed {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
