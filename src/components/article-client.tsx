@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
@@ -26,24 +26,17 @@ import { Separator } from "@/components/ui/separator";
 import { FontSizeControl } from "@/components/font-size-control";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { type ArticleData } from "@/lib/articles-data";
+import { type ParsedBlock } from "@/lib/article-blocks";
 import { getSiteSectionForArticle, getSiteSectionHrefForArticle } from "@/lib/site-sections";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
 interface ArticleClientProps {
   article: ArticleData;
   relatedArticles: ArticleData[];
+  parsedSections: ParsedSection[];
 }
 
-type ParsedBlock =
-  | { type: "paragraph"; content: string }
-  | { type: "code"; content: string; lang: string }
-  | { type: "callout"; content: string; tone: string }
-  | { type: "table"; content: string }
-  | { type: "list"; content: string }
-  | { type: "heading"; content: string; level: number }
-  | { type: "image"; src: string; alt: string; caption: string }
-  | { type: "quote"; content: string }
-  | { type: "divider" };
+type ParsedSection = ArticleData["sections"][number] & { blocks: ParsedBlock[] };
 
 function escapeHtml(text: string) {
   return text
@@ -63,126 +56,6 @@ function renderInlineMarkdown(text: string) {
     .replace(/\n/g, "<br />");
 
   return { __html: safe };
-}
-
-function parseBlocks(content: string): ParsedBlock[] {
-  const lines = content.split("\n");
-  const blocks: ParsedBlock[] = [];
-  let index = 0;
-
-  const isBlockStart = (line: string) =>
-    /^```/.test(line) ||
-    /^> \[!/.test(line) ||
-    /^\|/.test(line) ||
-    /^!\[/.test(line) ||
-    /^#{2,6}\s+/.test(line) ||
-    /^(?:- |\d+\.\s)/.test(line) ||
-    /^>\s+/.test(line) ||
-    /^---+$/.test(line);
-
-  while (index < lines.length) {
-    const line = lines[index].trimEnd();
-
-    if (!line.trim()) {
-      index += 1;
-      continue;
-    }
-
-    if (/^```/.test(line)) {
-      const lang = line.replace(/^```/, "").trim();
-      const codeLines: string[] = [];
-      index += 1;
-      while (index < lines.length && !/^```/.test(lines[index])) {
-        codeLines.push(lines[index]);
-        index += 1;
-      }
-      if (index < lines.length) {
-        index += 1;
-      }
-      blocks.push({ type: "code", lang, content: codeLines.join("\n") });
-      continue;
-    }
-
-    if (/^> \[!/.test(line)) {
-      const tone = line.match(/^> \[!(.*)\]$/)?.[1] || "not";
-      const parts: string[] = [];
-      index += 1;
-      while (index < lines.length && /^>/.test(lines[index].trim())) {
-        parts.push(lines[index].replace(/^>\s?/, ""));
-        index += 1;
-      }
-      blocks.push({ type: "callout", tone, content: parts.join("\n").trim() });
-      continue;
-    }
-
-    if (/^\|/.test(line)) {
-      const rows = [line];
-      index += 1;
-      while (index < lines.length && /^\|/.test(lines[index].trim())) {
-        rows.push(lines[index]);
-        index += 1;
-      }
-      blocks.push({ type: "table", content: rows.join("\n") });
-      continue;
-    }
-
-    if (/^!\[/.test(line)) {
-      const match = line.match(/^!\[(.*?)\]\((.*?)\)$/);
-      let caption = "";
-      if (index + 1 < lines.length && /^\*.*\*$/.test(lines[index + 1].trim())) {
-        caption = lines[index + 1].trim().replace(/^\*/, "").replace(/\*$/, "");
-        index += 1;
-      }
-      blocks.push({ type: "image", alt: match?.[1] || "", src: match?.[2] || "", caption });
-      index += 1;
-      continue;
-    }
-
-    if (/^#{2,6}\s+/.test(line)) {
-      const match = line.match(/^(#{2,6})\s+(.*)$/);
-      blocks.push({ type: "heading", level: match?.[1].length || 3, content: match?.[2] || line });
-      index += 1;
-      continue;
-    }
-
-    if (/^(?:- |\d+\.\s)/.test(line)) {
-      const items = [line];
-      index += 1;
-      while (index < lines.length && /^(?:- |\d+\.\s)/.test(lines[index].trim())) {
-        items.push(lines[index].trim());
-        index += 1;
-      }
-      blocks.push({ type: "list", content: items.join("\n") });
-      continue;
-    }
-
-    if (/^>\s+/.test(line)) {
-      const items = [line.replace(/^>\s?/, "")];
-      index += 1;
-      while (index < lines.length && /^>\s+/.test(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^>\s?/, ""));
-        index += 1;
-      }
-      blocks.push({ type: "quote", content: items.join("\n") });
-      continue;
-    }
-
-    if (/^---+$/.test(line)) {
-      blocks.push({ type: "divider" });
-      index += 1;
-      continue;
-    }
-
-    const paragraph = [line];
-    index += 1;
-    while (index < lines.length && lines[index].trim() && !isBlockStart(lines[index].trim())) {
-      paragraph.push(lines[index]);
-      index += 1;
-    }
-    blocks.push({ type: "paragraph", content: paragraph.join("\n").trim() });
-  }
-
-  return blocks;
 }
 
 function CodeBlock({ code, lang }: { code: string; lang: string }) {
@@ -328,37 +201,41 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
   );
 }
 
-export default function ArticleClient({ article, relatedArticles }: ArticleClientProps) {
+export default function ArticleClient({ article, relatedArticles, parsedSections }: ArticleClientProps) {
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
-  const [activeId, setActiveId] = useState(article.sections[0]?.id || "");
+  const [activeId, setActiveId] = useState(parsedSections[0]?.id || "");
   const section = getSiteSectionForArticle(article);
   const sectionHref = getSiteSectionHrefForArticle(article);
-  const parsedSections = useMemo(() => article.sections.map((sectionItem) => ({ ...sectionItem, blocks: parseBlocks(sectionItem.content) })), [article.sections]);
 
   useEffect(() => {
-    const ids = article.sections.map((sectionItem) => sectionItem.id);
-    const updateActive = () => {
-      const items = ids
-        .map((id) => {
-          const element = document.getElementById(id);
-          return element ? { id, top: element.getBoundingClientRect().top } : null;
-        })
-        .filter(Boolean) as { id: string; top: number }[];
-      if (items.length === 0) {
-        return;
-      }
-      let current = items[0].id;
-      for (const item of items) {
-        if (item.top <= 120) {
-          current = item.id;
+    const sectionElements = parsedSections
+      .map((sectionItem) => document.getElementById(sectionItem.id))
+      .filter((element): element is HTMLElement => Boolean(element));
+
+    if (sectionElements.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+
+        if (visibleEntries.length > 0) {
+          setActiveId(visibleEntries[0].target.id);
         }
-      }
-      setActiveId(current);
-    };
-    updateActive();
-    window.addEventListener("scroll", updateActive, { passive: true });
-    return () => window.removeEventListener("scroll", updateActive);
-  }, [article.sections]);
+      },
+      {
+        rootMargin: "-96px 0px -55% 0px",
+        threshold: [0.1, 0.35, 0.6],
+      },
+    );
+
+    sectionElements.forEach((element) => observer.observe(element));
+
+    return () => observer.disconnect();
+  }, [parsedSections]);
 
   return (
     <LazyMotion features={domAnimation}>
@@ -512,7 +389,7 @@ export default function ArticleClient({ article, relatedArticles }: ArticleClien
                 </div>
                 <ScrollArea className="max-h-[360px] pr-4">
                   <nav className="relative flex flex-col gap-1.5 border-l-2 border-zinc-100 pl-4 dark:border-zinc-800">
-                    {article.sections.map((sectionItem) => {
+                    {parsedSections.map((sectionItem) => {
                       const isActive = sectionItem.id === activeId;
                       return (
                         <a key={sectionItem.id} href={`#${sectionItem.id}`} className={`relative py-1.5 text-sm font-bold tracking-tight transition-all hover:translate-x-1 ${isActive ? "-ml-[18px] border-l-2 border-blue-700 pl-4 text-blue-700 dark:border-blue-500 dark:text-blue-400" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"}`}>
@@ -558,7 +435,7 @@ export default function ArticleClient({ article, relatedArticles }: ArticleClien
                 </div>
                 <ScrollArea className="flex-1 p-6">
                   <nav className="overflow-hidden rounded-2xl border border-zinc-100 text-sm dark:border-zinc-800">
-                    {article.sections.map((sectionItem, index) => (
+                    {parsedSections.map((sectionItem, index) => (
                       <a key={sectionItem.id} href={`#${sectionItem.id}`} onClick={() => setMobileTocOpen(false)} className="flex items-center border-b border-zinc-50 px-4 py-4 font-bold leading-snug text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-900 last:border-none">
                         <span className="mr-3 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-black text-zinc-500 dark:bg-zinc-800">{index + 1}</span>
                         {sectionItem.title}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ArticleClient from "@/components/article-client";
 import { getArticleBySlug, getArticles } from "@/lib/articles-data";
+import { parseBlocks } from "@/lib/article-blocks";
 import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
 
 export async function generateStaticParams() {
@@ -61,6 +62,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const fallbackArticles = allArticles.filter((item) => item.slug !== article.slug && item.sectionId === article.sectionId).slice(0, 3);
   const safeRelatedArticles = relatedArticles.length > 0 ? relatedArticles : fallbackArticles;
   const articleImage = resolveMediaUrl(article.image);
+  const parsedSections = article.sections.map((section) => ({
+    ...section,
+    blocks: parseBlocks(section.content),
+  }));
 
   const articleSchema = {
     "@context": "https://schema.org",
@@ -84,7 +89,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <ArticleClient article={article} relatedArticles={safeRelatedArticles} />
+      <ArticleClient article={article} relatedArticles={safeRelatedArticles} parsedSections={parsedSections} />
     </>
   );
 }

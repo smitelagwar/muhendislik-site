@@ -174,6 +174,105 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.tool-page-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 50%, #f7fafc 100%);
+}
+
+.dark .tool-page-shell {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 26%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 24%),
+    linear-gradient(180deg, #09111e 0%, #0d1728 50%, #09111e 100%);
+}
+
+.tool-panel {
+  border: 1px solid rgba(201, 214, 229, 0.82);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 22px 70px -38px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.dark .tool-panel {
+  border-color: rgba(42, 68, 102, 0.9);
+  background: rgba(10, 18, 31, 0.78);
+  box-shadow: 0 22px 70px -38px rgba(2, 8, 23, 0.7);
+}
+
+.tool-result-panel {
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 39, 67, 0.98));
+  box-shadow: 0 24px 80px -40px rgba(15, 23, 42, 0.68);
+}
+
+.dark .tool-result-panel {
+  border-color: rgba(59, 130, 246, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(8, 15, 29, 0.98), rgba(11, 24, 44, 0.98));
+}
+
+.tool-result-inner {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tool-formula-card {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(24, 38, 60, 0.98));
+  color: #f8fafc;
+}
+
+.dark .tool-formula-card {
+  border-color: rgba(96, 165, 250, 0.16);
+}
+
+.tool-input {
+  border-radius: 1rem;
+  border-color: rgba(201, 214, 229, 0.9);
+  background: rgba(248, 250, 252, 0.96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.tool-input:focus-visible {
+  border-color: rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.dark .tool-input {
+  border-color: rgba(42, 68, 102, 0.92);
+  background: rgba(15, 23, 40, 0.92);
+  box-shadow: none;
+}
+
+.tool-note {
+  border: 1px solid rgba(96, 165, 250, 0.24);
+  background: rgba(239, 246, 255, 0.92);
+}
+
+.dark .tool-note {
+  border-color: rgba(59, 130, 246, 0.32);
+  background: rgba(23, 48, 74, 0.58);
+}
+
+.tool-chip {
+  border: 1px solid rgba(191, 219, 254, 0.8);
+  background: rgba(239, 246, 255, 0.9);
+  color: #1d4ed8;
+}
+
+.dark .tool-chip {
+  border-color: rgba(59, 130, 246, 0.32);
+  background: rgba(23, 48, 74, 0.64);
+  color: #bfdbfe;
+}
+
 @media print {
   header,
   footer,

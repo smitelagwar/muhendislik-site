@@ -72,7 +72,7 @@ export default function KalipSokumHesapPage() {
   }, [betonSinifi, cimentoTipi, elemanTipi, sicaklik]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-8 dark:bg-zinc-950 md:py-12">
+    <div className="tool-page-shell py-8 md:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-8">
           <Link href={TOOLS_HUB_HREF} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
@@ -90,7 +90,7 @@ export default function KalipSokumHesapPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <section className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-6 flex items-center gap-3">
               <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                 <Calculator className="h-5 w-5" />
@@ -155,7 +155,7 @@ export default function KalipSokumHesapPage() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <div className="tool-note mt-6 rounded-2xl p-4">
               <div className="flex gap-3">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-300" />
                 <p className="text-sm leading-6 text-blue-900 dark:text-blue-100">Bu araç ön tahmin üretir. Kalıp sökümünde numune sonucu, kür şartı ve üst kat yükleme planı birlikte değerlendirilmelidir.</p>
@@ -164,7 +164,7 @@ export default function KalipSokumHesapPage() {
           </section>
 
           <section className="flex flex-col gap-6">
-            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-950 p-6 text-white shadow-sm dark:border-zinc-800">
+            <div className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-white/10 p-3 text-emerald-200">
                   <Clock3 className="h-5 w-5" />
@@ -206,7 +206,7 @@ export default function KalipSokumHesapPage() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="tool-panel rounded-[28px] p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="rounded-2xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                   <AlertTriangle className="h-5 w-5" />

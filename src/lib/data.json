@@ -10,7 +10,7 @@
     "authorTitle": "Geoteknik Uzmanı",
     "date": "14 Ekim 2023",
     "readTime": "8 dk okuma",
-    "image": "https://images.unsplash.com/photo-1581094794329-c8112a89af12?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/geoteknik.svg",
     "quote": {
       "text": "Jet-Grout bir derin temel sistemi (kazık) değildir. Jet-Grout, taşıma gücü düşük zemini yerinde iyileştirerek genel zemin profilinin mühendislik özelliklerini (E modülü, dayanım vb.) artıran bir kompozit sistemidir."
     },
@@ -53,7 +53,7 @@
     "authorTitle": "Şantiye Şefi",
     "date": "22 Kasım 2023",
     "readTime": "6 dk okuma",
-    "image": "https://images.unsplash.com/photo-1590644365607-1c5a519a9a37?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/santiye.svg",
     "quote": {
       "text": "Beton dökümü başladıktan sonra geri dönüş yoktur. Döküm öncesi yapılacak 15 dakikalık kontrol, tüm projeyi kurtarabilir."
     },
@@ -101,7 +101,7 @@
     "authorTitle": "Enerji Verimliliği Uzmanı",
     "date": "8 Aralık 2023",
     "readTime": "7 dk okuma",
-    "image": "https://images.unsplash.com/photo-1542361345-89e58247f2d5?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/malzeme.svg",
     "quote": {
       "text": "Doğru yalıtım malzemesi seçimi, binanın 50 yıllık enerji faturasını %40'a kadar düşürebilir. Bu karar, projenin en kritik kararlarından biridir."
     },
@@ -149,7 +149,7 @@
     "authorTitle": "Sürdürülebilir Tasarım Danışmanı",
     "date": "3 Ocak 2024",
     "readTime": "10 dk okuma",
-    "image": "https://plus.unsplash.com/premium_photo-1663050989555-f8d01ac54a27?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "image": "/covers/surdurulebilirlik.svg",
     "quote": {
       "text": "Yeşil bina sertifikası almak lüks değil, artık bir zorunluluk. 2030'a kadar tüm kamu binalarının nZEB (Yaklaşık Sıfır Enerji Bina) olması hedefleniyor."
     },
@@ -197,7 +197,7 @@
     "authorTitle": "Geoteknik Mühendisi",
     "date": "15 Şubat 2024",
     "readTime": "12 dk okuma",
-    "image": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/araclar.svg",
     "quote": {
       "text": "İksa sistemi seçimi, zemin mekaniği bilgisi kadar saha deneyimi de gerektirir. Her kazı projesi kendine özgüdür."
     },
@@ -245,7 +245,7 @@
     "authorTitle": "Yapı Mühendisliği Profesörü",
     "date": "20 Ocak 2024",
     "readTime": "9 dk okuma",
-    "image": "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/araclar.svg",
     "quote": {
       "text": "Ön boyutlandırma, kesin hesaptan önce yapılan tahmindir ama doğru yapılmazsa kesin hesapta sürprizlerle karşılaşabilirsiniz."
     },
@@ -288,7 +288,7 @@
     "authorTitle": "Deprem Mühendisliği Uzmanı",
     "date": "5 Mart 2024",
     "readTime": "11 dk okuma",
-    "image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/yonetmelik.svg",
     "quote": {
       "text": "TBDY 2018 sadece bir yönetmelik değişikliği değil, deprem mühendisliği felsefesinde köklü bir dönüşümdür."
     },
@@ -332,7 +332,7 @@
     "categoryColor": "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
     "date": "2 Mart 2024",
     "description": "Duvar örme işlemlerinde nelere dikkat edilmeli İş güvenliği ve teknik kalite rehberi.",
-    "image": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2000&auto=format&fit=crop",
+    "image": "/covers/santiye.svg",
     "author": "Serkan Yılmaz",
     "authorTitle": "Şantiye Şefi",
     "badgeLabel": "Teknik Rehber",

@@ -110,7 +110,7 @@ export default function RootLayout({
               <BottomNav />
             </div>
             <BackToTop />
-            <CommandPalette />
+            <CommandPalette items={searchItems} />
           </ToastProvider>
         </ThemeProvider>
         <Toaster position="top-center" richColors />

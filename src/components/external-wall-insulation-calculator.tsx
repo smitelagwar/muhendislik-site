@@ -104,7 +104,7 @@ export function ExternalWallInsulationCalculator() {
   }, [calculation, districtId, districtRequired, selectedProvince]);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.12),_transparent_36%),linear-gradient(180deg,#f8fafc_0%,#eef5f7_52%,#f8fafc_100%)] py-8 dark:bg-[radial-gradient(circle_at_top,_rgba(6,182,212,0.18),_transparent_28%),linear-gradient(180deg,#09111e_0%,#0f172a_52%,#09111e_100%)] md:py-14">
+    <div className="tool-page-shell py-8 md:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-8">
           <Link
@@ -130,7 +130,7 @@ export function ExternalWallInsulationCalculator() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-          <section className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Girdi bilgileri</p>
@@ -303,7 +303,7 @@ export function ExternalWallInsulationCalculator() {
           <section className="flex flex-col gap-6">
             <div
               aria-live="polite"
-              className="overflow-hidden rounded-[28px] border border-zinc-200/80 bg-zinc-950 p-6 text-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.55)] transition-all duration-500 motion-reduce:transition-none dark:border-zinc-800"
+              className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white transition-all duration-500 motion-reduce:transition-none"
             >
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
@@ -388,7 +388,7 @@ export function ExternalWallInsulationCalculator() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Hesap özeti</p>
@@ -470,7 +470,7 @@ export function ExternalWallInsulationCalculator() {
             )}
           </section>
 
-          <section className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Karşılaştırma</p>

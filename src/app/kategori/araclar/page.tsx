@@ -19,9 +19,9 @@ export default function ToolsCategoryPage() {
   const featuredTool = getFeaturedTool();
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-8 dark:bg-zinc-950 md:py-14">
+    <div className="tool-page-shell py-8 md:py-14">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[36px] border border-zinc-200 bg-white px-6 py-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:px-8 md:py-10">
+        <section className="tool-panel relative overflow-hidden rounded-[36px] px-6 py-8 md:px-8 md:py-10">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.16),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_38%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.22),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.18),_transparent_38%)]" />
 
           <div className="relative grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
@@ -38,9 +38,9 @@ export default function ToolsCategoryPage() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <div className="min-w-[156px] rounded-[28px] border border-zinc-200 bg-zinc-950 px-5 py-4 text-white shadow-[0_16px_40px_-28px_rgba(15,23,42,0.7)] dark:border-zinc-800">
-                  <p className="text-3xl font-black text-blue-400">{tools.length}</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Araç sayısı</p>
+                <div className="min-w-[156px] rounded-[28px] border border-blue-200/80 bg-blue-50/90 px-5 py-4 text-blue-950 shadow-[0_18px_46px_-34px_rgba(37,99,235,0.34)] dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-50">
+                  <p className="font-mono text-3xl font-black tabular-nums text-blue-700 dark:text-sky-200">{tools.length}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-700/70 dark:text-sky-200/70">Araç sayısı</p>
                 </div>
               </div>
             </div>
@@ -77,7 +77,7 @@ export default function ToolsCategoryPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
+        <section className="tool-panel rounded-[32px] p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Canlı liste</p>

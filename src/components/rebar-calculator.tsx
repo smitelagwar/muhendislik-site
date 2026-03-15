@@ -101,7 +101,7 @@ export function RebarCalculator() {
   const equivalentForEight = equivalentRows.find((row) => row.diameter === 8);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_34%),linear-gradient(180deg,#f8fafc_0%,#eef4ff_54%,#f8fafc_100%)] py-8 dark:bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_28%),linear-gradient(180deg,#09090b_0%,#0f172a_52%,#09090b_100%)] md:py-14">
+    <div className="tool-page-shell py-8 md:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <Link
@@ -127,7 +127,7 @@ export function RebarCalculator() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.4)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Girdi bilgileri</p>
@@ -145,7 +145,7 @@ export function RebarCalculator() {
                   Donatı çapı
                 </label>
                 <Select value={String(diameter)} onValueChange={(value) => setDiameter(Number(value) as Diameter)}>
-                  <SelectTrigger className="h-12 w-full rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-zinc-800 dark:bg-zinc-900">
+                  <SelectTrigger className="tool-input h-12 w-full rounded-xl font-bold">
                     <SelectValue placeholder="Çap seçin" />
                   </SelectTrigger>
                   <SelectContent>
@@ -174,7 +174,7 @@ export function RebarCalculator() {
                   value={quantity}
                   onChange={(event) => setQuantity(event.target.value)}
                   placeholder="Örn. 5"
-                  className="h-12 rounded-xl border-zinc-200 bg-zinc-50 text-base font-bold dark:border-zinc-800 dark:bg-zinc-900"
+                  className="tool-input h-12 rounded-xl text-base font-bold"
                 />
                 <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
                   Sonuç toplam donatı alanını <span className="font-bold">mm²</span> olarak verir.
@@ -182,11 +182,11 @@ export function RebarCalculator() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-blue-200/70 bg-blue-50/70 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
+            <div className="tool-note mt-6 rounded-2xl p-4">
               <div className="flex items-start gap-3">
                 <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-300" />
                 <p className="text-sm leading-6 text-blue-900 dark:text-blue-100">
-                  Hesapta tek çubuk alanı <span className="font-bold">π x Ø² / 4</span> formülüyle bulunur. Eşdeğer
+                  Hesapta tek çubuk alanı <span className="font-mono font-bold tabular-nums">π x Ø² / 4</span> formülüyle bulunur. Eşdeğer
                   tablo, hedef alandan düşük kalmamak için adetleri yukarı yuvarlayarak verir.
                 </p>
               </div>
@@ -194,30 +194,30 @@ export function RebarCalculator() {
           </section>
 
           <section className="flex flex-col gap-6">
-            <div className="overflow-hidden rounded-[28px] border border-sky-200/80 bg-sky-100 p-6 text-sky-950 shadow-[0_24px_80px_-32px_rgba(14,165,233,0.3)] dark:border-sky-800/50 dark:bg-sky-900/40 dark:text-sky-50">
+            <div className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Canlı sonuç</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-200/80">Canlı sonuç</p>
                   <h2 className="mt-2 text-2xl font-black">Toplam donatı alanı</h2>
                 </div>
-                <div className="rounded-2xl bg-sky-500/10 p-3 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300">
+                <div className="rounded-2xl bg-white/10 p-3 text-sky-200">
                   <Sigma className="h-5 w-5" />
                 </div>
               </div>
 
               {result ? (
                 <>
-                  <p className="text-sm font-medium text-sky-800/80 dark:text-sky-200/80">{result.label}</p>
+                  <p className="text-sm font-medium text-sky-100/80">{result.label}</p>
                   <div className="mt-4 flex flex-wrap items-end gap-3">
-                    <span className="text-4xl font-black tracking-tight md:text-6xl">{formatNumber(result.totalArea)}</span>
-                    <span className="pb-2 text-lg font-semibold text-sky-700 dark:text-sky-300">mm²</span>
+                    <span className="font-mono text-4xl font-black tracking-tight tabular-nums md:text-6xl">{formatNumber(result.totalArea)}</span>
+                    <span className="pb-2 text-lg font-semibold text-sky-200">mm²</span>
                   </div>
-                  <p className="mt-4 max-w-xl text-sm leading-6 text-sky-800/70 dark:text-sky-200/70">{result.formula}</p>
+                  <p className="mt-4 max-w-xl font-mono text-sm leading-6 tabular-nums text-zinc-200">{result.formula}</p>
                 </>
               ) : (
-                <div className="rounded-2xl border border-dashed border-sky-300/50 bg-sky-50/50 p-6 dark:border-sky-700/50 dark:bg-sky-900/20">
-                  <p className="text-lg font-bold text-sky-900 dark:text-sky-100">Geçerli bir değer girin</p>
-                  <p className="mt-2 text-sm leading-6 text-sky-700/80 dark:text-sky-300/80">
+                <div className="tool-result-inner rounded-2xl border border-dashed border-white/15 p-6">
+                  <p className="text-lg font-bold text-white">Geçerli bir değer girin</p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">
                     Hesaplama için adet alanına sıfırdan büyük bir değer yazmanız gerekiyor.
                   </p>
                 </div>
@@ -225,23 +225,23 @@ export function RebarCalculator() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+              <div className="tool-panel rounded-3xl p-5">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Tek çubuk</p>
-                <p className="mt-3 text-3xl font-black text-zinc-950 dark:text-white">
+                <p className="mt-3 font-mono text-3xl font-black tabular-nums text-zinc-950 dark:text-white">
                   {formatNumber(calculateBarArea(diameter))}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">mm² alan</p>
               </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+              <div className="tool-panel rounded-3xl p-5">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Toplam adet</p>
-                <p className="mt-3 text-3xl font-black text-zinc-950 dark:text-white">
+                <p className="mt-3 font-mono text-3xl font-black tabular-nums text-zinc-950 dark:text-white">
                   {result ? formatNumber(result.quantity) : "-"}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Girilen çubuk sayısı</p>
               </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+              <div className="tool-panel rounded-3xl p-5">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Ø8 eşdeğeri</p>
-                <p className="mt-3 text-3xl font-black text-zinc-950 dark:text-white">
+                <p className="mt-3 font-mono text-3xl font-black tabular-nums text-zinc-950 dark:text-white">
                   {equivalentForEight ? equivalentForEight.quantity : "-"}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -253,13 +253,13 @@ export function RebarCalculator() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Alternatifler</p>
                 <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Eşdeğer donatı tablosu</h2>
               </div>
-              <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-300">
+              <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-600 dark:text-blue-300">
                 <EqualApproximately className="h-5 w-5" />
               </div>
             </div>
@@ -291,10 +291,10 @@ export function RebarCalculator() {
                             ) : null}
                           </div>
                         </TableCell>
-                        <TableCell>{formatNumber(row.barArea)} mm²</TableCell>
-                        <TableCell>{row.quantity}</TableCell>
-                        <TableCell>{formatNumber(row.providedArea)} mm²</TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="font-mono tabular-nums">{formatNumber(row.barArea)} mm²</TableCell>
+                        <TableCell className="font-mono tabular-nums">{row.quantity}</TableCell>
+                        <TableCell className="font-mono tabular-nums">{formatNumber(row.providedArea)} mm²</TableCell>
+                        <TableCell className="text-right font-mono font-medium tabular-nums">
                           +{formatNumber(row.surplusArea)} mm²
                         </TableCell>
                       </TableRow>
@@ -309,21 +309,21 @@ export function RebarCalculator() {
             )}
           </section>
 
-          <section className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+          <section className="tool-panel rounded-[28px] p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Notlar</p>
                 <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Hızlı kontrol özeti</h2>
               </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-300">
+              <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-600 dark:text-blue-300">
                 <BadgeCheck className="h-5 w-5" />
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+              <div className="tool-formula-card rounded-2xl p-4">
                 <p className="text-sm font-bold text-zinc-950 dark:text-white">Kontrol formülü</p>
-                <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 font-mono text-sm leading-6 tabular-nums text-zinc-600 dark:text-zinc-300">
                   {result ? result.formula : "Formül, geçerli girdi oluştuğunda burada görünür."}
                 </p>
               </div>

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calculator, Command, FileText, Map, Scale, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ToolIcon } from "@/components/tool-icon";
 import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
 
-interface Article {
+interface SearchItem {
   title: string;
   slug: string;
   category: string;
@@ -20,12 +20,16 @@ const DISCOVERY_LINKS = [
   { label: "Site Haritası", href: "/konu-haritasi", icon: <Map className="h-4 w-4" /> },
 ];
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query.trim()) {
     return <>{text}</>;
   }
 
-  const parts = text.split(new RegExp(`(${query})`, "gi"));
+  const parts = text.split(new RegExp(`(${escapeRegExp(query)})`, "gi"));
 
   return (
     <>
@@ -42,20 +46,13 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   );
 }
 
-export function CommandPalette() {
+export function CommandPalette({ items }: { items: SearchItem[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [articles, setArticles] = useState<Article[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const tools = useMemo(() => getLiveTools(), []);
-
-  useEffect(() => {
-    fetch("/api/articles")
-      .then((response) => response.json())
-      .then((data) => setArticles(Object.values(data)))
-      .catch(() => {});
-  }, []);
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -85,19 +82,23 @@ export function CommandPalette() {
     }
   }, [isOpen]);
 
-  const filteredArticles =
-    query.length > 0
-      ? articles
-          .filter((article) => {
-            const normalizedQuery = query.toLowerCase();
-            return (
-              article.title.toLowerCase().includes(normalizedQuery) ||
-              article.category.toLowerCase().includes(normalizedQuery) ||
-              article.description.toLowerCase().includes(normalizedQuery)
-            );
-          })
-          .slice(0, 8)
-      : articles.slice(0, 5);
+  const filteredArticles = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return items.slice(0, 5);
+    }
+
+    return items
+      .filter((article) => {
+        return (
+          article.title.toLowerCase().includes(normalizedQuery) ||
+          article.category.toLowerCase().includes(normalizedQuery) ||
+          article.description.toLowerCase().includes(normalizedQuery)
+        );
+      })
+      .slice(0, 8);
+  }, [deferredQuery, items]);
 
   const closePalette = () => {
     setIsOpen(false);

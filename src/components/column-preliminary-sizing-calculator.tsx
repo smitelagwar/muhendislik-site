@@ -11,8 +11,7 @@ import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/font
 import { formatConcreteNumber, parsePositiveConcreteNumber } from "@/lib/concrete-tools/format";
 import { cn } from "@/lib/utils";
 
-const triggerClassName =
-  "h-12 w-full rounded-none border-zinc-200 bg-zinc-50 font-semibold dark:border-zinc-800 dark:bg-zinc-900 focus-visible:border-amber-500 focus-visible:ring-amber-500/20";
+const triggerClassName = "tool-input h-12 w-full font-semibold text-zinc-900 dark:text-zinc-100";
 
 export function ColumnPreliminarySizingCalculator() {
   const [floorCount, setFloorCount] = useState("5");
@@ -49,13 +48,13 @@ export function ColumnPreliminarySizingCalculator() {
       description="Mevcut kolon aracı betonarme aile shell’ine taşındı. İlk kesit önerisi, eksenel tasarım yükü ve minimum kesit alanı aynı ekranda hızlı ön değerlendirme için korunur."
     >
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <section className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/70">
+        <section className="tool-panel rounded-[28px] p-6">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Veri girişi</p>
-              <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black uppercase tracking-[0.08em] text-zinc-950 dark:text-white")}>Yük ve beton sınıfı</h2>
+              <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Yük ve beton sınıfı</h2>
             </div>
-            <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            <div className="rounded-2xl bg-blue-100 p-3 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
               <Calculator className="h-5 w-5" />
             </div>
           </div>
@@ -102,7 +101,7 @@ export function ColumnPreliminarySizingCalculator() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+          <div className="tool-note mt-6 rounded-2xl p-4">
             <div className="flex gap-3">
               <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-300" />
               <p className="text-sm leading-6 text-blue-900 dark:text-blue-100">Bu araç ilk kesit seçiminde hız kazandırır. Moment etkileri, süneklik kuralları ve detaylandırma kontrolleri sonraki tasarım adımında ayrıca yapılmalıdır.</p>
@@ -111,13 +110,13 @@ export function ColumnPreliminarySizingCalculator() {
         </section>
 
         <section className="flex flex-col gap-6">
-          <div className="overflow-hidden rounded-[28px] border border-zinc-200/80 bg-zinc-950 p-6 text-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.55)] dark:border-zinc-800">
+          <div className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200/70")}>Canlı sonuç</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black uppercase tracking-[0.08em] text-white")}>Önerilen başlangıç kesiti</h2>
+                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200/80")}>Canlı sonuç</p>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-white")}>Önerilen başlangıç kesiti</h2>
               </div>
-              <div className="rounded-2xl bg-white/10 p-3 text-amber-200">
+              <div className="rounded-2xl bg-white/10 p-3 text-sky-200">
                 <Sigma className="h-5 w-5" />
               </div>
             </div>
@@ -125,11 +124,11 @@ export function ColumnPreliminarySizingCalculator() {
             {result ? (
               <>
                 <div className="mt-2 flex flex-wrap items-end gap-3">
-                  <span className={cn(concreteDisplayFont.className, "text-5xl font-black uppercase tracking-[0.08em] text-white md:text-7xl")}>{result.recommendedSection}</span>
+                  <span className={cn(concreteMonoFont.className, "text-5xl font-black text-white md:text-7xl")}>{result.recommendedSection}</span>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-zinc-300">En küçük kenar 30 cm kabul edilerek ilk kesit önerisi oluşturuldu. Bu kesit, kolon kontrol bloklarının ekleneceği ikinci tur için referans başlangıç noktasıdır.</p>
 
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="tool-result-inner mt-6 rounded-2xl p-5">
                   <ConcreteResultRow label="Birim alan yükü Pd" value={`${formatConcreteNumber(result.designAreaLoadKnM2)} kN/m²`} />
                   <ConcreteResultRow label="Eksenel tasarım yükü Nd" value={`${formatConcreteNumber(result.designAxialLoadKn)} kN`} />
                   <ConcreteResultRow label="Minimum kesit alanı" value={`${formatConcreteNumber(result.minimumAreaCm2)} cm²`} />
@@ -139,7 +138,7 @@ export function ColumnPreliminarySizingCalculator() {
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
-                <p className={cn(concreteDisplayFont.className, "text-2xl font-black uppercase tracking-[0.08em] text-white")}>Geçerli veri bekleniyor</p>
+                <p className={cn(concreteDisplayFont.className, "text-2xl font-black tracking-tight text-white")}>Geçerli veri bekleniyor</p>
                 <p className="mt-3 text-sm leading-6 text-zinc-300">Kolon başlangıç kesiti için tüm alanlara sıfırdan büyük geçerli değer girin.</p>
               </div>
             )}
@@ -151,11 +150,11 @@ export function ColumnPreliminarySizingCalculator() {
             <ConcreteMetricCard label="Min. alan" value={result ? formatConcreteNumber(result.minimumAreaCm2) : "-"} unit="cm²" />
           </div>
 
-          <div className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+          <div className="tool-panel rounded-[28px] p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Hesap özeti</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black uppercase tracking-[0.08em] text-zinc-950 dark:text-white")}>Kullanılan yaklaşım</h2>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Kullanılan yaklaşım</h2>
               </div>
               <div className="rounded-2xl bg-sky-500/10 p-3 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                 <Ruler className="h-5 w-5" />
