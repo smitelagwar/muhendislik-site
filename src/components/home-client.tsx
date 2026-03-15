@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
@@ -11,31 +10,6 @@ import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { ToolIcon } from "@/components/tool-icon";
 import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
-
-const ConstructionScrollytelling = dynamic(() => import("@/components/construction-scrollytelling"), {
-  ssr: false,
-  loading: () => (
-    <section className="tool-page-shell py-12 md:py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="tool-panel min-h-[420px] rounded-[32px] p-8 md:p-12">
-          <div className="h-4 w-32 rounded-full bg-blue-100 dark:bg-blue-950/40" />
-          <div className="mt-6 h-10 w-full max-w-xl rounded-2xl bg-zinc-200/80 dark:bg-zinc-800/80" />
-          <div className="mt-4 h-4 w-full max-w-3xl rounded-full bg-zinc-200/70 dark:bg-zinc-800/70" />
-          <div className="mt-3 h-4 w-full max-w-2xl rounded-full bg-zinc-200/60 dark:bg-zinc-800/60" />
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="rounded-[28px] border border-zinc-200/80 bg-white/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/60">
-                <div className="h-3 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                <div className="mt-4 h-8 w-2/3 rounded-2xl bg-zinc-200/80 dark:bg-zinc-800/80" />
-                <div className="mt-3 h-4 w-full rounded-full bg-zinc-200/70 dark:bg-zinc-800/70" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  ),
-});
 
 interface Article {
   title: string;
@@ -215,8 +189,6 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
             </m.section>
           ) : null}
         </main>
-
-        <ConstructionScrollytelling />
 
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-12 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-10 lg:flex-row">
