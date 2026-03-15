@@ -194,30 +194,30 @@ export function RebarCalculator() {
           </section>
 
           <section className="flex flex-col gap-6">
-            <div className="overflow-hidden rounded-[28px] border border-zinc-200/80 bg-zinc-950 p-6 text-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.6)] dark:border-zinc-800">
+            <div className="overflow-hidden rounded-[28px] border border-sky-200/80 bg-sky-100 p-6 text-sky-950 shadow-[0_24px_80px_-32px_rgba(14,165,233,0.3)] dark:border-sky-800/50 dark:bg-sky-900/40 dark:text-sky-50">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-200/70">Canlı sonuç</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-600 dark:text-sky-400">Canlı sonuç</p>
                   <h2 className="mt-2 text-2xl font-black">Toplam donatı alanı</h2>
                 </div>
-                <div className="rounded-2xl bg-white/10 p-3 text-blue-200">
+                <div className="rounded-2xl bg-sky-500/10 p-3 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300">
                   <Sigma className="h-5 w-5" />
                 </div>
               </div>
 
               {result ? (
                 <>
-                  <p className="text-sm font-medium text-zinc-300">{result.label}</p>
+                  <p className="text-sm font-medium text-sky-800/80 dark:text-sky-200/80">{result.label}</p>
                   <div className="mt-4 flex flex-wrap items-end gap-3">
                     <span className="text-4xl font-black tracking-tight md:text-6xl">{formatNumber(result.totalArea)}</span>
-                    <span className="pb-2 text-lg font-semibold text-blue-200">mm²</span>
+                    <span className="pb-2 text-lg font-semibold text-sky-700 dark:text-sky-300">mm²</span>
                   </div>
-                  <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-400">{result.formula}</p>
+                  <p className="mt-4 max-w-xl text-sm leading-6 text-sky-800/70 dark:text-sky-200/70">{result.formula}</p>
                 </>
               ) : (
-                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
-                  <p className="text-lg font-bold text-white">Geçerli bir değer girin</p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">
+                <div className="rounded-2xl border border-dashed border-sky-300/50 bg-sky-50/50 p-6 dark:border-sky-700/50 dark:bg-sky-900/20">
+                  <p className="text-lg font-bold text-sky-900 dark:text-sky-100">Geçerli bir değer girin</p>
+                  <p className="mt-2 text-sm leading-6 text-sky-700/80 dark:text-sky-300/80">
                     Hesaplama için adet alanına sıfırdan büyük bir değer yazmanız gerekiyor.
                   </p>
                 </div>
