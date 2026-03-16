@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calculator, ChevronRight, FileText, HardHat, Mail, Menu, X } from "lucide-react";
+import { Calculator, ChevronRight, FileText, GitBranchPlus, HardHat, Mail, Menu, X } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { Button } from "./ui/button";
 
@@ -11,6 +11,7 @@ const MENU_ITEMS = [
   { name: "Ana Sayfa", href: "/", icon: <FileText className="h-5 w-5" /> },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik", icon: <HardHat className="h-5 w-5" /> },
   { name: "Araçlar", href: "/kategori/araclar", icon: <Calculator className="h-5 w-5" /> },
+  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: <GitBranchPlus className="h-5 w-5" /> },
   { name: "Yapı", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-5 w-5" /> },
   { name: "Şantiye", href: "/kategori/santiye", icon: <FileText className="h-5 w-5" /> },
   { name: "Site Haritası", href: "/konu-haritasi", icon: <FileText className="h-5 w-5" /> },

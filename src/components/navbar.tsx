@@ -27,6 +27,7 @@ const NAV_LINKS = [
   { name: "Ana Sayfa", href: "/" },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik" },
   { name: "Araçlar", href: "/kategori/araclar" },
+  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari" },
   { name: "Yapı", href: "/kategori/yapi-tasarimi" },
   { name: "Şantiye", href: "/kategori/santiye" },
   { name: "Site Haritası", href: "/konu-haritasi" },

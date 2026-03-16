@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="36" fill="#E0F2FE"/>
+  <rect x="60" y="60" width="1080" height="555" rx="28" fill="#0C4A6E"/>
+  <path d="M170 210h200v120h160v-80h180v140h160v-100h150" stroke="#38BDF8" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="170" cy="210" r="22" fill="#BAE6FD"/>
+  <circle cx="370" cy="330" r="22" fill="#BAE6FD"/>
+  <circle cx="530" cy="250" r="22" fill="#BAE6FD"/>
+  <circle cx="710" cy="390" r="22" fill="#BAE6FD"/>
+  <circle cx="870" cy="290" r="22" fill="#BAE6FD"/>
+  <circle cx="1020" cy="290" r="22" fill="#BAE6FD"/>
+  <rect x="158" y="444" width="884" height="90" rx="24" fill="#E0F2FE"/>
+  <text x="158" y="120" fill="#E0F2FE" font-size="42" font-family="Arial, sans-serif" font-weight="700">Mekanik ve elektrik koordinasyonu</text>
+</svg>

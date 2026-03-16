@@ -1,549 +1,329 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, LogOut, Check, X, FileText, Settings, Image as ImageIcon, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { m, AnimatePresence } from "framer-motion";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  ArrowRight,
+  Copy,
+  Eye,
+  FilePenLine,
+  LayoutDashboard,
+  Loader2,
+  Plus,
+  Search,
+  Shield,
+  Sparkles,
+  Trash2,
+  Wand2,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ADMIN_AUTH_STORAGE_KEY,
+  ADMIN_PASSWORD,
+  EDITOR_DRAFT_STORAGE_KEY,
+  LAST_EDITED_ARTICLE_KEY,
+  SECTION_PRESETS,
+  parseReadTime,
+  toEditorArticle,
+  toStoredArticle,
+  type StoredArticle,
+} from "@/lib/admin-editor";
+import { SITE_SECTIONS } from "@/lib/site-sections";
+import { cn } from "@/lib/utils";
 
-interface Section {
-    id: string;
-    title: string;
-    content: string;
+const PANEL_CLASS =
+  "rounded-[28px] border border-white/70 bg-white/92 shadow-[0_28px_90px_-48px_rgba(15,23,42,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/88";
+
+interface DraftSummary {
+  title: string;
+  slug: string;
+  savedAt: string;
 }
 
-interface Article {
-    slug: string;
-    title: string;
-    description: string;
-    category: string;
-    categoryColor: string;
-    badgeLabel: string;
-    author: string;
-    authorTitle: string;
-    date: string;
-    readTime: string;
-    image: string;
-    quote?: { text: string };
-    sections: Section[];
-    relatedSlugs: string[];
+function readDraftSummary() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = localStorage.getItem(EDITOR_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { article?: Partial<StoredArticle>; savedAt?: string };
+    if (!parsed.article) {
+      return null;
+    }
+
+    const article = toStoredArticle(toEditorArticle(parsed.article));
+
+    return {
+      title: article.title || "Başlıksız taslak",
+      slug: article.slug || "yeni-icerik",
+      savedAt: parsed.savedAt || "",
+    } satisfies DraftSummary;
+  } catch {
+    return null;
+  }
 }
 
 export default function AdminPage() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [password, setPassword] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [articles, setArticles] = useState<StoredArticle[]>([]);
+  const [search, setSearch] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [draftSummary, setDraftSummary] = useState<DraftSummary | null>(null);
+  const [lastEditedSlug, setLastEditedSlug] = useState("");
 
-    const [articles, setArticles] = useState<Article[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+  const deferredSearch = useDeferredValue(search);
 
-    const [isEditing, setIsEditing] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [currentArticle, setCurrentArticle] = useState<any>(null);
+  const filteredArticles = useMemo(() => {
+    const query = deferredSearch.trim().toLocaleLowerCase("tr-TR");
 
-    // Initial load checks
-    useEffect(() => {
-        const storedAuth = localStorage.getItem("admin_auth");
-        if (storedAuth === "true") {
-            setIsAuthenticated(true);
-            fetchArticles();
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
+    return articles.filter((article) => {
+      const matchesSection = sectionFilter === "all" || article.sectionId === sectionFilter;
+      const matchesQuery = !query || `${article.title} ${article.slug} ${article.category}`.toLocaleLowerCase("tr-TR").includes(query);
+      return matchesSection && matchesQuery;
+    });
+  }, [articles, deferredSearch, sectionFilter]);
 
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === "admin123" || password === "123456") {
-            setIsAuthenticated(true);
-            localStorage.setItem("admin_auth", "true");
-            toast.success("Başarıyla giriş yapıldı.");
-            fetchArticles();
-        } else {
-            toast.error("Hatalı şifre!");
-        }
+  const metrics = useMemo(() => {
+    const totalReadTime = articles.reduce((sum, article) => sum + parseReadTime(article.readTime), 0);
+    const sectionsCount = new Set(articles.map((article) => article.sectionId)).size;
+    return {
+      total: articles.length,
+      sections: sectionsCount,
+      avgReadTime: articles.length > 0 ? Math.round(totalReadTime / articles.length) : 0,
+      latest: lastEditedSlug || "-",
     };
+  }, [articles, lastEditedSlug]);
 
-    const handleLogout = () => {
-        setIsAuthenticated(false);
-        localStorage.removeItem("admin_auth");
-        setPassword("");
-        toast.info("Çıkış yapıldı.");
-    };
+  async function fetchArticles() {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/articles");
+      if (!response.ok) {
+        throw new Error("İçerikler alınamadı.");
+      }
 
-    const fetchArticles = async () => {
-        setIsLoading(true);
-        try {
-            const res = await fetch("/api/articles");
-            if (!res.ok) throw new Error("Veri çekilemedi");
-            const data = await res.json();
-            if (data && typeof data === "object") {
-                setArticles(Object.values(data));
-            }
-        } catch (error) {
-            console.error("Fetch error:", error);
-            toast.error("İçerikler yüklenirken bir hata oluştu.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      const data = (await response.json()) as Record<string, Partial<StoredArticle>>;
+      const list = Object.values(data).map((item) => toStoredArticle(toEditorArticle(item)));
+      setArticles(list);
+    } catch (error) {
+      console.error(error);
+      toast.error("Makale listesi yüklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
-    const handleDelete = async (slug: string) => {
-        if (!confirm("Bu içeriği kalıcı olarak silmek istediğinize emin misiniz?")) return;
-        try {
-            await fetch(`/api/articles?slug=${slug}`, { method: 'DELETE' });
-            toast.success("Makale başarıyla silindi.");
-            fetchArticles();
-        } catch (error) {
-            console.error("Delete error:", error);
-            toast.error("Silme işlemi başarısız oldu.");
-        }
-    };
+  useEffect(() => {
+    const storedAuth = localStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
+    setDraftSummary(readDraftSummary());
+    setLastEditedSlug(localStorage.getItem(LAST_EDITED_ARTICLE_KEY) || "");
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const res = await fetch("/api/articles", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentArticle)
-            });
-            if (!res.ok) throw new Error("Kaydedilemedi");
-
-            setIsEditing(false);
-            setCurrentArticle(null);
-            fetchArticles();
-            toast.success("Değişiklikler başarıyla kaydedildi ve yayınlandı!");
-        } catch (error) {
-            console.error("Save error:", error);
-            toast.error("Makale kaydedilirken bir hata oluştu.");
-        }
-    };
-
-    const startNewArticle = () => {
-        setCurrentArticle({
-            slug: "",
-            title: "",
-            description: "",
-            category: "Şantiye Notu",
-            categoryColor: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
-            badgeLabel: "Yeni",
-            author: "Admin Editör",
-            authorTitle: "Yönetici",
-            date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-            readTime: "5 dk okuma",
-            image: "https://images.unsplash.com/photo-1541888081622-4a004bbf63e5?q=80&w=2000&auto=format&fit=crop",
-            quote: { text: "İçerikle ilgili dikkat çekici bir alıntı veya söz yazın." },
-            sections: [{ id: "giris", title: "1. Giriş", content: "İlk paragraf buraya..." }],
-            relatedSlugs: []
-        });
-        setIsEditing(true);
-    };
-
-    const moveSection = (index: number, direction: 'up' | 'down') => {
-        const newSections = [...currentArticle.sections];
-        if (direction === 'up' && index > 0) {
-            const temp = newSections[index - 1];
-            newSections[index - 1] = newSections[index];
-            newSections[index] = temp;
-        } else if (direction === 'down' && index < newSections.length - 1) {
-            const temp = newSections[index + 1];
-            newSections[index + 1] = newSections[index];
-            newSections[index] = temp;
-        }
-        setCurrentArticle({ ...currentArticle, sections: newSections });
-    };
-
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
-                <m.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl shadow-blue-900/5 border border-zinc-200 dark:border-zinc-800 w-full max-w-sm relative overflow-hidden"
-                >
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                    <div className="mb-8 text-center flex flex-col items-center">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4 text-blue-700 dark:text-blue-500">
-                            <Settings className="w-6 h-6" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Yönetim Paneli</h2>
-                        <p className="text-sm text-zinc-500 mt-1">Sisteme erişmek için şifrenizi girin.</p>
-                    </div>
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                        <Input
-                            type="password"
-                            placeholder="*************"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            className="bg-zinc-100 dark:bg-zinc-800 h-11 border-transparent focus:bg-white dark:focus:bg-zinc-950 dark:border-zinc-700"
-                        />
-                        <Button type="submit" className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 text-white font-semibold">
-                            Sisteme Gir
-                        </Button>
-                        <p className="text-xs text-center text-zinc-400 mt-2 font-mono">auth: admin123</p>
-                    </form>
-                </m.div>
-            </div>
-        );
+    if (storedAuth === "true") {
+      setIsAuthenticated(true);
+    } else {
+      setIsLoading(false);
     }
 
+    setAuthChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void fetchArticles();
+    }
+  }, [isAuthenticated]);
+
+  function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, "true");
+      toast.success("Yönetim paneli açıldı.");
+      return;
+    }
+    toast.error("Şifre hatalı.");
+  }
+
+  function handleLogout() {
+    setIsAuthenticated(false);
+    localStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+    setPassword("");
+  }
+
+  async function handleDelete(slug: string) {
+    if (!window.confirm("Bu içeriği silmek istediğinize emin misiniz?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/articles?slug=${slug}`, { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("Silme başarısız.");
+      }
+      toast.success("İçerik silindi.");
+      await fetchArticles();
+    } catch (error) {
+      console.error(error);
+      toast.error("İçerik silinemedi.");
+    }
+  }
+
+  if (!authChecked) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return (
-        <div className="min-h-screen bg-[#F6F6F7] dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-50 flex flex-col">
-            <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30 shadow-sm">
-                <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 flex items-center justify-center bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg">
-                            <Settings className="w-4 h-4" />
-                        </div>
-                        <span className="font-bold text-lg tracking-tight">Portal <span className="text-zinc-400 font-normal">Workspace</span></span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={() => window.open('/', '_blank')}>
-                            Siteyi Görüntüle
-                        </Button>
-                        <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800"></div>
-                        <Button variant="ghost" size="sm" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white" onClick={handleLogout}>
-                            <LogOut className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Güvenli Çıkış</span>
-                        </Button>
-                    </div>
-                </div>
-            </header>
-
-            <main className="flex-1 max-w-[1600px] w-full mx-auto p-6 md:p-8">
-                {isEditing && currentArticle ? (
-                    <m.div
-                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col gap-6"
-                    >
-                        {/* Editör Header */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                            <div>
-                                <h1 className="text-2xl font-bold flex items-center gap-2">
-                                    <Edit2 className="w-6 h-6 text-blue-600" /> İçerik Düzenleyici
-                                </h1>
-                                <p className="text-sm text-zinc-500 mt-1">Değişiklikler anında canlı ortama yansır.</p>
-                            </div>
-                            <div className="flex gap-3 w-full sm:w-auto">
-                                <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsEditing(false)}>
-                                    <X className="w-4 h-4 mr-2" /> İptal Et
-                                </Button>
-                                <Button onClick={handleSave} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20">
-                                    <Check className="w-4 h-4 mr-2" /> Yayınla
-                                </Button>
-                            </div>
-                        </div>
-
-                        <form id="article-form" onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                            {/* Ana Düzenleme Alanı (Sol %66) */}
-                            <div className="lg:col-span-2 flex flex-col gap-8">
-
-                                {/* Temel Bilgiler Kartı */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 font-semibold flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-zinc-500" /> Temel İçerik Bilgileri
-                                    </div>
-                                    <div className="p-6 flex flex-col gap-6">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold flex items-center justify-between">
-                                                Makale Başlığı <span className="text-xs font-normal text-zinc-400">SEO için max 60 karakter önerilir</span>
-                                            </label>
-                                            <Input
-                                                value={currentArticle.title}
-                                                onChange={e => setCurrentArticle({ ...currentArticle, title: e.target.value })}
-                                                placeholder="Etkileyici bir başlık girin..."
-                                                className="h-12 text-lg font-medium"
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold">Özet / Spot Metin (Description)</label>
-                                            <textarea
-                                                className="px-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl min-h-[100px] text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full transition-all"
-                                                value={currentArticle.description}
-                                                onChange={e => setCurrentArticle({ ...currentArticle, description: e.target.value })}
-                                                placeholder="Makalenin kısa bir özetini yazın. Ana sayfada listelenirken bu metin görünecektir."
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold flex items-center gap-2">
-                                                <ImageIcon className="w-4 h-4" /> Kapak Görseli URL
-                                            </label>
-                                            <div className="flex gap-4">
-                                                <Input
-                                                    value={currentArticle.image}
-                                                    onChange={e => setCurrentArticle({ ...currentArticle, image: e.target.value })}
-                                                    placeholder="https://images.unsplash.com/..."
-                                                />
-                                            </div>
-                                            {currentArticle.image && (
-                                                <div className="mt-2 h-40 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 relative bg-zinc-100">
-                                                    <Image
-                                                        src={currentArticle.image}
-                                                        alt="Önizleme"
-                                                        fill
-                                                        className="object-cover"
-                                                        unoptimized // For user provided URLs that might not be in next.config
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* İçerik Editörü (Sections) */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
-                                    <div className="bg-zinc-50 dark:bg-zinc-900/50 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 font-semibold flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4 text-zinc-500" /> İçerik Bölümleri (Sections)
-                                        </div>
-                                        <Button type="button" size="sm" onClick={() => {
-                                            setCurrentArticle({ ...currentArticle, sections: [...currentArticle.sections, { id: `bolum-${Date.now()}`, title: "Yeni Alt Başlık", content: "" }] })
-                                        }} className="h-8">
-                                            <Plus className="w-4 h-4 mr-1" /> Bölüm Ekle
-                                        </Button>
-                                    </div>
-
-                                    <div className="p-6 flex flex-col gap-8">
-                                        <AnimatePresence>
-                                            {currentArticle.sections.map((sec: Section, idx: number) => (
-                                                <m.div
-                                                    key={sec.id || idx}
-                                                    initial={{ opacity: 0, height: 0 }}
-                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                    exit={{ opacity: 0, height: 0 }}
-                                                    className="flex flex-col gap-4 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950"
-                                                >
-                                                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                                                        <div className="flex items-center gap-1">
-                                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-900" onClick={() => moveSection(idx, 'up')} disabled={idx === 0}>
-                                                                <ArrowUp className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-900" onClick={() => moveSection(idx, 'down')} disabled={idx === currentArticle.sections.length - 1}>
-                                                                <ArrowDown className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                        <Input
-                                                            value={sec.id}
-                                                            onChange={e => {
-                                                                const newSecs = [...currentArticle.sections];
-                                                                newSecs[idx].id = e.target.value;
-                                                                setCurrentArticle({ ...currentArticle, sections: newSecs });
-                                                            }}
-                                                            placeholder="url-id (örn: sonuc)"
-                                                            className="sm:max-w-[150px] font-mono text-xs bg-white dark:bg-zinc-900"
-                                                        />
-                                                        <Input
-                                                            value={sec.title}
-                                                            onChange={e => {
-                                                                const newSecs = [...currentArticle.sections];
-                                                                newSecs[idx].title = e.target.value;
-                                                                setCurrentArticle({ ...currentArticle, sections: newSecs });
-                                                            }}
-                                                            placeholder="Bölüm Başlığı (H2)"
-                                                            className="flex-1 font-bold text-lg bg-white dark:bg-zinc-900"
-                                                        />
-                                                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-950" onClick={() => {
-                                                            const newSecs = currentArticle.sections.filter((_: Section, i: number) => i !== idx);
-                                                            setCurrentArticle({ ...currentArticle, sections: newSecs });
-                                                        }}>
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </Button>
-                                                    </div>
-                                                    <textarea
-                                                        className="px-4 py-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl min-h-[250px] text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono text-zinc-700 dark:text-zinc-300 transition-all font-medium leading-relaxed"
-                                                        value={sec.content}
-                                                        onChange={e => {
-                                                            const newSecs = [...currentArticle.sections];
-                                                            newSecs[idx].content = e.target.value;
-                                                            setCurrentArticle({ ...currentArticle, sections: newSecs });
-                                                        }}
-                                                        placeholder="Markdown formatında içerik metninizi yazabilirsiniz... (Örn: **kalın** veya - liste)"
-                                                    />
-                                                </m.div>
-                                            ))}
-                                        </AnimatePresence>
-
-                                        {currentArticle.sections.length === 0 && (
-                                            <div className="text-center py-10 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 text-zinc-500">
-                                                Henüz bölüm eklenmedi. Başlamak için &quot;Bölüm Ekle&quot; butonunu kullanın.
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Sağ Kolon (Yayın Ayarları %33) */}
-                            <div className="flex flex-col gap-6">
-
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col gap-5">
-                                    <h3 className="font-bold border-b border-zinc-100 dark:border-zinc-800 pb-3">Yayın & SEO Ayarları</h3>
-
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">URL Kısaltması (Slug)</label>
-                                        <Input
-                                            value={currentArticle.slug}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, slug: e.target.value })}
-                                            placeholder="ornek-url-yapisi"
-                                            className="font-mono text-sm"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Kategori Grubu</label>
-                                        <Input
-                                            value={currentArticle.category}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, category: e.target.value })}
-                                            placeholder="Örn: Şantiye Notu"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Rozet / Etiket Başlığı</label>
-                                        <Input
-                                            value={currentArticle.badgeLabel}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, badgeLabel: e.target.value })}
-                                            placeholder="Örn: Rehber, Analiz"
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 mt-4">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Kategori Rengi (Tailwind Classes)</label>
-                                        <Input
-                                            value={currentArticle.categoryColor}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, categoryColor: e.target.value })}
-                                            placeholder="bg-blue-100 text-blue-800..."
-                                            className="font-mono text-xs"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm flex flex-col gap-5">
-                                    <h3 className="font-bold border-b border-zinc-100 dark:border-zinc-800 pb-3">Yazar & Detaylar</h3>
-
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Yazar Adı</label>
-                                        <Input
-                                            value={currentArticle.author}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, author: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Yazar Ünvanı</label>
-                                        <Input
-                                            value={currentArticle.authorTitle}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, authorTitle: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Tarih</label>
-                                            <Input
-                                                value={currentArticle.date}
-                                                onChange={e => setCurrentArticle({ ...currentArticle, date: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Okuma S.</label>
-                                            <Input
-                                                value={currentArticle.readTime}
-                                                onChange={e => setCurrentArticle({ ...currentArticle, readTime: e.target.value })}
-                                                placeholder="5 dk okuma"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 mt-4">
-                                        <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Makale Alıntısı (Quote)</label>
-                                        <textarea
-                                            className="px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg min-h-[80px] text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full"
-                                            value={currentArticle.quote?.text || ""}
-                                            onChange={e => setCurrentArticle({ ...currentArticle, quote: { text: e.target.value } })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </m.div>
-                ) : (
-                    <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
-
-                        {/* Header Area */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                            <div>
-                                <h1 className="text-2xl font-bold">Makale Yönetimi</h1>
-                                <p className="text-zinc-500 text-sm mt-1">Sistemdeki tüm kayıtlı içerikleri buradan yönetebilirsiniz.</p>
-                            </div>
-                            <Button onClick={startNewArticle} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto h-11 px-6 shadow-md shadow-blue-500/20">
-                                <Plus className="w-4 h-4 mr-2" /> Yeni İçerik Ekle
-                            </Button>
-                            <Button asChild variant="outline" className="w-full sm:w-auto h-11 px-6 font-bold gap-2">
-                                <Link href="/admin/editor"><Sparkles className="w-4 h-4" /> Blok Editör</Link>
-                            </Button>
-                        </div>
-
-                        {/* List Area */}
-                        {isLoading ? (
-                            <div className="py-32 text-center text-zinc-500 flex flex-col items-center justify-center">
-                                <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mb-4"></div>
-                                <p>Veritabanına bağlanılıyor...</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {articles.map((art, idx) => (
-                                    <div key={idx} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-all hover:border-blue-200 dark:hover:border-blue-900">
-                                        <div className="h-40 w-full bg-zinc-100 relative overflow-hidden text-[0px]">
-                                            <Image
-                                                src={art.image}
-                                                alt={art.title}
-                                                fill
-                                                className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                                            />
-                                            <div className="absolute top-4 left-4">
-                                                <Badge className="bg-white/90 text-zinc-900 backdrop-blur-sm border-none shadow-sm">{art.category}</Badge>
-                                            </div>
-                                        </div>
-                                        <div className="p-5 flex-1 flex flex-col">
-                                            <h3 className="font-bold text-lg leading-tight mb-2 line-clamp-2">{art.title}</h3>
-                                            <p className="font-mono text-xs text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-1.5 rounded truncate mb-4">/{art.slug}</p>
-
-                                            <div className="mt-auto grid grid-cols-2 gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                                                <Button variant="outline" className="w-full font-medium" asChild>
-                                                    <Link href={`/admin/editor?edit=${art.slug}`}>
-                                                        <Edit2 className="w-4 h-4 mr-2" /> Düzenle
-                                                    </Link>
-                                                </Button>
-                                                <Button variant="outline" className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 font-medium" onClick={() => handleDelete(art.slug)}>
-                                                    <Trash2 className="w-4 h-4 mr-2" /> Sil
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                                {articles.length === 0 && (
-                                    <div className="col-span-1 md:col-span-2 xl:col-span-3 py-20 text-center text-zinc-500 bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700">
-                                        <FileText className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-                                        <p className="text-lg font-medium text-zinc-900 dark:text-white">Henüz makale bulunmuyor</p>
-                                        <p className="mb-6">İlk içeriğinizi oluşturmaya hemen başlayın.</p>
-                                        <Button onClick={startNewArticle} variant="outline">Yeni İçerik Oluştur</Button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </m.div>
-                )}
-            </main>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.18),transparent_24%),linear-gradient(180deg,#edf4ff_0%,#f7fafc_60%,#fbfbfd_100%)] px-4 py-20 dark:bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.25),transparent_28%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.22),transparent_24%),linear-gradient(180deg,#050b15_0%,#09111e_60%,#09111e_100%)]">
+        <div className="mx-auto max-w-md rounded-[32px] border border-white/70 bg-white/92 p-8 shadow-[0_28px_90px_-48px_rgba(15,23,42,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(29,78,216,0.12)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300">
+                <Shield className="h-4 w-4" />
+                Admin dashboard
+              </span>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">Modern yönetim paneli</h1>
+                <p className="mt-3 text-sm leading-7 text-zinc-500 dark:text-zinc-400">Editör çalışma alanına ve içerik yönetimine erişmek için şifreyi girin.</p>
+              </div>
+            </div>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white dark:bg-white dark:text-zinc-950">
+              <LayoutDashboard className="h-6 w-6" />
+            </div>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 rounded-2xl" placeholder="Şifre" />
+            <Button type="submit" className="h-12 w-full rounded-2xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100">Panele gir</Button>
+          </form>
+          <div className="mt-6 rounded-2xl border border-dashed border-zinc-200 px-4 py-4 text-xs leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Yönetici şifresi: <span className="font-black text-zinc-950 dark:text-zinc-100">admin123</span></div>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.14),transparent_24%),linear-gradient(180deg,#edf4ff_0%,#f5f7fb_50%,#fcfcfd_100%)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.2),transparent_28%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.18),transparent_24%),linear-gradient(180deg,#050b15_0%,#08111e_50%,#09111e_100%)]">
+      <div className="mx-auto flex max-w-[1700px] flex-col gap-6">
+        <div className={cn(PANEL_CLASS, "overflow-hidden p-6 md:p-8")}>
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className="rounded-full border-none bg-blue-100 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Content ops</Badge>
+                <Badge variant="outline" className="rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em]">{metrics.total} içerik</Badge>
+                <Badge variant="outline" className="rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em]">{metrics.sections} ana bölüm</Badge>
+              </div>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50 md:text-4xl">Yönetim dashboard’u</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-500 dark:text-zinc-400">Hızlı aksiyonlar, taslak devamı, filtrelenebilir içerik listesi ve yeni editöre giriş burada toplanıyor.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline" className="h-11 rounded-2xl"><Link href="/"><Eye className="h-4 w-4" />Siteyi aç</Link></Button>
+              <Button asChild variant="outline" className="h-11 rounded-2xl"><Link href="/admin/editor"><FilePenLine className="h-4 w-4" />Editöre geç</Link></Button>
+              <Button type="button" variant="ghost" className="h-11 rounded-2xl" onClick={handleLogout}><X className="h-4 w-4" />Çıkış</Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className={cn(PANEL_CLASS, "px-5 py-5")}><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Toplam içerik</p><p className="mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{metrics.total}</p></div>
+          <div className={cn(PANEL_CLASS, "px-5 py-5")}><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Ortalama okuma</p><p className="mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{metrics.avgReadTime} dk</p></div>
+          <div className={cn(PANEL_CLASS, "px-5 py-5")}><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Son düzenlenen</p><p className="mt-2 truncate text-base font-black text-zinc-950 dark:text-zinc-50">{metrics.latest}</p></div>
+          <div className={cn(PANEL_CLASS, "px-5 py-5")}><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Taslak durumu</p><p className="mt-2 text-base font-black text-zinc-950 dark:text-zinc-50">{draftSummary ? "Hazır" : "Yok"}</p></div>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+          <aside className={cn(PANEL_CLASS, "p-5")}>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Hızlı aksiyonlar</p>
+            <div className="mt-4 grid gap-3">
+              <Button asChild className="h-12 justify-between rounded-2xl"><Link href="/admin/editor"><span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" />Boş içerik başlat</span><ArrowRight className="h-4 w-4" /></Link></Button>
+              <Button asChild variant="outline" className="h-12 justify-between rounded-2xl"><Link href="/admin/editor?template=field-guide"><span className="inline-flex items-center gap-2"><Wand2 className="h-4 w-4" />Şablonla başlat</span><ArrowRight className="h-4 w-4" /></Link></Button>
+              <Button asChild variant="outline" className="h-12 justify-between rounded-2xl" disabled={!draftSummary}><Link href="/admin/editor?draft=1"><span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4" />Taslağa devam et</span><ArrowRight className="h-4 w-4" /></Link></Button>
+            </div>
+
+            {draftSummary ? (
+              <div className="mt-5 rounded-[24px] border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-900 dark:bg-blue-950/30">
+                <p className="text-sm font-black text-zinc-950 dark:text-zinc-50">{draftSummary.title}</p>
+                <p className="mt-1 text-xs leading-6 text-zinc-500 dark:text-zinc-400">/{draftSummary.slug}</p>
+                <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{draftSummary.savedAt ? new Date(draftSummary.savedAt).toLocaleString("tr-TR") : "Yakın zamanda"} kaydedildi.</p>
+              </div>
+            ) : null}
+
+            <div className="mt-5 rounded-[24px] border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Bölüm presetleri</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {SECTION_PRESETS.map((preset) => (
+                  <Badge key={preset.sectionId} variant="outline" className="rounded-full px-3 py-2 text-[11px] font-bold">{SITE_SECTIONS.find((section) => section.id === preset.sectionId)?.title || preset.sectionId}</Badge>
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          <section className={cn(PANEL_CLASS, "p-5")}>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-1 gap-3">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                  <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-11 rounded-2xl pl-11" placeholder="Başlık, slug veya kategori ara" />
+                </div>
+                <select value={sectionFilter} onChange={(event) => setSectionFilter(event.target.value)} className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50">
+                  <option value="all">Tüm bölümler</option>
+                  {SITE_SECTIONS.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}
+                </select>
+              </div>
+              <Badge variant="outline" className="rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em]">{filteredArticles.length} sonuç</Badge>
+            </div>
+
+            {isLoading ? (
+              <div className="flex min-h-[300px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                {filteredArticles.map((article) => (
+                  <article key={article.slug} className="overflow-hidden rounded-[26px] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+                    <div className="relative h-44 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+                      {article.image ? <Image src={article.image} alt={article.title} fill className="object-cover" unoptimized /> : null}
+                    </div>
+                    <div className="space-y-4 p-5">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={cn("border-none text-[10px] font-black uppercase tracking-[0.18em]", article.categoryColor)}>{article.category}</Badge>
+                        <Badge variant="outline" className="text-[10px] font-black uppercase tracking-[0.18em]">{SITE_SECTIONS.find((section) => section.id === article.sectionId)?.title || article.sectionId}</Badge>
+                      </div>
+                      <div>
+                        <h2 className="line-clamp-2 text-lg font-black leading-snug text-zinc-950 dark:text-zinc-50">{article.title}</h2>
+                        <p className="mt-2 line-clamp-3 text-sm leading-7 text-zinc-500 dark:text-zinc-400">{article.description}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">
+                        <span>{article.readTime}</span>
+                        <span>{article.sections.length} bölüm</span>
+                        <span>/{article.slug}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button asChild variant="outline" className="rounded-2xl"><Link href={`/admin/editor?edit=${article.slug}`}><FilePenLine className="h-4 w-4" />Düzenle</Link></Button>
+                        <Button asChild variant="outline" className="rounded-2xl"><Link href={`/admin/editor?duplicate=${article.slug}`}><Copy className="h-4 w-4" />Kopyala</Link></Button>
+                        <Button asChild variant="outline" className="rounded-2xl"><Link href={`/${article.slug}`}><Eye className="h-4 w-4" />Aç</Link></Button>
+                        <Button type="button" variant="outline" className="rounded-2xl text-red-600" onClick={() => void handleDelete(article.slug)}><Trash2 className="h-4 w-4" />Sil</Button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 }

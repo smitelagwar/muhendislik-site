@@ -100,7 +100,7 @@ export default function RootLayout({
 
   return (
     <html lang="tr" suppressHydrationWarning>
-      <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
+      <body className={`${plexSans.variable} ${plexMono.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ToastProvider>
             <div className="flex min-h-screen flex-col">

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>İnşa Blog — Marka Kiti</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --navy:    #162448;
+  --navy-80: #162448cc;
+  --navy-40: #16244866;
+  --navy-10: #1624481a;
+  --blue-light: #C8D8FF;
+  --white:   #FFFFFF;
+  --off-white: #F8F8F8;
+  --cream:   #FAF7F0;
+  --text:    #1a1a1a;
+  --muted:   #888;
+  --rule:    #e0ddd8;
+}
+
+body {
+  font-family: 'Space Mono', monospace;
+  background: #EEEAE2;
+  color: var(--text);
+  padding: 60px 24px 100px;
+  line-height: 1.6;
+}
+
+.wrap { max-width: 860px; margin: 0 auto; }
+
+/* ── Header ── */
+.brand-header {
+  background: var(--navy);
+  border-radius: 16px;
+  padding: 48px;
+  margin-bottom: 48px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.brand-header img { width: 280px; height: auto; }
+.brand-header-text h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: white;
+  margin-bottom: 8px;
+}
+.brand-header-text p {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #ffffff60;
+  text-transform: uppercase;
+}
+
+/* ── Section ── */
+.section { margin-bottom: 52px; }
+.section-title {
+  font-size: 9px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+}
+
+/* ── Logo grid ── */
+.logo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.logo-tile {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+}
+.logo-tile.dark-bg { background: var(--navy); }
+.logo-tile.light-bg { background: var(--white); }
+.logo-tile.cream-bg { background: var(--cream); }
+.logo-tile.transparent-demo {
+  background: repeating-conic-gradient(#ccc 0% 25%, #eee 0% 50%) 0 0 / 16px 16px;
+}
+.logo-tile-inner {
+  padding: 28px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo-tile-label {
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: #aaa;
+  background: rgba(0,0,0,0.08);
+}
+.logo-tile.light-bg .logo-tile-label { border-top-color: var(--rule); background: #f4f4f4; color: #999; }
+
+.logo-tile img, .logo-tile svg { max-width: 100%; height: auto; display: block; }
+
+/* ── Colors ── */
+.color-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.swatch-group { display: flex; flex-direction: column; gap: 6px; }
+.swatch {
+  width: 80px; height: 80px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.swatch-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #888;
+  text-align: center;
+}
+.swatch-hex {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+/* ── Typography ── */
+.type-row { display: flex; flex-direction: column; gap: 16px; }
+.type-item {
+  background: white;
+  border-radius: 10px;
+  padding: 20px 24px;
+  border: 1px solid var(--rule);
+}
+.type-meta { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
+.type-sample-serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: 2px;
+}
+.type-sample-condensed {
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--navy);
+}
+.type-sample-mono {
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #555;
+}
+
+/* ── Files ── */
+.file-list { display: flex; flex-direction: column; gap: 10px; }
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 8px;
+  padding: 14px 20px;
+  border: 1px solid var(--rule);
+}
+.file-icon {
+  width: 36px; height: 36px;
+  background: var(--navy);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.file-name { font-size: 11px; font-weight: 700; color: var(--navy); letter-spacing: 1px; }
+.file-desc { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; }
+
+/* ── Usage rules ── */
+.rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rule-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+}
+.rule-card.do { border-left: 3px solid #3A8C4A; }
+.rule-card.dont { border-left: 3px solid #C0392B; }
+.rule-card-label {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.rule-card.do .rule-card-label { color: #3A8C4A; }
+.rule-card.dont .rule-card-label { color: #C0392B; }
+.rule-card p { font-size: 10px; color: #666; line-height: 1.8; letter-spacing: 0.5px; }
+
+/* ── Antigravity block ── */
+.antigravity-box {
+  background: var(--navy);
+  border-radius: 14px;
+  padding: 36px 40px;
+  color: white;
+}
+.antigravity-box h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  letter-spacing: 4px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--blue-light);
+  text-transform: uppercase;
+}
+.ag-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.ag-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #ffffff15;
+  border: 1px solid #ffffff30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: var(--blue-light);
+}
+.ag-step p { font-size: 11px; letter-spacing: 1px; line-height: 1.7; color: #ffffffcc; }
+.ag-step strong { color: white; }
+.ag-divider { border: none; border-top: 1px solid #ffffff15; margin: 20px 0; }
+.ag-prompt {
+  background: #ffffff0d;
+  border: 1px solid #ffffff20;
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #ffffffcc;
+  letter-spacing: 0.5px;
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="brand-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="280" height="93">
+      <path d="M18,50 L18,26 L44,26" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+      <path d="M70,26 L70,50"        fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+      <path d="M18,76 L18,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+      <path d="M70,76 L70,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+      <text x="26" y="82" font-family="'Barlow Condensed','Arial Narrow',Arial,sans-serif" font-size="48" font-weight="600" fill="#FFF" letter-spacing="-2">İB</text>
+      <rect x="88" y="28" width="1" height="84" fill="#ffffff20"/>
+      <text x="102" y="72" font-family="Georgia,serif" font-size="42" font-weight="600" letter-spacing="5" fill="#FFF">İNŞA</text>
+      <text x="104" y="96" font-family="'Arial Narrow',Arial,sans-serif" font-size="15" font-weight="300" letter-spacing="13" fill="#C8D8FF">BLOG</text>
+      <rect x="102" y="104" width="260" height="0.8" fill="#ffffff20"/>
+      <text x="102" y="118" font-family="'Courier New',monospace" font-size="7.5" letter-spacing="3" fill="#ffffff45">MÜHENDİSLİK · YAPI · ANALİZ</text>
+    </svg>
+    <div class="brand-header-text">
+      <h1>MARKA KİTİ</h1>
+      <p>İnşa Blog · Logo & Renk Sistemi</p>
+    </div>
+  </div>
+
+  <!-- ── LOGO VERSİYONLARI ── -->
+  <div class="section">
+    <p class="section-title">Logo Versiyonları</p>
+    <div class="logo-grid">
+
+      <div class="logo-tile light-bg">
+        <div class="logo-tile-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="100%" height="auto">
+            <path d="M18,50 L18,26 L44,26" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,26 L70,50"        fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M18,76 L18,100 L44,100" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,76 L70,100 L44,100" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <text x="26" y="82" font-family="Georgia,serif" font-size="48" font-weight="600" fill="#162448" letter-spacing="-2">İB</text>
+            <rect x="88" y="28" width="1" height="84" fill="#16244820"/>
+            <text x="102" y="72" font-family="Georgia,serif" font-size="42" font-weight="600" letter-spacing="5" fill="#162448">İNŞA</text>
+            <text x="104" y="96" font-family="Arial,sans-serif" font-size="15" font-weight="300" letter-spacing="13" fill="#162448">BLOG</text>
+            <rect x="102" y="104" width="260" height="0.8" fill="#16244830"/>
+            <text x="102" y="118" font-family="'Courier New',monospace" font-size="7.5" letter-spacing="3" fill="#16244860">MÜHENDİSLİK · YAPI · ANALİZ</text>
+          </svg>
+        </div>
+        <div class="logo-tile-label">logo-light.svg — Açık Tema / Light Mode</div>
+      </div>
+
+      <div class="logo-tile dark-bg">
+        <div class="logo-tile-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="100%" height="auto">
+            <path d="M18,50 L18,26 L44,26" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,26 L70,50"        fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M18,76 L18,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,76 L70,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <text x="26" y="82" font-family="Georgia,serif" font-size="48" font-weight="600" fill="#FFF" letter-spacing="-2">İB</text>
+            <rect x="88" y="28" width="1" height="84" fill="#ffffff20"/>
+            <text x="102" y="72" font-family="Georgia,serif" font-size="42" font-weight="600" letter-spacing="5" fill="#FFF">İNŞA</text>
+            <text x="104" y="96" font-family="Arial,sans-serif" font-size="15" font-weight="300" letter-spacing="13" fill="#C8D8FF">BLOG</text>
+            <rect x="102" y="104" width="260" height="0.8" fill="#ffffff20"/>
+            <text x="102" y="118" font-family="'Courier New',monospace" font-size="7.5" letter-spacing="3" fill="#ffffff45">MÜHENDİSLİK · YAPI · ANALİZ</text>
+          </svg>
+        </div>
+        <div class="logo-tile-label">logo-dark.svg — Koyu Tema / Dark Mode</div>
+      </div>
+
+      <div class="logo-tile transparent-demo">
+        <div class="logo-tile-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="100%" height="auto">
+            <path d="M18,50 L18,26 L44,26" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,26 L70,50"        fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M18,76 L18,100 L44,100" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,76 L70,100 L44,100" fill="none" stroke="#162448" stroke-width="2.5" stroke-linecap="square"/>
+            <text x="26" y="82" font-family="Georgia,serif" font-size="48" font-weight="600" fill="#162448" letter-spacing="-2">İB</text>
+            <rect x="88" y="28" width="1" height="84" fill="#16244820"/>
+            <text x="102" y="72" font-family="Georgia,serif" font-size="42" font-weight="600" letter-spacing="5" fill="#162448">İNŞA</text>
+            <text x="104" y="96" font-family="Arial,sans-serif" font-size="15" font-weight="300" letter-spacing="13" fill="#162448">BLOG</text>
+          </svg>
+        </div>
+        <div class="logo-tile-label" style="background:#f0ede8;border-top:1px solid #ddd;color:#999;">logo-transparent-dark.svg — Şeffaf (Koyu Yazı)</div>
+      </div>
+
+      <div class="logo-tile" style="background:#2a2a3e;">
+        <div class="logo-tile-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 140" width="100%" height="auto">
+            <path d="M18,50 L18,26 L44,26" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,26 L70,50"        fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M18,76 L18,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <path d="M70,76 L70,100 L44,100" fill="none" stroke="#FFF" stroke-width="2.5" stroke-linecap="square"/>
+            <text x="26" y="82" font-family="Georgia,serif" font-size="48" font-weight="600" fill="#FFF" letter-spacing="-2">İB</text>
+            <rect x="88" y="28" width="1" height="84" fill="#ffffff20"/>
+            <text x="102" y="72" font-family="Georgia,serif" font-size="42" font-weight="600" letter-spacing="5" fill="#FFF">İNŞA</text>
+            <text x="104" y="96" font-family="Arial,sans-serif" font-size="15" font-weight="300" letter-spacing="13" fill="#C8D8FF">BLOG</text>
+          </svg>
+        </div>
+        <div class="logo-tile-label">logo-transparent-white.svg — Şeffaf (Beyaz Yazı)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FAVİCON ── -->
+  <div class="section">
+    <p class="section-title">Favicon & Site İkonu</p>
+    <div style="display:flex;gap:20px;align-items:center;background:white;padding:24px 28px;border-radius:10px;border:1px solid var(--rule);">
+      <div style="display:flex;gap:16px;align-items:flex-end;">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+            <rect width="64" height="64" fill="#162448" rx="10"/>
+            <path d="M8,22 L8,8 L22,8"   fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M42,8  L56,8 L56,22" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M8,42  L8,56 L22,56" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M42,56 L56,56 L56,42" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <text x="10" y="46" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#FFF" letter-spacing="-1">İB</text>
+          </svg>
+          <div style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;letter-spacing:1px;">64px</div>
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32">
+            <rect width="64" height="64" fill="#162448" rx="8"/>
+            <path d="M8,22 L8,8 L22,8"   fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M42,8  L56,8 L56,22" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M8,42  L8,56 L22,56" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <path d="M42,56 L56,56 L56,42" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="square"/>
+            <text x="10" y="46" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#FFF" letter-spacing="-1">İB</text>
+          </svg>
+          <div style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;letter-spacing:1px;">32px</div>
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+            <rect width="64" height="64" fill="#162448"/>
+            <text x="10" y="46" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#FFF" letter-spacing="-1">İB</text>
+          </svg>
+          <div style="font-size:9px;color:#aaa;text-align:center;margin-top:6px;letter-spacing:1px;">16px</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#888;line-height:2;letter-spacing:1px;margin-left:12px;">
+        <div><strong style="color:#162448;">favicon.svg</strong> — Tarayıcı sekmesi, yer imleri</div>
+        <div>Antigravity → Site Ayarları → Site İkonu bölümüne yükle</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RENK PALETİ ── -->
+  <div class="section">
+    <p class="section-title">Renk Paleti</p>
+    <div class="color-row">
+      <div class="swatch-group">
+        <div class="swatch" style="background:#162448;"></div>
+        <div class="swatch-hex">#162448</div>
+        <div class="swatch-label">Ana Lacivert</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#1E3360;"></div>
+        <div class="swatch-hex">#1E3360</div>
+        <div class="swatch-label">Koyu Hover</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#C8D8FF;"></div>
+        <div class="swatch-hex">#C8D8FF</div>
+        <div class="swatch-label">Açık Mavi</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#FFFFFF; border:1px solid #ddd;"></div>
+        <div class="swatch-hex">#FFFFFF</div>
+        <div class="swatch-label">Beyaz</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#FAF7F0; border:1px solid #ddd;"></div>
+        <div class="swatch-hex">#FAF7F0</div>
+        <div class="swatch-label">Krem</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#F0EDE6; border:1px solid #ddd;"></div>
+        <div class="swatch-hex">#F0EDE6</div>
+        <div class="swatch-label">Arka Plan</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#444444;"></div>
+        <div class="swatch-hex">#444444</div>
+        <div class="swatch-label">Metin</div>
+      </div>
+      <div class="swatch-group">
+        <div class="swatch" style="background:#888888;"></div>
+        <div class="swatch-hex">#888888</div>
+        <div class="swatch-label">İkincil Metin</div>
+      </div>
+    </div>
+
+    <!-- CSS Variables -->
+    <div style="margin-top:20px;background:#1a1a1a;border-radius:10px;padding:20px 24px;overflow:auto;">
+      <pre style="font-family:'Courier New',monospace;font-size:11px;color:#88b8ff;line-height:1.9;letter-spacing:0.5px;">:root {
+  --color-primary:     #162448;   /* Ana lacivert             */
+  --color-primary-dark:#1E3360;   /* Hover / aktif lacivert   */
+  --color-accent:      #C8D8FF;   /* Açık mavi vurgu          */
+  --color-bg:          #F0EDE6;   /* Sayfa arka planı         */
+  --color-bg-card:     #FFFFFF;   /* Kart / içerik zemini     */
+  --color-text:        #162448;   /* Ana metin                */
+  --color-text-muted:  #888888;   /* İkincil / meta metin     */
+  --color-border:      #E0DDD8;   /* Çizgi / kenarlık         */
+}</pre>
+    </div>
+  </div>
+
+  <!-- ── TİPOGRAFİ ── -->
+  <div class="section">
+    <p class="section-title">Tipografi</p>
+    <div class="type-row">
+      <div class="type-item">
+        <div class="type-meta">BAŞLIK — Cormorant Garamond (Serif)</div>
+        <div class="type-sample-serif">İnşaat Mühendisliği</div>
+        <div style="font-size:9px;color:#bbb;margin-top:8px;letter-spacing:1px;">font-family: 'Cormorant Garamond', Georgia, serif · Logo & H1 başlıkları</div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">ALT BAŞLIK — Barlow Condensed</div>
+        <div class="type-sample-condensed">YAPI · TASARIM · ANALİZ</div>
+        <div style="font-size:9px;color:#bbb;margin-top:8px;letter-spacing:1px;">font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif · Etiketler & nav</div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">GÖVDE METNİ — Space Mono / System</div>
+        <div class="type-sample-mono">Betonarme yapılarda kalıp sistemi seçimi, döşeme yüklerini karşılayan kritik bir mühendislik kararıdır.</div>
+        <div style="font-size:9px;color:#bbb;margin-top:8px;letter-spacing:1px;">font-family: 'Space Mono', system-ui, sans-serif · Paragraflar & meta bilgiler</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DOSYA LİSTESİ ── -->
+  <div class="section">
+    <p class="section-title">Paket İçindeki Dosyalar</p>
+    <div class="file-list">
+      <div class="file-item">
+        <div class="file-icon">SVG</div>
+        <div>
+          <div class="file-name">logo-light.svg</div>
+          <div class="file-desc">Beyaz arka plan · Light mode header logosu · Antigravity → Logo → Açık Tema</div>
+        </div>
+      </div>
+      <div class="file-item">
+        <div class="file-icon">SVG</div>
+        <div>
+          <div class="file-name">logo-dark.svg</div>
+          <div class="file-desc">Lacivert arka plan · Dark mode header logosu · Antigravity → Logo → Koyu Tema</div>
+        </div>
+      </div>
+      <div class="file-item">
+        <div class="file-icon">SVG</div>
+        <div>
+          <div class="file-name">logo-transparent-dark.svg</div>
+          <div class="file-desc">Şeffaf zemin, koyu yazı · Açık renkli sayfa başlıklarında kullan</div>
+        </div>
+      </div>
+      <div class="file-item">
+        <div class="file-icon">SVG</div>
+        <div>
+          <div class="file-name">logo-transparent-white.svg</div>
+          <div class="file-desc">Şeffaf zemin, beyaz yazı · Koyu hero / banner alanlarında kullan</div>
+        </div>
+      </div>
+      <div class="file-item">
+        <div class="file-icon">SVG</div>
+        <div>
+          <div class="file-name">favicon.svg</div>
+          <div class="file-desc">Site ikonu · Antigravity → Site Ayarları → Favicon alanına yükle</div>
+        </div>
+      </div>
+      <div class="file-item">
+        <div class="file-icon" style="background:#2a2a3e;">KİT</div>
+        <div>
+          <div class="file-name">brand-kit.html</div>
+          <div class="file-desc">Bu dosya · Tüm marka rehberi, renkler, tipografi ve kullanım kuralları</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KULLANIM KURALLARI ── -->
+  <div class="section">
+    <p class="section-title">Kullanım Kuralları</p>
+    <div class="rules-grid">
+      <div class="rule-card do">
+        <div class="rule-card-label">✓ Yapılacaklar</div>
+        <p>
+          Açık temalarda logo-light.svg kullan<br>
+          Koyu temalarda logo-dark.svg kullan<br>
+          Logonun etrafında en az 20px boşluk bırak<br>
+          Favicon'u 32×32 ve 64×64 boyutlarında kullan<br>
+          Renk paletindeki değerleri CSS değişkeni olarak kullan
+        </p>
+      </div>
+      <div class="rule-card dont">
+        <div class="rule-card-label">✗ Yapılmayacaklar</div>
+        <p>
+          Logoyu renkli veya fotoğraflı zemine koyma<br>
+          Logonun oranlarını değiştirme / bozma<br>
+          Logo üzerine metin veya şekil bindirme<br>
+          İB harflerini ayrı kullanma<br>
+          Renk paletinin dışına çıkma
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANTİGRAVİTY TALİMATLARI ── -->
+  <div class="section">
+    <div class="antigravity-box">
+      <h3>Antigravity'e Uygulama Talimatları</h3>
+      <div class="ag-step">
+        <div class="ag-num">1</div>
+        <p>Bu paketteki <strong>tüm SVG dosyalarını</strong> Antigravity → Medya Kütüphanesi'ne yükle.</p>
+      </div>
+      <div class="ag-step">
+        <div class="ag-num">2</div>
+        <p>Site Ayarları → Görünüm → Logo: <strong>logo-light.svg</strong> (açık tema), <strong>logo-dark.svg</strong> (koyu tema) olarak ata.</p>
+      </div>
+      <div class="ag-step">
+        <div class="ag-num">3</div>
+        <p>Site Ayarları → Favicon: <strong>favicon.svg</strong> dosyasını yükle.</p>
+      </div>
+      <div class="ag-step">
+        <div class="ag-num">4</div>
+        <p>Tema Renkleri bölümüne bu brand-kit.html'deki <strong>CSS değişkenlerini</strong> yapıştır.</p>
+      </div>
+      <hr class="ag-divider"/>
+      <p style="font-size:9px;letter-spacing:3px;color:#ffffff60;margin-bottom:12px;text-transform:uppercase;">Hazır Prompt — Antigravity'e Yapıştır</p>
+      <div class="ag-prompt">
+        "Bu paketteki dosyaları kullanarak siteye marka kimliğini uygula. logo-light.svg'yi açık tema header'ına, logo-dark.svg'yi koyu tema header'ına yerleştir. favicon.svg'yi site ikonu olarak ayarla. Renk paletinde birincil renk #162448, vurgu rengi #C8D8FF olsun. Tipografi olarak başlıklarda Cormorant Garamond, metin gövdesinde sistem fontu kullanılsın."
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="36" fill="#ECFCCB"/>
+  <rect x="60" y="60" width="1080" height="555" rx="28" fill="#365314"/>
+  <path d="M118 470c120-90 220-120 320-120 100 0 200 30 320 30 120 0 220-40 324-140v172H118Z" fill="#84CC16"/>
+  <path d="M118 548h964" stroke="#ECFCCB" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="286" cy="294" r="72" fill="#A3E635"/>
+  <circle cx="602" cy="246" r="60" fill="#D9F99D"/>
+  <circle cx="870" cy="300" r="90" fill="#65A30D"/>
+  <text x="118" y="118" fill="#ECFCCB" font-size="42" font-family="Arial, sans-serif" font-weight="700">Peyzaj, punch ve teslim akışı</text>
+</svg>

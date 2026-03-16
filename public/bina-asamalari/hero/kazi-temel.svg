@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="36" fill="#FEF3C7"/>
+  <rect x="60" y="60" width="1080" height="555" rx="28" fill="#92400E"/>
+  <path d="M120 196h960" stroke="#F59E0B" stroke-width="16" stroke-linecap="round"/>
+  <path d="M160 260C320 360 500 420 600 520c100-100 280-160 440-260" stroke="#FCD34D" stroke-width="24" stroke-linecap="round"/>
+  <rect x="148" y="406" width="908" height="142" rx="24" fill="#FEF3C7"/>
+  <circle cx="302" cy="250" r="24" fill="#FCD34D"/>
+  <circle cx="442" cy="312" r="24" fill="#FCD34D"/>
+  <circle cx="756" cy="312" r="24" fill="#FCD34D"/>
+  <circle cx="896" cy="250" r="24" fill="#FCD34D"/>
+  <text x="148" y="116" fill="#FEF3C7" font-size="42" font-family="Arial, sans-serif" font-weight="700">Kazı ve temel emniyeti</text>
+</svg>

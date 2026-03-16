@@ -1,4 +1,5 @@
 import { getArticles } from "@/lib/articles-data";
+import { getAllBinaGuidePaths } from "@/lib/bina-asamalari-content";
 import type { MetadataRoute } from "next";
 import { resolveSiteUrl } from "@/lib/site-config";
 
@@ -8,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
     { pathname: "/kategori/araclar", changeFrequency: "weekly" as const, priority: 0.8 },
+    { pathname: "/kategori/bina-asamalari", changeFrequency: "weekly" as const, priority: 0.75 },
     { pathname: "/kategori/araclar/donati-hesabi", changeFrequency: "monthly" as const, priority: 0.7 },
     { pathname: "/kategori/araclar/kolon-on-boyutlandirma", changeFrequency: "monthly" as const, priority: 0.7 },
     { pathname: "/kategori/araclar/kiris-kesiti", changeFrequency: "monthly" as const, priority: 0.7 },
@@ -28,6 +30,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "weekly",
     priority: 0.8,
   }));
+  const binaGuideEntries: MetadataRoute.Sitemap = getAllBinaGuidePaths().map((slugPath) => ({
+    url: resolveSiteUrl(`/kategori/bina-asamalari/${slugPath}`),
+    lastModified: new Date(),
+    changeFrequency: "weekly",
+    priority: 0.72,
+  }));
 
   return [
     ...staticRoutes.map((route) => ({
@@ -37,5 +45,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: route.priority,
     })),
     ...articleEntries,
+    ...binaGuideEntries,
   ];
 }

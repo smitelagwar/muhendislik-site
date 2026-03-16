@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   Check,
@@ -34,6 +35,9 @@ interface ArticleClientProps {
   article: ArticleData;
   relatedArticles: ArticleData[];
   parsedSections: ParsedSection[];
+  breadcrumbs?: { title: string; href: string }[];
+  backLink?: { title: string; href: string };
+  hideToolPromos?: boolean;
 }
 
 type ParsedSection = ArticleData["sections"][number] & { blocks: ParsedBlock[] };
@@ -201,7 +205,14 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
   );
 }
 
-export default function ArticleClient({ article, relatedArticles, parsedSections }: ArticleClientProps) {
+export default function ArticleClient({
+  article,
+  relatedArticles,
+  parsedSections,
+  breadcrumbs,
+  backLink,
+  hideToolPromos = false,
+}: ArticleClientProps) {
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
   const [activeId, setActiveId] = useState(parsedSections[0]?.id || "");
   const section = getSiteSectionForArticle(article);
@@ -237,18 +248,47 @@ export default function ArticleClient({ article, relatedArticles, parsedSections
     return () => observer.disconnect();
   }, [parsedSections]);
 
+  const breadcrumbItems = breadcrumbs ?? [
+    { title: "Ana Sayfa", href: "/" },
+    { title: section?.title || article.category, href: sectionHref },
+    { title: article.title, href: `/${article.slug}` },
+  ];
+
   return (
     <LazyMotion features={domAnimation}>
       <div className="relative flex flex-col">
         <ScrollProgress />
         <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-8 sm:px-6 lg:flex-row lg:px-8 md:py-12">
           <article className="mx-auto w-full max-w-3xl lg:w-8/12 xl:mx-0">
+            {backLink ? (
+              <div className="mb-4">
+                <Link
+                  href={backLink.href}
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 transition hover:border-blue-200 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-900/50 dark:hover:text-blue-400"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {backLink.title}
+                </Link>
+              </div>
+            ) : null}
+
             <nav className="no-scrollbar mb-8 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-xs font-bold text-zinc-500">
-              <Link href="/" className="transition-colors hover:text-blue-600">Ana Sayfa</Link>
-              <ChevronRight className="h-3 w-3 flex-shrink-0" />
-              <Link href={sectionHref} className="transition-colors hover:text-blue-600">{section?.title || article.category}</Link>
-              <ChevronRight className="h-3 w-3 flex-shrink-0" />
-              <span className="max-w-[220px] truncate text-zinc-900 dark:text-zinc-300 md:max-w-xs">{article.title}</span>
+              {breadcrumbItems.map((item, index) => {
+                const isLast = index === breadcrumbItems.length - 1;
+
+                return (
+                  <div key={`${item.href}-${index}`} className="flex items-center gap-2">
+                    {isLast ? (
+                      <span className="max-w-[220px] truncate text-zinc-900 dark:text-zinc-300 md:max-w-xs">{item.title}</span>
+                    ) : (
+                      <Link href={item.href} className="transition-colors hover:text-blue-600">
+                        {item.title}
+                      </Link>
+                    )}
+                    {!isLast ? <ChevronRight className="h-3 w-3 flex-shrink-0" /> : null}
+                  </div>
+                );
+              })}
             </nav>
 
             <header className="mb-10">
@@ -339,7 +379,7 @@ export default function ArticleClient({ article, relatedArticles, parsedSections
                       <p className="m-0 text-xl font-extrabold italic leading-relaxed text-blue-900 dark:text-blue-100 sm:text-2xl">&ldquo;{article.quote.text}&rdquo;</p>
                     </div>
                   ) : null}
-                  {sectionIndex === 1 ? <InFlowToolCta articleSlug={article.slug} /> : null}
+                  {!hideToolPromos && sectionIndex === 1 ? <InFlowToolCta articleSlug={article.slug} /> : null}
                 </div>
               ))}
 
@@ -401,18 +441,20 @@ export default function ArticleClient({ article, relatedArticles, parsedSections
                 </ScrollArea>
               </div>
 
-              <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h4 className="mb-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">İşinize yarayabilir</h4>
-                <p className="mb-6 text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100">
-                  {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresi hesabını araç üzerinden hemen açın." : "Tüm hesap araçlarını tek kategoride açıp ihtiyacınız olan araca geçin."}
-                </p>
-                <Button asChild size="sm" className="h-10 w-full rounded-xl bg-blue-700 font-bold text-white hover:bg-blue-800">
-                  <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF}>
-                    {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm araçları aç"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
+              {!hideToolPromos ? (
+                <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <h4 className="mb-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">İşinize yarayabilir</h4>
+                  <p className="mb-6 text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100">
+                    {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresi hesabını araç üzerinden hemen açın." : "Tüm hesap araçlarını tek kategoride açıp ihtiyacınız olan araca geçin."}
+                  </p>
+                  <Button asChild size="sm" className="h-10 w-full rounded-xl bg-blue-700 font-bold text-white hover:bg-blue-800">
+                    <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF}>
+                      {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm araçları aç"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </aside>
         </main>

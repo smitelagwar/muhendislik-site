@@ -6,6 +6,7 @@ import {
     ChevronRight,
     Clock,
     FileText,
+    GitBranchPlus,
     HardHat,
     Layers,
     Leaf,
@@ -18,6 +19,7 @@ import { getSiteSectionById, matchesSiteSection, SITE_SECTIONS, type SiteSection
 
 const SECTION_ICONS: Record<SiteSectionId, LucideIcon> = {
     araclar: FileText,
+    "bina-asamalari": GitBranchPlus,
     "yapi-tasarimi": Building2,
     "deprem-yonetmelik": Shield,
     geoteknik: Layers,
@@ -28,6 +30,7 @@ const SECTION_ICONS: Record<SiteSectionId, LucideIcon> = {
 
 const SECTION_STYLES: Record<SiteSectionId, { color: string; bgColor: string }> = {
     araclar: { color: "text-indigo-600 dark:text-indigo-400", bgColor: "bg-indigo-50 dark:bg-indigo-950/40" },
+    "bina-asamalari": { color: "text-cyan-600 dark:text-cyan-400", bgColor: "bg-cyan-50 dark:bg-cyan-950/40" },
     "yapi-tasarimi": { color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/40" },
     "deprem-yonetmelik": { color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950/40" },
     geoteknik: { color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-950/40" },
@@ -37,7 +40,7 @@ const SECTION_STYLES: Record<SiteSectionId, { color: string; bgColor: string }> 
 };
 
 export function generateStaticParams() {
-    return SITE_SECTIONS.filter((section) => section.id !== "araclar").map((section) => ({ slug: section.id }));
+    return SITE_SECTIONS.filter((section) => section.id !== "araclar" && section.id !== "bina-asamalari").map((section) => ({ slug: section.id }));
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {

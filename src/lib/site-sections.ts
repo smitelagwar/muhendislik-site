@@ -1,5 +1,6 @@
 export type SiteSectionId =
   | "araclar"
+  | "bina-asamalari"
   | "yapi-tasarimi"
   | "deprem-yonetmelik"
   | "geoteknik"
@@ -29,6 +30,14 @@ export const SITE_SECTIONS: SiteSection[] = [
     description: "Hesaplama araçları ve mühendislik yardımcıları.",
     categories: ["Hesap Aracı"],
     tags: ["araç", "hesap", "donatı", "kolon", "kalıp", "iksa"],
+  },
+  {
+    id: "bina-asamalari",
+    title: "Bina Aşamaları",
+    href: "/kategori/bina-asamalari",
+    description: "Kazıdan teslime kadar tüm yapım aşamalarını etkileşimli dallar halinde izleyin.",
+    categories: [],
+    tags: ["bina aşamaları", "kaba inşaat", "ince işler", "tesisat", "yalıtım", "peyzaj"],
   },
   {
     id: "yapi-tasarimi",

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="36" fill="#F0F9FF"/>
+  <path d="M170 210h180v160h180v-120h160v120h180v-150h160" stroke="#0EA5E9" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="170" cy="210" r="22" fill="#0284C7"/>
+  <circle cx="350" cy="370" r="22" fill="#0284C7"/>
+  <circle cx="530" cy="250" r="22" fill="#0284C7"/>
+  <circle cx="690" cy="370" r="22" fill="#0284C7"/>
+  <circle cx="870" cy="220" r="22" fill="#0284C7"/>
+  <circle cx="1030" cy="220" r="22" fill="#0284C7"/>
+  <text x="122" y="104" fill="#075985" font-size="40" font-family="Arial, sans-serif" font-weight="700">Hat, test ve etiket mantığı</text>
+</svg>

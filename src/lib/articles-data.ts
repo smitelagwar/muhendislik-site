@@ -18,6 +18,7 @@ export interface ArticleData {
     sections: { id: string; title: string; content: string; subsections: { id: string; title: string }[] }[];
     quote: { text: string };
     relatedSlugs: string[];
+    keywords?: string[];
 }
 
 const dataFilePath = path.join(process.cwd(), 'src/lib/data.json');

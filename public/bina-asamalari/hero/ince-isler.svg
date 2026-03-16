@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="36" fill="#D1FAE5"/>
+  <rect x="58" y="58" width="1084" height="559" rx="28" fill="#064E3B"/>
+  <rect x="118" y="130" width="964" height="408" rx="28" fill="#ECFDF5"/>
+  <path d="M180 210h360M180 278h520M180 346h430M180 414h240" stroke="#047857" stroke-width="18" stroke-linecap="round"/>
+  <rect x="732" y="184" width="258" height="258" rx="30" fill="#10B981"/>
+  <circle cx="861" cy="313" r="68" fill="#ECFDF5"/>
+  <text x="118" y="102" fill="#ECFDF5" font-size="42" font-family="Arial, sans-serif" font-weight="700">İnce işler ve bitiş kalitesi</text>
+</svg>

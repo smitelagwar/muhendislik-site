@@ -1,875 +1,995 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
-    ArrowLeft, Save, Eye, EyeOff, Plus, Trash2, GripVertical,
-    Type, Image as ImageIcon, Code, AlertTriangle, Link2, List,
-    Quote, Minus, Table, ArrowUp, ArrowDown,
-    FileText, Settings, Loader2
+  AlertTriangle,
+  ArrowLeft,
+  ArrowDown,
+  ArrowUp,
+  Blocks,
+  BookOpen,
+  BookType,
+  Check,
+  CheckSquare,
+  ChevronRight,
+  Copy,
+  Eye,
+  FileCode2,
+  FileJson2,
+  GripVertical,
+  Image as ImageIcon,
+  Info,
+  LayoutTemplate,
+  Link2,
+  List,
+  Loader2,
+  Minus,
+  PencilLine,
+  Plus,
+  Quote,
+  Save,
+  Search,
+  Settings2,
+  Shield,
+  Sparkles,
+  Table,
+  Trash2,
+  Type,
+  Wand2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import Link from "next/link";
-import Image from "next/image";
-import { Block, blocksToContent, contentToBlocks, generateId } from "@/lib/blocks-to-content";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ACCENT_OPTIONS,
+  ADMIN_AUTH_STORAGE_KEY,
+  ADMIN_PASSWORD,
+  BLOCK_LIBRARY,
+  DEFAULT_WORKSPACE_PREFERENCES,
+  EDITOR_DRAFT_STORAGE_KEY,
+  LAST_EDITED_ARTICLE_KEY,
+  PREVIEW_SURFACE_OPTIONS,
+  SECTION_PRESETS,
+  TEMPLATE_PRESETS,
+  WORKSPACE_PREFS_STORAGE_KEY,
+  applyTemplate,
+  calculateReadTime,
+  createBlock,
+  createEmptyArticle,
+  createEmptySection,
+  duplicateArticle,
+  getWordCount,
+  parseReadTime,
+  slugify,
+  toEditorArticle,
+  toStoredArticle,
+  type EditorArticle,
+  type StoredArticle,
+  type WorkspacePreferences,
+} from "@/lib/admin-editor";
+import { SITE_SECTIONS, type SiteSectionId } from "@/lib/site-sections";
+import { cn } from "@/lib/utils";
+import type { Block } from "@/lib/blocks-to-content";
 
-interface Section {
-    id: string;
-    title: string;
-    blocks: Block[];
+type SidebarTab = "outline" | "templates" | "blocks";
+type InspectorTab = "publish" | "relations" | "seo" | "workspace" | "preview";
+
+interface DraftSnapshot {
+  article: EditorArticle;
+  savedAt: string;
+  sourceSlug?: string | null;
 }
 
-interface ArticleForm {
-    slug: string;
-    title: string;
-    description: string;
-    category: string;
-    categoryColor: string;
-    badgeLabel: string;
-    author: string;
-    authorTitle: string;
-    date: string;
-    readTime: string;
-    image: string;
-    quote: { text: string };
-    sections: Section[];
-    relatedSlugs: string[];
-}
+const FIELD_CLASS =
+  "w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--editor-accent-solid)] focus:ring-4 focus:ring-[color:var(--editor-accent-soft)] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50";
 
-const BLOCK_TYPES = [
-    { type: "paragraph", icon: Type, label: "Paragraf" },
-    { type: "heading", icon: Type, label: "Alt Başlık" },
-    { type: "image", icon: ImageIcon, label: "Görsel" },
-    { type: "code", icon: Code, label: "Kod Bloğu" },
-    { type: "callout", icon: AlertTriangle, label: "Bilgi Kutusu" },
-    { type: "link-embed", icon: Link2, label: "Link Kartı" },
-    { type: "list", icon: List, label: "Liste" },
-    { type: "quote", icon: Quote, label: "Alıntı" },
-    { type: "divider", icon: Minus, label: "Ayraç" },
-    { type: "table", icon: Table, label: "Tablo" },
+const PANEL_CLASS =
+  "rounded-[28px] border border-white/70 bg-white/92 shadow-[0_28px_90px_-48px_rgba(15,23,42,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/88";
+
+const BLOCK_ICONS: Record<Block["type"], typeof Type> = {
+  paragraph: Type,
+  heading: BookType,
+  image: ImageIcon,
+  code: FileCode2,
+  callout: AlertTriangle,
+  "link-embed": Link2,
+  list: List,
+  quote: Quote,
+  divider: Minus,
+  table: Table,
+};
+
+const CALLOUT_VARIANTS = [
+  { value: "not", label: "Not" },
+  { value: "bilgi", label: "Bilgi" },
+  { value: "ipucu", label: "İpucu" },
+  { value: "uyari", label: "Uyarı" },
 ] as const;
 
-const CATEGORY_PRESETS = [
-    { label: "Şantiye Notu", color: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400" },
-    { label: "Hesap Rehberi", color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400" },
-    { label: "Yönetmelik", color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400" },
-    { label: "Malzeme", color: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400" },
-    { label: "Tasarım", color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400" },
-];
+function readDraftSnapshot() {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-function slugify(text: string): string {
-    return text
-        .toLowerCase()
-        .replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s")
-        .replace(/ı/g, "i").replace(/ö/g, "o").replace(/ç/g, "c")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-}
-
-function calcReadTime(sections: Section[]): string {
-    const totalWords = sections.reduce((acc, sec) => {
-        const blockText = sec.blocks.map(b => b.content || (b.items || []).join(" ") || "").join(" ");
-        return acc + blockText.split(/\s+/).filter(Boolean).length;
-    }, 0);
-    const minutes = Math.max(1, Math.ceil(totalWords / 200));
-    return `${minutes} dk okuma`;
-}
-
-function createBlock(type: Block["type"]): Block {
-    switch (type) {
-        case "paragraph":
-            return { id: generateId(), type, content: "" };
-        case "heading":
-            return { id: generateId(), type, content: "", level: 3 };
-        case "image":
-            return { id: generateId(), type, src: "", alt: "", caption: "" };
-        case "code":
-            return { id: generateId(), type, lang: "", content: "" };
-        case "callout":
-            return { id: generateId(), type, variant: "not", content: "" };
-        case "link-embed":
-            return { id: generateId(), type, url: "", title: "" };
-        case "list":
-            return { id: generateId(), type, ordered: false, items: [""] };
-        case "quote":
-            return { id: generateId(), type, content: "" };
-        case "divider":
-            return { id: generateId(), type };
-        case "table":
-            return { id: generateId(), type, rows: [["Başlık 1", "Başlık 2"], ["", ""]] };
+  try {
+    const raw = localStorage.getItem(EDITOR_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
     }
+
+    const parsed = JSON.parse(raw) as Partial<DraftSnapshot>;
+    if (!parsed.article) {
+      return null;
+    }
+
+    return {
+      article: toEditorArticle(parsed.article),
+      savedAt: parsed.savedAt || "",
+      sourceSlug: parsed.sourceSlug || null,
+    } satisfies DraftSnapshot;
+  } catch {
+    return null;
+  }
 }
 
-// ─── Block Renderers ──────────────────────────────────────────
-
-function ParagraphBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    return (
-        <textarea
-            className="w-full min-h-[80px] p-3 bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-            value={block.content || ""}
-            onChange={(e) => onChange({ ...block, content: e.target.value })}
-            placeholder="Paragraf metni... (**kalın**, *italik* Markdown destekler)"
-        />
-    );
+function FieldLabel({ children, hint }: { children: ReactNode; hint?: string }) {
+  return (
+    <label className="mb-2 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+      <span>{children}</span>
+      {hint ? <span className="text-[10px] font-bold tracking-[0.14em] text-zinc-400">{hint}</span> : null}
+    </label>
+  );
 }
 
-function HeadingBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    return (
-        <Input
-            className="text-lg font-bold h-12 border-zinc-200 dark:border-zinc-800"
-            value={block.content || ""}
-            onChange={(e) => onChange({ ...block, content: e.target.value })}
-            placeholder="Alt başlık metni..."
-        />
-    );
-}
+function renderPreviewBlock(block: Block) {
+  if (block.type === "paragraph") {
+    return <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300">{block.content}</p>;
+  }
 
-function ImageBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    return (
-        <div className="flex flex-col gap-3">
-            <Input
-                value={block.src || ""}
-                onChange={(e) => onChange({ ...block, src: e.target.value })}
-                placeholder="Görsel URL'si (https://images.unsplash.com/...)"
-                className="font-mono text-xs"
-            />
-            <div className="grid grid-cols-2 gap-3">
-                <Input
-                    value={block.alt || ""}
-                    onChange={(e) => onChange({ ...block, alt: e.target.value })}
-                    placeholder="Alt metin (SEO)"
-                    className="text-xs"
-                />
-                <Input
-                    value={block.caption || ""}
-                    onChange={(e) => onChange({ ...block, caption: e.target.value })}
-                    placeholder="Resim açıklaması (isteğe bağlı)"
-                    className="text-xs"
-                />
-            </div>
-            {block.src && (
-                <div className="h-40 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 relative bg-zinc-100 dark:bg-zinc-900">
-                    <Image src={block.src} alt={block.alt || ""} fill className="object-cover" unoptimized />
-                </div>
-            )}
+  if (block.type === "heading") {
+    return <h3 className="text-xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">{block.content}</h3>;
+  }
+
+  if (block.type === "image") {
+    return block.src ? (
+      <figure className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="relative aspect-[16/9]">
+          <Image src={block.src} alt={block.alt || ""} fill className="object-cover" unoptimized />
         </div>
+        {block.caption ? <figcaption className="border-t border-zinc-200 px-5 py-4 text-sm text-zinc-500 dark:border-zinc-800">{block.caption}</figcaption> : null}
+      </figure>
+    ) : (
+      <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-10 text-center text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900">
+        Görsel URL adresi eklenmedi
+      </div>
     );
-}
+  }
 
-function CodeBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
+  if (block.type === "code") {
     return (
-        <div className="flex flex-col gap-2">
-            <Input
-                value={block.lang || ""}
-                onChange={(e) => onChange({ ...block, lang: e.target.value })}
-                placeholder="Dil (python, javascript, css...)"
-                className="max-w-[200px] text-xs font-mono"
-            />
-            <textarea
-                className="w-full min-h-[150px] p-3 bg-zinc-950 text-green-400 font-mono text-xs border border-zinc-800 rounded-xl resize-y focus:ring-2 focus:ring-blue-500 outline-none"
-                value={block.content || ""}
-                onChange={(e) => onChange({ ...block, content: e.target.value })}
-                placeholder="Kod içeriğini buraya yazın..."
-            />
-        </div>
+      <div className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-sm">
+        <div className="border-b border-zinc-800 px-4 py-3 text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">{block.lang || "Kod"}</div>
+        <pre className="overflow-x-auto p-5 text-xs leading-6 text-emerald-300">
+          <code>{block.content}</code>
+        </pre>
+      </div>
     );
-}
+  }
 
-function CalloutBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    const variants = [
-        { value: "not", label: "Not", color: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500" },
-        { value: "uyari", label: "Uyarı", color: "bg-amber-50 dark:bg-amber-900/20 border-amber-500" },
-        { value: "ipucu", label: "İpucu", color: "bg-purple-50 dark:bg-purple-900/20 border-purple-500" },
-        { value: "bilgi", label: "Bilgi", color: "bg-blue-50 dark:bg-blue-900/20 border-blue-500" },
-    ];
-    const selected = variants.find(v => v.value === block.variant) || variants[0];
-    return (
-        <div className={`border-l-4 rounded-r-xl p-4 ${selected.color}`}>
-            <div className="flex gap-2 mb-3">
-                {variants.map(v => (
-                    <button
-                        key={v.value}
-                        type="button"
-                        onClick={() => onChange({ ...block, variant: v.value })}
-                        className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg transition-all ${block.variant === v.value ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-white/50 dark:bg-zinc-800/50 text-zinc-600"}`}
-                    >
-                        {v.label}
-                    </button>
-                ))}
-            </div>
-            <textarea
-                className="w-full min-h-[60px] p-2 bg-white/60 dark:bg-zinc-900/40 border-none rounded-lg text-sm resize-y focus:ring-2 focus:ring-blue-500 outline-none"
-                value={block.content || ""}
-                onChange={(e) => onChange({ ...block, content: e.target.value })}
-                placeholder="Bilgi kutusu içeriği..."
-            />
-        </div>
-    );
-}
-
-function LinkEmbedBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    return (
-        <div className="flex flex-col sm:flex-row gap-3 p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl">
-            <div className="flex-1 flex flex-col gap-2">
-                <Input
-                    value={block.url || ""}
-                    onChange={(e) => onChange({ ...block, url: e.target.value })}
-                    placeholder="https://ornek.com/sayfa"
-                    className="font-mono text-xs"
-                />
-                <Input
-                    value={block.title || ""}
-                    onChange={(e) => onChange({ ...block, title: e.target.value })}
-                    placeholder="Link başlığı"
-                    className="text-xs"
-                />
-            </div>
-            {block.url && (
-                <a href={block.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 hover:underline self-end">
-                    <Link2 className="w-3 h-3" /> Aç
-                </a>
-            )}
-        </div>
-    );
-}
-
-function ListBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    const items = block.items || [""];
-    return (
-        <div className="flex flex-col gap-2">
-            <div className="flex gap-2 mb-1">
-                <button type="button" onClick={() => onChange({ ...block, ordered: false })} className={`text-[10px] font-bold px-2 py-1 rounded-lg ${!block.ordered ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}>• Sırasız</button>
-                <button type="button" onClick={() => onChange({ ...block, ordered: true })} className={`text-[10px] font-bold px-2 py-1 rounded-lg ${block.ordered ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800"}`}>1. Sıralı</button>
-            </div>
-            {items.map((item, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                    <span className="text-xs text-zinc-400 w-6 text-center font-bold">{block.ordered ? `${i + 1}.` : "•"}</span>
-                    <Input
-                        value={item}
-                        onChange={(e) => {
-                            const newItems = [...items];
-                            newItems[i] = e.target.value;
-                            onChange({ ...block, items: newItems });
-                        }}
-                        placeholder="Liste öğesi..."
-                        className="text-sm flex-1"
-                    />
-                    <button type="button" onClick={() => {
-                        const newItems = items.filter((_, j) => j !== i);
-                        onChange({ ...block, items: newItems.length ? newItems : [""] });
-                    }} className="text-zinc-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                </div>
-            ))}
-            <Button type="button" variant="ghost" size="sm" className="w-fit text-xs" onClick={() => onChange({ ...block, items: [...items, ""] })}>
-                <Plus className="w-3 h-3 mr-1" /> Öğe Ekle
-            </Button>
-        </div>
-    );
-}
-
-function QuoteBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    return (
-        <div className="border-l-4 border-blue-500 pl-4">
-            <textarea
-                className="w-full min-h-[60px] p-2 bg-transparent text-sm italic resize-y focus:ring-2 focus:ring-blue-500 outline-none border border-zinc-200 dark:border-zinc-800 rounded-xl"
-                value={block.content || ""}
-                onChange={(e) => onChange({ ...block, content: e.target.value })}
-                placeholder="Alıntı metni..."
-            />
-        </div>
-    );
-}
-
-function TableBlock({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    const rows = block.rows || [["Başlık 1", "Başlık 2"], ["", ""]];
-    const updateCell = (ri: number, ci: number, val: string) => {
-        const newRows = rows.map(r => [...r]);
-        newRows[ri][ci] = val;
-        onChange({ ...block, rows: newRows });
+  if (block.type === "callout") {
+    const variants: Record<string, string> = {
+      not: "border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100",
+      bilgi: "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100",
+      ipucu: "border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-100",
+      uyari: "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100",
     };
-    const addRow = () => onChange({ ...block, rows: [...rows, new Array(rows[0].length).fill("")] });
-    const addCol = () => onChange({ ...block, rows: rows.map(r => [...r, ""]) });
+
+    return <div className={cn("rounded-3xl border px-5 py-5 text-sm leading-7", variants[block.variant || "not"] || variants.not)}>{block.content}</div>;
+  }
+
+  if (block.type === "link-embed") {
+    return (
+      <a
+        href={block.url || "#"}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center justify-between rounded-3xl border border-zinc-200 bg-white px-5 py-4 text-sm font-bold transition hover:border-[color:var(--editor-accent-border)] hover:bg-[color:var(--editor-accent-soft)] dark:border-zinc-800 dark:bg-zinc-950"
+      >
+        <span>{block.title || block.url || "Harici bağlantı"}</span>
+        <Link2 className="h-4 w-4 text-zinc-400" />
+      </a>
+    );
+  }
+
+  if (block.type === "list") {
+    const ListTag = block.ordered ? "ol" : "ul";
+    return (
+      <ListTag className={cn("space-y-2 pl-5 text-sm leading-7 text-zinc-600 dark:text-zinc-300", block.ordered ? "list-decimal" : "list-disc")}>
+        {(block.items || []).filter(Boolean).map((item, index) => (
+          <li key={`${item}-${index}`}>{item}</li>
+        ))}
+      </ListTag>
+    );
+  }
+
+  if (block.type === "quote") {
+    return <blockquote className="rounded-r-3xl border-l-4 border-[color:var(--editor-accent-solid)] bg-zinc-50 px-5 py-5 text-base font-semibold italic leading-8 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">{block.content}</blockquote>;
+  }
+
+  if (block.type === "divider") {
+    return <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800" />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
+      <table className="w-full text-sm">
+        <tbody>
+          {(block.rows || []).map((row, rowIndex) => (
+            <tr key={`${rowIndex}`} className={rowIndex === 0 ? "bg-zinc-50 font-bold dark:bg-zinc-900" : "bg-white dark:bg-zinc-950"}>
+              {row.map((cell, cellIndex) => (
+                <td key={`${rowIndex}-${cellIndex}`} className="border-r border-b border-zinc-200 px-4 py-3 last:border-r-0 dark:border-zinc-800">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PreviewPane({ article, surface }: { article: EditorArticle; surface: WorkspacePreferences["previewSurface"] }) {
+  const surfaceClass = PREVIEW_SURFACE_OPTIONS.find((item) => item.id === surface)?.className ?? PREVIEW_SURFACE_OPTIONS[0].className;
+
+  return (
+    <div className={cn("rounded-[32px] border border-zinc-200 p-6 shadow-sm dark:border-zinc-800", surfaceClass)}>
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8 flex flex-wrap gap-2">
+          <Badge className={cn("border-none px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]", article.categoryColor)}>{article.category}</Badge>
+          <Badge variant="outline" className="border-zinc-200 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] dark:border-zinc-700">
+            {article.badgeLabel}
+          </Badge>
+        </div>
+        <h1 className="text-4xl font-black tracking-tight md:text-5xl">{article.title || "Başlıksız içerik"}</h1>
+        <p className="mt-5 text-base leading-8 text-zinc-500 dark:text-zinc-400">{article.description || "Kısa açıklama burada görünecek."}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-3 text-sm font-bold text-zinc-500 dark:text-zinc-400">
+          <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.author}</span>
+          <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.authorTitle}</span>
+          <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.date}</span>
+          <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.readTime}</span>
+        </div>
+        {article.image ? <div className="relative mt-10 aspect-[16/9] overflow-hidden rounded-[32px] border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"><Image src={article.image} alt={article.title || "Kapak"} fill className="object-cover" unoptimized /></div> : null}
+        {article.quote.text ? <div className="mt-10 rounded-r-[32px] border-l-8 border-[color:var(--editor-accent-solid)] bg-zinc-50 px-8 py-8 text-2xl font-black italic leading-relaxed text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100">“{article.quote.text}”</div> : null}
+        <div className="mt-12 space-y-12">
+          {article.sections.map((section, sectionIndex) => (
+            <section key={`${section.id}-${sectionIndex}`} className="space-y-6">
+              <div className="space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-400">Bölüm {sectionIndex + 1}</p>
+                <h2 className="text-2xl font-black tracking-tight md:text-3xl">{section.title}</h2>
+              </div>
+              <div className="space-y-6">{section.blocks.map((block) => <div key={block.id}>{renderPreviewBlock(block)}</div>)}</div>
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlockEditor({ block, onChange }: { block: Block; onChange: (nextBlock: Block) => void }) {
+  if (block.type === "paragraph") {
+    return <textarea value={block.content || ""} onChange={(event) => onChange({ ...block, content: event.target.value })} className={cn(FIELD_CLASS, "min-h-[140px] resize-y")} placeholder="Paragraf içeriğini buraya yazın." />;
+  }
+
+  if (block.type === "heading") {
+    return (
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_150px]">
+        <Input value={block.content || ""} onChange={(event) => onChange({ ...block, content: event.target.value })} className={cn(FIELD_CLASS, "h-12 font-bold")} placeholder="Alt başlık" />
+        <Select value={String(block.level || 3)} onValueChange={(value) => onChange({ ...block, level: Number(value) })}>
+          <SelectTrigger className="h-12 w-full rounded-2xl border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <SelectValue placeholder="Seviye" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="2">H2</SelectItem>
+            <SelectItem value="3">H3</SelectItem>
+            <SelectItem value="4">H4</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  if (block.type === "image") {
+    return (
+      <div className="space-y-3">
+        <Input value={block.src || ""} onChange={(event) => onChange({ ...block, src: event.target.value })} className={cn(FIELD_CLASS, "h-12 font-mono text-xs")} placeholder="https://..." />
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input value={block.alt || ""} onChange={(event) => onChange({ ...block, alt: event.target.value })} className="h-11 rounded-2xl" placeholder="Alt metin" />
+          <Input value={block.caption || ""} onChange={(event) => onChange({ ...block, caption: event.target.value })} className="h-11 rounded-2xl" placeholder="Açıklama" />
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "code") {
+    return (
+      <div className="space-y-3">
+        <Input value={block.lang || ""} onChange={(event) => onChange({ ...block, lang: event.target.value })} className={cn(FIELD_CLASS, "h-11 max-w-[220px] font-mono text-xs")} placeholder="typescript" />
+        <textarea value={block.content || ""} onChange={(event) => onChange({ ...block, content: event.target.value })} className="min-h-[180px] w-full resize-y rounded-3xl border border-zinc-800 bg-zinc-950 px-4 py-4 font-mono text-xs leading-6 text-emerald-300 outline-none transition focus:border-[color:var(--editor-accent-solid)] focus:ring-4 focus:ring-[color:var(--editor-accent-soft)]" placeholder="Kod örneğini buraya yazın." />
+      </div>
+    );
+  }
+
+  if (block.type === "callout") {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {CALLOUT_VARIANTS.map((variant) => (
+            <button key={variant.value} type="button" onClick={() => onChange({ ...block, variant: variant.value })} className={cn("rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition", block.variant === variant.value ? "bg-[color:var(--editor-accent-solid)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800")}>
+              {variant.label}
+            </button>
+          ))}
+        </div>
+        <textarea value={block.content || ""} onChange={(event) => onChange({ ...block, content: event.target.value })} className={cn(FIELD_CLASS, "min-h-[120px] resize-y")} placeholder="Vurgulamak istediğiniz not." />
+      </div>
+    );
+  }
+
+  if (block.type === "link-embed") {
+    return (
+      <div className="grid gap-3">
+        <Input value={block.title || ""} onChange={(event) => onChange({ ...block, title: event.target.value })} className="h-11 rounded-2xl" placeholder="Kart başlığı" />
+        <Input value={block.url || ""} onChange={(event) => onChange({ ...block, url: event.target.value })} className={cn(FIELD_CLASS, "h-11 font-mono text-xs")} placeholder="https://..." />
+      </div>
+    );
+  }
+
+  if (block.type === "list") {
+    const items = block.items || [""];
 
     return (
-        <div className="flex flex-col gap-3">
-            <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
-                <table className="w-full text-sm">
-                    <tbody>
-                        {rows.map((row, ri) => (
-                            <tr key={ri} className={ri === 0 ? "bg-zinc-50 dark:bg-zinc-900 font-bold" : ""}>
-                                {row.map((cell, ci) => (
-                                    <td key={ci} className="border-r border-b border-zinc-200 dark:border-zinc-800 last:border-r-0 p-0">
-                                        <input
-                                            value={cell}
-                                            onChange={(e) => updateCell(ri, ci, e.target.value)}
-                                            className="w-full px-3 py-2 bg-transparent text-xs outline-none focus:bg-blue-50 dark:focus:bg-blue-900/20"
-                                            placeholder={ri === 0 ? "Başlık" : "Veri"}
-                                        />
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={addRow}><Plus className="w-3 h-3 mr-1" /> Satır</Button>
-                <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={addCol}><Plus className="w-3 h-3 mr-1" /> Sütun</Button>
-            </div>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => onChange({ ...block, ordered: false })} className={cn("rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition", !block.ordered ? "bg-[color:var(--editor-accent-solid)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800")}>Sırasız</button>
+          <button type="button" onClick={() => onChange({ ...block, ordered: true })} className={cn("rounded-full px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition", block.ordered ? "bg-[color:var(--editor-accent-solid)] text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800")}>Sıralı</button>
         </div>
+        <div className="space-y-2">
+          {items.map((item, index) => (
+            <div key={`${block.id}-${index}`} className="flex items-center gap-2">
+              <span className="w-8 text-center text-xs font-black text-zinc-400">{block.ordered ? `${index + 1}.` : "•"}</span>
+              <Input
+                value={item}
+                onChange={(event) => {
+                  const nextItems = [...items];
+                  nextItems[index] = event.target.value;
+                  onChange({ ...block, items: nextItems });
+                }}
+                className="h-11 rounded-2xl"
+                placeholder="Liste maddesi"
+              />
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => onChange({ ...block, items: items.filter((_, itemIndex) => itemIndex !== index).length > 0 ? items.filter((_, itemIndex) => itemIndex !== index) : [""] })}>
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onChange({ ...block, items: [...items, ""] })}>
+          <Plus className="h-4 w-4" />
+          Yeni madde
+        </Button>
+      </div>
     );
+  }
+
+  if (block.type === "quote") {
+    return <textarea value={block.content || ""} onChange={(event) => onChange({ ...block, content: event.target.value })} className={cn(FIELD_CLASS, "min-h-[120px] resize-y italic")} placeholder="Alıntı veya vurgu cümlesi." />;
+  }
+
+  if (block.type === "divider") {
+    return <div className="rounded-3xl border border-dashed border-zinc-300 px-6 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700">Ayraç bloğu içeriğe ritim kazandırır.</div>;
+  }
+
+  const rows = block.rows || [["Başlık", "Değer"], ["", ""]];
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto rounded-3xl border border-zinc-200 dark:border-zinc-800">
+        <table className="w-full min-w-[420px] text-sm">
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={`${block.id}-${rowIndex}`} className={rowIndex === 0 ? "bg-zinc-50 dark:bg-zinc-900" : "bg-white dark:bg-zinc-950"}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`${rowIndex}-${cellIndex}`} className="border-r border-b border-zinc-200 p-0 last:border-r-0 dark:border-zinc-800">
+                    <input
+                      value={cell}
+                      onChange={(event) => {
+                        const nextRows = rows.map((currentRow) => [...currentRow]);
+                        nextRows[rowIndex][cellIndex] = event.target.value;
+                        onChange({ ...block, rows: nextRows });
+                      }}
+                      className="w-full bg-transparent px-4 py-3 outline-none focus:bg-[color:var(--editor-accent-soft)]"
+                      placeholder={rowIndex === 0 ? "Başlık" : "Değer"}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onChange({ ...block, rows: [...rows, new Array(rows[0]?.length || 2).fill("")] })}>
+          <Plus className="h-4 w-4" />
+          Satır
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onChange({ ...block, rows: rows.map((row) => [...row, ""]) })}>
+          <Plus className="h-4 w-4" />
+          Sütun
+        </Button>
+      </div>
+    </div>
+  );
 }
-
-// ─── Block Wrapper ───────────────────────────────────────────
-
-function BlockRenderer({ block, onChange }: { block: Block; onChange: (b: Block) => void }) {
-    switch (block.type) {
-        case "paragraph": return <ParagraphBlock block={block} onChange={onChange} />;
-        case "heading": return <HeadingBlock block={block} onChange={onChange} />;
-        case "image": return <ImageBlock block={block} onChange={onChange} />;
-        case "code": return <CodeBlock block={block} onChange={onChange} />;
-        case "callout": return <CalloutBlock block={block} onChange={onChange} />;
-        case "link-embed": return <LinkEmbedBlock block={block} onChange={onChange} />;
-        case "list": return <ListBlock block={block} onChange={onChange} />;
-        case "quote": return <QuoteBlock block={block} onChange={onChange} />;
-        case "divider": return <div className="border-t-2 border-dashed border-zinc-300 dark:border-zinc-700 my-2" />;
-        case "table": return <TableBlock block={block} onChange={onChange} />;
-        default: return <ParagraphBlock block={block} onChange={onChange} />;
-    }
-}
-
-// ─── Main Editor Page ────────────────────────────────────────
 
 export default function EditorPage() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [password, setPassword] = useState("");
-    const [isSaving, setIsSaving] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
-    const [slashMenuOpen, setSlashMenuOpen] = useState<{ sectionIdx: number } | null>(null);
-    const [existingArticles, setExistingArticles] = useState<{ slug: string; title: string }[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("outline");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("publish");
+  const [selectedSectionIndex, setSelectedSectionIndex] = useState(0);
+  const [article, setArticle] = useState<EditorArticle>(() => createEmptyArticle());
+  const [workspace, setWorkspace] = useState<WorkspacePreferences>(DEFAULT_WORKSPACE_PREFERENCES);
+  const [existingArticles, setExistingArticles] = useState<StoredArticle[]>([]);
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
+  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(null);
+  const [relatedQuery, setRelatedQuery] = useState("");
+  const [jsonBuffer, setJsonBuffer] = useState("");
 
-    const [article, setArticle] = useState<ArticleForm>({
-        slug: "",
-        title: "",
-        description: "",
-        category: "Şantiye Notu",
-        categoryColor: CATEGORY_PRESETS[0].color,
-        badgeLabel: "Yeni",
-        author: "Admin Editör",
-        authorTitle: "Yönetici",
-        date: new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }),
-        readTime: "1 dk okuma",
-        image: "",
-        quote: { text: "" },
-        sections: [{ id: "giris", title: "1. Giriş", blocks: [{ id: generateId(), type: "paragraph", content: "" }] }],
-        relatedSlugs: [],
-    });
+  const accent = useMemo(() => ACCENT_OPTIONS.find((item) => item.id === workspace.accentId) ?? ACCENT_OPTIONS[0], [workspace.accentId]);
+  const pageStyle = useMemo(
+    () =>
+      ({
+        "--editor-accent-solid": accent.solid,
+        "--editor-accent-soft": accent.soft,
+        "--editor-accent-border": accent.border,
+        "--editor-accent-text": accent.text,
+        "--editor-accent-glow": accent.glow,
+      } as CSSProperties),
+    [accent],
+  );
 
-    // Auth check
-    useEffect(() => {
-        const storedAuth = localStorage.getItem("admin_auth");
-        if (storedAuth === "true") {
-            setIsAuthenticated(true);
-        }
-    }, []);
-
-    // Load existing articles for related articles picker
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetch("/api/articles")
-                .then(r => r.json())
-                .then(data => {
-                    if (data && typeof data === "object") {
-                        setExistingArticles(Object.values(data).map((a: unknown) => ({ slug: (a as Record<string, string>).slug, title: (a as Record<string, string>).title })));
-                    }
-                })
-                .catch(() => { });
-        }
-    }, [isAuthenticated]);
-
-    // Check URL params for editing existing article
-    useEffect(() => {
-        if (!isAuthenticated) return;
-        const params = new URLSearchParams(window.location.search);
-        const editSlug = params.get("edit");
-        if (editSlug) {
-            fetch("/api/articles")
-                .then(r => r.json())
-                .then(data => {
-                    const existing = data[editSlug];
-                    if (existing) {
-                        setArticle({
-                            ...existing,
-                            quote: existing.quote || { text: "" },
-                            sections: existing.sections.map((sec: Record<string, unknown>) => ({
-                                id: sec.id,
-                                title: sec.title,
-                                blocks: contentToBlocks(sec.content as string),
-                            })),
-                        });
-                        toast.success(`"${existing.title}" düzenlemeye açıldı.`);
-                    }
-                })
-                .catch(() => toast.error("Makale yüklenemedi."));
-        }
-    }, [isAuthenticated]);
-
-    // Auto slug
-    useEffect(() => {
-        if (article.title && !article.slug) {
-            setArticle(a => ({ ...a, slug: slugify(a.title) }));
-        }
-    }, [article.slug, article.title]);
-
-    // Auto read time
-    useEffect(() => {
-        setArticle(a => ({ ...a, readTime: calcReadTime(a.sections) }));
-    }, [article.sections]);
-
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === "admin123" || password === "123456") {
-            setIsAuthenticated(true);
-            localStorage.setItem("admin_auth", "true");
-            toast.success("Giriş başarılı.");
-        } else {
-            toast.error("Hatalı şifre!");
-        }
+  const articleStats = useMemo(() => {
+    const blocks = article.sections.flatMap((section) => section.blocks);
+    return {
+      words: getWordCount(article),
+      sections: article.sections.length,
+      blocks: blocks.length,
+      images: blocks.filter((block) => block.type === "image" && block.src).length,
+      tables: blocks.filter((block) => block.type === "table").length,
+      readTime: parseReadTime(article.readTime),
     };
+  }, [article]);
 
-    const updateBlock = useCallback((sectionIdx: number, blockIdx: number, updatedBlock: Block) => {
-        setArticle(prev => {
-            const newSections = [...prev.sections];
-            const newBlocks = [...newSections[sectionIdx].blocks];
-            newBlocks[blockIdx] = updatedBlock;
-            newSections[sectionIdx] = { ...newSections[sectionIdx], blocks: newBlocks };
-            return { ...prev, sections: newSections };
-        });
-    }, []);
+  const seoChecklist = useMemo(() => {
+    const titleLength = article.title.trim().length;
+    const descriptionLength = article.description.trim().length;
+    return [
+      { label: "Başlık uzunluğu", status: titleLength >= 40 && titleLength <= 72, detail: `${titleLength} karakter` },
+      { label: "Açıklama uzunluğu", status: descriptionLength >= 120 && descriptionLength <= 180, detail: `${descriptionLength} karakter` },
+      { label: "Kapak görseli", status: Boolean(article.image.trim()), detail: article.image.trim() ? "Hazır" : "Eksik" },
+      { label: "Bölüm sayısı", status: article.sections.length >= 3, detail: `${article.sections.length} bölüm` },
+      { label: "İlgili içerik", status: article.relatedSlugs.length > 0, detail: `${article.relatedSlugs.length} bağlantı` },
+    ];
+  }, [article]);
 
-    const addBlock = useCallback((sectionIdx: number, type: Block["type"]) => {
-        const newBlock = createBlock(type) as Block & { rows?: string[][] };
-        if (type === "table") newBlock.rows = [["Başlık 1", "Başlık 2"], ["", ""]];
-        setArticle(prev => {
-            const newSections = [...prev.sections];
-            newSections[sectionIdx] = { ...newSections[sectionIdx], blocks: [...newSections[sectionIdx].blocks, newBlock] };
-            return { ...prev, sections: newSections };
-        });
-        setSlashMenuOpen(null);
-    }, []);
+  const relatedCandidates = useMemo(() => {
+    const query = relatedQuery.trim().toLocaleLowerCase("tr-TR");
+    return existingArticles
+      .filter((candidate) => candidate.slug !== article.slug)
+      .filter((candidate) => (!query ? true : `${candidate.title} ${candidate.slug} ${candidate.category}`.toLocaleLowerCase("tr-TR").includes(query)));
+  }, [existingArticles, article.slug, relatedQuery]);
 
-    const removeBlock = useCallback((sectionIdx: number, blockIdx: number) => {
-        setArticle(prev => {
-            const newSections = [...prev.sections];
-            const newBlocks = newSections[sectionIdx].blocks.filter((_, i) => i !== blockIdx);
-            newSections[sectionIdx] = { ...newSections[sectionIdx], blocks: newBlocks.length ? newBlocks : [{ id: generateId(), type: "paragraph", content: "" }] };
-            return { ...prev, sections: newSections };
-        });
-    }, []);
+  const applyAutoRules = useCallback((candidate: EditorArticle) => {
+    let next = candidate;
 
-    const moveBlock = useCallback((sectionIdx: number, blockIdx: number, direction: "up" | "down") => {
-        setArticle(prev => {
-            const newSections = [...prev.sections];
-            const blocks = [...newSections[sectionIdx].blocks];
-            const targetIdx = direction === "up" ? blockIdx - 1 : blockIdx + 1;
-            if (targetIdx < 0 || targetIdx >= blocks.length) return prev;
-            [blocks[blockIdx], blocks[targetIdx]] = [blocks[targetIdx], blocks[blockIdx]];
-            newSections[sectionIdx] = { ...newSections[sectionIdx], blocks };
-            return { ...prev, sections: newSections };
-        });
-    }, []);
-
-    const addSection = () => {
-        const idx = article.sections.length + 1;
-        setArticle(prev => ({
-            ...prev,
-            sections: [...prev.sections, {
-                id: `bolum-${idx}`,
-                title: `${idx}. Yeni Bölüm`,
-                blocks: [{ id: generateId(), type: "paragraph", content: "" }],
-            }],
-        }));
-    };
-
-    const removeSection = (idx: number) => {
-        setArticle(prev => ({
-            ...prev,
-            sections: prev.sections.filter((_, i) => i !== idx),
-        }));
-    };
-
-    const moveSection = (idx: number, direction: "up" | "down") => {
-        setArticle(prev => {
-            const secs = [...prev.sections];
-            const target = direction === "up" ? idx - 1 : idx + 1;
-            if (target < 0 || target >= secs.length) return prev;
-            [secs[idx], secs[target]] = [secs[target], secs[idx]];
-            return { ...prev, sections: secs };
-        });
-    };
-
-    const handleSave = async () => {
-        if (!article.title || !article.slug) {
-            toast.error("Başlık ve URL slug'ı zorunludur.");
-            return;
-        }
-
-        setIsSaving(true);
-        try {
-            // Convert blocks back to content strings
-            const payload = {
-                ...article,
-                sections: article.sections.map(sec => ({
-                    id: sec.id,
-                    title: sec.title,
-                    content: blocksToContent(sec.blocks),
-                })),
-            };
-
-            const res = await fetch("/api/articles", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!res.ok) throw new Error("Kaydedilemedi");
-            toast.success("Makale başarıyla kaydedildi ve yayınlandı!");
-        } catch {
-            toast.error("Kaydetme sırasında hata oluştu.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // ─── Login ───
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-zinc-900 p-8 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 w-full max-w-sm">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-2xl" />
-                    <div className="mb-8 text-center flex flex-col items-center">
-                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4"><Settings className="w-6 h-6 text-blue-700" /></div>
-                        <h2 className="text-2xl font-bold">İçerik Editörü</h2>
-                        <p className="text-sm text-zinc-500 mt-1">Sisteme erişmek için şifrenizi girin.</p>
-                    </div>
-                    <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                        <Input type="password" placeholder="*************" value={password} onChange={e => setPassword(e.target.value)} className="h-11" />
-                        <Button type="submit" className="w-full h-11 bg-zinc-900 dark:bg-white dark:text-zinc-900 text-white font-semibold">Giriş Yap</Button>
-                    </form>
-                </div>
-            </div>
-        );
+    if (workspace.autoSlug) {
+      const generatedSlug = slugify(candidate.title || candidate.slug || "");
+      if (generatedSlug && generatedSlug !== next.slug) {
+        next = { ...next, slug: generatedSlug };
+      }
     }
 
-    // ─── Main Editor ───
+    if (workspace.autoReadTime) {
+      const generatedReadTime = calculateReadTime(candidate);
+      if (generatedReadTime !== next.readTime) {
+        next = { ...next, readTime: generatedReadTime };
+      }
+    }
+    return next;
+  }, [workspace.autoReadTime, workspace.autoSlug]);
+
+  function commitArticle(updater: (current: EditorArticle) => EditorArticle) {
+    setArticle((current) => applyAutoRules(updater(current)));
+    setHasUnsavedChanges(true);
+  }
+
+  const loadArticle = useCallback((nextArticle: EditorArticle, nextLoadedSlug: string | null) => {
+    setArticle(applyAutoRules(nextArticle));
+    setLoadedSlug(nextLoadedSlug);
+    setSelectedSectionIndex(0);
+    setHasUnsavedChanges(false);
+  }, [applyAutoRules]);
+
+  const fetchArticlesAndBoot = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/articles");
+      if (!response.ok) {
+        throw new Error("İçerik listesi alınamadı.");
+      }
+
+      const data = (await response.json()) as Record<string, Partial<StoredArticle>>;
+      const normalizedArticles = Object.values(data).map((item) => toStoredArticle(toEditorArticle(item)));
+      setExistingArticles(normalizedArticles);
+
+      const params = new URLSearchParams(window.location.search);
+      const editSlug = params.get("edit");
+      const duplicateSlug = params.get("duplicate");
+      const templateId = params.get("template");
+      const restoreDraft = params.get("draft") === "1";
+      const snapshot = readDraftSnapshot();
+      setDraftSnapshot(snapshot);
+
+      if (editSlug && data[editSlug]) {
+        loadArticle(toEditorArticle(data[editSlug]), editSlug);
+      } else if (duplicateSlug && data[duplicateSlug]) {
+        loadArticle(duplicateArticle(toEditorArticle(data[duplicateSlug])), null);
+      } else if (restoreDraft && snapshot) {
+        loadArticle(toEditorArticle(snapshot.article), snapshot.sourceSlug || null);
+      } else if (templateId && TEMPLATE_PRESETS.some((item) => item.id === templateId)) {
+        loadArticle(applyTemplate(templateId as (typeof TEMPLATE_PRESETS)[number]["id"]), null);
+      } else {
+        loadArticle(createEmptyArticle(), null);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Editör açılırken içerikler yüklenemedi.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadArticle]);
+
+  useEffect(() => {
+    const storedAuth = localStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
+    const storedPrefs = localStorage.getItem(WORKSPACE_PREFS_STORAGE_KEY);
+
+    if (storedPrefs) {
+      try {
+        setWorkspace({ ...DEFAULT_WORKSPACE_PREFERENCES, ...(JSON.parse(storedPrefs) as Partial<WorkspacePreferences>) });
+      } catch {
+        setWorkspace(DEFAULT_WORKSPACE_PREFERENCES);
+      }
+    }
+
+    setDraftSnapshot(readDraftSnapshot());
+    if (storedAuth === "true") {
+      setIsAuthenticated(true);
+    } else {
+      setIsLoading(false);
+    }
+
+    setAuthChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      void fetchArticlesAndBoot();
+    }
+  }, [fetchArticlesAndBoot, isAuthenticated]);
+
+  useEffect(() => {
+    if (!authChecked) {
+      return;
+    }
+
+    localStorage.setItem(WORKSPACE_PREFS_STORAGE_KEY, JSON.stringify(workspace));
+    setArticle((current) => applyAutoRules(current));
+  }, [workspace, authChecked, applyAutoRules]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isLoading) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const snapshot: DraftSnapshot = { article, savedAt: new Date().toISOString(), sourceSlug: loadedSlug };
+      localStorage.setItem(EDITOR_DRAFT_STORAGE_KEY, JSON.stringify(snapshot));
+      setDraftSnapshot(snapshot);
+    }, 700);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [article, isAuthenticated, isLoading, loadedSlug]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      const modifier = event.ctrlKey || event.metaKey;
+      if (modifier && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void handleSave();
+      }
+      if (modifier && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        setInspectorTab("preview");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  });
+
+  function handleLogin(event: React.FormEvent) {
+    event.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, "true");
+      toast.success("Editör erişimi açıldı.");
+      return;
+    }
+    toast.error("Şifre hatalı.");
+  }
+
+  function handleLogout() {
+    setIsAuthenticated(false);
+    localStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+    setPassword("");
+  }
+
+  function scrollToSection(index: number) {
+    document.getElementById(`editor-section-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function applySectionPreset(sectionId: SiteSectionId) {
+    const preset = SECTION_PRESETS.find((item) => item.sectionId === sectionId) ?? SECTION_PRESETS[0];
+    commitArticle((current) => ({ ...current, sectionId, category: preset.category, categoryColor: preset.categoryColor, badgeLabel: preset.badgeLabel, authorTitle: preset.authorTitle }));
+  }
+
+  function addSection() {
+    commitArticle((current) => ({ ...current, sections: [...current.sections, createEmptySection(current.sections.length + 1)] }));
+    setSelectedSectionIndex(article.sections.length);
+  }
+
+  function duplicateSection(index: number) {
+    commitArticle((current) => {
+      const nextSections = [...current.sections];
+      const section = current.sections[index];
+      nextSections.splice(index + 1, 0, { id: `${section.id}-kopya`, title: `${section.title} (Kopya)`, blocks: section.blocks.map((block) => ({ ...block, id: createBlock(block.type).id })) });
+      return { ...current, sections: nextSections };
+    });
+  }
+
+  function moveSection(index: number, direction: "up" | "down") {
+    commitArticle((current) => {
+      const nextSections = [...current.sections];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= nextSections.length) {
+        return current;
+      }
+      [nextSections[index], nextSections[target]] = [nextSections[target], nextSections[index]];
+      return { ...current, sections: nextSections };
+    });
+    setSelectedSectionIndex(direction === "up" ? Math.max(0, index - 1) : Math.min(article.sections.length - 1, index + 1));
+  }
+
+  function removeSection(index: number) {
+    if (article.sections.length === 1) {
+      toast.error("En az bir bölüm bulunmalı.");
+      return;
+    }
+    commitArticle((current) => ({ ...current, sections: current.sections.filter((_, itemIndex) => itemIndex !== index) }));
+    setSelectedSectionIndex(Math.max(0, index - 1));
+  }
+
+  function addBlockToSection(sectionIndex: number, type: Block["type"]) {
+    commitArticle((current) => ({
+      ...current,
+      sections: current.sections.map((section, itemIndex) => (itemIndex === sectionIndex ? { ...section, blocks: [...section.blocks, createBlock(type)] } : section)),
+    }));
+  }
+
+  function moveBlock(sectionIndex: number, blockIndex: number, direction: "up" | "down") {
+    commitArticle((current) => {
+      const nextSections = [...current.sections];
+      const blocks = [...nextSections[sectionIndex].blocks];
+      const target = direction === "up" ? blockIndex - 1 : blockIndex + 1;
+      if (target < 0 || target >= blocks.length) {
+        return current;
+      }
+      [blocks[blockIndex], blocks[target]] = [blocks[target], blocks[blockIndex]];
+      nextSections[sectionIndex] = { ...nextSections[sectionIndex], blocks };
+      return { ...current, sections: nextSections };
+    });
+  }
+
+  async function handleSave() {
+    const prepared = toStoredArticle(applyAutoRules(article));
+    if (!prepared.slug || !prepared.title || !prepared.description) {
+      toast.error("Başlık, slug ve açıklama alanları zorunlu.");
+      setInspectorTab("publish");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/articles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(prepared) });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || "Kayıt başarısız.");
+      }
+      if (loadedSlug && loadedSlug !== prepared.slug) {
+        await fetch(`/api/articles?slug=${loadedSlug}`, { method: "DELETE" });
+      }
+      localStorage.setItem(LAST_EDITED_ARTICLE_KEY, prepared.slug);
+      localStorage.removeItem(EDITOR_DRAFT_STORAGE_KEY);
+      setDraftSnapshot(null);
+      window.history.replaceState({}, "", `/admin/editor?edit=${prepared.slug}`);
+      loadArticle(toEditorArticle(prepared), prepared.slug);
+      toast.success("İçerik kaydedildi.");
+      await fetchArticlesAndBoot();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "İçerik kaydedilemedi.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function copyJson() {
+    await navigator.clipboard.writeText(JSON.stringify(toStoredArticle(article), null, 2));
+    toast.success("JSON panoya kopyalandı.");
+  }
+
+  async function copyMarkdown() {
+    const markdown = article.sections.map((section) => [`## ${section.title}`, ...toStoredArticle({ ...article, sections: [section] }).sections.map((item) => item.content)].join("\n\n")).join("\n\n");
+    await navigator.clipboard.writeText(markdown);
+    toast.success("Markdown panoya kopyalandı.");
+  }
+
+  if (!authChecked) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return (
-        <div className="min-h-screen bg-[#F6F6F7] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 flex flex-col">
-            {/* Top Bar */}
-            <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 shadow-sm">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <Link href="/admin" className="text-zinc-500 hover:text-blue-600 transition-colors">
-                            <ArrowLeft className="w-5 h-5" />
-                        </Link>
-                        <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800" />
-                        <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            <span className="font-bold text-sm truncate max-w-[200px] sm:max-w-xs">{article.title || "Yeni İçerik"}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="hidden sm:flex gap-1.5" onClick={() => setShowPreview(!showPreview)}>
-                            {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            {showPreview ? "Düzenle" : "Önizle"}
-                        </Button>
-                        <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 gap-1.5 font-bold px-4"
-                            onClick={handleSave}
-                            disabled={isSaving}
-                        >
-                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Kaydet & Yayınla
-                        </Button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Content Area */}
-            <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 md:p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-                    {/* Main Editor Column */}
-                    <div className={`${showPreview ? "hidden lg:block" : ""} lg:col-span-8 xl:col-span-9 flex flex-col gap-6`}>
-
-                        {/* Title & Description Card */}
-                        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                            <div className="p-6 flex flex-col gap-5">
-                                <Input
-                                    value={article.title}
-                                    onChange={(e) => setArticle({ ...article, title: e.target.value, slug: slugify(e.target.value) })}
-                                    placeholder="Makale başlığını yazın..."
-                                    className="text-2xl sm:text-3xl font-black border-none px-0 h-auto py-0 focus-visible:ring-0 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
-                                />
-                                <textarea
-                                    value={article.description}
-                                    onChange={(e) => setArticle({ ...article, description: e.target.value })}
-                                    placeholder="Kısa açıklama / özet — ana sayfa kartlarında ve SEO'da görünür..."
-                                    className="w-full min-h-[70px] text-sm text-zinc-600 dark:text-zinc-400 bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 resize-y focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                                <div className="flex items-center gap-3 flex-wrap">
-                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">URL:</span>
-                                    <code className="text-xs font-mono text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">/{article.slug || "..."}</code>
-                                    <span className="text-[10px] text-zinc-400">•</span>
-                                    <span className="text-[10px] text-zinc-400">{article.readTime}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Cover Image */}
-                        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3 block flex items-center gap-2">
-                                <ImageIcon className="w-3.5 h-3.5" /> Kapak Görseli
-                            </label>
-                            <Input
-                                value={article.image}
-                                onChange={(e) => setArticle({ ...article, image: e.target.value })}
-                                placeholder="https://images.unsplash.com/..."
-                                className="font-mono text-xs mb-3"
-                            />
-                            {article.image && (
-                                <div className="h-48 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 relative bg-zinc-100">
-                                    <Image src={article.image} alt="Kapak" fill className="object-cover" unoptimized />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Sections */}
-                        {article.sections.map((section, sIdx) => (
-                            <div key={section.id + sIdx} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden">
-                                {/* Section Header */}
-                                <div className="bg-zinc-50 dark:bg-zinc-950 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
-                                    <GripVertical className="w-4 h-4 text-zinc-300 cursor-grab" />
-                                    <Input
-                                        value={section.id}
-                                        onChange={(e) => {
-                                            const secs = [...article.sections];
-                                            secs[sIdx].id = e.target.value;
-                                            setArticle({ ...article, sections: secs });
-                                        }}
-                                        className="max-w-[120px] font-mono text-[10px] h-7 bg-transparent border-zinc-300 dark:border-zinc-700"
-                                        placeholder="url-id"
-                                    />
-                                    <Input
-                                        value={section.title}
-                                        onChange={(e) => {
-                                            const secs = [...article.sections];
-                                            secs[sIdx].title = e.target.value;
-                                            setArticle({ ...article, sections: secs });
-                                        }}
-                                        className="flex-1 font-bold text-sm h-7 bg-transparent border-zinc-300 dark:border-zinc-700"
-                                        placeholder="Bölüm Başlığı"
-                                    />
-                                    <div className="flex items-center gap-1">
-                                        <button type="button" onClick={() => moveSection(sIdx, "up")} disabled={sIdx === 0} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20"><ArrowUp className="w-3.5 h-3.5" /></button>
-                                        <button type="button" onClick={() => moveSection(sIdx, "down")} disabled={sIdx === article.sections.length - 1} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20"><ArrowDown className="w-3.5 h-3.5" /></button>
-                                        <button type="button" onClick={() => removeSection(sIdx)} className="p-1 text-zinc-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                                    </div>
-                                </div>
-
-                                {/* Blocks */}
-                                <div className="p-4 flex flex-col gap-4">
-                                    {section.blocks.map((block, bIdx) => (
-                                        <div key={block.id} className="group relative flex gap-2">
-                                            {/* Block Controls */}
-                                            <div className="flex flex-col items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 w-6">
-                                                <button type="button" onClick={() => moveBlock(sIdx, bIdx, "up")} disabled={bIdx === 0} className="text-zinc-300 hover:text-zinc-600 disabled:opacity-20"><ArrowUp className="w-3 h-3" /></button>
-                                                <GripVertical className="w-3 h-3 text-zinc-300 cursor-grab" />
-                                                <button type="button" onClick={() => moveBlock(sIdx, bIdx, "down")} disabled={bIdx === section.blocks.length - 1} className="text-zinc-300 hover:text-zinc-600 disabled:opacity-20"><ArrowDown className="w-3 h-3" /></button>
-                                            </div>
-                                            {/* Block Content */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-1.5">
-                                                    <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-bold text-zinc-400 border-zinc-200 dark:border-zinc-800">
-                                                        {BLOCK_TYPES.find(bt => bt.type === block.type)?.label || block.type}
-                                                    </Badge>
-                                                    <button type="button" onClick={() => removeBlock(sIdx, bIdx)} className="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                </div>
-                                                <BlockRenderer block={block} onChange={(b) => updateBlock(sIdx, bIdx, b)} />
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {/* Add Block Button */}
-                                    <div className="relative">
-                                        <button
-                                            type="button"
-                                            onClick={() => setSlashMenuOpen(slashMenuOpen?.sectionIdx === sIdx ? null : { sectionIdx: sIdx })}
-                                            className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-400 hover:text-blue-600 hover:border-blue-300 dark:hover:border-blue-800 transition-all text-xs font-bold"
-                                        >
-                                            <Plus className="w-4 h-4" /> Blok Ekle
-                                        </button>
-
-                                        {/* Slash Menu */}
-                                        {slashMenuOpen?.sectionIdx === sIdx && (
-                                            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-2 z-20 grid grid-cols-2 sm:grid-cols-5 gap-1">
-                                                {BLOCK_TYPES.map((bt) => (
-                                                    <button
-                                                        key={bt.type}
-                                                        type="button"
-                                                        onClick={() => addBlock(sIdx, bt.type as Block["type"])}
-                                                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-blue-600 group"
-                                                    >
-                                                        <bt.icon className="w-5 h-5" />
-                                                        <span className="text-[10px] font-bold">{bt.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Add Section */}
-                        <Button variant="outline" className="w-full h-14 border-dashed border-2 rounded-2xl text-zinc-400 hover:text-blue-600 hover:border-blue-300 font-bold" onClick={addSection}>
-                            <Plus className="w-5 h-5 mr-2" /> Yeni Bölüm Ekle
-                        </Button>
-                    </div>
-
-                    {/* Sidebar / Preview */}
-                    <div className={`${showPreview ? "lg:col-span-12" : "lg:col-span-4 xl:col-span-3"} flex flex-col gap-6`}>
-
-                        {showPreview ? (
-                            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-8 prose prose-zinc dark:prose-invert max-w-3xl mx-auto w-full">
-                                <h1 className="text-3xl font-black mb-4">{article.title || "Başlıksız"}</h1>
-                                <p className="text-zinc-500 mb-8">{article.description}</p>
-                                {article.sections.map((sec, i) => (
-                                    <div key={i}>
-                                        <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">{sec.title}</h2>
-                                        {sec.blocks.map((block, j) => (
-                                            <div key={j} className="mb-4">
-                                                {block.type === "paragraph" && <p>{block.content}</p>}
-                                                {block.type === "heading" && <h3 className="font-bold text-lg">{block.content}</h3>}
-                                                {block.type === "image" && block.src && (
-                                                    <figure>
-                                                        <div className="relative h-48 rounded-xl overflow-hidden"><Image src={block.src} alt={block.alt || ""} fill className="object-cover" unoptimized /></div>
-                                                        {block.caption && <figcaption className="text-sm text-center text-zinc-500 mt-2">{block.caption}</figcaption>}
-                                                    </figure>
-                                                )}
-                                                {block.type === "code" && <pre className="bg-zinc-950 text-green-400 p-4 rounded-xl text-xs overflow-x-auto"><code>{block.content}</code></pre>}
-                                                {block.type === "callout" && <div className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-r-xl text-sm">{block.content}</div>}
-                                                {block.type === "quote" && <blockquote className="border-l-4 border-zinc-300 pl-4 italic">{block.content}</blockquote>}
-                                                {block.type === "divider" && <hr className="my-6" />}
-                                                {block.type === "list" && (
-                                                    block.ordered
-                                                        ? <ol className="list-decimal pl-6">{(block.items || []).map((item, k) => <li key={k}>{item}</li>)}</ol>
-                                                        : <ul className="list-disc pl-6">{(block.items || []).map((item, k) => <li key={k}>{item}</li>)}</ul>
-                                                )}
-                                                {block.type === "link-embed" && (
-                                                    <a href={block.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">{block.title || block.url}</a>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <>
-                                {/* Publishing Settings */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-5 flex flex-col gap-4">
-                                    <h3 className="font-bold text-sm border-b border-zinc-100 dark:border-zinc-800 pb-3 flex items-center gap-2"><Settings className="w-4 h-4 text-zinc-400" /> Yayın Ayarları</h3>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Slug (URL)</label>
-                                        <Input value={article.slug} onChange={(e) => setArticle({ ...article, slug: e.target.value })} className="font-mono text-xs h-8" />
-                                    </div>
-
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Kategori</label>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {CATEGORY_PRESETS.map(cp => (
-                                                <button
-                                                    key={cp.label}
-                                                    type="button"
-                                                    onClick={() => setArticle({ ...article, category: cp.label, categoryColor: cp.color })}
-                                                    className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${article.category === cp.label ? "ring-2 ring-blue-500 ring-offset-1" : ""} ${cp.color}`}
-                                                >
-                                                    {cp.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Rozet</label>
-                                            <Input value={article.badgeLabel} onChange={(e) => setArticle({ ...article, badgeLabel: e.target.value })} className="text-xs h-8" />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Tarih</label>
-                                            <Input value={article.date} onChange={(e) => setArticle({ ...article, date: e.target.value })} className="text-xs h-8" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Author */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-5 flex flex-col gap-4">
-                                    <h3 className="font-bold text-sm border-b border-zinc-100 dark:border-zinc-800 pb-3">Yazar Bilgisi</h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ad</label>
-                                            <Input value={article.author} onChange={(e) => setArticle({ ...article, author: e.target.value })} className="text-xs h-8" />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ünvan</label>
-                                            <Input value={article.authorTitle} onChange={(e) => setArticle({ ...article, authorTitle: e.target.value })} className="text-xs h-8" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Quote */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-5 flex flex-col gap-3">
-                                    <h3 className="font-bold text-sm border-b border-zinc-100 dark:border-zinc-800 pb-3">Makale Alıntısı</h3>
-                                    <textarea
-                                        value={article.quote.text}
-                                        onChange={(e) => setArticle({ ...article, quote: { text: e.target.value } })}
-                                        className="w-full min-h-[60px] text-sm p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl resize-y outline-none focus:ring-2 focus:ring-blue-500 italic"
-                                        placeholder="Dikkat çekici bir alıntı..."
-                                    />
-                                </div>
-
-                                {/* Related Articles */}
-                                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-5 flex flex-col gap-3">
-                                    <h3 className="font-bold text-sm border-b border-zinc-100 dark:border-zinc-800 pb-3">İlgili İçerikler</h3>
-                                    <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto">
-                                        {existingArticles.filter(a => a.slug !== article.slug).map(a => (
-                                            <label key={a.slug} className="flex items-center gap-2 text-xs p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={article.relatedSlugs.includes(a.slug)}
-                                                    onChange={(e) => {
-                                                        setArticle(prev => ({
-                                                            ...prev,
-                                                            relatedSlugs: e.target.checked
-                                                                ? [...prev.relatedSlugs, a.slug]
-                                                                : prev.relatedSlugs.filter(s => s !== a.slug)
-                                                        }));
-                                                    }}
-                                                    className="rounded"
-                                                />
-                                                <span className="truncate">{a.title}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </main>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.18),transparent_24%),linear-gradient(180deg,#edf4ff_0%,#f7fafc_60%,#fbfbfd_100%)] px-4 py-20 dark:bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.25),transparent_28%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.22),transparent_24%),linear-gradient(180deg,#050b15_0%,#09111e_60%,#09111e_100%)]">
+        <div className="mx-auto max-w-md rounded-[32px] border border-white/70 bg-white/92 p-8 shadow-[0_28px_90px_-48px_rgba(15,23,42,0.45)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(29,78,216,0.12)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300"><Shield className="h-4 w-4" />Admin editör</span>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50">Yeni editör çalışma alanı</h1>
+                <p className="mt-3 text-sm leading-7 text-zinc-500 dark:text-zinc-400">Şablon, blok, canlı önizleme, taslak otomasyonu ve yayın ayarları tek ekranda.</p>
+              </div>
+            </div>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"><Sparkles className="h-6 w-6" /></div>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 rounded-2xl" placeholder="Şifre" />
+            <Button type="submit" className="h-12 w-full rounded-2xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100">Editöre gir</Button>
+          </form>
+          <div className="mt-6 rounded-2xl border border-dashed border-zinc-200 px-4 py-4 text-xs leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Yönetici şifresi: <span className="font-black text-zinc-950 dark:text-zinc-100">admin123</span></div>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div style={pageStyle} className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.16),transparent_30%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.14),transparent_24%),linear-gradient(180deg,#edf4ff_0%,#f5f7fb_50%,#fcfcfd_100%)] px-4 py-6 dark:bg-[radial-gradient(circle_at_top_left,rgba(29,78,216,0.2),transparent_28%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.18),transparent_24%),linear-gradient(180deg,#050b15_0%,#08111e_50%,#09111e_100%)]">
+      <div className="mx-auto flex max-w-[1700px] flex-col gap-6">
+        <div className={cn(PANEL_CLASS, "overflow-hidden p-6 md:p-8")}>
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className="rounded-full border-none bg-[color:var(--editor-accent-soft)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[color:var(--editor-accent-text)]">Editor studio</Badge>
+                <Badge variant="outline" className="rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em]">{SITE_SECTIONS.find((section) => section.id === article.sectionId)?.title || "Bölüm seçilmedi"}</Badge>
+                <Badge variant="outline" className="rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em]">{hasUnsavedChanges ? "Kaydedilmemiş değişiklik var" : "Tüm değişiklikler senkron"}</Badge>
+              </div>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-zinc-50 md:text-4xl">Tam özellikli yönetim editörü</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-500 dark:text-zinc-400">Şablonlarla başla, bloklarla üret, sağ panelden yayın ayarlarını ve SEO kontrolünü yönet.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/70"><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Kelime</p><p className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-100">{articleStats.words}</p></div>
+                <div className="rounded-2xl border border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/70"><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Bölüm</p><p className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-100">{articleStats.sections}</p></div>
+                <div className="rounded-2xl border border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/70"><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Blok</p><p className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-100">{articleStats.blocks}</p></div>
+                <div className="rounded-2xl border border-zinc-200 bg-white/90 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950/70"><p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-400">Okuma</p><p className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-zinc-100">{articleStats.readTime} dk</p></div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline" className="h-11 rounded-2xl"><Link href="/admin"><ArrowLeft className="h-4 w-4" />Yönetim paneli</Link></Button>
+              <Button type="button" variant="outline" className="h-11 rounded-2xl" onClick={() => { window.history.replaceState({}, "", "/admin/editor"); loadArticle(createEmptyArticle(), null); setJsonBuffer(""); }}><PencilLine className="h-4 w-4" />Yeni içerik</Button>
+              <Button type="button" variant="outline" className="h-11 rounded-2xl" onClick={() => setInspectorTab("preview")}><Eye className="h-4 w-4" />Canlı önizleme</Button>
+              <Button type="button" className="h-11 rounded-2xl px-6" onClick={() => void handleSave()} disabled={isSaving}>{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Kaydet</Button>
+              <Button type="button" variant="ghost" className="h-11 rounded-2xl" onClick={handleLogout}><X className="h-4 w-4" />Çıkış</Button>
+            </div>
+          </div>
+        </div>
+        {draftSnapshot ? (
+          <div className={cn(PANEL_CLASS, "flex flex-col gap-3 px-5 py-5 text-sm text-zinc-700 dark:text-zinc-200 lg:flex-row lg:items-center lg:justify-between")}>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[color:var(--editor-accent-text)]">Otomatik taslak hazır</p>
+              <p className="mt-2 leading-7">{draftSnapshot.savedAt ? new Date(draftSnapshot.savedAt).toLocaleString("tr-TR") : "Yakın zamanda"} kaydı bulundu.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => { if (draftSnapshot) { loadArticle(toEditorArticle(draftSnapshot.article), draftSnapshot.sourceSlug || null); setHasUnsavedChanges(true); } }}>Taslağı yükle</Button>
+              <Button type="button" variant="ghost" className="rounded-full" onClick={() => { localStorage.removeItem(EDITOR_DRAFT_STORAGE_KEY); setDraftSnapshot(null); }}>Taslağı temizle</Button>
+            </div>
+          </div>
+        ) : null}
+        {isLoading ? (
+          <div className={cn(PANEL_CLASS, "flex min-h-[420px] items-center justify-center p-10")}><Loader2 className="h-8 w-8 animate-spin text-[color:var(--editor-accent-solid)]" /></div>
+        ) : (
+          <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_400px]">
+            <aside className={cn(PANEL_CLASS, "overflow-hidden")}>
+              <Tabs value={sidebarTab} onValueChange={(value) => setSidebarTab(value as SidebarTab)} className="h-full">
+                <TabsList className="mx-5 mt-5 grid grid-cols-3 rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-900">
+                  <TabsTrigger value="outline" className="rounded-xl"><BookOpen className="h-4 w-4" />Outline</TabsTrigger>
+                  <TabsTrigger value="templates" className="rounded-xl"><LayoutTemplate className="h-4 w-4" />Şablon</TabsTrigger>
+                  <TabsTrigger value="blocks" className="rounded-xl"><Blocks className="h-4 w-4" />Blok</TabsTrigger>
+                </TabsList>
+                <TabsContent value="outline" className="mt-0">
+                  <ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5">
+                    <div className="space-y-3">
+                      {article.sections.map((section, index) => (
+                        <button key={`${section.id}-${index}`} type="button" onClick={() => { setSelectedSectionIndex(index); scrollToSection(index); }} className={cn("flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition", selectedSectionIndex === index ? "border-[color:var(--editor-accent-border)] bg-[color:var(--editor-accent-soft)]" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950")}>
+                          <span>
+                            <span className="block text-sm font-black text-zinc-950 dark:text-zinc-50">{section.title || `Bölüm ${index + 1}`}</span>
+                            <span className="block text-[11px] uppercase tracking-[0.2em] text-zinc-400">{section.blocks.length} blok</span>
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="templates" className="mt-0">
+                  <ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5">
+                    <div className="space-y-3">
+                      {TEMPLATE_PRESETS.map((template) => (
+                        <button key={template.id} type="button" onClick={() => { if (!hasUnsavedChanges || window.confirm("Mevcut içerik şablon ile değişecek. Devam edilsin mi?")) { loadArticle(applyTemplate(template.id), null); setHasUnsavedChanges(true); } }} className="w-full rounded-[24px] border border-zinc-200 bg-white px-4 py-4 text-left transition hover:border-[color:var(--editor-accent-border)] hover:bg-[color:var(--editor-accent-soft)] dark:border-zinc-800 dark:bg-zinc-950">
+                          <p className="text-sm font-black text-zinc-950 dark:text-zinc-50">{template.label}</p>
+                          <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{template.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+                <TabsContent value="blocks" className="mt-0">
+                  <ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5">
+                    <div className="space-y-3">
+                      {BLOCK_LIBRARY.map((item) => {
+                        const Icon = BLOCK_ICONS[item.type];
+                        return (
+                          <button key={item.type} type="button" onClick={() => addBlockToSection(selectedSectionIndex, item.type)} className="flex w-full items-start gap-3 rounded-[24px] border border-zinc-200 bg-white px-4 py-4 text-left transition hover:border-[color:var(--editor-accent-border)] hover:bg-[color:var(--editor-accent-soft)] dark:border-zinc-800 dark:bg-zinc-950">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-900"><Icon className="h-5 w-5 text-[color:var(--editor-accent-solid)]" /></div>
+                            <div><p className="text-sm font-black text-zinc-950 dark:text-zinc-50">{item.label}</p><p className="mt-1 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{item.description}</p></div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </aside>
+            <main className="space-y-6">
+              <div className={cn(PANEL_CLASS, "p-6 md:p-8")}>
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                  <div className="space-y-5">
+                    <div>
+                      <FieldLabel hint={`${article.title.length}/72`}>Makale başlığı</FieldLabel>
+                      <Input value={article.title} onChange={(event) => commitArticle((current) => ({ ...current, title: event.target.value }))} className={cn(FIELD_CLASS, "h-14 text-2xl font-black tracking-tight md:text-3xl")} placeholder="Makale başlığını yazın" />
+                    </div>
+                    <div>
+                      <FieldLabel hint={`${article.description.length}/180`}>Özet metin</FieldLabel>
+                      <textarea value={article.description} onChange={(event) => commitArticle((current) => ({ ...current, description: event.target.value }))} className={cn(FIELD_CLASS, "min-h-[140px] resize-y")} placeholder="Kartlar ve SEO için kısa açıklama" />
+                    </div>
+                  </div>
+                  <div className="space-y-5">
+                    <div>
+                      <FieldLabel>Kapak görseli</FieldLabel>
+                      <Input value={article.image} onChange={(event) => commitArticle((current) => ({ ...current, image: event.target.value }))} className={cn(FIELD_CLASS, "h-11 font-mono text-xs")} placeholder="https://... veya /covers/..." />
+                    </div>
+                    <div className="relative h-[220px] overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900">{article.image ? <Image src={article.image} alt={article.title || "Kapak"} fill className="object-cover" unoptimized /> : <div className="flex h-full items-center justify-center text-sm text-zinc-400">Kapak önizlemesi</div>}</div>
+                  </div>
+                </div>
+              </div>
+              {article.sections.map((section, sectionIndex) => (
+                <div key={`${section.id}-${sectionIndex}`} id={`editor-section-${sectionIndex}`} className={cn(PANEL_CLASS, "p-5 md:p-6", selectedSectionIndex === sectionIndex ? "ring-2 ring-[color:var(--editor-accent-border)]" : "")}>
+                  <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex items-start gap-4">
+                      <button type="button" className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900" onClick={() => { setSelectedSectionIndex(sectionIndex); scrollToSection(sectionIndex); }}><GripVertical className="h-4 w-4" /></button>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="grid gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+                          <Input value={section.id} onChange={(event) => commitArticle((current) => ({ ...current, sections: current.sections.map((item, index) => index === sectionIndex ? { ...item, id: event.target.value } : item) }))} className={cn(FIELD_CLASS, "h-11 font-mono text-xs")} placeholder="url-id" />
+                          <Input value={section.title} onChange={(event) => commitArticle((current) => ({ ...current, sections: current.sections.map((item, index) => index === sectionIndex ? { ...item, title: event.target.value } : item) }))} className={cn(FIELD_CLASS, "h-11 font-bold")} placeholder="Bölüm başlığı" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveSection(sectionIndex, "up")} disabled={sectionIndex === 0}><ArrowUp className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveSection(sectionIndex, "down")} disabled={sectionIndex === article.sections.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => duplicateSection(sectionIndex)}><Copy className="h-4 w-4" /></Button>
+                      <Button type="button" variant="outline" size="sm" className="rounded-full text-red-600" onClick={() => removeSection(sectionIndex)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <div className="space-y-5">
+                    {section.blocks.map((block, blockIndex) => {
+                      const Icon = BLOCK_ICONS[block.type];
+                      return (
+                        <div key={block.id} className="rounded-[28px] border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/75 md:p-5">
+                          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-900"><Icon className="h-5 w-5 text-[color:var(--editor-accent-solid)]" /></div>
+                              <div><p className="text-sm font-black text-zinc-950 dark:text-zinc-50">{BLOCK_LIBRARY.find((item) => item.type === block.type)?.label || block.type}</p><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Blok {blockIndex + 1}</p></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveBlock(sectionIndex, blockIndex, "up")} disabled={blockIndex === 0}><ArrowUp className="h-4 w-4" /></Button>
+                              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => moveBlock(sectionIndex, blockIndex, "down")} disabled={blockIndex === section.blocks.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => commitArticle((current) => ({ ...current, sections: current.sections.map((item, index) => index === sectionIndex ? { ...item, blocks: item.blocks.flatMap((itemBlock, itemBlockIndex) => itemBlockIndex === blockIndex ? [itemBlock, { ...itemBlock, id: createBlock(itemBlock.type).id }] : [itemBlock]) } : item) }))}><Copy className="h-4 w-4" /></Button>
+                              <Button type="button" variant="outline" size="sm" className="rounded-full text-red-600" onClick={() => commitArticle((current) => ({ ...current, sections: current.sections.map((item, index) => index === sectionIndex ? { ...item, blocks: item.blocks.filter((_, itemBlockIndex) => itemBlockIndex !== blockIndex).length > 0 ? item.blocks.filter((_, itemBlockIndex) => itemBlockIndex !== blockIndex) : [createBlock("paragraph")] } : item) }))}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                          <BlockEditor block={block} onChange={(nextBlock) => commitArticle((current) => ({ ...current, sections: current.sections.map((item, index) => index === sectionIndex ? { ...item, blocks: item.blocks.map((itemBlock, itemBlockIndex) => itemBlockIndex === blockIndex ? nextBlock : itemBlock) } : item) }))} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-5 rounded-[28px] border border-dashed border-zinc-300 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                      {BLOCK_LIBRARY.map((item) => {
+                        const Icon = BLOCK_ICONS[item.type];
+                        return <button key={item.type} type="button" onClick={() => addBlockToSection(sectionIndex, item.type)} className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-left text-sm font-bold text-zinc-700 transition hover:border-[color:var(--editor-accent-border)] hover:bg-[color:var(--editor-accent-soft)] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"><Icon className="h-4 w-4 text-[color:var(--editor-accent-solid)]" />{item.label}</button>;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={addSection} className="flex w-full items-center justify-center gap-3 rounded-[28px] border-2 border-dashed border-zinc-300 bg-white/70 px-6 py-5 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 transition hover:border-[color:var(--editor-accent-border)] hover:bg-[color:var(--editor-accent-soft)] dark:border-zinc-700 dark:bg-zinc-950/50 dark:text-zinc-300"><Plus className="h-5 w-5" />Yeni bölüm ekle</button>
+            </main>
+            <aside className={cn(PANEL_CLASS, "overflow-hidden")}>
+              <Tabs value={inspectorTab} onValueChange={(value) => setInspectorTab(value as InspectorTab)} className="h-full">
+                <TabsList className="mx-5 mt-5 grid grid-cols-5 rounded-2xl bg-zinc-100 p-1 dark:bg-zinc-900">
+                  <TabsTrigger value="publish" className="rounded-xl"><Settings2 className="h-4 w-4" /></TabsTrigger>
+                  <TabsTrigger value="relations" className="rounded-xl"><Link2 className="h-4 w-4" /></TabsTrigger>
+                  <TabsTrigger value="seo" className="rounded-xl"><CheckSquare className="h-4 w-4" /></TabsTrigger>
+                  <TabsTrigger value="workspace" className="rounded-xl"><Sparkles className="h-4 w-4" /></TabsTrigger>
+                  <TabsTrigger value="preview" className="rounded-xl"><Eye className="h-4 w-4" /></TabsTrigger>
+                </TabsList>
+                <TabsContent value="publish" className="mt-0"><ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5"><div className="space-y-5"><div><FieldLabel>Slug</FieldLabel><Input value={article.slug} onChange={(event) => commitArticle((current) => ({ ...current, slug: slugify(event.target.value) }))} className={cn(FIELD_CLASS, "h-11 font-mono text-xs")} placeholder="ornek-icerik-url" /></div><div><FieldLabel>Bölüm</FieldLabel><Select value={article.sectionId} onValueChange={(value) => commitArticle((current) => ({ ...current, sectionId: value as SiteSectionId }))}><SelectTrigger className="h-12 w-full rounded-2xl border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"><SelectValue placeholder="Bölüm seçin" /></SelectTrigger><SelectContent>{SITE_SECTIONS.map((section) => <SelectItem key={section.id} value={section.id}>{section.title}</SelectItem>)}</SelectContent></Select><Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={() => applySectionPreset(article.sectionId)}><Wand2 className="h-4 w-4" />Önerilen meta ayarı</Button></div><div><FieldLabel>Kategori</FieldLabel><Input value={article.category} onChange={(event) => commitArticle((current) => ({ ...current, category: event.target.value }))} className="h-11 rounded-2xl" placeholder="Kategori adı" /></div><div><FieldLabel>Rozet etiketi</FieldLabel><Input value={article.badgeLabel} onChange={(event) => commitArticle((current) => ({ ...current, badgeLabel: event.target.value }))} className="h-11 rounded-2xl" placeholder="Teknik rehber" /></div><div><FieldLabel>Renk sınıfı</FieldLabel><Input value={article.categoryColor} onChange={(event) => commitArticle((current) => ({ ...current, categoryColor: event.target.value }))} className={cn(FIELD_CLASS, "h-11 text-xs")} placeholder="bg-emerald-100 text-emerald-800 ..." /></div><div className="grid gap-4 md:grid-cols-2"><div><FieldLabel>Yazar</FieldLabel><Input value={article.author} onChange={(event) => commitArticle((current) => ({ ...current, author: event.target.value }))} className="h-11 rounded-2xl" /></div><div><FieldLabel>Ünvan</FieldLabel><Input value={article.authorTitle} onChange={(event) => commitArticle((current) => ({ ...current, authorTitle: event.target.value }))} className="h-11 rounded-2xl" /></div></div><div className="grid gap-4 md:grid-cols-2"><div><FieldLabel>Tarih</FieldLabel><Input value={article.date} onChange={(event) => commitArticle((current) => ({ ...current, date: event.target.value }))} className="h-11 rounded-2xl" /></div><div><FieldLabel>Okuma süresi</FieldLabel><Input value={article.readTime} onChange={(event) => commitArticle((current) => ({ ...current, readTime: event.target.value }))} className="h-11 rounded-2xl" disabled={workspace.autoReadTime} /></div></div><div><FieldLabel>Öne çıkan alıntı</FieldLabel><textarea value={article.quote.text} onChange={(event) => commitArticle((current) => ({ ...current, quote: { text: event.target.value } }))} className={cn(FIELD_CLASS, "min-h-[120px] resize-y italic")} placeholder="Makale içinde vurgulanacak alıntı" /></div></div></ScrollArea></TabsContent>
+                <TabsContent value="relations" className="mt-0"><ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5"><div className="space-y-5"><div><FieldLabel>İlgili içerik ara</FieldLabel><div className="relative"><Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" /><Input value={relatedQuery} onChange={(event) => setRelatedQuery(event.target.value)} className="h-11 rounded-2xl pl-11" placeholder="Başlık veya slug" /></div></div><div className="space-y-2">{relatedCandidates.map((candidate) => { const checked = article.relatedSlugs.includes(candidate.slug); return <label key={candidate.slug} className={cn("flex cursor-pointer items-start gap-3 rounded-[24px] border px-4 py-4 transition", checked ? "border-[color:var(--editor-accent-border)] bg-[color:var(--editor-accent-soft)]" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950")}><input type="checkbox" checked={checked} onChange={(event) => commitArticle((current) => ({ ...current, relatedSlugs: event.target.checked ? [...current.relatedSlugs, candidate.slug] : current.relatedSlugs.filter((slug) => slug !== candidate.slug) }))} className="mt-1 h-4 w-4 rounded border-zinc-300" /><span className="min-w-0 flex-1"><span className="block text-sm font-black text-zinc-950 dark:text-zinc-50">{candidate.title}</span><span className="mt-1 block truncate text-xs leading-6 text-zinc-500 dark:text-zinc-400">/{candidate.slug} • {candidate.category}</span></span></label>; })}</div></div></ScrollArea></TabsContent>
+                <TabsContent value="seo" className="mt-0"><ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5"><div className="space-y-3">{seoChecklist.map((item) => <div key={item.label} className={cn("flex items-center justify-between rounded-[24px] border px-4 py-4", item.status ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30")}><div><p className="text-sm font-black text-zinc-950 dark:text-zinc-50">{item.label}</p><p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{item.detail}</p></div><span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-full", item.status ? "bg-emerald-600 text-white" : "bg-amber-500 text-white")}>{item.status ? <Check className="h-4 w-4" /> : <Info className="h-4 w-4" />}</span></div>)}</div></ScrollArea></TabsContent>
+                <TabsContent value="workspace" className="mt-0"><ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5"><div className="space-y-5"><div><FieldLabel>Vurgu rengi</FieldLabel><div className="grid grid-cols-2 gap-2">{ACCENT_OPTIONS.map((option) => <button key={option.id} type="button" onClick={() => setWorkspace((current) => ({ ...current, accentId: option.id }))} className={cn("flex items-center gap-3 rounded-[24px] border px-4 py-3 text-left transition", workspace.accentId === option.id ? "border-[color:var(--editor-accent-border)] bg-[color:var(--editor-accent-soft)]" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950")}><span className="h-5 w-5 rounded-full" style={{ backgroundColor: option.solid }} /><span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{option.label}</span></button>)}</div></div><div className="space-y-2"><button type="button" onClick={() => setWorkspace((current) => ({ ...current, autoSlug: !current.autoSlug }))} className={cn("flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left transition", workspace.autoSlug ? "border-[color:var(--editor-accent-border)] bg-[color:var(--editor-accent-soft)]" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950")}><span className="mt-0.5 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Auto</span><span><span className="block text-sm font-bold text-zinc-950 dark:text-zinc-50">Başlıktan slug üret</span><span className="mt-1 block text-xs leading-6 text-zinc-500 dark:text-zinc-400">Başlık değiştikçe URL alanı yenilenir.</span></span></button><button type="button" onClick={() => setWorkspace((current) => ({ ...current, autoReadTime: !current.autoReadTime }))} className={cn("flex w-full items-start gap-3 rounded-2xl border px-4 py-4 text-left transition", workspace.autoReadTime ? "border-[color:var(--editor-accent-border)] bg-[color:var(--editor-accent-soft)]" : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950")}><span className="mt-0.5 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Auto</span><span><span className="block text-sm font-bold text-zinc-950 dark:text-zinc-50">Okuma süresini hesapla</span><span className="mt-1 block text-xs leading-6 text-zinc-500 dark:text-zinc-400">Kelime sayısına göre süre belirlenir.</span></span></button></div><div className="rounded-[24px] border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-950"><FieldLabel>İçe / dışa aktar</FieldLabel><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void copyJson()}><FileJson2 className="h-4 w-4" />JSON kopyala</Button><Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => void copyMarkdown()}><Copy className="h-4 w-4" />Markdown kopyala</Button></div><textarea value={jsonBuffer} onChange={(event) => setJsonBuffer(event.target.value)} className={cn(FIELD_CLASS, "mt-4 min-h-[180px] resize-y font-mono text-xs")} placeholder="JSON içeriğini buraya yapıştırın" /><Button type="button" className="mt-3 rounded-full" onClick={() => { try { loadArticle(toEditorArticle(JSON.parse(jsonBuffer) as Partial<StoredArticle>), null); setHasUnsavedChanges(true); toast.success("JSON içeriği editöre yüklendi."); } catch { toast.error("JSON çözümlenemedi."); } }}>JSON içe aktar</Button></div></div></ScrollArea></TabsContent>
+                <TabsContent value="preview" className="mt-0"><ScrollArea className="h-[calc(100vh-330px)] px-5 pb-5"><PreviewPane article={article} surface={workspace.previewSurface} /></ScrollArea></TabsContent>
+              </Tabs>
+            </aside>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
