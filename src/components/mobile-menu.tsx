@@ -9,6 +9,7 @@ import { Button } from "./ui/button";
 const MENU_ITEMS = [
   { name: "Ana Sayfa", href: "/", icon: <FileText className="h-5 w-5" /> },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik", icon: <HardHat className="h-5 w-5" /> },
+  { name: "Hesaplamalar", href: "/hesaplamalar", icon: <Calculator className="h-5 w-5" /> },
   { name: "Araclar", href: "/kategori/araclar", icon: <Calculator className="h-5 w-5" /> },
   { name: "Bina Asamalari", href: "/kategori/bina-asamalari", icon: <GitBranchPlus className="h-5 w-5" /> },
   { name: "Yapi", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-5 w-5" /> },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Share2 } from "lucide-react";
@@ -9,12 +10,14 @@ import { BookmarkButton } from "./bookmark-button";
 import { LiveSearch } from "./live-search";
 import { MobileMenu } from "./mobile-menu";
 import { ModeToggle } from "./mode-toggle";
-import { SharePopup } from "./share-popup";
 import { Button } from "./ui/button";
+
+const SharePopup = dynamic(() => import("./share-popup").then((module) => module.SharePopup), { ssr: false });
 
 const NAV_LINKS = [
   { name: "Ana Sayfa", href: "/" },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik" },
+  { name: "Hesaplamalar", href: "/hesaplamalar" },
   { name: "Araclar", href: "/kategori/araclar" },
   { name: "Bina Asamalari", href: "/kategori/bina-asamalari" },
   { name: "Yapi", href: "/kategori/yapi-tasarimi" },
@@ -27,7 +30,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const isTool = pathname.startsWith("/kategori/araclar") || pathname.startsWith("/araclar");
+  const isTool = pathname.startsWith("/kategori/araclar") || pathname.startsWith("/araclar") || pathname.startsWith("/hesaplamalar");
   const isCategory = pathname.startsWith("/kategori") && !isTool;
   const isArticle = pathname !== "/" && !isTool && !isCategory && pathname.length > 1;
   const showBack = isArticle || isTool || isCategory;
