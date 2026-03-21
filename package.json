@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",
-    "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs"
+    "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs",
+    "check:content-quality": "tsx scripts/audit-content-quality.mjs --scope=all",
+    "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",

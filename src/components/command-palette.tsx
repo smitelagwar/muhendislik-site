@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calculator, Command, FileText, Map, Scale, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -15,9 +15,9 @@ interface SearchItem {
 }
 
 const DISCOVERY_LINKS = [
-  { label: "Yapı", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-4 w-4" /> },
-  { label: "Yönetmelikler", href: "/kategori/deprem-yonetmelik", icon: <Scale className="h-4 w-4" /> },
-  { label: "Site Haritası", href: "/konu-haritasi", icon: <Map className="h-4 w-4" /> },
+  { label: "Yapi", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-4 w-4" /> },
+  { label: "Yonetmelikler", href: "/kategori/deprem-yonetmelik", icon: <Scale className="h-4 w-4" /> },
+  { label: "Site Haritasi", href: "/konu-haritasi", icon: <Map className="h-4 w-4" /> },
 ];
 
 function escapeRegExp(value: string) {
@@ -46,9 +46,12 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   );
 }
 
-export function CommandPalette({ items }: { items: SearchItem[] }) {
+export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [items, setItems] = useState<SearchItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const tools = useMemo(() => getLiveTools(), []);
@@ -81,6 +84,41 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
       inputRef.current?.focus();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || hasLoaded || isLoading) {
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsLoading(true);
+
+    fetch("/api/articles?scope=search", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Search index request failed");
+        }
+
+        return response.json() as Promise<SearchItem[]>;
+      })
+      .then((payload) => {
+        startTransition(() => {
+          setItems(payload);
+          setHasLoaded(true);
+          setIsLoading(false);
+        });
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        console.error("Command palette search load failed:", error);
+        setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [hasLoaded, isLoading, isOpen]);
 
   const filteredArticles = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -129,7 +167,7 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="İçerik, araç veya konu ara..."
+                placeholder="Icerik, arac veya konu ara..."
                 className="flex-1 border-none bg-transparent text-lg text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
               />
               <div className="flex items-center gap-1.5">
@@ -142,7 +180,8 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
 
             <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
               <div className="mb-4">
-                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">İçerikler</h3>
+                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Icerikler</h3>
+                {isLoading ? <div className="p-6 text-sm text-zinc-500">Arama dizini yukleniyor...</div> : null}
                 {filteredArticles.map((article) => (
                   <button
                     key={article.slug}
@@ -164,15 +203,15 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
                     <Command className="h-4 w-4 text-zinc-300 transition-colors group-hover:text-zinc-500" />
                   </button>
                 ))}
-                {filteredArticles.length === 0 && <div className="p-10 text-center text-sm italic text-zinc-500">Eşleşen sonuç bulunamadı.</div>}
+                {!isLoading && filteredArticles.length === 0 ? <div className="p-10 text-center text-sm italic text-zinc-500">Eslesen sonuc bulunamadi.</div> : null}
               </div>
 
               <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Araçlar</h3>
+                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Araclar</h3>
                 <div className="grid gap-1 sm:grid-cols-2">
                   <button type="button" onClick={() => openRoute(TOOLS_HUB_HREF)} className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800">
                     <Calculator className="h-4 w-4 text-zinc-400 transition-colors group-hover:text-blue-600" />
-                    <span className="text-xs font-medium">Tüm hesap araçları</span>
+                    <span className="text-xs font-medium">Tum hesap araclari</span>
                   </button>
                   {tools.map((tool) => (
                     <button
@@ -189,7 +228,7 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
               </div>
 
               <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Keşif</h3>
+                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kesif</h3>
                 <div className="grid gap-1 sm:grid-cols-3">
                   {DISCOVERY_LINKS.map((link) => (
                     <button
@@ -214,7 +253,7 @@ export function CommandPalette({ items }: { items: SearchItem[] }) {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Enter</span>
-                  Aç
+                  Ac
                 </span>
               </div>
               <span className="flex items-center gap-1">

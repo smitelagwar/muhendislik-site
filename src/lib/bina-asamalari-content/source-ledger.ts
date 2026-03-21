@@ -43,6 +43,13 @@ export const SOURCE_LEDGER = {
     url: "https://www.tse.org.tr/",
     note: "Fore kazık uygulamalarında imalat ve kalite kontrol esaslarını tanımlar.",
   },
+  tsEn1537: {
+    title: "TS EN 1537 Özel Geoteknik Uygulamalar - Zemin Ankrajları",
+    shortCode: "TS EN 1537",
+    type: "standard",
+    url: "https://www.tse.org.tr/",
+    note: "Geçici ve kalıcı zemin ankrajlarında sondaj, kök boyu, enjeksiyon ve kabul yüklemesi esaslarını çerçeveler.",
+  },
   tsEn1538: {
     title: "TS EN 1538 Özel Geoteknik İşler - Diyafram Duvarlar",
     shortCode: "TS EN 1538",
@@ -63,6 +70,13 @@ export const SOURCE_LEDGER = {
     type: "regulation",
     url: "https://www.mevzuat.gov.tr/",
     note: "Denetim zinciri, kontrol sorumluluğu ve uygulama izleme sistemi için referans.",
+  },
+  tazeBetonNumuneTebligi: {
+    title: "4708 Sayılı Yapı Denetimi Hakkında Kanun Kapsamında Denetimi Yürütülen Yapılara Ait Taze Betondan Numune Alınması, Deneylerinin Yapılması, Raporlanması Süreçlerinin İzlenmesi ve Denetlenmesine Dair Tebliğ",
+    shortCode: "Taze Beton Numune Tebliği",
+    type: "regulation",
+    url: "https://webdosya.csb.gov.tr/db/yapiisleri/icerikler/4708-sayili-yapi-denet-m--hakkinda-kanun-kapsaminda-denet-m--yurutulen-yapilara-a-t-taze-betondan-numune-alinmasi-deneyler-n-n-yapilmasi-raporlanmasi-surecler-n-n-izl-20210505163351.pdf",
+    note: "Beton numunesi alma, EBIS kaydı, kür ve raporlama zincirinin resmi çerçevesini tarif eder.",
   },
   planliAlanlar: {
     title: "Planlı Alanlar İmar Yönetmeliği",
@@ -112,6 +126,13 @@ export const SOURCE_LEDGER = {
     type: "standard",
     url: "https://www.tse.org.tr/",
     note: "Laminat zeminlerin aşınma, sınıf ve kullanım koşulları için temel referans.",
+  },
+  tsEn13969: {
+    title: "TS EN 13969 Su Yalıtımı İçin Esnek Levhalar - Bodrum ve Toprakla Temas Eden Yapı Elemanları İçin Bitümlü Levhalar",
+    shortCode: "TS EN 13969",
+    type: "standard",
+    url: "https://www.tse.org.tr/",
+    note: "Temel ve perde dış yüzeylerinde kullanılan bitümlü su yalıtım levhalarının performans çerçevesini tanımlar.",
   },
   tsEn806: {
     title: "TS EN 806 Binalarda İçme ve Kullanma Suyu Tesisatı",

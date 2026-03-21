@@ -1,5 +1,6 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
 import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
+import { kaziTemelLeafSpecs } from "./kazi-temel-leaves";
 
 const GEOTECH_TOOLS: BinaGuideTool[] = [
   { category: "Geoteknik", name: "PLAXIS / benzeri analiz araçları", purpose: "Derin kazı, deplasman ve temel-etkileşim senaryolarını ön değerlendirmek." },
@@ -326,6 +327,7 @@ const KAZI_SOURCES = [...BRANCH_SOURCE_LEDGER["kazi-temel"]];
 
 export const kaziTemelSpecs: BinaGuidePageSpec[] = [
   ...getKaziExtraSpecs(),
+  ...kaziTemelLeafSpecs,
   {
     slugPath: "kazi-temel",
     kind: "branch",

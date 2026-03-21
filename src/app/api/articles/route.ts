@@ -25,9 +25,32 @@ function mutationDisabledResponse() {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    return NextResponse.json(readArticlesFile());
+    const articles = readArticlesFile();
+    const { searchParams } = new URL(request.url);
+
+    if (searchParams.get("scope") === "search") {
+      return NextResponse.json(
+        Object.values(articles).map((article) => {
+          const item = article as {
+            title?: string;
+            slug?: string;
+            category?: string;
+            description?: string;
+          };
+
+          return {
+            title: item.title ?? "",
+            slug: item.slug ?? "",
+            category: item.category ?? "",
+            description: item.description ?? "",
+          };
+        }),
+      );
+    }
+
+    return NextResponse.json(articles);
   } catch (error) {
     console.error("GET Error reading articles data:", error);
     return NextResponse.json({ error: "Failed to read data" }, { status: 500 });

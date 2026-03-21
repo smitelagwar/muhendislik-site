@@ -1,344 +1,616 @@
 {
   "zemin-iyilestirme-yontemleri": {
     "slug": "zemin-iyilestirme-yontemleri",
-    "title": "Zemin İyileştirme Yöntemleri: Ne Zaman Jet Grout Kullanılmalı",
-    "description": "Sığ suların ve yumuşak killerin bulunduğu zorlu zeminlerde projenin oturma risklerini minimize etmek için kullanılan jet-grout yönteminin sahadaki kritik uygulama adımları ve maliyet analizleri.",
+    "title": "Jet Grout ve Zemin İyileştirme Yöntemleri: Ne Zaman Kullanılır, Nasıl Kontrol Edilir?",
+    "description": "Jet grout başta olmak üzere zemin iyileştirme yöntemlerinin seçim mantığını, sahadaki kontrol parametrelerini ve deprem-oturma performansı açısından kritik eşikleri anlatan kapsamlı teknik rehber.",
     "category": "Geoteknik Rehberi",
     "categoryColor": "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400",
     "badgeLabel": "Teknik Makale",
-    "author": "Dr. Müh. Ahmet Yılmaz",
-    "authorTitle": "Geoteknik Uzmanı",
+    "author": "Dr. M?h. Ahmet Y?lmaz",
+    "authorTitle": "Geoteknik Uzman?",
     "date": "14 Ekim 2023",
-    "readTime": "8 dk okuma",
-    "image": "/covers/geoteknik.svg",
+    "readTime": "15 dk okuma",
+    "image": "/covers/zemin-cover.png",
+    "sectionId": "geoteknik",
+    "relatedSlugs": [
+      "iksa-uzman-sistemi",
+      "tbdy-2018-betonarme-analiz",
+      "beton-dokumu-kontrol-listesi"
+    ],
+    "keywords": [
+      "jet grout",
+      "zemin iyileştirme",
+      "soilcrete",
+      "oturma kontrolü",
+      "TBDY 2018",
+      "geoteknik saha kontrolü"
+    ],
     "quote": {
-      "text": "Jet-Grout bir derin temel sistemi (kazık) değildir. Jet-Grout, taşıma gücü düşük zemini yerinde iyileştirerek genel zemin profilinin mühendislik özelliklerini (E modülü, dayanım vb.) artıran bir kompozit sistemidir."
+      "text": "Jet grout, kötü zemini sihirle iyi zemine çevirmek değildir; saha verisini, karışım tasarımını ve üretim kontrolünü aynı disiplin içinde yönetmektir."
     },
     "sections": [
       {
-        "id": "giris",
+        "id": "giris-kapsam",
         "title": "1. Giriş ve Kapsam",
-        "content": "Zemin şartlarının yetersiz olduğu durumlarda, yapı yüklerini güvenle taşıtabilmek ve oturmaları sınırlandırmak amacıyla çeşitli zemin iyileştirme yöntemleri kullanılmaktadır. Günümüzde en popüler yöntemlerden biri **Jet Grout (Jet Grouting)** tekniğidir.\n\nBu teknik temel olarak, zeminin yüksek basınçlı çimento enjeksiyonu ile yırtılarak (kesilerek) yerinde kesintisiz bir toprak-çimento (soilcrete) kolonu oluşturulması esasına dayanır."
+        "subsections": [],
+        "content": "Zemin iyileştirme kararı, çoğu projede temel tipinden bile önce düşünülmesi gereken stratejik bir karardır. Taşıma gücü yetersiz, suya doygun, gevşek veya yüksek oturma potansiyeli olan bir zemin üzerinde en doğru temel kesitini çizseniz bile zeminin davranışı kontrol altına alınmadıkça üst yapının performansı risk altında kalır.\n\nJet grout, taş kolon, vibro kompaksiyon, derin karıştırma ve geosentetik takviyeli çözümler bu nedenle yalnızca “zemin güçlendirme” başlığı altında toplanan teknikler değildir; tasarım riskini sahada yönetme araçlarıdır. Bu yazının ana odağı jet grout olmakla birlikte, yöntemi diğer iyileştirme seçenekleriyle birlikte düşünmeyi sağlayacak karar çerçevesi kurmaktır.\n\nYazı; tasarım ofisinde yöntem seçen mühendise, sahada deneme kolonu ve üretim parametresi izleyen saha mühendisine ve deprem hesabında iyileştirilmiş zemini modele taşımaya çalışan proje ekibine hitap eder.\n\n![Jet grout kesit görünümü](/covers/zemin-kesit.png)\n*Jet grout kolonları, temel altındaki gerilme dağılımını ve oturma davranışını değiştiren kompozit elemanlar olarak düşünülmelidir.*"
       },
       {
-        "id": "kullanim",
-        "title": "2. Jet-Grout Hangi Zeminlerde Kullanılır",
-        "content": "Yöntemin başarısı büyük ölçüde zemin profiline bağlıdır:\n\n- **Kum ve Çakıl Tabakaları:** En başarılı sonuçların alındığı zeminlerdir. Yüksek basınç, taneli yapıyı kolayca deler ve çimento ile karıştırır.\n- **Siltli Zeminler:** İyi sonuç verir. Ancak enjeksiyon basıncı (genellikle 400-600 bar) doğru ayarlanmalıdır.\n- **Organik Zeminler ve Katı Killer:** Jet Grout'un en zorlandığı alanlardır. Çimento organik materyalle iyi aderans sağlamaz."
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Yöntem Seçim Mantığı",
+        "subsections": [],
+        "content": "Jet grout, zeminin yüksek basınçlı enjeksiyonla parçalanıp çimento şerbeti ile yerinde karıştırılması sonucu oluşan soilcrete kolonlar üretir. Buradaki amaç tek başına kolon üretmek değil, zemin kütlesinin deformasyon modülünü, drenaj davranışını ve makaslama dayanımını istenen banda taşımaktır.\n\nYöntem özellikle şu senaryolarda öne çıkar:\n- Temel altında diferansiyel oturma riski yüksekse\n- Yeraltı suyu nedeniyle klasik kazı destekleme ve temel altı çalışmaları zorlaşıyorsa\n- Komşu yapılar nedeniyle titreşimli yöntemler tercih edilemiyorsa\n- Derin kazı veya perde arkasında su kesme ihtiyacı varsa\n\nJet grout her zemin için ilk tercih değildir. Çok iri bloklu zeminlerde kolon sürekliliği zorlaşır; organik zeminlerde bağlayıcının etkinliği düşer; geniş alanlı ekonomik iyileştirme gereken projelerde taş kolon veya derin karıştırma daha avantajlı olabilir. Doğru soru “jet grout yapılır mı?” değil, “hangi performans hedefi için jet grout en kontrollü çözüm olur?” sorusudur.\n\nTasarım başında üç ana büyüklük aynı anda okunmalıdır: istenen taşıma ve oturma performansı, mevcut zemin profilinin tabakalı yapısı ve su etkisi, şantiyenin erişim ve komşuluk kısıtları."
       },
       {
-        "id": "sahada",
-        "title": "3. Sahada Dikkat Edilecekler",
-        "content": "Uygulama esnasında kontrol mühendisinin sahada takip etmesi gereken 3 kritik parametre vardır:\n\n1. **Çekme Hızı (cm/dk):** Tijlerin yukarı çekilme hızı. Genelde 40-50 cm/dk arasıdır.\n2. **Dönüş Hızı (rpm):** Delicinin kendi ekseni etrafında dönüş hızı (genelde 15-20 rpm).\n3. **Çimento / Su Oranı (W/C):** Enjeksiyon karışımının kalbi. Ağırlıkça 1.0 civarında kurgulanır."
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Zemin iyileştirme projelerinde sayısal tasarım kadar doğrulama senaryosu da projeye dahil edilmelidir. Özellikle deprem etkisi altındaki yapılarda iyileştirilmiş zemin parametrelerinin hangi deney ve saha kayıtlarıyla kabul edildiği açık olmak zorundadır.\n\n| Kontrol başlığı | Kritik gereksinim | Referans |\n| --- | --- | --- |\n| Zemin verisinin deprem hesabına taşınması | Saha ve laboratuvar sonuçları ile zemin parametrelerinin tanımlanması | TBDY 2018, ilgili geoteknik hükümler |\n| Deneme üretimi | Üretim öncesi deneme kolonu ve parametre kalibrasyonu | İyi geoteknik uygulama yaklaşımı |\n| Kalite kontrol | Kolon çapı, süreklilik ve dayanımın karot/test ile doğrulanması | TS EN 12716 yaklaşımı |\n| Temel etkileşimi | İyileştirilmiş zeminin taşıma gücü kadar oturma davranışının da değerlendirilmesi | TS 500 temel yaklaşımı |\n\nUygulama projesinde yalnız hedef kolon çapını yazmak yeterli değildir. En azından şu soruların cevabı verilmelidir: Deneme kolonları nerede üretilecek, karot hangi yaşta alınacak, kabul kriteri serbest basınç dayanımı mı deformasyon modülü mü olacak, üretim sırasında hangi parametre bandı dışına çıkılırsa iş durdurulacak?"
       },
       {
-        "id": "yonetmelik",
-        "title": "4. TBDY 2018 Yaklaşımı",
-        "content": "Türkiye Bina Deprem Yönetmeliği (TBDY 2018) Bölüm 16'ya göre, zemin iyileştirme projelerinde tasarım öncesi mutlaka sahada test kolonları (deneme kolonları) imal edilmelidir. Bu kolonlardan alınacak karot numuneleri laboratuvarda kırılarak **Serbest Basınç Dayanımı (qu)** tayin edilir.\n\nİyileştirilmiş zemin modülünün deprem hesabı sırasında modele nasıl katılacağı, taşıyıcı sistemin spektral ivme (SaR) değerini doğrudan değiştirecektir."
+        "id": "uygulama-adimlari",
+        "title": "4. Tasarım ve Uygulama Adımları",
+        "subsections": [],
+        "content": "1. **Sondaj verisini performans hedefiyle eşleştir.** Amaç yalnız zemin sınıfı okumak değil, hangi tabakanın iyileştirileceğini belirlemektir.\n2. **Temel yükleri ve oturma kriterini netleştir.** Jet grout kolon aralığı, çapı ve dizilimi doğrudan bu hedefe göre belirlenir.\n3. **Deneme kolonunu zorunlu kabul et.** Deneme üretimi gerçek ekipman ve gerçek karışımla yapılmadıkça tasarım varsayımı teyit edilmiş sayılmaz.\n4. **Parametre bandını kilitle.** Çekme hızı, dönüş hızı, enjeksiyon basıncı ve su/çimento oranı her vardiya kaydına girilmelidir.\n5. **Karot ve üretim sonrası doğrulama yap.** Dayanım kadar kolon geometrisi ve süreklilik de değerlendirilmelidir.\n6. **Temel altı yükleme sırasını koordine et.** İyileştirme tamamlandı diye temel imalatı otomatik güvenli hale gelmez; kazı tabanı temizliği, su kontrolü ve grobeton sırası korunmalıdır.\n\n![Sahada enjeksiyon parametreleri](/covers/zemin-parametre.png)\n*Makine kaydı tutulmuyorsa yapılan işin hangi parametreyle üretildiğini sonradan kimse kanıtlayamaz.*"
+      },
+      {
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: Radye temel altında jet grout kolon yerleşimi için alan oranı hesabı\n\n**Verilenler**\n- Temel oturum alanı: 20 m x 15 m\n- Hedef kolon çapı: D = 0,80 m\n- Kolon aks aralığı: s = 2,00 m\n- Gevşek siltli kum tabakası kalınlığı: 6,0 m\n- Tasarım yaklaşımı: oturma azaltma ve taban rijitliği artışı\n\n**Adım 1: Tek kolon kesit alanı**\nA_kolon = pi x D² / 4 = 3,14 x 0,80² / 4 = 0,503 m²\n\n**Adım 2: Birim hücre alanı**\nA_hücre = s x s = 2,00 x 2,00 = 4,00 m²\n\n**Adım 3: Alan iyileştirme oranı**\na_s = A_kolon / A_hücre = 0,503 / 4,00 = 0,126\n\nBu durumda iyileştirme oranı yaklaşık **%12,6** olur. Ön proje aşamasında bu oran, oturma azaltma hedefiyle birlikte yorumlanır; tek başına yeterli/yetersiz karar verdirmez.\n\n**Kontrol sonucu**\nAynı çap sahada 0,70 m’ye düşerse tasarım varsayımı bozulur. Bu nedenle karot sonucu kadar gerçek kolon çapı ve süreklilik de kontrol edilmelidir."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Geoteknik analiz | PLAXIS 2D/3D | Oturma, deplasman ve temel-zemin etkileşimi değerlendirmesi |\n| Hesap kontrolü | Excel / Python şablonları | Alan oranı, yük paylaşımı ve parametre karşılaştırması |\n| Arazi ölçümü | Total station / lazer nivo | Kolon yerleşimi, aplikasyon ve kot kontrolü |\n| Saha ekipmanı | Jet grout rig ve kayıt ünitesi | Basınç, çekme hızı ve dönüş hızı takibi |\n| Laboratuvar / saha kontrolü | Karot alma ekipmanı ve basınç testi | Soilcrete dayanım doğrulaması |\n\nOfiste yapılan model ile sahada çalışan makine arasındaki veri bağı koparsa proje güvenilmez hale gelir. Bu nedenle günlük üretim raporu, model varsayımlarıyla aynı terminolojiyi kullanmalıdır."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Jet grout kolonunu kazık gibi kabul edip yük paylaşımını abartmak.  \n**Doğru:** İyileştirilmiş zemin-kolon kompozit davranışını dikkate almak.\n2. **Yanlış:** Deneme kolonu yapmadan üretime başlamak.  \n**Doğru:** Her yeni sahada parametre kalibrasyonunu deneme üretimiyle doğrulamak.\n3. **Yanlış:** Karot sonucunu beklemeden temel imalatına geçmek.  \n**Doğru:** Dayanım ve geometri doğrulamasını temel programına entegre etmek.\n4. **Yanlış:** Sadece basınca bakıp çekme-dönüş hızını kayıt altına almamak.  \n**Doğru:** Tüm üretim parametrelerini vardiya bazında izlemek.\n5. **Yanlış:** Su etkisini enjeksiyonla çözüldü sanmak.  \n**Doğru:** Drenaj ve kazı su yönetimini ayrıca tasarlamak.\n\n**Saha ipucu:** Aynı gün içinde parametreler değişiyorsa nedenini operatöre sormadan üretimi sürdürmeyin. Makine davranışı, zemindeki ani tabaka değişimini herkesten önce haber verir."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Soru | Jet grout lehine durum | Alternatif düşünülmeli |\n| --- | --- | --- |\n| Komşu yapı hassas mı? | Evet, titreşim kısıtı varsa | Hayır, titreşimli yöntemler kullanılabiliyorsa |\n| Yeraltı suyu etkili mi? | Evet, su kesme ve rijitlik birlikte isteniyorsa | Hayır, kuru zeminde daha ekonomik yöntem varsa |\n| İyileştirme hedefi lokal mi? | Evet, temel altı kritik bölgeler | Hayır, çok geniş alanlı düşük maliyet çözümü gerekiyorsa |\n| Saha doğrulaması yapılabiliyor mu? | Karot ve kayıt disiplini kurulabiliyorsa | Doğrulama imkanı sınırlıysa |\n\nJet grout doğru yerde çok etkili, yanlış problem için ise gereğinden pahalı bir çözümdür. Başarının anahtarı; hedef performansı, saha parametresini ve kalite kontrol planını aynı dosyada bir araya getirmektir."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- [AFAD - Türkiye Bina Deprem Yönetmeliği](https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi)\n- [Türkiye Deprem Tehlike Haritası](https://tdth.afad.gov.tr/TDTH/loginControl.xhtml)\n- TS EN 12716 jet grouting uygulama yaklaşımı\n- TS 500 temel tasarımı ve yük aktarımının yorumlanmasında kullanılan standart yaklaşım\n- Şantiye deneme kolonu, karot ve üretim kayıtları ile zemin etüt raporları"
       }
-    ],
-    "relatedSlugs": [
-      "beton-dokumu-kontrol-listesi",
-      "tbdy-2018-betonarme-analiz"
-    ],
-    "sectionId": "geoteknik"
+    ]
   },
   "beton-dokumu-kontrol-listesi": {
     "slug": "beton-dokumu-kontrol-listesi",
-    "title": "Beton Dökümü Öncesi Demir ve Kalıp Kontrol Listesi (Checklist)",
-    "description": "Şantiyede en kritik anlardan biri olan beton dökümü öncesinde gözden kaçmaması gereken paspayı, bindirme boyu ve vibratör kontrolleri.",
-    "category": "Şantiye Notu",
+    "title": "Beton Dökümü Öncesi Demir ve Kalıp Kontrol Listesi: Saha Kabulü Nasıl Yapılmalı?",
+    "description": "Beton dökümünden önce donatı, kalıp, pas payı, gömülü elemanlar ve döküm lojistiğinin nasıl kontrol edilmesi gerektiğini anlatan uzun-form saha rehberi.",
+    "category": "?antiye Notu",
     "categoryColor": "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
     "badgeLabel": "Pratik Rehber",
-    "author": "İnş. Müh. Elif Aksoy",
-    "authorTitle": "Şantiye Şefi",
-    "date": "22 Kasım 2023",
-    "readTime": "6 dk okuma",
-    "image": "/covers/santiye.svg",
+    "author": "?n?. M?h. Elif Aksoy",
+    "authorTitle": "?antiye ?efi",
+    "date": "22 Kas?m 2023",
+    "readTime": "13 dk okuma",
+    "image": "/covers/beton-cover.png",
+    "sectionId": "santiye",
+    "relatedSlugs": [
+      "kalip-sokumu-rehberi",
+      "kolon-on-boyutlandirma",
+      "santiye-duvar-orumu"
+    ],
+    "keywords": [
+      "beton dökümü",
+      "kalıp kontrolü",
+      "donatı kontrolü",
+      "pas payı",
+      "şantiye kabulü",
+      "beton saha ipuçları"
+    ],
     "quote": {
-      "text": "Beton dökümü başladıktan sonra geri dönüş yoktur. Döküm öncesi yapılacak 15 dakikalık kontrol, tüm projeyi kurtarabilir."
+      "text": "İyi beton dökümü, transmikser geldiğinde başlamaz; demir, kalıp, gömülü eleman ve ekip koordinasyonu doğru kabul edildiğinde başlar."
     },
     "sections": [
       {
-        "id": "genel",
-        "title": "1. Genel Bakış",
-        "content": "Betonarme yapılarda beton dökümü, projenin en kritik aşamalarından biridir. Dökümden önce yapılacak sistematik kontroller sayesinde kalite sorunlarının büyük çoğunluğu önlenebilir.\n\nBu kontrol listesi, TS 500, TS EN 206 ve TBDY 2018 şartlarına uygun olarak hazırlanmıştır."
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Beton dökümü öncesi kabul, şantiyede en fazla hafife alınan ama en fazla geri dönüş maliyeti üreten aşamalardan biridir. Donatı bindirmesi eksik, kalıp yağlanması yetersiz, pas payı bozuk veya gömülü eleman unutulmuş bir imalatı beton döküldükten sonra düzeltmek çoğu zaman kırma, güçlendirme veya iş programı gecikmesi anlamına gelir.\n\nBu yazı; beton dökümünden önce saha mühendisinin demir, kalıp, tesisat geçişi, gömülü parçalar, döküm lojistiği ve test planı açısından hangi başlıkları kontrol etmesi gerektiğini açıklayan kapsamlı bir kabul rehberidir. Amaç sadece checklist vermek değil, neden o kontrolün kritik olduğunu da göstermektir.\n\n![Döküm öncesi saha görünümü](/covers/beton-donati.png)\n*Beton dökülmeden önce görülen hata, döküldükten sonra görülen hataya göre her zaman daha ucuz çözülür.*"
       },
       {
-        "id": "kalip-kontrol",
-        "title": "2. Kalıp Kontrolleri",
-        "content": "- **Kalıp Ölçü Kontrolü:** Projedeki ölçülere uygunluk kontrol edilir. Tolerans ±5mm.\n- **Kalıp Temizliği:** Kalıp içindeki talaş, çöp ve birikmeler temizlenmelidir.\n- **Kalıp Yağlaması:** Kalıp yüzeyine uygun kalıp ayırıcı sürülmüş olmalıdır.\n- **İskele ve Destek:** Dikme ve başlıklar kontrol edilir. Çapraz takviye yeterli mi\n- **Derzler:** Su kaçağına neden olabilecek açıklıklar bantlanmalıdır."
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel: Neden Döküm Öncesi Kabul Yapılır?",
+        "subsections": [],
+        "content": "Betonarme eleman performansı; yalnız dayanım sınıfıyla değil, donatının konumu, pas payı, aderans boyu, kalıp rijitliği ve yerleştirme kalitesiyle belirlenir. Yani C30 beton sipariş etmek tek başına güvenli eleman üretmek anlamına gelmez. Eğer donatı projedeki yerde değilse veya beton düzgün yerleştirilemiyorsa malzeme kalitesi tasarım hedefini taşıyamaz.\n\nDöküm öncesi kabulün mantığı üç soruya dayanır: Eleman geometrisi doğru mu, içindeki çelik projeye uygun mu, betonun sahaya güvenle yerleşmesini engelleyen bir durum var mı? Bu üç sorudan biri olumsuz ise transmikser sahaya gelse bile döküm teknik olarak hazır değildir.\n\nBu nedenle saha kabulü bir form imzalama işi değil, yük taşıma mekanizmasını dökümden önce doğrulama işidir."
       },
       {
-        "id": "donati-kontrol",
-        "title": "3. Donatı Kontrolleri",
-        "content": "- **Çap ve Aralık:** Projede belirtilen çaplar ve aralıklar kontrol edilir.\n- **Bindirme Boyu:** Minimum bindirme boyu Ø × 40 olarak kontrol edilir (TS 500 Madde 7.3).\n- **Paspayı:** Kirişlerde min. 2.5cm, kolonlarda min. 2.5cm, temelde min. 5cm (TS 500 Çizelge 7.1).\n- **Etriye Kancaları:** 135° kanca açısı ve minimum 6Ø veya 6cm kanca boyu.\n- **Nervür ve Temizlik:** Donatılar pas, yağ ve topraktan arındırılmış olmalıdır."
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Beton dökümü öncesinde kontrol edilen kalemlerin önemli kısmı TS 500, proje detayları, beton üretici dokümanları ve şantiye kalite planı ile ilişkilidir. Saha mühendisi yalnız sayısal sınıra değil, detayın projedeki amacına da hakim olmalıdır.\n\n| Kontrol başlığı | Tipik beklenti | Referans |\n| --- | --- | --- |\n| Pas payı | Çevre koşuluna ve eleman tipine uygun mesafe | TS 500 ve proje detayları |\n| Donatı yerleşimi | Adet, çap, aralık ve bindirme boyu uygun olmalı | Statik proje ve donatı paftaları |\n| Kalıp rijitliği | Şişme, kaçak, açıklık kayması olmayacak | Kalıp projesi ve saha kabulü |\n| Numune ve kıvam planı | Slump ve numune alma prosedürü hazır olmalı | Beton kalite planı |\n\nEn kritik nokta, projedeki çizim ile sahadaki demirin birebir okunmasıdır. Özellikle kolon-kiriş birleşimleri ve döşeme delik çevreleri hata üretmeye açıktır."
       },
       {
-        "id": "beton-kontrol",
-        "title": "4. Beton Kontrolleri (Döküm Sırası)",
-        "content": "- **Beton Sınıfı:** Transmikser fişindeki beton sınıfı proje ile uyumlu mu (Örn: C30/37)\n- **Slump Testi:** Kıvam ölçümü yapılır. Genelde 10-15 cm aralığı kabul edilir.\n- **Numune Alma:** Her 100 m³ veya gün başına en az 3 küp numune (15×15×15 cm) alınır.\n- **Vibratör Kullanımı:** Her 50 cm derinlikte vibrasyon uygulanır. Aşırı vibrasyon segregasyona neden olur.\n- **Dökme Yüksekliği:** Serbest düşme yüksekliği max. 1.5 metre olmalıdır."
+        "id": "uygulama-adimlari",
+        "title": "4. Döküm Öncesi Uygulama Adımları",
+        "subsections": [],
+        "content": "1. **Kalıp aks ve kotunu kontrol et.** Düşeylik, açıklık ve döşeme kalınlığı net okunmalıdır.\n2. **Donatı paftasını sahadaki imalatla karşılaştır.** Çap, adet, bindirme ve etriye sıklaşması kontrol edilmelidir.\n3. **Pas payı elemanlarını say ve yerinde gör.** Takozlar yalnız konmuş olmak için değil, döküm sırasında yerinde kalacak şekilde sabitlenmelidir.\n4. **Gömülü eleman ve tesisat geçişlerini doğrula.** Sonradan delinen her boşluk yapısal ve mimari risk üretir.\n5. **Döküm lojistiğini kur.** Pompa erişimi, vibratör sayısı, yedek enerji, numune ekibi ve kür planı hazır olmalıdır.\n6. **Hava ve zaman koşulunu değerlendir.** Sıcak hava, yağmur veya gece dökümü senaryosu önceden planlanmalıdır.\n\n![Slump ve numune hazırlığı](/covers/beton-slump.png)\n*Döküm başladığında kontrol değil yönetim yapılır; bu yüzden gerçek kalite işi döküm öncesinde biter.*"
       },
       {
-        "id": "kur-bakim",
-        "title": "5. Kür ve Bakım",
-        "content": "Dökümden sonraki 7 gün boyunca betonun nemli tutulması gerekir. Özellikle yaz aylarında su kaybını önlemek için:\n\n- Çuval veya naylon örtme\n- Düzenli sulama (günde en az 3 kez)\n- Kür malzemesi uygulaması\n\nBu süreçte betonun minimum 10°C sıcaklıkta kalması sağlanmalıdır."
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: Pas payı ve döşeme kalınlığı kontrolü\n\n**Verilenler**\n- Döşeme kalınlığı: 14 cm\n- Alt donatı çapı: fi12\n- Üst donatı çapı: fi10\n- Alt pas payı hedefi: 2,5 cm\n\n**Adım 1: Alt donatı eksen kotu**\n2,5 cm pas payı + 1,2 cm / 2 = 3,1 cm\n\n**Adım 2: Üst donatı için kalan net mesafe**\n14 - 3,1 - 0,5 - üst ağ kalınlığı dikkate alınarak kontrol edilir.\n\n**Yorum**\nBu basit hesap, döşemede tesisat borusu, sehpa yüksekliği veya fazla üst üste donatı nedeniyle net beton örtüsünün nasıl kolayca bozulabildiğini gösterir. Saha kontrolünde yalnız “demir var mı?” sorusu yetmez; doğru yerde mi sorusu da sorulmalıdır."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Çizim/BIM | AutoCAD, Revit | Donatı ve gömülü eleman koordinasyonu |\n| Hesap kontrolü | Excel saha formları | Pas payı, metraj ve kabul listesi takibi |\n| Saha ekipmanı | Pas payı takozu, metre, lazer nivo, mastar | Geometri ve örtü kontrolü |\n| Beton kalite takibi | Slump konisi, numune kalıbı, termometre | Kıvam ve numune doğrulaması |\n| Yerleştirme | Beton vibratörü, pompa ekipmanı | Betonun doğru yerleşmesi |\n\nYazılım ve ekipman ne kadar iyi olursa olsun, döküm öncesi ekip toplantısı yapılmıyorsa hata sahada tekrar eder."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Döküm gününde donatı hatasını “betonla çözeriz” diye geçmek.  \n**Doğru:** Hatalı donatı beton öncesi düzeltilmelidir.\n2. **Yanlış:** Pas payı takozlarını yeterli sayıda koymamak.  \n**Doğru:** Döküm sırasında demirin oturmayacağı sıklıkta takoz kullanılmalıdır.\n3. **Yanlış:** Gömülü elemanı son anda hatırlamak.  \n**Doğru:** Ankraj, tesisat ve rezervasyonlar döküm öncesi checklist ile doğrulanmalıdır.\n4. **Yanlış:** Tek vibratörle büyük döküm planlamak.  \n**Doğru:** Yedek ekipman ve yedek enerji planı kurulmalıdır.\n5. **Yanlış:** Numune almayı formalite görmek.  \n**Doğru:** Numune, döküm karar zincirinin resmi parçası olarak yönetilmelidir.\n\n**Saha ipucu:** Döküm öncesi kısa toplantıda herkesin görevi tek cümleyle dağıtılmalıdır. Betonun kalitesi çoğu zaman malzemeden değil koordinasyondan kaybedilir."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Kontrol alanı | Kabul sorusu |\n| --- | --- |\n| Kalıp | Aks, kot ve rijitlik doğru mu? |\n| Donatı | Çap, adet, bindirme ve sıklaşma projeye uygun mu? |\n| Pas payı | Takım ve mesafe yeterli mi? |\n| Lojistik | Pompa, vibratör, numune ve kür planı hazır mı? |\n\nİyi beton dökümü, iyi hazırlanmış dökümdür. Kabul yapılmayan imalat, beton dökülünce görünmez hale gelir ama risk ortadan kalkmaz."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları\n- TS EN 206 Beton standardı\n- Beton üretici teknik föyleri ve kıvam-dayanım takibi prosedürleri\n- Donatı paftaları, kalıp planları ve saha kabul formları\n- Şantiye numune raporları, döküm günlükleri ve kür kayıtları"
       }
-    ],
-    "relatedSlugs": [
-      "zemin-iyilestirme-yontemleri",
-      "eps-xps-yalitim-farklari"
-    ],
-    "sectionId": "santiye"
+    ]
   },
   "eps-xps-yalitim-farklari": {
     "slug": "eps-xps-yalitim-farklari",
-    "title": "EPS ve XPS Arasındaki Temel Isı Yalıtım Farkları",
-    "description": "Mantolama seçimlerinde sıkça karşılaşılan iki malzeme: Genleştirilmiş vs Haddelenmiş Polistiren Köpük. TS 825 standart şartları nelerdir",
-    "category": "Malzeme Veritabanı",
+    "title": "EPS ve XPS Arasındaki Farklar: Isı Yalıtımında Doğru Malzeme Nasıl Seçilir?",
+    "description": "EPS ve XPS ısı yalıtım levhalarının ısıl performans, su emme, basınç dayanımı ve uygulama detayı açısından farklarını anlatan kapsamlı teknik yazı.",
+    "category": "Malzeme Veritaban?",
     "categoryColor": "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300",
-    "badgeLabel": "Karşılaştırma",
+    "badgeLabel": "Kar??la?t?rma",
     "author": "Y. Mimar Deniz Kara",
-    "authorTitle": "Enerji Verimliliği Uzmanı",
-    "date": "8 Aralık 2023",
-    "readTime": "7 dk okuma",
-    "image": "/covers/malzeme.svg",
+    "authorTitle": "Enerji Verimlili?i Uzman?",
+    "date": "8 Aral?k 2023",
+    "readTime": "12 dk okuma",
+    "image": "/covers/eps-cover.png",
+    "sectionId": "malzeme",
+    "relatedSlugs": [
+      "leed-breeam-karsilastirmasi",
+      "beton-dokumu-kontrol-listesi",
+      "santiye-duvar-orumu"
+    ],
+    "keywords": [
+      "EPS",
+      "XPS",
+      "ısı yalıtımı",
+      "TS 825",
+      "dış cephe mantolama",
+      "temel yalıtımı"
+    ],
     "quote": {
-      "text": "Doğru yalıtım malzemesi seçimi, binanın 50 yıllık enerji faturasını %40'a kadar düşürebilir. Bu karar, projenin en kritik kararlarından biridir."
+      "text": "EPS mi XPS mi sorusunun doğru cevabı, hangisi daha iyi değil; hangi detayda hangi nem, basınç ve ısı koşulunun daha kritik olduğudur."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Giriş",
-        "content": "Bina dış cephesi yalıtımında (mantolama) en yaygın kullanılan iki malzeme EPS (Expanded Polystyrene - Genleştirilmiş Polistiren) ve XPS (Extruded Polystyrene - Ekstrüde Polistiren) köpüktür. Her ikisi de polistiren bazlı olmalarına rağmen üretim süreçleri, fiziksel özellikleri ve uygulama alanları bakımından önemli farklılıklar gösterir."
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Yalıtım levhası seçimi, çoğu projede birkaç santimetre kalınlığa indirgenen bir satın alma kararı gibi ele alınır. Oysa yanlış malzeme seçimi, dış cephede ısı köprüsü, teras ve temel detayında su etkisi, ters çatı uygulamasında deformasyon ve uzun vadede performans kaybı olarak geri döner.\n\nEPS ve XPS, görünüşte benzer iki polistiren esaslı malzeme olsa da üretim yöntemi, su emme davranışı, basınç dayanımı ve uygulama alanı bakımından farklı ihtiyaçlara cevap verir. Bu yazının amacı, malzeme kataloglarını tekrar etmek değil; hangi detayda hangi levhanın neden tercih edilmesi gerektiğini mühendislik mantığıyla anlatmaktır.\n\n![EPS dış cephe uygulaması](/covers/eps-dis-cephe.png)\n*Malzeme seçimi yalnız lambda değerine göre yapılırsa saha koşulunun yarısı gözden kaçırılmış olur.*"
       },
       {
-        "id": "eps-nedir",
-        "title": "2. EPS (Genleştirilmiş Polistiren) Nedir",
-        "content": "EPS, polistiren hammaddesinin buharla genleştirilmesiyle üretilir. İçindeki hava kabarcıkları sayesinde ısı yalıtımı sağlar.\n\n- **Yoğunluk:** 15-30 kg/m³\n- **Isı İletkenlik (λ):** 0.035-0.040 W/mK\n- **Basınç Dayanımı:** 60-200 kPa\n- **Su Buharı Geçirgenlik:** Yüksek (nefes alır)\n- **Maliyet:** Düşük (XPS'in yaklaşık %60'ı)"
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Malzeme Davranışı",
+        "subsections": [],
+        "content": "EPS genleştirilmiş polistiren tanelerinin kalıpta birleşmesiyle oluşur; daha hafif, ekonomik ve dış cephe mantolamada yaygın bir çözümdür. XPS ise ekstrüzyonla üretilir; daha kapalı hücreli yapısı sayesinde su emme direnci ve basınç dayanımı genellikle daha yüksektir. Bu yüzden toprakla temas eden, suya maruz kalan veya basınç yükü alan detaylarda öne çıkar.\n\nIsı yalıtım performansı yalnız ısıl iletkenlik katsayısı ile okunmamalıdır. Şu dört başlık birlikte değerlendirilmelidir:\n- Isıl iletkenlik ve hedef U değeri\n- Su emme ve nemli ortam davranışı\n- Basınç dayanımı ve boyutsal kararlılık\n- Yangın, kaplama sistemi ve uygulama detayı uyumu\n\nBir dış cephe mantolama detayı ile radye temel dış yüzü aynı şartlarda çalışmaz. Bu nedenle tek bir levha türünü tüm projeye dağıtmak çoğu zaman doğru mühendislik kararı değildir."
       },
       {
-        "id": "xps-nedir",
-        "title": "3. XPS (Ekstrüde Polistiren) Nedir",
-        "content": "XPS, polistirenin ekstrüzyon yöntemiyle üretilmesiyle elde edilir. Kapalı hücre yapısı sayesinde suya karşı çok dayanıklıdır.\n\n- **Yoğunluk:** 28-45 kg/m³\n- **Isı İletkenlik (λ):** 0.028-0.036 W/mK\n- **Basınç Dayanımı:** 200-700 kPa\n- **Su Emme:** Çok düşük (%0.3-0.5)\n- **Maliyet:** Yüksek (EPS'in yaklaşık 1.7 katı)"
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Türkiye’de yalıtım malzemesi seçimi, başta TS 825 ve Binalarda Enerji Performansı Yönetmeliği olmak üzere proje kabuğu performansı ile birlikte değerlendirilmelidir. Ayrıca cephe kaplama sistemi, yangın güvenliği ve üretici uygulama şartları da kararın parçasıdır.\n\n| Başlık | EPS yaklaşımı | XPS yaklaşımı | Referans |\n| --- | --- | --- | --- |\n| Dış cephe mantolama | Ekonomik ve yaygın çözüm | Daha sınırlı kullanım | TS 825, sistem detayları |\n| Temel/perde dışı | Su etkisi yüksekse dikkatli seçilmeli | Daha avantajlı | Suya maruz detaylar ve uygulama föyleri |\n| Ters çatı | Basınç ve nem etkisine göre çoğu zaman sınırlı | Daha uygun | Çatı sistem detayları |\n| Basınç dayanımı | Orta düzey | Genellikle daha yüksek | Ürün teknik föyleri |\n\nYalıtım hesabı yapılırken yalnız levha kalınlığı değil; sıva, duvar, hava boşluğu ve kaplama katmanları birlikte değerlendirilmelidir."
       },
       {
-        "id": "karsilastirma",
-        "title": "4. Uygulama Alanlarına Göre Karşılaştırma",
-        "content": "| Uygulama Alanı | Önerilen Malzeme | Gerekçe |\n|---|---|---|\n| Dış Cephe Mantolama | EPS | Maliyet avantajı, nefes alabilirlik |\n| Teras / Çatı Yalıtımı | XPS | Su dayanımı, basınç direnci |\n| Temel Perdesi | XPS | Toprak altı su temasında EPS zarar görür |\n| Döşeme Altı | XPS | Basınç dayanımı gereklidir |\n| İç Duvar Yalıtımı | EPS | Maliyet avantajı |\n\nTS 825 (Binalarda Isı Yalıtım Kuralları) standardına göre, ülkemiz 4 iklim bölgesine ayrılmıştır ve her bölge için minimum U değerleri belirlenmiştir."
+        "id": "uygulama-adimlari",
+        "title": "4. Malzeme Seçim ve Uygulama Adımları",
+        "subsections": [],
+        "content": "1. **Detayı tanımla.** Dış cephe, ters çatı, temel perdesi veya döşeme altı gibi çalışma koşulu net olmalıdır.\n2. **Hedef U değerini belirle.** TS 825 ve proje enerji hedefi ilk filtreyi verir.\n3. **Nem ve su etkisini değerlendir.** Sürekli ıslanma, donma-çözülme veya toprak teması varsa malzeme seçimi değişebilir.\n4. **Basınç yükünü oku.** Ters çatı, zemin altı veya yük alan detaylarda basınç dayanımı kritik hale gelir.\n5. **Sistem detayını bütün olarak çöz.** Yapıştırıcı, dübel, file, sıva ve su yalıtımıyla uyum sağlanmalıdır.\n6. **Şantiye depolamasını unutma.** Güneş altında bozulan veya suya maruz bırakılan levha, katalog performansını sahada koruyamaz.\n\n![XPS temel uygulaması](/covers/xps-temel.png)\n*Temel çevresinde doğru levhayı seçmek kadar, su yalıtımı ile arayüzü doğru çözmek de önemlidir.*"
       },
       {
-        "id": "sonuc",
-        "title": "5. Sonuç ve Öneriler",
-        "content": "EPS ve XPS arasında seçim yaparken tek bir \"doğru cevap\" yoktur. Seçimi etkileyen faktörler:\n\n1. **Bütçe:** EPS daha ekonomiktir.\n2. **Uygulama Yeri:** Suya temas eden yerlerde XPS tercih edilmelidir.\n3. **Yangın Güvenliği:** Her iki malzeme de B1 sınıfı (zor yanar) olmalıdır.\n4. **TS 825 Hesabı:** İklim bölgesine göre gerekli kalınlık hesaplanmalıdır.\n\nÖnerimiz: Projeyi bir bütün olarak ele alıp, her cephe ve zemin elemanı için ayrı değerlendirme yapmanızdır."
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: Hedef U değeri için yaklaşık yalıtım kalınlığı karşılaştırması\n\n**Verilenler**\n- Hedef ısı iletim direnci katkısı: R = 1,70 m²K/W\n- EPS için lambda = 0,038 W/mK\n- XPS için lambda = 0,032 W/mK\n\n**Adım 1: EPS kalınlığı**\nkalınlık = R x lambda = 1,70 x 0,038 = 0,0646 m ≈ 6,5 cm\n\n**Adım 2: XPS kalınlığı**\nkalınlık = 1,70 x 0,032 = 0,0544 m ≈ 5,5 cm\n\n**Yorum**\nAynı ısıl direnç için XPS daha ince çözüme izin verebilir; ancak karar yalnız buradan verilmez. Dış cephede maliyet ve sistem uyumu EPS lehine olabilirken, suya maruz bir temel detayında XPS daha güvenli seçim olabilir."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Enerji hesabı | TS 825 hesap araçları, BEP-TR girdileri | U değeri ve kabuk performansı kontrolü |\n| Detay çizimi | AutoCAD, Revit | Cephe ve temel kesit detayları |\n| Saha kontrolü | Termal kamera, mastar, nem kontrol ekipmanı | Uygulama kalitesi ve ısı köprüsü izlemi |\n| Ürün seçimi | Üretici teknik föyleri | Basınç dayanımı, su emme ve lambda karşılaştırması |\n| Metraj | Excel, BIM metraj araçları | Kalınlık ve yüzey miktarı planlaması |\n\nMalzeme seçimi sahada depolama ve uygulama kalitesi ile desteklenmiyorsa, en iyi katalog değeri bile beklenen performansı vermez."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** EPS ve XPS’i yalnız fiyat farkına göre seçmek.  \n**Doğru:** Detayın su, basınç ve ısı koşullarını birlikte değerlendirmek.\n2. **Yanlış:** Ters çatı ve temel detayında dış cephe refleksiyle malzeme seçmek.  \n**Doğru:** Nem ve basınç etkisi yüksek alanları ayrı okumak.\n3. **Yanlış:** Levhaları şantiyede güneş ve su altında bekletmek.  \n**Doğru:** Üretici depolama koşullarına uymak.\n4. **Yanlış:** Levha birleşimlerini ve dübel planını önemsiz görmek.  \n**Doğru:** Sistem performansı detay kalitesi ile oluşur.\n5. **Yanlış:** Hedef kalınlığı sadece lambda ile çözmek.  \n**Doğru:** Yangın, kaplama sistemi, buhar difüzyonu ve saha riski birlikte değerlendirilmelidir.\n\n**Saha ipucu:** Yalıtım levhasını satın alma kalemi olarak değil detay kalemi olarak yönetin. Kesitte çözülemeyen ürün, sahada hiçbir zaman doğru uygulanmaz."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Detay | EPS | XPS |\n| --- | --- | --- |\n| Dış cephe mantolama | Çoğu projede uygun ve ekonomik | Bazı özel durumlarda |\n| Temel dış yüzü | Nem etkisine dikkat | Çoğu zaman daha güvenli |\n| Ters çatı | Sınırlı | Basınç ve su etkisi için uygun |\n| Kalınlık/verim | Biraz daha kalın gerekebilir | Aynı performans için daha ince olabilir |\n\nDoğru malzeme seçimi, ürünler arasında kazanan aramak değil; detayın gerçek çalışma koşuluna en uygun çözümü seçmektir."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- TS 825 Isı Yalıtım Kuralları\n- Binalarda Enerji Performansı Yönetmeliği\n- EPS ve XPS üretici teknik föyleri ve uygulama kılavuzları\n- Cephe, ters çatı ve temel yalıtımı detay paftaları\n- Sahada termal kamera kontrolleri, metraj tabloları ve enerji hesabı raporları"
       }
-    ],
-    "relatedSlugs": [
-      "leed-breeam-karsilastirmasi",
-      "beton-dokumu-kontrol-listesi"
-    ],
-    "sectionId": "malzeme"
+    ]
   },
   "leed-breeam-karsilastirmasi": {
     "slug": "leed-breeam-karsilastirmasi",
-    "title": "Yeşil Bina Sertifikasyonları: LEED ve BREEAM Karşılaştırması",
-    "description": "Sürdürülebilir mimari projelerinde en çok tercih edilen iki büyük sertifikasyon sisteminin puanlama ve maliyet avantajları açısından analizi.",
+    "title": "LEED ve BREEAM Karşılaştırması: Türkiye’de Yeşil Bina Sertifikasında Doğru Yol Haritası",
+    "description": "LEED ve BREEAM sistemlerinin puanlama mantığını, Türkiye’de sertifikasyon sürecini, maliyet etkisini ve proje ekiplerinin sahada dikkat etmesi gereken noktaları anlatan kapsamlı rehber.",
     "category": "Sektörel Haber",
     "categoryColor": "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400",
     "badgeLabel": "Analiz",
     "author": "Mimar Selin Demirtaş",
     "authorTitle": "Sürdürülebilir Tasarım Danışmanı",
     "date": "3 Ocak 2024",
-    "readTime": "10 dk okuma",
+    "readTime": "14 dk okuma",
     "image": "/covers/surdurulebilirlik.svg",
     "quote": {
-      "text": "Yeşil bina sertifikası almak lüks değil, artık bir zorunluluk. 2030'a kadar tüm kamu binalarının nZEB (Yaklaşık Sıfır Enerji Bina) olması hedefleniyor."
+      "text": "LEED ile BREEAM arasındaki fark, sadece puan tablosu farkı değildir; tasarım kararının ne zaman alındığına, ekip disiplininin ne kadar erken kurulduğuna ve verinin ne kadar iyi toplandığına dair bir proje yönetimi farkıdır."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Yeşil Bina Nedir",
-        "content": "Yeşil bina; tasarım, yapım, işletme ve yıkım aşamalarında çevresel etkiyi minimum düzeyde tutan, enerji ve su verimliliği yüksek, yaşam kalitesini artıran yapılardır.\n\nDünyada birçok yeşil bina sertifikasyon sistemi bulunmakla birlikte en yaygın kullanılanlar **LEED** (ABD kökenli) ve **BREEAM** (UK kökenli) sistemleridir."
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Yeşil bina sertifikası, yalnızca pazarlama değeri yüksek bir etiket değildir. Tasarımın ilk gününden işletme dönemine kadar enerji, su, malzeme, iç mekân kalitesi ve saha yönetimi kararlarını disipline eden bir kalite sistemidir. Türkiye’de yatırımcıların büyük bölümü LEED ve BREEAM adlarını birlikte duysa da, çoğu proje ekibi hangi sistemin hangi proje tipinde daha uygulanabilir olduğunu ancak ihale veya ruhsat baskısı geldiğinde tartışmaya başlar. Bu gecikme, sertifika hedefinin sonradan ek yük haline gelmesine yol açar.\n\nBu yazı, LEED ile BREEAM’i “hangisi daha iyi?” sorusundan çıkarıp “hangi proje için hangi sistem daha rasyonel?” sorusuna taşır. Hedef kitle; konsept tasarım aşamasındaki mimar, maliyet etkisini okumak isteyen yatırımcı, malzeme seçimi ve saha kaydını yönetecek uygulama ekibi ve sertifikasyon danışmanıyla aynı dili konuşmak isteyen proje müdürüdür.\n\nYazıda puanlama mantığı, Türkiye’de uygulama adımları, tipik dokümantasyon gereksinimleri, maliyet-zaman etkisi, saha tarafındaki kritik kayıtlar ve pratik hata listesi birlikte ele alınır."
       },
       {
-        "id": "leed",
-        "title": "2. LEED (Leadership in Energy and Environmental Design)",
-        "content": "- **Kuruluş:** U.S. Green Building Council (USGBC) - 1998\n- **Yaygınlık:** 180+ ülkede 100.000+ proje\n- **Puanlama:** 110 puan üzerinden\n  - Certified: 40-49 puan\n  - Silver: 50-59 puan\n  - Gold: 60-79 puan\n  - Platinum: 80+ puan\n- **Değerlendirme Kategorileri:** Sürdürülebilir Arazi, Su Verimliliği, Enerji ve Atmosfer, Malzeme ve Kaynaklar, İç Ortam Kalitesi, İnovasyon"
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Puanlama Mantığı",
+        "subsections": [],
+        "content": "LEED, kredi bazlı ve performans göstergelerine dayalı bir sistemdir; proje her başlıkta belirli puanları toplayarak Certified, Silver, Gold veya Platinum seviyesine gider. BREEAM ise yine puanlı çalışır ancak kategorilerin ağırlıkları, minimum standartları ve yönetim odaklı yaklaşımı nedeniyle daha erken koordinasyon talep eder. İki sistem de enerjiyi merkezde tutsa da yalnızca enerji modeline indirgenemez; malzeme beyanları, su verisi, ulaşım bağlantıları, şantiye atık yönetimi ve kullanıcı sağlığı da puanı ciddi biçimde etkiler.\n\nTemel mantık şudur: Sertifika bir “ürün seçme” işi değildir, veri üreten kararlar zinciridir.\n\nToplam puan = tasarım kredileri + şantiye uygulama kredileri + işletme doğrulama kredileri\n\nBu nedenle sürdürülebilirlik danışmanının yalnız bırakıldığı projelerde sistem kağıt üzerinde kalır. Mekanik mühendisi enerji modelini, mimar kabuk performansını, inşaat mühendisi malzeme ve saha kayıtlarını, satın alma ekibi ise tedarik uygunluğunu aynı tabloda yönetmelidir. Türkiye’de sertifika hedefinin çoğu zaman malzeme aşamasında zorlaşmasının sebebi de budur: ilk tasarım kararları puan potansiyelini çoktan belirlemiştir."
       },
       {
-        "id": "breeam",
-        "title": "3. BREEAM (Building Research Establishment Environmental Assessment Method)",
-        "content": "- **Kuruluş:** BRE (Building Research Establishment) - 1990\n- **Yaygınlık:** 90+ ülkede 600.000+ proje\n- **Puanlama:** %100 üzerinden\n  - Pass: ≥30%\n  - Good: ≥45%\n  - Very Good: ≥55%\n  - Excellent: ≥70%\n  - Outstanding: ≥85%\n- **Değerlendirme Kategorileri:** Yönetim, Sağlık ve Refah, Enerji, Ulaşım, Su, Malzemeler, Atık, Arazi Kullanımı, Kirlilik, İnovasyon"
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "LEED ve BREEAM doğrudan Türk yapı yönetmeliklerinin yerine geçmez; mevcut mevzuata uyumun üzerine ek performans ister. Bu nedenle Türkiye’de sertifika süreci, yerel mevzuatla uluslararası derecelendirme sisteminin birlikte okunmasını gerektirir.\n\n| Başlık | LEED yaklaşımı | BREEAM yaklaşımı | Türkiye’de karşılığı |\n| --- | --- | --- | --- |\n| Enerji performansı | ASHRAE tabanlı model veya eşdeğer performans gösterimi | Enerji ve karbon etkisini kategori ağırlığıyla okur | BEP Yönetmeliği, TS 825, enerji kimlik belgesi |\n| Su verimliliği | İç-dış su tüketimi azaltımı kredi üretir | Tasarruf ve ölçüm altyapısı birlikte değerlendirilir | Düşük debili armatür seçimi, sayaçlama, peyzaj su hesabı |\n| Malzeme | EPD, geri dönüştürülmüş içerik, sorumlu tedarik | Yaşam döngüsü ve sorumlu tedarik vurgusu güçlüdür | Tedarikçi beyanı, ürün veri sayfası, çevresel ürün beyanı |\n| Şantiye yönetimi | Atık ayrıştırma ve iç hava kalitesi planı | Yönetim ve saha süreçleri daha görünür puan etkisi taşır | Şantiye atık planı, teslim öncesi temizlik ve kayıt |\n\nTürkiye’de ekiplerin en sık düştüğü hata, sertifikayı ruhsat mevzuatıyla karıştırmaktır. Oysa sertifika başvurusu için önce yerel mevzuat koşulları sağlanmalı, ardından sertifika sisteminin ek dokümantasyon formatı kurulmalıdır. BEP-TR üzerinden alınan veriler, kabuk ısı geçirgenliği, mekanik sistem verimi ve aydınlatma yükleri gibi başlıklarda giriş verisi sağlar; fakat LEED veya BREEAM raporlaması için tek başına yeterli değildir."
       },
       {
-        "id": "karsilastirma",
-        "title": "4. LEED vs BREEAM Karşılaştırma Tablosu",
-        "content": "| Kriter | LEED | BREEAM |\n|---|---|---|\n| Köken | ABD | İngiltere |\n| İlk Yayın | 1998 | 1990 |\n| Sertifika Maliyeti | $2,500-35,000 | £1,500-15,000 |\n| Süreç Süresi | 6-12 ay | 4-8 ay |\n| Enerji Ağırlığı | %33 | %19 |\n| Yerel Uyum | Sınırlı | Ülkeye özel versiyonlar |\n| Türkiye'de Popülerlik | Yüksek | Orta |\n\nTürkiye'de özellikle AVM, otel ve ofis projelerinde LEED tercih edilirken, Avrupa fonlu projelerde BREEAM daha yaygın kullanılmaktadır."
+        "id": "uygulama-adimlari",
+        "title": "4. Türkiye’de Uygulama Adımları",
+        "subsections": [],
+        "content": "1. **Hedef seviyeyi proje başında belirleyin.** Gold mu Excellent mı sorusu, cephe oranı ve mekanik sistem kararı verilmeden cevaplanmalıdır.\n2. **Kredi matrisi kurun.** Her kredi için sorumlu disiplin, teslim tarihi ve kanıt dokümanı baştan yazılmalıdır.\n3. **Ön fizibilite yapın.** Enerji modelinin potansiyel puanı, su ekipman listesi ve malzeme tedarik riskleri bir araya getirilmelidir.\n4. **Tasarım kararlarını kredi etkisine göre dondurun.** Kabuk U değeri, güneş kontrolü, taze hava, sayaç altyapısı ve malzeme şartnameleri tasarım paketine işlenmelidir.\n5. **Şantiye kayıt düzenini kurun.** Atık fişleri, malzeme beyanları, fotoğraflar ve test raporları sertifika dosyasına uygun formatta tutulmalıdır.\n6. **Commissioning ve teslim süreçlerini geciktirmeyin.** İşletmeye alma testleri sertifika puanının kritik bölümüdür; en sona bırakılırsa veri toplanamaz.\n\nSahada başarıyı belirleyen unsur çoğu zaman teknik zorluktan ziyade kayıt disiplinidir. Sertifika puanını kaybettiren pek çok başlık, yanlış uygulamadan değil doğru uygulamanın kanıtlanamamasından doğar."
       },
       {
-        "id": "sonuc",
-        "title": "5. Türkiye İçin Hangi Sistem",
-        "content": "Türkiye'de yeşil bina trendi hızla büyümektedir. Seçim yaparken:\n\n1. **Proje tipi ve büyüklüğü** belirleyici olmalıdır.\n2. **Yatırımcı profili:** Uluslararası yatırımcılar genelle LEED isterler.\n3. **Maliyet-fayda analizi:** BREEAM genellikle daha uygun maliyetlidir.\n4. **Uzman mevcudiyeti:** Türkiye'de LEED AP sayısı daha fazladır.\n\nHer iki sistem de yapının değerini %7-15 oranında artırdığı araştırmalarla kanıtlanmıştır."
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: 12.000 m² ofis binasında enerji iyileştirmesinin sertifika stratejisine etkisi\n\n**Verilenler**\n- Brüt kapalı alan: 12.000 m²\n- Referans yıllık enerji tüketimi: 180 kWh/m²-yıl\n- İyileştirilmiş senaryo: 132 kWh/m²-yıl\n- İlave kabuk ve otomasyon yatırımı: 4.200.000 TL\n- Elektrik birim maliyeti varsayımı: 3,2 TL/kWh\n\n**Adım 1: Yıllık enerji tasarrufu**\nTasarruf = (180 - 132) x 12.000 = 576.000 kWh/yıl\n\n**Adım 2: Yıllık parasal kazanç**\n576.000 x 3,2 = 1.843.200 TL/yıl\n\n**Adım 3: Basit geri ödeme süresi**\nGeri ödeme = 4.200.000 / 1.843.200 = 2,28 yıl\n\n**Yorum**\nBu sonuç, enerji kredilerinin yalnızca çevresel değil finansal karşılığı olduğunu gösterir. Ancak sertifika sisteminde puan sadece enerji tasarrufundan gelmez; commissioning, su ölçümü, malzeme beyanı ve iç hava kalitesi belgeleri tamamlanmazsa beklenen seviye yakalanmayabilir. Bu yüzden fizibilite tablosu “tek kredi” değil “toplam kredi paketi” mantığıyla okunmalıdır."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Enerji modelleme | IES VE, DesignBuilder, EnergyPlus | Yıllık enerji tüketimi ve tasarruf senaryosu |\n| BIM ve koordinasyon | Revit, Navisworks | Disiplinler arası veri eşleştirme ve metraj kontrolü |\n| Doküman takibi | Excel kredi matrisi, CDE platformları | Kredi sorumlusu ve teslim tarihi yönetimi |\n| İç hava kalitesi ve saha | Debi ölçüm cihazı, VOC uygunluk beyanları, commissioning formları | Saha testi ve devreye alma kayıtları |\n| Su verimliliği | Debi hesap tabloları, alt sayaç planları | Armatür ve tüketim doğrulaması |\n\nYazılım seçimi projeye göre değişebilir; önemli olan her kredinin veri kaynağının net olmasıdır. Bir model başka bir modelle konuşmuyorsa, son hafta puan toplanamaz."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Sertifika hedefini avan projeden sonra belirlemek.  \n**Doğru:** Hedef seviye ve ön kredi matrisi konsept aşamasında kurulmalıdır.\n2. **Yanlış:** Uygun malzeme satın alıp belge toplamayı unutmak.  \n**Doğru:** EPD, VOC, geri dönüştürülmüş içerik ve tedarik beyanları satın alma sürecine gömülmelidir.\n3. **Yanlış:** Şantiye atıklarını ayırmadan sonradan yüzdesel rapor üretmeye çalışmak.  \n**Doğru:** Konteyner ayrımı, tartım fişi ve sevk fişi ilk günden tutulmalıdır.\n4. **Yanlış:** Commissioning işini mekanik devreye alma ile karıştırmak.  \n**Doğru:** Fonksiyon testleri, tasarım niyeti doğrulaması ve performans kayıtları ayrı paket olarak yönetilmelidir.\n5. **Yanlış:** LEED ve BREEAM’i yalnızca puan tablosu olarak görmek.  \n**Doğru:** Her sistemin sözleşme, danışmanlık ve dokümantasyon yükü proje yönetimi planına yazılmalıdır.\n\n**Saha ipucu:** Şantiyede sertifika klasörü fiziksel veya dijital olarak görünür değilse, ekip o hedefi sahiplenmez. Haftalık toplantıda kredi bazlı kontrol listesi açılmalıdır."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Soru | LEED daha uygun olabilir | BREEAM daha uygun olabilir |\n| --- | --- | --- |\n| Uluslararası yatırımcı beklentisi yüksek mi? | Evet, özellikle ABD merkezli portföylerde | Kısmen |\n| Yönetim ve süreç takibi güçlü mü? | Orta düzeyde de yürüyebilir | Erken koordinasyon daha kritik |\n| Avrupa pazarında kıyas isteniyor mu? | Olabilir | Genellikle daha güçlü kabul görür |\n| Ekip daha önce hangi sistemi kullandı? | Deneyim varsa büyük avantaj | Deneyim varsa büyük avantaj |\n\nSonuç olarak iki sistem de doğru projede güçlü araçtır. Kararı belirleyen asıl değişken, projenin pazar hedefi kadar ekibin veri yönetimi olgunluğudur. Türkiye’de çoğu proje için en rasyonel yaklaşım; hedef seviye, enerji potansiyeli ve dokümantasyon yükü üzerinden erken fizibilite yapmaktır."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- [USGBC - LEED rating system official page](https://www.usgbc.org/leed)\n- [BREEAM - How BREEAM works](https://breeam.com/about/how-breeam-works/)\n- [Binalarda Enerji Performansı Yönetmeliği - Resmi kaynak](https://www.mevzuat.gov.tr/)\n- TS 825 Isı Yalıtım Kuralları ve proje hesap raporları\n- Proje commissioning planı, malzeme uygunluk dosyaları ve enerji modelleme raporları"
       }
     ],
     "relatedSlugs": [
       "eps-xps-yalitim-farklari",
       "zemin-iyilestirme-yontemleri"
     ],
-    "sectionId": "surdurulebilirlik"
+    "sectionId": "surdurulebilirlik",
+    "keywords": [
+      "LEED",
+      "BREEAM",
+      "yeşil bina sertifikası",
+      "sürdürülebilir tasarım",
+      "BEP TR",
+      "enerji verimliliği"
+    ]
   },
   "iksa-uzman-sistemi": {
     "slug": "iksa-uzman-sistemi",
-    "title": "İksa Uzman Sistemi: Zemin Parametrelerine Göre Destek Seçimi",
-    "description": "Kohezyon, içsel sürtünme açısı ve yeraltı su seviyesi girdileriyle optimum iksa sistemi öneren interaktif araç.",
+    "title": "İksa Sistemleri Rehberi: Zemin Parametrelerine Göre Destek Tipi Nasıl Seçilir?",
+    "description": "Derin kazılarda iksa tipinin nasıl seçileceğini, zemin ve su parametrelerinin tasarıma etkisini, deplasman kontrolünü ve saha kararlarını anlatan detaylı geoteknik rehber.",
     "category": "Hesap Aracı",
     "categoryColor": "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400",
     "badgeLabel": "Araç Rehberi",
     "author": "Dr. İnş. Müh. Kerem Aydın",
     "authorTitle": "Geoteknik Mühendisi",
     "date": "15 Şubat 2024",
-    "readTime": "12 dk okuma",
+    "readTime": "16 dk okuma",
     "image": "/covers/araclar.svg",
     "quote": {
-      "text": "İksa sistemi seçimi, zemin mekaniği bilgisi kadar saha deneyimi de gerektirir. Her kazı projesi kendine özgüdür."
+      "text": "İksa tasarımında en pahalı hata, zayıf sistemi seçmek değil; zeminin nasıl davranacağını anlamadan tek bir sistemi bütün sahaya ezbere uygulamaktır."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. İksa Nedir",
-        "content": "İksa (shoring/bracing), derin kazı yapılan alanlarda çevredeki yapıları ve zemini korumak için uygulanan geçici veya kalıcı destek sistemidir.\n\nİksa sistemi seçimi; kazı derinliği, zemin profili, yeraltı su seviyesi, komşu yapı durumu ve maliyet gibi faktörlere bağlıdır."
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Derin kazı yapılan kent projelerinde iksa sistemi, sadece kazı yüzünü tutan geçici bir imalat gibi görülür; oysa çoğu zaman komşu yapının güvenliği, altyapı hatlarının korunması, su girişinin kontrolü ve temel imalatının programı doğrudan iksa kararına bağlıdır. Aynı derinlikte iki kazı için tamamen farklı iksa sistemleri seçilebilmesinin nedeni de budur: belirleyici olan yalnız kazı derinliği değil, zemin profili, yeraltı suyu, komşuluk ilişkisi, deplasman sınırı ve şantiye lojistiğidir.\n\nBu rehber; Berlin tipi iksa, ankrajlı fore kazık perde, diyafram duvar, mini kazık destekli çözümler ve içten payandalı sistemler arasında seçim yaparken izlenecek mühendislik mantığını açıklar. Hedef kitle; geoteknik tasarımcı, saha mühendisi, kazı yüklenicisi ve risk değerlendirmesi yapan proje yöneticisidir.\n\nİksa kararı erken verilmezse, mimari bodrum kararı ile saha gerçekliği çatışır. Sonuçta kazı güvenliği pahalılaşır, komşu yapı riski artar ve temel programı uzar."
       },
       {
-        "id": "iksa-turleri",
-        "title": "2. İksa Sistemleri Türleri",
-        "content": "**a) Ankrajlı İksa**\n- Kazık + ankraj kombinasyonu\n- 6 metre ve üzeri kazılarda tercih edilir\n- Ankraj boyu genelde kazı derinliğinin 1.5-2 katıdır\n\n**b) Ankrajsız (Strut) İksa**\n- Kazık + çelik destek (strut) sistemi\n- Dar alanlarda tercih edilir\n- Maliyet genelde ankrajlıdan yüksektir\n\n**c) Palplanş**\n- Çelik levha kazıklar\n- Suya doygun gevşek zeminlerde idealdir\n- 8 metreye kadar ekonomiktir\n\n**d) Toprak Çivisi (Soil Nailing)**\n- Yerinde dökme betonarme yüzey + çelik çivi\n- Kohezyonlu zeminlerde idealdir\n- Maliyet avantajı sağlar"
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Davranış Çerçevesi",
+        "subsections": [],
+        "content": "İksa sistemi, aktif toprak basıncı, su basıncı, sürşarj yükleri ve kazı aşamalarına bağlı rijitlik kaybının birlikte yönetildiği bir denge problemidir. Rijit bir diyafram duvar ile daha esnek bir fore kazık perde aynı basınç altında çok farklı yatay deplasman üretir. Bu yüzden tasarım sadece dayanım problemi değildir; servis performansı da eşit derecede önemlidir.\n\nKazı duvarı davranışı kabaca şu ilişkiyle okunur:\n\nYatay deplasman ~ zemin rijitliği, duvar rijitliği, ankraj seviyesi ve kazı aşaması fonksiyonudur.\n\nBu yaklaşım sahada şu anlama gelir: Aynı ankraj yükünü tasarlamak, komşu yapının aynı güvenlikte olacağı anlamına gelmez. Özellikle yumuşak kil, gevşek kum, yüksek su seviyesi ve yakın temel komşuluğu olan alanlarda deplasman kontrolü dayanımdan daha belirleyici hale gelebilir. Bu nedenle iksa seçimi, “hangi sistem ayakta kalır?” sorusundan çok “hangi sistem komşu yapıyı kabul edilebilir deplasman bandında tutar?” sorusuyla yapılmalıdır."
       },
       {
-        "id": "zemin-parametreleri",
-        "title": "3. Zemin Parametrelerinin Etkisi",
-        "content": "- **Kohezyon (c):** c > 20 kPa olan zeminlerde toprak çivisi uygulanabilir.\n- **İçsel Sürtünme Açısı (φ):** φ > 30° olan granüler zeminlerde ankrajlı sistem tercih edilir.\n- **Yeraltı Su Seviyesi:** Su tablası kazı tabanının üzerindeyse palplanş veya jet-grout perde gerekebilir.\n- **SPT (N) Değeri:** N < 10 olan çok gevşek zeminlerde kazıklı iksa şarttır."
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "İksa tasarımında Türkiye’de temel veri kaynağı zemin etüt raporu, uygulama projesi ve deprem etkilerinin yorumlandığı geoteknik değerlendirme notlarıdır. Derin kazı projelerinde resmi kontrol çoğu zaman yapı ruhsatı ve uygulama proje onayı üzerinden yürür; ancak mühendislik kalitesi için aşağıdaki başlıkların açıkça tanımlanması gerekir.\n\n| Kontrol başlığı | Tasarım beklentisi | Referans |\n| --- | --- | --- |\n| Zemin sınıflaması ve parametreler | Tabaka bazında birim hacim ağırlık, kohezyon, içsel sürtünme açısı, drenaj koşulu | TBDY 2018 Bölüm 16, zemin davranışı yaklaşımı |\n| Yeraltı suyu | Su seviyesi, mevsimsel değişim ve drenaj senaryosu tanımlanmalı | Geoteknik rapor ve sahaya özgü hidrojeolojik veri |\n| Deprem etkisi | Kalıcı ve geçici sistemlerin deprem altındaki davranışı yorumlanmalı | TBDY 2018 temel ve zemin bölümleri |\n| İzleme planı | İnklinometre, prizma, ankraj yük takibi ve alarm seviyeleri yazılmalı | İyi mühendislik uygulaması ve proje kalite planı |\n\nUygulama paftasında sadece kesit çizmek yeterli değildir. Her etap için kazı sırası, ankraj germe seviyesi, iksa önü kazı limiti, su kontrol tedbiri ve izleme planı yazılmadıkça saha emniyeti tasarımın dışında kalmış olur."
       },
       {
-        "id": "maliyet",
-        "title": "4. Maliyet Karşılaştırması",
-        "content": "| İksa Türü | Yaklaşık Birim Fiyat (m²) | Uygulama Süresi |\n|---|---|---|\n| Ankrajlı Fore Kazık | 800-1200 TL/m² | 15-25 gün |\n| Palplanş | 500-800 TL/m² | 10-15 gün |\n| Toprak Çivisi | 400-700 TL/m² | 20-30 gün |\n| Strut Sistemi | 1000-1500 TL/m² | 12-20 gün |\n\n*Not: Fiyatlar 2024 yılı ortalamalarıdır ve bölgeye göre değişkenlik gösterir.*"
+        "id": "uygulama-adimlari",
+        "title": "4. Tasarım ve Saha Uygulama Adımları",
+        "subsections": [],
+        "content": "1. **Zemin profilini tek değerle özetlemeyin.** Her tabaka için efektif parametre, drenaj koşulu ve beklenen davranış yazılmalıdır.\n2. **Kazı derinliği kadar komşu etkisini okuyun.** Bitişik nizam yapı, yol, altyapı ve bodrum kullanımı sistem seçiminde belirleyicidir.\n3. **Sistem alternatiflerini deplasman hedefiyle karşılaştırın.** En ekonomik çözüm, en küçük ilk maliyetli çözüm olmak zorunda değildir.\n4. **Aşamalı analiz yapın.** Ankraj, kuşak kirişi, kazı kademesi ve su düşürme sırası modele işlenmelidir.\n5. **Saha izleme planını projeyle birlikte yayınlayın.** Tasarımın kabulü, ölçüm altyapısı kurulmadan tamamlanmış sayılmamalıdır.\n6. **Alarm seviyelerini önceden tanımlayın.** Limit aşılırsa kazı durdurma, ek destek veya ankraj revizesi prosedürü yazılı olmalıdır.\n\nSahada en kritik nokta, kazının projede çizilen etap dışında ilerletilmemesidir. Bir kademe fazla kazı, ankraj gerilmeden bırakılan bir yüz ve drenaj yapılmayan taban, tasarımı anında geçersiz hale getirebilir."
       },
       {
-        "id": "sonuc",
-        "title": "5. Sonuç",
-        "content": "İksa sistemi seçiminde aşağıdaki adımlar izlenmelidir:\n\n1. Detaylı zemin etüdü ve SPT/CPT verileri temin edilmeli\n2. Kazı derinliği ve geometrisi belirlenmeli\n3. Komşu yapı ve altyapı envanteri çıkarılmalı\n4. En az 3 alternatif sistem için maliyet analizi yapılmalı\n5. TBDY 2018 Bölüm 16 şartları kontrol edilmeli"
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: 8 m derinlikte ankrajlı fore kazık perde ön seçimi\n\n**Verilenler**\n- Kazı derinliği: H = 8,0 m\n- Zemin: orta sıkı kum, birim hacim ağırlık = 18 kN/m³\n- İçsel sürtünme açısı: fi = 32 derece\n- Sürşarj yükü: q = 10 kPa\n- Yaklaşık aktif basınç katsayısı: Ka = tan²(45 - fi/2) = 0,307\n\n**Adım 1: Toprak basıncı büyüklüğü**\nσh = Ka x gama x H = 0,307 x 18 x 8 = 44,2 kPa\n\n**Adım 2: Sürşarjdan gelen ek yatay basınç**\nσq = Ka x q = 0,307 x 10 = 3,07 kPa\n\n**Adım 3: Toplam taban seviyesindeki yatay gerilme**\nσtoplam = 44,2 + 3,07 = 47,27 kPa\n\nBu basit hesap nihai tasarım yerine geçmez; ancak sahaya ilk yaklaşım verir. Eğer komşu bina temeli kazıya 2-3 m mesafedeyse, aynı gerilme düzeyinde daha rijit bir sistem veya daha sık ankraj seviyesi gerekebilir. Burada tasarım kararı, yalnız gerilmenin büyüklüğüne değil kabul edilebilir deplasman sınırına göre verilir."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Geoteknik analiz | PLAXIS 2D/3D, GEO5 | Kazı aşamaları, deplasman ve ankraj davranışı |\n| Yapısal kontrol | SAP2000, Excel hesap föyleri | Kuşak kirişi, payanda ve bağlantı elemanlarının kontrolü |\n| Saha izleme | Total station, prizma, inklinometre | Yatay hareket ve oturma takibi |\n| Uygulama ekipmanı | Fore kazık makinesi, ankraj delgi seti, enjeksiyon pompası | İksa imalatı ve ankraj üretimi |\n| Kalite kontrol | Krikolu yükleme seti, manometre, grout kayıt formları | Ankraj germe ve kabul takibi |\n\nOfis modeli ne kadar iyi olursa olsun, prizma ve inklinometre okumalarıyla doğrulanmıyorsa iksa yönetimi kör ilerler."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Zemin raporundaki tek bir parametre setini bütün cephe için kullanmak.  \n**Doğru:** Cephe boyunca tabaka değişimleri ve dolgu alanları ayrıca değerlendirilmelidir.\n2. **Yanlış:** Ankraj imalatı bitmeden alt kademeye geçmek.  \n**Doğru:** Delgi, enjeksiyon, kür ve germe sırası tamamlanmadan kazı ilerletilmemelidir.\n3. **Yanlış:** Su girişini görmezden gelip yalnız taşıyıcı elemanı büyütmek.  \n**Doğru:** Drenaj ve su düşürme planı iksa sisteminin ayrılmaz parçası olmalıdır.\n4. **Yanlış:** Prizma veya inklinometre okumalarını formel gereklilik gibi görmek.  \n**Doğru:** Ölçüm sonuçları alarm seviyeleriyle yorumlanmalı ve karar üretmelidir.\n5. **Yanlış:** Komşu temel alt kotunu netleştirmeden sistem seçmek.  \n**Doğru:** Komşu yapı temelleri, hassas altyapı hatları ve servis deplasman sınırları mutlaka projeye işlenmelidir.\n\n**Saha ipucu:** Kazı aynasında görülen beklenmedik dolgu, moloz veya su cepleri “küçük sürpriz” değildir. İlk görüldüğü anda kesit revizesi ve ölçüm sıklaştırması düşünülmelidir."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Koşul | Uygun sistem eğilimi | Not |\n| --- | --- | --- |\n| Dar alan, çok düşük deplasman ihtiyacı | Diyafram duvar / rijit perde | Maliyet yüksek ama komşu koruması güçlü |\n| Orta derinlik, erişim makul | Ankrajlı fore kazık perde | Türkiye’de yaygın ve esnek çözüm |\n| Ankraj yapılamayan parsel | İçten payandalı sistem | Bodrum lojistiği ve çalışma alanı etkilenir |\n| Gevşek dolgu ve su etkisi | Rijitlik + su kontrolü birlikte düşünülmeli | Sadece eleman tipi seçmek yetmez |\n\nİksa seçimi, derin kazı işinin en kritik erken kararlarından biridir. Doğru seçim; zemin verisini, komşu yapı riskini, su rejimini ve saha programını aynı modelde birleştiren ekipler tarafından yapılır."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- [AFAD - Türkiye Bina Deprem Yönetmeliği](https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi)\n- [Türkiye Deprem Tehlike Haritası](https://tdth.afad.gov.tr/TDTH/loginControl.xhtml)\n- TS EN 1997-1 Geoteknik Tasarım yaklaşımı\n- Derin kazı ve iksa projelerine ait zemin etüt raporları, izleme planları ve uygulama şartnameleri\n- Şantiye ankraj yükleme kayıtları, inklinometre okumaları ve deplasman takip raporları"
       }
     ],
     "relatedSlugs": [
       "zemin-iyilestirme-yontemleri",
       "tbdy-2018-betonarme-analiz"
     ],
-    "sectionId": "araclar"
+    "sectionId": "araclar",
+    "keywords": [
+      "iksa",
+      "iksa tasarımı",
+      "iksa sistemi seçimi",
+      "ankrajlı perde",
+      "kazı güvenliği",
+      "zemin parametreleri"
+    ]
   },
   "kolon-on-boyutlandirma": {
     "slug": "kolon-on-boyutlandirma",
-    "title": "Dikdörtgen Kolon Ön Boyutlandırma ve Donatı Seçimi",
-    "description": "Betonarme dikdörtgen kolonların ön tasarım aşamasında boyut ve donatı miktarının hızlı belirlenmesi için pratik yaklaşımlar.",
+    "title": "Dikdörtgen Kolon Ön Boyutlandırma: Kesit Seçimi, Donatı Bandı ve Saha Okuması",
+    "description": "Betonarme kolonlarda ön boyutlandırma mantığını, eksenel yük ve moment etkisine göre kesit seçimini, donatı oranlarını ve sahada okunması gereken kritik detayları anlatan kapsamlı rehber.",
     "category": "Hesap Aracı",
     "categoryColor": "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400",
     "badgeLabel": "Hesaplama Rehberi",
     "author": "Prof. Dr. Mehmet Uzun",
     "authorTitle": "Yapı Mühendisliği Profesörü",
     "date": "20 Ocak 2024",
-    "readTime": "9 dk okuma",
-    "image": "/covers/araclar.svg",
+    "readTime": "17 dk okuma",
+    "image": "/covers/kolon-cover.png",
     "quote": {
-      "text": "Ön boyutlandırma, kesin hesaptan önce yapılan tahmindir ama doğru yapılmazsa kesin hesapta sürprizlerle karşılaşabilirsiniz."
+      "text": "Ön boyutlandırma, nihai hesabın yerine geçmez; ama kötü bir kesiti daha model kurmadan elemek ve doğru taşıyıcı sistemi kurmak için en güçlü mühendislik filtresidir."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Ön Boyutlandırma Neden Önemli",
-        "content": "Betonarme yapılarda kolon boyutlandırması, taşıyıcı sistemin en kritik tasarım adımlarından biridir. Ön boyutlandırma aşamasında:\n\n- Taşıyıcı sistem geometrisi belirlenir\n- Mimari projeye uygunluk kontrol edilir\n- Maliyet tahmini yapılır\n- Deprem performans hedefleri önceden değerlendirilir"
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Kolon ön boyutlandırma, betonarme projede çoğu zaman “kabaca kesit seçmek” gibi görülür. Oysa bu aşama, taşıyıcı sistemin rijitlik dağılımını, mimariyle uyumunu, donatı yoğunluğunu ve deprem davranışını belirleyen ilk gerçek mühendislik kararlarından biridir. Model kurulduktan sonra kolon kesitini büyütmek kolay görünse de, bu değişiklik perde oranını, kiriş boyutunu, kalıp maliyetini ve mimari kullanılabilirliği zincirleme etkiler.\n\nBu yazı, dikdörtgen kolonlarda ön boyutlandırmanın nasıl yapılacağını; düşey yük seviyesi, kat adedi, aks açıklığı, deprem bölgesi ve süneklik beklentisi ışığında anlatır. Nihai tasarım için her zaman kapsamlı analiz gerekir; ancak iyi yapılmış bir ön boyutlandırma, hatalı şemayı ilk günden görmenizi sağlar.\n\nHedef okuyucu; konsept proje hazırlayan statik tasarımcı, sahada yoğun donatı yüzünden sorun yaşayan uygulama mühendisi ve kolon-kiriş-perde dengesini erken görmek isteyen genç mühendistir.\n\n![Kolon yük yolu şeması](/covers/kolon-yuk.png)\n*Kolon kesiti yalnız eksenel yük taşımaz; moment, ikinci mertebe etkisi ve düğüm bölgesi davranışı ile birlikte okunmalıdır.*"
       },
       {
-        "id": "eksenel-yuk",
-        "title": "2. Eksenel Yük Tahmini",
-        "content": "Kolon eksenel yükü basit olarak aşağıdaki formülle tahmin edilir:\n\n**N = n × A × q**\n\nBurada:\n- **n:** Kat sayısı\n- **A:** Kolon yükleme alanı (m²)\n- **q:** Birim alan yükü (genelde 10-14 kN/m² alınır)\n\nÖrnek: 8 katlı bir yapıda 30m² yükleme alanı olan bir kolon için:\nN = 8 × 30 × 12 = 2880 kN"
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Ön Boyutlandırma Mantığı",
+        "subsections": [],
+        "content": "Kolon ön boyutlandırmada temel fikir, eksenel yük düzeyi ile kesit alanı arasında ilk bir uygunluk bandı kurmaktır. İlk yaklaşımda kolonun ortalama basınç gerilmesi sigma = N / A biçiminde okunabilir.\n\nBurada amaç nihai gerilmeyi bulmak değil, seçilen kesitin yük seviyesi karşısında makul bir başlangıç verip vermediğini görmektir. Fakat kolonlarda yalnız eksenel yük yoktur; deprem etkisiyle moment, eğrilik talebi, sarılma bölgesi davranışı ve güçlü kolon-zayıf kiriş ilkesi devreye girer. Bu nedenle ön boyutlandırma sadece basınç hesabına indirgenirse yanıltıcı olur.\n\nPratikte iyi bir ön boyutlandırma üç şeyi birlikte kontrol eder:\n- Kat yüksekliği ve aks açıklığına göre yeterli rijitlik\n- Mimariyi bozmadan donatı yerleşimine izin veren net kesit\n- Deprem etkileri altında makul donatı oranı ve birleşim bölgesi davranışı\n\nÖzellikle yüksek deprem talebi olan yapılarda çok küçük kesit seçmek, analizde çalışıyor gibi görünen ama düğüm bölgesinde ve etriye yoğunluğunda imal edilemeyen çözümler doğurur."
       },
       {
-        "id": "kesit-secimi",
-        "title": "3. Kesit Boyutu Seçimi",
-        "content": "TS 500 ve TBDY 2018'e göre:\n\n- Minimum kolon boyutu: 30 cm (her iki yönde)\n- Maximum donatı oranı: %4 (deprem bölgesinde)\n- Minimum donatı oranı: %1\n\n**Pratik formül:**\n\nAg = N / (0.40 × fck + 0.004 × fyk × ρ)\n\nBurada fck = beton karakteristik basınç dayanımı, fyk = donatı akma dayanımı, ρ = donatı oranı varsayımı."
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Kolon ön boyutlandırma aşamasında dahi yönetmelik sınırları göz önünde tutulmalıdır. Çünkü nihai analiz sonucunda kesiti büyütmek kolay olsa da, en başta yanlış sistem kurmak daha büyük sorun yaratır.\n\n| Başlık | Tipik kontrol | Referans |\n| --- | --- | --- |\n| Minimum beton sınıfı | Deprem tasarımında kolon ve kirişlerde en az C25 önerilir | TBDY 2018 Madde 7.2.1 yaklaşımı |\n| Donatı çeliği | B420C veya B500C sınıfı seçilmeli | TBDY 2018 Madde 7.2.3 |\n| Boyuna donatı oranı | Minimum ve maksimum oran bandı korunmalı | TS 500 Madde 7 ve kolon hükümleri |\n| Güçlü kolon ilkesi | Düğüm bölgesinde kolon moment kapasitesi kirişlerden yüksek olmalı | TBDY 2018 Bölüm 7 |\n\nÖn boyutlandırma sırasında en sık yapılan hata, boyuna donatıyı sonradan çözerim diyerek kesiti küçültmektir. Oysa küçük kesit, gereken donatı oranını aşırı yükseltebilir; bu da sahada sıkışık donatı, beton yerleşim problemi ve düğüm bölgesinde kalite kaybı yaratır."
       },
       {
-        "id": "donati",
-        "title": "4. Donatı Düzeni",
-        "content": "- **Boyuna Donatı:** Minimum 4 adet, her köşeye 1 adet\n- **Etriye:** Minimum Ø8/100 (sarılma bölgesinde), Ø8/200 (orta bölgede)\n- **Sargı Donatısı:** TBDY 2018'e göre süneklik düzeyine bağlı\n- **Bindirme Boyu:** 40Ø (bindirme kolon alt ucunda yapılmamalı)\n\nKolon-kiriş bağlantı bölgesinde etriye sıklaştırması unutulmamalıdır."
+        "id": "uygulama-adimlari",
+        "title": "4. Hesap Yöntemi ve Tasarım Adımları",
+        "subsections": [],
+        "content": "1. **Tribütar alan ve kat yüklerini belirleyin.** Kolona gelen yaklaşık düşey yük ilk girdidir.\n2. **Sistem tipini okuyun.** Çerçeve sistemde kolon rijitliği daha kritik, perde ağırlıklı sistemde ise donatı düzeni ve birleşim davranışı daha belirleyici olabilir.\n3. **İlk kesit alanını seçin.** Kat adedi ve yük seviyesine göre 30x50, 40x60, 50x70 gibi başlangıç bandı belirlenir.\n4. **Ortalama gerilme ve narinlik kontrolü yapın.** Çok küçük kesitler ikinci mertebe etkilerini büyütür.\n5. **Yaklaşık donatı oranını hesaplayın.** Hedef genellikle imal edilebilir, aşırı sıkışmayan bir bandı yakalamaktır.\n6. **Birleşim bölgesi ve etriye uygulanabilirliğini kontrol edin.** Kağıt üstünde çalışan ama sahada demiri sığmayan kesit kabul edilemez.\n\n![Kolon donatı yerleşimi](/covers/kolon-donati.png)\n*Kesit seçimi, yalnız taşıma gücü değil beton dökülebilirliği ve vibratör erişimi açısından da değerlendirilmelidir.*"
+      },
+      {
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: 6 katlı bir yapıda iç kolon için ön boyutlandırma\n\n**Verilenler**\n- Kat sayısı: 6\n- Kolon tribütar alanı: 25 m²\n- Yaklaşık kat yükü: 12 kN/m²\n- Toplam karakteristik düşey yük: 25 x 12 x 6 = 1.800 kN\n- Başlangıç kesiti: 40 x 60 cm\n\n**Adım 1: Kesit alanı**\nA = 0,40 x 0,60 = 0,24 m²\n\n**Adım 2: Ortalama basınç gerilmesi**\nσ = N / A = 1.800 / 0,24 = 7.500 kN/m² = 7,5 MPa\n\nBu değer, C30/37 beton için kaba ilk yaklaşımda makul bir bandın içinde görünür; ancak deprem momentleri ve ikinci mertebe etkiler henüz dahil değildir.\n\n**Adım 3: Boyuna donatı ilk seçimi**\nYaklaşık yüzde 1,5 boyuna donatı hedeflenirse:\nA_s = 0,015 x 240.000 = 3.600 mm²\n\nBu alan, örneğin 8 adet fi24 donatı ile yaklaşık karşılanabilir. Ancak düğüm bölgesindeki etriye sıklaşması ve bindirme detayları ayrıca kontrol edilmelidir.\n\n**Yorum**\nEğer aynı yük için 30 x 50 cm kesit seçilirse hem gerilme seviyesi yükselir hem de donatı yoğunluğu artar. Bu nedenle ön boyutlandırma, yalnız hesap değil imalat filtresi olarak da kullanılmalıdır."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Yapısal analiz | İdecad, ETABS, SAP2000 | Taşıyıcı sistem modeli ve iç kuvvetler |\n| Kesit kontrolü | CSI Column, ideCAD kolon tasarım modülleri | Eksenel yük-moment etkisi altında kolon doğrulaması |\n| Hesap | Excel, Python hesap föyleri | Ön boyutlandırma tabloları ve yük tahmini |\n| Çizim/BIM | AutoCAD, Revit | Kalıp planı, donatı koordinasyonu ve çakışma kontrolü |\n| Saha kontrolü | Donatı mastarı, pas payı takozu, beton vibratörü | Uygulanabilirlik ve betonlama kalitesi |\n\nBir yazılımın yönetmeliği otomatik uygulaması, mühendislik muhakemesinin yerine geçmez. Özellikle ön boyutlandırmada manuel kontrol tablosu şarttır."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Kolon kesitini yalnız düşey yükle seçmek.  \n**Doğru:** Deprem momenti, narinlik ve düğüm bölgesi etkisi birlikte değerlendirilmelidir.\n2. **Yanlış:** Mimariden kesit çalmaya çalışıp donatıyı artırmak.  \n**Doğru:** İmal edilebilir donatı yoğunluğu ve beton yerleşimi sınırı korunmalıdır.\n3. **Yanlış:** Perdeli sistemde kolonları gereğinden fazla küçültmek.  \n**Doğru:** Perde olsa bile birleşim, aks sürekliliği ve düşey yük güvenliği için kolon yeterli rijitlikte olmalıdır.\n4. **Yanlış:** Bindirme ve etriye sıklaşması için net alan bırakmamak.  \n**Doğru:** Özellikle alt kat kolonlarında donatı geçişi ve düğüm bölgesi erken kontrol edilmelidir.\n5. **Yanlış:** Saha ekibinin vibratör ve kalıp erişimini hesaba katmamak.  \n**Doğru:** Sıkışık donatılı kolonun kağıt üstünde çalışması, sahada iyi betonlanacağı anlamına gelmez.\n\n**Saha ipucu:** Kolon kesiti çizim üzerinde makul görünse de, alt kat birleşiminde donatı geçişi kesit olarak şantiyede bir kez açılıp gözle okunmalıdır. En iyi ön boyutlandırma, demircinin “bunu örerim” dediği çözümdür."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Karar noktası | Uygun yaklaşım |\n| --- | --- |\n| Kat sayısı ve yük arttıkça | Kesit artışı, sadece donatı artışına tercih edilmelidir |\n| Deprem talebi yüksekse | Rijitlik ve güçlü kolon ilkesi erken dikkate alınmalıdır |\n| Saha uygulanabilirliği zayıfsa | Donatı yoğunluğu azaltacak daha büyük kesit düşünülmelidir |\n| Mimari kısıt sertse | Perde yerleşimi ve aks düzeni birlikte optimize edilmelidir |\n\nKolon ön boyutlandırma, mühendislikte hız kazandıran ama aceleciliği affetmeyen bir adımdır. Doğru kesit; yükü, deprem davranışını, maliyeti ve saha uygulanabilirliğini aynı anda dengeler."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- [AFAD - Türkiye Bina Deprem Yönetmeliği](https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi)\n- TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları\n- TS 708 Donatı Çeliği standardı\n- ideCAD ve benzeri analiz yazılımlarının TBDY 2018 teknik notları\n- Taşıyıcı sistem ön tasarım föyleri, kolon kesit kontrol tabloları ve şantiye donatı detayları"
       }
     ],
     "relatedSlugs": [
       "tbdy-2018-betonarme-analiz",
       "beton-dokumu-kontrol-listesi"
     ],
-    "sectionId": "araclar"
+    "sectionId": "araclar",
+    "keywords": [
+      "kolon ön boyutlandırma",
+      "betonarme kolon",
+      "donatı oranı",
+      "TBDY 2018",
+      "TS 500",
+      "kolon tasarımı"
+    ]
   },
   "tbdy-2018-betonarme-analiz": {
     "slug": "tbdy-2018-betonarme-analiz",
-    "title": "TBDY 2018 Betonarme Taşıyıcı Sistem Analiz Farklılıkları",
-    "description": "2007 deprem yönetmeliğinden TBDY 2018'e geçişle birlikte betonarme taşıyıcı sistem analizlerinde değişen kurallar ve uygulamadaki yansımaları.",
+    "title": "TBDY 2018 ile Betonarme Analiz: Modelleme Farkları, Tasarıma Etkileri ve Pratik Kontroller",
+    "description": "TBDY 2018’in betonarme bina analizine getirdiği yaklaşım farklarını, düzensizlik kontrollerini, davranış katsayılarını ve mühendislerin model kurarken dikkat etmesi gereken saha bağlantılarını anlatan kapsamlı rehber.",
     "category": "Yönetmelik Güncellemesi",
     "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
     "badgeLabel": "Yönetmelik",
     "author": "Doç. Dr. Can Özmen",
     "authorTitle": "Deprem Mühendisliği Uzmanı",
     "date": "5 Mart 2024",
-    "readTime": "11 dk okuma",
+    "readTime": "16 dk okuma",
     "image": "/covers/yonetmelik.svg",
     "quote": {
-      "text": "TBDY 2018 sadece bir yönetmelik değişikliği değil, deprem mühendisliği felsefesinde köklü bir dönüşümdür."
+      "text": "TBDY 2018’in en büyük farkı, program çıktısını değil taşıyıcı sistem davranışını sorgulamaya zorlamasıdır; model doğru değilse sonuç ne kadar detaylı görünürse görünsün güven vermez."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Genel Değişiklikler",
-        "content": "Türkiye Bina Deprem Yönetmeliği 2018 (TBDY 2018), 1 Ocak 2019'da yürürlüğe girerek 2007 deprem yönetmeliğinin (DBYBHY 2007) yerini almıştır.\n\nTemel değişiklikler:\n- Sahaya özel deprem tehlike analizi\n- Performans hedeflerinin güncellenmesi\n- Doğrusal olmayan hesap yöntemlerinin detaylandırılması\n- Zemin sınıflandırma sisteminin güncellenmesi"
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "TBDY 2018, betonarme bina tasarımında sadece yeni bir deprem yükü tablosu getirmedi; taşıyıcı sistemin modellenmesi, düzensizliklerin yorumlanması, süneklik düzeyi seçimi ve hesap çıktısının nasıl okunacağı konusunda daha disiplinli bir yaklaşım getirdi. Bu nedenle eski alışkanlıkla kurulan modeller, yönetmeliğin ruhunu karşılamıyor gibi görünmese bile gerçekte ciddi eksikler barındırabiliyor.\n\nBirçok mühendis için asıl sorun, yönetmeliğin çok fazla hüküm içermesi değil; hükümler arasındaki ilişkiyi model kararına çevirmektir. Perde yerleşimi, kat ötelenmesi, rijit diyafram varsayımı, burulma düzensizliği, göreli kat ötelemesi ve kesit tasarım sonuçları aynı zincirin halkalarıdır. Bir halkadaki yanlış kabul, diğerlerinin tamamını etkiler.\n\nBu yazı, özellikle betonarme çerçeve ve perde-çerçeve sistemler için TBDY 2018’in analiz yaklaşımını özetler; tasarım ofisindeki modelleme kararlarını, kontrol tablolarını ve sahada karşılığı olan detay başlıklarını birlikte ele alır."
       },
       {
-        "id": "deprem-etkisi",
-        "title": "2. Deprem Etkisinin Tanımlanması",
-        "content": "**DBYBHY 2007:** Türkiye 5 deprem bölgesine ayrılmıştı. Her bölge için sabit etkin yer ivmesi katsayısı (A0) tanımlanmıştı.\n\n**TBDY 2018:** Türkiye Deprem Tehlike Haritası (TDTH) ile koordinat bazlı deprem parametreleri elde edilir. Her nokta için:\n- SS (kısa periyot tasarım spektral ivme katsayısı)\n- S1 (1 sn periyot tasarım spektral ivme katsayısı)\n- PGA, PGV değerleri\n\n4 farklı deprem düzeyi tanımlanmıştır: DD-1 (%2/50 yıl), DD-2 (%10/50), DD-3 (%50/50), DD-4 (%68/50)."
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Yönetmelik Mantığı",
+        "subsections": [],
+        "content": "TBDY 2018’in temel yaklaşımı, deprem etkisini tek bir kuvvet büyüklüğü olarak değil, taşıyıcı sistemin sünek davranış kapasitesi, rijitlik dağılımı ve düzensizlikleriyle birlikte okumaktır. Bu nedenle eşdeğer deprem yükü yöntemi, modal analiz, davranış katsayısı ve dayanım fazlalığı gibi kavramlar birbirinden bağımsız değildir.\n\nMühendislik açısından yönetmelik şu soruları sordurur:\n- Sistem deprem etkisini hangi elemanlarla taşıyor?\n- Bu elemanların süneklik düzeyi ve detaylandırması uyumlu mu?\n- Modelde kabul edilen rijitlik, gerçekte oluşacak çatlamış kesit davranışını temsil ediyor mu?\n- Düzensizlikler nedeniyle kuvvet dağılımı beklenmedik şekilde değişiyor mu?\n\nBetonarme analizde kritik hata, sayısal modeli çizimi temsil eden dijital kopya gibi görmekten doğar. Oysa model, yapının davranış hipotezidir. Bu hipotezde perde ucunun mesnetlenmesi, döşemenin diyafram kabiliyeti veya kolon-kiriş eksen kaçıklığı yanlış tanımlanırsa sonuçlar hızla güvenilmez hale gelir."
       },
       {
-        "id": "tasiyici-sistem",
-        "title": "3. Taşıyıcı Sistem Sınıflandırması",
-        "content": "Süneklik düzeyleri yeniden tanımlanmıştır:\n\n| 2007 Yönetmeliği | TBDY 2018 |\n|---|---|\n| Yüksek Süneklik | Süneklik Düzeyi Yüksek (SDY) |\n| Normal Süneklik | Süneklik Düzeyi Sınırlı (SDS) |\n| - | Süneklik Düzeyi Karma (SDK) |\n\n**R katsayısı** (taşıyıcı sistem davranış katsayısı) değerleri de güncellenmiştir. Örneğin:\n- Betonarme çerçeve (SDY): R = 8\n- Betonarme çerçeve (SDS): R = 4\n- Betonarme perde-çerçeve (SDY): R = 7"
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "TBDY 2018 betonarme binalar için özellikle Bölüm 3, 4, 5, 7 ve temel-zemin ilişkisi açısından ilgili geoteknik hükümlerle birlikte okunmalıdır. Analiz aşamasında sadece deprem kuvvetini değil, sistem seçim koşullarını ve sınır değerleri de aynı dosyada kontrol etmek gerekir.\n\n| Kontrol başlığı | Ne kontrol edilir | Referans |\n| --- | --- | --- |\n| Deprem yer hareketi | Ss, S1, SDS, SD1 değerleri ve tasarım spektrumu | TBDY 2018 Bölüm 2 |\n| Düzensizlikler | A1, A2, A3 ve burulma etkileri | TBDY 2018 Bölüm 3 ve 4 |\n| Taşıyıcı sistem seçimi | R, D ve süneklik düzeyi | TBDY 2018 Tablo 4.1 ve Bölüm 4 |\n| Betonarme detay koşulları | Kolon, kiriş, perde ve düğüm bölgesi hükümleri | TBDY 2018 Bölüm 7 |\n| Malzeme sınırları | Beton ve donatı minimum kalite şartları | TBDY 2018 Madde 7.2, TS 500 |\n\nAnaliz modeli, bu hükümleri sağlayacak detaylandırma kapasitesine sahip değilse sonuç kağıt üzerinde kalır. Özellikle perde-çerçeve sistem oranı ile güçlü kolon ilkesinin birlikte okunması gerekir; aksi halde yazılım sonucu olumlu görünse de detay projesi zorlaşır."
       },
       {
-        "id": "hesap-yontemleri",
-        "title": "4. Hesap Yöntemleri",
-        "content": "TBDY 2018 ile hesap yöntemleri hiyerarşisi:\n\n1. **Eşdeğer Deprem Yükü Yöntemi (EDYY):** Düzensizlikleri sınırlı, düşük-orta katlı binalar.\n2. **Mod Birleştirme Yöntemi (MBY):** Genel yöntem, çoğu bina için kullanılır.\n3. **Zaman Tanım Alanında Hesap:** Özel yapılar, sismik izolatörlü binalar.\n4. **Performans Değerlendirmesi:** Mevcut binaların değerlendirilmesi.\n\n**Önemli fark:** 2007'de zorunlu olmayan dayanım fazlalığı katsayısı (D), TBDY 2018'de Ra(T) hesabında otomatik olarak devreye girmektedir."
+        "id": "uygulama-adimlari",
+        "title": "4. Hesap Yöntemi ve Modelleme Adımları",
+        "subsections": [],
+        "content": "1. **AFAD deprem verilerini doğru alın.** İl, ilçe ve koordinat bazlı Ss ve S1 değerleri proje dosyasına işlenmelidir.\n2. **Zemin sınıfını etüt raporundan okuyun.** Varsayılan ZC seçmek kolaydır ama çoğu hatanın başlangıcıdır.\n3. **Taşıyıcı sistem kararını erken verin.** Çerçeve mi, perde-çerçeve mi, perde oranı ne olacak soruları mimari ile birlikte çözülmelidir.\n4. **Kesit rijitliklerini gerçekçi tanımlayın.** Çatlamış kesit kabulleri ve diyafram davranışı körlemesine bırakılmamalıdır.\n5. **Düzensizlik kontrollerini raporlayın.** Sadece program ekranına bakmak yerine burulma ve ötelenme oranları tabloya alınmalıdır.\n6. **Sonuçları detaylandırma ile birlikte okuyun.** Kolon momenti düşük çıktı diye kesiti küçültmek yerine düğüm bölgesi, etriye ve saha uygulanabilirliği birlikte değerlendirilmelidir.\n\nMühendislikte iyi model, yalnız hesap veren model değildir; neyi neden kabul ettiğini açıkça anlatabilen modeldir."
       },
       {
-        "id": "sonuc",
-        "title": "5. Pratik Etkiler",
-        "content": "TBDY 2018'in uygulamadaki somut etkileri:\n\n- Kolon boyutları genel olarak **%10-20 artmıştır**\n- Donatı miktarı **%15-25 artmıştır**\n- Perde duvar kullanımı **daha yaygın** hale gelmiştir\n- Analiz süresi **2-3 kat uzamıştır** (detaylı kontroller nedeniyle)\n- Bina maliyetinde **%5-12 artış** gözlenmektedir\n\nAncak bu artışlar, yapıların deprem güvenliğini önemli ölçüde artırmaktadır."
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: Davranış katsayısının tasarım taban kesme kuvvetine etkisi\n\n**Verilenler**\n- Toplam bina ağırlığı: W = 18.000 kN\n- Elastik spektral ivmeye bağlı indirgenmemiş katsayıdan gelen eşdeğer oran: 0,36W\n- Sistem 1: Betonarme süneklik düzeyi yüksek çerçeve, R = 8\n- Sistem 2: Daha düşük davranış katsayılı yaklaşım, R = 4\n\n**Adım 1: Elastik taban kesme kuvveti**\nV_e = 0,36 x 18.000 = 6.480 kN\n\n**Adım 2: R = 8 için yaklaşık tasarım kuvveti**\nV_t1 = 6.480 / 8 = 810 kN\n\n**Adım 3: R = 4 için yaklaşık tasarım kuvveti**\nV_t2 = 6.480 / 4 = 1.620 kN\n\n**Yorum**\nBu basit karşılaştırma, davranış katsayısının neden sadece bir tablo değeri olmadığını gösterir. Yüksek R seçebilmek için sistemin gerçekten o sünekliği sağlayacak detaylandırmaya sahip olması gerekir. Aksi halde kağıt üstünde küçülen deprem kuvveti, gerçekte güvensiz tasarım anlamına gelir."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Deprem hesabı | ideCAD Statik, ETABS, SAP2000 | Modal analiz, deprem kombinasyonları ve düzensizlik kontrolleri |\n| Zemin verisi | TDTH, AFAD resmi araçları | Spektral ivme parametreleri |\n| Manuel kontrol | Excel, Python | Ötelenme, düzensizlik ve kesit sonuçlarının ikinci kontrolü |\n| BIM ve çizim | Revit, AutoCAD | Taşıyıcı sistem koordinasyonu ve detay çizimleri |\n| Saha geri bildirimi | Donatı uygulama fotoğrafları, beton döküm raporları | Model kararlarının imalata yansıması |\n\nProgram çıktısı otomatik olsa da, özellikle düzensizlik ve rijitlik yorumları için manuel kontrol tablosu kurulmalıdır."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Zemin sınıfını varsayarak spektrum tanımlamak.  \n**Doğru:** Zemin etüt raporundan gelen veri ile TDTH parametreleri birlikte kullanılmalıdır.\n2. **Yanlış:** Perdeyi modelde koyup detayda zayıf bırakmak.  \n**Doğru:** Modeldeki rijitlik katkısı, detay projede aynı kararlılıkla sürdürülmelidir.\n3. **Yanlış:** Düzensizlik tablolarını yazılımdan bakıp geçmek.  \n**Doğru:** Kritik oranlar ayrı raporlanmalı ve proje kararına bağlanmalıdır.\n4. **Yanlış:** Yüksek R seçip sünek detay koşullarını ihmal etmek.  \n**Doğru:** Davranış katsayısı ile detaylandırma aynı sistem kararının parçasıdır.\n5. **Yanlış:** Sahadan gelen donatı sıkışması geri bildirimini model sorunu olarak görmemek.  \n**Doğru:** Şantiye geri bildirimi, ön boyutlandırma ve model revizyonunun doğal girdisidir.\n\n**Saha ipucu:** Bir projede aynı birleşim bölgesi farklı katlarda sürekli zor çözülüyorsa sorun yalnız detaycıda değildir; çoğu zaman modelin seçtiği sistem dengesi tekrar okunmalıdır."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Karar alanı | Kritik soru |\n| --- | --- |\n| Zemin ve deprem verisi | Spektrum doğru veriyle mi üretildi? |\n| Sistem seçimi | R ve süneklik seçimi detaylandırmayla uyumlu mu? |\n| Düzensizlik | Burulma ve ötelenme kabul sınırları içinde mi? |\n| İmalat | Model sonucu sahada uygulanabilir mi? |\n\nTBDY 2018 ile güvenli betonarme tasarımın anahtarı, yönetmelik maddesini program ekranına çevirmek değil; taşıyıcı sistem davranışını doğru hipotezle kurmaktır."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- [AFAD - Türkiye Bina Deprem Yönetmeliği](https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi)\n- [Türkiye Deprem Tehlike Haritası](https://tdth.afad.gov.tr/TDTH/loginControl.xhtml)\n- TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları\n- ideCAD ve ETABS TBDY 2018 uygulama notları\n- Proje düzensizlik tabloları, modal analiz raporları ve saha detay geri bildirimleri"
       }
     ],
     "relatedSlugs": [
       "kolon-on-boyutlandirma",
       "zemin-iyilestirme-yontemleri"
     ],
-    "sectionId": "deprem-yonetmelik"
+    "sectionId": "deprem-yonetmelik",
+    "keywords": [
+      "TBDY 2018",
+      "betonarme analiz",
+      "deprem hesabı",
+      "davranış katsayısı",
+      "düzensizlik",
+      "taşıyıcı sistem modeli"
+    ]
   },
   "santiye-duvar-orumu": {
     "slug": "santiye-duvar-orumu",
-    "title": "Şantiye duvar örümü, teknik uygulama klavuzu ve dikkat edilmesi gerekenler",
+    "title": "Şantiyede Duvar Örümü Rehberi: Malzeme Seçimi, Toleranslar ve Saha Kontrol Noktaları",
     "category": "Şantiye Uygulamaları",
     "categoryColor": "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
     "date": "2 Mart 2024",
-    "description": "Duvar örme işlemlerinde nelere dikkat edilmeli İş güvenliği ve teknik kalite rehberi.",
+    "description": "Dolgu ve bölme duvar imalatında malzeme seçimini, aplikasyon ve tolerans kontrolünü, lento ve ankraj detaylarını, tesisat koordinasyonunu ve sahadaki tipik hataları anlatan uygulama rehberi.",
     "image": "/covers/santiye.svg",
     "author": "Serkan Yılmaz",
     "authorTitle": "Şantiye Şefi",
     "badgeLabel": "Teknik Rehber",
-    "readTime": "8 dk okuma",
+    "readTime": "13 dk okuma",
     "quote": {
-      "text": "Blok duvar örme işlemlerinde şakül ve ipten yararlanmak kritiktir. Küçük bir sapma, tüm duvarın stabilitesini bozabilir."
+      "text": "Duvar imalatı kaba görünen ama affı az bir iştir; küçük kot ve aks hataları, kapı kasasından seramik bitişine kadar bütün ince işleri peşinden sürükler."
     },
     "relatedSlugs": [
       "beton-dokumu-kontrol-listesi",
@@ -346,27 +618,74 @@
     ],
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Giriş",
-        "content": "Blok duvar örme işlemlerinde şakül ve ipten yararlanmak kritiktir. Bu rehberde, şantiye ortamında duvar örümü sırasında dikkat edilmesi gereken teknik detayları ve iş güvenliği kurallarını bulabilirsiniz."
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Şantiyede duvar örümü çoğu zaman basit bir iş kalemi gibi algılanır. Oysa bölme ve dolgu duvarlar; aks kaçıklığı, kapı-pencere boşluğu, tesisat geçişi, ısı-ses performansı ve bitiş toleransları açısından ince işlerin kaderini belirler. Duvar hatalı örüldüğünde bunun bedeli sadece kırıp yeniden yapmak değildir; sıva kalınlığı artar, kasalar şaşar, seramik ve mobilya modülü bozulur, tesisat revizyonu çıkar.\n\nBu yazı, gazbeton, tuğla ve benzeri dolgu duvar imalatında uygulama sırasını, malzeme seçimini, düşey-yatay toleransları, lento ve ankraj detaylarını, kapatma öncesi tesisat koordinasyonunu ve saha kontrol listelerini kapsar. Hedef; saha mühendisine uygulanabilir bir kabul standardı vermek ve duvar işini yalnız ustalık değil mühendislik disiplini olarak okumaktır."
       },
       {
-        "id": "uygulama",
-        "title": "2. Uygulama Detayları",
-        "content": "Harç karma işleminden, blokların yerleştirilmesine kadar her adımda hassasiyet gereklidir. Özellikle ilk sıra (subasman seviyesi) duvarın tüm hizasını belirler."
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel ve Malzeme Davranışı",
+        "subsections": [],
+        "content": "Dolgu duvar taşıyıcı sistem elemanı gibi boyutlandırılmasa da yapının kullanım performansını doğrudan etkiler. Malzemenin birim hacim ağırlığı, su emmesi, ısı iletkenliği, ses performansı ve çatlama eğilimi seçimde belirleyicidir. Gazbeton hafifliği ve işlenebilirliğiyle öne çıkar; klasik tuğla ise bazı projelerde maliyet ve temin avantajı sunabilir. Ancak hangi malzeme seçilirse seçilsin, duvarın taşıyıcı sistemle birleşim detayları ve yatay-düşey sürekliliği doğru kurulmadığında performans düşer.\n\nDuvar örümünde iki temel yaklaşım birlikte düşünülmelidir: geometri ve davranış. Geometri; duvarın terazisinde, aksında ve kotunda olmasını sağlar. Davranış ise duvarın rötre, sıcaklık, oturma ve kullanım kaynaklı etkiler altında çatlamadan çalışmasını hedefler. Bu nedenle duvar işi sadece ip çekmekten ibaret değildir; derz kalınlığı, blok nemi, ankraj aralığı ve üst başlık detayı teknik karar konusudur."
       },
       {
-        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "title": "3. yeni bölümmmm",
-        "content": "bu yeni bölümdür."
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Türkiye’de duvar imalatı için proje detayları, üretici teknik föyleri ve ilgili malzeme standartları birlikte dikkate alınmalıdır. Özellikle yangın, ısı yalıtımı ve akustik hedefleri olan projelerde malzeme seçimi yalnız ustanın alışkanlığına bırakılamaz.\n\n| Kontrol başlığı | Tipik gereksinim | Referans |\n| --- | --- | --- |\n| Isı performansı | Dış kabukta U değeri hedefi ve ısı köprüsü kontrolü | TS 825, BEP yaklaşımı |\n| Malzeme uygunluğu | Blok basınç dayanımı, boyut toleransı ve kullanım amacı | Üretici teknik föyleri ve ilgili ürün standardı |\n| Birleşim ve ankraj | Kolon-perde birleşimlerinde çatlak azaltıcı önlem | Proje detayları ve saha şartnamesi |\n| Boşluk üstleri | Kapı-pencere üzerinde lento veya taşıyıcı detay | Mimari ve statik proje |\n\nDuvar projesi yoksa sahada kararlar rastgeleleşir. Özellikle mekanik ve elektrik geçişlerinin olduğu duvarlarda, aplikasyon öncesi koordinasyon yapılmadan örüme başlanmamalıdır."
+      },
+      {
+        "id": "uygulama-adimlari",
+        "title": "4. Uygulama Adımları ve Saha Akışı",
+        "subsections": [],
+        "content": "1. **Aks ve kapı boşluğu aplikasyonunu netleştirin.** Duvar hattı, kapı kasası ve bitmiş döşeme kotu birlikte işaretlenmelidir.\n2. **İlk sıra doğruluğunu kilitleyin.** İlk sıra hatalıysa üst sıralar yalnızca hatayı büyütür.\n3. **Malzemeyi uygun harç veya yapıştırıcı ile örün.** Gazbeton ile tuğlayı aynı işçilik refleksiyle uygulamak doğru değildir.\n4. **Tesisat geçişlerini önceden çözün.** Sonradan kırılan duvar, hem işçilik hem performans kaybı üretir.\n5. **Lento, ankraj ve üst başlık boşluğunu proje detayına göre uygulayın.** Özellikle geniş açıklıklarda bu detaylar atlanmamalıdır.\n6. **Sıva ve kaplama öncesi yüzey toleransını ölçün.** Mastar kontrolü, duvar kabulünün temel adımıdır.\n\nDuvar işinin gerçek verimi, hızlı örmek değil kırmadan teslim etmektir."
+      },
+      {
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: 12 cm gazbeton bölme duvarda metraj ve şaşırtma kontrolü\n\n**Verilenler**\n- Duvar uzunluğu: 5,20 m\n- Duvar yüksekliği: 3,00 m\n- Blok ölçüsü: 60 x 25 x 12 cm\n- Kapı boşluğu: 0,90 x 2,10 m\n\n**Adım 1: Net duvar alanı**\nA_net = 5,20 x 3,00 - 0,90 x 2,10 = 15,60 - 1,89 = 13,71 m²\n\n**Adım 2: Bir blok görünür alanı**\nA_blok = 0,60 x 0,25 = 0,15 m²\n\n**Adım 3: Yaklaşık blok adedi**\nN = 13,71 / 0,15 = 91,4 ≈ 92 adet\n\n**Uygulama yorumu**\nŞaşırtma payı, kesim kaybı ve lento bölgesi nedeniyle pratikte yüzde 5 ila 10 ilave blok düşünülmelidir. Dolayısıyla sipariş miktarı yaklaşık 97-101 adet bandında planlanabilir."
+      },
+      {
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Çizim ve koordinasyon | AutoCAD, Revit | Mahal bazlı duvar yerleşimi ve tesisat koordinasyonu |\n| Metraj | Excel, BIM metraj araçları | Blok, harç ve lento miktarı hesabı |\n| Saha ekipmanı | Lazer nivo, mastar, şakül, ip, spiral kesici | Doğrultu ve kesim kontrolü |\n| Uygulama | Gazbeton testeresi, yapıştırıcı tarağı, lastik tokmak | Malzemeye uygun işçilik |\n| Kalite kontrol | Nem ölçer, foto kayıt, kontrol föyü | Teslim öncesi yüzey ve detay takibi |\n\nMalzemeye uymayan ekipman seçimi, duvar kalitesini doğrudan düşürür. Özellikle gazbetonda düzgün kesim ekipmanı ciddi fark yaratır."
+      },
+      {
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** İlk sırayı tesviye etmeden hızlıca duvar yükseltmek.  \n**Doğru:** İlk sıra mastar ve nivo ile kilitlenmeden üst sıralara geçilmemelidir.\n2. **Yanlış:** Kapı ve pencere boşluğunu sahada göz kararı bırakmak.  \n**Doğru:** Kasa ölçüsü, döşeme kotu ve kaplama payı ile birlikte aplikasyon yapılmalıdır.\n3. **Yanlış:** Tesisatçı geldikten sonra duvarı kırdırmak.  \n**Doğru:** Geçişler ve buat yerleri örüm öncesi işlenmelidir.\n4. **Yanlış:** Lento veya ankraj detayını küçük açıklıklarda önemsiz görmek.  \n**Doğru:** Çatlakların büyük bölümü açıklık çevresinde başlar; detay mutlaka uygulanmalıdır.\n5. **Yanlış:** Duvarı sıva ile düzelteceğini düşünmek.  \n**Doğru:** Sıva tolerans telafisi içindir, hatalı geometriyi gizlemek için değil.\n\n**Saha ipucu:** Kat tesliminde her duvarı sadece gözle değil 2 m mastarla gezin. Sıva öncesi tespit edilen hata, sıva sonrasına göre çok daha ucuz çözülür."
+      },
+      {
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Kontrol alanı | Kabul yaklaşımı |\n| --- | --- |\n| Aks ve kot | Kapı boşluğu ve bitmiş döşeme kotu ile birlikte okunmalı |\n| Malzeme seçimi | Isı, ses ve işçilik hedefi birlikte değerlendirilmeli |\n| Detay | Lento, ankraj ve üst başlık boşluğu atlanmamalı |\n| Tesisat koordinasyonu | Kırma-dökme yerine önceden plan yapılmalı |\n\nİyi duvar imalatı, yalnız düzgün çizgi değil; sonraki tüm disiplinlere problemsiz yüzey ve doğru geometri teslim etmektir."
+      },
+      {
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- TS 825 Isı Yalıtım Kuralları\n- Binalarda Enerji Performansı Yönetmeliği uygulama notları\n- Gazbeton ve tuğla üreticilerinin teknik uygulama föyleri\n- Mimari uygulama detayları, kapı-pencere doğrama paftaları ve tesisat koordinasyon çizimleri\n- Şantiye duvar kabul formları, mastar kontrol kayıtları ve fotoğraf arşivi"
       }
     ],
-    "sectionId": "santiye"
+    "sectionId": "santiye",
+    "keywords": [
+      "duvar örümü",
+      "gazbeton",
+      "tuğla duvar",
+      "şantiye uygulaması",
+      "lento detayı",
+      "duvar toleransı"
+    ]
   },
   "kalip-sokumu-rehberi": {
     "slug": "kalip-sokumu-rehberi",
-    "title": "Betonarme Kalıp Sökümü: Zamanlama, Dayanım Kriterleri ve Saha Rehberi",
-    "description": "C25/30 referansıyla çimento tipine, sıcaklığa ve eleman türüne göre kalıp sökme süreleri, dayanım eşikleri, erken söküm riskleri ve interaktif hesaplama aracı.",
+    "title": "Betonarme Kalıp Sökümü Rehberi: Dayanım, Süre, Sıcaklık ve Sahada Güvenli Karar Verme",
+    "description": "Kalıp söküm zamanlamasını etkileyen beton dayanımı, çimento tipi, ortam sıcaklığı, açıklık ve destekleme koşullarını; numune alma ve saha karar zinciriyle birlikte anlatan kapsamlı rehber.",
     "category": "Şantiye Notu",
     "categoryColor": "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
     "badgeLabel": "Kapsamlı Rehber",
@@ -376,53 +695,62 @@
     "readTime": "18 dk okuma",
     "image": "/kalip-sokumu-hero.png",
     "quote": {
-      "text": "Beton sertleşti demek dayanım aldı demek değildir. %70 kuralı şaşmaz, kademeli söküm + askı payandası = sigorta."
+      "text": "Kalıp sökümünde güvenli karar, takvim gününe bakarak değil; elemanın taşıma mekanizmasını, betonun gerçek dayanımını ve mevcut sıcaklık-kür geçmişini birlikte okuyarak verilir."
     },
     "sections": [
       {
-        "id": "giris",
-        "title": "1. Giriş: Kalıp Sökümü Neden Kritik",
-        "content": "Betonarme bir yapıda kalıpların sökülmesi, **\"aceleye getirilmemesi gereken\"** en kritik aşamalardan biridir. Statik hesaplar kağıt üzerinde mükemmel olsa da, beton yeterli dayanımı kazanmadan kalıbı alırsanız, yapıda **kalıcı sehimler** (sarkmalar) ve **çatlaklarla** karşılaşırsınız.\n\nKalıp sökümünün temel amacı:\n- Beton kendi ağırlığını + taze yükleri güvenle taşıyabilecek dayanım seviyesine ulaşmalı\n- **Erken söküm** → sehim, çatlak, ezilme\n- **Geç söküm** → zaman ve maliyet kaybı\n\n> **Kritik eşik:** Beton basınç dayanımı ≥ fck'nin **%70**'i olmalıdır.\n\n![Kalıp Kesit Diyagramı](/kalip-kesit-diagram.png)\n*Betonarme kiriş-döşeme kalıp sistemi kesiti: Ahşap kalıp panoları, çelik dikmeler ve donatı detayı*"
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kapsam",
+        "subsections": [],
+        "content": "Kalıp sökümü, şantiyede çoğu zaman program baskısı ile teknik güvenlik arasındaki gerilimin en görünür olduğu aşamadır. Program ekipleri kalıbı hızla döndürmek ister, saha ekibi aşağıdaki kata inmek ister, maliyet baskısı da payanda ve kalıp bekletme süresini azaltmaya iter. Ancak betonarme eleman henüz yeterli dayanım geliştirmeden kalıbın alınması, sehim artışı, çatlak, ezilme, kenar kopması ve hatta göçmeye kadar giden zincirler üretebilir.\n\nDoğru kalıp sökümü kararı; beton sınıfı, çimento tipi, hava sıcaklığı, kür koşulu, eleman açıklığı, yükleme sırası ve alt destekleme düzeni birlikte okunarak verilir. Bu yazı, kalıp sökümünü gün sayısına indirgemeyen bir saha rehberi olarak tasarlandı. Amaç, özellikle döşeme ve kirişlerde emniyetli karar vermek; kolon-perde gibi düşey elemanlarda yüzey stabilitesi ile yapısal yeterliliği ayırmak; numune ve kayıt disiplinini günlük şantiye pratiğine yerleştirmektir."
       },
       {
-        "id": "dayanim-zaman",
-        "title": "2. Beton Dayanımı — Zaman İlişkisi (C25/30)",
-        "content": "C25/30 beton sınıfında (fck = 25 MPa) beton yaşına göre yaklaşık dayanım gelişimi şöyledir:\n\n| Beton Yaşı | Yaklaşık Dayanım (MPa) | Oran (%) | Değerlendirme |\n|---|---|---|---|\n| 1 gün | 6-7,5 | %25-30 | ❌ Çok erken |\n| 2 gün | 10-11,3 | %40-45 | ❌ Yetersiz |\n| 3 gün | 12,5-13,8 | %50-55 | ❌ Yetersiz |\n| 5 gün | 15-16,3 | %60-65 | ⚠️ Sınırda |\n| **7 gün** | **17,5-18,8** | **%70-75** | ✅ Normal söküm eşiği |\n| 14 gün | 21,3-22,5 | %85-90 | ✅ Güvenli |\n| 28 gün | 25 | %100 | ✅ Tam dayanım |\n\n> **Genel kabul:** Taşıyıcı kalıp sökümü için minimum **7 gün**, kritik açıklıklarda **10-14 gün** beklenmeli.\n\nBu değerler **20°C ortam sıcaklığında** ve **CEM I** çimento kullanıldığında geçerlidir. Farklı koşullarda ciddi sapmalar olur."
+        "id": "teorik-temel",
+        "title": "2. Teorik Temel: Beton Dayanımı, Sehim ve Erken Yaş Davranışı",
+        "subsections": [],
+        "content": "Beton döküldükten sonra kalıp yalnız şekil vermez; aynı zamanda taze veya erken yaş betonun öz ağırlığını, yapım yüklerini ve kısmen işçi-ekipman etkilerini taşır. Özellikle döşeme ve kirişlerde alt kalıp ve payandalar, betonun henüz tam gelişmemiş çekme-basınç kapasitesi yerine geçici taşıyıcı sistem gibi çalışır.\n\nErken yaşta betonun dayanım gelişimi lineer değildir. İlk günlerde sıcaklık ve nem etkisiyle çok hızlı değişir; bu nedenle 3 günlük beton ile 7 günlük beton arasındaki fark, 21 ve 28 gün arasındaki farktan daha kritik olabilir. Kalıp sökümünde esas soru “kaç gün geçti?” değil, “eleman kendi yükünü ve olası yapım yüklerini mevcut dayanımla güvenle taşıyabiliyor mu?” sorusudur.\n\nBir döşemede sehim ve çatlak riski şu üçlüyle büyür: uzun açıklık, yetersiz erken yaş dayanımı ve kalıp sonrası ani yükleme. Bu nedenle kalıp söküm kararı her zaman bir yükleme planı ile birlikte verilmelidir."
       },
       {
-        "id": "eleman-bazinda",
-        "title": "3. Eleman Bazında Kalıp Söküm Süreleri",
-        "content": "Her yapı elemanının yük taşıma mekanizması farklıdır. **Düşey elemanlar** (kolon) sadece kendi ağırlığını taşırken, **yatay elemanlar** (kiriş/döşeme) üzerindeki tüm yükü taşımak zorundadır.\n\n| Eleman | Yan Kalıp | Alt Kalıp | Kritik Not |\n|---|---|---|---|\n| **Kolon** | 24-48 saat | — | Kür devam etmeli |\n| **Perde** | 24-48 saat | — | Yük bindirme yok |\n| **Kiriş** | 24-48 saat | 7-14 gün | Açıklığa bağlı |\n| **Döşeme** | 24-48 saat | 7-14 gün | En kritik eleman |\n| **Konsol** | 48 saat | **14-21 gün** | %75-80 dayanım şart |\n\n### Açıklığa Göre Döşeme Detayı\n\n| Döşeme Açıklığı | Erken (Gün) | Normal (Gün) | Güvenli (Gün) |\n|---|---|---|---|\n| ≤ 4,0 m | 5. gün ❌ | **7. gün ✅** | 10. gün ✅ |\n| 4,5 - 5,0 m | 7. gün ⚠️ (askı!) | **10. gün ✅** | 14. gün ✅ |\n| ≥ 6,0 m | 7. gün ❌ | 14. gün ✅ | 21. gün ✅ |\n\n### Kiriş Alt Kalıpları\n\n| Kiriş Açıklığı | Erken | Normal | Güvenli |\n|---|---|---|---|\n| ≤ 5,0 m | 7 gün ⚠️ | **10 gün ✅** | — |\n| ≥ 6,0 m | 7 gün ❌ | **14 gün ✅** | 21 gün ✅ |"
+        "id": "yonetmelik-standart",
+        "title": "3. Yönetmelik ve Standart Gereksinimleri",
+        "subsections": [],
+        "content": "Kalıp sökümünde Türkiye’de temel başvuru kaynakları proje teknik şartnamesi, beton üretici verileri, TS 500 yaklaşımı ve iş güvenliği kurallarıdır. Ancak iyi uygulama, bu kaynakları proje özelinde dayanım doğrulaması ile birleştirmeyi gerektirir.\n\n| Kontrol başlığı | Tipik yaklaşım | Referans |\n| --- | --- | --- |\n| Beton dayanım doğrulaması | Numune kırımı veya olgunluk takibi ile karar | TS 500 yaklaşımı ve proje şartnamesi |\n| Düşey eleman yan kalıbı | Yüzey stabilitesi sağlandığında daha erken alınabilir | Saha tecrübesi + üretici/şartname koşulları |\n| Döşeme-kiriş altı | Açıklık, yük ve payanda durumuna göre daha geç alınır | Proje statik hesabı ve uygulama notları |\n| Alt destekleme | Kalıp sökülse bile askı payandası bir süre korunabilir | Uygulama planı ve iş programı |\n| İş güvenliği | Kısmi söküm ve alt kat eş zamanlı çalışma kontrolü | Şantiye İSG planı |\n\nEn kritik nokta, kalıp söküm kararının saha şefinin kişisel tecrübesine bırakılmamasıdır. Karar ölçülebilir veriyle desteklenmeli ve kayıt altına alınmalıdır."
       },
       {
-        "id": "cimento-tipi",
-        "title": "4. Çimento Tipine Göre Kalıp Söküm Senaryoları",
-        "content": "Aynı beton sınıfı (C25/30) ve aynı ortam koşullarında (20°C) çimento tipi dayanım gelişimini dramatik biçimde değiştirir.\n\n### Senaryo-1: CEM I 42.5 R (Hızlı Dayanım)\n\n| Beton Yaşı | Dayanım (MPa) | Oran | Söküm |\n|---|---|---|---|\n| 2 gün | 11-12 | %45 | ❌ |\n| 3 gün | 14 | %55 | ❌ |\n| 5 gün | 16,5 | %66 | ⚠️ |\n| **7 gün** | **18-19** | **%72-76** | **✅** |\n\n- Döşeme altı: **7. gün** sökülebilir\n- Kiriş altı: 7-10 gün\n- Konsol: 10-14 gün\n\n### Senaryo-2: CEM II 32.5 (Standart Konut Çimentosu)\n\n| Beton Yaşı | Dayanım (MPa) | Oran | Söküm |\n|---|---|---|---|\n| 3 gün | 12 | %48 | ❌ |\n| 5 gün | 15 | %60 | ❌ |\n| 7 gün | 16,5-17 | %66-68 | ❌ Sınırda |\n| **10 gün** | **18** | **%72** | **✅** |\n\n> ⚠️ **Şantiye hatası:** CEM II ile 7. günde kiriş altı sökmek — en sık yapılan hata!\n\n### Senaryo-3: CEM III (Yüksek Fırın Cüruflu)\n\n| Beton Yaşı | Dayanım (MPa) | Oran | Söküm |\n|---|---|---|---|\n| 7 gün | 14-15 | %55-60 | ❌ |\n| 10 gün | 16,5 | %66 | ❌ |\n| **14 gün** | **18-19** | **%72-76** | **✅** |\n\n> 🚫 **CEM III ile erken söküm KESİNLİKLE YASAK!**\n\n### Karşılaştırma Özet Tablosu (20°C, Döşeme 4,5 m)\n\n| Çimento | Güvenli Söküm Günü | Kural |\n|---|---|---|\n| CEM I 42.5 R | **7 gün** | Referans |\n| CEM II 32.5 | **10 gün** | +3 gün |\n| CEM III | **14 gün** | +7 gün |"
+        "id": "uygulama-adimlari",
+        "title": "4. Güvenli Kalıp Söküm Adımları",
+        "subsections": [],
+        "content": "1. **Eleman tipini ayırın.** Kolon-perde yan kalıbı ile kiriş-döşeme alt kalıbı aynı mantıkla sökülmez.\n2. **Beton geçmişini okuyun.** Döküm saati, sıcaklık, kür yöntemi, çimento tipi ve kullanılan katkı not edilmelidir.\n3. **Numune veya olgunluk verisini doğrulayın.** Sadece takvim günüyle karar verilmemelidir.\n4. **Yükleme planını kontrol edin.** Kalıp alınır alınmaz üst kata malzeme istifi yapılacaksa risk bandı değişir.\n5. **Kademeli söküm yapın.** Özellikle uzun açıklıklarda bir anda tüm payandayı boşaltmak yerine kontrollü söküm uygulanmalıdır.\n6. **Askı payandası stratejisini belirleyin.** Erken yaş betonun ani sehim yapmasını engellemek için ikincil destek bırakılmalıdır.\n\nŞantiyede en sık yapılan hata, kalıp sökülmesini imalatın bittiği an olarak görmek. Oysa çoğu eleman için asıl risk, kalıp alındıktan sonraki ilk yükleme günlerinde ortaya çıkar."
       },
       {
-        "id": "sicaklik-etkisi",
-        "title": "5. Ortam Sıcaklığının Etkisi",
-        "content": "Sıcaklık düştükçe betonun kimyasal reaksiyonu (hidratasyonu) yavaşlar. Bu durum **kalıp sökme sürelerini doğrudan uzatır.**\n\n### Sıcaklığa Göre Düzeltme Katsayıları\n\n| Ortam Sıcaklığı | Süre Etkisi | Açıklama |\n|---|---|---|\n| **< 5°C** | **Söküm yasak!** | Don riski, priz durur |\n| 5°C | **+%50 süre** | Çok yavaş hidratasyonu |\n| 10°C | +%25 süre | Dikkatli olunmalı |\n| **20°C** | **Normal** | Referans değer |\n| 30°C | -%20 süre | ⚠️ Ama rötre riski! |\n\n### Sıcaklık Senaryoları (CEM I, Döşeme 4,5 m)\n\n| Sıcaklık | Gün | Dayanım (MPa) | Karar |\n|---|---|---|---|\n| 5°C | 7 | 14-15 | ❌ |\n| 5°C | **14** | **18** | **✅** |\n| 10°C | 7 | 16-17 | ⚠️ Sınırda |\n| **20°C** | **7** | **18** | **✅** |\n| 30°C | 5 | 18 | ⚠️ Askı şart! |\n| 30°C | 7 | 20 | ✅ |\n\n> ⚠️ **Aldatıcı durum:** 30°C'de dayanım erken gelir ama **rötre + çatlak riski** artar. Sıcak havada erken söküm yapılsa bile kürleme kritiktir."
+        "id": "sayisal-ornek",
+        "title": "5. Sayısal Çözümlü Örnek",
+        "subsections": [],
+        "content": "### Örnek: 5,5 m açıklıklı bir döşemede erken söküm kararı\n\n**Verilenler**\n- Beton sınıfı: C30/37\n- Dökümden sonraki yaş: 7 gün\n- 7 günlük numune basınç dayanımı: 21 MPa\n- Hedef 28 günlük karakteristik dayanım: 30 MPa\n- Açıklık: 5,5 m\n- Planlanan işlem: Alt kalıbın bir kısmını alıp askı payandası bırakmak\n\n**Adım 1: Dayanım oranı**\n21 / 30 = 0,70 → beton yaklaşık yüzde 70 karakteristik dayanım bandında\n\n**Adım 2: Yapım yükü değerlendirmesi**\nEğer üst katta yoğun istif yapılmayacak ve askı payandası korunacaksa, bu oran bazı projelerde kontrollü söküm için yeterli kabul edilebilir.\n\n**Adım 3: Karar**\nTam söküm yerine kademeli söküm + askı payandası + ilave 3-7 gün izleme daha güvenli yaklaşımdır.\n\n**Yorum**\nAynı dayanım değeri soğuk havada, zayıf kür koşulunda veya 7 m açıklıkta aynı güveni vermez. Bu nedenle numune sonucu tek başına karar verdirmez; eleman ve yükleme koşulu ile birlikte okunmalıdır."
       },
       {
-        "id": "erken-sokum-riskleri",
-        "title": "6. Erken Söküm Hasarları — Gerçek Vaka Örnekleri",
-        "content": "Erken kalıp sökümünün yarattığı tipik hasarların **%70'i ilk 7 günde yapılan hatalardan** kaynaklanır.\n\n### Vaka 1: Döşemede Kalıcı Sehim (En Sık Görülen)\n\n**Senaryo:** 4,5 m açıklıklı döşeme, CEM II, 15-20°C, **5-6. gün söküm** (%60-65 dayanım)\n\n**Hata:** %70 sağlanmadan alt kalıp tamamen sökülmüş, askı payandası yok.\n\n**Hasar:**\n- Ortada **kalıcı sehim** (sarkma)\n- Alt yüzeyde kılcal çatlaklar\n- **Sonradan DÜZELTİLEMEZ**\n\n**Önlenebilirdi:** 7-10 gün bekleme + kademeli söküm + askı payandası\n\n### Vaka 2: Kiriş Altında Ezilme\n\n**Senaryo:** 6,0 m açıklıklı kiriş, CEM I, **7. gün söküm** (%70 sınır)\n\n**Hata:** Uzun açıklığa rağmen askısız erken söküm\n\n**Hasar:**\n- Kiriş alt liflerinde **ezilme**\n- Sehim artışı\n- Uzun vadede servis çatlakları\n\n### Vaka 3: Konsol Döşemede Aşağı Dönme (Çok Tehlikeli!)\n\n**Senaryo:** 1,5 m konsol çıkma, CEM I, **7. gün söküm** (%70-72)\n\n**Hata:** Konsolda **%80 kuralı yok sayıldı** + erken yükleme\n\n**Hasar:**\n- Konsol uçta **aşağı dönme**\n- Üstte çekme çatlakları\n- Donatı zorlanması → yapısal risk"
+        "id": "yazilim-araclar",
+        "title": "6. Kullanılan Yazılım ve Araçlar",
+        "subsections": [],
+        "content": "| Kategori | Araç / Yazılım | Kullanım amacı |\n| --- | --- | --- |\n| Şantiye kayıt | Beton döküm föyü, kür takip çizelgesi, mobil saha formları | Döküm zamanı ve bakım geçmişini izleme |\n| Laboratuvar | Küp/silindir numune presi | Basınç dayanımı doğrulaması |\n| Saha testleri | Termometre, higrometre, olgunluk sensörü | Erken yaş dayanım gelişimini yorumlama |\n| Hesap ve planlama | Excel, proje iş programı, yükleme planı | Kademeli söküm ve payanda stratejisi |\n| Uygulama ekipmanı | İskele, söküm anahtarı, güvenlik platformları | Emniyetli söküm organizasyonu |\n\nKalıp sökümünde en değerli araç, iyi tutulan kayıt defteridir. Çünkü sorun çıktığında geriye dönük gerçek veriyi ancak o gösterir."
       },
       {
-        "id": "guvenli-sokum-sirasi",
-        "title": "7. Güvenli Kalıp Söküm Sırası ve Askı Payandası",
-        "content": "### Doğru Söküm Sırası\n\nKalıp sökümü **kademeli** yapılmalıdır. Aynı anda tüm alt kalıp asla sökülmez!\n\n1. **Yan kalıplar** (ilk sökülür)\n2. Kolon / perde kanatları\n3. Döşeme kenarları\n4. Kiriş yanları\n5. Döşeme altı (kademeli olarak)\n6. **Kiriş altı (EN SON)**\n\n### Askı Payandası (Back-Propping) Süreleri\n\nKalıp söküldükten sonra bırakılan destekler:\n\n| Açıklık | Askı Süresi |\n|---|---|\n| ≤ 4,0 m | 7 gün |\n| 4,0 - 6,0 m | 10-14 gün |\n| ≥ 6,0 m | 14-21 gün |\n\n### Erken Söküm Yapılacaksa ZORUNLU Şartlar\n\n| Şart | Zorunlu mu |\n|---|---|\n| ✅ Küp/karot numune sonucu | Evet |\n| ✅ Askı payandası | Evet |\n| ✅ Kademeli söküm | Evet |\n| ❌ Aynı anda yük bindirme | Yasak! |\n| ❌ Üst kat dökümü (hemen) | Ertelenmeli |"
+        "id": "hatalar",
+        "title": "7. Sık Yapılan Hatalar ve Saha İpuçları",
+        "subsections": [],
+        "content": "1. **Yanlış:** Her döşemede aynı gün sayısını ezbere uygulamak.  \n**Doğru:** Açıklık, beton sınıfı, sıcaklık ve yükleme planı birlikte değerlendirilmelidir.\n2. **Yanlış:** Numune sonucu gelmeden program baskısıyla söküm yapmak.  \n**Doğru:** Kritik elemanlarda ölçülebilir dayanım doğrulaması beklenmelidir.\n3. **Yanlış:** Alt kalıbı alır almaz üstte malzeme istifi yapmak.  \n**Doğru:** Erken yaş beton, yapım yükleri için ayrıca kontrol edilmelidir.\n4. **Yanlış:** Askı payandalarını gereksiz görüp tamamen kaldırmak.  \n**Doğru:** Kademeli yük aktarımı için ikincil destek çoğu zaman hayat kurtarır.\n5. **Yanlış:** Kenar kırıklarını kozmetik kusur sanmak.  \n**Doğru:** Erken söküm, lokal ezilme ve çatlak belirtileriyle birlikte değerlendirilmelidir.\n\n**Saha ipucu:** Kalıp söküm toplantısını dökümden önce planlayın. Döküm günü numune, sıcaklık kaydı ve kimin onay vereceği belli değilse söküm kararı sahada rastgeleleşir."
       },
       {
-        "id": "numune-kontrol",
-        "title": "8. Numune ve Kontrol — Sahada Şart!",
-        "content": "Güvenilir kalıp sökümü için **laboratuvar verileri** şarttır.\n\n### Kontrol Yöntemleri\n\n- **7 günlük küp numune:** %70 dayanım kontrolü için temel yöntem. 15×15×15 cm küpler basınç testine tabi tutulur.\n- **Schmidt çekici (Sclerometer):** Sahada ön kontrol için kullanılır. Kesin sonuç vermez ama trend gösterir.\n- **Karot alma:** Kritik durumlarda yerinden numune alınır. En güvenilir yöntemdir.\n\n> 🔴 **Pratik kural: Numune yoksa kaldırma da yok!**\n\n### TS 500 ve TBDY 2018 Gereksinimleri\n\n- Her 100 m³ beton için minimum **3 küp numune**\n- 7. ve 28. gün basınç testleri\n- Minimum kabul: fck'nin %70'i (7 gün), %100'ü (28 gün)\n\n### Kürleme Hatırlatması\n\nKalıp sökümü sonrası beton havayla temas artar ve su kaybetmeye başlar:\n\n- Söküm sonrası **en az 7 gün** sulama (kür) devam etmeli\n- Günde **minimum 3 kez** sulama\n- Sıcak havalarda çuval veya naylon örtme\n- Minimum beton sıcaklığı: **10°C** korunmalı"
+        "id": "ozet",
+        "title": "8. Özet ve Karar Tablosu",
+        "subsections": [],
+        "content": "| Karar sorusu | Güvenli yaklaşım |\n| --- | --- |\n| Beton yeterli dayanımı aldı mı? | Numune veya olgunluk verisiyle doğrula |\n| Eleman tipi nedir? | Yan kalıp ile alt kalıbı ayrı değerlendir |\n| Yükleme ne zaman gelecek? | Kalıp sonrası yapım yükünü planla |\n| Askı payandası gerekli mi? | Uzun açıklıklarda ve erken sökümde çoğu zaman evet |\n\nKalıp sökümü takvim işi değil, taşıma mekanizması okuma işidir. Güvenli saha yönetimi, dayanım verisi ile yapım programını aynı masada birleştirir."
       },
       {
-        "id": "altin-kurallar",
-        "title": "9. Sahada Altın Kurallar — Özet",
-        "content": "### Tek Cümlelik Net Kurallar\n\n| Durum | Kural |\n|---|---|\n| CEM I + 20°C + küçük açıklık | → **7 gün** |\n| CEM II kullanılıyorsa | → **+3 gün** ekle |\n| CEM III kullanılıyorsa | → **+7 gün** ekle |\n| Soğuk hava (5-10°C) | → **+%30-50 süre** |\n| Konsol döşeme/çıkma | → **%80 dayanım** şart |\n| < 5°C hava | → **Kalıp sökmek yasak** |\n\n### Karar Akış Şeması\n\n```\nBeton dökümü yapıldı\n    ↓\n7. gün küp numune alındı mı\n    → Hayır → BEKLEME! Numune al.\n    → Evet → Sonuç %70 üzeri mi\n        → Hayır → BEKLEMEye devam\n        → Evet → Eleman türünü kontrol et\n            → Kolon/Perde → Yan kalıp: ✅ Sök\n            → Döşeme → Açıklık kontrol et\n                → ≤4m → ✅ Sök + askı önerilir\n                → >4m → Askı şart + kademeli\n            → Kiriş → 10-14 gün bekle\n            → Konsol → %80 dayanım gerekli\n```\n\n### İnteraktif Hesaplama Aracı\n\nProjenizdeki beton sınıfı, çimento tipi ve hava sıcaklığına göre **tahmini kalıp sökme süresini** hesaplayabileceğiniz interaktif aracımızı kullanın:\n\n[→ Kalıp Sökümü Hesaplama Aracı](/kategori/araclar/kalip-sokum-suresi)"
+        "id": "kaynaklar",
+        "title": "9. Kaynaklar",
+        "subsections": [],
+        "content": "- TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları\n- TS EN 206 Beton standardı ve dayanım gelişimi yaklaşımı\n- Proje teknik şartnameleri, beton üretici veri föyleri ve kür talimatları\n- Şantiye beton döküm raporları, numune kırımı sonuçları ve kalıp söküm formları\n- İş güvenliği planı, payanda yerleşim planı ve yükleme sırası kayıtları"
       }
     ],
     "relatedSlugs": [
@@ -430,6 +758,14 @@
       "kolon-on-boyutlandirma",
       "zemin-iyilestirme-yontemleri"
     ],
-    "sectionId": "santiye"
+    "sectionId": "santiye",
+    "keywords": [
+      "kalıp sökümü",
+      "beton dayanımı",
+      "şantiye kontrolü",
+      "TS 500",
+      "erken kalıp alma",
+      "beton kür koşulları"
+    ]
   }
 }

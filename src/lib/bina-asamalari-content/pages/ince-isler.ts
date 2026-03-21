@@ -1,5 +1,8 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
 import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
+import { inceIslerLeafSpecs } from "./ince-isler-leaves";
+import { inceIslerMoreLeafSpecs } from "./ince-isler-more-leaves";
+import { inceIslerTopicOverrides } from "./ince-isler-topic-overrides";
 
 const FINISH_TOOLS: BinaGuideTool[] = [
   { category: "Detay", name: "AutoCAD / Revit detay paftaları", purpose: "Bitiş, profil ve doğrama detaylarını saha ile eşlemek." },
@@ -421,6 +424,11 @@ const INCE_SOURCES = [...BRANCH_SOURCE_LEDGER["ince-isler"]];
 
 export const inceIslerSpecs: BinaGuidePageSpec[] = [
   ...getInceExtraSpecs(),
+  ...inceIslerLeafSpecs,
+  ...inceIslerMoreLeafSpecs,
+  ...inceIslerTopicOverrides.filter(
+    (spec) => spec.slugPath !== "ince-isler/siva" && spec.slugPath !== "ince-isler/alcipan",
+  ),
   {
     slugPath: "ince-isler",
     kind: "branch",
@@ -620,6 +628,7 @@ export const inceIslerSpecs: BinaGuidePageSpec[] = [
     sources: [...INCE_SOURCES, SOURCE_LEDGER.tsEn13914],
     keywords: ["sıva", "alçı sıva", "dış sıva", "yüzey düzgünlüğü", "TS EN 13914"],
   },
+  inceIslerTopicOverrides.find((spec) => spec.slugPath === "ince-isler/siva")!,
   {
     slugPath: "ince-isler/alcipan",
     kind: "topic",

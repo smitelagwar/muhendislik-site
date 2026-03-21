@@ -1,5 +1,6 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
 import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
+import { kabaInsaatLeafSpecs } from "./kaba-insaat-leaves";
 
 const STRUCTURE_TOOLS: BinaGuideTool[] = [
   { category: "Analiz", name: "İdecad Statik", purpose: "Betonarme sistem, donatı ve kesit kararlarını proje setiyle birlikte yönetmek." },
@@ -17,11 +18,13 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
     intro: [
       "Beton işleri, taze betonun sahaya kabulünden numune alınmasına, yerleştirmeden vibrasyona ve kür yönetimine kadar uzanan bir kalite zinciridir.",
       "Birçok şantiyede beton sınıfı doğru olsa bile döküm planı, vibrasyon disiplini veya kür yetersizliği yüzünden eleman performansı ve yüzey kalitesi zayıflar.",
+      "Saha mühendisi için beton dökümü, yalnız mikser saymak veya pompayı çalıştırmak değildir. Kalıp kapanmadan önceki son ölçü kontrolü, sevkiyat temposu, hava durumu, laboratuvar koordinasyonu ve erken yaş koruması aynı zincirin parçasıdır. Bu halkalardan biri koptuğunda sorun çoğu zaman birkaç gün sonra değil, kalıp söküldüğünde veya dayanım raporları geldiğinde görünür olur.",
     ],
     theory: [
       "Beton dayanımı laboratuvar sonucu kadar yerinde uygulama koşullarına da bağlıdır. Yerleştirme yüksekliği, kesintisiz döküm, vibrasyon sıklığı ve erken yaş nem kaybı taze betonu doğrudan etkiler.",
       "Beton işleri aynı zamanda ekip koordinasyonudur. Pompa, laboratuvar, kalıp ve donatı ekiplerinin hepsi aynı zaman çizgisinde hareket etmelidir.",
       "Bu yüzden beton dökümü bir anlık imalat değil, öncesi ve sonrası planlanmış bir süreçtir.",
+      "Ayrıca betonun işlenebilirliği ile eleman geometrisi birbirinden ayrı düşünülemez. Sık donatılı bölgelerde betonun akış yolu, pompa hortumunun erişimi ve vibratörün çalışacağı hacim önceden okunmazsa uygun sınıftaki beton dahi boşluk, segregasyon veya peteklenme üretebilir.",
     ],
     ruleTable: [
       {
@@ -42,10 +45,17 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
         reference: "TS EN 13670",
         note: "Özellikle sıcak, rüzgarlı veya soğuk havada kritik hale gelir.",
       },
+      {
+        parameter: "Numune ve izlenebilirlik",
+        limitOrRequirement: "Sevk, slump, numune ve döküm bölgesi eşleştirilmiş kayıtta tutulmalı",
+        reference: "TS EN 206 + saha kalite planı",
+        note: "Sonradan gelen dayanım sonucunun hangi imalata ait olduğu tartışmalı kalmamalıdır.",
+      },
     ],
     designOrApplicationSteps: [
       "Beton sınıfı, kıvamı ve sevkiyat temposunu proje ile uyumlu sipariş et.",
       "Döküm öncesi kalıp, donatı, rezervasyon ve ekipman ön kabulünü bitir.",
+      "Hava durumu, gece-gündüz sıcaklık farkı ve olası yağışa göre döküm penceresini doğrula.",
       "Taze beton kabulünü slump ve numune zinciriyle birlikte yürüt.",
       "Yerleştirme, vibrasyon ve soğuk derz riskini döküm akışına göre yönet.",
       "Döküm sonrası kür ve koruma planını aynı gün başlat.",
@@ -56,6 +66,7 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       "Yüksekten döküm veya segregasyon riski var mı?",
       "Vibratör erişimi ve yedek ekipman hazır mı?",
       "Kür uygulaması hava koşuluna göre başlatıldı mı?",
+      "Yoğun donatılı veya dar kesitli bölgeler için özel yerleştirme planı var mı?",
     ],
     numericalExample: {
       title: "82 m³ döküm için sevkiyat aralığı yorum örneği",
@@ -82,11 +93,17 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
           result: "İki sevkiyat arasında uzun boşluk oluşursa soğuk derz ihtimali artar.",
           note: "Pompa beklerken döküm bölgesi ilerletilmemelidir.",
         },
+        {
+          title: "Sefer ritmini saha akışına bağla",
+          result: "11 seferlik akışta her gecikme, vibrasyon ve yüzey düzeltme ekibinin ritmini bozar.",
+          note: "Bu nedenle beton planı yalnız santral programı değil, saha ekip kapasitesiyle birlikte kurulmalıdır.",
+        },
       ],
       checks: [
         "Sevkiyat gecikmesinde teknik ekip ne yapacağını önceden bilmelidir.",
         "Numune alma, kabulü yavaşlatmadan organize edilmelidir.",
         "Kür planı döküm biter bitmez devreye alınmalıdır.",
+        "Döküm bölgesi ile sevkiyat kayıtları sonradan eşleştirilebilir olmalıdır.",
       ],
       engineeringComment: "Beton kalitesi, sipariş formunda yazandan çok, şantiyede kesintisiz ve kontrollü yönetilen akışla korunur.",
     },
@@ -98,13 +115,16 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       { wrong: "Numune zincirini düzensiz tutmak.", correct: "Sevkiyat bazında açık kayıt sistemi kurmak." },
       { wrong: "Kürü ertesi güne bırakmak.", correct: "Döküm sonrası erken yaş bakımını aynı gün başlatmak." },
       { wrong: "Soğuk derz riskini yalnızca ustalıkla çözmeye çalışmak.", correct: "Sevkiyat ve döküm planını buna göre önceden kurgulamak." },
+      { wrong: "Sık donatılı bölgelerde standart yerleştirme yöntemiyle devam etmek.", correct: "Dar kesitler için döküm ve vibrasyon stratejisini önceden değiştirmek." },
     ],
     designVsField: [
       "Projede C30/37 yazmak yeterlidir; sahada ise bu sınıfın gerçekten performansa dönüşmesi için kabul, yerleştirme, vibrasyon ve kür disiplininin eksiksiz işlemesi gerekir.",
       "Bu yüzden beton işleri, tasarım kararının saha davranışıyla sınandığı en kritik halkalardan biridir.",
+      "İyi beton dökümü, yalnız dayanım değil izlenebilirlik üretir; hangi mikserin hangi elemanı beslediği bile gerektiğinde okunabilir kalmalıdır.",
     ],
     conclusion: [
       "Beton işleri ne kadar planlı yürütülürse taşıyıcı sistem o kadar güvenle oluşur. Döküm günü alınan küçük disiplin kararları, yapının uzun dönem performansını doğrudan etkiler.",
+      "Pratikte en iyi sonuç, beton dökümünü tek günlük operasyon değil, ön kabulden kür bitimine kadar uzanan mühendislik paketi olarak yöneten ekiplerde görülür.",
     ],
     sources: [...KABA_SOURCES, SOURCE_LEDGER.tsEn206, SOURCE_LEDGER.tsEn13670],
     keywords: ["beton işleri", "beton dökümü", "slump", "kür işlemi", "TS EN 206"],
@@ -117,11 +137,13 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
     intro: [
       "Duvar örme işleri, taşıyıcı olmayan dolgu duvarların mekan ayrımı, tesisat koordinasyonu ve yüzey hazırlığı açısından kritik rol oynadığı aşamadır.",
       "Tuğla, gazbeton veya benzeri malzeme seçimi kadar önemli olan konu; duvarın aksa oturması, düşeyliği koruması ve tesisatla çakışmamasıdır.",
+      "Sahada dolgu duvar imalatı çoğu zaman hız göstergesi gibi okunur. Oysa yanlış kurulan ilk sıra, eksik bırakılan ankraj veya rasgele açılan tesisat kanalı; sıva, doğrama ve hatta kullanıcı şikayetleri olarak geri döner. Bu yüzden duvar örme işi, kaba inşaat ile ince işler arasındaki kritik eşiktir.",
     ],
     theory: [
       "Dolgu duvarlar taşıyıcı sistem elemanı olmasalar da depremde hasar davranışı, kullanıcı güvenliği ve bitirme kalitesi üzerinde doğrudan etkilidir.",
       "Duvar örgüsünde yatay-düşey derz düzeni, ankraj detayları, lento ve açıklık kenarları birlikte okunmalıdır.",
       "Ayrıca tesisat ekipleri için bırakılan boşluklar sonradan rasgele kırılacak şekilde değil, imalat sırasına bağlanacak şekilde düşünülmelidir.",
+      "Özellikle betonarme çerçeve içinde çalışan dolgu duvarlarda birleşim davranışı kritik hale gelir. Kolon ve kirişlerle temas bölgeleri, rötre ve farklı deformasyonlar nedeniyle çatlak üretmeye açıktır. Bu nedenle duvarın nerede biteceği, hangi bölgede file veya esnek detay gerekeceği ve lento altında yükün nasıl aktarılacağı önceden düşünülmelidir.",
     ],
     ruleTable: [
       {
@@ -142,12 +164,19 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
         reference: "Şantiye koordinasyon disiplini",
         note: "Gelişi güzel kanal açma duvar performansını düşürür.",
       },
+      {
+        parameter: "Açıklık ve lento düzeni",
+        limitOrRequirement: "Kapı-pencere boşlukları doğrama ve üst yük aktarımı ile birlikte çözülmeli",
+        reference: "Detay paftası + saha kabul disiplini",
+        note: "Boşluk doğruluğu kadar lento ve kenar sürekliliği de önemlidir.",
+      },
     ],
     designOrApplicationSteps: [
       "Malzeme tipini ve duvar kalınlığını mahal kullanımına göre belirle.",
       "Aks, kapı boşluğu ve tesisat geçişlerini örme öncesi işaretle.",
       "İlk sıra ve köşe doğruluğunu kontrol ederek örgüye başla.",
       "Lento, pencere altı ve betonarme birleşimlerini detayına uygun tamamla.",
+      "Elektrik ve mekanik ekipleriyle kanal, buat ve cihaz noktalarını örme ilerlemeden sabitle.",
       "Sıva ve kaplama öncesi yüzey sürekliliği ile tesisat geçişlerini son kez kontrol et.",
     ],
     criticalChecks: [
@@ -156,6 +185,7 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       "Tesisat için sonradan kırma ihtiyacı bırakıldı mı?",
       "Betonarme birleşimlerinde çatlak riski azaltıldı mı?",
       "Yüzey sürekliliği sıva yükünü artıracak kadar bozuk mu?",
+      "Lento altı, parapet ve kısa duvar parçalarında zayıf bölge oluşuyor mu?",
     ],
     numericalExample: {
       title: "Kapı boşluğu ve duvar ekseni uyumu için saha örneği",
@@ -181,11 +211,17 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
           result: "Sıva sonrası net geçiş korunacak şekilde boşluk kontrol edilmelidir.",
           note: "Aksi durumda kapı montajında kesme veya dolgu gerekir.",
         },
+        {
+          title: "Aks kaymasını yorumla",
+          result: "Boşluk doğru olsa bile duvar ekseni kayarsa mahal ölçüsü ve doğrama merkezlenmesi bozulur.",
+          note: "Bu nedenle kontrol yalnız açıklık genişliğiyle sınırlı tutulmamalıdır.",
+        },
       ],
       checks: [
         "Boşluk ölçüsü doğrama tesliminden önce tekrar alınmalıdır.",
         "Duvar ekseni, mahal ölçüsünü bozacak şekilde kaymamalıdır.",
         "Tesisat kanalı açılacak yüzeylerde duvar bütünlüğü korunmalıdır.",
+        "Lento ve duvar birleşimi sonradan çatlak üretecek zayıf kesit bırakmamalıdır.",
       ],
       engineeringComment: "Duvar örme işinde birkaç santimetrelik ihmal, doğrama ve sıva ekipleri için zincirleme düzeltme üretir.",
     },
@@ -197,13 +233,16 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       { wrong: "İlk sırayı hızlı geçmek.", correct: "İlk sıra ve köşeleri hassas kurmak." },
       { wrong: "Betonarme birleşimlerini sıradan duvar detayı gibi görmek.", correct: "Çatlak riskine karşı birleşim detayını özellikle takip etmek." },
       { wrong: "Sıva ekibi düzeltir yaklaşımıyla yüzey bozukluğu bırakmak.", correct: "Duvarı ince işe hazır doğrulukta teslim etmek." },
+      { wrong: "Kanal ve buat yerlerini örme sonrası sahada çözmek.", correct: "Tesisat noktalarını duvar imalatıyla birlikte planlamak." },
     ],
     designVsField: [
       "Projede basit bir dolgu duvar çizgisi olarak görülen imalat, sahada doğrama, tesisat, sıva ve kaplama ekiplerinin ortak başlangıç yüzeyi haline gelir.",
       "Bu nedenle duvar örme işi, ince iş kalitesinin erken habercisidir.",
+      "İyi örülmüş duvar yalnız düz görünmez; sonraki ekiplerin kırmadan ve telafi yapmadan ilerlemesine izin verir.",
     ],
     conclusion: [
       "Duvar örme işleri dikkatli yürütüldüğünde hem mekan ölçüsü korunur hem de sonraki ekipler için temiz bir yüzey oluşur. Özellikle doğrama ve tesisat koordinasyonu burada kazanılır.",
+      "Saha açısından en kritik ders şudur: dolgu duvar, taşıyıcı olmayan ama program ve kalite üzerinde çok taşıyıcı etkisi olan bir imalattır.",
     ],
     sources: KABA_SOURCES,
     keywords: ["duvar örme", "gazbeton", "tuğla duvar", "kapı boşluğu", "dolgu duvar koordinasyonu"],
@@ -216,11 +255,13 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
     intro: [
       "Çatı iskeleti, ahşap, çelik veya teras çatı öncesi taşıyıcı alt sistemin kurulduğu ve çatı geometrisinin kesinleştiği aşamadır.",
       "Bu fazda yapılan hata yalnızca bir üst kaplama sorunu yaratmaz; su tahliyesini, açıklık geçişini ve çatı üstü ekipman güvenliğini de etkiler.",
+      "Üst yapı imalatlarında suyla ilk gerçek mücadele çoğu zaman çatı iskeletinde başlar. Eğim okumayan bir ekip, bağlantı rijitliğini ikinci plana atan bir kurulum veya sonradan açılan ekipman geçişi; kaplama gelmeden önce gelecekteki sızıntının altyapısını hazırlar.",
     ],
     theory: [
       "Çatı karkası, yükleri taşımanın yanında suyun yönünü ve kaplama katmanlarının oturacağı düzlemi belirler. Bu nedenle eğim, makas düzeni, aşık aralıkları ve bağlantı detayları birlikte okunmalıdır.",
       "Ahşap ve çelik çözümler farklı davranış gösterse de ortak ihtiyaç; rijitlik, bağlantı güvenliği ve kaplama altı sürekliliktir.",
       "Çatı iskeleti ayrıca yağmur inişi, baca ve ekipman geçişleri için de rezerv üretmelidir.",
+      "Çatıdaki küçük geometri sapmaları, cephedeki benzer toleranslardan daha ağır sonuç üretir çünkü su, en küçük ters eğimi bile kullanır. Bu nedenle karkas montajı sırasında yalnız taşıyıcı açıklık değil, en düşük kotun gerçekten tahliye noktasına gidip gitmediği de doğrulanmalıdır.",
     ],
     ruleTable: [
       {
@@ -241,12 +282,19 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
         reference: "Çatı uygulama disiplini",
         note: "Sonradan açılan geçişler su yalıtımı riskini artırır.",
       },
+      {
+        parameter: "Bakım ve servis erişimi",
+        limitOrRequirement: "Çatı üstü cihaz ve hatlar güvenli erişim mantığıyla yerleşmeli",
+        reference: "Saha güvenliği + uygulama detayları",
+        note: "İşletme döneminde ulaşılamayan ekipman, çatıya tekrar müdahale gerektirir.",
+      },
     ],
     designOrApplicationSteps: [
       "Çatı tipine göre eğim, açıklık ve taşıyıcı aileyi netleştir.",
       "Makas veya ana taşıyıcıları akslara bağlı şekilde kur.",
       "Aşık ve tali taşıyıcıları kaplama sistemine uygun aralıkta yerleştir.",
       "Baca, süzgeç ve ekipman geçişlerini iskelet aşamasında planla.",
+      "Mahya, dere ve en düşük kotları lazer ölçümle doğrulayarak karkas düzlemini kilitle.",
       "Kaplama öncesi geometri, rijitlik ve bağlantı kontrolünü tamamla.",
     ],
     criticalChecks: [
@@ -255,6 +303,7 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       "Bağlantı elemanları ve rijitlik yeterli mi?",
       "Geçişler kaplama öncesi netleşti mi?",
       "Kaplama altı düzlem dalgalanma üretiyor mu?",
+      "Çatı üstü cihaz veya bakım erişimi için güvenli yol bırakıldı mı?",
     ],
     numericalExample: {
       title: "Yağmur suyu tahliyesi için eğim mantığı örneği",
@@ -281,11 +330,17 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
           result: "En düşük kot süzgeç veya iniş hattıyla uyumlu olmalıdır.",
           note: "Sadece taşıyıcıyı kurup tahliyeyi sonra çözmek doğru değildir.",
         },
+        {
+          title: "Düzlem sürekliliğini değerlendir",
+          result: "20 cm teorik fark sağlansa bile aradaki dalga ve burulmalar kaplama altında su cebi oluşturabilir.",
+          note: "Bu yüzden yalnız başlangıç ve bitiş kotu değil ara hat da lazerle kontrol edilmelidir.",
+        },
       ],
       checks: [
         "Gerçek kot farkı lazer ölçümle doğrulanmalıdır.",
         "Kaplama öncesi geçiş ve tahliye noktaları sabitlenmelidir.",
         "Dalgaya neden olacak taşıyıcı sapmaları düzeltilmelidir.",
+        "Bakım ekiplerinin kullanacağı erişim güzergahı kaplama sonrası kesintiye uğramamalıdır.",
       ],
       engineeringComment: "Çatı iskeleti iyi kurulursa kaplama suyu iter; kötü kurulursa kaplama tek başına kusuru gizleyemez.",
     },
@@ -297,13 +352,16 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
       { wrong: "Bağlantı detaylarını üretici alışkanlığına bırakmak.", correct: "Projeye ve rüzgar koşuluna göre doğrulamak." },
       { wrong: "Çatı düzlemini göz kararı kabul etmek.", correct: "Kaplama öncesi ölçü ve kot kontrolü yapmak." },
       { wrong: "Tahliye hattını taşıyıcı geometriye sonradan uydurmak.", correct: "Süzgeç ve inişi iskeletle birlikte planlamak." },
+      { wrong: "Çatı üstü servis ekipmanını bakım erişimini düşünmeden yerleştirmek.", correct: "İskelet aşamasında servis rotasını da çözmek." },
     ],
     designVsField: [
       "Projede birkaç eğim oku ve kesitle anlatılan çatı, sahada makas, aşık, geçiş, süzgeç ve bakım erişimiyle üç boyutlu problem haline gelir.",
       "Bu nedenle çatı iskeleti, üst yapının su güvenliği açısından kritik taşıyıcı aşamasıdır.",
+      "İyi çatı karkası yalnız kaplamayı taşımakla kalmaz; işletme döneminde suyu ve bakımı da yönetir.",
     ],
     conclusion: [
       "Çatı iskeleti doğru kurulduğunda kaplama sistemi güvenle çalışır ve su yönetimi sorunsuz ilerler. Yanlış geometri ise en iyi kaplama malzemesinde bile sorun üretir.",
+      "Bu yüzden çatı iskeleti, üst yapıda en çok görünmeyen ama en çok sonuç üreten kaba inşaat kararlarından biridir.",
     ],
     sources: KABA_SOURCES,
     keywords: ["çatı iskeleti", "ahşap çatı", "çelik çatı", "çatı eğimi", "üst yapı su tahliyesi"],
@@ -322,6 +380,7 @@ const KABA_SOURCES = [...BRANCH_SOURCE_LEDGER["kaba-insaat"]];
 
 export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
   ...getKabaExtraSpecs(),
+  ...kabaInsaatLeafSpecs,
   {
     slugPath: "kaba-insaat",
     kind: "branch",
@@ -430,11 +489,13 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
     intro: [
       "Kalıp işleri, betonarme elemanların geometri, aks ve yüzey kalitesini belirleyen ilk fiziksel adımdır. Bir kolonun şaşıklığı, bir kiriş alt kotundaki sehim veya bir döşeme kenarındaki kaçıklık çoğu zaman kalıp aşamasında doğar.",
       "Bu nedenle kalıp işi yalnızca marangozluk faaliyeti değil; mühendislik toleranslarının sahada kurulmasıdır.",
+      "Sahada kalıp ekibinin bıraktığı hata çoğu kez tek ekip sorunu olarak kalmaz. Donatı yerleşimi zorlaşır, rezervasyonlar kayar, betonarme eleman bitince mekanik ve mimari ekipler aynı geometri kusurunu devralır. Bu yüzden kalıp işleri, kaba inşaatın görünmeyen kalite eşiği olarak okunmalıdır.",
     ],
     theory: [
       "Kalıp sistemi, taze beton yükü ile donatı yoğunluğunu taşırken aynı zamanda kesit boyutunu sabit tutmalıdır. Bu durum panel, dikme, kuşak, gergi ve iskele sisteminin birlikte çalışmasını gerektirir.",
       "Kalıp doğruluğu; aks, düşeylik, alt kot ve yüzey sürekliliği üzerinden okunur. Bu dört başlıktan biri zayıfsa beton sonrası düzeltme çok daha maliyetli hale gelir.",
       "Ayrıca kalıp kararı, söküm sırasını da içinde taşır; çünkü kurulan sistem, hangi elemanın ne zaman emniyetle açılabileceğini belirler.",
+      "Kalıp sisteminde en kritik noktalardan biri de rezervasyon ve gömülü eleman koordinasyonudur. Elektrik kutusu, mekanik geçiş veya ankraj plakası sonradan açılacak konu olarak bırakıldığında kalıp geometrisi fiilen boşa kurulmuş olur. Bu nedenle kalıp, taşıyıcı elemanın nihai kullanım ihtiyaçlarını da taşımalıdır.",
     ],
     ruleTable: [
       {
@@ -455,6 +516,12 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
         reference: "TS EN 13670",
         note: "Tali destekler gelişi güzel çekilmemelidir.",
       },
+      {
+        parameter: "Rezervasyon ve gömülü elemanlar",
+        limitOrRequirement: "Boşluk, ankraj ve geçişler kalıp kapanmadan netleşmeli",
+        reference: "Uygulama paftası + saha kalite planı",
+        note: "Sonradan delme ve kırma, kalıp doğruluğunun değerini düşürür.",
+      },
     ],
     designOrApplicationSteps: [
       "Aks ve kot aplikasyonunu kalıp kurulumundan önce doğrula.",
@@ -462,6 +529,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       "Donatı ve rezervasyonla çakışmayan temiz kalıp iç yüzeyi bırak.",
       "Döküm öncesi düşeylik, alt kot ve ölçü kontrolünü kayda geçir.",
       "Söküm planını beton dayanımı ve açıklık durumuna göre önceden belirle.",
+      "Mekanik ve elektrik rezervasyonlarını kalıp kapatılmadan son kez pafta üzerinden teyit et.",
     ],
     criticalChecks: [
       "Kolon-kiriş-döşeme aksları tek referansta kapandı mı?",
@@ -469,6 +537,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       "İskele ve tali destekler açıklığa göre yeterli mi?",
       "Alt kot ve düşeylik ölçüsü döküm öncesi alındı mı?",
       "Söküm sırası önceden tanımlandı mı?",
+      "Tüm rezervasyon ve ankraj elemanları beton öncesi yerinde doğrulandı mı?",
     ],
     numericalExample: {
       title: "6,0 m açıklıklı döşeme bölgesinde iskele aralığına dair saha mantığı",
@@ -494,11 +563,17 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
           result: "Mekanik geçiş varsa alt kot kontrolü yalnızca şerit metreyle bırakılmamalıdır.",
           note: "Lazer nivo ile kontrol, sonraki kırma riskini azaltır.",
         },
+        {
+          title: "Söküm mantığını baştan kur",
+          result: "Açıklığın ortasında çalışan tali destekler erken çekilirse kalıcı sehim ve yüzey bozukluğu riski artar.",
+          note: "Kalıp tasarımı, kurulum kadar açılma sırasını da tarif etmelidir.",
+        },
       ],
       checks: [
         "En riskli bölgeler için ilave destek veya sık kontrol planı bulunmalıdır.",
         "Döküm sırasında iskeleye aşırı malzeme yüklenmemelidir.",
         "Söküm öncesi deformasyon gözlemi yapılmalıdır.",
+        "Rezervasyon kaymaları kalıp sökümüne bırakılmadan önce çözülmelidir.",
       ],
       engineeringComment: "Kalıp hatası, betonla birlikte kalıcı hale gelen en pahalı ölçü hatasıdır.",
     },
@@ -510,13 +585,16 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       { wrong: "İç yüzey temizliğini önemsiz görmek.", correct: "Beton yüzeyi ve aderans için kalıbı temiz teslim etmek." },
       { wrong: "Söküm planını dökümden sonra düşünmek.", correct: "Kurulum sırasında açılma sırasını tasarlamak." },
       { wrong: "Rezervasyonları kalıp ekibine son anda bildirmek.", correct: "Tüm gömülü ve boşluk kararlarını kurulum öncesi netleştirmek." },
+      { wrong: "Mekanik ve elektrik geçişlerini beton sonrası delerek çözmek.", correct: "Rezervasyonları kalıp paftasının parçası haline getirmek." },
     ],
     designVsField: [
       "Projede 30x60 kesit gibi görünen eleman, sahada panel birleşimi, kuşak rijitliği, alt destek ve şakül hassasiyeti ister.",
       "Bu nedenle kalıp işleri, kaba inşaatın en görünmez ama en belirleyici mühendislik uygulamalarından biridir.",
+      "İyi kalıp, yalnız doğru ölçü vermez; donatı, beton ve rezervasyon ekiplerinin birbirini bloke etmeden çalışmasına da imkan tanır.",
     ],
     conclusion: [
       "Kalıp işleri doğru kurulduğunda betonarme eleman geometriyi kaybetmeden oluşur. Yanlış kurulduğunda ise sahadaki tüm ekipler aynı hatanın üzerine çalışmak zorunda kalır.",
+      "Bu yüzden kalıp kontrolü, döküm öncesi son formalite değil; kaba inşaat kalitesini belirleyen ana karar noktasıdır.",
     ],
     sources: [...KABA_SOURCES, SOURCE_LEDGER.tsEn13670],
     keywords: ["kalıp işleri", "iskele sistemi", "betonarme tolerans", "kalıp kontrolü", "TS EN 13670"],
@@ -529,11 +607,13 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
     intro: [
       "Donatı işleri, betonarmenin moment, kesme ve süneklik davranışını sahada somut hale getirir. Yanlış bindirme, eksik etriye veya bozulmuş pas payı, taşıyıcı sistemin hesapta öngörülen davranışını zayıflatır.",
       "Bu rehber, donatı yerleşimini yalnızca demir miktarı değil; sıralama, okunabilirlik ve beton yerleşimine izin veren düzen olarak ele alır.",
+      "Pratikte en çok hata, 'demir tamam' ifadesinin gerçek kalite ölçütü sanılmasıdır. Oysa donatının doğru yerde olmaması, aynı kesitte yığılması veya pas payının bozulması; metrajı değiştirmeden taşıyıcı davranışı ciddi biçimde etkileyebilir. Bu nedenle donatı işi, miktar kontrolünden daha çok detay disiplinidir.",
     ],
     theory: [
       "Betonarme elemanda donatı, betonla birlikte çalışacak şekilde konumlandırılır. Bu nedenle çeliğin sadece alanı değil; örtü betonu, bindirme boyu, ankraj ve etriye sıklaştırması da tasarım davranışının parçasıdır.",
       "Sahada en sık problem, teorik olarak doğru donatının uygulamada sıkışıklık oluşturmasıdır. Bu sıkışıklık hem beton yerleşimini zorlaştırır hem de proje dışı bükme-kesme kararları doğurur.",
       "İyi donatı uygulaması, projeyi okumayı kolaylaştırır ve beton ekiplerinin işini de güvenli hale getirir.",
+      "Deprem davranışı açısından kritik bölgelerde düzen daha da hassastır. Kolon uçları, perde sınır bölgeleri, kiriş mesnetleri ve bindirme alanları yalnız kesit hesabının değil; süneklik ve enerji tüketme kapasitesinin de saha karşılığıdır. Bu nedenle etriye adımı, kanca yönü ve bindirme dağılımı küçük detay gibi görülemez.",
     ],
     ruleTable: [
       {
@@ -554,6 +634,12 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
         reference: "TS 500",
         note: "Yoğun bölge oluşursa beton yerleşimi ve kalite zayıflar.",
       },
+      {
+        parameter: "Foto-kayıt ve ön kabul",
+        limitOrRequirement: "Kalıp kapanmadan önce kritik düğüm noktaları belgelendirilmeli",
+        reference: "Saha kalite planı",
+        note: "Kapatılan imalatın sonradan doğrulanması kayıtla mümkün olur.",
+      },
     ],
     designOrApplicationSteps: [
       "Donatı listesi ve büküm planını saha montaj sırasına göre hazırla.",
@@ -561,6 +647,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       "Donatı yoğunluğu yüksek bölgelerde beton yerleşimini önceden değerlendir.",
       "Spacer, takoz ve sehpa elemanlarını proje dışı değil standart hale getir.",
       "Kalıp kapanmadan önce foto-kayıt ve mühendis onayıyla ön kabul yap.",
+      "Deprem açısından kritik uç bölgeler ile bindirme bölgelerini ayrı kontrol kalemi olarak işle.",
     ],
     criticalChecks: [
       "Bindirme bölgeleri aynı kesitte yığılmış mı?",
@@ -568,6 +655,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       "Pas payı takozları yeterli ve doğru yerde mi?",
       "Rezervasyon ve gömülü elemanlar donatıyla çakışıyor mu?",
       "Beton yerleşimini engelleyen sıkışıklık noktaları var mı?",
+      "Kritik düğüm bölgeleri kapatma öncesi foto ve ölçüyle kayıt altına alındı mı?",
     ],
     numericalExample: {
       title: "Kolon bindirme bölgesi için saha kontrol mantığı",
@@ -593,11 +681,17 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
           result: "Sıklaştırma bölgesinde ilave yığılma varsa montaj sırası yeniden düzenlenmelidir.",
           note: "Aksi halde beton yerleşimi zorlaşır.",
         },
+        {
+          title: "Pas payı ve beton akışını birlikte oku",
+          result: "40 mm hedef pas payı korunurken kesit içinde betonun dolaşacağı boşluk da bırakılmalıdır.",
+          note: "Kesit yalnız demirin sığmasıyla değil, betonun da yer bulmasıyla kabul edilir.",
+        },
       ],
       checks: [
         "Kesit içinde beton akışını engelleyecek düğüm oluşmamalıdır.",
         "Pas payı takozu tüm kritik yüzlerde doğrulanmalıdır.",
         "Foto-kayıt, proje okumasını destekleyecek netlikte olmalıdır.",
+        "Deprem açısından kritik bölgeler genel kontrol listesi içinde kaybolmamalıdır.",
       ],
       engineeringComment: "Donatının doğru miktarı kadar, betona yer bırakacak kadar doğru yerleşimi de önemlidir.",
     },
@@ -609,13 +703,16 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       { wrong: "Yoğun düğüm noktalarını beton ekibine bırakmak.", correct: "Montaj öncesi düzenlemek." },
       { wrong: "Projeyi okumadan demirci tecrübesiyle karar üretmek.", correct: "Her kritik detay için pafta ve kesit referansı kullanmak." },
       { wrong: "Kalıp kapanmadan foto-kayıt almamak.", correct: "Ön kabulü belgeli hale getirmek." },
+      { wrong: "Deprem kritik bölgelerini normal montaj ritmiyle geçmek.", correct: "Uç bölge, etriye ve bindirme alanlarını ayrı kalite kalemi olarak yönetmek." },
     ],
     designVsField: [
       "Tasarım tarafında donatı alanı sayısal bir değerdir; sahada ise bağ teli, etriye, takoz ve beton akışıyla yaşayan fiziksel bir düzen olur.",
       "Bu nedenle donatı işleri, hesap doğruluğunun saha okunabilirliğine dönüştüğü noktadır.",
+      "İyi donatı düzeni yalnız statik güvenlik sağlamaz; beton ekibinin boşluksuz ve kontrollü imalat yapabilmesini de mümkün kılar.",
     ],
     conclusion: [
       "Donatı işleri ne kadar düzenli ve kayıtlı yürütülürse betonarme davranışı o kadar öngörülebilir olur. İyi donatı uygulaması, hem dayanımı hem de beton kalitesini birlikte korur.",
+      "Sahadaki gerçek kalite göstergesi, donatının çokluğu değil; proje davranışını bozmayacak açıklık, pas payı ve düğüm düzeniyle yerleştirilmesidir.",
     ],
     sources: [...KABA_SOURCES, SOURCE_LEDGER.ts500, SOURCE_LEDGER.tbdy2018],
     keywords: ["donatı işleri", "pas payı", "bindirme boyu", "etriye sıklaştırma", "betonarme donatı kontrolü"],

@@ -1,5 +1,7 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
 import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
+import { tesisatIsleriLeafSpecs } from "./tesisat-isleri-leaves";
+import { tesisatIsleriTopicOverrides } from "./tesisat-isleri-overrides";
 
 const MEP_TOOLS: BinaGuideTool[] = [
   { category: "Mekanik", name: "Revit MEP / MagiCAD", purpose: "Şaft, cihaz ve asma tavan çakışmalarını model üzerinde çözmek." },
@@ -221,6 +223,7 @@ const TESISAT_SOURCES = [...BRANCH_SOURCE_LEDGER["tesisat-isleri"]];
 
 export const tesisatIsleriSpecs: BinaGuidePageSpec[] = [
   ...getTesisatExtraSpecs(),
+  ...tesisatIsleriLeafSpecs,
   {
     slugPath: "tesisat-isleri",
     kind: "branch",
@@ -521,4 +524,5 @@ export const tesisatIsleriSpecs: BinaGuidePageSpec[] = [
     sources: [...TESISAT_SOURCES, SOURCE_LEDGER.tsHd60364],
     keywords: ["elektrik tesisatı", "topraklama", "pano etiketleme", "TS HD 60364", "devreye alma"],
   },
+  ...tesisatIsleriTopicOverrides,
 ];

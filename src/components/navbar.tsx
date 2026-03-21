@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Share2 } from "lucide-react";
@@ -12,28 +12,17 @@ import { ModeToggle } from "./mode-toggle";
 import { SharePopup } from "./share-popup";
 import { Button } from "./ui/button";
 
-interface SearchItem {
-  title: string;
-  slug: string;
-  category: string;
-  description: string;
-}
-
-interface NavbarProps {
-  searchItems: SearchItem[];
-}
-
 const NAV_LINKS = [
   { name: "Ana Sayfa", href: "/" },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik" },
-  { name: "Araçlar", href: "/kategori/araclar" },
-  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari" },
-  { name: "Yapı", href: "/kategori/yapi-tasarimi" },
-  { name: "Şantiye", href: "/kategori/santiye" },
-  { name: "Site Haritası", href: "/konu-haritasi" },
+  { name: "Araclar", href: "/kategori/araclar" },
+  { name: "Bina Asamalari", href: "/kategori/bina-asamalari" },
+  { name: "Yapi", href: "/kategori/yapi-tasarimi" },
+  { name: "Santiye", href: "/kategori/santiye" },
+  { name: "Site Haritasi", href: "/konu-haritasi" },
 ];
 
-export function Navbar({ searchItems }: NavbarProps) {
+export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -42,14 +31,7 @@ export function Navbar({ searchItems }: NavbarProps) {
   const isCategory = pathname.startsWith("/kategori") && !isTool;
   const isArticle = pathname !== "/" && !isTool && !isCategory && pathname.length > 1;
   const showBack = isArticle || isTool || isCategory;
-  const pageSlug = useMemo(() => pathname.replace(/^\//, ""), [pathname]);
-  const pageTitle = useMemo(() => {
-    if (!isArticle) {
-      return "";
-    }
-
-    return searchItems.find((item) => item.slug === pageSlug)?.title || "";
-  }, [isArticle, pageSlug, searchItems]);
+  const pageSlug = pathname.replace(/^\//, "");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -81,14 +63,14 @@ export function Navbar({ searchItems }: NavbarProps) {
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-blue-50 dark:bg-zinc-800 dark:group-hover:bg-blue-900/30">
                     <ChevronLeft className="h-4 w-4" />
                   </div>
-                  <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri dön</span>
+                  <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri don</span>
                 </Link>
               ) : (
                 <Link href="/" className="group flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-light.svg?v=3" alt="İnşa Blog" className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`} />
+                  <img src="/logos/logo-light.svg?v=3" alt="Insa Blog" className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`} />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-dark.svg?v=3" alt="İnşa Blog" className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`} />
+                  <img src="/logos/logo-dark.svg?v=3" alt="Insa Blog" className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`} />
                 </Link>
               )}
 
@@ -114,7 +96,7 @@ export function Navbar({ searchItems }: NavbarProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              {!isArticle && <LiveSearch items={searchItems} />}
+              {!isArticle && <LiveSearch />}
 
               {isArticle && (
                 <div className="flex items-center gap-2">
@@ -126,9 +108,9 @@ export function Navbar({ searchItems }: NavbarProps) {
                     className="hidden gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 sm:flex"
                   >
                     <Share2 className="h-4 w-4" />
-                    Paylaş
+                    Paylas
                   </Button>
-                  <BookmarkButton slug={pageSlug} title={pageTitle} className="rounded-full border border-zinc-200 px-4 py-2 dark:border-zinc-700" />
+                  <BookmarkButton slug={pageSlug} className="rounded-full border border-zinc-200 px-4 py-2 dark:border-zinc-700" />
                 </div>
               )}
 
@@ -146,7 +128,7 @@ export function Navbar({ searchItems }: NavbarProps) {
         </div>
       </header>
 
-      <SharePopup open={shareOpen} onOpenChange={setShareOpen} title={pageTitle} />
+      <SharePopup open={shareOpen} onOpenChange={setShareOpen} />
     </>
   );
 }

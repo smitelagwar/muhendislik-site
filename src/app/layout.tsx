@@ -6,7 +6,6 @@ import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast-provider";
-import { getArticles } from "@/lib/articles-data";
 import {
   DEFAULT_OG_IMAGE_PATH,
   SITE_DEFAULT_TITLE,
@@ -90,27 +89,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const articlesRecord = getArticles();
-  const searchItems = Object.values(articlesRecord).map((article) => ({
-    title: article.title,
-    slug: article.slug,
-    category: article.category,
-    description: article.description,
-  }));
-
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={`${plexSans.variable} ${plexMono.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ToastProvider>
             <div className="flex min-h-screen flex-col">
-              <Navbar searchItems={searchItems} />
+              <Navbar />
               <div className="flex-grow">{children}</div>
               <Footer />
               <BottomNav />
             </div>
             <BackToTop />
-            <CommandPalette items={searchItems} />
+            <CommandPalette />
           </ToastProvider>
         </ThemeProvider>
         <Toaster position="top-center" richColors />
