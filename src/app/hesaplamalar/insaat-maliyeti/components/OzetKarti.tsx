@@ -83,7 +83,7 @@ export function OzetKarti({ snapshot }: Props) {
           <button
             type="button"
             className="flex items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
-            onClick={() => alert("Yazdır özelliği Faz 2'de eklenecek.")}
+            onClick={() => window.print()}
           >
             <Printer className="h-3.5 w-3.5" />
             Yazdır

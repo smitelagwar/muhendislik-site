@@ -102,6 +102,7 @@ export function ProjeGirisFormu({ project, snapshot, onUpdate, onApplyPreset, on
               onChange={e => {
                 const v = parseFloat(e.target.value);
                 if (!isNaN(v) && v > 0) onUpdate({ insaatAlani: v });
+                else if (e.target.value === "") onUpdate({ insaatAlani: 0 });
               }}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
             />
@@ -121,6 +122,7 @@ export function ProjeGirisFormu({ project, snapshot, onUpdate, onApplyPreset, on
               onChange={e => {
                 const v = parseInt(e.target.value);
                 if (!isNaN(v) && v >= 1) onUpdate({ katAdedi: v });
+                else if (e.target.value === "") onUpdate({ katAdedi: 1 });
               }}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
             />
@@ -140,6 +142,7 @@ export function ProjeGirisFormu({ project, snapshot, onUpdate, onApplyPreset, on
               onChange={e => {
                 const v = parseInt(e.target.value);
                 if (!isNaN(v) && v >= 1) onUpdate({ bagimsizBolumSayisi: v });
+                else if (e.target.value === "") onUpdate({ bagimsizBolumSayisi: 1 });
               }}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
             />

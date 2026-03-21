@@ -154,8 +154,8 @@ export default function InsaatMaliyetiPage() {
       />
 
       {/* ── İÇERİK: SOL KOLON (KATEGORİLER) + SAĞ KOLON (ÖZET KART) ── */}
-      <div className="grid items-start gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-8 space-y-4">
+      <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+        <div className="order-2 space-y-4 lg:order-1 lg:col-span-8">
           
           {/* GRUP ETİKETLERİ */}
           <div className="flex flex-wrap gap-2 mb-2">
@@ -258,7 +258,7 @@ export default function InsaatMaliyetiPage() {
       </div>
 
       {/* SAĞ KOLON (STICKY ÖZET KART) */}
-      <div className="lg:col-span-4">
+      <div className="order-1 lg:order-2 lg:col-span-4">
         <OzetKarti snapshot={snapshot} />
       </div>
 
