@@ -16,6 +16,7 @@ import {
 import { PRESETS } from "@/lib/calculations/presets";
 import { ProjeGirisFormu } from "./components/ProjeGirisFormu";
 import { KategoriKarti } from "./components/KategoriKarti";
+import { OzetKarti } from "./components/OzetKarti";
 import {
   BetonDemirForm,
   CatiForm,
@@ -152,30 +153,34 @@ export default function InsaatMaliyetiPage() {
         onReset={reset}
       />
 
-      {/* GRUP ETİKETLERİ */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {[
-          { label: "⬛ Kaba İş",     total: snapshot.kabaIsToplamı, pct: snapshot.kabaIsPct, cls: "text-blue-400" },
-          { label: "⬛ İnce İş",     total: snapshot.inceIsToplamı, pct: snapshot.inceIsPct, cls: "text-emerald-400" },
-          { label: "⬛ Diğer Gider", total: snapshot.digerToplamı,  pct: snapshot.digerPct,  cls: "text-purple-400" },
-        ].map(g => (
-          <div key={g.label} className="rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-2">
-            <span className={`text-xs font-semibold ${g.cls}`}>
-              {g.label.replace("⬛ ", "")}
-            </span>
-            <span className="mx-2 text-xs text-zinc-700">|</span>
-            <span className="text-xs font-bold text-zinc-300 tabular-nums">
-              {Math.round(g.total).toLocaleString("tr-TR")} TL
-            </span>
-            <span className="ml-1.5 text-xs text-zinc-600">
-              (%{(g.pct * 100).toFixed(1)})
-            </span>
+      {/* ── İÇERİK: SOL KOLON (KATEGORİLER) + SAĞ KOLON (ÖZET KART) ── */}
+      <div className="grid items-start gap-8 lg:grid-cols-12">
+        <div className="lg:col-span-8 space-y-4">
+          
+          {/* GRUP ETİKETLERİ */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {[
+              { label: "⬛ Kaba İş",     total: snapshot.kabaIsToplamı, pct: snapshot.kabaIsPct, cls: "text-blue-400" },
+              { label: "⬛ İnce İş",     total: snapshot.inceIsToplamı, pct: snapshot.inceIsPct, cls: "text-emerald-400" },
+              { label: "⬛ Diğer Gider", total: snapshot.digerToplamı,  pct: snapshot.digerPct,  cls: "text-purple-400" },
+            ].map(g => (
+              <div key={g.label} className="flex items-center rounded-lg border border-zinc-800 bg-[#0d0d0d] px-3 py-1.5">
+                <span className={`text-[11px] font-semibold uppercase tracking-wider ${g.cls}`}>
+                  {g.label.replace("⬛ ", "")}
+                </span>
+                <span className="mx-2 text-zinc-700">|</span>
+                <span className="text-sm font-bold text-zinc-300 tabular-nums">
+                  {Math.round(g.total).toLocaleString("tr-TR")} TL
+                </span>
+                <span className="ml-1.5 text-xs text-zinc-600">
+                  (%{(g.pct * 100).toFixed(1)})
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* KATEGORİ KARTLARI */}
-      <div className="space-y-2">
+          {/* KATEGORİ KARTLARI */}
+          <div className="space-y-2">
 
         {catMap.betonDemir && (
           <KategoriKarti result={catMap.betonDemir} isOpen={openCats.has("betonDemir")} onToggle={() => toggleCat("betonDemir")}>
@@ -243,17 +248,21 @@ export default function InsaatMaliyetiPage() {
           </KategoriKarti>
         )}
 
-        {catMap.kamuSabit && (
-          <KategoriKarti result={catMap.kamuSabit} isOpen={openCats.has("kamuSabit")} onToggle={() => toggleCat("kamuSabit")}>
-            <KamuSabitForm input={state.inputs.kamuSabit} onChange={p => updateCat("kamuSabit", p as Record<string, unknown>)} proj={state.project} />
-          </KategoriKarti>
-        )}
+          {catMap.kamuSabit && (
+            <KategoriKarti result={catMap.kamuSabit} isOpen={openCats.has("kamuSabit")} onToggle={() => toggleCat("kamuSabit")}>
+              <KamuSabitForm input={state.inputs.kamuSabit} onChange={p => updateCat("kamuSabit", p as Record<string, unknown>)} proj={state.project} />
+            </KategoriKarti>
+          )}
 
+        </div>
       </div>
 
-      {/* ADIM 6 — Sticky özet kart */}
-      {/* ADIM 7 — Pie chart */}
+      {/* SAĞ KOLON (STICKY ÖZET KART) */}
+      <div className="lg:col-span-4">
+        <OzetKarti snapshot={snapshot} />
+      </div>
 
     </div>
-  );
+  </div>
+);
 }

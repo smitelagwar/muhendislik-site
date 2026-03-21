@@ -10,7 +10,8 @@
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",
     "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs",
     "check:content-quality": "tsx scripts/audit-content-quality.mjs --scope=all",
-    "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main"
+    "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main",
+    "check:smoke": "node scripts/site-smoke-test.mjs"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -23,6 +24,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0"
   },
