@@ -1,0 +1,350 @@
+## GÖREV
+muhendislik-site.vercel.app Next.js projesine yeni bir "İnşaat Hesaplama" 
+sayfası ve kategorisi ekle. Bu sayfa, kullanıcının proje bilgilerini girerek 
+kaba iş / ince iş / diğer işler bazında toplam inşaat maliyetini 
+kategoriler halinde tahmin etmesini sağlayacak.
+
+---
+
+## SAYFA KONUMU
+- Route: /hesaplamalar/insaat-maliyeti
+- Navigasyonda "Hesaplamalar" menüsüne ekle
+- Mevcut dark industrial temaya uygun yeni bağımsız tasarım
+
+---
+
+## TASARIM SİSTEMİ
+- Arka plan: #0a0a0a (köklü siyah)
+- Card arka plan: #111111
+- Border: 1px solid #2a2a2a
+- Accent renk: #f59e0b (amber/turuncu — inşaat teması)
+- İkincil accent: #3b82f6 (mavi — teknik/mühendislik)
+- Başarı: #10b981 (yeşil — pozitif sonuç)
+- Font: mevcut site fontu
+- Input alanları: bg-[#1a1a1a] border-[#333] focus:border-amber-500
+- Sonuç kartları belirgin border-left: 4px solid accent ile
+- Responsive: mobile-first, grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+- Her kategori kendi collapse/expand edilebilir kartında
+
+---
+
+## SAYFA YAPISI
+
+### 1. HEADER BÖLÜMÜ
+Başlık: "İnşaat Maliyet Hesaplama"
+Açıklama: "Projenizin kaba iş, ince iş ve diğer giderlerini kategoriler 
+bazında hesaplayın. Veriler referans niteliğinde olup gerçek piyasa 
+fiyatlarıyla güncellenmelidir."
+İkon: hardhat veya building emoji/lucide icon
+
+---
+
+### 2. PROJE GENEL BİLGİLER KARTI (zorunlu, her hesap buna bağlı)
+
+Alanlar:
+- Yapı Türü: [Villa | Müstakil Ev | Apartman | Ticari]
+- Toplam İnşaat Alanı (m²): number input
+- Kat Adedi: number (1-20)
+- Bağımsız Bölüm Sayısı: number
+- İnşaat Kalitesi: [Ekonomik | Orta | Üst Segment | Lüks]
+  → Bu seçim tüm birim fiyatları katsayıyla çarpar:
+    Ekonomik: 0.80x | Orta: 1.00x | Üst: 1.25x | Lüks: 1.60x
+
+Bu bilgiler girildikten sonra aşağıdaki 12 kategori otomatik ön-doldurulur 
+ama kullanıcı manuel override yapabilir.
+
+---
+
+### 3. HESAPLAMA KATEGORİLERİ (12 adet, accordion/card yapısı)
+
+Her kategori kartı:
+- Başlık + kategori ikonu
+- "Kaba İş" veya "İnce İş" veya "Diğer" etiketi (renkli badge)
+- Input alanları
+- O kategorinin ALT TOPLAMI (gerçek zamanlı güncellenen)
+- Metraj PDF'ten alınan örnek değerler placeholder olarak gösterilecek
+
+---
+
+#### KATEGORİ 1 — BETON VE DEMİR [KABA İŞ]
+Etiket: Kaba İş | İkon: Layers
+
+Inputs:
+- Temel Türü: [Radye | Sürekli | Tekil | Kuyu]
+- Temel Alanı (m²): number
+- Temel Kalınlığı (m): default 0.40
+- Beton Sınıfı: [C25 | C30 | C35]
+- Kolon+Perde Beton Hacmi (m³): hesaplanabilir veya manuel
+- Döşeme Tipi: [Kirişli | Asmolen | Nervürlü | Flat Slab]
+- Döşeme Kalınlığı (cm): default 12
+
+Birim Fiyatlar (kullanıcı değiştirebilir, default değerler):
+- C30 Beton: 2.800 TL/m³
+- C35 Beton: 3.100 TL/m³
+- Demir: 22.000 TL/ton
+- Kalıp İşçiliği: 480 TL/m²
+- Demir İşçiliği: 130 TL/m²
+
+Hesaplama Mantığı:
+- Toplam Beton Hacmi = Temel + Kolon/Perde + Döşeme
+- Toplam Demir = İnşaat Alanı × 0.052 ton/m² (ortalama katsayı)
+- Alt Toplam = Beton Maliyeti + Demir Maliyeti + İşçilik
+
+---
+
+#### KATEGORİ 2 — DUVAR [KABA İŞ]
+Etiket: Kaba İş
+
+Inputs:
+- İç Duvar Malzemesi: [Tuğla 10cm | Tuğla 8.5cm | Gazbeton]
+- İç Duvar Tahmini Alan (m²): auto = İnşaat Alanı × 2.5
+- Dış Duvar Malzemesi: [Gazbeton 15cm | Gazbeton 13.5cm | Tuğla]
+- Dış Duvar Tahmini Alan (m²): auto
+
+Birim Fiyatlar:
+- 10cm Tuğla: 6.50 TL/adet
+- Gazbeton: 2.200 TL/m³
+- Tuğla İşçilik: 65 TL/m²
+- Gazbeton İşçilik: 60 TL/m²
+
+---
+
+#### KATEGORİ 3 — ÇATI [KABA İŞ]
+Inputs:
+- Çatı Tipi: [Çelik Karkas | Betonarme | Düz Teras]
+- Çatı Alanı (m²): auto = Kat Alanı × 1.15
+- Kaplama: [OSB + Şıngıl | Membran | Kiremit | Teras Kaplaması]
+- Isı Yalıtımı: [Taş Yünü | XPS | EPS]
+
+Birim Fiyatlar:
+- Çelik: 24.000 TL/ton
+- Şıngıl: 120 TL/m²
+- Membran: 650 TL/top
+- Taş Yünü: 60 TL/m²
+
+---
+
+#### KATEGORİ 4 — SU YALITIMI [KABA İŞ]
+Inputs:
+- Temel Su Yalıtım Alanı (m²): auto = Temel Alanı × 1.5
+- Membran Kat Sayısı: [1 Kat | 2 Kat]
+- Drenaj Uzunluğu (mt): auto = √Temel Alanı × 4
+
+Birim Fiyatlar:
+- Membran: 650 TL/top (1 top = 10m²)
+- Membran İşçilik: 55 TL/m²
+- Drenaj: 45 TL/mt
+
+---
+
+#### KATEGORİ 5 — DIŞ CEPHE [İNCE İŞ]
+Etiket: İnce İş
+
+Inputs:
+- Cephe Alanı (m²): auto = Çevre × Bina Yüksekliği
+- Kompozit Oranı (%): slider 0-100, default 30
+- Boya Oranı (%): slider 0-100, default 50
+- Söve Oranı (%): kalan
+- Mantolama (XPS 5cm): Evet/Hayır
+
+Birim Fiyatlar:
+- Kompozit: 2.000 TL/m²
+- Söve: 95 TL/m² + 490 TL/mtül
+- Cephe Boyası: 90 TL/m²
+- Mantolama: 380 TL/m²
+
+---
+
+#### KATEGORİ 6 — ISITMA VE SOĞUTMA [İNCE İŞ]
+Inputs:
+- Isıtma Sistemi: [Yerden Isıtma | Radyatör | Fan-Coil]
+- Isıtma Cihazı: [Kombi | Kazan | VRF]
+- Klima: Bağımsız Bölüm Başına kaç adet, number
+- Sıcak Su: [Kombi | Boyler | Güneş Enerjisi]
+
+Birim Fiyatlar:
+- Yerden Isıtma: 180 TL/m²
+- Radyatör: 1.350 TL/mtül
+- Kombi: 16.000 TL/adet
+- Klima: 15.000 TL/adet
+
+---
+
+#### KATEGORİ 7 — SERAMİK VE MERMER [İNCE İŞ]
+Inputs:
+- Banyo Duvar Seramik Alanı (m²): auto = Bağımsız Bölüm × 25
+- Banyo Yer Seramik (m²): auto = Bağımsız Bölüm × 6.5
+- Mutfak Zemin (m²): auto = Bağımsız Bölüm × 14
+- Hol/Giriş Zemin (m²): auto = Bağımsız Bölüm × 9
+- Balkon/Teras (m²): optional
+- Merdiven Mermer: Evet/Hayır
+
+Birim Fiyatlar:
+- Banyo Duvar Seramiği: 550 TL/m² malzeme + 140 TL/m² işçilik
+- Yer Seramiği: 530 TL/m² + 140 TL/m²
+- Mermer Basamak: 520 TL/mtül
+- Seramik Yapıştırıcı: 150 TL/torba
+
+---
+
+#### KATEGORİ 8 — SIVA VE BOYA [İNCE İŞ]
+Inputs:
+- İnce Sıva Alanı (m²): auto = İnşaat Alanı × 3.5
+- Kara Sıva (banyo/ıslak hacim) (m²): auto = Bağımsız Bölüm × 40
+- Boya Alanı (m²): = İnce Sıva Alanı
+
+Birim Fiyatlar:
+- Makine Alçısı: 90 TL/torba, 1 torba = 2.5m²
+- Alçı İşçilik: 60 TL/m²
+- Kara Sıva İşçilik: 80 TL/m²
+- Boya: 55 TL/m² (malzeme + işçilik)
+
+---
+
+#### KATEGORİ 9 — PENCERE VE KAPI [İNCE İŞ]
+Inputs:
+- Doğrama Tipi: [PVC | Alüminyum | Ahşap]
+- Toplam Doğrama Profil Uzunluğu (mtül): auto = İnşaat Alanı × 0.55
+- Cam Türü: [Isıcam | Çift Cam | Tek Cam]
+- Daire Dış Kapısı: [Çelik | Ahşap Kaplı Çelik]
+- Oda Kapısı: Bağımsız Bölüm Başına adet, default 3
+- Bina Giriş Kapısı: Evet/Hayır
+
+Birim Fiyatlar:
+- PVC Profil: 1.100 TL/mtül
+- Alüminyum Profil: 950 TL/mtül
+- Isıcam: 1.100 TL/m²
+- Çelik Kapı: 9.500 TL/adet
+- Ahşap Kapı: 15.000 TL/adet
+
+---
+
+#### KATEGORİ 10 — PARKE VE KAPLAMA [İNCE İŞ]
+Inputs:
+- Parke Alanı (m²): auto = İnşaat Alanı × 0.45
+- Parke Türü: [Laminant | Masif | SPC | Lamine]
+- Süpürgelik: Evet/Hayır
+
+Birim Fiyatlar:
+- Laminant Parke: 950 TL/m²
+- Masif Parke: 2.200 TL/m²
+- Ahşap Süpürgelik: 20 TL/mtül
+
+---
+
+#### KATEGORİ 11 — ELEKTRİK VE ALÇIPAN [İNCE İŞ]
+Inputs:
+- Elektrik Tesisatı: auto hesap (Bağımsız Bölüm × 12.000)
+- Kartonpiyer: Evet/Hayır — toplam alan (mtül)
+- Düz Alçıpan (m²): optional
+- Görüntülü Diyafon: Evet/Hayır
+- Kamera Sistemi: Evet/Hayır
+- Jeneratör: [Yok | Ortak | Daire Başı]
+
+Birim Fiyatlar:
+- Elektrik Malzeme+İşçilik: 12.000 TL/bağımsız bölüm
+- Kartonpiyer: 90 TL/mtül
+- Alçıpan: 260 TL/m²
+
+---
+
+#### KATEGORİ 12 — KAMU ÖDEMELERİ VE DİĞER [DİĞER]
+Etiket: Diğer
+
+Inputs:
+- Bayındırlık Birim m² Fiyatı: 6.500 TL/m² (güncel, düzenlenebilir)
+- Yapı Denetim Oranı (%): default 1.58 (imar yönetmeliği minimumu)
+  → Hesap: Toplam İnşaat Alanı × Bayındırlık m² Fiyatı × Oran
+- Ruhsat Harcı: auto hesap (basit katsayı)
+- Enerji Kimlik Belgesi: Evet/Hayır (fixed 3.500 TL)
+- Zemin Etüdü: Evet/Hayır (fixed 25.000 TL)
+- Akustik Rapor: Evet/Hayır (fixed 11.000 TL)
+- Şantiye Kurulumu (aylık): number — ay sayısı × sabit maliyet
+
+---
+
+### 4. ÖZET SONUÇ KARTI (fixed sticky bottom veya sayfa sonu)
+
+Bu kart tüm kategoriler değiştikçe gerçek zamanlı güncellenir.
+
+Gösterim:
+┌─────────────────────────────────────────────────┐
+│ 🏗 TOPLAM İNŞAAT MALİYETİ TAHMİNİ              │
+│                                                   │
+│ KABA İŞLER          →  XX.XXX.XXX TL  (XX%)    │
+│ İNCE İŞLER          →  XX.XXX.XXX TL  (XX%)    │
+│ DİĞER/KAMU          →  XX.XXX.XXX TL  (XX%)    │
+│ ─────────────────────────────────────────────    │
+│ TOPLAM              →  XX.XXX.XXX TL            │
+│ m² BAŞINA           →  XX.XXX TL/m²             │
+│ BAĞIMSIZ BÖLÜM BAŞI →  XX.XXX.XXX TL           │
+└─────────────────────────────────────────────────┘
+
+Altında: Donut/pie chart — kaba iş / ince iş / diğer yüzde dağılımı
+(Recharts veya Chart.js kullan)
+
+Uyarı notu: "Bu hesaplama referans amaçlıdır. Gerçek maliyetler bölgeye,
+müteahhite ve piyasa koşullarına göre değişir."
+
+---
+
+### 5. REFERANS DEĞERLER BÖLÜMÜ (collapsible info card)
+
+"Referans Değerler Hakkında" başlığı altında:
+- Villa (286 m², İstanbul, Nisan 2023): ~12.554 TL/m²
+- Apartman (3705 m², orta segment, 2026): ~TBD TL/m²
+- Kaba iş oranı: ~%39 | İnce iş: ~%50 | Diğer: ~%10
+- Kaynak: PDF raporlar (insaathesabi.com referans verileri)
+
+---
+
+## TEKNİK GEREKSINIMLER
+
+- Tüm state: React useState ile yönetilecek (localStorage yok)
+- Otomatik hesaplama: useEffect ile her input değişiminde
+- Sayısal formatter: Türk formatı (1.234.567 TL)
+- Input validation: negatif değer engeli, max sınırları
+- Kalite katsayısı (Ekonomik/Orta/Üst/Lüks) global state'te tutulacak
+  ve tüm kategorilere uygulanacak
+- Chart: Recharts PieChart (zaten Next.js projende var)
+- Accordion için Headless UI veya basit useState toggle
+
+---
+
+## DOSYA YAPISI
+
+src/app/hesaplamalar/insaat-maliyeti/
+├── page.tsx          → ana sayfa wrapper
+├── components/
+│   ├── ProjeGenelBilgiler.tsx
+│   ├── KategoriKarti.tsx     → reusable accordion card
+│   ├── OzetKarti.tsx         → sticky summary
+│   ├── MaliyetChart.tsx      → pie chart
+│   └── kategoriler/
+│       ├── BetonDemir.tsx
+│       ├── Duvar.tsx
+│       ├── Cati.tsx
+│       ├── SuYalitimi.tsx
+│       ├── DisCephe.tsx
+│       ├── IsitmaSogutma.tsx
+│       ├── SeramikMermer.tsx
+│       ├── SivaBoya.tsx
+│       ├── PencereKapi.tsx
+│       ├── ParkeKaplama.tsx
+│       ├── ElektrikAlcipan.tsx
+│       └── KamuOdemeleri.tsx
+└── utils/
+    └── hesaplamalar.ts   → tüm hesaplama fonksiyonları pure TS
+
+---
+
+## ÖNEMLİ NOTLAR
+
+1. Birim fiyatlar kullanıcı tarafından düzenlenebilir olacak 
+   (küçük edit butonu ile inline editing)
+2. Her kategori kartı kapatıldığında/açıldığında smooth transition
+3. "Sıfırla" butonu tüm inputları default değerlere döndürsün
+4. Mobile'da özet kart en üste scroll-to ile erişilebilir olsun
+5. "Fiyatları Güncelle" tooltip: "Birim fiyatlar 2024 yılı ortalama 
+   piyasa verilerini yansıtmaktadır. Bölgenizdeki güncel fiyatlarla 
+   karşılaştırınız."

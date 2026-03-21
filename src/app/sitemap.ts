@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
     { pathname: "/hesaplamalar", changeFrequency: "weekly" as const, priority: 0.85 },
+    { pathname: "/hesaplamalar/tahmini-insaat-alani", changeFrequency: "weekly" as const, priority: 0.83 },
     { pathname: "/hesaplamalar/insaat-maliyeti", changeFrequency: "weekly" as const, priority: 0.82 },
     { pathname: "/hesaplamalar/resmi-birim-maliyet-2026", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/araclar", changeFrequency: "weekly" as const, priority: 0.8 },

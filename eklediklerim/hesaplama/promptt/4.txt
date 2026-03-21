@@ -1,0 +1,451 @@
+Mevcut inşaat mühendisliği web sitem ve planladığım proje maliyet altyapısı için bağımsız ama tam proje maliyet modülüyle entegre çalışabilecek profesyonel bir “PDF Rapor Motoru” tasarla ve planla.
+
+Bu sistem sıradan bir “PDF export” özelliği değil; gerçek mühendislik kullanımına uygun, şablon bazlı, modüler, ölçeklenebilir, profesyonel görünümlü, kategori bazlı derin veri taşıyabilen, aynı veriden farklı rapor türleri üretebilen ve zamanla hem kişisel çalışma aracıma hem de ticari raporlama altyapıma dönüşebilecek güçlü bir rapor motoru olmalı.
+
+ÇOK ÖNEMLİ
+- Kod yazma.
+- Tasarım, ürün planı, veri akışı, şablon sistemi, rapor tipleri, rapor mimarisi, kullanıcı akışı, admin paneli ve çıktı mantığı üret.
+- Sistem sadece “indirilebilir PDF” mantığında değil; mühendislik verisini profesyonel rapora dönüştüren bir raporlama motoru olarak düşünülmeli.
+- Raporlar şeffaf, düzenli, teknik, güven veren ve okunabilir olmalı.
+- Rapor motoru hem mini hesap araçlarıyla hem de tam proje maliyet modülüyle entegre düşünülmeli.
+- Nihai amaç: maliyet, metraj, yaklaşık keşif, kategori özeti, karşılaştırmalı sürüm ve teklif/danışmanlık çıktıları üretebilen profesyonel bir PDF rapor altyapısı kurmak.
+
+ANA AMAÇLAR
+1. Mini hesap araçlarından profesyonel PDF özeti üretmek
+2. Tam proje maliyet modülünden detaylı proje raporu üretmek
+3. Aynı proje verisinden farklı rapor türleri üretmek
+4. Maliyet raporu ve metraj raporunu ayrı ama bağlantılı kurgulamak
+5. Sürüm karşılaştırmalı raporlar oluşturabilmek
+6. Kullanıcının güvenini artıran şeffaf ve teknik raporlar sunmak
+7. Ticari kullanım için branded / kurumsal rapor çıktısı oluşturmak
+8. Gerekirse raporu lead toplama ve teklif/danışmanlık akışına bağlamak
+
+BENDEN İSTENEN ÇIKTI
+Bana çok kapsamlı ve profesyonel bir rapor motoru planı ver.
+Çıktı şu başlıklarda gelsin:
+1. Rapor motoru vizyonu
+2. Rapor türleri mimarisi
+3. Veri girişinden PDF çıktısına giden akış
+4. Şablon sistemi
+5. Her rapor tipi için sayfa yapısı
+6. İçerik blokları ve modüler section mantığı
+7. Admin / şablon yönetim sistemi
+8. Kullanıcı akışları
+9. PDF erişim ve lead modeli
+10. Branding / logo / kurumsal görünüm yapısı
+11. Rapor kalite standartları
+12. MVP kapsamı
+13. Sonraki fazlar
+14. Bu rapor motorunun neden güçlü olacağına dair değerlendirme
+
+GENEL RAPOR MOTORU TANIMI
+Bu sistem şu mantıkta çalışmalı:
+- kullanıcı veya sistem bir hesap sonucu üretir
+- sonuçlar bir veri katmanında normalize edilir
+- kullanıcı veya sistem uygun rapor tipini seçer
+- rapor şablonu veriyi işler
+- gerekli bloklar (kapak, özet, tablolar, açıklamalar, varsayımlar, kırılımlar, CTA’lar) otomatik yerleşir
+- profesyonel PDF oluşturulur
+- rapor indirilebilir, paylaşılabilir, gerektiğinde versiyonlanabilir
+
+RAPOR TÜRLERİ
+Rapor motoru en az aşağıdaki rapor türlerini destekleyecek şekilde planlansın:
+
+A) Mini Hesap Özeti PDF
+- tekil hesap araçları için
+- hızlı sonuç özeti
+- malzeme, işçilik, yaklaşık maliyet, fire, varsayımlar
+- kısa ve kompakt
+
+B) Mini Hesap Detaylı PDF
+- tekil hesap araçları için daha gelişmiş sürüm
+- detaylı tablo
+- giriş parametreleri
+- bölgesel / fiyat / fire bilgileri
+- açıklamalar
+- CTA alanı
+
+C) Tam Proje Maliyet Raporu
+- kategori bazlı proje toplam maliyeti
+- kaba işler / ince işler / diğer giderler
+- alt kategori kırılımları
+- özet + detay sayfaları
+
+D) Tam Proje Metraj / Miktar Özeti Raporu
+- maliyet yerine ağırlıklı olarak miktar ve metraj verileri
+- alan, hacim, tonaj, adet, mtül, m², m³ gibi özetler
+- kategori bazlı miktar kırılımları
+
+E) Kategori Bazlı Rapor
+- sadece seçili kategori için rapor
+- örneğin sadece beton-demir, sadece duvar, sadece çatı vb.
+
+F) Yönetici Özeti / İcra Özeti PDF
+- kısa, karar verici seviyesinde
+- çok fazla teknik detaya boğmadan proje genel maliyet özeti
+
+G) Sürüm Karşılaştırma Raporu
+- proje v1 vs v2
+- fiyat farkı, malzeme farkı, kalite farkı, kategori farkı
+
+H) Teklif / Danışmanlık Köprüsü Raporu
+- kullanıcıya veya müşteriye gönderilecek, son sayfalarında teklif ve iletişim CTA’ları olan ticari kullanım odaklı rapor
+
+ŞABLON SİSTEMİ
+Rapor motorunu sabit tek format olarak değil, modüler şablon sistemi olarak planla.
+
+Şablon mantığı:
+- cover template
+- executive summary template
+- category summary template
+- category detail template
+- quantity/metraj template
+- assumptions template
+- pricing template
+- version comparison template
+- CTA / contact template
+- appendix / notes template
+
+Her rapor tipi bu blokların farklı kombinasyonuyla oluşsun.
+
+Yani aynı veri ile:
+- kısa PDF
+- detaylı PDF
+- teknik PDF
+- sunum PDF
+- ticari PDF
+üretilebilsin.
+
+PDF TASARIM DİLİ
+PDF tasarım dili:
+- mühendislik ofisi profesyonelliği
+- temiz ve düzenli tipografi
+- okunabilir başlık hiyerarşisi
+- sade ama güçlü görsel yapı
+- gereksiz süslü tasarım yok
+- beyaz zemin, koyu gri tipografi, kontrollü vurgu rengi
+- tablo ve özet kartları net
+- her sayfa “kurumsal teknik rapor” hissi vermeli
+- marka alanı varsa göze batmadan profesyonel görünmeli
+
+Rapor görünümü:
+- kapağı güçlü ama abartısız
+- iç sayfalarda modüler grid mantığı
+- özet kutuları
+- tablo blokları
+- section divider sayfaları
+- footer / sayfa numarası / tarih / rapor ID / sürüm bilgisi
+- gerekli yerlerde dipnot ve varsayım notları
+
+RAPOR SAYFA BLOKLARI
+Rapor motorunda yeniden kullanılabilir section/blok sistemi kur.
+Her blok opsiyonel olarak aktif/pasif edilebilsin.
+
+Planlanacak bloklar:
+1. Kapak Sayfası
+2. İçindekiler
+3. Proje / Hesap Özeti
+4. Girdi Parametreleri
+5. Varsayımlar ve Metodoloji
+6. Hızlı Sonuç Özeti
+7. Kategori Dağılımı
+8. Alt Kalem Detayları
+9. Malzeme Özeti
+10. İşçilik Özeti
+11. Fire ve Kayıp Oranları
+12. Bölgesel Fiyat / Katsayı Bilgisi
+13. Kullanılan Birim Fiyatlar
+14. Versiyon / Revizyon Geçmişi
+15. Karşılaştırmalı Sonuçlar
+16. Notlar / Açıklamalar
+17. Uyarılar / Eksik Veri Notları
+18. İletişim / CTA Sayfası
+19. Ekler / Appendix
+
+HER RAPORDA BULUNABİLECEK ORTAK META ALANLAR
+Aşağıdaki meta alanların rapor motorunda desteklenmesini planla:
+- rapor adı
+- rapor tipi
+- proje adı
+- müşteri / kullanıcı adı (opsiyonel)
+- proje konumu
+- oluşturulma tarihi
+- rapor numarası
+- proje sürümü
+- fiyat tarihi
+- hazırlayan alanı
+- logo / marka alanı
+- gizlilik notu
+- açıklama / notlar
+
+VERİ AKIŞI
+Bana veri akışını teknik mantıkla planla:
+- hesap modüllerinden çıkan veriler nasıl normalize edilir
+- mini hesaplardan gelen veri ile tam proje modülünden gelen veri nasıl aynı rapor altyapısına bağlanır
+- her rapor tipi için hangi veri alanları zorunlu, hangileri opsiyonel olur
+- veri eksikse rapor motoru nasıl davranır
+- eksik veri uyarısı / boş blok gizleme mantığı nasıl kurgulanır
+- aynı veriyle farklı PDF türleri nasıl üretilebilir
+
+Önemli:
+Rapor motoru sadece sonucun ekrana yazdırılması mantığında olmasın.
+Veri -> rapor modeli -> blok seçimi -> şablon -> PDF üretimi şeklinde düşün.
+
+HER RAPOR TİPİ İÇİN İÇERİK MANTIĞI
+Bana her rapor tipi için ayrı ayrı şu yapıyı ver:
+- raporun amacı
+- kim için hazırlandığı
+- kaç sayfa / nasıl bir derinlikte olması gerektiği
+- hangi bloklardan oluştuğu
+- hangi alanları zorunlu taşıdığı
+- hangi alanları opsiyonel taşıdığı
+- nasıl bir dil kullanması gerektiği
+- hangi durumlarda tercih edilmesi gerektiği
+
+MİNİ HESAP PDF YAPISI
+Mini hesap raporlarında şu mantığı kur:
+- kısa kapak ya da üst başlık alanı
+- hesap adı
+- giriş değerleri
+- varsayımlar
+- toplam malzeme miktarı
+- toplam işçilik miktarı
+- toplam yaklaşık maliyet
+- fire oranı
+- birim fiyat bazlı tablo
+- kısa metodoloji notu
+- detaylı keşif / metraj / danışmanlık CTA’sı
+
+Mini raporlar çok uzun olmasın.
+Ama basit de görünmesin.
+“Bu hesap ciddiye alınmış” hissi versin.
+
+TAM PROJE MALİYET RAPORU YAPISI
+Tam proje maliyet raporu için güçlü bir sayfa mimarisi kur.
+Önerilecek yapı:
+- kapak
+- proje özeti
+- içindekiler
+- ana sonuç özeti
+- kaba işler özeti
+- ince işler özeti
+- diğer giderler özeti
+- kategori bazlı detay sayfaları
+- alt kalem tabloları
+- varsayımlar / metodoloji
+- fiyat ve bölgesel ayarlar
+- revizyon / sürüm bilgileri
+- sonuç ve notlar
+- iletişim / CTA
+
+Bu rapor hem teknik kullanıcıyı hem karar vericiyi tatmin etmeli.
+İlk sayfalarda özet, devamında detay kurgusu olsun.
+
+TAM PROJE METRAJ RAPORU YAPISI
+Maliyet raporundan ayrı ama ilişkili rapor olsun.
+Bu raporda maliyet ağırlığından çok miktar/metraj kırılımları öne çıksın.
+Aşağıdaki mantık planlansın:
+- proje özeti
+- kat / alan / tipoloji özetleri
+- kategori bazlı metrajlar
+- beton hacmi
+- demir tonajı
+- duvar alanı
+- yalıtım alanları
+- şap / seramik / parke alanları
+- doğrama / pencere / kapı özetleri
+- çatı / cephe / korkuluk / mermer / mekanik / elektrik miktar özetleri
+- notlar ve varsayımlar
+
+Bu rapor maliyet raporuna kardeş bir rapor gibi düşünülmeli.
+
+SÜRÜM KARŞILAŞTIRMA RAPORU
+Bu rapor tipi çok önemli.
+Aynı proje için iki veya daha fazla versiyon karşılaştırılabilsin:
+- toplam maliyet farkı
+- kategori farkı
+- fiyat farkı
+- malzeme değişimi
+- işçilik değişimi
+- varsayım farkı
+- kalite seviyesi farkı
+
+Bana bu raporun ideal yapısını planla:
+- hangi sayfalar olur
+- farklar nasıl gösterilir
+- hangi tablo türleri kullanılır
+- özet + detay dengesi nasıl kurulur
+
+RAPOR DİLİ VE TONU
+Rapor dili:
+- pazarlama dili gibi olmasın
+- teknik ama anlaşılır olsun
+- güven veren resmi ton olsun
+- gereksiz jargon yığılmasın
+- kısa notlar ve net başlıklar kullanılsın
+- şeffaflık hissi versin
+- sonucun varsayım temelli olduğu yerlerde bunu dürüstçe belirtmeli
+
+Lead / ticari kullanım için CTA içeren raporlarda bile önce teknik güven hissi öncelikli olsun.
+
+CTA / LEAD ENTEGRASYONU
+PDF motorunu lead toplama modeliyle de planla.
+Aşağıdaki kullanım senaryolarını desteklesin:
+- ekranda özet sonucu herkes görür
+- detaylı PDF için iletişim bilgisi istenir
+- kullanıcıya PDF e-posta ile de gönderilebilir
+- rapor sonunda detaylı teklif / keşif / danışmanlık çağrısı bulunabilir
+- mini hesap PDF’leri lead toplama için kullanılabilir
+- tam proje raporları daha çok profesyonel kullanım + teklif dönüşümü için kullanılabilir
+
+CTA alanları için modüler blok mantığı kur:
+- basit iletişim CTA’sı
+- WhatsApp CTA’sı
+- teklif talep CTA’sı
+- danışmanlık CTA’sı
+- marka / iletişim footer alanı
+
+BRANDING / KURUMSAL KİMLİK
+Rapor motoru, marka kullanımı açısından esnek olsun.
+Planla:
+- logo alanı
+- rapor başlığı alanı
+- marka renkleri
+- iletişim alanı
+- opsiyonel firma bilgisi
+- “hazırlayan / kontrol eden” alanı
+- istenirse markasız iç kullanım çıktısı
+- istenirse müşteri sunumuna uygun branded çıktı
+
+Yani aynı rapor motoru:
+- kişisel iç kullanım
+- kurumsal sunum
+- müşteri paylaşımı
+- lead toplama PDF’i
+üretebilsin.
+
+ADMIN PANELİ / RAPOR YÖNETİMİ
+Bu rapor motoru için güçlü bir yönetim paneli planla.
+Aşağıdaki yönetim alanları olsun:
+- rapor tipleri yönetimi
+- şablon yönetimi
+- section/blok yönetimi
+- marka / logo / renk yönetimi
+- PDF kapak yönetimi
+- varsayılan dipnotlar ve gizlilik metinleri
+- CTA blok yönetimi
+- tablo stilleri
+- rapor numaralandırma sistemi
+- sürüm yönetimi
+- oluşturulan rapor arşivi
+- indirilen rapor logları
+- hangi raporun hangi veri setinden üretildiği kaydı
+- e-posta ile gönderim ayarları
+- kullanıcı / lead bazlı PDF geçmişi
+
+Ayrıca yönetim panelinde şu mantık da planlansın:
+- rapor taslak / aktif / arşiv durumu
+- şablon çoğaltma
+- şablon önizleme
+- rapor deneme çıktısı
+- farklı kullanıcı tiplerine göre farklı rapor görünümü
+
+TABLOLAR VE GRAFİKLER
+PDF motorunda tablo ve özet görselleştirme mantığı da planlanmalı.
+Aşağıdaki öğeleri destekle:
+- sade maliyet tablosu
+- malzeme / işçilik ayrımı tablosu
+- kategori bazlı kırılım tablosu
+- yüzde dağılım özeti
+- karşılaştırmalı sürüm tablosu
+- metraj özet tablosu
+- adet / m² / m³ / ton / mtül gibi birimlere uygun tablo yapıları
+- opsiyonel basit grafik / bar göstergesi / renkli dağılım kutuları
+
+Grafikler abartılı olmasın.
+PDF teknik rapor gibi kalmalı.
+
+RAPOR KALİTE STANDARTLARI
+Bana rapor motoru için kalite kuralları tanımla:
+- okunabilirlik
+- bölüm hiyerarşisi
+- tablo yoğunluğu dengesi
+- sayfa kırılım yönetimi
+- uzun tabloların davranışı
+- çok sütunlu alanların düzeni
+- A4 dikey / yatay kullanım mantığı
+- farklı rapor tiplerine göre sayfa düzeni
+- yazıcı dostu görünüm
+- arşivlenebilir profesyonel kalite
+- imza / onay alanı opsiyonları
+- uyarı ve dipnot gösterim standardı
+
+KULLANICI SENARYOLARI
+Aşağıdaki senaryolar için rapor motorunun akışını tasarla:
+1. Mini duvar hesabı yapan kullanıcı detaylı PDF istiyor
+2. Radye temel hesabı sonucunu müşteriye sunmak isteyen kullanıcı PDF üretiyor
+3. Tam proje maliyet modülünden kapsamlı proje raporu oluşturan kullanıcı
+4. Aynı projenin iki sürümünü karşılaştıran kullanıcı
+5. Sadece metraj özeti almak isteyen kullanıcı
+6. İç kullanım için markasız rapor alan kullanıcı
+7. Müşteriye sunum için branded rapor hazırlayan kullanıcı
+
+VERİ YAPISI
+Rapor motoru için veri yapısı planla.
+Örnek olarak aşağıdaki tablolardan daha iyi bir yapı öner:
+- report_types
+- report_templates
+- report_sections
+- report_instances
+- report_data_maps
+- report_brands
+- report_assets
+- report_cta_blocks
+- report_exports
+- report_logs
+- report_version_links
+
+Her birinin:
+- amacı
+- ne tuttuğu
+- diğerleriyle ilişkisi
+- neden gerekli olduğu
+anlatılsın.
+
+Ayrıca şu teknik mantığı da düşün:
+- veri haritalama (data mapping)
+- section visibility rules
+- boş veri halinde section gizleme
+- zorunlu section kilidi
+- farklı rapor tiplerinde aynı section’un farklı görünmesi
+- sürüm karşılaştırma verisi için iki veri kümesinin eşlenmesi
+
+MVP VE FAZLAR
+Bana bu rapor motoru için aşamalı geliştirme planı ver:
+FAZ 1 – Mini hesap PDF sistemi
+FAZ 2 – Tam proje maliyet ve metraj PDF’leri
+FAZ 3 – Şablon çoğaltma, branding, CTA blokları
+FAZ 4 – Sürüm karşılaştırma raporları ve gelişmiş rapor yönetimi
+
+Her faz için:
+- hangi özellikler gelir
+- neden bu sırada gelir
+- kullanıcı faydası nedir
+- sistem ne kadar olgunlaşır
+anlat.
+
+ÇOK KRİTİK TASARIM KURALLARI
+- Bu sistemi sadece export özelliği gibi düşünme.
+- Gerçek bir rapor motoru olarak kurgula.
+- Kopya değil, özgün ve güçlü mimari öner.
+- Mühendislik güveni ve profesyonellik öncelikli olsun.
+- Veri yoğunluğunu yönetebilen modüler yapı kur.
+- Aynı veriden farklı rapor türleri üretilebilsin.
+- İç kullanım ve ticari kullanım birlikte desteklensin.
+- Raporlar sadece güzel değil, gerçekten okunabilir ve kullanılabilir olsun.
+- Kullanıcı raporu açtığında sonucun nasıl üretildiğini anlayabilsin.
+- Nihai amaç: inşaat maliyeti, metraj ve yaklaşık keşif altyapısının profesyonel PDF çıktı motorunu kurmak.
+
+SON TALİMAT
+Benden ek bilgi istemeden, olabilecek en kapsamlı ilk planı üret.
+Yüzeysel fikirler değil; uygulanabilir, modüler, ekran/şablon/veri/rapor bazlı güçlü bir ürün planı ver.

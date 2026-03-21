@@ -8,11 +8,12 @@ export const metadata: Metadata = {
     template: "%s | Hesaplamalar",
   },
   description:
-    "Insaat maliyeti, resmi birim maliyet, metraj ve yaklasik kesif araclari.",
+    "Tahmini insaat alani, kat bazli alan dagilimi, insaat maliyeti ve resmi birim maliyet araclari.",
 };
 
 const CALC_LINKS = [
   { label: "Genel Bakis", href: "/hesaplamalar" },
+  { label: "Tahmini Insaat Alani", href: "/hesaplamalar/tahmini-insaat-alani" },
   { label: "Insaat Maliyeti", href: "/hesaplamalar/insaat-maliyeti" },
   { label: "Resmi Birim Maliyet 2026", href: "/hesaplamalar/resmi-birim-maliyet-2026" },
 ];
@@ -60,7 +61,7 @@ export default function HesaplamalarLayout({
               Hesaplama Araclari
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Maliyet | resmi referans | metraj odakli karar destegi
+              Alan fizibilitesi | maliyet | resmi referans | metraj odakli karar destegi
             </p>
           </div>
         </div>

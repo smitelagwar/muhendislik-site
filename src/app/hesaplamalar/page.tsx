@@ -8,13 +8,14 @@ import {
   FileText,
   Hammer,
   Layers,
+  LandPlot,
   Wrench,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Insaat Hesaplamalari",
   description:
-    "Detayli insaat maliyeti ve 2026 resmi birim maliyet karsilastirma araclari.",
+    "Tahmini insaat alani, detayli insaat maliyeti ve 2026 resmi birim maliyet araclari.",
 };
 
 const TOOLS = [
@@ -26,6 +27,15 @@ const TOOLS = [
     description:
       "Kaba is, ince is ve kamu giderlerini 12 kategori altinda gorun. Varsayimlari duzenleyin, toplam maliyeti aninda izleyin.",
     badge: "Canli",
+  },
+  {
+    id: "tahmini-insaat-alani",
+    href: "/hesaplamalar/tahmini-insaat-alani",
+    icon: LandPlot,
+    label: "Tahmini Insaat Alani",
+    description:
+      "Hizli TAKS/KAKS fizibilitesiyle baslayin, sonra kat bazli brut alan, ortak alan ve teknik hacimlerle Toplam Insaat Alanini detaylandirin.",
+    badge: "Yeni",
   },
   {
     id: "resmi-birim-maliyet-2026",

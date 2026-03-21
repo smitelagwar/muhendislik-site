@@ -1,0 +1,377 @@
+Mevcut inşaat mühendisliği web sitem için “İnşaat Hesaplamaları” adında çok detaylı, profesyonel, ölçeklenebilir ve nihai ana hesap aracı olacak bir kategori tasarla ve planla. Bu alan sıradan bir hesap makinesi bölümü değil; SEO’dan trafik çeken, ücretsiz mini hesaplarla müşteri toplayan, gerektiğinde keşif / metraj / maliyet teklifine ve proje danışmanlığına dönüşen, aynı zamanda benim kendi teknik çalışma sistemim olarak kullanabileceğim kadar detaylı ve modüler bir yapı olmalı.
+
+Çok önemli çerçeve:
+- Bu sistem uzun vadede benim ana hesap altyapım olacak.
+- Tasarım, içerik yapısı, hesap akışı, sonuç ekranı, veri mimarisi ve geliştirilebilirlik çok iyi düşünülmeli.
+- Rakip mantığını çağrıştırabilir ama asla birebir kopya olmamalı.
+- Görünüm “blog” gibi değil, “mühendislik dashboard’u + kurumsal web + hesap aracı” hibriti gibi olmalı.
+- Arayüz sade, teknik, güven veren, hızlı ve profesyonel olsun.
+- Kullanıcı deneyimi hem masaüstü hem mobil için optimize olsun.
+- Kod istemiyorum; önce ürün, bilgi mimarisi, kullanıcı akışı, ekran yapısı, bileşen sistemi, veri yapısı ve hesap motoru planı üret.
+- Tüm öneriler mevcut bir inşaat mühendisliği sitesine entegre olacak şekilde düşünülmeli.
+
+ANA AMAÇLAR
+1) Google’dan organik trafik çekmek (SEO).
+2) Kullanıcıya ücretsiz mini hesap yaptırıp potansiyel müşteri toplamak.
+3) Gerekirse keşif / metraj / detaylı maliyet / danışmanlık teklifine dönüştürmek.
+4) Benim kendi kullanımım için sahaya uygun, ayrıntılı ve güvenilir bir nihai hesap sistemi oluşturmak.
+5) Uzun vadede en ince kalemlere kadar maliyet hesabı yapılabilen modüler bir altyapı kurmak.
+
+GENEL YAKLAŞIM
+Bana aşağıdaki yapıda eksiksiz bir ürün planı çıkar:
+1. Kategori stratejisi
+2. Bilgi mimarisi
+3. Sayfa yapısı
+4. Hesap araçları mimarisi
+5. Sonuç ekranı yapısı
+6. Veri modeli
+7. Hesap motoru mantığı
+8. SEO mimarisi
+9. Lead toplama ve dönüşüm akışı
+10. PDF / rapor yapısı
+11. Gelecek fazlar
+12. Yönetim paneli / admin mantığı
+13. Kullanıcı senaryoları
+14. Geliştirme öncelik sırası
+
+MENÜ VE KATEGORİ YAPISI
+Ana menü adı:
+“İnşaat Hesaplamaları”
+Alt açıklama:
+“Maliyet, metraj ve yaklaşık keşif araçları”
+
+Bu kategori altında 3 ana blok olsun:
+A) Mini Hesap Araçları (SEO ve hızlı kullanım için)
+B) Detaylı Maliyet / Metraj / Keşif Modülleri
+C) Teklif ve Proje Danışmanlığı Dönüşüm Alanları
+
+ANA KATEGORİ SAYFASI
+Ana kategori landing page şu bloklardan oluşsun:
+- Güçlü başlık alanı
+- Kısa güven veren açıklama
+- Öne çıkan hesap araçları kartları
+- “Hızlı hesap” ve “detaylı hesap” farkını anlatan bölüm
+- Kaba işler / ince işler / diğer giderler mantığını anlatan görsel blok
+- Maliyet + metraj + keşif + danışmanlık akışını gösteren süreç bölümü
+- Örnek çıktı / rapor önizleme alanı
+- Sık sorulan sorular
+- Teknik güven blokları
+- CTA alanları:
+  - Hemen hesapla
+  - Detaylı PDF oluştur
+  - Keşif / metraj teklifi al
+  - Proje danışmanlığı talep et
+
+GÖRSEL VE TASARIM DİLİ
+Tasarım dili:
+- beyaz / açık gri ana zemin
+- teknik, temiz ve modern görünüm
+- inşaat sektörüne uygun kontrollü vurgu renkleri (turuncu / antrasit / koyu gri / çok az yeşil başarı rengi)
+- veri odaklı kartlar
+- net form alanları
+- adım adım ilerleyen sihirbaz hissi
+- karışık değil, sakin ve profesyonel
+- büyük dashboard karmaşasına kaçmadan kurumsal mühendislik hissi vermeli
+- kullanıcı “bu sistem ciddi ve güvenilir” demeli
+
+HEDEF KULLANICI
+Birincil hedef kullanıcılar:
+- müteahhit
+- saha mühendisi / şantiye şefi
+- teknik karar veren arsa sahibi
+
+İkincil kullanıcılar:
+- mimarlık / mühendislik ofisleri
+- yatırımcı
+- kendi binasını yaptırmak isteyen ama teknik güven arayan kullanıcı
+
+KULLANIM FELSEFESİ
+Sistemi iki katmanlı planla:
+1) Hızlı yaklaşık hesap
+2) Detaylı teknik hesap
+
+Hızlı yaklaşık hesap:
+- kullanıcıyı yormadan ilk sonucu versin
+- SEO sayfalarında iyi çalışsın
+- hızlı lead toplasın
+
+Detaylı teknik hesap:
+- istenirse açılan ek alanlarla derinleşsin
+- işçilik, malzeme, fire, il, kalite, taşıma, yardımcı malzeme, iş makinesi, ek gider gibi detaylara inebilsin
+- kullanıcı kendi birim fiyatlarını manuel girebilsin
+- sonuçlar PDF’e dökülebilsin
+
+İLK FAZ HESAP ARAÇLARI
+Aşağıdaki mini hesap araçları için ayrı ayrı sayfa mantığı tasarla:
+1. Beton hacmi hesabı
+2. Demir tonaj / yaklaşık donatı hesabı
+3. Radye temel yaklaşık maliyet hesabı
+4. Tuğla duvar hesabı
+5. Bims duvar hesabı
+6. Gazbeton duvar hesabı
+7. Şap maliyet hesabı
+8. Seramik maliyet hesabı
+9. Parke maliyet hesabı
+10. Mantolama / dış cephe maliyet hesabı
+
+Bunlara ek olarak 2. faz için alan bırak:
+- Kaba inşaat yaklaşık maliyet hesabı
+- İnce işler yaklaşık maliyet hesabı
+- Tam proje yaklaşık maliyet modülü
+- Keşif / metraj / icmal modülü
+- İş kalemi bazlı PDF rapor sistemi
+
+HER HESAP SAYFASINDA OLMASI GEREKEN BÖLÜMLER
+Her hesap sayfası için aynı sistematik yapıyı kur:
+1. SEO uyumlu giriş metni
+2. Hızlı hesap formu
+3. Detaylı hesap için genişletilebilir alanlar
+4. Sonuç özeti
+5. Birim fiyat bazlı tablo
+6. Fire ve varsayım açıklaması
+7. Kullanılan hesap mantığı / metodoloji
+8. Sık yapılan hatalar
+9. İlgili diğer hesap araçları
+10. PDF indir alanı
+11. “Detaylı keşif / metraj / teklif al” CTA’sı
+12. “Mühendis görüşü al” CTA’sı
+
+SONUÇ EKRANI YAPISI
+Sonuç ekranlarında mutlaka şu çıktılar olsun:
+- toplam malzeme miktarı
+- toplam işçilik miktarı
+- toplam yaklaşık maliyet
+- fire oranı
+- birim fiyat bazlı tablo
+- toplam alt kalem listesi
+- ana maliyet dağılımı
+- kullanıcıya gösterilen varsayımlar
+- manuel düzeltme / override alanı
+- PDF indir butonu
+
+Çok önemli:
+Sonuçlar siyah kutu gibi görünmesin.
+Kullanıcı hangi sonucun hangi girdiden üretildiğini anlayabilsin.
+Şeffaf ve güven veren bir sonuç deneyimi olsun.
+
+PDF STRATEJİSİ
+PDF modeli şu şekilde olsun:
+- İlk sonuç ekranda herkes görebilsin.
+- Detaylı PDF almak isteyen kullanıcı iletişim bilgisi bıraksın.
+- PDF profesyonel görünsün.
+- PDF’te:
+  - proje / hesap adı
+  - giriş parametreleri
+  - varsayımlar
+  - hesap özeti
+  - kalem bazlı tablo
+  - fire oranı
+  - notlar
+  - iletişim / teklif / danışmanlık CTA’sı olsun
+
+PDF iki seviyeli planlansın:
+1) Mini hesap özeti PDF
+2) Detaylı maliyet / metraj raporu PDF
+
+FİYAT MANTIĞI
+Sistem sabit ve kapalı olmamalı.
+Şu mantık planlansın:
+- hazır varsayılan fiyatlar
+- il / bölge bazlı katsayı desteği
+- kullanıcı manuel birim fiyat girebilsin
+- gerekirse “benim özel fiyat listem” mantığı eklenebilsin
+- malzeme ve işçilik ayrı ayrı yönetilebilsin
+- ileride marka / kalite sınıfı bazlı genişlemeye uygun olsun
+
+Fiyat katmanı modüler tasarlansın:
+A) Varsayılan sistem fiyatı
+B) Bölgesel katsayı
+C) Manuel override
+D) Kayıtlı firma / kullanıcı fiyat listesi (gelecek faz)
+
+HESAP MOTORU MANTIĞI
+Tek tek hesap araçlarıyla başlayacak ama zamanla birleşebilecek modüler bir sistem kur.
+Yani örneğin:
+- duvar hesabı, seramik hesabı, şap hesabı ayrı çalışsın
+- ama ileride tam proje maliyet modülünde birbirine bağlanabilsin
+- veri yapısı buna göre planlansın
+
+Her hesap için şu katmanlar tanımlansın:
+1. Girdi alanları
+2. Türetilen ara veriler
+3. Varsayımlar
+4. Fire hesapları
+5. Malzeme miktarı
+6. İşçilik miktarı
+7. Birim fiyat katmanı
+8. Toplam maliyet
+9. Özet çıktı
+10. PDF çıktısı
+
+Ayrıca tüm sistemde aşağıdakilere hazırlık olsun:
+- yardımcı malzemeler
+- taşıma
+- iskele
+- iş makineleri
+- ek işçilik kalemleri
+- alternatif malzeme karşılaştırması
+- farklı kalite senaryoları
+- hızlı ve detaylı hesap modu
+
+VERİ MİMARİSİ / ADMIN PANELİ
+Sistemin arka planı ileride büyütülebilir olsun.
+Bana admin / yönetim paneli mantığını da planla.
+Yönetim tarafında şu modüller olsun:
+- hesap araçları yönetimi
+- form alanları yönetimi
+- varsayılan birim fiyat yönetimi
+- il / bölge katsayı yönetimi
+- fire oranları yönetimi
+- PDF şablon yönetimi
+- SEO alanları yönetimi
+- CTA yönetimi
+- lead / form talepleri yönetimi
+- proje danışmanlığı başvuruları yönetimi
+- kullanıcı tarafından kaydedilen hesaplar (gelecek faz)
+
+Ayrıca veri mimarisini şu mantıkta planla:
+- calculator_types
+- calculator_fields
+- calculation_presets
+- regional_coefficients
+- material_prices
+- labor_prices
+- waste_rules
+- pdf_templates
+- lead_forms
+- project_requests
+- saved_calculations
+- seo_pages
+
+Bunlar örnek isimlerdir; bana daha iyi bir yapı öner.
+
+SEO MİMARİSİ
+Bu kategorinin SEO açısından çok güçlü olması gerekiyor.
+Buna göre plan üret:
+- kategori ana sayfası
+- her hesap için ayrı SEO sayfası
+- her sayfada açıklayıcı teknik içerik
+- SSS blokları
+- iç linkleme stratejisi
+- ilgili hesaplara bağlanan yapı
+- dönüşüm CTA’ları
+- schema / structured content önerisi
+- URL yapısı
+- başlık ve açıklama kurgusu
+- “yaklaşık maliyet”, “hesaplama”, “metraj”, “işçilik”, “malzeme” gibi niyetleri kapsayan yapı
+
+İçerik dili:
+- fazla pazarlama dili kullanmasın
+- mühendisçe ama anlaşılır olsun
+- güven versin
+- gereksiz şişirme yapmasın
+- teknik doğruluk hissi taşısın
+
+LEAD TOPLAMA VE DÖNÜŞÜM KURGUSU
+Sistemde agresif ama rahatsız edici olmayan dönüşüm mantığı kur.
+Kullanıcı akışı şöyle olsun:
+- kullanıcı mini hesap yapar
+- ilk sonucu görür
+- daha detaylı döküm için PDF ister
+- PDF için iletişim bırakır
+- gerekirse keşif / metraj / danışmanlık talebine geçer
+
+CTA tipleri:
+- Sonucu PDF olarak indir
+- Detaylı keşif / metraj iste
+- Projene özel maliyet çalışması talep et
+- Mühendis danışmanlığı al
+- WhatsApp üzerinden bilgi al
+
+CTA yerleşimlerini de planla:
+- sonuç ekranı üstü
+- sonuç ekranı altı
+- sayfa içeriği ortası
+- sabit mobil CTA
+- PDF sonrası teşekkür ekranı
+
+KULLANICI SENARYOLARI
+Aşağıdaki kullanıcı senaryoları için ekran akışı tasarla:
+1. Google’dan gelip hızlı duvar hesabı yapan kullanıcı
+2. Şap hesabı yapıp PDF isteyen kullanıcı
+3. Radye temel için detaylı maliyet görmek isteyen müteahhit
+4. Birkaç hesabı art arda kullanıp tam proje yaklaşımına geçen kullanıcı
+5. Danışmanlık talep eden teknik kullanıcı
+6. Mobilde hızlı hesap yapan kullanıcı
+
+HER HESAP ARACI İÇİN ÇIKARILMASI GEREKENLER
+Her hesap aracı için bana şunları ayrı ayrı ver:
+- amaç
+- kullanıcı tipi
+- hızlı hesap alanları
+- detaylı hesap alanları
+- varsayılan varsayımlar
+- sonuç kartları
+- tablo yapısı
+- PDF içeriği
+- SEO başlığı
+- meta açıklama mantığı
+- CTA mantığı
+- ilgili diğer araçlar
+- ileride bağlanabileceği üst modüller
+
+BENİM KİŞİSEL KULLANIM SENARYOM İÇİN ÖZEL İSTEKLER
+Bu sistemi kendim de aktif kullanacağım.
+Bu yüzden aşağıdaki kişisel kullanım önceliklerini tasarımda dikkate al:
+- çok hızlı hesap alabilmeliyim
+- istersem en ince detaylara inebilmeliyim
+- varsayımları değiştirebilmeliyim
+- kendi fiyat mantığımla kullanabilmeliyim
+- sonuçları PDF olarak dışarı alabilmeliyim
+- zamanla bunu tam proje maliyeti altyapısına dönüştürebilmeliyim
+- sistem sadece vitrin değil, gerçek çalışma aracı olmalı
+
+Varsayılan proje ön kabulleri için kişiselleştirilmiş preset mantığı planla:
+- betonarme yeni yapı
+- kullanım türü genelde konut
+- dış duvar çoğunlukla bims
+- iç duvar çoğunlukla tuğla
+- dış yalıtım EPS
+- çatı kiremit ve eğimli çatı
+- ıslak hacimler seramik, diğer alanlar parke
+- bodrum mevcut
+- radye temel yaygın
+- bodrum perde su ve rutubet yalıtımı dikkate alınmalı
+- kat sayısı çoğunlukla 3–4, bazen 7
+- 7 katlı yapılarda merkezi ısıtma, 3–4 katlı yapılarda bağımsız ısıtma
+
+Bu presetler kullanıcıya zorla dayatılmasın; sadece “hızlı başlangıç senaryosu” olarak kurgulansın.
+
+ÇIKTI FORMATIN
+Bana çok düzenli ve profesyonel bir çıktı ver.
+Çıktı şu başlıklarda olsun:
+1. Ürün vizyonu
+2. Bilgi mimarisi
+3. Ana kategori sayfası wireframe açıklaması
+4. Her mini hesap aracı için ayrı sayfa şablonu
+5. Sonuç ekranı yapısı
+6. PDF stratejisi
+7. Veri mimarisi
+8. Yönetim paneli yapısı
+9. SEO yapısı
+10. Lead dönüşüm sistemi
+11. Fazlara göre geliştirme planı
+12. Önceliklendirilmiş MVP kapsamı
+13. Sonraki fazlar
+14. Bu sistemin neden güçlü olacağını açıklayan kısa değerlendirme
+
+ÇOK KRİTİK KURALLAR
+- Rakipten esinlenebilirsin ama kopya çıkarma.
+- Gerçek mühendislik kullanımına uygun düşün.
+- Yüzeysel değil derin plan üret.
+- Genel geçer pazarlama metni yazma.
+- Her şeyi modüler ve geliştirilebilir kurgula.
+- Sadece güzel görünen değil, gerçekten kullanılabilir bir sistem öner.
+- Nihai amaç: inşaat maliyeti, metraj ve yaklaşık keşif işlerini zamanla çok detaylı yönetebilen kişisel + ticari hibrit bir hesap platformu kurmak.
+
+Son olarak benden ek bilgi istemeden, mümkün olan en kapsamlı ilk planı üret.

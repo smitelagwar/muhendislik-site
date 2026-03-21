@@ -1,0 +1,700 @@
+1) PDF rapor şablonlarının tek tek sayfa iskeletleri
+A. Kapak Sayfası Şablonu
+Amaç
+Raporun ilk bakışta profesyonel, teknik ve kurumsal görünmesini sağlamak; rapor tipini, proje kimliğini ve sürümü net göstermek. Yüklediğin örnek raporlarda ilk sayfalar proje adı ve tarih etrafında güçlü bir kapak mantığıyla başlıyor. [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+Yerleşim İskeleti
+Üst alan
+
+Sol üst: logo alanı
+Sağ üst: rapor tipi etiketi
+
+“Tam Proje Maliyet Raporu”
+“Tam Proje Metraj Raporu”
+“Mini Hesap Özeti”
+“Kategori Bazlı Rapor”
+
+
+İnce üst çizgi veya teknik header bandı [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF]
+
+Orta ana alan
+
+Büyük proje adı
+Altında proje alt başlığı
+Rapor tarihi
+Sürüm bilgisi
+Rapor numarası
+Proje konumu
+İsteğe bağlı kısa açıklama / not alanı [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Alt alan
+
+Hazırlayan
+Firma / iletişim alanı
+Gizlilik notu
+“Bu rapor girilen veriler ve seçili varsayımlar üzerinden oluşturulmuştur” gibi kısa dürüst açıklama alanı [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Görsel Kurgu
+
+Tam beyaz ya da çok açık gri zemin
+Büyük ama sade tipografi
+Ortada 1 ana başlık hiyerarşisi
+Gereksiz fotoğraf / illüstrasyon yok
+İsteğe bağlı çok hafif çizim / blueprint dokusu arka plan olarak kullanılabilir ama baskın olmamalı
+Alt bilgi alanı teknik rapor ciddiyetinde görünmeli [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Varyasyonlar
+
+İç kullanım kapağı: daha sade, markasız veya minimal logolu
+Müşteri sunum kapağı: logolu, iletişim alanı belirgin
+Mini hesap kapağı: ayrı sayfa yerine üst bant kapağı da olabilir [insaathesabi.com], [insaathesabi.com]
+
+
+B. Özet Sayfası / Executive Summary Şablonu
+Amaç
+Raporun en kritik sayfasıdır. Karar verici veya kullanıcı burada birkaç saniyede:
+
+proje ne,
+toplam ne çıktı,
+hangi kırılım baskın,
+rapor hangi varsayımlarla üretildi
+görebilmelidir. Yüklediğin örnek maliyet raporlarında ilk güçlü sayfalar toplam inşaat alanı, bağımsız bölüm sayısı ve toplam maliyet özeti ile başlıyor. [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Sayfa 1 – Genel Proje Özeti
+Üst başlık
+
+“Genel Bilgiler”
+Altında küçük açıklama satırı [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Özet kart alanı (3–6 kutu)
+
+Toplam inşaat alanı
+Bağımsız bölüm sayısı
+Toplam yaklaşık maliyet
+m² başına yaklaşık maliyet
+Yapım süresi
+Proje tipi / kullanım türü [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Kısa proje özeti bloğu
+
+Kat sayısı
+Bodrum bilgisi
+Temel tipi
+Taşıyıcı sistem
+Çatı tipi
+Isıtma tipi [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Dipnot
+
+“Bu özet, raporun detay sayfalarındaki kategorik kırılımların üst seviyeli toplamıdır.”
+“Seçili fiyat tarihi ve varsayımlar geçerlidir.” [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+
+Sayfa 2 – Maliyet Kırılımı Özeti
+Amaç
+Kaba işler / ince işler / diğer giderler mantığını hemen göstermek. Yüklediğin örnek maliyet raporlarında bu yapı çok açık şekilde ayrı bloklar halinde sunuluyor. [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+Yerleşim
+
+Sayfanın üst yarısı: 3 ana grup kartı
+
+Kaba İşler Toplamı
+İnce İşler Toplamı
+Diğer Giderler Toplamı [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+
+
+Alt yarı: kategori listesi
+
+Kategori adı
+Yüzde
+Tutar
+Gerekirse küçük ilerleme çubuğu / bar göstergesi
+En önemli 8–12 kalem burada gösterilsin [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+İsteğe bağlı mini not
+
+En yüksek maliyetli ilk 3 kategori
+En çok belirsizlik taşıyan kategori
+Kullanıcının manuel revize ettiği kalem sayısı
+
+
+Sayfa 3 – Varsayımlar ve Uyarılar Özeti
+Amaç
+Şeffaflık. Sonucun nasıl üretildiğini kullanıcı kısa halde görmeli. Yüklediğin örneklerde maliyetlerin belirli tarih ve yer esas alınarak hesaplandığı açıkça belirtiliyor. [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+Bölümler
+
+Fiyat tarihi
+Bölge / il katsayısı
+Seçili ana yapı varsayımları
+Fire yaklaşımı
+Manuel fiyat kullanılan kalemler
+Eksik veri varsa uyarı kutusu
+“Detaylar ilgili kategori sayfalarında açıklanmıştır” notu [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+
+C. Kategori Detay Sayfası Şablonu
+Amaç
+Her kategori için standart, tekrar kullanılabilir, net bir teknik sayfa yapısı kurmak. Yüklediğin örnek maliyet raporlarında kategori sayfaları şu mantıkta ilerliyor: kategori başlığı, alt başlıklar, miktar/veri, birim fiyat, toplam maliyet. [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+Kategori Detay Şablonu – Tek Sayfa Yapısı
+Üst Başlık Alanı
+
+Kategori adı
+Örn: “Beton Demir”, “Duvar”, “Çatı”, “Dış Cephe”
+Kategori alt açıklaması
+Bu kategorinin toplam maliyeti
+Genel toplam içindeki yüzdesi [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+Sol Üst – Girdi Özeti Kutusu
+
+Bu kategoriye ait ana girdiler
+Proje verisinden çekilen alanlar
+Kullanıcı tarafından değiştirilen parametreler
+Varsayılan preset bilgisi varsa kısa not
+
+Sağ Üst – Sonuç Özeti Kutusu
+
+Toplam malzeme maliyeti
+Toplam işçilik maliyeti
+Toplam kategori maliyeti
+Fire oranı
+İsteğe bağlı yardımcı malzeme / ekipman toplamı
+
+Orta Alan – Alt Kalemler Tablosu
+Standart tablo kolonları:
+
+Alt kalem adı
+Birim
+Miktar
+Birim fiyat
+Ara toplam
+Not / kaynak / varsayım
+
+Bu tablo kategoriye göre genişleyebilsin. Örnek raporlarda buna karşılık gelen yapı sürekli var: örneğin beton, demir, kalıp işçiliği; duvarda malzeme ve işçilik; dış cephede kompozit, söve, boya, mantolama, iskele; çatıda karkas, kaplama, su yalıtımı, dere gibi alt kırılımlar. [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+Alt Alan – Açıklama ve Dipnotlar
+
+Bu kategori hangi varsayımla hesaplandı
+Hangi üst verilerden beslendi
+Hangi kalemler dahil / hariç
+Kullanıcı manuel override yaptıysa kısa işaret
+İlgili mini hesap araçlarına referans
+
+
+Kategori Detay Şablonu – Uzun Rapor için 2 Sayfalı Varyasyon
+Sayfa 1
+
+Üst özet
+ana tablolar
+önemli alt kalemler
+
+Sayfa 2
+
+detay alt kırılımlar
+formül/varsayım notları
+alternatif senaryo alanı
+riskli/oynak kalemler kutusu
+
+Bu yaklaşım özellikle şu kategorilerde çok değerli olur:
+
+Beton Demir
+Dış Cephe
+Isıtma ve Soğutma
+Elektrik
+Ahşap İşleri ve Dolap
+Ankastre [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+
+
+D. Metraj Özeti Sayfası Şablonu
+Amaç
+Maliyet raporundan ayrı ama kardeş rapor mantığında, miktarların teknik özeti verilmelidir. Yüklediğin metraj raporunda kategori kategori miktar özetleri veriliyor; özellikle beton hacmi, demir tonajı, alanlar ve adetler bu raporun ana omurgası. [ProjeMetra...rnek Proje | PDF]
+Metraj Özeti – Genel Sayfa Yapısı
+Üst Başlık
+
+“Metraj Özeti”
+Proje adı
+sürüm / tarih
+
+Özet Kartları
+
+Toplam beton hacmi
+Toplam demir tonajı
+Toplam duvar alanı
+Toplam kaplama alanı
+Toplam doğrama alanı
+Toplam seramik / şap / parke alanı
+İsteğe bağlı toplam kapı / pencere adedi [ProjeMetra...rnek Proje | PDF]
+
+Ana Tablo Grubu
+Tablo kolonları:
+
+Kategori
+Alt kalem
+Birim
+Miktar
+Hesap notu / kaynak
+
+Örnek birim setleri:
+
+m²
+m³
+ton
+adet
+mtül [ProjeMetra...rnek Proje | PDF]
+
+Alt Bilgi Alanı
+
+“Bu rapor miktar/metraj özetidir; maliyet bilgileri ayrı raporda sunulur.”
+“Bazı miktarlar proje varsayımlarına göre türetilmiştir.”
+“Fire etkisi ayrı sütunda veya not alanında gösterilebilir.” [ProjeMetra...rnek Proje | PDF], [ProjeRapor...rnek Proje | PDF]
+
+
+Metraj Özeti – Kategori Bazlı Sayfa Varyasyonu
+Her kategori için ayrı metraj sayfası oluşturulabilir:
+Örnek: Beton Demir Metraj Sayfası
+
+Temel beton hacmi
+Perde beton hacmi
+Kolon/perde beton hacmi
+Döşeme beton hacmi
+Çatı beton hacmi
+Toplam beton
+Toplam demir tonajı
+Kalıp işçiligi alanı / kalıp yüzeyi
+
+Yüklediğin metraj raporunda bu tip detaylar açık biçimde ayrı başlıklar halinde veriliyor. [ProjeMetra...rnek Proje | PDF]
+Örnek: Duvar Metraj Sayfası
+
+İç duvar alanı
+Dış duvar alanı
+Toplam duvar alanı
+kullanılan tuğla / bims / gazbeton miktarı
+yapıştırıcı / harç / çimento / kireç gibi yardımcı miktarlar [ProjeMetra...rnek Proje | PDF]
+
+Örnek: İnce İşler Metraj Sayfası
+
+Şap alanı
+Seramik alanı
+Parke alanı
+Alçı alanı
+Boya alanı
+Pencere / kapı adetleri
+Korkuluk / süpürgelik / denizlik / havuz tavan gibi lineer metrajlar [ProjeMetra...rnek Proje | PDF]
+
+
+E. CTA / İletişim Sayfası Şablonu
+Amaç
+Raporun son sayfasında agresif satış dili olmadan, teknik güven bozulmadan, kullanıcıyı bir sonraki adıma taşımak. Kamuya açık sitede örnek rapor ve hesaplama sayfaları sürekli kullanıcıyı deneme, paket, örnek rapor ve dönüşüme yönlendiriyor; dolayısıyla rapor sonu CTA mantığı stratejik olarak doğru. [insaathesabi.com], [insaathesabi.com], [insaathesabi.com]
+Sayfa Yerleşimi
+Üst Alan
+
+Kısa teşekkür / kapanış cümlesi
+“Bu rapor, seçili veriler ve varsayımlar doğrultusunda hazırlanmıştır.”
+
+Orta Alan – 2 veya 3 kutulu CTA düzeni
+Kutular
+
+Detaylı keşif / metraj çalışması talep et
+Projeye özel maliyet danışmanlığı al
+WhatsApp / iletişim üzerinden teknik görüş al [insaathesabi.com], [insaathesabi.com]
+
+Alt Alan
+
+Firma / kişi iletişim bilgileri
+e-posta
+telefon
+web sitesi
+QR kod alanı (opsiyonel)
+küçük marka şeridi
+
+Dil
+
+pazarlama dili sert olmasın
+“uzman destek”, “detaylı çalışma”, “projeye özel analiz” gibi daha teknik ve saygın ifadeler kullanılsın
+“hemen satın al” tipi ton baskın olmamalı [insaathesabi.com], [insaathesabi.com]
+
+
+2) Antigravity’e yapıştırılacak tek parça prompt
+Aşağıdaki promptu direkt kullanabilirsin:
+Plain TextPlanladığım inşaat maliyet / metraj / keşif altyapısı için profesyonel bir PDF rapor şablon sistemi tasarla. Kod yazma; ekran değil, PDF rapor şablonlarının tek tek sayfa iskeletlerini üret. Çıktıyı bir tasarım ve ürün planı mantığında ver. Amaç; hem mini hesap araçlarından hem de tam proje maliyet modülünden gelen verilerle çalışan, teknik, sade, kurumsal, okunabilir ve modüler PDF şablonları oluşturmaktır.Tasarım dili:- beyaz veya çok açık gri zemin- koyu gri / antrasit tipografi- kontrollü turuncu vurgu- profesyonel mühendislik raporu hissi- süslü değil, ciddi ve net- veri yoğunluğunu düzenli yöneten bir yapı- tablo ve özet kutuları güçlü- baskı ve PDF okunabilirliği yüksekBenden istenen çıktı:Aşağıdaki PDF şablonları için tek tek sayfa iskeletleri çıkar:1. Kapak sayfası2. Özet / executive summary sayfaları3. Kategori detay sayfası4. Metraj özeti sayfası5. CTA / iletişim / kapanış sayfasıHer şablon için şu başlıkları ayrı ayrı ver:- şablonun amacı- ideal kullanım senaryosu- sayfa yerleşimi- üst / orta / alt alan mantığı- hangi bilgi bloklarının yer alacağı- hangi blokların opsiyonel olduğu- tipografi hiyerarşisi- tablo ve kart kullanımı- dipnot / varsayım alanı- marka / logo alanı- bu şablonun kısa varyasyonu- bu şablonun uzun varyasyonu- mini hesap için nasıl sadeleşeceği- tam proje raporu için nasıl genişleyeceğiKAPAK SAYFASIKapak sayfasını şu mantıkta tasarla:- sol üst logo- sağ üst rapor tipi etiketi- orta alanda büyük proje / rapor adı- altında tarih, sürüm, rapor no, konum- alt alanda hazırlayan, iletişim, gizlilik notu, kısa açıklama- gerekirse hafif teknik doku / blueprint hissi olabilir ama baskın olmasın- çok profesyonel ama sade görünmeli- iç kullanım ve müşteri sunumu için iki varyasyon önerÖZET SAYFALARIÖzet bölümünü 2 veya 3 sayfalı mantıkla tasarla:Sayfa 1:- genel bilgiler başlığı- toplam inşaat alanı- bağımsız bölüm sayısı- toplam maliyet- m² maliyet- yapım süresi- proje özeti- seçili temel yapı bilgileriSayfa 2:- kaba işler / ince işler / diğer giderler toplamı- kategori bazlı yüzde ve tutar özeti- en büyük maliyet kalemleri- istenirse küçük bar / dağılım göstergeleriSayfa 3:- varsayımlar- fiyat tarihi- bölgesel katsayı- manuel override bilgileri- fire yaklaşımı- önemli uyarılarBu özet bölüm hem karar vericiye hem teknik kullanıcıya hitap etmeli. İlk sayfa hızlı okunmalı, devam sayfaları biraz daha detay içermeli.KATEGORİ DETAY SAYFASIHer kategori için tekrar kullanılabilir standart bir detay sayfası tasarla.Örnek kategoriler:- Beton Demir- Duvar- Çatı- Dış Cephe- Elektrik- Isıtma ve Soğutma- Şap- Seramik- Parke- Ahşap İşleri ve DolapSayfa iskeleti şu mantıkta olsun:- üstte kategori adı, kategori toplamı, genel toplam içindeki yüzdesi- solda girdi özeti kutusu- sağda sonuç özeti kutusu- ortada alt kalemler tablosu- tabloda: alt kalem adı / birim / miktar / birim fiyat / ara toplam / not- altta metodoloji, varsayım ve dahil-hariç notları- opsiyonel olarak “alternatif senaryo” ve “manuel düzenleme” alanı önerAyrıca:- tek sayfalık kısa varyasyon- iki sayfalık detay varyasyon- çok yoğun kategoriler için uzun rapor mantığıöner.METRAJ ÖZETİ SAYFASIMaliyet raporundan ayrı bir metraj özeti şablonu tasarla.Bu sayfada fiyat değil, miktar ve metraj ağırlıklı bilgi ön planda olsun.Sayfa iskeleti:- üstte metraj özeti başlığı- proje adı / tarih / sürüm- özet kartları:  - toplam beton hacmi  - toplam demir tonajı  - toplam duvar alanı  - toplam kaplama alanı  - toplam doğrama alanı  - toplam seramik / şap / parke alanı- ortada kategori bazlı metraj tablosu- tabloda: kategori / alt kalem / birim / miktar / not- altta “bu rapor miktar özetidir, maliyet ayrı raporda sunulur” mantığında teknik açıklamaAyrıca metraj raporu için şu varyasyonları öner:- genel metraj özeti- kategori bazlı metraj sayfası- sadece kaba işler metraj özeti- sadece ince işler metraj özetiCTA / KAPANIŞ SAYFASIRapor sonu için profesyonel bir CTA / iletişim sayfası tasarla.Ama satış odaklı değil, teknik güven odaklı olsun.Sayfa iskeleti:- üstte kısa kapanış metni- ortada 2 veya 3 CTA kutusu:  - detaylı keşif / metraj çalışması talep et  - projeye özel maliyet danışmanlığı al  - WhatsApp / iletişim üzerinden teknik görüş al- altta iletişim bilgileri- web sitesi- e-posta- telefon- QR kod alanı opsiyonel- marka alanı sade ve profesyonel olsunAyrıca bu sayfanın:- iç kullanım için markasız varyasyonu- müşteri raporu için logolu varyasyonu- mini hesap PDF’leri için daha kısa varyasyonuönerilsin.GENEL TASARIM KURALLARI- tüm şablonlar aynı aileden gelmeli- başlık, alt başlık, tablo, dipnot ve footer sistemleri tutarlı olmalı- sayfa numarası, rapor no, sürüm bilgisi footer’da yer almalı- section divider / bölüm ayırıcı mantığı düşünülmeli- yoğun veri alanlarında tablo okunabilirliği korunmalı- her şablon baskı dostu olmalı- rapor açıldığında teknik güven hissi vermeli- gereksiz dekoratif öğe kullanılmamalıÇok önemli:Çıktıyı soyut fikirler halinde değil, gerçekten uygulanabilir sayfa iskeletleri halinde ver.Her sayfa için blok blok neyin nereye geleceğini yaz.Mini hesap PDF’leri ile tam proje PDF’leri arasındaki farkları da ayrıca belirt.Daha fazla satır göster
+
+Sana kısa profesyonel önerim
+Senin sisteminde en doğru PDF ailesi şu olur:
+
+Kapak
+Genel Özet
+Kategori Özeti
+Kategori Detayları
+Metraj Özeti
+Varsayımlar / Fiyat / Fire
+CTA / Kapanış
+
+Bu yapı, yüklediğin raporların mantığını çağrıştırır ama daha modern ve daha modüler hale gelir. Özellikle maliyet ve metrajı ayrı ama akraba rapor gibi kurgulaman çok doğru olur. [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF]
+İstersen bir sonraki adımda sana doğrudan şunu hazırlayayım:
+“Kategori detay PDF sayfaları için tek tek iskeletler”
+Yani ayrı ayrı:
+
+Beton Demir sayfası
+Duvar sayfası
+Çatı sayfası
+Dış Cephe sayfası
+Elektrik sayfası
+Isıtma ve Soğutma sayfası
+
+Bu aşama, senin nihai hesap aracında gerçek profesyonel rapor hissini kuracak ana katman olur.
+KaynaklarBizChat hakkında geri bildirim gönderinYou said: Kategori detay sayfalarını oluştur. tek promt olarakCopilot said: CopilotAkıl yürütme 2 adımda tamamlandıAşağıdaki tek prompt; yüklediğin örnek maliyet ve metraj raporlarında görülen kategori bazlı detay kırılımı, kaba işler / ince işler / diğer giderler mantığı, miktar + birim fiyat + toplam + varsayım yapısı ve kamuya açık örnek rapor yaklaşımı dikkate alınarak hazırlanmıştır. Örnek raporlarda özellikle Beton Demir, Su Yalıtımı ve Drenaj, Duvar, Asansör, Çatı, Dış Cephe, Isıtma ve Soğutma, Şap, Seramik, Mermer, Elektrik, Sıva ve Boya, Alçıpan, Pencere, Parke, Kapılar, Ahşap İşleri ve Dolap, Ankastre, Ortak Alanlar ve Havalandırma, Balkon ve Korkuluk, Peyzaj gibi başlıkların ayrı detay sayfalarına dönüştürülebilecek net bir veri mimarisi oluşturduğu görülüyor. [ProjeMetra...rnek Proje | PDF], [ProjeRapor...la-Projesi | PDF], [ProjeRapor...rnek Proje | PDF], [insaathesabi.com], [insaathesabi.com]
+
+Mevcut inşaat mühendisliği web sitem ve planladığım tam proje maliyet / metraj / PDF rapor altyapısı için “Kategori Detay Sayfaları” tasarla ve planla. Kod yazma. Yalnızca ürün, sayfa yapısı, bileşen sistemi, veri akışı, sonuç blokları, PDF karşılığı ve kullanıcı deneyimi mantığını üret.
+
+Bu çalışma tekil mini hesaplardan farklıdır. Burada amaç; tam proje maliyet modülünün ve PDF rapor motorunun içinde kullanılabilecek, her biri ayrı ama aynı sistem ailesine ait görünen, modüler, teknik, profesyonel ve derin “kategori detay sayfaları” oluşturmaktır.
+
+ÇOK ÖNEMLİ
+- Bu sayfalar sıradan içerik sayfası gibi görünmemeli.
+- “Mühendislik dashboard’u + detay rapor sayfası + hesap açıklama ekranı” hibriti gibi düşünülmeli.
+- Tasarım sade, teknik, okunaklı ve güven veren olmalı.
+- Her kategori sayfası aynı temel iskeleti kullanmalı ama kategoriye özgü bloklarla zenginleşmeli.
+- Her kategori sayfası ekranda kullanılabildiği gibi PDF rapora da kolayca dönüşebilmeli.
+- Nihai amaç: proje maliyeti, metraj, yaklaşık keşif, PDF rapor ve danışmanlık akışına bağlanabilen güçlü bir kategori detay sistemi kurmak.
+
+BENDEN İSTENEN ÇIKTI
+Bana aşağıdaki başlıklarda çok kapsamlı bir plan ver:
+1. Kategori detay sayfalarının genel tasarım sistemi
+2. Tüm kategori sayfaları için ortak şablon
+3. Her kategori için özel sayfa iskeleti
+4. Her kategori sayfasında bulunacak veri blokları
+5. Sonuç kartları ve tablo mantığı
+6. Varsayım / metodoloji / dipnot alanları
+7. PDF rapora dönüşüm mantığı
+8. Hangi kategori için tek sayfa, hangi kategori için çok sayfa mantığı gerektiği
+9. Kullanıcı etkileşimleri
+10. Yönetim / veri kaynağı bağlantısı
+11. MVP ve sonraki fazlar
+12. Neden güçlü bir sistem olduğu değerlendirmesi
+
+GENEL TASARIM DİLİ
+Kategori detay sayfaları şu görsel dilde olsun:
+- beyaz veya çok açık gri zemin
+- antrasit / koyu gri tipografi
+- kontrollü turuncu vurgu rengi
+- temiz kart yapıları
+- güçlü ama sade tablolar
+- üstte kategori başlığı ve özet alanı
+- ortada veri / kırılım / tablo alanları
+- altta varsayımlar, metodoloji ve bağlantılı aksiyonlar
+- masaüstünde dashboard hissi
+- mobilde sadeleştirilmiş ama veri kaybetmeyen yapı
+- gereksiz dekoratif unsur olmasın
+- her sayfa “ciddi mühendislik çıktısı” gibi görünmeli
+
+ORTAK SAYFA İSKELETİ
+Tüm kategori detay sayfaları için önce ortak bir şablon tasarla.
+Bu ortak şablon şu bloklardan oluşsun:
+
+A) ÜST BAŞLIK BANDI
+- kategori adı
+- kısa kategori açıklaması
+- kategori toplam maliyeti
+- genel toplam içindeki yüzdesi
+- kategori durumu (hızlı hesap / detaylı hesap / manuel düzenleme var)
+- istenirse sürüm / revizyon etiketi
+
+B) ÜST ÖZET KARTLARI
+- toplam malzeme maliyeti
+- toplam işçilik maliyeti
+- toplam kategori maliyeti
+- fire etkisi
+- varsa yardımcı malzeme / ekipman / taşıma toplamı
+- isteğe bağlı miktar özeti (örneğin m², m³, ton, adet)
+
+C) GİRDİ VE VARSAYIM ALANI
+- bu kategoriyi etkileyen ana girdiler
+- proje genel verilerinden otomatik gelen bilgiler
+- kullanıcı tarafından değiştirilen parametreler
+- seçili preset / varsayılan yapı bilgisi
+- fiyat tarihi ve bölgesel ayar bilgisi
+
+D) ALT KALEM TABLOSU
+Standart tablo kolonları:
+- alt kalem adı
+- birim
+- miktar
+- malzeme birim fiyatı
+- işçilik birim fiyatı
+- ara toplam
+- not / açıklama
+
+E) SONUÇ VE ANALİZ ALANI
+- kategori toplamı
+- maliyet dağılımı
+- en yüksek maliyetli alt kalemler
+- kullanıcı müdahalesi olan satırlar
+- istenirse alternatif senaryo kutusu
+
+F) METODOLOJİ / VARSAYIMLAR
+- hesap nasıl yapıldı
+- hangi varsayımlar kullanıldı
+- hangi kalemler dahil
+- hangi kalemler hariç
+- eksik veri varsa uyarı
+- manuel override varsa açıklama
+
+G) AKSİYON ALANI
+- PDF’e ekle / PDF indir
+- ilgili diğer kategoriye git
+- detaylı teklif / danışmanlık CTA
+- bu kategori için alternatif senaryo oluştur
+
+ORTAK KURALLAR
+Her kategori sayfası için şu kuralları uygula:
+- kullanıcı önce üstte toplamı görmeli
+- sonra girdileri ve varsayımları anlayabilmeli
+- sonra alt kalemlere inebilmeli
+- sonra metodoloji notlarını görebilmeli
+- sayfa şeffaf olmalı; sonuç “kara kutu” gibi görünmemeli
+- maliyet ve miktar ilişkisi mümkün olduğunca açık olmalı
+- her kategori sayfası PDF’te de düzenli görünmeli
+- bazı kategoriler kısa kalabilir, bazıları çok sayfalı olabilir; bunu kategori bazında öner
+
+OLUŞTURULACAK KATEGORİ DETAY SAYFALARI
+Aşağıdaki kategorilerin her biri için tek tek özel sayfa iskeleti çıkar:
+
+1. Projelendirme
+2. İlk Ödemeler
+3. Şantiye Kurulumu
+4. Aylık Ödemeler
+5. Kamu Ödemeleri
+6. Hafriyat
+7. İş Makineleri
+8. Beton Demir
+9. Su Yalıtımı ve Drenaj
+10. Duvar
+11. Asansör
+12. Çatı
+13. Dış Cephe
+14. Isıtma ve Soğutma
+15. Şap
+16. Seramik
+17. Mermer
+18. Elektrik
+19. Sıva ve Boya
+20. Alçıpan
+21. Pencere
+22. Parke
+23. Kapılar
+24. Ahşap İşleri ve Dolap
+25. Ankastre
+26. Ortak Alanlar ve Havalandırma
+27. Balkon ve Korkuluk
+28. Peyzaj
+
+HER KATEGORİ İÇİN AYRI AYRI VERİLECEK BAŞLIKLAR
+Her kategori için aşağıdaki formatta çıktı ver:
+- kategori amacı
+- bu kategori hangi proje verilerinden beslenir
+- hızlı görünümde hangi özetler gösterilir
+- detay görünümde hangi alt kırılımlar açılır
+- ana sonuç kartları neler olur
+- tablo yapısı nasıl olur
+- hangi birimler kullanılır (m², m³, ton, adet, mtül, ay, % vb.)
+- hangi varsayımlar kritik rol oynar
+- hangi alt kalemler maliyeti sürükler
+- hangi dipnotlar / açıklamalar gerekir
+- hangi diğer kategorilerle ilişkili çalışır
+- PDF’te tek sayfa mı, iki sayfa mı, çok sayfa mı olmalı
+- bu kategoride kullanıcıya hangi aksiyonlar sunulmalı
+
+KATEGORİ BAZLI ÖZEL TALEPLER
+Aşağıdaki özel içerik ihtiyaçlarını da kategori bazında dikkate al:
+
+PROJELENDİRME
+- mimari, statik, harita, zemin etüdü, akustik gibi alt kalemler
+- sabit ve hizmet bazlı gider mantığı
+- kısa ama güven verici sayfa
+- tek sayfa öner
+
+İLK ÖDEMELER
+- kira yardımı, taşınma, teminat mektubu, kentsel dönüşüm giderleri gibi başlıklar
+- nakit akışı etkisi vurgusu
+- karar vericiye yönelik özet kutusu
+
+ŞANTİYE KURULUMU
+- çevreleme, konteyner, iş güvenliği, geçici kurulumlar
+- sabit ilk hazırlık gideri mantığı
+
+AYLIK ÖDEMELER
+- şantiye elektriği, suyu, maaş, SGK, OSGB vb.
+- aylık x süre mantığı
+- süre duyarlılığı analizi kutusu öner
+
+KAMU ÖDEMELERİ
+- yapı denetim, abonelik, ruhsat/iskan, enerji kimlik vb.
+- mevzuat / tarih / oran hassasiyeti uyarısı
+
+HAFRİYAT
+- hafriyat alanı, derinlik, hacim, kazı, kuyu temel gibi alt kırılımlar
+- m³ odaklı tablo
+- hızlı ve detaylı görünüm ayrımı
+
+İŞ MAKİNELERİ
+- vinç, JCB ve saat bazlı hesap
+- ekipman süresi odaklı kısa sayfa
+
+BETON DEMİR
+- temel, perde, kolon/perde, döşeme, çatı arası beton gibi alt bölümler
+- beton hacmi, demir tonajı, kalıp işçiliği, demir işçiliği
+- bu kategori için iki veya daha fazla sayfalı detay şablonu öner
+- en güçlü kategori sayfalarından biri olsun
+
+SU YALITIMI VE DRENAJ
+- temel su yalıtımı, drenaj, balkon/teras yalıtımı
+- alan + mtül + top adet mantığı
+- membran, drenaj hattı, işçilik ayrımı
+
+DUVAR
+- iç duvar / dış duvar ayrımı
+- tuğla, bims, gazbeton seçenekleri
+- malzeme + harç + işçilik ayrımı
+- alan ve adet / hacim birlikteliği
+
+ASANSÖR
+- adet, tip, makine odası, ek sertifikasyon / etiket maliyeti
+- kısa ama net kategori sayfası
+
+ÇATI
+- karkas, kaplama, ısı yalıtımı, su yalıtımı, dere alt kalemleri
+- ton, m², mtül bazlı tablo
+- iki sayfalı güçlü şablon öner
+
+DIŞ CEPHE
+- kompozit, söve, boya, mantolama, iskele
+- yüzey alanı ve oran mantığı
+- çok güçlü tablo ve özet alanı
+- iki veya daha fazla sayfa öner
+
+ISITMA VE SOĞUTMA
+- merkezi / bağımsız sistem ayrımı
+- klima, kazan, kombi, radyatör, yerden ısıtma, sıhhi tesisat, su deposu, hidrofor vb.
+- bu kategori geniş ve dallı olduğu için sekmeli / bloklu yapı öner
+
+ŞAP
+- alan, kalınlık, kum, çimento, şilte, işçilik
+- kısa ve net teknik sayfa
+
+SERAMİK
+- banyo, wc, mutfak, hol, balkon, teras kırılımı
+- duvar / zemin ayrımı
+- yapıştırıcı, derz, çıta gibi yardımcı kalemler
+
+MERMER
+- merdiven, sahanlık, bina girişi, duvar kaplama, asansör kapısı çevresi
+- m² + mtül birlikteliği
+
+ELEKTRİK
+- işçilik, malzeme, pano, topraklama, kamera, uydu, şantiye panosu
+- teknik ama sade sayfa
+- alt kalemler açık seçik görünmeli
+
+SIVA VE BOYA
+- ince sıva, kara sıva, alçı, saten, astar, boya
+- alan bazlı güçlü tablo
+- malzeme ve işçilik net ayrılmalı
+
+ALÇIPAN
+- kartonpiyer, düz alçıpan, havuz tavan, karopan, ışık bandı
+- kategori içinde farklı üretim tipleri ayrı bloklarla gösterilmeli
+
+PENCERE
+- pencere tipleri, cam türleri, doğrama profili, aksesuar, pervaz, denizlik
+- adet + m² + mtül birlikteliği
+- detaylı tablo yapısı önemli
+
+PARKE
+- toplam alan, parke türü, süpürgelik
+- kısa ama profesyonel bir detay sayfası
+
+KAPILAR
+- bina dış kapı, daire dış kapısı, oda, mutfak, salon, banyo, yangın kapısı, kepenk
+- adet ve tür bazlı tablo
+
+AHŞAP İŞLERİ VE DOLAP
+- mutfak dolabı, tezgah, banyo dolabı, portmanto, dresuar, dubleks merdiveni
+- mtül ve adet birlikteliği
+- iki sayfalık varyasyon öner
+
+ANKASTRE
+- rezervuar, klozet, duş teknesi, duşakabin, batarya, evye, ocak, fırın, davlumbaz vb.
+- adet bazlı detaylı ama kısa/orta uzunlukta sayfa
+
+ORTAK ALANLAR VE HAVALANDIRMA
+- sığınak, WC, duş, niş, havalandırma kanalı, motor
+- alan + adet birlikteliği
+
+BALKON VE KORKULUK
+- merdiven korkuluğu, balkon korkuluğu, teras korkuluğu, fransız balkon, cam balkon
+- mtül ve adet odaklı görsel olarak temiz sayfa
+
+PEYZAJ
+- bahçe duvarı, çimlendirme, sulama, ağaçlandırma, bariyer vb.
+- kısa / orta uzunlukta sayfa
+- proje sonu tamamlayıcı kategori hissi
+
+PDF BAĞLANTISI
+Her kategori sayfası için ayrıca şunu tanımla:
+- ekrandaki sayfanın PDF’e nasıl dönüşeceği
+- PDF’te hangi blokların aynen korunacağı
+- hangi blokların sadeleşeceği
+- hangi kategorilerde ek sayfa gerektiği
+- kategori detay sayfasının PDF içindeki ideal sırası
+
+KULLANICI ETKİLEŞİMLERİ
+Kategori sayfalarında şu etkileşimleri planla:
+- hızlı görünüm / detaylı görünüm değişimi
+- alt kalemleri aç/kapa
+- manuel fiyat override
+- senaryo karşılaştırma etiketi
+- PDF’e ekle
+- sadece bu kategoriyi dışa aktar
+- ilgili diğer kategoriye atla
+- not ekle / iç kullanım yorumu ekle
+
+YÖNETİM / VERİ TARAFI
+Kategori detay sayfalarını veri mimarisiyle ilişkilendir:
+- her sayfa hangi veri setinden beslenir
+- ortak bileşenler hangileri
+- admin panelinde hangi bloklar yönetilebilir
+- kategori bazlı tablo kolonları değiştirilebilir mi
+- varsayım kutuları kategoriye göre özelleştirilebilir mi
+- PDF blokları kategori bazında açılıp kapanabilir mi
+
+MVP VE FAZLAR
+Kategori detay sayfaları için geliştirme fazları öner:
+FAZ 1:
+- temel ortak şablon
+- kısa özet kartları
+- standart tablo
+- dipnot alanı
+
+FAZ 2:
+- kategoriye özel bloklar
+- gelişmiş varsayım alanları
+- PDF uyarlamaları
+
+FAZ 3:
+- manuel override görünümü
+- senaryo karşılaştırma
+- kategori bazlı dışa aktarma
+
+FAZ 4:
+- gelişmiş admin özelleştirmeleri
+- kullanıcıya özel görünüm varyasyonları
+- çoklu sürüm kıyaslama
+
+ÇOK KRİTİK KURALLAR
+- Tüm kategori sayfaları aynı aileye ait görünmeli ama birbirinin kopyası olmamalı.
+- Sayfalar teknik olarak güçlü ama görsel olarak temiz olmalı.
+- Sonuçlar ve alt kalemler şeffaf görünmeli.
+- Her kategori için hangi veri en kritikse ona göre blok ağırlığı değişmeli.
+- Bazı kategoriler kısa, bazıları çok katmanlı olabilir; bunu akıllıca öner.
+- Sayfalar hem iç kullanım hem müşteri sunumu hem PDF rapor için uygun olmalı.
+- Nihai amaç: detaylı proje maliyeti ve metraj altyapısının profesyonel kategori detay sistemi kurmak.
+
+SON TALİMAT
+Benden ek bilgi istemeden, tüm yukarıdaki kategoriler için tek tek, uygulanabilir, detaylı ve modüler kategori detay sayfası planı üret.
+Soyut fikirler değil; gerçekten tasarlanabilecek sayfa iskeletleri ver.

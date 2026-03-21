@@ -1,0 +1,429 @@
+Mevcut inşaat mühendisliği web sitem için “Tam Proje Maliyet Modülü” tasarla ve planla. Bu modül, sıradan bir yaklaşık maliyet aracı değil; gerçek projelerde kullanabileceğim, kendi kişisel ana çalışma sistemime dönüşebilecek, modüler, derin, teknik olarak güven veren ve zamanla keşif / metraj / maliyet / raporlama altyapısına evrilebilecek profesyonel bir ürün olmalı.
+
+Çok önemli:
+- Kod yazma.
+- Ürün planı, modül yapısı, ekran akışı, veri mimarisi, hesap mantığı, kullanıcı deneyimi, yönetim paneli ve çıktı sistemi üret.
+- Sistem sadece vitrin amaçlı değil, gerçek saha ve ofis kullanımına uygun olmalı.
+- Rakip mantığını çağrıştırabilir ama asla birebir kopya olmamalı.
+- Tasarım “mühendislik dashboard’u + proje sihirbazı + raporlama motoru” hibriti gibi düşünülmeli.
+- Hedef, uzun vadede en ince kalemlere kadar proje maliyetini yönetebilen bir ana modül kurmak.
+
+ANA AMAÇ
+Bu modülün amacı:
+1. Bir projenin baştan sona yaklaşık maliyetini kategori kategori hesaplayabilmek
+2. Aynı veri yapısından metraj mantığına geçebilmek
+3. Proje bazlı PDF rapor üretebilmek
+4. Farklı malzeme / işçilik / kalite / bölge senaryolarını karşılaştırabilmek
+5. Benim kişisel kullanımım için hızlı ama derin bir hesap altyapısı oluşturmak
+6. İleride müşteriye teklif, keşif, danışmanlık ve özel maliyet çalışmasına dönüşebilecek profesyonel bir sistem kurmak
+
+BENDEN İSTENEN ÇIKTI
+Bana çok kapsamlı bir ürün planı çıkar. Çıktı şu başlıklarla gelsin:
+1. Modül vizyonu
+2. Kullanıcı tipleri
+3. Proje oluşturma akışı
+4. Adım adım ekran yapısı
+5. Veri mimarisi
+6. Hesap motoru mantığı
+7. Kategori ve alt kategori sistemi
+8. Sonuç ekranları
+9. PDF / rapor sistemi
+10. Admin paneli ve fiyat yönetimi
+11. Senaryo bazlı kullanım örnekleri
+12. MVP kapsamı
+13. Sonraki fazlar
+14. Neden güçlü bir sistem olduğu değerlendirmesi
+
+MODÜLÜN GENEL TANIMI
+Bu modül, bir proje sihirbazı gibi çalışmalı.
+Kullanıcı sırasıyla proje bilgilerini girsin, yapı varsayımlarını seçsin, maliyet kategorilerini aktif etsin, detayları derinleştirsin ve sonuçta:
+- toplam maliyet
+- kategori bazlı maliyet
+- malzeme miktarları
+- işçilik miktarları
+- fire etkileri
+- bölgesel fiyat farkları
+- alternatif senaryolar
+- PDF raporlar
+üretebilsin.
+
+ARAYÜZ YAKLAŞIMI
+Modül şu hissi vermeli:
+- profesyonel
+- teknik
+- sade
+- adım adım ilerleyen
+- kafa karıştırmayan
+- detaylı ama kontrollü
+- masaüstünde dashboard hissi
+- mobilde sadeleştirilmiş sihirbaz hissi
+
+Görsel dil:
+- beyaz / açık gri zemin
+- antrasit / koyu gri metin ve çerçeve sistemi
+- turuncu veya benzeri kontrollü vurgu rengi
+- başarı ve sonuç alanlarında çok ölçülü yeşil kullanımı
+- veri kartları, özet kutuları, kırılım tabloları
+- “teknik ama okunaklı” bir estetik
+
+KULLANICI TİPLERİ
+Birincil:
+- müteahhit
+- saha mühendisi / şantiye şefi
+- teknik karar veren arsa sahibi
+
+İkincil:
+- mimarlık / mühendislik ofisi
+- yatırımcı
+- keşif / metraj / yaklaşık maliyet hazırlayan teknik kullanıcı
+
+BENİM KİŞİSEL KULLANIM ÖNCELİKLERİM
+Bu modül benim kendi ana hesap sistemim olacak. O yüzden planı şu önceliklerle yap:
+- çok hızlı proje açabilmeliyim
+- sık kullandığım yapı tipleri için hazır preset kullanabilmeliyim
+- istersem çok derin detaylara inebilmeliyim
+- varsayılan fiyatları değiştirebilmeliyim
+- kendi birim fiyat mantığımla çalışabilmeliyim
+- farklı senaryoları kıyaslayabilmeliyim
+- aynı proje için farklı sürümler oluşturabilmeliyim
+- çıktıyı profesyonel PDF olarak alabilmeliyim
+- zamanla metraj, keşif, icmal ve teklif altyapısına bağlayabilmeliyim
+
+PROJE OLUŞTURMA AKIŞI
+Bana modülün adım adım ekran akışını tasarla.
+Aşağıdaki gibi çok net bir wizard/sihirbaz yapısı kur:
+
+ADIM 1 – Proje Kimliği
+- proje adı
+- proje tipi
+- ülke / il / ilçe
+- kullanım türü
+- arsa alanı
+- toplam inşaat alanı
+- bağımsız bölüm sayısı
+- tahmini yapım süresi
+- proje notları
+
+ADIM 2 – Yapı Özeti
+- kat sayısı
+- zemin kat alanı
+- normal kat alanı
+- bodrum var mı
+- bodrum adedi
+- bodrum alanı
+- çatı arası var mı
+- dubleks / çatı dubleksi var mı
+- bina yüksekliği
+- yapı yüksekliği
+
+ADIM 3 – Yapısal Sistem
+- taşıyıcı sistem tipi
+- temel tipi
+- döşeme tipi
+- kolon / perde sistemi
+- beton sınıfı
+- demir varsayımları
+- kalıp varsayımları
+- bodrum perde var mı
+- su ve rutubet yalıtımı dikkate alınacak mı
+
+ADIM 4 – Bağımsız Bölüm / Tipoloji Girişi
+- farklı daire tipleri tanımlanabilsin
+- her tip için oda, salon, mutfak, banyo, wc, hol, balkon, teras alanları girilebilsin
+- her tipten kaç adet olduğu girilebilsin
+- bu veriler sonraki ince işler hesaplarını etkileyebilsin
+
+ADIM 5 – Kategoriler Seçimi
+Kullanıcı hangi maliyet başlıklarını hesaba katacağını seçebilsin.
+Kategoriler:
+- Projelendirme
+- İlk Ödemeler
+- Şantiye Kurulumu
+- Aylık Ödemeler
+- Kamu Ödemeleri
+- Hafriyat
+- İş Makineleri
+- Beton Demir
+- Su Yalıtımı ve Drenaj
+- Duvar
+- Asansör
+- Çatı
+- Dış Cephe
+- Isıtma ve Soğutma
+- Şap
+- Seramik
+- Mermer
+- Elektrik
+- Sıva ve Boya
+- Alçıpan
+- Pencere
+- Parke
+- Kapılar
+- Ahşap İşleri ve Dolap
+- Ankastre
+- Ortak Alanlar ve Havalandırma
+- Balkon ve Korkuluk
+- Peyzaj
+
+Her kategori:
+- açılıp kapanabilir olsun
+- temel düzey / detaylı düzey moduna sahip olsun
+- kendi varsayımlarını barındırsın
+- diğer kategorilerle veri paylaşabilsin
+
+ADIM 6 – Hızlı Varsayımlar
+Kullanıcı isterse hızlı başlangıç preset seçsin.
+Benim varsayılan kullanım senaryolarıma uygun preset mantığı kur:
+- betonarme yeni yapı
+- kullanım türü genelde konut
+- dış duvar çoğunlukla bims
+- iç duvar çoğunlukla tuğla
+- dış yalıtım EPS
+- çatı kiremit ve eğimli çatı
+- ıslak hacimler seramik, diğer alanlar parke
+- bodrum mevcut
+- radye temel yaygın
+- bodrum perde su ve rutubet yalıtımı dikkate alınmalı
+- kat sayısı çoğunlukla 3–4, bazen 7
+- 7 katlı yapılarda merkezi ısıtma
+- 3–4 katlı yapılarda bağımsız ısıtma
+
+Bu presetler kullanıcıya zorla uygulanmasın; sadece hızlı başlangıç versiyonu olarak önerilsin.
+
+KATEGORİ MANTIĞI
+Her kategori için bana ayrı ayrı plan çıkar.
+Her kategori aşağıdaki katmanlara sahip olsun:
+1. amaç
+2. hangi girdilerle çalıştığı
+3. hangi üst verilerden beslendiği
+4. hangi alt hesapları içerdiği
+5. hangi sonuçları ürettiği
+6. hangi kategorileri etkilediği
+7. hangi varsayımlara sahip olduğu
+8. hangi detay seviyelerine açılabildiği
+
+Örnek olarak:
+- Duvar kategorisi iç ve dış duvarı ayrı yönetebilsin
+- Çatı kategorisi karkas, kaplama, ısı yalıtımı, su yalıtımı, dere gibi alt kalemlere ayrılabilsin
+- Dış cephe kategorisi kompozit, boya, söve, mantolama, iskele gibi alt kalemlere bölünebilsin
+- Isıtma ve soğutma kategorisi merkezi / bağımsız sistem ayrımı yapabilsin
+- Elektrik kategorisi malzeme + işçilik + pano + topraklama + kamera + uydu gibi alt kalemlere ayrılabilsin
+- Ahşap işleri ve dolap bölümü mutfak dolabı, tezgah, banyo dolabı, portmanto, dresuar gibi alt kalemlere ayrılabilsin
+
+HESAP DERİNLİĞİ
+Sistemi 3 seviye halinde kurgula:
+Seviye 1: Hızlı yaklaşık proje maliyeti
+Seviye 2: Kategori bazlı detaylı maliyet
+Seviye 3: Alt kalem bazlı uzman mod
+
+Kullanıcı isterse sadece özet proje girdileriyle sonuç alsın.
+İsterse kategori kategori derinleşsin.
+İsterse her kategorinin alt kalemlerine kadar insin.
+
+HESAP MOTORU MANTIĞI
+Hesap motorunu modüler planla.
+Her kategori için aşağıdaki katmanlar olsun:
+- ana girdiler
+- proje verisinden gelen türetilmiş veriler
+- varsayımlar
+- fire kuralları
+- malzeme miktarları
+- işçilik miktarları
+- birim fiyatlar
+- toplam kategori maliyeti
+- proje toplamına etkisi
+- rapor çıktısı
+
+Hesap motorunda şunlar desteklensin:
+- malzeme ve işçilik ayrı ayrı
+- fire oranı
+- bölgesel katsayı
+- manuel fiyat girişi
+- kullanıcıya özel fiyat seti
+- alternatif kalite senaryoları
+- farklı versiyon kıyaslaması
+- hızlı ve detaylı hesap modu
+
+VERİ MİMARİSİ
+Bana güçlü bir veri mimarisi öner.
+Aşağıdaki örnek yapıyı geliştir:
+- projects
+- project_versions
+- building_profiles
+- unit_types
+- category_settings
+- category_inputs
+- category_results
+- materials
+- labor_items
+- regional_coefficients
+- waste_rules
+- pricing_sets
+- report_templates
+- admin_presets
+- calculation_logs
+
+Ama bunları sadece listeleme.
+Her birinin:
+- amacı
+- ilişkileri
+- neden gerekli olduğu
+- gelecekte nasıl genişletileceği
+anlatılsın.
+
+Ayrıca proje bazlı sürüm yönetimi planla:
+- aynı proje için v1, v2, v3 senaryoları
+- malzeme değişikliği karşılaştırması
+- fiyat revizyonu karşılaştırması
+- detay farkı karşılaştırması
+
+FİYAT YÖNETİMİ
+Sistem fiyat tarafında çok güçlü olmalı.
+Bana şu yapıyı planla:
+1. Varsayılan sistem fiyatları
+2. Bölgesel fiyat katsayıları
+3. Manuel kullanıcı fiyat girişi
+4. Özel fiyat seti kaydetme
+5. Fiyat geçmişi tutma
+6. Revizyon tarihine göre fiyat uygulama
+7. İşçilik ve malzeme ayrı yönetimi
+8. Yardımcı malzemeler / aksesuarlar / montaj / taşıma / iskele / iş makinesi gibi kalemleri ayrı katman olarak ekleme
+
+SONUÇ EKRANI
+Tam proje maliyet modülü sonuç ekranı çok iyi düşünülmeli.
+Bana detaylı bir sonuç ekranı planı ver.
+
+Sonuç ekranında şu sekmeler olsun:
+1. Genel Özet
+2. Kategori Dağılımı
+3. Malzeme Özeti
+4. İşçilik Özeti
+5. Varsayımlar ve Fire
+6. Bölgesel ve Fiyat Ayarları
+7. Sürüm Karşılaştırma
+8. PDF / Raporlar
+9. Teklif / Danışmanlık CTA
+
+Genel Özet ekranında:
+- toplam proje maliyeti
+- toplam inşaat alanı
+- m² başına yaklaşık maliyet
+- ana kategori dağılımı
+- kaba işler toplamı
+- ince işler toplamı
+- diğer giderler toplamı
+- seçili varsayımlar
+- uyarılar / eksik veri uyarıları
+
+Kategori Dağılımı ekranında:
+- kategori bazlı tutarlar
+- yüzde dağılımı
+- expand/collapse detay
+- alt kalemler
+- manuel düzenleme / override alanı
+
+Malzeme ve İşçilik ekranlarında:
+- toplam malzeme özetleri
+- toplam işçilik özetleri
+- alt kırılım tabloları
+- istenirse Excel/PDF dışa aktarma mantığına uygun yapı
+
+PDF VE RAPOR SİSTEMİ
+Bu modül için iki ana rapor mantığı planla:
+1. Tam Proje Maliyet Raporu
+2. Tam Proje Metraj / Miktar Özeti Raporu
+
+Ayrıca opsiyonel alt raporlar da olsun:
+- kategori bazlı rapor
+- sadece kaba işler raporu
+- sadece ince işler raporu
+- yönetici özeti raporu
+- karşılaştırmalı sürüm raporu
+
+PDF’ler profesyonel ve kurumsal görünsün.
+Her PDF’te şu alanlar planlansın:
+- kapak sayfası
+- proje özeti
+- temel varsayımlar
+- kategori kırılımları
+- alt kalem tabloları
+- malzeme / işçilik / fire notları
+- toplamlar
+- dipnotlar
+- teklif / danışmanlık / iletişim alanı
+
+ADMIN / YÖNETİM PANELİ
+Bu modül için güçlü bir yönetim paneli planla.
+Aşağıdaki modüller olsun:
+- proje yönetimi
+- hesap kategorileri yönetimi
+- alt kalem yönetimi
+- varsayım preset yönetimi
+- malzeme fiyatları yönetimi
+- işçilik fiyatları yönetimi
+- bölgesel katsayı yönetimi
+- fire kuralları yönetimi
+- rapor şablonları
+- kullanıcıya özel fiyat setleri
+- sürüm geçmişi
+- revizyon notları
+- lead / talep yönetimi
+- danışmanlık başvuruları
+- SEO ve landing bağlantıları
+
+Ayrıca admin panelinde şu kullanım modları planla:
+- sadece benim kullanımım için özel yönetici modu
+- ileride ekip kullanımı için çok kullanıcılı mod
+- kullanıcı yetki seviyeleri (gelecek faz)
+
+SEO VE TİCARİ KÖPRÜ
+Bu modül sadece iç kullanım aracı gibi değil, ticari değeri olan bir yapıya da dönüşebilsin.
+Buna göre plan yap:
+- tam proje maliyet modülü landing page
+- mini hesaplardan bu modüle geçiş akışı
+- sonuç ekranından danışmanlık / teklif CTA’ları
+- PDF sonrası lead toplama
+- “projene özel maliyet çalışması” teklif alanı
+- “keşif / metraj desteği” dönüşüm akışı
+
+Ama sistem aşırı satış odaklı görünmesin.
+Önce teknik güven, sonra dönüşüm mantığı olsun.
+
+KULLANICI SENARYOLARI
+Aşağıdaki senaryolar için ayrı ayrı kullanım akışı tasarla:
+1. 4 katlı konut projesi için hızlı proje maliyeti çıkaran kullanıcı
+2. 7 katlı apartman için merkezi ısıtmalı detaylı maliyet çalışan kullanıcı
+3. Aynı projede malzeme kalitesini değiştirip senaryo karşılaştırması yapan kullanıcı
+4. Sadece kaba işler kırılımı isteyen kullanıcı
+5. Tüm proje için profesyonel PDF rapor isteyen kullanıcı
+6. Daha sonra keşif / metraj desteği talep eden kullanıcı
+7. Benim kendi kullanımımda sık açtığım yapı presetleriyle hızlı başlayan kullanıcı
+
+MVP VE FAZ PLANLAMASI
+Bana bu modül için aşamalı geliştirme planı ver:
+FAZ 1 – Çalışan çekirdek sistem
+FAZ 2 – Kategori derinleştirme
+FAZ 3 – Sürüm kıyaslama ve özel fiyat setleri
+FAZ 4 – Gelişmiş raporlar ve ticari dönüşüm bağlantıları
+
+Her faz için:
+- hangi özellikler
+- neden önce / sonra
+- teknik / ürün önceliği
+- kullanıcı faydası
+anlatılsın.
+
+ÇOK KRİTİK TASARIM KURALLARI
+- Genel geçer, yüzeysel açıklamalar yapma.
+- Her şeyi modüler ve genişleyebilir kurgula.
+- Gerçek saha kullanımını düşün.
+- Sonuçların şeffaf olmasını sağla.
+- Kullanıcı hesap mantığını anlayabilsin.
+- Sistem hem hızlı hem derin olmalı.
+- Çok karmaşık görünmeden çok güçlü olmalı.
+- Teknik güven duygusu yüksek olmalı.
+- Nihai amaç: bu modülü zamanla benim ana inşaat maliyet, keşif ve metraj altyapıma dönüştürmek.
+
+SON TALİMAT
+Benden ek bilgi istemeden, olabilecek en kapsamlı ilk planı üret.
+Sadece güzel fikirler değil; uygulanabilir, mantıksal, ekran bazlı, veri bazlı ve modüler bir ürün planı ver.
