@@ -6,6 +6,7 @@ export function LiveSearch() {
   return (
     <button
       type="button"
+      data-testid="navbar-live-search"
       onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
       className="group hidden h-11 w-80 items-center gap-3 rounded-full border border-transparent bg-zinc-100 px-4 text-[15px] font-medium text-zinc-500 shadow-sm transition-all hover:bg-zinc-200 hover:shadow-md active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400 dark:hover:bg-zinc-800 lg:flex"
     >

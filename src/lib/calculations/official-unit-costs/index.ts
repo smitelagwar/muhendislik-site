@@ -10,6 +10,7 @@ import type {
 
 export * from "./types";
 export { OFFICIAL_UNIT_COSTS_2026, OFFICIAL_UNIT_COST_SOURCE_2026 };
+export * from "./guided-options";
 
 export function getOfficialUnitCostsByYear(yil: OfficialCostYear): OfficialCostRow[] {
   if (yil === 2026) {

@@ -15,9 +15,10 @@ export function ModeToggle() {
   return (
     <Button
       type="button"
+      data-testid="theme-toggle"
       variant="outline"
       size="icon"
-      aria-label="Tema görünümünü değiştir"
+      aria-label="Tema gorunumunu degistir"
       onClick={handleToggle}
       className="relative rounded-full"
     >

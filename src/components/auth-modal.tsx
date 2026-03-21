@@ -55,6 +55,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <div className="pointer-events-auto relative w-full max-w-[420px] rounded-2xl border border-zinc-200 bg-white p-8 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
           <button
             type="button"
+            data-testid="auth-modal-close"
             onClick={onClose}
             className="absolute right-4 top-4 rounded-full p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >

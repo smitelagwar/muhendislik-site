@@ -60,7 +60,7 @@ export default function HesaplamalarLayout({
               Hesaplama Araclari
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Maliyet · resmi referans · metraj odakli karar destegi
+              Maliyet | resmi referans | metraj odakli karar destegi
             </p>
           </div>
         </div>
