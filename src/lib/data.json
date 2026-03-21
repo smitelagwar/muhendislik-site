@@ -10,7 +10,7 @@
     "authorTitle": "Geoteknik Uzman?",
     "date": "14 Ekim 2023",
     "readTime": "15 dk okuma",
-    "image": "/covers/zemin-cover.png",
+    "image": "/blog-images/jet_grout_machine_1774081161544.png",
     "sectionId": "geoteknik",
     "relatedSlugs": [
       "iksa-uzman-sistemi",
@@ -33,13 +33,13 @@
         "id": "giris-kapsam",
         "title": "1. Giriş ve Kapsam",
         "subsections": [],
-        "content": "Zemin iyileştirme kararı, çoğu projede temel tipinden bile önce düşünülmesi gereken stratejik bir karardır. Taşıma gücü yetersiz, suya doygun, gevşek veya yüksek oturma potansiyeli olan bir zemin üzerinde en doğru temel kesitini çizseniz bile zeminin davranışı kontrol altına alınmadıkça üst yapının performansı risk altında kalır.\n\nJet grout, taş kolon, vibro kompaksiyon, derin karıştırma ve geosentetik takviyeli çözümler bu nedenle yalnızca “zemin güçlendirme” başlığı altında toplanan teknikler değildir; tasarım riskini sahada yönetme araçlarıdır. Bu yazının ana odağı jet grout olmakla birlikte, yöntemi diğer iyileştirme seçenekleriyle birlikte düşünmeyi sağlayacak karar çerçevesi kurmaktır.\n\nYazı; tasarım ofisinde yöntem seçen mühendise, sahada deneme kolonu ve üretim parametresi izleyen saha mühendisine ve deprem hesabında iyileştirilmiş zemini modele taşımaya çalışan proje ekibine hitap eder.\n\n![Jet grout kesit görünümü](/covers/zemin-kesit.png)\n*Jet grout kolonları, temel altındaki gerilme dağılımını ve oturma davranışını değiştiren kompozit elemanlar olarak düşünülmelidir.*"
+        "content": "Zemin iyileştirme kararı, çoğu projede temel tipinden bile önce düşünülmesi gereken stratejik bir karardır. Taşıma gücü yetersiz, suya doygun, gevşek veya yüksek oturma potansiyeli olan bir zemin üzerinde en doğru temel kesitini çizseniz bile zeminin davranışı kontrol altına alınmadıkça üst yapının performansı risk altında kalır.\n\nJet grout, taş kolon, vibro kompaksiyon, derin karıştırma ve geosentetik takviyeli çözümler bu nedenle yalnızca “zemin güçlendirme” başlığı altında toplanan teknikler değildir; tasarım riskini sahada yönetme araçlarıdır. Bu yazının ana odağı jet grout olmakla birlikte, yöntemi diğer iyileştirme seçenekleriyle birlikte düşünmeyi sağlayacak karar çerçevesi kurmaktır.\n\nYazı; tasarım ofisinde yöntem seçen mühendise, sahada deneme kolonu ve üretim parametresi izleyen saha mühendisine ve deprem hesabında iyileştirilmiş zemini modele taşımaya çalışan proje ekibine hitap eder.\n\n*Jet grout kolonları, temel altındaki gerilme dağılımını ve oturma davranışını değiştiren kompozit elemanlar olarak düşünülmelidir.*"
       },
       {
         "id": "teorik-temel",
         "title": "2. Teorik Temel ve Yöntem Seçim Mantığı",
         "subsections": [],
-        "content": "Jet grout, zeminin yüksek basınçlı enjeksiyonla parçalanıp çimento şerbeti ile yerinde karıştırılması sonucu oluşan soilcrete kolonlar üretir. Buradaki amaç tek başına kolon üretmek değil, zemin kütlesinin deformasyon modülünü, drenaj davranışını ve makaslama dayanımını istenen banda taşımaktır.\n\nYöntem özellikle şu senaryolarda öne çıkar:\n- Temel altında diferansiyel oturma riski yüksekse\n- Yeraltı suyu nedeniyle klasik kazı destekleme ve temel altı çalışmaları zorlaşıyorsa\n- Komşu yapılar nedeniyle titreşimli yöntemler tercih edilemiyorsa\n- Derin kazı veya perde arkasında su kesme ihtiyacı varsa\n\nJet grout her zemin için ilk tercih değildir. Çok iri bloklu zeminlerde kolon sürekliliği zorlaşır; organik zeminlerde bağlayıcının etkinliği düşer; geniş alanlı ekonomik iyileştirme gereken projelerde taş kolon veya derin karıştırma daha avantajlı olabilir. Doğru soru “jet grout yapılır mı?” değil, “hangi performans hedefi için jet grout en kontrollü çözüm olur?” sorusudur.\n\nTasarım başında üç ana büyüklük aynı anda okunmalıdır: istenen taşıma ve oturma performansı, mevcut zemin profilinin tabakalı yapısı ve su etkisi, şantiyenin erişim ve komşuluk kısıtları."
+        "content": "![Görsel](/blog-images/jet_grout_cross_section_1774081182716.png)\n\nJet grout, zeminin yüksek basınçlı enjeksiyonla parçalanıp çimento şerbeti ile yerinde karıştırılması sonucu oluşan soilcrete kolonlar üretir. Buradaki amaç tek başına kolon üretmek değil, zemin kütlesinin deformasyon modülünü, drenaj davranışını ve makaslama dayanımını istenen banda taşımaktır.\n\nYöntem özellikle şu senaryolarda öne çıkar:\n- Temel altında diferansiyel oturma riski yüksekse\n- Yeraltı suyu nedeniyle klasik kazı destekleme ve temel altı çalışmaları zorlaşıyorsa\n- Komşu yapılar nedeniyle titreşimli yöntemler tercih edilemiyorsa\n- Derin kazı veya perde arkasında su kesme ihtiyacı varsa\n\nJet grout her zemin için ilk tercih değildir. Çok iri bloklu zeminlerde kolon sürekliliği zorlaşır; organik zeminlerde bağlayıcının etkinliği düşer; geniş alanlı ekonomik iyileştirme gereken projelerde taş kolon veya derin karıştırma daha avantajlı olabilir. Doğru soru “jet grout yapılır mı?” değil, “hangi performans hedefi için jet grout en kontrollü çözüm olur?” sorusudur.\n\nTasarım başında üç ana büyüklük aynı anda okunmalıdır: istenen taşıma ve oturma performansı, mevcut zemin profilinin tabakalı yapısı ve su etkisi, şantiyenin erişim ve komşuluk kısıtları."
       },
       {
         "id": "yonetmelik-standart",
@@ -51,7 +51,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Tasarım ve Uygulama Adımları",
         "subsections": [],
-        "content": "1. **Sondaj verisini performans hedefiyle eşleştir.** Amaç yalnız zemin sınıfı okumak değil, hangi tabakanın iyileştirileceğini belirlemektir.\n2. **Temel yükleri ve oturma kriterini netleştir.** Jet grout kolon aralığı, çapı ve dizilimi doğrudan bu hedefe göre belirlenir.\n3. **Deneme kolonunu zorunlu kabul et.** Deneme üretimi gerçek ekipman ve gerçek karışımla yapılmadıkça tasarım varsayımı teyit edilmiş sayılmaz.\n4. **Parametre bandını kilitle.** Çekme hızı, dönüş hızı, enjeksiyon basıncı ve su/çimento oranı her vardiya kaydına girilmelidir.\n5. **Karot ve üretim sonrası doğrulama yap.** Dayanım kadar kolon geometrisi ve süreklilik de değerlendirilmelidir.\n6. **Temel altı yükleme sırasını koordine et.** İyileştirme tamamlandı diye temel imalatı otomatik güvenli hale gelmez; kazı tabanı temizliği, su kontrolü ve grobeton sırası korunmalıdır.\n\n![Sahada enjeksiyon parametreleri](/covers/zemin-parametre.png)\n*Makine kaydı tutulmuyorsa yapılan işin hangi parametreyle üretildiğini sonradan kimse kanıtlayamaz.*"
+        "content": "![Görsel](/blog-images/engineers_inspecting_core_1774081203546.png)\n\n1. **Sondaj verisini performans hedefiyle eşleştir.** Amaç yalnız zemin sınıfı okumak değil, hangi tabakanın iyileştirileceğini belirlemektir.\n2. **Temel yükleri ve oturma kriterini netleştir.** Jet grout kolon aralığı, çapı ve dizilimi doğrudan bu hedefe göre belirlenir.\n3. **Deneme kolonunu zorunlu kabul et.** Deneme üretimi gerçek ekipman ve gerçek karışımla yapılmadıkça tasarım varsayımı teyit edilmiş sayılmaz.\n4. **Parametre bandını kilitle.** Çekme hızı, dönüş hızı, enjeksiyon basıncı ve su/çimento oranı her vardiya kaydına girilmelidir.\n5. **Karot ve üretim sonrası doğrulama yap.** Dayanım kadar kolon geometrisi ve süreklilik de değerlendirilmelidir.\n6. **Temel altı yükleme sırasını koordine et.** İyileştirme tamamlandı diye temel imalatı otomatik güvenli hale gelmez; kazı tabanı temizliği, su kontrolü ve grobeton sırası korunmalıdır.\n\n*Makine kaydı tutulmuyorsa yapılan işin hangi parametreyle üretildiğini sonradan kimse kanıtlayamaz.*"
       },
       {
         "id": "sayisal-ornek",
@@ -96,7 +96,7 @@
     "authorTitle": "?antiye ?efi",
     "date": "22 Kas?m 2023",
     "readTime": "13 dk okuma",
-    "image": "/covers/beton-cover.png",
+    "image": "/blog-images/concrete_pouring_1774081221161.png",
     "sectionId": "santiye",
     "relatedSlugs": [
       "kalip-sokumu-rehberi",
@@ -119,13 +119,13 @@
         "id": "giris-kapsam",
         "title": "1. Giriş ve Kapsam",
         "subsections": [],
-        "content": "Beton dökümü öncesi kabul, şantiyede en fazla hafife alınan ama en fazla geri dönüş maliyeti üreten aşamalardan biridir. Donatı bindirmesi eksik, kalıp yağlanması yetersiz, pas payı bozuk veya gömülü eleman unutulmuş bir imalatı beton döküldükten sonra düzeltmek çoğu zaman kırma, güçlendirme veya iş programı gecikmesi anlamına gelir.\n\nBu yazı; beton dökümünden önce saha mühendisinin demir, kalıp, tesisat geçişi, gömülü parçalar, döküm lojistiği ve test planı açısından hangi başlıkları kontrol etmesi gerektiğini açıklayan kapsamlı bir kabul rehberidir. Amaç sadece checklist vermek değil, neden o kontrolün kritik olduğunu da göstermektir.\n\n![Döküm öncesi saha görünümü](/covers/beton-donati.png)\n*Beton dökülmeden önce görülen hata, döküldükten sonra görülen hataya göre her zaman daha ucuz çözülür.*"
+        "content": "Beton dökümü öncesi kabul, şantiyede en fazla hafife alınan ama en fazla geri dönüş maliyeti üreten aşamalardan biridir. Donatı bindirmesi eksik, kalıp yağlanması yetersiz, pas payı bozuk veya gömülü eleman unutulmuş bir imalatı beton döküldükten sonra düzeltmek çoğu zaman kırma, güçlendirme veya iş programı gecikmesi anlamına gelir.\n\nBu yazı; beton dökümünden önce saha mühendisinin demir, kalıp, tesisat geçişi, gömülü parçalar, döküm lojistiği ve test planı açısından hangi başlıkları kontrol etmesi gerektiğini açıklayan kapsamlı bir kabul rehberidir. Amaç sadece checklist vermek değil, neden o kontrolün kritik olduğunu da göstermektir.\n\n*Beton dökülmeden önce görülen hata, döküldükten sonra görülen hataya göre her zaman daha ucuz çözülür.*"
       },
       {
         "id": "teorik-temel",
         "title": "2. Teorik Temel: Neden Döküm Öncesi Kabul Yapılır?",
         "subsections": [],
-        "content": "Betonarme eleman performansı; yalnız dayanım sınıfıyla değil, donatının konumu, pas payı, aderans boyu, kalıp rijitliği ve yerleştirme kalitesiyle belirlenir. Yani C30 beton sipariş etmek tek başına güvenli eleman üretmek anlamına gelmez. Eğer donatı projedeki yerde değilse veya beton düzgün yerleştirilemiyorsa malzeme kalitesi tasarım hedefini taşıyamaz.\n\nDöküm öncesi kabulün mantığı üç soruya dayanır: Eleman geometrisi doğru mu, içindeki çelik projeye uygun mu, betonun sahaya güvenle yerleşmesini engelleyen bir durum var mı? Bu üç sorudan biri olumsuz ise transmikser sahaya gelse bile döküm teknik olarak hazır değildir.\n\nBu nedenle saha kabulü bir form imzalama işi değil, yük taşıma mekanizmasını dökümden önce doğrulama işidir."
+        "content": "![Görsel](/blog-images/rebar_connections_1774081238977.png)\n\nBetonarme eleman performansı; yalnız dayanım sınıfıyla değil, donatının konumu, pas payı, aderans boyu, kalıp rijitliği ve yerleştirme kalitesiyle belirlenir. Yani C30 beton sipariş etmek tek başına güvenli eleman üretmek anlamına gelmez. Eğer donatı projedeki yerde değilse veya beton düzgün yerleştirilemiyorsa malzeme kalitesi tasarım hedefini taşıyamaz.\n\nDöküm öncesi kabulün mantığı üç soruya dayanır: Eleman geometrisi doğru mu, içindeki çelik projeye uygun mu, betonun sahaya güvenle yerleşmesini engelleyen bir durum var mı? Bu üç sorudan biri olumsuz ise transmikser sahaya gelse bile döküm teknik olarak hazır değildir.\n\nBu nedenle saha kabulü bir form imzalama işi değil, yük taşıma mekanizmasını dökümden önce doğrulama işidir."
       },
       {
         "id": "yonetmelik-standart",
@@ -137,7 +137,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Döküm Öncesi Uygulama Adımları",
         "subsections": [],
-        "content": "1. **Kalıp aks ve kotunu kontrol et.** Düşeylik, açıklık ve döşeme kalınlığı net okunmalıdır.\n2. **Donatı paftasını sahadaki imalatla karşılaştır.** Çap, adet, bindirme ve etriye sıklaşması kontrol edilmelidir.\n3. **Pas payı elemanlarını say ve yerinde gör.** Takozlar yalnız konmuş olmak için değil, döküm sırasında yerinde kalacak şekilde sabitlenmelidir.\n4. **Gömülü eleman ve tesisat geçişlerini doğrula.** Sonradan delinen her boşluk yapısal ve mimari risk üretir.\n5. **Döküm lojistiğini kur.** Pompa erişimi, vibratör sayısı, yedek enerji, numune ekibi ve kür planı hazır olmalıdır.\n6. **Hava ve zaman koşulunu değerlendir.** Sıcak hava, yağmur veya gece dökümü senaryosu önceden planlanmalıdır.\n\n![Slump ve numune hazırlığı](/covers/beton-slump.png)\n*Döküm başladığında kontrol değil yönetim yapılır; bu yüzden gerçek kalite işi döküm öncesinde biter.*"
+        "content": "![Görsel](/blog-images/engineer_formwork_inspection_1774081253223.png)\n\n1. **Kalıp aks ve kotunu kontrol et.** Düşeylik, açıklık ve döşeme kalınlığı net okunmalıdır.\n2. **Donatı paftasını sahadaki imalatla karşılaştır.** Çap, adet, bindirme ve etriye sıklaşması kontrol edilmelidir.\n3. **Pas payı elemanlarını say ve yerinde gör.** Takozlar yalnız konmuş olmak için değil, döküm sırasında yerinde kalacak şekilde sabitlenmelidir.\n4. **Gömülü eleman ve tesisat geçişlerini doğrula.** Sonradan delinen her boşluk yapısal ve mimari risk üretir.\n5. **Döküm lojistiğini kur.** Pompa erişimi, vibratör sayısı, yedek enerji, numune ekibi ve kür planı hazır olmalıdır.\n6. **Hava ve zaman koşulunu değerlendir.** Sıcak hava, yağmur veya gece dökümü senaryosu önceden planlanmalıdır.\n\n*Döküm başladığında kontrol değil yönetim yapılır; bu yüzden gerçek kalite işi döküm öncesinde biter.*"
       },
       {
         "id": "sayisal-ornek",
@@ -182,7 +182,7 @@
     "authorTitle": "Enerji Verimlili?i Uzman?",
     "date": "8 Aral?k 2023",
     "readTime": "12 dk okuma",
-    "image": "/covers/eps-cover.png",
+    "image": "/blog-images/eps_xps_comparison_1774081271202.png",
     "sectionId": "malzeme",
     "relatedSlugs": [
       "leed-breeam-karsilastirmasi",
@@ -205,13 +205,13 @@
         "id": "giris-kapsam",
         "title": "1. Giriş ve Kapsam",
         "subsections": [],
-        "content": "Yalıtım levhası seçimi, çoğu projede birkaç santimetre kalınlığa indirgenen bir satın alma kararı gibi ele alınır. Oysa yanlış malzeme seçimi, dış cephede ısı köprüsü, teras ve temel detayında su etkisi, ters çatı uygulamasında deformasyon ve uzun vadede performans kaybı olarak geri döner.\n\nEPS ve XPS, görünüşte benzer iki polistiren esaslı malzeme olsa da üretim yöntemi, su emme davranışı, basınç dayanımı ve uygulama alanı bakımından farklı ihtiyaçlara cevap verir. Bu yazının amacı, malzeme kataloglarını tekrar etmek değil; hangi detayda hangi levhanın neden tercih edilmesi gerektiğini mühendislik mantığıyla anlatmaktır.\n\n![EPS dış cephe uygulaması](/covers/eps-dis-cephe.png)\n*Malzeme seçimi yalnız lambda değerine göre yapılırsa saha koşulunun yarısı gözden kaçırılmış olur.*"
+        "content": "Yalıtım levhası seçimi, çoğu projede birkaç santimetre kalınlığa indirgenen bir satın alma kararı gibi ele alınır. Oysa yanlış malzeme seçimi, dış cephede ısı köprüsü, teras ve temel detayında su etkisi, ters çatı uygulamasında deformasyon ve uzun vadede performans kaybı olarak geri döner.\n\nEPS ve XPS, görünüşte benzer iki polistiren esaslı malzeme olsa da üretim yöntemi, su emme davranışı, basınç dayanımı ve uygulama alanı bakımından farklı ihtiyaçlara cevap verir. Bu yazının amacı, malzeme kataloglarını tekrar etmek değil; hangi detayda hangi levhanın neden tercih edilmesi gerektiğini mühendislik mantığıyla anlatmaktır.\n\n*Malzeme seçimi yalnız lambda değerine göre yapılırsa saha koşulunun yarısı gözden kaçırılmış olur.*"
       },
       {
         "id": "teorik-temel",
         "title": "2. Teorik Temel ve Malzeme Davranışı",
         "subsections": [],
-        "content": "EPS genleştirilmiş polistiren tanelerinin kalıpta birleşmesiyle oluşur; daha hafif, ekonomik ve dış cephe mantolamada yaygın bir çözümdür. XPS ise ekstrüzyonla üretilir; daha kapalı hücreli yapısı sayesinde su emme direnci ve basınç dayanımı genellikle daha yüksektir. Bu yüzden toprakla temas eden, suya maruz kalan veya basınç yükü alan detaylarda öne çıkar.\n\nIsı yalıtım performansı yalnız ısıl iletkenlik katsayısı ile okunmamalıdır. Şu dört başlık birlikte değerlendirilmelidir:\n- Isıl iletkenlik ve hedef U değeri\n- Su emme ve nemli ortam davranışı\n- Basınç dayanımı ve boyutsal kararlılık\n- Yangın, kaplama sistemi ve uygulama detayı uyumu\n\nBir dış cephe mantolama detayı ile radye temel dış yüzü aynı şartlarda çalışmaz. Bu nedenle tek bir levha türünü tüm projeye dağıtmak çoğu zaman doğru mühendislik kararı değildir."
+        "content": "![Görsel](/blog-images/insulation_installation_1774081287050.png)\n\nEPS genleştirilmiş polistiren tanelerinin kalıpta birleşmesiyle oluşur; daha hafif, ekonomik ve dış cephe mantolamada yaygın bir çözümdür. XPS ise ekstrüzyonla üretilir; daha kapalı hücreli yapısı sayesinde su emme direnci ve basınç dayanımı genellikle daha yüksektir. Bu yüzden toprakla temas eden, suya maruz kalan veya basınç yükü alan detaylarda öne çıkar.\n\nIsı yalıtım performansı yalnız ısıl iletkenlik katsayısı ile okunmamalıdır. Şu dört başlık birlikte değerlendirilmelidir:\n- Isıl iletkenlik ve hedef U değeri\n- Su emme ve nemli ortam davranışı\n- Basınç dayanımı ve boyutsal kararlılık\n- Yangın, kaplama sistemi ve uygulama detayı uyumu\n\nBir dış cephe mantolama detayı ile radye temel dış yüzü aynı şartlarda çalışmaz. Bu nedenle tek bir levha türünü tüm projeye dağıtmak çoğu zaman doğru mühendislik kararı değildir."
       },
       {
         "id": "yonetmelik-standart",
@@ -223,7 +223,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Malzeme Seçim ve Uygulama Adımları",
         "subsections": [],
-        "content": "1. **Detayı tanımla.** Dış cephe, ters çatı, temel perdesi veya döşeme altı gibi çalışma koşulu net olmalıdır.\n2. **Hedef U değerini belirle.** TS 825 ve proje enerji hedefi ilk filtreyi verir.\n3. **Nem ve su etkisini değerlendir.** Sürekli ıslanma, donma-çözülme veya toprak teması varsa malzeme seçimi değişebilir.\n4. **Basınç yükünü oku.** Ters çatı, zemin altı veya yük alan detaylarda basınç dayanımı kritik hale gelir.\n5. **Sistem detayını bütün olarak çöz.** Yapıştırıcı, dübel, file, sıva ve su yalıtımıyla uyum sağlanmalıdır.\n6. **Şantiye depolamasını unutma.** Güneş altında bozulan veya suya maruz bırakılan levha, katalog performansını sahada koruyamaz.\n\n![XPS temel uygulaması](/covers/xps-temel.png)\n*Temel çevresinde doğru levhayı seçmek kadar, su yalıtımı ile arayüzü doğru çözmek de önemlidir.*"
+        "content": "![Görsel](/blog-images/insulation_cross_section_diagram_1774081300376.png)\n\n1. **Detayı tanımla.** Dış cephe, ters çatı, temel perdesi veya döşeme altı gibi çalışma koşulu net olmalıdır.\n2. **Hedef U değerini belirle.** TS 825 ve proje enerji hedefi ilk filtreyi verir.\n3. **Nem ve su etkisini değerlendir.** Sürekli ıslanma, donma-çözülme veya toprak teması varsa malzeme seçimi değişebilir.\n4. **Basınç yükünü oku.** Ters çatı, zemin altı veya yük alan detaylarda basınç dayanımı kritik hale gelir.\n5. **Sistem detayını bütün olarak çöz.** Yapıştırıcı, dübel, file, sıva ve su yalıtımıyla uyum sağlanmalıdır.\n6. **Şantiye depolamasını unutma.** Güneş altında bozulan veya suya maruz bırakılan levha, katalog performansını sahada koruyamaz.\n\n*Temel çevresinde doğru levhayı seçmek kadar, su yalıtımı ile arayüzü doğru çözmek de önemlidir.*"
       },
       {
         "id": "sayisal-ornek",
@@ -268,7 +268,7 @@
     "authorTitle": "Sürdürülebilir Tasarım Danışmanı",
     "date": "3 Ocak 2024",
     "readTime": "14 dk okuma",
-    "image": "/covers/surdurulebilirlik.svg",
+    "image": "/blog-images/green_building_architecture_1774081328177.png",
     "quote": {
       "text": "LEED ile BREEAM arasındaki fark, sadece puan tablosu farkı değildir; tasarım kararının ne zaman alındığına, ekip disiplininin ne kadar erken kurulduğuna ve verinin ne kadar iyi toplandığına dair bir proje yönetimi farkıdır."
     },
@@ -283,7 +283,7 @@
         "id": "teorik-temel",
         "title": "2. Teorik Temel ve Puanlama Mantığı",
         "subsections": [],
-        "content": "LEED, kredi bazlı ve performans göstergelerine dayalı bir sistemdir; proje her başlıkta belirli puanları toplayarak Certified, Silver, Gold veya Platinum seviyesine gider. BREEAM ise yine puanlı çalışır ancak kategorilerin ağırlıkları, minimum standartları ve yönetim odaklı yaklaşımı nedeniyle daha erken koordinasyon talep eder. İki sistem de enerjiyi merkezde tutsa da yalnızca enerji modeline indirgenemez; malzeme beyanları, su verisi, ulaşım bağlantıları, şantiye atık yönetimi ve kullanıcı sağlığı da puanı ciddi biçimde etkiler.\n\nTemel mantık şudur: Sertifika bir “ürün seçme” işi değildir, veri üreten kararlar zinciridir.\n\nToplam puan = tasarım kredileri + şantiye uygulama kredileri + işletme doğrulama kredileri\n\nBu nedenle sürdürülebilirlik danışmanının yalnız bırakıldığı projelerde sistem kağıt üzerinde kalır. Mekanik mühendisi enerji modelini, mimar kabuk performansını, inşaat mühendisi malzeme ve saha kayıtlarını, satın alma ekibi ise tedarik uygunluğunu aynı tabloda yönetmelidir. Türkiye’de sertifika hedefinin çoğu zaman malzeme aşamasında zorlaşmasının sebebi de budur: ilk tasarım kararları puan potansiyelini çoktan belirlemiştir."
+        "content": "![Görsel](/blog-images/green_building_professionals_1774081346785.png)\n\nLEED, kredi bazlı ve performans göstergelerine dayalı bir sistemdir; proje her başlıkta belirli puanları toplayarak Certified, Silver, Gold veya Platinum seviyesine gider. BREEAM ise yine puanlı çalışır ancak kategorilerin ağırlıkları, minimum standartları ve yönetim odaklı yaklaşımı nedeniyle daha erken koordinasyon talep eder. İki sistem de enerjiyi merkezde tutsa da yalnızca enerji modeline indirgenemez; malzeme beyanları, su verisi, ulaşım bağlantıları, şantiye atık yönetimi ve kullanıcı sağlığı da puanı ciddi biçimde etkiler.\n\nTemel mantık şudur: Sertifika bir “ürün seçme” işi değildir, veri üreten kararlar zinciridir.\n\nToplam puan = tasarım kredileri + şantiye uygulama kredileri + işletme doğrulama kredileri\n\nBu nedenle sürdürülebilirlik danışmanının yalnız bırakıldığı projelerde sistem kağıt üzerinde kalır. Mekanik mühendisi enerji modelini, mimar kabuk performansını, inşaat mühendisi malzeme ve saha kayıtlarını, satın alma ekibi ise tedarik uygunluğunu aynı tabloda yönetmelidir. Türkiye’de sertifika hedefinin çoğu zaman malzeme aşamasında zorlaşmasının sebebi de budur: ilk tasarım kararları puan potansiyelini çoktan belirlemiştir."
       },
       {
         "id": "yonetmelik-standart",
@@ -295,7 +295,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Türkiye’de Uygulama Adımları",
         "subsections": [],
-        "content": "1. **Hedef seviyeyi proje başında belirleyin.** Gold mu Excellent mı sorusu, cephe oranı ve mekanik sistem kararı verilmeden cevaplanmalıdır.\n2. **Kredi matrisi kurun.** Her kredi için sorumlu disiplin, teslim tarihi ve kanıt dokümanı baştan yazılmalıdır.\n3. **Ön fizibilite yapın.** Enerji modelinin potansiyel puanı, su ekipman listesi ve malzeme tedarik riskleri bir araya getirilmelidir.\n4. **Tasarım kararlarını kredi etkisine göre dondurun.** Kabuk U değeri, güneş kontrolü, taze hava, sayaç altyapısı ve malzeme şartnameleri tasarım paketine işlenmelidir.\n5. **Şantiye kayıt düzenini kurun.** Atık fişleri, malzeme beyanları, fotoğraflar ve test raporları sertifika dosyasına uygun formatta tutulmalıdır.\n6. **Commissioning ve teslim süreçlerini geciktirmeyin.** İşletmeye alma testleri sertifika puanının kritik bölümüdür; en sona bırakılırsa veri toplanamaz.\n\nSahada başarıyı belirleyen unsur çoğu zaman teknik zorluktan ziyade kayıt disiplinidir. Sertifika puanını kaybettiren pek çok başlık, yanlış uygulamadan değil doğru uygulamanın kanıtlanamamasından doğar."
+        "content": "![Görsel](/blog-images/sustainable_dashboard_1774081364477.png)\n\n1. **Hedef seviyeyi proje başında belirleyin.** Gold mu Excellent mı sorusu, cephe oranı ve mekanik sistem kararı verilmeden cevaplanmalıdır.\n2. **Kredi matrisi kurun.** Her kredi için sorumlu disiplin, teslim tarihi ve kanıt dokümanı baştan yazılmalıdır.\n3. **Ön fizibilite yapın.** Enerji modelinin potansiyel puanı, su ekipman listesi ve malzeme tedarik riskleri bir araya getirilmelidir.\n4. **Tasarım kararlarını kredi etkisine göre dondurun.** Kabuk U değeri, güneş kontrolü, taze hava, sayaç altyapısı ve malzeme şartnameleri tasarım paketine işlenmelidir.\n5. **Şantiye kayıt düzenini kurun.** Atık fişleri, malzeme beyanları, fotoğraflar ve test raporları sertifika dosyasına uygun formatta tutulmalıdır.\n6. **Commissioning ve teslim süreçlerini geciktirmeyin.** İşletmeye alma testleri sertifika puanının kritik bölümüdür; en sona bırakılırsa veri toplanamaz.\n\nSahada başarıyı belirleyen unsur çoğu zaman teknik zorluktan ziyade kayıt disiplinidir. Sertifika puanını kaybettiren pek çok başlık, yanlış uygulamadan değil doğru uygulamanın kanıtlanamamasından doğar."
       },
       {
         "id": "sayisal-ornek",
@@ -353,7 +353,7 @@
     "authorTitle": "Geoteknik Mühendisi",
     "date": "15 Şubat 2024",
     "readTime": "16 dk okuma",
-    "image": "/covers/araclar.svg",
+    "image": "/blog-images/deep_excavation_site_1774081378399.png",
     "quote": {
       "text": "İksa tasarımında en pahalı hata, zayıf sistemi seçmek değil; zeminin nasıl davranacağını anlamadan tek bir sistemi bütün sahaya ezbere uygulamaktır."
     },
@@ -368,7 +368,7 @@
         "id": "teorik-temel",
         "title": "2. Teorik Temel ve Davranış Çerçevesi",
         "subsections": [],
-        "content": "İksa sistemi, aktif toprak basıncı, su basıncı, sürşarj yükleri ve kazı aşamalarına bağlı rijitlik kaybının birlikte yönetildiği bir denge problemidir. Rijit bir diyafram duvar ile daha esnek bir fore kazık perde aynı basınç altında çok farklı yatay deplasman üretir. Bu yüzden tasarım sadece dayanım problemi değildir; servis performansı da eşit derecede önemlidir.\n\nKazı duvarı davranışı kabaca şu ilişkiyle okunur:\n\nYatay deplasman ~ zemin rijitliği, duvar rijitliği, ankraj seviyesi ve kazı aşaması fonksiyonudur.\n\nBu yaklaşım sahada şu anlama gelir: Aynı ankraj yükünü tasarlamak, komşu yapının aynı güvenlikte olacağı anlamına gelmez. Özellikle yumuşak kil, gevşek kum, yüksek su seviyesi ve yakın temel komşuluğu olan alanlarda deplasman kontrolü dayanımdan daha belirleyici hale gelebilir. Bu nedenle iksa seçimi, “hangi sistem ayakta kalır?” sorusundan çok “hangi sistem komşu yapıyı kabul edilebilir deplasman bandında tutar?” sorusuyla yapılmalıdır."
+        "content": "![Görsel](/blog-images/shoring_cross_section_1774081397979.png)\n\nİksa sistemi, aktif toprak basıncı, su basıncı, sürşarj yükleri ve kazı aşamalarına bağlı rijitlik kaybının birlikte yönetildiği bir denge problemidir. Rijit bir diyafram duvar ile daha esnek bir fore kazık perde aynı basınç altında çok farklı yatay deplasman üretir. Bu yüzden tasarım sadece dayanım problemi değildir; servis performansı da eşit derecede önemlidir.\n\nKazı duvarı davranışı kabaca şu ilişkiyle okunur:\n\nYatay deplasman ~ zemin rijitliği, duvar rijitliği, ankraj seviyesi ve kazı aşaması fonksiyonudur.\n\nBu yaklaşım sahada şu anlama gelir: Aynı ankraj yükünü tasarlamak, komşu yapının aynı güvenlikte olacağı anlamına gelmez. Özellikle yumuşak kil, gevşek kum, yüksek su seviyesi ve yakın temel komşuluğu olan alanlarda deplasman kontrolü dayanımdan daha belirleyici hale gelebilir. Bu nedenle iksa seçimi, “hangi sistem ayakta kalır?” sorusundan çok “hangi sistem komşu yapıyı kabul edilebilir deplasman bandında tutar?” sorusuyla yapılmalıdır."
       },
       {
         "id": "yonetmelik-standart",
@@ -380,7 +380,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Tasarım ve Saha Uygulama Adımları",
         "subsections": [],
-        "content": "1. **Zemin profilini tek değerle özetlemeyin.** Her tabaka için efektif parametre, drenaj koşulu ve beklenen davranış yazılmalıdır.\n2. **Kazı derinliği kadar komşu etkisini okuyun.** Bitişik nizam yapı, yol, altyapı ve bodrum kullanımı sistem seçiminde belirleyicidir.\n3. **Sistem alternatiflerini deplasman hedefiyle karşılaştırın.** En ekonomik çözüm, en küçük ilk maliyetli çözüm olmak zorunda değildir.\n4. **Aşamalı analiz yapın.** Ankraj, kuşak kirişi, kazı kademesi ve su düşürme sırası modele işlenmelidir.\n5. **Saha izleme planını projeyle birlikte yayınlayın.** Tasarımın kabulü, ölçüm altyapısı kurulmadan tamamlanmış sayılmamalıdır.\n6. **Alarm seviyelerini önceden tanımlayın.** Limit aşılırsa kazı durdurma, ek destek veya ankraj revizesi prosedürü yazılı olmalıdır.\n\nSahada en kritik nokta, kazının projede çizilen etap dışında ilerletilmemesidir. Bir kademe fazla kazı, ankraj gerilmeden bırakılan bir yüz ve drenaj yapılmayan taban, tasarımı anında geçersiz hale getirebilir."
+        "content": "![Görsel](/blog-images/installing_tiebacks_1774081413848.png)\n\n1. **Zemin profilini tek değerle özetlemeyin.** Her tabaka için efektif parametre, drenaj koşulu ve beklenen davranış yazılmalıdır.\n2. **Kazı derinliği kadar komşu etkisini okuyun.** Bitişik nizam yapı, yol, altyapı ve bodrum kullanımı sistem seçiminde belirleyicidir.\n3. **Sistem alternatiflerini deplasman hedefiyle karşılaştırın.** En ekonomik çözüm, en küçük ilk maliyetli çözüm olmak zorunda değildir.\n4. **Aşamalı analiz yapın.** Ankraj, kuşak kirişi, kazı kademesi ve su düşürme sırası modele işlenmelidir.\n5. **Saha izleme planını projeyle birlikte yayınlayın.** Tasarımın kabulü, ölçüm altyapısı kurulmadan tamamlanmış sayılmamalıdır.\n6. **Alarm seviyelerini önceden tanımlayın.** Limit aşılırsa kazı durdurma, ek destek veya ankraj revizesi prosedürü yazılı olmalıdır.\n\nSahada en kritik nokta, kazının projede çizilen etap dışında ilerletilmemesidir. Bir kademe fazla kazı, ankraj gerilmeden bırakılan bir yüz ve drenaj yapılmayan taban, tasarımı anında geçersiz hale getirebilir."
       },
       {
         "id": "sayisal-ornek",
@@ -438,7 +438,7 @@
     "authorTitle": "Yapı Mühendisliği Profesörü",
     "date": "20 Ocak 2024",
     "readTime": "17 dk okuma",
-    "image": "/covers/kolon-cover.png",
+    "image": "/blog-images/engineers_blueprints_1774081432947.png",
     "quote": {
       "text": "Ön boyutlandırma, nihai hesabın yerine geçmez; ama kötü bir kesiti daha model kurmadan elemek ve doğru taşıyıcı sistemi kurmak için en güçlü mühendislik filtresidir."
     },
@@ -447,13 +447,13 @@
         "id": "giris-kapsam",
         "title": "1. Giriş ve Kapsam",
         "subsections": [],
-        "content": "Kolon ön boyutlandırma, betonarme projede çoğu zaman “kabaca kesit seçmek” gibi görülür. Oysa bu aşama, taşıyıcı sistemin rijitlik dağılımını, mimariyle uyumunu, donatı yoğunluğunu ve deprem davranışını belirleyen ilk gerçek mühendislik kararlarından biridir. Model kurulduktan sonra kolon kesitini büyütmek kolay görünse de, bu değişiklik perde oranını, kiriş boyutunu, kalıp maliyetini ve mimari kullanılabilirliği zincirleme etkiler.\n\nBu yazı, dikdörtgen kolonlarda ön boyutlandırmanın nasıl yapılacağını; düşey yük seviyesi, kat adedi, aks açıklığı, deprem bölgesi ve süneklik beklentisi ışığında anlatır. Nihai tasarım için her zaman kapsamlı analiz gerekir; ancak iyi yapılmış bir ön boyutlandırma, hatalı şemayı ilk günden görmenizi sağlar.\n\nHedef okuyucu; konsept proje hazırlayan statik tasarımcı, sahada yoğun donatı yüzünden sorun yaşayan uygulama mühendisi ve kolon-kiriş-perde dengesini erken görmek isteyen genç mühendistir.\n\n![Kolon yük yolu şeması](/covers/kolon-yuk.png)\n*Kolon kesiti yalnız eksenel yük taşımaz; moment, ikinci mertebe etkisi ve düğüm bölgesi davranışı ile birlikte okunmalıdır.*"
+        "content": "Kolon ön boyutlandırma, betonarme projede çoğu zaman “kabaca kesit seçmek” gibi görülür. Oysa bu aşama, taşıyıcı sistemin rijitlik dağılımını, mimariyle uyumunu, donatı yoğunluğunu ve deprem davranışını belirleyen ilk gerçek mühendislik kararlarından biridir. Model kurulduktan sonra kolon kesitini büyütmek kolay görünse de, bu değişiklik perde oranını, kiriş boyutunu, kalıp maliyetini ve mimari kullanılabilirliği zincirleme etkiler.\n\nBu yazı, dikdörtgen kolonlarda ön boyutlandırmanın nasıl yapılacağını; düşey yük seviyesi, kat adedi, aks açıklığı, deprem bölgesi ve süneklik beklentisi ışığında anlatır. Nihai tasarım için her zaman kapsamlı analiz gerekir; ancak iyi yapılmış bir ön boyutlandırma, hatalı şemayı ilk günden görmenizi sağlar.\n\nHedef okuyucu; konsept proje hazırlayan statik tasarımcı, sahada yoğun donatı yüzünden sorun yaşayan uygulama mühendisi ve kolon-kiriş-perde dengesini erken görmek isteyen genç mühendistir.\n\n*Kolon kesiti yalnız eksenel yük taşımaz; moment, ikinci mertebe etkisi ve düğüm bölgesi davranışı ile birlikte okunmalıdır.*"
       },
       {
         "id": "teorik-temel",
         "title": "2. Teorik Temel ve Ön Boyutlandırma Mantığı",
         "subsections": [],
-        "content": "Kolon ön boyutlandırmada temel fikir, eksenel yük düzeyi ile kesit alanı arasında ilk bir uygunluk bandı kurmaktır. İlk yaklaşımda kolonun ortalama basınç gerilmesi sigma = N / A biçiminde okunabilir.\n\nBurada amaç nihai gerilmeyi bulmak değil, seçilen kesitin yük seviyesi karşısında makul bir başlangıç verip vermediğini görmektir. Fakat kolonlarda yalnız eksenel yük yoktur; deprem etkisiyle moment, eğrilik talebi, sarılma bölgesi davranışı ve güçlü kolon-zayıf kiriş ilkesi devreye girer. Bu nedenle ön boyutlandırma sadece basınç hesabına indirgenirse yanıltıcı olur.\n\nPratikte iyi bir ön boyutlandırma üç şeyi birlikte kontrol eder:\n- Kat yüksekliği ve aks açıklığına göre yeterli rijitlik\n- Mimariyi bozmadan donatı yerleşimine izin veren net kesit\n- Deprem etkileri altında makul donatı oranı ve birleşim bölgesi davranışı\n\nÖzellikle yüksek deprem talebi olan yapılarda çok küçük kesit seçmek, analizde çalışıyor gibi görünen ama düğüm bölgesinde ve etriye yoğunluğunda imal edilemeyen çözümler doğurur."
+        "content": "![Görsel](/blog-images/structural_frame_3d_1774081447633.png)\n\nKolon ön boyutlandırmada temel fikir, eksenel yük düzeyi ile kesit alanı arasında ilk bir uygunluk bandı kurmaktır. İlk yaklaşımda kolonun ortalama basınç gerilmesi sigma = N / A biçiminde okunabilir.\n\nBurada amaç nihai gerilmeyi bulmak değil, seçilen kesitin yük seviyesi karşısında makul bir başlangıç verip vermediğini görmektir. Fakat kolonlarda yalnız eksenel yük yoktur; deprem etkisiyle moment, eğrilik talebi, sarılma bölgesi davranışı ve güçlü kolon-zayıf kiriş ilkesi devreye girer. Bu nedenle ön boyutlandırma sadece basınç hesabına indirgenirse yanıltıcı olur.\n\nPratikte iyi bir ön boyutlandırma üç şeyi birlikte kontrol eder:\n- Kat yüksekliği ve aks açıklığına göre yeterli rijitlik\n- Mimariyi bozmadan donatı yerleşimine izin veren net kesit\n- Deprem etkileri altında makul donatı oranı ve birleşim bölgesi davranışı\n\nÖzellikle yüksek deprem talebi olan yapılarda çok küçük kesit seçmek, analizde çalışıyor gibi görünen ama düğüm bölgesinde ve etriye yoğunluğunda imal edilemeyen çözümler doğurur."
       },
       {
         "id": "yonetmelik-standart",
@@ -465,7 +465,7 @@
         "id": "uygulama-adimlari",
         "title": "4. Hesap Yöntemi ve Tasarım Adımları",
         "subsections": [],
-        "content": "1. **Tribütar alan ve kat yüklerini belirleyin.** Kolona gelen yaklaşık düşey yük ilk girdidir.\n2. **Sistem tipini okuyun.** Çerçeve sistemde kolon rijitliği daha kritik, perde ağırlıklı sistemde ise donatı düzeni ve birleşim davranışı daha belirleyici olabilir.\n3. **İlk kesit alanını seçin.** Kat adedi ve yük seviyesine göre 30x50, 40x60, 50x70 gibi başlangıç bandı belirlenir.\n4. **Ortalama gerilme ve narinlik kontrolü yapın.** Çok küçük kesitler ikinci mertebe etkilerini büyütür.\n5. **Yaklaşık donatı oranını hesaplayın.** Hedef genellikle imal edilebilir, aşırı sıkışmayan bir bandı yakalamaktır.\n6. **Birleşim bölgesi ve etriye uygulanabilirliğini kontrol edin.** Kağıt üstünde çalışan ama sahada demiri sığmayan kesit kabul edilemez.\n\n![Kolon donatı yerleşimi](/covers/kolon-donati.png)\n*Kesit seçimi, yalnız taşıma gücü değil beton dökülebilirliği ve vibratör erişimi açısından da değerlendirilmelidir.*"
+        "content": "1. **Tribütar alan ve kat yüklerini belirleyin.** Kolona gelen yaklaşık düşey yük ilk girdidir.\n2. **Sistem tipini okuyun.** Çerçeve sistemde kolon rijitliği daha kritik, perde ağırlıklı sistemde ise donatı düzeni ve birleşim davranışı daha belirleyici olabilir.\n3. **İlk kesit alanını seçin.** Kat adedi ve yük seviyesine göre 30x50, 40x60, 50x70 gibi başlangıç bandı belirlenir.\n4. **Ortalama gerilme ve narinlik kontrolü yapın.** Çok küçük kesitler ikinci mertebe etkilerini büyütür.\n5. **Yaklaşık donatı oranını hesaplayın.** Hedef genellikle imal edilebilir, aşırı sıkışmayan bir bandı yakalamaktır.\n6. **Birleşim bölgesi ve etriye uygulanabilirliğini kontrol edin.** Kağıt üstünde çalışan ama sahada demiri sığmayan kesit kabul edilemez.\n\n*Kesit seçimi, yalnız taşıma gücü değil beton dökülebilirliği ve vibratör erişimi açısından da değerlendirilmelidir.*"
       },
       {
         "id": "sayisal-ornek",
