@@ -1,72 +1,93 @@
 "use client";
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { Pie, PieChart, Cell, Tooltip } from "recharts";
 import type { CalculationResultSnapshot } from "@/lib/calculations/types";
 
-// Recharts Tooltip Customization
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0];
-    return (
-      <div className="rounded-lg border border-zinc-800 bg-[#111] px-3 py-2 shadow-xl">
-        <p className="mb-1 text-xs font-semibold text-zinc-300">{data.name}</p>
-        <p className="text-sm font-bold tabular-nums" style={{ color: data.payload.color }}>
-          {data.value.toLocaleString("tr-TR")} TL
-        </p>
-        <p className="text-[10px] text-zinc-500">%{data.payload.pct}</p>
-      </div>
-    );
+interface ChartDatum {
+  name: string;
+  value: number;
+  color: string;
+  pct: string;
+}
+
+interface TooltipPayloadItem {
+  name?: string;
+  value?: number;
+  payload: ChartDatum;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+}
+
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
   }
-  return null;
-};
+
+  const data = payload[0];
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-950">
+      <p className="mb-1 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+        {data.name}
+      </p>
+      <p className="text-sm font-bold tabular-nums" style={{ color: data.payload.color }}>
+        {(data.value ?? 0).toLocaleString("tr-TR")} TL
+      </p>
+      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">%{data.payload.pct}</p>
+    </div>
+  );
+}
 
 export function MaliyetChart({ snapshot }: { snapshot: CalculationResultSnapshot }) {
-  const data = [
+  const data: ChartDatum[] = [
     {
-      name: "Kaba İşler",
+      name: "Kaba Isler",
       value: snapshot.kabaIsToplamı,
-      color: "#3b82f6", // blue-500
+      color: "#0ea5e9",
       pct: (snapshot.kabaIsPct * 100).toFixed(1),
     },
     {
-      name: "İnce İşler",
+      name: "Ince Isler",
       value: snapshot.inceIsToplamı,
-      color: "#10b981", // emerald-500
+      color: "#10b981",
       pct: (snapshot.inceIsPct * 100).toFixed(1),
     },
     {
-      name: "Diğer Giderler",
+      name: "Diger Giderler",
       value: snapshot.digerToplamı,
-      color: "#a855f7", // purple-500
+      color: "#8b5cf6",
       pct: (snapshot.digerPct * 100).toFixed(1),
     },
-  ].filter(d => d.value > 0);
+  ].filter((item) => item.value > 0);
 
   return (
-    <div className="flex h-56 w-full items-center justify-center">
+    <div className="flex min-h-56 w-full items-center justify-center">
       {data.length > 0 ? (
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={75}
-              paddingAngle={2}
-              dataKey="value"
-              stroke="none"
-              cornerRadius={4}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "transparent" }} />
-          </PieChart>
-        </ResponsiveContainer>
+        <PieChart width={280} height={220}>
+          <Pie
+            data={data}
+            cx={140}
+            cy={110}
+            innerRadius={56}
+            outerRadius={78}
+            paddingAngle={2}
+            dataKey="value"
+            stroke="none"
+            cornerRadius={5}
+          >
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            cursor={{ fill: "transparent" }}
+            content={<CustomTooltip />}
+          />
+        </PieChart>
       ) : (
-        <span className="text-xs text-zinc-600">Veri hesaplanıyor...</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">Veri hesaplaniyor...</span>
       )}
     </div>
   );

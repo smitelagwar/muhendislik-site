@@ -50,18 +50,32 @@ export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<SearchItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const tools = useMemo(() => getLiveTools(), []);
   const deferredQuery = useDeferredValue(query);
+  const isLoading = isOpen && !hasLoaded && !loadFailed;
 
   useEffect(() => {
+    const openPalette = () => {
+      setLoadFailed(false);
+      setIsOpen(true);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setIsOpen((current) => !current);
+        setIsOpen((current) => {
+          const next = !current;
+
+          if (next) {
+            setLoadFailed(false);
+          }
+
+          return next;
+        });
       }
 
       if (event.key === "Escape") {
@@ -69,13 +83,12 @@ export function CommandPalette() {
       }
     };
 
-    const handleCustomOpen = () => setIsOpen(true);
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("open-command-palette", handleCustomOpen);
+    window.addEventListener("open-command-palette", openPalette);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("open-command-palette", handleCustomOpen);
+      window.removeEventListener("open-command-palette", openPalette);
     };
   }, []);
 
@@ -86,12 +99,11 @@ export function CommandPalette() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || hasLoaded || isLoading) {
+    if (!isOpen || hasLoaded || loadFailed) {
       return;
     }
 
     const controller = new AbortController();
-    setIsLoading(true);
 
     fetch("/api/articles?scope=search", { signal: controller.signal })
       .then((response) => {
@@ -105,7 +117,6 @@ export function CommandPalette() {
         startTransition(() => {
           setItems(payload);
           setHasLoaded(true);
-          setIsLoading(false);
         });
       })
       .catch((error) => {
@@ -114,11 +125,11 @@ export function CommandPalette() {
         }
 
         console.error("Command palette search load failed:", error);
-        setIsLoading(false);
+        setLoadFailed(true);
       });
 
     return () => controller.abort();
-  }, [hasLoaded, isLoading, isOpen]);
+  }, [hasLoaded, isOpen, loadFailed]);
 
   const filteredArticles = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -203,7 +214,8 @@ export function CommandPalette() {
                     <Command className="h-4 w-4 text-zinc-300 transition-colors group-hover:text-zinc-500" />
                   </button>
                 ))}
-                {!isLoading && filteredArticles.length === 0 ? <div className="p-10 text-center text-sm italic text-zinc-500">Eslesen sonuc bulunamadi.</div> : null}
+                {loadFailed ? <div className="p-6 text-sm text-zinc-500">Arama dizini yuklenemedi. Tekrar deneyin.</div> : null}
+                {!isLoading && !loadFailed && filteredArticles.length === 0 ? <div className="p-10 text-center text-sm italic text-zinc-500">Eslesen sonuc bulunamadi.</div> : null}
               </div>
 
               <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">

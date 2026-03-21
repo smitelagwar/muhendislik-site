@@ -167,8 +167,8 @@ function auditMainArticles() {
 
 async function auditGuides() {
   const errors = [];
-  const module = await import(new URL("../src/lib/bina-asamalari-content/index.ts", import.meta.url));
-  const { getAllBinaGuidePaths, getBinaGuideBySlugPath } = module;
+  const contentModule = await import(new URL("../src/lib/bina-asamalari-content/index.ts", import.meta.url));
+  const { getAllBinaGuidePaths, getBinaGuideBySlugPath } = contentModule;
 
   for (const slugPath of getAllBinaGuidePaths()) {
     const guide = getBinaGuideBySlugPath(slugPath);

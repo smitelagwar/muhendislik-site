@@ -273,11 +273,16 @@
   color: #bfdbfe;
 }
 
+.print-hidden {
+  display: initial;
+}
+
 @media print {
   header,
   footer,
   .no-print,
-  .fixed {
+  .fixed,
+  .print-hidden {
     display: none !important;
   }
 
@@ -289,5 +294,17 @@
   main {
     max-width: 100% !important;
     padding: 0 !important;
+  }
+
+  .tool-page-shell,
+  .tool-panel,
+  .tool-result-panel,
+  .tool-result-inner,
+  .tool-note,
+  .tool-formula-card {
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    border-color: #d1d5db !important;
   }
 }

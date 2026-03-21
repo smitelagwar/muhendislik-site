@@ -8,6 +8,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
+    { pathname: "/hesaplamalar", changeFrequency: "weekly" as const, priority: 0.85 },
+    { pathname: "/hesaplamalar/insaat-maliyeti", changeFrequency: "weekly" as const, priority: 0.82 },
+    { pathname: "/hesaplamalar/resmi-birim-maliyet-2026", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/araclar", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/bina-asamalari", changeFrequency: "weekly" as const, priority: 0.75 },
     { pathname: "/kategori/araclar/donati-hesabi", changeFrequency: "monthly" as const, priority: 0.7 },

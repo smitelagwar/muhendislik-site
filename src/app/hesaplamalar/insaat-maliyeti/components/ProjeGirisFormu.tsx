@@ -1,137 +1,157 @@
 "use client";
 
-import { RotateCcw, Zap } from "lucide-react";
+import { Building2, RotateCcw, Zap } from "lucide-react";
 import type { CalculationResultSnapshot, ProjectProfile } from "@/lib/calculations/types";
+import { formatM2Fiyat, formatTL } from "@/lib/calculations/core";
 import { PRESETS } from "@/lib/calculations/presets";
-import { formatTL, formatM2Fiyat } from "@/lib/calculations/core";
 
 interface Props {
-  project:       ProjectProfile;
-  snapshot:      CalculationResultSnapshot;
-  onUpdate:      (p: Partial<ProjectProfile>) => void;
+  project: ProjectProfile;
+  snapshot: CalculationResultSnapshot;
+  onUpdate: (payload: Partial<ProjectProfile>) => void;
   onApplyPreset: (id: string) => void;
-  onReset:       () => void;
+  onReset: () => void;
 }
 
 const YAPI_TURLERI: { value: ProjectProfile["yapiTuru"]; label: string }[] = [
-  { value: "villa",    label: "Villa" },
-  { value: "mustakil",label: "Müstakil Ev" },
+  { value: "villa", label: "Villa" },
+  { value: "mustakil", label: "Mustakil Ev" },
   { value: "apartman", label: "Apartman" },
-  { value: "ticari",   label: "Ticari" },
+  { value: "ticari", label: "Ticari" },
 ];
 
-const KALİTE_SEVİYELERİ: { value: ProjectProfile["kaliteSeviyesi"]; label: string; pct: string }[] = [
-  { value: "ekonomik", label: "Ekonomik", pct: "×0.80" },
-  { value: "orta",     label: "Orta",     pct: "×1.00" },
-  { value: "ust",      label: "Üst Segment", pct: "×1.25" },
-  { value: "luks",     label: "Lüks",     pct: "×1.60" },
+const KALITE_SEVIYELERI: { value: ProjectProfile["kaliteSeviyesi"]; label: string; pct: string }[] = [
+  { value: "ekonomik", label: "Ekonomik", pct: "x0.80" },
+  { value: "orta", label: "Orta", pct: "x1.00" },
+  { value: "ust", label: "Ust Segment", pct: "x1.25" },
+  { value: "luks", label: "Luks", pct: "x1.60" },
 ];
 
-export function ProjeGirisFormu({ project, snapshot, onUpdate, onApplyPreset, onReset }: Props) {
+function clampNumber(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+
+  return Math.min(max, Math.max(min, value));
+}
+
+export function ProjeGirisFormu({
+  project,
+  snapshot,
+  onUpdate,
+  onApplyPreset,
+  onReset,
+}: Props) {
   return (
-    <div className="mb-8 space-y-6">
-
-      {/* ── PRESET SEÇİCİ ── */}
+    <div className="space-y-6">
       <div>
-        <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-zinc-500">
-          Hızlı Başlangıç
+        <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+          Hizli Baslangic
         </p>
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map(p => (
+          {PRESETS.map((preset) => (
             <button
-              key={p.id}
-              id={`preset-${p.id}`}
-              onClick={() => onApplyPreset(p.id)}
-              className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all duration-150 ${
-                project.presetId === p.id
-                  ? "border-amber-500/60 bg-amber-500/10 text-amber-400"
-                  : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+              key={preset.id}
+              type="button"
+              onClick={() => onApplyPreset(preset.id)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                project.presetId === preset.id
+                  ? "border-amber-500/60 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                  : "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-600"
               }`}
             >
               <Zap className="h-3.5 w-3.5" />
-              {p.label}
+              {preset.label}
             </button>
           ))}
           <button
-            id="reset-button"
+            type="button"
             onClick={onReset}
-            className="flex items-center gap-2 rounded-lg border border-zinc-800 px-3.5 py-2 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-700 hover:text-zinc-400"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-600"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Sıfırla
+            Sifirla
           </button>
         </div>
       </div>
 
-      {/* ── PROJE BİLGİLERİ ── */}
-      <div className="rounded-xl border border-zinc-800 bg-[#111] p-6">
-        <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-amber-500">
-          Proje Genel Bilgileri
-        </h2>
+      <div className="rounded-[28px] border border-zinc-200/80 bg-white/88 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/75">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-300">
+            <Building2 className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
+              Proje Genel Bilgileri
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Temel proje girdileri ve ticari varsayimlar
+            </p>
+          </div>
+        </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-
-          {/* Yapı Türü */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="yapi-turu">
-              Yapı Türü
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="yapi-turu">
+              Yapi Turu
             </label>
             <select
               id="yapi-turu"
               value={project.yapiTuru}
-              onChange={e => onUpdate({ yapiTuru: e.target.value as ProjectProfile["yapiTuru"] })}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              onChange={(event) =>
+                onUpdate({ yapiTuru: event.target.value as ProjectProfile["yapiTuru"] })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             >
-              {YAPI_TURLERI.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+              {YAPI_TURLERI.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* İnşaat Alanı */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="insaat-alani">
-              Toplam İnşaat Alanı (m²)
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="insaat-alani">
+              Insaat Alani (m2)
             </label>
             <input
               id="insaat-alani"
               type="number"
               min={1}
-              max={100000}
+              step={1}
               value={project.insaatAlani}
-              onChange={e => {
-                const v = parseFloat(e.target.value);
-                if (!isNaN(v) && v > 0) onUpdate({ insaatAlani: v });
-                else if (e.target.value === "") onUpdate({ insaatAlani: 0 });
-              }}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              onChange={(event) =>
+                onUpdate({
+                  insaatAlani: clampNumber(Number.parseFloat(event.target.value), 1, 1_000_000),
+                })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             />
           </div>
 
-          {/* Kat Adedi */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="kat-adedi">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kat-adedi">
               Kat Adedi
             </label>
             <input
               id="kat-adedi"
               type="number"
               min={1}
-              max={40}
+              max={80}
               value={project.katAdedi}
-              onChange={e => {
-                const v = parseInt(e.target.value);
-                if (!isNaN(v) && v >= 1) onUpdate({ katAdedi: v });
-                else if (e.target.value === "") onUpdate({ katAdedi: 1 });
-              }}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              onChange={(event) =>
+                onUpdate({
+                  katAdedi: clampNumber(Number.parseInt(event.target.value, 10), 1, 80),
+                })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             />
           </div>
 
-          {/* Bağımsız Bölüm Sayısı */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="bagimsiz-bolum">
-              Bağımsız Bölüm Sayısı
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="bagimsiz-bolum">
+              Bagimsiz Bolum
             </label>
             <input
               id="bagimsiz-bolum"
@@ -139,55 +159,111 @@ export function ProjeGirisFormu({ project, snapshot, onUpdate, onApplyPreset, on
               min={1}
               max={500}
               value={project.bagimsizBolumSayisi}
-              onChange={e => {
-                const v = parseInt(e.target.value);
-                if (!isNaN(v) && v >= 1) onUpdate({ bagimsizBolumSayisi: v });
-                else if (e.target.value === "") onUpdate({ bagimsizBolumSayisi: 1 });
-              }}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              onChange={(event) =>
+                onUpdate({
+                  bagimsizBolumSayisi: clampNumber(Number.parseInt(event.target.value, 10), 1, 500),
+                })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             />
           </div>
+        </div>
+      </div>
 
-          {/* Kalite Seviyesi */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="kalite">
-              İnşaat Kalitesi
+      <div className="rounded-[28px] border border-zinc-200/80 bg-white/88 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/75">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-200">
+              Ticari Carpanlar ve Kalite
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Kalite seviyesi, muteahhit kari ve KDV etkisi
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kalite">
+              Insaat Kalitesi
             </label>
             <select
               id="kalite"
               value={project.kaliteSeviyesi}
-              onChange={e => onUpdate({ kaliteSeviyesi: e.target.value as ProjectProfile["kaliteSeviyesi"] })}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none"
+              onChange={(event) =>
+                onUpdate({
+                  kaliteSeviyesi: event.target.value as ProjectProfile["kaliteSeviyesi"],
+                })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             >
-              {KALİTE_SEVİYELERİ.map(k => (
-                <option key={k.value} value={k.value}>
-                  {k.label} ({k.pct})
+              {KALITE_SEVIYELERI.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label} ({item.pct})
                 </option>
               ))}
             </select>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kar-marji">
+              Muteahhit Kari
+            </label>
+            <select
+              id="kar-marji"
+              value={project.muteahhitKariPct}
+              onChange={(event) =>
+                onUpdate({ muteahhitKariPct: Number.parseFloat(event.target.value) })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+            >
+              <option value={0}>Sadece maliyet (%0)</option>
+              <option value={0.1}>%10</option>
+              <option value={0.15}>%15 (sektor ort.)</option>
+              <option value={0.2}>%20</option>
+              <option value={0.25}>%25</option>
+              <option value={0.35}>%35</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kdv-orani">
+              KDV Orani
+            </label>
+            <select
+              id="kdv-orani"
+              value={project.kdvOraniPct}
+              onChange={(event) =>
+                onUpdate({ kdvOraniPct: Number.parseFloat(event.target.value) })
+              }
+              className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+            >
+              <option value={0}>KDV haric</option>
+              <option value={0.01}>%1</option>
+              <option value={0.1}>%10</option>
+              <option value={0.2}>%20</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* ── MINI ÖZET (proje giriş altında) ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white/82 p-4 dark:border-zinc-800 dark:bg-zinc-950/70">
         {[
-          { label: "Toplam Maliyet", value: formatTL(snapshot.genelToplam) },
-          { label: "m² Başına",      value: formatM2Fiyat(snapshot.m2BasinaFiyat) },
-          { label: "Kaba İş",        value: formatTL(snapshot.kabaIsToplamı) },
-          { label: "İnce İş",        value: formatTL(snapshot.inceIsToplamı) },
-        ].map(item => (
-          <div
-            key={item.label}
-            className="rounded-lg border border-zinc-800 bg-[#0d0d0d] px-4 py-3"
-          >
-            <p className="mb-0.5 text-xs text-zinc-600">{item.label}</p>
-            <p className="text-sm font-bold text-amber-400">{item.value}</p>
+          { label: "Maliyet", value: formatTL(snapshot.genelToplam) },
+          { label: "m2 Birim", value: formatM2Fiyat(snapshot.m2BasinaFiyat) },
+          { label: "Bolum Basina", value: formatTL(snapshot.bolumBasinaFiyat) },
+          { label: "Satis Fiyati", value: formatTL(snapshot.anahtarTeslimSatisFiyati) },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-900">
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              {item.label}
+            </div>
+            <div className="mt-1 text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+              {item.value}
+            </div>
           </div>
         ))}
       </div>
-
     </div>
   );
 }

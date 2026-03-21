@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 
@@ -58,7 +59,7 @@ const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
 for (const key of Object.keys(data)) {
     const post = data[key];
-    
+
     // Remove old images from content
     for (const section of post.sections) {
         section.content = section.content.replace(/!\[.*?\]\(\/covers\/.*?\)\n*/g, '');
@@ -66,7 +67,7 @@ for (const key of Object.keys(data)) {
 
     if (mapping[post.slug]) {
         const images = mapping[post.slug];
-        
+
         // Update cover
         if (images[0]) {
             post.image = '/blog-images/' + images[0];

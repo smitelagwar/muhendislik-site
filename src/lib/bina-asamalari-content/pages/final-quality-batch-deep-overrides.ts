@@ -1,17 +1,9 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
-import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideSource, BinaGuideTool } from "../types";
+import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
 
 const FINISH_FINAL_SOURCES = [...BRANCH_SOURCE_LEDGER["ince-isler"]];
 const MEP_FINAL_SOURCES = [...BRANCH_SOURCE_LEDGER["tesisat-isleri"]];
 const PROJECT_FINAL_SOURCES = [...BRANCH_SOURCE_LEDGER["proje-hazirlik"]];
-
-const ELEKTRIK_IC_TESISLERI_SOURCE: BinaGuideSource = {
-  title: "Elektrik Ic Tesisleri Yonetmeligi",
-  shortCode: "Elektrik Ic Tesisleri Yonetmeligi",
-  type: "regulation",
-  url: "https://www.mevzuat.gov.tr/",
-  note: "Elektrik ic tesislerinde koruma, kablolama ve uygulama sinirlari icin resmi mevzuat kaynagidir.",
-};
 
 const FINISH_FINAL_TOOLS: BinaGuideTool[] = [
   { category: "Detay", name: "Mahal bitis matrisi ve detay paftalari", purpose: "Siva, zemin, duvar ve dograma kararlarini ayni finish dilinde toplamak." },

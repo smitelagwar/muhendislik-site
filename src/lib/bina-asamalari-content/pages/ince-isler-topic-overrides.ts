@@ -1,5 +1,5 @@
 import { BRANCH_SOURCE_LEDGER, SOURCE_LEDGER } from "../source-ledger";
-import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../types";
+import type { BinaGuidePageSpec } from "../types";
 
 const INCE_TOPIC_OVERRIDE_SOURCES = [...BRANCH_SOURCE_LEDGER["ince-isler"]];
 

@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
-import dynamic from "next/dynamic";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/footer";
+import { GlobalOverlays } from "@/components/global-overlays";
 import { Navbar } from "@/components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast-provider";
@@ -16,10 +16,6 @@ import {
   resolveSiteUrl,
 } from "@/lib/site-config";
 import "./globals.css";
-
-const CommandPalette = dynamic(() => import("@/components/command-palette").then((module) => module.CommandPalette));
-const BackToTop = dynamic(() => import("@/components/back-to-top").then((module) => module.BackToTop));
-const BottomNav = dynamic(() => import("@/components/bottom-nav").then((module) => module.BottomNav));
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-sans",
@@ -98,10 +94,8 @@ export default function RootLayout({
               <Navbar />
               <div className="flex-grow">{children}</div>
               <Footer />
-              <BottomNav />
             </div>
-            <BackToTop />
-            <CommandPalette />
+            <GlobalOverlays />
           </ToastProvider>
         </ThemeProvider>
         <Toaster position="top-center" richColors />

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { AuthModal } from "@/components/auth-modal";
+
+const AuthModal = dynamic(() => import("@/components/auth-modal").then((module) => module.AuthModal), { ssr: false });
 
 export function AuthTrigger() {
   const [isOpen, setIsOpen] = useState(false);

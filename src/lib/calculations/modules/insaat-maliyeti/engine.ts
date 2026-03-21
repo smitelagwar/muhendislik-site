@@ -23,7 +23,6 @@ import type {
   CategoryInputs,
   CategoryResult,
   CatiInput,
-  CompositeCategoryKey,
   DisCepheInput,
   DuvarInput,
   ElektrikAlcipanInput,
@@ -69,7 +68,8 @@ export function calcBetonDemir(
 
   // Beton
   const temelHacim  = temelAlani * input.temelKalinligi;
-  const kolonHacim  = input.kolonPerdeBetonHacmi ?? proj.insaatAlani * 0.065;
+  const kolonHacim =
+    input.kolonPerdeBetonHacmi ?? proj.insaatAlani * Math.max(proj.katAdedi, 1) * 0.065;
   const dosemeHacim = proj.insaatAlani * betonHacmiKatsayisi(input.dosemeTipi);
   const toplamBeton = temelHacim + kolonHacim + dosemeHacim;
 
@@ -520,12 +520,14 @@ export function calcPencereKapi(
       { id: "dograma-mtul", label: "Doğrama Profil Uzunluğu", birim: "mtul", miktar: dogramaMtul, kaynak: "otomatik", varsayim: "İnşaat alanı × 0.55" },
       { id: "cam-alan",     label: "Cam Alanı",               birim: "m2",   miktar: camAlani,    kaynak: "otomatik" },
       { id: "oda-kapi",     label: "Oda Kapısı Adedi",        birim: "adet", miktar: odaKapiAdet, kaynak: "otomatik" },
+      { id: "bina-giris-kapi", label: "Bina Giriş Kapısı", birim: "adet", miktar: input.binaGirisKapisi ? 1 : 0, kaynak: "manuel" },
     ],
     costLines: [
       { id: "dograma",    label: "Doğrama",           malzemeMaliyeti: dogramaMalz,  iscilikMaliyeti: 0, altToplam: dogramaMalz,  kaynak: "otomatik" },
       { id: "cam",        label: "Cam",               malzemeMaliyeti: camMalz,      iscilikMaliyeti: 0, altToplam: camMalz,      kaynak: "otomatik" },
       { id: "daire-kapi", label: "Daire Kapısı",      malzemeMaliyeti: daireKapiMalz,iscilikMaliyeti: 0, altToplam: daireKapiMalz, kaynak: "otomatik" },
       { id: "oda-kapi",   label: "Oda Kapısı",        malzemeMaliyeti: odaKapiMalz,  iscilikMaliyeti: 0, altToplam: odaKapiMalz,  kaynak: "otomatik" },
+      { id: "bina-giris-kapi", label: "Bina Giriş Kapısı", malzemeMaliyeti: girisKapiMalz, iscilikMaliyeti: 0, altToplam: girisKapiMalz, kaynak: "otomatik" },
       { id: "aksesuar",   label: "Aksesuar + Pervaz", malzemeMaliyeti: aksesuarMalz + pervazMalz, iscilikMaliyeti: 0, altToplam: aksesuarMalz + pervazMalz, kaynak: "otomatik" },
     ],
     varsayimlar: [`Doğrama: ${input.dogramaTipi.toUpperCase()}`, `Cam: ${input.camTuru}`, `Daire kapı: ${input.daireDiskKapiTipi}`],
@@ -582,7 +584,7 @@ export function calcElektrikAlcipan(
   const elektrikMalz = proj.bagimsizBolumSayisi * resolvePrice("elektrikBolumBasi", layer);
 
   const ktpMtul  = input.kartonpiyerMtul ?? proj.insaatAlani * 0.55;
-  const ktpMalz  = ktpMtul * resolvePrice("kartonpiyer", layer);
+  const ktpMalz  = input.kartonpiyerVarMi ? ktpMtul * resolvePrice("kartonpiyer", layer) : 0;
 
   const alpAlani = input.alcipanAlani ?? proj.insaatAlani * 0.42;
   const alpMalz  = alpAlani * resolvePrice("alcipan", layer);
@@ -627,7 +629,7 @@ export function calcKamuSabit(
   const bayindirlik = input.bayindirlikBirimM2 ?? resolvePrice("bayindirlikBirimM2", layer);
   const denetimOrani = input.yapiDenetimOrani ?? resolvePrice("yapiDenetimOrani", layer);
   const denetimBedeli = proj.insaatAlani * bayindirlik * denetimOrani;
-  const ruhsatHarci  = proj.insaatAlani * bayindirlik * 0.0015;
+  const ruhsatHarci  = input.ruhsatHarci ? proj.insaatAlani * bayindirlik * 0.0015 : 0;
 
   const enerjiBelgesi = input.enerjiBelgesi ? 3_500    : 0;
   const zeminEtudu    = input.zeminEtudu    ? 28_000   : 0;
@@ -646,7 +648,7 @@ export function calcKamuSabit(
     ],
     costLines: [
       { id: "denetim",    label: "Yapı Denetim Bedeli",  malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: denetimBedeli, kaynak: "otomatik" },
-      { id: "ruhsat",     label: "Ruhsat Harcı",         malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: ruhsatHarci,   kaynak: "otomatik" },
+      { id: "ruhsat",     label: "Ruhsat Harcı",         malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: ruhsatHarci,   kaynak: input.ruhsatHarci ? "otomatik" : "manuel" },
       { id: "enerji",     label: "Enerji Kimlik Belgesi",malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: enerjiBelgesi, kaynak: "otomatik" },
       { id: "zemin",      label: "Zemin Etüdü",          malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: zeminEtudu,    kaynak: "otomatik" },
       { id: "akustik",    label: "Akustik Rapor",        malzemeMaliyeti: 0, iscilikMaliyeti: 0, altToplam: akustikRapor,  kaynak: "otomatik" },
@@ -692,9 +694,18 @@ export function buildSnapshot(
   const genelToplam   = kabaIsToplamı + inceIsToplamı + digerToplamı;
   const safe          = genelToplam > 0 ? genelToplam : 1;
 
+  // Yeni ticari (Faz 2) hesaplamalar
+  const muteahhitKariTutari = genelToplam * (proj.muteahhitKariPct || 0);
+  const altTutarKarli = genelToplam + muteahhitKariTutari;
+  const kdvTutari = altTutarKarli * (proj.kdvOraniPct || 0);
+  const anahtarTeslimSatisFiyati = altTutarKarli + kdvTutari;
+
+  const m2BasinaFiyat = genelToplam / Math.max(proj.insaatAlani, 1);
+  const bolumBasinaFiyat = proj.bagimsizBolumSayisi > 0 ? (genelToplam / proj.bagimsizBolumSayisi) : 0;
+
   return {
     timestamp:       new Date().toISOString(),
-    priceDate:       "Mart 2025",
+    priceDate:       "Mart 2026",
     presetId:        proj.presetId,
     project:         proj,
     categories,
@@ -702,8 +713,11 @@ export function buildSnapshot(
     inceIsToplamı,
     digerToplamı,
     genelToplam,
-    m2BasinaFiyat:     genelToplam / Math.max(proj.insaatAlani, 1),
-    bolumBasinaFiyat:  proj.bagimsizBolumSayisi > 0 ? genelToplam / proj.bagimsizBolumSayisi : genelToplam,
+    muteahhitKariTutari,
+    kdvTutari,
+    anahtarTeslimSatisFiyati,
+    m2BasinaFiyat,
+    bolumBasinaFiyat,
     kabaIsPct:  kabaIsToplamı / safe,
     inceIsPct:  inceIsToplamı / safe,
     digerPct:   digerToplamı  / safe,
@@ -767,11 +781,13 @@ export function buildDefaultInputs(proj: ProjectProfile): CategoryInputs {
       supurgelik: true,
     },
     elektrikAlcipan: {
+      kartonpiyerVarMi: true,
       goruntuluyDiyafon: true,
       kameraSistemi:     isApartman,
       jenerator:        "yok",
     },
     kamuSabit: {
+      ruhsatHarci:   true,
       enerjiBelgesi: true,
       zeminEtudu:    true,
       akustikRapor:  isApartman && proj.katAdedi >= 6,

@@ -35,6 +35,8 @@ export interface ProjectProfile {
   katAdedi: number;           // 1–20
   bagimsizBolumSayisi: number;
   kaliteSeviyesi: KaliteSeviyesi;
+  muteahhitKariPct: number;   // e.g. 0.15 for %15
+  kdvOraniPct: number;        // e.g. 0.20 for %20
   presetId?: string;          // hangi preset uygulandıysa
 }
 
@@ -284,6 +286,11 @@ export interface CalculationResultSnapshot {
   digerToplamı: number;
   genelToplam: number;
 
+  // Ticari (Faz 2) Eklemeleri
+  muteahhitKariTutari: number;
+  kdvTutari: number;
+  anahtarTeslimSatisFiyati: number;
+
   // Türetilmiş metrikler
   m2BasinaFiyat: number;
   bolumBasinaFiyat: number;
@@ -379,6 +386,7 @@ export interface ParkKaplamaInput {
 
 export interface ElektrikAlcipanInput {
   kartonpiyerMtul?: number;
+  kartonpiyerVarMi: boolean;
   alcipanAlani?: number;
   goruntuluyDiyafon: boolean;
   kameraSistemi: boolean;
@@ -388,6 +396,7 @@ export interface ElektrikAlcipanInput {
 export interface KamuSabitInput {
   bayindirlikBirimM2?: number;   // default: fiyat kitabındaki değer
   yapiDenetimOrani?: number;     // default: 0.0158
+  ruhsatHarci: boolean;
   enerjiBelgesi: boolean;
   zeminEtudu: boolean;
   akustikRapor: boolean;

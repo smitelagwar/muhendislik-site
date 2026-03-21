@@ -43,7 +43,14 @@ function Num({ id, value, onChange, min = 0, max = 999999 }: {
 }) {
   return (
     <input id={id} type="number" min={min} max={max} value={value}
-      onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) onChange(v); }}
+      onChange={e => {
+        if (e.target.value === "") {
+          onChange(min);
+          return;
+        }
+        const v = parseFloat(e.target.value);
+        if (!isNaN(v)) onChange(Math.min(max, Math.max(min, v)));
+      }}
       className={inputCls} />
   );
 }
@@ -432,6 +439,8 @@ export function ElektrikAlcipanForm({
         </Field>
       </Row>
       <div className="flex flex-wrap gap-3">
+        <CheckRow id="kartonpiyer-var" label="Kartonpiyer Uygulansin"
+          checked={input.kartonpiyerVarMi} onChange={v => onChange({ kartonpiyerVarMi: v })} />
         <CheckRow id="diyafon" label="Görüntülü Diyafon"
           checked={input.goruntuluyDiyafon} onChange={v => onChange({ goruntuluyDiyafon: v })} />
         <CheckRow id="kamera" label="Kamera Sistemi"
@@ -464,6 +473,8 @@ export function KamuSabitForm({
         </Field>
       </Row>
       <div className="flex flex-wrap gap-3">
+        <CheckRow id="ruhsat-harci" label="Ruhsat Harci"
+          checked={input.ruhsatHarci} onChange={v => onChange({ ruhsatHarci: v })} />
         <CheckRow id="enerji-bel" label="Enerji Kimlik Belgesi"
           checked={input.enerjiBelgesi} onChange={v => onChange({ enerjiBelgesi: v })} />
         <CheckRow id="zemin-et" label="Zemin Etüdü"
