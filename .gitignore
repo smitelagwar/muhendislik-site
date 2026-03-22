@@ -43,6 +43,7 @@ next-env.d.ts
 
 # local helper content / generated artifacts
 .agent/
+eklediklerim/
 get-shit-done/
 -EKLEDİKLERİM/
 .tmp/

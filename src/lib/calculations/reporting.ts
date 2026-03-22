@@ -1128,6 +1128,129 @@ export function createEstimatedConstructionAreaPdfDocument(
   return pdf;
 }
 
+function drawConstructionCostTitleBlock(
+  pdf: jsPDF,
+  snapshot: PdfExportSnapshot,
+  y: number
+): number {
+  setText(pdf, COLORS.officialBlue);
+  setFont(pdf, "bold");
+  pdf.setFontSize(22);
+  pdf.text(normalizePdfText(snapshot.title), OFFICIAL_MARGIN, y);
+
+  setText(pdf, COLORS.body);
+  setFont(pdf);
+  pdf.setFontSize(10.2);
+  pdf.text(
+    pdf.splitTextToSize(normalizePdfText(snapshot.subtitle), pdf.internal.pageSize.getWidth() - OFFICIAL_MARGIN * 2),
+    OFFICIAL_MARGIN,
+    y + 6.5
+  );
+
+  return y + 12;
+}
+
+function drawConstructionCostMetricGrid(
+  pdf: jsPDF,
+  snapshot: PdfExportSnapshot,
+  y: number
+): number {
+  const width = pdf.internal.pageSize.getWidth() - OFFICIAL_MARGIN * 2;
+  const cardGap = 6;
+  const cardWidth = (width - cardGap) / 2;
+  const metrics = snapshot.highlights.slice(0, 4).map((highlight) => ({
+    label: highlight.label,
+    value: highlight.value,
+  }));
+
+  metrics.forEach((metric, index) => {
+    const row = Math.floor(index / 2);
+    const col = index % 2;
+    const x = OFFICIAL_MARGIN + col * (cardWidth + cardGap);
+    const top = y + row * (24 + cardGap);
+    drawOfficialMetricCard(pdf, x, top, cardWidth, metric.label, metric.value);
+  });
+
+  return y + 24 * 2 + cardGap;
+}
+
+function sectionRowsToLines(section: PdfExportSection | undefined, limit = 6): string[] {
+  if (!section) {
+    return [];
+  }
+
+  return section.rows.slice(0, limit).map((row) => `${row.label}: ${row.value}`);
+}
+
+export function createConstructionCostPdfDocument(snapshot: PdfExportSnapshot): jsPDF {
+  const pdf = createPdfDocument();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const contentWidth = pageWidth - OFFICIAL_MARGIN * 2;
+  const summaryWidth = 108;
+  const sideWidth = contentWidth - summaryWidth - OFFICIAL_GAP;
+  const projectSection = snapshot.sections[0];
+  const breakdownSection = snapshot.sections[1];
+  const topItemsSection = snapshot.sections[2];
+  const driversSection = snapshot.sections[3];
+  const comparisonSection = snapshot.sections[4];
+
+  drawOfficialPaperBackground(pdf);
+  drawOfficialBrandBlock(pdf, OFFICIAL_MARGIN, 16);
+  drawOfficialDateCard(pdf, pageWidth - OFFICIAL_MARGIN - 54, 14, 54, snapshot.generatedAt);
+
+  let y = drawConstructionCostTitleBlock(pdf, snapshot, 42);
+  y = drawConstructionCostMetricGrid(pdf, snapshot, y);
+  y += OFFICIAL_GAP;
+
+  const summaryBottom = drawOfficialSummaryCard(
+    pdf,
+    OFFICIAL_MARGIN,
+    y,
+    summaryWidth,
+    projectSection?.rows ?? []
+  );
+  const breakdownBottom = drawOfficialInfoCard(
+    pdf,
+    OFFICIAL_MARGIN + summaryWidth + OFFICIAL_GAP,
+    y,
+    sideWidth,
+    breakdownSection?.title ?? "Maliyet kırılımı",
+    sectionRowsToLines(breakdownSection, 4)
+  );
+  const topItemsBottom = drawOfficialInfoCard(
+    pdf,
+    OFFICIAL_MARGIN + summaryWidth + OFFICIAL_GAP,
+    breakdownBottom + OFFICIAL_GAP,
+    sideWidth,
+    topItemsSection?.title ?? "En yüksek maliyet kalemleri",
+    sectionRowsToLines(topItemsSection, 4)
+  );
+
+  const lowerY = Math.max(summaryBottom, topItemsBottom) + OFFICIAL_GAP;
+  const halfWidth = (contentWidth - OFFICIAL_GAP) / 2;
+  const driversBottom = drawOfficialInfoCard(
+    pdf,
+    OFFICIAL_MARGIN,
+    lowerY,
+    halfWidth,
+    driversSection?.title ?? "Etki sürücüleri",
+    sectionRowsToLines(driversSection, 3)
+  );
+  const comparisonBottom = drawOfficialInfoCard(
+    pdf,
+    OFFICIAL_MARGIN + halfWidth + OFFICIAL_GAP,
+    lowerY,
+    halfWidth,
+    comparisonSection?.title ?? "Karşılaştırma özeti",
+    sectionRowsToLines(comparisonSection, 3)
+  );
+
+  const notesY = Math.max(driversBottom, comparisonBottom) + OFFICIAL_GAP;
+  drawOfficialNotesCard(pdf, notesY, snapshot.footnotes.slice(0, 4));
+
+  return pdf;
+}
+
 export function openOfficialCostPdfPreview(result: OfficialCostResultSnapshot): void {
   if (typeof window === "undefined") {
     throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
@@ -1139,7 +1262,6 @@ export function openOfficialCostPdfPreview(result: OfficialCostResultSnapshot): 
   const previewWindow = window.open("", "_blank");
 
   if (!previewWindow) {
-    URL.revokeObjectURL(blobUrl);
     throw new Error("PDF önizleme sekmesi açılamadı.");
   }
 
@@ -1147,18 +1269,104 @@ export function openOfficialCostPdfPreview(result: OfficialCostResultSnapshot): 
     previewWindow.location.href = blobUrl;
   } catch (error) {
     previewWindow.close();
-    URL.revokeObjectURL(blobUrl);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
     throw error;
   }
 
   window.setTimeout(() => {
-    URL.revokeObjectURL(blobUrl);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
   }, 60_000);
 }
 
 export function downloadOfficialCostPdf(result: OfficialCostResultSnapshot, filename: string): void {
   const pdf = createOfficialCostPdfDocument(result);
   pdf.save(filename);
+}
+
+export function openConstructionCostPdfPreview(snapshot: PdfExportSnapshot): void {
+  if (typeof window === "undefined") {
+    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
+  }
+
+  const previewWindow = window.open("", "_blank");
+  let blobUrl = "";
+
+  if (!previewWindow) {
+    throw new Error("PDF önizleme sekmesi açılamadı.");
+  }
+
+  try {
+    const pdf = createConstructionCostPdfDocument(snapshot);
+    const blob = pdf.output("blob");
+    blobUrl = URL.createObjectURL(blob);
+    previewWindow.location.href = blobUrl;
+  } catch (error) {
+    previewWindow.close();
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    throw error;
+  }
+
+  window.setTimeout(() => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }, 60_000);
+}
+
+export function downloadConstructionCostPdf(
+  snapshot: PdfExportSnapshot,
+  filename: string
+): void {
+  const pdf = createConstructionCostPdfDocument(snapshot);
+  pdf.save(filename);
+}
+
+export function printConstructionCostPdf(snapshot: PdfExportSnapshot): void {
+  if (typeof window === "undefined") {
+    throw new Error("Yazdırma yalnızca tarayıcı ortamında kullanılabilir.");
+  }
+
+  const printWindow = window.open("", "_blank");
+  let blobUrl = "";
+
+  if (!printWindow) {
+    throw new Error("Yazdırma penceresi açılamadı.");
+  }
+
+  try {
+    const pdf = createConstructionCostPdfDocument(snapshot);
+    const blob = pdf.output("blob");
+    blobUrl = URL.createObjectURL(blob);
+    printWindow.location.href = blobUrl;
+  } catch (error) {
+    printWindow.close();
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    throw error;
+  }
+
+  const triggerPrint = () => {
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch {
+      // The browser PDF viewer may defer print control to the new tab.
+    }
+  };
+
+  window.setTimeout(triggerPrint, 1200);
+  window.setTimeout(() => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }, 60_000);
 }
 
 export function openEstimatedConstructionAreaPdfPreview(

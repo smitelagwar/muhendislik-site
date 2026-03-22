@@ -15,7 +15,10 @@
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
     "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",
     "check:estimated-area": "node scripts/check-estimated-construction-area-route.mjs",
-    "check:estimated-area-pdf": "tsx scripts/check-estimated-construction-area-pdf.mjs"
+    "check:estimated-area-pdf": "tsx scripts/check-estimated-construction-area-pdf.mjs",
+    "check:insaat-maliyeti": "node scripts/check-insaat-maliyeti-route.mjs",
+    "check:insaat-maliyeti-pdf": "tsx scripts/check-insaat-maliyeti-pdf.mjs",
+    "check:insaat-maliyeti-full": "npm run build && npm run check:insaat-maliyeti && npm run check:insaat-maliyeti-pdf"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -32,7 +35,8 @@
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
