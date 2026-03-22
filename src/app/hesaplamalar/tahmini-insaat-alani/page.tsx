@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { EstimatedConstructionAreaClient } from "./estimated-construction-area-client";
 
 export const metadata: Metadata = {
-  title: "Tahmini Insaat Alani Hesabi",
+  title: "Tahmini İnşaat Alanı Hesabı",
   description:
-    "Hizli TAKS/KAKS fizibilitesi ile detayli kat programini ayni sayfada birlestirin; Toplam Insaat Alani tahminini kat bazli gorun.",
+    "Net parsel, TAKS ve KAKS üzerinden emsal alanını, emsal harici büyümeyi ve bodrum katkısını birlikte değerlendirerek yaklaşık toplam inşaat alanını görün.",
 };
 
 export default function TahminiInsaatAlaniPage() {

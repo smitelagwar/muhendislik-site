@@ -3,8 +3,19 @@
 import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useState, startTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Compass, Download, ExternalLink, FileText, Printer, Search } from "lucide-react";
-import { buildOfficialCostPdfSnapshot, exportPdf } from "@/lib/calculations/reporting";
+import {
+  Compass,
+  Download,
+  ExternalLink,
+  Eye,
+  FileText,
+  Printer,
+  Search,
+} from "lucide-react";
+import {
+  downloadOfficialCostPdf,
+  openOfficialCostPdfPreview,
+} from "@/lib/calculations/reporting";
 import {
   OFFICIAL_COST_GUIDED_CATEGORIES,
   OFFICIAL_UNIT_COST_SOURCE_2026,
@@ -20,6 +31,7 @@ import {
 import type {
   OfficialCostClassCode,
   OfficialCostGroupCode,
+  OfficialCostRow,
   OfficialCostSelection,
 } from "@/lib/calculations/official-unit-costs";
 import { formatM2Fiyat, formatTL } from "@/lib/calculations/core";
@@ -27,6 +39,7 @@ import { formatM2Fiyat, formatTL } from "@/lib/calculations/core";
 const YIL = 2026;
 
 type SelectionMode = "guided" | "manual";
+type PdfAction = "preview" | "download" | null;
 
 interface ManualSelectionState {
   grup: OfficialCostGroupCode;
@@ -85,7 +98,8 @@ function parseInitialState(
   const manualGroup = groupParam && groups.includes(groupParam) ? groupParam : groups[0];
   const manualClasses = getOfficialCostClasses(YIL, manualGroup);
   const classParam = searchParams.get("sinif") as OfficialCostClassCode | null;
-  const manualClass = classParam && manualClasses.includes(classParam) ? classParam : manualClasses[0];
+  const manualClass =
+    classParam && manualClasses.includes(classParam) ? classParam : manualClasses[0];
   const tipParam = searchParams.get("tip");
   const matchedGuide =
     (tipParam ? findGuidedOptionById(tipParam) : null) ??
@@ -108,27 +122,57 @@ function parseInitialState(
   };
 }
 
+function getExampleStructuresTitle(row: OfficialCostRow): string {
+  return `${row.anaGrupKodu}. ${row.altGrupKodu} sınıfına giren yapılar`;
+}
+
+function getOfficialPdfFilename(selection: OfficialCostSelection): string {
+  return `resmi-birim-maliyet-2026-${selection.grup}-${selection.sinif}.pdf`;
+}
+
+function getPreviewErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.includes("sekmesi")) {
+    return "PDF önizleme yeni sekmede açılamadı. Tarayıcı açılır pencere iznini kontrol edip tekrar deneyin.";
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "PDF önizleme açılamadı. Lütfen tekrar deneyin.";
+}
+
 export function OfficialUnitCostClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const groups = useMemo(() => getOfficialCostGroups(YIL), []);
   const allRows = useMemo(() => getOfficialUnitCostsByYear(YIL), []);
-  const initialState = useMemo(() => parseInitialState(searchParams, groups), [groups, searchParams]);
+  const initialState = useMemo(
+    () => parseInitialState(searchParams, groups),
+    [groups, searchParams]
+  );
 
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(initialState.mode);
-  const [manualSelection, setManualSelection] = useState<ManualSelectionState>(initialState.manualSelection);
-  const [guidedSelection, setGuidedSelection] = useState<GuidedSelectionState>(initialState.guidedSelection);
+  const [manualSelection, setManualSelection] = useState<ManualSelectionState>(
+    initialState.manualSelection
+  );
+  const [guidedSelection, setGuidedSelection] = useState<GuidedSelectionState>(
+    initialState.guidedSelection
+  );
   const [areaInput, setAreaInput] = useState(initialState.areaInput);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isExporting, setIsExporting] = useState(false);
+  const [activePdfAction, setActivePdfAction] = useState<PdfAction>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const parsedArea = useMemo(() => parseAreaInput(areaInput), [areaInput]);
   const hasValidArea = parsedArea !== null;
   const safeArea = parsedArea ?? 0;
-  const manualClassOptions = useMemo(() => getOfficialCostClasses(YIL, manualSelection.grup), [manualSelection.grup]);
+  const manualClassOptions = useMemo(
+    () => getOfficialCostClasses(YIL, manualSelection.grup),
+    [manualSelection.grup]
+  );
 
   useEffect(() => {
     if (!manualClassOptions.includes(manualSelection.sinif)) {
@@ -141,13 +185,18 @@ export function OfficialUnitCostClient() {
     [guidedSelection.categoryId]
   );
   const activeGuidedOption = useMemo(
-    () => activeGuideCategory.options.find((option) => option.id === guidedSelection.optionId) ?? activeGuideCategory.options[0],
+    () =>
+      activeGuideCategory.options.find((option) => option.id === guidedSelection.optionId) ??
+      activeGuideCategory.options[0],
     [activeGuideCategory, guidedSelection.optionId]
   );
 
   useEffect(() => {
     if (activeGuidedOption.id !== guidedSelection.optionId) {
-      setGuidedSelection({ categoryId: activeGuideCategory.id, optionId: activeGuidedOption.id });
+      setGuidedSelection({
+        categoryId: activeGuideCategory.id,
+        optionId: activeGuidedOption.id,
+      });
     }
   }, [activeGuideCategory.id, activeGuidedOption.id, guidedSelection.optionId]);
 
@@ -160,7 +209,12 @@ export function OfficialUnitCostClient() {
   );
 
   const selectedRow = useMemo(
-    () => allRows.find((row) => row.anaGrupKodu === resolvedSelection.grup && row.altGrupKodu === resolvedSelection.sinif) ?? null,
+    () =>
+      allRows.find(
+        (row) =>
+          row.anaGrupKodu === resolvedSelection.grup &&
+          row.altGrupKodu === resolvedSelection.sinif
+      ) ?? null,
     [allRows, resolvedSelection.grup, resolvedSelection.sinif]
   );
   const selectedGroup = useMemo(
@@ -177,9 +231,18 @@ export function OfficialUnitCostClient() {
       return { category: activeGuideCategory, option: activeGuidedOption };
     }
 
-    const matched = findGuidedOptionBySelection(resolvedSelection.grup, resolvedSelection.sinif);
+    const matched = findGuidedOptionBySelection(
+      resolvedSelection.grup,
+      resolvedSelection.sinif
+    );
     return matched ? findGuidedOptionById(matched.optionId) : null;
-  }, [activeGuideCategory, activeGuidedOption, resolvedSelection.grup, resolvedSelection.sinif, selectionMode]);
+  }, [
+    activeGuideCategory,
+    activeGuidedOption,
+    resolvedSelection.grup,
+    resolvedSelection.sinif,
+    selectionMode,
+  ]);
 
   const searchResults = useMemo(
     () => searchOfficialCostRows(allRows, deferredSearchQuery).slice(0, 6),
@@ -198,10 +261,20 @@ export function OfficialUnitCostClient() {
     if (selectionMode === "guided") {
       params.set("tip", activeGuidedOption.id);
     }
+
     startTransition(() => {
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     });
-  }, [activeGuidedOption.id, hasValidArea, parsedArea, pathname, resolvedSelection.grup, resolvedSelection.sinif, router, selectionMode]);
+  }, [
+    activeGuidedOption.id,
+    hasValidArea,
+    parsedArea,
+    pathname,
+    resolvedSelection.grup,
+    resolvedSelection.sinif,
+    router,
+    selectionMode,
+  ]);
 
   const detailSearchParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -214,7 +287,9 @@ export function OfficialUnitCostClient() {
     return params.toString();
   }, [hasValidArea, parsedArea, resolvedSelection.grup, resolvedSelection.sinif]);
 
-  const detayliMaliyetLink = `/hesaplamalar/insaat-maliyeti?${detailSearchParams}`;
+  const detailedCostLink = `/hesaplamalar/insaat-maliyeti?${detailSearchParams}`;
+  const exampleStructures = selectedRow?.ornekYapilar ?? [];
+  const isBusy = activePdfAction !== null;
 
   const handleGuideCategorySelect = (categoryId: string) => {
     const category = findGuidedCategoryById(categoryId);
@@ -243,7 +318,9 @@ export function OfficialUnitCostClient() {
     setSelectionMode("manual");
     setManualSelection({
       grup: groupCode,
-      sinif: nextClassOptions.includes(manualSelection.sinif) ? manualSelection.sinif : nextClassOptions[0],
+      sinif: nextClassOptions.includes(manualSelection.sinif)
+        ? manualSelection.sinif
+        : nextClassOptions[0],
     });
     setExportError(null);
   };
@@ -275,7 +352,7 @@ export function OfficialUnitCostClient() {
     setExportError(null);
 
     if (typeof window === "undefined" || typeof window.print !== "function") {
-      setExportError("Bu ortamda yazdirma kullanilamiyor.");
+      setExportError("Bu ortamda yazdırma kullanılamıyor.");
       return;
     }
 
@@ -283,31 +360,53 @@ export function OfficialUnitCostClient() {
       window.print();
     } catch (error) {
       console.error("Official cost print failed", error);
-      setExportError("Yazdirma penceresi acilamadi.");
+      setExportError("Yazdırma penceresi açılamadı.");
     }
   };
 
-  const downloadPdf = () => {
-    if (isExporting) {
+  const handlePdfPreview = () => {
+    if (isBusy) {
       return;
     }
 
     if (!result || !selectedRow || !hasValidArea) {
-      setExportError("PDF raporu icin once gecerli bir toplam insaat alani girin.");
+      setExportError("PDF önizleme için önce geçerli bir toplam inşaat alanı girin.");
       return;
     }
 
-    setIsExporting(true);
+    setActivePdfAction("preview");
     setExportError(null);
 
     try {
-      const pdfSnapshot = buildOfficialCostPdfSnapshot(result);
-      exportPdf(pdfSnapshot, `resmi-birim-maliyet-2026-${resolvedSelection.grup}-${resolvedSelection.sinif}.pdf`);
+      openOfficialCostPdfPreview(result);
+    } catch (error) {
+      console.error("Official cost PDF preview failed", error);
+      setExportError(getPreviewErrorMessage(error));
+    } finally {
+      setActivePdfAction(null);
+    }
+  };
+
+  const handlePdfDownload = () => {
+    if (isBusy) {
+      return;
+    }
+
+    if (!result || !selectedRow || !hasValidArea) {
+      setExportError("PDF indirmek için önce geçerli bir toplam inşaat alanı girin.");
+      return;
+    }
+
+    setActivePdfAction("download");
+    setExportError(null);
+
+    try {
+      downloadOfficialCostPdf(result, getOfficialPdfFilename(resolvedSelection));
     } catch (error) {
       console.error("Official cost PDF export failed", error);
-      setExportError("PDF raporu olusturulamadi. Yazdir secenegini kullanabilirsiniz.");
+      setExportError("PDF raporu oluşturulamadı. Yazdır seçeneğini kullanabilirsiniz.");
     } finally {
-      setIsExporting(false);
+      setActivePdfAction(null);
     }
   };
 
@@ -317,15 +416,15 @@ export function OfficialUnitCostClient() {
         <div className="mb-10 max-w-4xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
             <FileText className="h-3.5 w-3.5" />
-            Resmi referans araci
+            Resmî referans aracı
           </div>
           <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-            Resmi Birim Maliyet 2026
+            Resmî Birim Maliyet 2026
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Grubu biliyorsan dogrudan sec, bilmiyorsan bina tipinden ilerle. Sade secim
-            akisiyla resmi m2 birim maliyetini bul, toplam insaat alanini yaz ve resmi
-            yaklasik maliyeti aninda gor.
+            Grubu biliyorsan doğrudan seç, bilmiyorsan yapı tipinden ilerle. Sade seçim
+            akışıyla resmî m² birim maliyetini bul, toplam inşaat alanını yaz ve yaklaşık
+            resmî maliyeti anında gör.
           </p>
         </div>
 
@@ -333,14 +432,15 @@ export function OfficialUnitCostClient() {
           <section className="tool-panel rounded-[32px] p-6 md:p-8">
             <div className="mb-6">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                Secim paneli
+                Seçim paneli
               </p>
               <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">
-                Yapina uygun resmi sinifi bul
+                Yapına uygun resmî sınıfı bul
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-                Iki ayri akis var. En kolayi bina tipinden secmek. Resmi sinifi biliyorsan
-                sinif kodunu veya bina tipini aratip direkt secim yapabilirsin.
+                İki ayrı akış var. En kolayı yapı tipinden seçmek. Resmî sınıfı
+                biliyorsan sınıf kodunu veya bina tipini aratıp doğrudan seçim
+                yapabilirsin.
               </p>
             </div>
 
@@ -362,12 +462,12 @@ export function OfficialUnitCostClient() {
                 <div className="flex items-center gap-3">
                   <Compass className="h-4 w-4" />
                   <span className="text-sm font-black uppercase tracking-[0.16em]">
-                    Bina tipinden bul
+                    Yapı tipinden bul
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  Kullanici dostu, azaltilmis secenekler. Konut, ticari, saglik veya
-                  sanayi gibi yapini sec ve sistem resmi sinifi onersin.
+                  Kullanıcı dostu, azaltılmış seçenekler. Konut, ticari, sağlık veya
+                  sanayi gibi yapını seç ve sistem sana uygun resmî sınıfı önersin.
                 </p>
               </button>
 
@@ -392,8 +492,8 @@ export function OfficialUnitCostClient() {
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  Sinif kodunu, bina tipini veya ornek yapilari yaz. Sonra resmi grup ve
-                  sinifi direkt secerek hizli ilerle.
+                  Sınıf kodunu, bina tipini veya örnek yapıları yaz. Sonra resmî grup ve
+                  sınıfı doğrudan seçerek hızlı ilerle.
                 </p>
               </button>
             </div>
@@ -402,7 +502,7 @@ export function OfficialUnitCostClient() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                    1. Adim
+                    1. adım
                   </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {OFFICIAL_COST_GUIDED_CATEGORIES.map((category) => (
@@ -431,7 +531,7 @@ export function OfficialUnitCostClient() {
 
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                    2. Adim
+                    2. adım
                   </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     {activeGuideCategory.options.map((option) => {
@@ -467,7 +567,7 @@ export function OfficialUnitCostClient() {
                           </p>
                           {row ? (
                             <p className="mt-3 text-xs leading-6 text-zinc-500 dark:text-zinc-400">
-                              Resmi ornek: {row.ornekYapilar[0]}
+                              Resmî örnek: {row.ornekYapilar[0]}
                             </p>
                           ) : null}
                         </button>
@@ -483,7 +583,7 @@ export function OfficialUnitCostClient() {
                     htmlFor="resmi-search"
                     className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
                   >
-                    Sinif kodu veya bina tipi ara
+                    Sınıf kodu veya bina tipi ara
                   </label>
                   <div className="mt-3 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-950/80">
                     <Search className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -493,12 +593,12 @@ export function OfficialUnitCostClient() {
                       type="text"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Ornek: IV-A, villa, hastane, AVM, okul"
+                      placeholder="Örnek: IV-A, villa, hastane, AVM, okul"
                       className="w-full bg-transparent text-sm font-semibold text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                     />
                   </div>
                   <p className="mt-3 text-xs leading-6 text-zinc-500 dark:text-zinc-400">
-                    Yazdikca resmi siniflari, ornek yapilari ve sinif kodlarini birlikte
+                    Yazdıkça resmî sınıfları, örnek yapıları ve sınıf kodlarını birlikte
                     tarar.
                   </p>
 
@@ -534,8 +634,8 @@ export function OfficialUnitCostClient() {
                         ))
                       ) : (
                         <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-5 text-sm leading-6 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400 md:col-span-2">
-                          Sonuc bulunamadi. Konut, villa, okul, hastane, AVM gibi bina tipi
-                          kelimeleri veya dogrudan sinif kodu yazabilirsin.
+                          Sonuç bulunamadı. Konut, villa, okul, hastane, AVM gibi bina tipi
+                          kelimeleri veya doğrudan sınıf kodu yazabilirsin.
                         </div>
                       )}
                     </div>
@@ -544,14 +644,19 @@ export function OfficialUnitCostClient() {
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400" htmlFor="resmi-grup">
+                    <label
+                      className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
+                      htmlFor="resmi-grup"
+                    >
                       Ana grup
                     </label>
                     <select
                       id="resmi-grup"
                       data-testid="official-group-select"
                       value={manualSelection.grup}
-                      onChange={(event) => handleManualGroupChange(event.target.value as OfficialCostGroupCode)}
+                      onChange={(event) =>
+                        handleManualGroupChange(event.target.value as OfficialCostGroupCode)
+                      }
                       className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
                     >
                       {groups.map((groupCode) => {
@@ -566,19 +671,26 @@ export function OfficialUnitCostClient() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400" htmlFor="resmi-sinif">
-                      Alt grup / sinif
+                    <label
+                      className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
+                      htmlFor="resmi-sinif"
+                    >
+                      Alt grup / sınıf
                     </label>
                     <select
                       id="resmi-sinif"
                       data-testid="official-class-select"
                       value={manualSelection.sinif}
-                      onChange={(event) => handleManualClassChange(event.target.value as OfficialCostClassCode)}
+                      onChange={(event) =>
+                        handleManualClassChange(event.target.value as OfficialCostClassCode)
+                      }
                       className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
                     >
                       {manualClassOptions.map((classCode) => {
                         const row = allRows.find(
-                          (item) => item.anaGrupKodu === manualSelection.grup && item.altGrupKodu === classCode
+                          (item) =>
+                            item.anaGrupKodu === manualSelection.grup &&
+                            item.altGrupKodu === classCode
                         );
                         return (
                           <option key={classCode} value={classCode}>
@@ -594,8 +706,11 @@ export function OfficialUnitCostClient() {
 
             <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400" htmlFor="alan">
-                  Toplam insaat alani (m2)
+                <label
+                  className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
+                  htmlFor="alan"
+                >
+                  Toplam inşaat alanı (m²)
                 </label>
                 <input
                   id="alan"
@@ -614,17 +729,19 @@ export function OfficialUnitCostClient() {
                 />
                 {!hasValidArea ? (
                   <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Gecerli bir toplam insaat alani girin. Alan en az 1 m2 olmali.
+                    Geçerli bir toplam inşaat alanı girin. Alan en az 1 m² olmalı.
                   </p>
                 ) : null}
               </div>
 
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  Secilen resmi sinif
+                  Seçilen resmî sınıf
                 </p>
                 <p className="mt-2 text-lg font-black text-zinc-950 dark:text-white">
-                  <span data-testid="official-selected-class-code">{selectedRow?.sinifKodu}</span>
+                  <span data-testid="official-selected-class-code">
+                    {selectedRow?.sinifKodu}
+                  </span>
                 </p>
                 <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                   {selectedRow?.sinifAdi}
@@ -633,31 +750,36 @@ export function OfficialUnitCostClient() {
             </div>
 
             <div className="mt-6 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Formul</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Formül</p>
               <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-                Toplam insaat alani x resmi m2 birim maliyeti = toplam resmi yaklasik maliyet
+                Toplam inşaat alanı × resmî m² birim maliyeti = toplam resmî yaklaşık
+                maliyet
               </p>
               <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                Bu arac piyasa teklifi uretmez. Ruhsat, resmi referans ve yaklasik butce karsilastirmasi icin kullanilir.
+                Bu araç piyasa teklifi üretmez. Ruhsat, resmî referans ve yaklaşık bütçe
+                karşılaştırması için kullanılır.
               </p>
             </div>
           </section>
 
           <section className="tool-result-panel rounded-[32px] p-6 text-white md:p-8">
             {result && selectedRow ? (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">Sonuc</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">
+                    Sonuç
+                  </p>
                   <h2 className="mt-2 text-3xl font-black">{selectedRow.sinifAdi}</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-50/85">
-                    Resmi secim, {selectedRow.anaGrupAdi} icindeki {selectedRow.sinifAdi} icin hesaplandi.
+                    Resmî seçim, {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi} içindeki{" "}
+                    {selectedRow.sinifAdi} için hesaplandı.
                   </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="tool-result-inner rounded-2xl p-4">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
-                      Resmi m2 birim maliyeti
+                      Resmî m² birim maliyeti
                     </p>
                     <p className="mt-2 text-2xl font-black">
                       <span data-testid="official-unit-cost-value">
@@ -667,7 +789,7 @@ export function OfficialUnitCostClient() {
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
-                      Toplam resmi maliyet
+                      Toplam resmî maliyet
                     </p>
                     <p className="mt-2 text-2xl font-black">
                       <span data-testid="official-total-cost-value">
@@ -677,52 +799,56 @@ export function OfficialUnitCostClient() {
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
-                      Toplam insaat alani
+                      Toplam inşaat alanı
                     </p>
                     <p className="mt-2 text-2xl font-black">
                       <span data-testid="official-area-value">
-                        {safeArea.toLocaleString("tr-TR")} m2
+                        {safeArea.toLocaleString("tr-TR")} m²
                       </span>
                     </p>
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
-                      Resmi sinif kodu
+                      Resmî sınıf kodu
                     </p>
                     <p className="mt-2 text-2xl font-black">
-                      <span data-testid="official-result-class-code">{selectedRow.sinifKodu}</span>
+                      <span data-testid="official-result-class-code">
+                        {selectedRow.sinifKodu}
+                      </span>
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
                   <div className="tool-result-inner rounded-[28px] p-5">
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
-                      Hesap ozeti
+                      Hesap özeti
                     </p>
                     <div className="mt-4 space-y-3 text-sm text-blue-50/90">
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Yil</span>
+                        <span className="text-blue-100/70">Yıl</span>
                         <span className="text-right font-semibold">{YIL}</span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
                         <span className="text-blue-100/70">Ana grup</span>
-                        <span className="text-right font-semibold">{selectedGroup?.anaGrupAdi}</span>
+                        <span className="text-right font-semibold">
+                          {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi}
+                        </span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Alt grup / sinif</span>
+                        <span className="text-blue-100/70">Alt grup / sınıf</span>
                         <span className="text-right font-semibold">{selectedRow.sinifAdi}</span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Formul</span>
+                        <span className="text-blue-100/70">Formül</span>
                         <span className="max-w-[18rem] text-right font-semibold">
-                          {result.formula} x {safeArea.toLocaleString("tr-TR")} m2
+                          {result.formula}
                         </span>
                       </div>
                       <div className="flex items-start justify-between gap-4">
                         <span className="text-blue-100/70">Kapsam</span>
                         <span className="max-w-[18rem] text-right font-semibold">
-                          Resmi yaklasik birim maliyet referansi
+                          Ruhsat ve resmî karşılaştırma referansı
                         </span>
                       </div>
                     </div>
@@ -730,9 +856,9 @@ export function OfficialUnitCostClient() {
 
                   <div className="space-y-4">
                     {activeGuideMeta ? (
-                      <div className="tool-result-inner rounded-[28px] p-5">
+                      <div className="tool-result-inner rounded-[24px] p-5">
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
-                          Kolay secim ozeti
+                          Kolay seçim özeti
                         </p>
                         <p className="mt-3 text-lg font-black text-white">
                           {activeGuideMeta.category.label}
@@ -746,48 +872,41 @@ export function OfficialUnitCostClient() {
                       </div>
                     ) : null}
 
-                    <div className="tool-result-inner rounded-[28px] p-5">
+                    <div className="tool-result-inner rounded-[24px] p-5">
                       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
                         Kaynak
                       </p>
                       <p className="mt-3 text-sm leading-6 text-blue-50/85">
-                        2026 resmi yaklasik birim maliyet tablosu kullaniliyor.
+                        {OFFICIAL_UNIT_COST_SOURCE_2026.label} referans alınarak hesaplanır.
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <a
-                          href={OFFICIAL_UNIT_COST_SOURCE_2026.localPdfPath}
-                          target="_blank"
-                          rel="noreferrer"
-                          data-testid="official-local-pdf-link"
-                          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/15"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          Resmi PDF dosyasini ac
-                        </a>
-                        <a
-                          href={OFFICIAL_UNIT_COST_SOURCE_2026.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          data-testid="official-source-link"
-                          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/15"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Resmi kaynak
-                        </a>
-                      </div>
+                      <a
+                        href={OFFICIAL_UNIT_COST_SOURCE_2026.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-testid="official-source-link"
+                        className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/15"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Resmî kaynak
+                      </a>
                     </div>
                   </div>
                 </div>
 
-                <div className="tool-result-inner rounded-[28px] p-5">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
-                    Ornek yapi turleri
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {selectedRow.ornekYapilar.map((example) => (
+                <div className="tool-result-inner rounded-[24px] p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+                      {getExampleStructuresTitle(selectedRow)}
+                    </p>
+                    <span className="text-[11px] font-semibold text-blue-100/70">
+                      {exampleStructures.length} örnek
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {exampleStructures.map((example) => (
                       <div
                         key={example}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-blue-50/90"
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-blue-50/90"
                       >
                         {example}
                       </div>
@@ -809,34 +928,44 @@ export function OfficialUnitCostClient() {
                     className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/15"
                   >
                     <Printer className="h-4 w-4" />
-                    Yazdir
+                    Yazdır
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="official-pdf-preview-button"
+                    onClick={handlePdfPreview}
+                    disabled={isBusy || !hasValidArea}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye className="h-4 w-4" />
+                    {activePdfAction === "preview" ? "Önizleme hazırlanıyor" : "PDF önizleme"}
                   </button>
                   <button
                     type="button"
                     data-testid="official-pdf-button"
-                    onClick={downloadPdf}
-                    disabled={isExporting || !hasValidArea}
+                    onClick={handlePdfDownload}
+                    disabled={isBusy || !hasValidArea}
                     className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:bg-white/60"
                   >
                     <Download className="h-4 w-4" />
-                    {isExporting ? "PDF hazirlaniyor" : "PDF raporu"}
+                    {activePdfAction === "download" ? "PDF hazırlanıyor" : "PDF indir"}
                   </button>
                   <Link
-                    href={detayliMaliyetLink}
+                    href={detailedCostLink}
                     data-testid="official-compare-link"
                     className="inline-flex items-center gap-2 rounded-full border border-blue-200/30 bg-blue-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-blue-50 transition-colors hover:bg-blue-400/15"
                   >
                     <Compass className="h-4 w-4" />
-                    Detayli maliyet araci ile karsilastir
+                    Detaylı maliyet ile karşılaştır
                   </Link>
                 </div>
               </div>
             ) : (
               <div className="tool-result-inner rounded-[28px] p-6">
-                <p className="text-lg font-black text-white">Resmi sonuc hazir degil</p>
+                <p className="text-lg font-black text-white">Resmî sonuç hazır değil</p>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-blue-50/85">
-                  Gecerli bir grup, sinif ve toplam insaat alani secildiginde resmi
-                  yaklasik maliyet burada gosterilecek.
+                  Geçerli bir grup, sınıf ve toplam inşaat alanı seçildiğinde resmî yaklaşık
+                  maliyet burada gösterilecek.
                 </p>
               </div>
             )}

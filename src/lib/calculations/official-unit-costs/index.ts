@@ -63,6 +63,6 @@ export function calculateOfficialUnitCost(
     row,
     toplamInsaatAlani: safeArea,
     resmiToplamMaliyet: safeArea * row.m2BirimMaliyet,
-    formula: "Toplam insaat alani x resmi m2 birim maliyeti",
+    formula: "Toplam inşaat alanı × resmî m² birim maliyeti",
   };
 }

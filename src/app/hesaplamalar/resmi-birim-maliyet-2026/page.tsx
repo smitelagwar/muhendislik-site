@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { OfficialUnitCostClient } from "./official-unit-cost-client";
 
 export const metadata: Metadata = {
-  title: "Resmi Birim Maliyet 2026",
+  title: "Resmî Birim Maliyet 2026",
   description:
-    "2026 resmi yaklasik birim maliyet gruplarindan secim yapin, metrekare ve toplam maliyeti aninda hesaplayin.",
+    "2026 resmî yaklaşık birim maliyet gruplarından seçim yapın, metrekare ve toplam maliyeti anında hesaplayın.",
 };
 
 export default function ResmiBirimMaliyet2026Page() {

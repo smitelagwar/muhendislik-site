@@ -45,7 +45,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
       exportPdf(pdfSnapshot, `insaat-maliyet-raporu-${Date.now()}.pdf`);
     } catch (error) {
       console.error("Calculation PDF export failed", error);
-      setExportError("PDF raporu olusturulamadi. Yazdir secenegini kullanabilirsiniz.");
+      setExportError("PDF raporu oluşturulamadı. Yazdır seçeneğini kullanabilirsiniz.");
     } finally {
       setIsExporting(false);
     }
@@ -56,7 +56,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
       <div className="border-b border-zinc-200/70 bg-gradient-to-r from-amber-100/60 to-blue-100/40 px-6 py-5 dark:border-zinc-800 dark:from-amber-500/10 dark:to-blue-500/10">
         <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
           <Building2 className="h-4 w-4" />
-          Yatirim Ozeti
+          Yatırım Özeti
         </h3>
       </div>
 
@@ -64,7 +64,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
         <div className="mb-8 space-y-6">
           <div className="relative pl-6">
             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-              Anahtar Teslim Satis
+              Anahtar Teslim Satış
             </p>
             <p className="mt-2 text-4xl font-black tabular-nums text-zinc-950 dark:text-white">
               {formatTL(snapshot.anahtarTeslimSatisFiyati)}
@@ -74,7 +74,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
 
           <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50/85 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/80">
             <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
-              Net Insaat Maliyeti
+              Net İnşaat Maliyeti
             </span>
             <span className="text-sm font-black tabular-nums text-amber-600 dark:text-amber-300">
               {formatTL(snapshot.genelToplam)}
@@ -84,7 +84,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
           <div className="flex gap-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
             <div className="flex-1">
               <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                m2 Basina Maliyet
+                m² Başına Maliyet
               </p>
               <p className="mt-1 text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                 {formatM2Fiyat(snapshot.m2BasinaFiyat)}
@@ -93,7 +93,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
             {snapshot.project.bagimsizBolumSayisi > 0 && (
               <div className="flex-1 border-l border-zinc-200 pl-4 dark:border-zinc-800">
                 <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                  Bolum Basina
+                  Bölüm Başına
                 </p>
                 <p className="mt-1 text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                   {formatTL(snapshot.bolumBasinaFiyat)}
@@ -109,9 +109,9 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
 
         <div className="mb-6 space-y-3">
           {[
-            { label: "Kaba Isler", value: snapshot.kabaIsToplamı, color: "bg-sky-500" },
-            { label: "Ince Isler", value: snapshot.inceIsToplamı, color: "bg-emerald-500" },
-            { label: "Diger Giderler", value: snapshot.digerToplamı, color: "bg-violet-500" },
+            { label: "Kaba İşler", value: snapshot.kabaIsToplamı, color: "bg-sky-500" },
+            { label: "İnce İşler", value: snapshot.inceIsToplamı, color: "bg-emerald-500" },
+            { label: "Diğer Giderler", value: snapshot.digerToplamı, color: "bg-violet-500" },
           ].map((item) => (
             <div key={item.label} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
           {snapshot.muteahhitKariTutari > 0 && (
             <div className="flex items-center justify-between border-t border-zinc-200 pt-2 text-sm dark:border-zinc-800">
               <span className="text-zinc-500 dark:text-zinc-400">
-                Muteahhit Kari (+%{(snapshot.project.muteahhitKariPct * 100).toFixed(0)})
+                Müteahhit Kârı (+%{(snapshot.project.muteahhitKariPct * 100).toFixed(0)})
               </span>
               <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">
                 {formatTL(snapshot.muteahhitKariTutari)}
@@ -150,17 +150,17 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
         {comparison ? (
           <div className="mb-6 rounded-2xl border border-blue-200/80 bg-blue-50/75 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
-              Resmi Karsilastirma
+              Resmî Karşılaştırma
             </p>
             <div className="mt-3 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">Resmi toplam</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Resmî toplam</span>
                 <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                   {formatTL(officialBaseline!.resmiToplamMaliyet)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">Detayli toplam</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Detaylı toplam</span>
                 <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                   {formatTL(snapshot.genelToplam)}
                 </span>
@@ -176,16 +176,17 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
         ) : (
           <div className="mb-6 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/70">
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              2026 resmi birim maliyet sinifi ile karsilastir
+              2026 resmî birim maliyet sınıfı ile karşılaştır
             </p>
             <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              Resmi metrekare birim maliyetini secip bu detayli sonucu ayni alan icin yan yana gorebilirsiniz.
+              Resmî metrekare birim maliyetini seçip bu detaylı sonucu aynı alan için
+              yan yana görebilirsiniz.
             </p>
             <Link
               href={officialLink}
               className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 transition-colors hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
             >
-              Resmi araci ac
+              Resmî aracı aç
               <ExternalLink className="h-4 w-4" />
             </Link>
           </div>
@@ -204,7 +205,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
             onClick={() => window.print()}
           >
             <Printer className="h-4 w-4" />
-            Yazdir
+            Yazdır
           </button>
           <button
             type="button"
@@ -213,7 +214,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
             disabled={isExporting}
           >
             <Download className={`h-4 w-4 ${isExporting ? "animate-spin" : ""}`} />
-            {isExporting ? "Hazirlaniyor" : "PDF Raporu"}
+            {isExporting ? "Hazırlanıyor" : "PDF Raporu"}
           </button>
         </div>
       </div>

@@ -15,7 +15,7 @@ interface Props {
 
 const YAPI_TURLERI: { value: ProjectProfile["yapiTuru"]; label: string }[] = [
   { value: "villa", label: "Villa" },
-  { value: "mustakil", label: "Mustakil Ev" },
+  { value: "mustakil", label: "Müstakil Ev" },
   { value: "apartman", label: "Apartman" },
   { value: "ticari", label: "Ticari" },
 ];
@@ -23,8 +23,8 @@ const YAPI_TURLERI: { value: ProjectProfile["yapiTuru"]; label: string }[] = [
 const KALITE_SEVIYELERI: { value: ProjectProfile["kaliteSeviyesi"]; label: string; pct: string }[] = [
   { value: "ekonomik", label: "Ekonomik", pct: "x0.80" },
   { value: "orta", label: "Orta", pct: "x1.00" },
-  { value: "ust", label: "Ust Segment", pct: "x1.25" },
-  { value: "luks", label: "Luks", pct: "x1.60" },
+  { value: "ust", label: "Üst Segment", pct: "x1.25" },
+  { value: "luks", label: "Lüks", pct: "x1.60" },
 ];
 
 function clampNumber(value: number, min: number, max: number): number {
@@ -46,7 +46,7 @@ export function ProjeGirisFormu({
     <div className="space-y-6">
       <div>
         <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-          Hizli Baslangic
+          Hızlı Başlangıç
         </p>
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((preset) => (
@@ -70,7 +70,7 @@ export function ProjeGirisFormu({
             className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-600"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Sifirla
+            Sıfırla
           </button>
         </div>
       </div>
@@ -85,7 +85,7 @@ export function ProjeGirisFormu({
               Proje Genel Bilgileri
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Temel proje girdileri ve ticari varsayimlar
+              Temel proje girdileri ve ticari varsayımlar
             </p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export function ProjeGirisFormu({
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="yapi-turu">
-              Yapi Turu
+              Yapı Türü
             </label>
             <select
               id="yapi-turu"
@@ -113,10 +113,11 @@ export function ProjeGirisFormu({
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="insaat-alani">
-              Insaat Alani (m2)
+              İnşaat Alanı (m²)
             </label>
             <input
               id="insaat-alani"
+              data-testid="detailed-area-input"
               type="number"
               min={1}
               step={1}
@@ -151,7 +152,7 @@ export function ProjeGirisFormu({
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="bagimsiz-bolum">
-              Bagimsiz Bolum
+              Bağımsız Bölüm
             </label>
             <input
               id="bagimsiz-bolum"
@@ -174,10 +175,10 @@ export function ProjeGirisFormu({
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-sm font-black uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-200">
-              Ticari Carpanlar ve Kalite
+              Ticari Çarpanlar ve Kalite
             </h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Kalite seviyesi, muteahhit kari ve KDV etkisi
+              Kalite seviyesi, müteahhit kârı ve KDV etkisi
             </p>
           </div>
         </div>
@@ -185,7 +186,7 @@ export function ProjeGirisFormu({
         <div className="grid gap-6 sm:grid-cols-3">
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kalite">
-              Insaat Kalitesi
+              İnşaat Kalitesi
             </label>
             <select
               id="kalite"
@@ -207,7 +208,7 @@ export function ProjeGirisFormu({
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kar-marji">
-              Muteahhit Kari
+              Müteahhit Kârı
             </label>
             <select
               id="kar-marji"
@@ -219,7 +220,7 @@ export function ProjeGirisFormu({
             >
               <option value={0}>Sadece maliyet (%0)</option>
               <option value={0.1}>%10</option>
-              <option value={0.15}>%15 (sektor ort.)</option>
+              <option value={0.15}>%15 (sektör ort.)</option>
               <option value={0.2}>%20</option>
               <option value={0.25}>%25</option>
               <option value={0.35}>%35</option>
@@ -228,7 +229,7 @@ export function ProjeGirisFormu({
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" htmlFor="kdv-orani">
-              KDV Orani
+              KDV Oranı
             </label>
             <select
               id="kdv-orani"
@@ -238,7 +239,7 @@ export function ProjeGirisFormu({
               }
               className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
             >
-              <option value={0}>KDV haric</option>
+              <option value={0}>KDV hariç</option>
               <option value={0.01}>%1</option>
               <option value={0.1}>%10</option>
               <option value={0.2}>%20</option>
@@ -250,9 +251,9 @@ export function ProjeGirisFormu({
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white/82 p-4 dark:border-zinc-800 dark:bg-zinc-950/70">
         {[
           { label: "Maliyet", value: formatTL(snapshot.genelToplam) },
-          { label: "m2 Birim", value: formatM2Fiyat(snapshot.m2BasinaFiyat) },
-          { label: "Bolum Basina", value: formatTL(snapshot.bolumBasinaFiyat) },
-          { label: "Satis Fiyati", value: formatTL(snapshot.anahtarTeslimSatisFiyati) },
+          { label: "m² Birim", value: formatM2Fiyat(snapshot.m2BasinaFiyat) },
+          { label: "Bölüm Başına", value: formatTL(snapshot.bolumBasinaFiyat) },
+          { label: "Satış Fiyatı", value: formatTL(snapshot.anahtarTeslimSatisFiyati) },
         ].map((item) => (
           <div key={item.label} className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-900">
             <div className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">

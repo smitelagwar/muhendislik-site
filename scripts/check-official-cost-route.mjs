@@ -237,23 +237,28 @@ try {
   assert((await getText(page, '[data-testid="official-result-class-code"]')) === "II-A", "Manual state was not preserved after toggling back from guided mode.");
   steps.push("mode-persistence");
 
-  const localPdfHref = await page.$eval('[data-testid="official-local-pdf-link"]', (element) => element.getAttribute("href") ?? "");
-  assert(localPdfHref.includes("/hesaplamalar/2026"), "Local official PDF link is not configured.");
-  const popupPromise = new Promise((resolve) => {
+  assert(
+    (await page.$('[data-testid="official-local-pdf-link"]')) === null,
+    "Local official PDF button should not be rendered.",
+  );
+
+  const previewPopupPromise = new Promise((resolve) => {
     const timeout = setTimeout(() => resolve(null), 2500);
     page.once("popup", async (popup) => {
       clearTimeout(timeout);
       resolve(popup);
     });
   });
-  await page.click('[data-testid="official-local-pdf-link"]');
-  const popup = await popupPromise;
-  if (popup) {
-    await popup.close();
-  }
+  await page.click('[data-testid="official-pdf-preview-button"]');
+  const previewPopup = await previewPopupPromise;
+  assert(previewPopup, "PDF preview did not open a new tab.");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert(previewPopup.url() !== "", "PDF preview popup did not resolve to a URL.");
+  await previewPopup.close();
   const sourceHref = await page.$eval('[data-testid="official-source-link"]', (element) => element.getAttribute("href") ?? "");
   assert(sourceHref.startsWith("https://"), "Remote official source link is not configured.");
-  steps.push("source-links");
+  steps.push("pdf-preview");
+  steps.push("source-link");
 
   await clearDirectory(downloadDir);
   await page.click('[data-testid="official-pdf-button"]');
@@ -265,6 +270,15 @@ try {
   await page.waitForFunction(() => window.__officialPrintCalls >= 1, { timeout: 5000 });
   steps.push("print");
 
+  await page.setViewport({ width: 390, height: 1100, deviceScaleFactor: 1 });
+  await page.waitForSelector('[data-testid="official-pdf-preview-button"]', { visible: true });
+  await page.waitForSelector('[data-testid="official-compare-link"]', { visible: true });
+  const hasMobileOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth > 4,
+  );
+  assert(!hasMobileOverflow, "Official cost route should not overflow horizontally on mobile viewport.");
+  steps.push("mobile-layout");
+
   const compareHref = await page.$eval('[data-testid="official-compare-link"]', (element) => element.getAttribute("href") ?? "");
   assert(compareHref.includes("/hesaplamalar/insaat-maliyeti?"), "Compare link does not point to the detailed cost route.");
   assert(compareHref.includes("grup=II") && compareHref.includes("sinif=A") && compareHref.includes("alan=2500"), "Compare link query parameters are incorrect.");
@@ -273,6 +287,12 @@ try {
     () => window.location.pathname === "/hesaplamalar/insaat-maliyeti",
     { timeout: 10000 },
   );
+  await page.waitForSelector('[data-testid="detailed-area-input"]', { visible: true });
+  const detailedAreaValue = await page.$eval(
+    '[data-testid="detailed-area-input"]',
+    (element) => element.value,
+  );
+  assert(detailedAreaValue === "2500", `Detailed area input should be seeded with 2500, received ${detailedAreaValue}.`);
   steps.push("compare-link");
 
   assert(dialogs.length === 0, `Unexpected dialog(s) opened: ${dialogs.map((item) => `${item.type}:${item.message}`).join(" | ")}`);

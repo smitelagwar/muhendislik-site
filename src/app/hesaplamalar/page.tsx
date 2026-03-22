@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Insaat Hesaplamalari",
+  title: "İnşaat Hesaplamaları",
   description:
-    "Tahmini insaat alani, detayli insaat maliyeti ve 2026 resmi birim maliyet araclari.",
+    "Tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
 };
 
 const TOOLS = [
@@ -23,27 +23,27 @@ const TOOLS = [
     id: "insaat-maliyeti",
     href: "/hesaplamalar/insaat-maliyeti",
     icon: Building2,
-    label: "Insaat Maliyet Analizi",
+    label: "İnşaat Maliyet Analizi",
     description:
-      "Kaba is, ince is ve kamu giderlerini 12 kategori altinda gorun. Varsayimlari duzenleyin, toplam maliyeti aninda izleyin.",
-    badge: "Canli",
+      "Kaba iş, ince iş ve kamu giderlerini 12 kategori altında görün. Varsayımları düzenleyin, toplam maliyeti anında izleyin.",
+    badge: "Canlı",
   },
   {
     id: "tahmini-insaat-alani",
     href: "/hesaplamalar/tahmini-insaat-alani",
     icon: LandPlot,
-    label: "Tahmini Insaat Alani",
+    label: "Tahmini İnşaat Alanı",
     description:
-      "Hizli TAKS/KAKS fizibilitesiyle baslayin, sonra kat bazli brut alan, ortak alan ve teknik hacimlerle Toplam Insaat Alanini detaylandirin.",
+      "Net parsel, TAKS ve KAKS verilerini girin; emsal dışı büyümeyi ve bodrum katkısını da ekleyerek yaklaşık toplam inşaat alanını görün.",
     badge: "Yeni",
   },
   {
     id: "resmi-birim-maliyet-2026",
     href: "/hesaplamalar/resmi-birim-maliyet-2026",
     icon: FileText,
-    label: "Resmi Birim Maliyet 2026",
+    label: "Resmî Birim Maliyet 2026",
     description:
-      "2026 tebligindeki resmi sinifi secin, m2 birim maliyeti ve toplam resmi yaklasik maliyeti tek ekranda gorun.",
+      "2026 tebliğindeki resmî sınıfı seçin, m² birim maliyeti ve toplam resmî yaklaşık maliyeti tek ekranda görün.",
     badge: "Yeni",
   },
 ];
@@ -51,23 +51,23 @@ const TOOLS = [
 const COMING_SOON = [
   {
     icon: Layers,
-    label: "Beton Hacmi Hesabi",
-    description: "Temel, perde, kolon ve doseme icin hizli beton hacmi.",
+    label: "Beton Hacmi Hesabı",
+    description: "Temel, perde, kolon ve döşeme için hızlı beton hacmi.",
   },
   {
     icon: Wrench,
-    label: "Donati Tonaj Hesabi",
-    description: "Doseme tipine ve toplam alana gore yaklasik tonaj.",
+    label: "Donatı Tonaj Hesabı",
+    description: "Döşeme tipine ve toplam alana göre yaklaşık tonaj.",
   },
   {
     icon: Hammer,
-    label: "Duvar Hesabi",
-    description: "Tugla, gazbeton ve iscilik maliyetini ayni tabloda hesaplar.",
+    label: "Duvar Hesabı",
+    description: "Tuğla, gazbeton ve işçilik maliyetini aynı tabloda hesaplar.",
   },
   {
     icon: BarChart3,
-    label: "Sap ve Kaplama",
-    description: "Sap kalinligi, alan ve malzeme giderini hizli on gorur.",
+    label: "Şap ve Kaplama",
+    description: "Şap kalınlığı, alan ve malzeme giderini hızlı ön görür.",
   },
 ];
 
@@ -78,20 +78,20 @@ export default function HesaplamalarPage() {
         <div className="mb-12 max-w-3xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
             <Calculator className="h-3.5 w-3.5" />
-            Muhendislik Hesap Araclari
+            Mühendislik Hesap Araçları
           </div>
           <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-            Hesaplamalar dunyasi
+            Hesaplamalar dünyası
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Detayli maliyet motoru ile resmi 2026 birim maliyet referansini ayni
-            urun yuzeyinde birlestiriyoruz. Amaç, hizli ama savunulabilir sonuc vermek.
+            Detaylı maliyet motoru ile resmî 2026 birim maliyet referansını aynı ürün
+            yüzeyinde birleştiriyoruz. Amaç, hızlı ama savunulabilir sonuç vermek.
           </p>
         </div>
 
         <section className="mb-12">
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-            Aktif Araclar
+            Aktif Araçlar
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {TOOLS.map((tool) => (
@@ -119,7 +119,7 @@ export default function HesaplamalarPage() {
                     </p>
                   </div>
                   <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
-                    Araci ac
+                    Aracı aç
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 </div>
@@ -130,7 +130,7 @@ export default function HesaplamalarPage() {
 
         <section>
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-            Siradaki moduller
+            Sıradaki modüller
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {COMING_SOON.map((item) => (

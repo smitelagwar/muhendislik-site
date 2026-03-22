@@ -2,7 +2,7 @@ import type { OfficialCostRow } from "./types";
 
 export const OFFICIAL_UNIT_COST_SOURCE_2026 = {
   label: "2026 Yapı Yaklaşık Birim Maliyetleri Tebliği",
-  localPdfPath: "/hesaplamalar/2026 yaklaşık brim maliyetleri.pdf",
+  localPdfPath: "/hesaplamalar/2026-yapi-yaklasik-birim-maliyetleri.pdf",
   sourceUrl:
     "https://webdosya.csb.gov.tr/v2/yfk/2026/02/M-MARLIK-M-HEND-SL-K-TEBL-2026-20260204101544.pdf",
 } as const;

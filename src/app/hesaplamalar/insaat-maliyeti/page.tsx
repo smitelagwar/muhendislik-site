@@ -47,7 +47,7 @@ type Action =
   | { type: "UPDATE_PROJECT"; payload: Partial<ProjectProfile> }
   | { type: "APPLY_PRESET"; presetId: string }
   | { type: "UPDATE_CATEGORY_INPUT"; key: CategoryStateKey; payload: Record<string, unknown> }
-  | { type: "RESET" };
+  | { type: "RESET"; initialState: HesaplamaState };
 
 const DEFAULT_PROJECT: ProjectProfile = {
   yapiTuru: "apartman",
@@ -59,10 +59,20 @@ const DEFAULT_PROJECT: ProjectProfile = {
   kdvOraniPct: 0.2,
 };
 
-function init(): HesaplamaState {
+function getSeededArea(searchParams?: Pick<URLSearchParams, "get"> | null): number | null {
+  const areaParam = Number.parseFloat(searchParams?.get("alan") ?? "");
+  return Number.isFinite(areaParam) && areaParam > 0 ? areaParam : null;
+}
+
+function init(searchParams?: Pick<URLSearchParams, "get"> | null): HesaplamaState {
+  const project = {
+    ...DEFAULT_PROJECT,
+    insaatAlani: getSeededArea(searchParams) ?? DEFAULT_PROJECT.insaatAlani,
+  };
+
   return {
-    project: DEFAULT_PROJECT,
-    inputs: buildDefaultInputs(DEFAULT_PROJECT),
+    project,
+    inputs: buildDefaultInputs(project),
   };
 }
 
@@ -130,7 +140,7 @@ function reducer(state: HesaplamaState, action: Action): HesaplamaState {
       };
     }
     case "RESET":
-      return init();
+      return action.initialState;
     default:
       return state;
   }
@@ -172,7 +182,8 @@ function parseOfficialBaseline(
 
 export default function InsaatMaliyetiPage() {
   const searchParams = useSearchParams();
-  const [state, dispatch] = useReducer(reducer, undefined, init);
+  const [initialState] = useState(() => init(searchParams));
+  const [state, dispatch] = useReducer(reducer, initialState);
   const [openCats, setOpenCats] = useState<Set<CompositeCategoryKey>>(new Set());
 
   const snapshot = useMemo(() => {
@@ -194,9 +205,9 @@ export default function InsaatMaliyetiPage() {
   }, []);
 
   const reset = useCallback(() => {
-    dispatch({ type: "RESET" });
+    dispatch({ type: "RESET", initialState });
     setOpenCats(new Set());
-  }, []);
+  }, [initialState]);
 
   const updateCat = useCallback((key: CompositeCategoryKey, payload: Record<string, unknown>) => {
     dispatch({ type: "UPDATE_CATEGORY_INPUT", key, payload });
@@ -227,15 +238,16 @@ export default function InsaatMaliyetiPage() {
       <div className="mx-auto max-w-screen-2xl px-6 py-10 sm:px-10 lg:px-16">
         <div className="mb-10 max-w-3xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-300">
-            Pro Hesap Araci
+            Pro hesap aracı
           </div>
           <h1 className="text-4xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-5xl">
-            Insaat Maliyet Analizi
+            İnşaat Maliyet Analizi
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-            Kaba is, ince is, kamu giderleri, muteahhit kari ve KDV dahil olmak uzere
-            tum maliyet kalemlerini kategori bazinda gorebilir, varsayimlari duzenleyebilir
-            ve sonucu resmi 2026 birim maliyet siniflariyla karsilastirabilirsiniz.
+            Kaba iş, ince iş, kamu giderleri, müteahhit kârı ve KDV dahil olmak üzere
+            tüm maliyet kalemlerini kategori bazında görebilir, varsayımları
+            düzenleyebilir ve sonucu resmî 2026 birim maliyet sınıflarıyla
+            karşılaştırabilirsiniz.
           </p>
         </div>
 
@@ -252,19 +264,19 @@ export default function InsaatMaliyetiPage() {
             <div className="flex flex-wrap gap-2">
               {[
                 {
-                  label: "Kaba Is",
+                  label: "Kaba iş",
                   total: snapshot.kabaIsToplamı,
                   pct: snapshot.kabaIsPct,
                   cls: "text-sky-600 dark:text-sky-300",
                 },
                 {
-                  label: "Ince Is",
+                  label: "İnce iş",
                   total: snapshot.inceIsToplamı,
                   pct: snapshot.inceIsPct,
                   cls: "text-emerald-600 dark:text-emerald-300",
                 },
                 {
-                  label: "Diger Gider",
+                  label: "Diğer gider",
                   total: snapshot.digerToplamı,
                   pct: snapshot.digerPct,
                   cls: "text-violet-600 dark:text-violet-300",

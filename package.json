@@ -13,7 +13,9 @@
     "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main",
     "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
-    "check:estimated-area": "node scripts/check-estimated-construction-area-route.mjs"
+    "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",
+    "check:estimated-area": "node scripts/check-estimated-construction-area-route.mjs",
+    "check:estimated-area-pdf": "tsx scripts/check-estimated-construction-area-pdf.mjs"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",

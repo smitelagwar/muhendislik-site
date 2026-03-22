@@ -3,34 +3,34 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Calculator } from "lucide-react";
-import { formatSayi } from "@/lib/calculations/core";
+import { formatSayi, formatYuzde } from "@/lib/calculations/core";
 import {
-  buildDetailedDraftFromQuickInput,
-  calculateDetailedConstructionArea,
-  calculateQuickEstimatedConstructionArea,
-  createCustomFloorProgramBlock,
-  createEmptyTechnicalAreaLine,
+  calculateEstimatedConstructionArea,
+  getConstructionAreaProfileDefinition,
 } from "@/lib/calculations/modules/tahmini-insaat-alani/engine";
 import type {
-  AreaEstimationMode,
-  DetailedEstimatedConstructionAreaInput,
-  FloorProgramBlock,
-  QuickEstimatedConstructionAreaInput,
-  TechnicalAreaLine,
+  ConstructionAreaProfile,
+  EstimatedConstructionAreaInput,
 } from "@/lib/calculations/modules/tahmini-insaat-alani/types";
 import {
-  DEFAULT_QUICK_FORM,
-  ESTIMATED_AREA_DETAILED_DRAFT_KEY,
-  type DetailedDraftState,
-  type FloorProgramBlockState,
-  type QuickFormState,
-  type TechnicalAreaLineState,
-  stringifyNumberState,
+  type EstimatedConstructionAreaPdfSnapshot,
+  downloadEstimatedConstructionAreaPdf,
+  openEstimatedConstructionAreaPdfPreview,
+  printEstimatedConstructionAreaPdf,
+} from "@/lib/calculations/reporting";
+import {
+  DEFAULT_ESTIMATED_AREA_FORM,
+  ESTIMATED_AREA_LEGACY_DRAFT_KEY,
+  type EstimatedAreaFormState,
 } from "./client-state";
 import { ConstructionAreaSummary } from "./components/ConstructionAreaSummary";
-import { DetailedModePanel } from "./components/DetailedModePanel";
-import { ModeSwitcher } from "./components/ModeSwitcher";
 import { QuickModePanel } from "./components/QuickModePanel";
+
+const PDF_DATE_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
 function parseDecimal(value: string): number | null {
   const normalized = value.trim().replace(",", ".");
@@ -52,81 +52,25 @@ function parsePositiveInteger(value: string): number | null {
   return parsed !== null && Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
 }
 
-function parseNonNegativeDecimal(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return 0;
-  }
-
-  const parsed = parseDecimal(trimmed);
-  return parsed !== null && parsed >= 0 ? parsed : null;
-}
-
 function normalizeNumberParam(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)));
 }
 
-function parseMode(searchParams: ReturnType<typeof useSearchParams>): AreaEstimationMode {
-  return searchParams.get("mod") === "detailed" ? "detailed" : "quick";
+function parseProfile(raw: string | null): ConstructionAreaProfile {
+  switch (raw) {
+    case "ticariOfis":
+      return "ticariOfis";
+    case "karma":
+      return "karma";
+    case "konut":
+    default:
+      return "konut";
+  }
 }
 
-function buildQuickInput(form: QuickFormState): {
-  input: QuickEstimatedConstructionAreaInput | null;
-  error: string | null;
-} {
-  const parcelAreaM2 = parsePositiveDecimal(form.parcelAreaM2);
-  const taks = parsePositiveDecimal(form.taks);
-  const kaks = parsePositiveDecimal(form.kaks);
-  const normalFloorCount = parsePositiveInteger(form.normalFloorCount);
-
-  if (!parcelAreaM2) {
-    return { input: null, error: "Arsa alani sifirdan buyuk olmalidir." };
-  }
-
-  if (!taks || taks > 1) {
-    return { input: null, error: "TAKS 0 ile 1 arasinda olmalidir." };
-  }
-
-  if (!kaks) {
-    return { input: null, error: "KAKS / emsal sifirdan buyuk olmalidir." };
-  }
-
-  if (!normalFloorCount) {
-    return { input: null, error: "Normal kat sayisi en az 1 olmalidir." };
-  }
-
-  const basementFloorCount = form.hasBasement
-    ? parsePositiveInteger(form.basementFloorCount)
-    : 0;
-
-  if (form.hasBasement && !basementFloorCount) {
-    return { input: null, error: "Bodrum kat sayisi en az 1 olmalidir." };
-  }
-
-  const basementFloorAreaM2 =
-    form.hasBasement && form.basementFloorAreaM2.trim() !== ""
-      ? parsePositiveDecimal(form.basementFloorAreaM2)
-      : null;
-
-  if (form.hasBasement && form.basementFloorAreaM2.trim() !== "" && !basementFloorAreaM2) {
-    return { input: null, error: "Bodrum kat alani sifirdan buyuk olmalidir." };
-  }
-
-  return {
-    input: {
-      parcelAreaM2,
-      taks,
-      kaks,
-      normalFloorCount,
-      hasBasement: form.hasBasement,
-      basementFloorCount: basementFloorCount ?? 0,
-      basementFloorAreaM2,
-    },
-    error: null,
-  };
-}
-
-function parseInitialQuickForm(searchParams: ReturnType<typeof useSearchParams>): QuickFormState {
+function parseInitialForm(
+  searchParams: ReturnType<typeof useSearchParams>
+): EstimatedAreaFormState {
   const parcelAreaRaw = searchParams.get("arsa") ?? "";
   const taksRaw = searchParams.get("taks") ?? "";
   const kaksRaw = searchParams.get("kaks") ?? "";
@@ -136,32 +80,92 @@ function parseInitialQuickForm(searchParams: ReturnType<typeof useSearchParams>)
   const bodrumAlanRaw = searchParams.get("bodrumAlan") ?? "";
 
   return {
-    parcelAreaM2: parsePositiveDecimal(parcelAreaRaw) ? parcelAreaRaw : DEFAULT_QUICK_FORM.parcelAreaM2,
+    parcelAreaM2: parsePositiveDecimal(parcelAreaRaw)
+      ? parcelAreaRaw
+      : DEFAULT_ESTIMATED_AREA_FORM.parcelAreaM2,
     taks:
       (() => {
         const parsed = parsePositiveDecimal(taksRaw);
-        return parsed && parsed <= 1 ? taksRaw : DEFAULT_QUICK_FORM.taks;
+        return parsed && parsed <= 1 ? taksRaw : DEFAULT_ESTIMATED_AREA_FORM.taks;
       })(),
-    kaks: parsePositiveDecimal(kaksRaw) ? kaksRaw : DEFAULT_QUICK_FORM.kaks,
-    normalFloorCount: parsePositiveInteger(katRaw) ? katRaw : DEFAULT_QUICK_FORM.normalFloorCount,
+    kaks: parsePositiveDecimal(kaksRaw) ? kaksRaw : DEFAULT_ESTIMATED_AREA_FORM.kaks,
+    normalFloorCount: parsePositiveInteger(katRaw)
+      ? katRaw
+      : DEFAULT_ESTIMATED_AREA_FORM.normalFloorCount,
+    profile: parseProfile(searchParams.get("profil")),
     hasBasement,
     basementFloorCount:
       hasBasement && parsePositiveInteger(bodrumKatRaw)
         ? bodrumKatRaw
-        : DEFAULT_QUICK_FORM.basementFloorCount,
+        : DEFAULT_ESTIMATED_AREA_FORM.basementFloorCount,
     basementFloorAreaM2:
       hasBasement && parsePositiveDecimal(bodrumAlanRaw) ? bodrumAlanRaw : "",
   };
 }
 
-function buildQueryString(form: QuickFormState, mode: AreaEstimationMode): string {
-  const params = new URLSearchParams();
+function buildInput(form: EstimatedAreaFormState): {
+  input: EstimatedConstructionAreaInput | null;
+  error: string | null;
+} {
   const parcelAreaM2 = parsePositiveDecimal(form.parcelAreaM2);
   const taks = parsePositiveDecimal(form.taks);
   const kaks = parsePositiveDecimal(form.kaks);
   const normalFloorCount = parsePositiveInteger(form.normalFloorCount);
 
-  params.set("mod", mode);
+  if (!parcelAreaM2) {
+    return { input: null, error: "Net parsel alanı sıfırdan büyük olmalıdır." };
+  }
+
+  if (!taks || taks > 1) {
+    return { input: null, error: "TAKS 0 ile 1 arasında olmalıdır." };
+  }
+
+  if (!kaks) {
+    return { input: null, error: "KAKS / emsal sıfırdan büyük olmalıdır." };
+  }
+
+  if (!normalFloorCount) {
+    return { input: null, error: "Normal kat sayısı en az 1 olmalıdır." };
+  }
+
+  const basementFloorCount = form.hasBasement
+    ? parsePositiveInteger(form.basementFloorCount)
+    : 0;
+
+  if (form.hasBasement && !basementFloorCount) {
+    return { input: null, error: "Bodrum kat sayısı en az 1 olmalıdır." };
+  }
+
+  const basementFloorAreaM2 =
+    form.hasBasement && form.basementFloorAreaM2.trim() !== ""
+      ? parsePositiveDecimal(form.basementFloorAreaM2)
+      : null;
+
+  if (form.hasBasement && form.basementFloorAreaM2.trim() !== "" && !basementFloorAreaM2) {
+    return { input: null, error: "Bodrum kat alanı sıfırdan büyük olmalıdır." };
+  }
+
+  return {
+    input: {
+      parcelAreaM2,
+      taks,
+      kaks,
+      normalFloorCount,
+      profile: form.profile,
+      hasBasement: form.hasBasement,
+      basementFloorCount: basementFloorCount ?? 0,
+      basementFloorAreaM2,
+    },
+    error: null,
+  };
+}
+
+function buildQueryString(form: EstimatedAreaFormState): string {
+  const params = new URLSearchParams();
+  const parcelAreaM2 = parsePositiveDecimal(form.parcelAreaM2);
+  const taks = parsePositiveDecimal(form.taks);
+  const kaks = parsePositiveDecimal(form.kaks);
+  const normalFloorCount = parsePositiveInteger(form.normalFloorCount);
 
   if (parcelAreaM2) {
     params.set("arsa", normalizeNumberParam(parcelAreaM2));
@@ -179,6 +183,7 @@ function buildQueryString(form: QuickFormState, mode: AreaEstimationMode): strin
     params.set("kat", String(normalFloorCount));
   }
 
+  params.set("profil", form.profile);
   params.set("bodrum", form.hasBasement ? "1" : "0");
 
   if (form.hasBasement) {
@@ -203,200 +208,46 @@ function buildOfficialCostHref(area: number): string {
   return `/hesaplamalar/resmi-birim-maliyet-2026?${params.toString()}`;
 }
 
-function createId(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function mapTechnicalLineToState(line: TechnicalAreaLine): TechnicalAreaLineState {
-  return {
-    id: line.id,
-    label: line.label,
-    areaM2: stringifyNumberState(line.areaM2),
-  };
-}
-
-function mapBlockToState(block: FloorProgramBlock): FloorProgramBlockState {
-  return {
-    id: block.id,
-    label: block.label,
-    role: block.role,
-    repeatCount: String(block.repeatCount),
-    grossIndependentAreaM2: stringifyNumberState(block.grossIndependentAreaM2),
-    netIndependentAreaM2: stringifyNumberState(block.netIndependentAreaM2),
-    balconyTerraceAreaM2: stringifyNumberState(block.balconyTerraceAreaM2),
-    commonCirculationAreaM2: stringifyNumberState(block.commonCirculationAreaM2),
-    elevatorShaftAreaM2: stringifyNumberState(block.elevatorShaftAreaM2),
-    technicalLines: block.technicalLines.map(mapTechnicalLineToState),
-    notes: block.notes ?? "",
-  };
-}
-
-function mapDetailedInputToState(input: DetailedEstimatedConstructionAreaInput): DetailedDraftState {
-  return {
-    projectIdentity: { ...input.projectIdentity },
-    blocks: input.blocks.map(mapBlockToState),
-  };
-}
-
-function loadDetailedDraft(): DetailedDraftState | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(ESTIMATED_AREA_DETAILED_DRAFT_KEY);
-    if (!raw) {
-      return null;
+function getPreviewErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    if (error.message.includes("sekmesi açılamadı")) {
+      return "PDF önizleme yeni sekmede açılamadı. Tarayıcı açılır pencere iznini kontrol edip tekrar deneyin.";
     }
 
-    const parsed = JSON.parse(raw) as DetailedDraftState;
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !parsed.projectIdentity ||
-      !Array.isArray(parsed.blocks)
-    ) {
-      return null;
+    if (error.message) {
+      return error.message;
     }
-
-    return parsed;
-  } catch {
-    return null;
   }
+
+  return "PDF önizleme açılamadı. Lütfen tekrar deneyin.";
 }
 
-function saveDetailedDraft(draft: DetailedDraftState) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(ESTIMATED_AREA_DETAILED_DRAFT_KEY, JSON.stringify(draft));
+function getEstimatedAreaPdfFilename(snapshot: EstimatedConstructionAreaPdfSnapshot) {
+  const profileSlug = snapshot.input.profile.toLowerCase();
+  const roundedArea = Math.round(snapshot.result.yaklasikToplamInsaatAlaniM2);
+  return `tahmini-insaat-alani-${profileSlug}-${roundedArea}m2.pdf`;
 }
-
-function buildDetailedInput(draft: DetailedDraftState): {
-  input: DetailedEstimatedConstructionAreaInput | null;
-  error: string | null;
-} {
-  if (!draft.blocks.length) {
-    return { input: null, error: "En az bir kat blogu bulunmalidir." };
-  }
-
-  const blocks: FloorProgramBlock[] = [];
-
-  for (const block of draft.blocks) {
-    const repeatCount = parsePositiveInteger(block.repeatCount);
-    if (!repeatCount) {
-      return { input: null, error: `${block.label || "Kat"} icin tekrar sayisi en az 1 olmalidir.` };
-    }
-
-    const grossIndependentAreaM2 = parseNonNegativeDecimal(block.grossIndependentAreaM2);
-    const netIndependentAreaM2 = parseNonNegativeDecimal(block.netIndependentAreaM2);
-    const balconyTerraceAreaM2 = parseNonNegativeDecimal(block.balconyTerraceAreaM2);
-    const commonCirculationAreaM2 = parseNonNegativeDecimal(block.commonCirculationAreaM2);
-    const elevatorShaftAreaM2 = parseNonNegativeDecimal(block.elevatorShaftAreaM2);
-
-    if (
-      grossIndependentAreaM2 === null ||
-      netIndependentAreaM2 === null ||
-      balconyTerraceAreaM2 === null ||
-      commonCirculationAreaM2 === null ||
-      elevatorShaftAreaM2 === null
-    ) {
-      return { input: null, error: `${block.label || "Kat"} icin sayisal alanlar negatif olamaz.` };
-    }
-
-    const technicalLines: TechnicalAreaLine[] = [];
-    for (const line of block.technicalLines) {
-      const areaM2 = parseNonNegativeDecimal(line.areaM2);
-      if (areaM2 === null) {
-        return { input: null, error: `${block.label || "Kat"} icin teknik alanlar negatif olamaz.` };
-      }
-
-      technicalLines.push({
-        id: line.id,
-        label: line.label.trim() || "Teknik alan",
-        areaM2,
-      });
-    }
-
-    blocks.push({
-      id: block.id,
-      label: block.label.trim() || "Kat blogu",
-      role: block.role,
-      repeatCount,
-      grossIndependentAreaM2,
-      netIndependentAreaM2,
-      balconyTerraceAreaM2,
-      commonCirculationAreaM2,
-      elevatorShaftAreaM2,
-      technicalLines,
-      notes: block.notes.trim() || undefined,
-    });
-  }
-
-  return {
-    input: {
-      projectIdentity: { ...draft.projectIdentity },
-      blocks,
-    },
-    error: null,
-  };
-}
-
-const DEFAULT_QUICK_INPUT = buildQuickInput(DEFAULT_QUICK_FORM).input;
 
 export function EstimatedConstructionAreaClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const initialMode = useMemo(() => parseMode(searchParams), [searchParams]);
-  const initialQuickForm = useMemo(() => parseInitialQuickForm(searchParams), [searchParams]);
-  const [mode, setMode] = useState<AreaEstimationMode>(initialMode);
-  const [quickForm, setQuickForm] = useState<QuickFormState>(initialQuickForm);
-  const [detailedDraft, setDetailedDraft] = useState<DetailedDraftState>(() =>
-    mapDetailedInputToState(
-      buildDetailedDraftFromQuickInput(DEFAULT_QUICK_INPUT ?? {
-        parcelAreaM2: 1000,
-        taks: 0.3,
-        kaks: 1.5,
-        normalFloorCount: 5,
-        hasBasement: false,
-        basementFloorCount: 0,
-        basementFloorAreaM2: null,
-      })
-    )
+  const [form, setForm] = useState<EstimatedAreaFormState>(() => parseInitialForm(searchParams));
+  const [activePdfAction, setActivePdfAction] = useState<"preview" | "download" | "print" | null>(
+    null
   );
-  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
-  const [hasDetailedEdits, setHasDetailedEdits] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedDraft = loadDetailedDraft();
-
-    startTransition(() => {
-      if (savedDraft) {
-        setDetailedDraft(savedDraft);
-        setHasDetailedEdits(true);
-      } else {
-        const parsedQuick = buildQuickInput(initialQuickForm).input ?? DEFAULT_QUICK_INPUT;
-        if (parsedQuick) {
-          setDetailedDraft(mapDetailedInputToState(buildDetailedDraftFromQuickInput(parsedQuick)));
-        }
-      }
-
-      setHasLoadedDraft(true);
-    });
-  }, [initialQuickForm]);
-
-  useEffect(() => {
-    if (!hasLoadedDraft || !hasDetailedEdits) {
+    if (typeof window === "undefined") {
       return;
     }
 
-    saveDetailedDraft(detailedDraft);
-  }, [detailedDraft, hasDetailedEdits, hasLoadedDraft]);
+    window.localStorage.removeItem(ESTIMATED_AREA_LEGACY_DRAFT_KEY);
+  }, []);
 
   useEffect(() => {
-    const nextQuery = buildQueryString(quickForm, mode);
+    const nextQuery = buildQueryString(form);
     if (nextQuery === searchParams.toString()) {
       return;
     }
@@ -404,194 +255,128 @@ export function EstimatedConstructionAreaClient() {
     startTransition(() => {
       router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
     });
-  }, [mode, pathname, quickForm, router, searchParams]);
+  }, [form, pathname, router, searchParams]);
 
-  const quickParsed = useMemo(() => buildQuickInput(quickForm), [quickForm]);
-  const quickResult = useMemo(
-    () =>
-      quickParsed.input ? calculateQuickEstimatedConstructionArea(quickParsed.input) : null,
-    [quickParsed.input]
+  const parsed = useMemo(() => buildInput(form), [form]);
+  const result = useMemo(
+    () => (parsed.input ? calculateEstimatedConstructionArea(parsed.input) : null),
+    [parsed.input]
   );
-  const quickError =
-    quickParsed.error ?? (!quickResult ? "Gecerli bir hizli sonuc uretilemedi." : null);
+  const error =
+    parsed.error ?? (!result ? "Geçerli bir tahmini inşaat alanı sonucu üretilemedi." : null);
 
-  const detailedParsed = useMemo(() => buildDetailedInput(detailedDraft), [detailedDraft]);
-  const detailedResult = useMemo(
-    () =>
-      detailedParsed.input
-        ? calculateDetailedConstructionArea(
-            detailedParsed.input,
-            quickResult?.approximateTotalConstructionAreaM2 ?? null
-          )
-        : null,
-    [detailedParsed.input, quickResult]
-  );
-  const detailedError =
-    detailedParsed.error ??
-    (!detailedResult ? "Kat programinda en az bir blok toplam alani sifirdan buyuk olmalidir." : null);
-
-  const quickFormulaLines =
-    quickResult && quickParsed.input
+  const formulaLines =
+    result && parsed.input
       ? [
-          `${formatSayi(quickParsed.input.parcelAreaM2, 2)} x ${formatSayi(quickParsed.input.taks, 2)} = ${formatSayi(quickResult.maxGroundAreaM2, 2)} m2 taban alani`,
-          `${formatSayi(quickParsed.input.parcelAreaM2, 2)} x ${formatSayi(quickParsed.input.kaks, 2)} = ${formatSayi(quickResult.emsalAreaM2, 2)} m2 emsale dahil alan`,
-          `${formatSayi(quickResult.maxGroundAreaM2, 2)} x ${quickParsed.input.normalFloorCount} = ${formatSayi(quickResult.enteredFloorCapacityM2, 2)} m2 girilen kat kapasitesi`,
-          `${formatSayi(quickResult.emsalAreaM2, 2)} / ${quickParsed.input.normalFloorCount} = ${formatSayi(quickResult.averageRequiredFloorAreaM2, 2)} m2 ortalama kat alani`,
-          quickParsed.input.hasBasement
-            ? `${quickParsed.input.basementFloorCount} x ${formatSayi(quickResult.resolvedBasementFloorAreaM2, 2)} = ${formatSayi(quickResult.totalBasementAreaM2, 2)} m2 bodrum toplami`
+          `${formatSayi(parsed.input.parcelAreaM2, 2)} × ${formatSayi(parsed.input.taks, 2)} = ${formatSayi(result.maxGroundAreaM2, 2)} m² maksimum taban alanı`,
+          `${formatSayi(parsed.input.parcelAreaM2, 2)} × ${formatSayi(parsed.input.kaks, 2)} = ${formatSayi(result.emsalAreaM2, 2)} m² emsal alanı`,
+          `${formatSayi(result.maxGroundAreaM2, 2)} × ${parsed.input.normalFloorCount} = ${formatSayi(result.katYerlesimKapasitesiM2, 2)} m² kat yerleşim kapasitesi`,
+          `${formatYuzde(result.bazEmsalHariciOrani)} + ${formatYuzde(result.katAdediDuzeltmesiOrani)} = ${formatYuzde(result.emsalHariciEkAlanOrani)} emsal harici ek alan oranı`,
+          `${formatSayi(result.emsalAreaM2, 2)} × ${formatYuzde(result.emsalHariciEkAlanOrani)} = ${formatSayi(result.emsalHariciEkAlanM2, 2)} m² emsal harici ek alan`,
+          parsed.input.hasBasement
+            ? `${parsed.input.basementFloorCount} × ${formatSayi(result.resolvedBasementFloorAreaM2, 2)} = ${formatSayi(result.toplamBodrumAlanM2, 2)} m² toplam bodrum alanı`
             : null,
-          `${formatSayi(quickResult.emsalAreaM2, 2)} + ${formatSayi(quickResult.totalBasementAreaM2, 2)} = ${formatSayi(quickResult.approximateTotalConstructionAreaM2, 2)} m2 yaklasik toplam insaat alani`,
+          `${formatSayi(result.emsalAreaM2, 2)} + ${formatSayi(result.emsalHariciEkAlanM2, 2)} + ${formatSayi(result.toplamBodrumAlanM2, 2)} = ${formatSayi(result.yaklasikToplamInsaatAlaniM2, 2)} m² tahmini toplam inşaat alanı`,
         ].filter((line): line is string => Boolean(line))
       : [];
 
-  const detailedFormulaLines = detailedResult
-    ? [
-        ...detailedResult.floors.map(
-          (floor) =>
-            `${floor.label}: ${formatSayi(floor.grossIndependentAreaM2, 2)} + ${formatSayi(floor.commonCirculationAreaM2, 2)} + ${formatSayi(floor.elevatorShaftAreaM2, 2)} + ${formatSayi(floor.technicalAreaM2, 2)} = ${formatSayi(floor.floorTotalM2, 2)} m2 x ${floor.repeatCount}`
-        ),
-        `${formatSayi(detailedResult.grossIndependentAreaTotalM2, 2)} + ${formatSayi(detailedResult.commonAreaTotalM2, 2)} + ${formatSayi(detailedResult.technicalAreaTotalM2, 2)} = ${formatSayi(detailedResult.grandTotalConstructionAreaM2, 2)} m2 toplam insaat alani`,
-      ]
-    : [];
+  const officialCostHref = result
+    ? buildOfficialCostHref(result.yaklasikToplamInsaatAlaniM2)
+    : "/hesaplamalar/resmi-birim-maliyet-2026";
 
-  const officialCostHref = mode === "detailed"
-    ? detailedResult
-      ? buildOfficialCostHref(detailedResult.grandTotalConstructionAreaM2)
-      : "/hesaplamalar/resmi-birim-maliyet-2026"
-    : quickResult
-      ? buildOfficialCostHref(quickResult.approximateTotalConstructionAreaM2)
-      : "/hesaplamalar/resmi-birim-maliyet-2026";
-
-  const suggestedFootprintM2 = quickResult?.maxGroundAreaM2 ?? null;
-
-  const handleModeChange = (nextMode: AreaEstimationMode) => {
-    if (nextMode === "detailed" && !hasDetailedEdits) {
-      const baseQuickInput = quickParsed.input ?? DEFAULT_QUICK_INPUT;
-      if (baseQuickInput) {
-        setDetailedDraft(mapDetailedInputToState(buildDetailedDraftFromQuickInput(baseQuickInput)));
-      }
+  const pdfSnapshot = useMemo<EstimatedConstructionAreaPdfSnapshot | null>(() => {
+    if (!parsed.input || !result) {
+      return null;
     }
 
-    setMode(nextMode);
+    return {
+      input: parsed.input,
+      result,
+      profileLabel: result.profileLabel,
+      formattedDate: PDF_DATE_FORMATTER.format(new Date()),
+    };
+  }, [parsed.input, result]);
+
+  const isBusy = activePdfAction !== null;
+
+  const handlePdfPreview = () => {
+    if (isBusy) {
+      return;
+    }
+
+    if (!pdfSnapshot) {
+      setExportError("PDF önizleme için önce geçerli verileri girin.");
+      return;
+    }
+
+    setActivePdfAction("preview");
+    setExportError(null);
+
+    try {
+      openEstimatedConstructionAreaPdfPreview(pdfSnapshot);
+    } catch (previewError) {
+      console.error("Estimated area PDF preview failed", previewError);
+      setExportError(getPreviewErrorMessage(previewError));
+    } finally {
+      setActivePdfAction(null);
+    }
   };
 
-  const setQuickField = (key: keyof QuickFormState, value: string | boolean) => {
-    setQuickForm((current) => ({ ...current, [key]: value }));
+  const handlePdfDownload = () => {
+    if (isBusy) {
+      return;
+    }
+
+    if (!pdfSnapshot) {
+      setExportError("PDF indirmek için önce geçerli verileri girin.");
+      return;
+    }
+
+    setActivePdfAction("download");
+    setExportError(null);
+
+    try {
+      downloadEstimatedConstructionAreaPdf(
+        pdfSnapshot,
+        getEstimatedAreaPdfFilename(pdfSnapshot)
+      );
+    } catch (downloadError) {
+      console.error("Estimated area PDF download failed", downloadError);
+      setExportError("PDF raporu oluşturulamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setActivePdfAction(null);
+    }
   };
 
-  const setProjectIdentityField = (
-    key: keyof DetailedDraftState["projectIdentity"],
-    value: string
-  ) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      projectIdentity: {
-        ...current.projectIdentity,
-        [key]: value,
-      },
-    }));
+  const handlePrint = () => {
+    if (isBusy) {
+      return;
+    }
+
+    if (!pdfSnapshot) {
+      setExportError("Yazdırmak için önce geçerli verileri girin.");
+      return;
+    }
+
+    setActivePdfAction("print");
+    setExportError(null);
+
+    try {
+      printEstimatedConstructionAreaPdf(pdfSnapshot);
+    } catch (printError) {
+      console.error("Estimated area PDF print failed", printError);
+      setExportError("Yazdırma penceresi açılamadı.");
+    } finally {
+      setActivePdfAction(null);
+    }
   };
 
-  const setBlockField = (
-    blockId: string,
-    key:
-      | "label"
-      | "repeatCount"
-      | "grossIndependentAreaM2"
-      | "netIndependentAreaM2"
-      | "balconyTerraceAreaM2"
-      | "commonCirculationAreaM2"
-      | "elevatorShaftAreaM2"
-      | "notes",
-    value: string
-  ) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: current.blocks.map((block) =>
-        block.id === blockId ? { ...block, [key]: value } : block
-      ),
-    }));
+  const setFormField = (key: keyof EstimatedAreaFormState, value: string | boolean) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setExportError(null);
   };
 
-  const addCustomBlock = () => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: [
-        ...current.blocks,
-        mapBlockToState(
-          createCustomFloorProgramBlock(
-            `custom-${current.blocks.filter((block) => block.role === "custom").length + 1}`
-          )
-        ),
-      ],
-    }));
-  };
-
-  const removeBlock = (blockId: string) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: current.blocks.filter((block) => block.id !== blockId),
-    }));
-  };
-
-  const addTechnicalLine = (blockId: string) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: current.blocks.map((block) =>
-        block.id === blockId
-          ? {
-              ...block,
-              technicalLines: [
-                ...block.technicalLines,
-                mapTechnicalLineToState(createEmptyTechnicalAreaLine(createId("technical"))),
-              ],
-            }
-          : block
-      ),
-    }));
-  };
-
-  const setTechnicalLineField = (
-    blockId: string,
-    lineId: string,
-    key: "label" | "areaM2",
-    value: string
-  ) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: current.blocks.map((block) =>
-        block.id === blockId
-          ? {
-              ...block,
-              technicalLines: block.technicalLines.map((line) =>
-                line.id === lineId ? { ...line, [key]: value } : line
-              ),
-            }
-          : block
-      ),
-    }));
-  };
-
-  const removeTechnicalLine = (blockId: string, lineId: string) => {
-    setHasDetailedEdits(true);
-    setDetailedDraft((current) => ({
-      ...current,
-      blocks: current.blocks.map((block) =>
-        block.id === blockId
-          ? {
-              ...block,
-              technicalLines: block.technicalLines.filter((line) => line.id !== lineId),
-            }
-          : block
-      ),
-    }));
-  };
+  const activeProfile = getConstructionAreaProfileDefinition(form.profile);
 
   return (
     <div className="tool-page-shell">
@@ -599,51 +384,44 @@ export function EstimatedConstructionAreaClient() {
         <div className="mb-10 max-w-4xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300">
             <Calculator className="h-3.5 w-3.5" />
-            Hizli + Detayli Tahmin
+            Emsalden inşaat alanına geçiş
           </div>
           <h1 className="text-4xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-5xl">
-            Tahmini Insaat Alani Hesabi
+            Tahmini İnşaat Alanı Hesabı
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
-            Hizli modda brut arsa, TAKS, KAKS ve bodrum kabulleriyle on fizibilite alin.
-            Detayli modda ise kat bazli brut alan, ortak alan, asansor ve teknik hacimlerle
-            gercege daha yakin <strong>Toplam Insaat Alani</strong> uretin.
+            Net parsel alanı, TAKS, KAKS ve kat sayısından yola çıkarak emsale dahil alanı,
+            emsal harici tipik büyümeyi ve bodrum katkısını birlikte değerlendirin. Amaç,
+            resmi işlem öncesinde savunulabilir bir <strong>yaklaşık toplam inşaat alanı</strong>{" "}
+            üretmektir.
           </p>
-          <div className="mt-6">
-            <ModeSwitcher mode={mode} onChange={handleModeChange} />
+          <div className="mt-6 rounded-[28px] border border-blue-200/70 bg-white/70 p-5 text-sm leading-7 text-zinc-700 shadow-[0_18px_48px_-36px_rgba(37,99,235,0.35)] dark:border-blue-900/70 dark:bg-zinc-950/60 dark:text-zinc-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
+              Aktif profil varsayımı
+            </p>
+            <p className="mt-2 text-base font-black text-zinc-950 dark:text-white">
+              {activeProfile.label}
+            </p>
+            <p className="mt-2">{activeProfile.helper}</p>
           </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.06fr)_minmax(360px,0.94fr)] lg:items-start">
           <div>
-            {mode === "quick" ? (
-              <QuickModePanel form={quickForm} onFieldChange={setQuickField} />
-            ) : (
-              <DetailedModePanel
-                draft={detailedDraft}
-                suggestedFootprintM2={suggestedFootprintM2}
-                onIdentityChange={setProjectIdentityField}
-                onBlockFieldChange={setBlockField}
-                onAddCustomBlock={addCustomBlock}
-                onRemoveBlock={removeBlock}
-                onAddTechnicalLine={addTechnicalLine}
-                onTechnicalLineChange={setTechnicalLineField}
-                onRemoveTechnicalLine={removeTechnicalLine}
-              />
-            )}
+            <QuickModePanel form={form} onFieldChange={setFormField} />
           </div>
 
           <div className="lg:sticky lg:top-24">
             <ConstructionAreaSummary
-              mode={mode}
-              quickResult={quickResult}
-              quickError={quickError}
-              quickFormulaLines={quickFormulaLines}
-              detailedResult={detailedResult}
-              detailedError={detailedError}
-              detailedFormulaLines={detailedFormulaLines}
+              result={result}
+              error={error}
+              formulaLines={formulaLines}
               officialCostHref={officialCostHref}
-              onChangeMode={handleModeChange}
+              exportError={exportError}
+              activePdfAction={activePdfAction}
+              onPdfPreview={handlePdfPreview}
+              onPdfDownload={handlePdfDownload}
+              onPrint={handlePrint}
             />
           </div>
         </div>
