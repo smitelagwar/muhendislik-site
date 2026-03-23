@@ -190,3 +190,94 @@ Bir görevi tamamladığında şunu yap:
 ---
 
 *Bu dosya proje genelinde geçerlidir. Çelişkili talimat gelirse bu dosyadaki kurallar önceliklidir.*
+
+## Repo Gerçekliği ile Senkronizasyon
+Bu dosyadaki kurallar uygulanırken önce mevcut repo yapısı kontrol edilmelidir.
+- Gerçek route yapısı öncelikle `src/app/` altında aranmalıdır.
+- Paylaşılan bileşenler `src/components/` altında tutulmalıdır.
+- İçerik kaynağı `src/lib/data.json` dosyasıdır.
+- Site ayarları ve URL yardımcıları `src/lib/site-config.ts` içinde aranmalıdır.
+- Bu projede mevcut dosya yapısı ile çelişen yeni klasör organizasyonu önerilmemelidir.
+- Yeni dosya eklemeden önce mevcut pattern incelenmelidir.
+
+## İçerik Şeması Kuralları
+Teknik blog ve rehber içerikleri aşağıdaki alanları mümkün olduğunca içermelidir:
+- title
+- slug
+- summary
+- category
+- tags
+- publishedAt
+- updatedAt
+- seoTitle
+- seoDescription
+- keywords
+- references
+
+Kurallar:
+- Başlıklar teknik ve açık olmalı
+- URL slug kısa, okunabilir ve kebab-case olmalı
+- Yönetmelik referansı olmayan teknik iddia yazılmamalı
+- Sayısal örnek varsa birimlerle birlikte verilmelidir
+- Her teknik yazıda “sık yapılan hatalar” veya “uygulama notları” bölümü bulunması tercih edilir
+
+## SEO ve Metadata Kuralları
+- Her sayfada benzersiz title ve meta description olmalı
+- Makale sayfalarında canonical URL tanımlanmalı
+- Open Graph ve Twitter metadata eklenmeli
+- Uygun sayfalarda JSON-LD kullanılmalı
+- Türkçe karakter içeren başlıklardan slug üretirken normalize edilmiş URL kullanılmalı
+- Hesap araçları için kısa açıklama, kullanım amacı ve ilgili standart referansları gösterilmeli
+
+## Erişilebilirlik Kuralları
+- Tüm input alanlarının görünür bir etiketi olmalı
+- Hata mesajları screen reader tarafından okunabilir olmalı
+- Klavye ile gezilebilirlik bozulmamalı
+- Tooltip içerikleri sadece hover ile değil focus ile de erişilebilir olmalı
+- SVG ve grafiklerde açıklayıcı başlık/aria bilgileri bulunmalı
+
+## Performans Kuralları
+- Gereksiz `use client` kullanımından kaçınılmalı
+- D3.js ve ağır etkileşimli bileşenler mümkünse lazy-load edilmelidir
+- Büyük veri yapıları tekrar tekrar parse edilmemelidir
+- Animasyonlar performansı bozmayacak kadar kısa tutulmalıdır
+- Layout shift oluşturan tasarımlardan kaçınılmalıdır
+
+## Hesap Araçları Sayısal Güvenilirlik
+- Tüm girişler birim bazında doğrulanmalı
+- Sonuç yuvarlama standardı her araçta tutarlı olmalı
+- Ara hesaplar ile nihai sonuçlar ayrıştırılmalı
+- Negatif, sıfır veya anlamsız girişlerde sonuç yerine açıklayıcı hata gösterilmeli
+- Gerekirse “ön boyutlandırma amaçlıdır” uyarısı verilmelidir
+- Yönetmelik sınırlarını aşan durumlar uyarı olarak belirtilmelidir
+
+## Güvenlik ve Production Sınırları
+- Production için localStorage tabanlı admin veya sabit şifreli çözüm önerilmemeli
+- Secret veya private yapılandırmalar client tarafına taşınmamalı
+- Public API yüzeyi gereksiz yere genişletilmemeli
+- Dosyaya yazma mantığı gerektiren çözümler Vercel production ortamına uygun kabul edilmemelidir
+
+## Test Matrisi
+Her yeni özellikte mümkünse şu kontroller yapılmalı:
+- normal giriş
+- sınır değer
+- boş değer
+- negatif değer
+- sıfır değeri
+- çok büyük değer
+- ondalıklı değer
+- mobil görünüm
+- Türkçe karakterli metinler
+- dark mode görünümü
+- build/lint/typecheck kontrolü
+
+## Ajan Karar Öncelikleri
+Karar verirken şu öncelik sırası izlenmelidir:
+1. Yönetmelik doğruluğu
+2. Mevcut repo mimarisiyle uyum
+3. Mobil uyumluluk
+4. Erişilebilirlik
+5. Performans
+6. Görsel estetik
+7. Yeni bağımlılık eklememe
+``
