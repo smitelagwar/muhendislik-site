@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Calculator, Home } from "lucide-react";
+import { CALCULATIONS_HUB_HREF, getCalculationPages } from "@/lib/calculation-pages";
 
 export const metadata: Metadata = {
   title: {
-    default: "İnşaat Hesaplamaları | Mühendis Mimar Portalı",
+    default: "Ä°nÅŸaat HesaplamalarÄ± | MÃ¼hendis Mimar PortalÄ±",
     template: "%s | Hesaplamalar",
   },
   description:
-    "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
+    "Tahmini inÅŸaat alanÄ±, inÅŸaat maliyeti ve resmÃ® birim maliyet araÃ§larÄ±.",
 };
 
 const CALC_LINKS = [
-  { label: "Genel Bakış", href: "/hesaplamalar" },
-  { label: "Tahmini İnşaat Alanı", href: "/hesaplamalar/tahmini-insaat-alani" },
-  { label: "İnşaat Maliyeti", href: "/hesaplamalar/insaat-maliyeti" },
-  { label: "Resmî Birim Maliyet 2026", href: "/hesaplamalar/resmi-birim-maliyet-2026" },
+  { label: "Genel Bakis", href: CALCULATIONS_HUB_HREF },
+  ...getCalculationPages().map((page) => ({ label: page.navLabel, href: page.href })),
 ];
 
 export default function HesaplamalarLayout({
@@ -58,10 +57,10 @@ export default function HesaplamalarLayout({
           </div>
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-300">
-              Hesaplama Araçları
+              Hesaplama AraÃ§larÄ±
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Alan fizibilitesi | maliyet | resmî referans | metraj odaklı karar desteği
+              Alan fizibilitesi | maliyet | resmÃ® referans | metraj odaklÄ± karar desteÄŸi
             </p>
           </div>
         </div>

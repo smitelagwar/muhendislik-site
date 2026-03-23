@@ -2,22 +2,18 @@
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calculator, Command, FileText, Map, Scale, Search, X } from "lucide-react";
+import { Calculator, Command, FileText, Layers, Map, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ToolIcon } from "@/components/tool-icon";
-import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
+import { CALCULATIONS_HUB_HREF } from "@/lib/calculation-pages";
+import type { SearchIndexItem, SearchItemType } from "@/lib/search-types";
+import { normalizeSearchValue } from "@/lib/search-utils";
+import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
-interface SearchItem {
-  title: string;
-  slug: string;
-  category: string;
-  description: string;
-}
-
-const DISCOVERY_LINKS = [
-  { label: "Yapi", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-4 w-4" /> },
-  { label: "Yonetmelikler", href: "/kategori/deprem-yonetmelik", icon: <Scale className="h-4 w-4" /> },
-  { label: "Site Haritasi", href: "/konu-haritasi", icon: <Map className="h-4 w-4" /> },
+const SHORTCUT_LINKS = [
+  { label: "Bina Asamalari", href: "/kategori/bina-asamalari", icon: Map },
+  { label: "Araclar", href: TOOLS_HUB_HREF, icon: Calculator },
+  { label: "Hesaplamalar", href: CALCULATIONS_HUB_HREF, icon: Calculator },
+  { label: "Konu Haritasi", href: "/konu-haritasi", icon: Layers },
 ];
 
 function escapeRegExp(value: string) {
@@ -46,24 +42,97 @@ function HighlightText({ text, query }: { text: string; query: string }) {
   );
 }
 
+function getItemTypeLabel(type: SearchItemType): string {
+  switch (type) {
+    case "article":
+      return "Blog";
+    case "topic":
+      return "Konu";
+    case "tool":
+      return "Arac";
+    case "calculation":
+      return "Hesap";
+    case "section":
+      return "Kategori";
+    default:
+      return "Sonuc";
+  }
+}
+
+function getItemIcon(type: SearchItemType) {
+  switch (type) {
+    case "tool":
+    case "calculation":
+      return Calculator;
+    case "topic":
+      return Map;
+    case "section":
+      return Layers;
+    case "article":
+    default:
+      return FileText;
+  }
+}
+
+function scoreItem(item: SearchIndexItem, normalizedQuery: string): number {
+  if (!normalizedQuery) {
+    return item.priority;
+  }
+
+  const title = normalizeSearchValue(item.title);
+  const category = normalizeSearchValue(item.category);
+  const description = normalizeSearchValue(item.description);
+  const href = normalizeSearchValue(item.href);
+  let score = 0;
+
+  if (title === normalizedQuery) {
+    score += 1600;
+  }
+
+  if (title.startsWith(normalizedQuery)) {
+    score += 1000;
+  } else if (title.includes(normalizedQuery)) {
+    score += 760;
+  }
+
+  if (category.startsWith(normalizedQuery)) {
+    score += 320;
+  } else if (category.includes(normalizedQuery)) {
+    score += 240;
+  }
+
+  if (description.includes(normalizedQuery)) {
+    score += 180;
+  }
+
+  if (href.includes(normalizedQuery)) {
+    score += 140;
+  }
+
+  if (item.searchText.includes(normalizedQuery)) {
+    score += 120;
+  }
+
+  return score > 0 ? score + item.priority : -1;
+}
+
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [items, setItems] = useState<SearchItem[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [items, setItems] = useState<SearchIndexItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const tools = useMemo(() => getLiveTools(), []);
   const deferredQuery = useDeferredValue(query);
-  const isLoading = isOpen && !hasLoaded && !loadFailed;
+
+  const openPalette = () => {
+    setLoadFailed(false);
+    setIsLoading(true);
+    setIsOpen(true);
+  };
 
   useEffect(() => {
-    const openPalette = () => {
-      setLoadFailed(false);
-      setIsOpen(true);
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -72,6 +141,9 @@ export function CommandPalette() {
 
           if (next) {
             setLoadFailed(false);
+            setIsLoading(true);
+          } else {
+            setIsLoading(false);
           }
 
           return next;
@@ -80,6 +152,7 @@ export function CommandPalette() {
 
       if (event.key === "Escape") {
         setIsOpen(false);
+        setIsLoading(false);
       }
     };
 
@@ -99,24 +172,23 @@ export function CommandPalette() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || hasLoaded || loadFailed) {
+    if (!isOpen) {
       return;
     }
 
     const controller = new AbortController();
 
-    fetch("/api/articles?scope=search", { signal: controller.signal })
+    fetch("/api/search", { signal: controller.signal, cache: "no-store" })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Search index request failed");
         }
 
-        return response.json() as Promise<SearchItem[]>;
+        return response.json() as Promise<SearchIndexItem[]>;
       })
       .then((payload) => {
         startTransition(() => {
           setItems(payload);
-          setHasLoaded(true);
         });
       })
       .catch((error) => {
@@ -126,31 +198,39 @@ export function CommandPalette() {
 
         console.error("Command palette search load failed:", error);
         setLoadFailed(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       });
 
     return () => controller.abort();
-  }, [hasLoaded, isOpen, loadFailed]);
+  }, [isOpen]);
 
-  const filteredArticles = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase();
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = normalizeSearchValue(deferredQuery);
 
     if (!normalizedQuery) {
-      return items.slice(0, 5);
+      return [...items]
+        .sort((left, right) => right.priority - left.priority || left.title.localeCompare(right.title, "tr-TR"))
+        .slice(0, 8);
     }
 
     return items
-      .filter((article) => {
-        return (
-          article.title.toLowerCase().includes(normalizedQuery) ||
-          article.category.toLowerCase().includes(normalizedQuery) ||
-          article.description.toLowerCase().includes(normalizedQuery)
-        );
-      })
-      .slice(0, 8);
+      .map((item) => ({ item, score: scoreItem(item, normalizedQuery) }))
+      .filter((entry) => entry.score > -1)
+      .sort(
+        (left, right) =>
+          right.score - left.score || right.item.priority - left.item.priority || left.item.title.localeCompare(right.item.title, "tr-TR"),
+      )
+      .slice(0, 12)
+      .map((entry) => entry.item);
   }, [deferredQuery, items]);
 
   const closePalette = () => {
     setIsOpen(false);
+    setIsLoading(false);
     setQuery("");
   };
 
@@ -158,6 +238,8 @@ export function CommandPalette() {
     router.push(href);
     closePalette();
   };
+
+  const showShortcuts = !query.trim();
 
   return (
     <AnimatePresence>
@@ -191,76 +273,74 @@ export function CommandPalette() {
 
             <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
               <div className="mb-4">
-                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Icerikler</h3>
-                {isLoading ? <div className="p-6 text-sm text-zinc-500">Arama dizini yukleniyor...</div> : null}
-                {filteredArticles.map((article) => (
-                  <button
-                    key={article.slug}
-                    type="button"
-                    onClick={() => openRoute(`/${article.slug}`)}
-                    className="group flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 transition-colors group-hover:text-blue-600 dark:bg-zinc-800">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                        <HighlightText text={article.title} query={query} />
-                      </p>
-                      <p className="truncate text-xs text-zinc-500">
-                        <HighlightText text={article.category} query={query} />
-                      </p>
-                    </div>
-                    <Command className="h-4 w-4 text-zinc-300 transition-colors group-hover:text-zinc-500" />
-                  </button>
-                ))}
+                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sonuclar</h3>
+                {isLoading && items.length === 0 ? <div className="p-6 text-sm text-zinc-500">Arama dizini yukleniyor...</div> : null}
+                {filteredItems.map((item) => {
+                  const ItemIcon = getItemIcon(item.type);
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => openRoute(item.href)}
+                      className="group flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 transition-colors group-hover:text-blue-600 dark:bg-zinc-800">
+                        <ItemIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                            <HighlightText text={item.title} query={query} />
+                          </p>
+                          <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 dark:border-zinc-700">
+                            {getItemTypeLabel(item.type)}
+                          </span>
+                        </div>
+                        <p className="truncate text-xs text-zinc-500">
+                          <HighlightText text={item.category} query={query} />
+                        </p>
+                        <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                          <HighlightText text={item.description} query={query} />
+                        </p>
+                      </div>
+                      <Command className="h-4 w-4 text-zinc-300 transition-colors group-hover:text-zinc-500" />
+                    </button>
+                  );
+                })}
+                {isLoading && items.length > 0 ? <div className="px-3 pt-2 text-xs text-zinc-500">Arama dizini guncelleniyor...</div> : null}
                 {loadFailed ? <div className="p-6 text-sm text-zinc-500">Arama dizini yuklenemedi. Tekrar deneyin.</div> : null}
-                {!isLoading && !loadFailed && filteredArticles.length === 0 ? <div className="p-10 text-center text-sm italic text-zinc-500">Eslesen sonuc bulunamadi.</div> : null}
+                {!isLoading && !loadFailed && filteredItems.length === 0 ? (
+                  <div className="p-10 text-center text-sm italic text-zinc-500">
+                    {query.trim() ? "Eslesen sonuc bulunamadi." : "Yazmaya baslayin veya kisayollardan ilerleyin."}
+                  </div>
+                ) : null}
               </div>
 
-              <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Araclar</h3>
-                <div className="grid gap-1 sm:grid-cols-2">
-                  <button type="button" onClick={() => openRoute(TOOLS_HUB_HREF)} className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                    <Calculator className="h-4 w-4 text-zinc-400 transition-colors group-hover:text-blue-600" />
-                    <span className="text-xs font-medium">Tum hesap araclari</span>
-                  </button>
-                  {tools.map((tool) => (
-                    <button
-                      key={tool.id}
-                      type="button"
-                      onClick={() => openRoute(tool.href)}
-                      className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    >
-                      <ToolIcon iconKey={tool.iconKey} className="h-4 w-4 text-zinc-400 transition-colors group-hover:text-blue-600" />
-                      <span className="text-xs font-medium">{tool.name}</span>
-                    </button>
-                  ))}
+              {showShortcuts ? (
+                <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
+                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kisayollar</h3>
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {SHORTCUT_LINKS.map((link) => (
+                      <button
+                        key={link.href}
+                        type="button"
+                        onClick={() => openRoute(link.href)}
+                        className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      >
+                        <link.icon className="h-4 w-4 text-zinc-400 transition-colors group-hover:text-blue-600" />
+                        <span className="text-xs font-medium">{link.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kesif</h3>
-                <div className="grid gap-1 sm:grid-cols-3">
-                  {DISCOVERY_LINKS.map((link) => (
-                    <button
-                      key={link.href}
-                      type="button"
-                      onClick={() => openRoute(link.href)}
-                      className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    >
-                      <span className="text-zinc-400 transition-colors group-hover:text-blue-600">{link.icon}</span>
-                      <span className="text-xs font-medium">{link.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              ) : null}
             </div>
 
             <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/50 px-4 py-3 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">↑↓</span>
+                  <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Up/Down</span>
                   Navigasyon
                 </span>
                 <span className="flex items-center gap-1">
