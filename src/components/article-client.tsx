@@ -162,9 +162,9 @@ function TableViewer({ content }: { content: string }) {
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[color:var(--table-muted)]">Veri tablosu</span>
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase tracking-wider" onClick={copy}>
-              {copied ? "Kopyalandi" : "Kopyala"}
+              {copied ? "Kopyalandı" : "Kopyala"}
             </Button>
-            <Button type="button" variant="outline" size="icon-sm" onClick={() => setFullscreen(true)} title="Tabloyu buyut">
+            <Button type="button" variant="outline" size="icon-sm" onClick={() => setFullscreen(true)} title="Tabloyu büyüt">
               <Maximize2 className="h-4 w-4" />
             </Button>
           </div>
@@ -175,7 +175,7 @@ function TableViewer({ content }: { content: string }) {
       {fullscreen ? (
         <div className="fixed inset-0 z-[130] flex flex-col bg-white p-4 dark:bg-zinc-950 md:p-8">
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-xl font-black text-zinc-950 dark:text-white">Tablo gorunumu</h3>
+            <h3 className="text-xl font-black text-zinc-950 dark:text-white">Tablo görünümü</h3>
             <Button type="button" variant="ghost" size="icon" onClick={() => setFullscreen(false)} className="rounded-full bg-zinc-100 dark:bg-zinc-900">
               <X className="h-5 w-5" />
             </Button>
@@ -189,19 +189,19 @@ function TableViewer({ content }: { content: string }) {
 
 function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
   const href = articleSlug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF;
-  const title = articleSlug === "kalip-sokumu-rehberi" ? "Kalip sokum suresini hesapla" : "Tum hesap araclarini ac";
+  const title = articleSlug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm hesap araçlarını aç";
   return (
     <div className="not-prose my-12 rounded-[28px] border border-blue-200/70 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm dark:border-blue-900/40 dark:from-blue-950/30 dark:via-zinc-950 dark:to-indigo-950/30 md:p-8">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">Arac kisayolu</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">Araç kısayolu</p>
       <h3 className="mt-3 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">{title}</h3>
       <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
         {articleSlug === "kalip-sokumu-rehberi"
-          ? "Santiye kosullarina gore tahmini bekleme suresini arac uzerinden hemen karsilastirin."
-          : "Ihtiyaciniz olan muhendislik aracina tek kategori uzerinden hizlica gecin."}
+          ? "Şantiye koşullarına göre tahmini bekleme süresini araç üzerinden hemen karşılaştırın."
+          : "İhtiyacınız olan mühendislik aracına tek kategori üzerinden hızlıca geçin."}
       </p>
       <Button asChild className="mt-6 h-12 rounded-full bg-blue-700 px-8 text-sm font-black text-white hover:bg-blue-800">
         <Link href={href} prefetch={false}>
-          Araci ac
+          Aracı aç
           <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
       </Button>
@@ -219,7 +219,7 @@ function InlineToc({ parsedSections }: { parsedSections: ParsedSection[] }) {
       <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
         <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
           <BookOpen className="h-4 w-4 text-blue-700 dark:text-blue-400" />
-          Icindekiler
+          İçindekiler
         </h2>
       </div>
       <div className="grid gap-2 p-6 md:grid-cols-2">
@@ -317,7 +317,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
           <div className="flex-1">
             <h3 className="mb-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{article.author}</h3>
             <p className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{article.authorTitle}</p>
-            <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu icerik, saha pratigi ile teknik referanslari birlikte dusunen hizli okuma duzeniyle sunuldu.</p>
+            <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu içerik, saha pratiği ile teknik referansları birlikte düşünen hızlı okuma düzeniyle sunuldu.</p>
           </div>
         </div>
 
@@ -451,7 +451,7 @@ export default function ArticleClient({
             <div className="mb-8 rounded-3xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
                 <span className="h-4 w-1.5 rounded-full bg-blue-600" />
-                Hizli ozet
+                Hızlı özet
               </h2>
               <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">{article.description}</p>
             </div>
@@ -474,7 +474,7 @@ export default function ArticleClient({
                 <FontSizeControl />
                 <Button type="button" variant="outline" size="sm" onClick={() => setMobileTocOpen(true)} className="lg:hidden">
                   <List className="mr-2 h-4 w-4" />
-                  Icindekiler
+                  İçindekiler
                 </Button>
               </div>
             </div>
@@ -496,7 +496,7 @@ export default function ArticleClient({
             <div>
               <div className="mb-6 flex items-center gap-2 border-b border-zinc-200 pb-4 text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
                 <BookOpen className="h-3.5 w-3.5 text-blue-700 dark:text-blue-500" />
-                Icindekiler
+                İçindekiler
               </div>
               <ScrollArea className="max-h-[360px] pr-4">
                 <nav className="relative flex flex-col gap-1.5 border-l-2 border-zinc-100 pl-4 dark:border-zinc-800">
@@ -520,13 +520,13 @@ export default function ArticleClient({
 
             {!hideToolPromos ? (
               <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h4 className="mb-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">Isinize yarayabilir</h4>
+                <h4 className="mb-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">İşinize yarayabilir</h4>
                 <p className="mb-6 text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100">
-                  {article.slug === "kalip-sokumu-rehberi" ? "Kalip sokum suresi hesabini arac uzerinden hemen acin." : "Tum hesap araclarini tek kategoride acip ihtiyaciniz olan araca gecin."}
+                  {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresi hesabını araç üzerinden hemen açın." : "Tüm hesap araçlarını tek kategoride açıp ihtiyacınız olan araca geçin."}
                 </p>
                 <Button asChild size="sm" className="h-10 w-full rounded-xl bg-blue-700 font-bold text-white hover:bg-blue-800">
                   <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF} prefetch={false}>
-                    {article.slug === "kalip-sokumu-rehberi" ? "Kalip sokum suresini hesapla" : "Tum araclari ac"}
+                    {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm araçları aç"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -538,7 +538,7 @@ export default function ArticleClient({
 
       <Button type="button" size="sm" onClick={() => setMobileTocOpen(true)} className="fixed bottom-24 right-4 z-40 rounded-full px-4 shadow-lg shadow-blue-600/20 lg:hidden">
         <List className="mr-2 h-4 w-4" />
-        Icindekiler
+        İçindekiler
       </Button>
 
       {mobileTocOpen ? (
@@ -547,7 +547,7 @@ export default function ArticleClient({
           <div className="fixed bottom-0 left-0 right-0 z-[60] flex max-h-[85vh] flex-col rounded-t-3xl border-t border-zinc-200 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:border-zinc-800 dark:bg-zinc-950 lg:hidden">
             <div className="flex flex-shrink-0 items-center justify-between border-b border-zinc-100 p-6 dark:border-zinc-800">
               <h3 className="flex items-center gap-2 text-lg font-black">
-                <BookOpen className="h-5 w-5 text-blue-600" /> Icindekiler
+                <BookOpen className="h-5 w-5 text-blue-600" /> İçindekiler
               </h3>
               <Button type="button" variant="ghost" size="icon" onClick={() => setMobileTocOpen(false)} className="rounded-full bg-zinc-100 dark:bg-zinc-800">
                 <X className="h-5 w-5" />

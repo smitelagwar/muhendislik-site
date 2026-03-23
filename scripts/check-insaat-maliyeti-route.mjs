@@ -15,6 +15,13 @@ function assert(condition, message) {
   }
 }
 
+function shouldIgnoreRequestFailure(request) {
+  const errorText = request.failure()?.errorText ?? "";
+  const url = request.url();
+
+  return errorText === "net::ERR_ABORTED" && url.includes("?_rsc=");
+}
+
 function normalizeWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -207,6 +214,10 @@ page.on("console", (message) => {
 });
 
 page.on("requestfailed", (request) => {
+  if (shouldIgnoreRequestFailure(request)) {
+    return;
+  }
+
   requestFailures.push({
     url: request.url(),
     error: request.failure()?.errorText ?? "unknown",

@@ -18,11 +18,11 @@ const NAV_LINKS = [
   { name: "Ana Sayfa", href: "/" },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik" },
   { name: "Hesaplamalar", href: "/hesaplamalar" },
-  { name: "Araclar", href: "/kategori/araclar" },
-  { name: "Bina Asamalari", href: "/kategori/bina-asamalari" },
-  { name: "Yapi", href: "/kategori/yapi-tasarimi" },
-  { name: "Santiye", href: "/kategori/santiye" },
-  { name: "Site Haritasi", href: "/konu-haritasi" },
+  { name: "Araçlar", href: "/kategori/araclar" },
+  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari" },
+  { name: "Yapı", href: "/kategori/yapi-tasarimi" },
+  { name: "Şantiye", href: "/kategori/santiye" },
+  { name: "Site Haritası", href: "/konu-haritasi" },
 ];
 
 export function Navbar() {
@@ -66,14 +66,14 @@ export function Navbar() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-blue-50 dark:bg-zinc-800 dark:group-hover:bg-blue-900/30">
                     <ChevronLeft className="h-4 w-4" />
                   </div>
-                  <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri don</span>
+                  <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri dön</span>
                 </Link>
               ) : (
                 <Link href="/" className="group flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-light.svg?v=3" alt="Insa Blog" className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`} />
+                  <img src="/logos/logo-light.svg?v=3" alt="İnşa Blog" className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`} />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-dark.svg?v=3" alt="Insa Blog" className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`} />
+                  <img src="/logos/logo-dark.svg?v=3" alt="İnşa Blog" className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`} />
                 </Link>
               )}
 
@@ -111,7 +111,7 @@ export function Navbar() {
                     className="hidden gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 sm:flex"
                   >
                     <Share2 className="h-4 w-4" />
-                    Paylas
+                    Paylaş
                   </Button>
                   <BookmarkButton slug={pageSlug} className="rounded-full border border-zinc-200 px-4 py-2 dark:border-zinc-700" />
                 </div>

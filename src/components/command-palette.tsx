@@ -10,10 +10,10 @@ import { normalizeSearchValue } from "@/lib/search-utils";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
 const SHORTCUT_LINKS = [
-  { label: "Bina Asamalari", href: "/kategori/bina-asamalari", icon: Map },
-  { label: "Araclar", href: TOOLS_HUB_HREF, icon: Calculator },
+  { label: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: Map },
+  { label: "Araçlar", href: TOOLS_HUB_HREF, icon: Calculator },
   { label: "Hesaplamalar", href: CALCULATIONS_HUB_HREF, icon: Calculator },
-  { label: "Konu Haritasi", href: "/konu-haritasi", icon: Layers },
+  { label: "Konu Haritası", href: "/konu-haritasi", icon: Layers },
 ];
 
 function escapeRegExp(value: string) {
@@ -49,13 +49,13 @@ function getItemTypeLabel(type: SearchItemType): string {
     case "topic":
       return "Konu";
     case "tool":
-      return "Arac";
+      return "Araç";
     case "calculation":
       return "Hesap";
     case "section":
       return "Kategori";
     default:
-      return "Sonuc";
+      return "Sonuç";
   }
 }
 
@@ -260,7 +260,7 @@ export function CommandPalette() {
                 type="text"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Icerik, arac veya konu ara..."
+                placeholder="İçerik, araç veya konu ara..."
                 className="flex-1 border-none bg-transparent text-lg text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
               />
               <div className="flex items-center gap-1.5">
@@ -273,8 +273,8 @@ export function CommandPalette() {
 
             <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
               <div className="mb-4">
-                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sonuclar</h3>
-                {isLoading && items.length === 0 ? <div className="p-6 text-sm text-zinc-500">Arama dizini yukleniyor...</div> : null}
+                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sonuçlar</h3>
+                {isLoading && items.length === 0 ? <div className="p-6 text-sm text-zinc-500">Arama dizini yükleniyor...</div> : null}
                 {filteredItems.map((item) => {
                   const ItemIcon = getItemIcon(item.type);
 
@@ -308,18 +308,18 @@ export function CommandPalette() {
                     </button>
                   );
                 })}
-                {isLoading && items.length > 0 ? <div className="px-3 pt-2 text-xs text-zinc-500">Arama dizini guncelleniyor...</div> : null}
-                {loadFailed ? <div className="p-6 text-sm text-zinc-500">Arama dizini yuklenemedi. Tekrar deneyin.</div> : null}
+                {isLoading && items.length > 0 ? <div className="px-3 pt-2 text-xs text-zinc-500">Arama dizini güncelleniyor...</div> : null}
+                {loadFailed ? <div className="p-6 text-sm text-zinc-500">Arama dizini yüklenemedi. Tekrar deneyin.</div> : null}
                 {!isLoading && !loadFailed && filteredItems.length === 0 ? (
                   <div className="p-10 text-center text-sm italic text-zinc-500">
-                    {query.trim() ? "Eslesen sonuc bulunamadi." : "Yazmaya baslayin veya kisayollardan ilerleyin."}
+                    {query.trim() ? "Eşleşen sonuç bulunamadı." : "Yazmaya başlayın veya kısayollardan ilerleyin."}
                   </div>
                 ) : null}
               </div>
 
               {showShortcuts ? (
                 <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kisayollar</h3>
+                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kısayollar</h3>
                   <div className="grid gap-1 sm:grid-cols-2">
                     {SHORTCUT_LINKS.map((link) => (
                       <button
@@ -345,7 +345,7 @@ export function CommandPalette() {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Enter</span>
-                  Ac
+                  Aç
                 </span>
               </div>
               <span className="flex items-center gap-1">

@@ -8,6 +8,10 @@ import puppeteer from "puppeteer";
 const port = Number(process.argv[2] ?? "3006");
 const baseUrl = `http://127.0.0.1:${port}`;
 const routeUrl = `${baseUrl}/hesaplamalar/resmi-birim-maliyet-2026`;
+const DETAILED_AREA_SELECTORS = [
+  '[data-testid="construction-total-area-input"]',
+  '[data-testid="detailed-area-input"]',
+];
 
 function assert(condition, message) {
   if (!condition) {
@@ -17,6 +21,10 @@ function assert(condition, message) {
 
 function normalizeWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeNumericInput(value) {
+  return value.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
 }
 
 async function waitForDownload(downloadDir, timeoutMs = 15000) {
@@ -125,10 +133,10 @@ try {
   steps.push("page-load");
 
   await page.click('[data-testid="navbar-live-search"]');
-  await page.waitForSelector('input[placeholder="Icerik, arac veya konu ara..."]', { visible: true });
+  await page.waitForSelector('input[placeholder="İçerik, araç veya konu ara..."]', { visible: true });
   await page.keyboard.press("Escape");
   await page.waitForFunction(
-    () => !document.querySelector('input[placeholder="Icerik, arac veya konu ara..."]'),
+    () => !document.querySelector('input[placeholder="İçerik, araç veya konu ara..."]'),
     { timeout: 5000 },
   );
   steps.push("command-palette");
@@ -287,12 +295,28 @@ try {
     () => window.location.pathname === "/hesaplamalar/insaat-maliyeti",
     { timeout: 10000 },
   );
-  await page.waitForSelector('[data-testid="detailed-area-input"]', { visible: true });
-  const detailedAreaValue = await page.$eval(
-    '[data-testid="detailed-area-input"]',
-    (element) => element.value,
+  await page.waitForFunction(
+    (selectors) =>
+      selectors.some((selector) => {
+        const element = document.querySelector(selector);
+        return element instanceof HTMLInputElement && element.offsetParent !== null;
+      }),
+    { timeout: 30000 },
+    DETAILED_AREA_SELECTORS,
   );
-  assert(detailedAreaValue === "2500", `Detailed area input should be seeded with 2500, received ${detailedAreaValue}.`);
+  const detailedAreaValue = await page.evaluate((selectors) => {
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element instanceof HTMLInputElement && element.offsetParent !== null) {
+        return element.value;
+      }
+    }
+    return "";
+  }, DETAILED_AREA_SELECTORS);
+  assert(
+    normalizeNumericInput(detailedAreaValue) === "2500",
+    `Detailed area input should be seeded with 2500, received ${detailedAreaValue}.`,
+  );
   steps.push("compare-link");
 
   assert(dialogs.length === 0, `Unexpected dialog(s) opened: ${dialogs.map((item) => `${item.type}:${item.message}`).join(" | ")}`);

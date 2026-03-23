@@ -10,12 +10,12 @@ const MENU_ITEMS = [
   { name: "Ana Sayfa", href: "/", icon: <FileText className="h-5 w-5" /> },
   { name: "Mevzuat", href: "/kategori/deprem-yonetmelik", icon: <HardHat className="h-5 w-5" /> },
   { name: "Hesaplamalar", href: "/hesaplamalar", icon: <Calculator className="h-5 w-5" /> },
-  { name: "Araclar", href: "/kategori/araclar", icon: <Calculator className="h-5 w-5" /> },
-  { name: "Bina Asamalari", href: "/kategori/bina-asamalari", icon: <GitBranchPlus className="h-5 w-5" /> },
-  { name: "Yapi", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-5 w-5" /> },
-  { name: "Santiye", href: "/kategori/santiye", icon: <FileText className="h-5 w-5" /> },
-  { name: "Site Haritasi", href: "/konu-haritasi", icon: <FileText className="h-5 w-5" /> },
-  { name: "Iletisim", href: "/iletisim", icon: <Mail className="h-5 w-5" /> },
+  { name: "Araçlar", href: "/kategori/araclar", icon: <Calculator className="h-5 w-5" /> },
+  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: <GitBranchPlus className="h-5 w-5" /> },
+  { name: "Yapı", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-5 w-5" /> },
+  { name: "Şantiye", href: "/kategori/santiye", icon: <FileText className="h-5 w-5" /> },
+  { name: "Site Haritası", href: "/konu-haritasi", icon: <FileText className="h-5 w-5" /> },
+  { name: "İletişim", href: "/iletisim", icon: <Mail className="h-5 w-5" /> },
 ];
 
 export function MobileMenu() {
@@ -25,7 +25,7 @@ export function MobileMenu() {
 
   return (
     <div>
-      <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menuyu ac">
+      <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menüyü aç">
         <Menu className="h-6 w-6" />
       </Button>
 
@@ -37,11 +37,11 @@ export function MobileMenu() {
             <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
               <div className="flex items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logos/logo-light.svg?v=3" alt="Insa Blog" className="h-8 w-auto dark:hidden" />
+                <img src="/logos/logo-light.svg?v=3" alt="İnşa Blog" className="h-8 w-auto dark:hidden" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logos/logo-dark.svg?v=3" alt="Insa Blog" className="hidden h-8 w-auto dark:block" />
+                <img src="/logos/logo-dark.svg?v=3" alt="İnşa Blog" className="hidden h-8 w-auto dark:block" />
               </div>
-              <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menuyu kapat">
+              <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menüyü kapat">
                 <X className="h-6 w-6" />
               </Button>
             </div>
@@ -66,7 +66,7 @@ export function MobileMenu() {
             </div>
 
             <div className="flex items-center justify-between border-t border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Gorunum</span>
+              <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Görünüm</span>
               <ModeToggle />
             </div>
           </div>

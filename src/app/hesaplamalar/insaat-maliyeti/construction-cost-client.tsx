@@ -21,13 +21,24 @@ import {
   FileText,
   Info,
   Layers3,
-  Link2,
   Plus,
   Share2,
   ShieldCheck,
   X,
 } from "lucide-react";
-import { Cell, Pie, PieChart, Tooltip, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
+import {
+  Cell,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  type TooltipValueType,
+} from "recharts";
 import { cn } from "@/lib/utils";
 import { formatM2Fiyat, formatSayi, formatTL, formatYuzde } from "@/lib/calculations/core";
 import {
@@ -396,6 +407,11 @@ function useAnimatedNumber(value: number) {
   }, [value]);
 
   return displayValue;
+}
+
+function formatRadarTooltipValue(value: TooltipValueType | undefined) {
+  const numericValue = Array.isArray(value) ? Number(value[0] ?? 0) : Number(value ?? 0);
+  return [`%${Math.round(numericValue)}`, "Göreceli Oran"] as const;
 }
 
 function reduceCollection(state: ScenarioCollection, action: Action): ScenarioCollection {
@@ -1093,44 +1109,6 @@ export function ConstructionCostClient() {
     floorError,
     unitError,
   ]);
-  const heroTrustCards = useMemo(
-    () => [
-      {
-        id: "url-sync",
-        eyebrow: "URL Senkronu",
-        value: "Paylaşılabilir bağlantı",
-        helper: "Aktif senaryo ve karşılaştırma modu URL parametreleriyle taşınır",
-      },
-      {
-        id: "benchmark",
-        eyebrow: "Benchmark",
-        value: getBenchmarkStatusLabel(activeSnapshot.benchmark.status),
-        helper: `${formatTL(activeSnapshot.benchmark.delta)} · ${activeSnapshot.benchmark.label}`,
-      },
-      {
-        id: "scenarios",
-        eyebrow: "Senaryolar",
-        value: `${collection.scenarios.length}/3 aktif`,
-        helper:
-          collection.comparisonMode === "compare"
-            ? "Karşılaştırma görünümü açık"
-            : "Tek görünüm modunda çalışıyor",
-      },
-      {
-        id: "export",
-        eyebrow: "Çıktı",
-        value: "PDF / Excel / JSON",
-        helper: "1 sayfa kompakt PDF, detaylı Excel ve paylaşılabilir state paketi",
-      },
-    ],
-    [
-      activeSnapshot.benchmark.delta,
-      activeSnapshot.benchmark.label,
-      activeSnapshot.benchmark.status,
-      collection.comparisonMode,
-      collection.scenarios.length,
-    ]
-  );
   const heroQuickLinks = [
     { id: "project", label: "Proje", targetId: "construction-section-project" },
     { id: "area", label: "Alan modeli", targetId: "construction-section-area" },
@@ -2327,7 +2305,7 @@ export function ConstructionCostClient() {
                       <PolarGrid strokeOpacity={0.2} />
                       <PolarAngleAxis dataKey="subject" tick={{ fill: "#64748b", fontSize: 10, fontWeight: 700 }} />
                       <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                      <Tooltip formatter={(value: any) => [`%${Math.round(Number(value))}`, 'Göreceli Oran']} contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                      <Tooltip formatter={formatRadarTooltipValue} contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                       {report.scenarios.map((s, idx) => {
                         const colors = ["#0ea5e9", "#f43f5e", "#10b981", "#8b5cf6", "#f59e0b"];
                         const c = colors[idx % colors.length];

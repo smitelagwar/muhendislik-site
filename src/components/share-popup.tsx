@@ -43,7 +43,7 @@ function buildShareOptions(title: string, url: string): ShareOption[] {
 
 export function SharePopup({ open, onOpenChange, title, url }: SharePopupProps) {
   const { showToast } = useToast();
-  const pageTitle = title || (typeof document !== "undefined" ? document.title : "Icerigi paylas");
+  const pageTitle = title || (typeof document !== "undefined" ? document.title : "İçeriği paylaş");
   const pageUrl = url || (typeof window !== "undefined" ? window.location.href : "");
   const shareOptions = useMemo(() => buildShareOptions(pageTitle, pageUrl), [pageTitle, pageUrl]);
 
@@ -74,7 +74,7 @@ export function SharePopup({ open, onOpenChange, title, url }: SharePopupProps) 
     }
 
     await navigator.clipboard.writeText(pageUrl);
-    showToast("Paylasim baglantisi kopyalandi.", "share");
+    showToast("Paylaşım bağlantısı kopyalandı.", "share");
     onOpenChange(false);
   };
 
@@ -90,10 +90,10 @@ export function SharePopup({ open, onOpenChange, title, url }: SharePopupProps) 
         <div className="w-full max-w-lg rounded-t-[2rem] border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 md:rounded-[2rem] md:p-8">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Paylas</p>
-              <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Icerigi paylas</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Paylaş</p>
+              <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">İçeriği paylaş</h2>
               <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-                Bu pencere gorsel bir paylasim akis sunar. En hizli secenek baglantiyi kopyalamaktir.
+                Bu pencere görsel bir paylaşım akışı sunar. En hızlı seçenek bağlantıyı kopyalamaktır.
               </p>
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full bg-zinc-100 dark:bg-zinc-900">
@@ -128,7 +128,7 @@ export function SharePopup({ open, onOpenChange, title, url }: SharePopupProps) 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button type="button" onClick={copyLink} className="h-12 flex-1 rounded-full bg-blue-600 text-sm font-black text-white hover:bg-blue-700">
               <Copy className="mr-2 h-4 w-4" />
-              Baglantiyi kopyala
+              Bağlantıyı kopyala
             </Button>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-12 rounded-full border-zinc-300 px-6 text-sm font-black dark:border-zinc-700">
               <Send className="mr-2 h-4 w-4" />
