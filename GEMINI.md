@@ -27,3 +27,11 @@ Gemini'nin görsel anlama kapasitesi şu görevlerde kullan:
 Use @skill-name to ...        # Skill çağırma
 (User Prompt) görev açıkla   # Doğrudan görev
 ```
+
+
+**skiller ile ilgili bilmen gerekenler**
+
+skillerin hepsi zaten githubtan alındı ve dosyalar arasında var. dolayısıyla internette aramana gerek yok.
+skiller için muhendis-mimar-portali\.agent  ve muhendis-mimar-portali\get-shit-done  kısımlarından yararlan. Bunları tara ve ihtiyacın olabilecek şeyleri al.
+skilleri otomatik olarak verdiğim işin konusuna ve ihtiyacına göre sen belirle.
+---
