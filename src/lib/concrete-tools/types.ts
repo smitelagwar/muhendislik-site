@@ -4,7 +4,8 @@ export type ConcreteToolId =
   | "kolon-on-boyutlandirma"
   | "kiris-kesiti"
   | "doseme-kalinligi"
-  | "pas-payi";
+  | "pas-payi"
+  | "taban-kesme-kuvveti";
 
 export interface ConcreteStatus {
   tone: ConcreteStatusTone;

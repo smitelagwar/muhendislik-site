@@ -11,6 +11,7 @@
     "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs",
     "check:content-quality": "tsx scripts/audit-content-quality.mjs --scope=all",
     "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main",
+    "check:navigation": "node scripts/check-navigation-consistency.mjs",
     "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
     "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",

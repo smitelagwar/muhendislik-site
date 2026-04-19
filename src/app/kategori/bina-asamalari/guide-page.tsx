@@ -4,12 +4,12 @@ import ArticleClient from "@/components/article-client";
 import { parseBlocks } from "@/lib/article-blocks";
 import {
   getAllBinaGuidePaths,
-  getBinaGuideBreadcrumbs,
   getBinaGuideBySlugParts,
   PUBLISHED_AT_ISO,
   getRelatedBinaGuides,
   toBinaGuideArticle,
 } from "@/lib/bina-asamalari-content";
+import { buildBinaGuideNavigation } from "@/lib/content-navigation";
 import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
 
 export function getBinaGuideStaticParams() {
@@ -43,7 +43,9 @@ export async function buildBinaGuideMetadata(slugParts: readonly string[]): Prom
       type: "article",
       url: resolveSiteUrl(pathname),
       siteName: SITE_NAME,
-      images: articleImage ? [{ url: articleImage, width: 1200, height: 630, alt: guide.title }] : undefined,
+      images: articleImage
+        ? [{ url: articleImage, width: 1200, height: 630, alt: guide.title }]
+        : undefined,
       publishedTime: `${PUBLISHED_AT_ISO}T00:00:00+03:00`,
       authors: [guide.author],
     },
@@ -75,16 +77,7 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
     ...section,
     blocks: parseBlocks(section.content),
   }));
-  const breadcrumbs = getBinaGuideBreadcrumbs(guide.slugPath);
-  const backLink = guide.parentPath
-    ? {
-        title: "Üst kategoriye dön",
-        href: `/kategori/bina-asamalari/${guide.parentPath}`,
-      }
-    : {
-        title: "Kategori ağacına dön",
-        href: "/kategori/bina-asamalari",
-      };
+  const navigation = buildBinaGuideNavigation(guide);
   const articleImage = resolveMediaUrl(article.image);
   const pathname = `/kategori/bina-asamalari/${guide.slugPath}`;
 
@@ -112,7 +105,7 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: breadcrumbs.map((crumb, index) => ({
+    itemListElement: navigation.breadcrumbs.map((crumb, index) => ({
       "@type": "ListItem",
       position: index + 1,
       name: crumb.title,
@@ -122,14 +115,20 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <ArticleClient
         article={article}
         relatedArticles={relatedArticles}
         parsedSections={parsedSections}
-        breadcrumbs={breadcrumbs}
-        backLink={backLink}
+        breadcrumbs={navigation.breadcrumbs}
+        backLink={navigation.backLink}
         hideToolPromos
       />
     </>

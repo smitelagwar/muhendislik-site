@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Calculator, Info, MapPinned } from "lucide-react";
+import { AlertTriangle, Calculator, Info, MapPinned } from "lucide-react";
+import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,7 +13,6 @@ import { IMAR_DETAIL_HELP, IMAR_PAGE_NOTE, IMAR_REGULATION_GUIDE_INTRO, IMAR_REG
 import { imarBodyFont, imarDisplayFont, imarMonoFont } from "@/lib/imar/fonts";
 import { calculateImarValues } from "@/lib/imar/calculator";
 import type { ImarCalculatorInput } from "@/lib/imar/types";
-import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 import { cn } from "@/lib/utils";
 
 type FormState = {
@@ -80,7 +79,14 @@ export function ImarCalculator() {
 
   return <div className={cn(imarBodyFont.className, "tool-page-shell py-8 md:py-14")}>
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <div className="mb-8"><Link href={TOOLS_HUB_HREF} className={cn(imarMonoFont.className, "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300")}><ArrowLeft className="h-3.5 w-3.5" />Tüm araçlar</Link></div>
+      <PageContextNavigation
+        showBreadcrumbs={false}
+        className="mb-8"
+        backLinkClassName={cn(
+          imarMonoFont.className,
+          "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300",
+        )}
+      />
       <section className="mb-8 rounded-[32px] border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/75 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div><Badge className="mb-4 rounded-full bg-blue-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-300">İmar aracı</Badge><h1 className={cn(imarDisplayFont.className, "text-4xl font-black tracking-tight text-zinc-950 dark:text-white md:text-6xl")}>İmar hesaplayıcı</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">Arsa alanı, TAKS, KAKS ve çekmelere göre taban alanı, kat karşılığı ve yaklaşık yükseklik için hızlı ön değerlendirme alın.</p></div>

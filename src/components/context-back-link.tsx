@@ -24,7 +24,10 @@ export function ContextBackLink({ className }: ContextBackLinkProps) {
 
   const previousInternalPath =
     typeof window !== "undefined" ? window.sessionStorage.getItem(LAST_INTERNAL_PATH_KEY) : null;
-  const target = resolveBackNavigationTarget(pathname, previousInternalPath);
+  const target = resolveBackNavigationTarget(pathname, {
+    previousInternalPath,
+    referrer: typeof document !== "undefined" ? document.referrer : null,
+  });
 
   if (!target) {
     return null;
@@ -33,8 +36,9 @@ export function ContextBackLink({ className }: ContextBackLinkProps) {
   return (
     <Link
       href={target.href}
+      data-testid="header-context-back-link"
       onClick={(event) => {
-        if (!target.useHistory) {
+        if (!target.useHistory || window.history.length <= 1) {
           return;
         }
 
@@ -66,4 +70,3 @@ export function ContextBackLink({ className }: ContextBackLinkProps) {
     </Link>
   );
 }
-

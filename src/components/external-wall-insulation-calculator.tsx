@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   Building2,
   Calculator,
@@ -19,9 +18,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 import { calculateExternalWallInsulation, getClimateBucketLabel, getDistrictOptions, getProvinceById, provinceRequiresDistrictSelection } from "@/lib/ts825/calculator";
 import {
   DISTRICT_HELP_NOTE,
@@ -106,15 +105,11 @@ export function ExternalWallInsulationCalculator() {
   return (
     <div className="tool-page-shell py-8 md:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-8">
-          <Link
-            href={TOOLS_HUB_HREF}
-            className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-cyan-900"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Tüm araçlar
-          </Link>
-        </div>
+        <PageContextNavigation
+          showBreadcrumbs={false}
+          className="mb-8"
+          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-cyan-900"
+        />
 
         <div className="mb-10 max-w-3xl">
           <Badge className="mb-4 rounded-full bg-cyan-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-200">

@@ -1,4 +1,4 @@
-export type ToolIconKey = "rebar" | "column" | "beam" | "slab" | "cover" | "site" | "insulation" | "plot";
+export type ToolIconKey = "rebar" | "column" | "beam" | "slab" | "cover" | "site" | "insulation" | "plot" | "earthquake";
 
 export interface ToolDefinition {
   id: string;
@@ -102,6 +102,17 @@ export const TOOLS: ToolDefinition[] = [
     featured: false,
     status: "live",
     order: 8,
+  },
+  {
+    id: "taban-kesme-kuvveti",
+    name: "Taban Kesme Kuvveti (Eşdeğer Deprem Yükü)",
+    href: "/kategori/araclar/taban-kesme-kuvveti",
+    description: "TBDY 2018'e göre Eşdeğer Deprem Yükü ve Minimum Taban Kesme Kuvveti hesabı.",
+    iconKey: "earthquake",
+    discipline: "Deprem Mühendisliği",
+    featured: false,
+    status: "live",
+    order: 9,
   },
 ];
 

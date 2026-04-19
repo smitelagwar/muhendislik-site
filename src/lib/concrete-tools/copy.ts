@@ -21,6 +21,11 @@ export const CONCRETE_TOOL_NAV: ConcreteToolNavItem[] = [
     label: "Pas Payı",
     href: "/kategori/araclar/pas-payi",
   },
+  {
+    id: "taban-kesme-kuvveti",
+    label: "Taban Kesme Kuvveti",
+    href: "/kategori/araclar/taban-kesme-kuvveti",
+  },
 ];
 
 export const CONCRETE_TOOL_STANDARDS = "TS 500 · TBDY 2018 · TS EN 1992-1-1";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Calculator, Home } from "lucide-react";
-import { CALCULATIONS_HUB_HREF, getCalculationPages } from "@/lib/calculation-pages";
+import { CalculationsSectionNav } from "@/components/calculations-section-nav";
 
 export const metadata: Metadata = {
   title: {
@@ -11,11 +11,6 @@ export const metadata: Metadata = {
   description:
     "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
 };
-
-const CALC_LINKS = [
-  { label: "Genel Bakış", href: CALCULATIONS_HUB_HREF },
-  ...getCalculationPages().map((page) => ({ label: page.navLabel, href: page.href })),
-];
 
 export default function HesaplamalarLayout({
   children,
@@ -36,17 +31,7 @@ export default function HesaplamalarLayout({
 
           <div className="mx-1 hidden h-5 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" />
 
-          <div className="flex flex-wrap gap-2">
-            {CALC_LINKS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-full border border-transparent px-3 py-1.5 text-sm font-medium text-zinc-600 transition-colors hover:border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          <CalculationsSectionNav />
         </div>
       </div>
 

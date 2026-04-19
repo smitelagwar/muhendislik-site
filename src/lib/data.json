@@ -767,5 +767,260 @@
       "erken kalıp alma",
       "beton kür koşulları"
     ]
+  },
+  "kisa-kolon-etkisi-tbdy-2018": {
+    "slug": "kisa-kolon-etkisi-tbdy-2018",
+    "title": "Kısa Kolon Etkisi: Neden Ölümcüldür ve TBDY 2018 Çözümleri Nelerdir?",
+    "description": "Kısa kolon oluşum mekanizmaları, kesme kuvveti yığılması, bant pencerelerin etkisi ve TBDY 2018'e göre alınması gereken tasarım önlemleri üzerine teknik bir inceleme.",
+    "category": "Yönetmelik Güncellemesi",
+    "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+    "badgeLabel": "Rehber",
+    "author": "Dr. Müh. Sinan Kaya",
+    "authorTitle": "Yapı Mühendisi",
+    "date": "20 Nisan 2026",
+    "readTime": "12 dk okuma",
+    "image": "/covers/yonetmelik.svg",
+    "sectionId": "deprem-yonetmelik",
+    "relatedSlugs": [
+      "tbdy-2018-betonarme-analiz",
+      "tbdy-2018-duzensizlikler-rehberi"
+    ],
+    "keywords": [
+      "kısa kolon",
+      "TBDY 2018",
+      "kesme kuvveti",
+      "bant pencere",
+      "etriye sıklaştırması"
+    ],
+    "quote": {
+      "text": "Kısa kolon bir detay hatası değil, taşıyıcı sistemin rijitlik dengesinin mimari nedenlerle bozulmasıdır. Deprem kuvveti her zaman en rijit elemana hücum eder."
+    },
+    "sections": [
+      {
+        "id": "giris-kapsam",
+        "title": "1. Giriş ve Kısa Kolonun Tanımı",
+        "subsections": [],
+        "content": "Kısa kolon, betonarme binalarda deprem hasarlarının en yaygın ve en ölümcül nedenlerinden biridir. Genellikle mimari kısıtlamalar, bant pencereler, asma katlar veya eğimli araziler nedeniyle bir kolonun serbest yüksekliğinin, yanındaki diğer kolonlara göre çok daha kısa kalmasıyla oluşur.\n\nMühendislik açısından sorun, kolonun boyunun kısalması değil, boyu kısaldığı için yanal rijitliğinin (eğilme rijitliğinin) dramatik şekilde artmasıdır. Eğilme rijitliği, serbest yüksekliğin küpü ile ters orantılıdır ($1/L^3$). Bu durum, deprem sırasında yanal kuvvetlerin (kesme kuvvetlerinin) normal kolonlardan katbekat fazla bir şekilde bu kısa kolona hücum etmesine yol açar."
+      },
+      {
+        "id": "olusum-nedenleri",
+        "title": "2. Kısa Kolon Oluşum Nedenleri",
+        "subsections": [],
+        "content": "Şantiyede ve tasarım ofisinde en çok karşılaşılan kısa kolon sebepleri şunlardır:\n\n1. **Bant Pencereler:** Okul, fabrika veya bodrum katı gibi yapılarda, kolonların arasına örülen yarım duvarların üstünde bırakılan pencereler.\n2. **Eğimli Arazi:** Temel kotlarının kademeli yapıldığı eğimli arazilerde, alt kat kolonlarının boylarının farklı olması.\n3. **Asma Katlar:** Ticari yapılarda asma kat hizasında kolonların ara kirişlerle bağlanması sonucu serbest boylarının bölünmesi.\n4. **Merdiven Sahanlıkları:** Merdiven ara sahanlık kirişlerinin kolonlara bağlandığı noktalarda serbest yüksekliğin düşmesi.\n\n*Not: TBDY 2018, yarım duvarların kolonla bitişik örülmesini 'kısa kolon' potansiyeli olarak değerlendirir ve önlem alınmasını zorunlu tutar.*"
+      },
+      {
+        "id": "tbdy-2018-hukumleri",
+        "title": "3. TBDY 2018 Hükümleri ve Tasarım Kuralları",
+        "subsections": [],
+        "content": "TBDY 2018 Madde 7.3.8, kısa kolon oluşumunu engellemeyi öncelikli hedef olarak koyar. Ancak mimari zorunluluklardan dolayı engellenemiyorsa, kesme kuvveti kapasitesinin özel olarak hesaplanmasını ve sünek detaylandırma yapılmasını şart koşar.\n\n| Kontrol Parametresi | TBDY 2018 Kuralı | Referans |\n| --- | --- | --- |\n| Kesme Kuvveti Hesabı | Kolonun alt ve üst uçlarında oluşabilecek maksimum moment kapasiteleri ($M_p$) üzerinden kesme kuvveti hesaplanır ($V_e$). | Madde 7.3.8.1 |\n| Etriye Sıklaştırması | Kısa kolonun *tüm serbest yüksekliği boyunca* sıklaştırma bölgesi kuralları uygulanır. | Madde 7.3.8.2 |\n| Beton Katkısı ($V_c$) | Kesme dayanımı hesabında betonun kesme dayanımı katkısı ($V_c=0$) sıfır alınır! Tüm kesme kuvvetini etriyeler taşımalıdır. | Madde 7.3.8.2 |\n\nBuradaki en can alıcı nokta, kesme kuvvetini betonun hiç taşımadığının (sıfır) kabul edilmesidir. Bu durum donatı yığılmasına neden olur."
+      },
+      {
+        "id": "cozum-onerileri",
+        "title": "4. Saha ve Ofis İçin Çözüm Önerileri",
+        "subsections": [],
+        "content": "Kısa kolon sorununu çözmenin en iyi yolu, onu hiç oluşturmamaktır. Ancak eğer oluşuyorsa şu stratejiler izlenmelidir:\n\n- **Mimari Çözüm (İzolasyon):** Bant pencere altında kalan dolgu duvar ile kolon arasına esnek bir derz (minimum 5-10 cm boşluk veya EPS levha) bırakılarak duvarın kolonu kilitlemesi engellenir. Böylece kolon serbest yüksekliği değişmez.\n- **Yapısal Çözüm:** Eğer ara kiriş veya sahanlık bağlanıyorsa, TBDY 2018'e uygun kesme donatısı tasarlanır ve etriyeler tüm boy boyunca sıklaştırılır.\n- **Dikkat:** Kısa kolon, eğilmeden ziyade *kesme göçmesi* yaşar. Kesme göçmesi gevrek (aniden patlama şeklinde) olduğu için depremdeki en tehlikeli hasar türüdür."
+      }
+    ]
+  },
+  "tbdy-2018-dogrusal-olmayan-tasarim": {
+    "slug": "tbdy-2018-dogrusal-olmayan-tasarim",
+    "title": "TBDY 2018 Performansa Göre Tasarım: Doğrusal Olmayan Analize Giriş",
+    "description": "Mevcut binaların değerlendirilmesinde kullanılan şekil değiştirme esaslı hesap yönteminin (Pushover analizi) temel mantığı, plastik mafsal hipotezi ve performans hedefleri.",
+    "category": "Yönetmelik Güncellemesi",
+    "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+    "badgeLabel": "Analiz",
+    "author": "Doç. Dr. Can Özmen",
+    "authorTitle": "Deprem Mühendisliği Uzmanı",
+    "date": "21 Nisan 2026",
+    "readTime": "15 dk okuma",
+    "image": "/covers/yonetmelik.svg",
+    "sectionId": "deprem-yonetmelik",
+    "relatedSlugs": [
+      "tbdy-2018-betonarme-analiz",
+      "tbdy-2018-guclu-kolon-kontrolu"
+    ],
+    "keywords": [
+      "doğrusal olmayan analiz",
+      "TBDY 2018",
+      "pushover",
+      "şekil değiştirme",
+      "performans hedefleri",
+      "plastik mafsal"
+    ],
+    "quote": {
+      "text": "Doğrusal tasarımda deprem kuvvetini yapıya uydurmaya çalışırız; doğrusal olmayan tasarımda ise yapının deprem karşısındaki gerçek davranışını, hasar bölgelerini kabul ederek izleriz."
+    },
+    "sections": [
+      {
+        "id": "giris-kapsam",
+        "title": "1. Şekil Değiştirmeye Göre Tasarım Nedir?",
+        "subsections": [],
+        "content": "Yeni bina tasarımında geleneksel olarak 'Kuvvete Göre Tasarım' (Doğrusal Analiz) kullanılır. Deprem yükü belli bir R (Davranış Katsayısı) ile küçültülür ve elemanlar elastik limitler içindeymiş gibi tasarlanır. Ancak mevcut bir binanın deprem riskini değerlendirirken veya yüksek/özel binaları tasarlarken bu varsayım yetersiz kalır.\n\nTBDY 2018'in getirdiği en büyük devrimlerden biri, Şekil Değiştirmeye Göre Değerlendirme (Doğrusal Olmayan Analiz) yaklaşımıdır. Bu yöntemde yapıya artan oranda yanal yük verilir (İtme Analizi / Pushover) veya zaman tanım alanında sismik dalgalar uygulanır. Elemanların 'Plastik Mafsal' oluşturması (akması) ve hasar alması modellenir."
+      },
+      {
+        "id": "plastik-mafsal",
+        "title": "2. Plastik Mafsal ve Kesit Hasar Sınırları",
+        "subsections": [],
+        "content": "Doğrusal olmayan analizde, kolon ve kirişlerin uç bölgelerinde donatıların aktığı ve betonun ezilmeye başladığı noktalar 'plastik mafsal' olarak tanımlanır. TBDY 2018'e göre bir kesitin alabileceği hasar düzeyleri 3 ana sınırda incelenir:\n\n1. **Göçme Sınırı (GS):** Kesitin taşıma kapasitesinin sonuna geldiği, tamamen ezildiği ve yıkılma riski taşıdığı durum.\n2. **Kontrollü Hasar Sınırı (KH):** Kesitte onarılabilir veya ağır hasarların oluştuğu, ancak toptan göçmenin yaşanmadığı durum. Can güvenliği bu sınırda sağlanır.\n3. **Sınırlı Hasar Sınırı (SH):** Kesitte çok hafif, boya çatlağı veya ince yapısal çatlak seviyesinde hasar olduğu, yapının hemen kullanılabildiği durum."
+      },
+      {
+        "id": "performans-hedefleri",
+        "title": "3. Bina Performans Hedefleri",
+        "subsections": [],
+        "content": "Analiz sonucunda, binadaki her bir elemanın hasar durumu okunur ve binanın toplam performans hedefi belirlenir.\n\n| Bina Performans Hedefi | Açıklama | TBDY 2018 Karşılığı |\n| --- | --- | --- |\n| Kesintisiz Kullanım (KK) | Deprem sonrası bina hemen kullanılabilir, hasar çok sınırlıdır (SH). | DD-3 veya DD-1 depremlerinde bazı özel yapılar için istenir. |\n| Kontrollü Hasar (KH) | Bina hasar almıştır (örneğin kolonlarda kabuk atmaları), ancak göçmemiştir. İnsanlar güvenle tahliye edilebilir. Can Güvenliği (CG) seviyesidir. | DD-2 (Standart tasarım) depreminde konutlar için hedeflenir. |\n| Göçmenin Önlenmesi (GÖ) | Bina ağır hasarlıdır, kalıcı deformasyonlar vardır ama ayaktadır. | Daha seyrek ve şiddetli depremlerde (DD-1) hedeflenir. |\n\nEğer binadaki taşıyıcı elemanların göçme sınırını (GS) aşanların oranı, yönetmeliğin izin verdiği (Örn: her katta %20) sınırların üzerindeyse, bina *Göçme Durumunda* kabul edilir ve güçlendirme veya yıkım kararı alınır."
+      },
+      {
+        "id": "pratik-uygulamalar",
+        "title": "4. Pratik Modelleme Uyarıları",
+        "subsections": [],
+        "content": "- **Donatı Gerçekleşmeleri:** Mevcut binaların analizinde, röntgen veya karot ile tespit edilen *mevcut* beton sınıfı ve donatı yerleşimi modele tam olarak işlenmelidir.\n- **Sargı Etkisi:** TBDY 2018'de betonun basınç birim şekil değiştirmesi, sargı donatısının (etriye) sıklığına çok duyarlıdır. Sık etriyeli kolonlar modelde sünek davranış gösterirken, seyrek etriyeli kolonlar hızla 'Göçme Sınırına' ulaşır.\n- **Hesap Süresi:** İtme analizi, doğrusal analize göre çok daha uzun sürer ve yorumlanması ciddi mühendislik muhakemesi gerektirir. Yazılımın verdiği 'Bina Güvenli' sonucuna doğrudan güvenilmemeli, mafsal oluşum sıraları incelenmelidir."
+      }
+    ]
+  },
+  "tbdy-2018-guclu-kolon-kontrolu": {
+    "slug": "tbdy-2018-guclu-kolon-kontrolu",
+    "title": "Perde-Çerçeveli Sistemlerde Güçlü Kolon Kontrolü: Neden Zorlanıyoruz?",
+    "description": "TBDY 2018'de güçlü kolon - zayıf kiriş şartının mantığı, uygulanmasındaki zorluklar ve sahada karşılaşılan donatı yığılması sorunlarına çözümler.",
+    "category": "Yönetmelik Güncellemesi",
+    "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+    "badgeLabel": "Tasarım Rehberi",
+    "author": "Y. Müh. Elif Yılmaz",
+    "authorTitle": "Statik Proje Yöneticisi",
+    "date": "22 Nisan 2026",
+    "readTime": "10 dk okuma",
+    "image": "/covers/yonetmelik.svg",
+    "sectionId": "deprem-yonetmelik",
+    "relatedSlugs": [
+      "tbdy-2018-betonarme-analiz",
+      "kolon-on-boyutlandirma"
+    ],
+    "keywords": [
+      "güçlü kolon",
+      "zayıf kiriş",
+      "TBDY 2018",
+      "düğüm noktası",
+      "kapasite tasarımı",
+      "süneklik"
+    ],
+    "quote": {
+      "text": "Güçlü kolon kuralı basit bir denklemden ibaret değildir; deprem enerjisini binaya yayma ve toptan göçmeyi engelleme felsefesinin yapıtaşıdır."
+    },
+    "sections": [
+      {
+        "id": "giris-kapsam",
+        "title": "1. Güçlü Kolon - Zayıf Kiriş Prensibi Nedir?",
+        "subsections": [],
+        "content": "Kapasite tasarımı felsefesinin en temel kuralı, deprem sırasında hasarın (plastik mafsallaşmanın) önce kirişlerde oluşmasını, kolonların ise elastik kalarak yapının ayakta durmasını sağlamaktır. Eğer kolonlar kirişlerden önce yenik düşerse, o katta 'yumuşak kat' göçmesi adı verilen toptan çökme (pancake effect) meydana gelir.\n\nTBDY 2018 Madde 7.3.1.1'e göre; bir düğüm noktasına birleşen kolonların taşıma gücü momentleri toplamı, o düğüm noktasına birleşen kirişlerin taşıma gücü momentleri toplamından en az %20 daha fazla olmalıdır: \n\n$ (M_{ra} + M_{ru}) \\ge 1.2 \\times (M_{ri} + M_{rj}) $"
+      },
+      {
+        "id": "sahada-neden-zor",
+        "title": "2. Sahada ve Tasarımda Karşılaşılan Zorluklar",
+        "subsections": [],
+        "content": "Programda bu şartı sağlamak için mühendisler genellikle kolon donatılarını artırma yoluna giderler. Ancak bu durum beraberinde büyük sorunlar getirir:\n\n1. **Donatı Yığılması:** Kolona eklenen her donatı, kolon-kiriş birleşim (düğüm) bölgesinde paspaylarının yok olmasına, betonun girmemesine (boşluklar oluşmasına) neden olur.\n2. **Kiriş Donatısı Etkisi:** Mimaride sarkan kiriş istenmediği için yassı veya geniş kirişler kullanılır. Kirişlerin donatıları gereğinden fazla artırılırsa (veya donatı çapı büyürse), kirişin moment kapasitesi ($M_r$) fırlar. Bu da kolonun kuralı sağlamasını imkansızlaştırır.\n3. **Döşeme Etkisi:** TBDY 2018 ile birlikte, kiriş kapasitesine tablalı kesit etkisi (döşeme donatılarının katkısı) de dahil edilmiştir. Bu, kiriş momentlerini daha da büyütür."
+      },
+      {
+        "id": "dogru-tasarim-stratejisi",
+        "title": "3. Doğru Tasarım ve Çözüm Stratejileri",
+        "subsections": [],
+        "content": "Güçlü kolon kuralını donatı artırarak değil, rijitlik artırarak çözmek gerekir:\n\n| Hatalı Yaklaşım | Doğru Mühendislik Çözümü |\n| --- | --- |\n| Kolon boyuna donatısını %3-%4'lere çıkarmak. | Kolon kesit ebatlarını (özellikle momentin zorlandığı yönde) büyütmek. |\n| Kirişlere fazladan montaj donatısı koymak. | Kiriş donatılarını olabildiğince optimize etmek, gereksiz donatıdan kaçınmak. |\n| Perde-çerçeve sistemlerde tüm kolonları zorlamak. | Sistemi perde ağırlıklı hale getirip, kolonların bu şarta tabi olma zorunluluğunu azaltmak (belirli oranlar sağlandığında). |\n\n**İstisna:** TBDY 2018'e göre, binadaki perdelerin taban devirici momenti karşılama oranı $\\alpha_s \\ge 0.70$ ise, o binadaki kolonlar güçlü kolon şartından muaf tutulabilir. Ancak bu, kolonların zayıf yapılabileceği anlamına gelmez, sadece detaylandırma baskısını hafifletir."
+      }
+    ]
+  },
+  "tbdy-2018-duzensizlikler-rehberi": {
+    "slug": "tbdy-2018-duzensizlikler-rehberi",
+    "title": "TBDY 2018 Düzensizlikler Görsel Rehberi: Burulma, Yumuşak Kat ve Çıkmalar",
+    "description": "Planda ve düşeyde yapısal düzensizliklerin (A1, A2, A3, B1, B2) tanımları, tehlikeleri ve TBDY 2018 tasarım sınırları hakkında görsel ve kavramsal rehber.",
+    "category": "Yönetmelik Güncellemesi",
+    "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+    "badgeLabel": "Rehber",
+    "author": "Dr. İnş. Müh. Kerem Aydın",
+    "authorTitle": "Geoteknik ve Yapı Mühendisi",
+    "date": "23 Nisan 2026",
+    "readTime": "14 dk okuma",
+    "image": "/covers/yonetmelik.svg",
+    "sectionId": "deprem-yonetmelik",
+    "relatedSlugs": [
+      "tbdy-2018-betonarme-analiz",
+      "kisa-kolon-etkisi-tbdy-2018"
+    ],
+    "keywords": [
+      "düzensizlik",
+      "A1 burulma düzensizliği",
+      "B1 zayıf kat",
+      "B2 yumuşak kat",
+      "TBDY 2018",
+      "kat ötelenmesi"
+    ],
+    "quote": {
+      "text": "Deprem, binadaki her mimari hevesin veya mühendislik hatasının faturasını 'düzensizlikler' üzerinden keser. İdeal bir yapı, planda ve düşeyde sade olandır."
+    },
+    "sections": [
+      {
+        "id": "planda-duzensizlikler",
+        "title": "1. Planda Düzensizlik Durumları (A Türü)",
+        "subsections": [],
+        "content": "Planda düzensizlikler, yapının kat planındaki geometri veya rijitlik dağılımından kaynaklanır. Deprem kuvveti yapının 'Kütle Merkezi'ne etki ederken, yapı buna 'Rijitlik Merkezi' ile karşı koyar. Bu iki merkez arasındaki mesafe (eksantrisite) burulmaya yol açar.\n\n1. **A1 - Burulma Düzensizliği:** Bir katta oluşan maksimum göreli ötelemenin, o katın ortalama ötelemesine oranının ($\\eta_{bi}$) 1.2'den büyük olmasıdır. Binanın depremde kendi ekseni etrafında aşırı dönmesi (burulması) anlamına gelir. Perdelerin planda asimetrik (örneğin sadece arka cephede) yerleştirilmesi en büyük nedendir.\n2. **A2 - Döşeme Süreksizlikleri:** Döşemelerde büyük boşluklar olması (merdiven, galeri, asansör) veya döşemenin deprem kuvvetlerini taşıyıcı elemanlara aktaramayacak kadar ince/yırtık olması durumudur.\n3. **A3 - Planda Çıkıntılar:** Binanın 'L', 'T', 'U' veya haç şeklinde olması. Deprem anında bu farklı kanatlar farklı titreşmek isteyecek ve birleşim noktalarında devasa yırtılma kuvvetleri oluşturacaktır. Çözüm genellikle dilatasyon derzi ile binayı düzenli bloklara ayırmaktır."
+      },
+      {
+        "id": "duseyde-duzensizlikler",
+        "title": "2. Düşeyde Düzensizlik Durumları (B Türü)",
+        "subsections": [],
+        "content": "Düşeyde düzensizlikler, yapının katları arasında rijitlik, kütle veya dayanım farkı olması durumudur.\n\n1. **B1 - Zayıf Kat (Dayanım Düzensizliği):** Bir katın kesme dayanımının, üstündeki katın kesme dayanımına oranının ($n_{ci}$) 0.80'den küçük olmasıdır. Genellikle zemin katta çok yüksek vitrinler, geniş açıklıklar veya daha az duvar bulunması nedeniyle o katın zayıf kalması durumudur.\n2. **B2 - Yumuşak Kat (Rijitlik Düzensizliği):** Bir kattaki ortalama göreli ötelemenin, üstündeki veya altındaki kata göre çok daha fazla olmasıdır. Zemin katın üst katlara göre çok daha esnek olduğu durumlarda oluşur ve toptan göçme riskini artırır.\n3. **B3 - Taşıyıcı Sistemin Düşey Elemanlarının Süreksizliği:** Kolonların veya perdelerin üst katlarda devam etmeyip kirişlerin üstüne (saplama) veya konsolların ucuna oturtulmasıdır. TBDY 2018 kolonların konsol üstüne oturtulmasını kesinlikle yasaklar."
+      },
+      {
+        "id": "cozum-tablosu",
+        "title": "3. Tasarımda Alınacak Önlemler",
+        "subsections": [],
+        "content": "| Düzensizlik Türü | TBDY 2018 Yaptırımı / Çözüm |\n| --- | --- |\n| A1 - Burulma | Burulma katsayısı $\\eta_{bi} \\ge 1.2$ ise, o kattaki elemanların eksantrisitesi %5 değil, artırılarak hesaba katılır. Çözüm: Perdeleri köşelere veya simetrik yerleştirmek. |\n| A3 - Planda Çıkıntı | Dinamik analiz zorunludur. Çözüm: Dilatasyon ile blokları ayırmak. |\n| B1 - Zayıf Kat | $\\eta_{ci} < 0.80$ ise yapılamaz. Dayanımı artırmak için kolon veya perde eklenmeli. |\n| B3 - Süreksizlik | Perde veya kolonlar alt katta kirişe oturamaz. Mutlaka temele kadar inmelidir. Mimari planlar revize edilmelidir. |\n\nMühendislik pratiğinde en çok karşılaşılan ve en kolay çözülebilen sorun A1 burulma düzensizliğidir. Perde yerleşimini mimar ile erken aşamada koordine etmek, binanın maliyetini düşüren ve performansını zirveye taşıyan en önemli adımdır."
+      }
+    ]
+  },
+  "tbdy-2018-sismik-izolasyon": {
+    "slug": "tbdy-2018-sismik-izolasyon",
+    "title": "Deprem İzolatörleri: Sismik İzolasyonun Temel İlkeleri ve TBDY 2018",
+    "description": "Binaları deprem kuvvetlerinden yalıtan sismik izolatör tipleri, tasarım ilkeleri, uygulama zorlukları ve TBDY 2018 Bölüm 14'e göre tasarım sınırları.",
+    "category": "Yönetmelik Güncellemesi",
+    "categoryColor": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400",
+    "badgeLabel": "İleri Teknoloji",
+    "author": "Y. Mimar Deniz Kara",
+    "authorTitle": "Sürdürülebilirlik Uzmanı",
+    "date": "24 Nisan 2026",
+    "readTime": "13 dk okuma",
+    "image": "/covers/yonetmelik.svg",
+    "sectionId": "deprem-yonetmelik",
+    "relatedSlugs": [
+      "tbdy-2018-betonarme-analiz",
+      "tbdy-2018-dogrusal-olmayan-tasarim"
+    ],
+    "keywords": [
+      "sismik izolasyon",
+      "deprem izolatörü",
+      "kurşun çekirdekli kauçuk",
+      "sürtünmeli sarkaç",
+      "TBDY 2018 Bölüm 14"
+    ],
+    "quote": {
+      "text": "İzolatörlü bina, depremle savaşmak yerine onunla dans etmeyi seçen binadır; temel amaç sarsıntıyı emmek değil, binayı sarsıntıdan koparmaktır."
+    },
+    "sections": [
+      {
+        "id": "giris-kapsam",
+        "title": "1. Sismik İzolasyon Nedir?",
+        "subsections": [],
+        "content": "Geleneksel 'ankastre mesnetli' binalar deprem kuvvetlerine karşı esneyerek ve bazı kısımlarında hasar alarak (süneklik) enerjiyi tüketmeye çalışır. Sismik izolasyon (deprem yalıtımı) yaklaşımında ise yapı, temeliyle bağlantı noktalarından (genellikle bodrum veya zemin kat seviyesinden) özel mesnetler (izolatörler) aracılığıyla ayrılır.\n\nBu sayede depremin oluşturduğu yüksek ivmeli ve yıkıcı sarsıntılar üst yapıya iletilmeden izolatörler seviyesinde filtrelenir. Bina deprem sırasında bir bütün olarak yavaşça sağa sola kayar (ötelenir) ve üst yapıda hasar oluşmaz. Özellikle hastaneler, veri merkezleri ve operasyonun kesilmemesi gereken binalar için altın standarttır."
+      },
+      {
+        "id": "izolator-tipleri",
+        "title": "2. Yaygın İzolatör Tipleri",
+        "subsections": [],
+        "content": "Piyasada TBDY 2018'e uygun olarak kullanılan iki ana izolatör tipi vardır:\n\n1. **Kauçuk Esaslı İzolatörler (LRB - Lead Rubber Bearing):** Katmanlı çelik plakalar ve kauçuktan oluşur. Merkezinde enerjiyi sönümlemek ve rijitlik sağlamak için kurşun bir çekirdek bulunur. Depremde kauçuk katmanlar esneyerek binanın kaymasına izin verir, kurşun ise enerjiyi yutar.\n2. **Sürtünmeli Sarkaç İzolatörler (Friction Pendulum - FPS):** Eğrisel (içbükey) kayma yüzeyleri üzerinde hareket eden çelik disklerden oluşur. Bina deprem sırasında bu çanak içinde kayarak bir sarkaç gibi hareket eder ve kendi ağırlığıyla merkezlenir. Enerji, yüzeyler arasındaki sürtünmeyle sönümlenir."
+      },
+      {
+        "id": "tbdy-2018-yaklasimi",
+        "title": "3. TBDY 2018 Bölüm 14 ve Tasarım İlkeleri",
+        "subsections": [],
+        "content": "TBDY 2018, izolatörlü bina tasarımını 'Bölüm 14' altında katı kurallara bağlamıştır.\n\n| Aşama | TBDY 2018 Kuralı / Beklentisi |\n| --- | --- |\n| Üst Yapı Tasarımı | İzolatör üstünde kalan yapı, deprem kuvvetlerini 'elastik' (hasar almadan) taşıyacak şekilde (R=1.5 gibi küçük değerler alınarak) çok rijit tasarlanır. |\n| Alt Yapı Tasarımı | İzolatör altında kalan kolonlar ve temeller, izolatörden aktarılan tüm kesme kuvvetini karşılayabilecek kapasitede olmalıdır. |\n| Deplasman Sınırları | İzolatörlerin depremdeki yanal yer değiştirmesi çok büyük (40-70 cm) olabilir. Bina çevresinde bu çarpmayı önleyecek sismik boşluklar (hendekler) bırakılmalıdır. |\n| Tesisat Esnekliği | Binaya giren elektrik, su, doğalgaz hatları bu devasa yanal hareketi tolere edebilecek esnek mafsallarla (loop) bağlanmalıdır. |\n\nEn sık gözden kaçan detay tesisat bağlantıları ve merdiven/asansör kovanlarının hareket paylarıdır. İzolatör mükemmel çalışsa bile, gaz borusu koparsa ikincil afetler yaşanır."
+      }
+    ]
   }
 }

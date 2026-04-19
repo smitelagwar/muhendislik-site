@@ -1,4 +1,4 @@
-import { Building2, CircleGauge, HardHat, Map, PanelsTopLeft, Ruler, Shield, Snowflake } from "lucide-react";
+import { Building2, CircleGauge, HardHat, Map, PanelsTopLeft, Ruler, Shield, Snowflake, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolIconKey } from "@/lib/tools-data";
 
@@ -25,6 +25,8 @@ export function ToolIcon({ iconKey, className }: ToolIconProps) {
             return <Snowflake className={cn("h-5 w-5", className)} />;
         case "plot":
             return <Map className={cn("h-5 w-5", className)} />;
+        case "earthquake":
+            return <Activity className={cn("h-5 w-5", className)} />;
         default:
             return <CircleGauge className={cn("h-5 w-5", className)} />;
     }

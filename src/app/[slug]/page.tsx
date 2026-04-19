@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ArticleClient from "@/components/article-client";
 import { getArticleBySlug, getArticles } from "@/lib/articles-data";
 import { parseBlocks } from "@/lib/article-blocks";
+import { buildArticleNavigation } from "@/lib/content-navigation";
 import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
 
 export async function generateStaticParams() {
@@ -85,11 +86,29 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       url: resolveSiteUrl(),
     },
   };
+  const navigation = buildArticleNavigation(article);
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: navigation.breadcrumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.title,
+      item: resolveSiteUrl(crumb.href),
+    })),
+  };
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <ArticleClient article={article} relatedArticles={safeRelatedArticles} parsedSections={parsedSections} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <ArticleClient
+        article={article}
+        relatedArticles={safeRelatedArticles}
+        parsedSections={parsedSections}
+        breadcrumbs={navigation.breadcrumbs}
+        backLink={navigation.backLink}
+      />
     </>
   );
 }

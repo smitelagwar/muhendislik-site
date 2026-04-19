@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, Calculator, CheckCircle2, Clock3, Info, TestTube2 } from "lucide-react";
+import { AlertTriangle, Calculator, CheckCircle2, Clock3, Info, TestTube2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
 const CEMENT_FACTORS = {
   cem1r: { label: "CEM I 42.5 R", multiplier: 1.0 },
@@ -74,12 +74,11 @@ export default function KalipSokumHesapPage() {
   return (
     <div className="tool-page-shell py-8 md:py-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-8">
-          <Link href={TOOLS_HUB_HREF} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Tüm araçlar
-          </Link>
-        </div>
+        <PageContextNavigation
+          showBreadcrumbs={false}
+          className="mb-8"
+          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+        />
 
         <div className="mb-10 max-w-3xl">
           <Badge className="mb-4 rounded-full bg-emerald-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300">

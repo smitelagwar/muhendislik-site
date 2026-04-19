@@ -5,11 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertCircle,
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   Check,
-  ChevronRight,
   Clock,
   Copy,
   Info,
@@ -24,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { FontSizeControl } from "@/components/font-size-control";
+import { PageContextNavigation } from "@/components/page-context-navigation";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { type ArticleData } from "@/lib/articles-data";
 import { type ParsedBlock } from "@/lib/article-blocks";
@@ -409,36 +408,12 @@ export default function ArticleClient({
       <ScrollProgress />
       <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-8 sm:px-6 lg:flex-row lg:px-8 md:py-12">
         <article className="mx-auto w-full max-w-3xl lg:w-8/12 xl:mx-0">
-          {backLink ? (
-            <div className="mb-4">
-              <Link
-                href={backLink.href}
-                className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 transition hover:border-blue-200 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-900/50 dark:hover:text-blue-400"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {backLink.title}
-              </Link>
-            </div>
-          ) : null}
-
-          <nav className="no-scrollbar mb-8 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-xs font-bold text-zinc-500">
-            {breadcrumbItems.map((item, index) => {
-              const isLast = index === breadcrumbItems.length - 1;
-
-              return (
-                <div key={`${item.href}-${index}`} className="flex items-center gap-2">
-                  {isLast ? (
-                    <span className="max-w-[220px] truncate text-zinc-900 dark:text-zinc-300 md:max-w-xs">{item.title}</span>
-                  ) : (
-                    <Link href={item.href} className="transition-colors hover:text-blue-600">
-                      {item.title}
-                    </Link>
-                  )}
-                  {!isLast ? <ChevronRight className="h-3 w-3 flex-shrink-0" /> : null}
-                </div>
-              );
-            })}
-          </nav>
+          <PageContextNavigation
+            className="mb-8 flex flex-col gap-4"
+            breadcrumbs={breadcrumbItems}
+            backHref={backLink?.href}
+            backLabel={backLink?.title}
+          />
 
           <header className="mb-10">
             <div className="mb-6 flex flex-wrap gap-2">

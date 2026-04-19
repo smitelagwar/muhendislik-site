@@ -1,22 +1,33 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { Calculator, ChevronRight, FileText, GitBranchPlus, HardHat, Mail, Menu, X } from "lucide-react";
+import {
+  Calculator,
+  ChevronRight,
+  FileText,
+  GitBranchPlus,
+  HardHat,
+  Mail,
+  Menu,
+  X,
+} from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { Button } from "./ui/button";
+import { MOBILE_NAV_ITEMS } from "@/lib/navigation-config";
 
-const MENU_ITEMS = [
-  { name: "Ana Sayfa", href: "/", icon: <FileText className="h-5 w-5" /> },
-  { name: "Mevzuat", href: "/kategori/deprem-yonetmelik", icon: <HardHat className="h-5 w-5" /> },
-  { name: "Hesaplamalar", href: "/hesaplamalar", icon: <Calculator className="h-5 w-5" /> },
-  { name: "Araçlar", href: "/kategori/araclar", icon: <Calculator className="h-5 w-5" /> },
-  { name: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: <GitBranchPlus className="h-5 w-5" /> },
-  { name: "Yapı", href: "/kategori/yapi-tasarimi", icon: <FileText className="h-5 w-5" /> },
-  { name: "Şantiye", href: "/kategori/santiye", icon: <FileText className="h-5 w-5" /> },
-  { name: "Site Haritası", href: "/konu-haritasi", icon: <FileText className="h-5 w-5" /> },
-  { name: "İletişim", href: "/iletisim", icon: <Mail className="h-5 w-5" /> },
-];
+const MOBILE_ICONS: Record<string, ReactNode> = {
+  home: <FileText className="h-5 w-5" />,
+  "deprem-yonetmelik": <HardHat className="h-5 w-5" />,
+  hesaplamalar: <Calculator className="h-5 w-5" />,
+  araclar: <Calculator className="h-5 w-5" />,
+  "bina-asamalari": <GitBranchPlus className="h-5 w-5" />,
+  "yapi-tasarimi": <FileText className="h-5 w-5" />,
+  santiye: <FileText className="h-5 w-5" />,
+  "konu-haritasi": <FileText className="h-5 w-5" />,
+  iletisim: <Mail className="h-5 w-5" />,
+};
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,16 +59,18 @@ export function MobileMenu() {
 
             <div className="flex-grow overflow-y-auto px-4 py-6">
               <div className="space-y-2">
-                {MENU_ITEMS.map((item) => (
+                {MOBILE_NAV_ITEMS.map((item) => (
                   <Link
-                    key={item.name}
+                    key={item.id}
                     href={item.href}
                     onClick={toggleMenu}
                     className="group flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="text-zinc-500 transition-colors group-hover:text-blue-600">{item.icon}</div>
-                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{item.name}</span>
+                      <div className="text-zinc-500 transition-colors group-hover:text-blue-600">
+                        {MOBILE_ICONS[item.id]}
+                      </div>
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{item.label}</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-zinc-400" />
                   </Link>
