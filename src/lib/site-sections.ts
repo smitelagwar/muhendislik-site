@@ -3,6 +3,7 @@ export type SiteSectionId =
   | "bina-asamalari"
   | "yapi-tasarimi"
   | "deprem-yonetmelik"
+  | "tbdy-2018-detay"
   | "geoteknik"
   | "santiye"
   | "malzeme"
@@ -51,9 +52,32 @@ export const SITE_SECTIONS: SiteSection[] = [
     id: "deprem-yonetmelik",
     title: "Deprem ve Yönetmelikler",
     href: "/kategori/deprem-yonetmelik",
-    description: "TBDY 2018, deprem analizi ve güncel mevzuat notları.",
-    categories: ["Yönetmelik Güncellemesi"],
-    tags: ["deprem", "tbdy", "yönetmelik", "süneklik", "spektrum"],
+    description: "TBDY 2018, genel deprem tasarımı, TS 500 betonarme, BYY 2015/2019, otopark ve güncel mevzuat notları.",
+    categories: [
+      "Yönetmelik Güncellemesi",
+      "Deprem Yönetmeliği",
+      "TS 500 Betonarme",
+      "Yangın Yönetmeliği",
+      "Otopark Yönetmeliği",
+      "İmar Mevzuatı",
+      "BEP-TR / TS 825",
+      "Su ve Zemin Mevzuatı",
+      "Engelsiz Tasarım",
+      "Eurocode Standartları",
+      "Akustik ve Gürültü",
+      "Asansör Yönetmeliği",
+      "İSG ve Şantiye Güvenliği",
+      "Çevre Mevzuatı",
+    ],
+    tags: ["deprem", "tbdy", "yönetmelik", "ts500", "betonarme", "yangın", "otopark", "imar", "bep-tr", "ts825", "eurocode", "akustik", "asansör", "isg", "çevre", "enerji", "su", "zemin", "engelsiz", "ts 9111", "byy", "süneklik", "spektrum"],
+  },
+  {
+    id: "tbdy-2018-detay",
+    title: "TBDY 2018 Detaylı Rehber",
+    href: "/kategori/tbdy-2018-detay",
+    description: "TBDY 2018'in bölüm bölüm açıklaması: deprem bölgesi, spektrum, süneklik ve detaylandırma.",
+    categories: ["TBDY 2018 Rehberi"],
+    tags: ["tbdy 2018", "deprem bölgesi", "spektrum", "davranış katsayısı", "süneklik düzeyi"],
   },
   {
     id: "geoteknik",
