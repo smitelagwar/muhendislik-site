@@ -18,6 +18,7 @@ import {
   openEstimatedConstructionAreaPdfPreview,
   printEstimatedConstructionAreaPdf,
 } from "@/lib/calculations/reporting";
+import { buildPathWithSearch, normalizeNumberParam, setParamIfMeaningful } from "@/lib/url-state";
 import {
   DEFAULT_ESTIMATED_AREA_FORM,
   ESTIMATED_AREA_LEGACY_DRAFT_KEY,
@@ -50,10 +51,6 @@ function parsePositiveDecimal(value: string): number | null {
 function parsePositiveInteger(value: string): number | null {
   const parsed = parseDecimal(value);
   return parsed !== null && Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
-}
-
-function normalizeNumberParam(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(4)));
 }
 
 function parseProfile(raw: string | null): ConstructionAreaProfile {
@@ -167,36 +164,28 @@ function buildQueryString(form: EstimatedAreaFormState): string {
   const kaks = parsePositiveDecimal(form.kaks);
   const normalFloorCount = parsePositiveInteger(form.normalFloorCount);
 
-  if (parcelAreaM2) {
-    params.set("arsa", normalizeNumberParam(parcelAreaM2));
-  }
-
-  if (taks && taks <= 1) {
-    params.set("taks", normalizeNumberParam(taks));
-  }
-
-  if (kaks) {
-    params.set("kaks", normalizeNumberParam(kaks));
-  }
-
-  if (normalFloorCount) {
-    params.set("kat", String(normalFloorCount));
-  }
-
-  params.set("profil", form.profile);
-  params.set("bodrum", form.hasBasement ? "1" : "0");
+  setParamIfMeaningful(params, "arsa", parcelAreaM2 ? normalizeNumberParam(parcelAreaM2) : null);
+  setParamIfMeaningful(params, "taks", taks && taks <= 1 ? normalizeNumberParam(taks) : null);
+  setParamIfMeaningful(params, "kaks", kaks ? normalizeNumberParam(kaks) : null);
+  setParamIfMeaningful(params, "kat", normalFloorCount ? String(normalFloorCount) : null);
+  setParamIfMeaningful(params, "profil", form.profile, { defaultValue: DEFAULT_ESTIMATED_AREA_FORM.profile });
+  setParamIfMeaningful(params, "bodrum", form.hasBasement ? "1" : null, { defaultValue: "0" });
 
   if (form.hasBasement) {
     const basementFloorCount = parsePositiveInteger(form.basementFloorCount);
     const basementFloorAreaM2 = parsePositiveDecimal(form.basementFloorAreaM2);
 
-    if (basementFloorCount) {
-      params.set("bodrumKat", String(basementFloorCount));
-    }
-
-    if (basementFloorAreaM2) {
-      params.set("bodrumAlan", normalizeNumberParam(basementFloorAreaM2));
-    }
+    setParamIfMeaningful(
+      params,
+      "bodrumKat",
+      basementFloorCount ? String(basementFloorCount) : null,
+      { defaultValue: DEFAULT_ESTIMATED_AREA_FORM.basementFloorCount }
+    );
+    setParamIfMeaningful(
+      params,
+      "bodrumAlan",
+      basementFloorAreaM2 ? normalizeNumberParam(basementFloorAreaM2) : null
+    );
   }
 
   return params.toString();
@@ -204,8 +193,8 @@ function buildQueryString(form: EstimatedAreaFormState): string {
 
 function buildOfficialCostHref(area: number): string {
   const params = new URLSearchParams();
-  params.set("alan", normalizeNumberParam(area));
-  return `/hesaplamalar/resmi-birim-maliyet-2026?${params.toString()}`;
+  setParamIfMeaningful(params, "alan", normalizeNumberParam(area), { defaultValue: "1000" });
+  return buildPathWithSearch("/hesaplamalar/resmi-birim-maliyet-2026", params);
 }
 
 function getPreviewErrorMessage(error: unknown) {
@@ -247,14 +236,18 @@ export function EstimatedConstructionAreaClient() {
   }, []);
 
   useEffect(() => {
-    const nextQuery = buildQueryString(form);
-    if (nextQuery === searchParams.toString()) {
-      return;
-    }
+    const timer = window.setTimeout(() => {
+      const nextQuery = buildQueryString(form);
+      if (nextQuery === searchParams.toString()) {
+        return;
+      }
 
-    startTransition(() => {
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-    });
+      startTransition(() => {
+        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
   }, [form, pathname, router, searchParams]);
 
   const parsed = useMemo(() => buildInput(form), [form]);

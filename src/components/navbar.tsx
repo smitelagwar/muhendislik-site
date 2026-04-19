@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Share2 } from "lucide-react";
 import { AuthTrigger } from "./auth-trigger";
 import { BookmarkButton } from "./bookmark-button";
+import { ContextBackLink } from "./context-back-link";
 import { LiveSearch } from "./live-search";
 import { MobileMenu } from "./mobile-menu";
 import { ModeToggle } from "./mode-toggle";
 import { Button } from "./ui/button";
+import { LAST_INTERNAL_PATH_KEY, resolveRouteMetadata } from "@/lib/route-metadata";
 
-const SharePopup = dynamic(() => import("./share-popup").then((module) => module.SharePopup), { ssr: false });
+const SharePopup = dynamic(() => import("./share-popup").then((module) => module.SharePopup), {
+  ssr: false,
+});
 
 const NAV_LINKS = [
   { name: "Ana Sayfa", href: "/" },
@@ -29,11 +33,14 @@ export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const previousPathRef = useRef<string | null>(pathname);
+  const mountedRef = useRef(false);
 
+  const routeMeta = resolveRouteMetadata(pathname);
   const isTool = pathname.startsWith("/kategori/araclar") || pathname.startsWith("/araclar") || pathname.startsWith("/hesaplamalar");
   const isCategory = pathname.startsWith("/kategori") && !isTool;
   const isArticle = pathname !== "/" && !isTool && !isCategory && pathname.length > 1;
-  const showBack = isArticle || isTool || isCategory;
+  const showBack = Boolean(routeMeta) || isArticle;
   const pageSlug = pathname.replace(/^\//, "");
 
   useEffect(() => {
@@ -45,6 +52,26 @@ export function Navbar() {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      previousPathRef.current = pathname;
+      window.sessionStorage.removeItem(LAST_INTERNAL_PATH_KEY);
+      return;
+    }
+
+    const previousPath = previousPathRef.current;
+    if (previousPath && previousPath !== pathname) {
+      window.sessionStorage.setItem(LAST_INTERNAL_PATH_KEY, previousPath);
+    }
+
+    previousPathRef.current = pathname;
+  }, [pathname]);
 
   return (
     <>
@@ -62,18 +89,30 @@ export function Navbar() {
           <div className={`flex items-center justify-between transition-all duration-500 ${scrolled ? "py-3" : "py-5"}`}>
             <div className="flex flex-shrink-0 items-center gap-8">
               {showBack ? (
-                <Link href="/" className="group flex items-center gap-2 text-zinc-500 transition-colors hover:text-blue-600">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-blue-50 dark:bg-zinc-800 dark:group-hover:bg-blue-900/30">
-                    <ChevronLeft className="h-4 w-4" />
-                  </div>
-                  <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri dön</span>
-                </Link>
+                routeMeta ? (
+                  <ContextBackLink />
+                ) : (
+                  <Link href="/" className="group flex items-center gap-2 text-zinc-500 transition-colors hover:text-blue-600" aria-label="Ana sayfaya dön">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-blue-50 dark:bg-zinc-800 dark:group-hover:bg-blue-900/30">
+                      <ChevronLeft className="h-4 w-4" />
+                    </div>
+                    <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri dön</span>
+                  </Link>
+                )
               ) : (
                 <Link href="/" className="group flex-shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-light.svg?v=3" alt="İnşa Blog" className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`} />
+                  <img
+                    src="/logos/logo-light.svg?v=3"
+                    alt="İnşa Blog"
+                    className={`object-contain object-left transition-all duration-500 dark:hidden ${scrolled ? "h-12" : "h-16"}`}
+                  />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logos/logo-dark.svg?v=3" alt="İnşa Blog" className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`} />
+                  <img
+                    src="/logos/logo-dark.svg?v=3"
+                    alt="İnşa Blog"
+                    className={`hidden object-contain object-left transition-all duration-500 dark:block ${scrolled ? "h-12" : "h-16"}`}
+                  />
                 </Link>
               )}
 

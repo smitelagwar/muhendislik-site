@@ -35,6 +35,7 @@ import type {
   OfficialCostSelection,
 } from "@/lib/calculations/official-unit-costs";
 import { formatM2Fiyat, formatTL } from "@/lib/calculations/core";
+import { buildPathWithSearch, normalizeNumberParam, setParamIfMeaningful } from "@/lib/url-state";
 
 const YIL = 2026;
 
@@ -88,6 +89,54 @@ function getDefaultGuideState(): GuidedSelectionState {
     categoryId: defaultCategory.id,
     optionId: defaultOption.id,
   };
+}
+
+function getDefaultManualState(groups: OfficialCostGroupCode[]): ManualSelectionState {
+  const defaultGroup = groups[0];
+  const defaultClass = getOfficialCostClasses(YIL, defaultGroup)[0];
+
+  return {
+    grup: defaultGroup,
+    sinif: defaultClass,
+  };
+}
+
+function buildOfficialCostQueryString(
+  selectionMode: SelectionMode,
+  manualSelection: ManualSelectionState,
+  guidedSelection: GuidedSelectionState,
+  areaInput: number | null,
+  groups: OfficialCostGroupCode[]
+) {
+  const params = new URLSearchParams();
+  const defaultManualSelection = getDefaultManualState(groups);
+  const defaultGuideState = getDefaultGuideState();
+
+  if (selectionMode === "manual") {
+    params.set("mod", "manual");
+
+    if (manualSelection.grup !== defaultManualSelection.grup) {
+      params.set("grup", manualSelection.grup);
+    }
+
+    if (
+      manualSelection.sinif !== defaultManualSelection.sinif ||
+      manualSelection.grup !== defaultManualSelection.grup
+    ) {
+      params.set("sinif", manualSelection.sinif);
+    }
+  } else if (
+    guidedSelection.categoryId !== defaultGuideState.categoryId ||
+    guidedSelection.optionId !== defaultGuideState.optionId
+  ) {
+    params.set("tip", guidedSelection.optionId);
+  }
+
+  if (areaInput !== null && areaInput !== 1000) {
+    setParamIfMeaningful(params, "alan", normalizeNumberParam(areaInput));
+  }
+
+  return params.toString();
 }
 
 function parseInitialState(
@@ -250,44 +299,38 @@ export function OfficialUnitCostClient() {
   );
 
   useEffect(() => {
-    const params = new URLSearchParams();
-    params.set("yil", String(YIL));
-    params.set("grup", resolvedSelection.grup);
-    params.set("sinif", resolvedSelection.sinif);
-    params.set("mod", selectionMode);
-    if (hasValidArea && parsedArea !== null) {
-      params.set("alan", String(parsedArea));
-    }
-    if (selectionMode === "guided") {
-      params.set("tip", activeGuidedOption.id);
-    }
+    const timer = window.setTimeout(() => {
+      const nextQuery = buildOfficialCostQueryString(
+        selectionMode,
+        manualSelection,
+        guidedSelection,
+        parsedArea,
+        groups
+      );
 
-    startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    });
-  }, [
-    activeGuidedOption.id,
-    hasValidArea,
-    parsedArea,
-    pathname,
-    resolvedSelection.grup,
-    resolvedSelection.sinif,
-    router,
-    selectionMode,
-  ]);
+      if (nextQuery === searchParams.toString()) {
+        return;
+      }
+
+      startTransition(() => {
+        router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [guidedSelection, groups, manualSelection, parsedArea, pathname, router, searchParams, selectionMode]);
 
   const detailSearchParams = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("yil", String(YIL));
     params.set("grup", resolvedSelection.grup);
     params.set("sinif", resolvedSelection.sinif);
-    if (hasValidArea && parsedArea !== null) {
-      params.set("alan", String(parsedArea));
+    if (hasValidArea && parsedArea !== null && parsedArea !== 1000) {
+      setParamIfMeaningful(params, "alan", normalizeNumberParam(parsedArea), { defaultValue: "1000" });
     }
     return params.toString();
   }, [hasValidArea, parsedArea, resolvedSelection.grup, resolvedSelection.sinif]);
 
-  const detailedCostLink = `/hesaplamalar/insaat-maliyeti?${detailSearchParams}`;
+  const detailedCostLink = buildPathWithSearch("/hesaplamalar/insaat-maliyeti", new URLSearchParams(detailSearchParams));
   const exampleStructures = selectedRow?.ornekYapilar ?? [];
   const isBusy = activePdfAction !== null;
 

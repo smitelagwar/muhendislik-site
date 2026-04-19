@@ -20,7 +20,7 @@ export const DEFAULT_ESTIMATED_AREA_FORM: EstimatedAreaFormState = {
   kaks: "1.20",
   normalFloorCount: "5",
   profile: "konut",
-  hasBasement: true,
+  hasBasement: false,
   basementFloorCount: "1",
   basementFloorAreaM2: "",
 };

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  startTransition,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -10,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Activity,
   ArrowRight,
@@ -67,6 +66,7 @@ import {
   openConstructionCostPdfPreview,
   printConstructionCostPdf,
 } from "@/lib/calculations/reporting";
+import { buildPathWithSearch } from "@/lib/url-state";
 
 type BusyAction =
   | "preview"
@@ -128,6 +128,9 @@ const STRUCTURE_LABELS = {
   ofis: "Ofis",
   ticari: "Ticari",
 } as const;
+
+const CONSTRUCTION_COST_ROUTE = "/hesaplamalar/insaat-maliyeti";
+const CONSTRUCTION_COST_DRAFT_KEY = "muhendislik-site:construction-cost-draft-v2";
 
 const QUALITY_LABELS = {
   ekonomik: "Ekonomik",
@@ -367,6 +370,23 @@ function setDeepValue<T extends object>(source: T, path: string, value: unknown)
 
 function getPdfFilename(snapshot: ConstructionCostScenarioSnapshot) {
   return `insaat-maliyet-${snapshot.scenarioName.toLocaleLowerCase("tr-TR").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Math.round(snapshot.equivalentArea)}m2.pdf`;
+}
+
+function readConstructionCostDraft() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(CONSTRUCTION_COST_DRAFT_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    return normalizeCollection(JSON.parse(raw) as unknown);
+  } catch {
+    return null;
+  }
 }
 
 function getJsonFilename(snapshot: ConstructionCostScenarioSnapshot) {
@@ -832,12 +852,11 @@ function SummaryPanelContent(props: {
 }
 
 export function ConstructionCostClient() {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialCollection =
     deserializeCollectionFromSearchParams(searchParams) ?? createDefaultCollection();
   const [collection, dispatch] = useReducer(reduceCollection, initialCollection);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const deferredCollection = useDeferredValue(collection);
   const report = useMemo(() => buildConstructionCostReport(deferredCollection), [deferredCollection]);
   const activeScenario =
@@ -1164,17 +1183,28 @@ export function ConstructionCostClient() {
   }, [collection]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const nextQuery = serializeCollectionToSearchParams(collection).toString();
-      if (nextQuery !== searchParams.toString()) {
-        startTransition(() => {
-          router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
-        });
-      }
-    }, 220);
+    if (typeof window === "undefined") {
+      return;
+    }
 
-    return () => window.clearTimeout(timer);
-  }, [collection, pathname, router, searchParams]);
+    window.sessionStorage.setItem(
+      CONSTRUCTION_COST_DRAFT_KEY,
+      JSON.stringify(normalizeCollection(collection))
+    );
+  }, [collection]);
+
+  useEffect(() => {
+    if (draftHydrated || searchParams.toString()) {
+      return;
+    }
+
+    const draft = readConstructionCostDraft();
+    setDraftHydrated(true);
+
+    if (draft) {
+      dispatch({ type: "load", collection: draft });
+    }
+  }, [draftHydrated, dispatch, searchParams]);
 
   useEffect(() => {
     if (!summarySheetOpen) return;
@@ -1251,7 +1281,11 @@ export function ConstructionCostClient() {
     try {
       setBusyAction("copy");
       setExportError(null);
-      await navigator.clipboard.writeText(window.location.href);
+      const shareUrl = buildPathWithSearch(
+        CONSTRUCTION_COST_ROUTE,
+        serializeCollectionToSearchParams(collection)
+      );
+      await navigator.clipboard.writeText(new URL(shareUrl, window.location.origin).toString());
       recordAction("copy", "Aktif URL panoya kopyalandı.", "Bağlantı kopyalandı.");
     } catch {
       setExportError("Bağlantı panoya kopyalanamadı.");
