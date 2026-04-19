@@ -46,7 +46,7 @@ const getKaziExtraSpecs = (): BinaGuidePageSpec[] => [
     ],
     designOrApplicationSteps: [
       "Kazı sınırını, kotları ve nakliye güzergahını uygulama öncesi işaretle.",
-      "Kazıyı tabaka davranışına göre kademeli ilerlet ve son kotu ölçüyle kapat.",
+      "Kazıyı tabaka davranışına göre kademeli ilerlet ve son kötü ölçüyle kapat.",
       "Su çıkışı olan bölgelerde geçici drenaj ve pompa düzenini aynı gün kur.",
       "Kazı tabanını gevşek malzeme ve çamurdan temizleyerek grobeton öncesi teslim et.",
       "Komşu yapı veya yol etkisi varsa kazı ilerleyişini izleme noktalarıyla birlikte yönet.",
@@ -61,7 +61,7 @@ const getKaziExtraSpecs = (): BinaGuidePageSpec[] => [
     numericalExample: {
       title: "Kazı tabanı aşırı kazı riskinin hızlı yorumu",
       inputs: [
-        { label: "Proje taban kotu", value: "-3,80 m", note: "Temel altı hedef kot" },
+        { label: "Proje taban kötü", value: "-3,80 m", note: "Temel altı hedef kot" },
         { label: "Ölçülen en düşük nokta", value: "-3,92 m", note: "Kazı sonrası tespit" },
         { label: "Kabul sınırı", value: "±2 cm", note: "Son teslim hedefi" },
         { label: "Sapma", value: "12 cm", note: "Aşırı kazı" },
@@ -332,7 +332,7 @@ export const kaziTemelSpecs: BinaGuidePageSpec[] = [
     slugPath: "kazi-temel",
     kind: "branch",
     quote: "Kazı ve temel kalitesi, üst yapının görünen doğruluğundan önce zemindeki disiplinle başlar.",
-    tip: "Temel sistemine güvenmek için yalnızca hesap değil; taban kotu, su kontrolü ve ardışık kabul disiplininin de kurulmuş olması gerekir.",
+    tip: "Temel sistemine güvenmek için yalnızca hesap değil; taban kötü, su kontrolü ve ardışık kabul disiplininin de kurulmuş olması gerekir.",
     intro: [
       "Kazı ve temel fazı, binanın üstte görülen tüm doğruluğunun altta hangi koşullarda kurulduğunu belirler. Zemin verisi yanlış okunur, su kontrolü gecikir veya temel detayları sahada doğaçlanırsa üst yapı boyunca taşınacak kusurlar daha başlangıçta oluşur.",
       "Bu rehber, zemin etüdünden hafriyaya, iksadan temel tipi seçimine kadar ilk kritik kararların hangi teknik sırayla alınması gerektiğini ve hangi saha kayıtlarının zorunlu olduğunu anlatır.",
@@ -374,12 +374,12 @@ export const kaziTemelSpecs: BinaGuidePageSpec[] = [
       "Kazı kotları, geçici drenaj ve su tahliye stratejisini saha akış planına bağla.",
       "Kazı derinliği komşu yapıyı etkiliyorsa iksa sistemini imalat sırasıyla birlikte tanımla.",
       "Temel altı platformunu grobeton, donatı ve su yalıtımı için temiz ve ölçülü şekilde hazırla.",
-      "Temel betonuna geçmeden önce taban kotu, donatı, pas payı ve yalıtım ardışık kabullerini tamamla.",
+      "Temel betonuna geçmeden önce taban kötü, donatı, pas payı ve yalıtım ardışık kabullerini tamamla.",
       "Dolgu ve perde kapanışlarını yalnızca foto-kayıt ve testler tamamlandıktan sonra başlat.",
     ],
     criticalChecks: [
       "Zemin raporundaki tabaka bilgisi saha gözlemiyle uyumlu mu?",
-      "Kazı tabanı kotu ve gevşek malzeme temizliği kayıt altına alındı mı?",
+      "Kazı tabanı kötü ve gevşek malzeme temizliği kayıt altına alındı mı?",
       "İksa ve drenaj sisteminin kazı derinliğine göre güncel kontrol planı var mı?",
       "Grobeton, pas payı ve temel altı su yalıtımı ardışık kabul mantığıyla kapandı mı?",
       "Komşu yapı ve yol etkisi için izleme noktaları belirlendi mi?",
@@ -387,7 +387,7 @@ export const kaziTemelSpecs: BinaGuidePageSpec[] = [
     numericalExample: {
       title: "Temel tabanı kot ve grobeton hazırlığı için ön kontrol örneği",
       inputs: [
-        { label: "Projede temel taban kotu", value: "-4,20 m", note: "Mimari ve statik ortak referansı" },
+        { label: "Projede temel taban kötü", value: "-4,20 m", note: "Mimari ve statik ortak referansı" },
         { label: "Saha ölçülen ortalama kot", value: "-4,16 m", note: "Kazı sonrası ilk ölçüm" },
         { label: "Grobeton kalınlığı", value: "10 cm", note: "Tipik saha pratiği" },
         { label: "İzin verilen son kot farkı", value: "±2 cm", note: "Grobeton öncesi sıkı kontrol hedefi" },
@@ -435,7 +435,7 @@ export const kaziTemelSpecs: BinaGuidePageSpec[] = [
       "Kazı ve temel fazı, üst yapının güvenli başlangıç çizgisidir. Doğru zemin okuması, kontrollü kazı ve ölçülü temel hazırlığı olmadan üst yapıdaki iyi işçilik tek başına yeterli güvence üretmez.",
     ],
     sources: KAZI_SOURCES,
-    keywords: ["kazı ve temel", "geoteknik kontrol", "temel tabanı kotu", "iksa sistemi", "zemin etüdü ve temel"],
+    keywords: ["kazı ve temel", "geoteknik kontrol", "temel tabanı kötü", "iksa sistemi", "zemin etüdü ve temel"],
   },
   {
     slugPath: "kazi-temel/zemin-etudu",

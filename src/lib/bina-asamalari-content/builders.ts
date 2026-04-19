@@ -235,7 +235,7 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
 
   return [
     {
-      id: "giris-kapsam",
+      id: "giriş-kapsam",
       title: "1. Giriş ve Kapsam",
       subsections: [],
       content: [
@@ -276,7 +276,7 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       ].join("\n\n"),
     },
     {
-      id: "gecis-matrisi",
+      id: "geçiş-matrisi",
       title: "5. Alt Başlıklar ve Editoryal Geçiş Matrisi",
       subsections: [],
       content: [
@@ -304,7 +304,7 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       content: renderExample(spec.numericalExample),
     },
     {
-      id: "yazilim-araclar",
+      id: "yazilim-araçlar",
       title: "8. Kullanılan Yazılım / Araçlar",
       subsections: [],
       content: [
@@ -322,7 +322,7 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       ].join("\n\n"),
     },
     {
-      id: "sik-hatalar",
+      id: "sık-hatalar",
       title: "10. Sık Yapılan Hatalar ve Dikkat Edilecekler",
       subsections: [],
       content: [
@@ -361,7 +361,7 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
 
   return [
     {
-      id: "giris-kapsam",
+      id: "giriş-kapsam",
       title: "1. Giriş ve Kapsam",
       subsections: [],
       content: [
@@ -419,7 +419,7 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
       content: renderExample(spec.numericalExample),
     },
     {
-      id: "yazilim-araclar",
+      id: "yazilim-araçlar",
       title: "7. Kullanılan Yazılım / Araçlar",
       subsections: [],
       content: [
@@ -437,7 +437,7 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
       ].join("\n\n"),
     },
     {
-      id: "sik-hatalar",
+      id: "sık-hatalar",
       title: "9. Sık Yapılan Hatalar ve Dikkat Edilecekler",
       subsections: [],
       content: [

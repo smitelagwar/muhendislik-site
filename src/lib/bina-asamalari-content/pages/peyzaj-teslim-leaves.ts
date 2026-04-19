@@ -36,14 +36,14 @@ export const peyzajTeslimLeafSpecs: BinaGuidePageSpec[] = [
     slugPath: "peyzaj-teslim/peyzaj-ve-cevre-duzenleme/sert-zemin",
     kind: "topic",
     quote: "Sert zemin, kaplama seçimiyle değil; kot, drenaj ve sıkışma zinciriyle iyi çalışır.",
-    tip: "Sert zemindeki en pahalı hata, güzel görünen kaplamayı sorun sanmaktır; çoğu problem aslında alt temel, bordür kotu ve su yönünden çıkar.",
+    tip: "Sert zemindeki en pahalı hata, güzel görünen kaplamayı sorun sanmaktır; çoğu problem aslında alt temel, bordür kötü ve su yönünden çıkar.",
     intro: [
       "Sert zemin uygulamaları; yaya yolları, araç yolları, bina girişleri, otoparklar, rampalar, bordürler ve açık alan meydanlarını kapsayan temel dış saha işlerinden biridir. Şantiyede bu iş kalemi çoğu zaman peyzajın dekoratif kısmı gibi görülür; oysa kullanıcının ilk adım attığı yüzey burasıdır ve bina çevresindeki su davranışı büyük ölçüde bu yüzeyle belirlenir.",
       "Bir inşaat mühendisi için sert zemin yalnız kaplama malzemesi seçimi değildir. Alt zeminin taşıma durumu, plentmiks veya kırmataş temel kalınlığı, rögar ve ızgara kotları, yaya konforu, engelli erişimi, bordür sürekliliği ve yağmur sonrası göllenme riski birlikte yönetilmelidir. Şantiye sonunda hız baskısıyla yapılan sert zeminler genellikle ilk kışta bozulur; nedeni de çoğu zaman malzeme değil, geometri ve sıkışma disiplinidir.",
     ],
     theory: [
       "Sert zemin sisteminin taşıyıcı mantığı yukarıdan aşağıya değil, aşağıdan yukarıya okunmalıdır. Nihai kaplama yalnızca görünen yüzeydir; asıl performansı alt zeminin stabilitesi, alt temel tabakası, yataklama katmanı ve kenar kısıtlayıcıların sürekliliği belirler. Zayıf alt zemin üzerine iyi parke koymak, iyi boya ile zayıf sıvayı örtmeye benzer; sorun gecikir ama ortadan kalkmaz.",
-      "Dış sahada su yönetimi, sert zemin performansının kalbidir. Yüzey eğimi doğru kurulmazsa derzler açılır, bordürler yerinden oynar, rögar çevresinde çökme başlar ve kaplama üstünde donma-çözülme etkisi büyür. Bu nedenle sert zemin projesi, mimari görünüşten önce yüzey akış projesidir. İnşaat mühendisi özellikle bina giriş kotu ile saha kotu arasındaki ilişkiyi kontrol etmeden kaplama kararına güvenmemelidir.",
+      "Dış sahada su yönetimi, sert zemin performansının kalbidir. Yüzey eğimi doğru kurulmazsa derzler açılır, bordürler yerinden oynar, rögar çevresinde çökme başlar ve kaplama üstünde donma-çözülme etkisi büyür. Bu nedenle sert zemin projesi, mimari görünüşten önce yüzey akış projesidir. İnşaat mühendisi özellikle bina giriş kötü ile saha kötü arasındaki ilişkiyi kontrol etmeden kaplama kararına güvenmemelidir.",
       "Sahadaki kritik kararlar çoğu zaman kaplama öncesinde verilir. Dolgu veya kazıdan çıkan zemin korunacak mı, geotekstil gerekecek mi, plentmiks hangi kalınlıkta serilecek, kompaksiyon kaç geçişte sağlanacak, rögar kapakları nihai kotla nasıl eşlenecek? Bu sorular net değilse en pahalı taş kaplama bile kısa sürede dalgalı, su tutan ve bakım isteyen bir yüzeye dönüşür.",
     ],
     ruleTable: [
@@ -81,7 +81,7 @@ export const peyzajTeslimLeafSpecs: BinaGuidePageSpec[] = [
     ],
     criticalChecks: [
       "Alt zeminde oturma yapan veya ayak altında çalışan bölgeler kaldı mı?",
-      "Bordür üst kotu ve nihai kaplama kotu kesintisiz okunuyor mu?",
+      "Bordür üst kötü ve nihai kaplama kötü kesintisiz okunuyor mu?",
       "Rögar kapakları ve mazgallar kaplama yüzeyiyle aynı davranışı gösteriyor mu?",
       "Yüzey akışı bina cephesinden ve girişlerden uzaklaşıyor mu?",
       "Kenar kısıtlaması olmayan bölgelerde kaplama kaçma riski taşıyor mu?",
@@ -127,7 +127,7 @@ export const peyzajTeslimLeafSpecs: BinaGuidePageSpec[] = [
       ],
       checks: [
         "Alt temel hacmi ile gerçek serim alanı günlük olarak karşılaştırılmalıdır.",
-        "Mazgal kotu nihai yüzeyin doğal en düşük noktası olarak bırakılmalıdır.",
+        "Mazgal kötü nihai yüzeyin doğal en düşük noktası olarak bırakılmalıdır.",
         "Yataklama kumu ile kot düzeltmeye çalışmak yerine alt temel geometrisi düzeltilmelidir.",
       ],
       engineeringComment: "Sert zeminde kalıcılığı kaplama taşı değil, kaplama altında görünmeyen geometri ve sıkışma disiplini üretir.",
@@ -149,7 +149,7 @@ export const peyzajTeslimLeafSpecs: BinaGuidePageSpec[] = [
       "Sert zemin işi, peyzajın son dokunuşu değil; bina çevresinin su, erişim ve bakım düzenini kuran mühendislik işidir. İnşaat mühendisi bu aşamada kot, sıkışma ve tahliye disiplinini elden bırakmazsa teslim sonrası şikayetlerin büyük bölümü daha başlamadan engellenir.",
     ],
     sources: [...PEYZAJ_LEAF_SOURCES, SOURCE_LEDGER.planliAlanlar, SOURCE_LEDGER.yapiDenetim],
-    keywords: ["sert zemin", "kilit parke", "alt temel", "göllenme kontrolü", "peyzaj kotu"],
+    keywords: ["sert zemin", "kilit parke", "alt temel", "göllenme kontrolü", "peyzaj kötü"],
     relatedPaths: [
       "peyzaj-teslim",
       "peyzaj-teslim/peyzaj-ve-cevre-duzenleme",

@@ -325,7 +325,7 @@ function createSections(node: IndexedBinaNode): BinaGuideSection[] {
 
   return [
     {
-      id: "giris-kapsam",
+      id: "giriş-kapsam",
       title: "1. Giriş ve Kapsam",
       subsections: [],
       content: buildIntro(node, branchLabel, node.summary, branchMeta.image),
@@ -363,7 +363,7 @@ function createSections(node: IndexedBinaNode): BinaGuideSection[] {
       content: buildExample(node, branchMeta),
     },
     {
-      id: "yazilim-araclar",
+      id: "yazilim-araçlar",
       title: "6. Kullanılan Yazılım ve Araçlar",
       subsections: [],
       content: [

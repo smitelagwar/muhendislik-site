@@ -165,7 +165,7 @@ export const tesisatIsleriLeafSpecs: BinaGuidePageSpec[] = [
     ],
     theory: [
       "Pis su hattının performansı üç bileşene bağlıdır: yeterli eğim, doğru havalık ve bakım erişimi. Fazla düşük eğim katı maddelerin taşınmasını zorlaştırır, fazla yüksek eğim ise suyun hızlı akıp katı yükü geride bırakmasına neden olabilir.",
-      "Binalarda atık su davranışı yalnız düşey kolona bağlı değildir. Yatay branşmanların döşeme içinde veya asma tavan üstünde nasıl döndüğü, temizleme parçası bırakılıp bırakılmadığı ve ıslak hacim ekipmanlarının birbirine göre kotu kritik rol oynar.",
+      "Binalarda atık su davranışı yalnız düşey kolona bağlı değildir. Yatay branşmanların döşeme içinde veya asma tavan üstünde nasıl döndüğü, temizleme parçası bırakılıp bırakılmadığı ve ıslak hacim ekipmanlarının birbirine göre kötü kritik rol oynar.",
       "Ayrıca pis su tesisatı ses ve koku davranışı da üretir. Boru askıları, dar kesit geçişleri ve havalık eksikliği kullanım kalitesini ciddi biçimde bozar.",
     ],
     ruleTable: [
@@ -251,7 +251,7 @@ export const tesisatIsleriLeafSpecs: BinaGuidePageSpec[] = [
       { wrong: "Asma tavan kapanmadan önce kayıt almamak.", correct: "Foto-log ve kot kontrolüyle sistemi belgelemek." },
     ],
     designVsField: [
-      "Projede birkaç çizgiden ibaret görünen pis su hattı, sahada tavan boşluğu, seramik kotu ve şaft genişliğiyle sınanır.",
+      "Projede birkaç çizgiden ibaret görünen pis su hattı, sahada tavan boşluğu, seramik kötü ve şaft genişliğiyle sınanır.",
       "İyi pis su tesisatı kullanıcı tarafından fark edilmez; kötü tesisat ise koku, ses ve geri basma ile kendini hızla belli eder.",
     ],
     conclusion: [
@@ -663,7 +663,7 @@ export const tesisatIsleriLeafSpecs: BinaGuidePageSpec[] = [
         },
       ],
       checks: [
-        "Drenaj hesabı yapılmadan asma tavan kotu kesinleştirilmemelidir.",
+        "Drenaj hesabı yapılmadan asma tavan kötü kesinleştirilmemelidir.",
         "Drenaj hattı içinde su biriktirecek sehimler bırakılmamalıdır.",
         "Vakum ve kaçak kontrolü kayda bağlanmadan sistem kapatılmamalıdır.",
       ],

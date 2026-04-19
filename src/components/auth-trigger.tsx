@@ -21,7 +21,7 @@ export function AuthTrigger() {
         className="hidden h-11 rounded-full border-zinc-300 px-6 text-sm font-bold shadow-sm transition-all hover:bg-zinc-50 hover:shadow-md active:scale-[0.98] dark:border-zinc-700 dark:hover:bg-zinc-800 sm:inline-flex"
         onClick={() => setIsOpen(true)}
       >
-        Giris Yap
+        Giriş Yap
       </Button>
       <AuthModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </>

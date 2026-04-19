@@ -188,7 +188,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
     tip: "Seramikte en sık hata, mastar ve modül disiplinini yapıştırıcıyla çözebileceğini sanmaktır; sonuçta hem görünüm hem dayanım bozulur.",
     intro: [
       "Seramik zemin kaplaması; ıslak hacimler, mutfaklar, koridorlar ve yoğun sirkülasyonlu alanlarda hijyen, aşınma dayanımı ve kolay temizlik avantajı nedeniyle sık tercih edilir. Görünürde dayanıklı bir kaplama olduğundan toleranslı sanılır; oysa seramik, alt yüzey hatalarını en hızlı gösteren sistemlerden biridir.",
-      "İnşaat mühendisi için seramik kaplama işi yalnız karo seçimi değildir. Şap kotu, su yönü, modül planı, dilatasyon, eşik ve süpürgelik ilişkisi birlikte çözülmelidir. Kötü alt yüzey üzerine doğru karo döşemek mümkün değildir; çünkü problem seramikte değil zeminin kendisindedir.",
+      "İnşaat mühendisi için seramik kaplama işi yalnız karo seçimi değildir. Şap kötü, su yönü, modül planı, dilatasyon, eşik ve süpürgelik ilişkisi birlikte çözülmelidir. Kötü alt yüzey üzerine doğru karo döşemek mümkün değildir; çünkü problem seramikte değil zeminin kendisindedir.",
     ],
     theory: [
       "Seramik sisteminin performansı, yapıştırıcı sınıfı kadar alt yüzeyin düzlemselliğine bağlıdır. Dolu görünmeyen yapıştırıcı yatağı, boşluklu döşeme ve dengesiz derz aralıkları yürüyüş sırasında kırılma veya ses problemi oluşturabilir.",
@@ -934,7 +934,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
     tip: "Dış kapıda en sık hata, ürünü güçlü seçip birleşim detayını zayıf bırakmaktır; su ve hava sorunları çoğu zaman kasadan değil çevresinden çıkar.",
     intro: [
       "Dış kapı sistemi, yapının ana giriş güvenliğini, hava-su kontrolünü ve kullanıcı ilk temasını belirleyen önemli bir doğrama elemanıdır. Çelik, kompozit veya farklı sistemlerle çözülebilir; ancak hangi ürün seçilirse seçilsin montaj ve eşik detayı doğru kurulmadıkça beklenen performans sağlanmaz.",
-      "İnşaat mühendisi açısından dış kapı yalnız kanat ve kasa seçimi değildir. Giriş kotu, yağmur suyu davranışı, eşik yüksekliği, ankraj, açılım yönü ve kilit/donanım performansı birlikte çözülmelidir. Özellikle dış ortam etkisine açık girişlerde küçük detay eksikleri hızla su alma ve hava sızıntısı problemine dönüşür.",
+      "İnşaat mühendisi açısından dış kapı yalnız kanat ve kasa seçimi değildir. Giriş kötü, yağmur suyu davranışı, eşik yüksekliği, ankraj, açılım yönü ve kilit/donanım performansı birlikte çözülmelidir. Özellikle dış ortam etkisine açık girişlerde küçük detay eksikleri hızla su alma ve hava sızıntısı problemine dönüşür.",
     ],
     theory: [
       "Dış kapı performansı güvenlik kadar birleşim kalitesine bağlıdır. Kasa çevresinde yetersiz montaj boşluğu, eksik sızdırmazlık veya hatalı eşik çözümü varsa kapı kanadı ne kadar kaliteli olursa olsun hava ve su davranışı zayıflar.",
@@ -968,7 +968,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
       },
     ],
     designOrApplicationSteps: [
-      "Giriş kotu, sundurma/saçak etkisi ve su yönünü dış kapı detayıyla birlikte değerlendir.",
+      "Giriş kötü, sundurma/saçak etkisi ve su yönünü dış kapı detayıyla birlikte değerlendir.",
       "Kaba boşluk ve kasa payını montaj öncesi yeniden ölç; ankraj noktalarını rastgele belirleme.",
       "Eşik, denizlik ve çevre sızdırmazlık katmanlarını tek sistem mantığıyla uygula.",
       "Kilitleme, kapatma kuvveti ve kanat ayarlarını montaj bitiminde test et.",
@@ -982,10 +982,10 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
       "Kapı çevresinde ısı köprüsü veya hava kaçağı riski kaldı mı?",
     ],
     numericalExample: {
-      title: "Dış kapı eşik kotu için hızlı yorum",
+      title: "Dış kapı eşik kötü için hızlı yorum",
       inputs: [
-        { label: "Dış sahanlık kotu", value: "+0,00", note: "Giriş önü zemin kotu" },
-        { label: "İç zemin kotu", value: "+0,03 m", note: "Örnek 3 cm iç yükselti" },
+        { label: "Dış sahanlık kötü", value: "+0,00", note: "Giriş önü zemin kötü" },
+        { label: "İç zemin kötü", value: "+0,03 m", note: "Örnek 3 cm iç yükselti" },
         { label: "Kapı eşiği çözümü", value: "kontrollü geçiş ve sızdırmazlık", note: "Su davranışına bağlı" },
         { label: "Hedef", value: "Su girişi olmadan erişilebilir giriş", note: "Giriş kalitesi" },
       ],
@@ -1007,7 +1007,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
         },
       ],
       checks: [
-        "Eşik kotu dış saha eğimiyle birlikte değerlendirilmelidir.",
+        "Eşik kötü dış saha eğimiyle birlikte değerlendirilmelidir.",
         "Kapı altı contası ve birleşim detayları saha testine tabi tutulmalıdır.",
         "Güvenlik ve erişim kriterleri birlikte düşünülmelidir.",
       ],
@@ -1040,7 +1040,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
     tip: "İç kapıda en sık hata, kasayı bitmiş duvara göre değil kaba açıklığa göre zorlamaktır; sonuç sürten kanat, çatlayan pervaz ve zayıf detay olur.",
     intro: [
       "İç kapı sistemi, mahaller arası geçiş, mahremiyet, akustik ve dolaşım kalitesini belirleyen temel iç mekan doğrama elemanıdır. Hafif bir iş gibi algılansa da kullanıcı tarafından en sık dokunulan ve en sık test edilen yapı bileşenlerinden biridir. Bu nedenle küçük montaj hataları çok hızlı fark edilir.",
-      "İnşaat mühendisi için iç kapı, yalnız mobilya montajı değildir. Kasa boşluğu, bitmiş döşeme kotu, süpürgelik ilişkisi, menteşe doğruluğu, kilit dili ve duvar kalınlığı uyumu birlikte değerlendirilmelidir. Özellikle bitmiş sıva ve kaplama toleranslarıyla kapı kasası arasındaki ilişki düzgün kurulmazsa estetik ve fonksiyon bir arada bozulur.",
+      "İnşaat mühendisi için iç kapı, yalnız mobilya montajı değildir. Kasa boşluğu, bitmiş döşeme kötü, süpürgelik ilişkisi, menteşe doğruluğu, kilit dili ve duvar kalınlığı uyumu birlikte değerlendirilmelidir. Özellikle bitmiş sıva ve kaplama toleranslarıyla kapı kasası arasındaki ilişki düzgün kurulmazsa estetik ve fonksiyon bir arada bozulur.",
     ],
     theory: [
       "İç kapı performansı esas olarak geometri ve donanım davranışına bağlıdır. Kasa şakülden saparsa kanat sürter; diyagonal bozuksa kapı kendi kendine açılır veya kapanır; menteşe ayarı zayıfsa kısa sürede sarkma oluşur. Yani iç kapının kalitesi büyük ölçüde ölçü ve ayar disiplinidir.",
@@ -1114,7 +1114,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
       ],
       checks: [
         "Kapı boşlukları yalnız görünüm için değil sürtme riskine karşı da kontrol edilmelidir.",
-        "Bitmiş döşeme kotu kapı altı boşluk kararına dahil edilmelidir.",
+        "Bitmiş döşeme kötü kapı altı boşluk kararına dahil edilmelidir.",
         "Pervaz-temizlik kalitesi fonksiyon testinden ayrı düşünülmemelidir.",
       ],
       engineeringComment: "İç kapının kalitesi çoğu zaman ilk bakışta değil, günde onlarca kez sorunsuz açılıp kapanmasında anlaşılır.",
@@ -1146,7 +1146,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
     tip: "Membran çatıda en sık hata, su yalıtımını tek katman sanmaktır; oysa eğim, alt hazırlık, dönüş detayları ve koruma katmanı birlikte çalışır.",
     intro: [
       "Membran çatı sistemi, teras ve düşük eğimli çatılarda su geçirimsizlik sağlamak için kullanılan temel çatı kaplama çözümüdür. Görünüşte düz ve sade bir yüzey bırakır; fakat bu sadeliğin arkasında çok hassas bir geometri ve detay disiplini vardır. Çünkü bu sistemde suyu yönlendiren şey yüksek eğim değil, santimetre seviyesindeki katman doğruluğudur.",
-      "İnşaat mühendisi açısından membran çatı, yalnız rulonun serilmesi değildir. Eğim betonu, süzgeç kotu, parapet dönüşü, dilatasyon, mekanik ekipman ayakları ve koruma katmanı birlikte ele alınmalıdır. Membran sistemlerin çoğu ana yüzeyde değil, detay düğümlerinde başarısız olur.",
+      "İnşaat mühendisi açısından membran çatı, yalnız rulonun serilmesi değildir. Eğim betonu, süzgeç kötü, parapet dönüşü, dilatasyon, mekanik ekipman ayakları ve koruma katmanı birlikte ele alınmalıdır. Membran sistemlerin çoğu ana yüzeyde değil, detay düğümlerinde başarısız olur.",
     ],
     theory: [
       "Membran çatı performansı, suyu yüzeyde bekletmeden güvenli tahliye etmeye dayanır. Bu nedenle eğim katmanı, süzgeç yerleşimi ve su yönü sistemin kalbidir. Membran kaliteli olsa bile su uzun süre yanlış noktada bekliyorsa yaşlanma ve detay zorlanması hızla artar.",
@@ -1187,7 +1187,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
       "Koruma katmanı ve bakım yürüyüşünü planlayarak membran yüzeyini teslim et.",
     ],
     criticalChecks: [
-      "Süzgeç kotu gerçekten en düşük noktayı oluşturuyor mu?",
+      "Süzgeç kötü gerçekten en düşük noktayı oluşturuyor mu?",
       "Bindirmeler ve köşe dönüşleri sistem kurallarına uygun mu?",
       "Parapet diplerinde ve köşelerde zorlanan veya açık kalan bölge var mı?",
       "Mekanik ekipman ayakları membranı zedeleyecek şekilde mi çözülmüş?",
@@ -1243,7 +1243,7 @@ export const inceIslerMoreLeafSpecs: BinaGuidePageSpec[] = [
       "Membran çatı doğru eğim, doğru detay ve doğru koruma ile uzun ömürlü olur. Bu zincirin bir halkası eksik bırakıldığında su, sistemin en zayıf noktasını hızla bulur.",
     ],
     sources: [...INCE_MORE_SOURCES, SOURCE_LEDGER.ts825, SOURCE_LEDGER.enerjiPerformansi],
-    keywords: ["membran çatı", "teras çatı", "süzgeç kotu", "bindirme", "su yalıtımı"],
+    keywords: ["membran çatı", "teras çatı", "süzgeç kötü", "bindirme", "su yalıtımı"],
     relatedPaths: ["ince-isler", "ince-isler/cati-kaplamasi", "ince-isler/cati-kaplamasi/metal-cati"],
   },
   {

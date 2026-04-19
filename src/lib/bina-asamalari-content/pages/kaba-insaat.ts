@@ -333,7 +333,7 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
         {
           title: "Düzlem sürekliliğini değerlendir",
           result: "20 cm teorik fark sağlansa bile aradaki dalga ve burulmalar kaplama altında su cebi oluşturabilir.",
-          note: "Bu yüzden yalnız başlangıç ve bitiş kotu değil ara hat da lazerle kontrol edilmelidir.",
+          note: "Bu yüzden yalnız başlangıç ve bitiş kötü değil ara hat da lazerle kontrol edilmelidir.",
         },
       ],
       checks: [
@@ -544,7 +544,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
       inputs: [
         { label: "Açıklık", value: "6,0 m", note: "Tipik konut döşemesi" },
         { label: "Döşeme kalınlığı", value: "15 cm", note: "Projeden alınan değer" },
-        { label: "Kiriş alt kotu", value: "değişken", note: "Mekanik koordinasyon etkisi var" },
+        { label: "Kiriş alt kötü", value: "değişken", note: "Mekanik koordinasyon etkisi var" },
         { label: "Hedef", value: "Sehimi kontrol ederek düz yüzey bırakmak", note: "Beton öncesi kalite hedefi" },
       ],
       assumptions: [

@@ -26,7 +26,7 @@ const IKSA_EQUIPMENT: BinaGuideEquipment[] = [
 ];
 
 const TEMEL_EQUIPMENT: BinaGuideEquipment[] = [
-  { group: "Ölçüm", name: "Lazer nivo ve total station", purpose: "Grobeton kotu, radye üst kotu ve ankraj akslarını doğrulamak.", phase: "Temel öncesi ve döküm" },
+  { group: "Ölçüm", name: "Lazer nivo ve total station", purpose: "Grobeton kötü, radye üst kötü ve ankraj akslarını doğrulamak.", phase: "Temel öncesi ve döküm" },
   { group: "Donatı", name: "Pas payı takozu, sehpa ve spacer", purpose: "Alt-üst donatının projedeki örtü betonu ve katman mesafesinde kalmasını sağlamak.", phase: "Donatı montajı" },
   { group: "Beton", name: "Beton pompası, vibratör ve numune seti", purpose: "Yerleştirme, sıkıştırma ve kabul deneylerini aynı zincirde yürütmek.", phase: "Betonlama" },
   { group: "Yalıtım", name: "Bitümlü membran, astar ve koruma levhası", purpose: "Temel dış yüzeylerini suya karşı sürekli bir kabuk haline getirmek.", phase: "Su yalıtımı" },
@@ -278,7 +278,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
     criticalChecks: [
       "Seçilen sürme yöntemi komşu yapılar için kabul edilebilir mi?",
       "Palplanş kilitleri gerçekten kapanıyor mu, açıklık kalıyor mu?",
-      "Başlık kotu ve düşeylikte zincirleme sapma oluştu mu?",
+      "Başlık kötü ve düşeylikte zincirleme sapma oluştu mu?",
       "Palplanş tamamlandığı halde su girişi için ek drenaj ihtiyacı devam ediyor mu?",
       "Kesilecek başlık yüksekliği kuşak kirişi ve geçici başlık planına göre doğrulandı mı?",
     ],
@@ -373,7 +373,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
       "Radye kalınlığı, kolon altı yerel çözümler ve perdelerle birleşim detaylarını analitik modelle doğrula.",
       "Asansör kuyusu, drenaj çukuru, rezervasyon ve tesisat geçişlerini donatı paftasına beton öncesi işle.",
       "Döküm şeridi, pompa konumu, iş derzi ve kür planını beton hacmine göre önceden sabitle.",
-      "Beton sonrası yapılacak üstyapı imalatlarını düşünerek radye üst kotu, ankrajları ve filizleri son kez ölç.",
+      "Beton sonrası yapılacak üstyapı imalatlarını düşünerek radye üst kötü, ankrajları ve filizleri son kez ölç.",
     ],
     criticalChecks: [
       "Ortalama zemin basıncı uygun görünürken kolon çevresi zımbalama talebi gözden kaçtı mı?",
@@ -478,7 +478,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
     criticalChecks: [
       "Aşırı kazı alanları grobetonla gizlenmeye çalışılıyor mu?",
       "Grobeton öncesi tabanda serbest su veya çamur kaldı mı?",
-      "Yüzey kotu donatı ve yalıtım detaylarına uygun mu?",
+      "Yüzey kötü donatı ve yalıtım detaylarına uygun mu?",
       "Grobeton üstü kırılmadan aks işaretleme yapılabildi mi?",
       "Sonraki ekiplerin yüzeyi bozmasını önleyecek koruma planı var mı?",
     ],
@@ -491,7 +491,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
         { label: "Sipariş payı", value: "%3", note: "Yüzey kaybı ve tolerans için" },
       ],
       assumptions: [
-        "Taban kotu grobeton öncesi düzeltilmiştir.",
+        "Taban kötü grobeton öncesi düzeltilmiştir.",
         "Yüzey tek parça veya iki yakın parti halinde dökülecektir.",
         "Grobeton kalınlığı proje kararıdır ve tesviye amacıyla büyütülmeyecektir.",
       ],

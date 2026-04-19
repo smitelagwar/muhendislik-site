@@ -349,7 +349,7 @@ export const projeHazirlikSpecs: BinaGuidePageSpec[] = [
         correct: "Revizyon föyü ve dağıtım listesi ile tek güncel paftayı kayıtlı şekilde yaymak.",
       },
       {
-        wrong: "Mahal listesi ile kapı-pencere çizelgesini ayrı ekiplerin yorumuna bırakmak.",
+        wrong: "Mahal listesi ile kapi-pencere çizelgesini ayrı ekiplerin yorumuna bırakmak.",
         correct: "Mimari proje, doğrama çizelgesi ve detay paftalarını aynı kontrol çevriminde okumak.",
       },
       {
@@ -379,12 +379,12 @@ export const projeHazirlikSpecs: BinaGuidePageSpec[] = [
     quote: "Mimari proje, estetik kararın değil; tüm görünür birleşimlerin teknik sözlüğüdür.",
     tip: "Mahal listesi, doğrama çizelgesi ve büyük ölçekli detaylar olmadan mimari proje sahada yarım konuşur.",
     intro: [
-      "Mimari proje, mekan kurgusunu saha tarafından uygulanabilir bir tarif haline getirir. Kolon yerleri, net mahal ölçüleri, kapı-pencere boşlukları, ıslak hacim kurgusu ve bitiş kararları burada teknik bir düzene kavuşur.",
+      "Mimari proje, mekan kurgusunu saha tarafından uygulanabilir bir tarif haline getirir. Kolon yerleri, net mahal ölçüleri, kapi-pencere boşlukları, ıslak hacim kurgusu ve bitiş kararları burada teknik bir düzene kavuşur.",
       "İyi mimari proje, yalnızca plan ve görünüşten oluşmaz; detay, mahal listesi ve birleşim mantığını da taşıyarak yorum yükünü azaltır.",
     ],
     theory: [
       "Mimari proje seti; plan, kesit, görünüş, mahal listesi ve detay paftalarının birlikte okunmasıyla anlam kazanır. Tek başına plan paftası, bitiş ve birleşim kararlarını sahada güvenle taşıyamaz.",
-      "Özellikle kapı-pencere boşlukları, parapet, merdiven, ıslak hacim eğimleri ve asma tavan kararları diğer disiplinleri doğrudan etkiler.",
+      "Özellikle kapi-pencere boşlukları, parapet, merdiven, ıslak hacim eğimleri ve asma tavan kararları diğer disiplinleri doğrudan etkiler.",
       "Bu nedenle mimari proje, taşıyıcı sistem ve MEP kararlarına referans vermek zorundadır; onlardan bağımsız bir sunum değildir.",
     ],
     ruleTable: [
@@ -409,7 +409,7 @@ export const projeHazirlikSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Mahal ihtiyaç programını netleştir ve plan setine aktar.",
-      "Net-brüt ilişkiyi, kapı-pencere ve dolaşım kararlarıyla birlikte sabitle.",
+      "Net-brüt ilişkiyi, kapi-pencere ve dolaşım kararlarıyla birlikte sabitle.",
       "Kesit ve görünüşlerle kat kotlarını, döşeme kalınlıklarını ve parapet hatlarını teyit et.",
       "Islak hacim, merdiven, cephe ve çatı birleşimlerini büyük ölçekte detaylandır.",
       "Mahal listesi ile doğrama çizelgesini pafta setinin ayrılmaz parçası haline getir.",

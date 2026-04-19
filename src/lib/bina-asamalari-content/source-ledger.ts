@@ -75,7 +75,7 @@ export const SOURCE_LEDGER = {
     title: "4708 Sayılı Yapı Denetimi Hakkında Kanun Kapsamında Denetimi Yürütülen Yapılara Ait Taze Betondan Numune Alınması, Deneylerinin Yapılması, Raporlanması Süreçlerinin İzlenmesi ve Denetlenmesine Dair Tebliğ",
     shortCode: "Taze Beton Numune Tebliği",
     type: "regulation",
-    url: "https://webdosya.csb.gov.tr/db/yapiisleri/icerikler/4708-sayili-yapi-denet-m--hakkinda-kanun-kapsaminda-denet-m--yurutulen-yapilara-a-t-taze-betondan-numune-alinmasi-deneyler-n-n-yapilmasi-raporlanmasi-surecler-n-n-izl-20210505163351.pdf",
+    url: "https://webdosya.csb.gov.tr/db/yapiisleri/icerikler/4708-sayili-yapı-denet-m--hakkinda-kanun-kapsaminda-denet-m--yurutulen-yapilara-a-t-taze-betondan-numune-alinmasi-deneyler-n-n-yapilmasi-raporlanmasi-surecler-n-n-izl-20210505163351.pdf",
     note: "Beton numunesi alma, EBIS kaydı, kür ve raporlama zincirinin resmi çerçevesini tarif eder.",
   },
   planliAlanlar: {

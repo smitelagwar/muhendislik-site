@@ -67,7 +67,7 @@ export const inceIslerLeafSpecs: BinaGuidePageSpec[] = [
     tip: "Asma tavanda en büyük hata, düzgün görünen yüzeyi yeterli sanmaktır; oysa servis kapağı, tesisat yüksekliği ve karkas disiplini çözülmeden bu düzgünlük kısa ömürlü olur.",
     intro: [
       "Asma tavan sistemi; mekanik-elektrik tesisatını gizlemek, aydınlatma ve akustik elemanları düzenlemek, bazı mahallerde yangın veya hijyen performansını desteklemek için kurulan ikinci tavan katmanıdır. Kullanıcı için çoğu zaman pürüzsüz bir yüzey gibi görünür; ancak saha gerçeğinde bu yüzeyin arkasında yoğun bir koordinasyon vardır.",
-      "İnşaat mühendisi açısından asma tavan, yalnız alçıpan kaplama işi değildir. Mekanik kanalların alt kotu, sprinkler başlıkları, menfezler, aydınlatma armatürleri, revizyon kapakları ve duvar birleşimleri tek bir düzlem üzerinde çözümlenir. Bu koordinasyon kurulmadan tavana başlamak, sonradan kırma, sarkma ve eğri yüzey demektir.",
+      "İnşaat mühendisi açısından asma tavan, yalnız alçıpan kaplama işi değildir. Mekanik kanalların alt kötü, sprinkler başlıkları, menfezler, aydınlatma armatürleri, revizyon kapakları ve duvar birleşimleri tek bir düzlem üzerinde çözümlenir. Bu koordinasyon kurulmadan tavana başlamak, sonradan kırma, sarkma ve eğri yüzey demektir.",
     ],
     theory: [
       "Asma tavan performansı iki ana başlıkta okunur: karkas rijitliği ve üst boşluk koordinasyonu. Karkas yeterince doğru kurulmazsa levha derzlerinde çatlak, yüzeyde dalga veya armatür çevresinde deformasyon görülür. Üst boşluk yeterince planlanmazsa en iyi karkas bile tesisat müdahaleleri sırasında bozulur.",
@@ -77,9 +77,9 @@ export const inceIslerLeafSpecs: BinaGuidePageSpec[] = [
     ruleTable: [
       {
         parameter: "Kot ve koordinasyon",
-        limitOrRequirement: "Asma tavan kotu, üstteki mekanik-elektrik yükseklikleriyle çakışmasız kurulmalıdır.",
+        limitOrRequirement: "Asma tavan kötü, üstteki mekanik-elektrik yükseklikleriyle çakışmasız kurulmalıdır.",
         reference: "Saha koordinasyon planı",
-        note: "Tavan kotu çizimde değil sahadaki en düşük tesisat noktasında doğrulanmalıdır.",
+        note: "Tavan kötü çizimde değil sahadaki en düşük tesisat noktasında doğrulanmalıdır.",
       },
       {
         parameter: "Levha tipi ve mahal uyumu",
@@ -118,8 +118,8 @@ export const inceIslerLeafSpecs: BinaGuidePageSpec[] = [
       title: "48 m² ofis asma tavanında ana profil ve revizyon planı",
       inputs: [
         { label: "Mahal alanı", value: "48 m²", note: "8 m x 6 m ofis" },
-        { label: "Hedef tavan kotu", value: "2,70 m", note: "Net kullanım kotu" },
-        { label: "Üstteki en düşük tesisat kotu", value: "2,88 m", note: "Kanal altı" },
+        { label: "Hedef tavan kötü", value: "2,70 m", note: "Net kullanım kötü" },
+        { label: "Üstteki en düşük tesisat kötü", value: "2,88 m", note: "Kanal altı" },
         { label: "Hedef", value: "Çakışmasız tavan boşluğu", note: "Servis erişimi korunacak" },
       ],
       assumptions: [
@@ -141,7 +141,7 @@ export const inceIslerLeafSpecs: BinaGuidePageSpec[] = [
         },
       ],
       checks: [
-        "Tavan kotu üstteki en düşük tesisat elemanına göre güncellenmelidir.",
+        "Tavan kötü üstteki en düşük tesisat elemanına göre güncellenmelidir.",
         "Revizyon kapakları yalnız çizimde değil gerçek ekipman yerinde kontrol edilmelidir.",
         "Aydınlatma ve menfez boşlukları karkas düzenini zayıflatmayacak şekilde çözülmelidir.",
       ],
@@ -164,7 +164,7 @@ export const inceIslerLeafSpecs: BinaGuidePageSpec[] = [
       "Asma tavan doğru kot, doğru karkas ve doğru erişim kararlarıyla yapıldığında mekanı toparlar ve tesisatı disipline eder. Bu zincir zayıf kurulursa sorunlar ilk bakımda, ilk çatlakta veya ilk su kaçağında görünür hale gelir.",
     ],
     sources: [...INCE_LEAF_SOURCES, SOURCE_LEDGER.yanginYonetmeligi],
-    keywords: ["asma tavan", "alçıpan tavan", "revizyon kapağı", "tavan kotu", "tesisat koordinasyonu"],
+    keywords: ["asma tavan", "alçıpan tavan", "revizyon kapağı", "tavan kötü", "tesisat koordinasyonu"],
     relatedPaths: ["ince-isler", "ince-isler/alcipan", "ince-isler/alcipan/bolme-duvar"],
   },
   {

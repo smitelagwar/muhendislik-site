@@ -139,7 +139,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                 </div>
                 <Button asChild className="group h-12 rounded-full border-none bg-white px-8 text-zinc-900 hover:bg-zinc-200 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
                   <Link href={`/${heroArticle.slug}`} prefetch={false}>
-                    Okumaya basla
+                    Okumaya başla
                     <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </Button>
@@ -160,7 +160,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                         index === 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
                       }`}
                     >
-                      {index === 0 ? "One cikan" : "Yeni seri"}
+                      {index === 0 ? "Öne çıkan" : "Yeni seri"}
                     </span>
                     <Badge variant="outline" className={`${article.categoryColor} mb-4 border-none font-bold opacity-80 transition-opacity group-hover:opacity-100`}>
                       {article.category}
@@ -198,7 +198,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                   onClick={() => updateFeedMode("all")}
                   className={feedMode === "all" ? "font-bold" : "font-bold text-zinc-500 hover:text-blue-600"}
                 >
-                  Tumu
+                  Tümü
                 </Button>
                 <Button
                   type="button"
@@ -207,7 +207,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                   onClick={() => updateFeedMode("popular")}
                   className={feedMode === "popular" ? "font-bold" : "font-bold text-zinc-500 hover:text-blue-600"}
                 >
-                  Populer
+                  Popüler
                 </Button>
                 <Button
                   type="button"
@@ -244,7 +244,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                       onChange={(event) => updateCategoryFilter(event.target.value)}
                       className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
                     >
-                      <option value="all">Tum kategoriler</option>
+                      <option value="all">Tüm kategoriler</option>
                       {categories.map((category) => (
                         <option key={category} value={category}>
                           {category}
@@ -256,7 +256,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                       onChange={(event) => updateContentMode(event.target.value as ContentMode)}
                       className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
                     >
-                      <option value="all">Tum icerik tipleri</option>
+                      <option value="all">Tüm içerik tipleri</option>
                       <option value="article">Yalnizca makaleler</option>
                       <option value="tool">Yalnizca arac yazilari</option>
                     </select>
@@ -265,7 +265,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                       onChange={(event) => updateReadingTimeFilter(event.target.value)}
                       className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
                     >
-                      <option value="all">Tum okuma sureleri</option>
+                      <option value="all">Tüm okuma süreleri</option>
                       <option value="short">5 dakikaya kadar</option>
                       <option value="long">5 dakikadan uzun</option>
                     </select>
@@ -333,8 +333,8 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
 
             {filteredFeed.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
-                <p className="text-lg font-black text-zinc-900 dark:text-white">Filtrelerle eslesen icerik bulunamadi.</p>
-                <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">Filtreleri sifirlayarak tum icerik akisina donebilirsiniz.</p>
+                <p className="text-lg font-black text-zinc-900 dark:text-white">Filtrelerle eşleşen içerik bulunamadı.</p>
+                <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">Filtreleri sıfırlayarak tüm içerik akışına dönebilirsiniz.</p>
               </div>
             ) : null}
 
@@ -346,7 +346,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                   variant="outline"
                   className="h-12 gap-2 rounded-full border-2 border-zinc-200 px-10 font-black transition-all hover:border-blue-600 hover:text-blue-600 dark:border-zinc-800"
                 >
-                  Daha fazla yukle
+                  Daha fazla yükle
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
@@ -358,20 +358,20 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
               <div className="absolute right-0 top-0 p-4 opacity-10 transition-transform duration-700 group-hover:scale-150">
                 <FileText className="h-32 w-32" />
               </div>
-              <h4 className="relative z-10 mb-2 text-2xl font-black">Iletisime gecin</h4>
+              <h4 className="relative z-10 mb-2 text-2xl font-black">İletişime geçin</h4>
               <p className="relative z-10 mb-6 font-medium text-blue-100">
-                Icerik oneriniz, is birligi talebiniz veya yeni arac fikriniz varsa dogrudan bize yazin.
+                İçerik öneriniz, iş birliği talebiniz veya yeni araç fikriniz varsa doğrudan bize yazın.
               </p>
               <div className="relative z-10 flex flex-col gap-3">
                 <Button asChild className="h-12 w-full bg-white font-black text-blue-700 hover:bg-zinc-100">
-                  <a href="mailto:info@insablog.com?subject=Insa%20Blog%20Iletisim">
+                  <a href="mailto:info@insablog.com?subject=%C4%B0n%C5%9Fa%20Blog%20%C4%B0letisim">
                     <Mail className="mr-2 h-4 w-4" />
-                    E-posta gonder
+                    E-posta gönder
                   </a>
                 </Button>
                 <Button asChild variant="secondary" className="h-12 w-full rounded-xl bg-blue-800/40 font-bold text-white hover:bg-blue-800/60">
                   <Link href="/iletisim" prefetch={false}>
-                    Iletisim sayfasini ac
+                    İletişim sayfasını aç
                   </Link>
                 </Button>
               </div>
@@ -380,7 +380,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
             <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <h4 className="mb-6 flex items-center gap-3 text-xl font-black">
                 <div className="h-6 w-1.5 rounded-full bg-blue-600" />
-                Pratik araclar
+                Pratik araçlar
               </h4>
               <div className="flex flex-col gap-4">
                 {liveTools.map((tool) => (
@@ -403,7 +403,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
               </div>
               <Button asChild variant="ghost" className="mt-6 w-full font-black text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                 <Link href={TOOLS_HUB_HREF} prefetch={false}>
-                  Tum hesap araclari
+                  Tüm hesap araçları
                 </Link>
               </Button>
             </div>

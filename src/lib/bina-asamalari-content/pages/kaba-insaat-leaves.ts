@@ -12,7 +12,7 @@ const BETON_TOOLS: BinaGuideTool[] = [
 
 const KALIP_TOOLS: BinaGuideTool[] = [
   { category: "Çizim", name: "AutoCAD / Revit kalıp paftaları", purpose: "Aks, rezervasyon ve kot detaylarını saha okunabilirliğinde netleştirmek." },
-  { category: "Ölçüm", name: "Lazer nivo ve total station", purpose: "Kolon şakülü, kiriş alt kotu ve döşeme düzlemini beton öncesi doğrulamak." },
+  { category: "Ölçüm", name: "Lazer nivo ve total station", purpose: "Kolon şakülü, kiriş alt kötü ve döşeme düzlemini beton öncesi doğrulamak." },
   { category: "Planlama", name: "Kat çevrimi ve söküm çizelgesi", purpose: "Kurulum, döküm, tali destek ve söküm sırasını disiplinli yönetmek." },
   { category: "Kontrol", name: "Sehim ve deformasyon kontrol listeleri", purpose: "Açıklık arttıkça kalıp ve iskele davranışını önceden izlemek." },
 ];
@@ -670,14 +670,14 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     slugPath: "kaba-insaat/kalip-isleri/kiris-kalibi",
     kind: "topic",
     quote: "Kiriş kalıbı, taşıyıcının yalnız kesitini değil; açıklık boyunca alt kot sürekliliğini ve döşeme ile birleşim doğruluğunu da belirler.",
-    tip: "Kiriş kalıbında alt kotu birkaç noktada doğru görmek yeterli değildir; süreklilik bozulursa tavanda dalga, tesisatta çakışma ve sehim problemi birlikte çıkar.",
+    tip: "Kiriş kalıbında alt kötü birkaç noktada doğru görmek yeterli değildir; süreklilik bozulursa tavanda dalga, tesisatta çakışma ve sehim problemi birlikte çıkar.",
     intro: [
       "Kiriş kalıbı, açıklık geçen betonarme elemanın alt kotunu, kesit yüksekliğini ve mesnet bölgelerindeki doğru oturumunu sağlayan temel kalıp imalatıdır. Kirişler kolonlarla düğüm oluşturduğu ve döşeme kalıbını taşıdığı için burada yapılan hata tek elemanda kalmaz; tüm kat geometrisini etkileyebilir.",
-      "Sahada kiriş kalıbını zorlaştıran ana konu, açıklık boyunca alt kot sürekliliği ve orta bölgelerde oluşabilecek sehim riskidir. Mekanik rezervasyonlar, döşeme kotu, donatı yoğunluğu ve iskele dizilimi birlikte düşünülmediğinde kiriş kalıbı beton sonrası en görünür dalga ve kaçıklıklardan birini üretir.",
+      "Sahada kiriş kalıbını zorlaştıran ana konu, açıklık boyunca alt kot sürekliliği ve orta bölgelerde oluşabilecek sehim riskidir. Mekanik rezervasyonlar, döşeme kötü, donatı yoğunluğu ve iskele dizilimi birlikte düşünülmediğinde kiriş kalıbı beton sonrası en görünür dalga ve kaçıklıklardan birini üretir.",
     ],
     theory: [
       "Kiriş kalıbında ana mühendislik problemi, taze beton ve donatı yükü altında formunu koruyan bir alt taşıma düzeni kurmaktır. Uzayan açıklıklar ve artan kesit yükleri, tali destek ve iskele planını daha kritik hale getirir. Özellikle orta açıklıkta küçük deformasyonlar bile tavan düzleminde belirgin hale gelir.",
-      "Kiriş alt kotu yalnız estetik konu değildir. Tesisat geçişleri, asma tavan boşluğu ve döşeme kalınlığı ile doğrudan ilişkilidir. Bu nedenle kiriş kalıbının birkaç noktada ölçülmesi yerine açıklık boyunca süreklilik halinde kontrol edilmesi gerekir.",
+      "Kiriş alt kötü yalnız estetik konu değildir. Tesisat geçişleri, asma tavan boşluğu ve döşeme kalınlığı ile doğrudan ilişkilidir. Bu nedenle kiriş kalıbının birkaç noktada ölçülmesi yerine açıklık boyunca süreklilik halinde kontrol edilmesi gerekir.",
       "Kiriş-kolon birleşimleri de burada önem kazanır. Kolon üst kotundaki küçük hata veya kiriş yan panellerindeki kaçıklık, düğüm bölgesinde donatı sıkışıklığı ve beton yerleşme problemi yaratabilir. İyi kiriş kalıbı, mesnet bölgesini de orta açıklık kadar ciddiye alır.",
     ],
     ruleTable: [
@@ -708,7 +708,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Düğüm bölgelerinde donatı, rezervasyon ve beton geçişinin kalıpla uyumlu olduğunu beton öncesi doğrula.",
     ],
     criticalChecks: [
-      "Kiriş alt kotu açıklık boyunca süreklilik gösteriyor mu?",
+      "Kiriş alt kötü açıklık boyunca süreklilik gösteriyor mu?",
       "Mesnet bölgelerinde panel kaçıklığı veya kesit daralması var mı?",
       "Tali destek düzeni orta açıklıkta yetersiz mi kalıyor?",
       "Donatı yoğunluğu nedeniyle kalıp içinde beton geçişi zorlaşıyor mu?",
@@ -741,7 +741,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       checks: [
         "Alt kot kontrolü açıklık boyunca yapılmalıdır.",
-        "Tesisat boşluğu gerekiyorsa kiriş alt kotu bununla birlikte doğrulanmalıdır.",
+        "Tesisat boşluğu gerekiyorsa kiriş alt kötü bununla birlikte doğrulanmalıdır.",
         "Düğüm bölgesi donatı yoğunluğu kalıp geometrisini bozmamalıdır.",
       ],
       engineeringComment: "Kiriş kalıbında doğruluk, ölçünün birkaç noktada tutmasından değil, açıklık boyunca aynı davranışı vermesinden anlaşılır.",
@@ -749,7 +749,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     tools: KALIP_TOOLS,
     equipmentAndMaterials: KABA_EQUIPMENT,
     mistakes: [
-      { wrong: "Alt kotu yalnız orta noktada kontrol etmek.", correct: "Mesnet ve orta açıklık boyunca süreklilik halinde ölçmek." },
+      { wrong: "Alt kötü yalnız orta noktada kontrol etmek.", correct: "Mesnet ve orta açıklık boyunca süreklilik halinde ölçmek." },
       { wrong: "Kolon üst kotlarındaki hatayı kiriş kalıbında fark etmeyip devralmak.", correct: "Kiriş kurulmadan önce mesnet referanslarını tekrar doğrulamak." },
       { wrong: "Uzun açıklıkta tali destekleri ekonomik diye seyrek bırakmak.", correct: "Yük ve açıklığa göre yeterli destek dizilimi kurmak." },
       { wrong: "Donatı düğüm bölgelerini kalıp kurulumundan ayrı düşünmek.", correct: "Beton geçişini de dikkate alarak düğümü birlikte çözmek." },
@@ -775,7 +775,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Şantiyede döşeme kalıbı çoğu zaman hızlı tekrar eden rutin bir imalat gibi görülür; ancak geniş alanın her noktasında aynı kaliteyi korumak en zor işlerden biridir. İskele aralığı, alt tabla rijitliği, kenar dönmeleri, döşeme boşlukları ve tesisat rezervasyonları birlikte çözülmezse geniş yüzeyde dalga, sehim ve kalınlık farkı oluşur.",
     ],
     theory: [
-      "Döşeme kalıbında temel problem, geniş yüzey boyunca aynı rijitlik ve aynı kotu korumaktır. Taze beton yükü ve işçi trafiği, özellikle orta bölgelerde iskele sistemini zorlar. Bu nedenle sistem yalnız kurulduğu an için değil, döküm boyunca nasıl davranacağı düşünülerek tasarlanmalıdır.",
+      "Döşeme kalıbında temel problem, geniş yüzey boyunca aynı rijitlik ve aynı kötü korumaktır. Taze beton yükü ve işçi trafiği, özellikle orta bölgelerde iskele sistemini zorlar. Bu nedenle sistem yalnız kurulduğu an için değil, döküm boyunca nasıl davranacağı düşünülerek tasarlanmalıdır.",
       "Geniş yüzeylerde küçük deformasyonlar bile toplam etkiyi büyütür. Örneğin birkaç milimetrelik yerel sehim, şap kalınlığı, kaplama tüketimi ve tavan çizgisi üzerinde hissedilir hale gelir. Bu yüzden döşeme kalıbı yalnız taşıyıcılık açısından değil, nihai bitiş kalitesi açısından da kritik bir kaba inşaat konusudur.",
       "Ayrıca döşeme kalıbı birçok disiplinin rezerv alanını taşır. Şaft boşlukları, merdiven kovaları, tesisat geçişleri ve parapet gibi detaylar kalıp aşamasında net değilse beton sonrasında kırma ve düzeltme ihtiyacı doğar. İyi döşeme kalıbı, gelecekteki delik ve boşlukları da bugünden bilir.",
     ],
@@ -862,7 +862,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Döşeme kalıbı doğru kurulduğunda kat düzlemi temiz, okunabilir ve sonraki işler için ekonomik hale gelir. Yanlış kurulduğunda ise dalga ve kot farkı tüm bitiş sürecine yayılır.",
     ],
     sources: [...KABA_LEAF_SOURCES, SOURCE_LEDGER.tsEn13670],
-    keywords: ["döşeme kalıbı", "düzlemsellik", "kat kotu", "iskele sistemi", "rezervasyon kontrolü"],
+    keywords: ["döşeme kalıbı", "düzlemsellik", "kat kötü", "iskele sistemi", "rezervasyon kontrolü"],
   },
   {
     slugPath: "kaba-insaat/kalip-isleri/kalip-sokumu",
@@ -1345,7 +1345,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     mistakes: [
       { wrong: "Takozları birkaç noktada gösterip elemanın geri kalanını boş bırakmak.", correct: "Örtüyü tüm eleman boyunca sürekli koruyacak dağılım kurmak." },
       { wrong: "Uygun olmayan, ezilen veya rastgele kalınlıkta parça kullanmak.", correct: "Standart spacer ve sehpa sistemi kullanmak." },
-      { wrong: "Üst donatının beton günü aşağı çöktüğünü fark etmemek.", correct: "Beton öncesi son kontrolde kotu yeniden doğrulamak." },
+      { wrong: "Üst donatının beton günü aşağı çöktüğünü fark etmemek.", correct: "Beton öncesi son kontrolde kötü yeniden doğrulamak." },
       { wrong: "Pas payını yalnız korozyon konusu sanmak.", correct: "Aderans ve yangın etkisini de düşünerek yönetmek." },
       { wrong: "Köşe ve düğüm bölgelerinde örtü kaybını gözden kaçırmak.", correct: "En sıkışık bölgeleri ayrıca ölçmek." },
     ],
@@ -1366,7 +1366,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     tip: "Tuğla duvarda sorun çoğu zaman malzemenin kendisinden değil; ilk sıra, kapı boşluğu ve betonarme birleşimlerinin plansız bırakılmasından doğar.",
     intro: [
       "Tuğla duvar, konut ve küçük ölçekli yapılarda en yaygın dolgu duvar çözümlerinden biridir. Kullanımı gelenekseldir; ancak bu tanıdıklık, imalatın teknik disiplin gerektirmediği anlamına gelmez. Tuğlanın düşeylik, derz kalınlığı, açıklık detayları ve tesisat koordinasyonu doğru kurulmadığında sorun ilk ince iş katmanlarında görünür hale gelir.",
-      "Özellikle kapı-pencere boşlukları, kolon-perde birleşimleri ve uzun duvarlarda çatlak riski tuğla duvarı doğrudan etkiler. Bu nedenle tuğla duvar örümü, basit malzeme istifi değil; mekan ölçüsünü ve yüzey kalitesini güvenceye alan uygulama işidir.",
+      "Özellikle kapi-pencere boşlukları, kolon-perde birleşimleri ve uzun duvarlarda çatlak riski tuğla duvarı doğrudan etkiler. Bu nedenle tuğla duvar örümü, basit malzeme istifi değil; mekan ölçüsünü ve yüzey kalitesini güvenceye alan uygulama işidir.",
     ],
     theory: [
       "Tuğla duvarın davranışı, birimlerin harç yatağı ve düşey derzleri ile birlikte çalışmasına bağlıdır. Yatay derz düzeni bozulduğunda veya bloklar şaşırtma mantığıyla örülmediğinde duvar bütünlüğü zayıflar. Ayrıca duvarın kendi ağırlığı ve oturacağı taban düzgün değilse ilk sıra hatası tüm yüksekliğe taşınır.",
@@ -1382,7 +1382,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       },
       {
         parameter: "Birleşim ve açıklık detayı",
-        limitOrRequirement: "Kolon-perde birleşimleri ile kapı-pencere boşlukları detayına uygun çözülmelidir.",
+        limitOrRequirement: "Kolon-perde birleşimleri ile kapi-pencere boşlukları detayına uygun çözülmelidir.",
         reference: "Mimari detay + saha mühendisliği",
         note: "Lento ve ankraj kararı duvar çatlak davranışını doğrudan etkiler.",
       },
@@ -1714,7 +1714,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       assumptions: [
         "Kaplama tipi seçilen eğime uygundur.",
-        "Mahya kotu mimari siluete göre önceden netleşmiştir.",
+        "Mahya kötü mimari siluete göre önceden netleşmiştir.",
         "Taşıyıcı duvar oturum kotları doğrudur.",
       ],
       steps: [
@@ -1767,7 +1767,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     ],
     theory: [
       "Çelik çatı sistemlerinde taşıyıcı davranış, elemanların tekil dayanımından çok düğüm ve çapraz sistem sürekliliği ile belirlenir. Makaslar açıklığı geçer, aşıklar kaplama yükünü taşır, çaprazlar ise sistemin yatay stabilitesini sağlar. Bu üçlüden biri eksik veya gevşek kalırsa çatı beklenen rijitliğe ulaşamaz.",
-      "Montaj toleransı çelik çatıda çok kritiktir. Birkaç milimetrelik atölye hatası sahada ayarlanabilir; fakat aks oturumu, kolon başlık kotu veya çapraz düzlemi yanlışsa kaplama altında dalga, bağlantıda zorlanma ve hatta ikincil gerilme oluşabilir. Bu nedenle montaj sırası, civata sıkma ve geçici sabitleme planlanmadan çelik çatı güvenle ilerletilemez.",
+      "Montaj toleransı çelik çatıda çok kritiktir. Birkaç milimetrelik atölye hatası sahada ayarlanabilir; fakat aks oturumu, kolon başlık kötü veya çapraz düzlemi yanlışsa kaplama altında dalga, bağlantıda zorlanma ve hatta ikincil gerilme oluşabilir. Bu nedenle montaj sırası, civata sıkma ve geçici sabitleme planlanmadan çelik çatı güvenle ilerletilemez.",
       "Çelik çatıda bakım ve yangın davranışı da düşünülmelidir. Korozyon koruması, bağlantı erişimi, kaplama altı yoğuşma ve yangın yönetmeliği ile ilişkili gereksinimler taşıyıcı sistem kararından ayrı tutulmamalıdır. Sahadaki iyi montaj, uzun vadeli bakım mantığına da yer bırakmalıdır.",
     ],
     ruleTable: [
@@ -1791,7 +1791,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       },
     ],
     designOrApplicationSteps: [
-      "Kolon başlık kotu ve akslarını çelik montaj öncesi yeniden doğrula.",
+      "Kolon başlık kötü ve akslarını çelik montaj öncesi yeniden doğrula.",
       "Makasları montaj sırasına göre kaldırıp geçici değil planlı şekilde sabitle.",
       "Aşık ve çapraz sistemini taşıyıcı sürekliliği tamamlamadan kaplama altı işe geçme.",
       "Bulon sıkma, levha oturumu ve mahya doğruluğunu montaj boyunca kontrol et.",
@@ -1859,7 +1859,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     slugPath: "kaba-insaat/cati-iskeleti/teras-cati",
     kind: "topic",
     quote: "Teras çatı, düz göründüğü için kolay sanılır; gerçekte ise eğimi görünmez ama zorunlu olan bir su yönetim sistemidir.",
-    tip: "Teras çatıda en sık hata suyu kaplamanın çözeceğini düşünmektir; oysa taşıyıcı eğim, süzgeç kotu ve detay sürekliliği kurulmadan hiçbir kaplama tek başına yeterli olmaz.",
+    tip: "Teras çatıda en sık hata suyu kaplamanın çözeceğini düşünmektir; oysa taşıyıcı eğim, süzgeç kötü ve detay sürekliliği kurulmadan hiçbir kaplama tek başına yeterli olmaz.",
     intro: [
       "Teras çatı, düz veya düşük eğimli görünen çatı tiplerinde su yalıtımı, ısı yalıtımı ve kullanım yüzeyini aynı kabukta toplayan sistemdir. Bu sistemde taşıyıcı döşeme, eğim katmanı, su yalıtımı, koruma katmanı ve kaplama bir arada çalışır. Dolayısıyla teras çatı yalnız çatı kaplaması değil, katmanlı bir mühendislik paketidir.",
       "Sahada teras çatıyı zorlaştıran asıl konu, eğimin gözle zor algılanmasıdır. Su birikintisi çoğu zaman birkaç santimetrelik kot hatasından doğar. Ayrıca parapet dönüşleri, süzgeç çevresi, tesisat ayakları ve döşeme sonlandırmaları detay çözülmeden ilerletilirse yalıtım performansı hızla düşer. Teras çatıda görünmeyen detay, görünen su lekesi olarak geri döner.",
@@ -1925,7 +1925,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
         },
         {
           title: "Tahliye kararını yorumla",
-          result: "Süzgeç kotu ve çevre eğim aynı mantıkla kurulmazsa yerel göllenme kaçınılmaz olur.",
+          result: "Süzgeç kötü ve çevre eğim aynı mantıkla kurulmazsa yerel göllenme kaçınılmaz olur.",
           note: "Sorun çoğu zaman kaplamadan değil düşük noktanın yanlış yerinden doğar.",
         },
       ],
@@ -1953,6 +1953,6 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Teras çatı doğru katman ve doğru eğimle kurulduğunda hem kuru hem enerji verimli bir kabuk sunar. Hatalı kurulduğunda ise sorun ilk yağmurla birlikte görünür olur.",
     ],
     sources: [...KABA_LEAF_SOURCES, SOURCE_LEDGER.ts825, SOURCE_LEDGER.planliAlanlar, SOURCE_LEDGER.yapiDenetim],
-    keywords: ["teras çatı", "eğim katmanı", "süzgeç kotu", "göllenme", "çatı su yalıtımı"],
+    keywords: ["teras çatı", "eğim katmanı", "süzgeç kötü", "göllenme", "çatı su yalıtımı"],
   },
 ];

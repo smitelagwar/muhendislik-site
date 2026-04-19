@@ -21,7 +21,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Gecersiz e-posta formati. Lutfen gecerli bir adres girin.");
+      toast.error("Geçersiz e-posta biçimi. Lütfen geçerli bir adres girin.");
       return;
     }
 
@@ -29,18 +29,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     setTimeout(() => {
       setIsLoading(false);
-      toast.success("Giris baglantisi e-posta adresinize gonderildi.");
+      toast.success("Giriş bağlantısı e-posta adresinize gönderildi.");
       onClose();
       setEmail("");
     }, 1200);
   };
 
   const handleSocialLogin = (provider: string) => {
-    toast.info(`${provider} ile giris yakinda aktif olacak.`);
+    toast.info(`${provider} ile giriş yakında etkin olacak.`);
   };
 
   const handleForgotPassword = () => {
-    toast.success("Sifre sifirlama baglantisi e-posta adresinize gonderildi.");
+    toast.success("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.");
   };
 
   if (!isOpen) {
@@ -63,8 +63,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
 
           <div className="mb-6 text-center">
-            <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">Giris yapin veya hesap olusturun</h2>
-            <p className="text-sm text-zinc-500">Devam etmek icin e-posta adresinizi girin.</p>
+            <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">Giriş yapın veya hesap oluşturun</h2>
+            <p className="text-sm text-zinc-500">Devam etmek için e-posta adresinizi girin.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -77,13 +77,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               autoFocus
             />
             <Button type="submit" disabled={isLoading} className="h-11 w-full bg-blue-600 text-base font-semibold text-white transition-all hover:bg-blue-700">
-              {isLoading ? "Isleniyor..." : "Devam Et"}
+              {isLoading ? "İşleniyor..." : "Devam et"}
             </Button>
           </form>
 
           <div className="mt-4 text-center">
             <button type="button" onClick={handleForgotPassword} className="text-sm text-blue-600 hover:underline">
-              Sifrenizi mi unuttunuz?
+              Şifrenizi mi unuttunuz?
             </button>
           </div>
 
@@ -114,13 +114,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="mt-8 text-center text-xs leading-relaxed text-zinc-500">
             Devam ederek{" "}
             <Link href="/kullanim-kosullari" className="underline hover:text-zinc-800 dark:hover:text-zinc-300" onClick={onClose}>
-              Kullanim Kosullari
+              Kullanım Koşulları
             </Link>{" "}
             ve{" "}
             <Link href="/gizlilik" className="underline hover:text-zinc-800 dark:hover:text-zinc-300" onClick={onClose}>
-              KVKK Politikasi
+              KVKK Politikası
             </Link>{" "}
-            metinlerini kabul etmis olursunuz.
+            metinlerini kabul etmiş olursunuz.
           </div>
         </div>
       </div>
