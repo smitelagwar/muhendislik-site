@@ -15,9 +15,9 @@ import {
 import { getCalculationPages, type CalculationPageIconKey } from "@/lib/calculation-pages";
 
 export const metadata: Metadata = {
-  title: "Ä°nÅŸaat HesaplamalarÄ±",
+  title: "İnşaat Hesaplamaları",
   description:
-    "Tahmini inÅŸaat alanÄ±, detaylÄ± inÅŸaat maliyeti ve 2026 resmÃ® birim maliyet araÃ§larÄ±.",
+    "Tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
 };
 
 const CALCULATION_ICONS: Record<CalculationPageIconKey, LucideIcon> = {
@@ -31,23 +31,23 @@ const TOOLS = getCalculationPages();
 const COMING_SOON = [
   {
     icon: Layers,
-    label: "Beton Hacmi HesabÄ±",
-    description: "Temel, perde, kolon ve dÃ¶ÅŸeme iÃ§in hÄ±zlÄ± beton hacmi.",
+    label: "Beton Hacmi Hesabı",
+    description: "Temel, perde, kolon ve döşeme için hızlı beton hacmi hesabı.",
   },
   {
     icon: Wrench,
-    label: "DonatÄ± Tonaj HesabÄ±",
-    description: "DÃ¶ÅŸeme tipine ve toplam alana gÃ¶re yaklaÅŸÄ±k tonaj.",
+    label: "Donatı Tonaj Hesabı",
+    description: "Döşeme tipine ve toplam alana göre yaklaşık donatı tonajı.",
   },
   {
     icon: Hammer,
-    label: "Duvar HesabÄ±",
-    description: "TuÄŸla, gazbeton ve iÅŸÃ§ilik maliyetini aynÄ± tabloda hesaplar.",
+    label: "Duvar Hesabı",
+    description: "Tuğla, gazbeton ve işçilik maliyetini aynı tabloda hesaplar.",
   },
   {
     icon: BarChart3,
-    label: "Åap ve Kaplama",
-    description: "Åap kalÄ±nlÄ±ÄŸÄ±, alan ve malzeme giderini hÄ±zlÄ± Ã¶n gÃ¶rÃ¼r.",
+    label: "Şap ve Kaplama",
+    description: "Şap kalınlığı, alan ve malzeme giderini hızlıca öngörür.",
   },
 ];
 
@@ -58,20 +58,20 @@ export default function HesaplamalarPage() {
         <div className="mb-12 max-w-3xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
             <Calculator className="h-3.5 w-3.5" />
-            MÃ¼hendislik Hesap AraÃ§larÄ±
+            Mühendislik hesap araçları
           </div>
           <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-            Hesaplamalar dÃ¼nyasÄ±
+            İnşaat hesaplamaları
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            DetaylÄ± maliyet motoru ile resmÃ® 2026 birim maliyet referansÄ±nÄ± aynÄ± Ã¼rÃ¼n
-            yÃ¼zeyinde birleÅŸtiriyoruz. AmaÃ§, hÄ±zlÄ± ama savunulabilir sonuÃ§ vermek.
+            Tahmini alan, detaylı maliyet ve 2026 resmî birim maliyet araçlarını aynı akışta
+            topluyoruz. Amaç, hızlı ama savunulabilir bir ön değerlendirme sunmak.
           </p>
         </div>
 
         <section className="mb-12">
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-            Aktif AraÃ§lar
+            Aktif araçlar
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {TOOLS.map((tool) => {
@@ -102,7 +102,7 @@ export default function HesaplamalarPage() {
                       </p>
                     </div>
                     <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
-                      AracÄ± aÃ§
+                      Aracı aç
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
@@ -114,7 +114,7 @@ export default function HesaplamalarPage() {
 
         <section>
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-            SÄ±radaki modÃ¼ller
+            Sıradaki modüller
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {COMING_SOON.map((item) => (

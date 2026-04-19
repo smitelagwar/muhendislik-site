@@ -5,15 +5,15 @@ import { CALCULATIONS_HUB_HREF, getCalculationPages } from "@/lib/calculation-pa
 
 export const metadata: Metadata = {
   title: {
-    default: "Ä°nÅŸaat HesaplamalarÄ± | MÃ¼hendis Mimar PortalÄ±",
+    default: "İnşaat Hesaplamaları | Mühendis Mimar Portalı",
     template: "%s | Hesaplamalar",
   },
   description:
-    "Tahmini inÅŸaat alanÄ±, inÅŸaat maliyeti ve resmÃ® birim maliyet araÃ§larÄ±.",
+    "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
 };
 
 const CALC_LINKS = [
-  { label: "Genel Bakis", href: CALCULATIONS_HUB_HREF },
+  { label: "Genel Bakış", href: CALCULATIONS_HUB_HREF },
   ...getCalculationPages().map((page) => ({ label: page.navLabel, href: page.href })),
 ];
 
@@ -57,10 +57,10 @@ export default function HesaplamalarLayout({
           </div>
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-300">
-              Hesaplama AraÃ§larÄ±
+              Hesaplama araçları
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Alan fizibilitesi | maliyet | resmÃ® referans | metraj odaklÄ± karar desteÄŸi
+              Alan fizibilitesi | maliyet | resmî referans | metraj odaklı karar desteği
             </p>
           </div>
         </div>
