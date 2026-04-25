@@ -1,18 +1,17 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Calculator } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ToolIcon } from "@/components/tool-icon";
 import { getFeaturedTool, getLiveTools } from "@/lib/tools-data";
+import { buildSeoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSeoMetadata({
   title: "Araçlar",
   description: "Betonarme, şantiye, ısı yalıtımı ve imar ön değerlendirme araçlarına tek merkezden erişin.",
-  alternates: {
-    canonical: "/kategori/araclar",
-  },
-};
+  pathname: "/kategori/araclar",
+});
 
 export default function ToolsCategoryPage() {
   const tools = getLiveTools();
@@ -80,21 +79,21 @@ export default function ToolsCategoryPage() {
         <section className="tool-panel rounded-[32px] p-6 md:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Yeni yuzey</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Yeni yüzey</p>
               <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white md:text-3xl">
-                Gelismis hesaplamalar dunyasina gecin
+                Gelişmiş hesaplamalar dünyasına geçin
               </h2>
               <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-                Yeni hesaplamalar yuzeyinde detayli insaat maliyet analizi ve 2026 resmi birim maliyet
-                karsilastirma araci birlikte yer aliyor. Bu sayfa klasik arac listesi olarak kalirken,
-                yeni akisin merkezi artik <span className="font-semibold text-zinc-900 dark:text-zinc-100">/hesaplamalar</span>.
+                Yeni hesaplamalar yüzeyinde detaylı inşaat maliyet analizi ve 2026 resmî birim maliyet
+                karşılaştırma aracı birlikte yer alıyor. Bu sayfa klasik araç listesi olarak kalırken,
+                yeni akışın merkezi artık <span className="font-semibold text-zinc-900 dark:text-zinc-100">/hesaplamalar</span>.
               </p>
             </div>
 
             <Button asChild className="h-12 rounded-full bg-blue-600 px-7 text-sm font-black text-white hover:bg-blue-500">
               <Link href="/hesaplamalar">
                 <Calculator className="mr-2 h-4 w-4" />
-                Hesaplamalari ac
+                Hesaplamaları aç
               </Link>
             </Button>
           </div>
@@ -151,3 +150,6 @@ export default function ToolsCategoryPage() {
     </div>
   );
 }
+
+
+

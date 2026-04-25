@@ -5,6 +5,7 @@ import { getArticleBySlug, getArticles } from "@/lib/articles-data";
 import { parseBlocks } from "@/lib/article-blocks";
 import { buildArticleNavigation } from "@/lib/content-navigation";
 import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
+import { buildArticleMetadata } from "@/lib/seo";
 
 export async function generateStaticParams() {
   return Object.keys(getArticles()).map((slug) => ({ slug }));
@@ -21,31 +22,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
-  const articleImage = resolveMediaUrl(article.image);
-
-  return {
+  return buildArticleMetadata({
+    slug: article.slug,
     title: article.title,
     description: article.description,
-    alternates: {
-      canonical: `/${slug}`,
-    },
-    openGraph: {
-      title: article.title,
-      description: article.description,
-      type: "article",
-      url: resolveSiteUrl(slug),
-      siteName: SITE_NAME,
-      images: articleImage ? [{ url: articleImage, width: 1200, height: 630, alt: article.title }] : undefined,
-      publishedTime: article.date,
-      authors: [article.author],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: article.title,
-      description: article.description,
-      images: articleImage ? [articleImage] : undefined,
-    },
-  };
+    seoTitle: article.seoTitle,
+    seoDescription: article.seoDescription,
+    keywords: article.keywords,
+    image: article.image,
+    date: article.date,
+    updatedAt: article.updatedAt,
+    author: article.author,
+  });
 }
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -71,9 +59,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: article.title,
-    description: article.description,
+    headline: article.seoTitle ?? article.title,
+    description: article.seoDescription ?? article.description,
     datePublished: article.date,
+    dateModified: article.updatedAt ?? article.date,
     author: {
       "@type": "Person",
       name: article.author,

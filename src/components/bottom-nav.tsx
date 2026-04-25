@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bookmark, Home, Search, User, Wrench } from "lucide-react";
+import { Bookmark, Home, Mail, Search, Wrench } from "lucide-react";
 import { BOTTOM_NAV_ITEMS, isNavigationItemActive } from "@/lib/navigation-config";
 
 type BottomAction =
@@ -14,7 +14,7 @@ const BOTTOM_ICONS: Record<string, ReactNode> = {
   home: <Home className="h-5 w-5" />,
   araclar: <Wrench className="h-5 w-5" />,
   kaydedilenler: <Bookmark className="h-5 w-5" />,
-  profil: <User className="h-5 w-5" />,
+  iletisim: <Mail className="h-5 w-5" />,
 };
 
 export function BottomNav() {

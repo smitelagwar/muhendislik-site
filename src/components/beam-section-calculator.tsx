@@ -11,6 +11,7 @@ import { formatConcreteNumber, formatMillimetersAsCentimeters, parsePositiveCent
 import type { ConcreteStatusTone } from "@/lib/concrete-tools/types";
 import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/fonts";
 import { cn } from "@/lib/utils";
+import { BeamSectionSketch } from "@/components/section-sketch";
 
 function getStatusLabel(tone: ConcreteStatusTone) {
   switch (tone) {
@@ -339,8 +340,29 @@ export function BeamSectionCalculator() {
 
             <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
               <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>Pratik not</p>
-              <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Kaynak dashboard’daki iki ayrı hesap aynı sayfada tutuldu: soldaki moment girişi eğilme donatısını, alttaki kesme bloğu ise etriye yeterliliğini kontrol eder.</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Kaynak dashboard&apos;daki iki ayrı hesap aynı sayfada tutuldu: soldaki moment girişi eğilme donatısını, alttaki kesme bloğu ise etriye yeterliliğini kontrol eder.</p>
             </div>
+          </div>
+
+          {/* ── Enkesit Krokisi Kartı ── */}
+          <div className="tool-panel rounded-[28px] p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Görsel kontrol</p>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white")}>Enkesit krokisi</h2>
+              </div>
+              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                <Ruler className="h-5 w-5" />
+              </div>
+            </div>
+            <BeamSectionSketch
+              widthCm={Number(widthMm)}
+              totalHeightCm={Number(totalHeightMm)}
+              coverMm={Number(coverMm)}
+              stirrupDiameterMm={Number(stirrupDiameterMm)}
+              effectiveDepthMm={flexure?.effectiveDepthMm ?? null}
+              designSteelAreaMm2={flexure?.designSteelAreaMm2 ?? null}
+            />
           </div>
         </section>
       </div>

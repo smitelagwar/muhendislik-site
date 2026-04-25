@@ -6,6 +6,8 @@ export interface ArticleData {
     slug: string;
     title: string;
     description: string;
+    seoTitle?: string;
+    seoDescription?: string;
     sectionId: SiteSectionId;
     category: string;
     categoryColor: string;
@@ -13,12 +15,19 @@ export interface ArticleData {
     author: string;
     authorTitle: string;
     date: string;
+    updatedAt?: string;
     readTime: string;
     image: string;
     sections: { id: string; title: string; content: string; subsections: { id: string; title: string }[] }[];
     quote: { text: string };
     relatedSlugs: string[];
     keywords?: string[];
+    tags?: string[];
+    references?: Array<{
+        label: string;
+        href?: string;
+        note?: string;
+    }>;
 }
 
 const dataFilePath = path.join(process.cwd(), 'src/lib/data.json');

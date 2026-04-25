@@ -10,6 +10,7 @@ import { COLUMN_PRELIMINARY_CONCRETE_OPTIONS, calculateColumnPreliminarySizing }
 import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/fonts";
 import { formatConcreteNumber, parsePositiveConcreteNumber } from "@/lib/concrete-tools/format";
 import { cn } from "@/lib/utils";
+import { ColumnSectionSketch } from "@/components/section-sketch";
 
 const triggerClassName = "tool-input h-12 w-full font-semibold text-zinc-900 dark:text-zinc-100";
 
@@ -167,6 +168,30 @@ export function ColumnPreliminarySizingCalculator() {
               <p><strong className="text-zinc-900 dark:text-white">3.</strong> Sınır kontrolü: Nd ≤ 0.40 × Ac × fck</p>
               <p><strong className="text-zinc-900 dark:text-white">4.</strong> İlk kesit önerisi için minimum alan 30 cm kısa kenar varsayımıyla yuvarlanır.</p>
             </div>
+          </div>
+
+          {/* ── Enkesit Krokisi Kartı ── */}
+          <div className="tool-panel rounded-[28px] p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Görsel kontrol</p>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white")}>Enkesit krokisi</h2>
+              </div>
+              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                <Ruler className="h-5 w-5" />
+              </div>
+            </div>
+            {result ? (
+              <ColumnSectionSketch
+                shortEdgeCm={result.shortEdgeCm}
+                longEdgeCm={result.longEdgeCm}
+                coverMm={30}
+              />
+            ) : (
+              <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40">
+                <p className="text-xs font-semibold text-zinc-500">Hesap tamamlandığında kesit görünecek</p>
+              </div>
+            )}
           </div>
         </section>
       </div>

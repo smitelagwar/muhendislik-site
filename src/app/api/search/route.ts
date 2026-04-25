@@ -7,7 +7,7 @@ export async function GET() {
   try {
     return NextResponse.json(getSearchIndex(), {
       headers: {
-        "Cache-Control": "no-store",
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
       },
     });
   } catch (error) {

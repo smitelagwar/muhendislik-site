@@ -584,6 +584,12 @@ export default function EditorPage() {
     }
 
     setDraftSnapshot(readDraftSnapshot());
+    if (!ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setAuthChecked(true);
+      return;
+    }
+
     if (storedAuth === "true") {
       setIsAuthenticated(true);
     } else {
@@ -645,6 +651,11 @@ export default function EditorPage() {
 
   function handleLogin(event: React.FormEvent) {
     event.preventDefault();
+    if (!ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      return;
+    }
+
     if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, "true");
@@ -792,7 +803,10 @@ export default function EditorPage() {
             <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 rounded-2xl" placeholder="Şifre" />
             <Button type="submit" className="h-12 w-full rounded-2xl bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100">Editöre gir</Button>
           </form>
-          <div className="mt-6 rounded-2xl border border-dashed border-zinc-200 px-4 py-4 text-xs leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Yönetici şifresi: <span className="font-black text-zinc-950 dark:text-zinc-100">admin123</span></div>
+          <div className="mt-6 rounded-2xl border border-dashed border-zinc-200 px-4 py-4 text-xs leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            Local kullanım için <span className="font-black text-zinc-950 dark:text-zinc-100">NEXT_PUBLIC_ADMIN_PASSWORD</span> tanımlayabilirsiniz.
+            Değer boşsa geliştirme ortamında erişim doğrudan açılır.
+          </div>
         </div>
       </div>
     );

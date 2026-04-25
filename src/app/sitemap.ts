@@ -2,9 +2,17 @@ import { getArticles } from "@/lib/articles-data";
 import { getAllBinaGuidePaths } from "@/lib/bina-asamalari-content";
 import type { MetadataRoute } from "next";
 import { resolveSiteUrl } from "@/lib/site-config";
+import { SITE_SECTIONS } from "@/lib/site-sections";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const articles = getArticles();
+  const categoryRoutes = SITE_SECTIONS
+    .filter((section) => !["araclar", "bina-asamalari"].includes(section.id))
+    .map((section) => ({
+      pathname: section.href,
+      changeFrequency: "weekly" as const,
+      priority: section.id === "deprem-yonetmelik" ? 0.85 : 0.72,
+    }));
   const staticRoutes = [
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
@@ -43,6 +51,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     ...staticRoutes.map((route) => ({
+      url: resolveSiteUrl(route.pathname),
+      lastModified: new Date(),
+      changeFrequency: route.changeFrequency,
+      priority: route.priority,
+    })),
+    ...categoryRoutes.map((route) => ({
       url: resolveSiteUrl(route.pathname),
       lastModified: new Date(),
       changeFrequency: route.changeFrequency,

@@ -1,6 +1,6 @@
 import { BINA_ASAMALARI_ROOT_URL } from "./bina-asamalari";
 import { getAllBinaGuidePaths, getBinaGuideBySlugPath } from "./bina-asamalari-content";
-import { getCalculationPages, CALCULATIONS_HUB_HREF } from "./calculation-pages";
+import { CALCULATIONS_HUB_HREF, getCalculationPages } from "./calculation-pages";
 import { getArticles } from "./articles-data";
 import { SITE_SECTIONS } from "./site-sections";
 import type { SearchIndexItem } from "./search-types";
@@ -20,7 +20,11 @@ function toSearchText(parts: Array<string | number | undefined | readonly string
   );
 }
 
-function createItem(item: Omit<SearchIndexItem, "searchText"> & { searchParts: Array<string | undefined | readonly string[]> }): SearchIndexItem {
+function createItem(
+  item: Omit<SearchIndexItem, "searchText"> & {
+    searchParts: Array<string | undefined | readonly string[]>;
+  },
+): SearchIndexItem {
   return {
     id: item.id,
     href: item.href,
@@ -86,7 +90,9 @@ function getBinaGuideItems(): SearchIndexItem[] {
           guide.badgeLabel,
           guide.keywords,
           guide.standards,
-          guide.sources.flatMap((source) => [source.shortCode, source.title, source.note].filter((value): value is string => Boolean(value))),
+          guide.sources.flatMap((source) =>
+            [source.shortCode, source.title, source.note].filter((value): value is string => Boolean(value)),
+          ),
           getArticleSearchContent(guide.sections),
         ],
       }),

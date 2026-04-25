@@ -26,6 +26,15 @@ function mutationDisabledResponse() {
 }
 
 export async function GET(request: Request) {
+  if (isVercelProduction()) {
+    return NextResponse.json(
+      {
+        error: "The articles API is not available on the public production site.",
+      },
+      { status: 403 },
+    );
+  }
+
   try {
     const articles = readArticlesFile();
     const { searchParams } = new URL(request.url);

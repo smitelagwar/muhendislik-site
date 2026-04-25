@@ -1,7 +1,7 @@
 import { blocksToContent, contentToBlocks, generateId, type Block } from "./blocks-to-content";
 import { SITE_SECTIONS, getSiteSectionByCategory, type SiteSectionId } from "./site-sections";
 
-export const ADMIN_PASSWORD = "admin123";
+export const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD?.trim() ?? "";
 export const ADMIN_AUTH_STORAGE_KEY = "portal_admin_auth";
 export const EDITOR_DRAFT_STORAGE_KEY = "portal_admin_editor_draft";
 export const WORKSPACE_PREFS_STORAGE_KEY = "portal_admin_workspace_preferences";

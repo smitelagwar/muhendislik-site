@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RebarSectionSketch } from "@/components/section-sketch";
 
 const DIAMETERS = [8, 10, 12, 14, 16, 18, 20] as const;
 
@@ -341,6 +342,25 @@ export function RebarCalculator() {
               </div>
             </div>
           </section>
+
+          {/* ── Donatı Düzeni Krokisi Kartı ── */}
+          {result && (
+            <section className="tool-panel rounded-[28px] p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Görsel kontrol</p>
+                  <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Donatı düzeni krokisi</h2>
+                </div>
+                <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                  <Sigma className="h-5 w-5" />
+                </div>
+              </div>
+              <RebarSectionSketch
+                diameterMm={diameter}
+                quantity={result.quantity}
+              />
+            </section>
+          )}
         </div>
       </div>
     </div>

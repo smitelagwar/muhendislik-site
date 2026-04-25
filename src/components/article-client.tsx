@@ -26,6 +26,7 @@ import { PageContextNavigation } from "@/components/page-context-navigation";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { type ArticleData } from "@/lib/articles-data";
 import { type ParsedBlock } from "@/lib/article-blocks";
+import { getDepremSeriesForArticle } from "@/lib/deprem-series";
 import { getSiteSectionForArticle, getSiteSectionHrefForArticle } from "@/lib/site-sections";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
@@ -208,6 +209,37 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
   );
 }
 
+function DepremSeriesToolCta({ article }: { article: ArticleData }) {
+  const series = getDepremSeriesForArticle(article);
+  const href = series.relatedToolHref;
+  const label =
+    href === TOOLS_HUB_HREF
+      ? "Araç merkezini aç"
+      : series.id === "ts500"
+        ? "Donatı hesabına git"
+        : series.id === "tbdy"
+          ? "Deprem araçlarını aç"
+          : series.id === "imar"
+            ? "İmar hesaplayıcıyı aç"
+            : "İlgili aracı aç";
+
+  return (
+    <div className="not-prose my-12 rounded-[28px] border border-amber-200/70 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 shadow-sm dark:border-amber-900/40 dark:from-amber-950/20 dark:via-zinc-950 dark:to-orange-950/20 md:p-8">
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">İlgili araç önerisi</p>
+      <h3 className="mt-3 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">{series.label}</h3>
+      <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+        Bu makale {series.label} serisine ait. Hızlı ön kontrol için {series.description.toLowerCase()} temelli araca geçin.
+      </p>
+      <Button asChild className="mt-6 h-12 rounded-full bg-amber-500 px-8 text-sm font-black text-zinc-950 hover:bg-amber-400">
+        <Link href={href} prefetch={false}>
+          {label}
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 function InlineToc({ parsedSections }: { parsedSections: ParsedSection[] }) {
   if (parsedSections.length === 0) {
     return null;
@@ -303,7 +335,13 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
                 <p className="m-0 text-xl font-extrabold italic leading-relaxed text-blue-900 dark:text-blue-100 sm:text-2xl">&ldquo;{article.quote.text}&rdquo;</p>
               </div>
             ) : null}
-            {!hideToolPromos && sectionIndex === 1 ? <InFlowToolCta articleSlug={article.slug} /> : null}
+            {!hideToolPromos && sectionIndex === 1 ? (
+              article.sectionId === "deprem-yonetmelik" ? (
+                <DepremSeriesToolCta article={article} />
+              ) : (
+                <InFlowToolCta articleSlug={article.slug} />
+              )
+            ) : null}
           </section>
         ))}
 
@@ -319,6 +357,36 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
             <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu içerik, saha pratiği ile teknik referansları birlikte düşünen hızlı okuma düzeniyle sunuldu.</p>
           </div>
         </div>
+
+
+        {article.references && article.references.length > 0 ? (
+          <div className="not-prose mb-16 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+              <BookOpen className="h-4 w-4 text-blue-700 dark:text-blue-400" />
+              Kaynaklar / Yönetmelik Referansları
+            </h3>
+            <div className="space-y-3">
+              {article.references.map((reference) => (
+                <div key={reference.label} className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+                  {reference.href ? (
+                    <a
+                      href={reference.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-start justify-between gap-4 text-sm font-bold text-blue-700 hover:underline dark:text-blue-400"
+                    >
+                      <span>{reference.label}</span>
+                      <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
+                    </a>
+                  ) : (
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{reference.label}</p>
+                  )}
+                  {reference.note ? <p className="mt-1 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{reference.note}</p> : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {firstRelatedArticle ? (
           <div className="not-prose mb-12 mt-4">
@@ -422,6 +490,15 @@ export default function ArticleClient({
                 {article.badgeLabel}
               </Badge>
             </div>
+            {article.tags && article.tags.length > 0 ? (
+              <div className="mb-5 flex flex-wrap gap-2">
+                {article.tags.slice(0, 8).map((tag) => (
+                  <Badge key={tag} variant="outline" className="border-zinc-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:text-zinc-300">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
             <h1 className="mb-6 text-4xl font-black leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-50 md:text-5xl lg:text-6xl">{article.title}</h1>
             <div className="mb-8 rounded-3xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
@@ -446,6 +523,9 @@ export default function ArticleClient({
                   {article.readTime}
                 </span>
                 <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.date}</span>
+                {article.updatedAt ? (
+                  <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">Güncelleme: {article.updatedAt}</span>
+                ) : null}
                 <FontSizeControl />
                 <Button type="button" variant="outline" size="sm" onClick={() => setMobileTocOpen(true)} className="lg:hidden">
                   <List className="mr-2 h-4 w-4" />

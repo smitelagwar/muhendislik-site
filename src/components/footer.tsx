@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 
@@ -8,19 +9,22 @@ export function Footer() {
         <div className="mb-12 grid grid-cols-1 gap-12 border-b border-zinc-800 pb-12 md:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <div className="mb-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logos/logo-transparent-white.svg"
-                alt="İnşa Blog"
-                className="h-10 w-auto object-contain object-left"
-              />
+              <Link href="/" className="inline-flex">
+                <Image
+                  src="/logos/logo-transparent-white.svg"
+                  alt="İnşa Blog"
+                  width={216}
+                  height={72}
+                  className="h-10 w-auto"
+                />
+              </Link>
             </div>
             <p className="mb-6 leading-relaxed text-zinc-400">
               Mühendisler ve mimarlar için güvenilir teknik bilgi, hesap araçları ve şantiye rehberleri sunan
               bağımsız dijital platform.
             </p>
             <a
-              href="mailto:info@insablog.com?subject=İnşa%20Blog%20İletişim"
+              href="mailto:info@insablog.com?subject=%C4%B0n%C5%9Fa%20Blog%20%C4%B0leti%C5%9Fim"
               className="inline-flex items-center gap-2 rounded-full border border-zinc-700 px-4 py-2 font-bold text-zinc-200 transition-colors hover:border-blue-500 hover:text-blue-400"
             >
               <Mail className="h-4 w-4" />
@@ -37,12 +41,9 @@ export function Footer() {
               <li><Link href="/kategori/araclar/kiris-kesiti" className="transition-colors hover:text-blue-400">Kiriş Kesiti</Link></li>
               <li><Link href="/kategori/araclar/doseme-kalinligi" className="transition-colors hover:text-blue-400">Döşeme Kalınlığı</Link></li>
               <li><Link href="/kategori/araclar/pas-payi" className="transition-colors hover:text-blue-400">Pas Payı</Link></li>
-              <li><Link href="/kategori/araclar/kalip-sokum-suresi" className="transition-colors hover:text-blue-400">Kalıp Söküm Süresi</Link></li>
-              <li><Link href="/kategori/araclar/dis-cephe-yalitim-kalinligi" className="transition-colors hover:text-blue-400">Dış Cephe Yalıtımı</Link></li>
-              <li><Link href="/kategori/araclar/imar-hesaplayici" className="transition-colors hover:text-blue-400">İmar Hesaplayıcı</Link></li>
-              <li><Link href="/tbdy-2018-betonarme-analiz" className="transition-colors hover:text-blue-400">Yönetmelikler</Link></li>
-              <li><Link href="/beton-dokumu-kontrol-listesi" className="transition-colors hover:text-blue-400">Şantiye Notları</Link></li>
-              <li><Link href="/eps-xps-yalitim-farklari" className="transition-colors hover:text-blue-400">Malzeme Rehberi</Link></li>
+              <li><Link href="/kategori/deprem-yonetmelik" className="transition-colors hover:text-blue-400">Deprem ve Yönetmelikler</Link></li>
+              <li><Link href="/konu-haritasi" className="transition-colors hover:text-blue-400">Konu Haritası</Link></li>
+              <li><Link href="/kategori/bina-asamalari" className="transition-colors hover:text-blue-400">Bina Aşamaları</Link></li>
             </ul>
           </div>
 

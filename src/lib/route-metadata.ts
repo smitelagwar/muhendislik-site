@@ -49,7 +49,7 @@ const BINA_ASAMALARI_BREADCRUMB: RouteBreadcrumb = {
 };
 
 const CALCULATION_PAGE_BY_HREF = new Map(
-  getCalculationPages().map((page) => [page.href, page] as const)
+  getCalculationPages().map((page) => [page.href, page] as const),
 );
 const TOOL_PAGE_BY_HREF = new Map(getLiveTools().map((tool) => [tool.href, tool] as const));
 const SECTION_BY_HREF = new Map(SITE_SECTIONS.map((section) => [section.href, section] as const));
@@ -131,7 +131,7 @@ function buildMetadata({
         .slice(0, -1)
         .map((item) => item.href)
         .concat(normalizedParentRoute, normalizedHubRoute)
-        .filter((href) => href !== normalizedRoute)
+        .filter((href) => href !== normalizedRoute),
     ),
   ];
 
@@ -319,7 +319,7 @@ function getSafeHistoryCandidate(metadata: RouteMetadata, options?: ResolveBackN
 
 export function resolveBackNavigationTarget(
   pathname: string,
-  options?: ResolveBackNavigationOptions
+  options?: ResolveBackNavigationOptions,
 ): BackNavigationTarget | null {
   const metadata = resolveRouteMetadata(pathname);
   if (!metadata) {

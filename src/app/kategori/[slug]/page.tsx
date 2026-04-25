@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,6 +22,7 @@ import {
   SITE_SECTIONS,
   type SiteSectionId,
 } from "@/lib/site-sections";
+import { buildSeoMetadata } from "@/lib/seo";
 
 const SECTION_ICONS: Record<SiteSectionId, LucideIcon> = {
   araclar: FileText,
@@ -179,6 +181,30 @@ const DEPREM_CEVRE_SERIES_ORDER = [
   "cevre-gurultu-ve-toz-santiye-yukumlulukleri",
   "cevre-yagmur-suyu-kirliligi-ve-santiye-filtrasyonu",
 ];
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const section = getSiteSectionById(slug as SiteSectionId);
+
+  if (!section || section.id === "araclar") {
+    return buildSeoMetadata({
+      title: "Kategori bulunamadı",
+      description: "Aradığınız kategoriye ulaşılamadı.",
+      pathname: `/kategori/${slug}`,
+    });
+  }
+
+  return buildSeoMetadata({
+    title: section.title,
+    description: section.description,
+    pathname: section.href,
+    keywords: section.tags,
+  });
+}
 
 const DEPREM_TS500_SERIES_PRIORITY = new Map(
   DEPREM_TS500_SERIES_ORDER.map((slug, index) => [slug, index] as const)

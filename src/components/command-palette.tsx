@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calculator, Command, FileText, Layers, Map, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
 function getItemTypeLabel(type: SearchItemType): string {
   switch (type) {
     case "article":
-      return "Blog";
+      return "Makale";
     case "topic":
       return "Konu";
     case "tool":
@@ -126,11 +126,13 @@ export function CommandPalette() {
   const router = useRouter();
   const deferredQuery = useDeferredValue(query);
 
-  const openPalette = () => {
+  const openPalette = useCallback(() => {
     setLoadFailed(false);
-    setIsLoading(true);
+    if (items.length === 0) {
+      setIsLoading(true);
+    }
     setIsOpen(true);
-  };
+  }, [items.length]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -139,10 +141,12 @@ export function CommandPalette() {
         setIsOpen((current) => {
           const next = !current;
 
-          if (next) {
+          if (next && items.length === 0) {
             setLoadFailed(false);
             setIsLoading(true);
-          } else {
+          }
+
+          if (!next) {
             setIsLoading(false);
           }
 
@@ -163,7 +167,7 @@ export function CommandPalette() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("open-command-palette", openPalette);
     };
-  }, []);
+  }, [items.length, openPalette]);
 
   useEffect(() => {
     if (isOpen) {
@@ -172,13 +176,13 @@ export function CommandPalette() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || items.length > 0 || (loadFailed && !isLoading)) {
       return;
     }
 
     const controller = new AbortController();
 
-    fetch("/api/search", { signal: controller.signal, cache: "no-store" })
+    fetch("/api/search", { signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Search index request failed");
@@ -206,7 +210,7 @@ export function CommandPalette() {
       });
 
     return () => controller.abort();
-  }, [isOpen]);
+  }, [isLoading, isOpen, items.length, loadFailed]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(deferredQuery);
@@ -222,7 +226,9 @@ export function CommandPalette() {
       .filter((entry) => entry.score > -1)
       .sort(
         (left, right) =>
-          right.score - left.score || right.item.priority - left.item.priority || left.item.title.localeCompare(right.item.title, "tr-TR"),
+          right.score - left.score ||
+          right.item.priority - left.item.priority ||
+          left.item.title.localeCompare(right.item.title, "tr-TR"),
       )
       .slice(0, 12)
       .map((entry) => entry.item);
@@ -245,7 +251,13 @@ export function CommandPalette() {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[15vh]">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closePalette} className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm" />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closePalette}
+            className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm"
+          />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
@@ -264,7 +276,9 @@ export function CommandPalette() {
                 className="flex-1 border-none bg-transparent text-lg text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
               />
               <div className="flex items-center gap-1.5">
-                <span className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] font-bold text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">ESC</span>
+                <span className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] font-bold text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
+                  ESC
+                </span>
                 <button type="button" onClick={closePalette}>
                   <X className="h-5 w-5 text-zinc-400 transition-colors hover:text-zinc-600" />
                 </button>
@@ -341,7 +355,7 @@ export function CommandPalette() {
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
                   <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Up/Down</span>
-                  Navigasyon
+                  Gezin
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Enter</span>

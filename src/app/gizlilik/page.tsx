@@ -1,4 +1,12 @@
-import { ShieldCheck, Lock, Eye } from "lucide-react";
+import type { Metadata } from "next";
+import { Eye, Lock, ShieldCheck } from "lucide-react";
+import { buildSeoMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildSeoMetadata({
+  title: "Gizlilik ve KVKK",
+  description: "Kişisel verilerin işlenmesi, saklanması ve kullanıcı gizliliğine ilişkin temel bilgilendirme metni.",
+  pathname: "/gizlilik",
+});
 
 export default function Gizlilik() {
   return (
@@ -11,7 +19,9 @@ export default function Gizlilik() {
             <ShieldCheck className="h-6 w-6 text-green-600" />
             <h2 className="m-0 text-2xl font-bold">Veri güvenliği</h2>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-400">İnşa Blog, kullanıcı gizliliğine ve kişisel verilerin korunmasına önem verir. 6698 sayılı KVKK kapsamında toplanan veriler yalnızca hizmet deneyimini iyileştirmek ve yasal yükümlülükleri yerine getirmek amacıyla işlenir.</p>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            İnşa Blog, kullanıcı gizliliğine ve kişisel verilerin korunmasına önem verir. 6698 sayılı KVKK kapsamında toplanan veriler yalnızca hizmet deneyimini iyileştirmek ve yasal yükümlülükleri yerine getirmek amacıyla işlenir.
+          </p>
         </section>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -31,11 +41,13 @@ export default function Gizlilik() {
               <Eye className="h-5 w-5" />
               <h3 className="font-bold">Veriler nasıl kullanılır</h3>
             </div>
-            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">Veriler yalnızca portal deneyimini iyileştirmek, bildirim ve bilgilendirme akışlarını yönetmek ve yasal yükümlülükleri yerine getirmek için kullanılır. Reklam amaçlı üçüncü taraf paylaşımı yapılmaz.</p>
+            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              Veriler yalnızca portal deneyimini iyileştirmek, bildirim ve bilgilendirme akışlarını yönetmek ve yasal yükümlülükleri yerine getirmek için kullanılır. Reklam amaçlı üçüncü taraf paylaşımı yapılmaz.
+            </p>
           </div>
         </div>
 
-        <p className="mt-12 text-center text-xs italic text-zinc-500">Bu politika en son 11 Mart 2026 tarihinde güncellenmiştir.</p>
+        <p className="mt-12 text-center text-xs italic text-zinc-500">Bu politika en son 23 Nisan 2026 tarihinde güncellenmiştir.</p>
       </div>
     </div>
   );

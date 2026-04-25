@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
+import { SiteLogo } from "./site-logo";
 import { Button } from "./ui/button";
 import { MOBILE_NAV_ITEMS } from "@/lib/navigation-config";
 
@@ -46,12 +47,7 @@ export function MobileMenu() {
 
           <div className="fixed right-0 top-0 z-[101] flex h-full w-[80%] max-w-sm flex-col bg-white shadow-2xl dark:bg-zinc-950">
             <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
-              <div className="flex items-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logos/logo-light.svg?v=3" alt="İnşa Blog" className="h-8 w-auto dark:hidden" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logos/logo-dark.svg?v=3" alt="İnşa Blog" className="hidden h-8 w-auto dark:block" />
-              </div>
+              <SiteLogo href="/" lightClassName="h-8 w-auto" darkClassName="h-8 w-auto" />
               <Button variant="ghost" size="icon" onClick={toggleMenu} aria-label="Menüyü kapat">
                 <X className="h-6 w-6" />
               </Button>

@@ -1,3 +1,5 @@
+﻿import { DEPREM_SERIES } from "./deprem-series";
+
 export type SiteSectionId =
   | "araclar"
   | "bina-asamalari"
@@ -22,6 +24,36 @@ export interface ArticleSectionLike {
   category: string;
   sectionId: SiteSectionId;
 }
+
+const depremCategories = DEPREM_SERIES.flatMap((series) => series.categoryLabels);
+const depremTags = Array.from(
+  new Set([
+    "deprem",
+    "tbdy",
+    "yönetmelik",
+    "ts500",
+    "betonarme",
+    "yangın",
+    "otopark",
+    "imar",
+    "bep-tr",
+    "ts825",
+    "eurocode",
+    "akustik",
+    "asansör",
+    "isg",
+    "çevre",
+    "enerji",
+    "su",
+    "zemin",
+    "engelsiz",
+    "ts 9111",
+    "byy",
+    "süneklik",
+    "spektrum",
+    ...DEPREM_SERIES.flatMap((series) => series.keywords),
+  ]),
+);
 
 export const SITE_SECTIONS: SiteSection[] = [
   {
@@ -53,23 +85,8 @@ export const SITE_SECTIONS: SiteSection[] = [
     title: "Deprem ve Yönetmelikler",
     href: "/kategori/deprem-yonetmelik",
     description: "TBDY 2018, genel deprem tasarımı, TS 500 betonarme, BYY 2015/2019, otopark ve güncel mevzuat notları.",
-    categories: [
-      "Yönetmelik Güncellemesi",
-      "Deprem Yönetmeliği",
-      "TS 500 Betonarme",
-      "Yangın Yönetmeliği",
-      "Otopark Yönetmeliği",
-      "İmar Mevzuatı",
-      "BEP-TR / TS 825",
-      "Su ve Zemin Mevzuatı",
-      "Engelsiz Tasarım",
-      "Eurocode Standartları",
-      "Akustik ve Gürültü",
-      "Asansör Yönetmeliği",
-      "İSG ve Şantiye Güvenliği",
-      "Çevre Mevzuatı",
-    ],
-    tags: ["deprem", "tbdy", "yönetmelik", "ts500", "betonarme", "yangın", "otopark", "imar", "bep-tr", "ts825", "eurocode", "akustik", "asansör", "isg", "çevre", "enerji", "su", "zemin", "engelsiz", "ts 9111", "byy", "süneklik", "spektrum"],
+    categories: depremCategories,
+    tags: depremTags,
   },
   {
     id: "tbdy-2018-detay",
@@ -113,7 +130,7 @@ export const SITE_SECTIONS: SiteSection[] = [
   },
 ];
 
-const SECTION_BY_ID = new Map(SITE_SECTIONS.map((section) => [section.id, section]));
+const SECTION_BY_ID = new Map(SITE_SECTIONS.map((section) => [section.id, section] as const));
 const SECTION_ID_BY_CATEGORY = new Map<string, SiteSectionId>(
   SITE_SECTIONS.flatMap((section) => section.categories.map((category) => [category, section.id] as const)),
 );
@@ -138,3 +155,6 @@ export function getSiteSectionHrefForArticle(article: ArticleSectionLike): strin
 export function matchesSiteSection(article: ArticleSectionLike, sectionId: SiteSectionId): boolean {
   return article.sectionId === sectionId || SECTION_ID_BY_CATEGORY.get(article.category) === sectionId;
 }
+
+
+

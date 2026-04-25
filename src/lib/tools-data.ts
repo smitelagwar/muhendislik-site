@@ -1,4 +1,4 @@
-export type ToolIconKey = "rebar" | "column" | "beam" | "slab" | "cover" | "site" | "insulation" | "plot" | "earthquake";
+﻿export type ToolIconKey = "rebar" | "column" | "beam" | "slab" | "cover" | "site" | "insulation" | "plot" | "earthquake";
 
 export interface ToolDefinition {
   id: string;
@@ -124,3 +124,4 @@ export function getFeaturedTool(): ToolDefinition | null {
   const liveTools = getLiveTools();
   return liveTools.find((tool) => tool.featured) ?? liveTools[0] ?? null;
 }
+

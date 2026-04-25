@@ -1,4 +1,4 @@
-export type CalculationPageIconKey = "building" | "plot" | "file";
+﻿export type CalculationPageIconKey = "building" | "plot" | "file";
 
 export interface CalculationPageDefinition {
   id: string;
@@ -56,3 +56,5 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
 export function getCalculationPages(): CalculationPageDefinition[] {
   return [...CALCULATION_PAGES].sort((left, right) => left.order - right.order);
 }
+
+

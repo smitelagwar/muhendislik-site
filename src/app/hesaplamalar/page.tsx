@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,12 +13,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getCalculationPages, type CalculationPageIconKey } from "@/lib/calculation-pages";
+import { buildSeoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSeoMetadata({
   title: "İnşaat Hesaplamaları",
-  description:
-    "Tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
-};
+  description: "Tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
+  pathname: "/hesaplamalar",
+});
 
 const CALCULATION_ICONS: Record<CalculationPageIconKey, LucideIcon> = {
   building: Building2,
@@ -139,3 +140,7 @@ export default function HesaplamalarPage() {
     </div>
   );
 }
+
+
+
+

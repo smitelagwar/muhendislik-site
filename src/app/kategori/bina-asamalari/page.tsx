@@ -1,13 +1,12 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import BinaMindMap from "@/components/BinaMindMap";
+import { buildSeoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildSeoMetadata({
   title: "Bina Aşamaları",
   description: "Bina Aşamaları kategori ağacı ve alt başlık navigasyonu.",
-  alternates: {
-    canonical: "/kategori/bina-asamalari",
-  },
-};
+  pathname: "/kategori/bina-asamalari",
+});
 
 export default function BinaAsamalariPage() {
   return (
@@ -18,3 +17,6 @@ export default function BinaAsamalariPage() {
     </div>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-export interface SiteNavigationItem {
+﻿export interface SiteNavigationItem {
   id: string;
   label: string;
   href: string;
@@ -71,15 +71,17 @@ export const BOTTOM_NAV_ITEMS: SiteNavigationItem[] = [
     matchPrefixes: ["/kaydedilenler"],
   },
   {
-    id: "profil",
-    label: "Profil",
-    href: "/giris",
-    matchPrefixes: ["/giris", "/kayit"],
+    id: "iletisim",
+    label: "İletişim",
+    href: "/iletisim",
+    matchPrefixes: ["/iletisim"],
   },
 ];
 
 export function isNavigationItemActive(pathname: string, item: SiteNavigationItem) {
   return item.matchPrefixes.some((prefix) =>
-    prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)
+    prefix === "/" ? pathname === "/" : pathname.startsWith(prefix),
   );
 }
+
+

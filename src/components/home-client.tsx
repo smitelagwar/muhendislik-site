@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, Clock, FileText, Filter, Mail, X } from "lucide-react";
+import { ArrowRight, Calculator, ChevronRight, Clock, FileText, Filter, GitBranchPlus, Layers3, Mail, Shield, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookmarkButton } from "@/components/bookmark-button";
@@ -32,8 +32,51 @@ function getReadMinutes(readTime: string) {
 }
 
 function isToolArticle(article: Article) {
-  return article.sectionId === "araclar" || article.category === "Hesap Araci";
+  return article.sectionId === "araclar" || article.category === "Hesap Aracı";
 }
+
+type QuickPath = {
+  title: string;
+  description: string;
+  href: string;
+  icon: typeof Shield;
+  count?: (depremArticleCount: number, toolCount: number) => string | null;
+};
+
+const QUICK_PATHS: QuickPath[] = [
+  {
+    title: "Deprem ve Yönetmelikler",
+    description: "TBDY, TS 500, BYY ve destekleyici teknik mevzuatı tek merkezde okuyun.",
+    href: "/kategori/deprem-yonetmelik",
+    icon: Shield,
+    count: (depremArticleCount) => `${depremArticleCount} içerik`,
+  },
+  {
+    title: "Hesaplamalar",
+    description: "Alan, maliyet ve resmi birim maliyet akışlarına tek tıkla geçin.",
+    href: "/hesaplamalar",
+    icon: Calculator,
+  },
+  {
+    title: "Araçlar",
+    description: "Betonarme ve ön boyutlandırma araçlarını doğrudan açın.",
+    href: "/kategori/araclar",
+    icon: FileText,
+    count: (_depremArticleCount, toolCount) => `${toolCount} araç`,
+  },
+  {
+    title: "Bina Aşamaları",
+    description: "Proje hazırlıktan teslimata kadar bina üretim akışını izleyin.",
+    href: "/kategori/bina-asamalari",
+    icon: GitBranchPlus,
+  },
+  {
+    title: "Konu Haritası",
+    description: "Tüm içerik kümelerini ve ilişkili yolları geniş yapıda görün.",
+    href: "/konu-haritasi",
+    icon: Layers3,
+  },
+];
 
 export default function HomeClient({ allArticles }: { allArticles: Article[] }) {
   const [visibleCount, setVisibleCount] = useState(4);
@@ -48,6 +91,10 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
   const featuredArticles = allArticles.slice(1, 3);
   const feedBase = allArticles.slice(3);
   const popularSlugs = useMemo(() => new Set(allArticles.slice(0, 6).map((article) => article.slug)), [allArticles]);
+  const depremArticleCount = useMemo(
+    () => allArticles.filter((article) => article.sectionId === "deprem-yonetmelik").length,
+    [allArticles],
+  );
 
   const categories = useMemo(
     () => Array.from(new Set(feedBase.map((article) => article.category))).sort((left, right) => left.localeCompare(right, "tr")),
@@ -122,7 +169,7 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
               <div className="absolute left-4 top-4 z-10">
                 <span className="rounded-full bg-white/20 px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white backdrop-blur-md">
-                  Son yayin
+                  Son yayın
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 w-full p-6 md:p-10 lg:w-3/4">
@@ -180,6 +227,60 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
             </div>
           </section>
         ) : null}
+
+        <section className="mt-8 rounded-[36px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Hızlı yollar</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+                Doğru merkeze tek adımda geçin
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+              Site büyüdükçe kullanıcıyı uzun bir akışa zorlamak yerine, en güçlü içerik kümelerini doğrudan görünür
+              hale getiren bir bilgi mimarisi kullanıyoruz.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {QUICK_PATHS.map((path) => {
+              const Icon = path.icon;
+              const count = path.count?.(depremArticleCount, liveTools.length) ?? null;
+
+              return (
+                <Link
+                  key={path.href}
+                  href={path.href}
+                  prefetch={false}
+                  className="group relative overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-900"
+                >
+                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.08),_transparent_50%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12),_transparent_50%)]" />
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div className="rounded-2xl bg-blue-100 p-3 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    {count ? (
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
+                        {count}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="relative mt-5">
+                    <h3 className="text-lg font-black text-zinc-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
+                      {path.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{path.description}</p>
+                  </div>
+                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 dark:text-blue-300">
+                    Keşfet
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
       </main>
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-12 sm:px-6 lg:px-8">
@@ -257,8 +358,8 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
                       className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
                     >
                       <option value="all">Tüm içerik tipleri</option>
-                      <option value="article">Yalnizca makaleler</option>
-                      <option value="tool">Yalnizca arac yazilari</option>
+                      <option value="article">Yalnızca makaleler</option>
+                      <option value="tool">Yalnızca araç yazıları</option>
                     </select>
                     <select
                       value={readingTimeFilter}
@@ -413,3 +514,4 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
     </div>
   );
 }
+

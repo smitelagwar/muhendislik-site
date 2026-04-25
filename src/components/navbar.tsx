@@ -2,18 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Share2 } from "lucide-react";
-import { AuthTrigger } from "./auth-trigger";
+import { usePathname } from "next/navigation";
 import { BookmarkButton } from "./bookmark-button";
 import { ContextBackLink } from "./context-back-link";
 import { LiveSearch } from "./live-search";
 import { MobileMenu } from "./mobile-menu";
 import { ModeToggle } from "./mode-toggle";
+import { SiteLogo } from "./site-logo";
 import { Button } from "./ui/button";
 import { PRIMARY_NAV_ITEMS, isNavigationItemActive } from "@/lib/navigation-config";
 import { LAST_INTERNAL_PATH_KEY, resolveRouteMetadata } from "@/lib/route-metadata";
+import Link from "next/link";
 
 const SharePopup = dynamic(() => import("./share-popup").then((module) => module.SharePopup), {
   ssr: false,
@@ -88,24 +88,13 @@ export function Navbar() {
               {showBack ? (
                 <ContextBackLink />
               ) : (
-                <Link href="/" className="group flex-shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/logo-light.svg?v=3"
-                    alt="İnşa Blog"
-                    className={`object-contain object-left transition-all duration-500 dark:hidden ${
-                      scrolled ? "h-12" : "h-16"
-                    }`}
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/logo-dark.svg?v=3"
-                    alt="İnşa Blog"
-                    className={`hidden object-contain object-left transition-all duration-500 dark:block ${
-                      scrolled ? "h-12" : "h-16"
-                    }`}
-                  />
-                </Link>
+                <SiteLogo
+                  href="/"
+                  priority
+                  className="group flex-shrink-0"
+                  lightClassName={`object-contain object-left transition-all duration-500 ${scrolled ? "h-12" : "h-16"}`}
+                  darkClassName={`object-contain object-left transition-all duration-500 ${scrolled ? "h-12" : "h-16"}`}
+                />
               )}
 
               <nav className="hidden items-center gap-1 xl:flex">
@@ -155,7 +144,6 @@ export function Navbar() {
 
               <div className="flex items-center gap-2.5">
                 <ModeToggle />
-                <AuthTrigger />
                 <div className="xl:hidden">
                   <MobileMenu />
                 </div>

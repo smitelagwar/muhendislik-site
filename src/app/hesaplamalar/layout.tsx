@@ -1,16 +1,14 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { Calculator, Home } from "lucide-react";
 import { CalculationsSectionNav } from "@/components/calculations-section-nav";
+import { buildSeoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: {
-    default: "İnşaat Hesaplamaları | Mühendis Mimar Portalı",
-    template: "%s | Hesaplamalar",
-  },
-  description:
-    "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
-};
+export const metadata: Metadata = buildSeoMetadata({
+  title: "İnşaat Hesaplamaları",
+  description: "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
+  pathname: "/hesaplamalar",
+});
 
 export default function HesaplamalarLayout({
   children,
@@ -55,3 +53,7 @@ export default function HesaplamalarLayout({
     </div>
   );
 }
+
+
+
+

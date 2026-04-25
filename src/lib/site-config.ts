@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://your-project-name.vercel.app";
+const DEFAULT_SITE_URL = "https://muhendislik-site.vercel.app";
 
 function normalizeSiteUrl(url: string) {
   return url.replace(/\/+$/, "");
