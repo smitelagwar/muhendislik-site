@@ -1,225 +1,229 @@
-﻿"use client";
-
-import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Calculator, ChevronRight, Clock, FileText, Filter, GitBranchPlus, Layers3, Mail, Shield, X } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BookOpenText,
+  Calculator,
+  ChevronRight,
+  Clock3,
+  FileText,
+  GitBranchPlus,
+  HardHat,
+  Layers3,
+  Mail,
+  Shield,
+} from "lucide-react";
+import { HomeFeed } from "@/components/home-feed";
+import type { HomeArticle } from "@/components/home-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookmarkButton } from "@/components/bookmark-button";
 import { ToolIcon } from "@/components/tool-icon";
 import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
-
-interface Article {
-  title: string;
-  slug: string;
-  sectionId?: string;
-  category: string;
-  categoryColor: string;
-  description: string;
-  image: string;
-  author: string;
-  date: string;
-  readTime: string;
-}
-
-type FeedMode = "all" | "popular";
-type ContentMode = "all" | "article" | "tool";
-
-function getReadMinutes(readTime: string) {
-  const match = readTime.match(/\d+/);
-  return match ? Number(match[0]) : 0;
-}
-
-function isToolArticle(article: Article) {
-  return article.sectionId === "araclar" || article.category === "Hesap Aracı";
-}
 
 type QuickPath = {
   title: string;
   description: string;
   href: string;
   icon: typeof Shield;
-  count?: (depremArticleCount: number, toolCount: number) => string | null;
+  count?: (depremArticleCount: number, toolCount: number, articleCount: number) => string | null;
+};
+
+type StandardReference = {
+  code: string;
+  title: string;
+  description: string;
+  href: string;
 };
 
 const QUICK_PATHS: QuickPath[] = [
   {
-    title: "Deprem ve Yönetmelikler",
-    description: "TBDY, TS 500, BYY ve destekleyici teknik mevzuatı tek merkezde okuyun.",
+    title: "Deprem ve Mevzuat",
+    description: "TBDY 2018, TS 500 ve uygulama notlarını aynı kümeye toplayan merkez.",
     href: "/kategori/deprem-yonetmelik",
     icon: Shield,
     count: (depremArticleCount) => `${depremArticleCount} içerik`,
   },
   {
     title: "Hesaplamalar",
-    description: "Alan, maliyet ve resmi birim maliyet akışlarına tek tıkla geçin.",
+    description: "Maliyet, metraj ve alan tahminlerini tek akışta karşılaştırın.",
     href: "/hesaplamalar",
     icon: Calculator,
   },
   {
     title: "Araçlar",
-    description: "Betonarme ve ön boyutlandırma araçlarını doğrudan açın.",
-    href: "/kategori/araclar",
+    description: "Betonarme, imar ve deprem araçlarına doğrudan erişin.",
+    href: TOOLS_HUB_HREF,
     icon: FileText,
     count: (_depremArticleCount, toolCount) => `${toolCount} araç`,
   },
   {
     title: "Bina Aşamaları",
-    description: "Proje hazırlıktan teslimata kadar bina üretim akışını izleyin.",
+    description: "Kazı-temelden ince işlere kadar saha akışını adım adım izleyin.",
     href: "/kategori/bina-asamalari",
     icon: GitBranchPlus,
   },
   {
     title: "Konu Haritası",
-    description: "Tüm içerik kümelerini ve ilişkili yolları geniş yapıda görün.",
+    description: "Tüm içerik kümelerini ve ilişkili öğrenme yollarını geniş görünümde açın.",
     href: "/konu-haritasi",
     icon: Layers3,
+    count: (_depremArticleCount, _toolCount, articleCount) => `${articleCount}+ kayıt`,
   },
 ];
 
-export default function HomeClient({ allArticles }: { allArticles: Article[] }) {
-  const [visibleCount, setVisibleCount] = useState(4);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [feedMode, setFeedMode] = useState<FeedMode>("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [contentMode, setContentMode] = useState<ContentMode>("all");
-  const [readingTimeFilter, setReadingTimeFilter] = useState("all");
+const STANDARD_REFERENCES: StandardReference[] = [
+  {
+    code: "TS 500",
+    title: "Betonarme ön boyutlandırma ve donatı mantığı",
+    description: "Kolon, kiriş, döşeme ve genel betonarme kontrol akışlarında temel referans.",
+    href: TOOLS_HUB_HREF,
+  },
+  {
+    code: "TBDY 2018",
+    title: "Deprem etkisi ve düzensizlik kararları",
+    description: "Deprem kategori sayfaları ve taban kesme araçları için ana mevzuat omurgası.",
+    href: "/kategori/deprem-yonetmelik",
+  },
+  {
+    code: "TS EN 1992-1-1",
+    title: "Pas payı ve dayanıklılık yaklaşımı",
+    description: "Beton örtüsü, çevresel sınıf ve dayanıklılık kararlarında kullanılan teknik çerçeve.",
+    href: "/kategori/araclar/pas-payi",
+  },
+  {
+    code: "TS 825:2024",
+    title: "Isı yalıtımı ve cephe kalınlık seçimi",
+    description: "Yalıtım kalınlığı aracında hızlı ön karar üretmek için kullanılan güncel doğrultu.",
+    href: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
+  },
+];
 
-  const liveTools = useMemo(() => getLiveTools(), []);
+export default function HomeClient({ allArticles }: { allArticles: HomeArticle[] }) {
+  const liveTools = getLiveTools();
   const heroArticle = allArticles[0] ?? null;
   const featuredArticles = allArticles.slice(1, 3);
-  const feedBase = allArticles.slice(3);
-  const popularSlugs = useMemo(() => new Set(allArticles.slice(0, 6).map((article) => article.slug)), [allArticles]);
-  const depremArticleCount = useMemo(
-    () => allArticles.filter((article) => article.sectionId === "deprem-yonetmelik").length,
-    [allArticles],
-  );
-
-  const categories = useMemo(
-    () => Array.from(new Set(feedBase.map((article) => article.category))).sort((left, right) => left.localeCompare(right, "tr")),
-    [feedBase],
-  );
-
-  const filteredFeed = useMemo(() => {
-    return feedBase
-      .filter((article) => (feedMode === "popular" ? popularSlugs.has(article.slug) : true))
-      .filter((article) => (categoryFilter === "all" ? true : article.category === categoryFilter))
-      .filter((article) => {
-        if (contentMode === "all") {
-          return true;
-        }
-
-        if (contentMode === "tool") {
-          return isToolArticle(article);
-        }
-
-        return !isToolArticle(article);
-      })
-      .filter((article) => {
-        const minutes = getReadMinutes(article.readTime);
-
-        if (readingTimeFilter === "all") {
-          return true;
-        }
-
-        if (readingTimeFilter === "short") {
-          return minutes <= 5;
-        }
-
-        return minutes > 5;
-      });
-  }, [categoryFilter, contentMode, feedBase, feedMode, popularSlugs, readingTimeFilter]);
-
-  const visibleArticles = filteredFeed.slice(0, visibleCount);
-  const hasMore = filteredFeed.length > visibleCount;
-
-  const loadMore = () => setVisibleCount((current) => current + 4);
-  const updateFeedMode = (mode: FeedMode) => {
-    setFeedMode(mode);
-    setVisibleCount(4);
-  };
-  const updateCategoryFilter = (value: string) => {
-    setCategoryFilter(value);
-    setVisibleCount(4);
-  };
-  const updateContentMode = (mode: ContentMode) => {
-    setContentMode(mode);
-    setVisibleCount(4);
-  };
-  const updateReadingTimeFilter = (value: string) => {
-    setReadingTimeFilter(value);
-    setVisibleCount(4);
-  };
+  const feedArticles = allArticles.slice(3);
+  const depremArticleCount = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik").length;
+  const highlightedTools = liveTools.slice(0, 5);
+  const trustStats = [
+    { label: "Canlı araç", value: `${liveTools.length}+`, icon: Calculator },
+    { label: "Teknik içerik", value: `${allArticles.length}+`, icon: BookOpenText },
+    { label: "Standart kümesi", value: "4 ana başlık", icon: BadgeCheck },
+    { label: "Şantiye odağı", value: "Mobil uyumlu", icon: HardHat },
+  ];
 
   return (
-    <div className="flex flex-col gap-0">
-      <main className="mx-auto w-full max-w-7xl flex-grow px-4 py-8 sm:px-6 lg:px-8">
+    <div className="pb-14">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
         {heroArticle ? (
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-            <div className="group relative aspect-[16/9] overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-900 shadow-xl dark:border-zinc-800 lg:col-span-8 lg:aspect-[2/1]">
-              <Image
-                src={heroArticle.image}
-                alt={heroArticle.title}
-                fill
-                priority
-                className="object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
-                sizes="(max-width: 1024px) 100vw, 66vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
-              <div className="absolute left-4 top-4 z-10">
-                <span className="rounded-full bg-white/20 px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] text-white backdrop-blur-md">
-                  Son yayın
-                </span>
-              </div>
-              <div className="absolute bottom-0 left-0 w-full p-6 md:p-10 lg:w-3/4">
-                <Badge className="mb-4 border-none bg-blue-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white hover:bg-blue-700">
-                  {heroArticle.category}
-                </Badge>
-                <h1 className="mb-4 text-3xl font-black leading-[1.1] tracking-tight text-white md:text-5xl">{heroArticle.title}</h1>
-                <div className="mb-6 flex items-center gap-4 text-sm font-medium text-zinc-300">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" /> {heroArticle.readTime}
-                  </span>
-                  <span className="h-1 w-1 rounded-full bg-zinc-500" />
-                  <span>{heroArticle.author}</span>
+          <section className="grid gap-6 lg:grid-cols-12">
+            <div className="relative overflow-hidden rounded-[36px] border border-amber-500/20 bg-zinc-950 shadow-[0_36px_120px_-60px_rgba(245,158,11,0.45)] lg:col-span-8">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_34%),radial-gradient(circle_at_right,_rgba(59,130,246,0.14),_transparent_28%)]" />
+              <div className="grid gap-0 lg:grid-cols-[1.18fr_0.82fr]">
+                <div className="relative min-h-[420px]">
+                  <Image
+                    src={heroArticle.image}
+                    alt={heroArticle.title}
+                    fill
+                    priority
+                    className="object-cover opacity-45"
+                    sizes="(max-width: 1024px) 100vw, 58vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
+                  <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">
+                        Editör seçimi
+                      </span>
+                      <Badge variant="outline" className={`${heroArticle.categoryColor} border-none`}>
+                        {heroArticle.category}
+                      </Badge>
+                    </div>
+
+                    <div className="max-w-2xl">
+                      <p className="mb-3 text-sm font-semibold text-amber-100/85">Teknik portal, pratik saha akışı ve referans mevzuat</p>
+                      <h1 className="max-w-3xl text-3xl font-black leading-[1.05] tracking-tight text-white md:text-5xl">
+                        {heroArticle.title}
+                      </h1>
+                      <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">{heroArticle.description}</p>
+                      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-zinc-300">
+                        <span className="inline-flex items-center gap-2">
+                          <Clock3 className="h-4 w-4 text-amber-300" />
+                          {heroArticle.readTime}
+                        </span>
+                        <span className="h-1 w-1 rounded-full bg-zinc-600" />
+                        <span>{heroArticle.author}</span>
+                        <span className="h-1 w-1 rounded-full bg-zinc-600" />
+                        <span>{heroArticle.date}</span>
+                      </div>
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        <Button asChild size="lg" className="rounded-full px-7">
+                          <Link href={`/${heroArticle.slug}`} prefetch={false}>
+                            Makaleyi aç
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="lg" className="rounded-full px-7">
+                          <Link href={TOOLS_HUB_HREF} prefetch={false}>
+                            Araçlara geç
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <Button asChild className="group h-12 rounded-full border-none bg-white px-8 text-zinc-900 hover:bg-zinc-200 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700">
-                  <Link href={`/${heroArticle.slug}`} prefetch={false}>
-                    Okumaya başla
-                    <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
+
+                <div className="flex flex-col justify-between border-t border-zinc-800 bg-zinc-950/90 p-6 lg:border-l lg:border-t-0">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">Portal özeti</p>
+                    <h2 className="mt-3 text-2xl font-black tracking-tight text-white">Sahada işe yarayan kısa yol</h2>
+                    <p className="mt-3 text-sm leading-7 text-zinc-400">
+                      İçeriği yalnızca yayın listesi olarak değil, karar vermeyi hızlandıran bir teknik çalışma yüzeyi olarak kurguladık.
+                    </p>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    {trustStats.map((stat) => (
+                      <div key={stat.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">{stat.label}</p>
+                          <stat.icon className="h-4 w-4 text-amber-300" />
+                        </div>
+                        <p className="mt-3 text-2xl font-black text-white">{stat.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-6 lg:col-span-4">
+            <div className="grid gap-6 lg:col-span-4">
               {featuredArticles.map((article, index) => (
                 <Link
                   key={article.slug}
                   href={`/${article.slug}`}
                   prefetch={false}
-                  className="group flex flex-1 flex-col justify-between rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-900"
+                  className="group flex flex-col justify-between rounded-[30px] border border-zinc-800 bg-zinc-950/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_24px_60px_-36px_rgba(245,158,11,0.35)]"
                 >
                   <div>
-                    <span
-                      className={`mb-2 block text-[9px] font-black uppercase tracking-[0.15em] ${
-                        index === 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
-                      }`}
-                    >
-                      {index === 0 ? "Öne çıkan" : "Yeni seri"}
+                    <span className="inline-flex rounded-full border border-zinc-700 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                      {index === 0 ? "Öne çıkan" : "Hızlı okuma"}
                     </span>
-                    <Badge variant="outline" className={`${article.categoryColor} mb-4 border-none font-bold opacity-80 transition-opacity group-hover:opacity-100`}>
+                    <Badge variant="outline" className={`${article.categoryColor} mt-4 border-none font-bold`}>
                       {article.category}
                     </Badge>
-                    <h2 className="text-xl font-bold leading-snug transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-400">
+                    <h2 className="mt-4 text-xl font-black leading-snug text-white transition-colors group-hover:text-amber-200">
                       {article.title}
                     </h2>
+                    <p className="mt-3 text-sm leading-7 text-zinc-400">{article.description}</p>
                   </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">{article.date}</span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-blue-100 group-hover:text-blue-600 dark:bg-zinc-800 dark:group-hover:bg-blue-900/30">
-                      <ChevronRight className="h-5 w-5" />
+
+                  <div className="mt-8 flex items-center justify-between border-t border-zinc-800 pt-4">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">{article.date}</div>
+                    <div className="flex items-center gap-2 text-sm font-bold text-amber-200">
+                      Aç
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
                 </Link>
@@ -228,50 +232,45 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
           </section>
         ) : null}
 
-        <section className="mt-8 rounded-[36px] border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-6">
+        <section className="rounded-[36px] border border-amber-500/15 bg-zinc-950/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Hızlı yollar</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
-                Doğru merkeze tek adımda geçin
-              </h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Bilgi mimarisi</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Doğru merkeze tek adımda geçin</h2>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-              Site büyüdükçe kullanıcıyı uzun bir akışa zorlamak yerine, en güçlü içerik kümelerini doğrudan görünür
-              hale getiren bir bilgi mimarisi kullanıyoruz.
+            <p className="max-w-2xl text-sm leading-7 text-zinc-400">
+              Uzun akış içinde kaybolmak yerine, mühendislik kararlarında en sık açılan kümeleri ana sayfada görünür hale getiriyoruz.
             </p>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             {QUICK_PATHS.map((path) => {
               const Icon = path.icon;
-              const count = path.count?.(depremArticleCount, liveTools.length) ?? null;
+              const count = path.count?.(depremArticleCount, liveTools.length, allArticles.length) ?? null;
 
               return (
                 <Link
                   key={path.href}
                   href={path.href}
                   prefetch={false}
-                  className="group relative overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:bg-white hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-900"
+                  className="group relative overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-900/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-zinc-900"
                 >
-                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.08),_transparent_50%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 dark:bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12),_transparent_50%)]" />
+                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="relative flex items-start justify-between gap-4">
-                    <div className="rounded-2xl bg-blue-100 p-3 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-200">
                       <Icon className="h-5 w-5" />
                     </div>
                     {count ? (
-                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
+                      <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">
                         {count}
                       </span>
                     ) : null}
                   </div>
                   <div className="relative mt-5">
-                    <h3 className="text-lg font-black text-zinc-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
-                      {path.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{path.description}</p>
+                    <h3 className="text-lg font-black text-white transition-colors group-hover:text-amber-200">{path.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-400">{path.description}</p>
                   </div>
-                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 dark:text-blue-300">
+                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-amber-200">
                     Keşfet
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -281,196 +280,89 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
           </div>
         </section>
 
-      </main>
-
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-12 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-10 lg:flex-row">
-          <section className="lg:w-2/3">
-            <div className="mb-8 flex flex-col gap-4 border-b border-zinc-200 pb-4 md:flex-row md:items-center md:justify-between dark:border-zinc-800">
-              <h3 className="flex items-center gap-3 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-                <div className="h-8 w-2 rounded-full bg-blue-600" />
-                Son eklenenler
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant={feedMode === "all" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => updateFeedMode("all")}
-                  className={feedMode === "all" ? "font-bold" : "font-bold text-zinc-500 hover:text-blue-600"}
-                >
-                  Tümü
-                </Button>
-                <Button
-                  type="button"
-                  variant={feedMode === "popular" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => updateFeedMode("popular")}
-                  className={feedMode === "popular" ? "font-bold" : "font-bold text-zinc-500 hover:text-blue-600"}
-                >
-                  Popüler
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsFilterOpen((current) => !current)}
-                  className="flex gap-2 rounded-xl border-zinc-200 bg-white font-bold text-zinc-600 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>Filtrele</span>
-                </Button>
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[32px] border border-zinc-800 bg-zinc-950/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Standart omurgası</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Kararları yöneten referans çerçeve</h2>
               </div>
+              <p className="max-w-xl text-sm leading-7 text-zinc-400">
+                Portal içeriğini yalnızca başlıklarla değil, gerçek proje kararlarında açılan standart kümeleriyle eşliyoruz.
+              </p>
             </div>
 
-            {isFilterOpen ? (
-              <>
-                <div onClick={() => setIsFilterOpen(false)} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden" />
-                <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl border-t border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950 md:relative md:mb-8 md:rounded-none md:border-none md:bg-transparent md:p-0">
-                  <div className="mb-6 flex items-center justify-between md:hidden">
-                    <h4 className="text-lg font-black text-zinc-900 dark:text-white">Filtreler</h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsFilterOpen(false)}
-                      className="rounded-full bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-col flex-wrap gap-4 md:flex-row">
-                    <select
-                      value={categoryFilter}
-                      onChange={(event) => updateCategoryFilter(event.target.value)}
-                      className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
-                    >
-                      <option value="all">Tüm kategoriler</option>
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={contentMode}
-                      onChange={(event) => updateContentMode(event.target.value as ContentMode)}
-                      className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
-                    >
-                      <option value="all">Tüm içerik tipleri</option>
-                      <option value="article">Yalnızca makaleler</option>
-                      <option value="tool">Yalnızca araç yazıları</option>
-                    </select>
-                    <select
-                      value={readingTimeFilter}
-                      onChange={(event) => updateReadingTimeFilter(event.target.value)}
-                      className="min-w-[160px] flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-600 focus:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:py-2"
-                    >
-                      <option value="all">Tüm okuma süreleri</option>
-                      <option value="short">5 dakikaya kadar</option>
-                      <option value="long">5 dakikadan uzun</option>
-                    </select>
-                  </div>
-                </div>
-              </>
-            ) : null}
-
-            <div className="flex flex-col gap-6">
-              {visibleArticles.map((article, index) => (
-                <div
-                  key={article.slug}
-                  style={index > 1 ? { contentVisibility: "auto", containIntrinsicSize: "420px" } : undefined}
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {STANDARD_REFERENCES.map((reference) => (
+                <Link
+                  key={reference.code}
+                  href={reference.href}
+                  prefetch={false}
+                  className="group rounded-[26px] border border-zinc-800 bg-zinc-900/80 p-5 transition-all hover:border-amber-400/30 hover:bg-zinc-900"
                 >
-                  <Link
-                    href={`/${article.slug}`}
-                    prefetch={false}
-                    className="group block overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
-                  >
-                    <div className="flex flex-col md:flex-row">
-                      <div className="relative aspect-video w-full overflow-hidden md:h-64 md:w-64 md:flex-shrink-0 md:aspect-auto">
-                        <Image
-                          src={article.image}
-                          alt={article.title}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          sizes="(max-width: 768px) 100vw, 256px"
-                        />
-                      </div>
-                      <div className="flex flex-1 flex-col justify-between p-6 md:p-8">
-                        <div>
-                          <Badge variant="outline" className={`${article.categoryColor} mb-3 border-none font-bold`}>
-                            {article.category}
-                          </Badge>
-                          <h3 className="mb-3 text-2xl font-extrabold leading-tight transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-400">
-                            {article.title}
-                          </h3>
-                          <p className="mb-4 line-clamp-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">{article.description}</p>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                              {article.author
-                                .split(" ")
-                                .map((name) => name[0])
-                                .join("")}
-                            </div>
-                            <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">{article.author}</span>
-                          </div>
-                          <div className="relative z-10 flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-zinc-400">
-                            <span className="flex items-center gap-1.5">
-                              <Clock className="h-4 w-4" /> {article.readTime}
-                            </span>
-                            <div onClick={(event) => event.preventDefault()}>
-                              <BookmarkButton slug={article.slug} title={article.title} className="bg-zinc-100 p-2 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">
+                      {reference.code}
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-zinc-500 transition-transform group-hover:translate-x-1 group-hover:text-amber-200" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-black text-white transition-colors group-hover:text-amber-200">{reference.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-zinc-400">{reference.description}</p>
+                </Link>
               ))}
             </div>
+          </div>
 
-            {filteredFeed.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-10 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
-                <p className="text-lg font-black text-zinc-900 dark:text-white">Filtrelerle eşleşen içerik bulunamadı.</p>
-                <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">Filtreleri sıfırlayarak tüm içerik akışına dönebilirsiniz.</p>
+          <div className="rounded-[32px] border border-zinc-800 bg-zinc-950/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Operasyon notu</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Hız, doğruluk ve saha okunabilirliği</h2>
+            <div className="mt-5 grid gap-4">
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                <p className="text-sm font-black text-white">Daha hafif ana sayfa</p>
+                <p className="mt-2 text-sm leading-7 text-zinc-400">
+                  Etkileşim gerektirmeyen bloklar server tarafında işlendi; filtreli akış ayrı istemci parçasına ayrıldı.
+                </p>
               </div>
-            ) : null}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                <p className="text-sm font-black text-white">Türkçe ve mühendislik dili</p>
+                <p className="mt-2 text-sm leading-7 text-zinc-400">
+                  Ana kabukta görünen metinler ve gezinme yüzeyleri daha net, daha tutarlı ve daha az kırılgan hale getirildi.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                <p className="text-sm font-black text-white">Mobil odaklı gezinme</p>
+                <p className="mt-2 text-sm leading-7 text-zinc-400">
+                  Büyük kartlar, görünür filtre etiketleri ve kontrastlı aksiyon yüzeyleriyle mobil kullanım kolaylaştırıldı.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
-            {hasMore ? (
-              <div className="mt-12 flex justify-center">
-                <Button
-                  type="button"
-                  onClick={loadMore}
-                  variant="outline"
-                  className="h-12 gap-2 rounded-full border-2 border-zinc-200 px-10 font-black transition-all hover:border-blue-600 hover:text-blue-600 dark:border-zinc-800"
-                >
-                  Daha fazla yükle
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-            ) : null}
-          </section>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-10 lg:flex-row">
+          <div className="lg:w-[68%]">
+            <HomeFeed articles={feedArticles} />
+          </div>
 
-          <aside className="flex flex-col gap-10 lg:w-1/3">
-            <div className="group relative overflow-hidden rounded-3xl bg-blue-700 p-8 text-white shadow-lg shadow-blue-500/20 dark:bg-blue-600">
-              <div className="absolute right-0 top-0 p-4 opacity-10 transition-transform duration-700 group-hover:scale-150">
-                <FileText className="h-32 w-32" />
+          <aside className="flex flex-col gap-6 lg:w-[32%]">
+            <div className="relative overflow-hidden rounded-[30px] border border-amber-500/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.16),rgba(245,158,11,0.05)),linear-gradient(180deg,#1a1204,#100d08)] p-7 text-white shadow-[0_24px_70px_-42px_rgba(245,158,11,0.5)]">
+              <div className="absolute right-0 top-0 p-4 opacity-10">
+                <FileText className="h-28 w-28" />
               </div>
-              <h4 className="relative z-10 mb-2 text-2xl font-black">İletişime geçin</h4>
-              <p className="relative z-10 mb-6 font-medium text-blue-100">
-                İçerik öneriniz, iş birliği talebiniz veya yeni araç fikriniz varsa doğrudan bize yazın.
+              <h3 className="relative z-10 text-2xl font-black">İletişim ve iş birliği</h3>
+              <p className="relative z-10 mt-3 text-sm leading-7 text-amber-100/90">
+                Yeni araç önerisi, içerik düzeltmesi veya proje iş birliği için doğrudan ulaşabilirsiniz.
               </p>
-              <div className="relative z-10 flex flex-col gap-3">
-                <Button asChild className="h-12 w-full bg-white font-black text-blue-700 hover:bg-zinc-100">
-                  <a href="mailto:info@insablog.com?subject=%C4%B0n%C5%9Fa%20Blog%20%C4%B0letisim">
-                    <Mail className="mr-2 h-4 w-4" />
+              <div className="relative z-10 mt-6 flex flex-col gap-3">
+                <Button asChild className="h-12 w-full justify-center rounded-full">
+                  <a href="mailto:info@insablog.com?subject=Muhendislik%20Portali%20Iletisim" aria-label="E-posta gönder">
+                    <Mail className="h-4 w-4" />
                     E-posta gönder
                   </a>
                 </Button>
-                <Button asChild variant="secondary" className="h-12 w-full rounded-xl bg-blue-800/40 font-bold text-white hover:bg-blue-800/60">
+                <Button asChild variant="outline" className="h-12 w-full justify-center rounded-full">
                   <Link href="/iletisim" prefetch={false}>
                     İletişim sayfasını aç
                   </Link>
@@ -478,31 +370,36 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
               </div>
             </div>
 
-            <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <h4 className="mb-6 flex items-center gap-3 text-xl font-black">
-                <div className="h-6 w-1.5 rounded-full bg-blue-600" />
-                Pratik araçlar
-              </h4>
-              <div className="flex flex-col gap-4">
-                {liveTools.map((tool) => (
+            <div className="rounded-[30px] border border-zinc-800 bg-zinc-950/80 p-7 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Canlı araçlar</p>
+                  <h3 className="mt-2 text-2xl font-black tracking-tight text-white">Pratik hesap akışları</h3>
+                </div>
+                <Calculator className="h-5 w-5 text-amber-200" />
+              </div>
+
+              <div className="mt-6 flex flex-col gap-4">
+                {highlightedTools.map((tool) => (
                   <Link
                     key={tool.id}
                     href={tool.href}
                     prefetch={false}
-                    className="group flex gap-4 rounded-2xl border border-transparent p-4 transition-all hover:border-zinc-100 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+                    className="group flex gap-4 rounded-[22px] border border-transparent bg-zinc-900/75 p-4 transition-all hover:border-amber-400/25 hover:bg-zinc-900"
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all group-hover:bg-blue-600 group-hover:text-white dark:bg-blue-900/20">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-200 transition-all group-hover:scale-[1.02]">
                       <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h5 className="font-bold text-zinc-900 transition-colors group-hover:text-blue-600 dark:text-zinc-100">{tool.name}</h5>
-                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{tool.description}</p>
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">{tool.discipline}</p>
+                      <h4 className="font-bold text-zinc-100 transition-colors group-hover:text-amber-200">{tool.name}</h4>
+                      <p className="mt-1 text-xs leading-6 text-zinc-400">{tool.description}</p>
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">{tool.discipline}</p>
                     </div>
                   </Link>
                 ))}
               </div>
-              <Button asChild variant="ghost" className="mt-6 w-full font-black text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+
+              <Button asChild variant="ghost" className="mt-6 w-full justify-center text-amber-200 hover:bg-amber-500/10">
                 <Link href={TOOLS_HUB_HREF} prefetch={false}>
                   Tüm hesap araçları
                 </Link>
@@ -514,4 +411,3 @@ export default function HomeClient({ allArticles }: { allArticles: Article[] }) 
     </div>
   );
 }
-

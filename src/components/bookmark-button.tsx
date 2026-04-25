@@ -29,7 +29,8 @@ export function BookmarkButton({ slug, title, className = "" }: BookmarkButtonPr
     event.stopPropagation();
 
     const bookmarks: string[] = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-    const resolvedTitle = title || (typeof document !== "undefined" ? document.title.replace(" | İnşa Blog", "") : "İçerik");
+    const resolvedTitle =
+      title || (typeof document !== "undefined" ? document.title.replace(" | İnşa Blog", "") : "İçerik");
 
     let updated: string[];
     if (bookmarks.includes(slug)) {

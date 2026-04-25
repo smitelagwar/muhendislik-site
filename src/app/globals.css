@@ -36,62 +36,62 @@
 
 :root {
   --radius: 0.9rem;
-  --background: #f4f0e8;
-  --foreground: #122033;
-  --card: #ffffff;
-  --card-foreground: #122033;
-  --popover: #ffffff;
-  --popover-foreground: #122033;
-  --primary: #143a6f;
-  --primary-foreground: #ffffff;
-  --secondary: #e8edf5;
-  --secondary-foreground: #193454;
-  --muted: #e9edf3;
-  --muted-foreground: #5e6b7c;
-  --accent: #dce8f8;
-  --accent-foreground: #143a6f;
+  --background: #f3ede2;
+  --foreground: #19130d;
+  --card: #fff8ed;
+  --card-foreground: #19130d;
+  --popover: #fff8ed;
+  --popover-foreground: #19130d;
+  --primary: #f59e0b;
+  --primary-foreground: #1d1406;
+  --secondary: #e8eef9;
+  --secondary-foreground: #17355c;
+  --muted: #ece2d2;
+  --muted-foreground: #66584a;
+  --accent: #f7dfb6;
+  --accent-foreground: #5f3b00;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #d7dee8;
-  --input: #d7dee8;
-  --ring: #2563eb;
+  --border: #dbc7a6;
+  --input: #dbc7a6;
+  --ring: #f59e0b;
   --article-font-size: 17px;
-  --table-surface: #ffffff;
-  --table-surface-alt: #f7f9fc;
-  --table-header: #e7eef8;
-  --table-border: #c9d6e5;
-  --table-hover: #eef4ff;
-  --table-text: #132238;
-  --table-muted: #607089;
+  --table-surface: #fff8ed;
+  --table-surface-alt: #f7efe2;
+  --table-header: #f5e1bf;
+  --table-border: #d6bf99;
+  --table-hover: #fcebcf;
+  --table-text: #20170d;
+  --table-muted: #6c5d4f;
 }
 
 .dark {
-  --background: #09111e;
-  --foreground: #ecf3ff;
-  --card: #101a2c;
-  --card-foreground: #ecf3ff;
-  --popover: #0b1526;
-  --popover-foreground: #ecf3ff;
-  --primary: #cfe0ff;
-  --primary-foreground: #10284d;
-  --secondary: #14233a;
-  --secondary-foreground: #ecf3ff;
-  --muted: #14233a;
-  --muted-foreground: #9fb0c8;
-  --accent: #17304a;
-  --accent-foreground: #ecf3ff;
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #111111;
+  --card-foreground: #f5f5f5;
+  --popover: #111111;
+  --popover-foreground: #f5f5f5;
+  --primary: #f59e0b;
+  --primary-foreground: #1c1406;
+  --secondary: #172033;
+  --secondary-foreground: #e8efff;
+  --muted: #171717;
+  --muted-foreground: #a3a3a3;
+  --accent: #24190b;
+  --accent-foreground: #ffd89a;
   --destructive: #7f1d1d;
   --destructive-foreground: #ffffff;
-  --border: #223754;
-  --input: #223754;
-  --ring: #60a5fa;
-  --table-surface: #0f1728;
-  --table-surface-alt: #14233a;
-  --table-header: #19314d;
-  --table-border: #2a4466;
-  --table-hover: #1d3554;
-  --table-text: #eaf1ff;
-  --table-muted: #a8b6cb;
+  --border: #262626;
+  --input: #262626;
+  --ring: #f59e0b;
+  --table-surface: #111111;
+  --table-surface-alt: #171717;
+  --table-header: #24190b;
+  --table-border: #332515;
+  --table-hover: #1d1d1d;
+  --table-text: #f5f5f5;
+  --table-muted: #b0b0b0;
 }
 
 @layer base {
@@ -106,6 +106,9 @@
 
   body {
     @apply bg-background font-sans text-foreground;
+    background-image:
+      radial-gradient(circle at top, rgba(245, 158, 11, 0.1), transparent 22%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 30%);
     text-rendering: optimizeLegibility;
     font-feature-settings: "liga" 1, "kern" 1;
   }
@@ -125,6 +128,18 @@
   textarea {
     @apply font-sans;
   }
+}
+
+.dark body {
+  background-image:
+    radial-gradient(circle at top, rgba(245, 158, 11, 0.08), transparent 20%),
+    radial-gradient(circle at right top, rgba(59, 130, 246, 0.06), transparent 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%);
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.25);
+  color: inherit;
 }
 
 .no-scrollbar::-webkit-scrollbar,
@@ -247,63 +262,63 @@
 .tool-page-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 24%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4fb 50%, #f7fafc 100%);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 24%),
+    linear-gradient(180deg, #f8f1e6 0%, #f3e9d9 50%, #f6efe6 100%);
 }
 
 .dark .tool-page-shell {
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 26%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 24%),
-    linear-gradient(180deg, #09111e 0%, #0d1728 50%, #09111e 100%);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 26%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 24%),
+    linear-gradient(180deg, #0a0a0a 0%, #101010 50%, #0a0a0a 100%);
 }
 
 .tool-panel {
-  border: 1px solid rgba(201, 214, 229, 0.82);
-  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(219, 199, 166, 0.82);
+  background: rgba(255, 248, 237, 0.9);
   box-shadow: 0 22px 70px -38px rgba(15, 23, 42, 0.28);
   backdrop-filter: blur(14px);
 }
 
 .tool-hero-panel {
-  border: 1px solid rgba(191, 219, 254, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.26);
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.12), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(243, 248, 255, 0.96));
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(255, 248, 237, 0.96), rgba(250, 243, 232, 0.98));
   box-shadow: 0 28px 90px -48px rgba(15, 23, 42, 0.34);
   backdrop-filter: blur(16px);
 }
 
 .dark .tool-panel {
-  border-color: rgba(42, 68, 102, 0.9);
-  background: rgba(10, 18, 31, 0.78);
+  border-color: rgba(38, 38, 38, 0.96);
+  background: rgba(17, 17, 17, 0.82);
   box-shadow: 0 22px 70px -38px rgba(2, 8, 23, 0.7);
 }
 
 .dark .tool-hero-panel {
-  border-color: rgba(59, 130, 246, 0.24);
+  border-color: rgba(245, 158, 11, 0.24);
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.16), transparent 28%),
-    linear-gradient(180deg, rgba(10, 18, 31, 0.92), rgba(13, 23, 40, 0.96));
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.92), rgba(24, 24, 24, 0.96));
   box-shadow: 0 28px 90px -48px rgba(2, 8, 23, 0.82);
 }
 
 .tool-result-panel {
-  border: 1px solid rgba(96, 165, 250, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.18);
   background:
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 39, 67, 0.98));
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(28, 20, 6, 0.96), rgba(35, 24, 7, 0.98));
   box-shadow: 0 24px 80px -40px rgba(15, 23, 42, 0.68);
 }
 
 .dark .tool-result-panel {
-  border-color: rgba(59, 130, 246, 0.24);
+  border-color: rgba(245, 158, 11, 0.24);
   background:
-    radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 28%),
-    linear-gradient(180deg, rgba(8, 15, 29, 0.98), rgba(11, 24, 44, 0.98));
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(24, 17, 7, 0.98), rgba(15, 15, 15, 0.98));
 }
 
 .tool-result-inner {
@@ -320,12 +335,12 @@
 .tool-formula-card {
   border: 1px solid rgba(148, 163, 184, 0.14);
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(24, 38, 60, 0.98));
+    linear-gradient(180deg, rgba(33, 24, 10, 0.96), rgba(23, 23, 23, 0.98));
   color: #f8fafc;
 }
 
 .dark .tool-formula-card {
-  border-color: rgba(96, 165, 250, 0.16);
+  border-color: rgba(245, 158, 11, 0.16);
 }
 
 .tool-input {
@@ -336,8 +351,8 @@
 }
 
 .tool-input:focus-visible {
-  border-color: rgba(37, 99, 235, 0.7);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: rgba(245, 158, 11, 0.75);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
 }
 
 .dark .tool-input {
@@ -347,25 +362,25 @@
 }
 
 .tool-note {
-  border: 1px solid rgba(96, 165, 250, 0.24);
-  background: rgba(239, 246, 255, 0.92);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  background: rgba(255, 247, 237, 0.92);
 }
 
 .dark .tool-note {
-  border-color: rgba(59, 130, 246, 0.32);
-  background: rgba(23, 48, 74, 0.58);
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(36, 25, 11, 0.58);
 }
 
 .tool-chip {
-  border: 1px solid rgba(191, 219, 254, 0.8);
-  background: rgba(239, 246, 255, 0.9);
-  color: #1d4ed8;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: rgba(255, 247, 237, 0.9);
+  color: #9a6700;
 }
 
 .dark .tool-chip {
-  border-color: rgba(59, 130, 246, 0.32);
-  background: rgba(23, 48, 74, 0.64);
-  color: #bfdbfe;
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(36, 25, 11, 0.64);
+  color: #ffd89a;
 }
 
 .print-hidden {

@@ -5,7 +5,7 @@ function normalizeSiteUrl(url: string) {
 }
 
 export const SITE_NAME = "İnşa Blog";
-export const SITE_DEFAULT_TITLE = `${SITE_NAME} | Mühendisler ve Mimarlar`;
+export const SITE_DEFAULT_TITLE = `${SITE_NAME} | Mühendis ve mimarlar için teknik portal`;
 export const SITE_TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
 export const SITE_DESCRIPTION =
   "İnşaat mühendisleri ve mimarlar için teknik bilgi, hesap araçları, saha rehberleri ve uygulamaya dönük içerikler.";

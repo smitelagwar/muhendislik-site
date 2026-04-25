@@ -5,8 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Calculator, Command, FileText, Layers, Map, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CALCULATIONS_HUB_HREF } from "@/lib/calculation-pages";
-import type { SearchIndexItem, SearchItemType } from "@/lib/search-types";
 import { normalizeSearchValue } from "@/lib/search-utils";
+import type { SearchIndexItem, SearchItemType } from "@/lib/search-types";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
 const SHORTCUT_LINKS = [
@@ -31,7 +31,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, index) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <span key={index} className="rounded-sm bg-blue-600/20 px-0.5 text-blue-700 dark:text-blue-400">
+          <span key={index} className="rounded-sm bg-amber-500/20 px-0.5 text-amber-200">
             {part}
           </span>
         ) : (
@@ -195,12 +195,11 @@ export function CommandPalette() {
           setItems(payload);
         });
       })
-      .catch((error) => {
+      .catch(() => {
         if (controller.signal.aborted) {
           return;
         }
 
-        console.error("Command palette search load failed:", error);
         setLoadFailed(true);
       })
       .finally(() => {
@@ -250,44 +249,52 @@ export function CommandPalette() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[15vh]">
+        <div className="fixed inset-0 z-[200] flex items-start justify-center px-4 pt-[12vh]">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closePalette}
-            className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
           />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="command-palette-title"
+            className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-950 shadow-2xl"
           >
-            <div className="flex items-center gap-3 border-b border-zinc-100 bg-zinc-50/50 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-              <Search className="h-5 w-5 text-zinc-400" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="İçerik, araç veya konu ara..."
-                className="flex-1 border-none bg-transparent text-lg text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100"
-              />
+            <div className="flex items-center gap-3 border-b border-zinc-800 bg-zinc-950/90 px-4 py-4">
+              <Search className="h-5 w-5 text-zinc-500" />
+              <div className="flex-1">
+                <p id="command-palette-title" className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                  Hızlı Arama
+                </p>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="İçerik, araç veya konu ara..."
+                  className="mt-1 w-full border-none bg-transparent text-lg text-zinc-100 outline-none placeholder:text-zinc-500"
+                />
+              </div>
               <div className="flex items-center gap-1.5">
-                <span className="rounded-md border border-zinc-300 bg-white px-1.5 py-0.5 text-[10px] font-bold text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
+                <span className="rounded-md border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500">
                   ESC
                 </span>
-                <button type="button" onClick={closePalette}>
-                  <X className="h-5 w-5 text-zinc-400 transition-colors hover:text-zinc-600" />
+                <button type="button" onClick={closePalette} aria-label="Arama penceresini kapat">
+                  <X className="h-5 w-5 text-zinc-500 transition-colors hover:text-amber-200" />
                 </button>
               </div>
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-hide">
               <div className="mb-4">
-                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sonuçlar</h3>
+                <h3 className="mb-1 mt-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Sonuçlar</h3>
                 {isLoading && items.length === 0 ? <div className="p-6 text-sm text-zinc-500">Arama dizini yükleniyor...</div> : null}
                 {filteredItems.map((item) => {
                   const ItemIcon = getItemIcon(item.type);
@@ -297,28 +304,28 @@ export function CommandPalette() {
                       key={item.id}
                       type="button"
                       onClick={() => openRoute(item.href)}
-                      className="group flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="group flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-zinc-900"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 transition-colors group-hover:text-blue-600 dark:bg-zinc-800">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-500 transition-colors group-hover:border-amber-400/30 group-hover:text-amber-200">
                         <ItemIcon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                          <p className="truncate text-sm font-bold text-zinc-100">
                             <HighlightText text={item.title} query={query} />
                           </p>
-                          <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400 dark:border-zinc-700">
+                          <span className="rounded-full border border-zinc-800 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
                             {getItemTypeLabel(item.type)}
                           </span>
                         </div>
-                        <p className="truncate text-xs text-zinc-500">
+                        <p className="truncate text-xs text-zinc-400">
                           <HighlightText text={item.category} query={query} />
                         </p>
-                        <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                        <p className="truncate text-xs text-zinc-500">
                           <HighlightText text={item.description} query={query} />
                         </p>
                       </div>
-                      <Command className="h-4 w-4 text-zinc-300 transition-colors group-hover:text-zinc-500" />
+                      <Command className="h-4 w-4 text-zinc-700 transition-colors group-hover:text-amber-200" />
                     </button>
                   );
                 })}
@@ -332,18 +339,18 @@ export function CommandPalette() {
               </div>
 
               {showShortcuts ? (
-                <div className="mb-2 border-t border-zinc-100 pt-3 dark:border-zinc-800">
-                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kısayollar</h3>
+                <div className="mb-2 border-t border-zinc-800 pt-3">
+                  <h3 className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Kısayollar</h3>
                   <div className="grid gap-1 sm:grid-cols-2">
                     {SHORTCUT_LINKS.map((link) => (
                       <button
                         key={link.href}
                         type="button"
                         onClick={() => openRoute(link.href)}
-                        className="group flex items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        className="group flex items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-zinc-900"
                       >
-                        <link.icon className="h-4 w-4 text-zinc-400 transition-colors group-hover:text-blue-600" />
-                        <span className="text-xs font-medium">{link.label}</span>
+                        <link.icon className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-amber-200" />
+                        <span className="text-xs font-medium text-zinc-200">{link.label}</span>
                       </button>
                     ))}
                   </div>
@@ -351,14 +358,14 @@ export function CommandPalette() {
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/50 px-4 py-3 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="flex items-center justify-between border-t border-zinc-800 bg-zinc-950/90 px-4 py-3 text-[11px] text-zinc-500">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Up/Down</span>
+                  <span className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5">Up/Down</span>
                   Gezin
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="rounded border border-zinc-300 bg-white px-1 py-0.5 dark:border-zinc-700 dark:bg-zinc-800">Enter</span>
+                  <span className="rounded border border-zinc-700 bg-zinc-900 px-1 py-0.5">Enter</span>
                   Aç
                 </span>
               </div>

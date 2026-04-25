@@ -37,13 +37,12 @@ export function PageContextNavigation({
 
   const previousInternalPath =
     typeof window !== "undefined" ? window.sessionStorage.getItem(LAST_INTERNAL_PATH_KEY) : null;
-  const resolvedBackTarget =
-    backHref
-      ? { href: backHref, useHistory: false }
-      : resolveBackNavigationTarget(pathname, {
-          previousInternalPath,
-          referrer: typeof document !== "undefined" ? document.referrer : null,
-        });
+  const resolvedBackTarget = backHref
+    ? { href: backHref, useHistory: false }
+    : resolveBackNavigationTarget(pathname, {
+        previousInternalPath,
+        referrer: typeof document !== "undefined" ? document.referrer : null,
+      });
   const breadcrumbItems = breadcrumbs ?? metadata?.breadcrumbs ?? [];
   const resolvedBackLabel = backLabel ?? metadata?.backLabel ?? "Geri";
 
@@ -79,7 +78,7 @@ export function PageContextNavigation({
             }}
             className={
               backLinkClassName ??
-              "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-blue-900/50 dark:hover:text-blue-400"
+              "inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm font-bold text-zinc-300 transition-colors hover:border-amber-400/35 hover:text-amber-200"
             }
             aria-label={`${resolvedBackLabel} sayfasına dön`}
           >
@@ -103,11 +102,9 @@ export function PageContextNavigation({
             return (
               <div key={`${item.href}-${index}`} className="flex items-center gap-2">
                 {isLast ? (
-                  <span className="max-w-[220px] truncate text-zinc-900 dark:text-zinc-300 md:max-w-xs">
-                    {item.title}
-                  </span>
+                  <span className="max-w-[220px] truncate text-zinc-100 md:max-w-xs">{item.title}</span>
                 ) : (
-                  <Link href={item.href} className="transition-colors hover:text-blue-600">
+                  <Link href={item.href} className="transition-colors hover:text-amber-200">
                     {item.title}
                   </Link>
                 )}

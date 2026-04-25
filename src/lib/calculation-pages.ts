@@ -28,6 +28,18 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
     keywords: ["maliyet", "metraj", "yaklaşık maliyet", "inşaat gideri", "proje bütçesi"],
   },
   {
+    id: "tekil-temel",
+    href: "/hesaplamalar/tekil-temel",
+    title: "Tekil Temel Hesabı",
+    navLabel: "Tekil Temel",
+    description:
+      "TS 500 ve zemin emniyet gerilmesi esaslarına göre tekil temel boyutlandırması, delme kesme ve donatı kontrollerini tek ekranda yapın.",
+    badge: "Yeni",
+    iconKey: "layers",
+    order: 1.5,
+    keywords: ["temel", "tekil temel", "zemin emniyet", "delme kesme", "donatı hesabı", "ts 500"],
+  },
+  {
     id: "hizli-metraj",
     href: "/hesaplamalar/hizli-metraj",
     title: "Hızlı Metraj Hesaplayıcı",
