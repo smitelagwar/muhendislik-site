@@ -9,6 +9,7 @@ import {
   Hammer,
   Layers,
   LandPlot,
+  Layers3,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -17,7 +18,8 @@ import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
   title: "İnşaat Hesaplamaları",
-  description: "Tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
+  description:
+    "Hızlı metraj, tahmini inşaat alanı, detaylı inşaat maliyeti ve 2026 resmî birim maliyet araçları.",
   pathname: "/hesaplamalar",
 });
 
@@ -25,21 +27,12 @@ const CALCULATION_ICONS: Record<CalculationPageIconKey, LucideIcon> = {
   building: Building2,
   plot: LandPlot,
   file: FileText,
+  layers: Layers3,
 };
 
 const TOOLS = getCalculationPages();
 
 const COMING_SOON = [
-  {
-    icon: Layers,
-    label: "Beton Hacmi Hesabı",
-    description: "Temel, perde, kolon ve döşeme için hızlı beton hacmi hesabı.",
-  },
-  {
-    icon: Wrench,
-    label: "Donatı Tonaj Hesabı",
-    description: "Döşeme tipine ve toplam alana göre yaklaşık donatı tonajı.",
-  },
   {
     icon: Hammer,
     label: "Duvar Hesabı",
@@ -49,6 +42,16 @@ const COMING_SOON = [
     icon: BarChart3,
     label: "Şap ve Kaplama",
     description: "Şap kalınlığı, alan ve malzeme giderini hızlıca öngörür.",
+  },
+  {
+    icon: Layers,
+    label: "Perde Metraj Dağılımı",
+    description: "Perde alanı, beton hacmi ve donatı yoğunluğunu kat bandına göre kıyaslar.",
+  },
+  {
+    icon: Wrench,
+    label: "Kazı ve Dolgu",
+    description: "Temel kotu, iksa varsayımı ve zemin sınıfına göre ilk hacim tahmini üretir.",
   },
 ];
 
@@ -65,8 +68,8 @@ export default function HesaplamalarPage() {
             İnşaat hesaplamaları
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Tahmini alan, detaylı maliyet ve 2026 resmî birim maliyet araçlarını aynı akışta
-            topluyoruz. Amaç, hızlı ama savunulabilir bir ön değerlendirme sunmak.
+            Hızlı metraj, tahmini alan, detaylı maliyet ve 2026 resmî birim maliyet araçlarını aynı
+            akışta topluyoruz. Amaç, hızlı ama savunulabilir bir ön değerlendirme sunmak.
           </p>
         </div>
 

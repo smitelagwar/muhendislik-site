@@ -1443,3 +1443,12 @@ export function exportPdf(snapshot: PdfExportSnapshot, filename: string): void {
   const pdf = createCalculationPdfDocument(snapshot);
   pdf.save(filename);
 }
+
+export type { QuickQuantityPdfSnapshot } from "./modules/hizli-metraj/types";
+export {
+  buildQuickQuantityPdfSnapshot,
+  createQuickQuantityPdfDocument,
+  downloadQuickQuantityPdf,
+  openQuickQuantityPdfPreview,
+  printQuickQuantityPdf,
+} from "./modules/hizli-metraj/reporting";

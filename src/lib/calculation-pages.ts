@@ -1,4 +1,4 @@
-﻿export type CalculationPageIconKey = "building" | "plot" | "file";
+export type CalculationPageIconKey = "building" | "plot" | "file" | "layers";
 
 export interface CalculationPageDefinition {
   id: string;
@@ -28,6 +28,25 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
     keywords: ["maliyet", "metraj", "yaklaşık maliyet", "inşaat gideri", "proje bütçesi"],
   },
   {
+    id: "hizli-metraj",
+    href: "/hesaplamalar/hizli-metraj",
+    title: "Hızlı Metraj Hesaplayıcı",
+    navLabel: "Hızlı Metraj",
+    description:
+      "Kat alanı ve kat adedinden yaklaşık beton, donatı, kalıp ve taşıyıcı sistem maliyet bandını görün; resmî toplam maliyet ile yan yana kıyaslayın.",
+    badge: "Yeni",
+    iconKey: "layers",
+    order: 2,
+    keywords: [
+      "hızlı metraj",
+      "beton metrajı",
+      "donatı tonajı",
+      "kalıp alanı",
+      "ön keşif",
+      "taşıyıcı maliyet",
+    ],
+  },
+  {
     id: "tahmini-insaat-alani",
     href: "/hesaplamalar/tahmini-insaat-alani",
     title: "Tahmini İnşaat Alanı",
@@ -36,7 +55,7 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
       "Net parsel, TAKS ve KAKS verilerini girin; emsal dışı büyümeyi ve bodrum katkısını ekleyerek yaklaşık toplam inşaat alanını görün.",
     badge: "Yeni",
     iconKey: "plot",
-    order: 2,
+    order: 3,
     keywords: ["arsa", "emsal", "kaks", "taks", "imar", "alan hesabı"],
   },
   {
@@ -48,7 +67,7 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
       "2026 tebliğindeki resmî sınıfı seçin; m² birim maliyetini ve toplam resmî yaklaşık maliyeti tek ekranda görün.",
     badge: "Yeni",
     iconKey: "file",
-    order: 3,
+    order: 4,
     keywords: ["çevre şehircilik", "tebliğ", "resmî maliyet", "birim maliyet", "2026"],
   },
 ];
@@ -56,5 +75,3 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
 export function getCalculationPages(): CalculationPageDefinition[] {
   return [...CALCULATION_PAGES].sort((left, right) => left.order - right.order);
 }
-
-

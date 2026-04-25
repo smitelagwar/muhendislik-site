@@ -19,6 +19,8 @@
     "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",
     "check:estimated-area": "node scripts/check-estimated-construction-area-route.mjs",
     "check:estimated-area-pdf": "tsx scripts/check-estimated-construction-area-pdf.mjs",
+    "check:hizli-metraj": "node scripts/check-hizli-metraj-route.mjs",
+    "check:hizli-metraj-pdf": "tsx scripts/check-hizli-metraj-pdf.mjs",
     "check:insaat-maliyeti": "node scripts/check-insaat-maliyeti-route.mjs",
     "check:insaat-maliyeti-pdf": "tsx scripts/check-insaat-maliyeti-pdf.mjs",
     "check:insaat-maliyeti-full": "npm run build && npm run check:insaat-maliyeti && npm run check:insaat-maliyeti-pdf"
