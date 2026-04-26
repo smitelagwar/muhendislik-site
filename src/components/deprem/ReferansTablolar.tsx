@@ -19,7 +19,7 @@ export default function ReferansTablolar() {
     <section className="py-12 px-6 bg-gray-950/50 border-y border-gray-800">
       <div className="max-w-7xl mx-auto space-y-8">
         <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-          <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+          <span className="w-2 h-6 bg-teal-500 rounded-full"></span>
           TBDY 2018 Hızlı Referans Tabloları
         </h2>
         
@@ -27,7 +27,7 @@ export default function ReferansTablolar() {
           <Accordion type="single" collapsible className="w-full">
             
             <AccordionItem value="bks" className="border-gray-800 px-4">
-              <AccordionTrigger className="text-gray-200 hover:text-amber-500">
+              <AccordionTrigger className="text-gray-200 hover:text-teal-500">
                 Bina Kullanım Sınıfı (BKS) ve Önem Katsayısı (I)
               </AccordionTrigger>
               <AccordionContent>
@@ -42,17 +42,17 @@ export default function ReferansTablolar() {
                     </TableHeader>
                     <TableBody>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
-                        <TableCell className="font-mono text-amber-500">3</TableCell>
+                        <TableCell className="font-mono text-teal-500">3</TableCell>
                         <TableCell className="text-gray-300">Deprem sonrası kullanımı gereken binalar (Hastane, itfaiye, okul vb.), tehlikeli madde içeren binalar</TableCell>
                         <TableCell className="text-right font-mono text-gray-100">1.5</TableCell>
                       </TableRow>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
-                        <TableCell className="font-mono text-amber-500">2</TableCell>
+                        <TableCell className="font-mono text-teal-500">2</TableCell>
                         <TableCell className="text-gray-300">İnsanların uzun süreli ve yoğun olarak bulunduğu binalar (AVM, sinema, stadyum), çok katlı konutlar</TableCell>
                         <TableCell className="text-right font-mono text-gray-100">1.2</TableCell>
                       </TableRow>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
-                        <TableCell className="font-mono text-amber-500">1</TableCell>
+                        <TableCell className="font-mono text-teal-500">1</TableCell>
                         <TableCell className="text-gray-300">Diğer tüm binalar (Normal konutlar, işyerleri, oteller, endüstriyel yapılar)</TableCell>
                         <TableCell className="text-right font-mono text-gray-100">1.0</TableCell>
                       </TableRow>
@@ -63,7 +63,7 @@ export default function ReferansTablolar() {
             </AccordionItem>
 
             <AccordionItem value="katsayilar" className="border-gray-800 px-4">
-              <AccordionTrigger className="text-gray-200 hover:text-amber-500">
+              <AccordionTrigger className="text-gray-200 hover:text-teal-500">
                 R ve D Katsayıları (Seçilmiş Betonarme Sistemler)
               </AccordionTrigger>
               <AccordionContent>
@@ -114,7 +114,7 @@ export default function ReferansTablolar() {
             </AccordionItem>
 
             <AccordionItem value="performans" className="border-gray-800 px-4">
-              <AccordionTrigger className="text-gray-200 hover:text-amber-500">
+              <AccordionTrigger className="text-gray-200 hover:text-teal-500">
                 Performans Hedefleri (TBDY Tablo 3.4)
               </AccordionTrigger>
               <AccordionContent>
@@ -131,17 +131,17 @@ export default function ReferansTablolar() {
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
                         <TableCell className="font-medium text-gray-300">DD-1 (50 yılda aşılma 72, Tekrarlanma 2475 yıl)</TableCell>
                         <TableCell className="text-gray-400">Göçmenin Önlenmesi (GÖ)</TableCell>
-                        <TableCell className="text-amber-500">Göçmenin Önlenmesi (GÖ) / Kontrollü Hasar (KH)*</TableCell>
+                        <TableCell className="text-teal-500">Göçmenin Önlenmesi (GÖ) / Kontrollü Hasar (KH)*</TableCell>
                       </TableRow>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
                         <TableCell className="font-medium text-gray-300">DD-2 (50 yılda aşılma 710, Tekrarlanma 475 yıl)</TableCell>
-                        <TableCell className="text-amber-500">Kontrollü Hasar (KH) [Tasarım Depremi]</TableCell>
+                        <TableCell className="text-teal-500">Kontrollü Hasar (KH) [Tasarım Depremi]</TableCell>
                         <TableCell className="text-gray-400">Sınırlı Hasar (SH)</TableCell>
                       </TableRow>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
                         <TableCell className="font-medium text-gray-300">DD-3 (50 yılda aşılma 750, Tekrarlanma 72 yıl)</TableCell>
                         <TableCell className="text-gray-400">-</TableCell>
-                        <TableCell className="text-amber-500">Sınırlı Hasar (SH)</TableCell>
+                        <TableCell className="text-teal-500">Sınırlı Hasar (SH)</TableCell>
                       </TableRow>
                       <TableRow className="border-gray-800 hover:bg-gray-800/50">
                         <TableCell className="font-medium text-gray-300">DD-4 (50 yılda aşılma 768, Tekrarlanma 43 yıl)</TableCell>

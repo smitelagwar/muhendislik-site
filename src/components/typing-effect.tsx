@@ -66,7 +66,7 @@ export function TypingEffect({
   return (
     <span className={className}>
       {displayText}
-      <span className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse align-middle bg-blue-500" />
+      <span className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse align-middle bg-teal-500" />
     </span>
   );
 }

@@ -376,7 +376,7 @@ export function EstimatedConstructionAreaClient() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-6 py-10 sm:px-10 lg:px-16">
         <div className="mb-10 max-w-4xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-blue-700 dark:text-blue-300">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-teal-700 dark:text-teal-300">
             <Calculator className="h-3.5 w-3.5" />
             Emsalden inşaat alanına geçiş
           </div>
@@ -389,8 +389,8 @@ export function EstimatedConstructionAreaClient() {
             resmi işlem öncesinde savunulabilir bir <strong>yaklaşık toplam inşaat alanı</strong>{" "}
             üretmektir.
           </p>
-          <div className="mt-6 rounded-[28px] border border-blue-200/70 bg-white/70 p-5 text-sm leading-7 text-zinc-700 shadow-[0_18px_48px_-36px_rgba(37,99,235,0.35)] dark:border-blue-900/70 dark:bg-zinc-950/60 dark:text-zinc-300">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700 dark:text-blue-300">
+          <div className="mt-6 rounded-[28px] border border-teal-200/70 bg-white/70 p-5 text-sm leading-7 text-zinc-700 shadow-[0_18px_48px_-36px_rgba(13,148,136,0.35)] dark:border-teal-900/70 dark:bg-zinc-950/60 dark:text-zinc-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
               Aktif profil varsayımı
             </p>
             <p className="mt-2 text-base font-black text-zinc-950 dark:text-white">

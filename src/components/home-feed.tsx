@@ -45,7 +45,7 @@ function FilterSelect({
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger
           aria-labelledby={labelId}
-          className="min-h-11 w-full rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm font-medium text-foreground/90 outline-none transition focus-visible:border-amber-400 focus-visible:ring-4 focus-visible:ring-amber-500/10"
+          className="min-h-11 w-full rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm font-medium text-foreground/90 outline-none transition focus-visible:border-teal-400 focus-visible:ring-4 focus-visible:ring-teal-500/10"
         >
           <SelectValue placeholder={options[0]?.label} />
         </SelectTrigger>
@@ -124,11 +124,11 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
   };
 
   return (
-    <section className="rounded-[32px] border border-amber-500/15 bg-background/80 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.75)] backdrop-blur md:p-7">
+    <section className="rounded-[32px] border border-teal-500/15 bg-background/80 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.75)] backdrop-blur md:p-7">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4 border-b border-border/80 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">İçerik akışı</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">İçerik akışı</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground md:text-3xl">Son eklenen teknik içerikler</h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
               Araç yazıları, mevzuat notları ve saha rehberlerini kategori, içerik tipi ve okuma süresine göre ayıklayın.
@@ -214,7 +214,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
             >
               <Link
                 href={`/${article.slug}`}
-                className="group block overflow-hidden rounded-[28px] border border-border bg-card/80 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_26px_60px_-34px_rgba(245,158,11,0.35)]"
+                className="group block overflow-hidden rounded-[28px] border border-border bg-card/80 transition-all duration-300 hover:-translate-y-1 hover:border-teal-400/30 hover:shadow-[0_26px_60px_-34px_rgba(13, 148, 136,0.35)]"
               >
                 <div className="flex flex-col md:flex-row">
                   <div className="relative aspect-video w-full overflow-hidden md:h-64 md:w-64 md:flex-shrink-0 md:aspect-auto">
@@ -241,7 +241,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
 
                     <div className="flex items-center justify-between border-t border-border pt-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/15 text-xs font-bold text-amber-300">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/15 text-xs font-bold text-teal-300">
                           {article.author
                             .split(" ")
                             .map((name) => name[0])

@@ -156,9 +156,9 @@ export function QuickModePanel({
                 onClick={() => onFieldChange("profile", profile.id)}
                 data-testid={`estimated-area-profile-${profile.id}`}
                 className={cn(
-                  "rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15",
+                  "rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
                   isActive
-                    ? "border-blue-300 bg-blue-50 text-blue-950 shadow-[0_18px_38px_-28px_rgba(37,99,235,0.55)] dark:border-blue-600/50 dark:bg-blue-950/40 dark:text-blue-100"
+                    ? "border-teal-300 bg-teal-50 text-teal-950 shadow-[0_18px_38px_-28px_rgba(13,148,136,0.55)] dark:border-teal-600/50 dark:bg-teal-950/40 dark:text-teal-100"
                     : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700"
                 )}
               >
@@ -192,9 +192,9 @@ export function QuickModePanel({
             aria-pressed={!form.hasBasement}
             data-testid="estimated-area-basement-no"
             className={cn(
-              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15",
+              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
               !form.hasBasement
-                ? "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-700/60 dark:bg-blue-950/40 dark:text-blue-100"
+                ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-700/60 dark:bg-teal-950/40 dark:text-teal-100"
                 : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
             )}
           >
@@ -209,9 +209,9 @@ export function QuickModePanel({
             aria-pressed={form.hasBasement}
             data-testid="estimated-area-basement-yes"
             className={cn(
-              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15",
+              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
               form.hasBasement
-                ? "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-700/60 dark:bg-blue-950/40 dark:text-blue-100"
+                ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-700/60 dark:bg-teal-950/40 dark:text-teal-100"
                 : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
             )}
           >

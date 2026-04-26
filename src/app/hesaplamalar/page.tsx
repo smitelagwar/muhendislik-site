@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -60,7 +60,7 @@ export default function HesaplamalarPage() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-6 py-12 sm:px-10 lg:px-16">
         <div className="mb-12 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
             <Calculator className="h-3.5 w-3.5" />
             Mühendislik hesap araçları
           </div>
@@ -87,25 +87,25 @@ export default function HesaplamalarPage() {
                   href={tool.href}
                   className="group tool-panel relative overflow-hidden rounded-[30px] p-6 transition-transform duration-200 hover:-translate-y-1"
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.14),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.14),_transparent_34%)] opacity-80" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,_rgba(13,148,136,0.14),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.14),_transparent_34%)] opacity-80" />
                   <div className="relative flex h-full flex-col gap-5">
                     <div className="flex items-start justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-300">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-300">
                         <ToolIcon className="h-5 w-5" />
                       </div>
-                      <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                      <span className="rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
                         {tool.badge}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-zinc-950 transition-colors group-hover:text-amber-700 dark:text-white dark:group-hover:text-amber-200">
+                      <h3 className="text-xl font-black text-zinc-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-200">
                         {tool.title}
                       </h3>
                       <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
                         {tool.description}
                       </p>
                     </div>
-                    <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
+                    <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-teal-700 dark:text-teal-300">
                       Aracı aç
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>

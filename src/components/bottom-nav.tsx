@@ -62,7 +62,7 @@ export function BottomNav() {
               href={item.href}
               className={`flex min-w-[4rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 transition-all ${
                 isActive
-                  ? "scale-110 font-bold text-blue-600 dark:text-blue-500"
+                  ? "scale-110 font-bold text-teal-600 dark:text-teal-500"
                   : "font-medium text-zinc-500 hover:text-zinc-900 dark:text-muted-foreground dark:hover:text-zinc-100"
               }`}
             >

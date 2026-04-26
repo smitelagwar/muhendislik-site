@@ -11,7 +11,7 @@ export const metadata: Metadata = buildSeoMetadata({
 export default function Gizlilik() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-12 leading-relaxed md:py-20">
-      <h1 className="mb-8 text-4xl font-extrabold text-blue-700 dark:text-blue-500">Gizlilik Politikası ve KVKK</h1>
+      <h1 className="mb-8 text-4xl font-extrabold text-teal-700 dark:text-teal-400">Gizlilik Politikası ve KVKK</h1>
 
       <div className="space-y-10">
         <section className="rounded-2xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
@@ -26,7 +26,7 @@ export default function Gizlilik() {
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-blue-600">
+            <div className="flex items-center gap-2 text-teal-600">
               <Lock className="h-5 w-5" />
               <h3 className="font-bold">Hangi verileri işliyoruz</h3>
             </div>
@@ -37,7 +37,7 @@ export default function Gizlilik() {
             </ul>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-blue-600">
+            <div className="flex items-center gap-2 text-teal-600">
               <Eye className="h-5 w-5" />
               <h3 className="font-bold">Veriler nasıl kullanılır</h3>
             </div>

@@ -459,7 +459,7 @@ export function OfficialUnitCostClient() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-6 py-12 sm:px-10 lg:px-16">
         <div className="mb-10 max-w-4xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
             <FileText className="h-3.5 w-3.5" />
             Resmî referans aracı
           </div>
@@ -500,7 +500,7 @@ export function OfficialUnitCostClient() {
                 }}
                 className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
                   selectionMode === "guided"
-                    ? "border-blue-400/60 bg-blue-50 text-zinc-950 shadow-[0_18px_38px_-28px_rgba(37,99,235,0.6)] dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-white"
+                    ? "border-teal-400/60 bg-teal-50 text-zinc-950 shadow-[0_18px_38px_-28px_rgba(13,148,136,0.6)] dark:border-teal-500/40 dark:bg-teal-950/40 dark:text-white"
                     : "border-zinc-200 bg-white/70 text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-zinc-700"
                 }`}
               >
@@ -526,7 +526,7 @@ export function OfficialUnitCostClient() {
                 }}
                 className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
                   selectionMode === "manual"
-                    ? "border-blue-400/60 bg-blue-50 text-zinc-950 shadow-[0_18px_38px_-28px_rgba(37,99,235,0.6)] dark:border-blue-500/40 dark:bg-blue-950/40 dark:text-white"
+                    ? "border-teal-400/60 bg-teal-50 text-zinc-950 shadow-[0_18px_38px_-28px_rgba(13,148,136,0.6)] dark:border-teal-500/40 dark:bg-teal-950/40 dark:text-white"
                     : "border-zinc-200 bg-white/70 text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:border-zinc-700"
                 }`}
               >
@@ -559,7 +559,7 @@ export function OfficialUnitCostClient() {
                         onClick={() => handleGuideCategorySelect(category.id)}
                         className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
                           category.id === activeGuideCategory.id
-                            ? "border-blue-400/60 bg-blue-50 shadow-[0_18px_38px_-28px_rgba(37,99,235,0.6)] dark:border-blue-500/40 dark:bg-blue-950/40"
+                            ? "border-teal-400/60 bg-teal-50 shadow-[0_18px_38px_-28px_rgba(13,148,136,0.6)] dark:border-teal-500/40 dark:bg-teal-950/40"
                             : "border-zinc-200 bg-white/70 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-zinc-700"
                         }`}
                       >
@@ -595,7 +595,7 @@ export function OfficialUnitCostClient() {
                           onClick={() => handleGuideOptionSelect(option.id)}
                           className={`rounded-[24px] border p-4 text-left transition-colors ${
                             option.id === activeGuidedOption.id
-                              ? "border-blue-400/60 bg-white shadow-[0_22px_45px_-32px_rgba(37,99,235,0.7)] dark:border-blue-500/40 dark:bg-zinc-950"
+                              ? "border-teal-400/60 bg-white shadow-[0_22px_45px_-32px_rgba(13,148,136,0.7)] dark:border-teal-500/40 dark:bg-zinc-950"
                               : "border-zinc-200 bg-zinc-50/70 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-zinc-700"
                           }`}
                         >
@@ -603,7 +603,7 @@ export function OfficialUnitCostClient() {
                             <span className="text-sm font-black text-zinc-950 dark:text-white">
                               {option.label}
                             </span>
-                            <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">
+                            <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
                               {option.selection.grup}-{option.selection.sinif}
                             </span>
                           </div>
@@ -662,13 +662,13 @@ export function OfficialUnitCostClient() {
                                 `${row.sinifKodu} - ${row.sinifAdi}`
                               )
                             }
-                            className="rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/60 dark:border-zinc-800 dark:bg-zinc-950/70 dark:hover:border-blue-600/40 dark:hover:bg-blue-950/20"
+                            className="rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-teal-300 hover:bg-teal-50/60 dark:border-zinc-800 dark:bg-zinc-950/70 dark:hover:border-teal-600/40 dark:hover:bg-teal-950/20"
                           >
                             <div className="flex items-center justify-between gap-3">
                               <span className="text-sm font-black text-zinc-950 dark:text-white">
                                 {row.sinifAdi}
                               </span>
-                              <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">
+                              <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300">
                                 {row.sinifKodu}
                               </span>
                             </div>
@@ -773,7 +773,7 @@ export function OfficialUnitCostClient() {
                   className="tool-input w-full px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
                 />
                 {!hasValidArea ? (
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <p className="text-xs text-teal-700 dark:text-teal-300">
                     Geçerli bir toplam inşaat alanı girin. Alan en az 1 m² olmalı.
                   </p>
                 ) : null}
@@ -794,7 +794,7 @@ export function OfficialUnitCostClient() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <div className="mt-6 rounded-2xl border border-teal-200/70 bg-teal-50/80 p-4 dark:border-teal-900/50 dark:bg-teal-950/30">
               <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Formül</p>
               <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
                 Toplam inşaat alanı × resmî m² birim maliyeti = toplam resmî yaklaşık
@@ -811,11 +811,11 @@ export function OfficialUnitCostClient() {
             {result && selectedRow ? (
               <div className="space-y-5">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-200/80">
                     Sonuç
                   </p>
                   <h2 className="mt-2 text-3xl font-black">{selectedRow.sinifAdi}</h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-50/85">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-teal-50/85">
                     Resmî seçim, {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi} içindeki{" "}
                     {selectedRow.sinifAdi} için hesaplandı.
                   </p>
@@ -823,7 +823,7 @@ export function OfficialUnitCostClient() {
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="tool-result-inner rounded-2xl p-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">
                       Resmî m² birim maliyeti
                     </p>
                     <p className="mt-2 text-2xl font-black">
@@ -833,7 +833,7 @@ export function OfficialUnitCostClient() {
                     </p>
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">
                       Toplam resmî maliyet
                     </p>
                     <p className="mt-2 text-2xl font-black">
@@ -843,7 +843,7 @@ export function OfficialUnitCostClient() {
                     </p>
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">
                       Toplam inşaat alanı
                     </p>
                     <p className="mt-2 text-2xl font-black">
@@ -853,7 +853,7 @@ export function OfficialUnitCostClient() {
                     </p>
                   </div>
                   <div className="tool-result-inner rounded-2xl p-4">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">
                       Resmî sınıf kodu
                     </p>
                     <p className="mt-2 text-2xl font-black">
@@ -866,32 +866,32 @@ export function OfficialUnitCostClient() {
 
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
                   <div className="tool-result-inner rounded-[28px] p-5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
                       Hesap özeti
                     </p>
-                    <div className="mt-4 space-y-3 text-sm text-blue-50/90">
+                    <div className="mt-4 space-y-3 text-sm text-teal-50/90">
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Yıl</span>
+                        <span className="text-teal-100/70">Yıl</span>
                         <span className="text-right font-semibold">{YIL}</span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Ana grup</span>
+                        <span className="text-teal-100/70">Ana grup</span>
                         <span className="text-right font-semibold">
                           {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi}
                         </span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Alt grup / sınıf</span>
+                        <span className="text-teal-100/70">Alt grup / sınıf</span>
                         <span className="text-right font-semibold">{selectedRow.sinifAdi}</span>
                       </div>
                       <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                        <span className="text-blue-100/70">Formül</span>
+                        <span className="text-teal-100/70">Formül</span>
                         <span className="max-w-[18rem] text-right font-semibold">
                           {result.formula}
                         </span>
                       </div>
                       <div className="flex items-start justify-between gap-4">
-                        <span className="text-blue-100/70">Kapsam</span>
+                        <span className="text-teal-100/70">Kapsam</span>
                         <span className="max-w-[18rem] text-right font-semibold">
                           Ruhsat ve resmî karşılaştırma referansı
                         </span>
@@ -902,26 +902,26 @@ export function OfficialUnitCostClient() {
                   <div className="space-y-4">
                     {activeGuideMeta ? (
                       <div className="tool-result-inner rounded-[24px] p-5">
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
                           Kolay seçim özeti
                         </p>
                         <p className="mt-3 text-lg font-black text-white">
                           {activeGuideMeta.category.label}
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-blue-50/85">
+                        <p className="mt-2 text-sm leading-6 text-teal-50/85">
                           {activeGuideMeta.option.label}
                         </p>
-                        <p className="mt-2 text-xs leading-6 text-blue-100/70">
+                        <p className="mt-2 text-xs leading-6 text-teal-100/70">
                           {activeGuideMeta.option.description}
                         </p>
                       </div>
                     ) : null}
 
                     <div className="tool-result-inner rounded-[24px] p-5">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
                         Kaynak
                       </p>
-                      <p className="mt-3 text-sm leading-6 text-blue-50/85">
+                      <p className="mt-3 text-sm leading-6 text-teal-50/85">
                         {OFFICIAL_UNIT_COST_SOURCE_2026.label} referans alınarak hesaplanır.
                       </p>
                       <a
@@ -940,10 +940,10 @@ export function OfficialUnitCostClient() {
 
                 <div className="tool-result-inner rounded-[24px] p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
                       {getExampleStructuresTitle(selectedRow)}
                     </p>
-                    <span className="text-[11px] font-semibold text-blue-100/70">
+                    <span className="text-[11px] font-semibold text-teal-100/70">
                       {exampleStructures.length} örnek
                     </span>
                   </div>
@@ -951,7 +951,7 @@ export function OfficialUnitCostClient() {
                     {exampleStructures.map((example) => (
                       <div
                         key={example}
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-blue-50/90"
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs leading-5 text-teal-50/90"
                       >
                         {example}
                       </div>
@@ -990,7 +990,7 @@ export function OfficialUnitCostClient() {
                     data-testid="official-pdf-button"
                     onClick={handlePdfDownload}
                     disabled={isBusy || !hasValidArea}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:bg-white/60"
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-slate-950 transition-colors hover:bg-teal-50 disabled:cursor-not-allowed disabled:bg-white/60"
                   >
                     <Download className="h-4 w-4" />
                     {activePdfAction === "download" ? "PDF hazırlanıyor" : "PDF indir"}
@@ -998,7 +998,7 @@ export function OfficialUnitCostClient() {
                   <Link
                     href={detailedCostLink}
                     data-testid="official-compare-link"
-                    className="inline-flex items-center gap-2 rounded-full border border-blue-200/30 bg-blue-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-blue-50 transition-colors hover:bg-blue-400/15"
+                    className="inline-flex items-center gap-2 rounded-full border border-teal-200/30 bg-teal-400/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-teal-50 transition-colors hover:bg-teal-400/15"
                   >
                     <Compass className="h-4 w-4" />
                     Detaylı maliyet ile karşılaştır
@@ -1008,7 +1008,7 @@ export function OfficialUnitCostClient() {
             ) : (
               <div className="tool-result-inner rounded-[28px] p-6">
                 <p className="text-lg font-black text-white">Resmî sonuç hazır değil</p>
-                <p className="mt-3 max-w-xl text-sm leading-7 text-blue-50/85">
+                <p className="mt-3 max-w-xl text-sm leading-7 text-teal-50/85">
                   Geçerli bir grup, sınıf ve toplam inşaat alanı seçildiğinde resmî yaklaşık
                   maliyet burada gösterilecek.
                 </p>

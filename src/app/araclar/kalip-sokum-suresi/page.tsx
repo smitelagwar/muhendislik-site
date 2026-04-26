@@ -207,7 +207,7 @@ export default function KalipSokumHesapPage() {
 
             <div className="tool-panel rounded-[28px] p-6">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-2xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                <div className="rounded-2xl bg-teal-100 p-3 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>

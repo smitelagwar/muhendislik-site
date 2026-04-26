@@ -58,8 +58,8 @@ const SECTION_STYLES: Record<SiteSectionId, { color: string; bgColor: string }> 
     bgColor: "bg-rose-50 dark:bg-rose-950/40",
   },
   geoteknik: {
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-50 dark:bg-amber-950/40",
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-50 dark:bg-teal-950/40",
   },
   santiye: {
     color: "text-emerald-600 dark:text-emerald-400",

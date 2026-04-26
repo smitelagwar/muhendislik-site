@@ -105,11 +105,11 @@ export function RebarCalculator() {
         <PageContextNavigation
           showBreadcrumbs={false}
           className="mb-8"
-          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-blue-200 hover:text-blue-600 dark:border-border dark:bg-background/70 dark:text-muted-foreground dark:hover:border-blue-900"
+          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-teal-200 hover:text-teal-600 dark:border-border dark:bg-background/70 dark:text-muted-foreground dark:hover:border-teal-900"
         />
 
         <div className="mb-10 max-w-3xl">
-          <Badge className="mb-4 rounded-full bg-blue-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300">
+          <Badge className="mb-4 rounded-full bg-teal-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-teal-700 hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-300">
             Betonarme Aracı
           </Badge>
           <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
@@ -128,7 +128,7 @@ export function RebarCalculator() {
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Girdi bilgileri</p>
                 <h2 className="mt-2 text-2xl font-black text-foreground">Çap ve adet seçin</h2>
               </div>
-              <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
+              <div className="rounded-2xl bg-teal-600/10 p-3 text-teal-600 dark:bg-teal-500/10 dark:text-teal-300">
                 <Calculator className="h-5 w-5" />
               </div>
             </div>
@@ -179,8 +179,8 @@ export function RebarCalculator() {
 
             <div className="tool-note mt-6 rounded-2xl p-4">
               <div className="flex items-start gap-3">
-                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-300" />
-                <p className="text-sm leading-6 text-blue-900 dark:text-blue-100">
+                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-teal-600 dark:text-teal-300" />
+                <p className="text-sm leading-6 text-teal-900 dark:text-teal-100">
                   Hesapta tek çubuk alanı <span className="font-mono font-bold tabular-nums">π x Ø² / 4</span> formülüyle bulunur. Eşdeğer
                   tablo, hedef alandan düşük kalmamak için adetleri yukarı yuvarlayarak verir.
                 </p>
@@ -192,20 +192,20 @@ export function RebarCalculator() {
             <div className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-200/80">Canlı sonuç</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-teal-200/80">Canlı sonuç</p>
                   <h2 className="mt-2 text-2xl font-black">Toplam donatı alanı</h2>
                 </div>
-                <div className="rounded-2xl bg-white/10 p-3 text-sky-200">
+                <div className="rounded-2xl bg-white/10 p-3 text-teal-200">
                   <Sigma className="h-5 w-5" />
                 </div>
               </div>
 
               {result ? (
                 <>
-                  <p className="text-sm font-medium text-sky-100/80">{result.label}</p>
+                  <p className="text-sm font-medium text-teal-100/80">{result.label}</p>
                   <div className="mt-4 flex flex-wrap items-end gap-3">
                     <span className="font-mono text-4xl font-black tracking-tight tabular-nums md:text-6xl">{formatNumber(result.totalArea)}</span>
-                    <span className="pb-2 text-lg font-semibold text-sky-200">mm²</span>
+                    <span className="pb-2 text-lg font-semibold text-teal-200">mm²</span>
                   </div>
                   <p className="mt-4 max-w-xl font-mono text-sm leading-6 tabular-nums text-zinc-200">{result.formula}</p>
                 </>
@@ -254,7 +254,7 @@ export function RebarCalculator() {
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Alternatifler</p>
                 <h2 className="mt-2 text-2xl font-black text-foreground">Eşdeğer donatı tablosu</h2>
               </div>
-              <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-600 dark:text-blue-300">
+              <div className="rounded-2xl bg-teal-600/10 p-3 text-teal-600 dark:text-teal-300">
                 <EqualApproximately className="h-5 w-5" />
               </div>
             </div>
@@ -275,12 +275,12 @@ export function RebarCalculator() {
                     const isActive = row.diameter === diameter;
 
                     return (
-                      <TableRow key={row.diameter} className={isActive ? "ring-1 ring-inset ring-blue-500/30" : undefined}>
+                      <TableRow key={row.diameter} className={isActive ? "ring-1 ring-inset ring-teal-500/30" : undefined}>
                         <TableCell className="font-bold">
                           <div className="flex items-center gap-2">
                             <span>Ø{row.diameter}</span>
                             {isActive ? (
-                              <Badge className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-black text-white hover:bg-blue-600">
+                              <Badge className="rounded-full bg-teal-600 px-2 py-0.5 text-[10px] font-black text-white hover:bg-teal-600">
                                 Seçili
                               </Badge>
                             ) : null}
@@ -310,7 +310,7 @@ export function RebarCalculator() {
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Notlar</p>
                 <h2 className="mt-2 text-2xl font-black text-foreground">Hızlı kontrol özeti</h2>
               </div>
-              <div className="rounded-2xl bg-blue-600/10 p-3 text-blue-600 dark:text-blue-300">
+              <div className="rounded-2xl bg-teal-600/10 p-3 text-teal-600 dark:text-teal-300">
                 <BadgeCheck className="h-5 w-5" />
               </div>
             </div>
@@ -332,9 +332,9 @@ export function RebarCalculator() {
                 </ul>
               </div>
 
-              <div className="rounded-2xl border border-blue-200/70 bg-blue-50/70 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
-                <p className="text-sm font-bold text-blue-950 dark:text-blue-100">Örnek senaryo</p>
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-blue-900/80 dark:text-blue-100/80">
+              <div className="rounded-2xl border border-teal-200/70 bg-teal-50/70 p-4 dark:border-teal-900/60 dark:bg-teal-950/30">
+                <p className="text-sm font-bold text-teal-950 dark:text-teal-100">Örnek senaryo</p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-teal-900/80 dark:text-teal-100/80">
                   <li>
                     Ø14 ve 5 adet için sonuç yaklaşık <span className="font-bold">769,69 mm²</span> olur.
                   </li>
@@ -351,7 +351,7 @@ export function RebarCalculator() {
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Görsel kontrol</p>
                   <h2 className="mt-2 text-2xl font-black text-foreground">Donatı düzeni krokisi</h2>
                 </div>
-                <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+                <div className="rounded-2xl bg-teal-500/10 p-3 text-teal-600 dark:text-teal-400">
                   <Sigma className="h-5 w-5" />
                 </div>
               </div>

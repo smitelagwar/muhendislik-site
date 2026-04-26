@@ -54,7 +54,7 @@ export function EarthquakeBaseShearCalculator() {
               <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Veri Girişi</p>
               <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Bina ve Spektrum Değerleri</h2>
             </div>
-            <div className="rounded-2xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-950/30 dark:text-amber-500">
+            <div className="rounded-2xl bg-teal-100 p-3 text-teal-700 dark:bg-teal-950/30 dark:text-teal-500">
               <Activity className="h-5 w-5" />
             </div>
           </div>
@@ -115,8 +115,8 @@ export function EarthquakeBaseShearCalculator() {
 
           <div className="tool-note mt-6 rounded-2xl p-4">
             <div className="flex gap-3">
-              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-500" />
-              <p className="text-sm leading-6 text-amber-900 dark:text-amber-100/80">TBDY 2018 Bölüm 4.7.1 gereğince tasarım taban kesme kuvveti, Denklem 4.22 ile tanımlanan minimum değerin altında olamaz.</p>
+              <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-teal-600 dark:text-teal-500" />
+              <p className="text-sm leading-6 text-teal-900 dark:text-teal-100/80">TBDY 2018 Bölüm 4.7.1 gereğince tasarım taban kesme kuvveti, Denklem 4.22 ile tanımlanan minimum değerin altında olamaz.</p>
             </div>
           </div>
         </section>
@@ -125,10 +125,10 @@ export function EarthquakeBaseShearCalculator() {
           <div className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200/80")}>Canlı Sonuç</p>
+                <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-200/80")}>Canlı Sonuç</p>
                 <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-white")}>Tasarım Taban Kesme Kuvveti</h2>
               </div>
-              <div className="rounded-2xl bg-white/10 p-3 text-amber-200">
+              <div className="rounded-2xl bg-white/10 p-3 text-teal-200">
                 <Zap className="h-5 w-5" />
               </div>
             </div>
@@ -174,7 +174,7 @@ export function EarthquakeBaseShearCalculator() {
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Hesap Özeti</p>
                 <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>TBDY 2018 Kuralları</h2>
               </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-700 dark:bg-amber-500/10 dark:text-amber-500">
+              <div className="rounded-2xl bg-teal-500/10 p-3 text-teal-700 dark:bg-teal-500/10 dark:text-teal-500">
                 <Ruler className="h-5 w-5" />
               </div>
             </div>

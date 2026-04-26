@@ -18,7 +18,7 @@ export function NavbarDesktopNav() {
             href={link.href}
             className={`rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-200 ${
               isActive
-                ? "border border-amber-400/25 bg-amber-500/10 text-amber-200"
+                ? "border border-teal-400/25 bg-teal-500/10 text-teal-200"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >

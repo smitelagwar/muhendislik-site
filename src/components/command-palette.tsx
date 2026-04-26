@@ -73,7 +73,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
           normalizeSearchValue(part) === normalizeSearchValue(query.trim());
 
         return isMatch ? (
-          <span key={index} className="rounded-sm bg-amber-500/20 px-0.5 text-amber-200">
+          <span key={index} className="rounded-sm bg-teal-500/20 px-0.5 text-teal-200">
             {part}
           </span>
         ) : (
@@ -458,9 +458,9 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
                   type="button"
                   onClick={closePalette}
                   aria-label="Arama penceresini kapat"
-                  className="rounded-md p-1 outline-none transition-colors hover:text-amber-200 focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                  className="rounded-md p-1 outline-none transition-colors hover:text-teal-200 focus-visible:ring-2 focus-visible:ring-teal-500/40"
                 >
-                  <X className="h-5 w-5 text-zinc-500 transition-colors hover:text-amber-200" />
+                  <X className="h-5 w-5 text-zinc-500 transition-colors hover:text-teal-200" />
                 </button>
               </div>
             </div>
@@ -484,14 +484,14 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
                       onClick={() => openRoute(item.href)}
                       onMouseEnter={() => setActiveOptionIndex(index)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-500/40",
-                        isActive ? "bg-zinc-900 ring-1 ring-amber-400/35" : "hover:bg-zinc-900",
+                        "group flex w-full items-center gap-3 rounded-2xl p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-teal-500/40",
+                        isActive ? "bg-zinc-900 ring-1 ring-teal-400/35" : "hover:bg-zinc-900",
                       )}
                     >
                       <div
                         className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-500 transition-colors group-hover:border-amber-400/30 group-hover:text-amber-200",
-                          isActive && "border-amber-400/40 text-amber-200",
+                          "flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-500 transition-colors group-hover:border-teal-400/30 group-hover:text-teal-200",
+                          isActive && "border-teal-400/40 text-teal-200",
                         )}
                       >
                         <ItemIcon className="h-5 w-5" />
@@ -512,7 +512,7 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
                           <HighlightText text={item.description} query={query} />
                         </p>
                       </div>
-                      <Command className={cn("h-4 w-4 text-zinc-700 transition-colors group-hover:text-amber-200", isActive && "text-amber-200")} />
+                      <Command className={cn("h-4 w-4 text-zinc-700 transition-colors group-hover:text-teal-200", isActive && "text-teal-200")} />
                     </button>
                   );
                 })}
@@ -544,11 +544,11 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
                           onClick={() => openRoute(link.href)}
                           onMouseEnter={() => setActiveOptionIndex(optionIndex)}
                           className={cn(
-                            "group flex items-center gap-3 rounded-2xl p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-500/40",
-                            isActive ? "bg-zinc-900 ring-1 ring-amber-400/35" : "hover:bg-zinc-900",
+                            "group flex items-center gap-3 rounded-2xl p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-teal-500/40",
+                            isActive ? "bg-zinc-900 ring-1 ring-teal-400/35" : "hover:bg-zinc-900",
                           )}
                         >
-                          <link.icon className={cn("h-4 w-4 text-zinc-500 transition-colors group-hover:text-amber-200", isActive && "text-amber-200")} />
+                          <link.icon className={cn("h-4 w-4 text-zinc-500 transition-colors group-hover:text-teal-200", isActive && "text-teal-200")} />
                           <span className="text-xs font-medium text-zinc-200">{link.label}</span>
                         </button>
                       );

@@ -17,7 +17,7 @@ export default function OpenGraphImage() {
           width: "100%",
           height: "100%",
           background:
-            "radial-gradient(circle at top left, rgba(245,158,11,0.28), transparent 34%), radial-gradient(circle at bottom right, rgba(59,130,246,0.22), transparent 30%), linear-gradient(135deg, #0a0a0a 0%, #111111 52%, #18181b 100%)",
+            "radial-gradient(circle at top left, rgba(13,148,136,0.28), transparent 34%), radial-gradient(circle at bottom right, rgba(59,130,246,0.22), transparent 30%), linear-gradient(135deg, #0a0a0a 0%, #111111 52%, #18181b 100%)",
           color: "#f5f5f5",
           padding: "56px",
           fontFamily: "sans-serif",
@@ -38,7 +38,7 @@ export default function OpenGraphImage() {
               height: "22px",
               borderRadius: "999px",
               background: "#f59e0b",
-              boxShadow: "0 0 0 8px rgba(245,158,11,0.14)",
+              boxShadow: "0 0 0 8px rgba(13,148,136,0.14)",
             }}
           />
           <div
@@ -61,8 +61,8 @@ export default function OpenGraphImage() {
               width: "fit-content",
               padding: "10px 18px",
               borderRadius: "999px",
-              border: "1px solid rgba(245,158,11,0.22)",
-              background: "rgba(245,158,11,0.08)",
+              border: "1px solid rgba(13,148,136,0.22)",
+              background: "rgba(13,148,136,0.08)",
               color: "#fbbf24",
               fontSize: 18,
               fontWeight: 700,

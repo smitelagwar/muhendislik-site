@@ -39,7 +39,7 @@ export function IsolatedFootingClient() {
       <JsonLd schema={schema} />
       <div className="mx-auto max-w-screen-2xl px-6 py-10 sm:px-10 lg:px-16">
         <section className="mb-8 rounded-[34px] border border-zinc-200/80 bg-white/85 p-6 shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/75 md:p-8">
-          <div className="flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300 w-fit">
+          <div className="flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300 w-fit">
             <Calculator className="h-4 w-4" />
             Tekil Temel Tasarımı
           </div>
@@ -64,7 +64,7 @@ export function IsolatedFootingClient() {
                 <select
                   value={input.zeminTuru}
                   onChange={(e) => handleChange("zeminTuru", e.target.value)}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 >
                   {ZEMIN_TURU_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -82,7 +82,7 @@ export function IsolatedFootingClient() {
                   type="number"
                   value={input.zeminEmniyetGerilmesi}
                   onChange={(e) => handleChange("zeminEmniyetGerilmesi", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
 
@@ -95,7 +95,7 @@ export function IsolatedFootingClient() {
                   step="0.1"
                   value={input.temelDerinligi}
                   onChange={(e) => handleChange("temelDerinligi", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
 
@@ -108,7 +108,7 @@ export function IsolatedFootingClient() {
                   step="0.1"
                   value={input.zeminBirimHacimAgirligi}
                   onChange={(e) => handleChange("zeminBirimHacimAgirligi", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
             </div>
@@ -123,7 +123,7 @@ export function IsolatedFootingClient() {
                   type="number"
                   value={input.eksenelYukNd}
                   onChange={(e) => handleChange("eksenelYukNd", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
               
@@ -135,7 +135,7 @@ export function IsolatedFootingClient() {
                   type="number"
                   value={input.momentMx}
                   onChange={(e) => handleChange("momentMx", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
 
@@ -148,7 +148,7 @@ export function IsolatedFootingClient() {
                   step="0.05"
                   value={input.kolonBoyutuA}
                   onChange={(e) => handleChange("kolonBoyutuA", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
 
@@ -161,7 +161,7 @@ export function IsolatedFootingClient() {
                   step="0.05"
                   value={input.kolonBoyutuB}
                   onChange={(e) => handleChange("kolonBoyutuB", Number(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ export function IsolatedFootingClient() {
                 <select
                   value={input.betonSinifi}
                   onChange={(e) => handleChange("betonSinifi", e.target.value)}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 >
                   {BETON_SINIFI_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -192,7 +192,7 @@ export function IsolatedFootingClient() {
                 <select
                   value={input.celikSinifi}
                   onChange={(e) => handleChange("celikSinifi", e.target.value)}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
+                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-teal-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
                 >
                   {CELIK_SINIFI_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -223,7 +223,7 @@ export function IsolatedFootingClient() {
             ) : result ? (
               <div className="space-y-6">
                 {result.uyarilar.length > 0 && (
-                  <div className="rounded-2xl border border-amber-300/70 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                  <div className="rounded-2xl border border-teal-300/70 bg-teal-50 p-4 text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200">
                     <ul className="list-disc pl-5 text-sm space-y-1">
                       {result.uyarilar.map((u, i) => (
                         <li key={i}>{u}</li>
@@ -304,7 +304,7 @@ export function IsolatedFootingClient() {
                     <div>
                       <div className="text-xs font-semibold mb-1">X Yönü (A Kenarına Paralel)</div>
                       <div className="flex justify-between items-center bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                        <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
                           {result.donatiX.oneri}
                         </span>
                         <span className="text-xs text-zinc-500">As = {result.donatiX.tasarimDonatíAlani.toFixed(1)} cm²</span>
@@ -313,7 +313,7 @@ export function IsolatedFootingClient() {
                     <div>
                       <div className="text-xs font-semibold mb-1">Y Yönü (B Kenarına Paralel)</div>
                       <div className="flex justify-between items-center bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                        <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
                           {result.donatiY.oneri}
                         </span>
                         <span className="text-xs text-zinc-500">As = {result.donatiY.tasarimDonatíAlani.toFixed(1)} cm²</span>

@@ -59,7 +59,7 @@ export default function BlogMakalelerGrid() {
     <section className="py-12 px-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <h2 className="text-2xl font-bold text-gray-100 flex items-center gap-2">
-          <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+          <span className="w-2 h-6 bg-teal-500 rounded-full"></span>
           TBDY 2018 Teknik Makaleler ({allMakaleler.length})
         </h2>
         
@@ -73,7 +73,7 @@ export default function BlogMakalelerGrid() {
 
             return (
               <Link key={i} href={`/kategori/deprem-yonetmelik/${makale.slug}`} className="group flex flex-col">
-                <Card className="h-full flex flex-col bg-gray-900 border-none rounded-xl overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(245,158,11,0.1)] transition-all duration-300">
+                <Card className="h-full flex flex-col bg-gray-900 border-none rounded-xl overflow-hidden shadow-lg hover:shadow-[0_0_20px_rgba(13, 148, 136,0.1)] transition-all duration-300">
                   <div className="relative h-48 w-full overflow-hidden bg-gray-800">
                     <Image
                       src={imageUrl}
@@ -84,7 +84,7 @@ export default function BlogMakalelerGrid() {
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
                     {makale.badgeLabel && (
                       <div className="absolute top-3 left-3">
-                        <Badge className="bg-amber-500 text-gray-950 font-bold hover:bg-amber-400">
+                        <Badge className="bg-teal-500 text-gray-950 font-bold hover:bg-teal-400">
                           {makale.badgeLabel}
                         </Badge>
                       </div>
@@ -94,17 +94,17 @@ export default function BlogMakalelerGrid() {
                   <CardHeader className="flex-1 pt-4 px-5">
                     <div className="flex flex-wrap gap-2 mb-3">
                       {makale.keywords && makale.keywords.slice(0, 2).map((etiket, j) => (
-                        <span key={j} className="text-xs font-semibold text-amber-500 tracking-wider uppercase">
+                        <span key={j} className="text-xs font-semibold text-teal-500 tracking-wider uppercase">
                           {etiket}
                         </span>
                       ))}
                       {(!makale.keywords || makale.keywords.length === 0) && (
-                        <span className="text-xs font-semibold text-amber-500 tracking-wider uppercase">
+                        <span className="text-xs font-semibold text-teal-500 tracking-wider uppercase">
                           {makale.category}
                         </span>
                       )}
                     </div>
-                    <CardTitle className="text-xl font-bold text-gray-100 group-hover:text-amber-500 transition-colors line-clamp-2">
+                    <CardTitle className="text-xl font-bold text-gray-100 group-hover:text-teal-500 transition-colors line-clamp-2">
                       {makale.title}
                     </CardTitle>
                     <CardDescription className="text-gray-400 mt-2 line-clamp-2 text-sm leading-relaxed">

@@ -39,8 +39,8 @@ function RebarCircle({
       cx={cx}
       cy={cy}
       r={r}
-      fill={pending ? "none" : "#f59e0b"}          // amber-400 — marka rengi
-      stroke={pending ? "#f59e0b" : "#b45309"}      // amber-600
+      fill={pending ? "none" : "#f59e0b"}          // teal-400 — marka rengi
+      stroke={pending ? "#f59e0b" : "#b45309"}      // teal-600
       strokeWidth={pending ? 1 : 1.5}
       strokeDasharray={pending ? "3 2" : undefined}
       style={{ transition: "all 0.3s ease" }}

@@ -78,7 +78,7 @@ export function PageContextNavigation({
             }}
             className={
               backLinkClassName ??
-              "inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-4 py-2 text-sm font-bold text-zinc-300 transition-colors hover:border-amber-400/35 hover:text-amber-200"
+              "inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-sm font-bold text-muted-foreground backdrop-blur-sm transition-all hover:border-teal-500/30 hover:bg-card hover:text-teal-600 dark:hover:text-teal-400"
             }
             aria-label={`${resolvedBackLabel} sayfasına dön`}
           >
@@ -93,7 +93,7 @@ export function PageContextNavigation({
           aria-label="Sayfa konumu"
           className={
             breadcrumbsClassName ??
-            "no-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-xs font-bold text-zinc-500"
+            "no-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground"
           }
         >
           {breadcrumbItems.map((item, index) => {
@@ -102,13 +102,13 @@ export function PageContextNavigation({
             return (
               <div key={`${item.href}-${index}`} className="flex items-center gap-2">
                 {isLast ? (
-                  <span className="max-w-[220px] truncate text-zinc-100 md:max-w-xs">{item.title}</span>
+                  <span className="max-w-[220px] truncate text-foreground md:max-w-xs">{item.title}</span>
                 ) : (
-                  <Link href={item.href} className="transition-colors hover:text-amber-200">
+                  <Link href={item.href} className="transition-colors hover:text-teal-600 dark:hover:text-teal-400">
                     {item.title}
                   </Link>
                 )}
-                {!isLast ? <ChevronRight className="h-3 w-3 flex-shrink-0" /> : null}
+                {!isLast ? <ChevronRight className="h-3 w-3 flex-shrink-0 text-muted-foreground/50" /> : null}
               </div>
             );
           })}

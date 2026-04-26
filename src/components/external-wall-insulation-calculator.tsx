@@ -52,7 +52,7 @@ function getStatusClass(status: string) {
     case "Uygun":
       return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200";
     case "Sınırda":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200";
+      return "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-200";
     case "Enerji verimliliği açısından geliştirilebilir":
       return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200";
     default:

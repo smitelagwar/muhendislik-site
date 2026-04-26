@@ -141,7 +141,7 @@ const QUALITY_LABELS = {
 const ISSUE_STYLES = {
   error: "border-rose-300/70 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200",
   warning:
-    "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
+    "border-teal-300/70 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200",
   info: "border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200",
 } as const;
 
@@ -186,7 +186,7 @@ function getBenchmarkStatusClasses(
 ) {
   switch (status) {
     case "high":
-      return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100";
+      return "border-teal-300 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-100";
     case "low":
       return "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100";
     default:
@@ -237,7 +237,7 @@ function getSectionStatusClasses(status: "ready" | "review" | "attention") {
     case "attention":
       return "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100";
     default:
-      return "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100";
+      return "border-teal-300 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-100";
   }
 }
 
@@ -715,7 +715,7 @@ function SummaryPanelContent(props: {
             className={cn(
               "rounded-2xl border px-3 py-2 text-right text-xs font-semibold",
               snapshot.benchmark.status === "high"
-                ? "border-amber-400/40 bg-amber-400/10 text-amber-100"
+                ? "border-teal-400/40 bg-teal-400/10 text-teal-100"
                 : snapshot.benchmark.status === "low"
                   ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100"
                   : "border-sky-400/40 bg-sky-400/10 text-sky-100"
@@ -1513,7 +1513,7 @@ export function ConstructionCostClient() {
                     {getBenchmarkStatusLabel(snapshot.benchmark.status)}
                   </span>
                   {meta?.overrideCount ? (
-                    <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    <span className="rounded-full border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-black text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-100">
                       {meta.overrideCount} özel kalem
                     </span>
                   ) : null}
@@ -1561,8 +1561,8 @@ export function ConstructionCostClient() {
               label: "Resmî benchmark farkı",
               value: formatTL(activeSnapshot.benchmark.delta),
               helper: `${formatYuzde(activeSnapshot.benchmark.deltaPct)} · ${activeSnapshot.benchmark.label}`,
-              accent: activeSnapshot.benchmark.status === "high" ? "border-l-amber-500" : activeSnapshot.benchmark.status === "low" ? "border-l-emerald-500" : "border-l-sky-400",
-              icon: <ShieldCheck className={cn("h-4 w-4", activeSnapshot.benchmark.status === "high" ? "text-amber-500" : activeSnapshot.benchmark.status === "low" ? "text-emerald-500" : "text-sky-400")} />,
+              accent: activeSnapshot.benchmark.status === "high" ? "border-l-teal-500" : activeSnapshot.benchmark.status === "low" ? "border-l-emerald-500" : "border-l-sky-400",
+              icon: <ShieldCheck className={cn("h-4 w-4", activeSnapshot.benchmark.status === "high" ? "text-teal-500" : activeSnapshot.benchmark.status === "low" ? "text-emerald-500" : "text-sky-400")} />,
             },
             {
               label: "Risk bandı",
@@ -1766,7 +1766,7 @@ export function ConstructionCostClient() {
                     <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Müteahhit kârı</span>
                     <span className="rounded-md bg-white px-2 py-1 text-sm font-black text-slate-950 shadow-sm ring-1 ring-slate-200 dark:bg-slate-950 dark:text-white dark:ring-slate-700">%{Math.round(activeScenario.inputs.commercial.contractorMarginRate * 100)}</span>
                   </div>
-                  <input type="range" min={5} max={30} step={1} value={Math.round(activeScenario.inputs.commercial.contractorMarginRate * 100)} onChange={(event) => updateInput("commercial.contractorMarginRate", Number.parseFloat(event.target.value) / 100)} className="h-3 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:ring-4 [&::-webkit-slider-thumb]:ring-slate-950/20 active:[&::-webkit-slider-thumb]:scale-110 active:[&::-webkit-slider-thumb]:duration-200" />
+                  <input type="range" min={5} max={30} step={1} value={Math.round(activeScenario.inputs.commercial.contractorMarginRate * 100)} onChange={(event) => updateInput("commercial.contractorMarginRate", Number.parseFloat(event.target.value) / 100)} className="h-3 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-rose-500 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:ring-4 [&::-webkit-slider-thumb]:ring-slate-950/20 active:[&::-webkit-slider-thumb]:scale-110 active:[&::-webkit-slider-thumb]:duration-200" />
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label><span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-500">KDV oranı</span><NumberField value={activeScenario.inputs.commercial.vatRate * 100} onChange={(value) => updateInput("commercial.vatRate", value / 100)} min={0} max={25} suffix="%" /></label>
@@ -2092,7 +2092,7 @@ export function ConstructionCostClient() {
                 className={cn(
                   "rounded-[1.35rem] border px-4 py-4 text-left text-sm font-black transition",
                   showOverriddenOnly
-                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+                    ? "border-teal-300 bg-teal-50 text-teal-700 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-100"
                     : "border-slate-200 bg-white/75 text-slate-700 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-100"
                 )}
               >
@@ -2155,7 +2155,7 @@ export function ConstructionCostClient() {
                         {group.items.map((item) => {
                           const isEditing = editingItemId === item.id;
                           const dataSourceLabel = item.isOverridden ? "Özel Veri" : (group.id === "direct" || group.id === "indirect") ? "Resmî Motor" : "Çarpan/Tahmin";
-                          const dataSourceColor = item.isOverridden ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300" : (group.id === "direct" || group.id === "indirect") ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300";
+                          const dataSourceColor = item.isOverridden ? "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300" : (group.id === "direct" || group.id === "indirect") ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300";
 
                           return (
                             <div key={item.id} className={cn("relative rounded-2xl border-l-4 border transition-all duration-300", isEditing ? "bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-2 ring-sky-500 scale-[1.02] z-10 dark:bg-slate-900" : "bg-slate-50/80 dark:bg-slate-950/60", GROUP_STYLES[group.id].border, item.isHighImpact && !isEditing && "shadow-md")}>
@@ -2164,7 +2164,7 @@ export function ConstructionCostClient() {
                                   <div className="mb-2 flex flex-wrap items-center gap-2">
                                     <span className={cn("inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em]", GROUP_STYLES[group.id].badge)}>{group.id}</span>
                                     <span className={cn("inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider", dataSourceColor)}>{dataSourceLabel}</span>
-                                    {item.isOverridden ? <span data-testid="construction-line-item-overridden-badge" className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">Override</span> : null}
+                                    {item.isOverridden ? <span data-testid="construction-line-item-overridden-badge" className="inline-flex rounded-full bg-teal-100 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-teal-700 dark:bg-teal-500/20 dark:text-teal-300">Override</span> : null}
                                     {item.isHighImpact && <span className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">Yüksek Etki</span>}
                                   </div>
                                   <p className="text-sm font-black text-slate-950 dark:text-white">{item.label}</p>
@@ -2188,7 +2188,7 @@ export function ConstructionCostClient() {
                                   {!isEditing && (
                                     <div className="mt-3 flex justify-start gap-2 md:justify-end">
                                       <button data-testid="construction-line-item-edit-button" type="button" onClick={() => { setEditingItemId(item.id); setEditingValue(String(Math.round(item.amount))); }} className="rounded-xl bg-white px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-all hover:bg-slate-50 hover:shadow dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-800">Düzenle</button>
-                                      {item.isOverridden ? <button data-testid="construction-line-item-reset-button" type="button" onClick={() => dispatch({ type: "setOverride", scenarioId: activeScenario.id, itemId: item.id, amount: undefined })} className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] font-black text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20">Varsayılana Dön</button> : null}
+                                      {item.isOverridden ? <button data-testid="construction-line-item-reset-button" type="button" onClick={() => dispatch({ type: "setOverride", scenarioId: activeScenario.id, itemId: item.id, amount: undefined })} className="rounded-xl border border-teal-300 bg-teal-50 px-3 py-1.5 text-[11px] font-black text-teal-700 transition-colors hover:bg-teal-100 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-300 dark:hover:bg-teal-500/20">Varsayılana Dön</button> : null}
                                     </div>
                                   )}
                                 </div>

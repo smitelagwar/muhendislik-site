@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Calculator, Home } from "lucide-react";
 import { CalculationsSectionNav } from "@/components/calculations-section-nav";
@@ -33,13 +33,13 @@ export default function HesaplamalarLayout({
         </div>
       </div>
 
-      <div className="border-b border-zinc-200/80 bg-gradient-to-r from-amber-50 via-white to-blue-50 dark:border-zinc-800 dark:from-amber-500/10 dark:via-zinc-950 dark:to-blue-500/10">
+      <div className="border-b border-zinc-200/80 bg-gradient-to-r from-teal-50 via-white to-emerald-50 dark:border-zinc-800 dark:from-teal-500/10 dark:via-zinc-950 dark:to-emerald-500/10">
         <div className="mx-auto flex max-w-screen-2xl items-center gap-3 px-6 py-4 sm:px-10 lg:px-16">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-300">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-300">
             <Calculator className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-600 dark:text-amber-300">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-teal-600 dark:text-teal-300">
               Hesaplama araçları
             </p>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -53,7 +53,3 @@ export default function HesaplamalarLayout({
     </div>
   );
 }
-
-
-
-

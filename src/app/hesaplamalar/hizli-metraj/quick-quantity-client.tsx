@@ -64,7 +64,7 @@ const PDF_DATE_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
 const ISSUE_CLASSES = {
   info: "border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200",
   warning:
-    "border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
+    "border-teal-300/70 bg-teal-50 text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200",
   error:
     "border-rose-300/70 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200",
 } as const;
@@ -75,7 +75,7 @@ const BENCHMARK_CLASSES = {
   beklenen:
     "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200",
   yuksek:
-    "border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
+    "border-teal-300/70 bg-teal-50 text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200",
 } as const;
 
 async function loadQuickQuantityReportingModule() {
@@ -714,7 +714,7 @@ export function QuickQuantityClient() {
         <section className="mb-8 rounded-[34px] border border-zinc-200/80 bg-white/85 p-6 shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/75 md:p-8">
           <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+              <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
                 <Layers3 className="h-4 w-4" />
                 Taşıyıcı sistem ön keşfi
               </div>
@@ -729,10 +729,10 @@ export function QuickQuantityClient() {
               </p>
             </div>
 
-            <div className="rounded-[30px] border border-amber-500/20 bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 p-6 text-white shadow-[0_24px_90px_-50px_rgba(245,158,11,0.55)]">
+            <div className="rounded-[30px] border border-teal-500/20 bg-gradient-to-br from-zinc-950 via-zinc-900 to-teal-950/60 p-6 text-white shadow-[0_24px_90px_-50px_rgba(13, 148, 136,0.55)]">
               <div className="flex h-full flex-col justify-between gap-5">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200/80">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-200/80">
                     Aktif mühendislik profili
                   </p>
                   <h2 className="mt-2 text-2xl font-black tracking-tight">
@@ -747,7 +747,7 @@ export function QuickQuantityClient() {
                     <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-400">
                       Önerilen resmî bant
                     </p>
-                    <p className="mt-2 font-mono text-2xl font-black text-amber-200">
+                    <p className="mt-2 font-mono text-2xl font-black text-teal-200">
                       {preset.officialSelection.grup}-{preset.officialSelection.sinif}
                     </p>
                   </div>
@@ -810,7 +810,7 @@ export function QuickQuantityClient() {
                   Bina tipini ve kaba boyutları girin
                 </h2>
               </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-300">
+              <div className="rounded-2xl bg-teal-500/10 p-3 text-teal-600 dark:text-teal-300">
                 <Calculator className="h-5 w-5" />
               </div>
             </div>
@@ -842,8 +842,8 @@ export function QuickQuantityClient() {
                     className={cn(
                       "rounded-[24px] border p-4 text-left transition-colors",
                       isActive
-                        ? "border-amber-400 bg-amber-50/80 text-zinc-950 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-white"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-amber-300 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:border-zinc-700"
+                        ? "border-teal-400 bg-teal-50/80 text-zinc-950 dark:border-teal-500/50 dark:bg-teal-500/10 dark:text-white"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-teal-300 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:border-zinc-700"
                     )}
                   >
                     <p className="text-sm font-black">{item.shortLabel}</p>
@@ -1256,7 +1256,7 @@ export function QuickQuantityClient() {
                             setPdfError(getPreviewErrorMessage(error));
                           }
                         }}
-                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-amber-300 hover:text-amber-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-amber-200"
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-teal-300 hover:text-teal-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-teal-200"
                       >
                         <FileText className="h-4 w-4" />
                         PDF önizleme
@@ -1279,7 +1279,7 @@ export function QuickQuantityClient() {
                             setPdfError(getPreviewErrorMessage(error));
                           }
                         }}
-                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-amber-300 hover:text-amber-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-amber-200"
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-teal-300 hover:text-teal-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-teal-200"
                       >
                         <Download className="h-4 w-4" />
                         PDF indir
@@ -1299,7 +1299,7 @@ export function QuickQuantityClient() {
                             setPdfError(getPreviewErrorMessage(error));
                           }
                         }}
-                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-amber-300 hover:text-amber-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-amber-200"
+                        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-teal-300 hover:text-teal-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-teal-200"
                       >
                         <Printer className="h-4 w-4" />
                         Yazdır
@@ -1352,8 +1352,8 @@ export function QuickQuantityClient() {
                         {formatSayi(result.yogunlukOzet.kalipM2PerM2, 2)} m²/m²
                       </p>
                     </div>
-                    <div className="rounded-[24px] border border-amber-500/20 bg-amber-50/70 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                    <div className="rounded-[24px] border border-teal-500/20 bg-teal-50/70 p-4 dark:border-teal-500/30 dark:bg-teal-500/10">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
                         Doğrudan taşıyıcı maliyet
                       </p>
                       <p data-testid="hizli-metraj-result-direct-cost" className="mt-3 font-mono text-2xl font-black text-zinc-950 dark:text-white">
@@ -1569,7 +1569,7 @@ export function QuickQuantityClient() {
                       ))}
                     </div>
 
-                    <div className="mt-5 rounded-[24px] border border-amber-300/50 bg-amber-50/70 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <div className="mt-5 rounded-[24px] border border-teal-300/50 bg-teal-50/70 p-4 dark:border-teal-500/30 dark:bg-teal-500/10">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-black text-zinc-950 dark:text-zinc-100">
@@ -1820,7 +1820,7 @@ export function QuickQuantityClient() {
                         <Link
                           href={result.priceBook.sourceUrl}
                           target="_blank"
-                          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-amber-300 hover:text-amber-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-amber-200"
+                          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-teal-300 hover:text-teal-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-teal-200"
                         >
                           YFK Mart 2026 PDF
                           <ArrowRight className="h-4 w-4" />
@@ -1881,7 +1881,7 @@ export function QuickQuantityClient() {
                       <Link
                         data-testid="hizli-metraj-next-step-link"
                         href={buildConstructionCostHref(result)}
-                        className="group rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 transition-all hover:-translate-y-1 hover:border-amber-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                        className="group rounded-[28px] border border-zinc-200 bg-zinc-50 p-5 transition-all hover:-translate-y-1 hover:border-teal-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
                       >
                         <p className="text-sm font-black text-zinc-950 dark:text-zinc-100">
                           İnşaat Maliyeti Analizi
@@ -1889,7 +1889,7 @@ export function QuickQuantityClient() {
                         <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
                           Alan, kat ve resmî sınıf bağlamını taşıyarak senaryo maliyet ekranına geçin.
                         </p>
-                        <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
+                        <div className="mt-4 inline-flex items-center gap-2 text-sm font-black text-teal-700 dark:text-teal-300">
                           Analize git
                           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </div>

@@ -53,8 +53,8 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
 
   return (
     <div className="sticky top-24 overflow-hidden rounded-[28px] border border-zinc-200/80 bg-white/88 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.35)] backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/82 dark:shadow-[0_24px_70px_-42px_rgba(2,8,23,0.78)]">
-      <div className="border-b border-zinc-200/70 bg-gradient-to-r from-amber-100/60 to-blue-100/40 px-6 py-5 dark:border-zinc-800 dark:from-amber-500/10 dark:to-blue-500/10">
-        <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
+      <div className="border-b border-zinc-200/70 bg-gradient-to-r from-teal-100/60 to-blue-100/40 px-6 py-5 dark:border-zinc-800 dark:from-teal-500/10 dark:to-blue-500/10">
+        <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-teal-700 dark:text-teal-300">
           <Building2 className="h-4 w-4" />
           Yatırım Özeti
         </h3>
@@ -69,14 +69,14 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
             <p className="mt-2 text-4xl font-black tabular-nums text-zinc-950 dark:text-white">
               {formatTL(snapshot.anahtarTeslimSatisFiyati)}
             </p>
-            <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-amber-500 shadow-[0_0_18px_rgba(245,158,11,0.55)]" />
+            <div className="absolute left-0 top-0 h-full w-1 rounded-full bg-teal-500 shadow-[0_0_18px_rgba(13, 148, 136,0.55)]" />
           </div>
 
           <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50/85 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/80">
             <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">
               Net İnşaat Maliyeti
             </span>
-            <span className="text-sm font-black tabular-nums text-amber-600 dark:text-amber-300">
+            <span className="text-sm font-black tabular-nums text-teal-600 dark:text-teal-300">
               {formatTL(snapshot.genelToplam)}
             </span>
           </div>
@@ -209,7 +209,7 @@ export function OzetKarti({ snapshot, officialBaseline = null }: Props) {
           </button>
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-zinc-950 transition-colors hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-70"
             onClick={downloadPDF}
             disabled={isExporting}
           >

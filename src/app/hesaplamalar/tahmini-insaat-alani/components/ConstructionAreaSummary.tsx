@@ -54,10 +54,10 @@ function EmptyState() {
   return (
     <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
       <div className="flex items-start gap-3">
-        <Info className="mt-0.5 h-5 w-5 text-emerald-200" />
+        <Info className="mt-0.5 h-5 w-5 text-teal-200" />
         <div>
           <p className="text-lg font-black text-white">Verileri girin</p>
-          <p className="mt-2 text-sm leading-7 text-blue-50/85">
+          <p className="mt-2 text-sm leading-7 text-teal-50/85">
             Geçerli girdiler oluştuğunda tahmini toplam inşaat alanı, emsal dışı artış ve
             bodrum katkısı burada açılacak.
           </p>
@@ -100,9 +100,9 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[22px] border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-400/20 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <Icon className="h-4 w-4 text-blue-100" />
+      <Icon className="h-4 w-4 text-teal-100" />
       {label}
     </button>
   );
@@ -112,25 +112,25 @@ function FooterLinks({ officialCostHref }: { officialCostHref: string }) {
   return (
     <>
       <div className="mt-6 tool-result-inner rounded-[28px] p-5">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
           Sonraki adım
         </p>
         <div className="mt-4 grid gap-3">
           <Link
             href={officialCostHref}
             data-testid="estimated-area-official-link"
-            className="inline-flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/5 px-4 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/20"
+            className="inline-flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/5 px-4 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-400/20"
           >
             <span className="flex items-center gap-3">
-              <Building2 className="h-4 w-4 text-sky-200" />
+              <Building2 className="h-4 w-4 text-teal-200" />
               Resmî birim maliyete geç
             </span>
-            <ArrowRight className="h-4 w-4 text-sky-200" />
+            <ArrowRight className="h-4 w-4 text-teal-200" />
           </Link>
           <Link
             href="/kategori/araclar/imar-hesaplayici"
             data-testid="estimated-area-imar-link"
-            className="inline-flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/5 px-4 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/20"
+            className="inline-flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/5 px-4 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-400/20"
           >
             <span className="flex items-center gap-3">
               <LandPlot className="h-4 w-4 text-emerald-200" />
@@ -141,10 +141,12 @@ function FooterLinks({ officialCostHref }: { officialCostHref: string }) {
         </div>
       </div>
 
-      <div className="mt-6 rounded-[28px] border border-blue-300/20 bg-blue-400/10 p-5">
+      <div className="mt-6 rounded-[28px] border border-teal-300/20 bg-teal-400/10 p-5">
         <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-100" />
-          <p className="text-sm leading-7 text-blue-50/85">
+          <span className="mt-0.5 h-5 w-5 flex-shrink-0">
+            <Info className="h-5 w-5 text-teal-100" />
+          </span>
+          <p className="text-sm leading-7 text-teal-50/85">
             Bu araç, emsalden toplam inşaat alanına geçiş için ön fizibilite üretir. Yerel
             plan notları, yönetmelik istisnaları ve ruhsat projeleri ayrıca doğrulanmalıdır.
           </p>
@@ -179,14 +181,14 @@ export function ConstructionAreaSummary({
     <ResultShell>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-200/80">
             Sonuç özeti
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
             Tahmini toplam inşaat alanı
           </h2>
         </div>
-        <div className="rounded-2xl bg-white/10 p-3 text-blue-200">
+        <div className="rounded-2xl bg-white/10 p-3 text-teal-200">
           <Layers3 className="h-5 w-5" />
         </div>
       </div>
@@ -200,7 +202,7 @@ export function ConstructionAreaSummary({
               "inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]",
               result.status === "ok"
                 ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                : "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                : "border-teal-400/30 bg-teal-500/10 text-teal-100"
             )}
             data-testid="estimated-area-result-status"
           >
@@ -216,7 +218,7 @@ export function ConstructionAreaSummary({
                 {formatSayi(result.yaklasikToplamInsaatAlaniM2, 2)}
               </span>
             </p>
-            <p className="mt-2 text-sm leading-7 text-blue-50/85">
+            <p className="mt-2 text-sm leading-7 text-teal-50/85">
               Emsal alanı, emsal harici tipik büyüme ve bodrum katkısı birlikte hesaba
               katıldı.
             </p>
@@ -227,76 +229,76 @@ export function ConstructionAreaSummary({
               label="Emsal alanı"
               value={formatSayi(result.emsalAreaM2, 2)}
               unit="m²"
-              accentClass="text-sky-200"
+              accentClass="text-teal-200"
               testId="estimated-area-result-emsal"
             />
             <MetricCard
               label="Emsal harici ek alan"
               value={formatSayi(result.emsalHariciEkAlanM2, 2)}
               unit="m²"
-              accentClass="text-amber-100"
+              accentClass="text-teal-100"
               testId="estimated-area-result-non-emsal"
             />
             <MetricCard
               label="Toplam bodrum alanı"
               value={formatSayi(result.toplamBodrumAlanM2, 2)}
               unit="m²"
-              accentClass="text-blue-100"
+              accentClass="text-teal-100"
               testId="estimated-area-result-basement-total"
             />
             <MetricCard
               label="Maksimum taban alanı"
               value={formatSayi(result.maxGroundAreaM2, 2)}
               unit="m²"
-              accentClass="text-blue-100"
+              accentClass="text-teal-100"
               testId="estimated-area-result-taban"
             />
           </div>
 
           <p
-            className="text-sm leading-7 text-blue-50/85"
+            className="text-sm leading-7 text-teal-50/85"
             data-testid="estimated-area-result-status-message"
           >
             {result.statusMessage}
           </p>
 
           <div className="tool-result-inner rounded-[28px] p-5">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
               Hesap özeti
             </p>
-            <div className="mt-4 space-y-3 text-sm text-blue-50/90">
+            <div className="mt-4 space-y-3 text-sm text-teal-50/90">
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                <span className="text-blue-100/70">Kullanım profili</span>
+                <span className="text-teal-100/70">Kullanım profili</span>
                 <span className="font-semibold" data-testid="estimated-area-result-profile">
                   {result.profileLabel}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                <span className="text-blue-100/70">Emsal dışı artış oranı</span>
+                <span className="text-teal-100/70">Emsal dışı artış oranı</span>
                 <span className="font-semibold" data-testid="estimated-area-result-non-emsal-ratio">
                   {formatYuzde(result.emsalHariciEkAlanOrani)}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                <span className="text-blue-100/70">Kat yerleşim kapasitesi</span>
+                <span className="text-teal-100/70">Kat yerleşim kapasitesi</span>
                 <span className="font-semibold" data-testid="estimated-area-result-capacity">
                   {formatSayi(result.katYerlesimKapasitesiM2, 2)} m²
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                <span className="text-blue-100/70">Ortalama gerekli kat alanı</span>
+                <span className="text-teal-100/70">Ortalama gerekli kat alanı</span>
                 <span className="font-semibold">
                   {formatSayi(result.averageRequiredFloorAreaM2, 2)} m² / kat
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
-                <span className="text-blue-100/70">Teorik kat karşılığı</span>
+                <span className="text-teal-100/70">Teorik kat karşılığı</span>
                 <span className="font-semibold" data-testid="estimated-area-result-theoretical-floor">
                   {formatSayi(result.theoreticalFloorEquivalent, 2)}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span className="text-blue-100/70">Bodrum kat alanı kabulü</span>
+                <span className="text-teal-100/70">Bodrum kat alanı kabulü</span>
                 <span className="font-semibold">
                   {formatSayi(result.resolvedBasementFloorAreaM2, 2)} m²
                 </span>
@@ -316,7 +318,7 @@ export function ConstructionAreaSummary({
           </div>
 
           <div className="tool-result-inner rounded-[28px] p-5">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-100/70">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-100/70">
               Rapor işlemleri
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -343,7 +345,7 @@ export function ConstructionAreaSummary({
               />
             </div>
             {exportError ? (
-              <div className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-50">
+              <div className="mt-4 rounded-2xl border border-teal-300/30 bg-teal-500/10 p-4 text-sm leading-6 text-teal-50">
                 {exportError}
               </div>
             ) : null}
@@ -353,7 +355,7 @@ export function ConstructionAreaSummary({
             {result.warnings.map((warning) => (
               <div
                 key={warning.message}
-                className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-4 text-sm leading-6 text-amber-50"
+                className="rounded-2xl border border-teal-300/30 bg-teal-500/10 p-4 text-sm leading-6 text-teal-50"
                 data-testid="estimated-area-warning"
               >
                 {warning.message}
@@ -362,7 +364,7 @@ export function ConstructionAreaSummary({
             {result.notes.map((note) => (
               <div
                 key={note}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-blue-50/85"
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-teal-50/85"
               >
                 {note}
               </div>

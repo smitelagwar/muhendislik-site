@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -92,7 +92,7 @@ export default function ZeminSinifiPage() {
     <div className="min-h-screen bg-gray-950 py-12 px-6">
       <div className="mx-auto max-w-4xl space-y-8">
         <h1 className="flex items-center gap-2 text-3xl font-bold text-gray-100">
-          <span className="h-6 w-2 rounded-full bg-amber-500"></span>
+          <span className="h-6 w-2 rounded-full bg-teal-500"></span>
           Zemin Sınıfı Belirleyici (TBDY 2018)
         </h1>
 
@@ -105,7 +105,7 @@ export default function ZeminSinifiPage() {
               <div className="space-y-2">
                 <label className="text-sm text-gray-400">Değerlendirme Kriteri</label>
                 <Select value={hesapTuru} onValueChange={handleHesapTuruChange}>
-                  <SelectTrigger className="border-gray-800 bg-gray-950 text-gray-100 focus:ring-amber-500">
+                  <SelectTrigger className="border-gray-800 bg-gray-950 text-gray-100 focus:ring-teal-500">
                     <SelectValue placeholder="Seçiniz" />
                   </SelectTrigger>
                   <SelectContent className="border-gray-800 bg-gray-900 text-gray-100">
@@ -141,12 +141,12 @@ export default function ZeminSinifiPage() {
                   type="number"
                   value={deger}
                   onChange={(event) => setDeger(event.target.value === '' ? '' : Number(event.target.value))}
-                  className="border-gray-800 bg-gray-950 text-lg text-gray-100 focus-visible:ring-amber-500"
+                  className="border-gray-800 bg-gray-950 text-lg text-gray-100 focus-visible:ring-teal-500"
                   placeholder="Değeri giriniz..."
                 />
               </div>
 
-              <Button onClick={hesapla} className="w-full bg-amber-600 py-6 font-bold text-white hover:bg-amber-700">
+              <Button onClick={hesapla} className="w-full bg-teal-600 py-6 font-bold text-white hover:bg-teal-700">
                 Zemin Sınıfını Belirle
               </Button>
 
@@ -154,7 +154,7 @@ export default function ZeminSinifiPage() {
                 <div className="border-t border-gray-800 pt-4">
                   <div className={`rounded-lg border p-6 text-center ${sonuc.isRisk ? 'border-red-900 bg-red-950' : 'border-gray-800 bg-gray-950'}`}>
                     <div className="mb-1 text-sm text-gray-400">Tespit Edilen Yerel Zemin Sınıfı</div>
-                    <div className={`mb-2 text-5xl font-extrabold font-mono ${sonuc.isRisk ? 'text-red-500' : 'text-amber-500'}`}>
+                    <div className={`mb-2 text-5xl font-extrabold font-mono ${sonuc.isRisk ? 'text-red-500' : 'text-teal-500'}`}>
                       {sonuc.sinif}
                     </div>
                     <div className="font-medium text-gray-300">{sonuc.aciklama}</div>
@@ -188,7 +188,7 @@ export default function ZeminSinifiPage() {
                   <tbody>
                     {tableData.map((row) => (
                       <tr key={row.s} className={`border-b border-gray-800 ${row.risk ? 'bg-red-950/30' : ''}`}>
-                        <td className={`px-4 py-2 font-mono font-bold ${row.risk ? 'text-red-400' : 'text-amber-500'}`}>{row.s}</td>
+                        <td className={`px-4 py-2 font-mono font-bold ${row.risk ? 'text-red-400' : 'text-teal-500'}`}>{row.s}</td>
                         <td className="px-4 py-2 font-mono text-right text-gray-400">{row.vs}</td>
                         <td className="px-4 py-2 font-mono text-right text-gray-400">{row.spt}</td>
                         <td className="px-4 py-2 font-mono text-right text-gray-400">{row.su}</td>

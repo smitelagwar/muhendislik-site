@@ -1,4 +1,4 @@
-﻿import type { ArticleData } from "./articles-data";
+import type { ArticleData } from "./articles-data";
 import { normalizeSearchValue } from "./search-utils";
 import { TOOLS_HUB_HREF } from "./tools-data";
 
@@ -66,7 +66,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     description: "Donatı, kenetlenme, kolon P-M etkileşimi ve eleman bazlı betonarme tasarım kararları.",
     keywords: ["ts500", "betonarme", "donatı", "kolon", "kiriş", "döşeme", "pas payı"],
     priority: 20,
-    accentClass: "text-blue-600 dark:text-blue-400",
+    accentClass: "text-teal-600 dark:text-teal-400",
     relatedToolHref: "/kategori/araclar/donati-hesabi",
     slugPrefixes: ["ts500-"],
   },
@@ -77,7 +77,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     description: "Kaçış yolları, duman tahliyesi, sprinkler, yangın dayanımı ve özel önlemler.",
     keywords: ["yangın", "bıy", "kaçış", "sprinkler", "duman", "r30", "r60", "r90", "r120"],
     priority: 30,
-    accentClass: "text-amber-600 dark:text-amber-400",
+    accentClass: "text-teal-600 dark:text-teal-400",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["byy-"],
   },
@@ -165,7 +165,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     description: "Boşluk boyutlandırma, sistem seçimi, güvenlik aksesuarları ve deprem davranışı.",
     keywords: ["asansör", "makine dairesiz", "makine daireli", "bakım", "park", "güvenlik aksesuarı"],
     priority: 110,
-    accentClass: "text-amber-700 dark:text-amber-300",
+    accentClass: "text-teal-700 dark:text-teal-300",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["asansor-"],
   },
@@ -176,7 +176,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     description: "Şantiye güvenlik planı, yüksekte çalışma, kazı güvenliği ve elektrik kontrolü.",
     keywords: ["isg", "şantiye", "yüksekte çalışma", "iskele", "kazı", "topraklama", "elektrik"],
     priority: 120,
-    accentClass: "text-yellow-600 dark:text-yellow-400",
+    accentClass: "text-amber-600 dark:text-amber-400",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["isg-"],
   },

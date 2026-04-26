@@ -55,7 +55,7 @@ export function KategoriKarti({
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <span className="text-sm font-black tabular-nums text-amber-600 dark:text-amber-300">
+          <span className="text-sm font-black tabular-nums text-teal-600 dark:text-teal-300">
             {formatTL(result.altToplam)}
           </span>
           <ChevronDown

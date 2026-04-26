@@ -351,7 +351,7 @@ export function BeamSectionCalculator() {
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Görsel kontrol</p>
                 <h2 className={cn(concreteDisplayFont.className, "mt-2 text-2xl font-black tracking-tight text-foreground")}>Enkesit krokisi</h2>
               </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
+              <div className="rounded-2xl bg-teal-500/10 p-3 text-teal-600 dark:text-teal-400">
                 <Ruler className="h-5 w-5" />
               </div>
             </div>

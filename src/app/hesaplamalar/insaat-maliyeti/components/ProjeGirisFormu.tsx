@@ -56,7 +56,7 @@ export function ProjeGirisFormu({
               onClick={() => onApplyPreset(preset.id)}
               className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition-colors ${
                 project.presetId === preset.id
-                  ? "border-amber-500/60 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                  ? "border-teal-500/60 bg-teal-500/10 text-teal-600 dark:text-teal-300"
                   : "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-600"
               }`}
             >
@@ -77,11 +77,11 @@ export function ProjeGirisFormu({
 
       <div className="rounded-[28px] border border-zinc-200/80 bg-white/88 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/75">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-300">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-300">
             <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-amber-600 dark:text-amber-300">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-300">
               Proje Genel Bilgileri
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">

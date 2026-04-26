@@ -30,7 +30,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-500 focus:outline-none w-full";
+const inputCls = "rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-teal-500 focus:outline-none w-full";
 
 function Sel({ id, value, onChange, children }: {
   id: string; value: string; onChange: (v: string) => void; children: React.ReactNode;
@@ -61,7 +61,7 @@ function CheckRow({ id, label, checked, onChange }: {
   return (
     <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2.5">
       <input id={id} type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-zinc-600 accent-amber-500" />
+        className="h-4 w-4 rounded border-zinc-600 accent-teal-500" />
       <span className="text-sm text-zinc-300">{label}</span>
     </label>
   );
@@ -224,13 +224,13 @@ export function DisCepheForm({
           <input type="range" min={0} max={100} step={5}
             value={Math.round(input.kompozitOrani * 100)}
             onChange={e => onChange({ kompozitOrani: parseInt(e.target.value) / 100 })}
-            className="w-full accent-amber-500" />
+            className="w-full accent-teal-500" />
         </Field>
         <Field label={`Boyalı Cephe Oranı (%${Math.round(input.boyaOrani * 100)})`}>
           <input type="range" min={0} max={100} step={5}
             value={Math.round(input.boyaOrani * 100)}
             onChange={e => onChange({ boyaOrani: parseInt(e.target.value) / 100 })}
-            className="w-full accent-amber-500" />
+            className="w-full accent-teal-500" />
         </Field>
         <Field label={`Söve Oranı (otomatik — %${soveOrani})`}>
           <div className="flex items-center h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900/50">

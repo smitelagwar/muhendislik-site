@@ -204,7 +204,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
 const SERIES_DOT_CLASS: Record<DepremSeriesId, string> = {
   tbdy: "bg-red-500",
   ts500: "bg-blue-500",
-  yangin: "bg-amber-500",
+  yangin: "bg-teal-500",
   otopark: "bg-slate-500",
   imar: "bg-emerald-500",
   bep: "bg-lime-500",
@@ -212,7 +212,7 @@ const SERIES_DOT_CLASS: Record<DepremSeriesId, string> = {
   engelsiz: "bg-violet-500",
   eurocode: "bg-indigo-500",
   akustik: "bg-zinc-400",
-  asansor: "bg-amber-600",
+  asansor: "bg-teal-600",
   isg: "bg-yellow-500",
   cevre: "bg-green-500",
 };

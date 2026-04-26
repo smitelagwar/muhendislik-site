@@ -90,7 +90,7 @@ export default function DuzensizlikKontroluPage() {
     <div className="min-h-screen bg-gray-950 py-12 px-6">
       <div className="max-w-5xl mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-gray-100 flex items-center gap-2">
-          <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+          <span className="w-2 h-6 bg-teal-500 rounded-full"></span>
           TBDY 2018 Düzensizlik Kontrolü
         </h1>
 
@@ -103,7 +103,7 @@ export default function DuzensizlikKontroluPage() {
               <CardContent className="space-y-6">
                 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">A1 — Burulma Düzensizliği</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">A1 — Burulma Düzensizliği</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400">Maks. Göreli Öteleme (δi_max)</label>
@@ -117,17 +117,17 @@ export default function DuzensizlikKontroluPage() {
                 </div>
 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">A2 — Döşeme Süreksizliği</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">A2 — Döşeme Süreksizliği</h3>
                   <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                    <input type="checkbox" checked={a2Checkbox} onChange={e => setA2Checkbox(e.target.checked)} className="w-4 h-4 accent-amber-500" />
+                    <input type="checkbox" checked={a2Checkbox} onChange={e => setA2Checkbox(e.target.checked)} className="w-4 h-4 accent-teal-500" />
                     Boşluk alanı {'>'} Brüt kat alanının %33&apos;ü
                   </label>
                 </div>
 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">A3 — Planda Çıkıntılar</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">A3 — Planda Çıkıntılar</h3>
                   <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                    <input type="checkbox" checked={a3Checkbox} onChange={e => setA3Checkbox(e.target.checked)} className="w-4 h-4 accent-amber-500" />
+                    <input type="checkbox" checked={a3Checkbox} onChange={e => setA3Checkbox(e.target.checked)} className="w-4 h-4 accent-teal-500" />
                     Çıkıntı boyutu {'>'} Binanın o yöndeki boyutunun %20&apos;si
                   </label>
                 </div>
@@ -142,7 +142,7 @@ export default function DuzensizlikKontroluPage() {
               <CardContent className="space-y-6">
                 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">B1 — Komşu Kat Rijitlik (Yumuşak Kat)</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">B1 — Komşu Kat Rijitlik (Yumuşak Kat)</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400">i. Kat Rijitliği (ki)</label>
@@ -156,7 +156,7 @@ export default function DuzensizlikKontroluPage() {
                 </div>
 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">B2 — Komşu Kat Dayanım (Zayıf Kat)</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">B2 — Komşu Kat Dayanım (Zayıf Kat)</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400">i. Kat Etkili Kesme Alanı</label>
@@ -170,7 +170,7 @@ export default function DuzensizlikKontroluPage() {
                 </div>
 
                 <div className="space-y-2 border border-gray-800 p-3 rounded bg-gray-950/50">
-                  <h3 className="text-amber-500 font-medium text-sm">B3 — Kütlede Düzensizlik</h3>
+                  <h3 className="text-teal-500 font-medium text-sm">B3 — Kütlede Düzensizlik</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs text-gray-400">i. Kat Kütlesi (mi)</label>
@@ -186,7 +186,7 @@ export default function DuzensizlikKontroluPage() {
               </CardContent>
             </Card>
 
-            <Button onClick={hesapla} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-6">
+            <Button onClick={hesapla} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-6">
               Düzensizlikleri Kontrol Et
             </Button>
           </div>
@@ -202,7 +202,7 @@ export default function DuzensizlikKontroluPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center border-b border-gray-800 pb-2">
                         <span className="text-sm text-gray-300">A1 Burulma (ηbi: {sonuclar.a1.deger ? sonuclar.a1.deger.toFixed(2) : '-'})</span>
-                        <Badge variant="outline" className={sonuclar.a1.kademe === "kritik" ? "bg-red-900/50 text-red-400 border-red-800" : sonuclar.a1.kademe === "orta" ? "bg-amber-900/50 text-amber-400 border-amber-800" : "bg-green-900/50 text-green-400 border-green-800"}>
+                        <Badge variant="outline" className={sonuclar.a1.kademe === "kritik" ? "bg-red-900/50 text-red-400 border-red-800" : sonuclar.a1.kademe === "orta" ? "bg-teal-900/50 text-teal-400 border-teal-800" : "bg-green-900/50 text-green-400 border-green-800"}>
                           {sonuclar.a1.kademe === "kritik" ? "KRİTİK (>1.4)" : sonuclar.a1.kademe === "orta" ? "VAR (>1.2)" : "YOK"}
                         </Badge>
                       </div>
@@ -239,12 +239,12 @@ export default function DuzensizlikKontroluPage() {
                     </div>
 
                     <div className="p-4 bg-gray-950 border border-gray-800 rounded-lg">
-                      <h4 className="text-amber-500 font-bold mb-2">TBDY 2018 Sonuç Önerisi</h4>
+                      <h4 className="text-teal-500 font-bold mb-2">TBDY 2018 Sonuç Önerisi</h4>
                       {sonuclar.genelPlan || sonuclar.genelDusey ? (
                         <div className="text-sm text-gray-300 space-y-2">
                           <p>Binanızda düzensizlik tespit edildi.</p>
                           {sonuclar.a1.kademe === "kritik" && <p className="text-red-400">- A1 Burulma (ηbi &gt; 1.4): Eşdeğer Deprem Yükü Yöntemi kullanılamaz. Dinamik analiz zorunludur.</p>}
-                          {sonuclar.a1.kademe === "orta" && <p className="text-amber-400">- A1 Burulma (1.2 &lt; ηbi ≤ 1.4): A1 düzensizliği var, dış merkezlik etkileri katsayı artırımı yapılarak dikkate alınmalıdır.</p>}
+                          {sonuclar.a1.kademe === "orta" && <p className="text-teal-400">- A1 Burulma (1.2 &lt; ηbi ≤ 1.4): A1 düzensizliği var, dış merkezlik etkileri katsayı artırımı yapılarak dikkate alınmalıdır.</p>}
                           {sonuclar.b1.var && <p className="text-red-400">- B1 Yumuşak Kat durumu mevcut. Dinamik analiz zorunludur.</p>}
                           {sonuclar.b2.var && <p className="text-red-400">- B2 Zayıf Kat (ηci &lt; 0.8) durumunda taşıyıcı sistem rijitliği artırılmalıdır.</p>}
                         </div>

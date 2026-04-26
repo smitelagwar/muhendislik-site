@@ -38,7 +38,7 @@ const BRANCH_META = {
   },
   "kazi-temel": {
     category: "Kazı ve Temel",
-    color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+    color: "bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300",
     image: "/bina-asamalari/hero/kazi-temel.svg",
     theory:
       "Kazı ve temel başlıklarında zemin verisi, su etkisi ve taşıma güvenliği aynı dosyada okunmalıdır. Sahadaki en pahalı sürprizler genellikle bu aşamada ortaya çıkar.",

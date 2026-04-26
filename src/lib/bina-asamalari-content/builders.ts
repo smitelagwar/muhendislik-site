@@ -41,7 +41,7 @@ const BRANCH_META = {
     diagram: "/bina-asamalari/diagrams/proje-hazirlik.svg",
   },
   "kazi-temel": {
-    color: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+    color: "bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300",
     hero: "/bina-asamalari/hero/kazi-temel.svg",
     diagram: "/bina-asamalari/diagrams/kazi-temel.svg",
   },

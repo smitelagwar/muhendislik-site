@@ -37,21 +37,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
 
     const icons: Record<ToastType, ReactNode> = {
-        success: <CheckCircle className="w-5 h-5 text-green-500" />,
+        success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
         error: <XCircle className="w-5 h-5 text-red-500" />,
-        info: <Info className="w-5 h-5 text-blue-500" />,
-        bookmark: <Bookmark className="w-5 h-5 text-amber-500" />,
-        share: <Share2 className="w-5 h-5 text-indigo-500" />,
-        like: <Heart className="w-5 h-5 text-pink-500" />,
+        info: <Info className="w-5 h-5 text-teal-500" />,
+        bookmark: <Bookmark className="w-5 h-5 text-teal-600" />,
+        share: <Share2 className="w-5 h-5 text-sky-500" />,
+        like: <Heart className="w-5 h-5 text-rose-500" />,
     };
 
     const bgColors: Record<ToastType, string> = {
-        success: "border-green-500/30 bg-green-50 dark:bg-green-950/40",
+        success: "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40",
         error: "border-red-500/30 bg-red-50 dark:bg-red-950/40",
-        info: "border-blue-500/30 bg-blue-50 dark:bg-blue-950/40",
-        bookmark: "border-amber-500/30 bg-amber-50 dark:bg-amber-950/40",
-        share: "border-indigo-500/30 bg-indigo-50 dark:bg-indigo-950/40",
-        like: "border-pink-500/30 bg-pink-50 dark:bg-pink-950/40",
+        info: "border-teal-500/30 bg-teal-50 dark:bg-teal-950/40",
+        bookmark: "border-teal-600/30 bg-teal-50 dark:bg-teal-950/40",
+        share: "border-sky-500/30 bg-sky-50 dark:bg-sky-950/40",
+        like: "border-rose-500/30 bg-rose-50 dark:bg-rose-950/40",
     };
 
     return (

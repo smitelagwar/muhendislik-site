@@ -89,7 +89,7 @@ export default function EsdegerDepremYukuPage() {
     <div className="min-h-screen bg-gray-950 py-12 px-6">
       <div className="max-w-5xl mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-gray-100 flex items-center gap-2">
-          <span className="w-2 h-6 bg-amber-500 rounded-full"></span>
+          <span className="w-2 h-6 bg-teal-500 rounded-full"></span>
           Eşdeğer Deprem Yükü Hesabı (TBDY 2018)
         </h1>
 
@@ -102,24 +102,24 @@ export default function EsdegerDepremYukuPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Toplam Ağırlık W (kN)</label>
-                  <Input type="number" value={W || ''} onChange={e => setW(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" value={W || ''} onChange={e => setW(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Bina Yüksekliği HN (m)</label>
-                  <Input type="number" value={HN || ''} onChange={e => setHN(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" value={HN || ''} onChange={e => setHN(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Spektral İvme SaR (g)</label>
-                  <Input type="number" step="0.01" value={SaR || ''} onChange={e => setSaR(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" step="0.01" value={SaR || ''} onChange={e => setSaR(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Kısa Periyot SDS</label>
-                  <Input type="number" step="0.01" value={SDS || ''} onChange={e => setSDS(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" step="0.01" value={SDS || ''} onChange={e => setSDS(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Bina Önem Katsayısı (I)</label>
                   <Select value={I} onValueChange={setI}>
-                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-amber-500">
+                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-teal-500">
                       <SelectValue placeholder="Seçiniz" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
@@ -132,16 +132,16 @@ export default function EsdegerDepremYukuPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Periyot T1 (sn)</label>
-                  <Input type="number" step="0.01" value={T1 || ''} onChange={e => setT1(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" step="0.01" value={T1 || ''} onChange={e => setT1(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Spektrum TB (sn)</label>
-                  <Input type="number" step="0.01" value={TB || ''} onChange={e => setTB(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-amber-500" />
+                  <Input type="number" step="0.01" value={TB || ''} onChange={e => setTB(parseFloat(e.target.value) || 0)} className="bg-gray-950 border-gray-800 text-gray-100 focus-visible:ring-teal-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Davranış Katsayısı (R)</label>
                   <Select value={R} onValueChange={setR}>
-                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-amber-500">
+                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-teal-500">
                       <SelectValue placeholder="Seçiniz" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
@@ -152,7 +152,7 @@ export default function EsdegerDepremYukuPage() {
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Dayanım Fazlalığı (D)</label>
                   <Select value={D} onValueChange={setD}>
-                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-amber-500">
+                    <SelectTrigger className="bg-gray-950 border-gray-800 text-gray-100 focus:ring-teal-500">
                       <SelectValue placeholder="Seçiniz" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-900 border-gray-800 text-gray-100">
@@ -202,7 +202,7 @@ export default function EsdegerDepremYukuPage() {
                 </div>
               </div>
 
-              <Button onClick={hesapla} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-6">
+              <Button onClick={hesapla} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-6">
                 Hesapla
               </Button>
             </CardContent>
@@ -222,7 +222,7 @@ export default function EsdegerDepremYukuPage() {
                     </div>
                     <div className="border-t border-gray-800 pt-3">
                       <div className="text-xs text-gray-500">Toplam Taban Kesme Kuvveti (Vt)</div>
-                      <div className="text-3xl font-mono text-amber-500">{sonuc.Vt.toFixed(2)} kN</div>
+                      <div className="text-3xl font-mono text-teal-500">{sonuc.Vt.toFixed(2)} kN</div>
                       {sonuc.uyari && <p className="text-xs text-red-400 mt-1">{sonuc.uyari}</p>}
                     </div>
                   </div>
@@ -245,7 +245,7 @@ export default function EsdegerDepremYukuPage() {
                               <td className="px-4 py-2 text-gray-300">{kat.id}. Kat</td>
                               <td className="px-4 py-2 text-right text-gray-400 font-mono">{kat.hi}</td>
                               <td className="px-4 py-2 text-right text-gray-400 font-mono">{kat.wi}</td>
-                              <td className="px-4 py-2 text-right text-amber-500 font-mono font-medium">{kat.fi.toFixed(2)}</td>
+                              <td className="px-4 py-2 text-right text-teal-500 font-mono font-medium">{kat.fi.toFixed(2)}</td>
                             </tr>
                           ))}
                         </tbody>

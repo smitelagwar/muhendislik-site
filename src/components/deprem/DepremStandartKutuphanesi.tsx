@@ -115,7 +115,7 @@ export default function DepremStandartKutuphanesi() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-none bg-amber-500/15 text-amber-200">Standart Kütüphanesi</Badge>
+              <Badge className="border-none bg-teal-500/15 text-teal-200">Standart Kütüphanesi</Badge>
               <Badge variant="outline" className="border-zinc-700 text-zinc-300">
                 {STANDARDS.length} hızlı referans
               </Badge>
@@ -145,7 +145,7 @@ export default function DepremStandartKutuphanesi() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {STANDARDS.map((standard) => (
             <Card key={standard.title} className="overflow-hidden border-zinc-800 bg-zinc-900/80 shadow-sm">
-              <div className="h-1 bg-gradient-to-r from-amber-500/60 to-orange-500/40" />
+              <div className="h-1 bg-gradient-to-r from-teal-500/60 to-orange-500/40" />
               <CardHeader className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -181,7 +181,7 @@ export default function DepremStandartKutuphanesi() {
             <Card key={checklist.title} className="border-zinc-800 bg-zinc-900/70 shadow-sm">
               <CardHeader className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
                     <ClipboardList className="h-4 w-4" />
                   </div>
                   <div>
@@ -205,7 +205,7 @@ export default function DepremStandartKutuphanesi() {
         </div>
 
         <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
-          <Shield className="mb-2 h-4 w-4 text-amber-300" />
+          <Shield className="mb-2 h-4 w-4 text-teal-300" />
           Bu kütüphane, proje kararı yerine geçmez. Yönetmelik maddesi, proje verisi ve yerel koşullar birlikte doğrulanmalıdır.
         </div>
       </div>

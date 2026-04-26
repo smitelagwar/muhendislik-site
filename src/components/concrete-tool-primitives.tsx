@@ -11,13 +11,13 @@ type ValueTone = ConcreteStatusTone | "neutral";
 const valueToneClasses: Record<ValueTone, string> = {
   neutral: "text-sky-200 dark:text-sky-200",
   ok: "text-emerald-200 dark:text-emerald-200",
-  warn: "text-amber-200 dark:text-amber-200",
+  warn: "text-teal-200 dark:text-teal-200",
   fail: "text-red-200 dark:text-red-200",
 };
 
 const badgeToneClasses: Record<ConcreteStatusTone, string> = {
   ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  warn: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  warn: "border-teal-500/30 bg-teal-500/10 text-teal-300",
   fail: "border-red-500/30 bg-red-500/10 text-red-300",
 };
 

@@ -63,7 +63,7 @@ export function ContextBackLink({ className }: ContextBackLinkProps) {
       title={metadata.backLabel}
       aria-label={`${metadata.backLabel} sayfasına dön`}
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card transition-colors group-hover:border-amber-400/30 group-hover:bg-amber-500/10">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card transition-colors group-hover:border-teal-400/30 group-hover:bg-teal-500/10">
         <ChevronLeft className="h-4 w-4" />
       </div>
       <span className="hidden text-sm font-bold tracking-wide sm:inline">Geri dön</span>

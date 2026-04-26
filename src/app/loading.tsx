@@ -11,9 +11,9 @@ export default function Loading() {
       <div className="space-y-12 animate-pulse" aria-hidden="true">
         <section className="grid gap-6 lg:grid-cols-12">
           <div className="relative overflow-hidden rounded-[32px] border border-zinc-800 bg-zinc-950 p-6 shadow-2xl shadow-black/20 lg:col-span-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),transparent_35%),linear-gradient(135deg,rgba(24,24,27,0.9),rgba(9,9,11,0.95))]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(13, 148, 136,0.18),transparent_35%),linear-gradient(135deg,rgba(24,24,27,0.9),rgba(9,9,11,0.95))]" />
             <div className="relative space-y-6">
-              <div className="h-4 w-28 rounded-full bg-amber-400/25" />
+              <div className="h-4 w-28 rounded-full bg-teal-400/25" />
               <div className="space-y-3">
                 <div className="h-10 w-11/12 rounded-2xl bg-zinc-800" />
                 <div className="h-10 w-7/12 rounded-2xl bg-zinc-800" />
@@ -61,7 +61,7 @@ export default function Loading() {
               <div key={item} className="grid gap-4 rounded-[28px] border border-zinc-800 bg-zinc-950 p-4 md:grid-cols-[12rem_1fr]">
                 <div className="h-40 rounded-3xl bg-zinc-900 md:h-full" />
                 <div className="space-y-4 py-1">
-                  <div className="h-4 w-24 rounded-full bg-amber-400/20" />
+                  <div className="h-4 w-24 rounded-full bg-teal-400/20" />
                   <div className="space-y-2">
                     <div className="h-6 w-5/6 rounded-full bg-zinc-800" />
                     <div className="h-6 w-2/3 rounded-full bg-zinc-800" />

@@ -118,8 +118,8 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
         {heroArticle ? (
           <section className="grid gap-6 lg:grid-cols-12">
-            <div className="relative overflow-hidden rounded-[36px] border border-amber-500/20 bg-background shadow-[0_36px_120px_-60px_rgba(245,158,11,0.45)] lg:col-span-8">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_34%),radial-gradient(circle_at_right,_rgba(59,130,246,0.14),_transparent_28%)]" />
+            <div className="relative overflow-hidden rounded-[36px] border border-teal-500/20 bg-background shadow-[0_36px_120px_-60px_rgba(13, 148, 136,0.45)] lg:col-span-8">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(13, 148, 136,0.18),_transparent_34%),radial-gradient(circle_at_right,_rgba(59,130,246,0.14),_transparent_28%)]" />
               <div className="grid gap-0 lg:grid-cols-[1.18fr_0.82fr]">
                 <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-[420px]">
                   <Image
@@ -133,7 +133,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                   <div className="absolute inset-0 bg-gradient-to-br from-background via-background/80 to-background/20" />
                   <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">
+                      <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-teal-200">
                         Editör seçimi
                       </span>
                       <Badge variant="outline" className={`${heroArticle.categoryColor} border-none`}>
@@ -142,14 +142,14 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                     </div>
 
                     <div className="max-w-2xl">
-                      <p className="mb-3 text-sm font-semibold text-amber-100/85">Teknik portal, pratik saha akışı ve referans mevzuat</p>
+                      <p className="mb-3 text-sm font-semibold text-teal-100/85">Teknik portal, pratik saha akışı ve referans mevzuat</p>
                       <h1 className="max-w-3xl text-2xl font-black leading-[1.05] tracking-tight text-foreground sm:text-3xl md:text-5xl">
                         {heroArticle.title}
                       </h1>
                       <p className="mt-3 hidden max-w-2xl text-sm leading-7 text-foreground/80 sm:block md:text-base">{heroArticle.description}</p>
                       <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-foreground/80">
                         <span className="inline-flex items-center gap-2">
-                          <Clock3 className="h-4 w-4 text-amber-300" />
+                          <Clock3 className="h-4 w-4 text-teal-300" />
                           {heroArticle.readTime}
                         </span>
                         <span className="h-1 w-1 rounded-full bg-zinc-600" />
@@ -188,7 +188,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                       <div key={stat.label} className="rounded-2xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</p>
-                          <stat.icon className="h-4 w-4 text-amber-300" />
+                          <stat.icon className="h-4 w-4 text-teal-300" />
                         </div>
                         <p className="mt-3 text-2xl font-black text-foreground">{stat.value}</p>
                       </div>
@@ -203,7 +203,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={article.slug}
                   href={`/${article.slug}`}
-                  className="group flex flex-col justify-between rounded-[30px] border border-border bg-card/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_24px_60px_-36px_rgba(245,158,11,0.35)]"
+                  className="group flex flex-col justify-between rounded-[30px] border border-border bg-card/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-teal-400/30 hover:shadow-[0_24px_60px_-36px_rgba(13, 148, 136,0.35)]"
                 >
                   <div>
                     <span className="inline-flex rounded-full border border-border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -220,7 +220,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
 
                   <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
                     <div className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{article.date}</div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-amber-200">
+                    <div className="flex items-center gap-2 text-sm font-bold text-teal-200">
                       Aç
                       <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
@@ -231,10 +231,10 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           </section>
         ) : null}
 
-        <section className="rounded-[36px] border border-amber-500/15 bg-background/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
+        <section className="rounded-[36px] border border-teal-500/15 bg-background/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Bilgi mimarisi</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Bilgi mimarisi</p>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Doğru merkeze tek adımda geçin</h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
@@ -251,11 +251,11 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={path.href}
                   href={path.href}
-                  className="group relative overflow-hidden rounded-[28px] border border-border bg-card/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-card"
+                  className="group relative overflow-hidden rounded-[28px] border border-border bg-card/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-teal-400/30 hover:bg-card"
                 >
-                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(13, 148, 136,0.18),_transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="relative flex items-start justify-between gap-4">
-                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-200">
+                    <div className="rounded-2xl border border-teal-500/20 bg-teal-500/10 p-3 text-teal-200">
                       <Icon className="h-5 w-5" />
                     </div>
                     {count ? (
@@ -268,7 +268,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                     <h3 className="text-lg font-black text-foreground transition-colors group-hover:text-primary">{path.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p>
                   </div>
-                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-amber-200">
+                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-teal-200">
                     Keşfet
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -282,7 +282,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Standart omurgası</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Standart omurgası</p>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Kararları yöneten referans çerçeve</h2>
               </div>
               <p className="max-w-xl text-sm leading-7 text-muted-foreground">
@@ -295,10 +295,10 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={reference.code}
                   href={reference.href}
-                  className="group rounded-[26px] border border-border bg-card/80 p-5 transition-all hover:border-amber-400/30 hover:bg-card"
+                  className="group rounded-[26px] border border-border bg-card/80 p-5 transition-all hover:border-teal-400/30 hover:bg-card"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">
+                    <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-teal-200">
                       {reference.code}
                     </span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
@@ -311,7 +311,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           </div>
 
           <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Operasyon notu</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Operasyon notu</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Hız, doğruluk ve saha okunabilirliği</h2>
             <div className="mt-5 grid gap-4">
               <div className="rounded-2xl border border-border bg-card/80 p-4">
@@ -344,12 +344,12 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           </div>
 
           <aside className="flex flex-col gap-6 lg:w-[32%]">
-            <div className="relative overflow-hidden rounded-[30px] border border-amber-500/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.16),rgba(245,158,11,0.05)),var(--color-card)] p-7 text-foreground shadow-[0_24px_70px_-42px_rgba(245,158,11,0.5)]">
+            <div className="relative overflow-hidden rounded-[30px] border border-teal-500/20 bg-[linear-gradient(180deg,rgba(13, 148, 136,0.16),rgba(13, 148, 136,0.05)),var(--color-card)] p-7 text-foreground shadow-[0_24px_70px_-42px_rgba(13, 148, 136,0.5)]">
               <div className="absolute right-0 top-0 p-4 opacity-10">
                 <FileText className="h-28 w-28" />
               </div>
               <h3 className="relative z-10 text-2xl font-black">İletişim ve iş birliği</h3>
-              <p className="relative z-10 mt-3 text-sm leading-7 text-amber-100/90">
+              <p className="relative z-10 mt-3 text-sm leading-7 text-teal-100/90">
                 Yeni araç önerisi, içerik düzeltmesi veya proje iş birliği için doğrudan ulaşabilirsiniz.
               </p>
               <div className="relative z-10 mt-6 flex flex-col gap-3">
@@ -370,10 +370,10 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
             <div className="rounded-[30px] border border-border bg-card/80 p-7 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Canlı araçlar</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Canlı araçlar</p>
                   <h3 className="mt-2 text-2xl font-black tracking-tight text-foreground">Pratik hesap akışları</h3>
                 </div>
-                <Calculator className="h-5 w-5 text-amber-200" />
+                <Calculator className="h-5 w-5 text-teal-200" />
               </div>
 
               <div className="mt-6 flex flex-col gap-4">
@@ -381,9 +381,9 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                   <Link
                     key={tool.id}
                     href={tool.href}
-                    className="group flex gap-4 rounded-[22px] border border-transparent bg-card/75 p-4 transition-all hover:border-amber-400/25 hover:bg-card"
+                    className="group flex gap-4 rounded-[22px] border border-transparent bg-card/75 p-4 transition-all hover:border-teal-400/25 hover:bg-card"
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-200 transition-all group-hover:scale-[1.02]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-500/20 bg-teal-500/10 text-teal-200 transition-all group-hover:scale-[1.02]">
                       <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
@@ -395,7 +395,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 ))}
               </div>
 
-              <Button asChild variant="ghost" className="mt-6 w-full justify-center text-amber-200 hover:bg-amber-500/10">
+              <Button asChild variant="ghost" className="mt-6 w-full justify-center text-teal-200 hover:bg-teal-500/10">
                 <Link href={TOOLS_HUB_HREF}>
                   Tüm hesap araçları
                 </Link>

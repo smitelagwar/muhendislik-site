@@ -43,7 +43,7 @@ export function ReadingList({ allItems }: ReadingListProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition-all duration-300 hover:scale-110 hover:bg-amber-600 active:scale-95"
+        className="fixed bottom-6 left-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-teal-500 text-white shadow-lg shadow-teal-500/30 transition-all duration-300 hover:scale-110 hover:bg-teal-600 active:scale-95"
         aria-label="Okuma listesi"
         title="Okuma listesi"
       >
@@ -66,7 +66,7 @@ export function ReadingList({ allItems }: ReadingListProps) {
           <div className="fixed right-0 top-0 z-[151] flex h-full w-80 flex-col bg-white shadow-2xl dark:bg-zinc-900">
             <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
               <h2 className="flex items-center gap-2 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                <BookOpen className="h-5 w-5 text-amber-500" />
+                <BookOpen className="h-5 w-5 text-teal-500" />
                 Okuma Listem
               </h2>
               <button

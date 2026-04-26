@@ -36,9 +36,9 @@ export function RouteFeedback({
         aria-labelledby="route-feedback-title"
         className="relative mx-auto max-w-4xl overflow-hidden rounded-[36px] border border-zinc-800 bg-zinc-950 p-6 shadow-2xl shadow-black/25 sm:p-8 md:p-10"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_32%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(13, 148, 136,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_32%)]" />
         <div className="relative">
-          <div className="mb-8 inline-flex rounded-full border border-amber-400/25 bg-amber-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">
+          <div className="mb-8 inline-flex rounded-full border border-teal-400/25 bg-teal-400/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-teal-200">
             {eyebrow}
           </div>
 
