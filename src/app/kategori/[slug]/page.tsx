@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Badge } from "@/components/ui/badge";
-import { type ArticleData, getArticles } from "@/lib/articles-data";
+import { type ArticleData, getArticleList } from "@/lib/articles-data";
 import {
   getSiteSectionById,
   matchesSiteSection,
@@ -337,8 +337,8 @@ export default async function CategoryPage({
     notFound();
   }
 
-  const articlesMap = getArticles();
-  const allArticles = Object.values(articlesMap);
+  const allArticles = getArticleList();
+  const articleOrder = new Map(allArticles.map((article, index) => [article.slug, index] as const));
   const articles = allArticles
     .filter((article) => matchesSiteSection(article, section.id))
     .sort((left, right) => {
@@ -351,7 +351,7 @@ export default async function CategoryPage({
         }
       }
 
-      return allArticles.indexOf(left) - allArticles.indexOf(right);
+      return (articleOrder.get(left.slug) ?? 0) - (articleOrder.get(right.slug) ?? 0);
     });
   const Icon = SECTION_ICONS[section.id];
   const styles = SECTION_STYLES[section.id];

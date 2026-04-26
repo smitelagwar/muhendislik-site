@@ -1,58 +1,36 @@
-import type { Metadata } from "next";
-import { QuickQuantityClient } from "./quick-quantity-client";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
 import { buildSeoMetadata } from "@/lib/seo";
-import { SITE_NAME, resolveSiteUrl } from "@/lib/site-config";
+import { QuickQuantityClient } from "./quick-quantity-client";
 
-export const metadata: Metadata = buildSeoMetadata({
-  title: "Hızlı Metraj Hesaplayıcı",
-  description:
-    "Kat alanı, kat sayısı, deprem talebi, plan kompaktlığı ve bodrum çevre perdesine göre yaklaşık beton, donatı, kalıp ve yardımcı kaba iş metrajını; resmî yaklaşık maliyetle birlikte görün.",
-  pathname: "/hesaplamalar/hizli-metraj",
-  keywords: [
-    "hızlı metraj",
-    "beton metrajı",
-    "donatı tonajı",
-    "kalıp alanı",
-    "ön keşif",
-    "yaklaşık metraj",
-  ],
+const PAGE_TITLE = "Hızlı Metraj Hesaplayıcı";
+const PAGE_DESCRIPTION =
+  "Kat alanı, kat sayısı, deprem talebi, plan kompaktlığı ve bodrum çevre perdesine göre yaklaşık beton, donatı, kalıp ve yardımcı kaba iş metrajını; resmî yaklaşık maliyetle birlikte görün.";
+const PAGE_PATH = "/hesaplamalar/hizli-metraj";
+const PAGE_KEYWORDS = [
+  "hızlı metraj",
+  "beton metrajı",
+  "donatı tonajı",
+  "kalıp alanı",
+  "ön keşif",
+  "yaklaşık metraj",
+];
+
+export const metadata = buildSeoMetadata({
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  pathname: PAGE_PATH,
+  keywords: PAGE_KEYWORDS,
 });
-
-const webApplicationSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "Hızlı Metraj Hesaplayıcı",
-  applicationCategory: "EngineeringApplication",
-  operatingSystem: "Any",
-  inLanguage: "tr-TR",
-  url: resolveSiteUrl("/hesaplamalar/hizli-metraj"),
-  description:
-    "Betonarme bina ön keşfi için yaklaşık beton, donatı, kalıp, yardımcı kaba iş metrajı ve kaba taşıyıcı maliyet bandını hesaplar.",
-  featureList: [
-    "Yaklaşık beton hacmi hesabı",
-    "Yaklaşık donatı tonajı hesabı",
-    "Kalıp alanı ve kaba taşıyıcı maliyet",
-    "Kazı, bohçalama ve drenaj ön keşfi",
-    "Resmî yaklaşık maliyet ile karşılaştırma",
-  ],
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "TRY",
-  },
-  publisher: {
-    "@type": "Organization",
-    name: SITE_NAME,
-    url: resolveSiteUrl("/"),
-  },
-};
 
 export default function HizliMetrajPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationSchema) }}
+      <SoftwareApplicationJsonLd
+        name={PAGE_TITLE}
+        description={PAGE_DESCRIPTION}
+        pathname={PAGE_PATH}
+        keywords={PAGE_KEYWORDS}
+        section={{ title: "Hesaplamalar", href: "/hesaplamalar" }}
       />
       <QuickQuantityClient />
     </>

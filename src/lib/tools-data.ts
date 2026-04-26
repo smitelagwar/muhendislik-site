@@ -83,22 +83,22 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "dis-cephe-yalitim-kalinligi",
-    name: "D\u0131\u015f Cephe Yal\u0131t\u0131m Kal\u0131nl\u0131\u011f\u0131",
+    name: "Dış Cephe Yalıtım Kalınlığı",
     href: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
-    description: "TS 825:2024 mant\u0131\u011f\u0131yla d\u0131\u015f duvar i\u00e7in \u00f6nerilen yal\u0131t\u0131m kal\u0131nl\u0131\u011f\u0131n\u0131 h\u0131zl\u0131ca g\u00f6r\u00fcn.",
+    description: "TS 825:2024 mantığıyla dış duvar için önerilen yalıtım kalınlığını hızlıca görün.",
     iconKey: "insulation",
-    discipline: "Is\u0131 Yal\u0131t\u0131m\u0131",
+    discipline: "Isı Yalıtımı",
     featured: false,
     status: "live",
     order: 7,
   },
   {
     id: "imar-hesaplayici",
-    name: "\u0130mar Hesaplay\u0131c\u0131",
+    name: "İmar Hesaplayıcı",
     href: "/kategori/araclar/imar-hesaplayici",
-    description: "Arsa alan\u0131, TAKS, KAKS ve \u00e7ekme mesafelerine g\u00f6re taban alan\u0131, kat kar\u015f\u0131l\u0131\u011f\u0131 ve yap\u0131la\u015fma \u00f6zetini \u00f6n kontrol edin.",
+    description: "Arsa alanı, TAKS, KAKS ve çekme mesafelerine göre taban alanı, kat karşılığı ve yapılaşma özetini ön kontrol edin.",
     iconKey: "plot",
-    discipline: "\u0130mar",
+    discipline: "İmar",
     featured: false,
     status: "live",
     order: 8,
@@ -123,5 +123,9 @@ export function getLiveTools(): ToolDefinition[] {
 export function getFeaturedTool(): ToolDefinition | null {
   const liveTools = getLiveTools();
   return liveTools.find((tool) => tool.featured) ?? liveTools[0] ?? null;
+}
+
+export function getToolDefinition(id: string): ToolDefinition | undefined {
+  return TOOLS.find((tool) => tool.id === id);
 }
 

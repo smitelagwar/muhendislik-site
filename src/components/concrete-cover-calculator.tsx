@@ -184,7 +184,7 @@ export function ConcreteCoverCalculator() {
                   <p className="text-sm text-zinc-400">{result.status.label}</p>
                 </div>
                 <div className="mt-5 flex flex-wrap items-end gap-3">
-                  <span className={cn(concreteMonoFont.className, "text-5xl font-black text-white md:text-7xl")}>
+                  <span className={cn(concreteMonoFont.className, "text-4xl font-black text-white sm:text-5xl md:text-7xl")}>
                     {formatConcreteNumber(result.nominalCoverMm)}
                   </span>
                   <span className={cn(concreteMonoFont.className, "pb-2 text-lg font-semibold text-sky-200")}>mm</span>
@@ -208,7 +208,7 @@ export function ConcreteCoverCalculator() {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <ConcreteMetricCard label="Bağ koşulu" value={result ? formatConcreteNumber(result.bondMinimumMm) : "-"} unit="mm" />
             <ConcreteMetricCard label="Dayanıklılık" value={result ? formatConcreteNumber(result.durabilityMinimumMm) : "-"} unit="mm" />
             <ConcreteMetricCard label="Pratik uygulama" value={result ? formatConcreteNumber(result.practicalCoverMm) : "-"} unit="mm" />

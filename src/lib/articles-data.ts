@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 import type { SiteSectionId } from "./site-sections";
 
 export interface ArticleData {
@@ -30,24 +30,82 @@ export interface ArticleData {
     }>;
 }
 
-const dataFilePath = path.join(process.cwd(), 'src/lib/data.json');
+interface ArticleCache {
+    signature: string;
+    articles: Record<string, ArticleData>;
+    slugs: string[];
+    list: ArticleData[];
+}
 
-export function getArticles(): Record<string, ArticleData> {
+const dataFilePath = path.join(process.cwd(), "src/lib/data.json");
+
+let articleCache: ArticleCache | null = null;
+
+function getDataFileSignature() {
     try {
-        const fileContent = fs.readFileSync(dataFilePath, 'utf8');
-        return JSON.parse(fileContent);
+        const stats = fs.statSync(dataFilePath);
+        return `${stats.mtimeMs}:${stats.size}`;
     } catch (error) {
-        console.error("Error reading articles data:", error);
-        return {};
+        throw new Error(
+            `Makale veri dosyası bilgisi alınamadı: ${dataFilePath} (${error instanceof Error ? error.message : "bilinmeyen hata"})`,
+        );
     }
 }
 
+function readArticlesFile() {
+    try {
+        return fs.readFileSync(dataFilePath, "utf8");
+    } catch (error) {
+        throw new Error(
+            `Makale veri dosyası okunamadı: ${dataFilePath} (${error instanceof Error ? error.message : "bilinmeyen hata"})`,
+        );
+    }
+}
+
+function parseArticles(fileContent: string) {
+    try {
+        return JSON.parse(fileContent) as Record<string, ArticleData>;
+    } catch (error) {
+        throw new Error(
+            `Makale veri dosyası ayrıştırılamadı: ${dataFilePath} (${error instanceof Error ? error.message : "bilinmeyen hata"})`,
+        );
+    }
+}
+
+function getArticleCache() {
+    const signature = getDataFileSignature();
+
+    if (articleCache?.signature === signature) {
+        return articleCache;
+    }
+
+    const articles = parseArticles(readArticlesFile());
+    articleCache = {
+        signature,
+        articles,
+        slugs: Object.keys(articles),
+        list: Object.values(articles),
+    };
+
+    return articleCache;
+}
+
+export function getArticles(): Record<string, ArticleData> {
+    return getArticleCache().articles;
+}
+
+export function getArticleList(): ArticleData[] {
+    return [...getArticleCache().list];
+}
+
 export function getArticleBySlug(slug: string): ArticleData | undefined {
-    const articles = getArticles();
-    return articles[slug];
+    return getArticleCache().articles[slug];
 }
 
 export function getAllSlugs(): string[] {
-    const articles = getArticles();
-    return Object.keys(articles);
+    return [...getArticleCache().slugs];
+}
+
+export function getArticlesCacheSignature(): string {
+    return getArticleCache().signature;
 }

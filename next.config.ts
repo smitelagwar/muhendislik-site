@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
-const isVercelProduction = process.env.VERCEL_ENV === "production";
-
 const nextConfig: NextConfig = {
+  compress: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "recharts"],
+  },
   images: {
     remotePatterns: [
       {
@@ -19,38 +21,14 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      ...(isVercelProduction
-        ? [
-            {
-              source: "/admin",
-              destination: "/",
-              permanent: false,
-            },
-            {
-              source: "/admin/:path*",
-              destination: "/",
-              permanent: false,
-            },
-          ]
-        : []),
       {
         source: "/araclar",
         destination: "/kategori/araclar",
         permanent: true,
       },
       {
-        source: "/araclar/donati-hesabi",
-        destination: "/kategori/araclar/donati-hesabi",
-        permanent: true,
-      },
-      {
-        source: "/araclar/kolon-on-boyutlandirma",
-        destination: "/kategori/araclar/kolon-on-boyutlandirma",
-        permanent: true,
-      },
-      {
-        source: "/araclar/kalip-sokum-suresi",
-        destination: "/kategori/araclar/kalip-sokum-suresi",
+        source: "/araclar/:path*",
+        destination: "/kategori/araclar/:path*",
         permanent: true,
       },
     ];

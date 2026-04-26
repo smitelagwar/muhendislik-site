@@ -36,33 +36,33 @@
 
 :root {
   --radius: 0.9rem;
-  --background: #f3ede2;
-  --foreground: #19130d;
-  --card: #fff8ed;
-  --card-foreground: #19130d;
-  --popover: #fff8ed;
-  --popover-foreground: #19130d;
+  --background: #fafafa;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
   --primary: #f59e0b;
-  --primary-foreground: #1d1406;
-  --secondary: #e8eef9;
-  --secondary-foreground: #17355c;
-  --muted: #ece2d2;
-  --muted-foreground: #66584a;
-  --accent: #f7dfb6;
-  --accent-foreground: #5f3b00;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #dbc7a6;
-  --input: #dbc7a6;
+  --primary-foreground: #fafafa;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
   --ring: #f59e0b;
   --article-font-size: 17px;
-  --table-surface: #fff8ed;
-  --table-surface-alt: #f7efe2;
-  --table-header: #f5e1bf;
-  --table-border: #d6bf99;
-  --table-hover: #fcebcf;
-  --table-text: #20170d;
-  --table-muted: #6c5d4f;
+  --table-surface: #ffffff;
+  --table-surface-alt: #fafafa;
+  --table-header: #f4f4f5;
+  --table-border: #e4e4e7;
+  --table-hover: #f4f4f5;
+  --table-text: #18181b;
+  --table-muted: #71717a;
 }
 
 .dark {
@@ -101,7 +101,13 @@
 
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 5rem;
+    scroll-padding-top: 4rem;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      scroll-padding-top: 5rem;
+    }
   }
 
   body {
@@ -262,9 +268,9 @@
 .tool-page-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 30%),
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 24%),
-    linear-gradient(180deg, #f8f1e6 0%, #f3e9d9 50%, #f6efe6 100%);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 30%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.05), transparent 24%),
+    linear-gradient(180deg, #fafafa 0%, #f4f4f5 50%, #fafafa 100%);
 }
 
 .dark .tool-page-shell {
@@ -275,19 +281,19 @@
 }
 
 .tool-panel {
-  border: 1px solid rgba(219, 199, 166, 0.82);
-  background: rgba(255, 248, 237, 0.9);
-  box-shadow: 0 22px 70px -38px rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(228, 228, 231, 0.82);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 22px 70px -38px rgba(15, 23, 42, 0.1);
   backdrop-filter: blur(14px);
 }
 
 .tool-hero-panel {
   border: 1px solid rgba(245, 158, 11, 0.26);
   background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(255, 248, 237, 0.96), rgba(250, 243, 232, 0.98));
-  box-shadow: 0 28px 90px -48px rgba(15, 23, 42, 0.34);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 250, 250, 0.98));
+  box-shadow: 0 28px 90px -48px rgba(15, 23, 42, 0.15);
   backdrop-filter: blur(16px);
 }
 
@@ -345,8 +351,8 @@
 
 .tool-input {
   border-radius: 1rem;
-  border-color: rgba(201, 214, 229, 0.9);
-  background: rgba(248, 250, 252, 0.96);
+  border-color: rgba(228, 228, 231, 0.9);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
@@ -363,7 +369,7 @@
 
 .tool-note {
   border: 1px solid rgba(245, 158, 11, 0.22);
-  background: rgba(255, 247, 237, 0.92);
+  background: rgba(254, 252, 232, 0.92);
 }
 
 .dark .tool-note {
@@ -373,8 +379,8 @@
 
 .tool-chip {
   border: 1px solid rgba(245, 158, 11, 0.32);
-  background: rgba(255, 247, 237, 0.9);
-  color: #9a6700;
+  background: rgba(254, 252, 232, 0.9);
+  color: #b45309;
 }
 
 .dark .tool-chip {

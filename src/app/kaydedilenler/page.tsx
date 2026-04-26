@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SavedItemsClient } from "@/components/kaydedilenler/saved-items-client";
-import { getArticles } from "@/lib/articles-data";
+import { getArticleList } from "@/lib/articles-data";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -11,7 +11,7 @@ export const metadata: Metadata = buildSeoMetadata({
 
 export default function SavedItemsPage() {
   const articles = Object.fromEntries(
-    Object.values(getArticles()).map((article) => [
+    getArticleList().map((article) => [
       article.slug,
       {
         slug: article.slug,

@@ -5,7 +5,7 @@ import DepremStandartKutuphanesi from "@/components/deprem/DepremStandartKutupha
 import DepremYonetmelikHub from "@/components/deprem/deprem-yonetmelik-hub";
 import AraclarGrid from "@/components/deprem/AraclarGrid";
 import ReferansTablolar from "@/components/deprem/ReferansTablolar";
-import { getArticles } from "@/lib/articles-data";
+import { getArticleList } from "@/lib/articles-data";
 import {
   buildDepremArticleSummaries,
   DEPREM_SERIES,
@@ -38,7 +38,7 @@ export const metadata: Metadata = buildSeoMetadata({
 });
 
 export default function DepremYonetmelikPage() {
-  const allArticles = Object.values(getArticles());
+  const allArticles = getArticleList();
   const depremArticles = sortDepremArticleSummaries(
     buildDepremArticleSummaries(allArticles.filter((article) => article.sectionId === "deprem-yonetmelik")),
     new Map(allArticles.map((article, index) => [article.slug, index] as const)),

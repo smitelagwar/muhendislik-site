@@ -1,4 +1,4 @@
-import { getArticles } from "./articles-data";
+import { getArticleList } from "./articles-data";
 import { buildDepremArticleSummaries, sortDepremArticleSummaries } from "./deprem-series";
 
 export interface LegacyDepremMakale {
@@ -12,7 +12,7 @@ export interface LegacyDepremMakale {
   resim: string;
 }
 
-const allArticles = Object.values(getArticles());
+const allArticles = getArticleList();
 const depremSummaries = sortDepremArticleSummaries(
   buildDepremArticleSummaries(allArticles.filter((article) => article.sectionId === "deprem-yonetmelik")),
   new Map(allArticles.map((article, index) => [article.slug, index] as const)),
@@ -28,4 +28,3 @@ export const depremMakaleler: LegacyDepremMakale[] = depremSummaries.map((articl
   oneCikar: index < 3,
   resim: article.image,
 }));
-

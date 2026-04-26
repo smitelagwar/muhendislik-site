@@ -13,10 +13,6 @@ import {
   Search,
 } from "lucide-react";
 import {
-  downloadOfficialCostPdf,
-  openOfficialCostPdfPreview,
-} from "@/lib/calculations/reporting";
-import {
   OFFICIAL_COST_GUIDED_CATEGORIES,
   OFFICIAL_UNIT_COST_SOURCE_2026,
   calculateOfficialUnitCost,
@@ -38,6 +34,10 @@ import { formatM2Fiyat, formatTL } from "@/lib/calculations/core";
 import { buildPathWithSearch, normalizeNumberParam, setParamIfMeaningful } from "@/lib/url-state";
 
 const YIL = 2026;
+
+async function loadReportingModule() {
+  return import("@/lib/calculations/reporting");
+}
 
 type SelectionMode = "guided" | "manual";
 type PdfAction = "preview" | "download" | null;
@@ -407,7 +407,7 @@ export function OfficialUnitCostClient() {
     }
   };
 
-  const handlePdfPreview = () => {
+  const handlePdfPreview = async () => {
     if (isBusy) {
       return;
     }
@@ -421,6 +421,7 @@ export function OfficialUnitCostClient() {
     setExportError(null);
 
     try {
+      const { openOfficialCostPdfPreview } = await loadReportingModule();
       openOfficialCostPdfPreview(result);
     } catch (error) {
       console.error("Official cost PDF preview failed", error);
@@ -430,7 +431,7 @@ export function OfficialUnitCostClient() {
     }
   };
 
-  const handlePdfDownload = () => {
+  const handlePdfDownload = async () => {
     if (isBusy) {
       return;
     }
@@ -444,6 +445,7 @@ export function OfficialUnitCostClient() {
     setExportError(null);
 
     try {
+      const { downloadOfficialCostPdf } = await loadReportingModule();
       downloadOfficialCostPdf(result, getOfficialPdfFilename(resolvedSelection));
     } catch (error) {
       console.error("Official cost PDF export failed", error);

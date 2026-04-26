@@ -61,9 +61,9 @@ export function UnitConverter() {
   }, [conversion.factor, inputValue]);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <h3 className="mb-4 flex items-center gap-2 border-b border-zinc-100 pb-3 text-lg font-bold text-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-        <ArrowLeftRight className="h-5 w-5 text-blue-700 dark:text-blue-500" />
+    <div className="rounded-xl border border-border bg-card p-6 shadow-sm text-card-foreground">
+      <h3 className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-lg font-bold">
+        <ArrowLeftRight className="h-5 w-5 text-primary" />
         Birim Dönüştürücü
       </h3>
 
@@ -79,8 +79,8 @@ export function UnitConverter() {
             }}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
               category === item
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
-                : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
             {categoryLabels[item]}
@@ -94,7 +94,7 @@ export function UnitConverter() {
           setSelectedConversion(Number(event.target.value));
           setInputValue("");
         }}
-        className="mb-3 w-full rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-sm text-zinc-700 outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+        className="mb-3 w-full rounded-lg border border-input bg-background p-2 text-sm text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring"
       >
         {conversions[category].map((item, index) => (
           <option key={item.name} value={index}>
@@ -105,19 +105,19 @@ export function UnitConverter() {
 
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{conversion.from}</label>
+          <label className="mb-1 block text-xs text-muted-foreground">{conversion.from}</label>
           <input
             type="number"
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
             placeholder="0"
-            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-sm text-zinc-900 outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background p-2 text-sm text-foreground outline-none focus:border-ring focus:ring-1 focus:ring-ring"
           />
         </div>
-        <ArrowLeftRight className="mt-5 h-4 w-4 flex-shrink-0 text-zinc-400" />
+        <ArrowLeftRight className="mt-5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-zinc-500 dark:text-zinc-400">{conversion.to}</label>
-          <div className="min-h-[38px] w-full rounded-lg border border-blue-200 bg-blue-50 p-2 text-sm font-semibold text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+          <label className="mb-1 block text-xs text-muted-foreground">{conversion.to}</label>
+          <div className="min-h-[38px] w-full rounded-lg border border-accent bg-accent/20 p-2 text-sm font-semibold text-accent-foreground">
             {result || "—"}
           </div>
         </div>

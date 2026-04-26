@@ -1,11 +1,18 @@
 import { BINA_ASAMALARI_ROOT_URL } from "./bina-asamalari";
 import { getAllBinaGuidePaths, getBinaGuideBySlugPath } from "./bina-asamalari-content";
 import { CALCULATIONS_HUB_HREF, getCalculationPages } from "./calculation-pages";
-import { getArticles } from "./articles-data";
+import { getArticleList, getArticlesCacheSignature } from "./articles-data";
 import { SITE_SECTIONS } from "./site-sections";
 import type { SearchIndexItem } from "./search-types";
 import { normalizeSearchValue, stripMarkdownForSearch } from "./search-utils";
 import { getLiveTools, TOOLS_HUB_HREF } from "./tools-data";
+
+interface SearchIndexCache {
+  articlesSignature: string;
+  items: SearchIndexItem[];
+}
+
+let searchIndexCache: SearchIndexCache | null = null;
 
 function resolveHref(value: string): string {
   return value.startsWith("/") ? value : `/${value}`;
@@ -46,7 +53,7 @@ function getArticleSearchContent(content: { title: string; subsections: { title:
 }
 
 function getArticleItems(): SearchIndexItem[] {
-  return Object.values(getArticles()).map((article, index) =>
+  return getArticleList().map((article, index) =>
     createItem({
       id: `article:${article.slug}`,
       href: resolveHref(article.slug),
@@ -185,6 +192,12 @@ function getSectionItems(): SearchIndexItem[] {
 }
 
 export function getSearchIndex(): SearchIndexItem[] {
+  const articlesSignature = getArticlesCacheSignature();
+
+  if (searchIndexCache?.articlesSignature === articlesSignature) {
+    return searchIndexCache.items;
+  }
+
   const items = [
     ...getArticleItems(),
     ...getBinaGuideItems(),
@@ -203,8 +216,15 @@ export function getSearchIndex(): SearchIndexItem[] {
     }
   }
 
-  return [...dedupedItems.values()].sort(
+  const sortedItems = [...dedupedItems.values()].sort(
     (left, right) =>
       right.priority - left.priority || left.title.localeCompare(right.title, "tr-TR"),
   );
+
+  searchIndexCache = {
+    articlesSignature,
+    items: sortedItems,
+  };
+
+  return sortedItems;
 }

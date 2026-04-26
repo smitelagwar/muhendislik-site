@@ -1,13 +1,13 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import http from "http";
 import os from "os";
 import path from "path";
 import next from "next";
 import puppeteer from "puppeteer";
 
-const port = Number(process.argv[2] ?? "3007");
-const baseUrl = `http://127.0.0.1:${port}`;
-const routeUrl = `${baseUrl}/hesaplamalar/tahmini-insaat-alani?mod=detailed&arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut&bodrum=1`;
+const requestedPort = Number(process.argv[2] ?? "0");
+const BUILD_FILES = [".next/BUILD_ID", ".next/server/middleware-manifest.json"];
 const legacyDraftKey = "estimated_construction_area_detailed_draft_v1";
 
 function assert(condition, message) {
@@ -18,6 +18,46 @@ function assert(condition, message) {
 
 function normalizeWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function getBrowserExecutablePath() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  ].filter(Boolean);
+
+  return candidates.find((candidate) => fsSync.existsSync(candidate));
+}
+
+async function wait(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForProductionBuild(timeoutMs = 60000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const ready = await Promise.all(
+      BUILD_FILES.map((file) =>
+        fs
+          .access(path.resolve(process.cwd(), file))
+          .then(() => true)
+          .catch(() => false)
+      )
+    );
+
+    if (ready.every(Boolean)) {
+      return;
+    }
+
+    await wait(500);
+  }
+
+  throw new Error("Production build artifacts were not ready in time.");
 }
 
 async function waitForDownload(downloadDir, timeoutMs = 15000) {
@@ -69,11 +109,15 @@ async function expectPopup(page, clickSelector) {
   return popupPromise;
 }
 
+await waitForProductionBuild();
+const executablePath = getBrowserExecutablePath();
+assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
+
 const app = next({
   dev: false,
   dir: process.cwd(),
   hostname: "127.0.0.1",
-  port,
+  port: requestedPort || 3000,
 });
 
 await app.prepare();
@@ -82,11 +126,18 @@ const handle = app.getRequestHandler();
 const server = http.createServer((request, response) => handle(request, response));
 
 await new Promise((resolve) => {
-  server.listen(port, "127.0.0.1", resolve);
+  server.listen(requestedPort, "127.0.0.1", resolve);
 });
 
 const downloadDir = await fs.mkdtemp(path.join(os.tmpdir(), "estimated-area-download-"));
-const browser = await puppeteer.launch({ headless: true });
+const resolvedPort = server.address()?.port;
+const baseUrl = `http://127.0.0.1:${resolvedPort}`;
+const routeUrl = `${baseUrl}/hesaplamalar/tahmini-insaat-alani?mod=detailed&arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut&bodrum=1`;
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath,
+  args: ["--no-sandbox"],
+});
 const page = await browser.newPage();
 const consoleErrors = [];
 const requestFailures = [];

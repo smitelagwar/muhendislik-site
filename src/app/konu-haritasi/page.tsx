@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, FileText, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getArticles } from "@/lib/articles-data";
+import { getArticleList } from "@/lib/articles-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { resolveSiteUrl } from "@/lib/site-config";
 import { SITE_SECTIONS, matchesSiteSection } from "@/lib/site-sections";
@@ -25,7 +25,7 @@ export const metadata: Metadata = buildSeoMetadata({
 });
 
 export default function TopicMapPage() {
-  const articles = Object.values(getArticles());
+  const articles = getArticleList();
   const tools = getLiveTools();
 
   const treeData = SITE_SECTIONS.map((section) => ({

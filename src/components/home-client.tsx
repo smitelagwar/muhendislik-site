@@ -114,14 +114,14 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
   ];
 
   return (
-    <div className="pb-14">
+    <div className="pb-24">
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
         {heroArticle ? (
           <section className="grid gap-6 lg:grid-cols-12">
-            <div className="relative overflow-hidden rounded-[36px] border border-amber-500/20 bg-zinc-950 shadow-[0_36px_120px_-60px_rgba(245,158,11,0.45)] lg:col-span-8">
+            <div className="relative overflow-hidden rounded-[36px] border border-amber-500/20 bg-background shadow-[0_36px_120px_-60px_rgba(245,158,11,0.45)] lg:col-span-8">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_34%),radial-gradient(circle_at_right,_rgba(59,130,246,0.14),_transparent_28%)]" />
               <div className="grid gap-0 lg:grid-cols-[1.18fr_0.82fr]">
-                <div className="relative min-h-[420px]">
+                <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-[420px]">
                   <Image
                     src={heroArticle.image}
                     alt={heroArticle.title}
@@ -130,7 +130,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                     className="object-cover opacity-45"
                     sizes="(max-width: 1024px) 100vw, 58vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-950/80 to-zinc-950/20" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-background via-background/80 to-background/20" />
                   <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-amber-200">
@@ -143,11 +143,11 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
 
                     <div className="max-w-2xl">
                       <p className="mb-3 text-sm font-semibold text-amber-100/85">Teknik portal, pratik saha akışı ve referans mevzuat</p>
-                      <h1 className="max-w-3xl text-3xl font-black leading-[1.05] tracking-tight text-white md:text-5xl">
+                      <h1 className="max-w-3xl text-2xl font-black leading-[1.05] tracking-tight text-foreground sm:text-3xl md:text-5xl">
                         {heroArticle.title}
                       </h1>
-                      <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">{heroArticle.description}</p>
-                      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-zinc-300">
+                      <p className="mt-3 hidden max-w-2xl text-sm leading-7 text-foreground/80 sm:block md:text-base">{heroArticle.description}</p>
+                      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-foreground/80">
                         <span className="inline-flex items-center gap-2">
                           <Clock3 className="h-4 w-4 text-amber-300" />
                           {heroArticle.readTime}
@@ -159,13 +159,13 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                       </div>
                       <div className="mt-8 flex flex-wrap gap-3">
                         <Button asChild size="lg" className="rounded-full px-7">
-                          <Link href={`/${heroArticle.slug}`} prefetch={false}>
+                          <Link href={`/${heroArticle.slug}`}>
                             Makaleyi aç
                             <ArrowRight className="h-4 w-4" />
                           </Link>
                         </Button>
                         <Button asChild variant="outline" size="lg" className="rounded-full px-7">
-                          <Link href={TOOLS_HUB_HREF} prefetch={false}>
+                          <Link href={TOOLS_HUB_HREF}>
                             Araçlara geç
                           </Link>
                         </Button>
@@ -174,23 +174,23 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between border-t border-zinc-800 bg-zinc-950/90 p-6 lg:border-l lg:border-t-0">
+                <div className="flex flex-col justify-between border-t border-border bg-background/90 p-6 lg:border-l lg:border-t-0">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">Portal özeti</p>
-                    <h2 className="mt-3 text-2xl font-black tracking-tight text-white">Sahada işe yarayan kısa yol</h2>
-                    <p className="mt-3 text-sm leading-7 text-zinc-400">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Portal özeti</p>
+                    <h2 className="mt-3 text-2xl font-black tracking-tight text-foreground">Sahada işe yarayan kısa yol</h2>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
                       İçeriği yalnızca yayın listesi olarak değil, karar vermeyi hızlandıran bir teknik çalışma yüzeyi olarak kurguladık.
                     </p>
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                     {trustStats.map((stat) => (
-                      <div key={stat.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                      <div key={stat.label} className="rounded-2xl border border-border bg-card/80 p-4">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">{stat.label}</p>
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</p>
                           <stat.icon className="h-4 w-4 text-amber-300" />
                         </div>
-                        <p className="mt-3 text-2xl font-black text-white">{stat.value}</p>
+                        <p className="mt-3 text-2xl font-black text-foreground">{stat.value}</p>
                       </div>
                     ))}
                   </div>
@@ -203,24 +203,23 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={article.slug}
                   href={`/${article.slug}`}
-                  prefetch={false}
-                  className="group flex flex-col justify-between rounded-[30px] border border-zinc-800 bg-zinc-950/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_24px_60px_-36px_rgba(245,158,11,0.35)]"
+                  className="group flex flex-col justify-between rounded-[30px] border border-border bg-card/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_24px_60px_-36px_rgba(245,158,11,0.35)]"
                 >
                   <div>
-                    <span className="inline-flex rounded-full border border-zinc-700 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    <span className="inline-flex rounded-full border border-border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                       {index === 0 ? "Öne çıkan" : "Hızlı okuma"}
                     </span>
                     <Badge variant="outline" className={`${article.categoryColor} mt-4 border-none font-bold`}>
                       {article.category}
                     </Badge>
-                    <h2 className="mt-4 text-xl font-black leading-snug text-white transition-colors group-hover:text-amber-200">
+                    <h2 className="mt-4 text-xl font-black leading-snug text-foreground transition-colors group-hover:text-primary">
                       {article.title}
                     </h2>
-                    <p className="mt-3 text-sm leading-7 text-zinc-400">{article.description}</p>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">{article.description}</p>
                   </div>
 
-                  <div className="mt-8 flex items-center justify-between border-t border-zinc-800 pt-4">
-                    <div className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">{article.date}</div>
+                  <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{article.date}</div>
                     <div className="flex items-center gap-2 text-sm font-bold text-amber-200">
                       Aç
                       <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -232,13 +231,13 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           </section>
         ) : null}
 
-        <section className="rounded-[36px] border border-amber-500/15 bg-zinc-950/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
+        <section className="rounded-[36px] border border-amber-500/15 bg-background/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Bilgi mimarisi</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Doğru merkeze tek adımda geçin</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Doğru merkeze tek adımda geçin</h2>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-zinc-400">
+            <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
               Uzun akış içinde kaybolmak yerine, mühendislik kararlarında en sık açılan kümeleri ana sayfada görünür hale getiriyoruz.
             </p>
           </div>
@@ -252,8 +251,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={path.href}
                   href={path.href}
-                  prefetch={false}
-                  className="group relative overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-900/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-zinc-900"
+                  className="group relative overflow-hidden rounded-[28px] border border-border bg-card/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:bg-card"
                 >
                   <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                   <div className="relative flex items-start justify-between gap-4">
@@ -261,14 +259,14 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                       <Icon className="h-5 w-5" />
                     </div>
                     {count ? (
-                      <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">
+                      <span className="rounded-full border border-border bg-card px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
                         {count}
                       </span>
                     ) : null}
                   </div>
                   <div className="relative mt-5">
-                    <h3 className="text-lg font-black text-white transition-colors group-hover:text-amber-200">{path.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-zinc-400">{path.description}</p>
+                    <h3 className="text-lg font-black text-foreground transition-colors group-hover:text-primary">{path.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p>
                   </div>
                   <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-amber-200">
                     Keşfet
@@ -281,13 +279,13 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[32px] border border-zinc-800 bg-zinc-950/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Standart omurgası</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Kararları yöneten referans çerçeve</h2>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Kararları yöneten referans çerçeve</h2>
               </div>
-              <p className="max-w-xl text-sm leading-7 text-zinc-400">
+              <p className="max-w-xl text-sm leading-7 text-muted-foreground">
                 Portal içeriğini yalnızca başlıklarla değil, gerçek proje kararlarında açılan standart kümeleriyle eşliyoruz.
               </p>
             </div>
@@ -297,41 +295,40 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                 <Link
                   key={reference.code}
                   href={reference.href}
-                  prefetch={false}
-                  className="group rounded-[26px] border border-zinc-800 bg-zinc-900/80 p-5 transition-all hover:border-amber-400/30 hover:bg-zinc-900"
+                  className="group rounded-[26px] border border-border bg-card/80 p-5 transition-all hover:border-amber-400/30 hover:bg-card"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-200">
                       {reference.code}
                     </span>
-                    <ArrowRight className="h-4 w-4 text-zinc-500 transition-transform group-hover:translate-x-1 group-hover:text-amber-200" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                   </div>
-                  <h3 className="mt-5 text-lg font-black text-white transition-colors group-hover:text-amber-200">{reference.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-zinc-400">{reference.description}</p>
+                  <h3 className="mt-5 text-lg font-black text-foreground transition-colors group-hover:text-primary">{reference.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">{reference.description}</p>
                 </Link>
               ))}
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-zinc-800 bg-zinc-950/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Operasyon notu</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">Hız, doğruluk ve saha okunabilirliği</h2>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Hız, doğruluk ve saha okunabilirliği</h2>
             <div className="mt-5 grid gap-4">
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
-                <p className="text-sm font-black text-white">Daha hafif ana sayfa</p>
-                <p className="mt-2 text-sm leading-7 text-zinc-400">
+              <div className="rounded-2xl border border-border bg-card/80 p-4">
+                <p className="text-sm font-black text-foreground">Daha hafif ana sayfa</p>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">
                   Etkileşim gerektirmeyen bloklar server tarafında işlendi; filtreli akış ayrı istemci parçasına ayrıldı.
                 </p>
               </div>
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
-                <p className="text-sm font-black text-white">Türkçe ve mühendislik dili</p>
-                <p className="mt-2 text-sm leading-7 text-zinc-400">
+              <div className="rounded-2xl border border-border bg-card/80 p-4">
+                <p className="text-sm font-black text-foreground">Türkçe ve mühendislik dili</p>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">
                   Ana kabukta görünen metinler ve gezinme yüzeyleri daha net, daha tutarlı ve daha az kırılgan hale getirildi.
                 </p>
               </div>
-              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
-                <p className="text-sm font-black text-white">Mobil odaklı gezinme</p>
-                <p className="mt-2 text-sm leading-7 text-zinc-400">
+              <div className="rounded-2xl border border-border bg-card/80 p-4">
+                <p className="text-sm font-black text-foreground">Mobil odaklı gezinme</p>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">
                   Büyük kartlar, görünür filtre etiketleri ve kontrastlı aksiyon yüzeyleriyle mobil kullanım kolaylaştırıldı.
                 </p>
               </div>
@@ -347,7 +344,7 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
           </div>
 
           <aside className="flex flex-col gap-6 lg:w-[32%]">
-            <div className="relative overflow-hidden rounded-[30px] border border-amber-500/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.16),rgba(245,158,11,0.05)),linear-gradient(180deg,#1a1204,#100d08)] p-7 text-white shadow-[0_24px_70px_-42px_rgba(245,158,11,0.5)]">
+            <div className="relative overflow-hidden rounded-[30px] border border-amber-500/20 bg-[linear-gradient(180deg,rgba(245,158,11,0.16),rgba(245,158,11,0.05)),var(--color-card)] p-7 text-foreground shadow-[0_24px_70px_-42px_rgba(245,158,11,0.5)]">
               <div className="absolute right-0 top-0 p-4 opacity-10">
                 <FileText className="h-28 w-28" />
               </div>
@@ -363,18 +360,18 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                   </a>
                 </Button>
                 <Button asChild variant="outline" className="h-12 w-full justify-center rounded-full">
-                  <Link href="/iletisim" prefetch={false}>
+                  <Link href="/iletisim">
                     İletişim sayfasını aç
                   </Link>
                 </Button>
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-zinc-800 bg-zinc-950/80 p-7 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
+            <div className="rounded-[30px] border border-border bg-card/80 p-7 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">Canlı araçlar</p>
-                  <h3 className="mt-2 text-2xl font-black tracking-tight text-white">Pratik hesap akışları</h3>
+                  <h3 className="mt-2 text-2xl font-black tracking-tight text-foreground">Pratik hesap akışları</h3>
                 </div>
                 <Calculator className="h-5 w-5 text-amber-200" />
               </div>
@@ -384,23 +381,22 @@ export default function HomeClient({ allArticles }: { allArticles: HomeArticle[]
                   <Link
                     key={tool.id}
                     href={tool.href}
-                    prefetch={false}
-                    className="group flex gap-4 rounded-[22px] border border-transparent bg-zinc-900/75 p-4 transition-all hover:border-amber-400/25 hover:bg-zinc-900"
+                    className="group flex gap-4 rounded-[22px] border border-transparent bg-card/75 p-4 transition-all hover:border-amber-400/25 hover:bg-card"
                   >
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-200 transition-all group-hover:scale-[1.02]">
                       <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-zinc-100 transition-colors group-hover:text-amber-200">{tool.name}</h4>
-                      <p className="mt-1 text-xs leading-6 text-zinc-400">{tool.description}</p>
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">{tool.discipline}</p>
+                      <h4 className="font-bold text-foreground transition-colors group-hover:text-primary">{tool.name}</h4>
+                      <p className="mt-1 text-xs leading-6 text-muted-foreground">{tool.description}</p>
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{tool.discipline}</p>
                     </div>
                   </Link>
                 ))}
               </div>
 
               <Button asChild variant="ghost" className="mt-6 w-full justify-center text-amber-200 hover:bg-amber-500/10">
-                <Link href={TOOLS_HUB_HREF} prefetch={false}>
+                <Link href={TOOLS_HUB_HREF}>
                   Tüm hesap araçları
                 </Link>
               </Button>

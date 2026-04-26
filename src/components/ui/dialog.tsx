@@ -51,7 +51,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_32px_100px_-40px_rgba(15,23,42,0.65)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none dark:border-zinc-800 dark:bg-zinc-950 sm:p-7",
+          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 gap-4 rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_32px_100px_-40px_rgba(15,23,42,0.65)] duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none dark:border-border dark:bg-background sm:p-7",
           className,
         )}
         {...props}
@@ -59,7 +59,7 @@ function DialogContent({
         {children}
         {showCloseButton ? (
           <DialogPrimitive.Close
-            className="absolute right-4 top-4 rounded-full border border-zinc-200 bg-white p-2 text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-cyan-500/40 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="absolute right-4 top-4 rounded-full border border-zinc-200 bg-white p-2 text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-cyan-500/40 outline-none dark:border-border dark:bg-background dark:text-muted-foreground dark:hover:text-zinc-100"
             aria-label="Pencereyi kapat"
           >
             <XIcon className="h-4 w-4" />
@@ -97,7 +97,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-2xl font-black tracking-tight text-zinc-950 dark:text-white", className)}
+      className={cn("text-2xl font-black tracking-tight text-foreground", className)}
       {...props}
     />
   );
@@ -110,7 +110,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-sm leading-6 text-zinc-600 dark:text-zinc-400", className)}
+      className={cn("text-sm leading-6 text-muted-foreground", className)}
       {...props}
     />
   );

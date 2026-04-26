@@ -1,14 +1,29 @@
-import type { Metadata } from "next";
 import SlabThicknessPage from "@/app/araclar/doseme-kalinligi/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Döşeme Kalınlığı",
-  description: "Açıklık-kalınlık oranı, minimum döşeme kalınlığı ve minimum donatı aralığını hızlıca kontrol edin.",
-  alternates: {
-    canonical: "/kategori/araclar/doseme-kalinligi",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/doseme-kalinligi";
+const seo = TOOL_PAGE_SEO["doseme-kalinligi"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function CategorySlabThicknessPage() {
-  return <SlabThicknessPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <SlabThicknessPage />
+    </>
+  );
 }

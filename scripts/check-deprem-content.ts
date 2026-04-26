@@ -1,11 +1,11 @@
-import { getArticles } from "../src/lib/articles-data";
+import { getArticleList } from "../src/lib/articles-data";
 import {
   DEPREM_SERIES,
   getDepremSeriesIdForArticle,
   type DepremSeriesId,
 } from "../src/lib/deprem-series";
 
-const articles = Object.values(getArticles());
+const articles = getArticleList();
 const depremArticles = articles.filter((article) => article.sectionId === "deprem-yonetmelik");
 
 const structuralErrors: string[] = [];

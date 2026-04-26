@@ -32,7 +32,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200 bg-white/80 pb-safe shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.1)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/80 dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.5)] md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200 bg-white/80 pb-safe shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.1)] backdrop-blur-xl dark:border-border dark:bg-background/80 dark:shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.5)] md:hidden">
       <nav className="flex items-center justify-around px-2 py-3">
         {navItems.map((item) => {
           if ("action" in item && item.action === "search") {
@@ -41,7 +41,9 @@ export function BottomNav() {
                 key={item.id}
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
-                className="flex min-w-[4rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 font-medium text-zinc-500 transition-all hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                aria-haspopup="dialog"
+                aria-controls="command-palette-dialog"
+                className="flex min-w-[4rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 font-medium text-zinc-500 transition-all hover:text-zinc-900 dark:text-muted-foreground dark:hover:text-zinc-100"
               >
                 {item.icon}
                 <span className="text-center text-[10px] leading-none">{item.label}</span>
@@ -61,7 +63,7 @@ export function BottomNav() {
               className={`flex min-w-[4rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 transition-all ${
                 isActive
                   ? "scale-110 font-bold text-blue-600 dark:text-blue-500"
-                  : "font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  : "font-medium text-zinc-500 hover:text-zinc-900 dark:text-muted-foreground dark:hover:text-zinc-100"
               }`}
             >
               {item.icon}

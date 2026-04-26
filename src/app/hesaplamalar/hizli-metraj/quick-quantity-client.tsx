@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState, type SetStateAction } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
@@ -18,11 +18,6 @@ import {
   formatTL,
   formatYuzde,
 } from "@/lib/calculations/core";
-import {
-  downloadQuickQuantityPdf,
-  openQuickQuantityPdfPreview,
-  printQuickQuantityPdf,
-} from "@/lib/calculations/reporting";
 import {
   QUICK_QUANTITY_FOUNDATION_OPTIONS,
   QUICK_QUANTITY_PLAN_OPTIONS,
@@ -82,6 +77,10 @@ const BENCHMARK_CLASSES = {
   yuksek:
     "border-amber-300/70 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
 } as const;
+
+async function loadQuickQuantityReportingModule() {
+  return import("@/lib/calculations/modules/hizli-metraj/reporting");
+}
 
 function parseDecimal(value: string): number | null {
   const normalized = value.trim().replace(",", ".");
@@ -402,6 +401,29 @@ function buildQueryString(form: QuickQuantityFormState): string {
   return params.toString();
 }
 
+function normalizeFormState(form: QuickQuantityFormState): QuickQuantityFormState {
+  const nextForm = { ...form };
+  const classOptions = getOfficialCostClasses(
+    YEAR,
+    nextForm.resmiGrup as OfficialCostSelection["grup"]
+  );
+
+  if (
+    classOptions.length > 0 &&
+    !classOptions.includes(nextForm.resmiSinif as OfficialCostSelection["sinif"])
+  ) {
+    nextForm.resmiSinif = classOptions[0];
+  }
+
+  const bodrumKatSayisi = parseNonNegativeInteger(nextForm.bodrumKatSayisi) ?? 0;
+  if (bodrumKatSayisi === 0) {
+    nextForm.bodrumCevrePerdesi = "yok";
+    nextForm.bodrumKatAlaniM2 = "";
+  }
+
+  return nextForm;
+}
+
 function getPdfFilename(result: QuickQuantityResult) {
   const roundedArea = Math.round(result.toplamInsaatAlaniM2);
   return `hizli-metraj-${result.preset.id}-${roundedArea}m2.pdf`;
@@ -592,7 +614,9 @@ export function QuickQuantityClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [form, setForm] = useState<QuickQuantityFormState>(() => parseInitialForm(searchParams));
+  const [form, setForm] = useState<QuickQuantityFormState>(() =>
+    normalizeFormState(parseInitialForm(searchParams))
+  );
   const [pdfError, setPdfError] = useState<string | null>(null);
 
   const groupOptions = useMemo(() => getOfficialCostGroups(YEAR), []);
@@ -600,12 +624,6 @@ export function QuickQuantityClient() {
     () => getOfficialCostClasses(YEAR, form.resmiGrup as OfficialCostSelection["grup"]),
     [form.resmiGrup]
   );
-
-  useEffect(() => {
-    if (!classOptions.includes(form.resmiSinif as OfficialCostSelection["sinif"])) {
-      setForm((current) => ({ ...current, resmiSinif: classOptions[0] }));
-    }
-  }, [classOptions, form.resmiSinif]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -665,24 +683,6 @@ export function QuickQuantityClient() {
     form.tipikAciklik
   );
 
-  useEffect(() => {
-    if (bodrumAktif) {
-      return;
-    }
-
-    setForm((current) => {
-      if (current.bodrumCevrePerdesi === "yok" && current.bodrumKatAlaniM2 === "") {
-        return current;
-      }
-
-      return {
-        ...current,
-        bodrumCevrePerdesi: "yok",
-        bodrumKatAlaniM2: "",
-      };
-    });
-  }, [bodrumAktif]);
-
   const resultError =
     parsed.error ??
     (!supportedOfficialSelection
@@ -690,11 +690,22 @@ export function QuickQuantityClient() {
       : null) ??
     (!result ? "Geçerli bir metraj sonucu üretilemedi." : null);
 
+  const setNormalizedForm = (updater: SetStateAction<QuickQuantityFormState>) => {
+    setForm((current) => {
+      const nextForm =
+        typeof updater === "function"
+          ? (updater as (currentState: QuickQuantityFormState) => QuickQuantityFormState)(current)
+          : updater;
+
+      return normalizeFormState(nextForm);
+    });
+  };
+
   const updateField = <K extends keyof QuickQuantityFormState>(
     key: K,
     value: QuickQuantityFormState[K]
   ) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setNormalizedForm((current) => ({ ...current, [key]: value }));
   };
 
   return (
@@ -813,7 +824,7 @@ export function QuickQuantityClient() {
                     type="button"
                     data-testid={`hizli-metraj-arketip-${item.id}`}
                     onClick={() =>
-                      setForm((current) => ({
+                      setNormalizedForm((current) => ({
                         ...current,
                         yapiArketipi: item.id,
                         tasiyiciSistem: item.defaultStructuralSystem,
@@ -1127,7 +1138,7 @@ export function QuickQuantityClient() {
                       checked={form.resmiSinifOverride}
                       onChange={(event) => {
                         const checked = event.target.checked;
-                        setForm((current) => ({
+                        setNormalizedForm((current) => ({
                           ...current,
                           resmiSinifOverride: checked,
                           resmiGrup: checked ? current.resmiGrup : preset.officialSelection.grup,
@@ -1233,9 +1244,10 @@ export function QuickQuantityClient() {
                       <button
                         type="button"
                         data-testid="hizli-metraj-pdf-preview-button"
-                        onClick={() => {
+                        onClick={async () => {
                           setPdfError(null);
                           try {
+                            const { openQuickQuantityPdfPreview } = await loadQuickQuantityReportingModule();
                             openQuickQuantityPdfPreview({
                               result,
                               formattedDate: PDF_DATE_FORMATTER.format(new Date()),
@@ -1252,14 +1264,20 @@ export function QuickQuantityClient() {
                       <button
                         type="button"
                         data-testid="hizli-metraj-pdf-download-button"
-                        onClick={() => {
-                          downloadQuickQuantityPdf(
-                            {
-                              result,
-                              formattedDate: PDF_DATE_FORMATTER.format(new Date()),
-                            },
-                            getPdfFilename(result)
-                          );
+                        onClick={async () => {
+                          setPdfError(null);
+                          try {
+                            const { downloadQuickQuantityPdf } = await loadQuickQuantityReportingModule();
+                            downloadQuickQuantityPdf(
+                              {
+                                result,
+                                formattedDate: PDF_DATE_FORMATTER.format(new Date()),
+                              },
+                              getPdfFilename(result)
+                            );
+                          } catch (error) {
+                            setPdfError(getPreviewErrorMessage(error));
+                          }
                         }}
                         className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-black text-zinc-700 transition-colors hover:border-amber-300 hover:text-amber-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-700 dark:hover:text-amber-200"
                       >
@@ -1269,9 +1287,10 @@ export function QuickQuantityClient() {
                       <button
                         type="button"
                         data-testid="hizli-metraj-pdf-print-button"
-                        onClick={() => {
+                        onClick={async () => {
                           setPdfError(null);
                           try {
+                            const { printQuickQuantityPdf } = await loadQuickQuantityReportingModule();
                             printQuickQuantityPdf({
                               result,
                               formattedDate: PDF_DATE_FORMATTER.format(new Date()),

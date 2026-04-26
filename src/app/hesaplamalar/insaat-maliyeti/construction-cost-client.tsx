@@ -61,11 +61,6 @@ import {
   type ScenarioCollection,
   type ScenarioState,
 } from "@/lib/calculations/modules/insaat-maliyeti-v2";
-import {
-  downloadConstructionCostPdf,
-  openConstructionCostPdfPreview,
-  printConstructionCostPdf,
-} from "@/lib/calculations/reporting";
 import { buildPathWithSearch } from "@/lib/url-state";
 
 type BusyAction =
@@ -131,6 +126,10 @@ const STRUCTURE_LABELS = {
 
 const CONSTRUCTION_COST_ROUTE = "/hesaplamalar/insaat-maliyeti";
 const CONSTRUCTION_COST_DRAFT_KEY = "muhendislik-site:construction-cost-draft-v2";
+
+async function loadReportingModule() {
+  return import("@/lib/calculations/reporting");
+}
 
 const QUALITY_LABELS = {
   ekonomik: "Ekonomik",
@@ -1225,10 +1224,11 @@ export function ConstructionCostClient() {
     dispatch({ type: "updateInput", scenarioId: activeScenario.id, path, value });
   };
 
-  const handlePdfPreview = () => {
+  const handlePdfPreview = async () => {
     try {
       setBusyAction("preview");
       setExportError(null);
+      const { openConstructionCostPdfPreview } = await loadReportingModule();
       openConstructionCostPdfPreview(buildConstructionCostPdfSnapshot(report));
       recordAction("preview", `${activeSnapshot.scenarioName} için PDF önizleme açıldı.`, "PDF önizleme hazır.");
     } catch (error) {
@@ -1238,10 +1238,11 @@ export function ConstructionCostClient() {
     }
   };
 
-  const handlePdfDownload = () => {
+  const handlePdfDownload = async () => {
     try {
       setBusyAction("download");
       setExportError(null);
+      const { downloadConstructionCostPdf } = await loadReportingModule();
       downloadConstructionCostPdf(buildConstructionCostPdfSnapshot(report), getPdfFilename(activeSnapshot));
       recordAction("download", `${getPdfFilename(activeSnapshot)} indirildi.`, "PDF indirildi.");
     } catch (error) {
@@ -1251,10 +1252,11 @@ export function ConstructionCostClient() {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
       setBusyAction("print");
       setExportError(null);
+      const { printConstructionCostPdf } = await loadReportingModule();
       printConstructionCostPdf(buildConstructionCostPdfSnapshot(report));
       recordAction("print", `${activeSnapshot.scenarioName} için yazdırma akışı başlatıldı.`, "Yazdırma penceresi açıldı.");
     } catch (error) {

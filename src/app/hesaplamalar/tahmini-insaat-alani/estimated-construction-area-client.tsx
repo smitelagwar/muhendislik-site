@@ -14,9 +14,6 @@ import type {
 } from "@/lib/calculations/modules/tahmini-insaat-alani/types";
 import {
   type EstimatedConstructionAreaPdfSnapshot,
-  downloadEstimatedConstructionAreaPdf,
-  openEstimatedConstructionAreaPdfPreview,
-  printEstimatedConstructionAreaPdf,
 } from "@/lib/calculations/reporting";
 import { buildPathWithSearch, normalizeNumberParam, setParamIfMeaningful } from "@/lib/url-state";
 import {
@@ -32,6 +29,10 @@ const PDF_DATE_FORMATTER = new Intl.DateTimeFormat("tr-TR", {
   month: "long",
   year: "numeric",
 });
+
+async function loadReportingModule() {
+  return import("@/lib/calculations/reporting");
+}
 
 function parseDecimal(value: string): number | null {
   const normalized = value.trim().replace(",", ".");
@@ -292,7 +293,7 @@ export function EstimatedConstructionAreaClient() {
 
   const isBusy = activePdfAction !== null;
 
-  const handlePdfPreview = () => {
+  const handlePdfPreview = async () => {
     if (isBusy) {
       return;
     }
@@ -306,6 +307,7 @@ export function EstimatedConstructionAreaClient() {
     setExportError(null);
 
     try {
+      const { openEstimatedConstructionAreaPdfPreview } = await loadReportingModule();
       openEstimatedConstructionAreaPdfPreview(pdfSnapshot);
     } catch (previewError) {
       console.error("Estimated area PDF preview failed", previewError);
@@ -315,7 +317,7 @@ export function EstimatedConstructionAreaClient() {
     }
   };
 
-  const handlePdfDownload = () => {
+  const handlePdfDownload = async () => {
     if (isBusy) {
       return;
     }
@@ -329,10 +331,8 @@ export function EstimatedConstructionAreaClient() {
     setExportError(null);
 
     try {
-      downloadEstimatedConstructionAreaPdf(
-        pdfSnapshot,
-        getEstimatedAreaPdfFilename(pdfSnapshot)
-      );
+      const { downloadEstimatedConstructionAreaPdf } = await loadReportingModule();
+      downloadEstimatedConstructionAreaPdf(pdfSnapshot, getEstimatedAreaPdfFilename(pdfSnapshot));
     } catch (downloadError) {
       console.error("Estimated area PDF download failed", downloadError);
       setExportError("PDF raporu oluşturulamadı. Lütfen tekrar deneyin.");
@@ -341,7 +341,7 @@ export function EstimatedConstructionAreaClient() {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (isBusy) {
       return;
     }
@@ -355,6 +355,7 @@ export function EstimatedConstructionAreaClient() {
     setExportError(null);
 
     try {
+      const { printEstimatedConstructionAreaPdf } = await loadReportingModule();
       printEstimatedConstructionAreaPdf(pdfSnapshot);
     } catch (printError) {
       console.error("Estimated area PDF print failed", printError);

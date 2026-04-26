@@ -108,17 +108,17 @@ export function ExternalWallInsulationCalculator() {
         <PageContextNavigation
           showBreadcrumbs={false}
           className="mb-8"
-          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-cyan-900"
+          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700 dark:border-border dark:bg-background/70 dark:text-muted-foreground dark:hover:border-cyan-900"
         />
 
         <div className="mb-10 max-w-3xl">
           <Badge className="mb-4 rounded-full bg-cyan-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-200">
             Isı yalıtımı aracı
           </Badge>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white md:text-5xl">
+          <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
             Bölgesel dış cephe yalıtım kalınlığı önerici
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
             TS 825:2024 mantığıyla il, gerekiyorsa ilçe, duvar tipi ve yalıtım malzemesine göre dış cephe için hızlı ön
             tasarım önerisi alın.
           </p>
@@ -129,7 +129,7 @@ export function ExternalWallInsulationCalculator() {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Girdi bilgileri</p>
-                <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Konum ve duvar kurgusu</h2>
+                <h2 className="mt-2 text-2xl font-black text-foreground">Konum ve duvar kurgusu</h2>
               </div>
               <div className="flex items-center gap-3">
                 <Dialog>
@@ -138,7 +138,7 @@ export function ExternalWallInsulationCalculator() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="rounded-full border-zinc-200 bg-white/80 px-4 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-200"
+                      className="rounded-full border-zinc-200 bg-white/80 px-4 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-700 dark:border-border dark:bg-card/70 dark:text-zinc-200"
                     >
                       <Info className="h-3.5 w-3.5" />
                       Yönetmelik kuralları
@@ -157,12 +157,12 @@ export function ExternalWallInsulationCalculator() {
                       {REGULATION_GUIDE_RULES.map((rule, index) => (
                         <div
                           key={rule}
-                          className="flex gap-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80"
+                          className="flex gap-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"
                         >
                           <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-black text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200">
                             {index + 1}
                           </span>
-                          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">{rule}</p>
+                          <p className="text-sm leading-6 text-zinc-700 dark:text-muted-foreground">{rule}</p>
                         </div>
                       ))}
 
@@ -171,8 +171,8 @@ export function ExternalWallInsulationCalculator() {
                       </div>
                     </div>
 
-                    <DialogFooter className="border-t border-zinc-200/80 pt-4 dark:border-zinc-800">
-                      <p className="mr-auto text-sm leading-6 text-zinc-600 dark:text-zinc-400">{REGULATION_GUIDE_NOTE}</p>
+                    <DialogFooter className="border-t border-zinc-200/80 pt-4 dark:border-border">
+                      <p className="mr-auto text-sm leading-6 text-muted-foreground">{REGULATION_GUIDE_NOTE}</p>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -184,7 +184,7 @@ export function ExternalWallInsulationCalculator() {
             </div>
 
             <div className={`grid gap-5 ${shouldShowDistrictSelect ? "sm:grid-cols-2" : ""}`}>
-              <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+              <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
                 <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
                   <MapPinned className="h-3.5 w-3.5" />
                   İl seçimi
@@ -196,7 +196,7 @@ export function ExternalWallInsulationCalculator() {
                     setDistrictId(undefined);
                   }}
                 >
-                  <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-zinc-800 dark:bg-zinc-900">
+                  <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
                     <SelectValue placeholder="İl seçin" />
                   </SelectTrigger>
                   <SelectContent>
@@ -210,14 +210,14 @@ export function ExternalWallInsulationCalculator() {
               </div>
 
               {shouldShowDistrictSelect ? (
-                <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+                <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
                   <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
                     <Building2 className="h-3.5 w-3.5" />
                     İlçe / iklim grubu
                   </label>
                   <>
                     <Select value={districtId} onValueChange={setDistrictId}>
-                      <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-zinc-800 dark:bg-zinc-900">
+                      <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
                         <SelectValue placeholder="İlçe grubunu seçin" />
                       </SelectTrigger>
                       <SelectContent>
@@ -228,19 +228,19 @@ export function ExternalWallInsulationCalculator() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="mt-3 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{DISTRICT_HELP_NOTE}</p>
+                    <p className="mt-3 text-xs leading-5 text-muted-foreground">{DISTRICT_HELP_NOTE}</p>
                   </>
                 </div>
               ) : null}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
               <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
                 <SquareStack className="h-3.5 w-3.5" />
                 Duvar tipi
               </label>
               <Select value={wallPresetId} onValueChange={setWallPresetId}>
-                <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-zinc-800 dark:bg-zinc-900">
+                <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
                   <SelectValue placeholder="Duvar tipini seçin" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,10 +251,10 @@ export function ExternalWallInsulationCalculator() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="mt-3 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{selectedWallPreset.summary}</p>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">{selectedWallPreset.summary}</p>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
               <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
                 <Layers3 className="h-3.5 w-3.5" />
                 Yalıtım malzemesi
@@ -272,15 +272,15 @@ export function ExternalWallInsulationCalculator() {
                       className={`rounded-2xl border px-4 py-4 text-left transition-all motion-reduce:transition-none ${
                         isActive
                           ? "border-cyan-500 bg-cyan-50 shadow-sm dark:border-cyan-500 dark:bg-cyan-950/30"
-                          : "border-zinc-200 bg-zinc-50 hover:border-cyan-300 dark:border-zinc-800 dark:bg-zinc-900"
+                          : "border-zinc-200 bg-zinc-50 hover:border-cyan-300 dark:border-border dark:bg-card"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <Snowflake className={`h-4 w-4 ${isActive ? "text-cyan-700 dark:text-cyan-200" : "text-zinc-400"}`} />
-                        <span className="font-black text-zinc-950 dark:text-white">{material.name}</span>
+                        <span className="font-black text-foreground">{material.name}</span>
                       </div>
-                      <p className="mt-3 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{material.summary}</p>
-                      <p className="mt-3 text-xs font-bold text-zinc-700 dark:text-zinc-300">λ = {material.conductivity} W/mK</p>
+                      <p className="mt-3 text-xs leading-5 text-muted-foreground">{material.summary}</p>
+                      <p className="mt-3 text-xs font-bold text-zinc-700 dark:text-muted-foreground">λ = {material.conductivity} W/mK</p>
                     </button>
                   );
                 })}
@@ -339,7 +339,7 @@ export function ExternalWallInsulationCalculator() {
                   </div>
                   <p className="mt-5 max-w-xl text-sm leading-7 text-zinc-300">{calculation.narrative}</p>
 
-                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="rounded-2xl bg-white/5 p-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Hedef U</p>
                       <p className="mt-3 text-2xl font-black">{formatNumber(calculation.targetUValue)}</p>
@@ -360,23 +360,23 @@ export function ExternalWallInsulationCalculator() {
               ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Seçilen malzeme</p>
-                <p className="mt-3 text-3xl font-black text-zinc-950 dark:text-white">{selectedMaterial.name}</p>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">λ = {selectedMaterial.conductivity} W/mK</p>
+                <p className="mt-3 text-3xl font-black text-foreground">{selectedMaterial.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">λ = {selectedMaterial.conductivity} W/mK</p>
               </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Duvar tipi</p>
-                <p className="mt-3 text-xl font-black text-zinc-950 dark:text-white">{selectedWallPreset.name}</p>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Preset katman yaklaşımı</p>
+                <p className="mt-3 text-xl font-black text-foreground">{selectedWallPreset.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Preset katman yaklaşımı</p>
               </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/70">
+              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Varsayılan U hedefi</p>
-                <p className="mt-3 text-3xl font-black text-zinc-950 dark:text-white">
+                <p className="mt-3 text-3xl font-black text-foreground">
                   {formatNumber(TARGET_U_VALUES[selectedProvince?.defaultBucket ?? "5-6"])}
                 </p>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">İl bazlı ön bilgi</p>
+                <p className="mt-1 text-xs text-muted-foreground">İl bazlı ön bilgi</p>
               </div>
             </div>
           </section>
@@ -387,7 +387,7 @@ export function ExternalWallInsulationCalculator() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Hesap özeti</p>
-                <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Katman ve direnç kontrolü</h2>
+                <h2 className="mt-2 text-2xl font-black text-foreground">Katman ve direnç kontrolü</h2>
               </div>
               <div className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-700 dark:text-cyan-300">
                 <Layers3 className="h-5 w-5" />
@@ -402,15 +402,15 @@ export function ExternalWallInsulationCalculator() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
-                        <p className="text-sm font-bold text-zinc-950 dark:text-white">Formül mantığı</p>
-                        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
+                        <p className="text-sm font-bold text-foreground">Formül mantığı</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
                           Gerekli ek direnç = (1 / Uhedef) - Rmevcut. Yalıtım kalınlığı = λ × gerekli ek direnç.
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
-                        <p className="text-sm font-bold text-zinc-950 dark:text-white">Özet değerler</p>
-                        <ul className="mt-2 space-y-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
+                        <p className="text-sm font-bold text-foreground">Özet değerler</p>
+                        <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
                           <li>İklim grubu: {getClimateBucketLabel(calculation.location.bucket)}</li>
                           <li>Rmevcut: {formatNumber(calculation.existingResistance)} m²K/W</li>
                           <li>Ek direnç ihtiyacı: {formatNumber(calculation.requiredAdditionalResistance)} m²K/W</li>
@@ -427,9 +427,9 @@ export function ExternalWallInsulationCalculator() {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3">
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
-                        <p className="text-sm font-bold text-zinc-950 dark:text-white">Yüzey dirençleri</p>
-                        <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
+                        <p className="text-sm font-bold text-foreground">Yüzey dirençleri</p>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
                           İç yüzey: {formatNumber(0.13)} m²K/W, dış yüzey: {formatNumber(0.04)} m²K/W
                         </p>
                       </div>
@@ -440,15 +440,15 @@ export function ExternalWallInsulationCalculator() {
                         return (
                           <div
                             key={layer.label}
-                            className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80"
+                            className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-sm font-bold text-zinc-950 dark:text-white">{layer.label}</p>
+                              <p className="text-sm font-bold text-foreground">{layer.label}</p>
                               <Badge variant="outline" className="rounded-full border-zinc-300 dark:border-zinc-700">
                                 R = {formatNumber(layerResistance)}
                               </Badge>
                             </div>
-                            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
                               Kalınlık {formatNumber(layer.thicknessMeters * 100)} cm, λ = {layer.conductivity} W/mK
                             </p>
                           </div>
@@ -459,7 +459,7 @@ export function ExternalWallInsulationCalculator() {
                 </AccordionItem>
               </Accordion>
             ) : (
-              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-border dark:text-muted-foreground">
                 Geçerli sonuç oluştuğunda hesap özeti burada görünür.
               </div>
             )}
@@ -469,7 +469,7 @@ export function ExternalWallInsulationCalculator() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Karşılaştırma</p>
-                <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Alternatif malzemeler</h2>
+                <h2 className="mt-2 text-2xl font-black text-foreground">Alternatif malzemeler</h2>
               </div>
               <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-700 dark:text-emerald-300">
                 <CheckCircle2 className="h-5 w-5" />
@@ -520,9 +520,9 @@ export function ExternalWallInsulationCalculator() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
-                    <p className="text-sm font-bold text-zinc-950 dark:text-white">Malzeme rehberi</p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
+                    <p className="text-sm font-bold text-foreground">Malzeme rehberi</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
                       EPS ile XPS arasındaki uygulama farklarını ve dış cephe dışındaki doğru kullanım alanlarını ayrı
                       rehberde inceleyin.
                     </p>
@@ -536,7 +536,7 @@ export function ExternalWallInsulationCalculator() {
                 </div>
               </>
             ) : (
-              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-border dark:text-muted-foreground">
                 Hesaplama tamamlandığında alternatif malzeme tablosu burada görünür.
               </div>
             )}

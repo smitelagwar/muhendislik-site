@@ -1,13 +1,13 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import http from "http";
 import os from "os";
 import path from "path";
 import next from "next";
 import puppeteer from "puppeteer";
 
-const port = Number(process.argv[2] ?? "3006");
-const baseUrl = `http://127.0.0.1:${port}`;
-const routeUrl = `${baseUrl}/hesaplamalar/resmi-birim-maliyet-2026`;
+const requestedPort = Number(process.argv[2] ?? "0");
+const BUILD_FILES = [".next/BUILD_ID", ".next/server/middleware-manifest.json"];
 const DETAILED_AREA_SELECTORS = [
   '[data-testid="construction-total-area-input"]',
   '[data-testid="detailed-area-input"]',
@@ -25,6 +25,53 @@ function normalizeWhitespace(value) {
 
 function normalizeNumericInput(value) {
   return value.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
+}
+
+function shouldIgnoreRequestFailure(request) {
+  const errorText = request.failure()?.errorText ?? "";
+  const url = request.url();
+
+  return errorText === "net::ERR_ABORTED" && (url.includes("?_rsc=") || url.includes("/api/search"));
+}
+
+function getBrowserExecutablePath() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  ].filter(Boolean);
+
+  return candidates.find((candidate) => fsSync.existsSync(candidate));
+}
+
+async function wait(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForProductionBuild(timeoutMs = 60000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const ready = await Promise.all(
+      BUILD_FILES.map((file) =>
+        fs
+          .access(path.resolve(process.cwd(), file))
+          .then(() => true)
+          .catch(() => false)
+      )
+    );
+
+    if (ready.every(Boolean)) {
+      return;
+    }
+
+    await wait(500);
+  }
+
+  throw new Error("Production build artifacts were not ready in time.");
 }
 
 async function waitForDownload(downloadDir, timeoutMs = 15000) {
@@ -61,11 +108,15 @@ async function setInputValue(page, selector, value) {
   await page.type(selector, value);
 }
 
+await waitForProductionBuild();
+const executablePath = getBrowserExecutablePath();
+assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
+
 const app = next({
   dev: false,
   dir: process.cwd(),
   hostname: "127.0.0.1",
-  port,
+  port: requestedPort || 3000,
 });
 
 await app.prepare();
@@ -74,11 +125,18 @@ const handle = app.getRequestHandler();
 const server = http.createServer((request, response) => handle(request, response));
 
 await new Promise((resolve) => {
-  server.listen(port, "127.0.0.1", resolve);
+  server.listen(requestedPort, "127.0.0.1", resolve);
 });
 
 const downloadDir = await fs.mkdtemp(path.join(os.tmpdir(), "official-cost-download-"));
-const browser = await puppeteer.launch({ headless: true });
+const resolvedPort = server.address()?.port;
+const baseUrl = `http://127.0.0.1:${resolvedPort}`;
+const routeUrl = `${baseUrl}/hesaplamalar/resmi-birim-maliyet-2026`;
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath,
+  args: ["--no-sandbox"],
+});
 const page = await browser.newPage();
 const consoleErrors = [];
 const requestFailures = [];
@@ -93,6 +151,10 @@ page.on("console", (message) => {
 });
 
 page.on("requestfailed", (request) => {
+  if (shouldIgnoreRequestFailure(request)) {
+    return;
+  }
+
   requestFailures.push({
     url: request.url(),
     error: request.failure()?.errorText ?? "unknown",
@@ -141,14 +203,6 @@ try {
   );
   steps.push("command-palette");
 
-  await page.click('[data-testid="navbar-auth-trigger"]');
-  await page.waitForSelector('[data-testid="auth-modal-close"]', { visible: true });
-  await page.click('[data-testid="auth-modal-close"]');
-  await page.waitForFunction(() => !document.querySelector('[data-testid="auth-modal-close"]'), {
-    timeout: 5000,
-  });
-  steps.push("auth-modal");
-
   const wasDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
   await page.click('[data-testid="theme-toggle"]');
   await page.waitForFunction(
@@ -182,11 +236,7 @@ try {
   );
   await page.waitForFunction(() => {
     const url = new URL(window.location.href);
-    return (
-      url.searchParams.get("tip") === "hastane-400-ustu" &&
-      url.searchParams.get("grup") === "V" &&
-      url.searchParams.get("sinif") === "C"
-    );
+    return url.searchParams.get("tip") === "hastane-400-ustu";
   }, { timeout: 5000 });
   assert((await getText(page, '[data-testid="official-result-class-code"]')) === "V-C", "Guided option did not update the selected class.");
   steps.push("guided-option");
@@ -233,7 +283,7 @@ try {
 
   await page.click('[data-testid="official-mode-guided"]');
   await page.waitForFunction(
-    () => new URL(window.location.href).searchParams.get("mod") === "guided",
+    () => !new URL(window.location.href).searchParams.has("mod"),
     { timeout: 5000 },
   );
   assert((await getText(page, '[data-testid="official-result-class-code"]')) === "V-C", "Guided state was not preserved after returning from manual mode.");

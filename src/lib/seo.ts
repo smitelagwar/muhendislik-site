@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { DEFAULT_OG_IMAGE_PATH, SITE_DESCRIPTION, SITE_NAME, SITE_URL, resolveMediaUrl, resolveSiteUrl } from "./site-config";
+import {
+  DEFAULT_OG_IMAGE_PATH,
+  SITE_DEFAULT_TITLE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  resolveMediaUrl,
+  resolveSiteUrl,
+} from "./site-config";
 
 type BaseSeoOptions = {
   title: string;
@@ -32,6 +40,66 @@ type CollectionPageSchemaOptions = {
     href: string;
   }>;
 };
+
+const TURKISH_MONTH_INDEX: Record<string, number> = {
+  ocak: 0,
+  subat: 1,
+  mart: 2,
+  nisan: 3,
+  mayis: 4,
+  haziran: 5,
+  temmuz: 6,
+  agustos: 7,
+  eylul: 8,
+  ekim: 9,
+  kasim: 10,
+  aralik: 11,
+};
+
+function normalizeTurkishDateToken(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i");
+}
+
+export function parseLocalizedDateToDate(value?: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(normalizedValue)) {
+    const parsedIsoDate = new Date(normalizedValue);
+    return Number.isNaN(parsedIsoDate.getTime()) ? null : parsedIsoDate;
+  }
+
+  const match = normalizedValue.match(/^(\d{1,2})\s+([^\s]+)\s+(\d{4})$/u);
+  if (!match) {
+    return null;
+  }
+
+  const day = Number.parseInt(match[1], 10);
+  const month = TURKISH_MONTH_INDEX[normalizeTurkishDateToken(match[2])];
+  const year = Number.parseInt(match[3], 10);
+
+  if (!Number.isInteger(day) || !Number.isInteger(year) || month === undefined) {
+    return null;
+  }
+
+  const parsedDate = new Date(Date.UTC(year, month, day));
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+}
+
+export function parseLocalizedDateToIso(value?: string | null): string | undefined {
+  return parseLocalizedDateToDate(value)?.toISOString();
+}
 
 function getImageUrl(image?: string | null) {
   return resolveMediaUrl(image ?? DEFAULT_OG_IMAGE_PATH);
@@ -95,6 +163,8 @@ export function buildArticleMetadata({
   const resolvedTitle = seoTitle ?? title;
   const resolvedDescription = seoDescription ?? description;
   const resolvedImage = getImageUrl(image);
+  const publishedTime = parseLocalizedDateToIso(date) ?? date;
+  const modifiedTime = parseLocalizedDateToIso(updatedAt ?? date) ?? updatedAt ?? date;
 
   return {
     title: resolvedTitle,
@@ -119,8 +189,8 @@ export function buildArticleMetadata({
             },
           ]
         : undefined,
-      publishedTime: date,
-      modifiedTime: updatedAt ?? date,
+      publishedTime,
+      modifiedTime,
       authors: [author],
     },
     twitter: {
@@ -134,7 +204,7 @@ export function buildArticleMetadata({
 
 export function buildHomeMetadata(): Metadata {
   return buildSeoMetadata({
-    title: SITE_NAME,
+    title: SITE_DEFAULT_TITLE,
     description: SITE_DESCRIPTION,
     pathname: "/",
   });

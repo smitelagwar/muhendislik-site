@@ -56,7 +56,7 @@ export function ConcreteToolShell({
           <h1
             className={cn(
               concreteDisplayFont.className,
-              "text-4xl font-black tracking-tight text-zinc-950 dark:text-white md:text-6xl",
+              "text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl md:text-6xl",
             )}
           >
             {title}
@@ -78,7 +78,7 @@ export function ConcreteToolShell({
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     concreteMonoFont.className,
-                    "rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
+                    "min-h-[44px] rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
                     isActive
                       ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/30 dark:text-blue-300"
                       : "border-zinc-200 bg-white/80 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-white",

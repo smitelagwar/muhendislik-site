@@ -1,14 +1,29 @@
-import type { Metadata } from "next";
 import ConcreteCoverPage from "@/app/araclar/pas-payi/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Pas Payı",
-  description: "Nominal beton örtüsü ve pratik pas payını TS 500 mantığıyla hızlıca hesaplayın.",
-  alternates: {
-    canonical: "/kategori/araclar/pas-payi",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/pas-payi";
+const seo = TOOL_PAGE_SEO["pas-payi"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function CategoryConcreteCoverPage() {
-  return <ConcreteCoverPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <ConcreteCoverPage />
+    </>
+  );
 }

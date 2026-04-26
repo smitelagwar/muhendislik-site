@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Clock } from "lucide-react";
@@ -8,9 +8,14 @@ import { BookmarkButton } from "@/components/bookmark-button";
 import type { HomeArticle } from "@/components/home-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type FeedMode = "all" | "popular";
 type ContentMode = "all" | "article" | "tool";
+type FilterOption = {
+  value: string;
+  label: string;
+};
 
 function getReadMinutes(readTime: string) {
   const match = readTime.match(/\d+/);
@@ -19,6 +24,41 @@ function getReadMinutes(readTime: string) {
 
 function isToolArticle(article: HomeArticle) {
   return article.sectionId === "araclar" || article.category === "Hesap Aracı";
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
+}) {
+  const labelId = useId();
+
+  return (
+    <div className="flex flex-col gap-2 text-sm font-semibold text-foreground/90">
+      <p id={labelId}>{label}</p>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          aria-labelledby={labelId}
+          className="min-h-11 w-full rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm font-medium text-foreground/90 outline-none transition focus-visible:border-amber-400 focus-visible:ring-4 focus-visible:ring-amber-500/10"
+        >
+          <SelectValue placeholder={options[0]?.label} />
+        </SelectTrigger>
+        <SelectContent className="border-border bg-card text-foreground">
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
 
 export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
@@ -32,6 +72,24 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
   const categories = Array.from(new Set(articles.map((article) => article.category))).sort((left, right) =>
     left.localeCompare(right, "tr"),
   );
+  const categoryOptions: FilterOption[] = [
+    { value: "all", label: "Tüm kategoriler" },
+    ...categories.map((category) => ({
+      value: category,
+      label: category,
+    })),
+  ];
+  const contentModeOptions: FilterOption[] = [
+    { value: "all", label: "Tüm içerik tipleri" },
+    { value: "article", label: "Yalnızca makaleler" },
+    { value: "tool", label: "Yalnızca araç yazıları" },
+  ];
+  const readingTimeOptions: FilterOption[] = [
+    { value: "all", label: "Tüm süreler" },
+    { value: "short", label: "5 dakikaya kadar" },
+    { value: "long", label: "5 dakikadan uzun" },
+  ];
+
   const filteredFeed = articles
     .filter((article) => (feedMode === "popular" ? popularSlugs.has(article.slug) : true))
     .filter((article) => (categoryFilter === "all" ? true : article.category === categoryFilter))
@@ -66,13 +124,13 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
   };
 
   return (
-    <section className="rounded-[32px] border border-amber-500/15 bg-zinc-950/80 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.75)] backdrop-blur md:p-7">
+    <section className="rounded-[32px] border border-amber-500/15 bg-background/80 p-5 shadow-[0_28px_80px_-42px_rgba(0,0,0,0.75)] backdrop-blur md:p-7">
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 border-b border-zinc-800/80 pb-5 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border/80 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-300/80">İçerik akışı</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-white md:text-3xl">Son eklenen teknik içerikler</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-400">
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground md:text-3xl">Son eklenen teknik içerikler</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
               Araç yazıları, mevzuat notları ve saha rehberlerini kategori, içerik tipi ve okuma süresine göre ayıklayın.
             </p>
           </div>
@@ -101,7 +159,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
               Öne çıkanlar
             </Button>
             {isFiltered ? (
-              <Button type="button" variant="ghost" size="sm" onClick={resetFilters} className="text-zinc-300">
+              <Button type="button" variant="ghost" size="sm" onClick={resetFilters} className="text-foreground/80">
                 Filtreleri temizle
               </Button>
             ) : null}
@@ -109,63 +167,42 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <label className="flex flex-col gap-2 text-sm font-semibold text-zinc-200">
-            Kategori
-            <select
-              value={categoryFilter}
-              onChange={(event) => {
-                setCategoryFilter(event.target.value);
-                setVisibleCount(6);
-              }}
-              className="min-h-11 rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-200 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10"
-            >
-              <option value="all">Tüm kategoriler</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect
+            label="Kategori"
+            value={categoryFilter}
+            options={categoryOptions}
+            onChange={(nextValue) => {
+              setCategoryFilter(nextValue);
+              setVisibleCount(6);
+            }}
+          />
 
-          <label className="flex flex-col gap-2 text-sm font-semibold text-zinc-200">
-            İçerik tipi
-            <select
-              value={contentMode}
-              onChange={(event) => {
-                setContentMode(event.target.value as ContentMode);
-                setVisibleCount(6);
-              }}
-              className="min-h-11 rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-200 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10"
-            >
-              <option value="all">Tüm içerik tipleri</option>
-              <option value="article">Yalnızca makaleler</option>
-              <option value="tool">Yalnızca araç yazıları</option>
-            </select>
-          </label>
+          <FilterSelect
+            label="İçerik tipi"
+            value={contentMode}
+            options={contentModeOptions}
+            onChange={(nextValue) => {
+              setContentMode(nextValue as ContentMode);
+              setVisibleCount(6);
+            }}
+          />
 
-          <label className="flex flex-col gap-2 text-sm font-semibold text-zinc-200">
-            Okuma süresi
-            <select
-              value={readingTimeFilter}
-              onChange={(event) => {
-                setReadingTimeFilter(event.target.value);
-                setVisibleCount(6);
-              }}
-              className="min-h-11 rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-200 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10"
-            >
-              <option value="all">Tüm süreler</option>
-              <option value="short">5 dakikaya kadar</option>
-              <option value="long">5 dakikadan uzun</option>
-            </select>
-          </label>
+          <FilterSelect
+            label="Okuma süresi"
+            value={readingTimeFilter}
+            options={readingTimeOptions}
+            onChange={(nextValue) => {
+              setReadingTimeFilter(nextValue);
+              setVisibleCount(6);
+            }}
+          />
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">Eşleşen içerik</p>
-            <p aria-live="polite" className="mt-3 text-3xl font-black text-white">
+          <div className="rounded-2xl border border-border bg-card/80 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">Eşleşen içerik</p>
+            <p aria-live="polite" className="mt-3 text-3xl font-black text-foreground">
               {filteredFeed.length}
             </p>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">Filtrelerle kalan içerik sayısı anlık olarak güncellenir.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Filtrelerle kalan içerik sayısı anlık olarak güncellenir.</p>
           </div>
         </div>
 
@@ -177,8 +214,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
             >
               <Link
                 href={`/${article.slug}`}
-                prefetch={false}
-                className="group block overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-900/80 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_26px_60px_-34px_rgba(245,158,11,0.35)]"
+                className="group block overflow-hidden rounded-[28px] border border-border bg-card/80 transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_26px_60px_-34px_rgba(245,158,11,0.35)]"
               >
                 <div className="flex flex-col md:flex-row">
                   <div className="relative aspect-video w-full overflow-hidden md:h-64 md:w-64 md:flex-shrink-0 md:aspect-auto">
@@ -189,7 +225,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 768px) 100vw, 256px"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/50 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" />
                   </div>
 
                   <div className="flex flex-1 flex-col justify-between p-6 md:p-8">
@@ -197,13 +233,13 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
                       <Badge variant="outline" className={`${article.categoryColor} mb-3 border-none font-bold`}>
                         {article.category}
                       </Badge>
-                      <h3 className="mb-3 text-2xl font-extrabold leading-tight text-white transition-colors group-hover:text-amber-200">
+                      <h3 className="mb-3 text-2xl font-extrabold leading-tight text-foreground transition-colors group-hover:text-primary">
                         {article.title}
                       </h3>
-                      <p className="mb-4 line-clamp-2 text-sm leading-7 text-zinc-400">{article.description}</p>
+                      <p className="mb-4 line-clamp-2 text-sm leading-7 text-muted-foreground">{article.description}</p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+                    <div className="flex items-center justify-between border-t border-border pt-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/15 text-xs font-bold text-amber-300">
                           {article.author
@@ -212,12 +248,12 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
                             .join("")}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-zinc-100">{article.author}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{article.date}</p>
+                          <p className="truncate text-sm font-bold text-foreground">{article.author}</p>
+                          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{article.date}</p>
                         </div>
                       </div>
 
-                      <div className="relative z-10 flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+                      <div className="relative z-10 flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                         <span className="hidden items-center gap-1.5 sm:flex">
                           <Clock className="h-4 w-4" /> {article.readTime}
                         </span>
@@ -225,7 +261,7 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
                           <BookmarkButton
                             slug={article.slug}
                             title={article.title}
-                            className="bg-zinc-800 p-2 hover:bg-zinc-700"
+                            className="bg-border p-2 hover:bg-secondary"
                           />
                         </div>
                       </div>
@@ -238,9 +274,9 @@ export function HomeFeed({ articles }: { articles: HomeArticle[] }) {
         </div>
 
         {filteredFeed.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-zinc-700 bg-zinc-900/60 p-10 text-center">
-            <p className="text-lg font-black text-white">Filtrelerle eşleşen içerik bulunamadı.</p>
-            <p className="mt-2 text-sm leading-7 text-zinc-400">
+          <div className="rounded-[28px] border border-dashed border-border bg-card/60 p-10 text-center">
+            <p className="text-lg font-black text-foreground">Filtrelerle eşleşen içerik bulunamadı.</p>
+            <p className="mt-2 text-sm leading-7 text-muted-foreground">
               Kategori veya süre filtrelerini gevşeterek tüm akışa geri dönebilirsiniz.
             </p>
           </div>

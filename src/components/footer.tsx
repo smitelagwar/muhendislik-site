@@ -4,9 +4,9 @@ import { Mail, MapPin, Phone } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="mt-auto w-full border-t border-zinc-900 bg-zinc-950 py-16 text-sm text-zinc-400">
+    <footer className="mt-auto w-full border-t border-zinc-900 bg-zinc-950 pb-24 pt-16 text-sm text-zinc-400 md:pb-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-12 grid grid-cols-1 gap-12 border-b border-zinc-900 pb-12 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-12 grid grid-cols-2 gap-8 border-b border-zinc-900 pb-12 sm:gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <div className="mb-6">
               <Link href="/" className="inline-flex">

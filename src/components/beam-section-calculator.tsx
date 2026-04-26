@@ -24,7 +24,7 @@ function getStatusLabel(tone: ConcreteStatusTone) {
   }
 }
 
-const triggerClassName = "tool-input h-12 w-full font-semibold text-zinc-900 dark:text-zinc-100";
+const triggerClassName = "tool-input h-12 w-full font-semibold text-foreground";
 
 export function BeamSectionCalculator() {
   const [widthMm, setWidthMm] = useState("30");
@@ -104,7 +104,7 @@ export function BeamSectionCalculator() {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Eğilme kontrolü</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Kesit verileri</h2>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-foreground")}>Kesit verileri</h2>
               </div>
               <div className="rounded-2xl bg-blue-100 p-3 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300">
                 <Calculator className="h-5 w-5" />
@@ -175,7 +175,7 @@ export function BeamSectionCalculator() {
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Kesme kontrolü</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Etriye kontrolü</h2>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-foreground")}>Etriye kontrolü</h2>
               </div>
             <div className="rounded-2xl bg-sky-100 p-3 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300">
                 <Ruler className="h-5 w-5" />
@@ -280,7 +280,7 @@ export function BeamSectionCalculator() {
                   <p className="text-sm text-zinc-400">{flexure.status.label}</p>
                 </div>
                 <div className="mt-5 flex flex-wrap items-end gap-3">
-                  <span className={cn(concreteMonoFont.className, "text-5xl font-black text-white md:text-7xl")}>
+                  <span className={cn(concreteMonoFont.className, "text-4xl font-black text-white sm:text-5xl md:text-7xl")}>
                     {formatConcreteNumber(flexure.designSteelAreaMm2)}
                   </span>
                   <span className={cn(concreteMonoFont.className, "pb-2 text-lg font-semibold text-sky-200")}>mm²</span>
@@ -305,7 +305,7 @@ export function BeamSectionCalculator() {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <ConcreteMetricCard label="Faydalı yükseklik" value={flexure ? formatMillimetersAsCentimeters(flexure.effectiveDepthMm) : "-"} unit="cm" />
             <ConcreteMetricCard label="K katsayısı" value={flexure ? formatConcreteNumber(flexure.kFactorMpa) : "-"} unit="MPa" />
             <ConcreteMetricCard label="Tasarım As" value={flexure ? formatConcreteNumber(flexure.designSteelAreaMm2) : "-"} unit="mm²" />
@@ -315,7 +315,7 @@ export function BeamSectionCalculator() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Kesme özeti</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-zinc-950 dark:text-white")}>Etriye yeterliliği</h2>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-foreground")}>Etriye yeterliliği</h2>
               </div>
               <div className="rounded-2xl bg-sky-500/10 p-3 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
                 <AlertTriangle className="h-5 w-5" />
@@ -326,7 +326,7 @@ export function BeamSectionCalculator() {
               <>
                 <div className="flex flex-wrap items-center gap-3">
                   <ConcreteStatusBadge tone={shear.status.tone} label={getStatusLabel(shear.status.tone)} />
-                  <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">{shear.status.label}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{shear.status.label}</p>
                 </div>
                 <div className="mt-5 space-y-1">
                   <ConcreteResultRow label="Kesme gerilmesi τ" value={`${formatConcreteNumber(shear.shearStressMpa)} MPa`} tone={shear.status.tone === "fail" ? "fail" : "neutral"} />
@@ -335,12 +335,12 @@ export function BeamSectionCalculator() {
                 </div>
               </>
             ) : (
-              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">Kesme paneli, tüm alanlara geçerli değer girildiğinde otomatik olarak hesaplanır.</p>
+              <p className="text-sm leading-6 text-muted-foreground">Kesme paneli, tüm alanlara geçerli değer girildiğinde otomatik olarak hesaplanır.</p>
             )}
 
-            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
               <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>Pratik not</p>
-              <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Kaynak dashboard&apos;daki iki ayrı hesap aynı sayfada tutuldu: soldaki moment girişi eğilme donatısını, alttaki kesme bloğu ise etriye yeterliliğini kontrol eder.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Kaynak dashboard&apos;daki iki ayrı hesap aynı sayfada tutuldu: soldaki moment girişi eğilme donatısını, alttaki kesme bloğu ise etriye yeterliliğini kontrol eder.</p>
             </div>
           </div>
 
@@ -349,7 +349,7 @@ export function BeamSectionCalculator() {
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className={cn(concreteMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Görsel kontrol</p>
-                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white")}>Enkesit krokisi</h2>
+                <h2 className={cn(concreteDisplayFont.className, "mt-2 text-2xl font-black tracking-tight text-foreground")}>Enkesit krokisi</h2>
               </div>
               <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
                 <Ruler className="h-5 w-5" />

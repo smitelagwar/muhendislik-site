@@ -1,7 +1,15 @@
+import { SITE_NAME, resolveSiteUrl } from "@/lib/site-config";
+
 export interface JsonLdProps {
   /** The schema object to serialize */
-  schema: Record<string, any>;
+  schema: JsonLdSchema;
 }
+
+type JsonLdPrimitive = string | number | boolean | null;
+type JsonLdValue = JsonLdPrimitive | JsonLdSchema | JsonLdValue[];
+type JsonLdSchema = {
+  [key: string]: JsonLdValue;
+};
 
 export function JsonLd({ schema }: JsonLdProps) {
   return (
@@ -12,43 +20,49 @@ export function JsonLd({ schema }: JsonLdProps) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// YARDIMCI ŞEMA ÜRETİCİLERİ
-// ---------------------------------------------------------------------------
-
 /**
- * Hesap araçları (Calculator/SoftwareApplication) için JSON-LD şeması oluşturur
+ * Hesap araçları için JSON-LD şeması oluşturur.
  */
 export function generateCalculatorSchema({
   name,
   description,
   url,
   image,
+  keywords,
 }: {
   name: string;
   description: string;
   url: string;
   image?: string;
+  keywords?: string[];
 }) {
   return {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: name,
-    url: url,
-    description: description,
-    applicationCategory: "BusinessApplication",
-    operatingSystem: "All",
+    "@type": "SoftwareApplication",
+    name,
+    url,
+    description,
+    applicationCategory: "EngineeringApplication",
+    operatingSystem: "Any",
+    inLanguage: "tr-TR",
+    isAccessibleForFree: true,
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "TRY",
     },
-    ...(image && { image }),
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: resolveSiteUrl("/"),
+    },
+    ...(keywords?.length ? { keywords: keywords.join(", ") } : {}),
+    ...(image ? { image } : {}),
   };
 }
 
 /**
- * Teknik makaleler için (Article/BlogPosting) JSON-LD şeması oluşturur
+ * Teknik makaleler için JSON-LD şeması oluşturur.
  */
 export function generateArticleSchema({
   headline,
@@ -61,7 +75,7 @@ export function generateArticleSchema({
 }: {
   headline: string;
   description: string;
-  image: string;
+  image?: string;
   datePublished: string;
   dateModified: string;
   authorName: string;
@@ -72,7 +86,7 @@ export function generateArticleSchema({
     "@type": "Article",
     headline,
     description,
-    image: [image],
+    ...(image ? { image: [image] } : {}),
     datePublished,
     dateModified,
     author: {
@@ -81,10 +95,10 @@ export function generateArticleSchema({
     },
     publisher: {
       "@type": "Organization",
-      name: "Mühendis-Mimar Portali",
+      name: SITE_NAME,
       logo: {
         "@type": "ImageObject",
-        url: "https://muhendislik-site.vercel.app/icon.svg",
+        url: resolveSiteUrl("/icon.svg"),
       },
     },
     mainEntityOfPage: {
@@ -94,8 +108,21 @@ export function generateArticleSchema({
   };
 }
 
+export function generateBreadcrumbSchema(items: Array<{ name: string; item: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((entry, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: entry.name,
+      item: resolveSiteUrl(entry.item),
+    })),
+  };
+}
+
 /**
- * SSS (FAQ) sayfaları için JSON-LD şeması oluşturur
+ * SSS sayfaları için JSON-LD şeması oluşturur.
  */
 export function generateFaqSchema(questions: { question: string; answer: string }[]) {
   return {

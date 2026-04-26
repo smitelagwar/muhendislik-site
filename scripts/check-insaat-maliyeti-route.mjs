@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import http from "http";
 import os from "os";
 import path from "path";
@@ -24,6 +25,19 @@ function shouldIgnoreRequestFailure(request) {
 
 function normalizeWhitespace(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function getBrowserExecutablePath() {
+  const candidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  ].filter(Boolean);
+
+  return candidates.find((candidate) => fsSync.existsSync(candidate));
 }
 
 async function wait(ms) {
@@ -168,6 +182,8 @@ async function readWorkbook(filePath) {
 }
 
 await waitForProductionBuild();
+const executablePath = getBrowserExecutablePath();
+assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
 
 const app = next({
   dev: false,
@@ -186,7 +202,11 @@ const resolvedPort = server.address()?.port;
 const baseUrl = `http://127.0.0.1:${resolvedPort}`;
 const routeUrl = `${baseUrl}/hesaplamalar/insaat-maliyeti`;
 
-const browser = await puppeteer.launch({ headless: true });
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath,
+  args: ["--no-sandbox"],
+});
 const page = await browser.newPage();
 const consoleErrors = [];
 const requestFailures = [];

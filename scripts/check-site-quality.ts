@@ -58,6 +58,7 @@ const METADATA_ROUTE_FILES = [
   "src/app/kategori/deprem-yonetmelik/page.tsx",
 ];
 const kategoriStaticSlugs = new Set<string>(getKategoriStaticParams().map((item) => item.slug));
+const RESERVED_CONTENT_SLUGS = new Set(["admin"]);
 
 function addProblem(problems: Problem[], scope: string, message: string) {
   problems.push({ scope, message });
@@ -94,6 +95,10 @@ function routeFileFromHref(href: string) {
 
 function readFile(relativePath: string) {
   return fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
+}
+
+function fileExists(relativePath: string) {
+  return fs.existsSync(path.join(process.cwd(), relativePath));
 }
 
 function checkRouteExists(href: string, label: string, problems: Problem[]) {
@@ -146,16 +151,32 @@ function checkRedirectRoutes(problems: Problem[]) {
   }
 }
 
-function checkAdminGating(problems: Problem[]) {
-  const adminLayout = readFile("src/app/admin/layout.tsx");
-  const apiArticlesRoute = readFile("src/app/api/articles/route.ts");
+function checkRemovedAdminSurface(problems: Problem[]) {
+  const removedSurfaceFiles = [
+    "src/app/admin/layout.tsx",
+    "src/app/admin/page.tsx",
+    "src/app/admin/editor/page.tsx",
+    "src/app/api/articles/route.ts",
+    "src/lib/admin-editor.ts",
+  ];
 
-  if (!adminLayout.includes("isVercelProduction()") || !adminLayout.includes("notFound()")) {
-    addProblem(problems, "admin-layout", "admin routes should be gated in production");
+  for (const file of removedSurfaceFiles) {
+    if (fileExists(file)) {
+      addProblem(problems, "admin-surface", `admin surface should be removed: ${file}`);
+    }
   }
 
-  if (!apiArticlesRoute.includes("isVercelProduction()")) {
-    addProblem(problems, "api-articles", "articles API should be gated in production");
+  const traceChecks = [
+    { file: "next.config.ts", terms: ["/admin", "NEXT_PUBLIC_ADMIN_PASSWORD"] },
+  ];
+
+  for (const check of traceChecks) {
+    const content = readFile(check.file);
+    for (const term of check.terms) {
+      if (content.includes(term)) {
+        addProblem(problems, "admin-surface", `stale admin reference found in ${check.file}: ${term}`);
+      }
+    }
   }
 }
 
@@ -245,6 +266,10 @@ function checkArticleRelationships(problems: Problem[]) {
   assertUnique(slugs, "articles:slug", problems);
 
   for (const article of Object.values(articles)) {
+    if (RESERVED_CONTENT_SLUGS.has(article.slug)) {
+      addProblem(problems, article.slug, `reserved slug should not be used by article content: ${article.slug}`);
+    }
+
     if (!getSiteSectionById(article.sectionId)) {
       addProblem(problems, article.slug, `invalid sectionId: ${article.sectionId}`);
     }
@@ -261,7 +286,7 @@ const problems: Problem[] = [];
 checkPublicShellFiles(problems);
 checkMetadataCoverage(problems);
 checkRedirectRoutes(problems);
-checkAdminGating(problems);
+checkRemovedAdminSurface(problems);
 checkNavigationProblems(problems);
 checkSectionProblems(problems);
 checkToolsProblems(problems);

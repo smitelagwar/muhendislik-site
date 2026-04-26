@@ -55,7 +55,7 @@ export function ConcreteFormulaCard({
         <FileText className="h-4 w-4 text-blue-300" />
         <p className="text-base font-black uppercase tracking-[0.12em]">{title}</p>
       </div>
-      <div className={cn(concreteMonoFont.className, "mt-3 text-sm leading-6 text-zinc-100")}>{children}</div>
+      <div className={cn(concreteMonoFont.className, "mt-3 overflow-x-auto text-sm leading-6 text-zinc-100")}>{children}</div>
     </div>
   );
 }
@@ -106,7 +106,7 @@ export function ConcreteMetricCard({
     <div className="tool-panel rounded-3xl p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">{label}</p>
       <div className="mt-3 flex items-end gap-2">
-        <p className={cn(concreteMonoFont.className, "text-3xl font-black text-zinc-950 dark:text-white")}>{value}</p>
+        <p className={cn(concreteMonoFont.className, "text-2xl font-black text-zinc-950 dark:text-white sm:text-3xl")}>{value}</p>
         <p className={cn(concreteMonoFont.className, "pb-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400")}>{unit}</p>
       </div>
     </div>

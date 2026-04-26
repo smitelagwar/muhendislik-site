@@ -1,18 +1,32 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ArticleClient from "@/components/article-client";
-import { getArticleBySlug, getArticles } from "@/lib/articles-data";
+import { JsonLd, generateArticleSchema, generateBreadcrumbSchema } from "@/components/seo/json-ld";
+import { getAllSlugs, getArticleBySlug, getArticles } from "@/lib/articles-data";
 import { parseBlocks } from "@/lib/article-blocks";
 import { buildArticleNavigation } from "@/lib/content-navigation";
-import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
-import { buildArticleMetadata } from "@/lib/seo";
+import { SITE_DESCRIPTION, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
+import { buildArticleMetadata, parseLocalizedDateToIso } from "@/lib/seo";
+
+export const dynamicParams = false;
+
+const RESERVED_CONTENT_SLUGS = new Set(["admin"]);
 
 export async function generateStaticParams() {
-  return Object.keys(getArticles()).map((slug) => ({ slug }));
+  return getAllSlugs()
+    .filter((slug) => !RESERVED_CONTENT_SLUGS.has(slug))
+    .map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
+  if (RESERVED_CONTENT_SLUGS.has(slug)) {
+    return {
+      title: "İçerik bulunamadı",
+      description: SITE_DESCRIPTION,
+    };
+  }
+
   const article = getArticleBySlug(slug);
 
   if (!article) {
@@ -38,59 +52,53 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  if (RESERVED_CONTENT_SLUGS.has(slug)) {
+    notFound();
+  }
+
+  const articles = getArticles();
+  const article = articles[slug];
 
   if (!article) {
     notFound();
   }
 
-  const allArticles = Object.values(getArticles());
+  const allArticles = Object.values(articles);
   const relatedArticles = article.relatedSlugs
-    .map((relatedSlug) => getArticleBySlug(relatedSlug))
+    .map((relatedSlug) => articles[relatedSlug])
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const fallbackArticles = allArticles.filter((item) => item.slug !== article.slug && item.sectionId === article.sectionId).slice(0, 3);
+  const fallbackArticles = allArticles
+    .filter((item) => item.slug !== article.slug && item.sectionId === article.sectionId)
+    .slice(0, 3);
   const safeRelatedArticles = relatedArticles.length > 0 ? relatedArticles : fallbackArticles;
   const articleImage = resolveMediaUrl(article.image);
   const parsedSections = article.sections.map((section) => ({
     ...section,
     blocks: parseBlocks(section.content),
   }));
-
-  const articleSchema = {
-    "@context": "https://schema.org",
-    "@type": "Article",
+  const navigation = buildArticleNavigation(article);
+  const publishedTime = parseLocalizedDateToIso(article.date) ?? article.date;
+  const modifiedTime = parseLocalizedDateToIso(article.updatedAt ?? article.date) ?? article.updatedAt ?? article.date;
+  const articleSchema = generateArticleSchema({
     headline: article.seoTitle ?? article.title,
     description: article.seoDescription ?? article.description,
-    datePublished: article.date,
-    dateModified: article.updatedAt ?? article.date,
-    author: {
-      "@type": "Person",
-      name: article.author,
-    },
-    image: articleImage ? [articleImage] : undefined,
-    mainEntityOfPage: resolveSiteUrl(article.slug),
-    publisher: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: resolveSiteUrl(),
-    },
-  };
-  const navigation = buildArticleNavigation(article);
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: navigation.breadcrumbs.map((crumb, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
+    image: articleImage,
+    datePublished: publishedTime,
+    dateModified: modifiedTime,
+    authorName: article.author,
+    url: resolveSiteUrl(article.slug),
+  });
+  const breadcrumbSchema = generateBreadcrumbSchema(
+    navigation.breadcrumbs.map((crumb) => ({
       name: crumb.title,
-      item: resolveSiteUrl(crumb.href),
+      item: crumb.href,
     })),
-  };
+  );
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <JsonLd schema={articleSchema} />
+      <JsonLd schema={breadcrumbSchema} />
       <ArticleClient
         article={article}
         relatedArticles={safeRelatedArticles}

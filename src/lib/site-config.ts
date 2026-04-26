@@ -10,7 +10,7 @@ export const SITE_TITLE_TEMPLATE = `%s | ${SITE_NAME}`;
 export const SITE_DESCRIPTION =
   "İnşaat mühendisleri ve mimarlar için teknik bilgi, hesap araçları, saha rehberleri ve uygulamaya dönük içerikler.";
 export const SITE_URL = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL);
-export const DEFAULT_OG_IMAGE_PATH = "/kalip-sokumu-hero.png";
+export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
 
 export function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
@@ -30,8 +30,4 @@ export function resolveMediaUrl(src?: string | null) {
   }
 
   return resolveSiteUrl(src);
-}
-
-export function isVercelProduction() {
-  return process.env.VERCEL_ENV === "production";
 }

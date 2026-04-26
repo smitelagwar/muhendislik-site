@@ -1,15 +1,29 @@
-import type { Metadata } from "next";
 import ExternalWallInsulationPage from "@/app/araclar/dis-cephe-yalitim-kalinligi/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Bölgesel Dış Cephe Yalıtım Kalınlığı",
-  description:
-    "TS 825:2024 yaklaşımıyla il, ilçe, duvar tipi ve malzemeye göre dış cephe yalıtım kalınlığı önerisini hızlıca görün.",
-  alternates: {
-    canonical: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/dis-cephe-yalitim-kalinligi";
+const seo = TOOL_PAGE_SEO["dis-cephe-yalitim-kalinligi"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function KategoriExternalWallInsulationPage() {
-  return <ExternalWallInsulationPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <ExternalWallInsulationPage />
+    </>
+  );
 }

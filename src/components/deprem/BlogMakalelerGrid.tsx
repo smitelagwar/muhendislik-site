@@ -23,13 +23,30 @@ type ArticleData = {
   badgeLabel?: string;
 };
 
+function isArticleData(value: unknown): value is ArticleData {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  return (
+    "slug" in value &&
+    "title" in value &&
+    "description" in value &&
+    "category" in value &&
+    "date" in value &&
+    "readTime" in value &&
+    "sectionId" in value
+  );
+}
+
 export default function BlogMakalelerGrid() {
   const [visibleCount, setVisibleCount] = useState(9);
   
   // Filter articles from data.json that belong to deprem-yonetmelik
   // Also we can keep the ones from deprem-makaleler if we want, but the prompt says 
   // "İçerik kaynağı src/lib/data.json dosyasıdır."
-  const allMakaleler = Object.values(data as Record<string, ArticleData>)
+  const allMakaleler = Object.values(data)
+    .filter(isArticleData)
     .filter(item => item.sectionId === 'deprem-yonetmelik');
 
   const visibleMakaleler = allMakaleler.slice(0, visibleCount);

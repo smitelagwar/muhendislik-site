@@ -136,7 +136,7 @@ export function EarthquakeBaseShearCalculator() {
             {result ? (
               <>
                 <div className="mt-2 flex flex-wrap items-end gap-3">
-                  <span className={cn(concreteMonoFont.className, "text-5xl font-black text-white md:text-7xl")}>{formatConcreteNumber(result.designBaseShearKn)}</span>
+                  <span className={cn(concreteMonoFont.className, "text-4xl font-black text-white sm:text-5xl md:text-7xl")}>{formatConcreteNumber(result.designBaseShearKn)}</span>
                   <span className="mb-2 text-xl font-medium text-white/70 md:mb-3 md:text-2xl">kN</span>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-zinc-300">

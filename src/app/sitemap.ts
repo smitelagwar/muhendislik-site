@@ -1,11 +1,16 @@
-import { getArticles } from "@/lib/articles-data";
+import { getArticleList } from "@/lib/articles-data";
 import { getAllBinaGuidePaths } from "@/lib/bina-asamalari-content";
+import { PUBLISHED_AT_ISO } from "@/lib/bina-asamalari-content/builders";
+import { getCalculationPages } from "@/lib/calculation-pages";
 import type { MetadataRoute } from "next";
 import { resolveSiteUrl } from "@/lib/site-config";
 import { SITE_SECTIONS } from "@/lib/site-sections";
+import { parseLocalizedDateToDate } from "@/lib/seo";
+import { getLiveTools } from "@/lib/tools-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const articles = getArticles();
+  const articles = getArticleList();
+  const staticDate = new Date(PUBLISHED_AT_ISO);
   const categoryRoutes = SITE_SECTIONS
     .filter((section) => !["araclar", "bina-asamalari"].includes(section.id))
     .map((section) => ({
@@ -17,35 +22,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
     { pathname: "/hesaplamalar", changeFrequency: "weekly" as const, priority: 0.85 },
-    { pathname: "/hesaplamalar/hizli-metraj", changeFrequency: "weekly" as const, priority: 0.84 },
-    { pathname: "/hesaplamalar/tahmini-insaat-alani", changeFrequency: "weekly" as const, priority: 0.83 },
-    { pathname: "/hesaplamalar/insaat-maliyeti", changeFrequency: "weekly" as const, priority: 0.82 },
-    { pathname: "/hesaplamalar/resmi-birim-maliyet-2026", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/araclar", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/bina-asamalari", changeFrequency: "weekly" as const, priority: 0.75 },
-    { pathname: "/kategori/araclar/donati-hesabi", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/kolon-on-boyutlandirma", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/kiris-kesiti", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/doseme-kalinligi", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/pas-payi", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/dis-cephe-yalitim-kalinligi", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/imar-hesaplayici", changeFrequency: "monthly" as const, priority: 0.7 },
-    { pathname: "/kategori/araclar/kalip-sokum-suresi", changeFrequency: "monthly" as const, priority: 0.7 },
     { pathname: "/hakkimizda", changeFrequency: "monthly" as const, priority: 0.5 },
     { pathname: "/iletisim", changeFrequency: "monthly" as const, priority: 0.5 },
     { pathname: "/gizlilik", changeFrequency: "monthly" as const, priority: 0.4 },
     { pathname: "/kullanim-kosullari", changeFrequency: "monthly" as const, priority: 0.4 },
   ];
+  const calculationEntries: MetadataRoute.Sitemap = getCalculationPages().map((page) => ({
+    url: resolveSiteUrl(page.href),
+    lastModified: staticDate,
+    changeFrequency: "weekly",
+    priority: page.href === "/hesaplamalar/insaat-maliyeti" ? 0.86 : 0.8,
+  }));
+  const toolEntries: MetadataRoute.Sitemap = getLiveTools().map((tool) => ({
+    url: resolveSiteUrl(tool.href),
+    lastModified: staticDate,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
 
-  const articleEntries: MetadataRoute.Sitemap = Object.keys(articles).map((slug) => ({
-    url: resolveSiteUrl(slug),
-    lastModified: new Date(),
+  const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({
+    url: resolveSiteUrl(article.slug),
+    lastModified: parseLocalizedDateToDate(article.updatedAt ?? article.date) ?? staticDate,
     changeFrequency: "weekly",
     priority: 0.8,
   }));
   const binaGuideEntries: MetadataRoute.Sitemap = getAllBinaGuidePaths().map((slugPath) => ({
     url: resolveSiteUrl(`/kategori/bina-asamalari/${slugPath}`),
-    lastModified: new Date(),
+    lastModified: staticDate,
     changeFrequency: "weekly",
     priority: 0.72,
   }));
@@ -53,16 +58,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     ...staticRoutes.map((route) => ({
       url: resolveSiteUrl(route.pathname),
-      lastModified: new Date(),
+      lastModified: staticDate,
       changeFrequency: route.changeFrequency,
       priority: route.priority,
     })),
     ...categoryRoutes.map((route) => ({
       url: resolveSiteUrl(route.pathname),
-      lastModified: new Date(),
+      lastModified: staticDate,
       changeFrequency: route.changeFrequency,
       priority: route.priority,
     })),
+    ...calculationEntries,
+    ...toolEntries,
     ...articleEntries,
     ...binaGuideEntries,
   ];

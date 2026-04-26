@@ -1,14 +1,29 @@
-import type { Metadata } from "next";
 import KolonAraciPage from "@/app/araclar/kolon-on-boyutlandirma/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Kolon Ön Boyutlandırma",
-  description: "Dikdörtgen kolonlar için ön tasarım kesitini ve başlangıç alanını hızlıca kontrol edin.",
-  alternates: {
-    canonical: "/kategori/araclar/kolon-on-boyutlandirma",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/kolon-on-boyutlandirma";
+const seo = TOOL_PAGE_SEO["kolon-on-boyutlandirma"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function KategoriKolonAraciPage() {
-  return <KolonAraciPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <KolonAraciPage />
+    </>
+  );
 }

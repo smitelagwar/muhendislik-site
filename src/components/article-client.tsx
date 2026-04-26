@@ -200,7 +200,7 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
           : "İhtiyacınız olan mühendislik aracına tek kategori üzerinden hızlıca geçin."}
       </p>
       <Button asChild className="mt-6 h-12 rounded-full bg-blue-700 px-8 text-sm font-black text-white hover:bg-blue-800">
-        <Link href={href} prefetch={false}>
+        <Link href={href}>
           Aracı aç
           <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
@@ -231,7 +231,7 @@ function DepremSeriesToolCta({ article }: { article: ArticleData }) {
         Bu makale {series.label} serisine ait. Hızlı ön kontrol için {series.description.toLowerCase()} temelli araca geçin.
       </p>
       <Button asChild className="mt-6 h-12 rounded-full bg-amber-500 px-8 text-sm font-black text-zinc-950 hover:bg-amber-400">
-        <Link href={href} prefetch={false}>
+        <Link href={href}>
           {label}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
@@ -393,7 +393,6 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
             <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Sonraki okuma</h3>
             <Link
               href={`/${firstRelatedArticle.slug}`}
-              prefetch={false}
               className="group block overflow-hidden rounded-3xl border border-blue-200/50 bg-gradient-to-br from-blue-50 to-indigo-50 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 dark:border-blue-800/30 dark:from-blue-950/40 dark:to-indigo-950/40"
             >
               <div className="flex flex-col sm:flex-row">
@@ -499,7 +498,7 @@ export default function ArticleClient({
                 ))}
               </div>
             ) : null}
-            <h1 className="mb-6 text-4xl font-black leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-50 md:text-5xl lg:text-6xl">{article.title}</h1>
+            <h1 className="mb-6 text-3xl font-black leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl md:text-5xl lg:text-6xl">{article.title}</h1>
             <div className="mb-8 rounded-3xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
                 <span className="h-4 w-1.5 rounded-full bg-blue-600" />
@@ -580,7 +579,7 @@ export default function ArticleClient({
                   {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresi hesabını araç üzerinden hemen açın." : "Tüm hesap araçlarını tek kategoride açıp ihtiyacınız olan araca geçin."}
                 </p>
                 <Button asChild size="sm" className="h-10 w-full rounded-xl bg-blue-700 font-bold text-white hover:bg-blue-800">
-                  <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF} prefetch={false}>
+                  <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF}>
                     {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm araçları aç"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
@@ -591,7 +590,7 @@ export default function ArticleClient({
         </aside>
       </main>
 
-      <Button type="button" size="sm" onClick={() => setMobileTocOpen(true)} className="fixed bottom-24 right-4 z-40 rounded-full px-4 shadow-lg shadow-blue-600/20 lg:hidden">
+      <Button type="button" size="sm" onClick={() => setMobileTocOpen(true)} className="fixed bottom-20 right-4 z-40 rounded-full px-4 shadow-lg shadow-blue-600/20 lg:hidden">
         <List className="mr-2 h-4 w-4" />
         İçindekiler
       </Button>

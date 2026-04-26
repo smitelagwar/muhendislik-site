@@ -1,14 +1,29 @@
-import type { Metadata } from "next";
 import TabanKesmeKuvvetiPage from "@/app/araclar/taban-kesme-kuvveti/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Eşdeğer Deprem Yükü (Taban Kesme Kuvveti) Hesaplama Aracı",
-  description: "TBDY 2018'e göre Eşdeğer Deprem Yükü ve Minimum Taban Kesme Kuvveti hesabı.",
-  alternates: {
-    canonical: "/kategori/araclar/taban-kesme-kuvveti",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/taban-kesme-kuvveti";
+const seo = TOOL_PAGE_SEO["taban-kesme-kuvveti"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function KategoriTabanKesmeKuvvetiPage() {
-  return <TabanKesmeKuvvetiPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <TabanKesmeKuvvetiPage />
+    </>
+  );
 }

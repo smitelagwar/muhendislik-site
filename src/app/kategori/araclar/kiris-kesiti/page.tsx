@@ -1,14 +1,29 @@
-import type { Metadata } from "next";
 import BeamSectionPage from "@/app/araclar/kiris-kesiti/page";
+import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
+import { buildSeoMetadata } from "@/lib/seo";
+import { TOOL_PAGE_SEO } from "@/lib/tool-page-seo";
 
-export const metadata: Metadata = {
-  title: "Kiriş Kesiti",
-  description: "TS 500 mantığıyla kiriş eğilme donatısı ve kesme kontrolünü aynı ekranda hızlıca görün.",
-  alternates: {
-    canonical: "/kategori/araclar/kiris-kesiti",
-  },
-};
+const PAGE_PATH = "/kategori/araclar/kiris-kesiti";
+const seo = TOOL_PAGE_SEO["kiris-kesiti"];
+
+export const metadata = buildSeoMetadata({
+  title: seo.title,
+  description: seo.description,
+  pathname: PAGE_PATH,
+  keywords: seo.keywords,
+});
 
 export default function CategoryBeamSectionPage() {
-  return <BeamSectionPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd
+        name={seo.title}
+        description={seo.description}
+        pathname={PAGE_PATH}
+        keywords={seo.keywords}
+        section={{ title: "Araçlar", href: "/kategori/araclar" }}
+      />
+      <BeamSectionPage />
+    </>
+  );
 }

@@ -53,7 +53,7 @@ export function BookmarkButton({ slug, title, className = "" }: BookmarkButtonPr
       className={`rounded-lg p-1.5 transition-all duration-200 hover:scale-110 active:scale-95 ${
         isBookmarked
           ? "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400"
-          : "bg-zinc-100 text-zinc-400 hover:text-amber-500 dark:bg-zinc-800 dark:hover:text-amber-400"
+          : "bg-zinc-100 text-muted-foreground hover:text-amber-500 dark:bg-border dark:hover:text-amber-400"
       } ${className}`}
       aria-label={isBookmarked ? "Yer iminden kaldır" : "Yer imine ekle"}
       title={isBookmarked ? "Yer iminden kaldır" : "Yer imine ekle"}
