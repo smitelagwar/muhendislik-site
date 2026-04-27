@@ -36,6 +36,7 @@ const SharePopup = dynamic(
 export function NavbarActions() {
   const pathname = usePathname();
   const [shareOpen, setShareOpen] = useState(false);
+  const isHome = pathname === "/";
   const isTool =
     pathname.startsWith("/kategori/araclar") ||
     pathname.startsWith("/araclar") ||
@@ -56,7 +57,9 @@ export function NavbarActions() {
             size="sm"
             aria-label="İçeriği paylaş"
             onClick={() => setShareOpen(true)}
-            className="hidden gap-2 text-sm font-semibold text-muted-foreground hover:text-primary sm:flex"
+            className={`hidden gap-2 text-sm font-semibold sm:flex ${
+              isHome ? "text-slate-300 hover:text-white" : "text-muted-foreground hover:text-primary"
+            }`}
           >
             <Share2 className="h-4 w-4" />
             Paylaş
@@ -65,7 +68,7 @@ export function NavbarActions() {
         </div>
       ) : null}
 
-      <div className="hidden h-6 w-px bg-border sm:block" />
+      <div className={`hidden h-6 w-px sm:block ${isHome ? "bg-white/10" : "bg-border"}`} />
 
       <div className="flex items-center gap-2.5">
         <ModeToggle />

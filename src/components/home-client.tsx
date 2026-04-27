@@ -1,409 +1,217 @@
-import Image from "next/image";
-import Link from "next/link";
-import {
-  ArrowRight,
-  BadgeCheck,
-  BookOpenText,
-  Calculator,
-  ChevronRight,
-  Clock3,
-  FileText,
-  GitBranchPlus,
-  HardHat,
-  Layers3,
-  Mail,
-  Shield,
-} from "lucide-react";
+import { Calculator, FileText, GitBranchPlus, ShieldCheck } from "lucide-react";
+import { HomeContentSpotlight } from "@/components/home-content-spotlight";
+import { HomeCtaBanner } from "@/components/home-cta-banner";
 import { HomeFeed } from "@/components/home-feed";
-import type { HomeArticle } from "@/components/home-types";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ToolIcon } from "@/components/tool-icon";
-import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
+import { HomeHeroSection } from "@/components/home-hero-section";
+import { HomeStandardsStrip } from "@/components/home-standards-strip";
+import { HomeStatsBanner } from "@/components/home-stats-banner";
+import { HomeToolsBento } from "@/components/home-tools-bento";
+import type {
+  HomeArticle,
+  HomeFeedGroup,
+  HomeMetric,
+  HomePhasePreview,
+  HomeStandardCard,
+} from "@/components/home-types";
+import { BINA_BRANCH_COLORS, BINA_MINDMAP_DATA } from "@/lib/bina-asamalari";
+import { getFeaturedTool, getLiveTools } from "@/lib/tools-data";
 
-type QuickPath = {
-  title: string;
-  description: string;
-  href: string;
-  icon: typeof Shield;
-  count?: (depremArticleCount: number, toolCount: number, articleCount: number) => string | null;
-};
+const HERO_ARTICLE_SLUG = "kolon-on-boyutlandirma";
+const SECONDARY_HERO_SLUG = "kalip-sokumu-rehberi";
+const SPOTLIGHT_LEAD_SLUG = "iksa-uzman-sistemi";
+const SUPPORTING_SPOTLIGHT_SLUGS = ["beton-dokumu-kontrol-listesi", "zemin-iyilestirme-yontemleri"];
 
-type StandardReference = {
-  code: string;
-  title: string;
-  description: string;
-  href: string;
-};
-
-const QUICK_PATHS: QuickPath[] = [
-  {
-    title: "Deprem ve Mevzuat",
-    description: "TBDY 2018, TS 500 ve uygulama notlarını aynı kümeye toplayan merkez.",
-    href: "/kategori/deprem-yonetmelik",
-    icon: Shield,
-    count: (depremArticleCount) => `${depremArticleCount} içerik`,
-  },
-  {
-    title: "Hesaplamalar",
-    description: "Maliyet, metraj ve alan tahminlerini tek akışta karşılaştırın.",
-    href: "/hesaplamalar",
-    icon: Calculator,
-  },
-  {
-    title: "Araçlar",
-    description: "Betonarme, imar ve deprem araçlarına doğrudan erişin.",
-    href: TOOLS_HUB_HREF,
-    icon: FileText,
-    count: (_depremArticleCount, toolCount) => `${toolCount} araç`,
-  },
-  {
-    title: "Bina Aşamaları",
-    description: "Kazı-temelden ince işlere kadar saha akışını adım adım izleyin.",
-    href: "/kategori/bina-asamalari",
-    icon: GitBranchPlus,
-  },
-  {
-    title: "Konu Haritası",
-    description: "Tüm içerik kümelerini ve ilişkili öğrenme yollarını geniş görünümde açın.",
-    href: "/konu-haritasi",
-    icon: Layers3,
-    count: (_depremArticleCount, _toolCount, articleCount) => `${articleCount}+ kayıt`,
-  },
-];
-
-const STANDARD_REFERENCES: StandardReference[] = [
+const STANDARD_REFERENCES: HomeStandardCard[] = [
   {
     code: "TS 500",
-    title: "Betonarme ön boyutlandırma ve donatı mantığı",
-    description: "Kolon, kiriş, döşeme ve genel betonarme kontrol akışlarında temel referans.",
-    href: TOOLS_HUB_HREF,
+    title: "Betonarme ön boyutlandırma ve donatı kararları",
+    description: "Kolon, kiriş, döşeme ve ön kontrol araçlarının çekirdek betonarme omurgası.",
+    href: "/kategori/araclar",
+    note: "Betonarme tasarım bandı",
   },
   {
     code: "TBDY 2018",
-    title: "Deprem etkisi ve düzensizlik kararları",
-    description: "Deprem kategori sayfaları ve taban kesme araçları için ana mevzuat omurgası.",
+    title: "Deprem etkisi, düzensizlik ve modelleme yaklaşımı",
+    description: "Deprem rehberleri ve eşdeğer deprem yükü araçları için ana mevzuat hattı.",
     href: "/kategori/deprem-yonetmelik",
+    note: "Deprem ve mevzuat bandı",
   },
   {
     code: "TS EN 1992-1-1",
-    title: "Pas payı ve dayanıklılık yaklaşımı",
-    description: "Beton örtüsü, çevresel sınıf ve dayanıklılık kararlarında kullanılan teknik çerçeve.",
+    title: "Dayanıklılık, beton örtüsü ve detay mantığı",
+    description: "Pas payı, beton örtüsü ve detay kararlarında Avrupa standardı çerçevesi.",
     href: "/kategori/araclar/pas-payi",
+    note: "Detay ve dayanıklılık bandı",
   },
   {
-    code: "TS 825:2024",
-    title: "Isı yalıtımı ve cephe kalınlık seçimi",
-    description: "Yalıtım kalınlığı aracında hızlı ön karar üretmek için kullanılan güncel doğrultu.",
-    href: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
+    code: "TS EN 206",
+    title: "Beton performansı ve çevresel etki sınıfı",
+    description: "Beton sınıfı, dayanıklılık beklentisi ve saha kabul yaklaşımı için referans seti.",
+    href: "/kategori/santiye",
+    note: "Malzeme ve uygulama bandı",
   },
 ];
 
+function pickArticleBySlug(articles: HomeArticle[], slug: string, fallbackIndex = 0): HomeArticle {
+  return articles.find((article) => article.slug === slug) ?? articles[fallbackIndex] ?? articles[0];
+}
+
+function pickDistinctArticles(articles: HomeArticle[], slugs: string[], count: number): HomeArticle[] {
+  const selected: HomeArticle[] = [];
+  const seen = new Set<string>();
+
+  for (const slug of slugs) {
+    const article = articles.find((item) => item.slug === slug);
+    if (article && !seen.has(article.slug)) {
+      selected.push(article);
+      seen.add(article.slug);
+    }
+  }
+
+  for (const article of articles) {
+    if (selected.length >= count) {
+      break;
+    }
+    if (!seen.has(article.slug)) {
+      selected.push(article);
+      seen.add(article.slug);
+    }
+  }
+
+  return selected;
+}
+
+function pickVisualArticles(articles: HomeArticle[], count: number): HomeArticle[] {
+  const selected: HomeArticle[] = [];
+  const seenImages = new Set<string>();
+
+  for (const article of articles) {
+    if (selected.length >= count) {
+      break;
+    }
+
+    if (!seenImages.has(article.image)) {
+      selected.push(article);
+      seenImages.add(article.image);
+    }
+  }
+
+  for (const article of articles) {
+    if (selected.length >= count) {
+      break;
+    }
+
+    if (!selected.some((item) => item.slug === article.slug)) {
+      selected.push(article);
+    }
+  }
+
+  return selected;
+}
+
 export default function HomeClient({ allArticles }: { allArticles: HomeArticle[] }) {
   const liveTools = getLiveTools();
-  const heroArticle = allArticles[0] ?? null;
-  const featuredArticles = allArticles.slice(1, 3);
-  const feedArticles = allArticles.slice(3);
-  const depremArticleCount = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik").length;
-  const highlightedTools = liveTools.slice(0, 5);
-  const trustStats = [
-    { label: "Canlı araç", value: `${liveTools.length}+`, icon: Calculator },
-    { label: "Teknik içerik", value: `${allArticles.length}+`, icon: BookOpenText },
-    { label: "Standart kümesi", value: "4 ana başlık", icon: BadgeCheck },
-    { label: "Şantiye odağı", value: "Mobil uyumlu", icon: HardHat },
+  const featuredTool = getFeaturedTool() ?? liveTools[0];
+
+  const heroArticle = pickArticleBySlug(allArticles, HERO_ARTICLE_SLUG, 0);
+  const secondaryHeroArticle = pickArticleBySlug(allArticles, SECONDARY_HERO_SLUG, 1);
+  const spotlightLead = pickArticleBySlug(allArticles, SPOTLIGHT_LEAD_SLUG, 2);
+  const spotlightSupporting = pickDistinctArticles(allArticles, SUPPORTING_SPOTLIGHT_SLUGS, 2).filter(
+    (article) => article.slug !== spotlightLead.slug,
+  ).slice(0, 2);
+
+  const nonDepremArticles = allArticles.filter((article) => article.sectionId !== "deprem-yonetmelik");
+  const depremArticles = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik");
+
+  const feedGroups: HomeFeedGroup[] = [
+    {
+      id: "son-eklenen",
+      label: "Son eklenen",
+      description: "Ana akıştaki en yeni içerikleri ve son güncellenen teknik notları hızlıca tarayın.",
+      href: "/konu-haritasi",
+      ctaLabel: "Tüm akışı aç",
+      totalCount: allArticles.length,
+      articles: pickVisualArticles(allArticles, 4),
+    },
+    {
+      id: "saha-ve-arac",
+      label: "Saha ve araç",
+      description: "Şantiye, geoteknik ve araç odaklı içerikleri ayrı bir çalışma bandı olarak görün.",
+      href: "/kategori/araclar",
+      ctaLabel: "Araç merkezine git",
+      totalCount: nonDepremArticles.length,
+      articles: pickVisualArticles(nonDepremArticles, 4),
+    },
+    {
+      id: "deprem-ve-mevzuat",
+      label: "Deprem ve mevzuat",
+      description: "Yönetmelik yorumlarını ve deprem kararlarını tek bir yoğun bilgi bandında açın.",
+      href: "/kategori/deprem-yonetmelik",
+      ctaLabel: "Mevzuat merkezine git",
+      totalCount: depremArticles.length,
+      articles: pickVisualArticles(depremArticles, 4),
+    },
   ];
 
+  const metrics: HomeMetric[] = [
+    {
+      label: "Canlı araç",
+      note: "Tek ekranda açılan pratik mühendislik araçları.",
+      value: liveTools.length,
+      suffix: "+",
+      icon: Calculator,
+    },
+    {
+      label: "Teknik içerik",
+      note: "Makale, rehber ve mevzuat kayıtları.",
+      value: allArticles.length,
+      suffix: "+",
+      icon: FileText,
+    },
+    {
+      label: "Çekirdek standart",
+      note: "Homepage omurgasını taşıyan ana referans kümesi.",
+      value: STANDARD_REFERENCES.length,
+      icon: ShieldCheck,
+    },
+    {
+      label: "Saha fazı",
+      note: "Projeden teslime ana akış fazları.",
+      value: BINA_MINDMAP_DATA.children?.length ?? 0,
+      icon: GitBranchPlus,
+    },
+  ];
+
+  const phasePreviews: HomePhasePreview[] =
+    BINA_MINDMAP_DATA.children?.map((phase) => ({
+      id: phase.id,
+      title: phase.label.replace(/\n/g, " "),
+      summary: phase.summary,
+      href: phase.url,
+      image: `/bina-asamalari/hero/${phase.id}.svg`,
+      accentColor: BINA_BRANCH_COLORS[phase.id as keyof typeof BINA_BRANCH_COLORS] ?? "#94a3b8",
+    })) ?? [];
+
+  if (!featuredTool) {
+    return null;
+  }
+
   return (
-    <div className="pb-24">
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-        {heroArticle ? (
-          <section className="grid gap-6 lg:grid-cols-12">
-            <div className="relative overflow-hidden rounded-[36px] border border-teal-500/20 bg-background shadow-[0_36px_120px_-60px_rgba(13, 148, 136,0.45)] lg:col-span-8">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(13, 148, 136,0.18),_transparent_34%),radial-gradient(circle_at_right,_rgba(59,130,246,0.14),_transparent_28%)]" />
-              <div className="grid gap-0 lg:grid-cols-[1.18fr_0.82fr]">
-                <div className="relative min-h-[280px] sm:min-h-[360px] lg:min-h-[420px]">
-                  <Image
-                    src={heroArticle.image}
-                    alt={heroArticle.title}
-                    fill
-                    priority
-                    className="object-cover opacity-45"
-                    sizes="(max-width: 1024px) 100vw, 58vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-br from-background via-background/80 to-background/20" />
-                  <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-8">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full border border-teal-400/30 bg-teal-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-teal-200">
-                        Editör seçimi
-                      </span>
-                      <Badge variant="outline" className={`${heroArticle.categoryColor} border-none`}>
-                        {heroArticle.category}
-                      </Badge>
-                    </div>
-
-                    <div className="max-w-2xl">
-                      <p className="mb-3 text-sm font-semibold text-teal-100/85">Teknik portal, pratik saha akışı ve referans mevzuat</p>
-                      <h1 className="max-w-3xl text-2xl font-black leading-[1.05] tracking-tight text-foreground sm:text-3xl md:text-5xl">
-                        {heroArticle.title}
-                      </h1>
-                      <p className="mt-3 hidden max-w-2xl text-sm leading-7 text-foreground/80 sm:block md:text-base">{heroArticle.description}</p>
-                      <div className="mt-6 flex flex-wrap items-center gap-4 text-sm font-semibold text-foreground/80">
-                        <span className="inline-flex items-center gap-2">
-                          <Clock3 className="h-4 w-4 text-teal-300" />
-                          {heroArticle.readTime}
-                        </span>
-                        <span className="h-1 w-1 rounded-full bg-zinc-600" />
-                        <span>{heroArticle.author}</span>
-                        <span className="h-1 w-1 rounded-full bg-zinc-600" />
-                        <span>{heroArticle.date}</span>
-                      </div>
-                      <div className="mt-8 flex flex-wrap gap-3">
-                        <Button asChild size="lg" className="rounded-full px-7">
-                          <Link href={`/${heroArticle.slug}`}>
-                            Makaleyi aç
-                            <ArrowRight className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button asChild variant="outline" size="lg" className="rounded-full px-7">
-                          <Link href={TOOLS_HUB_HREF}>
-                            Araçlara geç
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-between border-t border-border bg-background/90 p-6 lg:border-l lg:border-t-0">
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground">Portal özeti</p>
-                    <h2 className="mt-3 text-2xl font-black tracking-tight text-foreground">Sahada işe yarayan kısa yol</h2>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      İçeriği yalnızca yayın listesi olarak değil, karar vermeyi hızlandıran bir teknik çalışma yüzeyi olarak kurguladık.
-                    </p>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                    {trustStats.map((stat) => (
-                      <div key={stat.label} className="rounded-2xl border border-border bg-card/80 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{stat.label}</p>
-                          <stat.icon className="h-4 w-4 text-teal-300" />
-                        </div>
-                        <p className="mt-3 text-2xl font-black text-foreground">{stat.value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-6 lg:col-span-4">
-              {featuredArticles.map((article, index) => (
-                <Link
-                  key={article.slug}
-                  href={`/${article.slug}`}
-                  className="group flex flex-col justify-between rounded-[30px] border border-border bg-card/85 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-teal-400/30 hover:shadow-[0_24px_60px_-36px_rgba(13, 148, 136,0.35)]"
-                >
-                  <div>
-                    <span className="inline-flex rounded-full border border-border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                      {index === 0 ? "Öne çıkan" : "Hızlı okuma"}
-                    </span>
-                    <Badge variant="outline" className={`${article.categoryColor} mt-4 border-none font-bold`}>
-                      {article.category}
-                    </Badge>
-                    <h2 className="mt-4 text-xl font-black leading-snug text-foreground transition-colors group-hover:text-primary">
-                      {article.title}
-                    </h2>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">{article.description}</p>
-                  </div>
-
-                  <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
-                    <div className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">{article.date}</div>
-                    <div className="flex items-center gap-2 text-sm font-bold text-teal-200">
-                      Aç
-                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="rounded-[36px] border border-teal-500/15 bg-background/80 p-5 shadow-[0_24px_70px_-40px_rgba(0,0,0,0.75)] backdrop-blur md:p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Bilgi mimarisi</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Doğru merkeze tek adımda geçin</h2>
-            </div>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-              Uzun akış içinde kaybolmak yerine, mühendislik kararlarında en sık açılan kümeleri ana sayfada görünür hale getiriyoruz.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {QUICK_PATHS.map((path) => {
-              const Icon = path.icon;
-              const count = path.count?.(depremArticleCount, liveTools.length, allArticles.length) ?? null;
-
-              return (
-                <Link
-                  key={path.href}
-                  href={path.href}
-                  className="group relative overflow-hidden rounded-[28px] border border-border bg-card/80 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-teal-400/30 hover:bg-card"
-                >
-                  <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(13, 148, 136,0.18),_transparent_55%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div className="rounded-2xl border border-teal-500/20 bg-teal-500/10 p-3 text-teal-200">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    {count ? (
-                      <span className="rounded-full border border-border bg-card px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        {count}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="relative mt-5">
-                    <h3 className="text-lg font-black text-foreground transition-colors group-hover:text-primary">{path.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p>
-                  </div>
-                  <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-black text-teal-200">
-                    Keşfet
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Standart omurgası</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Kararları yöneten referans çerçeve</h2>
-              </div>
-              <p className="max-w-xl text-sm leading-7 text-muted-foreground">
-                Portal içeriğini yalnızca başlıklarla değil, gerçek proje kararlarında açılan standart kümeleriyle eşliyoruz.
-              </p>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {STANDARD_REFERENCES.map((reference) => (
-                <Link
-                  key={reference.code}
-                  href={reference.href}
-                  className="group rounded-[26px] border border-border bg-card/80 p-5 transition-all hover:border-teal-400/30 hover:bg-card"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-teal-200">
-                      {reference.code}
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-                  </div>
-                  <h3 className="mt-5 text-lg font-black text-foreground transition-colors group-hover:text-primary">{reference.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">{reference.description}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[32px] border border-border bg-card/80 p-6 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Operasyon notu</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-foreground">Hız, doğruluk ve saha okunabilirliği</h2>
-            <div className="mt-5 grid gap-4">
-              <div className="rounded-2xl border border-border bg-card/80 p-4">
-                <p className="text-sm font-black text-foreground">Daha hafif ana sayfa</p>
-                <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                  Etkileşim gerektirmeyen bloklar server tarafında işlendi; filtreli akış ayrı istemci parçasına ayrıldı.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card/80 p-4">
-                <p className="text-sm font-black text-foreground">Türkçe ve mühendislik dili</p>
-                <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                  Ana kabukta görünen metinler ve gezinme yüzeyleri daha net, daha tutarlı ve daha az kırılgan hale getirildi.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card/80 p-4">
-                <p className="text-sm font-black text-foreground">Mobil odaklı gezinme</p>
-                <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                  Büyük kartlar, görünür filtre etiketleri ve kontrastlı aksiyon yüzeyleriyle mobil kullanım kolaylaştırıldı.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-10 lg:flex-row">
-          <div className="lg:w-[68%]">
-            <HomeFeed articles={feedArticles} />
-          </div>
-
-          <aside className="flex flex-col gap-6 lg:w-[32%]">
-            <div className="relative overflow-hidden rounded-[30px] border border-teal-500/20 bg-[linear-gradient(180deg,rgba(13, 148, 136,0.16),rgba(13, 148, 136,0.05)),var(--color-card)] p-7 text-foreground shadow-[0_24px_70px_-42px_rgba(13, 148, 136,0.5)]">
-              <div className="absolute right-0 top-0 p-4 opacity-10">
-                <FileText className="h-28 w-28" />
-              </div>
-              <h3 className="relative z-10 text-2xl font-black">İletişim ve iş birliği</h3>
-              <p className="relative z-10 mt-3 text-sm leading-7 text-teal-100/90">
-                Yeni araç önerisi, içerik düzeltmesi veya proje iş birliği için doğrudan ulaşabilirsiniz.
-              </p>
-              <div className="relative z-10 mt-6 flex flex-col gap-3">
-                <Button asChild className="h-12 w-full justify-center rounded-full">
-                  <a href="mailto:info@insablog.com?subject=Muhendislik%20Portali%20Iletisim" aria-label="E-posta gönder">
-                    <Mail className="h-4 w-4" />
-                    E-posta gönder
-                  </a>
-                </Button>
-                <Button asChild variant="outline" className="h-12 w-full justify-center rounded-full">
-                  <Link href="/iletisim">
-                    İletişim sayfasını aç
-                  </Link>
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-[30px] border border-border bg-card/80 p-7 shadow-[0_24px_70px_-44px_rgba(0,0,0,0.7)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-300/80">Canlı araçlar</p>
-                  <h3 className="mt-2 text-2xl font-black tracking-tight text-foreground">Pratik hesap akışları</h3>
-                </div>
-                <Calculator className="h-5 w-5 text-teal-200" />
-              </div>
-
-              <div className="mt-6 flex flex-col gap-4">
-                {highlightedTools.map((tool) => (
-                  <Link
-                    key={tool.id}
-                    href={tool.href}
-                    className="group flex gap-4 rounded-[22px] border border-transparent bg-card/75 p-4 transition-all hover:border-teal-400/25 hover:bg-card"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-teal-500/20 bg-teal-500/10 text-teal-200 transition-all group-hover:scale-[1.02]">
-                      <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-foreground transition-colors group-hover:text-primary">{tool.name}</h4>
-                      <p className="mt-1 text-xs leading-6 text-muted-foreground">{tool.description}</p>
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{tool.discipline}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              <Button asChild variant="ghost" className="mt-6 w-full justify-center text-teal-200 hover:bg-teal-500/10">
-                <Link href={TOOLS_HUB_HREF}>
-                  Tüm hesap araçları
-                </Link>
-              </Button>
-            </div>
-          </aside>
-        </div>
-      </div>
+    <div className="home-page pb-8">
+      <HomeHeroSection
+        heroArticle={heroArticle}
+        secondaryArticle={secondaryHeroArticle}
+        featuredTool={featuredTool}
+        articleCount={allArticles.length}
+        toolCount={liveTools.length}
+        phaseCount={phasePreviews.length}
+      />
+      <HomeStatsBanner metrics={metrics} />
+      <HomeToolsBento tools={liveTools} />
+      <HomeContentSpotlight leadArticle={spotlightLead} supportingArticles={spotlightSupporting} />
+      <HomeStandardsStrip standards={STANDARD_REFERENCES} phasePreviews={phasePreviews} />
+      <HomeFeed groups={feedGroups} />
+      <HomeCtaBanner />
     </div>
   );
 }

@@ -9,7 +9,7 @@ export function Navbar() {
     <>
       <NavbarRouteTracker />
       <NavbarChrome>
-        <div className="h-[3px] w-full bg-gradient-to-r from-teal-400 via-teal-500 to-sky-500" />
+        <div className="h-[3px] w-full bg-gradient-to-r from-teal-400 via-teal-500 to-sky-500 group-data-[home=true]/navbar:from-amber-400 group-data-[home=true]/navbar:via-amber-500 group-data-[home=true]/navbar:to-cyan-400" />
 
         <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-16">
           <div className="flex items-center justify-between py-5 transition-all duration-500 group-data-[scrolled=true]/navbar:py-3">

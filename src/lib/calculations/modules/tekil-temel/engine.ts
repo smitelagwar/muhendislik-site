@@ -12,13 +12,9 @@
 import type {
   BetonSinifi,
   CelikSinifi,
-  DelmeKesmeKontrol,
-  EgilmeDonatiSonuc,
   TekilTemelInput,
   TekilTemelSonuc,
   TekilTemelValidasyon,
-  TemelBoyutu,
-  ZeminGerilmesiSonuc,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -53,12 +49,6 @@ const FCTD: Record<BetonSinifi, number> = {
 const FYD: Record<CelikSinifi, number> = {
   B420C: 420 / 1.15,
   B500C: 500 / 1.15,
-};
-
-/** Karakteristik akma dayanımı fyk (MPa) */
-const FYK: Record<CelikSinifi, number> = {
-  B420C: 420,
-  B500C: 500,
 };
 
 // ---------------------------------------------------------------------------
@@ -105,14 +95,14 @@ function hesaplaEgilmeDonati(
   // TS 500 Denklem 7.1
   // Md = fcd × b × d² × (ξ - ξ²/2) × 1000   [kNm → kN·m]
   // Basitleştirilmiş: As = Md / (fyd × 0.9 × d)
-  const _fyd = FYD[celikSinifi] * 1000; // MPa → kN/m²
-  const _fcd = fcd(betonSinifi) * 1000; // MPa → kN/m²
+  const fyd = FYD[celikSinifi] * 1000; // MPa → kN/m²
+  const fcdValue = fcd(betonSinifi) * 1000; // MPa → kN/m²
   const Md_knm = Md; // kNm
 
   // İteratif çözüm yerine yaklaşık formül — TS 500 7.1 yaklaşımı
-  const kappa = Md_knm / (_fcd * b * d * d);
+  const kappa = Md_knm / (fcdValue * b * d * d);
   const alpha = 1 - Math.sqrt(Math.max(0, 1 - 2 * kappa));
-  const as_m2 = (_fcd * b * alpha * d) / _fyd; // m²
+  const as_m2 = (fcdValue * b * alpha * d) / fyd; // m²
   return as_m2 * 10000; // m² → cm²
 }
 
@@ -181,8 +171,6 @@ export function hesaplaTekilTemel(input: TekilTemelInput): TekilTemelSonuc {
   // ------------------------------------------------------------------
   // Adım 1: Malzeme değerleri
   // ------------------------------------------------------------------
-  const _fcd = fcd(input.betonSinifi); // MPa
-  const _fyd = FYD[input.celikSinifi]; // MPa
   const _fctd = FCTD[input.betonSinifi]; // MPa
 
   // ------------------------------------------------------------------
@@ -322,7 +310,6 @@ export function hesaplaTekilTemel(input: TekilTemelInput): TekilTemelSonuc {
     uyarilar.push("ℹ Nd > 5000 kN: Bu araç ön boyutlandırma amaçlıdır. Yüksek yüklerde detaylı analiz yapılmasını öneririz.");
   }
 
-  const _fyk = FYK[input.celikSinifi];
   if (_fck(input.betonSinifi) < 25 && input.temelDerinligi > 1.5) {
     uyarilar.push("ℹ Nemli zemin ortamında C25 ve üzeri beton kullanılması önerilir (TS EN 206).");
   }

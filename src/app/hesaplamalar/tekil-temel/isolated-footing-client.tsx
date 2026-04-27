@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calculator, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Calculator, AlertTriangle, CheckCircle } from "lucide-react";
 import {
   BETON_SINIFI_OPTIONS,
   CELIK_SINIFI_OPTIONS,
-  KOLON_TIPI_OPTIONS,
   TEKIL_TEMEL_VARSAYILAN,
   ZEMIN_TURU_OPTIONS,
   hesaplaTekilTemel,

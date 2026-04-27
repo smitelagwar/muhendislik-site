@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 interface TypingEffectProps {
   words: string[];
   className?: string;
+  cursorClassName?: string;
   typingSpeed?: number;
   deletingSpeed?: number;
   pauseDuration?: number;
@@ -13,6 +14,7 @@ interface TypingEffectProps {
 export function TypingEffect({
   words,
   className = "",
+  cursorClassName = "bg-teal-500",
   typingSpeed = 80,
   deletingSpeed = 45,
   pauseDuration = 1800,
@@ -66,7 +68,7 @@ export function TypingEffect({
   return (
     <span className={className}>
       {displayText}
-      <span className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse align-middle bg-teal-500" />
+      <span className={`ml-0.5 inline-block h-[1em] w-0.5 animate-pulse align-middle ${cursorClassName}`} />
     </span>
   );
 }

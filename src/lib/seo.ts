@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import {
   DEFAULT_OG_IMAGE_PATH,
-  SITE_DEFAULT_TITLE,
-  SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
   resolveMediaUrl,
@@ -204,9 +202,18 @@ export function buildArticleMetadata({
 
 export function buildHomeMetadata(): Metadata {
   return buildSeoMetadata({
-    title: SITE_DEFAULT_TITLE,
-    description: SITE_DESCRIPTION,
+    title: "Mühendislik kararlarını hızlandıran premium teknik portal",
+    description:
+      "İnşa Blog anasayfası: betonarme araçları, deprem mevzuatı, şantiye rehberleri ve bina aşamalarını tek premium yüzeyde toplayan teknik çalışma alanı.",
     pathname: "/",
+    keywords: [
+      "inşaat mühendisliği",
+      "betonarme hesap araçları",
+      "deprem yönetmeliği",
+      "şantiye rehberi",
+      "bina aşamaları",
+      "imar hesaplayıcı",
+    ],
   });
 }
 
