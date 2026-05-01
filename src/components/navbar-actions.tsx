@@ -25,7 +25,7 @@ const ModeToggle = dynamic(
   () => import("@/components/mode-toggle").then((module) => module.ModeToggle),
   {
     ssr: false,
-    loading: () => <div className="h-8 w-16 rounded-full border border-border bg-card" aria-hidden />,
+    loading: () => <div className="h-10 w-[84px] rounded-full border border-border bg-card" aria-hidden />,
   },
 );
 const SharePopup = dynamic(

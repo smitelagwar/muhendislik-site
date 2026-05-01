@@ -17,8 +17,8 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           <p className="home-section-kicker">İçerik vitrini</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">Sahada işe yarayan güncel teknik odaklar</h2>
-          <p className="mt-4 text-base leading-8 text-slate-300">
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">Sahada işe yarayan güncel teknik odaklar</h2>
+          <p className="mt-4 text-base leading-8 text-slate-600 dark:text-slate-300">
             Düz blog akışı yerine önce karar değeri yüksek içerikleri öne çıkarıyoruz. Görsel kalite, okuma temposu
             ve kategori sinyali birlikte çalışıyor.
           </p>
@@ -32,7 +32,7 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
         <AnimatedSection animation="fade-up" className="h-full">
           <Link
             href={`/${leadArticle.slug}`}
-            className="group flex h-full min-h-[30rem] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0b1018]"
+            className="group flex h-full min-h-[30rem] flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 bg-[#0b1018]"
           >
             <div className="relative min-h-[20rem] flex-1 overflow-hidden">
               <Image
@@ -50,15 +50,15 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
                     {leadArticle.category}
                   </Badge>
                 </div>
-                <h3 className="mt-5 max-w-3xl text-2xl font-black leading-tight text-white sm:text-3xl">
+                <h3 className="mt-5 max-w-3xl text-2xl font-black leading-tight text-slate-900 dark:text-white sm:text-3xl">
                   {leadArticle.title}
                 </h3>
               </div>
             </div>
 
             <div className="flex flex-col gap-6 p-6 sm:p-8">
-              <p className="max-w-3xl text-sm leading-8 text-slate-300">{leadArticle.description}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-400">
+              <p className="max-w-3xl text-sm leading-8 text-slate-600 dark:text-slate-300">{leadArticle.description}</p>
+              <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400 dark:text-slate-400">
                 <span>{leadArticle.author}</span>
                 <span className="h-1 w-1 rounded-full bg-slate-700" />
                 <span>{leadArticle.date}</span>
@@ -77,21 +77,21 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
             <AnimatedSection key={article.slug} animation="fade-up" delay={index * 90}>
               <Link
                 href={`/${article.slug}`}
-                className="group flex h-full flex-col justify-between rounded-lg border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.68),rgba(7,11,18,0.92))] p-5"
+                className="group flex h-full flex-col justify-between rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.68),rgba(7,11,18,0.92))] p-5"
               >
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <Badge variant="outline" className={`${article.categoryColor} border-none`}>
                       {article.category}
                     </Badge>
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{article.date}</span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{article.date}</span>
                   </div>
-                  <h3 className="mt-5 text-xl font-black leading-snug text-white transition-colors group-hover:text-cyan-200">
+                  <h3 className="mt-5 text-xl font-black leading-snug text-slate-900 dark:text-white transition-colors group-hover:text-cyan-600 dark:text-cyan-200">
                     {article.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-300">{article.description}</p>
+                  <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{article.description}</p>
                 </div>
-                <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 transition-colors group-hover:text-white">
+                <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 dark:text-cyan-200 transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
                   İçeriği aç
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </div>

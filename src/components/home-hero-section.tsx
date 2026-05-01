@@ -44,7 +44,7 @@ export function HomeHeroSection({
       };
 
   return (
-    <section className="relative isolate overflow-hidden border-b border-white/10">
+    <section className="relative isolate overflow-hidden border-b border-slate-200 dark:border-white/10">
       <Image
         src="/blog-images/structural_frame_3d_1774081447633.png"
         alt="Betonarme taşıyıcı sistem görselleştirmesi"
@@ -69,21 +69,21 @@ export function HomeHeroSection({
               <span className="home-chip">TS 500 • TBDY 2018 • TS EN 1992-1-1 • TS EN 206</span>
             </div>
 
-            <h1 className="mt-6 max-w-5xl text-4xl font-black leading-[0.95] text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-6 max-w-5xl text-4xl font-black leading-[0.95] text-slate-900 dark:text-white sm:text-6xl lg:text-7xl">
               Mühendislik kararlarını
               <span className="home-gradient-text block">hızlandıran çalışma yüzeyi</span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">
               Şantiye notları, betonarme araçları, deprem referansları ve bina aşamalarını tek akışta birleştiren
               premium ana yüzey. Hızlı açılır, mobilde net okunur, karar vermeyi yavaşlatmaz.
             </p>
 
-            <div className="mt-6 flex min-h-10 items-center border-l border-amber-400/35 pl-4 text-sm font-medium text-slate-200 sm:text-base">
-              <span className="mr-2 text-slate-400">Odak:</span>
+            <div className="mt-6 flex min-h-10 items-center border-l border-amber-400/35 pl-4 text-sm font-medium text-slate-700 dark:text-slate-200 sm:text-base">
+              <span className="mr-2 text-slate-500 dark:text-slate-400 dark:text-slate-400">Odak:</span>
               <TypingEffect
                 words={HERO_WORDS}
-                className="font-mono text-amber-200"
+                className="font-mono text-amber-600 dark:text-amber-200"
                 cursorClassName="bg-amber-300"
               />
             </div>
@@ -102,28 +102,28 @@ export function HomeHeroSection({
 
             <div className="mt-10 grid gap-3 sm:grid-cols-3">
               <div className="home-proof-tile">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  <ScrollText className="h-4 w-4 text-cyan-300" />
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
+                  <ScrollText className="h-4 w-4 text-cyan-600 dark:text-cyan-300" />
                   Teknik kayıt
                 </div>
-                <div className="mt-3 text-2xl font-black text-white">{articleCount}+</div>
-                <p className="mt-1 text-sm leading-6 text-slate-400">Makale, rehber ve mevzuat özeti.</p>
+                <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{articleCount}+</div>
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400 dark:text-slate-400">Makale, rehber ve mevzuat özeti.</p>
               </div>
               <div className="home-proof-tile">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  <HardHat className="h-4 w-4 text-amber-300" />
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
+                  <HardHat className="h-4 w-4 text-amber-500 dark:text-amber-300" />
                   Canlı araç
                 </div>
-                <div className="mt-3 text-2xl font-black text-white">{toolCount}</div>
-                <p className="mt-1 text-sm leading-6 text-slate-400">Gerçek iş akışına dönük hesap araçları.</p>
+                <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{toolCount}</div>
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400 dark:text-slate-400">Gerçek iş akışına dönük hesap araçları.</p>
               </div>
               <div className="home-proof-tile">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  <Clock3 className="h-4 w-4 text-cyan-300" />
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
+                  <Clock3 className="h-4 w-4 text-cyan-600 dark:text-cyan-300" />
                   Saha fazı
                 </div>
-                <div className="mt-3 text-2xl font-black text-white">{phaseCount}</div>
-                <p className="mt-1 text-sm leading-6 text-slate-400">Projeden teslime uzanan ana fazlar.</p>
+                <div className="mt-3 text-2xl font-black text-slate-900 dark:text-white">{phaseCount}</div>
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400 dark:text-slate-400">Projeden teslime uzanan ana fazlar.</p>
               </div>
             </div>
           </motion.div>
@@ -134,7 +134,7 @@ export function HomeHeroSection({
             className="grid gap-4"
           >
             <Link href={`/${heroArticle.slug}`} className="home-glass-panel group overflow-hidden">
-              <div className="relative h-52 overflow-hidden border-b border-white/10">
+              <div className="relative h-52 overflow-hidden border-b border-slate-200 dark:border-white/10">
                 <Image
                   src={heroArticle.image}
                   alt={heroArticle.title}
@@ -151,14 +151,14 @@ export function HomeHeroSection({
                 </div>
               </div>
               <div className="space-y-3 p-4">
-                <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
                   <span>Öne çıkan içerik</span>
                   <span>{heroArticle.date}</span>
                 </div>
-                <h2 className="text-xl font-black leading-tight text-white transition-colors group-hover:text-amber-200">
+                <h2 className="text-xl font-black leading-tight text-slate-900 dark:text-white transition-colors group-hover:text-amber-600 dark:text-amber-200">
                   {heroArticle.title}
                 </h2>
-                <p className="line-clamp-3 text-sm leading-7 text-slate-300">{heroArticle.description}</p>
+                <p className="line-clamp-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{heroArticle.description}</p>
               </div>
             </Link>
 
@@ -166,23 +166,23 @@ export function HomeHeroSection({
               <Link href={`/${secondaryArticle.slug}`} className="home-glass-panel group p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="home-chip">Saha notu</span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
                     {secondaryArticle.readTime}
                   </span>
                 </div>
-                <h3 className="mt-4 text-lg font-black leading-snug text-white transition-colors group-hover:text-cyan-200">
+                <h3 className="mt-4 text-lg font-black leading-snug text-slate-900 dark:text-white transition-colors group-hover:text-cyan-600 dark:text-cyan-200">
                   {secondaryArticle.title}
                 </h3>
-                <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-300">{secondaryArticle.description}</p>
+                <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{secondaryArticle.description}</p>
               </Link>
 
               <Link href={featuredTool.href} className="home-glass-panel group p-4">
                 <span className="home-chip">Hızlı giriş</span>
-                <h3 className="mt-4 text-lg font-black text-white transition-colors group-hover:text-amber-200">
+                <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white transition-colors group-hover:text-amber-600 dark:text-amber-200">
                   {featuredTool.name}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-300">{featuredTool.description}</p>
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-amber-200">
+                <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{featuredTool.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-200">
                   Aracı aç
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </div>
@@ -198,10 +198,10 @@ export function HomeHeroSection({
         >
           <Link
             href="#home-tools"
-            className="inline-flex items-center gap-3 text-sm font-semibold text-slate-300 transition-colors hover:text-white"
+            className="inline-flex items-center gap-3 text-sm font-semibold text-slate-600 dark:text-slate-300 transition-colors hover:text-slate-900 dark:hover:text-white"
           >
             <span>Araç yüzeyine in</span>
-            <span className="home-scroll-indicator inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5">
+            <span className="home-scroll-indicator inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
               <ChevronDown className="h-4 w-4" />
             </span>
           </Link>

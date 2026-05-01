@@ -24,10 +24,10 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           <p className="home-section-kicker">Araç yüzeyi</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
             Günlük kararlar için kurgulanmış araç workbench’i
           </h2>
-          <p className="mt-4 text-base leading-8 text-slate-300">
+          <p className="mt-4 text-base leading-8 text-slate-600 dark:text-slate-300">
             Araçlar artık sidebar içinde kaybolmuyor. Her biri kendi disiplin sinyaliyle görünür, hızlı açılır ve
             teknik akışa doğrudan girer.
           </p>
@@ -51,10 +51,10 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
             >
               <TiltCard
                 intensity={isPrimary ? 5 : 4}
-                className={`h-full rounded-lg border ${
+                className={`h-full rounded-2xl ${
                   isPrimary
-                    ? "border-amber-400/35 bg-[linear-gradient(180deg,rgba(245,158,11,0.14),rgba(7,11,18,0.92))]"
-                    : "border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.72),rgba(7,11,18,0.92))]"
+                    ? "border border-amber-300 dark:border-amber-400/35 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/40 dark:to-[#070b12] shadow-[0_8px_30px_-12px_rgba(245,158,11,0.3)] dark:shadow-none"
+                    : "home-glass-panel"
                 }`}
               >
                 <Link
@@ -63,17 +63,17 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-200">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-amber-600 dark:text-amber-200">
                         <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                       </div>
-                      <span className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      <span className="rounded-md border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
                         {tool.discipline}
                       </span>
                     </div>
-                    <h3 className={`mt-6 font-black text-white ${isPrimary ? "text-2xl" : "text-xl"}`}>{tool.name}</h3>
-                    <p className="mt-3 max-w-lg text-sm leading-7 text-slate-300">{tool.description}</p>
+                    <h3 className={`mt-6 font-black text-slate-900 dark:text-white ${isPrimary ? "text-2xl" : "text-xl"}`}>{tool.name}</h3>
+                    <p className="mt-3 max-w-lg text-sm leading-7 text-slate-600 dark:text-slate-300">{tool.description}</p>
                   </div>
-                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-amber-200 transition-colors group-hover:text-white">
+                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-200 transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
                     Aracı aç
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </div>
