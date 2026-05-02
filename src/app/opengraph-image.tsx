@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/site-config";
 
-export const runtime = "edge";
 export const contentType = "image/png";
 export const size = {
   width: 1200,
