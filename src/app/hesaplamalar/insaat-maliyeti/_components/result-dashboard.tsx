@@ -1,16 +1,21 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { ConstructionCostResultV3 } from "@/lib/calculations/modules/insaat-maliyeti-v3";
+import type { PdfExportSnapshot } from "@/lib/calculations/reporting";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   Tooltip as RechartsTooltip, Legend,
 } from "recharts";
 import {
-  RotateCcw, Printer, FileText,
+  RotateCcw, Printer, FileText, Download, Eye, Loader2,
   TrendingDown, TrendingUp, Building2, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+async function loadReportingModule() {
+  return import("@/lib/calculations/reporting");
+}
 
 interface ResultDashboardProps {
   result: ConstructionCostResultV3;
@@ -53,6 +58,12 @@ function formatTL(value: number) {
   }).format(value);
 }
 
+function formatSayi(value: number) {
+  return new Intl.NumberFormat("tr-TR", {
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
@@ -63,8 +74,89 @@ function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
+function buildV3PdfSnapshot(result: ConstructionCostResultV3): PdfExportSnapshot {
+  const { inputs, categories, macroMaterials, grandTotal, costPerM2, optimistic, pessimistic, cityLabel } = result;
+
+  return {
+    variant: "calculation",
+    title: "İnşaat Maliyeti Analizi",
+    subtitle: "Detaylı Maliyet Raporu (V3)",
+    generatedAt: result.generatedAt,
+    highlights: [
+      {
+        label: "Toplam Yaklaşık Maliyet",
+        value: formatTL(grandTotal),
+        tone: "amber",
+        helper: "Ön boyutlandırma amaçlıdır"
+      },
+      {
+        label: "Birim Maliyet",
+        value: `${formatTL(costPerM2)} / m²`,
+        tone: "slate"
+      },
+      {
+        label: "İyimser / Kötümser",
+        value: `${formatTL(optimistic)} / ${formatTL(pessimistic)}`,
+        tone: "emerald"
+      }
+    ],
+    sections: [
+      {
+        title: "Proje Özeti",
+        rows: [
+          { label: "Yapı Sistemi", value: STRUCTURE_LABELS[inputs.structureKind] || "Betonarme" },
+          { label: "Toplam Alan", value: `${inputs.totalArea.toLocaleString("tr-TR")} m²` },
+          { label: "Kat Adedi", value: String(inputs.floorCount) },
+          { label: "Bodrum Kat", value: String(inputs.basementFloors) },
+          { label: "Bölge", value: cityLabel || "Bilinmiyor" },
+          { label: "Kalite Sınıfı", value: QUALITY_LABELS[inputs.qualityLevel] || "Standart" }
+        ]
+      },
+      {
+        title: "Maliyet Kırılımı",
+        rows: categories.map(cat => ({
+          label: cat.label,
+          value: `${formatTL(cat.total)} (%${((cat.total / grandTotal) * 100).toFixed(1)})`
+        }))
+      },
+      {
+        title: "Makro Malzeme (Tahmini)",
+        rows: [
+          { label: "Beton Hacmi", value: `${formatSayi(macroMaterials.concreteM3)} m³` },
+          { label: "Beton Maliyeti", value: formatTL(macroMaterials.concreteCost) },
+          { label: "Demir Metrajı", value: `${formatSayi(macroMaterials.ironTon)} Ton` },
+          { label: "Demir Maliyeti", value: formatTL(macroMaterials.ironCost) },
+          { label: "Duvar Alanı", value: `${formatSayi(macroMaterials.brickM2)} m²` },
+          { label: "Duvar Maliyeti", value: formatTL(macroMaterials.brickCost) }
+        ]
+      },
+      {
+        title: "Maliyet Etkenleri",
+        rows: [
+          { label: "Zemin Sınıfı", value: SOIL_LABELS[inputs.soilClass] || "Orta Zemin" },
+          { label: "Bölgesel Çarpan", value: cityLabel || "Türkiye Geneli" },
+          { label: "Özel Cephe", value: inputs.facadeType ? FACADE_LABELS[inputs.facadeType] : "Yok" },
+          { label: "Bodrum Otopark", value: inputs.basementFloors > 0 ? `${inputs.basementFloors} Kat Bodrum` : "Yok" },
+          { label: "Asansör", value: inputs.hasElevator ? `Var (${inputs.elevatorCount} Adet)` : "Yok" }
+        ]
+      },
+      {
+        title: "Rapor Bilgisi",
+        rows: [
+          { label: "Hesaplama Modülü", value: "Mühendislik Portali V3 Motoru" },
+          { label: "Fiyat Referans Yılı", value: "2025" },
+          { label: "Hazır Beton", value: "3.000 TL / m³ (Ort.)" },
+          { label: "İnşaat Demiri", value: "33.000 TL / Ton (Ort.)" }
+        ]
+      }
+    ],
+    footnotes: result.assumptions
+  };
+}
+
 export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [activePdfAction, setActivePdfAction] = useState<"preview" | "download" | null>(null);
   const { inputs, categories, macroMaterials, grandTotal, costPerM2, optimistic, pessimistic, assumptions, cityLabel } = result;
 
   const chartData = categories.map((cat, i) => ({
@@ -73,69 +165,32 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
     color: COLORS[i % COLORS.length],
   }));
 
-  const handlePrint = () => {
-    window.print();
+  const handlePdfPreview = async () => {
+    if (activePdfAction) return;
+    setActivePdfAction("preview");
+    try {
+      const { openConstructionCostPdfPreview } = await loadReportingModule();
+      openConstructionCostPdfPreview(buildV3PdfSnapshot(result));
+    } catch (error) {
+      console.error(error);
+      alert("PDF önizleme açılamadı. Lütfen açılır pencere engelleyicisini kontrol edin.");
+    } finally {
+      setActivePdfAction(null);
+    }
   };
 
-  const handlePdfPreview = () => {
-    const printContent = document.getElementById("pdf-content");
-    if (!printContent) return;
-
-    // Tüm stilleri topla
-    const styles = Array.from(document.styleSheets)
-      .map(styleSheet => {
-        try {
-          return Array.from(styleSheet.cssRules)
-            .map(rule => rule.cssText)
-            .join("");
-        } catch (e) {
-          return "";
-        }
-      })
-      .join("\n");
-
-    const styleTags = Array.from(document.head.querySelectorAll("style, link[rel='stylesheet']"))
-      .map(el => el.outerHTML)
-      .join("\n");
-
-    const newWindow = window.open("", "_blank");
-    if (!newWindow) {
-      alert("Lütfen açılır pencere (pop-up) engelleyicisini kapatın.");
-      return;
+  const handlePdfDownload = async () => {
+    if (activePdfAction) return;
+    setActivePdfAction("download");
+    try {
+      const { downloadConstructionCostPdf } = await loadReportingModule();
+      downloadConstructionCostPdf(buildV3PdfSnapshot(result), `insaat-maliyeti-raporu-${new Date().getFullYear()}.pdf`);
+    } catch (error) {
+      console.error(error);
+      alert("PDF indirilemedi.");
+    } finally {
+      setActivePdfAction(null);
     }
-
-    // SVG rendering for PieChart is tricky to copy perfectly, 
-    // but copying innerHTML is usually enough for static preview
-    newWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="tr" class="light">
-      <head>
-        <meta charset="utf-8">
-        <title>İnşaat Maliyeti Önizleme - ${formatDate(result.generatedAt)}</title>
-        ${styleTags}
-        <style>
-          ${styles}
-          body { 
-            background: white !important; 
-            color: black !important; 
-            padding: 2rem; 
-            max-width: 1000px;
-            margin: 0 auto;
-          }
-          .no-print { display: none !important; }
-          .print\\:block { display: block !important; }
-        </style>
-      </head>
-      <body class="print-preview-mode">
-        ${printContent.innerHTML}
-        <script>
-          // İstenirse yeni sekmede doğrudan yazdır diyaloğu da tetiklenebilir:
-          // setTimeout(() => window.print(), 1000);
-        </script>
-      </body>
-      </html>
-    `);
-    newWindow.document.close();
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -153,18 +208,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
 
   return (
     <>
-      {/* ── Print CSS — only activates on window.print() ── */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #pdf-content, #pdf-content * { visibility: visible !important; }
-          #pdf-content { position: absolute; inset: 0; background: white; color: black; padding: 24px; }
-          .no-print { display: none !important; }
-          .print-page-break { page-break-before: always; }
-        }
-      `}</style>
-
-      <div id="pdf-content" ref={printRef} className="mx-auto w-full max-w-5xl animate-in fade-in zoom-in-95 duration-500">
+      <div className="mx-auto w-full max-w-5xl animate-in fade-in zoom-in-95 duration-500">
         {/* ── Action Bar ── */}
         <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -176,36 +220,26 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={onReset}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <RotateCcw className="h-4 w-4" /> Yeni Hesap
             </button>
             <button
               onClick={handlePdfPreview}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              disabled={activePdfAction !== null}
+              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 disabled:opacity-50"
             >
-              <FileText className="h-4 w-4" /> PDF Önizleme
+              {activePdfAction === "preview" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+              {activePdfAction === "preview" ? "Hazırlanıyor" : "PDF Önizleme"}
             </button>
             <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+              onClick={handlePdfDownload}
+              disabled={activePdfAction !== null}
+              className="flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-black uppercase tracking-wider text-white shadow-sm transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 disabled:opacity-50"
             >
-              <Printer className="h-4 w-4" /> PDF / Yazdır
+              {activePdfAction === "download" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {activePdfAction === "download" ? "Hazırlanıyor" : "PDF İndir"}
             </button>
-          </div>
-        </div>
-
-        {/* ── Print Header (only shows on print) ── */}
-        <div className="hidden print:block mb-6 border-b pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-extrabold">İNŞAAT MALİYETİ ANALİZİ</h1>
-              <p className="text-sm text-gray-500">{formatDate(result.generatedAt)}</p>
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              <p>muhendislik-site.vercel.app</p>
-              <p>Ön Boyutlandırma Amaçlıdır</p>
-            </div>
           </div>
         </div>
 
@@ -216,7 +250,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
           <div className="flex flex-col gap-5 lg:col-span-1">
 
             {/* Grand Total */}
-            <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-lg dark:border-amber-900/40 dark:from-amber-950/30 dark:to-slate-900">
+            <div className="break-inside-avoid rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-lg dark:border-amber-900/40 dark:from-amber-950/30 dark:to-slate-900">
               <div className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-500">
                 TOPLAM YAKLAŞIK MALİYET
               </div>
@@ -249,7 +283,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
             </div>
 
             {/* Pie Chart */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <div className="break-inside-avoid rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900">
               <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Maliyet Dağılımı
               </h3>
@@ -280,7 +314,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
             </div>
 
             {/* Project Summary */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="break-inside-avoid rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <Building2 className="h-3.5 w-3.5" /> Proje Özeti
               </h3>
@@ -308,7 +342,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
           <div className="flex flex-col gap-5 lg:col-span-2">
 
             {/* Cost Breakdown */}
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <div className="break-inside-avoid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-900">
               <div className="border-b border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-950">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Detaylı Maliyet Kırılımı
@@ -359,7 +393,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
             </div>
 
             {/* Macro Materials */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="break-inside-avoid grid grid-cols-3 gap-4">
               {[
                 { label: "Beton", value: `${macroMaterials.concreteM3} m³`, sub: formatTL(macroMaterials.concreteCost), color: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900/40", textColor: "text-blue-700 dark:text-blue-400" },
                 { label: "Demir", value: `${macroMaterials.ironTon} Ton`, sub: formatTL(macroMaterials.ironCost), color: "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700", textColor: "text-slate-700 dark:text-slate-300" },
@@ -374,7 +408,7 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
             </div>
 
             {/* Assumptions */}
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
+            <div className="break-inside-avoid rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
               <div className="mb-3 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
