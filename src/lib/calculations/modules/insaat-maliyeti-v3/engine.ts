@@ -6,10 +6,14 @@ import {
   CityKeyV3,
 } from "./types";
 
-// ─── Güncel Birim Fiyatlar (2025 Q2 Türkiye Piyasa Verileri) ───────────────
+// --- Temel Birim Fiyatlar (2025 Q2) ---
+// Güncel piyasa araştırmalarına göre revize edilmiştir.
+const CONCRETE_PRICE_PER_M3 = 3000; // TL (Ortalama C25/C30 mikser teslim)
+const IRON_PRICE_PER_TON = 33000;   // TL (Ortalama nervürlü inşaat demiri tonaj fiyatı)
+
 const CURRENT_PRICES = {
-  concretePerM3: 2600,   // Hazır beton C25/30 — TL/m³
-  ironPerTon: 24000,     // İnşaat demiri — TL/Ton
+  concretePerM3: CONCRETE_PRICE_PER_M3,
+  ironPerTon: IRON_PRICE_PER_TON,
   formworkPerM2: 850,    // Kalıp işçilik + malzeme — TL/m²
   brickPerM2: 1200,      // Tuğla + harç + sıva — TL/m²
   roofPerM2: 1800,       // Çatı kaplama — TL/m²

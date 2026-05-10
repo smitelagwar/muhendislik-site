@@ -88,18 +88,23 @@ export function Wizard({ onComplete }: WizardProps) {
           {STEPS.map((s, i) => (
             <React.Fragment key={s.id}>
               <div className="flex flex-col items-center gap-1.5">
-                <div
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (s.id < step) setStep(s.id);
+                  }}
+                  disabled={s.id >= step}
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300",
                     step === s.id
                       ? "border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-slate-950"
                       : step > s.id
-                      ? "border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-950"
+                      ? "cursor-pointer border-emerald-500 bg-emerald-500 text-white hover:ring-4 hover:ring-emerald-500/20 dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-950"
                       : "border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
                   )}
                 >
                   {step > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
-                </div>
+                </button>
                 <span
                   className={cn(
                     "hidden text-[11px] font-medium sm:block",

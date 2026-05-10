@@ -73,7 +73,70 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
     color: COLORS[i % COLORS.length],
   }));
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handlePdfPreview = () => {
+    const printContent = document.getElementById("pdf-content");
+    if (!printContent) return;
+
+    // Tüm stilleri topla
+    const styles = Array.from(document.styleSheets)
+      .map(styleSheet => {
+        try {
+          return Array.from(styleSheet.cssRules)
+            .map(rule => rule.cssText)
+            .join("");
+        } catch (e) {
+          return "";
+        }
+      })
+      .join("\n");
+
+    const styleTags = Array.from(document.head.querySelectorAll("style, link[rel='stylesheet']"))
+      .map(el => el.outerHTML)
+      .join("\n");
+
+    const newWindow = window.open("", "_blank");
+    if (!newWindow) {
+      alert("Lütfen açılır pencere (pop-up) engelleyicisini kapatın.");
+      return;
+    }
+
+    // SVG rendering for PieChart is tricky to copy perfectly, 
+    // but copying innerHTML is usually enough for static preview
+    newWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="tr" class="light">
+      <head>
+        <meta charset="utf-8">
+        <title>İnşaat Maliyeti Önizleme - ${formatDate(result.generatedAt)}</title>
+        ${styleTags}
+        <style>
+          ${styles}
+          body { 
+            background: white !important; 
+            color: black !important; 
+            padding: 2rem; 
+            max-width: 1000px;
+            margin: 0 auto;
+          }
+          .no-print { display: none !important; }
+          .print\\:block { display: block !important; }
+        </style>
+      </head>
+      <body class="print-preview-mode">
+        ${printContent.innerHTML}
+        <script>
+          // İstenirse yeni sekmede doğrudan yazdır diyaloğu da tetiklenebilir:
+          // setTimeout(() => window.print(), 1000);
+        </script>
+      </body>
+      </html>
+    `);
+    newWindow.document.close();
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -110,12 +173,18 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
               {formatDate(result.generatedAt)} • Tahmini değerdir
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={onReset}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <RotateCcw className="h-4 w-4" /> Yeni Hesap
+            </button>
+            <button
+              onClick={handlePdfPreview}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <FileText className="h-4 w-4" /> PDF Önizleme
             </button>
             <button
               onClick={handlePrint}
