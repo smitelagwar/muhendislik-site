@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { Calculator } from "lucide-react";
 import { Wizard } from "./_components/wizard-layout";
 import { ResultDashboard } from "./_components/result-dashboard";
@@ -44,7 +44,13 @@ export function ConstructionCostClient() {
         {/* Content */}
         <div className="mx-auto">
           {!result ? (
-            <Wizard onComplete={handleComplete} />
+            <Suspense fallback={
+              <div className="flex items-center justify-center p-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent"></div>
+              </div>
+            }>
+              <Wizard onComplete={handleComplete} />
+            </Suspense>
           ) : (
             <ResultDashboard result={result} onReset={handleReset} />
           )}

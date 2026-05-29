@@ -58,6 +58,88 @@ export async function buildBinaGuideMetadata(slugParts: readonly string[]): Prom
   };
 }
 
+interface SuggestedTool {
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+}
+
+const TOOL_MAPPINGS: Record<string, SuggestedTool> = {
+  "pas-payi": {
+    title: "Pas Payı Hesabı",
+    description: "TS EN 1992-1-1 (Eurocode 2) ve TS 500 standartlarına göre çevresel etki sınıfı, yangın dayanımı ve donatı çapına bağlı olarak minimum pas payı örtü kalınlığını hesaplayın.",
+    href: "/kategori/araclar/pas-payi",
+    cta: "Pas Payı Aracı"
+  },
+  "kalip-sokumu": {
+    title: "Kalıp Söküm Süresi Hesaplayıcı",
+    description: "TS 500 ve ilgili standartlara göre beton sınıfı, çimento tipi, ortam sıcaklığı ve açıklığa bağlı olarak güvenli kalıp söküm sürelerini hesaplayın.",
+    href: "/kategori/araclar/kalip-sokum-suresi",
+    cta: "Kalıp Söküm Aracı"
+  },
+  "kolon-donati": {
+    title: "Betonarme Kolon Hesabı",
+    description: "TS 500 ve TBDY 2018 standartlarına göre eksenel yük ve moment altındaki dikdörtgen veya dairesel betonarme kolonların taşıma kapasitesi ve donatı kontrollerini yapın.",
+    href: "/kategori/araclar/kolon-hesabi",
+    cta: "Kolon Hesabı Aracı"
+  },
+  "kolon-kalibi": {
+    title: "Betonarme Kolon Hesabı",
+    description: "TS 500 standartlarına göre kolon taşıma kapasitesi, süneklik düzeyi ve etriye sıklaştırma bölgesi kontrollerini yapın.",
+    href: "/kategori/araclar/kolon-hesabi",
+    cta: "Kolon Hesabı Aracı"
+  },
+  "kiris-donati": {
+    title: "Betonarme Kiriş Eğilme Kapasitesi",
+    description: "TS 500 standartlarına göre tek donatılı veya çift donatılı dikdörtgen kirişlerin eğilme momenti kapasitesini ve donatı oranlarını hesaplayın.",
+    href: "/kategori/araclar/kiris-hesabi",
+    cta: "Kiriş Hesabı Aracı"
+  },
+  "kiris-kalibi": {
+    title: "Betonarme Kiriş Hesabı",
+    description: "TS 500 standartlarına göre kiriş eğilme momenti kapasitesini, sehim limitlerini ve donatı detaylarını inceleyin.",
+    href: "/kategori/araclar/kiris-hesabi",
+    cta: "Kiriş Hesabı Aracı"
+  },
+  "doseme-donati": {
+    title: "Döşeme Hesabı (Tek/Çift Doğrultulu)",
+    description: "TS 500 standartlarına göre tek doğrultulu (hurdi) ve çift doğrultulu (dal) döşemelerin kalınlık, yük dağılımı ve moment katsayıları hesaplarını gerçekleştirin.",
+    href: "/kategori/araclar/doseme-hesabi",
+    cta: "Döşeme Hesabı Aracı"
+  },
+  "doseme-kalibi": {
+    title: "Döşeme Hesabı (Tek/Çift Doğrultulu)",
+    description: "TS 500 ve TS EN 1992 standartlarına göre döşeme kalınlığı, sehim limitleri ve donatı yerleşimini analiz edin.",
+    href: "/kategori/araclar/doseme-hesabi",
+    cta: "Döşeme Hesabı Aracı"
+  },
+  "radye-temel": {
+    title: "Tekil Temel Hesabı",
+    description: "TS 500 standartlarına göre temel boyutlandırması, zemin emniyet gerilmesi, delme kesme ve donatı alanı kontrollerini hızlıca yapın.",
+    href: "/hesaplamalar/tekil-temel",
+    cta: "Temel Hesabı Aracı"
+  },
+  "temel-donati": {
+    title: "Tekil Temel Hesabı",
+    description: "Temel altı zemin gerilmesi, eğilme momenti kapasitesi ve TS 500 donatı kurallarına göre minimum donatı tasarımı kontrollerini yapın.",
+    href: "/hesaplamalar/tekil-temel",
+    cta: "Temel Hesabı Aracı"
+  },
+  "mimari-proje": {
+    title: "İmar Durumu ve Yapılaşma Hesaplayıcı",
+    description: "3194 Sayılı İmar Kanunu ve yerel imar yönetmeliklerine göre arsa alanı, TAKS ve KAKS (emsal) değerlerine göre taban alanı ve kat karşılığı fizibilite hesabı yapın.",
+    href: "/kategori/araclar/imar-hesaplayici",
+    cta: "İmar Hesaplama Aracı"
+  },
+  "yapi-ruhsati": {
+    title: "İmar Durumu ve Yapılaşma Hesaplayıcı",
+    description: "Yapı ruhsatı alım sürecinde kritik olan TAKS, KAKS, çekme mesafeleri ve kat alanları limitlerini ön fizibilite olarak hızlıca denetleyin.",
+    href: "/kategori/araclar/imar-hesaplayici",
+    cta: "İmar Hesaplama Aracı"
+  }
+};
+
 export async function renderBinaGuidePage(slugParts: readonly string[]) {
   const guide = getBinaGuideBySlugParts(slugParts);
 
@@ -113,6 +195,8 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
     })),
   };
 
+  const suggestedTool = TOOL_MAPPINGS[guide.slugPath];
+
   return (
     <>
       <script
@@ -129,7 +213,8 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
         parsedSections={parsedSections}
         breadcrumbs={navigation.breadcrumbs}
         backLink={navigation.backLink}
-        hideToolPromos
+        hideToolPromos={!suggestedTool}
+        suggestedTool={suggestedTool}
       />
     </>
   );

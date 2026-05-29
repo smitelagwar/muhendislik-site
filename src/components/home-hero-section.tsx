@@ -9,6 +9,7 @@ import type { HomeArticle } from "@/components/home-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ToolDefinition } from "@/lib/tools-data";
+import { HomeQuickConsole } from "@/components/home-quick-console";
 
 interface HomeHeroSectionProps {
   heroArticle: HomeArticle;
@@ -131,63 +132,9 @@ export function HomeHeroSection({
           <motion.div
             {...reveal}
             transition={{ duration: 0.7, delay: reducedMotion ? 0 : 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="grid gap-4"
+            className="w-full"
           >
-            <Link href={`/${heroArticle.slug}`} className="home-glass-panel group overflow-hidden">
-              <div className="relative h-52 overflow-hidden border-b border-slate-200 dark:border-white/10">
-                <Image
-                  src={heroArticle.image}
-                  alt={heroArticle.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 1024px) 100vw, 384px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#06080d] via-[#06080d]/25 to-transparent" />
-                <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
-                  <span className="home-chip">Editör seçimi</span>
-                  <Badge variant="outline" className={`${heroArticle.categoryColor} border-none`}>
-                    {heroArticle.category}
-                  </Badge>
-                </div>
-              </div>
-              <div className="space-y-3 p-4">
-                <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400 dark:text-slate-400">
-                  <span>Öne çıkan içerik</span>
-                  <span>{heroArticle.date}</span>
-                </div>
-                <h2 className="text-xl font-black leading-tight text-slate-900 dark:text-white transition-colors group-hover:text-amber-600 dark:text-amber-200">
-                  {heroArticle.title}
-                </h2>
-                <p className="line-clamp-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{heroArticle.description}</p>
-              </div>
-            </Link>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <Link href={`/${secondaryArticle.slug}`} className="home-glass-panel group p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="home-chip">Saha notu</span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                    {secondaryArticle.readTime}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-lg font-black leading-snug text-slate-900 dark:text-white transition-colors group-hover:text-cyan-600 dark:text-cyan-200">
-                  {secondaryArticle.title}
-                </h3>
-                <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{secondaryArticle.description}</p>
-              </Link>
-
-              <Link href={featuredTool.href} className="home-glass-panel group p-4">
-                <span className="home-chip">Hızlı giriş</span>
-                <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white transition-colors group-hover:text-amber-600 dark:text-amber-200">
-                  {featuredTool.name}
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{featuredTool.description}</p>
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-200">
-                  Aracı aç
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </div>
-              </Link>
-            </div>
+            <HomeQuickConsole featuredArticle={heroArticle} />
           </motion.div>
         </div>
 

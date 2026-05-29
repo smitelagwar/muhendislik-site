@@ -8,6 +8,7 @@ import { buildSeoMetadata } from "@/lib/seo";
 import { resolveSiteUrl } from "@/lib/site-config";
 import { SITE_SECTIONS, matchesSiteSection } from "@/lib/site-sections";
 import { getLiveTools } from "@/lib/tools-data";
+import { getCalculationPages } from "@/lib/calculation-pages";
 
 const STATIC_PAGES = [
   { label: "Hakkımızda", href: "/hakkimizda" },
@@ -19,14 +20,15 @@ const STATIC_PAGES = [
 
 export const metadata: Metadata = buildSeoMetadata({
   title: "Konu Haritası",
-  description: "Kategori ağacını, teknik içerikleri, hesap araçlarını ve sabit sayfaları tek ekranda keşfedin.",
+  description: "Kategori ağacını, teknik içerikleri, hesap araçlarını, gelişmiş modülleri ve sabit sayfaları tek ekranda keşfedin.",
   pathname: "/konu-haritasi",
-  keywords: ["konu haritası", "mühendislik içerikleri", "hesap araçları", "kategori ağacı"],
+  keywords: ["konu haritası", "mühendislik içerikleri", "hesap araçları", "kategori ağacı", "mühendislik hesaplamaları"],
 });
 
 export default function TopicMapPage() {
   const articles = getArticleList();
   const tools = getLiveTools();
+  const calculationPages = getCalculationPages();
 
   const treeData = SITE_SECTIONS.map((section) => ({
     section,
@@ -38,16 +40,24 @@ export default function TopicMapPage() {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: "Konu Haritası",
-    description: "Kategori ağacını, teknik içerikleri, hesap araçlarını ve sabit sayfaları tek ekranda keşfedin.",
+    description: "Kategori ağacını, teknik içerikleri, hesap araçlarını, gelişmiş modülleri ve sabit sayfaları tek ekranda keşfedin.",
     url: resolveSiteUrl("/konu-haritasi"),
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: SITE_SECTIONS.map((section, index) => ({
-        "@type": "ListItem",
-        position: index + 1,
-        name: section.title,
-        url: resolveSiteUrl(section.href),
-      })),
+      itemListElement: [
+        ...SITE_SECTIONS.map((section, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: section.title,
+          url: resolveSiteUrl(section.href),
+        })),
+        ...calculationPages.map((page, index) => ({
+          "@type": "ListItem",
+          position: SITE_SECTIONS.length + index + 1,
+          name: page.title,
+          url: resolveSiteUrl(page.href),
+        })),
+      ],
     },
   };
 
@@ -128,6 +138,45 @@ export default function TopicMapPage() {
               )}
             </section>
           ))}
+
+          {/* Gelişmiş Hesaplama Modülleri Kartı */}
+          <section className="rounded-[28px] border border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 via-zinc-950/20 to-emerald-500/10 p-6 shadow-sm dark:border-emerald-500/20 dark:from-zinc-900/60 dark:to-zinc-950">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">
+                  Gelişmiş Modüller
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Mühendislik Hesaplamaları</h2>
+                <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+                  TS 500, TBDY 2018 ve Çevre Şehircilik birim fiyat standartlarına dayalı makro boyutlandırma ve maliyet modülleri.
+                </p>
+              </div>
+              <Button asChild variant="outline" className="rounded-full border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400">
+                <Link href="/hesaplamalar">Tümünü aç</Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-3">
+              {calculationPages.map((page) => (
+                <Link
+                  key={page.id}
+                  href={page.href}
+                  className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 transition-colors hover:border-emerald-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-800 dark:hover:bg-zinc-900"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <Wrench className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-zinc-950 dark:text-white">{page.title}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{page.description}</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-zinc-400" />
+                </Link>
+              ))}
+            </div>
+          </section>
         </div>
 
         <section className="mt-10 rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calculator, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calculator, AlertTriangle, CheckCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import {
   BETON_SINIFI_OPTIONS,
   CELIK_SINIFI_OPTIONS,
@@ -316,6 +317,27 @@ export function IsolatedFootingClient() {
                           {result.donatiY.oneri}
                         </span>
                         <span className="text-xs text-zinc-500">As = {result.donatiY.tasarimDonatíAlani.toFixed(1)} cm²</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <div className="flex gap-3">
+                          <Calculator className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
+                          <div className="flex-1">
+                            <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Donatı Detay Analizi Yapın</h4>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                              Hesaplanan donatı alanına göre pas payı örtüsü, donatı aralığı sınırları ve çiroz yerleşimi kontrollerini TS 500&apos;e göre doğrulamak için donatı hesabını çalıştırın.
+                            </p>
+                            <Link
+                              href="/kategori/araclar/donati-hesabi"
+                              className="inline-flex items-center text-xs font-bold text-amber-500 hover:text-amber-400 mt-3 gap-1"
+                            >
+                              Donatı Hesabı Aracı
+                              <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

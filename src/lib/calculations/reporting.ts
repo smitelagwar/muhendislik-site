@@ -23,6 +23,14 @@ export interface PdfExportSection {
   rows: PdfExportSectionRow[];
 }
 
+export interface PdfChartSlice {
+  label: string;
+  value: number;
+  percent: number;
+  color: string;
+  description?: string;
+}
+
 export interface PdfHighlight {
   label: string;
   value: string;
@@ -38,6 +46,7 @@ export interface PdfExportSnapshot {
   highlights: PdfHighlight[];
   sections: PdfExportSection[];
   footnotes: string[];
+  chart?: PdfChartSlice[];
 }
 
 export interface EstimatedConstructionAreaPdfSnapshot {
@@ -164,6 +173,38 @@ function createPdfDocument(): jsPDF {
   registerPdfFonts(pdf);
   setFont(pdf);
   return pdf;
+}
+
+function openPdfBlobPreview(createDocument: () => jsPDF): void {
+  if (typeof window === "undefined") {
+    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
+  }
+
+  const previewWindow = window.open("", "_blank");
+  let blobUrl = "";
+
+  if (!previewWindow) {
+    throw new Error("PDF önizleme sekmesi açılamadı.");
+  }
+
+  try {
+    const pdf = createDocument();
+    const blob = pdf.output("blob");
+    blobUrl = URL.createObjectURL(blob);
+    previewWindow.location.href = blobUrl;
+  } catch (error) {
+    previewWindow.close();
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    throw error;
+  }
+
+  window.setTimeout(() => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }, 60_000);
 }
 
 function paintPageBackground(pdf: jsPDF, pageNumber: number) {
@@ -1182,6 +1223,163 @@ function sectionRowsToLines(section: PdfExportSection | undefined, limit = 6): s
   return section.rows.slice(0, limit).map((row) => `${row.label}: ${row.value}`);
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function parseHexColor(color: string): RgbColor {
+  const normalized = color.trim().replace("#", "");
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return COLORS.accentAmber;
+  }
+
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function buildConicGradient(chart: PdfChartSlice[] | undefined): string {
+  if (!chart || chart.length === 0) {
+    return "conic-gradient(#f59e0b 0deg 360deg)";
+  }
+
+  let cursor = 0;
+  const stops = chart.map((slice) => {
+    const start = cursor;
+    const sweep = Math.max(0.2, slice.percent * 3.6);
+    cursor += sweep;
+    return `${slice.color} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`;
+  });
+
+  if (cursor < 360) {
+    stops.push(`${chart[chart.length - 1].color} ${cursor.toFixed(2)}deg 360deg`);
+  }
+
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+function getChartTotal(chart: PdfChartSlice[] | undefined): number {
+  return chart?.reduce((total, slice) => total + Math.max(slice.value, 0), 0) ?? 0;
+}
+
+function drawPdfDonutChart(
+  pdf: jsPDF,
+  chart: PdfChartSlice[] | undefined,
+  centerX: number,
+  centerY: number,
+  outerRadius: number,
+  innerRadius: number
+) {
+  const chartTotal = getChartTotal(chart);
+
+  if (!chart || chart.length === 0 || chartTotal <= 0) {
+    setFill(pdf, COLORS.softAmber);
+    pdf.circle(centerX, centerY, outerRadius, "F");
+    setFill(pdf, COLORS.card);
+    pdf.circle(centerX, centerY, innerRadius, "F");
+    return;
+  }
+
+  let startAngle = -Math.PI / 2;
+
+  chart.forEach((slice) => {
+    const sweep = (Math.max(slice.value, 0) / chartTotal) * Math.PI * 2;
+    const endAngle = startAngle + sweep;
+    const steps = Math.max(4, Math.ceil(sweep / (Math.PI / 18)));
+    const points: Array<[number, number]> = [[centerX, centerY]];
+
+    for (let step = 0; step <= steps; step += 1) {
+      const angle = startAngle + (sweep * step) / steps;
+      points.push([
+        centerX + Math.cos(angle) * outerRadius,
+        centerY + Math.sin(angle) * outerRadius,
+      ]);
+    }
+
+    const lineSegments = points.slice(1).map((point, index) => {
+      const previous = points[index];
+      return [point[0] - previous[0], point[1] - previous[1]];
+    });
+
+    setFill(pdf, parseHexColor(slice.color));
+    pdf.lines(lineSegments, points[0][0], points[0][1], [1, 1], "F", true);
+    startAngle = endAngle;
+  });
+
+  setFill(pdf, COLORS.card);
+  pdf.circle(centerX, centerY, innerRadius, "F");
+}
+
+function drawConstructionCostChartCard(
+  pdf: jsPDF,
+  x: number,
+  y: number,
+  width: number,
+  chart: PdfChartSlice[] | undefined
+): number {
+  const height = 70;
+
+  setFill(pdf, COLORS.card);
+  setStroke(pdf, COLORS.paperBorder);
+  pdf.roundedRect(x, y, width, height, 6, 6, "FD");
+
+  setText(pdf, COLORS.officialBlue);
+  setFont(pdf, "bold");
+  pdf.setFontSize(8.7);
+  pdf.text("Maliyet dağılımı", x + 6, y + 9.5);
+
+  drawPdfDonutChart(pdf, chart, x + 24, y + 36, 17, 10);
+
+  const rows = (chart ?? []).slice(0, 6);
+  let cursorY = y + 17;
+
+  rows.forEach((slice) => {
+    setFill(pdf, parseHexColor(slice.color));
+    pdf.circle(x + 47, cursorY - 1.4, 1.1, "F");
+
+    setText(pdf, COLORS.body);
+    setFont(pdf);
+    pdf.setFontSize(7.4);
+    const label = normalizePdfText(slice.label);
+    pdf.text(pdf.splitTextToSize(label, width - 62), x + 50, cursorY);
+
+    setText(pdf, COLORS.ink);
+    setFont(pdf, "bold");
+    pdf.setFontSize(7.5);
+    pdf.text(`%${slice.percent.toFixed(0)}`, x + width - 6, cursorY, { align: "right" });
+
+    cursorY += 7.2;
+  });
+
+  return y + height;
+}
+
+function writeConstructionContinuationPage(pdf: jsPDF, snapshot: PdfExportSnapshot): number {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  pdf.addPage();
+  drawOfficialPaperBackground(pdf);
+  drawOfficialBrandBlock(pdf, OFFICIAL_MARGIN, 16);
+  drawOfficialDateCard(pdf, pageWidth - OFFICIAL_MARGIN - 54, 14, 54, snapshot.generatedAt);
+
+  return drawConstructionCostTitleBlock(
+    pdf,
+    {
+      ...snapshot,
+      subtitle: `${snapshot.subtitle} - devam`,
+    },
+    42
+  );
+}
+
 export function createConstructionCostPdfDocument(snapshot: PdfExportSnapshot): jsPDF {
   const pdf = createPdfDocument();
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -1228,58 +1426,278 @@ export function createConstructionCostPdfDocument(snapshot: PdfExportSnapshot): 
 
   const lowerY = Math.max(summaryBottom, topItemsBottom) + OFFICIAL_GAP;
   const halfWidth = (contentWidth - OFFICIAL_GAP) / 2;
-  const driversBottom = drawOfficialInfoCard(
+  const chartBottom = drawConstructionCostChartCard(
     pdf,
     OFFICIAL_MARGIN,
+    lowerY,
+    halfWidth,
+    snapshot.chart
+  );
+  const driversBottom = drawOfficialInfoCard(
+    pdf,
+    OFFICIAL_MARGIN + halfWidth + OFFICIAL_GAP,
     lowerY,
     halfWidth,
     driversSection?.title ?? "Etki sürücüleri",
     sectionRowsToLines(driversSection, 3)
   );
+
+  let notesY = Math.max(chartBottom, driversBottom) + OFFICIAL_GAP;
   const comparisonBottom = drawOfficialInfoCard(
     pdf,
-    OFFICIAL_MARGIN + halfWidth + OFFICIAL_GAP,
-    lowerY,
-    halfWidth,
+    OFFICIAL_MARGIN,
+    notesY,
+    contentWidth,
     comparisonSection?.title ?? "Karşılaştırma özeti",
-    sectionRowsToLines(comparisonSection, 3)
+    sectionRowsToLines(comparisonSection, 2)
   );
 
-  const notesY = Math.max(driversBottom, comparisonBottom) + OFFICIAL_GAP;
-  drawOfficialNotesCard(pdf, notesY, snapshot.footnotes.slice(0, 4));
+  notesY = comparisonBottom + OFFICIAL_GAP;
+  const footnotes = snapshot.footnotes.slice(0, 4);
+  const notesHeight = getOfficialNotesHeight(pdf, footnotes, contentWidth);
+
+  if (notesY + notesHeight > pdf.internal.pageSize.getHeight() - 10) {
+    notesY = writeConstructionContinuationPage(pdf, snapshot) + OFFICIAL_GAP;
+  }
+
+  drawOfficialNotesCard(pdf, notesY, footnotes);
 
   return pdf;
 }
 
 export function openOfficialCostPdfPreview(result: OfficialCostResultSnapshot): void {
-  if (typeof window === "undefined") {
-    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
-  }
+  openPdfBlobPreview(() => createOfficialCostPdfDocument(result));
+}
 
-  const pdf = createOfficialCostPdfDocument(result);
-  const blob = pdf.output("blob");
-  const blobUrl = URL.createObjectURL(blob);
-  const previewWindow = window.open("", "_blank");
+/**
+ * Resmî birim maliyet raporu için düzenlenebilir HTML şablonu oluşturur.
+ */
+// PDF önizleme blob sekmesi kullandığı için bu düzenlenebilir HTML şablonu şimdilik yedek tutuluyor.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateOfficialCostHtml(result: OfficialCostResultSnapshot): string {
+  const { row, selection, toplamInsaatAlani, resmiToplamMaliyet, formula } = result;
+  const dateLabel = formatOfficialDate();
 
-  if (!previewWindow) {
-    throw new Error("PDF önizleme sekmesi açılamadı.");
-  }
+  const colors = {
+    paper: "#F9F8F4",
+    paperBorder: "#D2D8E2",
+    officialBlue: "#102C54",
+    officialAccent: "#B96A24",
+    ink: "#0F172A",
+    body: "#334155",
+    muted: "#64748B",
+  };
 
-  try {
-    previewWindow.location.href = blobUrl;
-  } catch (error) {
-    previewWindow.close();
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Resmî Birim Maliyet Raporu - ${dateLabel}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;700&display=swap');
+    :root {
+      --paper-bg: ${colors.paper};
+      --paper-border: ${colors.paperBorder};
+      --official-blue: ${colors.officialBlue};
+      --official-accent: ${colors.officialAccent};
+      --ink: ${colors.ink};
+      --body: ${colors.body};
+      --muted: ${colors.muted};
     }
-    throw error;
-  }
-
-  window.setTimeout(() => {
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #F1F5F9;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-  }, 60_000);
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      background-color: var(--paper-bg);
+      padding: 20mm;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      position: relative;
+      border: 1px solid var(--paper-border);
+    }
+    .paper::before {
+      content: '';
+      position: absolute;
+      inset: 8mm;
+      border: 0.4mm solid var(--paper-border);
+      pointer-events: none;
+    }
+    .toolbar {
+      width: 210mm;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      background: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--official-blue); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--body); }
+    
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .brand { display: flex; align-items: flex-start; gap: 15px; }
+    .logo-mark {
+      width: 10mm; height: 14mm;
+      border-left: 1mm solid var(--official-blue);
+      border-top: 1mm solid var(--official-blue);
+      position: relative;
+    }
+    .logo-mark::after {
+      content: 'İB';
+      position: absolute; left: 1.5mm; top: 5mm;
+      font-weight: 800; font-size: 11px; color: var(--official-blue);
+    }
+    .brand-text h2 { font-size: 16px; font-weight: 800; color: var(--ink); }
+    .brand-text p { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    
+    .date-box {
+      border: 1px solid var(--paper-border);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 6px;
+      height: fit-content;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--official-blue);
+    }
+
+    .title-area { margin-bottom: 25px; }
+    .title-area h1 { font-family: 'IBM Plex Serif', serif; font-size: 26pt; color: var(--official-blue); margin-bottom: 6px; }
+    .title-area p { font-size: 11pt; color: var(--body); }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; margin-bottom: 8mm; }
+    .card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px 20px; }
+    .card .label { font-size: 9pt; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .card .value { font-family: 'IBM Plex Serif', serif; font-size: 18pt; font-weight: 700; color: var(--official-blue); }
+
+    .main-grid { display: grid; grid-template-columns: 112mm 1fr; gap: 6mm; margin-bottom: 8mm; }
+    .section-card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; margin-bottom: 6mm; }
+    .section-card h3 { font-size: 10pt; font-weight: 700; color: var(--official-blue); border-bottom: 1px solid var(--paper-border); padding-bottom: 8px; margin-bottom: 12px; text-transform: uppercase; }
+    .data-row { display: flex; justify-content: space-between; font-size: 9pt; margin-bottom: 6px; }
+    .data-row .l { color: var(--muted); }
+    .data-row .v { font-weight: 700; color: var(--ink); text-align: right; }
+    .notes { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; }
+    .notes h3 { font-size: 9pt; font-weight: 700; color: var(--official-blue); margin-bottom: 10px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: 8.5pt; color: var(--muted); margin-bottom: 5px; position: relative; padding-left: 15px; }
+    .notes li::before { content: '•'; position: absolute; left: 0; color: var(--official-accent); }
+
+    [contenteditable="true"]:hover { outline: 1px dashed var(--official-accent); background: rgba(0,0,0,0.02); }
+    [contenteditable="true"]:focus { outline: 2px solid var(--official-accent); background: white; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .toolbar { display: none; }
+      .paper { box-shadow: none; border: none; padding: 15mm; margin: 0; }
+      .paper::before { inset: 5mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 10px; height: 10px; background: var(--official-accent); border-radius: 50%;"></div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--body);">Düzenlenebilir Resmî Rapor</span>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-secondary" onclick="window.close()">Kapat</button>
+      <button class="btn btn-primary" onclick="window.print()">Yazdır veya PDF Kaydet</button>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="header">
+      <div class="brand">
+        <div class="logo-mark"></div>
+        <div class="brand-text">
+          <h2 contenteditable="true">İNŞA BLOG</h2>
+          <p contenteditable="true">Mühendislik · Yapı · Analiz</p>
+        </div>
+      </div>
+      <div class="date-box" contenteditable="true">${dateLabel}</div>
+    </div>
+
+    <div class="title-area">
+      <h1 contenteditable="true">Resmî Birim Maliyet Raporu</h1>
+      <p contenteditable="true">${row.sinifAdi} · ${row.sinifKodu}</p>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="label" contenteditable="true">Resmî Sınıf Kodu</div>
+        <div class="value" contenteditable="true">${row.sinifKodu}</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Resmî m² Birim Maliyeti</div>
+        <div class="value" contenteditable="true">${formatM2Fiyat(row.m2BirimMaliyet)}</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Toplam İnşaat Alanı</div>
+        <div class="value" contenteditable="true">${toplamInsaatAlani.toLocaleString('tr-TR')} m²</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Toplam Resmî Maliyet</div>
+        <div class="value" contenteditable="true">${formatTL(resmiToplamMaliyet)}</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="col-left">
+        <div class="section-card">
+          <h3 contenteditable="true">Resmî Seçim Özeti</h3>
+          <div class="data-row"><span class="l" contenteditable="true">Yıl</span><span class="v" contenteditable="true">${selection.yil}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Ana Grup</span><span class="v" contenteditable="true">${row.anaGrupAdi}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Alt Grup / Sınıf</span><span class="v" contenteditable="true">${row.sinifAdi}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Hesap Formülü</span><span class="v" contenteditable="true">${formula}</span></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-card">
+          <h3 contenteditable="true">${row.anaGrupKodu}. ${row.altGrupKodu} Sınıfına Giren Yapılar</h3>
+          ${row.ornekYapilar.slice(0, 3).map((ex, i) => `
+            <div class="data-row">
+              <span class="l" contenteditable="true">Örnek ${i + 1}</span>
+              <span class="v" contenteditable="true">${ex}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="section-card">
+          <h3 contenteditable="true">Kaynak</h3>
+          <div class="data-row">
+            <span class="v" style="text-align: left; font-size: 8pt;" contenteditable="true">${row.kaynakPdf}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3 contenteditable="true">Notlar</h3>
+      <ul>
+        <li contenteditable="true">Bu belge resmî referans niteliğinde olup piyasa teklifi yerine geçmez.</li>
+        <li contenteditable="true">${row.not}</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 }
 
 export function downloadOfficialCostPdf(result: OfficialCostResultSnapshot, filename: string): void {
@@ -1287,36 +1705,717 @@ export function downloadOfficialCostPdf(result: OfficialCostResultSnapshot, file
   pdf.save(filename);
 }
 
+/**
+ * İnşaat maliyeti analiz raporunu tarayıcıda düzenlenebilir bir HTML penceresi olarak açar.
+ * Bu pencere "contenteditable" özelliğine sahiptir, böylece kullanıcılar yazdırmadan önce metinleri düzenleyebilir.
+ */
 export function openConstructionCostPdfPreview(snapshot: PdfExportSnapshot): void {
+  openPdfBlobPreview(() => createConstructionCostPdfDocument(snapshot));
+}
+
+/**
+ * Rapor için düzenlenebilir HTML şablonu oluşturur.
+ */
+// PDF önizleme blob sekmesi kullandığı için bu düzenlenebilir HTML şablonu şimdilik yedek tutuluyor.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateConstructionCostHtml(snapshot: PdfExportSnapshot): string {
+  const { title, subtitle, generatedAt, highlights, sections, footnotes } = snapshot;
+
+  const projectSection = sections[0];
+  const breakdownSection = sections[1];
+  const topItemsSection = sections[2];
+  const driversSection = sections[3];
+  const comparisonSection = sections[4];
+  const chartGradient = buildConicGradient(snapshot.chart);
+  const chartRows = snapshot.chart ?? [];
+
+  const colors = {
+    paper: "#F9F8F4",
+    paperBorder: "#D2D8E2",
+    officialBlue: "#102C54",
+    officialAccent: "#B96A24",
+    ink: "#0F172A",
+    body: "#334155",
+    muted: "#64748B",
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>${title} - ${generatedAt}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;700&display=swap');
+    :root {
+      --paper-bg: ${colors.paper};
+      --paper-border: ${colors.paperBorder};
+      --official-blue: ${colors.officialBlue};
+      --official-accent: ${colors.officialAccent};
+      --ink: ${colors.ink};
+      --body: ${colors.body};
+      --muted: ${colors.muted};
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #F1F5F9;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      background-color: var(--paper-bg);
+      padding: 20mm;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      position: relative;
+      border: 1px solid var(--paper-border);
+    }
+    .paper::before {
+      content: '';
+      position: absolute;
+      inset: 8mm;
+      border: 0.4mm solid var(--paper-border);
+      pointer-events: none;
+    }
+    .toolbar {
+      width: 210mm;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      background: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--official-blue); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--body); }
+    
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .brand { display: flex; align-items: flex-start; gap: 15px; }
+    .logo-mark {
+      width: 10mm; height: 14mm;
+      border-left: 1mm solid var(--official-blue);
+      border-top: 1mm solid var(--official-blue);
+      position: relative;
+    }
+    .logo-mark::after {
+      content: 'İB';
+      position: absolute; left: 1.5mm; top: 5mm;
+      font-weight: 800; font-size: 11px; color: var(--official-blue);
+    }
+    .brand-text h2 { font-size: 16px; font-weight: 800; color: var(--ink); }
+    .brand-text p { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    
+    .date-box {
+      border: 1px solid var(--paper-border);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 6px;
+      height: fit-content;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--official-blue);
+    }
+
+    .title-area { margin-bottom: 25px; }
+    .title-area h1 { font-family: 'IBM Plex Serif', serif; font-size: 26pt; color: var(--official-blue); margin-bottom: 6px; }
+    .title-area p { font-size: 11pt; color: var(--body); }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; margin-bottom: 8mm; }
+    .card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px 20px; }
+    .card .label { font-size: 9pt; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .card .value { font-family: 'IBM Plex Serif', serif; font-size: 18pt; font-weight: 700; color: var(--official-blue); }
+
+    .main-grid { display: grid; grid-template-columns: 105mm 1fr; gap: 6mm; margin-bottom: 8mm; }
+    .section-card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; margin-bottom: 6mm; }
+    .section-card h3 { font-size: 10pt; font-weight: 700; color: var(--official-blue); border-bottom: 1px solid var(--paper-border); padding-bottom: 8px; margin-bottom: 12px; text-transform: uppercase; }
+    .data-row { display: flex; justify-content: space-between; font-size: 9pt; margin-bottom: 6px; }
+    .data-row .l { color: var(--muted); }
+    .data-row .v { font-weight: 700; color: var(--ink); text-align: right; }
+    .chart-wrap { display: grid; grid-template-columns: 34mm 1fr; gap: 7mm; align-items: center; }
+    .donut {
+      width: 32mm;
+      height: 32mm;
+      border-radius: 50%;
+      background: ${chartGradient};
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+    }
+    .donut::after {
+      content: '';
+      position: absolute;
+      inset: 9mm;
+      border-radius: 50%;
+      background: white;
+      box-shadow: inset 0 0 0 1px var(--paper-border);
+    }
+    .legend-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 8.2pt; margin-bottom: 5px; }
+    .legend-label { display: inline-flex; align-items: center; gap: 6px; color: var(--body); min-width: 0; }
+    .legend-dot { width: 7px; height: 7px; border-radius: 999px; flex: 0 0 auto; }
+    .legend-percent { color: var(--ink); font-weight: 700; }
+
+    .notes { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; }
+    .notes h3 { font-size: 9pt; font-weight: 700; color: var(--official-blue); margin-bottom: 10px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: 8.5pt; color: var(--muted); margin-bottom: 5px; position: relative; padding-left: 15px; }
+    .notes li::before { content: '•'; position: absolute; left: 0; color: var(--official-accent); }
+
+    [contenteditable="true"]:hover { outline: 1px dashed var(--official-accent); background: rgba(0,0,0,0.02); }
+    [contenteditable="true"]:focus { outline: 2px solid var(--official-accent); background: white; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .toolbar { display: none; }
+      .paper { box-shadow: none; border: none; padding: 15mm; margin: 0; }
+      .paper::before { inset: 5mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 10px; height: 10px; background: var(--official-accent); border-radius: 50%;"></div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--body);">Düzenlenebilir Rapor Önizlemesi</span>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-secondary" onclick="window.close()">Kapat</button>
+      <button class="btn btn-primary" onclick="window.print()">Yazdır veya PDF Kaydet</button>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="header">
+      <div class="brand">
+        <div class="logo-mark"></div>
+        <div class="brand-text">
+          <h2 contenteditable="true">İNŞA BLOG</h2>
+          <p contenteditable="true">Mühendislik · Yapı · Analiz</p>
+        </div>
+      </div>
+      <div class="date-box" contenteditable="true">${generatedAt}</div>
+    </div>
+
+    <div class="title-area">
+      <h1 contenteditable="true">${title}</h1>
+      <p contenteditable="true">${subtitle}</p>
+    </div>
+
+    <div class="grid-4">
+      ${highlights.slice(0, 4).map(h => `
+        <div class="card">
+          <div class="label" contenteditable="true">${h.label}</div>
+          <div class="value" contenteditable="true">${h.value}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="main-grid">
+      <div class="col-left">
+        <div class="section-card">
+          <h3 contenteditable="true">Maliyet Dağılımı</h3>
+          <div class="chart-wrap">
+            <div class="donut" aria-label="Maliyet dağılımı pasta grafiği"></div>
+            <div>
+              ${chartRows.slice(0, 6).map(r => `
+                <div class="legend-row">
+                  <span class="legend-label"><span class="legend-dot" style="background:${r.color}"></span><span contenteditable="true">${escapeHtml(r.label)}</span></span>
+                  <span class="legend-percent" contenteditable="true">%${r.percent.toFixed(0)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <h3 contenteditable="true">${projectSection?.title || 'Proje Özeti'}</h3>
+          ${(projectSection?.rows || []).map(r => `
+            <div class="data-row">
+              <span class="l" contenteditable="true">${r.label}</span>
+              <span class="v" contenteditable="true">${r.value}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-card">
+          <h3 contenteditable="true">${breakdownSection?.title || 'Maliyet Kırılımı'}</h3>
+          ${(breakdownSection?.rows || []).slice(0, 4).map(r => `
+            <div class="data-row">
+              <span class="l" contenteditable="true">${r.label}</span>
+              <span class="v" contenteditable="true">${r.value}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="section-card">
+          <h3 contenteditable="true">${topItemsSection?.title || 'En Yüksek Kalemler'}</h3>
+          ${(topItemsSection?.rows || []).slice(0, 4).map(r => `
+            <div class="data-row">
+              <span class="l" contenteditable="true">${r.label}</span>
+              <span class="v" contenteditable="true">${r.value}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-bottom: 8mm;">
+      <div class="section-card">
+        <h3 contenteditable="true">${driversSection?.title || 'Etki Sürücüleri'}</h3>
+        ${(driversSection?.rows || []).slice(0, 3).map(r => `
+          <div class="data-row">
+            <span class="l" contenteditable="true">${r.label}</span>
+            <span class="v" contenteditable="true">${r.value}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="section-card">
+        <h3 contenteditable="true">${comparisonSection?.title || 'Karşılaştırma'}</h3>
+        ${(comparisonSection?.rows || []).slice(0, 3).map(r => `
+          <div class="data-row">
+            <span class="l" contenteditable="true">${r.label}</span>
+            <span class="v" contenteditable="true">${r.value}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3 contenteditable="true">Notlar ve Dayanaklar</h3>
+      <ul>
+        ${footnotes.slice(0, 4).map(f => `
+          <li contenteditable="true">${f}</li>
+        `).join('')}
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+}
+
+function buildConstructionImagePayload(snapshot: PdfExportSnapshot) {
+  const projectSection = snapshot.sections[0];
+  const breakdownSection = snapshot.sections[1];
+  const macroSection = snapshot.sections[2];
+  const breakdownRows = (snapshot.chart ?? []).map((slice, index) => ({
+    label: slice.label,
+    description: slice.description ?? "",
+    color: slice.color,
+    percent: slice.percent,
+    value: breakdownSection?.rows[index]?.value ?? "",
+  }));
+
+  return {
+    title: snapshot.title,
+    subtitle: snapshot.subtitle,
+    generatedAt: snapshot.generatedAt,
+    highlights: snapshot.highlights,
+    projectRows: (projectSection?.rows ?? []).slice(0, 8),
+    breakdownRows,
+    macroRows: (macroSection?.rows ?? []).slice(0, 6),
+    footnotes: snapshot.footnotes.slice(0, 6),
+    chart: snapshot.chart ?? [],
+  };
+}
+
+function generateConstructionCostImagePreviewHtml(
+  snapshot: PdfExportSnapshot,
+  filename: string
+): string {
+  const payloadJson = JSON.stringify(buildConstructionImagePayload(snapshot)).replace(
+    /</g,
+    "\\u003c"
+  );
+  const filenameJson = JSON.stringify(filename);
+
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(snapshot.title)} - Görsel Önizleme</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #0f172a;
+      padding: 28px 16px 44px;
+    }
+    .toolbar {
+      width: min(100%, 980px);
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid #dbe4ef;
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px 16px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    }
+    .toolbar-title { font-size: 13px; font-weight: 800; color: #334155; }
+    .toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-primary { background: #102c54; color: #fff; }
+    .btn-secondary { background: #e2e8f0; color: #334155; }
+    .canvas-wrap {
+      width: min(100%, 980px);
+      margin: 0 auto;
+      overflow: auto;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+      background: white;
+    }
+    canvas { display: block; width: 100%; height: auto; background: white; }
+    @media print {
+      body { background: white; padding: 0; }
+      .toolbar { display: none; }
+      .canvas-wrap { width: 100%; box-shadow: none; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-title">Kaydedilebilir görsel önizleme</div>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" type="button" onclick="window.close()">Kapat</button>
+      <button class="btn btn-secondary" type="button" onclick="window.print()">Yazdır</button>
+      <button class="btn btn-primary" type="button" id="download-png">PNG indir</button>
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="report-canvas" width="1400" height="1600" aria-label="İnşaat maliyeti rapor görseli"></canvas>
+  </div>
+  <script>
+    const payload = ${payloadJson};
+    const filename = ${filenameJson};
+    const canvas = document.getElementById("report-canvas");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+    function roundedRect(x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function card(x, y, w, h, fill, stroke, radius = 24) {
+      roundedRect(x, y, w, h, radius);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    function setFont(size, weight = 500, family = "Segoe UI") {
+      ctx.font = weight + " " + size + "px " + family + ", Arial, sans-serif";
+    }
+
+    function drawText(text, x, y, size, color, weight = 500, align = "left") {
+      setFont(size, weight);
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.textBaseline = "top";
+      ctx.fillText(String(text ?? ""), x, y);
+      ctx.textAlign = "left";
+    }
+
+    function fittedFontSize(text, maxWidth, size, weight = 500, minSize = 10) {
+      let nextSize = size;
+      setFont(nextSize, weight);
+      while (nextSize > minSize && ctx.measureText(String(text ?? "")).width > maxWidth) {
+        nextSize -= 1;
+        setFont(nextSize, weight);
+      }
+      return nextSize;
+    }
+
+    function drawFittedText(text, x, y, maxWidth, size, color, weight = 500, align = "left", minSize = 10) {
+      const nextSize = fittedFontSize(text, maxWidth, size, weight, minSize);
+      drawText(text, x, y, nextSize, color, weight, align);
+      return nextSize;
+    }
+
+    function wrapText(text, maxWidth, size, weight = 500) {
+      setFont(size, weight);
+      const words = String(text ?? "").split(/\\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      for (const word of words) {
+        const next = line ? line + " " + word : word;
+        if (ctx.measureText(next).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else if (!line && ctx.measureText(word).width > maxWidth) {
+          let chunk = "";
+          for (const char of word) {
+            const nextChunk = chunk + char;
+            if (ctx.measureText(nextChunk).width > maxWidth && chunk) {
+              lines.push(chunk);
+              chunk = char;
+            } else {
+              chunk = nextChunk;
+            }
+          }
+          line = chunk;
+        } else {
+          line = next;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    function drawWrapped(text, x, y, maxWidth, size, color, weight = 500, lineHeight = size * 1.35, maxLines = 3) {
+      const lines = wrapText(text, maxWidth, size, weight).slice(0, maxLines);
+      lines.forEach((line, index) => drawText(line, x, y + index * lineHeight, size, color, weight));
+      return y + lines.length * lineHeight;
+    }
+
+    function drawDonut(slices, cx, cy, outerR, innerR) {
+      const total = slices.reduce((sum, slice) => sum + Math.max(Number(slice.value) || 0, 0), 0);
+      let start = -Math.PI / 2;
+      for (const slice of slices) {
+        const value = Math.max(Number(slice.value) || 0, 0);
+        const end = start + (total > 0 ? (value / total) * Math.PI * 2 : Math.PI * 2);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, outerR, start, end);
+        ctx.closePath();
+        ctx.fillStyle = slice.color || "#f59e0b";
+        ctx.fill();
+        start = end;
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+    }
+
+    function drawHeader() {
+      drawText(payload.title, 120, 82, 31, "#020617", 900);
+      drawText(payload.generatedAt, 120, 122, 16, "#64748b", 500);
+      drawText("muhendislik-site.vercel.app", 1280, 86, 15, "#64748b", 500, "right");
+      drawText("Ön Boyutlandırma Amaçlıdır", 1280, 112, 15, "#64748b", 500, "right");
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(120, 168);
+      ctx.lineTo(1280, 168);
+      ctx.stroke();
+    }
+
+    function drawTotalCard() {
+      const total = payload.highlights[0] || { label: "Toplam", value: "-" };
+      const unit = payload.highlights[1] || { value: "" };
+      const range = payload.highlights[2] || { value: "" };
+      card(120, 220, 360, 235, "#fff7ed", "#fcd34d", 28);
+      drawText(total.label.toLocaleUpperCase("tr-TR"), 150, 250, 14, "#ea580c", 900);
+      drawFittedText(total.value, 150, 292, 300, 40, "#020617", 900, "left", 28);
+      drawFittedText(unit.value, 150, 345, 300, 18, "#64748b", 600, "left", 13);
+      ctx.strokeStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.moveTo(150, 386);
+      ctx.lineTo(450, 386);
+      ctx.stroke();
+      card(150, 408, 135, 50, "#ecfdf5", "#d1fae5", 14);
+      card(305, 408, 145, 50, "#fff1f2", "#ffe4e6", 14);
+      const rangeParts = String(range.value || "").split("/");
+      drawText("İyimser", 165, 420, 12, "#059669", 900);
+      drawFittedText(rangeParts[0]?.trim() || "-", 165, 438, 105, 15, "#047857", 900, "left", 11);
+      drawText("Kötümser", 320, 420, 12, "#e11d48", 900);
+      drawFittedText(rangeParts[1]?.trim() || "-", 320, 438, 110, 15, "#be123c", 900, "left", 11);
+    }
+
+    function drawChartCard() {
+      card(120, 480, 360, 410, "#ffffff", "#e2e8f0", 28);
+      drawText("MALİYET DAĞILIMI", 150, 512, 14, "#64748b", 900);
+      drawDonut(payload.chart, 300, 636, 86, 52);
+      let y = 755;
+      for (const slice of payload.chart.slice(0, 6)) {
+        ctx.beginPath();
+        ctx.arc(150, y + 9, 6, 0, Math.PI * 2);
+        ctx.fillStyle = slice.color;
+        ctx.fill();
+        drawWrapped(slice.label, 168, y, 210, 14, "#334155", 600, 18, 1);
+        drawText("%" + Math.round(slice.percent), 450, y, 14, "#0f172a", 800, "right");
+        y += 32;
+      }
+    }
+
+    function drawProjectCard() {
+      card(120, 915, 360, 360, "#ffffff", "#e2e8f0", 28);
+      drawText("PROJE ÖZETİ", 150, 947, 14, "#64748b", 900);
+      let y = 990;
+      for (const row of payload.projectRows) {
+        drawText(row.label, 150, y, 15, "#64748b", 500);
+        const valueLines = wrapText(row.value, 150, 14, 800).slice(0, 2);
+        valueLines.forEach((line, index) => {
+          drawText(line, 450, y + index * 17, 14, "#0f172a", 800, "right");
+        });
+        ctx.strokeStyle = "#f1f5f9";
+        ctx.beginPath();
+        ctx.moveTo(150, y + 29);
+        ctx.lineTo(450, y + 29);
+        ctx.stroke();
+        y += 41;
+      }
+    }
+
+    function drawBreakdownCard() {
+      card(506, 220, 774, 670, "#ffffff", "#e2e8f0", 28);
+      roundedRect(506, 220, 774, 58, 28);
+      ctx.fillStyle = "#f8fafc";
+      ctx.fill();
+      drawText("DETAYLI MALİYET KIRILIMI", 536, 244, 14, "#64748b", 900);
+      let y = 310;
+      for (const row of payload.breakdownRows.slice(0, 6)) {
+        ctx.beginPath();
+        ctx.arc(536, y + 10, 8, 0, Math.PI * 2);
+        ctx.fillStyle = row.color;
+        ctx.fill();
+        drawFittedText(row.label, 560, y, 430, 19, "#0f172a", 800, "left", 14);
+        drawWrapped(row.description, 560, y + 27, 420, 13, "#64748b", 500, 17, 1);
+        drawFittedText(row.value.split("(")[0].trim(), 1250, y, 235, 18, "#020617", 900, "right", 13);
+        drawText("%" + row.percent.toFixed(1), 1250, y + 27, 13, "#f97316", 800, "right");
+        roundedRect(536, y + 61, 690, 7, 4);
+        ctx.fillStyle = "#eef2f7";
+        ctx.fill();
+        roundedRect(536, y + 61, Math.max(8, 690 * row.percent / 100), 7, 4);
+        ctx.fillStyle = row.color;
+        ctx.fill();
+        y += 92;
+      }
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(506, 830, 774, 60);
+      drawText("TOPLAM", 536, 850, 19, "#020617", 900);
+      drawFittedText(payload.highlights[0]?.value || "-", 1250, 846, 270, 25, "#ea580c", 900, "right", 18);
+    }
+
+    function drawMacroCards() {
+      const colors = [
+        ["#eff6ff", "#bfdbfe", "#1d4ed8"],
+        ["#f8fafc", "#e2e8f0", "#334155"],
+        ["#fff7ed", "#fed7aa", "#c2410c"],
+      ];
+      payload.macroRows.slice(0, 3).forEach((row, index) => {
+        const x = 506 + index * 260;
+        const [fill, stroke, textColor] = colors[index] || colors[0];
+        card(x, 915, 238, 120, fill, stroke, 22);
+        drawText(row.label.toLocaleUpperCase("tr-TR"), x + 22, 938, 14, textColor, 900);
+        drawFittedText(row.value, x + 22, 968, 190, 24, textColor, 900, "left", 15);
+      });
+    }
+
+    function drawNotes() {
+      card(506, 1060, 774, 250, "#fffbeb", "#fcd34d", 24);
+      drawText("VARSAYIMLAR VE NOTLAR", 536, 1090, 14, "#b45309", 900);
+      let y = 1128;
+      for (const note of payload.footnotes) {
+        drawText("•", 536, y, 16, "#f59e0b", 900);
+        y = drawWrapped(note, 558, y, 675, 14, "#92400e", 500, 21, 2) + 3;
+      }
+    }
+
+    function drawFooter() {
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.beginPath();
+      ctx.moveTo(120, 1370);
+      ctx.lineTo(1280, 1370);
+      ctx.stroke();
+      drawWrapped(
+        "Bu rapor muhendislik-site.vercel.app tarafından otomatik üretilmiştir. Ön boyutlandırma amaçlıdır; kesin teklif için müteahhit ile iletişime geçiniz.",
+        258,
+        1400,
+        884,
+        14,
+        "#94a3b8",
+        500,
+        18,
+        2
+      );
+    }
+
+    function render() {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+      drawHeader();
+      drawTotalCard();
+      drawChartCard();
+      drawProjectCard();
+      drawBreakdownCard();
+      drawMacroCards();
+      drawNotes();
+      drawFooter();
+    }
+
+    function downloadPng() {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }, "image/png");
+    }
+
+    render();
+    document.getElementById("download-png").addEventListener("click", downloadPng);
+  </script>
+</body>
+</html>
+  `;
+}
+
+export function openConstructionCostImagePreview(
+  snapshot: PdfExportSnapshot,
+  filename = "insaat-maliyeti-onizleme.png"
+): void {
   if (typeof window === "undefined") {
-    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
+    throw new Error("Görsel önizleme yalnızca tarayıcı ortamında açılabilir.");
   }
 
   const previewWindow = window.open("", "_blank");
-  let blobUrl = "";
-
   if (!previewWindow) {
-    throw new Error("PDF önizleme sekmesi açılamadı.");
+    throw new Error("Önizleme penceresi açılamadı. Lütfen pop-up engelleyicisini kontrol edin.");
   }
 
-  try {
-    const pdf = createConstructionCostPdfDocument(snapshot);
-    const blob = pdf.output("blob");
-    blobUrl = URL.createObjectURL(blob);
-    previewWindow.location.href = blobUrl;
-  } catch (error) {
-    previewWindow.close();
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-    }
-    throw error;
-  }
-
-  window.setTimeout(() => {
-    if (blobUrl) {
-      URL.revokeObjectURL(blobUrl);
-    }
-  }, 60_000);
+  const html = generateConstructionCostImagePreviewHtml(snapshot, filename);
+  previewWindow.document.write(html);
+  previewWindow.document.close();
 }
 
 export function downloadConstructionCostPdf(
@@ -1372,31 +2471,236 @@ export function printConstructionCostPdf(snapshot: PdfExportSnapshot): void {
 export function openEstimatedConstructionAreaPdfPreview(
   snapshot: EstimatedConstructionAreaPdfSnapshot
 ): void {
-  if (typeof window === "undefined") {
-    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
-  }
+  openPdfBlobPreview(() => createEstimatedConstructionAreaPdfDocument(snapshot));
+}
 
-  const pdf = createEstimatedConstructionAreaPdfDocument(snapshot);
-  const blob = pdf.output("blob");
-  const blobUrl = URL.createObjectURL(blob);
-  const previewWindow = window.open("", "_blank");
+/**
+ * Tahmini inşaat alanı raporu için düzenlenebilir HTML şablonu oluşturur.
+ */
+// PDF önizleme blob sekmesi kullandığı için bu düzenlenebilir HTML şablonu şimdilik yedek tutuluyor.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateEstimatedConstructionAreaHtml(snapshot: EstimatedConstructionAreaPdfSnapshot): string {
+  const { input, result, profileLabel, formattedDate } = snapshot;
+  const dateLabel = formattedDate || formatOfficialDate();
 
-  if (!previewWindow) {
-    URL.revokeObjectURL(blobUrl);
-    throw new Error("PDF önizleme sekmesi açılamadı.");
-  }
+  const colors = {
+    paper: "#F9F8F4",
+    paperBorder: "#D2D8E2",
+    officialBlue: "#102C54",
+    officialAccent: "#B96A24",
+    ink: "#0F172A",
+    body: "#334155",
+    muted: "#64748B",
+  };
 
-  try {
-    previewWindow.location.href = blobUrl;
-  } catch (error) {
-    previewWindow.close();
-    URL.revokeObjectURL(blobUrl);
-    throw error;
-  }
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Tahmini İnşaat Alanı Raporu - ${dateLabel}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;700&display=swap');
+    :root {
+      --paper-bg: ${colors.paper};
+      --paper-border: ${colors.paperBorder};
+      --official-blue: ${colors.officialBlue};
+      --official-accent: ${colors.officialAccent};
+      --ink: ${colors.ink};
+      --body: ${colors.body};
+      --muted: ${colors.muted};
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #F1F5F9;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      background-color: var(--paper-bg);
+      padding: 20mm;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      position: relative;
+      border: 1px solid var(--paper-border);
+    }
+    .paper::before {
+      content: '';
+      position: absolute;
+      inset: 8mm;
+      border: 0.4mm solid var(--paper-border);
+      pointer-events: none;
+    }
+    .toolbar {
+      width: 210mm;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      background: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--official-blue); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--body); }
+    
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .brand { display: flex; align-items: flex-start; gap: 15px; }
+    .logo-mark {
+      width: 10mm; height: 14mm;
+      border-left: 1mm solid var(--official-blue);
+      border-top: 1mm solid var(--official-blue);
+      position: relative;
+    }
+    .logo-mark::after {
+      content: 'İB';
+      position: absolute; left: 1.5mm; top: 5mm;
+      font-weight: 800; font-size: 11px; color: var(--official-blue);
+    }
+    .brand-text h2 { font-size: 16px; font-weight: 800; color: var(--ink); }
+    .brand-text p { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    
+    .date-box {
+      border: 1px solid var(--paper-border);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 6px;
+      height: fit-content;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--official-blue);
+    }
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(blobUrl);
-  }, 60_000);
+    .title-area { margin-bottom: 25px; }
+    .title-area h1 { font-family: 'IBM Plex Serif', serif; font-size: 26pt; color: var(--official-blue); margin-bottom: 6px; }
+    .title-area p { font-size: 11pt; color: var(--body); }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; margin-bottom: 8mm; }
+    .card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px 20px; }
+    .card .label { font-size: 9pt; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .card .value { font-family: 'IBM Plex Serif', serif; font-size: 18pt; font-weight: 700; color: var(--official-blue); }
+
+    .main-grid { display: grid; grid-template-columns: 112mm 1fr; gap: 6mm; margin-bottom: 8mm; }
+    .section-card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; margin-bottom: 6mm; }
+    .section-card h3 { font-size: 10pt; font-weight: 700; color: var(--official-blue); border-bottom: 1px solid var(--paper-border); padding-bottom: 8px; margin-bottom: 12px; text-transform: uppercase; }
+    .data-row { display: flex; justify-content: space-between; font-size: 9pt; margin-bottom: 6px; }
+    .data-row .l { color: var(--muted); }
+    .data-row .v { font-weight: 700; color: var(--ink); text-align: right; }
+
+    .notes { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; }
+    .notes h3 { font-size: 9pt; font-weight: 700; color: var(--official-blue); margin-bottom: 10px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: 8.5pt; color: var(--muted); margin-bottom: 5px; position: relative; padding-left: 15px; }
+    .notes li::before { content: '•'; position: absolute; left: 0; color: var(--official-accent); }
+
+    [contenteditable="true"]:hover { outline: 1px dashed var(--official-accent); background: rgba(0,0,0,0.02); }
+    [contenteditable="true"]:focus { outline: 2px solid var(--official-accent); background: white; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .toolbar { display: none; }
+      .paper { box-shadow: none; border: none; padding: 15mm; margin: 0; }
+      .paper::before { inset: 5mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 10px; height: 10px; background: var(--official-accent); border-radius: 50%;"></div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--body);">Düzenlenebilir Alan Raporu</span>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-secondary" onclick="window.close()">Kapat</button>
+      <button class="btn btn-primary" onclick="window.print()">Yazdır veya PDF Kaydet</button>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="header">
+      <div class="brand">
+        <div class="logo-mark"></div>
+        <div class="brand-text">
+          <h2 contenteditable="true">İNŞA BLOG</h2>
+          <p contenteditable="true">Mühendislik · Yapı · Analiz</p>
+        </div>
+      </div>
+      <div class="date-box" contenteditable="true">${dateLabel}</div>
+    </div>
+
+    <div class="title-area">
+      <h1 contenteditable="true">Tahmini İnşaat Alanı Raporu</h1>
+      <p contenteditable="true">${profileLabel} · Emsalden toplam inşaat alanına ön fizibilite</p>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="label" contenteditable="true">Tahmini Toplam İnşaat Alanı</div>
+        <div class="value" contenteditable="true">${formatSayi(result.yaklasikToplamInsaatAlaniM2, 2)} m²</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Emsal Alanı</div>
+        <div class="value" contenteditable="true">${formatSayi(result.emsalAreaM2, 2)} m²</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Emsal Harici Ek Alan</div>
+        <div class="value" contenteditable="true">${formatSayi(result.emsalHariciEkAlanM2, 2)} m²</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Toplam Bodrum Alanı</div>
+        <div class="value" contenteditable="true">${formatSayi(result.toplamBodrumAlanM2, 2)} m²</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="col-left">
+        <div class="section-card">
+          <h3 contenteditable="true">Hesap Özeti</h3>
+          <div class="data-row"><span class="l" contenteditable="true">Net Parsel Alanı</span><span class="v" contenteditable="true">${formatSayi(input.parcelAreaM2, 2)} m²</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">TAKS</span><span class="v" contenteditable="true">${formatSayi(input.taks, 2)}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">KAKS / Emsal</span><span class="v" contenteditable="true">${formatSayi(input.kaks, 2)}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Normal Kat Sayısı</span><span class="v" contenteditable="true">${input.normalFloorCount}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Kullanım Profili</span><span class="v" contenteditable="true">${profileLabel}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Bodrum Kat Sayısı</span><span class="v" contenteditable="true">${input.hasBasement ? input.basementFloorCount : 'Yok'}</span></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-card">
+          <h3 contenteditable="true">Profil Varsayımı</h3>
+          <div class="data-row"><span class="v" style="text-align: left;" contenteditable="true">${profileLabel} profili için baz emsal harici artış oranı ${formatYuzde(result.bazEmsalHariciOrani)} kabul edildi.</span></div>
+          <div class="data-row"><span class="v" style="text-align: left;" contenteditable="true">Toplam oran ${formatYuzde(result.emsalHariciEkAlanOrani)} seviyesindedir.</span></div>
+        </div>
+        <div class="section-card">
+          <h3 contenteditable="true">Hesap Formülü</h3>
+          <div class="data-row"><span class="v" style="text-align: left; font-size: 8pt;" contenteditable="true">Emsal Alanı: ${formatSayi(input.parcelAreaM2, 2)} × ${formatSayi(input.kaks, 2)} = ${formatSayi(result.emsalAreaM2, 2)} m²</span></div>
+          <div class="data-row"><span class="v" style="text-align: left; font-size: 8pt;" contenteditable="true">Toplam: ${formatSayi(result.emsalAreaM2, 2)} + ${formatSayi(result.emsalHariciEkAlanM2, 2)} + ${formatSayi(result.toplamBodrumAlanM2, 2)} = ${formatSayi(result.yaklasikToplamInsaatAlaniM2, 2)} m²</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3 contenteditable="true">Notlar</h3>
+      <ul>
+        <li contenteditable="true">Bu belge ruhsat hesabı değil, ön fizibilite amaçlı yaklaşık inşaat alanı raporudur.</li>
+        ${result.notes.slice(0, 2).map(n => `<li contenteditable="true">${n}</li>`).join('')}
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 }
 
 export function downloadEstimatedConstructionAreaPdf(

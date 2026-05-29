@@ -312,6 +312,10 @@ try {
   assert(previewPopup, "PDF preview did not open a new tab.");
   await new Promise((resolve) => setTimeout(resolve, 500));
   assert(previewPopup.url() !== "", "PDF preview popup did not resolve to a URL.");
+  assert(
+    previewPopup.url().startsWith("blob:"),
+    `PDF preview should open a blob URL, received ${previewPopup.url()}.`,
+  );
   await previewPopup.close();
   const sourceHref = await page.$eval('[data-testid="official-source-link"]', (element) => element.getAttribute("href") ?? "");
   assert(sourceHref.startsWith("https://"), "Remote official source link is not configured.");
@@ -345,6 +349,22 @@ try {
     () => window.location.pathname === "/hesaplamalar/insaat-maliyeti",
     { timeout: 10000 },
   );
+  await page.waitForSelector('[data-testid="construction-wizard"]', { visible: true });
+  await page.$eval('[data-testid="construction-structure-apartman"]', (element) => {
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    element.click();
+  });
+  await page.waitForFunction(
+    () => {
+      const nextButton = document.querySelector('[data-testid="construction-next-button"]');
+      return nextButton instanceof HTMLButtonElement && !nextButton.disabled;
+    },
+    { timeout: 5000 },
+  );
+  await page.$eval('[data-testid="construction-next-button"]', (element) => {
+    element.scrollIntoView({ block: "center", behavior: "instant" });
+    element.click();
+  });
   await page.waitForFunction(
     (selectors) =>
       selectors.some((selector) => {

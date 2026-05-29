@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowRight,
   BookOpen,
+  Calculator,
   Check,
   Clock,
   Copy,
@@ -38,6 +39,7 @@ interface ArticleClientProps {
   breadcrumbs?: { title: string; href: string }[];
   backLink?: { title: string; href: string };
   hideToolPromos?: boolean;
+  suggestedTool?: { title: string; description: string; href: string; cta: string };
 }
 
 type ParsedSection = ArticleData["sections"][number] & { blocks: ParsedBlock[] };
@@ -278,9 +280,10 @@ interface ArticleBodyProps {
   relatedArticles: ArticleData[];
   parsedSections: ParsedSection[];
   hideToolPromos: boolean;
+  suggestedTool?: { title: string; description: string; href: string; cta: string };
 }
 
-const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsedSections, hideToolPromos }: ArticleBodyProps) {
+const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsedSections, hideToolPromos, suggestedTool }: ArticleBodyProps) {
   const firstRelatedArticle = relatedArticles[0];
 
   return (
@@ -348,6 +351,28 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
         ))}
 
         <Separator className="my-16 dark:bg-zinc-800" />
+
+        {/* İlişkili Hesaplama Modülü */}
+        {suggestedTool && (
+          <div className="not-prose my-12 rounded-[28px] border border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-zinc-950/40 to-amber-500/10 p-6 shadow-md dark:border-amber-500/20 dark:from-zinc-900/60 dark:to-zinc-950 md:p-8">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-500 shadow-xl shadow-amber-500/5">
+                <Calculator className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">İlişkili Hesaplama Modülü</p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">{suggestedTool.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{suggestedTool.description}</p>
+                <Button asChild className="mt-6 h-12 rounded-full bg-amber-500 px-8 text-sm font-black text-zinc-950 hover:bg-amber-400">
+                  <Link href={suggestedTool.href}>
+                    {suggestedTool.cta}
+                    <ArrowRight className="ml-2 h-4 w-4 text-zinc-950" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="not-prose mb-20 flex flex-col items-start gap-6 rounded-3xl border border-zinc-200 bg-zinc-50 p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-xl shadow-teal-500/20 dark:bg-teal-600">
@@ -430,6 +455,7 @@ export default function ArticleClient({
   breadcrumbs,
   backLink,
   hideToolPromos = false,
+  suggestedTool,
 }: ArticleClientProps) {
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
   const [activeId, setActiveId] = useState(parsedSections[0]?.id || "");
@@ -546,7 +572,7 @@ export default function ArticleClient({
             </div>
           ) : null}
 
-          <ArticleBody article={article} relatedArticles={relatedArticles} parsedSections={parsedSections} hideToolPromos={hideToolPromos} />
+          <ArticleBody article={article} relatedArticles={relatedArticles} parsedSections={parsedSections} hideToolPromos={hideToolPromos} suggestedTool={suggestedTool} />
         </article>
 
         <aside className="hidden w-4/12 max-w-[320px] shrink-0 border-l border-dashed border-zinc-100 pl-4 dark:border-zinc-800/50 lg:block xl:max-w-xs">

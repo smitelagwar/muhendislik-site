@@ -2,15 +2,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { X, ArrowRight, BookOpen, Calculator } from "lucide-react";
 import { BINA_MINDMAP_DATA, BINA_BRANCH_COLORS, type BinaMindMapNode } from "@/lib/bina-asamalari";
 import { useTheme } from "next-themes";
 
 // Mobil ve desktop için farklı layout stratejisi
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false,
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -18,6 +17,8 @@ function useIsMobile() {
     }
 
     const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
@@ -30,9 +31,13 @@ export default function BinaMindMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
-  const router = useRouter();
   const { resolvedTheme } = useTheme();
   const isMobile = useIsMobile();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Hiyerarşi oluştur
   const root = useMemo(() => {
@@ -40,6 +45,8 @@ export default function BinaMindMap() {
   }, []);
 
   const [dimensions, setDimensions] = useState({ width: 1000, height: 800 });
+
+
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -95,8 +102,10 @@ export default function BinaMindMap() {
     }
   }, [width, height, isMobile]);
 
+  const [selectedNode, setSelectedNode] = useState<BinaMindMapNode | null>(null);
+
   const handleNodeClick = (nodeData: BinaMindMapNode) => {
-    router.push(nodeData.url);
+    setSelectedNode(nodeData);
   };
 
   const getBranchColor = (d: d3.HierarchyPointNode<BinaMindMapNode>) => {
@@ -131,6 +140,16 @@ export default function BinaMindMap() {
   const containerHeight = isMobile
     ? Math.max(500, dimensions.width * 1.4)
     : Math.max(600, dimensions.width * 0.7);
+
+  if (!mounted) {
+    return (
+      <section className="space-y-4">
+        <div className="flex h-[600px] w-full items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50/70 p-4 dark:border-slate-800/60 dark:bg-slate-950/50 sm:rounded-[24px]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-4">
@@ -202,7 +221,7 @@ export default function BinaMindMap() {
                   className="cursor-pointer"
                   role="button"
                   tabIndex={0}
-                  aria-label={`${node.data.label.replace(/\n/g, " ")} sayfasına git`}
+                  aria-label={`${node.data.label.replace(/\n/g, " ")} detaylarını görüntüle`}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -264,6 +283,143 @@ export default function BinaMindMap() {
             })}
           </g>
         </svg>
+
+        {/* Modern Endüstriyel Detay Çekmecesi */}
+        {selectedNode && (
+          <div
+            className="absolute right-0 top-0 h-full w-full sm:w-[380px] border-l border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl shadow-2xl transition-all duration-300 z-30 flex flex-col"
+            aria-live="polite"
+          >
+            {/* Üst Vurgu Çizgisi */}
+            <div
+              className="h-2 w-full shrink-0"
+              style={{
+                backgroundColor: (() => {
+                  const node = treeLayout.descendants().find(n => n.data.id === selectedNode.id);
+                  return node ? getBranchColor(node) : "#6c63ff";
+                })()
+              }}
+            />
+
+            {/* Başlık */}
+            <div className="flex items-start justify-between p-5 border-b border-slate-100 dark:border-slate-900 shrink-0">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500">Aşama Bilgileri</p>
+                <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                  {selectedNode.label.replace(/\n/g, " ")}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNode(null)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* İçerik */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Özet Açıklama</p>
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                  {selectedNode.summary}
+                </p>
+              </div>
+
+              {/* İlişkili Hesaplama Modülü */}
+              {(() => {
+                const NODE_TOOLS_MAP: Record<string, { name: string; url: string; desc: string }> = {
+                  "pas-payi": {
+                    name: "Pas Payı Hesaplayıcı",
+                    url: "/kategori/araclar/pas-payi",
+                    desc: "Çevresel etki sınıfları ve TS EN 1992-1-1 pas payı dayanım standartları."
+                  },
+                  "kalip-sokumu": {
+                    name: "Kalıp Söküm Süresi",
+                    url: "/kategori/araclar/kalip-sokum",
+                    desc: "Beton dayanım gelişim yüzdesine göre güvenli kalıp alma takvimi."
+                  },
+                  "kolon-donati": {
+                    name: "Kolon Kapasite Hesabı",
+                    url: "/kategori/araclar/kolon-hesabi",
+                    desc: "TS 500 eksenel yük ve moment etkisindeki kolon donatı optimizasyonu."
+                  },
+                  "kiris-donati": {
+                    name: "Kiriş Eğilme Kapasitesi",
+                    url: "/kategori/araclar/kiris-hesabi",
+                    desc: "Betonarme kirişlerde taşıma gücü momenti ve sınır donatı oranları."
+                  },
+                  "doseme-donati": {
+                    name: "Döşeme Kalınlık & Donatı",
+                    url: "/kategori/araclar/doseme-hesabi",
+                    desc: "TS 500'e göre tek/çift doğrultulu döşeme sehim sınırları."
+                  },
+                  "radye-temel": {
+                    name: "Tekil Temel Tasarımı",
+                    url: "/hesaplamalar/tekil-temel",
+                    desc: "Zemin gerilmesi, zımbalama ve donatı alanı ön boyutlandırması."
+                  },
+                  "temel-donati": {
+                    name: "Tekil Temel Tasarımı",
+                    url: "/hesaplamalar/tekil-temel",
+                    desc: "Zemin gerilmesi, zımbalama ve donatı alanı ön boyutlandırması."
+                  },
+                  "mimari-proje": {
+                    name: "İmar Durumu Hesaplayıcı",
+                    url: "/kategori/araclar/imar-hesaplayici",
+                    desc: "TAKS, KAKS, çekme mesafeleri ve kat alanları fizibilite ön hesabı."
+                  },
+                  "yapi-ruhsati": {
+                    name: "İmar Durumu Hesaplayıcı",
+                    url: "/kategori/araclar/imar-hesaplayici",
+                    desc: "TAKS, KAKS, çekme mesafeleri ve kat alanları fizibilite ön hesabı."
+                  }
+                };
+
+                const tool = NODE_TOOLS_MAP[selectedNode.id];
+                if (!tool) return null;
+
+                return (
+                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4 text-amber-500" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">İlişkili Hesaplama Modülü</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                        {tool.name}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        {tool.desc}
+                      </p>
+                    </div>
+                    <Link
+                      href={tool.url}
+                      className="inline-flex h-9 w-full items-center justify-center rounded-xl bg-amber-500 hover:bg-amber-600 text-xs font-black uppercase tracking-wider text-white gap-1.5 transition-colors mt-2"
+                    >
+                      Modüle Git
+                      <ArrowRight className="h-3.5 w-3.5 text-white" />
+                    </Link>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Butonlar */}
+            <div className="p-5 border-t border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/10 shrink-0">
+              <Link
+                href={selectedNode.url}
+                onClick={() => setSelectedNode(null)}
+                className="h-11 w-full rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-xs font-black uppercase tracking-wider text-white dark:text-slate-900 flex items-center justify-center gap-2 transition-colors"
+              >
+                <BookOpen className="h-4 w-4" />
+                Teknik Rehberi Oku
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

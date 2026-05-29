@@ -265,30 +265,244 @@ export function createQuickQuantityPdfDocument(snapshot: QuickQuantityPdfSnapsho
 
 export function openQuickQuantityPdfPreview(snapshot: QuickQuantityPdfSnapshot): void {
   if (typeof window === "undefined") {
-    throw new Error("PDF önizleme yalnızca tarayıcı ortamında açılabilir.");
+    throw new Error("Rapor önizleme yalnızca tarayıcı ortamında açılabilir.");
   }
 
-  const pdf = createQuickQuantityPdfDocument(snapshot);
-  const blob = pdf.output("blob");
-  const blobUrl = URL.createObjectURL(blob);
   const previewWindow = window.open("", "_blank");
-
   if (!previewWindow) {
-    URL.revokeObjectURL(blobUrl);
-    throw new Error("PDF önizleme sekmesi açılamadı.");
+    throw new Error("Önizleme penceresi açılamadı. Lütfen pop-up engelleyicisini kontrol edin.");
   }
 
-  try {
-    previewWindow.location.href = blobUrl;
-  } catch (error) {
-    previewWindow.close();
-    URL.revokeObjectURL(blobUrl);
-    throw error;
-  }
+  const html = generateQuickQuantityHtml(snapshot);
+  previewWindow.document.write(html);
+  previewWindow.document.close();
+}
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(blobUrl);
-  }, 60_000);
+/**
+ * Hızlı metraj raporu için düzenlenebilir HTML şablonu oluşturur.
+ */
+function generateQuickQuantityHtml(snapshot: QuickQuantityPdfSnapshot): string {
+  const { result, formattedDate } = snapshot;
+  const tasiyiciSistemLabel = getOptionLabel(QUICK_QUANTITY_STRUCTURAL_SYSTEM_OPTIONS, result.input.tasiyiciSistem);
+  const dosemeSistemiLabel = getOptionLabel(QUICK_QUANTITY_SLAB_SYSTEM_OPTIONS, result.input.dosemeSistemi);
+  const temelTipiLabel = getOptionLabel(QUICK_QUANTITY_FOUNDATION_OPTIONS, result.input.temelTipi);
+  const zeminSinifiLabel = getOptionLabel(QUICK_QUANTITY_SOIL_OPTIONS, result.input.zeminSinifi);
+
+  const colors = {
+    paper: "#F9F8F4",
+    paperBorder: "#D2D8E2",
+    officialBlue: "#102C54",
+    officialAccent: "#B96A24",
+    ink: "#0F172A",
+    body: "#334155",
+    muted: "#64748B",
+  };
+
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Hızlı Metraj Raporu - ${formattedDate}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;700&display=swap');
+    :root {
+      --paper-bg: ${colors.paper};
+      --paper-border: ${colors.paperBorder};
+      --official-blue: ${colors.officialBlue};
+      --official-accent: ${colors.officialAccent};
+      --ink: ${colors.ink};
+      --body: ${colors.body};
+      --muted: ${colors.muted};
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #F1F5F9;
+      font-family: 'IBM Plex Sans', sans-serif;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .paper {
+      width: 210mm;
+      min-height: 297mm;
+      background-color: var(--paper-bg);
+      padding: 20mm;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      position: relative;
+      border: 1px solid var(--paper-border);
+    }
+    .paper::before {
+      content: '';
+      position: absolute;
+      inset: 8mm;
+      border: 0.4mm solid var(--paper-border);
+      pointer-events: none;
+    }
+    .toolbar {
+      width: 210mm;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      background: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--official-blue); color: white; }
+    .btn-secondary { background: #E2E8F0; color: var(--body); }
+    
+    .header { display: flex; justify-content: space-between; margin-bottom: 30px; }
+    .brand { display: flex; align-items: flex-start; gap: 15px; }
+    .logo-mark {
+      width: 10mm; height: 14mm;
+      border-left: 1mm solid var(--official-blue);
+      border-top: 1mm solid var(--official-blue);
+      position: relative;
+    }
+    .logo-mark::after {
+      content: 'İB';
+      position: absolute; left: 1.5mm; top: 5mm;
+      font-weight: 800; font-size: 11px; color: var(--official-blue);
+    }
+    .brand-text h2 { font-size: 16px; font-weight: 800; color: var(--ink); }
+    .brand-text p { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    
+    .date-box {
+      border: 1px solid var(--paper-border);
+      background: white;
+      padding: 5px 15px;
+      border-radius: 6px;
+      height: fit-content;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--official-blue);
+    }
+
+    .title-area { margin-bottom: 25px; }
+    .title-area h1 { font-family: 'IBM Plex Serif', serif; font-size: 26pt; color: var(--official-blue); margin-bottom: 6px; }
+    .title-area p { font-size: 11pt; color: var(--body); }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; margin-bottom: 8mm; }
+    .card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px 20px; }
+    .card .label { font-size: 9pt; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .card .value { font-family: 'IBM Plex Serif', serif; font-size: 18pt; font-weight: 700; color: var(--official-blue); }
+
+    .main-grid { display: grid; grid-template-columns: 105mm 1fr; gap: 6mm; margin-bottom: 8mm; }
+    .section-card { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; margin-bottom: 6mm; }
+    .section-card h3 { font-size: 10pt; font-weight: 700; color: var(--official-blue); border-bottom: 1px solid var(--paper-border); padding-bottom: 8px; margin-bottom: 12px; text-transform: uppercase; }
+    .data-row { display: flex; justify-content: space-between; font-size: 9pt; margin-bottom: 6px; }
+    .data-row .l { color: var(--muted); }
+    .data-row .v { font-weight: 700; color: var(--ink); text-align: right; }
+
+    .notes { background: white; border: 1px solid var(--paper-border); border-radius: 8px; padding: 15px; }
+    .notes h3 { font-size: 9pt; font-weight: 700; color: var(--official-blue); margin-bottom: 10px; }
+    .notes ul { list-style: none; }
+    .notes li { font-size: 8.5pt; color: var(--muted); margin-bottom: 5px; position: relative; padding-left: 15px; }
+    .notes li::before { content: '•'; position: absolute; left: 0; color: var(--official-accent); }
+
+    [contenteditable="true"]:hover { outline: 1px dashed var(--official-accent); background: rgba(0,0,0,0.02); }
+    [contenteditable="true"]:focus { outline: 2px solid var(--official-accent); background: white; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .toolbar { display: none; }
+      .paper { box-shadow: none; border: none; padding: 15mm; margin: 0; }
+      .paper::before { inset: 5mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="width: 10px; height: 10px; background: var(--official-accent); border-radius: 50%;"></div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--body);">Düzenlenebilir Metraj Raporu</span>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <button class="btn btn-secondary" onclick="window.close()">Kapat</button>
+      <button class="btn btn-primary" onclick="window.print()">Yazdır veya PDF Kaydet</button>
+    </div>
+  </div>
+
+  <div class="paper">
+    <div class="header">
+      <div class="brand">
+        <div class="logo-mark"></div>
+        <div class="brand-text">
+          <h2 contenteditable="true">İNŞA BLOG</h2>
+          <p contenteditable="true">Mühendislik · Yapı · Analiz</p>
+        </div>
+      </div>
+      <div class="date-box" contenteditable="true">${formattedDate}</div>
+    </div>
+
+    <div class="title-area">
+      <h1 contenteditable="true">Hızlı Metraj Raporu</h1>
+      <p contenteditable="true">${result.preset.label}</p>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <div class="label" contenteditable="true">Beton</div>
+        <div class="value" contenteditable="true">${formatSayi(result.betonM3, 2)} m³</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Donatı</div>
+        <div class="value" contenteditable="true">${formatSayi(result.donatiTon, 2)} ton</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Kalıp</div>
+        <div class="value" contenteditable="true">${formatSayi(result.kalipM2, 2)} m²</div>
+      </div>
+      <div class="card">
+        <div class="label" contenteditable="true">Toplam Maliyet</div>
+        <div class="value" contenteditable="true">${formatTL(result.dogrudanTasiyiciMaliyet)}</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="col-left">
+        <div class="section-card">
+          <h3 contenteditable="true">Proje Profili</h3>
+          <div class="data-row"><span class="l" contenteditable="true">Taşıyıcı Sistem</span><span class="v" contenteditable="true">${tasiyiciSistemLabel}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Döşeme Sistemi</span><span class="v" contenteditable="true">${dosemeSistemiLabel}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Temel Tipi</span><span class="v" contenteditable="true">${temelTipiLabel}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Zemin Sınıfı</span><span class="v" contenteditable="true">${zeminSinifiLabel}</span></div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="section-card">
+          <h3 contenteditable="true">Maliyet Özeti</h3>
+          <div class="data-row"><span class="l" contenteditable="true">Resmî Yaklaşık Maliyet</span><span class="v" contenteditable="true">${formatTL(result.officialResult.resmiToplamMaliyet)}</span></div>
+          <div class="data-row"><span class="l" contenteditable="true">Yoğunluk (TL/m²)</span><span class="v" contenteditable="true">${formatTL(result.yogunlukOzet.directCostPerM2)}</span></div>
+        </div>
+        <div class="section-card">
+          <h3 contenteditable="true">Dayanaklar</h3>
+          <div class="data-row"><span class="v" style="text-align: left; font-size: 8pt;" contenteditable="true">${result.priceBook.sourceLabel} referans fiyatları baz alınmıştır.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3 contenteditable="true">Notlar</h3>
+      <ul>
+        ${result.notes.slice(0, 3).map(n => `<li contenteditable="true">${n}</li>`).join('')}
+        <li contenteditable="true">Bu çıktı ön keşif içindir; statik proje yerine geçmez.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 }
 
 export function downloadQuickQuantityPdf(

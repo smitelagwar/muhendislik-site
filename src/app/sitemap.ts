@@ -26,20 +26,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { pathname: "/kategori/bina-asamalari", changeFrequency: "weekly" as const, priority: 0.75 },
     { pathname: "/hakkimizda", changeFrequency: "monthly" as const, priority: 0.5 },
     { pathname: "/iletisim", changeFrequency: "monthly" as const, priority: 0.5 },
-    { pathname: "/gizlilik", changeFrequency: "monthly" as const, priority: 0.4 },
-    { pathname: "/kullanim-kosullari", changeFrequency: "monthly" as const, priority: 0.4 },
+    { pathname: "/gizlilik", changeFrequency: "monthly" as const, priority: 0.3 },
+    { pathname: "/kullanim-kosullari", changeFrequency: "monthly" as const, priority: 0.3 },
   ];
   const calculationEntries: MetadataRoute.Sitemap = getCalculationPages().map((page) => ({
     url: resolveSiteUrl(page.href),
     lastModified: staticDate,
     changeFrequency: "weekly",
-    priority: page.href === "/hesaplamalar/insaat-maliyeti" ? 0.86 : 0.8,
+    priority: page.href === "/hesaplamalar/insaat-maliyeti" ? 0.90 : 0.85,
   }));
   const toolEntries: MetadataRoute.Sitemap = getLiveTools().map((tool) => ({
     url: resolveSiteUrl(tool.href),
     lastModified: staticDate,
     changeFrequency: "monthly",
-    priority: 0.7,
+    priority: 0.85,
   }));
 
   const articleEntries: MetadataRoute.Sitemap = articles.map((article) => ({

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { ConstructionCostResultV3 } from "@/lib/calculations/modules/insaat-maliyeti-v3";
-import type { PdfExportSnapshot } from "@/lib/calculations/reporting";
+import type { PdfChartSlice, PdfExportSnapshot } from "@/lib/calculations/reporting";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer,
-  Tooltip as RechartsTooltip, Legend,
+  PieChart, Pie, Cell,
+  Tooltip as RechartsTooltip,
 } from "recharts";
 import {
-  RotateCcw, Printer, FileText, Download, Eye, Loader2,
+  RotateCcw, Printer, Download, Eye, Image as ImageIcon, Loader2,
   TrendingDown, TrendingUp, Building2, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,17 @@ interface ResultDashboardProps {
 }
 
 const COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#64748b"];
+type ExportAction = "pdf-preview" | "pdf-download" | "image-preview" | "print" | null;
+
+interface TooltipPayloadItem {
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+}
 
 const STRUCTURE_LABELS: Record<string, string> = {
   apartman: "Apartman / Site",
@@ -74,14 +85,25 @@ function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
+function buildChartSlices(result: ConstructionCostResultV3): PdfChartSlice[] {
+  return result.categories.map((category, index) => ({
+    label: category.label,
+    value: category.total,
+    percent: category.share * 100,
+    color: COLORS[index % COLORS.length],
+    description: category.description,
+  }));
+}
+
 function buildV3PdfSnapshot(result: ConstructionCostResultV3): PdfExportSnapshot {
   const { inputs, categories, macroMaterials, grandTotal, costPerM2, optimistic, pessimistic, cityLabel } = result;
 
   return {
     variant: "calculation",
     title: "İnşaat Maliyeti Analizi",
-    subtitle: "Detaylı Maliyet Raporu (V3)",
-    generatedAt: result.generatedAt,
+    subtitle: "Detaylı maliyet kırılımı, makro malzeme ve risk aralığı raporu",
+    generatedAt: formatDate(result.generatedAt),
+    chart: buildChartSlices(result),
     highlights: [
       {
         label: "Toplam Yaklaşık Maliyet",
@@ -98,6 +120,11 @@ function buildV3PdfSnapshot(result: ConstructionCostResultV3): PdfExportSnapshot
         label: "İyimser / Kötümser",
         value: `${formatTL(optimistic)} / ${formatTL(pessimistic)}`,
         tone: "emerald"
+      },
+      {
+        label: "Bölge / Kalite",
+        value: `${cityLabel || "Genel"} / ${QUALITY_LABELS[inputs.qualityLevel] || "Standart"}`,
+        tone: "blue"
       }
     ],
     sections: [
@@ -155,8 +182,8 @@ function buildV3PdfSnapshot(result: ConstructionCostResultV3): PdfExportSnapshot
 }
 
 export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
-  const printRef = useRef<HTMLDivElement>(null);
-  const [activePdfAction, setActivePdfAction] = useState<"preview" | "download" | null>(null);
+  const [activeExportAction, setActiveExportAction] = useState<ExportAction>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const { inputs, categories, macroMaterials, grandTotal, costPerM2, optimistic, pessimistic, assumptions, cityLabel } = result;
 
   const chartData = categories.map((cat, i) => ({
@@ -166,34 +193,69 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
   }));
 
   const handlePdfPreview = async () => {
-    if (activePdfAction) return;
-    setActivePdfAction("preview");
+    if (activeExportAction) return;
+    setActiveExportAction("pdf-preview");
+    setExportError(null);
     try {
       const { openConstructionCostPdfPreview } = await loadReportingModule();
       openConstructionCostPdfPreview(buildV3PdfSnapshot(result));
     } catch (error) {
       console.error(error);
-      alert("PDF önizleme açılamadı. Lütfen açılır pencere engelleyicisini kontrol edin.");
+      setExportError("PDF önizleme açılamadı. Lütfen açılır pencere engelleyicisini kontrol edin.");
     } finally {
-      setActivePdfAction(null);
+      setActiveExportAction(null);
+    }
+  };
+
+  const handleImagePreview = async () => {
+    if (activeExportAction) return;
+    setActiveExportAction("image-preview");
+    setExportError(null);
+    try {
+      const { openConstructionCostImagePreview } = await loadReportingModule();
+      openConstructionCostImagePreview(
+        buildV3PdfSnapshot(result),
+        `insaat-maliyeti-gorsel-${new Date().getFullYear()}.png`
+      );
+    } catch (error) {
+      console.error(error);
+      setExportError("Görsel önizleme açılamadı. Lütfen açılır pencere engelleyicisini kontrol edin.");
+    } finally {
+      setActiveExportAction(null);
     }
   };
 
   const handlePdfDownload = async () => {
-    if (activePdfAction) return;
-    setActivePdfAction("download");
+    if (activeExportAction) return;
+    setActiveExportAction("pdf-download");
+    setExportError(null);
     try {
       const { downloadConstructionCostPdf } = await loadReportingModule();
       downloadConstructionCostPdf(buildV3PdfSnapshot(result), `insaat-maliyeti-raporu-${new Date().getFullYear()}.pdf`);
     } catch (error) {
       console.error(error);
-      alert("PDF indirilemedi.");
+      setExportError("PDF indirilemedi. Lütfen tekrar deneyin.");
     } finally {
-      setActivePdfAction(null);
+      setActiveExportAction(null);
     }
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const handlePrint = async () => {
+    if (activeExportAction) return;
+    setActiveExportAction("print");
+    setExportError(null);
+    try {
+      const { printConstructionCostPdf } = await loadReportingModule();
+      printConstructionCostPdf(buildV3PdfSnapshot(result));
+    } catch (error) {
+      console.error(error);
+      setExportError("Yazdırma penceresi açılamadı. Lütfen tekrar deneyin.");
+    } finally {
+      setActiveExportAction(null);
+    }
+  };
+
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xl dark:border-slate-700 dark:bg-slate-900">
@@ -208,7 +270,10 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-5xl animate-in fade-in zoom-in-95 duration-500">
+      <div
+        data-testid="construction-result-dashboard"
+        className="mx-auto w-full max-w-5xl animate-in fade-in zoom-in-95 duration-500"
+      >
         {/* ── Action Bar ── */}
         <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -217,31 +282,62 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
               {formatDate(result.generatedAt)} • Tahmini değerdir
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-none sm:flex sm:flex-wrap sm:justify-end">
             <button
+              data-testid="construction-reset-button"
               onClick={onReset}
-              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <RotateCcw className="h-4 w-4" /> Yeni Hesap
             </button>
             <button
-              onClick={handlePdfPreview}
-              disabled={activePdfAction !== null}
-              className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 disabled:opacity-50"
+              data-testid="construction-print-button"
+              onClick={handlePrint}
+              disabled={activeExportAction !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {activePdfAction === "preview" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
-              {activePdfAction === "preview" ? "Hazırlanıyor" : "PDF Önizleme"}
+              {activeExportAction === "print" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+              {activeExportAction === "print" ? "Hazırlanıyor" : "Yazdır"}
             </button>
             <button
-              onClick={handlePdfDownload}
-              disabled={activePdfAction !== null}
-              className="flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-black uppercase tracking-wider text-white shadow-sm transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 disabled:opacity-50"
+              data-testid="construction-pdf-preview-button"
+              onClick={handlePdfPreview}
+              disabled={activeExportAction !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-black uppercase tracking-wider text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {activePdfAction === "download" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {activePdfAction === "download" ? "Hazırlanıyor" : "PDF İndir"}
+              {activeExportAction === "pdf-preview" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+              {activeExportAction === "pdf-preview" ? "Hazırlanıyor" : "PDF Önizleme"}
+            </button>
+            <button
+              data-testid="construction-image-preview-button"
+              onClick={handleImagePreview}
+              disabled={activeExportAction !== null}
+              className="flex items-center justify-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black uppercase tracking-wider text-amber-800 shadow-sm transition-all hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {activeExportAction === "image-preview" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+              {activeExportAction === "image-preview" ? "Hazırlanıyor" : "Görsel Önizleme"}
+            </button>
+            <button
+              data-testid="construction-pdf-download-button"
+              onClick={handlePdfDownload}
+              disabled={activeExportAction !== null}
+              className="flex items-center justify-center gap-2 rounded-md bg-slate-900 px-4 py-3 text-sm font-black uppercase tracking-wider text-white shadow-sm transition-all hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {activeExportAction === "pdf-download" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {activeExportAction === "pdf-download" ? "Hazırlanıyor" : "PDF İndir"}
             </button>
           </div>
         </div>
+
+        {exportError ? (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="no-print mb-5 rounded-2xl border border-red-300/70 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+          >
+            {exportError}
+          </div>
+        ) : null}
 
         {/* ── Main Grid ── */}
         <div className="grid gap-5 lg:grid-cols-3">
@@ -254,28 +350,31 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
               <div className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-500">
                 TOPLAM YAKLAŞIK MALİYET
               </div>
-              <div className="mt-2 font-mono text-4xl font-extrabold leading-none text-slate-900 dark:text-white">
+              <div
+                data-testid="construction-grand-total-value"
+                className="mt-2 break-words font-mono text-3xl font-extrabold leading-tight text-slate-900 dark:text-white sm:text-4xl"
+              >
                 {formatTL(grandTotal)}
               </div>
-              <div className="mt-1 font-mono text-base text-slate-600 dark:text-slate-400">
+              <div className="mt-1 break-words font-mono text-base text-slate-600 dark:text-slate-400">
                 {formatTL(costPerM2)} / m²
               </div>
 
               {/* Range */}
               <div className="mt-4 grid grid-cols-2 gap-2 border-t border-amber-200/60 pt-4 dark:border-slate-700">
-                <div className="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-950/30">
+                <div className="min-w-0 rounded-md bg-emerald-50 p-2 dark:bg-emerald-950/30">
                   <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
                     <TrendingDown className="h-3 w-3" /> İyimser
                   </div>
-                  <div className="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                  <div className="break-words font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400">
                     {formatTL(optimistic)}
                   </div>
                 </div>
-                <div className="rounded-lg bg-red-50 p-2 dark:bg-red-950/30">
+                <div className="min-w-0 rounded-md bg-red-50 p-2 dark:bg-red-950/30">
                   <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">
                     <TrendingUp className="h-3 w-3" /> Kötümser
                   </div>
-                  <div className="font-mono text-sm font-bold text-red-600 dark:text-red-400">
+                  <div className="break-words font-mono text-sm font-bold text-red-600 dark:text-red-400">
                     {formatTL(pessimistic)}
                   </div>
                 </div>
@@ -299,10 +398,10 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
                 {/* Legend */}
                 <div className="mt-2 w-full space-y-1.5">
                   {chartData.map((entry, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
+                    <div key={i} className="flex items-start justify-between gap-2 text-xs">
+                      <div className="flex min-w-0 items-start gap-2">
                         <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-                        <span className="text-slate-600 dark:text-slate-400">{entry.name}</span>
+                        <span className="break-words text-slate-600 dark:text-slate-400">{entry.name}</span>
                       </div>
                       <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                         %{((entry.value / grandTotal) * 100).toFixed(0)}
@@ -329,9 +428,9 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
                   { label: "Cephe",       value: FACADE_LABELS[inputs.facadeType] },
                   { label: "Asansör",     value: inputs.hasElevator ? `${inputs.elevatorCount} adet` : "Yok" },
                 ].map((row) => (
-                  <div key={row.label} className="flex justify-between gap-2 border-b border-slate-100 pb-1.5 last:border-0 dark:border-slate-800">
-                    <dt className="text-slate-500 dark:text-slate-400">{row.label}</dt>
-                    <dd className="font-semibold text-slate-800 dark:text-slate-200">{row.value}</dd>
+                  <div key={row.label} className="flex items-start justify-between gap-3 border-b border-slate-100 pb-1.5 last:border-0 dark:border-slate-800">
+                    <dt className="shrink-0 text-slate-500 dark:text-slate-400">{row.label}</dt>
+                    <dd className="min-w-0 break-words text-right font-semibold text-slate-800 dark:text-slate-200">{row.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -350,20 +449,20 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {categories.map((cat, idx) => (
-                  <div key={cat.id} className="group px-6 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
+                  <div key={cat.id} className="group px-4 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40 sm:px-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                      <div className="flex min-w-0 items-start gap-3">
                         <div
                           className="h-3.5 w-3.5 shrink-0 rounded-full"
                           style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                         />
                         <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100">{cat.label}</div>
-                          <div className="truncate text-xs text-slate-500 dark:text-slate-400">{cat.description}</div>
+                          <div className="break-words font-semibold text-slate-900 dark:text-slate-100">{cat.label}</div>
+                          <div className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">{cat.description}</div>
                         </div>
                       </div>
-                      <div className="shrink-0 text-right">
-                        <div className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                      <div className="min-w-0 shrink-0 text-left sm:text-right">
+                        <div className="break-words font-mono font-bold text-slate-900 dark:text-slate-100">
                           {formatTL(cat.total)}
                         </div>
                         <div className="text-xs font-semibold text-amber-600 dark:text-amber-400">
@@ -381,10 +480,10 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
                   </div>
                 ))}
                 {/* Total row */}
-                <div className="bg-slate-50 px-6 py-4 dark:bg-slate-950">
-                  <div className="flex items-center justify-between">
+                <div className="bg-slate-50 px-4 py-4 dark:bg-slate-950 sm:px-6">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="font-bold text-slate-900 dark:text-slate-100">TOPLAM</div>
-                    <div className="font-mono text-xl font-extrabold text-amber-600 dark:text-amber-400">
+                    <div className="break-words font-mono text-xl font-extrabold text-amber-600 dark:text-amber-400">
                       {formatTL(grandTotal)}
                     </div>
                   </div>
@@ -393,16 +492,16 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
             </div>
 
             {/* Macro Materials */}
-            <div className="break-inside-avoid grid grid-cols-3 gap-4">
+            <div className="break-inside-avoid grid grid-cols-1 gap-4 sm:grid-cols-3">
               {[
                 { label: "Beton", value: `${macroMaterials.concreteM3} m³`, sub: formatTL(macroMaterials.concreteCost), color: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900/40", textColor: "text-blue-700 dark:text-blue-400" },
                 { label: "Demir", value: `${macroMaterials.ironTon} Ton`, sub: formatTL(macroMaterials.ironCost), color: "bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700", textColor: "text-slate-700 dark:text-slate-300" },
                 { label: "Tuğla/Duvar", value: `${macroMaterials.brickM2} m²`, sub: formatTL(macroMaterials.brickCost), color: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-900/40", textColor: "text-orange-700 dark:text-orange-400" },
               ].map((m) => (
-                <div key={m.label} className={cn("rounded-xl border p-4", m.color)}>
+                <div key={m.label} className={cn("min-w-0 rounded-md border p-4", m.color)}>
                   <div className={cn("text-xs font-bold uppercase tracking-wider", m.textColor)}>{m.label}</div>
-                  <div className={cn("mt-1 text-xl font-extrabold", m.textColor)}>{m.value}</div>
-                  <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{m.sub}</div>
+                  <div className={cn("mt-1 break-words text-xl font-extrabold", m.textColor)}>{m.value}</div>
+                  <div className="mt-0.5 break-words text-xs text-slate-500 dark:text-slate-400">{m.sub}</div>
                 </div>
               ))}
             </div>
@@ -417,9 +516,9 @@ export function ResultDashboard({ result, onReset }: ResultDashboardProps) {
               </div>
               <ul className="space-y-1.5">
                 {assumptions.map((a, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300/80">
+                  <li key={i} className="flex items-start gap-2 break-words text-xs leading-5 text-amber-800 dark:text-amber-300/80">
                     <span className="mt-0.5 shrink-0 text-amber-500">•</span>
-                    {a}
+                    <span className="min-w-0">{a}</span>
                   </li>
                 ))}
               </ul>
