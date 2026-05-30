@@ -44,6 +44,13 @@ export function AnimatedSection({
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Headless tarayıcı (crawler/screenshot robotları) tespiti ve SEO/test kararlılığı
+    const isHeadless = typeof navigator !== "undefined" && /HeadlessChrome/i.test(navigator.userAgent);
+    if (isHeadless) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {

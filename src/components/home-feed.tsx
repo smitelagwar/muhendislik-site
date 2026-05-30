@@ -21,14 +21,14 @@ export function HomeFeed({ groups }: { groups: HomeFeedGroup[] }) {
         {/* Başlık ve Sekmeler */}
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between border-b border-slate-200 dark:border-white/5 pb-6">
           <div className="max-w-3xl">
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2 border-b border-slate-200 dark:border-white/5 pb-5">
               <span className="home-section-kicker">İçerik akışı</span>
-              <span className="rounded bg-slate-100 dark:bg-white/5 px-2 py-0.5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                Arşiv & Rehberler
+              <span className="rounded bg-amber-500/10 dark:bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-300 font-bold border border-amber-500/20">
+                Arşiv &amp; Rehberler
               </span>
             </div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl font-sans">
-              Gürültüyü azaltan, taraması hızlı ana yayın yüzeyi
+            <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl font-sans">
+              Gürültüyü azaltan, taması hızlı ana yayın yüzeyi
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-400">
               Mühendislik konularını karmaşık aramalarla boğmuyoruz. En yeni içerikleri, saha pratiklerini ve 
@@ -63,10 +63,10 @@ export function HomeFeed({ groups }: { groups: HomeFeedGroup[] }) {
                   <AnimatedSection key={article.slug} animation="fade-up" delay={index * 60}>
                     <Link
                       href={`/${article.slug}`}
-                      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#070b12] shadow-sm hover:border-amber-400/50 dark:hover:border-amber-400/30 transition-all duration-300 hover:shadow"
+                      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-white/[0.07] bg-white dark:bg-[#070b12] shadow-sm hover:border-amber-400/50 dark:hover:border-amber-400/30 hover:shadow-md transition-all duration-300"
                     >
                       {/* Resim */}
-                      <div className="relative aspect-[16/10] overflow-hidden border-b border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-slate-920">
+                      <div className="relative aspect-[16/10] overflow-hidden border-b border-slate-200 dark:border-white/5 bg-[#0a0f1a]">
                         <Image
                           src={article.image}
                           alt={article.title}
@@ -114,10 +114,12 @@ export function HomeFeed({ groups }: { groups: HomeFeedGroup[] }) {
 
               {/* Sağ Sütun: Küme Özet Bilgisi (Aside Panel) */}
               <AnimatedSection animation="fade-up" className="h-fit">
-                <aside className="rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#070b12] p-6 shadow-sm relative overflow-hidden">
+                <aside className="rounded-xl border border-slate-200 dark:border-amber-400/15 bg-slate-50 dark:bg-[#070b12] p-6 shadow-sm relative overflow-hidden">
                   {/* Dekoratif grid hattı */}
-                  <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] pointer-events-none" 
-                       style={{ backgroundImage: 'linear-gradient(#f59e0b 1px, transparent 1px), linear-gradient(90deg, #f59e0b 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
+                  <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none" 
+                       style={{ backgroundImage: 'linear-gradient(rgba(148,163,184,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.4) 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
+                  {/* Üst accent bar */}
+                  <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-amber-500 to-amber-600/50 rounded-t-xl" />
                   
                   <div className="relative flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">

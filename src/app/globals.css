@@ -418,7 +418,10 @@
 }
 
 .dark .home-page {
-  background: linear-gradient(180deg, #06080d 0%, #05070c 35%, #06080d 100%);
+  background: 
+    radial-gradient(ellipse 80% 50% at top left, rgba(245,158,11,0.06), transparent 55%),
+    radial-gradient(ellipse 60% 40% at top right, rgba(34,211,238,0.04), transparent 50%),
+    linear-gradient(180deg, #06080d 0%, #05070c 40%, #06080d 100%);
 }
 
 .home-grid-backdrop {
@@ -495,16 +498,26 @@
 
 .home-gradient-text {
   background: linear-gradient(90deg, #d97706 0%, #ea580c 36%, #0ea5e9 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: gradient-shift 8s ease infinite;
 }
 
 .dark .home-gradient-text {
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 36%, #22d3ee 100%);
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 42%, #22d3ee 100%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .home-glass-panel {
@@ -525,14 +538,27 @@
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9));
   box-shadow: 0 8px 30px -10px rgba(15, 23, 42, 0.06), inset 0 1px 1px rgba(255, 255, 255, 1);
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   backdrop-filter: blur(20px);
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  border-radius: 0.75rem;
+}
+
+.home-proof-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px -10px rgba(15, 23, 42, 0.1);
 }
 
 .dark .home-proof-tile {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(5, 10, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(7, 11, 18, 0.8);
   box-shadow: none;
+  backdrop-filter: none;
+}
+
+.dark .home-proof-tile:hover {
+  border-color: rgba(245, 158, 11, 0.25);
+  box-shadow: 0 8px 32px -8px rgba(245, 158, 11, 0.15);
 }
 
 .home-button-primary {

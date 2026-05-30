@@ -38,7 +38,7 @@ export function HomeStandardsStrip({ standards, phasePreviews }: HomeStandardsSt
           <div>
             <div className="flex items-center gap-2">
               <span className="home-section-kicker">Standart omurgası</span>
-              <span className="rounded bg-slate-100 dark:bg-white/5 px-2 py-0.5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+              <span className="rounded bg-amber-500/10 dark:bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-300 font-bold border border-amber-500/20">
                 Resmi Mevzuat
               </span>
             </div>
@@ -91,8 +91,13 @@ export function HomeStandardsStrip({ standards, phasePreviews }: HomeStandardsSt
           </div>
 
           {/* Standartlar Sağ Kısım Yan Bilgi Kartı */}
-          <div className="rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#070b12] p-6 shadow-sm">
-            <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight border-b border-slate-100 dark:border-white/5 pb-3">
+          <div className="relative overflow-hidden rounded-xl border border-cyan-500/20 dark:border-cyan-400/15 bg-white dark:bg-[#070b12] p-6 shadow-sm">
+            {/* Üst accent bar - cyan */}
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-cyan-500 to-cyan-400/50 rounded-t-xl" />
+            {/* Dekoratif arka plan */}
+            <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none"
+                 style={{ backgroundImage: 'linear-gradient(rgba(34,211,238,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.5) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+            <h3 className="relative text-lg font-black text-slate-800 dark:text-white tracking-tight border-b border-slate-100 dark:border-white/5 pb-3">
               Mevzuat Sınırları ve Kontroller
             </h3>
             <p className="mt-3 text-xs leading-6 text-slate-500 dark:text-slate-400">

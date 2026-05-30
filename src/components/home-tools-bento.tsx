@@ -115,15 +115,15 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
         <div className="max-w-3xl">
           <div className="flex items-center gap-2">
             <span className="home-section-kicker">Araç yüzeyi</span>
-            <span className="rounded bg-slate-100 dark:bg-white/5 px-2 py-0.5 font-mono text-[10px] text-slate-500 dark:text-slate-400">
-              Canlı Modül
+            <span className="rounded bg-amber-500/10 dark:bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-300 font-bold border border-amber-500/20">
+              {tools.length} Canlı Modül
             </span>
           </div>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Günlük kararlar için kurgulanmış araç workbench’i
+            Günlük kararlar için kurgulanmış araç workbench&apos;i
           </h2>
           <p className="mt-4 text-sm leading-7 text-slate-500 dark:text-slate-400">
-            Hesap modülleri pratik mühendislik referanslarını besler. Şantiyede veya ofiste ihtiyaç duyduğunuz 
+            Hesap modülleri pratik mühendislik referanslarını besler. Şantiyede veya ofiste ihtiyaç duyduğunuz
             disiplin sekmesini seçerek hesaplara hızlıca erişin.
           </p>
         </div>
@@ -172,31 +172,39 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
                     intensity={isFirst ? 5 : 3}
                     className={`h-full rounded-xl transition-all duration-300 border ${
                       isFirst
-                        ? "border-amber-300 dark:border-amber-400/35 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/20 dark:to-[#070b12]"
+                        ? "border-amber-400/50 dark:border-amber-400/30 bg-gradient-to-br from-amber-950/40 via-[#0d0e06] to-[#070b12] dark:from-amber-950/50 dark:to-[#070b12]"
                         : "border-slate-200 dark:border-white/5 bg-white dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.68),rgba(7,11,18,0.92))]"
                     } ${styles.border} ${styles.shadow}`}
                   >
                     <Link
                       href={tool.href}
-                      className="group flex h-full flex-col justify-between p-5"
+                      className="group relative flex h-full flex-col justify-between p-5"
                     >
+                      {/* Featured kart rozet */}
+                      {isFirst && (
+                        <span className="absolute right-4 top-4 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-400">
+                          Öne Çıkan
+                        </span>
+                      )}
                       <div>
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start justify-between gap-4 shrink-0">
                           <div className={`flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 ${styles.iconText}`}>
                             <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                           </div>
-                          <span className={`rounded-md border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${styles.badge}`}>
-                            {tool.discipline}
+                          <span className={`rounded-md border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isFirst ? "" : styles.badge}`}>
+                            {!isFirst && tool.discipline}
                           </span>
                         </div>
-                        <h3 className="mt-5 font-black text-slate-800 dark:text-white text-lg tracking-tight group-hover:text-slate-900 dark:group-hover:text-amber-200">
+                        <h3 className={`mt-5 font-black text-slate-800 dark:text-white tracking-tight group-hover:text-slate-900 dark:group-hover:text-amber-200 ${
+                          isFirst ? "text-xl lg:text-2xl" : "text-lg"
+                        }`}>
                           {tool.name}
                         </h3>
                         <p className="mt-2.5 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                           {tool.description}
                         </p>
                       </div>
-                      <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-500 dark:group-hover:text-amber-200">
+                      <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-500 dark:group-hover:text-amber-200 shrink-0">
                         <span>Hesapla</span>
                         <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                       </div>
@@ -228,7 +236,7 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
                       className="group flex h-full flex-col justify-between p-5"
                     >
                       <div>
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start justify-between gap-4 shrink-0">
                           <div className={`flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 ${styles.iconText}`}>
                             <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                           </div>
@@ -243,7 +251,7 @@ export function HomeToolsBento({ tools }: { tools: ToolDefinition[] }) {
                           {tool.description}
                         </p>
                       </div>
-                      <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-500 dark:group-hover:text-amber-200">
+                      <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-amber-500 dark:group-hover:text-amber-200 shrink-0">
                         <span>Hesapla</span>
                         <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                       </div>

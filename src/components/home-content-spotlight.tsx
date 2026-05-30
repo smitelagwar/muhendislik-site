@@ -43,7 +43,7 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
         <AnimatedSection animation="fade-up" className="h-full">
           <Link
             href={`/${leadArticle.slug}`}
-            className="group flex h-full min-h-[32rem] flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-white/5 bg-[#0b1018] shadow-md"
+            className="group flex h-full min-h-[32rem] flex-col overflow-hidden rounded-xl border border-slate-200 dark:border-amber-400/15 bg-[#0b1018] shadow-md hover:border-amber-400/40 dark:hover:border-amber-400/30 transition-all duration-300"
           >
             <div className="relative min-h-[22rem] flex-1 overflow-hidden">
               <Image
@@ -55,7 +55,9 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
                 priority
               />
               {/* Karartma & Dereceli Maske */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#06080d] via-[#06080d]/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#06080d] via-[#06080d]/50 to-transparent" />
+              {/* Amber accent line - sol kenar */}
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-amber-400 via-amber-500/60 to-transparent" />
               
               {/* Kart İçi Etiketler */}
               <div className="absolute left-6 top-6 flex flex-wrap items-center gap-2">
@@ -76,7 +78,7 @@ export function HomeContentSpotlight({ leadArticle, supportingArticles }: HomeCo
             </div>
 
             {/* Alt Detay Alanı */}
-            <div className="flex flex-col gap-5 p-6 sm:p-8 bg-[#070b12] border-t border-slate-200/5">
+            <div className="flex flex-col gap-5 p-6 sm:p-8 bg-[#070b12] border-t border-amber-400/10">
               <p className="max-w-3xl text-xs leading-6 text-slate-400">
                 {leadArticle.description}
               </p>
