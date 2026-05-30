@@ -9,9 +9,9 @@ import { archTick, getRowLayout } from "./sketch-utils";
 import type { RebarSketchProps } from "./sketch-types";
 
 const SVG_W = 320;
-const SVG_H = 130;
-const MARGIN_X = 24;
-const MARGIN_Y = 24;
+const SVG_H = 190;
+const MARGIN_Y = 10;
+const concreteBottomY = 140;
 
 export function RebarSectionSketch({
   diameterMm,
@@ -39,13 +39,27 @@ export function RebarSectionSketch({
 
   const { rowCount, firstRow, secondRow } = getRowLayout(quantity);
 
-  // Çubuk piksel yarıçapı — çap ölçeği SVG genişliğine göre
-  const barR = Math.max(6, Math.min(12, (SVG_W - 2 * MARGIN_X) / (firstRow * 3.2)));
+  // Dinamik ölçek hesabı (px/mm)
+  const scaleIdeal = 280 / (widthCm * 10);
+  // Ölçeği sınırlandırarak çok dar kirişlerde aşırı büyümesini engelliyoruz (max 1.2)
+  const scale = Math.min(1.2, Math.max(0.2, scaleIdeal));
 
-  // Yatay çubuk düzeni
-  const drawAreaW = SVG_W - 2 * MARGIN_X;
-  const rowY1 = MARGIN_Y + (rowCount === 2 ? barR + 6 : SVG_H / 2 - MARGIN_Y / 2);
-  const rowY2 = rowY1 + 2 * barR + 10;
+  // Beton çizim sınırları (genişlik to-scale olarak ayarlanıyor ve ortalanıyor)
+  const concreteW_px = widthCm * 10 * scale;
+  const concreteLeftX = (SVG_W - concreteW_px) / 2;
+  const concreteRightX = SVG_W - concreteLeftX;
+
+  // Çevresel bağlam (Beton ve Etriye alt sınırları)
+  const stirrupLeftX = concreteLeftX + coverMm * scale;
+  const stirrupRightX = concreteRightX - coverMm * scale;
+  const stirrupBottomY = concreteBottomY - coverMm * scale;
+
+  // Çubuk piksel yarıçapı
+  const barR = Math.max(3, (diameterMm / 2) * scale);
+
+  // Boyuna donatıların yerleşeceği yatay sınırlar
+  const x_start = stirrupLeftX + (stirrupDiameterMm + diameterMm / 2) * scale;
+  const x_end = stirrupRightX - (stirrupDiameterMm + diameterMm / 2) * scale;
 
   // Gerçek fiziksel net aralık hesabı (TS 500)
   const b = widthCm * 10; // mm
@@ -61,31 +75,57 @@ export function RebarSectionSketch({
   const minSpacingMm = Math.max(25, 1.5 * d);
   const isSpacingViolated = isViolatedOverride ?? (firstRow >= 2 && calculatedSpacing < minSpacingMm);
 
-  // Birinci ve İkinci sıra pozisyonları
-  function rowPositions(count: number): number[] {
-    if (count <= 0) return [];
-    if (count === 1) return [MARGIN_X + drawAreaW / 2];
-    const step = drawAreaW / (count - 1);
-    return Array.from({ length: count }, (_, i) => MARGIN_X + i * step);
+  // Birinci sıra çubuk X pozisyonları
+  let row1Pos: number[] = [];
+  if (firstRow === 1) {
+    row1Pos = [SVG_W / 2];
+  } else if (firstRow >= 2) {
+    if (x_end > x_start) {
+      const step = (x_end - x_start) / (firstRow - 1);
+      row1Pos = Array.from({ length: firstRow }, (_, i) => x_start + i * step);
+    } else {
+      // Sığmama durumunda üst üste binmesinler diye sıkışık çiziyoruz
+      const center = SVG_W / 2;
+      const spacing = barR * 2 + 2;
+      const start = center - ((firstRow - 1) * spacing) / 2;
+      row1Pos = Array.from({ length: firstRow }, (_, i) => start + i * spacing);
+    }
   }
 
-  const row1Pos = rowPositions(firstRow);
-  const row2Pos = rowPositions(secondRow);
+  // İkinci sıra çubuk X pozisyonları
+  let row2Pos: number[] = [];
+  if (secondRow === 1) {
+    row2Pos = [SVG_W / 2];
+  } else if (secondRow >= 2) {
+    if (x_end > x_start) {
+      const step = (x_end - x_start) / (secondRow - 1);
+      row2Pos = Array.from({ length: secondRow }, (_, i) => x_start + i * step);
+    } else {
+      const center = SVG_W / 2;
+      const spacing = barR * 2 + 2;
+      const start = center - ((secondRow - 1) * spacing) / 2;
+      row2Pos = Array.from({ length: secondRow }, (_, i) => start + i * spacing);
+    }
+  }
 
-  // Çevresel bağlam (Beton ve Etriye alt sınırları)
-  const concreteBottomY = rowY1 + barR + 32 + (rowCount === 2 ? 2 * barR + 10 : 0);
-  const concreteLeftX = MARGIN_X / 2;
-  const concreteRightX = SVG_W - MARGIN_X / 2;
+  // Sıra Y pozisyonları
+  const rowY1 = concreteBottomY - (coverMm + stirrupDiameterMm + diameterMm / 2) * scale;
+  // İkinci sırayı birincinin üstüne TS 500 minimum düşey mesafesi (25mm + d) kadar yukarı yerleştiriyoruz
+  const rowY2 = rowY1 - (25 + diameterMm) * scale;
 
-  const stirrupBottomY = rowY1 + barR + 6;
-  const stirrupLeftX = row1Pos[0] - barR - 4;
-  const stirrupRightX = row1Pos[firstRow - 1] + barR + 4;
+  // Montaj Donatısı (Üst iki köşede etriyeyi tutan askı donatısı Ø12)
+  const barR_top = (12 / 2) * scale;
+  const topRebarY = MARGIN_Y + (stirrupDiameterMm + 12 / 2) * scale;
+  const topRebarLeftX = stirrupLeftX + (stirrupDiameterMm + 12 / 2) * scale;
+  const topRebarRightX = stirrupRightX - (stirrupDiameterMm + 12 / 2) * scale;
 
   const hasSpacingVal = firstRow >= 2;
   const spacingText =
     calculatedSpacing <= 0
       ? "Sığmıyor!"
       : `${calculatedSpacing.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} mm`;
+
+  const stirrupStrokeWidth = Math.max(1.5, Math.min(3.5, stirrupDiameterMm * scale));
 
   return (
     <div className={cn("w-full select-none bg-slate-950/60 dark:bg-black/40 rounded-xl p-4 border border-slate-200 dark:border-white/5", className)}>
@@ -107,7 +147,7 @@ export function RebarSectionSketch({
 
       <div className="flex justify-center py-2">
         <svg
-          viewBox={`0 0 ${SVG_W} ${concreteBottomY + 16}`}
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           width="100%"
           className="max-w-[280px] sm:max-w-[320px]"
           aria-label="Donatı düzeni krokisi"
@@ -125,31 +165,50 @@ export function RebarSectionSketch({
 
           {/* ── Çevresel Beton Sınırı (Kiriş Gövde Çizimi) ── */}
           <path
-            d={`M ${concreteLeftX} 0 L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} 0`}
+            d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
             fill="#111827"
             stroke="#374151"
             strokeWidth={1.5}
           />
           <path
-            d={`M ${concreteLeftX} 0 L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} 0`}
+            d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
             fill="url(#concrete-hatch-rebar)"
             style={{ pointerEvents: "none" }}
           />
 
-          {/* ── Etriye Sınırı (Kapalı Kutu Görünümü) ── */}
+          {/* ── Askı Donatıları (Üst Köşeler - 2Ø12 Montaj) ── */}
+          <g>
+            <circle
+              cx={topRebarLeftX}
+              cy={topRebarY}
+              r={barR_top}
+              fill="#4b5563"
+              stroke="#374151"
+              strokeWidth={1}
+            />
+            <circle
+              cx={topRebarRightX}
+              cy={topRebarY}
+              r={barR_top}
+              fill="#4b5563"
+              stroke="#374151"
+              strokeWidth={1}
+            />
+          </g>
+
+          {/* ── Etriye Sınırı (Kapalı Kutu ve 135 Derece Kanca Detayı) ── */}
+          {/* Tek bir sürekli çizgide sol kanca ucundan başlayıp, sol kenar, alt kenar, sağ kenar ve sağ kanca ucu çizilir */}
           <path
-            d={`M ${stirrupLeftX} 0 L ${stirrupLeftX} ${stirrupBottomY} L ${stirrupRightX} ${stirrupBottomY} L ${stirrupRightX} 0`}
+            d={`M ${stirrupLeftX + 16 * scale} ${topRebarY + 16 * scale} L ${stirrupLeftX} ${topRebarY} L ${stirrupLeftX} ${stirrupBottomY} L ${stirrupRightX} ${stirrupBottomY} L ${stirrupRightX} ${topRebarY} L ${stirrupRightX - 16 * scale} ${topRebarY + 16 * scale}`}
             fill="none"
-            stroke={isSpacingViolated ? "#ef4444" : "#6b7280"}
-            strokeWidth={1.5}
-            strokeDasharray="4 2"
-            opacity="0.8"
+            stroke={isSpacingViolated ? "#ef4444" : "#4b5563"}
+            strokeWidth={stirrupStrokeWidth}
+            opacity="0.95"
           />
 
-          {/* ── 1. sıra çubuklar (Ana Donatı) ── */}
+          {/* ── 1. Sıra Çubuklar (Ana Donatı) ── */}
           {row1Pos.map((cx, i) => (
             <g key={`r1-${i}`}>
-              {/* Çubuk Glow Efekti (Dark Mode CAD Hissi) */}
               <circle
                 cx={cx}
                 cy={rowY1}
@@ -172,7 +231,7 @@ export function RebarSectionSketch({
               {(i === 0 || i === firstRow - 1) && (
                 <text
                   x={cx}
-                  y={rowY1 + barR + 10}
+                  y={rowY1 - barR - 4}
                   fontSize={8}
                   fill={isSpacingViolated ? "#f87171" : "#f59e0b"}
                   fontFamily="monospace"
@@ -185,7 +244,7 @@ export function RebarSectionSketch({
             </g>
           ))}
 
-          {/* ── 2. sıra çubuklar (varsa) ── */}
+          {/* ── 2. Sıra Çubuklar (varsa) ── */}
           {row2Pos.map((cx, i) => (
             <g key={`r2-${i}`}>
               <circle
@@ -209,7 +268,7 @@ export function RebarSectionSketch({
               {(i === 0 || i === secondRow - 1) && (
                 <text
                   x={cx}
-                  y={rowY2 + barR + 10}
+                  y={rowY2 - barR - 4}
                   fontSize={8}
                   fill={isSpacingViolated ? "#f87171" : "#d97706"}
                   fontFamily="monospace"
@@ -222,30 +281,30 @@ export function RebarSectionSketch({
             </g>
           ))}
 
-          {/* ── Aralık ölçülendirme çizgisi (ilk iki çubuk arası) ── */}
+          {/* ── Aralık Ölçülendirme Çizgisi (ilk iki çubuk arası) ── */}
           {hasSpacingVal && (
-            <>
+            <g>
               <line
                 x1={row1Pos[0] + barR}
-                y1={rowY1 - barR - 8}
+                y1={rowY1 + barR + 12}
                 x2={row1Pos[1] - barR}
-                y2={rowY1 - barR - 8}
+                y2={rowY1 + barR + 12}
                 stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
                 strokeWidth={1}
               />
               <path
-                d={archTick({ x: row1Pos[0] + barR, y: rowY1 - barR - 8 }, "horizontal", 5)}
+                d={archTick({ x: row1Pos[0] + barR, y: rowY1 + barR + 12 }, "horizontal", 5)}
                 stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
                 strokeWidth={1.2}
               />
               <path
-                d={archTick({ x: row1Pos[1] - barR, y: rowY1 - barR - 8 }, "horizontal", 5)}
+                d={archTick({ x: row1Pos[1] - barR, y: rowY1 + barR + 12 }, "horizontal", 5)}
                 stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
                 strokeWidth={1.2}
               />
               <text
                 x={(row1Pos[0] + row1Pos[1]) / 2}
-                y={rowY1 - barR - 13}
+                y={rowY1 + barR + 22}
                 fontSize={8.5}
                 fill={isSpacingViolated ? "#f87171" : "#38bdf8"}
                 fontFamily="monospace"
@@ -254,20 +313,101 @@ export function RebarSectionSketch({
               >
                 s = {spacingText}
               </text>
-            </>
+            </g>
           )}
 
-          {/* ── Toplam donatı adedi ve düzeni başlığı ── */}
+          {/* ── Kiriş Genişliği Ölçülendirmesi (b) ── */}
+          <g>
+            <line
+              x1={concreteLeftX}
+              y1={concreteBottomY + 24}
+              x2={concreteRightX}
+              y2={concreteBottomY + 24}
+              stroke="#475569"
+              strokeWidth={1}
+            />
+            <line
+              x1={concreteLeftX}
+              y1={concreteBottomY + 4}
+              x2={concreteLeftX}
+              y2={concreteBottomY + 28}
+              stroke="#475569"
+              strokeWidth={1}
+            />
+            <line
+              x1={concreteRightX}
+              y1={concreteBottomY + 4}
+              x2={concreteRightX}
+              y2={concreteBottomY + 28}
+              stroke="#475569"
+              strokeWidth={1}
+            />
+            <path
+              d={archTick({ x: concreteLeftX, y: concreteBottomY + 24 }, "horizontal", 6)}
+              stroke="#94a3b8"
+              strokeWidth={1.2}
+            />
+            <path
+              d={archTick({ x: concreteRightX, y: concreteBottomY + 24 }, "horizontal", 6)}
+              stroke="#94a3b8"
+              strokeWidth={1.2}
+            />
+            <text
+              x={SVG_W / 2}
+              y={concreteBottomY + 36}
+              fontSize={9}
+              fill="#e2e8f0"
+              fontFamily="monospace"
+              fontWeight="bold"
+              textAnchor="middle"
+            >
+              b = {widthCm * 10} mm
+            </text>
+          </g>
+
+          {/* ── Pas Payı Ölçülendirmesi (c) ── */}
+          <g>
+            <line
+              x1={concreteLeftX}
+              y1={concreteBottomY - 14}
+              x2={stirrupLeftX}
+              y2={concreteBottomY - 14}
+              stroke="#475569"
+              strokeWidth={1}
+            />
+            <path
+              d={archTick({ x: concreteLeftX, y: concreteBottomY - 14 }, "horizontal", 5)}
+              stroke="#94a3b8"
+              strokeWidth={1.2}
+            />
+            <path
+              d={archTick({ x: stirrupLeftX, y: concreteBottomY - 14 }, "horizontal", 5)}
+              stroke="#94a3b8"
+              strokeWidth={1.2}
+            />
+            <text
+              x={(concreteLeftX + stirrupLeftX) / 2}
+              y={concreteBottomY - 19}
+              fontSize={8}
+              fill="#a3a3a3"
+              fontFamily="monospace"
+              textAnchor="middle"
+            >
+              {coverMm}
+            </text>
+          </g>
+
+          {/* ── Başlık Yazısı ── */}
           <text
             x={SVG_W / 2}
-            y={12}
+            y={MARGIN_Y + 4}
             fontSize={9.5}
-            fill="#e2e8f0"
+            fill="#cbd5e1"
             fontFamily="monospace"
             textAnchor="middle"
             fontWeight="black"
           >
-            {quantity}Ø{diameterMm} — {rowCount === 1 ? "Tek Sıra Yatay" : "Çift Sıra Yatay"}
+            {quantity}Ø{diameterMm} — {rowCount === 1 ? "Tek Sıra" : "Çift Sıra"} Boyuna Donatı
           </text>
         </svg>
       </div>
@@ -280,7 +420,7 @@ export function RebarSectionSketch({
         </div>
         <div className="flex justify-between items-center">
           <span>TS 500 Min. Net Aralık Limiti:</span>
-          <span className="font-bold text-amber-400">≥ {minSpacingMm} mm</span>
+          <span className="font-bold text-amber-400">≥ {minSpacingMm.toFixed(1)} mm</span>
         </div>
         {hasSpacingVal && (
           <div className="flex justify-between items-center border-t border-white/5 pt-1.5 mt-1 text-[10px]">

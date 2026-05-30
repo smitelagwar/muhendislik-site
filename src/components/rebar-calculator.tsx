@@ -108,9 +108,13 @@ export function RebarCalculator() {
 
   // Gelişmiş Yerleşim Parametreleri
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [widthCm, setWidthCm] = useState(30);
-  const [coverMm, setCoverMm] = useState(30);
-  const [stirrupDiameterMm, setStirrupDiameterMm] = useState(8);
+  const [widthCm, setWidthCm] = useState<number | "">(30);
+  const [coverMm, setCoverMm] = useState<number | "">(30);
+  const [stirrupDiameterMm, setStirrupDiameterMm] = useState<number | "">(8);
+
+  const activeWidthCm = widthCm === "" ? 30 : widthCm;
+  const activeCoverMm = coverMm === "" ? 30 : coverMm;
+  const activeStirrupDiameterMm = stirrupDiameterMm === "" ? 8 : stirrupDiameterMm;
 
   const result = useMemo(() => buildResult(diameter, quantity), [diameter, quantity]);
   const equivalentRows = useMemo(() => (result ? buildEquivalentRows(result.totalArea) : []), [result]);
@@ -135,9 +139,9 @@ export function RebarCalculator() {
     const { firstRow } = getRowLayout(result.quantity);
     if (firstRow < 2) return null;
 
-    const b = widthCm * 10; // mm
-    const cover = coverMm; // mm
-    const ds = stirrupDiameterMm; // mm
+    const b = activeWidthCm * 10; // mm
+    const cover = activeCoverMm; // mm
+    const ds = activeStirrupDiameterMm; // mm
     const d = diameter; // mm
 
     const netSpacingMm = (b - 2 * cover - 2 * ds - firstRow * d) / (firstRow - 1);
@@ -151,7 +155,7 @@ export function RebarCalculator() {
       minSpacingMm,
       firstRow,
     };
-  }, [result, widthCm, coverMm, stirrupDiameterMm, diameter]);
+  }, [result, activeWidthCm, activeCoverMm, activeStirrupDiameterMm, diameter]);
 
   return (
     <div className="tool-page-shell py-8 md:py-14 bg-gradient-to-b from-[#06080d] via-[#05070c] to-[#06080d] min-h-screen text-slate-100">
@@ -286,7 +290,7 @@ export function RebarCalculator() {
                         min="10"
                         max="200"
                         value={widthCm}
-                        onChange={(e) => setWidthCm(Math.max(10, Number(e.target.value)))}
+                        onChange={(e) => setWidthCm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
                         className="h-10 rounded-lg text-xs font-mono font-bold dark:bg-white/5 border border-white/10"
                       />
                     </div>
@@ -297,7 +301,7 @@ export function RebarCalculator() {
                         min="0"
                         max="100"
                         value={coverMm}
-                        onChange={(e) => setCoverMm(Math.max(0, Number(e.target.value)))}
+                        onChange={(e) => setCoverMm(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
                         className="h-10 rounded-lg text-xs font-mono font-bold dark:bg-white/5 border border-white/10"
                       />
                     </div>
@@ -308,7 +312,7 @@ export function RebarCalculator() {
                         min="4"
                         max="20"
                         value={stirrupDiameterMm}
-                        onChange={(e) => setStirrupDiameterMm(Math.max(0, Number(e.target.value)))}
+                        onChange={(e) => setStirrupDiameterMm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
                         className="h-10 rounded-lg text-xs font-mono font-bold dark:bg-white/5 border border-white/10"
                       />
                     </div>
@@ -419,9 +423,9 @@ export function RebarCalculator() {
                       <RebarSectionSketch
                         diameterMm={diameter}
                         quantity={result.quantity}
-                        widthCm={widthCm}
-                        coverMm={coverMm}
-                        stirrupDiameterMm={stirrupDiameterMm}
+                        widthCm={activeWidthCm}
+                        coverMm={activeCoverMm}
+                        stirrupDiameterMm={activeStirrupDiameterMm}
                       />
                     </div>
                   </>
@@ -474,11 +478,17 @@ export function RebarCalculator() {
                         <TableRow
                           key={row.diameter}
                           className={cn(
-                            "border-b border-white/5 transition-colors",
+                            "border-b border-white/5 transition-colors cursor-pointer group",
                             isActive
                               ? "bg-amber-500/10 hover:bg-amber-500/15"
                               : "hover:bg-white/5"
                           )}
+                          onClick={() => {
+                            if (!isActive) {
+                              setDiameter(row.diameter);
+                              setQuantity(String(row.quantity));
+                            }
+                          }}
                         >
                           <TableCell className="font-black text-white">
                             <div className="flex items-center gap-2">
@@ -487,7 +497,11 @@ export function RebarCalculator() {
                                 <Badge className="rounded-full bg-amber-500 hover:bg-amber-600 px-2 py-0.5 text-[9px] font-black text-slate-950">
                                   SEÇİLİ
                                 </Badge>
-                              ) : null}
+                              ) : (
+                                <Badge className="rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 group-hover:text-amber-400 group-hover:border-amber-500/20 px-2 py-0.5 text-[9px] border border-white/5 transition-colors opacity-60 group-hover:opacity-100">
+                                  SEÇ
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="font-mono tabular-nums text-slate-400">{formatNumber(row.barArea)} mm<sup>2</sup></TableCell>
