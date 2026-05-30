@@ -216,8 +216,8 @@ export function RebarCalculator() {
                   </Select>
                   <p className="mt-3 text-[11px] text-slate-500">
                     Tek çubuk alanı:{" "}
-                    <span className="font-mono font-bold text-amber-400">
-                      {formatNumber(calculateBarArea(diameter))} mm²
+                    <span className="font-mono font-bold text-amber-400 font-sans">
+                      {formatNumber(calculateBarArea(diameter))} mm<sup>2</sup>
                     </span>
                   </p>
                 </div>
@@ -403,9 +403,9 @@ export function RebarCalculator() {
                         <span className="font-mono text-5xl font-black text-white tracking-tight tabular-nums">
                           {formatNumber(result.totalArea)}
                         </span>
-                        <span className="text-base font-bold text-slate-400">mm²</span>
+                        <span className="text-base font-bold text-slate-400">mm<sup>2</sup></span>
                         <span className="text-sm font-bold text-amber-400 bg-amber-500/5 px-2 py-0.5 border border-amber-500/10 rounded ml-2">
-                          {formatNumber(result.totalArea / 100)} cm²
+                          {formatNumber(result.totalArea / 100)} cm<sup>2</sup>
                         </span>
                       </div>
                       <p className="text-[11px] font-mono text-slate-400 bg-white/5 p-2.5 rounded mt-3 leading-relaxed">
@@ -490,11 +490,11 @@ export function RebarCalculator() {
                               ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono tabular-nums text-slate-400">{formatNumber(row.barArea)} mm²</TableCell>
+                          <TableCell className="font-mono tabular-nums text-slate-400">{formatNumber(row.barArea)} mm<sup>2</sup></TableCell>
                           <TableCell className="font-mono font-bold text-white tabular-nums">{row.quantity} adet</TableCell>
-                          <TableCell className="font-mono font-bold text-amber-400 tabular-nums">{formatNumber(row.providedArea)} mm²</TableCell>
+                          <TableCell className="font-mono font-bold text-amber-400 tabular-nums">{formatNumber(row.providedArea)} mm<sup>2</sup></TableCell>
                           <TableCell className="text-right font-mono font-semibold text-emerald-400 tabular-nums">
-                            +{formatNumber(row.surplusArea)} mm²
+                            +{formatNumber(row.surplusArea)} mm<sup>2</sup>
                           </TableCell>
                         </TableRow>
                       );
