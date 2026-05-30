@@ -112,17 +112,19 @@ export function HomeHeroSection({
               </Button>
             </div>
 
-            {/* Proof tiles */}
-            <div className="mt-10 grid gap-3 sm:grid-cols-3">
-              <div className="home-proof-tile group">
+            {/* Proof tiles — flex wrap for both mobile and desktop */}
+            <div className="mt-10 flex flex-wrap gap-3">
+              <div className="home-proof-tile group flex-1 min-w-[9rem]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                   <ScrollText className="h-3.5 w-3.5 text-cyan-400" />
                   Teknik kayıt
                 </div>
-                <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">{articleCount}<span className="text-amber-400">+</span></div>
+                <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">
+                  {articleCount}<span className="text-amber-400">+</span>
+                </div>
                 <p className="mt-1 text-[11px] leading-5 text-slate-500">Makale, rehber ve mevzuat özeti.</p>
               </div>
-              <div className="home-proof-tile group">
+              <div className="home-proof-tile group flex-1 min-w-[9rem]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                   <HardHat className="h-3.5 w-3.5 text-amber-400" />
                   Canlı araç
@@ -130,7 +132,7 @@ export function HomeHeroSection({
                 <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">{toolCount}</div>
                 <p className="mt-1 text-[11px] leading-5 text-slate-500">Gerçek iş akışına dönük hesap araçları.</p>
               </div>
-              <div className="home-proof-tile group">
+              <div className="home-proof-tile group flex-1 min-w-[9rem]">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
                   <Clock3 className="h-3.5 w-3.5 text-cyan-400" />
                   Saha fazı
