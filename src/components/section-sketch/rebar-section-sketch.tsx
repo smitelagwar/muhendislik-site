@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 import { archTick, getRowLayout } from "./sketch-utils";
 import type { RebarSketchProps } from "./sketch-types";
 
-const SVG_W = 320;
-const SVG_H = 190;
-const MARGIN_Y = 10;
-const concreteBottomY = 140;
+const SVG_W = 560;
+const SVG_H = 280;
+const MARGIN_Y = 18;
+const concreteBottomY = 200;
 
 export function RebarSectionSketch({
   diameterMm,
@@ -28,7 +28,7 @@ export function RebarSectionSketch({
     return (
       <div
         className={cn(
-          "flex min-h-[140px] items-center justify-center rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/20",
+          "flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/20",
           className,
         )}
       >
@@ -39,10 +39,10 @@ export function RebarSectionSketch({
 
   const { rowCount, firstRow, secondRow } = getRowLayout(quantity);
 
-  // Dinamik ölçek hesabı (px/mm)
-  const scaleIdeal = 280 / (widthCm * 10);
-  // Ölçeği sınırlandırarak çok dar kirişlerde aşırı büyümesini engelliyoruz (max 1.2)
-  const scale = Math.min(1.2, Math.max(0.2, scaleIdeal));
+  // Dinamik ölçek hesabı (px/mm) - SVG_W = 560 için kullanılabilir alanı 480px yapıyoruz
+  const scaleIdeal = 480 / (widthCm * 10);
+  // Ölçeği sınırlandırarak çok dar kirişlerde aşırı büyümesini engelliyoruz (max 2.0)
+  const scale = Math.min(2.0, Math.max(0.3, scaleIdeal));
 
   // Beton çizim sınırları (genişlik to-scale olarak ayarlanıyor ve ortalanıyor)
   const concreteW_px = widthCm * 10 * scale;
@@ -55,7 +55,7 @@ export function RebarSectionSketch({
   const stirrupBottomY = concreteBottomY - coverMm * scale;
 
   // Çubuk piksel yarıçapı
-  const barR = Math.max(3, (diameterMm / 2) * scale);
+  const barR = Math.max(4, (diameterMm / 2) * scale);
 
   // Boyuna donatıların yerleşeceği yatay sınırlar
   const x_start = stirrupLeftX + (stirrupDiameterMm + diameterMm / 2) * scale;
@@ -125,54 +125,54 @@ export function RebarSectionSketch({
       ? "Sığmıyor!"
       : `${calculatedSpacing.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} mm`;
 
-  const stirrupStrokeWidth = Math.max(1.5, Math.min(3.5, stirrupDiameterMm * scale));
+  const stirrupStrokeWidth = Math.max(1.8, Math.min(4, stirrupDiameterMm * scale));
 
   return (
-    <div className={cn("w-full select-none bg-slate-950/60 dark:bg-black/40 rounded-xl p-4 border border-slate-200 dark:border-white/5", className)}>
-      <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Enkesit Detay Görünümü
+    <div className={cn("w-full select-none bg-slate-950 dark:bg-black/60 rounded-2xl p-6 border border-slate-200 dark:border-white/5 shadow-inner", className)}>
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+        <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-400">
+          Enkesit Detay Görünümü (CAD Önceleme)
         </span>
         <span
           className={cn(
-            "rounded px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider",
+            "rounded px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider",
             isSpacingViolated
-              ? "bg-red-500/10 text-red-400 border border-red-500/20"
-              : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+              ? "bg-red-500/20 text-red-400 border border-red-500/30"
+              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
           )}
         >
           {isSpacingViolated ? "TS 500 Aralık İhlali" : "Aralık Güvenli"}
         </span>
       </div>
 
-      <div className="flex justify-center py-2">
+      <div className="flex justify-center py-4 bg-slate-950/40 rounded-xl border border-white/5 p-2">
         <svg
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           width="100%"
-          className="max-w-[280px] sm:max-w-[320px]"
+          className="w-full"
           aria-label="Donatı düzeni krokisi"
           role="img"
           style={{ overflow: "visible" }}
         >
           <defs>
-            <pattern id="concrete-hatch-rebar" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="0.75" fill="#71717a" opacity="0.3" />
-              <circle cx="10" cy="12" r="1" fill="#71717a" opacity="0.3" />
-              <polygon points="12,4 13,6 11,6" fill="#71717a" opacity="0.2" />
-              <polygon points="5,11 5.5,12 4,12.5" fill="#71717a" opacity="0.2" />
+            <pattern id="concrete-hatch-rebar-lg" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="3" cy="3" r="0.75" fill="#71717a" opacity="0.3" />
+              <circle cx="12" cy="14" r="1" fill="#71717a" opacity="0.3" />
+              <polygon points="15,5 16,7 14,7" fill="#71717a" opacity="0.2" />
+              <polygon points="6,13 6.5,14 5,14.5" fill="#71717a" opacity="0.2" />
             </pattern>
           </defs>
 
           {/* ── Çevresel Beton Sınırı (Kiriş Gövde Çizimi) ── */}
           <path
             d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
-            fill="#111827"
-            stroke="#374151"
-            strokeWidth={1.5}
+            fill="#0f172a"
+            stroke="#475569"
+            strokeWidth={2}
           />
           <path
             d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
-            fill="url(#concrete-hatch-rebar)"
+            fill="url(#concrete-hatch-rebar-lg)"
             style={{ pointerEvents: "none" }}
           />
 
@@ -182,26 +182,25 @@ export function RebarSectionSketch({
               cx={topRebarLeftX}
               cy={topRebarY}
               r={barR_top}
-              fill="#4b5563"
-              stroke="#374151"
+              fill="#64748b"
+              stroke="#475569"
               strokeWidth={1}
             />
             <circle
               cx={topRebarRightX}
               cy={topRebarY}
               r={barR_top}
-              fill="#4b5563"
-              stroke="#374151"
+              fill="#64748b"
+              stroke="#475569"
               strokeWidth={1}
             />
           </g>
 
           {/* ── Etriye Sınırı (Kapalı Kutu ve 135 Derece Kanca Detayı) ── */}
-          {/* Tek bir sürekli çizgide sol kanca ucundan başlayıp, sol kenar, alt kenar, sağ kenar ve sağ kanca ucu çizilir */}
           <path
-            d={`M ${stirrupLeftX + 16 * scale} ${topRebarY + 16 * scale} L ${stirrupLeftX} ${topRebarY} L ${stirrupLeftX} ${stirrupBottomY} L ${stirrupRightX} ${stirrupBottomY} L ${stirrupRightX} ${topRebarY} L ${stirrupRightX - 16 * scale} ${topRebarY + 16 * scale}`}
+            d={`M ${stirrupLeftX + 18 * scale} ${topRebarY + 18 * scale} L ${stirrupLeftX} ${topRebarY} L ${stirrupLeftX} ${stirrupBottomY} L ${stirrupRightX} ${stirrupBottomY} L ${stirrupRightX} ${topRebarY} L ${stirrupRightX - 18 * scale} ${topRebarY + 18 * scale}`}
             fill="none"
-            stroke={isSpacingViolated ? "#ef4444" : "#4b5563"}
+            stroke={isSpacingViolated ? "#ef4444" : "#64748b"}
             strokeWidth={stirrupStrokeWidth}
             opacity="0.95"
           />
@@ -212,31 +211,31 @@ export function RebarSectionSketch({
               <circle
                 cx={cx}
                 cy={rowY1}
-                r={barR + 1}
+                r={barR + 1.5}
                 fill="none"
                 stroke={isSpacingViolated ? "#ef4444" : "#f59e0b"}
-                strokeWidth={1}
-                opacity={0.3}
+                strokeWidth={1.5}
+                opacity={0.4}
               />
               <circle
                 cx={cx}
                 cy={rowY1}
                 r={barR}
                 fill={isSpacingViolated ? "#ef4444" : "#f59e0b"}
-                stroke={isSpacingViolated ? "#991b1b" : "#b45309"}
-                strokeWidth={1.5}
+                stroke={isSpacingViolated ? "#b91c1c" : "#d97706"}
+                strokeWidth={2}
                 style={{ transition: "all 0.3s ease" }}
               />
               {/* Çap etiketi (ilk ve son çubuğa) */}
               {(i === 0 || i === firstRow - 1) && (
                 <text
                   x={cx}
-                  y={rowY1 - barR - 4}
-                  fontSize={8}
+                  y={rowY1 - barR - 7}
+                  fontSize={13}
                   fill={isSpacingViolated ? "#f87171" : "#f59e0b"}
                   fontFamily="monospace"
                   textAnchor="middle"
-                  fontWeight="bold"
+                  fontWeight="black"
                 >
                   Ø{diameterMm}
                 </text>
@@ -250,30 +249,30 @@ export function RebarSectionSketch({
               <circle
                 cx={cx}
                 cy={rowY2}
-                r={barR + 1}
+                r={barR + 1.5}
                 fill="none"
                 stroke={isSpacingViolated ? "#ef4444" : "#d97706"}
-                strokeWidth={1}
-                opacity={0.2}
+                strokeWidth={1.5}
+                opacity={0.3}
               />
               <circle
                 cx={cx}
                 cy={rowY2}
                 r={barR}
                 fill={isSpacingViolated ? "#f87171" : "#d97706"}
-                stroke={isSpacingViolated ? "#991b1b" : "#92400e"}
-                strokeWidth={1.5}
+                stroke={isSpacingViolated ? "#991b1b" : "#b45309"}
+                strokeWidth={2}
                 style={{ transition: "all 0.3s ease" }}
               />
               {(i === 0 || i === secondRow - 1) && (
                 <text
                   x={cx}
-                  y={rowY2 - barR - 4}
-                  fontSize={8}
+                  y={rowY2 - barR - 7}
+                  fontSize={13}
                   fill={isSpacingViolated ? "#f87171" : "#d97706"}
                   fontFamily="monospace"
                   textAnchor="middle"
-                  fontWeight="bold"
+                  fontWeight="black"
                 >
                   Ø{diameterMm}
                 </text>
@@ -286,26 +285,26 @@ export function RebarSectionSketch({
             <g>
               <line
                 x1={row1Pos[0] + barR}
-                y1={rowY1 + barR + 12}
+                y1={rowY1 + barR + 14}
                 x2={row1Pos[1] - barR}
-                y2={rowY1 + barR + 12}
-                stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
-                strokeWidth={1}
-              />
-              <path
-                d={archTick({ x: row1Pos[0] + barR, y: rowY1 + barR + 12 }, "horizontal", 5)}
+                y2={rowY1 + barR + 14}
                 stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
                 strokeWidth={1.2}
               />
               <path
-                d={archTick({ x: row1Pos[1] - barR, y: rowY1 + barR + 12 }, "horizontal", 5)}
+                d={archTick({ x: row1Pos[0] + barR, y: rowY1 + barR + 14 }, "horizontal", 6)}
                 stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
-                strokeWidth={1.2}
+                strokeWidth={1.5}
+              />
+              <path
+                d={archTick({ x: row1Pos[1] - barR, y: rowY1 + barR + 14 }, "horizontal", 6)}
+                stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
+                strokeWidth={1.5}
               />
               <text
                 x={(row1Pos[0] + row1Pos[1]) / 2}
-                y={rowY1 + barR + 22}
-                fontSize={8.5}
+                y={rowY1 + barR + 30}
+                fontSize={13}
                 fill={isSpacingViolated ? "#f87171" : "#38bdf8"}
                 fontFamily="monospace"
                 fontWeight="black"
@@ -320,45 +319,45 @@ export function RebarSectionSketch({
           <g>
             <line
               x1={concreteLeftX}
-              y1={concreteBottomY + 24}
+              y1={concreteBottomY + 28}
               x2={concreteRightX}
-              y2={concreteBottomY + 24}
+              y2={concreteBottomY + 28}
               stroke="#475569"
-              strokeWidth={1}
+              strokeWidth={1.2}
             />
             <line
               x1={concreteLeftX}
               y1={concreteBottomY + 4}
               x2={concreteLeftX}
-              y2={concreteBottomY + 28}
+              y2={concreteBottomY + 34}
               stroke="#475569"
-              strokeWidth={1}
+              strokeWidth={1.2}
             />
             <line
               x1={concreteRightX}
               y1={concreteBottomY + 4}
               x2={concreteRightX}
-              y2={concreteBottomY + 28}
+              y2={concreteBottomY + 34}
               stroke="#475569"
-              strokeWidth={1}
-            />
-            <path
-              d={archTick({ x: concreteLeftX, y: concreteBottomY + 24 }, "horizontal", 6)}
-              stroke="#94a3b8"
               strokeWidth={1.2}
             />
             <path
-              d={archTick({ x: concreteRightX, y: concreteBottomY + 24 }, "horizontal", 6)}
+              d={archTick({ x: concreteLeftX, y: concreteBottomY + 28 }, "horizontal", 8)}
               stroke="#94a3b8"
-              strokeWidth={1.2}
+              strokeWidth={1.5}
+            />
+            <path
+              d={archTick({ x: concreteRightX, y: concreteBottomY + 28 }, "horizontal", 8)}
+              stroke="#94a3b8"
+              strokeWidth={1.5}
             />
             <text
               x={SVG_W / 2}
-              y={concreteBottomY + 36}
-              fontSize={9}
-              fill="#e2e8f0"
+              y={concreteBottomY + 50}
+              fontSize={14}
+              fill="#f1f5f9"
               fontFamily="monospace"
-              fontWeight="bold"
+              fontWeight="black"
               textAnchor="middle"
             >
               b = {widthCm * 10} mm
@@ -376,21 +375,22 @@ export function RebarSectionSketch({
               strokeWidth={1}
             />
             <path
-              d={archTick({ x: concreteLeftX, y: concreteBottomY - 14 }, "horizontal", 5)}
+              d={archTick({ x: concreteLeftX, y: concreteBottomY - 14 }, "horizontal", 6)}
               stroke="#94a3b8"
-              strokeWidth={1.2}
+              strokeWidth={1.5}
             />
             <path
-              d={archTick({ x: stirrupLeftX, y: concreteBottomY - 14 }, "horizontal", 5)}
+              d={archTick({ x: stirrupLeftX, y: concreteBottomY - 14 }, "horizontal", 6)}
               stroke="#94a3b8"
-              strokeWidth={1.2}
+              strokeWidth={1.5}
             />
             <text
               x={(concreteLeftX + stirrupLeftX) / 2}
-              y={concreteBottomY - 19}
-              fontSize={8}
-              fill="#a3a3a3"
+              y={concreteBottomY - 22}
+              fontSize={12}
+              fill="#94a3b8"
               fontFamily="monospace"
+              fontWeight="bold"
               textAnchor="middle"
             >
               {coverMm}
@@ -400,34 +400,34 @@ export function RebarSectionSketch({
           {/* ── Başlık Yazısı ── */}
           <text
             x={SVG_W / 2}
-            y={MARGIN_Y + 4}
-            fontSize={9.5}
-            fill="#cbd5e1"
+            y={MARGIN_Y + 2}
+            fontSize={14}
+            fill="#f1f5f9"
             fontFamily="monospace"
             textAnchor="middle"
             fontWeight="black"
           >
-            {quantity}Ø{diameterMm} — {rowCount === 1 ? "Tek Sıra" : "Çift Sıra"} Boyuna Donatı
+            {quantity}Ø{diameterMm} — {rowCount === 1 ? "Tek Sıra" : "Çift Sıra"} Yerleşim
           </text>
         </svg>
       </div>
 
       {/* ── Teknik Dipnot ve TS 500 Bilgi Çubuğu ── */}
-      <div className="mt-3 pt-2.5 border-t border-white/5 space-y-1 font-mono text-[9px] text-slate-400">
+      <div className="mt-4 pt-3.5 border-t border-white/10 space-y-2 font-mono text-[10px] text-slate-300">
         <div className="flex justify-between items-center">
           <span>Pas Payı (Beton Örtüsü):</span>
-          <span className="font-bold text-slate-200">{coverMm} mm</span>
+          <span className="font-bold text-white">{coverMm} mm</span>
         </div>
         <div className="flex justify-between items-center">
           <span>TS 500 Min. Net Aralık Limiti:</span>
           <span className="font-bold text-amber-400">≥ {minSpacingMm.toFixed(1)} mm</span>
         </div>
         {hasSpacingVal && (
-          <div className="flex justify-between items-center border-t border-white/5 pt-1.5 mt-1 text-[10px]">
-            <span>Mevcut Net Aralık:</span>
+          <div className="flex justify-between items-center border-t border-white/10 pt-2 mt-2 text-xs">
+            <span>Mevcut Net Aralık (s):</span>
             <span
               className={cn(
-                "font-black",
+                "font-black tracking-wide",
                 isSpacingViolated ? "text-red-400 animate-pulse" : "text-cyan-400"
               )}
             >
