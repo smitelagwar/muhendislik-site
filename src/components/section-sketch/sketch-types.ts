@@ -32,12 +32,19 @@ export interface ColumnSketchProps {
   className?: string;
 }
 
-/** Donatı düzeni krokisi için girdi parametreleri */
 export interface RebarSketchProps {
   /** Donatı çapı [mm] */
   diameterMm: number;
   /** Çubuk adedi */
   quantity: number;
+  /** Kiriş/eleman genişliği [cm] */
+  widthCm?: number;
+  /** Net beton örtüsü [mm] */
+  coverMm?: number;
+  /** Etriye çapı [mm] */
+  stirrupDiameterMm?: number;
+  /** Net aralık ihlali var mı? */
+  isSpacingViolated?: boolean;
   /** Ek CSS sınıfı */
   className?: string;
 }
