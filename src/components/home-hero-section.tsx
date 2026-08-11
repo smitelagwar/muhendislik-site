@@ -1,174 +1,192 @@
 "use client";
 
+import type { PointerEvent as ReactPointerEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ChevronDown, Clock3, HardHat, ScrollText } from "lucide-react";
-import { TypingEffect } from "@/components/typing-effect";
-import type { HomeArticle } from "@/components/home-types";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { ToolDefinition } from "@/lib/tools-data";
-import { HomeQuickConsole } from "@/components/home-quick-console";
+import { ArrowRight, BookOpenText, Calculator, GitBranch, Wrench } from "lucide-react";
+import { HomeSearchTrigger } from "@/components/home-search-trigger";
 
-interface HomeHeroSectionProps {
-  heroArticle: HomeArticle;
-  secondaryArticle: HomeArticle;
-  featuredTool: ToolDefinition;
-  articleCount: number;
-  toolCount: number;
-  phaseCount: number;
+const START_ROUTES = [
+  {
+    label: "Hesaplamalar",
+    description: "Maliyet, metraj ve temel",
+    href: "/hesaplamalar",
+    icon: Calculator,
+  },
+  {
+    label: "Yapısal araçlar",
+    description: "Betonarme ve deprem",
+    href: "/kategori/araclar",
+    icon: Wrench,
+  },
+  {
+    label: "Teknik içerikler",
+    description: "Rehber ve yönetmelikler",
+    href: "/konu-haritasi",
+    icon: BookOpenText,
+  },
+  {
+    label: "Bina aşamaları",
+    description: "Projeden teslime süreç",
+    href: "/kategori/bina-asamalari",
+    icon: GitBranch,
+  },
+] as const;
+
+const ROUTE_ICON_MOTIONS = [
+  "group-hover:rotate-6 group-hover:scale-110 group-focus-visible:rotate-6 group-focus-visible:scale-110",
+  "group-hover:-rotate-12 group-focus-visible:-rotate-12",
+  "group-hover:-translate-y-0.5 group-hover:scale-110 group-focus-visible:-translate-y-0.5 group-focus-visible:scale-110",
+  "group-hover:scale-110 group-focus-visible:scale-110",
+] as const;
+
+function supportsHeroPointerEffect(event: ReactPointerEvent<HTMLElement>) {
+  return (
+    event.pointerType === "mouse" &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
 }
 
-const HERO_WORDS = [
-  "Betonarme ön boyutlandırma",
-  "Deprem ve mevzuat kararları",
-  "Şantiye kontrol akışları",
-  "Bina aşamaları yol haritası",
-];
+function handleHeroPointerMove(event: ReactPointerEvent<HTMLElement>) {
+  if (!supportsHeroPointerEffect(event)) return;
 
-export function HomeHeroSection({
-  heroArticle,
-  secondaryArticle,
-  featuredTool,
-  articleCount,
-  toolCount,
-  phaseCount,
-}: HomeHeroSectionProps) {
+  const hero = event.currentTarget;
+  const bounds = hero.getBoundingClientRect();
+  hero.style.setProperty("--hero-pointer-x", `${event.clientX - bounds.left}px`);
+  hero.style.setProperty("--hero-pointer-y", `${event.clientY - bounds.top}px`);
+}
+
+function handleHeroPointerLeave(event: ReactPointerEvent<HTMLElement>) {
+  event.currentTarget.style.removeProperty("--hero-pointer-x");
+  event.currentTarget.style.removeProperty("--hero-pointer-y");
+}
+
+interface HomeHeroSectionProps {
+  calculationCount: number;
+  toolCount: number;
+}
+
+export function HomeHeroSection({ calculationCount, toolCount }: HomeHeroSectionProps) {
   const reducedMotion = useReducedMotion();
-
   const reveal = reducedMotion
     ? {}
     : {
-        initial: { opacity: 0, y: 28 },
+        initial: { opacity: 0, y: 22 },
         animate: { opacity: 1, y: 0 },
       };
 
   return (
-    <section className="relative isolate overflow-hidden border-b border-slate-200 dark:border-white/10">
-      <Image
-        src="/blog-images/structural_frame_3d_1774081447633.png"
-        alt="Betonarme taşıyıcı sistem görselleştirmesi"
-        fill
-        priority
-        className="object-cover object-center opacity-[0.18]"
-        sizes="100vw"
-      />
-      {/* Ana karartma gradyanı */}
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(6,8,13,0.97)_0%,rgba(6,8,13,0.85)_48%,rgba(6,8,13,0.93)_100%)]" />
-      {/* Blueprint grid arka planı */}
-      <div className="home-grid-backdrop absolute inset-0 opacity-70" />
-      {/* Alt karartma */}
-      <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#06080d] to-transparent" />
-      {/* Üst köşe ambient ışıma — amber */}
-      <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-      {/* Sağ köşe ambient ışıma — cyan */}
-      <div className="absolute -top-20 right-0 h-80 w-80 rounded-full bg-cyan-500/8 blur-3xl pointer-events-none" />
-
-      <div className="relative mx-auto flex min-h-[calc(100vh-4.5rem)] max-w-screen-2xl flex-col justify-between px-4 pb-10 pt-10 sm:px-6 lg:px-16 lg:pb-14 lg:pt-16">
-        <div className="grid gap-10 lg:gap-16 lg:grid-cols-[minmax(0,1.15fr)_26rem] lg:items-center">
+    <section
+      data-testid="home-hero"
+      aria-labelledby="home-hero-title"
+      onPointerMove={handleHeroPointerMove}
+      onPointerLeave={handleHeroPointerLeave}
+      className="home-hero-interactive group/home-hero relative isolate border-b border-[var(--home-border)]"
+    >
+      <div className="home-hero-grid pointer-events-none absolute inset-0" aria-hidden />
+      <div className="home-hero-pointer-layer pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative mx-auto max-w-[1440px] px-5 pb-8 pt-12 sm:px-8 sm:pt-16 lg:px-12 lg:pb-10 lg:pt-20 xl:px-16">
+        <div className="grid items-center gap-10 lg:min-h-[570px] lg:grid-cols-12 lg:gap-4">
           <motion.div
             {...reveal}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-4xl"
+            transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 lg:col-span-6 xl:col-span-5"
           >
-            {/* Etiket şeridi */}
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="home-kicker">Dijital blueprint</span>
-              <span className="home-chip">TS 500 • TBDY 2018 • TS EN 1992-1-1 • TS EN 206</span>
-            </div>
-
-            {/* Ana başlık */}
-            <h1 className="mt-7 max-w-5xl text-[2.6rem] font-black leading-[0.94] text-white sm:text-6xl lg:text-[5rem] tracking-tight">
-              Mühendislik kararlarını
-              <span className="home-gradient-text block mt-1">hızlandıran çalışma yüzeyi</span>
+            <span className="home-kicker">Mühendis ve mimarlar için teknik çalışma alanı</span>
+            <h1
+              id="home-hero-title"
+              className="mt-6 max-w-3xl text-[clamp(2.8rem,7vw,5.8rem)] font-black leading-[0.92] tracking-[-0.055em] text-[var(--home-fg)]"
+            >
+              Hesapla.
+              <span className="block text-[var(--home-accent)]">Öğren.</span>
+              <span className="block">Sahada ilerle.</span>
             </h1>
 
-            <p className="mt-7 max-w-2xl text-sm leading-[1.85] text-slate-400 sm:text-base">
-              Şantiye notları, betonarme araçları, deprem referansları ve bina aşamalarını tek akışta
-              birleştiren premium ana yüzey. Hızlı açılır, mobilde net okunur, karar vermeyi yavaşlatmaz.
+            <p className="mt-7 max-w-xl text-base leading-8 text-[var(--home-muted)] sm:text-lg">
+              Yapısal araçlar, maliyet ve metraj hesapları, yönetmelik rehberleri ve bina yapım aşamaları tek
+              çalışma alanında.
             </p>
 
-            {/* Typing efekti — odak çizgisi */}
-            <div className="mt-6 flex min-h-10 items-center gap-3 border-l-2 border-amber-400/50 pl-4 text-sm font-medium text-slate-200 sm:text-base">
-              <span className="text-slate-500">Odak:</span>
-              <TypingEffect
-                words={HERO_WORDS}
-                className="font-mono text-amber-300"
-                cursorClassName="bg-amber-300"
-              />
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/hesaplamalar" className="home-button-primary justify-center sm:justify-start">
+                Hesaplamalara git
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+              <Link href="/kategori/araclar" className="home-button-secondary justify-center sm:justify-start">
+                Yapısal araçları aç
+              </Link>
             </div>
 
-            {/* CTA Butonları */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="home-button-primary text-sm font-bold">
-                <Link href="/kategori/araclar">
-                  Araçları keşfet
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="home-button-secondary text-sm">
-                <Link href="/konu-haritasi">İçerik akışını aç</Link>
-              </Button>
-            </div>
+            <HomeSearchTrigger className="home-search-trigger mt-4 w-full max-w-xl" />
 
-            {/* Proof tiles — flex wrap for both mobile and desktop */}
-            <div className="mt-10 flex flex-wrap gap-3">
-              <div className="home-proof-tile group flex-1 min-w-[9rem]">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                  <ScrollText className="h-3.5 w-3.5 text-cyan-400" />
-                  Teknik kayıt
-                </div>
-                <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">
-                  {articleCount}<span className="text-amber-400">+</span>
-                </div>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500">Makale, rehber ve mevzuat özeti.</p>
-              </div>
-              <div className="home-proof-tile group flex-1 min-w-[9rem]">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                  <HardHat className="h-3.5 w-3.5 text-amber-400" />
-                  Canlı araç
-                </div>
-                <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">{toolCount}</div>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500">Gerçek iş akışına dönük hesap araçları.</p>
-              </div>
-              <div className="home-proof-tile group flex-1 min-w-[9rem]">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                  <Clock3 className="h-3.5 w-3.5 text-cyan-400" />
-                  Saha fazı
-                </div>
-                <div className="mt-3 font-mono text-3xl font-black text-white tracking-tight">{phaseCount}</div>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500">Projeden teslime uzanan ana fazlar.</p>
-              </div>
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--home-muted)]">
+              <span>{calculationCount} aktif hesaplama</span>
+              <span className="h-1 w-1 rounded-full bg-[var(--home-accent)]" aria-hidden />
+              <span>{toolCount} mühendislik aracı</span>
+              <span className="h-1 w-1 rounded-full bg-[var(--home-info)]" aria-hidden />
+              <span>TS 500 · TBDY 2018</span>
             </div>
           </motion.div>
 
-          {/* Sağ Panel — Quick Console */}
           <motion.div
-            {...reveal}
-            transition={{ duration: 0.7, delay: reducedMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full"
+            initial={reducedMotion ? undefined : { opacity: 0, x: 28, scale: 0.985 }}
+            animate={reducedMotion ? undefined : { opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.62, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            className="relative lg:col-span-6 lg:-mr-12 xl:col-span-7 xl:-mr-16"
           >
-            <HomeQuickConsole featuredArticle={heroArticle} />
+            <div className="home-hero-visual relative aspect-[3/2] overflow-hidden rounded-xl border border-[var(--home-border)]">
+              <Image
+                src="/home/hero-structure-light.webp"
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="object-cover dark:hidden"
+                aria-hidden
+              />
+              <Image
+                src="/home/hero-structure-dark.webp"
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="hidden object-cover dark:block"
+                aria-hidden
+              />
+              <div className="home-hero-visual-shade absolute inset-0" aria-hidden />
+              <div className="absolute right-4 top-4 hidden items-center gap-2 border border-white/15 bg-black/55 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white backdrop-blur-md sm:flex">
+                <span className="h-2 w-2 bg-amber-400" aria-hidden />
+                Betonarme sistem / 01
+              </div>
+              <div className="absolute bottom-4 left-4 hidden border-l-2 border-blue-400 bg-black/60 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-slate-100 backdrop-blur-md sm:block">
+                Taşıyıcı sistem → uygulama
+              </div>
+            </div>
           </motion.div>
         </div>
 
-        {/* Aşağı kaydırma göstergesi */}
-        <motion.div
-          {...reveal}
-          transition={{ duration: 0.7, delay: reducedMotion ? 0 : 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-12 flex justify-center lg:justify-start"
-        >
-          <Link
-            href="#home-tools"
-            className="inline-flex items-center gap-3 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-200"
-          >
-            <span>Araç yüzeyine in</span>
-            <span className="home-scroll-indicator inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
-              <ChevronDown className="h-4 w-4" />
-            </span>
-          </Link>
-        </motion.div>
+        <nav aria-label="Anasayfa başlangıç rotaları" className="mt-8 grid gap-px overflow-hidden rounded-lg border border-[var(--home-border)] bg-[var(--home-border)] sm:grid-cols-2 lg:grid-cols-4">
+          {START_ROUTES.map((route, index) => (
+            <Link
+              key={route.href}
+              href={route.href}
+              className="group flex min-h-24 items-center gap-4 bg-[var(--home-surface)] px-5 py-4 transition-colors duration-200 hover:bg-[var(--home-surface-raised)] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--home-border)] text-[var(--home-accent)]">
+                <route.icon
+                  className={`home-route-icon h-5 w-5 transition-transform duration-200 ${ROUTE_ICON_MOTIONS[index]}`}
+                  aria-hidden
+                />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-[var(--home-fg)]">{route.label}</span>
+                <span className="mt-1 block text-xs text-[var(--home-muted)]">{route.description}</span>
+              </span>
+              <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-[var(--home-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--home-accent)]" aria-hidden />
+            </Link>
+          ))}
+        </nav>
       </div>
     </section>
   );

@@ -45,7 +45,7 @@ interface ArticleClientProps {
 type ParsedSection = ArticleData["sections"][number] & { blocks: ParsedBlock[] };
 
 const ARTICLE_PROSE_CLASS =
-  "prose prose-zinc max-w-none dark:prose-invert prose-headings:font-black prose-headings:tracking-tight prose-h2:mt-16 prose-h2:border-b-2 prose-h2:border-zinc-100 prose-h2:pb-4 prose-h2:text-3xl dark:prose-h2:border-zinc-800 prose-h3:mt-10 prose-h3:text-2xl prose-p:mb-8 prose-p:max-w-[72ch] prose-p:text-[1.02em] prose-p:leading-[1.72] prose-li:leading-[1.72] prose-li:marker:text-teal-600 prose-a:font-bold prose-a:text-teal-700 prose-a:no-underline hover:prose-a:underline dark:prose-a:text-teal-400 prose-strong:font-black prose-strong:text-zinc-900 dark:prose-strong:text-zinc-50";
+  "prose prose-zinc max-w-none dark:prose-invert prose-headings:font-black prose-headings:tracking-tight prose-h2:mt-16 prose-h2:border-b prose-h2:border-border prose-h2:pb-4 prose-h2:text-3xl prose-h3:mt-10 prose-h3:text-2xl prose-p:mb-8 prose-p:max-w-[72ch] prose-p:text-[1.02em] prose-p:leading-[1.72] prose-li:leading-[1.72] prose-li:marker:text-amber-600 prose-a:font-bold prose-a:text-blue-700 prose-a:no-underline hover:prose-a:underline dark:prose-a:text-blue-300 prose-strong:font-black prose-strong:text-foreground";
 
 const DEFERRED_SECTION_STYLE = {
   contentVisibility: "auto" as const,
@@ -63,7 +63,7 @@ function escapeHtml(text: string) {
 
 function renderInlineMarkdown(text: string) {
   const safe = escapeHtml(text)
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="font-bold text-teal-700 underline-offset-4 hover:underline dark:text-teal-400">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="font-bold text-blue-700 underline-offset-4 hover:underline dark:text-blue-300">$1</a>')
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.*?)\*/g, "<em>$1</em>")
@@ -100,17 +100,17 @@ function CalloutBox({ content, tone }: { content: string; tone: string }) {
   const isWarning = /(uyari|warning|important)/i.test(tone);
   const isTip = /(ipucu|tip)/i.test(tone);
   const icon = isWarning ? (
-    <AlertCircle className="h-5 w-5 flex-shrink-0 text-teal-500" />
+    <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
   ) : isTip ? (
-    <Lightbulb className="h-5 w-5 flex-shrink-0 text-purple-500" />
+    <Lightbulb className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-300" />
   ) : (
-    <Info className="h-5 w-5 flex-shrink-0 text-teal-600 dark:text-teal-300" />
+    <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-300" />
   );
   const classes = isWarning
-    ? "border-teal-500 bg-teal-50/70 text-teal-950 dark:bg-teal-950/20 dark:text-teal-100"
+    ? "border-amber-500 bg-amber-50/75 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
     : isTip
-      ? "border-purple-500 bg-purple-50/70 text-purple-950 dark:bg-purple-950/20 dark:text-purple-100"
-      : "border-teal-600 bg-teal-50/70 text-teal-950 dark:bg-teal-950/20 dark:text-teal-100";
+      ? "border-blue-500 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100"
+      : "border-blue-600 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100";
 
   return (
     <div className={`not-prose my-8 flex gap-4 rounded-r-2xl border-l-4 p-6 shadow-sm ${classes}`}>
@@ -195,15 +195,15 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
   const href = articleSlug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF;
   const title = articleSlug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm hesap araçlarını aç";
   return (
-    <div className="not-prose my-12 rounded-[28px] border border-teal-200/70 bg-gradient-to-br from-teal-50 via-white to-emerald-50 p-6 shadow-sm dark:border-teal-900/40 dark:from-teal-950/30 dark:via-zinc-950 dark:to-emerald-950/30 md:p-8">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-300">Araç kısayolu</p>
+    <div className="not-prose my-12 rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-50 via-white to-blue-50 p-6 shadow-sm dark:from-amber-950/20 dark:via-[#111111] dark:to-blue-950/20 md:p-8">
+      <p className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">Araç kısayolu</p>
       <h3 className="mt-3 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">{title}</h3>
       <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
         {articleSlug === "kalip-sokumu-rehberi"
           ? "Şantiye koşullarına göre tahmini bekleme süresini araç üzerinden hemen karşılaştırın."
           : "İhtiyacınız olan mühendislik aracına tek kategori üzerinden hızlıca geçin."}
       </p>
-      <Button asChild className="mt-6 h-12 rounded-full bg-teal-700 px-8 text-sm font-black text-white hover:bg-teal-800">
+      <Button asChild size="lg" className="mt-6 px-8">
         <Link href={href}>
           Aracı aç
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -228,13 +228,13 @@ function DepremSeriesToolCta({ article }: { article: ArticleData }) {
             : "İlgili aracı aç";
 
   return (
-    <div className="not-prose my-12 rounded-[28px] border border-teal-200/70 bg-gradient-to-br from-teal-50 via-white to-orange-50 p-6 shadow-sm dark:border-teal-900/40 dark:from-teal-950/20 dark:via-zinc-950 dark:to-orange-950/20 md:p-8">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600 dark:text-teal-300">İlgili araç önerisi</p>
+    <div className="not-prose my-12 rounded-xl border border-blue-500/25 bg-gradient-to-br from-blue-50 via-white to-amber-50 p-6 shadow-sm dark:from-blue-950/20 dark:via-[#111111] dark:to-amber-950/20 md:p-8">
+      <p className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">İlgili araç önerisi</p>
       <h3 className="mt-3 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">{series.label}</h3>
       <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
         Bu makale {series.label} serisine ait. Hızlı ön kontrol için {series.description.toLowerCase()} temelli araca geçin.
       </p>
-      <Button asChild className="mt-6 h-12 rounded-full bg-teal-500 px-8 text-sm font-black text-zinc-950 hover:bg-teal-400">
+      <Button asChild size="lg" className="mt-6 px-8">
         <Link href={href}>
           {label}
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -250,10 +250,10 @@ function InlineToc({ parsedSections }: { parsedSections: ParsedSection[] }) {
   }
 
   return (
-    <div className="mb-10 overflow-hidden rounded-[28px] border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="site-panel mb-10 overflow-hidden rounded-xl">
       <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
         <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
-          <BookOpen className="h-4 w-4 text-teal-700 dark:text-teal-400" />
+          <BookOpen className="h-4 w-4 text-amber-700 dark:text-amber-400" />
           İçindekiler
         </h2>
       </div>
@@ -262,9 +262,9 @@ function InlineToc({ parsedSections }: { parsedSections: ParsedSection[] }) {
           <a
             key={sectionItem.id}
             href={`#${sectionItem.id}`}
-            className="group flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm font-bold text-zinc-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/20 dark:hover:text-teal-300"
+            className="group flex items-start gap-3 rounded-md border border-border bg-card px-4 py-4 text-sm font-bold text-foreground transition-colors hover:border-blue-500/35 hover:bg-accent hover:text-blue-700 dark:hover:text-blue-300"
           >
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-black text-zinc-500 transition group-hover:bg-teal-100 group-hover:text-teal-700 dark:bg-zinc-900 dark:text-zinc-400 dark:group-hover:bg-teal-950/50 dark:group-hover:text-teal-300">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded bg-secondary font-mono text-[10px] font-black text-muted-foreground transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-700 dark:group-hover:text-blue-300">
               {index + 1}
             </span>
             <span className="leading-6">{sectionItem.title}</span>
@@ -316,7 +316,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
               }
               if (block.type === "image") {
                 return (
-                  <figure key={`${sectionItem.id}-${blockIndex}`} className="not-prose my-10 overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <figure key={`${sectionItem.id}-${blockIndex}`} className="not-prose site-panel my-10 overflow-hidden rounded-xl">
                     <div className="relative aspect-[16/9]">
                       <Image src={block.src} alt={block.alt || article.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
                     </div>
@@ -326,7 +326,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
               }
               if (block.type === "quote") {
                 return (
-                  <blockquote key={`${sectionItem.id}-${blockIndex}`} className="border-l-4 border-teal-600 bg-teal-50/40 px-6 py-4 italic dark:bg-teal-950/10">
+                  <blockquote key={`${sectionItem.id}-${blockIndex}`} className="border-l-4 border-blue-600 bg-blue-50/60 px-6 py-4 italic dark:bg-blue-950/15">
                     <div dangerouslySetInnerHTML={renderInlineMarkdown(block.content)} />
                   </blockquote>
                 );
@@ -335,9 +335,9 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
               return <p key={`${sectionItem.id}-${blockIndex}`} dangerouslySetInnerHTML={renderInlineMarkdown(block.content)} />;
             })}
             {sectionIndex === 0 && article.quote ? (
-              <div className="not-prose relative my-12 overflow-hidden rounded-r-3xl border-l-8 border-teal-600 bg-teal-50/60 p-8 shadow-sm dark:bg-teal-950/20 sm:p-10">
-                <Quote className="absolute right-4 top-4 -z-10 h-20 w-20 rotate-12 text-teal-100 dark:text-teal-900/20" />
-                <p className="m-0 text-xl font-extrabold italic leading-relaxed text-teal-900 dark:text-teal-100 sm:text-2xl">&ldquo;{article.quote.text}&rdquo;</p>
+              <div className="not-prose relative my-12 overflow-hidden rounded-r-xl border-l-8 border-amber-500 bg-amber-50/70 p-8 shadow-sm dark:bg-amber-950/20 sm:p-10">
+                <Quote className="absolute right-4 top-4 -z-10 h-20 w-20 rotate-12 text-amber-100 dark:text-amber-900/20" />
+                <p className="m-0 text-xl font-extrabold italic leading-relaxed text-amber-950 dark:text-amber-100 sm:text-2xl">&ldquo;{article.quote.text}&rdquo;</p>
               </div>
             ) : null}
             {!hideToolPromos && sectionIndex === 1 ? (
@@ -374,8 +374,8 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
           </div>
         )}
 
-        <div className="not-prose mb-20 flex flex-col items-start gap-6 rounded-3xl border border-zinc-200 bg-zinc-50 p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-xl shadow-teal-500/20 dark:bg-teal-600">
+          <div className="not-prose site-panel mb-20 flex flex-col items-start gap-6 rounded-xl p-8 sm:flex-row">
+          <div className="flex h-20 w-20 items-center justify-center rounded-md border border-amber-500/35 bg-amber-500/12 text-amber-800 dark:text-amber-300">
             <span className="text-2xl font-black">{article.author.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
           </div>
           <div className="flex-1">
@@ -387,9 +387,9 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
 
 
         {article.references && article.references.length > 0 ? (
-          <div className="not-prose mb-16 rounded-3xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="not-prose site-panel mb-16 rounded-xl p-8">
             <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
-              <BookOpen className="h-4 w-4 text-teal-700 dark:text-teal-400" />
+              <BookOpen className="h-4 w-4 text-amber-700 dark:text-amber-400" />
               Kaynaklar / Yönetmelik Referansları
             </h3>
             <div className="space-y-3">
@@ -400,7 +400,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
                       href={reference.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-start justify-between gap-4 text-sm font-bold text-teal-700 hover:underline dark:text-teal-400"
+                      className="flex items-start justify-between gap-4 text-sm font-bold text-blue-700 hover:underline dark:text-blue-300"
                     >
                       <span>{reference.label}</span>
                       <ArrowRight className="mt-0.5 h-4 w-4 shrink-0" />
@@ -420,7 +420,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
             <h3 className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Sonraki okuma</h3>
             <Link
               href={`/${firstRelatedArticle.slug}`}
-              className="group block overflow-hidden rounded-3xl border border-teal-200/50 bg-gradient-to-br from-teal-50 to-emerald-50 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10 dark:border-teal-800/30 dark:from-teal-950/40 dark:to-emerald-950/40"
+              className="site-link-card group block overflow-hidden rounded-xl border border-blue-500/20 bg-gradient-to-br from-blue-50 to-amber-50 dark:from-blue-950/25 dark:to-amber-950/20"
             >
               <div className="flex flex-col sm:flex-row">
                 <div className="relative aspect-video w-full flex-shrink-0 overflow-hidden sm:h-auto sm:w-48 sm:aspect-auto">
@@ -430,11 +430,11 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
                   <Badge variant="outline" className={`${firstRelatedArticle.categoryColor} mb-2 w-fit border-none text-[9px] font-black uppercase`}>
                     {firstRelatedArticle.category}
                   </Badge>
-                  <h4 className="mb-2 text-lg font-black leading-snug text-zinc-900 transition-colors group-hover:text-teal-700 dark:text-zinc-100 dark:group-hover:text-teal-400">
+                  <h4 className="mb-2 text-lg font-black leading-snug text-foreground transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-300">
                     {firstRelatedArticle.title}
                   </h4>
                   <p className="line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">{firstRelatedArticle.description}</p>
-                  <div className="mt-4 flex items-center gap-2 text-sm font-bold text-teal-600 dark:text-teal-400">
+                  <div className="mt-4 flex items-center gap-2 text-sm font-bold text-blue-700 dark:text-blue-300">
                     <span>Devam et</span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-2" />
                   </div>
@@ -501,9 +501,9 @@ export default function ArticleClient({
   const closeMobileToc = () => setMobileTocOpen(false);
 
   return (
-    <div className="relative flex flex-col">
+    <div className="article-page site-page-shell relative flex flex-col">
       <ScrollProgress />
-      <main className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-8 sm:px-6 lg:flex-row lg:px-8 md:py-12">
+      <main className="relative mx-auto flex w-full max-w-[1440px] flex-col gap-12 px-5 py-10 sm:px-8 md:py-14 lg:flex-row lg:px-12 xl:px-16">
         <article className="mx-auto w-full max-w-3xl lg:w-8/12 xl:mx-0">
           <PageContextNavigation
             className="mb-8 flex flex-col gap-4"
@@ -512,7 +512,7 @@ export default function ArticleClient({
             backLabel={backLink?.title}
           />
 
-          <header className="mb-10">
+          <header className="mb-10 border-b border-border pb-10">
             <div className="mb-6 flex flex-wrap gap-2">
               <Badge className={`${article.categoryColor} border-none px-3 py-1 text-[10px] font-black uppercase tracking-wider`}>{article.category}</Badge>
               <Badge variant="outline" className="border-zinc-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800">
@@ -528,17 +528,17 @@ export default function ArticleClient({
                 ))}
               </div>
             ) : null}
-            <h1 className="mb-6 text-3xl font-black leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl md:text-5xl lg:text-6xl">{article.title}</h1>
-            <div className="mb-8 rounded-3xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 md:p-8">
+            <h1 className="mb-7 text-4xl font-black leading-[0.98] tracking-[-0.045em] text-foreground sm:text-5xl lg:text-6xl">{article.title}</h1>
+            <div className="site-panel mb-8 rounded-xl p-6 md:p-8">
               <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100">
-                <span className="h-4 w-1.5 rounded-full bg-teal-600" />
+                <span className="h-4 w-1 bg-amber-500" />
                 Hızlı özet
               </h2>
               <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">{article.description}</p>
             </div>
             <div className="flex flex-col justify-between gap-6 border-y border-zinc-100 py-6 dark:border-zinc-800 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-lg shadow-teal-500/20 dark:bg-teal-600">
+                <div className="flex h-12 w-12 items-center justify-center rounded-md border border-amber-500/35 bg-amber-500/12 text-amber-800 dark:text-amber-300">
                   <span className="text-lg font-black">{article.author.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
                 </div>
                 <div>
@@ -547,13 +547,13 @@ export default function ArticleClient({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-zinc-500 dark:text-zinc-400">
-                <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">
+                <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2">
                   <Clock className="h-4 w-4" />
                   {article.readTime}
                 </span>
-                <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">{article.date}</span>
+                <span className="rounded-md border border-border bg-card px-4 py-2">{article.date}</span>
                 {article.updatedAt ? (
-                  <span className="rounded-full bg-zinc-100 px-4 py-2 dark:bg-zinc-900">Güncelleme: {article.updatedAt}</span>
+                  <span className="rounded-md border border-border bg-card px-4 py-2">Güncelleme: {article.updatedAt}</span>
                 ) : null}
                 <FontSizeControl />
                 <Button type="button" variant="outline" size="sm" onClick={() => setMobileTocOpen(true)} className="lg:hidden">
@@ -567,7 +567,7 @@ export default function ArticleClient({
           <InlineToc parsedSections={parsedSections} />
 
           {article.image ? (
-            <div className="relative mb-12 aspect-[16/9] overflow-hidden rounded-[32px] border border-zinc-200 bg-zinc-100 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="relative mb-12 aspect-[16/9] overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <Image src={article.image} alt={article.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
             </div>
           ) : null}
@@ -575,11 +575,11 @@ export default function ArticleClient({
           <ArticleBody article={article} relatedArticles={relatedArticles} parsedSections={parsedSections} hideToolPromos={hideToolPromos} suggestedTool={suggestedTool} />
         </article>
 
-        <aside className="hidden w-4/12 max-w-[320px] shrink-0 border-l border-dashed border-zinc-100 pl-4 dark:border-zinc-800/50 lg:block xl:max-w-xs">
+        <aside className="hidden w-4/12 max-w-[320px] shrink-0 border-l border-border pl-6 lg:block xl:max-w-xs">
           <div className="sticky top-24 flex flex-col gap-8 pt-4">
             <div>
               <div className="mb-6 flex items-center gap-2 border-b border-zinc-200 pb-4 text-[10px] font-black uppercase tracking-widest text-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-                <BookOpen className="h-3.5 w-3.5 text-teal-700 dark:text-teal-500" />
+                <BookOpen className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400" />
                 İçindekiler
               </div>
               <ScrollArea className="max-h-[360px] pr-4">
@@ -591,7 +591,7 @@ export default function ArticleClient({
                         key={sectionItem.id}
                         href={`#${sectionItem.id}`}
                         className={`relative py-1.5 text-sm font-bold tracking-tight transition-all hover:translate-x-1 ${
-                          isActive ? "-ml-[18px] border-l-2 border-teal-700 pl-4 text-teal-700 dark:border-teal-500 dark:text-teal-400" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                          isActive ? "-ml-[18px] border-l-2 border-blue-600 pl-4 text-blue-700 dark:border-blue-400 dark:text-blue-300" : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {sectionItem.title}
@@ -603,12 +603,12 @@ export default function ArticleClient({
             </div>
 
             {!hideToolPromos ? (
-              <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="site-panel rounded-xl p-6">
                 <h4 className="mb-3 text-[10px] font-black uppercase tracking-wider text-zinc-400">İşinize yarayabilir</h4>
                 <p className="mb-6 text-sm font-bold leading-relaxed text-zinc-900 dark:text-zinc-100">
                   {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresi hesabını araç üzerinden hemen açın." : "Tüm hesap araçlarını tek kategoride açıp ihtiyacınız olan araca geçin."}
                 </p>
-                <Button asChild size="sm" className="h-10 w-full rounded-xl bg-teal-700 font-bold text-white hover:bg-teal-800">
+                <Button asChild size="sm" className="w-full">
                   <Link href={article.slug === "kalip-sokumu-rehberi" ? "/kategori/araclar/kalip-sokum-suresi" : TOOLS_HUB_HREF}>
                     {article.slug === "kalip-sokumu-rehberi" ? "Kalıp söküm süresini hesapla" : "Tüm araçları aç"}
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -620,7 +620,7 @@ export default function ArticleClient({
         </aside>
       </main>
 
-      <Button type="button" size="sm" onClick={() => setMobileTocOpen(true)} className="fixed bottom-24 right-4 z-40 rounded-full bg-teal-600 px-4 shadow-lg shadow-teal-600/20 hover:bg-teal-700 lg:hidden">
+      <Button type="button" size="sm" onClick={() => setMobileTocOpen(true)} className="fixed bottom-24 right-4 z-40 px-4 shadow-lg lg:hidden">
         <List className="mr-2 h-4 w-4" />
         İçindekiler
       </Button>
@@ -630,7 +630,7 @@ export default function ArticleClient({
         <div className="fixed bottom-0 left-0 right-0 z-[101] flex max-h-[85vh] flex-col rounded-t-3xl border-t border-zinc-200 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:border-zinc-800 dark:bg-zinc-950 lg:hidden">
           <div className="flex flex-shrink-0 items-center justify-between border-b border-zinc-100 p-6 dark:border-zinc-800">
             <h3 className="flex items-center gap-2 text-lg font-black text-zinc-950 dark:text-white">
-              <BookOpen className="h-5 w-5 text-teal-600" /> İçindekiler
+              <BookOpen className="h-5 w-5 text-amber-600" /> İçindekiler
             </h3>
             <Button type="button" variant="ghost" size="icon" onClick={closeMobileToc} className="rounded-full bg-zinc-100 dark:bg-zinc-800">
               <X className="h-5 w-5" />

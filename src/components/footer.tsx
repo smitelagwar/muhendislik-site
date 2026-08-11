@@ -1,17 +1,11 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 export function Footer() {
-  const pathname = usePathname();
-  const isHome = pathname === "/";
-
   return (
     <footer className="relative mt-auto w-full overflow-hidden border-t border-white/10 bg-[#04060a] pb-24 pt-16 text-sm text-slate-400 md:pb-16">
-      {isHome ? <div className="home-grid-backdrop absolute inset-0 opacity-50" /> : null}
+      <div className="home-grid-backdrop absolute inset-0 opacity-50" />
 
       <div className="relative mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-16">
         <div className="grid gap-10 border-b border-white/10 pb-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)]">
@@ -63,15 +57,15 @@ export function Footer() {
             <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">İletişim</h5>
             <ul className="mt-5 space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
                 <span>Teknopark İstanbul, No: 1, Pendik / İstanbul</span>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="h-5 w-5 shrink-0 text-cyan-300" />
+                <Mail className="h-5 w-5 shrink-0 text-blue-300" />
                 <a href="mailto:info@insablog.com" className="transition-colors hover:text-white">info@insablog.com</a>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="h-5 w-5 shrink-0 text-cyan-300" />
+                <Phone className="h-5 w-5 shrink-0 text-blue-300" />
                 <a href="tel:+902125550000" className="transition-colors hover:text-white">+90 (212) 555 00 00</a>
               </li>
             </ul>

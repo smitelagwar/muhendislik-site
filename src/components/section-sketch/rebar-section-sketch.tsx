@@ -128,31 +128,33 @@ export function RebarSectionSketch({
   const stirrupStrokeWidth = Math.max(1.8, Math.min(4, stirrupDiameterMm * scale));
 
   return (
-    <div className={cn("w-full select-none bg-slate-950 dark:bg-black/60 rounded-2xl p-6 border border-slate-200 dark:border-white/5 shadow-inner", className)}>
-      <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-        <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-400">
-          Enkesit Detay Görünümü (CAD Önceleme)
+    <div className={cn("w-full h-full flex flex-col select-none bg-slate-950 dark:bg-black/80 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-lg dark:shadow-2xl overflow-hidden", className)}>
+      <div className="shrink-0 flex items-center justify-between border-b border-slate-200/20 dark:border-white/10 px-5 py-3 bg-slate-900/40">
+        <span className="font-mono text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Enkesit Detay Görünümü (CAD Önizleme)
         </span>
         <span
           className={cn(
-            "rounded px-2.5 py-1 font-mono text-[10px] font-black uppercase tracking-wider",
+            "rounded-full px-2.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider border",
             isSpacingViolated
-              ? "bg-red-500/20 text-red-400 border border-red-500/30"
-              : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+              ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
+              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
           )}
         >
-          {isSpacingViolated ? "TS 500 Aralık İhlali" : "Aralık Güvenli"}
+          {isSpacingViolated ? "TS 500 İhlali" : "Aralık Tamam"}
         </span>
       </div>
 
-      <div className="flex justify-center py-4 bg-slate-950/40 rounded-xl border border-white/5 p-2">
+      <div className="flex-1 flex items-center justify-center p-4 bg-slate-950/20 min-h-0">
         <svg
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           width="100%"
-          className="w-full"
+          height="100%"
+          className="w-full h-full"
+          style={{ maxHeight: "100%", overflow: "visible" }}
           aria-label="Donatı düzeni krokisi"
           role="img"
-          style={{ overflow: "visible" }}
         >
           <defs>
             <pattern id="concrete-hatch-rebar-lg" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -412,8 +414,8 @@ export function RebarSectionSketch({
         </svg>
       </div>
 
-      {/* ── Teknik Dipnot ve TS 500 Bilgi Çubuğu ── */}
-      <div className="mt-4 pt-3.5 border-t border-white/10 space-y-2 font-mono text-[10px] text-slate-300">
+      {/* ── Teknik Dipnot ── */}
+      <div className="shrink-0 border-t border-white/10 px-5 py-3 space-y-1.5 font-mono text-[10px] text-slate-300">
         <div className="flex justify-between items-center">
           <span>Pas Payı (Beton Örtüsü):</span>
           <span className="font-bold text-white">{coverMm} mm</span>
@@ -423,17 +425,10 @@ export function RebarSectionSketch({
           <span className="font-bold text-amber-400">≥ {minSpacingMm.toFixed(1)} mm</span>
         </div>
         {hasSpacingVal && (
-          <div className="flex justify-between items-center border-t border-white/10 pt-2 mt-2 text-xs">
+          <div className="flex justify-between items-center border-t border-white/10 pt-1.5 mt-1">
             <span>Mevcut Net Aralık (s):</span>
-            <span
-              className={cn(
-                "font-black tracking-wide",
-                isSpacingViolated ? "text-red-400 animate-pulse" : "text-cyan-400"
-              )}
-            >
-              {calculatedSpacing <= 0
-                ? "Sığmıyor!"
-                : `${calculatedSpacing.toFixed(1)} mm`}
+            <span className={cn("font-black tracking-wide", isSpacingViolated ? "text-red-400 animate-pulse" : "text-cyan-400")}>
+              {calculatedSpacing <= 0 ? "Sığmıyor!" : `${calculatedSpacing.toFixed(1)} mm`}
             </span>
           </div>
         )}

@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageContextNavigation } from "@/components/page-context-navigation";
+import { SitePageHeader, SitePageShell } from "@/components/site-page";
 import { Badge } from "@/components/ui/badge";
 import { type ArticleData, getArticleList } from "@/lib/articles-data";
 import {
@@ -357,44 +358,32 @@ export default async function CategoryPage({
   const styles = SECTION_STYLES[section.id];
 
   return (
-    <div className="min-h-screen py-8 md:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+    <SitePageShell width="wide">
         <PageContextNavigation
           showBackLink={false}
           className="mb-8"
           breadcrumbsClassName="no-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-xs font-bold text-zinc-500"
         />
 
-        <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-center">
-          <div
-            className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl ${styles.bgColor}`}
-          >
-            <Icon className={`h-10 w-10 ${styles.color}`} />
-          </div>
-          <div>
-            <h1 className="mb-2 text-3xl font-black tracking-tight text-zinc-900 dark:text-white md:text-5xl">
-              {section.title}
-            </h1>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 md:text-base">
-              {section.description} • {articles.length} içerik
-            </p>
-            {section.categories.length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-2">
+        <SitePageHeader
+          eyebrow={`Teknik içerik kütüphanesi / ${articles.length} içerik`}
+          title={section.title}
+          description={section.description}
+          icon={<Icon className={`h-6 w-6 ${styles.color}`} />}
+          meta={
+            section.categories.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
                 {section.categories.map((category) => (
-                  <Badge
-                    key={category}
-                    variant="outline"
-                    className="border-zinc-200 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300"
-                  >
+                  <Badge key={category} variant="outline" className="bg-card/80">
                     {category}
                   </Badge>
                 ))}
               </div>
-            ) : null}
-          </div>
-        </div>
+            ) : null
+          }
+        />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {articles.map((article) => (
             <ArticleCard key={article.slug} article={article} />
           ))}
@@ -407,15 +396,14 @@ export default async function CategoryPage({
             </div>
           ) : null}
         </div>
-      </div>
-    </div>
+    </SitePageShell>
   );
 }
 
 function ArticleCard({ article }: { article: ArticleData }) {
   return (
-    <Link href={`/${article.slug}`} className="group block h-full">
-      <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+    <Link href={`/${article.slug}`} className="site-link-card group block h-full rounded-xl focus-visible:outline-none">
+      <article className="site-panel flex h-full flex-col overflow-hidden rounded-xl">
         <div className="relative aspect-video overflow-hidden bg-zinc-100 dark:bg-zinc-800">
           <Image
             src={article.image}
@@ -434,7 +422,7 @@ function ArticleCard({ article }: { article: ArticleData }) {
           </div>
         </div>
         <div className="flex flex-1 flex-col p-6">
-          <h2 className="mb-3 line-clamp-2 text-xl font-black leading-snug text-zinc-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+          <h2 className="mb-3 line-clamp-2 text-xl font-black leading-snug text-foreground transition-colors group-hover:text-blue-700 dark:group-hover:text-blue-300">
             {article.title}
           </h2>
           <p className="mb-6 line-clamp-2 flex-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">

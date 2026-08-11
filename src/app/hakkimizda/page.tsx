@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Target, Users, Shield } from "lucide-react";
+import { SitePageHeader, SitePageShell } from "@/components/site-page";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -10,13 +11,18 @@ export const metadata: Metadata = buildSeoMetadata({
 
 export default function Hakkimizda() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12 md:py-20">
-      <h1 className="mb-12 text-4xl font-black tracking-tight text-zinc-900 dark:text-white md:text-5xl">Hakkımızda</h1>
+    <SitePageShell width="content">
+      <SitePageHeader
+        eyebrow="Kurumsal / Editoryal yaklaşım"
+        title="Hakkımızda"
+        description="Teknik bilgiyi, mühendislik araçlarını ve saha deneyimini sade bir çalışma yüzeyinde bir araya getiriyoruz."
+        icon={<Target className="h-6 w-6" />}
+      />
 
-      <div className="space-y-8">
-        <section className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl shadow-teal-500/5 dark:border-zinc-800 dark:bg-zinc-900 md:p-12">
+      <div className="mt-10 space-y-6">
+        <section className="site-panel rounded-xl p-8 md:p-12">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-700 dark:bg-teal-900/30">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
               <Target className="h-6 w-6" />
             </div>
             <h2 className="m-0 text-3xl font-black tracking-tight">Misyonumuz</h2>
@@ -27,18 +33,18 @@ export default function Hakkimizda() {
         </section>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div className="rounded-3xl border border-zinc-200 bg-zinc-100/50 p-8 transition-all hover:border-teal-500/30 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="site-panel rounded-xl p-8">
             <h3 className="mb-4 flex items-center gap-3 text-xl font-black">
-              <Users className="h-6 w-6 text-teal-600" />
+              <Users className="h-6 w-6 text-blue-600 dark:text-blue-300" />
               Topluluk
             </h3>
             <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
               Sektörden profesyonellerin katkılarıyla sürekli büyüyen, pratik ve uygulanabilir bir bilgi havuzu oluşturuyoruz.
             </p>
           </div>
-          <div className="rounded-3xl border border-zinc-200 bg-zinc-100/50 p-8 transition-all hover:border-teal-500/30 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="site-panel rounded-xl p-8">
             <h3 className="mb-4 flex items-center gap-3 text-xl font-black">
-              <Shield className="h-6 w-6 text-teal-600" />
+              <Shield className="h-6 w-6 text-amber-600 dark:text-amber-300" />
               Güvenilirlik
             </h3>
             <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
@@ -47,6 +53,6 @@ export default function Hakkimizda() {
           </div>
         </div>
       </div>
-    </div>
+    </SitePageShell>
   );
 }

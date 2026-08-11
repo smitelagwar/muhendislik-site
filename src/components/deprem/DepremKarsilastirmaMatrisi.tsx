@@ -178,7 +178,7 @@ export default function DepremKarsilastirmaMatrisi() {
         <div className="grid gap-5 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-none bg-red-600/15 text-red-300">Karşılaştırma Matrisi</Badge>
+              <Badge className="border-none bg-amber-500/15 text-amber-300">Karşılaştırma Matrisi</Badge>
               <Badge variant="outline" className="border-zinc-700 text-zinc-300">
                 {COMPARISON_ROWS.length} alt dal
               </Badge>
@@ -192,7 +192,7 @@ export default function DepremKarsilastirmaMatrisi() {
             </p>
           </div>
 
-          <div className="rounded-[28px] border border-zinc-800 bg-zinc-900/80 p-5 shadow-sm">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white">
                 <BarChart3 className="h-5 w-5" />
@@ -208,7 +208,7 @@ export default function DepremKarsilastirmaMatrisi() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[28px] border border-zinc-800 bg-zinc-900/60 shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/60 shadow-sm">
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
               <TableHeader>
@@ -248,13 +248,13 @@ export default function DepremKarsilastirmaMatrisi() {
                       </TableCell>
                       <TableCell className="align-top">
                         <div className="flex flex-col items-end gap-2">
-                          <Button asChild size="sm" className="h-9 rounded-full bg-white px-4 text-xs font-black text-zinc-950 hover:bg-zinc-100">
+                          <Button asChild size="sm" className="h-9 px-4 text-xs font-black">
                             <Link href={`/kategori/deprem-yonetmelik?dal=${row.seriesId}`} prefetch={false}>
                               {row.filterCta}
                               <ArrowRight className="h-3.5 w-3.5" />
                             </Link>
                           </Button>
-                          <Button asChild size="sm" variant="outline" className="h-9 rounded-full border-zinc-700 bg-zinc-950 px-4 text-xs font-black text-zinc-300 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white">
+                          <Button asChild size="sm" variant="outline" className="h-9 border-zinc-700 bg-zinc-950 px-4 text-xs font-black text-zinc-300 hover:border-blue-500/50 hover:bg-zinc-900 hover:text-white">
                             <Link href={row.toolHref} prefetch={false}>
                               Araç aç
                             </Link>
@@ -274,7 +274,7 @@ export default function DepremKarsilastirmaMatrisi() {
             <Card key={set.title} className="border-zinc-800 bg-zinc-900/80 shadow-sm">
               <CardHeader className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/10 text-amber-300">
                     <Layers3 className="h-4 w-4" />
                   </div>
                   <div>
@@ -292,7 +292,7 @@ export default function DepremKarsilastirmaMatrisi() {
                     asChild
                     size="sm"
                     variant="outline"
-                    className="h-9 rounded-full border-zinc-700 bg-zinc-950 px-4 text-xs font-black text-zinc-300 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white"
+                    className="h-9 border-zinc-700 bg-zinc-950 px-4 text-xs font-black text-zinc-300 hover:border-blue-500/50 hover:bg-zinc-900 hover:text-white"
                   >
                     <Link href={item.href} prefetch={false}>
                       {item.label}
@@ -304,8 +304,8 @@ export default function DepremKarsilastirmaMatrisi() {
           ))}
         </div>
 
-        <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
-          <Wand2 className="mb-2 h-4 w-4 text-red-300" />
+        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
+          <Wand2 className="mb-2 h-4 w-4 text-amber-300" />
           Bu matris, yönetmelik okumasını araçlarla eşleştiren bir ön kontrol katmanıdır. Nihai proje kararı için ilgili standart maddesi ve proje özel koşulları ayrıca doğrulanmalıdır.
         </div>
       </div>

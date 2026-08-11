@@ -4,12 +4,12 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors",
+  "inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-teal-500 text-zinc-950 hover:bg-teal-400",
-        secondary: "border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100",
+        default: "border-amber-500/35 bg-amber-500/12 text-amber-800 dark:text-amber-300",
+        secondary: "border-border bg-secondary text-secondary-foreground",
         destructive: "border-transparent bg-red-600 text-white hover:bg-red-700",
         outline: "border-zinc-200 text-zinc-700 dark:border-zinc-800 dark:text-zinc-200",
       },

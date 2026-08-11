@@ -74,7 +74,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-none bg-red-600/15 text-red-300">Makaleler</Badge>
+              <Badge className="border-none bg-amber-500/15 text-amber-300">Makaleler</Badge>
               <Badge variant="outline" className="border-border text-foreground/80">
                 {articles.length} içerik
               </Badge>
@@ -91,11 +91,11 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
           </div>
 
           {activeSeries ? (
-            <div className="rounded-3xl border border-border bg-card/80 p-4 shadow-sm">
+            <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Seçili alt dal</p>
               <p className="mt-1 text-lg font-black text-foreground">{activeSeries.label}</p>
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{activeSeries.description}</p>
-              <Button asChild className="mt-4 h-10 rounded-full bg-white px-5 text-sm font-black text-foreground hover:bg-foreground/10">
+              <Button asChild className="mt-4 h-10 px-5 text-sm font-black">
                 <Link href={activeSeries.relatedToolHref}>
                   İlgili aracı aç
                   <ArrowRight className="h-4 w-4" />
@@ -103,7 +103,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
               </Button>
             </div>
           ) : (
-            <div className="rounded-3xl border border-border bg-card/80 p-4 shadow-sm">
+            <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm">
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Genel görünüm</p>
               <p className="mt-1 text-lg font-black text-foreground">Tüm alt dallar</p>
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
@@ -113,7 +113,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
           )}
         </div>
 
-        <div className="rounded-[28px] border border-border bg-card/60 p-4 shadow-sm md:p-5">
+        <div className="rounded-xl border border-border bg-card/60 p-4 shadow-sm md:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -121,7 +121,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
                 value={q}
                 onChange={(event) => updateSearch({ q: event.target.value })}
                 placeholder="Başlık, kategori, etiket veya teknik terim ara"
-                className="h-12 border-border bg-background/70 pl-11 text-foreground placeholder:text-muted-foreground focus-visible:border-red-500/60 focus-visible:ring-red-500/20"
+                className="h-12 border-border bg-background/70 pl-11 text-foreground placeholder:text-muted-foreground focus-visible:border-amber-500/60 focus-visible:ring-amber-500/20"
               />
             </div>
 
@@ -131,9 +131,9 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
                 type="button"
                 variant={dal === "all" ? "default" : "outline"}
                 className={cn(
-                  "h-12 rounded-full px-4 font-black",
+                  "h-12 rounded-md px-4 font-black",
                   dal === "all"
-                    ? "bg-red-600 text-white hover:bg-red-700"
+                    ? "bg-amber-500 text-zinc-950 hover:bg-amber-400"
                     : "border-border bg-background text-foreground/90 hover:bg-card"
                 )}
                 onClick={() => updateSearch({ dal: "all" })}
@@ -144,7 +144,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
                 <Button
                   type="button"
                   variant="ghost"
-                  className="h-12 rounded-full px-4 font-black text-foreground/80 hover:bg-muted hover:text-foreground"
+                  className="h-12 rounded-md px-4 font-black text-foreground/80 hover:bg-muted hover:text-foreground"
                   onClick={() => updateSearch({ dal: "all", q: "" })}
                 >
                   Temizle
@@ -167,7 +167,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
                   aria-pressed={active}
                   onClick={() => updateSearch({ dal: series.id })}
                   className={cn(
-                    "h-11 shrink-0 rounded-full border px-4 text-sm font-black transition-all",
+                    "h-11 shrink-0 rounded-md border px-4 text-sm font-black transition-all",
                     active
                       ? "border-transparent bg-white text-foreground shadow-md"
                       : "border-border bg-background text-foreground/80 hover:border-border hover:bg-card hover:text-foreground"
@@ -189,7 +189,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
         </div>
 
         {filteredArticles.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-border bg-background/60 px-6 py-14 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-background/60 px-6 py-14 text-center">
             <p className="text-lg font-black text-foreground">Eşleşen içerik bulunamadı</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Farklı bir alt dal seçin ya da arama terimini daraltın.
@@ -220,7 +220,7 @@ const SERIES_DOT_CLASS: Record<DepremSeriesId, string> = {
 function DepremArticleCard({ article }: { article: DepremArticleSummary }) {
   return (
     <Link href={`/${article.slug}`} prefetch={false} className="group block h-full">
-      <Card className="h-full overflow-hidden border-border bg-card/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-xl">
+      <Card className="site-link-card h-full overflow-hidden rounded-xl border-border bg-card/90 shadow-sm">
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           <Image
             src={article.image}
@@ -239,7 +239,7 @@ function DepremArticleCard({ article }: { article: DepremArticleSummary }) {
           </div>
         </div>
         <CardHeader className="gap-3 px-5 pb-0 pt-5">
-          <CardTitle className="text-xl font-black leading-snug text-foreground transition-colors group-hover:text-red-300">
+          <CardTitle className="text-xl font-black leading-snug text-foreground transition-colors group-hover:text-blue-300">
             {article.title}
           </CardTitle>
           <CardDescription className="line-clamp-2 text-sm leading-6 text-muted-foreground">

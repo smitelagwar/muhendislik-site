@@ -115,7 +115,7 @@ export default function DepremStandartKutuphanesi() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-none bg-teal-500/15 text-teal-200">Standart Kütüphanesi</Badge>
+              <Badge className="border-none bg-blue-500/15 text-blue-300">Standart Kütüphanesi</Badge>
               <Badge variant="outline" className="border-zinc-700 text-zinc-300">
                 {STANDARDS.length} hızlı referans
               </Badge>
@@ -128,13 +128,13 @@ export default function DepremStandartKutuphanesi() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-sm">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-sm">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Hızlı erişim</p>
             <p className="mt-1 text-lg font-black text-white">Araç Merkezi</p>
             <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-400">
               Tüm araçlara tek yerden geçmek için genel araç merkezini kullanın.
             </p>
-            <Button asChild className="mt-4 h-10 rounded-full bg-white px-5 text-sm font-black text-zinc-950 hover:bg-zinc-100">
+            <Button asChild className="mt-4 h-10 px-5 text-sm font-black">
               <Link href={TOOLS_HUB_HREF} prefetch={false}>
                 Araç merkezini aç
               </Link>
@@ -145,7 +145,7 @@ export default function DepremStandartKutuphanesi() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {STANDARDS.map((standard) => (
             <Card key={standard.title} className="overflow-hidden border-zinc-800 bg-zinc-900/80 shadow-sm">
-              <div className="h-1 bg-gradient-to-r from-teal-500/60 to-orange-500/40" />
+              <div className="h-1 bg-gradient-to-r from-amber-500/80 to-blue-500/60" />
               <CardHeader className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -166,7 +166,7 @@ export default function DepremStandartKutuphanesi() {
                   <p className="text-sm leading-6 text-zinc-400">{standard.whenToOpen}</p>
                   <p className="text-sm leading-6 text-zinc-300">{standard.relatedReading}</p>
                 </div>
-                <Button asChild variant="outline" className="h-10 w-full rounded-full border-zinc-700 bg-zinc-950 text-sm font-black text-zinc-300 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white">
+                <Button asChild variant="outline" className="h-10 w-full border-zinc-700 bg-zinc-950 text-sm font-black text-zinc-300 hover:border-blue-500/50 hover:bg-zinc-900 hover:text-white">
                   <Link href={standard.href} prefetch={false}>
                     İlgili alt dala git
                   </Link>
@@ -181,7 +181,7 @@ export default function DepremStandartKutuphanesi() {
             <Card key={checklist.title} className="border-zinc-800 bg-zinc-900/70 shadow-sm">
               <CardHeader className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/10 text-blue-300">
                     <ClipboardList className="h-4 w-4" />
                   </div>
                   <div>
@@ -204,8 +204,8 @@ export default function DepremStandartKutuphanesi() {
           ))}
         </div>
 
-        <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
-          <Shield className="mb-2 h-4 w-4 text-teal-300" />
+        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
+          <Shield className="mb-2 h-4 w-4 text-blue-300" />
           Bu kütüphane, proje kararı yerine geçmez. Yönetmelik maddesi, proje verisi ve yerel koşullar birlikte doğrulanmalıdır.
         </div>
       </div>

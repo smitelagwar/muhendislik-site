@@ -1,50 +1,47 @@
-import type { LucideIcon } from "lucide-react";
+import type { CalculationPageIconKey } from "@/lib/calculation-pages";
+import type { SiteSectionId } from "@/lib/site-sections";
+import type { ToolIconKey } from "@/lib/tools-data";
 
 export interface HomeArticle {
   title: string;
   slug: string;
-  sectionId?: string;
+  sectionId: SiteSectionId;
   category: string;
-  categoryColor: string;
   description: string;
   image: string;
-  author: string;
   date: string;
   readTime: string;
 }
 
-export interface HomeMetric {
-  label: string;
-  note: string;
-  value: number;
-  suffix?: string;
-  prefix?: string;
-  icon: LucideIcon;
-}
-
-export interface HomeStandardCard {
-  code: string;
+interface HomeResourceBase {
+  id: string;
   title: string;
-  description: string;
   href: string;
-  note: string;
+  description: string;
+  label: string;
+  reference: string;
 }
 
-export interface HomePhasePreview {
+export type HomeResource =
+  | (HomeResourceBase & {
+      kind: "calculation";
+      iconKey: CalculationPageIconKey;
+    })
+  | (HomeResourceBase & {
+      kind: "tool";
+      iconKey: ToolIconKey;
+    });
+
+export interface HomeProjectPhase {
   id: string;
   title: string;
   summary: string;
   href: string;
   image: string;
-  accentColor: string;
 }
 
-export interface HomeFeedGroup {
-  id: string;
+export interface HomeStandard {
+  code: string;
   label: string;
-  description: string;
   href: string;
-  ctaLabel: string;
-  totalCount: number;
-  articles: HomeArticle[];
 }

@@ -6,25 +6,23 @@ import { PRIMARY_NAV_ITEMS, isNavigationItemActive } from "@/lib/navigation-conf
 
 export function NavbarDesktopNav() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const links = PRIMARY_NAV_ITEMS.filter((item) =>
+    ["home", "hesaplamalar", "araclar", "deprem-yonetmelik", "bina-asamalari"].includes(item.id),
+  );
 
   return (
     <nav className="hidden items-center gap-1 lg:flex">
-      {PRIMARY_NAV_ITEMS.map((link) => {
+      {links.map((link) => {
         const isActive = isNavigationItemActive(pathname, link);
 
         return (
           <Link
             key={link.id}
             href={link.href}
-            className={`rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-200 ${
+            className={`rounded-md px-3 py-2 text-sm font-semibold tracking-wide transition-colors duration-200 ${
               isActive
-                ? isHome
-                  ? "border border-amber-400/30 bg-amber-400/10 text-white"
-                  : "border border-teal-400/25 bg-teal-500/10 text-teal-200"
-                : isHome
-                  ? "text-slate-300 hover:bg-white/5 hover:text-white"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "border border-amber-500/35 bg-amber-500/10 text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             }`}
           >
             {link.label}

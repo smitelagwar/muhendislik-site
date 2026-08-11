@@ -20,12 +20,12 @@ export default function ToolsCategoryPage() {
   return (
     <div className="tool-page-shell py-8 md:py-14">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 sm:px-6 lg:px-8">
-        <section className="tool-panel relative overflow-hidden rounded-[36px] px-6 py-8 md:px-8 md:py-10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,_rgba(13,148,136,0.12),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.1),_transparent_38%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.18),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.14),_transparent_38%)]" />
+        <section className="tool-panel relative overflow-hidden rounded-xl px-6 py-8 md:px-8 md:py-10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.14),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(37,99,235,0.11),_transparent_38%)]" />
 
           <div className="relative grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
             <div className="max-w-3xl">
-              <Badge className="mb-4 rounded-full bg-teal-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-teal-700 hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-300">
+              <Badge className="mb-4 bg-amber-500/10 px-4 py-1 text-[11px] text-amber-800 hover:bg-amber-500/15 dark:text-amber-300">
                 Araçlar
               </Badge>
               <h1 className="max-w-2xl text-3xl font-black tracking-tight text-zinc-950 dark:text-white md:text-5xl">
@@ -37,15 +37,15 @@ export default function ToolsCategoryPage() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <div className="min-w-[156px] rounded-[28px] border border-teal-200/80 bg-teal-50/90 px-5 py-4 text-teal-950 shadow-[0_18px_46px_-34px_rgba(13,148,136,0.28)] dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-50">
-                  <p className="font-mono text-3xl font-black tabular-nums text-teal-700 dark:text-teal-200">{tools.length}</p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-teal-700/70 dark:text-teal-200/70">Araç sayısı</p>
+                <div className="min-w-[156px] rounded-md border border-amber-500/25 bg-amber-500/10 px-5 py-4 text-amber-950 dark:text-amber-50">
+                  <p className="font-mono text-3xl font-black tabular-nums text-amber-700 dark:text-amber-300">{tools.length}</p>
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-800/70 dark:text-amber-200/70">Araç sayısı</p>
                 </div>
               </div>
             </div>
 
             {featuredTool ? (
-              <div className="rounded-[30px] border border-teal-200/80 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 p-6 text-white shadow-[0_28px_90px_-42px_rgba(13,148,136,0.55)] dark:border-teal-900/60 md:p-7">
+              <div className="rounded-xl border border-amber-400/30 bg-[radial-gradient(circle_at_top_right,_rgba(59,130,246,0.25),_transparent_42%),linear-gradient(135deg,#171717,#0a0a0a)] p-6 text-white shadow-[0_28px_90px_-48px_rgba(0,0,0,0.72)] md:p-7">
                 <div className="flex h-full flex-col justify-between gap-8">
                   <div>
                     <div className="mb-4 flex items-center gap-3">
@@ -58,13 +58,13 @@ export default function ToolsCategoryPage() {
                     </div>
 
                     <h2 className="text-3xl font-black tracking-tight md:text-4xl">{featuredTool.name}</h2>
-                    <p className="mt-4 text-sm leading-7 text-teal-100 md:text-base">{featuredTool.description}</p>
-                    <p className="mt-5 text-[11px] font-black uppercase tracking-[0.2em] text-teal-100/70">
+                    <p className="mt-4 text-sm leading-7 text-zinc-300 md:text-base">{featuredTool.description}</p>
+                    <p className="mt-5 text-[11px] font-black uppercase tracking-[0.2em] text-amber-300/80">
                       {featuredTool.discipline}
                     </p>
                   </div>
 
-                  <Button asChild className="h-12 rounded-full bg-white px-7 text-sm font-black text-teal-700 hover:bg-teal-50">
+                  <Button asChild className="h-12 px-7 text-sm font-black">
                     <Link href={featuredTool.href}>
                       Aracı aç
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -76,7 +76,7 @@ export default function ToolsCategoryPage() {
           </div>
         </section>
 
-        <section className="tool-panel rounded-[32px] p-6 md:p-8">
+        <section className="tool-panel rounded-xl p-6 md:p-8">
           <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr] xl:items-center">
             <div className="max-w-3xl">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Yeni yüzey</p>
@@ -90,7 +90,7 @@ export default function ToolsCategoryPage() {
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">/hesaplamalar</span>.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild className="h-12 rounded-full bg-teal-600 px-7 text-sm font-black text-white hover:bg-teal-500">
+                <Button asChild className="h-12 px-7 text-sm font-black">
                   <Link href="/hesaplamalar">
                     <Calculator className="mr-2 h-4 w-4" />
                     Hesaplamaları aç
@@ -99,7 +99,7 @@ export default function ToolsCategoryPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="h-12 rounded-full border-teal-200 bg-teal-50 px-7 text-sm font-black text-teal-700 hover:bg-teal-100 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-950/50"
+                  className="h-12 px-7 text-sm font-black"
                 >
                   <Link href="/hesaplamalar/hizli-metraj">Hızlı Metrajı aç</Link>
                 </Button>
@@ -108,17 +108,17 @@ export default function ToolsCategoryPage() {
 
             <Link
               href="/hesaplamalar/hizli-metraj"
-              className="group rounded-[30px] border border-teal-300/40 bg-gradient-to-br from-teal-50 via-white to-teal-50 p-6 shadow-[0_24px_80px_-42px_rgba(13,148,136,0.35)] transition-transform duration-200 hover:-translate-y-1 dark:border-teal-500/20 dark:from-zinc-950 dark:via-zinc-950 dark:to-teal-950/40"
+              className="group site-link-card rounded-xl border border-blue-500/25 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.09),_transparent_45%),var(--site-surface)] p-6"
             >
               <div className="flex items-center justify-between gap-3">
-                <Badge className="rounded-full bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 hover:bg-teal-500/10 dark:text-teal-300">
+                <Badge className="bg-amber-500/10 px-3 py-1 text-[11px] text-amber-800 hover:bg-amber-500/15 dark:text-amber-300">
                   Öne çıkan yeni araç
                 </Badge>
-                <span className="rounded-full border border-teal-300/60 bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-teal-700 dark:border-teal-500/20 dark:bg-zinc-950/70 dark:text-teal-200">
+                <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">
                   Ön keşif
                 </span>
               </div>
-              <h3 className="mt-5 text-2xl font-black tracking-tight text-zinc-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-200">
+              <h3 className="mt-5 text-2xl font-black tracking-tight text-zinc-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
                 Hızlı Metraj Hesaplayıcı
               </h3>
               <p className="mt-4 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
@@ -126,7 +126,7 @@ export default function ToolsCategoryPage() {
                 donatı, kalıp ve kaba taşıyıcı maliyet bandını üretir. Sonuç ekranı resmî toplam
                 yaklaşık maliyeti de aynı anda kıyaslar.
               </p>
-              <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-teal-700 dark:text-teal-300">
+              <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
                 Hızlı Metrajı aç
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -134,7 +134,7 @@ export default function ToolsCategoryPage() {
           </div>
         </section>
 
-        <section className="tool-panel rounded-[32px] p-6 md:p-8">
+        <section className="tool-panel rounded-xl p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Canlı liste</p>
@@ -151,28 +151,28 @@ export default function ToolsCategoryPage() {
               <Link
                 key={tool.id}
                 href={tool.href}
-                className="group relative overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-50 p-6 transition-all duration-200 hover:-translate-y-1 hover:border-blue-300 hover:bg-white hover:shadow-[0_24px_70px_-38px_rgba(37,99,235,0.4)] dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-800 dark:hover:bg-zinc-900"
+                className="group site-link-card site-panel relative overflow-hidden rounded-xl p-6"
               >
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(13,148,136,0.08),_transparent_52%)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.12),_transparent_52%)]" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.1),_transparent_52%)] opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
 
                 <div className="relative flex items-start justify-between gap-4">
-                  <div className="rounded-2xl bg-teal-100 p-3 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                  <div className="rounded-md bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
                     <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                   </div>
                   <Badge
                     variant="outline"
-                    className="rounded-full border-zinc-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+                    className="rounded-md border-zinc-300 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
                   >
                     {tool.discipline}
                   </Badge>
                 </div>
 
                 <div className="relative">
-                  <h3 className="mt-5 text-xl font-black text-zinc-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-300">
+                  <h3 className="mt-5 text-xl font-black text-zinc-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
                     {tool.name}
                   </h3>
                   <p className="mt-3 min-h-[84px] text-sm leading-7 text-zinc-600 dark:text-zinc-400">{tool.description}</p>
-                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-teal-700 dark:text-teal-300">
+                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
                     Aracı aç
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>

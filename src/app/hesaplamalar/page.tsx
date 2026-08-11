@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getCalculationPages, type CalculationPageIconKey } from "@/lib/calculation-pages";
 import { buildSeoMetadata } from "@/lib/seo";
+import { SitePageHeader, SitePageShell } from "@/components/site-page";
 
 export const metadata: Metadata = buildSeoMetadata({
   title: "İnşaat Hesaplamaları",
@@ -57,21 +58,15 @@ const COMING_SOON = [
 
 export default function HesaplamalarPage() {
   return (
-    <div className="tool-page-shell">
+    <SitePageShell className="tool-page-shell" width="full">
       <div className="mx-auto max-w-screen-2xl px-6 py-12 sm:px-10 lg:px-16">
-        <div className="mb-12 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
-            <Calculator className="h-3.5 w-3.5" />
-            Mühendislik hesap araçları
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl">
-            İnşaat hesaplamaları
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Hızlı metraj, tahmini alan, detaylı maliyet ve 2026 resmî birim maliyet araçlarını aynı
-            akışta topluyoruz. Amaç, hızlı ama savunulabilir bir ön değerlendirme sunmak.
-          </p>
-        </div>
+        <SitePageHeader
+          eyebrow="Mühendislik hesap araçları"
+          title="İnşaat hesaplamaları"
+          description="Hızlı metraj, tahmini alan, detaylı maliyet ve 2026 resmî birim maliyet araçlarını aynı akışta topluyoruz. Amaç, hızlı ama savunulabilir bir ön değerlendirme sunmak."
+          icon={<Calculator className="h-5 w-5" />}
+          className="mb-12"
+        />
 
         <section className="mb-12">
           <h2 className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
@@ -85,27 +80,27 @@ export default function HesaplamalarPage() {
                 <Link
                   key={tool.id}
                   href={tool.href}
-                  className="group tool-panel relative overflow-hidden rounded-[30px] p-6 transition-transform duration-200 hover:-translate-y-1"
+                  className="group tool-panel site-link-card relative overflow-hidden rounded-xl p-6"
                 >
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,_rgba(13,148,136,0.14),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(56,189,248,0.14),_transparent_34%)] opacity-80" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.14),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(37,99,235,0.12),_transparent_34%)] opacity-80" />
                   <div className="relative flex h-full flex-col gap-5">
                     <div className="flex items-start justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-300">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
                         <ToolIcon className="h-5 w-5" />
                       </div>
-                      <span className="rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
+                      <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-1 font-mono text-[11px] font-black uppercase tracking-[0.16em] text-amber-800 dark:text-amber-300">
                         {tool.badge}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-zinc-950 transition-colors group-hover:text-teal-700 dark:text-white dark:group-hover:text-teal-200">
+                      <h3 className="text-xl font-black text-zinc-950 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-300">
                         {tool.title}
                       </h3>
                       <p className="mt-3 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
                         {tool.description}
                       </p>
                     </div>
-                    <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-teal-700 dark:text-teal-300">
+                    <div className="mt-auto inline-flex items-center gap-2 text-sm font-black text-amber-700 dark:text-amber-300">
                       Aracı aç
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
@@ -124,9 +119,9 @@ export default function HesaplamalarPage() {
             {COMING_SOON.map((item) => (
               <div
                 key={item.label}
-                className="rounded-[24px] border border-zinc-200/80 bg-white/72 p-5 opacity-80 dark:border-zinc-800 dark:bg-zinc-950/68"
+                className="site-panel rounded-xl p-5 opacity-80"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300">
                   <item.icon className="h-4 w-4" />
                 </div>
                 <h3 className="mt-4 text-sm font-black text-zinc-900 dark:text-zinc-100">
@@ -140,7 +135,7 @@ export default function HesaplamalarPage() {
           </div>
         </section>
       </div>
-    </div>
+    </SitePageShell>
   );
 }
 

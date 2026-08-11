@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   Calculator,
@@ -67,14 +67,9 @@ function calculateBarArea(diameter: Diameter) {
 
 function buildResult(diameter: Diameter, quantityValue: string): CalculationResult | null {
   const quantity = parsePositiveNumber(quantityValue);
-
-  if (!quantity) {
-    return null;
-  }
-
+  if (!quantity) return null;
   const barArea = calculateBarArea(diameter);
   const totalArea = barArea * quantity;
-
   return {
     barArea,
     totalArea,
@@ -89,14 +84,7 @@ function buildEquivalentRows(totalArea: number): EquivalentRow[] {
     const barArea = calculateBarArea(diameter);
     const quantity = Math.max(1, Math.ceil(totalArea / barArea));
     const providedArea = quantity * barArea;
-
-    return {
-      diameter,
-      barArea,
-      quantity,
-      providedArea,
-      surplusArea: providedArea - totalArea,
-    };
+    return { diameter, barArea, quantity, providedArea, surplusArea: providedArea - totalArea };
   });
 }
 
@@ -109,6 +97,21 @@ export function RebarCalculator() {
   const [widthCm, setWidthCm] = useState<number | "">(30);
   const [coverMm, setCoverMm] = useState<number | "">(30);
   const [stirrupDiameterMm, setStirrupDiameterMm] = useState<number | "">(8);
+
+  // Navbar yüksekliğini dinamik ölçerek dashboard'a doğru yükseklik ver
+  const [navbarH, setNavbarH] = useState(91);
+
+  useEffect(() => {
+    const navbar = document.querySelector("header[data-scrolled]") as HTMLElement | null;
+    if (navbar) setNavbarH(navbar.getBoundingClientRect().height);
+  }, []);
+
+  // Sayfa scroll'unu kilitle — dashboard tam ekran çalışır
+  useEffect(() => {
+    const prev = document.body.style.overflowY;
+    document.body.style.overflowY = "hidden";
+    return () => { document.body.style.overflowY = prev; };
+  }, []);
 
   const activeWidthCm = widthCm === "" ? 30 : widthCm;
   const activeCoverMm = coverMm === "" ? 30 : coverMm;
@@ -124,360 +127,381 @@ export function RebarCalculator() {
 
   const handleDecrement = () => {
     const q = parsePositiveNumber(quantity) ?? 0;
-    if (q > 1) {
-      setQuantity(String(q - 1));
-    }
+    if (q > 1) setQuantity(String(q - 1));
   };
 
-  // TS 500 Net Spacing Checker & Alert Box
+  // TS 500 Net Spacing Checker
   const ts500Check = useMemo(() => {
     if (!result) return null;
     const { firstRow } = getRowLayout(result.quantity);
     if (firstRow < 2) return null;
-
-    const b = activeWidthCm * 10; // mm
-    const cover = activeCoverMm; // mm
-    const ds = activeStirrupDiameterMm; // mm
-    const d = diameter; // mm
-
+    const b = activeWidthCm * 10;
+    const cover = activeCoverMm;
+    const ds = activeStirrupDiameterMm;
+    const d = diameter;
     const netSpacingMm = (b - 2 * cover - 2 * ds - firstRow * d) / (firstRow - 1);
     const minSpacingMm = Math.max(25, 1.5 * d);
-
     const isViolated = netSpacingMm < minSpacingMm;
-
-    return {
-      status: isViolated ? "violated" : "ok",
-      netSpacingMm,
-      minSpacingMm,
-      firstRow,
-    };
+    return { status: isViolated ? "violated" : "ok", netSpacingMm, minSpacingMm, firstRow };
   }, [result, activeWidthCm, activeCoverMm, activeStirrupDiameterMm, diameter]);
 
   return (
-    <div className="tool-page-shell py-8 md:py-14 min-h-screen text-slate-800 dark:text-slate-100">
-      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
-        <PageContextNavigation
-          showBreadcrumbs={false}
-          className="mb-8"
-          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 backdrop-blur px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-700 dark:text-slate-300 transition-colors shadow-sm dark:shadow-none"
-        />
+    /* Tam ekran sarmalayıcı — navbar hariç geri kalan yüksekliği doldurur */
+    <div className="tool-page-shell flex flex-col text-slate-800 dark:text-slate-100" style={{ height: `calc(100dvh - ${navbarH}px)` }}>
 
-        {/* Premium Header — full width */}
-        <div className="mb-10">
-          <Badge className="mb-4 rounded-full bg-amber-500/10 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-500 hover:bg-amber-500/15 border border-amber-500/20">
-            TS 500 • Betonarme Omurgası
-          </Badge>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-5xl xl:text-6xl">
-            Donatı Alanı ve Eşdeğerlik Workbench'i
-          </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-400 md:text-base">
-            Gövde veya kiriş boyuna donatıları için canlı kesit yerleşim şemasını izleyin. Çap ve adetteki değişimlerin
-            <strong> TS 500 aralık sınırlarına</strong> uygunluğunu milimetrik CAD krokisiyle canlı analiz edin.
-          </p>
+      {/* ─── KOMPAKt ÜST ŞERIT ─── */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-white/5 bg-white/70 dark:bg-slate-950/60 backdrop-blur-md px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <PageContextNavigation
+            showBreadcrumbs={false}
+            backLinkClassName="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 dark:text-slate-400 transition-colors"
+          />
+          <div className="flex items-center gap-3 min-w-0">
+            <Badge className="shrink-0 rounded-full bg-amber-500/10 px-3 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 border border-amber-500/20">
+              TS 500
+            </Badge>
+            <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white truncate">
+              Donatı Alanı &amp; Eşdeğerlik Workbench
+            </h1>
+            <span className="hidden xl:block text-xs text-slate-400 dark:text-slate-500 truncate">
+              Çap ve adedi değiştirin — CAD kroki ve eşdeğer tablo anında güncellenir
+            </span>
+          </div>
         </div>
+      </div>
 
-        {/* 2-Column Dashboard Layout: Left controls, Right CAD Workbench Console */}
-        <div className="grid gap-8 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr] 2xl:grid-cols-[460px_1fr] items-start">
-          
-          {/* Sol Kolon: Parametreler & Girişler */}
-          <div className="space-y-6">
-            <section className="rounded-[28px] border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 p-6 space-y-6 shadow-sm dark:shadow-2xl backdrop-blur-md">
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">GİRDİ PANELİ</p>
-                  <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white">Kesit Parametreleri</h2>
+      {/* ─── 3-PANEL ANA DASHBOARD ─── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[360px_1fr_380px] xl:grid-cols-[380px_1fr_400px] 2xl:grid-cols-[400px_1fr_420px] divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-white/5 overflow-hidden">
+
+        {/* ══ SOL PANEL: GİRDİLER ══ */}
+        <div className="overflow-y-auto p-4 xl:p-5 space-y-4 bg-white/40 dark:bg-slate-950/20">
+
+          {/* Panel başlığı */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Girdi Paneli</p>
+              <h2 className="text-base font-black text-slate-900 dark:text-white">Kesit Parametreleri</h2>
+            </div>
+            <div className="rounded-xl bg-amber-500/10 p-2 text-amber-600 dark:text-amber-500 border border-amber-500/20">
+              <Calculator className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Donatı Çapı */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-white/5 bg-gradient-to-br from-slate-50 to-white/40 dark:from-slate-950/40 dark:to-slate-900/10 p-4 shadow-sm hover:shadow transition-all duration-300 hover:border-slate-300 dark:hover:border-white/10">
+            <label className="mb-2.5 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              <CircleGauge className="h-3.5 w-3.5 text-amber-500" />
+              Donatı Çapı (Ø)
+            </label>
+            <Select value={String(diameter)} onValueChange={(v) => setDiameter(Number(v) as Diameter)}>
+              <SelectTrigger className="h-11 w-full rounded-xl font-bold border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-200">
+                <SelectValue placeholder="Çap seçin" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10 shadow-xl rounded-xl">
+                {DIAMETERS.map((item) => (
+                  <SelectItem key={item} value={String(item)}>
+                    Ø{item} mm (As1 = {formatNumber(calculateBarArea(item))} mm²)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-2.5 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <span>Tek çubuk alanı (As₁):</span>
+              <span className="font-mono font-black text-amber-600 dark:text-amber-400 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">
+                {formatNumber(calculateBarArea(diameter))} mm²
+              </span>
+            </p>
+          </div>
+
+          {/* Donatı Adedi */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-white/5 bg-gradient-to-br from-slate-50 to-white/40 dark:from-slate-950/40 dark:to-slate-900/10 p-4 shadow-sm hover:shadow transition-all duration-300 hover:border-slate-300 dark:hover:border-white/10">
+            <label className="mb-2.5 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              <Layers3 className="h-3.5 w-3.5 text-amber-500" />
+              Donatı Adedi (n)
+            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleDecrement}
+                className="h-11 w-11 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 hover:border-amber-500/40 dark:hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400 text-slate-800 dark:text-slate-100 active:scale-95 transition-all duration-200 shadow-sm"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input
+                inputMode="decimal"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Örn. 5"
+                className="h-11 flex-1 rounded-xl text-center text-base font-black bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-slate-100 font-mono transition-all duration-200 shadow-inner"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleIncrement}
+                className="h-11 w-11 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 hover:border-amber-500/40 dark:hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400 text-slate-800 dark:text-slate-100 active:scale-95 transition-all duration-200 shadow-sm"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
+              Kroki ve eşdeğer donatı alanı canlı güncellenir.
+            </p>
+          </div>
+
+          {/* Gelişmiş Parametreler Akordiyonu */}
+          <div className="rounded-2xl border border-slate-200/60 dark:border-white/5 bg-gradient-to-br from-slate-50 to-white/40 dark:from-slate-950/40 dark:to-slate-900/10 p-4 shadow-sm hover:shadow transition-all duration-300 hover:border-slate-300 dark:hover:border-white/10">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex w-full items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+            >
+              <div className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4 text-amber-500" />
+                <span>Gelişmiş Kesit (TS 500)</span>
+              </div>
+              {showAdvanced ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+            </button>
+            {showAdvanced && (
+              <div className="mt-3 grid gap-3 grid-cols-3 border-t border-slate-200/50 dark:border-white/5 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">b (cm)</label>
+                  <Input
+                    type="number" min="10" max="200" value={widthCm}
+                    onChange={(e) => setWidthCm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
+                    className="h-9 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                  />
                 </div>
-                <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-500 border border-amber-500/20">
-                  <Calculator className="h-5 w-5" />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">c (mm)</label>
+                  <Input
+                    type="number" min="0" max="100" value={coverMm}
+                    onChange={(e) => setCoverMm(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
+                    className="h-9 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Øe (mm)</label>
+                  <Input
+                    type="number" min="4" max="20" value={stirrupDiameterMm}
+                    onChange={(e) => setStirrupDiameterMm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
+                    className="h-9 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                  />
                 </div>
               </div>
+            )}
+          </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
-                {/* Donatı Çapı */}
-                <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 p-4">
-                  <label className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    <CircleGauge className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
-                    Donatı Çapı (Ø)
-                  </label>
-                  <Select
-                    value={String(diameter)}
-                    onValueChange={(value) => setDiameter(Number(value) as Diameter)}
-                  >
-                    <SelectTrigger className="h-12 w-full rounded-xl font-bold border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-800 dark:text-slate-100 text-sm">
-                      <SelectValue placeholder="Çap seçin" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 border-slate-200 dark:border-white/10">
-                      {DIAMETERS.map((item) => (
-                        <SelectItem key={item} value={String(item)}>
-                          Ø{item} mm (As1 = {formatNumber(calculateBarArea(item))} mm²)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                    Tek çubuk alanı:{" "}
-                    <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                      {formatNumber(calculateBarArea(diameter))} mm<sup>2</sup>
-                    </span>
-                  </p>
-                </div>
+          {/* TS 500 Aralık Uyarısı / Görsel Range Progress Bar */}
+          {ts500Check && (() => {
+            const isViolated = ts500Check.status === "violated";
+            const maxVal = Math.max(ts500Check.netSpacingMm * 1.25, ts500Check.minSpacingMm * 1.6, 50);
+            const limitPercent = (ts500Check.minSpacingMm / maxVal) * 100;
+            const currentPercent = Math.min(100, Math.max(0, (ts500Check.netSpacingMm / maxVal) * 100));
 
-                {/* Donatı Adedi with increment buttons */}
-                <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 p-4">
-                  <label className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                    <Layers3 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
-                    Donatı Adedi (n)
-                  </label>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleDecrement}
-                      className="h-12 w-12 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-100 active:scale-95 transition-transform"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      inputMode="decimal"
-                      value={quantity}
-                      onChange={(event) => setQuantity(event.target.value)}
-                      placeholder="Örn. 5"
-                      className="h-12 flex-1 rounded-xl text-center text-base font-black bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-slate-900 dark:text-slate-100 font-mono"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleIncrement}
-                      className="h-12 w-12 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-slate-100 active:scale-95 transition-transform"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400">
-                    Krokide yerleşimi anında izlemek için butonları kullanın.
-                  </p>
-                </div>
-              </div>
-
-              {/* Gelişmiş Parametreler Akordiyonu */}
-              <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/20 p-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex w-full items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <Settings2 className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                    <span>Gelişmiş Yerleşim Ayarları (TS 500)</span>
-                  </div>
-                  {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-
-                {showAdvanced && (
-                  <div className="mt-4 grid gap-4 sm:grid-cols-3 border-t border-slate-200 dark:border-white/5 pt-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Eleman Genişliği (b, cm)</label>
-                      <Input
-                        type="number"
-                        min="10"
-                        max="200"
-                        value={widthCm}
-                        onChange={(e) => setWidthCm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
-                        className="h-10 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pas Payı (c, mm)</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={coverMm}
-                        onChange={(e) => setCoverMm(e.target.value === "" ? "" : Math.max(0, Number(e.target.value)))}
-                        className="h-10 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Etriye Çapı (Øe, mm)</label>
-                      <Input
-                        type="number"
-                        min="4"
-                        max="20"
-                        value={stirrupDiameterMm}
-                        onChange={(e) => setStirrupDiameterMm(e.target.value === "" ? "" : Math.max(1, Number(e.target.value)))}
-                        className="h-10 rounded-lg text-xs font-mono font-bold bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* TS 500 Net Spacing Checker & Alert Box */}
-            {ts500Check && (
+            return (
               <div
                 className={cn(
-                  "rounded-2xl p-5 border transition-all duration-300 shadow-sm",
-                  ts500Check.status === "violated"
-                    ? "bg-red-500/5 dark:bg-red-500/5 border-red-200 dark:border-red-500/20 text-red-950 dark:text-red-200"
-                    : "bg-emerald-500/5 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-950 dark:text-emerald-200"
+                  "rounded-2xl p-4 border transition-all duration-300 shadow-sm",
+                  isViolated
+                    ? "bg-red-500/5 border-red-200/60 dark:border-red-500/20 text-red-950 dark:text-red-200"
+                    : "bg-emerald-500/5 border-emerald-200/60 dark:border-emerald-500/20 text-emerald-950 dark:text-emerald-200"
                 )}
               >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      "rounded-xl p-2 shrink-0 border",
-                      ts500Check.status === "violated"
-                        ? "bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400"
-                        : "bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                    )}
-                  >
-                    <AlertTriangle className="h-5 w-5" />
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    "rounded-lg p-1.5 shrink-0 border",
+                    isViolated
+                      ? "bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400"
+                      : "bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                  )}>
+                    <AlertTriangle className="h-4 w-4" />
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-black uppercase tracking-wider leading-none">
-                      {ts500Check.status === "violated"
-                        ? "TS 500 Md. 7.4.1 Net Aralık İhlali"
-                        : "TS 500 Net Aralık Kriteri Sağlandı"}
-                    </h3>
-                    <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
-                      {ts500Check.status === "violated" ? (
-                        <>
-                          Birinci sıradaki donatılar arasındaki net mesafe (
-                          <strong className="text-red-600 dark:text-red-400 font-mono">{ts500Check.netSpacingMm.toFixed(1)} mm</strong>
-                          ), minimum limit sınırının (
-                          <strong className="text-amber-600 dark:text-amber-400 font-mono">{ts500Check.minSpacingMm.toFixed(1)} mm</strong>
-                          ) altındadır! Bu durum agrega kilitlenmesine ve boşluklu beton (bal peteği) oluşmasına yol açar.
-                        </>
-                      ) : (
-                        <>
-                          Yerleştirilen donatıların net aralığı (
-                          <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{ts500Check.netSpacingMm.toFixed(1)} mm</strong>
-                          ), TS 500 alt limiti olan (
-                          <strong className="text-amber-600 dark:text-amber-400 font-mono">{ts500Check.minSpacingMm.toFixed(1)} mm</strong>
-                          ) değerinin üzerindedir. Taze beton dökümü için güvenlidir.
-                        </>
-                      )}
-                    </p>
-                    {ts500Check.status === "violated" && (
-                      <div className="border-t border-red-200 dark:border-red-500/10 pt-3 mt-2 space-y-1.5 text-xs text-slate-700 dark:text-slate-300">
-                        <span className="font-bold text-red-700 dark:text-red-300 block">Yapısal Çözüm Önerileri:</span>
-                        <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-slate-400">
-                          <li>Çubuk çapını büyüterek adet sayısını azaltın (Örn: 5Ø14 yerine 4Ø16).</li>
-                          <li>İkinci yatay donatı sırasına geçerek tek sıradaki yoğunluğu düşürün.</li>
-                          <li>Kiriş kesit genişliğini (b) artırın.</li>
+                  <div className="space-y-3 flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[10px] font-black uppercase tracking-wider leading-none">
+                        {isViolated ? "TS 500 Net Aralık İhlali" : "TS 500 Aralık Kriteri ✓"}
+                      </h3>
+                      <span className={cn(
+                        "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border text-[8px] tracking-wide",
+                        isViolated
+                          ? "bg-red-500/20 border-red-500/20 text-red-700 dark:text-red-400"
+                          : "bg-emerald-500/20 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                      )}>
+                        {isViolated ? "Uyumsuz" : "Uyumlu"}
+                      </span>
+                    </div>
+
+                    {/* Görsel Limit Progress Bar */}
+                    <div className="relative pt-1">
+                      <div className="relative h-2.5 w-full rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden shadow-inner">
+                        {/* Safe / Violated Color Bar */}
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-500",
+                            isViolated
+                              ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_0_12px_rgba(239,68,68,0.4)]"
+                              : "bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                          )}
+                          style={{ width: `${currentPercent}%` }}
+                        />
+                        {/* Limit line marker in the track */}
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-slate-600 dark:bg-white/60 z-10"
+                          style={{ left: `${limitPercent}%` }}
+                        />
+                      </div>
+                      
+                      <div className="mt-2 flex items-center justify-between text-[9px] font-mono text-slate-500 dark:text-slate-400">
+                        <span className={cn("font-bold", isViolated ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
+                          Mevcut (s) = {ts500Check.netSpacingMm.toFixed(1)} mm
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 font-bold">
+                          Min. Limit = {ts500Check.minSpacingMm.toFixed(1)} mm
+                        </span>
+                      </div>
+                    </div>
+
+                    {isViolated && (
+                      <div className="mt-1 border-t border-red-500/10 pt-2 animate-in fade-in duration-200">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 mb-1">Düzeltmek İçin Öneriler:</p>
+                        <ul className="list-disc pl-3.5 space-y-0.5 text-[9px] leading-3.5 text-slate-600 dark:text-slate-400">
+                          <li>Çubuk sayısını azaltın ve daha büyük çaplı donatı seçin.</li>
+                          <li>İkinci donatı sırasına geçiş yapın (çift sıra yerleşim).</li>
+                          <li>Kiriş enkesit genişliğini (b) artırın.</li>
                         </ul>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            );
+          })()}
 
-          {/* Sağ Kolon: Canlı Sonuç Raporu & CAD Kroki (Sticky) */}
-          <div className="lg:sticky lg:top-6 space-y-6">
-            <section className="overflow-hidden rounded-[28px] border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 shadow-sm dark:shadow-2xl backdrop-blur-md">
-              {/* Canlı Sonuç Header */}
-              <div className="bg-slate-50/80 dark:bg-black/40 border-b border-slate-200 dark:border-white/5 p-5 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">CANLI ANALİZ WORKBENCH</p>
-                  <h2 className="mt-1 text-xl font-black text-slate-900 dark:text-white">Toplam Donatı Alanı</h2>
-                </div>
-                <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-500 border border-amber-500/20">
-                  <Sigma className="h-5 w-5" />
-                </div>
-              </div>
-
-              {/* Canlı Sonuç Gövdesi */}
-              <div className="p-6 space-y-5">
-                {result ? (
-                  <>
-                    <div className="space-y-1 border-b border-slate-100 dark:border-white/5 pb-4">
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Teorik Enkesit Alanı (As)</span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-mono text-5xl font-black text-slate-900 dark:text-white tracking-tight tabular-nums xl:text-6xl">
-                          {formatNumber(result.totalArea)}
-                        </span>
-                        <span className="text-base font-bold text-slate-400 dark:text-slate-500">mm<sup>2</sup></span>
-                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-500/5 px-2 py-0.5 border border-amber-500/10 rounded ml-2">
-                          {formatNumber(result.totalArea / 100)} cm<sup>2</sup>
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-mono text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 p-2.5 rounded mt-3 leading-relaxed border border-slate-100 dark:border-white/5">
-                        {result.formula}
-                      </p>
-                    </div>
-
-                    {/* Donatı Düzeni Krokisi - CAD Blueprint */}
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">YERLEŞİM KROKİSİ (GENİŞLETİLMİŞ GÖRÜNÜM)</span>
-                      <RebarSectionSketch
-                        diameterMm={diameter}
-                        quantity={result.quantity}
-                        widthCm={activeWidthCm}
-                        coverMm={activeCoverMm}
-                        stirrupDiameterMm={activeStirrupDiameterMm}
-                        className="w-full"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/5 p-8 text-center text-slate-400">
-                    <p className="text-base font-bold">Hesap bekleniyor</p>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      Sonuç ve kroki analizi için adet alanına geçerli bir sayı girin.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-
+          {/* Formül özeti */}
+          {result && (
+            <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-white/40 dark:from-slate-950/40 dark:to-slate-900/10 border border-slate-200/60 dark:border-white/5 p-3 shadow-sm">
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Hesap Formülü (TS 500 Md. 7.1)</p>
+              <p className="text-[10px] font-mono text-slate-600 dark:text-slate-400 leading-5">{result.formula}</p>
+            </div>
+          )}
         </div>
 
-        {/* 2. Bölüm: Eşdeğerlik Analizi & Pratik Standart Kılavuzları */}
-        <div className="mt-8 grid gap-8 lg:grid-cols-[3fr_2fr] items-start">
-          
-          {/* Eşdeğer Donatı Tablosu */}
-          <section className="rounded-[28px] border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 p-6 shadow-sm dark:shadow-2xl backdrop-blur-md">
-            <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">ALTERNATİFLER</p>
-                <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white font-sans">Eşdeğer Donatı Analiz Tablosu</h2>
-              </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-500 border border-amber-500/20">
-                <EqualApproximately className="h-5 w-5" />
+        {/* ══ ORTA PANEL: CAD WORKBENCH ══ */}
+        <div className="overflow-y-auto flex flex-col bg-slate-950/5 dark:bg-slate-950/40">
+          {/* Workbench başlık */}
+          <div className="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-white/5 bg-white/60 dark:bg-black/30">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Canlı Analiz Workbench</p>
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">CAD Yerleşim Önizlemesi</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              {result && (
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">Toplam As</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-mono text-2xl font-black text-slate-900 dark:text-white tabular-nums">
+                      {formatNumber(result.totalArea)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500">mm²</span>
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/15">
+                      {formatNumber(result.totalArea / 100)} cm²
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="rounded-xl bg-amber-500/10 p-2 text-amber-600 dark:text-amber-500 border border-amber-500/20">
+                <Sigma className="h-4 w-4" />
               </div>
             </div>
+          </div>
 
+          {/* CAD Viewport Status Bar / Toolbar */}
+          <div className="shrink-0 flex items-center justify-between px-5 py-2 border-b border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-black/20 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 font-semibold text-slate-600 dark:text-slate-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                ÖLÇEK: 1/10
+              </span>
+              <span className="text-slate-300 dark:text-slate-800">|</span>
+              <span className="hidden sm:inline">GRID: 24px</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full bg-slate-200/50 dark:bg-white/5 border border-slate-300/30 dark:border-white/5 text-[9px] uppercase tracking-wider text-slate-400">
+                Live Drafting
+              </span>
+            </div>
+          </div>
+
+          {/* CAD SVG alanı — kalan yüksekliği doldurur — Izgara desenli arka plan */}
+          <div
+            className="flex-1 flex items-center justify-center p-4 min-h-0 bg-slate-50 dark:bg-[#070a10] text-slate-200 dark:text-zinc-800/60"
+            style={{
+              backgroundImage: "radial-gradient(circle, currentColor 1.2px, transparent 1.2px)",
+              backgroundSize: "24px 24px"
+            }}
+          >
             {result ? (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-slate-950/40">
+              <div className="w-full h-full flex flex-col">
+                <RebarSectionSketch
+                  diameterMm={diameter}
+                  quantity={result.quantity}
+                  widthCm={activeWidthCm}
+                  coverMm={activeCoverMm}
+                  stirrupDiameterMm={activeStirrupDiameterMm}
+                  className="w-full h-full"
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 dark:border-white/10 p-12 text-center bg-white/40 dark:bg-slate-900/10">
+                <p className="text-base font-bold text-slate-500">Hesap bekleniyor</p>
+                <p className="mt-2 text-xs text-slate-400">Adet alanına geçerli bir sayı girin.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ══ SAĞ PANEL: EŞDEĞER TABLO + REFERANSLAR ══ */}
+        <div className="overflow-y-auto flex flex-col bg-white/40 dark:bg-slate-950/20">
+
+          {/* Eşdeğer Tablo Başlığı */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-3.5 border-b border-slate-200 dark:border-white/5 bg-white/60 dark:bg-black/20">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Alternatifler</p>
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">Eşdeğer Donatı Tablosu</h2>
+            </div>
+            <div className="rounded-xl bg-amber-500/10 p-2 text-amber-600 dark:text-amber-500 border border-amber-500/20">
+              <EqualApproximately className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Tablo */}
+          <div className="flex-1 overflow-y-auto">
+            {result ? (
+              <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50 dark:bg-slate-950">
+                  <TableHeader className="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-white/5 shadow-sm">
                     <TableRow className="border-b border-slate-200 dark:border-white/5 hover:bg-transparent">
-                      <TableHead className="text-slate-800 dark:text-slate-300 font-bold">Donatı Çapı</TableHead>
-                      <TableHead className="text-slate-800 dark:text-slate-300 font-bold">Tek Çubuk</TableHead>
-                      <TableHead className="text-slate-800 dark:text-slate-300 font-bold">Gerekli Adet</TableHead>
-                      <TableHead className="text-slate-800 dark:text-slate-300 font-bold">Sağlanan Alan</TableHead>
-                      <TableHead className="text-right text-slate-800 dark:text-slate-300 font-bold">Alan Fazlalığı</TableHead>
+                      <TableHead className="text-[10px] text-slate-700 dark:text-slate-300 font-black py-2.5">Çap</TableHead>
+                      <TableHead className="text-[10px] text-slate-700 dark:text-slate-300 font-black py-2.5">Tek As₁</TableHead>
+                      <TableHead className="text-[10px] text-slate-700 dark:text-slate-300 font-black py-2.5">Adet</TableHead>
+                      <TableHead className="text-[10px] text-slate-700 dark:text-slate-300 font-black py-2.5">Toplam</TableHead>
+                      <TableHead className="text-right text-[10px] text-slate-700 dark:text-slate-300 font-black py-2.5">Fazlalık (Fark)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {equivalentRows.map((row) => {
                       const isActive = row.diameter === diameter;
-
+                      const surplusPercent = result.totalArea > 0 ? (row.surplusArea / result.totalArea) * 100 : 0;
                       return (
                         <TableRow
                           key={row.diameter}
                           className={cn(
                             "border-b border-slate-100 dark:border-white/5 transition-colors cursor-pointer group",
                             isActive
-                              ? "bg-amber-500/5 dark:bg-amber-500/10 hover:bg-amber-500/10 dark:hover:bg-amber-500/15"
+                              ? "bg-amber-500/8 dark:bg-amber-500/10 hover:bg-amber-500/12 dark:hover:bg-amber-500/15"
                               : "hover:bg-slate-50 dark:hover:bg-white/5"
                           )}
                           onClick={() => {
@@ -487,25 +511,56 @@ export function RebarCalculator() {
                             }
                           }}
                         >
-                          <TableCell className="font-black text-slate-900 dark:text-white">
-                            <div className="flex items-center gap-2">
+                          <TableCell className="py-2 font-black text-sm text-slate-900 dark:text-white">
+                            <div className="flex items-center gap-1.5">
                               <span>Ø{row.diameter}</span>
                               {isActive ? (
-                                <Badge className="rounded-full bg-amber-500 hover:bg-amber-600 px-2 py-0.5 text-[9px] font-black text-slate-950">
-                                  SEÇİLİ
+                                <Badge className="rounded-full bg-amber-500 hover:bg-amber-600 px-1.5 py-0 text-[8px] font-black text-slate-950">
+                                  ✓
                                 </Badge>
                               ) : (
-                                <Badge className="rounded-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:border-amber-500/20 px-2 py-0.5 text-[9px] border border-transparent dark:border-white/5 transition-colors opacity-80 group-hover:opacity-100">
-                                  SEÇ
-                                </Badge>
+                                <span className="text-[8px] text-slate-400 dark:text-slate-600 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors font-bold uppercase">
+                                  seç
+                                </span>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono tabular-nums text-slate-500 dark:text-slate-400">{formatNumber(row.barArea)} mm<sup>2</sup></TableCell>
-                          <TableCell className="font-mono font-bold text-slate-800 dark:text-white tabular-nums">{row.quantity} adet</TableCell>
-                          <TableCell className="font-mono font-bold text-amber-600 dark:text-amber-400 tabular-nums">{formatNumber(row.providedArea)} mm<sup>2</sup></TableCell>
-                          <TableCell className="text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                            +{formatNumber(row.surplusArea)} mm<sup>2</sup>
+                          <TableCell className="py-2 font-mono text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
+                            {formatNumber(row.barArea)}
+                          </TableCell>
+                          <TableCell className="py-2 font-mono font-bold text-sm text-slate-800 dark:text-white tabular-nums">
+                            {row.quantity}
+                          </TableCell>
+                          <TableCell className="py-2 font-mono text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                            {formatNumber(row.providedArea)}
+                          </TableCell>
+                          <TableCell className="py-2 text-right tabular-nums">
+                            <div className="flex flex-col items-end gap-1.5">
+                              <span className={cn(
+                                "font-mono text-[10px] font-bold leading-none",
+                                surplusPercent <= 12
+                                  ? "text-emerald-600 dark:text-emerald-450"
+                                  : surplusPercent <= 25
+                                    ? "text-amber-650 dark:text-amber-450"
+                                    : "text-rose-600 dark:text-rose-450"
+                              )}>
+                                +{formatNumber(row.surplusArea)} mm²
+                              </span>
+                              {/* Visual Efficiency Bar */}
+                              <div className="w-14 h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-300",
+                                    surplusPercent <= 12
+                                      ? "bg-emerald-500"
+                                      : surplusPercent <= 25
+                                        ? "bg-amber-500"
+                                        : "bg-rose-500"
+                                  )}
+                                  style={{ width: `${Math.min(100, Math.max(10, surplusPercent))}%` }}
+                                />
+                              </div>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -514,54 +569,38 @@ export function RebarCalculator() {
                 </Table>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 dark:border-white/5 p-6 text-sm text-slate-500">
-                Lütfen alternatif donatı tablosunun listelenmesi için adet alanına geçerli bir sayı girin.
+              <div className="p-6 text-sm text-slate-400 text-center">
+                Tablo için geçerli adet girin.
               </div>
             )}
-          </section>
+          </div>
 
-          {/* TS 500 ve EC2 Pratik Standart Kılavuzları */}
-          <section className="rounded-[28px] border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/40 p-6 space-y-6 shadow-sm dark:shadow-2xl backdrop-blur-md">
-            <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">REFERANSLAR</p>
-                <h2 className="mt-1 text-2xl font-black text-slate-900 dark:text-white">Yönetmelik Detay Notları</h2>
-              </div>
-              <div className="rounded-2xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-500 border border-amber-500/20">
-                <BadgeCheck className="h-5 w-5" />
-              </div>
+          {/* Referanslar — sağ panelin altı */}
+          <div className="shrink-0 border-t border-slate-200 dark:border-white/5 p-4 space-y-2.5 bg-white/40 dark:bg-slate-950/20">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Yönetmelik Notları</p>
+              <BadgeCheck className="h-3.5 w-3.5 text-amber-500" />
             </div>
-
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-slate-50 dark:bg-white/5 p-4 border border-slate-200 dark:border-white/5">
-                <p className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">TS 500 Madde 7.4.1 (Aralık Sınırı)</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-400">
-                  Boyuna donatılar arasındaki net yatay mesafe, donatı anma çapının 1.5 katından ve 25 mm'den az olamaz. Bu kural betonun yerleşim güvenliğini sağlar.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 dark:bg-white/5 p-4 border border-slate-200 dark:border-white/5">
-                <p className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">TS 500 Denklem 7.1 (Çelik Alanı)</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-400 font-mono">
-                  As = n x (π x Ø² / 4)
-                </p>
-                <p className="mt-2 text-xs text-slate-500">
-                  Toplam donatı alanı, tek bir çubuğun geometrik dairesel alanının yerleştirilen toplam adetle çarpımı ile bulunur.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-amber-500/5 p-4 border border-amber-500/10 dark:border-amber-500/10">
-                <p className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
-                  <Info className="h-3.5 w-3.5 shrink-0" />
-                  Pratik Şantiye Yorumu
-                </p>
-                <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-400">
-                  Eşdeğer tablomuz hedef alanın gerisinde kalmamak için gereken adet sayılarını otomatik olarak yukarı yuvarlar. Tasarım esnasında eleman detaylandırmasına ve pas payı toleranslarına kesinlikle dikkat edilmelidir.
-                </p>
-              </div>
+            <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 p-3">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">TS 500 Md. 7.4.1</p>
+              <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">
+                Net yatay aralık ≥ max(25 mm, 1.5Ø). Aksi hâlde agrega kilitlenmesi oluşur.
+              </p>
             </div>
-          </section>
-
+            <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 p-3">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">TS 500 Denklem 7.1</p>
+              <p className="mt-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">As = n × (π × Ø² / 4)</p>
+            </div>
+            <div className="rounded-xl bg-amber-500/5 border border-amber-500/10 p-3">
+              <p className="text-[9px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                <Info className="h-3 w-3 shrink-0" />
+                Şantiye Notu
+              </p>
+              <p className="mt-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">
+                Tablo adet sayılarını yukarı yuvarlar. Detaylandırmada pas payı toleranslarına dikkat.
+              </p>
+            </div>
+          </div>
         </div>
 
       </div>

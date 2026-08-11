@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, FileText, Wrench } from "lucide-react";
+import { ArrowRight, FileText, Network, Wrench } from "lucide-react";
+import { SitePageHeader, SitePageShell } from "@/components/site-page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getArticleList } from "@/lib/articles-data";
@@ -65,21 +66,23 @@ export default function TopicMapPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
 
-      <div className="mx-auto min-h-screen max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-12 max-w-3xl">
-          <Badge className="rounded-full bg-blue-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300">
-            Keşif merkezi
-          </Badge>
-          <h1 className="mt-4 text-4xl font-black tracking-tight text-zinc-950 dark:text-white md:text-5xl">Konu haritası</h1>
-          <p className="mt-4 text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
-            Sitedeki tüm kategori dallarını, makaleleri ve hesap araçlarını tek ekranda görün. Araçlar ayrı bir kategori
-            olarak kalır; teknik içerikler kendi dallarında listelenir.
-          </p>
-        </div>
+      <SitePageShell width="wide">
+        <SitePageHeader
+          eyebrow="Keşif merkezi"
+          title="Konu haritası"
+          description="Sitedeki tüm kategori dallarını, makaleleri ve hesap araçlarını tek ekranda görün. Teknik içerikler kendi dallarında, araçlar ise çalışma alanlarında düzenlenir."
+          icon={<Network className="h-6 w-6" />}
+          meta={
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{articles.length} makale</Badge>
+              <Badge variant="outline">{tools.length + calculationPages.length} araç</Badge>
+            </div>
+          }
+        />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="mt-10 grid gap-6 lg:grid-cols-2">
           {treeData.map(({ section, articles: sectionArticles, tools: sectionTools }) => (
-            <section key={section.id} className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <section key={section.id} className="site-panel rounded-xl p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
@@ -88,7 +91,7 @@ export default function TopicMapPage() {
                   <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">{section.title}</h2>
                   <p className="mt-2 text-sm leading-7 text-zinc-600 dark:text-zinc-400">{section.description}</p>
                 </div>
-                <Button asChild variant="outline" className="rounded-full">
+                <Button asChild variant="outline">
                   <Link href={section.href}>Kategoriye git</Link>
                 </Button>
               </div>
@@ -99,10 +102,10 @@ export default function TopicMapPage() {
                     <Link
                       key={tool.id}
                       href={tool.href}
-                      className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 transition-colors hover:border-blue-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-800 dark:hover:bg-zinc-900"
+                      className="site-link-card flex items-center justify-between rounded-md border border-border bg-background/70 px-4 py-4 hover:bg-card"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300">
                           <Wrench className="h-4 w-4" />
                         </div>
                         <div>
@@ -120,10 +123,10 @@ export default function TopicMapPage() {
                     <Link
                       key={article.slug}
                       href={`/${article.slug}`}
-                      className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 transition-colors hover:border-blue-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-blue-800 dark:hover:bg-zinc-900"
+                      className="site-link-card flex items-center justify-between rounded-md border border-border bg-background/70 px-4 py-4 hover:bg-card"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-muted-foreground">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div>
@@ -140,10 +143,10 @@ export default function TopicMapPage() {
           ))}
 
           {/* Gelişmiş Hesaplama Modülleri Kartı */}
-          <section className="rounded-[28px] border border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 via-zinc-950/20 to-emerald-500/10 p-6 shadow-sm dark:border-emerald-500/20 dark:from-zinc-900/60 dark:to-zinc-950">
+          <section className="site-panel rounded-xl border-blue-500/25 bg-gradient-to-br from-blue-500/5 via-card to-amber-500/8 p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">
+                <p className="font-mono text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">
                   Gelişmiş Modüller
                 </p>
                 <h2 className="mt-2 text-2xl font-black text-zinc-950 dark:text-white">Mühendislik Hesaplamaları</h2>
@@ -151,7 +154,7 @@ export default function TopicMapPage() {
                   TS 500, TBDY 2018 ve Çevre Şehircilik birim fiyat standartlarına dayalı makro boyutlandırma ve maliyet modülleri.
                 </p>
               </div>
-              <Button asChild variant="outline" className="rounded-full border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400">
+              <Button asChild variant="outline" className="border-blue-500/30 text-blue-700 dark:text-blue-300">
                 <Link href="/hesaplamalar">Tümünü aç</Link>
               </Button>
             </div>
@@ -161,10 +164,10 @@ export default function TopicMapPage() {
                 <Link
                   key={page.id}
                   href={page.href}
-                  className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 transition-colors hover:border-emerald-300 hover:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-800 dark:hover:bg-zinc-900"
+                  className="site-link-card flex items-center justify-between rounded-md border border-border bg-background/70 px-4 py-4 hover:bg-card"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
                       <Wrench className="h-4 w-4" />
                     </div>
                     <div>
@@ -179,21 +182,21 @@ export default function TopicMapPage() {
           </section>
         </div>
 
-        <section className="mt-10 rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="site-panel mt-10 rounded-xl p-6">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Sabit sayfalar</p>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {STATIC_PAGES.map((page) => (
               <Link
                 key={page.href}
                 href={page.href}
-                className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm font-bold text-zinc-800 transition-colors hover:border-blue-300 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-blue-800 dark:hover:text-blue-300"
+                className="site-link-card rounded-md border border-border bg-background/70 px-4 py-4 text-sm font-bold text-foreground hover:bg-card hover:text-blue-700 dark:hover:text-blue-300"
               >
                 {page.label}
               </Link>
             ))}
           </div>
         </section>
-      </div>
+      </SitePageShell>
     </>
   );
 }

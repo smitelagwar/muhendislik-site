@@ -40,7 +40,7 @@ export function ConcreteToolShell({
           className="mb-8"
           backLinkClassName={cn(
             concreteMonoFont.className,
-            "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-blue-900 dark:hover:text-blue-300",
+            "inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-300",
           )}
         />
 
@@ -48,7 +48,7 @@ export function ConcreteToolShell({
           <Badge
             className={cn(
               concreteMonoFont.className,
-              "mb-4 rounded-full bg-blue-100 px-4 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-800 hover:bg-blue-100 dark:bg-blue-950/30 dark:text-blue-300",
+              "mb-4 bg-amber-500/10 px-4 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-800 hover:bg-amber-500/15 dark:text-amber-300",
             )}
           >
             {badgeLabel}
@@ -78,10 +78,10 @@ export function ConcreteToolShell({
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     concreteMonoFont.className,
-                    "min-h-[44px] rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
+                    "min-h-[44px] rounded-md border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
                     isActive
-                      ? "border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/30 dark:text-blue-300"
-                      : "border-zinc-200 bg-white/80 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-white",
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                      : "border-border bg-card text-muted-foreground hover:border-blue-500/35 hover:text-blue-700 dark:hover:text-blue-300",
                   )}
                 >
                   {item.label}

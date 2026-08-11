@@ -202,17 +202,17 @@ export function buildArticleMetadata({
 
 export function buildHomeMetadata(): Metadata {
   return buildSeoMetadata({
-    title: "Mühendislik kararlarını hızlandıran premium teknik portal",
+    title: "İnşaat Mühendisliği Hesap Araçları ve Teknik Rehberler",
     description:
-      "İnşa Blog anasayfası: betonarme araçları, deprem mevzuatı, şantiye rehberleri ve bina aşamalarını tek premium yüzeyde toplayan teknik çalışma alanı.",
+      "Mühendis ve mimarlar için yapısal hesap araçları, maliyet ve metraj hesaplamaları, TBDY 2018 rehberleri, şantiye içerikleri ve bina yapım aşamaları.",
     pathname: "/",
     keywords: [
       "inşaat mühendisliği",
       "betonarme hesap araçları",
-      "deprem yönetmeliği",
+      "maliyet ve metraj hesabı",
+      "TBDY 2018",
       "şantiye rehberi",
       "bina aşamaları",
-      "imar hesaplayıcı",
     ],
   });
 }

@@ -4,27 +4,27 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-teal-500/35",
+  "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold transition-[background-color,border-color,color,transform] duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   {
     variants: {
       variant: {
-        default: "bg-teal-500 text-zinc-950 hover:bg-teal-400",
+        default: "border border-amber-500 bg-amber-500 text-[#17120a] hover:border-amber-400 hover:bg-amber-400",
         destructive: "bg-red-600 text-white hover:bg-red-700",
         outline:
-          "border border-zinc-200 bg-white/90 text-zinc-900 hover:border-teal-500/45 hover:bg-teal-50 dark:border-border dark:bg-background dark:text-foreground dark:hover:border-teal-400/40 dark:hover:bg-teal-500/10",
-        secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-foreground dark:hover:bg-zinc-700",
-        ghost: "text-zinc-700 hover:bg-teal-50 hover:text-teal-700 dark:text-zinc-200 dark:hover:bg-teal-500/10 dark:hover:text-teal-200",
-        link: "text-teal-700 underline-offset-4 hover:underline dark:text-teal-300",
+          "border border-border bg-card text-foreground hover:border-blue-500/50 hover:bg-secondary",
+        secondary: "border border-border bg-secondary text-secondary-foreground hover:border-amber-500/40 hover:bg-card",
+        ghost: "text-foreground hover:bg-secondary hover:text-amber-700 dark:hover:text-amber-300",
+        link: "min-h-0 text-blue-700 underline-offset-4 hover:underline dark:text-blue-300",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        xs: "h-7 rounded-md px-2 text-xs",
-        sm: "h-8 rounded-md px-3 text-sm",
-        lg: "h-10 rounded-md px-6",
-        icon: "size-9",
-        "icon-xs": "size-7 rounded-md",
-        "icon-sm": "size-8 rounded-md",
-        "icon-lg": "size-10 rounded-md",
+        default: "px-4 py-2",
+        xs: "min-h-8 px-2 text-xs",
+        sm: "min-h-10 px-3 text-sm",
+        lg: "min-h-12 px-6",
+        icon: "size-11 min-h-11",
+        "icon-xs": "size-8 min-h-8",
+        "icon-sm": "size-10 min-h-10",
+        "icon-lg": "size-12 min-h-12",
       },
     },
     defaultVariants: {

@@ -78,7 +78,7 @@ export function PageContextNavigation({
             }}
             className={
               backLinkClassName ??
-              "inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-4 py-2 text-sm font-bold text-muted-foreground backdrop-blur-sm transition-all hover:border-teal-500/30 hover:bg-card hover:text-teal-600 dark:hover:text-teal-400"
+              "inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-card/85 px-4 py-2 text-sm font-bold text-muted-foreground backdrop-blur-sm transition-colors hover:border-amber-500/40 hover:bg-card hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:text-amber-300"
             }
             aria-label={`${resolvedBackLabel} sayfasına dön`}
           >
@@ -104,7 +104,7 @@ export function PageContextNavigation({
                 {isLast ? (
                   <span className="max-w-[220px] truncate text-foreground md:max-w-xs">{item.title}</span>
                 ) : (
-                  <Link href={item.href} className="transition-colors hover:text-teal-600 dark:hover:text-teal-400">
+                  <Link href={item.href} className="transition-colors hover:text-blue-700 dark:hover:text-blue-300">
                     {item.title}
                   </Link>
                 )}

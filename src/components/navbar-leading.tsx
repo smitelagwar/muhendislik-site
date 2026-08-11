@@ -14,12 +14,14 @@ export function NavbarLeading() {
   }
 
   return (
-    <SiteLogo
-      href="/"
-      priority
-      className="group flex-shrink-0"
-      lightClassName="h-12 object-contain object-left transition-all duration-500 sm:h-14 lg:h-16 group-data-[scrolled=true]/navbar:h-10 sm:group-data-[scrolled=true]/navbar:h-12"
-      darkClassName="h-12 object-contain object-left transition-all duration-500 sm:h-14 lg:h-16 group-data-[scrolled=true]/navbar:h-10 sm:group-data-[scrolled=true]/navbar:h-12"
-    />
+    <div data-home-navbar-logo className="flex shrink-0 items-center">
+      <SiteLogo
+        href="/"
+        priority
+        className="home-navbar-logo-visual group flex-shrink-0"
+        lightClassName="h-12 object-contain object-left transition-all duration-500 sm:h-14 lg:h-16 group-data-[scrolled=true]/navbar:h-10 sm:group-data-[scrolled=true]/navbar:h-12"
+        darkClassName="h-12 object-contain object-left transition-all duration-500 sm:h-14 lg:h-16 group-data-[scrolled=true]/navbar:h-10 sm:group-data-[scrolled=true]/navbar:h-12"
+      />
+    </div>
   );
 }

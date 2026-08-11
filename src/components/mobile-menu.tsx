@@ -57,7 +57,7 @@ export function MobileMenu() {
 
         <div
           id="mobile-navigation-drawer"
-          className="fixed right-0 top-0 z-[1001] flex h-[100dvh] w-[84%] max-w-sm flex-col border-l border-border bg-zinc-950 shadow-2xl transition-transform duration-300"
+          className="fixed right-0 top-0 z-[1001] flex h-[100dvh] w-[84%] max-w-sm flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300"
         >
           <div className="flex items-center justify-between border-b border-border p-4">
             <SiteLogo href="/" lightClassName="h-8 w-auto" darkClassName="h-8 w-auto" />
@@ -73,7 +73,7 @@ export function MobileMenu() {
                   key={item.id}
                   href={item.href}
                   onClick={toggleMenu}
-                  className="group flex items-center justify-between rounded-2xl border border-transparent bg-card/60 p-3 transition-colors hover:border-teal-400/25 hover:bg-card"
+                  className="group flex min-h-12 items-center justify-between rounded-md border border-border bg-card/75 p-3 transition-colors hover:border-amber-500/35 hover:bg-card"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-muted-foreground transition-colors group-hover:text-primary">{MOBILE_ICONS[item.id]}</div>
@@ -85,7 +85,7 @@ export function MobileMenu() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border bg-zinc-950 p-6">
+          <div className="flex items-center justify-between border-t border-border bg-background p-6">
             <span className="text-sm font-medium text-muted-foreground">Görünüm</span>
             <ModeToggle />
           </div>
