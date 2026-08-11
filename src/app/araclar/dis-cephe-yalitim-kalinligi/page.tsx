@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { ExternalWallInsulationCalculator } from "@/components/external-wall-insulation-calculator";
 
 export const metadata: Metadata = {
-  title: "Bölgesel Dış Cephe Yalıtım Kalınlığı",
+  title: "Dış Duvar U Değeri ve Yalıtım Kalınlığı",
   description:
-    "TS 825:2024 yaklaşımıyla il, ilçe, duvar tipi ve malzemeye göre dış cephe yalıtım kalınlığı önerisini hızlıca görün.",
+    "TS 825:2024'e göre dış duvar U değerini, mevcut yalıtımı ve gereken uygulama kalınlığını kontrol edin.",
   alternates: {
     canonical: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
   },

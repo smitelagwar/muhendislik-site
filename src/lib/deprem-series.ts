@@ -1,21 +1,9 @@
 import type { ArticleData } from "./articles-data";
+import type { DepremSeriesId, RegulationStatusItem } from "./deprem-content-types";
 import { normalizeSearchValue } from "./search-utils";
 import { TOOLS_HUB_HREF } from "./tools-data";
 
-export type DepremSeriesId =
-  | "tbdy"
-  | "ts500"
-  | "yangin"
-  | "otopark"
-  | "imar"
-  | "bep"
-  | "su-zemin"
-  | "engelsiz"
-  | "eurocode"
-  | "akustik"
-  | "asansor"
-  | "isg"
-  | "cevre";
+export type { DepremSeriesId } from "./deprem-content-types";
 
 export interface DepremSeriesDefinition {
   id: DepremSeriesId;
@@ -50,44 +38,77 @@ export interface DepremArticleSummary {
 export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
   {
     id: "tbdy",
-    label: "TBDY 2018 Rehberi",
+    label: "TBDY 2018: Analiz",
     categoryLabels: ["Deprem Yönetmeliği", "Yönetmelik Güncellemesi", "TBDY 2018 Rehberi"],
-    description: "Deprem yer hareketi düzeyleri, spektrum, düzensizlik ve temel TBDY kararları.",
-    keywords: ["tbdy", "deprem", "spektrum", "süneklik", "düzensizlik", "R", "D", "I"],
+    description: "Deprem verisi, analiz yöntemleri, modelleme ve genel tasarım kararları.",
+    keywords: ["tbdy", "deprem", "spektrum", "düzensizlik", "analiz", "dts", "bys"],
     priority: 10,
     accentClass: "text-red-600 dark:text-red-400",
     relatedToolHref: "/deprem-yonetmelik/araclar/esit-deprem-yuku",
     slugPrefixes: ["tbdy-"],
   },
   {
+    id: "tbdy-betonarme",
+    label: "TBDY Betonarme Detayları",
+    categoryLabels: ["TBDY Betonarme Detayları"],
+    description: "Kiriş, kolon, perde, birleşim ve diyaframların deprem detayları.",
+    keywords: ["kolon", "kiriş", "perde", "etriye", "birleşim", "diyafram"],
+    priority: 20,
+    accentClass: "text-orange-600 dark:text-orange-400",
+    relatedToolHref: "/kategori/araclar/donati-hesabi",
+    slugPrefixes: ["tbdy-betonarme-"],
+  },
+  {
     id: "ts500",
     label: "TS 500 Betonarme",
     categoryLabels: ["TS 500 Betonarme", "TS 500 Rehberi"],
-    description: "Donatı, kenetlenme, kolon P-M etkileşimi ve eleman bazlı betonarme tasarım kararları.",
-    keywords: ["ts500", "betonarme", "donatı", "kolon", "kiriş", "döşeme", "pas payı"],
-    priority: 20,
-    accentClass: "text-teal-600 dark:text-teal-400",
+    description: "Taşıma gücü, kullanılabilirlik, donatı ve temel tasarımı kontrolleri.",
+    keywords: ["ts 500", "betonarme", "donatı", "kolon", "kiriş", "döşeme", "temel"],
+    priority: 30,
+    accentClass: "text-blue-600 dark:text-blue-400",
     relatedToolHref: "/kategori/araclar/donati-hesabi",
     slugPrefixes: ["ts500-"],
+  },
+  {
+    id: "mevcut-guclendirme",
+    label: "Mevcut Bina ve Güçlendirme",
+    categoryLabels: ["Mevcut Binalar ve Güçlendirme"],
+    description: "TBDY Bölüm 15, riskli yapı tespiti, performans ve güçlendirme kararları.",
+    keywords: ["mevcut bina", "güçlendirme", "karot", "performans", "riskli yapı"],
+    priority: 40,
+    accentClass: "text-fuchsia-600 dark:text-fuchsia-400",
+    relatedToolHref: TOOLS_HUB_HREF,
+    slugPrefixes: ["mevcut-bina-", "guclendirme-", "riskli-yapi-"],
+  },
+  {
+    id: "yapi-denetimi",
+    label: "Yapı Denetimi ve Malzeme",
+    categoryLabels: ["Yapı Denetimi ve Malzeme"],
+    description: "Statik proje, donatı, beton, numune ve saha kabul süreçleri.",
+    keywords: ["4708", "yapı denetimi", "beton", "ebis", "karot", "ts 708"],
+    priority: 50,
+    accentClass: "text-amber-700 dark:text-amber-400",
+    relatedToolHref: "/kategori/araclar",
+    slugPrefixes: ["yapi-denetimi-"],
   },
   {
     id: "yangin",
     label: "Yangın Yönetmeliği",
     categoryLabels: ["Yangın Yönetmeliği", "BYY 2015 + 2019"],
-    description: "Kaçış yolları, duman tahliyesi, sprinkler, yangın dayanımı ve özel önlemler.",
-    keywords: ["yangın", "bıy", "kaçış", "sprinkler", "duman", "r30", "r60", "r90", "r120"],
-    priority: 30,
-    accentClass: "text-teal-600 dark:text-teal-400",
+    description: "Kaçış, duman kontrolü, sprinkler ve taşıyıcı sistem yangın dayanımı.",
+    keywords: ["yangın", "byy", "kaçış", "sprinkler", "duman", "r60", "r120"],
+    priority: 60,
+    accentClass: "text-orange-600 dark:text-orange-400",
     relatedToolHref: TOOLS_HUB_HREF,
-    slugPrefixes: ["byy-"],
+    slugPrefixes: ["byy-", "yangin-", "sprinkler-", "duman-", "kacis-", "yuksek-binalarda-", "bodrum-otopark-mutfak-", "tasiyici-sistemlerin-yangina-"],
   },
   {
     id: "otopark",
     label: "Otopark Yönetmeliği",
     categoryLabels: ["Otopark Yönetmeliği"],
-    description: "Alan hesabı, rampa geometri, havalandırma, yük kombinasyonları ve EV şarj mevzuatı.",
-    keywords: ["otopark", "rampa", "havalandırma", "co", "elektrikli araç", "şarj"],
-    priority: 40,
+    description: "Alan, rampa, havalandırma, taşıyıcı yükler ve elektrikli araç hükümleri.",
+    keywords: ["otopark", "rampa", "havalandırma", "araç", "şarj"],
+    priority: 70,
     accentClass: "text-slate-600 dark:text-slate-300",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["otopark-"],
@@ -96,9 +117,9 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "imar",
     label: "İmar Mevzuatı",
     categoryLabels: ["İmar Mevzuatı"],
-    description: "TAKS, KAKS, kat yükseklikleri, bahçe mesafeleri ve ruhsat süreçleri.",
+    description: "TAKS, KAKS, yapı yüksekliği, çekme mesafeleri ve ruhsat süreçleri.",
     keywords: ["imar", "taks", "kaks", "emsal", "ruhsat", "ifraz", "tevhid"],
-    priority: 50,
+    priority: 80,
     accentClass: "text-emerald-600 dark:text-emerald-400",
     relatedToolHref: "/kategori/araclar/imar-hesaplayici",
     slugPrefixes: ["imar-"],
@@ -107,31 +128,31 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "bep",
     label: "BEP-TR / TS 825",
     categoryLabels: ["Binalarda Enerji Performansı", "BEP-TR / TS 825"],
-    description: "Isı kaybı, U değeri, EKB, ısıl köprü ve yazılım akışı.",
-    keywords: ["bep", "ts 825", "ekb", "ısı yalıtım", "u değeri", "ısıl köprü"],
-    priority: 60,
+    description: "Isı kaybı, U değeri, EKB ve ısıl köprü kontrolleri.",
+    keywords: ["bep", "ts 825", "ekb", "ısı yalıtımı", "u değeri"],
+    priority: 90,
     accentClass: "text-lime-600 dark:text-lime-400",
     relatedToolHref: "/kategori/araclar/dis-cephe-yalitim-kalinligi",
     slugPrefixes: ["bep-"],
   },
   {
     id: "su-zemin",
-    label: "Su ve Zemin Mevzuatı",
-    categoryLabels: ["Su ve Zemin Mevzuatı"],
-    description: "Zemin etüdü, sıvılaşma, zemin-yapı etkileşimi, su yalıtımı ve drenaj.",
-    keywords: ["zemin", "su", "drenaj", "sıvılaşma", "etüd", "yapı etkileşimi", "yalıtım"],
-    priority: 70,
+    label: "Zemin, Temel ve Su",
+    categoryLabels: ["Su ve Zemin Mevzuatı", "Zemin, Temel ve Su"],
+    description: "Zemin etüdü, temel kontrolleri, sıvılaşma, su yalıtımı ve drenaj.",
+    keywords: ["zemin", "temel", "sıvılaşma", "etüt", "drenaj", "yalıtım"],
+    priority: 100,
     accentClass: "text-cyan-600 dark:text-cyan-400",
     relatedToolHref: "/kategori/geoteknik",
-    slugPrefixes: ["zemin-", "su-yalitimi-", "yagmur-suyu-"],
+    slugPrefixes: ["zemin-", "temel-", "su-yalitimi-", "yagmur-suyu-", "tbdy-bolum-16-"],
   },
   {
     id: "engelsiz",
     label: "Engelsiz Tasarım",
     categoryLabels: ["Engelsiz Tasarım"],
-    description: "TS 9111 ve erişilebilirlik kuralları: rampa, koridor, WC ve asansör boyutları.",
-    keywords: ["engelsiz", "ts 9111", "erişilebilirlik", "rampa", "koridor", "asansör"],
-    priority: 80,
+    description: "TS 9111 kapsamında rampa, dolaşım, WC ve asansör boyutları.",
+    keywords: ["engelsiz", "ts 9111", "erişilebilirlik", "rampa", "koridor"],
+    priority: 110,
     accentClass: "text-violet-600 dark:text-violet-400",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["engelsiz-"],
@@ -140,9 +161,9 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "eurocode",
     label: "Eurocode Standartları",
     categoryLabels: ["Eurocode Standartları"],
-    description: "TS EN 1990 / 1991 / 1992 ile yük kombinasyonları ve karşılaştırmalı analiz.",
-    keywords: ["eurocode", "ts en 1990", "ts en 1991", "ts en 1992", "yük", "kar", "rüzgar"],
-    priority: 90,
+    description: "TS EN 1990, 1991 ve 1992 için yük ve betonarme tasarım başlıkları.",
+    keywords: ["eurocode", "ts en 1990", "ts en 1991", "ts en 1992"],
+    priority: 120,
     accentClass: "text-indigo-600 dark:text-indigo-400",
     relatedToolHref: "/kategori/araclar/taban-kesme-kuvveti",
     slugPrefixes: ["eurocode-"],
@@ -151,9 +172,9 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "akustik",
     label: "Akustik ve Gürültü",
     categoryLabels: ["Akustik ve Gürültü"],
-    description: "TS EN ISO 12354 ile yalıtım ve gürültü performansının okunması.",
+    description: "Bina akustiği, ses geçişi ve yalıtım performansı.",
     keywords: ["akustik", "gürültü", "yalıtım", "ts en iso 12354"],
-    priority: 100,
+    priority: 130,
     accentClass: "text-zinc-600 dark:text-zinc-300",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["akustik-"],
@@ -162,9 +183,9 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "asansor",
     label: "Asansör Yönetmeliği",
     categoryLabels: ["Asansör Yönetmeliği"],
-    description: "Boşluk boyutlandırma, sistem seçimi, güvenlik aksesuarları ve deprem davranışı.",
-    keywords: ["asansör", "makine dairesiz", "makine daireli", "bakım", "park", "güvenlik aksesuarı"],
-    priority: 110,
+    description: "Kuyu boyutları, sistem seçimi, güvenlik ve deprem davranışı.",
+    keywords: ["asansör", "kuyu", "bakım", "deprem", "güvenlik"],
+    priority: 140,
     accentClass: "text-teal-700 dark:text-teal-300",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["asansor-"],
@@ -173,9 +194,9 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "isg",
     label: "İSG ve Şantiye Güvenliği",
     categoryLabels: ["İSG ve Şantiye Güvenliği"],
-    description: "Şantiye güvenlik planı, yüksekte çalışma, kazı güvenliği ve elektrik kontrolü.",
-    keywords: ["isg", "şantiye", "yüksekte çalışma", "iskele", "kazı", "topraklama", "elektrik"],
-    priority: 120,
+    description: "Şantiye planı, yüksekte çalışma, kazı ve elektrik güvenliği.",
+    keywords: ["isg", "şantiye", "iskele", "kazı", "elektrik"],
+    priority: 150,
     accentClass: "text-amber-600 dark:text-amber-400",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["isg-"],
@@ -184,69 +205,91 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     id: "cevre",
     label: "Çevre Mevzuatı",
     categoryLabels: ["Çevre Mevzuatı"],
-    description: "ÇED, atık yönetimi, gürültü, toz ve şantiye çevresel yükümlülükleri.",
-    keywords: ["çevre", "çed", "atık", "gürültü", "toz", "yağmur suyu", "filtrasyon"],
-    priority: 130,
+    description: "ÇED, atık, gürültü, toz ve şantiye suyu yükümlülükleri.",
+    keywords: ["çevre", "çed", "atık", "gürültü", "toz"],
+    priority: 160,
     accentClass: "text-green-600 dark:text-green-400",
     relatedToolHref: TOOLS_HUB_HREF,
     slugPrefixes: ["cevre-"],
   },
 ] as const;
 
+export const REGULATION_STATUS_ITEMS: readonly RegulationStatusItem[] = [
+  {
+    id: "tbdy-2018",
+    title: "Türkiye Bina Deprem Yönetmeliği 2018",
+    status: "in-force",
+    statusLabel: "Yürürlükte",
+    verifiedAt: "11 Ağustos 2026",
+    href: "https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi",
+    note: "18 Mart 2018 tarihli metin; 1 Ocak 2019'dan beri yürürlükte.",
+  },
+  {
+    id: "zemin-temel-2019",
+    title: "Zemin ve Temel Etüdü Uygulama Esasları",
+    status: "in-force",
+    statusLabel: "Yürürlükte",
+    verifiedAt: "11 Ağustos 2026",
+    href: "https://bartin.csb.gov.tr/zemin-ve-temel-etudu-uygulama-esaslari-ve-rapor-formatina-dair-teblig-yayimlandi-haber-238675",
+    note: "9 Mart 2019 tarihli Resmî Gazete tebliği.",
+  },
+  {
+    id: "yapi-denetimi",
+    title: "4708 sayılı Yapı Denetimi Mevzuatı",
+    status: "in-force",
+    statusLabel: "Yürürlükte",
+    verifiedAt: "11 Ağustos 2026",
+    href: "https://yapiisleri.csb.gov.tr/yapi-denetimi-daire-baskanligi-mevzuati-90235",
+    note: "Kanun, uygulama yönetmeliği ve beton numunesi düzenlemeleri birlikte izlenir.",
+  },
+  {
+    id: "tbdy-uygulama-taslagi",
+    title: "TBDY Uygulama Esasları Tebliğ Taslağı",
+    status: "draft",
+    statusLabel: "Taslak",
+    verifiedAt: "11 Ağustos 2026",
+    href: "https://obs.imo.org.tr/bulten/news/3812/sosyal-mecralarda-yer-alan-yeni-tbdy-tebligi-hakkinda-duyuru/144309",
+    note: "Resmî Gazete'de yayımlanmış yürürlükte bir mevzuat olarak kullanılmaz.",
+  },
+] as const;
+
 const SERIES_BY_ID = new Map(DEPREM_SERIES.map((series) => [series.id, series] as const));
 
 function normalizeValues(values: Array<string | undefined>): string {
-  return normalizeSearchValue(values.filter((value): value is string => Boolean(value && value.trim().length > 0)).join(" "));
+  return normalizeSearchValue(values.filter((value): value is string => Boolean(value?.trim())).join(" "));
 }
 
 export function getDepremSeriesById(seriesId: DepremSeriesId): DepremSeriesDefinition {
   return SERIES_BY_ID.get(seriesId) ?? DEPREM_SERIES[0];
 }
 
-export function getDepremSeriesForArticle(article: Pick<ArticleData, "slug" | "title" | "description" | "category" | "badgeLabel" | "keywords" | "sectionId">): DepremSeriesDefinition {
-  const normalizedCategory = normalizeSearchValue(article.category);
-  const normalizedHaystack = normalizeValues([
-    article.slug,
-    article.title,
-    article.description,
-    article.category,
-    article.badgeLabel,
-    ...(article.keywords ?? []),
-  ]);
+export function getDepremSeriesForArticle(
+  article: Pick<ArticleData, "slug" | "title" | "description" | "category" | "badgeLabel" | "keywords" | "sectionId" | "seriesId">,
+): DepremSeriesDefinition {
+  if (article.seriesId && SERIES_BY_ID.has(article.seriesId)) {
+    return getDepremSeriesById(article.seriesId);
+  }
 
-  const slugSeries = DEPREM_SERIES.filter((series) => series.id !== "tbdy").find((series) =>
+  const normalizedCategory = normalizeSearchValue(article.category);
+  const slugSeries = DEPREM_SERIES.find((series) =>
     series.slugPrefixes.some((prefix) => article.slug.startsWith(prefix)),
   );
-  if (slugSeries) {
-    return slugSeries;
-  }
+  if (slugSeries) return slugSeries;
 
-  const categorySeries = DEPREM_SERIES.filter((series) => series.id !== "tbdy").find((series) =>
+  const categorySeries = DEPREM_SERIES.find((series) =>
     series.categoryLabels.some((label) => normalizeSearchValue(label) === normalizedCategory),
   );
-  if (categorySeries) {
-    return categorySeries;
-  }
-
-  const keywordSeries = DEPREM_SERIES.filter((series) => series.id !== "tbdy").find((series) =>
-    series.keywords.some((keyword) => normalizedHaystack.includes(normalizeSearchValue(keyword))),
-  );
-
-  if (keywordSeries) {
-    return keywordSeries;
-  }
-
-  return SERIES_BY_ID.get("tbdy") ?? DEPREM_SERIES[0];
+  return categorySeries ?? DEPREM_SERIES[0];
 }
 
-export function getDepremSeriesIdForArticle(article: Pick<ArticleData, "slug" | "title" | "description" | "category" | "badgeLabel" | "keywords" | "sectionId">): DepremSeriesId {
+export function getDepremSeriesIdForArticle(
+  article: Pick<ArticleData, "slug" | "title" | "description" | "category" | "badgeLabel" | "keywords" | "sectionId" | "seriesId">,
+): DepremSeriesId {
   return getDepremSeriesForArticle(article).id;
 }
 
 export function createDepremArticleSummary(article: ArticleData): DepremArticleSummary | null {
-  if (article.sectionId !== "deprem-yonetmelik") {
-    return null;
-  }
+  if (article.sectionId !== "deprem-yonetmelik") return null;
 
   const series = getDepremSeriesForArticle(article);
   const searchText = normalizeValues([
@@ -282,40 +325,28 @@ export function createDepremArticleSummary(article: ArticleData): DepremArticleS
 }
 
 export function buildDepremArticleSummaries(articles: ArticleData[]): DepremArticleSummary[] {
-  return articles
-    .map((article) => createDepremArticleSummary(article))
-    .filter((article): article is DepremArticleSummary => Boolean(article));
+  return articles.map(createDepremArticleSummary).filter((article): article is DepremArticleSummary => Boolean(article));
 }
 
 export function sortDepremArticleSummaries(
   articles: DepremArticleSummary[],
-  sourceIndex = new Map<string, number>()
+  sourceIndex = new Map<string, number>(),
 ): DepremArticleSummary[] {
   return [...articles].sort((left, right) => {
-    const leftSeries = getDepremSeriesById(left.seriesId);
-    const rightSeries = getDepremSeriesById(right.seriesId);
-
-    if (leftSeries.priority !== rightSeries.priority) {
-      return leftSeries.priority - rightSeries.priority;
-    }
-
-    const leftSourceIndex = sourceIndex.get(left.slug) ?? Number.MAX_SAFE_INTEGER;
-    const rightSourceIndex = sourceIndex.get(right.slug) ?? Number.MAX_SAFE_INTEGER;
-    return leftSourceIndex - rightSourceIndex;
+    const priorityDifference = getDepremSeriesById(left.seriesId).priority - getDepremSeriesById(right.seriesId).priority;
+    if (priorityDifference !== 0) return priorityDifference;
+    return (sourceIndex.get(left.slug) ?? Number.MAX_SAFE_INTEGER) - (sourceIndex.get(right.slug) ?? Number.MAX_SAFE_INTEGER);
   });
 }
 
 export function filterDepremArticleSummaries(
   articles: DepremArticleSummary[],
-  options: { seriesId: DepremSeriesId | "all"; query: string }
+  options: { seriesId: DepremSeriesId | "all"; query: string },
 ): DepremArticleSummary[] {
   const normalizedQuery = normalizeSearchValue(options.query);
-
   return articles.filter((article) => {
     const seriesMatch = options.seriesId === "all" || article.seriesId === options.seriesId;
     const searchMatch = normalizedQuery.length === 0 || article.searchText.includes(normalizedQuery);
     return seriesMatch && searchMatch;
   });
 }
-
-

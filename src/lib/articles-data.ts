@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import type { SiteSectionId } from "./site-sections";
+import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
+import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
+import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
 
 export interface ArticleData {
     slug: string;
@@ -16,10 +19,12 @@ export interface ArticleData {
     authorTitle: string;
     date: string;
     updatedAt?: string;
+    seriesId?: DepremSeriesId;
+    regulationStatus?: RegulationStatus;
     readTime: string;
     image: string;
     sections: { id: string; title: string; content: string; subsections: { id: string; title: string }[] }[];
-    quote: { text: string };
+    quote?: { text: string };
     relatedSlugs: string[];
     keywords?: string[];
     tags?: string[];
@@ -64,7 +69,19 @@ function readArticlesFile() {
 
 function parseArticles(fileContent: string) {
     try {
-        return JSON.parse(fileContent) as Record<string, ArticleData>;
+        const parsedArticles = JSON.parse(fileContent) as Record<string, ArticleData>;
+        const normalizedArticles = Object.fromEntries(
+            Object.entries(parsedArticles).map(([slug, article]) => [slug, normalizeExistingDepremArticle(article)]),
+        ) as Record<string, ArticleData>;
+
+        for (const article of DEPREM_TOPIC_ARTICLES) {
+            if (normalizedArticles[article.slug]) {
+                throw new Error(`Yeni deprem içeriği mevcut bir slug ile çakışıyor: ${article.slug}`);
+            }
+            normalizedArticles[article.slug] = article;
+        }
+
+        return normalizedArticles;
     } catch (error) {
         throw new Error(
             `Makale veri dosyası ayrıştırılamadı: ${dataFilePath} (${error instanceof Error ? error.message : "bilinmeyen hata"})`,
@@ -107,5 +124,8 @@ export function getAllSlugs(): string[] {
 }
 
 export function getArticlesCacheSignature(): string {
-    return getArticleCache().signature;
+    const supplementalSignature = DEPREM_TOPIC_ARTICLES
+        .map((article) => `${article.slug}:${article.updatedAt ?? article.date}:${article.title}`)
+        .join("|");
+    return `${getArticleCache().signature}:${supplementalSignature}`;
 }

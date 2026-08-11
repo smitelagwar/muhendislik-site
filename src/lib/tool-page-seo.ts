@@ -36,9 +36,9 @@ export const TOOL_PAGE_SEO: Record<string, ToolPageSeoEntry> = {
     keywords: ["kalıp söküm süresi", "şantiye planlama", "beton dayanımı", "kalıp alma süresi", "betonarme saha"],
   },
   "dis-cephe-yalitim-kalinligi": {
-    title: "Bölgesel Dış Cephe Yalıtım Kalınlığı",
-    description: "TS 825:2024 yaklaşımıyla il, ilçe, duvar tipi ve malzemeye göre dış cephe yalıtım kalınlığı önerisini hızlıca görün.",
-    keywords: ["dış cephe yalıtım kalınlığı", "ts 825", "ısı yalıtımı", "mantolama hesabı", "yalıtım önerisi"],
+    title: "Dış Duvar U Değeri ve Yalıtım Kalınlığı",
+    description: "TS 825:2024'e göre il, duvar tipi, yalıtım malzemesi ve kalınlıkla U değerini kontrol edin; gereken kalınlığı ve PDF hesap föyünü alın.",
+    keywords: ["dış duvar u değeri", "dış cephe yalıtım kalınlığı", "ts 825 2024", "mantolama hesabı", "yalıtım kalınlığı"],
   },
   "imar-hesaplayici": {
     title: "İmar Hesaplayıcı",

@@ -1,10 +1,8 @@
 ﻿import type { Metadata } from "next";
 import DepremKategoriHero from "@/components/deprem/DepremKategoriHero";
-import DepremKarsilastirmaMatrisi from "@/components/deprem/DepremKarsilastirmaMatrisi";
 import DepremStandartKutuphanesi from "@/components/deprem/DepremStandartKutuphanesi";
 import DepremYonetmelikHub from "@/components/deprem/deprem-yonetmelik-hub";
 import AraclarGrid from "@/components/deprem/AraclarGrid";
-import ReferansTablolar from "@/components/deprem/ReferansTablolar";
 import { getArticleList } from "@/lib/articles-data";
 import {
   buildDepremArticleSummaries,
@@ -13,7 +11,7 @@ import {
 } from "@/lib/deprem-series";
 import { buildCollectionPageSchema, buildSeoMetadata } from "@/lib/seo";
 
-const DEPREM_DESCRIPTION = "TBDY 2018, TS 500, yangın, imar, otopark, BEP-TR, zemin, erişilebilirlik, Eurocode, akustik, asansör, İSG ve çevre içeriklerini tek merkezde keşfedin.";
+const DEPREM_DESCRIPTION = "TBDY 2018, betonarme kiriş-kolon-perde detayları, TS 500, mevcut bina güçlendirme, yapı denetimi, zemin-temel ve diğer yapı mevzuatı içeriklerini tek merkezde inceleyin.";
 
 export const metadata: Metadata = buildSeoMetadata({
   title: "Deprem ve Yönetmelikler Merkezi",
@@ -23,6 +21,9 @@ export const metadata: Metadata = buildSeoMetadata({
     "deprem",
     "tbdy",
     "ts500",
+    "betonarme kiriş kolon perde",
+    "mevcut bina güçlendirme",
+    "yapı denetimi",
     "yangın",
     "imar",
     "otopark",
@@ -57,14 +58,12 @@ export default function DepremYonetmelikPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }} />
 
-      <div className="site-page-shell-dark min-h-screen text-zinc-100">
+      <div className="home-page min-h-screen">
         <DepremKategoriHero articleCount={depremArticles.length} seriesCount={DEPREM_SERIES.length} />
         <main>
-          <DepremKarsilastirmaMatrisi />
-          <DepremStandartKutuphanesi />
-          <AraclarGrid />
-          <ReferansTablolar />
+          <DepremStandartKutuphanesi articles={depremArticles} />
           <DepremYonetmelikHub articles={depremArticles} />
+          <AraclarGrid />
         </main>
       </div>
     </>

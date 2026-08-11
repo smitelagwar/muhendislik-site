@@ -1,213 +1,72 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, ClipboardList, LibraryBig, Shield } from "lucide-react";
-import { TOOLS_HUB_HREF } from "@/lib/tools-data";
+import { ArrowRight, FileText } from "lucide-react";
+import { DEPREM_SERIES, type DepremArticleSummary, type DepremSeriesId } from "@/lib/deprem-series";
 
-type StandardCard = {
-  title: string;
-  code: string;
-  summary: string;
-  whenToOpen: string;
-  relatedReading: string;
-  href: string;
+const SERIES_ACCENTS: Record<DepremSeriesId, string> = {
+  tbdy: "bg-red-500",
+  "tbdy-betonarme": "bg-orange-500",
+  ts500: "bg-blue-500",
+  "mevcut-guclendirme": "bg-fuchsia-500",
+  "yapi-denetimi": "bg-amber-500",
+  yangin: "bg-orange-500",
+  otopark: "bg-slate-500",
+  imar: "bg-emerald-500",
+  bep: "bg-lime-500",
+  "su-zemin": "bg-cyan-500",
+  engelsiz: "bg-violet-500",
+  eurocode: "bg-indigo-500",
+  akustik: "bg-zinc-500",
+  asansor: "bg-teal-500",
+  isg: "bg-amber-500",
+  cevre: "bg-green-500",
 };
 
-const STANDARDS: StandardCard[] = [
-  {
-    title: "TBDY 2018",
-    code: "Deprem tasarımı",
-    summary: "Deprem yer hareketi, performans düzeyi, düzensizlik ve taşıyıcı sistem kararları.",
-    whenToOpen: "Yeni proje, güçlendirme veya düzensizlik kontrolü yapılırken.",
-    relatedReading: "TBDY, zemin sınıfı ve eşdeğer deprem yükü konularını birlikte açın.",
-    href: "/kategori/deprem-yonetmelik?dal=tbdy",
-  },
-  {
-    title: "TS 500",
-    code: "Betonarme",
-    summary: "Donatı oranı, kenetlenme, kolon-kiriş etkileşimi ve eleman boyutlandırması.",
-    whenToOpen: "Donatı, kesit veya detaylandırma kararı verilirken.",
-    relatedReading: "Önce TS 500, ardından donatı ve kesit araçlarını açın.",
-    href: "/kategori/deprem-yonetmelik?dal=ts500",
-  },
-  {
-    title: "Yangın Yönetmeliği",
-    code: "BYY 2015 + 2019",
-    summary: "Kaçış yolları, yangına dayanım, algılama, sprinkler ve duman tahliyesi.",
-    whenToOpen: "Kullanım sınıfı ve kaçış şartları kontrol edilirken.",
-    relatedReading: "Kaçış, dayanım ve özel hacim çözümlerini aynı bakışta okuyun.",
-    href: "/kategori/deprem-yonetmelik?dal=yangin",
-  },
-  {
-    title: "İmar Mevzuatı",
-    code: "PAİY 2017",
-    summary: "TAKS, KAKS, çekme mesafeleri, kat yükseklikleri ve ruhsat akışı.",
-    whenToOpen: "Parsel, emsal ve ruhsat koşulları birlikte okunurken.",
-    relatedReading: "Plan notu ve uygulama önceliğini kontrol edin.",
-    href: "/kategori/deprem-yonetmelik?dal=imar",
-  },
-  {
-    title: "BEP-TR / TS 825",
-    code: "Enerji performansı",
-    summary: "Isı kaybı, U değeri, yoğuşma, EKB ve ısıl köprüler.",
-    whenToOpen: "Cephe ve kabuk performansı değerlendirilirken.",
-    relatedReading: "Yalıtım ve yoğuşma kontrolünü birlikte ele alın.",
-    href: "/kategori/deprem-yonetmelik?dal=bep",
-  },
-  {
-    title: "TS 9111",
-    code: "Engelsiz tasarım",
-    summary: "Rampa, koridor, WC ve erişilebilirlik boyutları.",
-    whenToOpen: "Ruhsat ve mimari eskiz aşamasında erişilebilirlik kontrolü yapılırken.",
-    relatedReading: "Erişilebilirlik boyutlarını ilk eskizde doğrulayın.",
-    href: "/kategori/deprem-yonetmelik?dal=engelsiz",
-  },
-  {
-    title: "TS EN Serisi",
-    code: "Eurocode",
-    summary: "Yük kombinasyonları, kar, rüzgar ve karşılaştırmalı analiz.",
-    whenToOpen: "Uluslararası yaklaşım ile TS 500 kıyaslanırken.",
-    relatedReading: "Yük kombinasyonlarını ve kısmi güvenlik katsayılarını birlikte okuyun.",
-    href: "/kategori/deprem-yonetmelik?dal=eurocode",
-  },
-  {
-    title: "İSG ve Çevre",
-    code: "Şantiye yönetimi",
-    summary: "Şantiye güvenlik planı, ÇED, atık, toz ve gürültü yükümlülükleri.",
-    whenToOpen: "Şantiye kurulumu ve uygulama programı hazırlanırken.",
-    relatedReading: "Güvenlik ve çevre koşullarını erken aşamada birleştirin.",
-    href: "/kategori/deprem-yonetmelik?dal=isg",
-  },
-];
+export default function DepremStandartKutuphanesi({ articles }: { articles: DepremArticleSummary[] }) {
+  const counts = articles.reduce<Partial<Record<DepremSeriesId, number>>>((result, article) => {
+    result[article.seriesId] = (result[article.seriesId] ?? 0) + 1;
+    return result;
+  }, {});
 
-const CHECKLISTS = [
-  {
-    title: "Proje öncesi kontrol",
-    items: [
-      "Kategori ve alt dal doğru mu?",
-      "İlgili standart referansı hazır mı?",
-      "Teknik karar için doğru araç seçildi mi?",
-    ],
-  },
-  {
-    title: "Makaleyi açmadan önce",
-    items: [
-      "Başlık ve özet aynı problem alanını anlatıyor mu?",
-      "Aradığınız konu için filtre uygulanmış mı?",
-      "İlgili araç bağlantısı doğrudan işinizi çözüyor mu?",
-    ],
-  },
-  {
-    title: "Saha veya ofis kontrolü",
-    items: [
-      "Birimler ve sınır değerler doğrulandı mı?",
-      "Yönetmelik maddesi ile proje verisi eşleşiyor mu?",
-      "Gerekirse plan notu ve uygulama önceliği tekrar okundu mu?",
-    ],
-  },
-] as const;
-
-export default function DepremStandartKutuphanesi() {
   return (
-    <section className="border-t border-zinc-800 bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section aria-labelledby="regulations-title" className="border-b border-[var(--home-border)] px-5 py-12 sm:px-8 lg:px-12 lg:py-16 xl:px-16">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="flex flex-col gap-3 border-b border-[var(--home-border)] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge className="border-none bg-blue-500/15 text-blue-300">Standart Kütüphanesi</Badge>
-              <Badge variant="outline" className="border-zinc-700 text-zinc-300">
-                {STANDARDS.length} hızlı referans
-              </Badge>
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-white md:text-3xl">
-              Yönetmelik Standart Kütüphanesi
+            <h2 id="regulations-title" className="text-2xl font-black tracking-[-0.025em] text-[var(--home-fg)] sm:text-3xl">
+              Yönetmelikler ve standartlar
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-400 md:text-base">
-              Hangi standart ne zaman açılır, hangi alt dala bağlanır ve hangi araçla tamamlanır sorusunu tek yerde görün.
-            </p>
+            <p className="mt-2 text-sm text-[var(--home-muted)]">İlgilendiğiniz mevzuatı seçerek doğrudan konu listesine geçin.</p>
           </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Hızlı erişim</p>
-            <p className="mt-1 text-lg font-black text-white">Araç Merkezi</p>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-400">
-              Tüm araçlara tek yerden geçmek için genel araç merkezini kullanın.
-            </p>
-            <Button asChild className="mt-4 h-10 px-5 text-sm font-black">
-              <Link href={TOOLS_HUB_HREF} prefetch={false}>
-                Araç merkezini aç
-              </Link>
-            </Button>
-          </div>
+          <Link href="#icerikler" className="home-inline-link">
+            Tüm içerikleri göster <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {STANDARDS.map((standard) => (
-            <Card key={standard.title} className="overflow-hidden border-zinc-800 bg-zinc-900/80 shadow-sm">
-              <div className="h-1 bg-gradient-to-r from-amber-500/80 to-blue-500/60" />
-              <CardHeader className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg font-black text-white">{standard.title}</CardTitle>
-                    <CardDescription className="mt-1 text-sm font-bold uppercase tracking-[0.18em] text-zinc-500">
-                      {standard.code}
-                    </CardDescription>
-                  </div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-zinc-200">
-                    <LibraryBig className="h-4 w-4" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm leading-6 text-zinc-300">{standard.summary}</p>
-                <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Ne zaman açılır?</p>
-                  <p className="text-sm leading-6 text-zinc-400">{standard.whenToOpen}</p>
-                  <p className="text-sm leading-6 text-zinc-300">{standard.relatedReading}</p>
-                </div>
-                <Button asChild variant="outline" className="h-10 w-full border-zinc-700 bg-zinc-950 text-sm font-black text-zinc-300 hover:border-blue-500/50 hover:bg-zinc-900 hover:text-white">
-                  <Link href={standard.href} prefetch={false}>
-                    İlgili alt dala git
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+        <nav aria-label="Yönetmelik ve standart başlıkları" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {DEPREM_SERIES.map((series) => (
+            <Link
+              key={series.id}
+              href={`/kategori/deprem-yonetmelik?dal=${series.id}#icerikler`}
+              prefetch={false}
+              className="group flex min-h-36 flex-col rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] p-5 transition-colors hover:border-amber-500/55 hover:bg-[var(--home-surface-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)]"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <span className={`h-2.5 w-2.5 rounded-full ${SERIES_ACCENTS[series.id]}`} aria-hidden />
+                <span className="font-mono text-[10px] text-[var(--home-muted)]">{counts[series.id] ?? 0} içerik</span>
+              </div>
+              <h3 className="mt-5 text-base font-black text-[var(--home-fg)] transition-colors group-hover:text-[var(--home-accent)]">{series.label}</h3>
+              <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--home-muted)]">{series.description}</p>
+              <span className="mt-auto flex items-center gap-2 pt-4 text-xs font-bold text-[var(--home-fg)]">
+                İçerikleri aç <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden />
+              </span>
+            </Link>
           ))}
-        </div>
+        </nav>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          {CHECKLISTS.map((checklist) => (
-            <Card key={checklist.title} className="border-zinc-800 bg-zinc-900/70 shadow-sm">
-              <CardHeader className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/10 text-blue-300">
-                    <ClipboardList className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-black text-white">{checklist.title}</CardTitle>
-                    <CardDescription className="mt-1 text-sm leading-6 text-zinc-400">
-                      Makaleyi açmadan önce kısa kontrol listesi.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {checklist.items.map((item) => (
-                  <div key={item} className="flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm leading-6 text-zinc-300">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-950/60 px-5 py-4 text-sm leading-6 text-zinc-400">
-          <Shield className="mb-2 h-4 w-4 text-blue-300" />
-          Bu kütüphane, proje kararı yerine geçmez. Yönetmelik maddesi, proje verisi ve yerel koşullar birlikte doğrulanmalıdır.
-        </div>
+        <Link href="#icerikler" className="mt-3 flex min-h-16 items-center justify-between rounded-lg border border-dashed border-[var(--home-border)] px-5 text-sm font-bold text-[var(--home-fg)] transition-colors hover:border-amber-500/55 hover:bg-[var(--home-surface-raised)]">
+          <span className="flex items-center gap-3"><FileText className="h-4 w-4 text-[var(--home-accent)]" aria-hidden />Tüm mevzuat içerikleri</span>
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Link>
       </div>
     </section>
   );

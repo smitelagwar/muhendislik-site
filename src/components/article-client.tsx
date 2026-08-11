@@ -334,7 +334,7 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
               if (block.type === "divider") return <Separator key={`${sectionItem.id}-${blockIndex}`} className="my-10 dark:bg-zinc-800" />;
               return <p key={`${sectionItem.id}-${blockIndex}`} dangerouslySetInnerHTML={renderInlineMarkdown(block.content)} />;
             })}
-            {sectionIndex === 0 && article.quote ? (
+            {sectionIndex === 0 && article.quote && article.sectionId !== "deprem-yonetmelik" ? (
               <div className="not-prose relative my-12 overflow-hidden rounded-r-xl border-l-8 border-amber-500 bg-amber-50/70 p-8 shadow-sm dark:bg-amber-950/20 sm:p-10">
                 <Quote className="absolute right-4 top-4 -z-10 h-20 w-20 rotate-12 text-amber-100 dark:text-amber-900/20" />
                 <p className="m-0 text-xl font-extrabold italic leading-relaxed text-amber-950 dark:text-amber-100 sm:text-2xl">&ldquo;{article.quote.text}&rdquo;</p>
@@ -381,7 +381,9 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
           <div className="flex-1">
             <h3 className="mb-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{article.author}</h3>
             <p className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{article.authorTitle}</p>
-            <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu içerik, saha pratiği ile teknik referansları birlikte düşünen hızlı okuma düzeniyle sunuldu.</p>
+            {article.sectionId !== "deprem-yonetmelik" ? (
+              <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu içerik, saha pratiği ile teknik referansları birlikte düşünen hızlı okuma düzeniyle sunuldu.</p>
+            ) : null}
           </div>
         </div>
 

@@ -2,547 +2,614 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import Turkey from "@react-map/turkey";
 import {
-  AlertTriangle,
   ArrowRight,
-  Building2,
+  BookOpen,
   Calculator,
   CheckCircle2,
+  ExternalLink,
+  FileText,
   Info,
-  Layers3,
   MapPinned,
-  Snowflake,
-  SquareStack,
+  Ruler,
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { calculateExternalWallInsulation, getClimateBucketLabel, getDistrictOptions, getProvinceById, provinceRequiresDistrictSelection } from "@/lib/ts825/calculator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Ts825WallReportDialog } from "@/components/ts825-wall-report-dialog";
 import {
-  DISTRICT_HELP_NOTE,
-  PRELIMINARY_NOTE,
-  REGULATION_GUIDE_INTRO,
-  REGULATION_GUIDE_NOTE,
-  REGULATION_GUIDE_RULES,
-  SOIL_CONTACT_NOTE,
-} from "@/lib/ts825/copy";
-import { TARGET_U_VALUES, PROVINCE_CLIMATE_OPTIONS } from "@/lib/ts825/climate-data";
-import { INSULATION_MATERIALS } from "@/lib/ts825/materials";
+  calculateExternalWallInsulation,
+  getDistrictOptions,
+  getProvinceById,
+  provinceRequiresDistrictSelection,
+} from "@/lib/ts825/calculator";
+import { PROVINCE_CLIMATE_OPTIONS, TARGET_U_VALUES } from "@/lib/ts825/climate-data";
+import { BUILDING_MATERIALS, INSULATION_MATERIALS } from "@/lib/ts825/materials";
+import type { ThermalLayer } from "@/lib/ts825/types";
 import { WALL_PRESETS } from "@/lib/ts825/wall-presets";
 
 const numberFormatter = new Intl.NumberFormat("tr-TR", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
+const lambdaFormatter = new Intl.NumberFormat("tr-TR", {
+  minimumFractionDigits: 3,
+  maximumFractionDigits: 3,
+});
 
 function formatNumber(value: number) {
   return numberFormatter.format(value);
 }
 
-function formatCm(mm: number) {
-  return mm <= 0 ? "0" : formatNumber(mm / 10);
+function formatLambda(value: number) {
+  return lambdaFormatter.format(value);
 }
 
-function getStatusClass(status: string) {
-  switch (status) {
-    case "Uygun":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200";
-    case "Sınırda":
-      return "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-200";
-    case "Enerji verimliliği açısından geliştirilebilir":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200";
-    default:
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200";
-  }
+function formatCm(mm: number) {
+  return formatNumber(mm / 10);
+}
+
+function parsePositiveNumber(value: string, fallback = 0) {
+  const parsed = Number.parseFloat(value.replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function formatInputNumber(value: number) {
+  return (Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)))).replace(".", ",");
+}
+
+function createWallLayers(presetId: string, materialId: string, thicknessCm: number) {
+  const preset = WALL_PRESETS.find((item) => item.id === presetId) ?? WALL_PRESETS[0];
+  const material =
+    INSULATION_MATERIALS.find((item) => item.id === materialId) ?? INSULATION_MATERIALS[0];
+  const layers: ThermalLayer[] = preset.layers.map((layer, index) => ({
+    ...layer,
+    id: `${preset.id}-layer-${index + 1}`,
+  }));
+  const insulationLayerId = `${preset.id}-insulation`;
+  layers.splice(Math.max(0, layers.length - 1), 0, {
+    id: insulationLayerId,
+    materialId: material.id,
+    label: material.name,
+    thicknessMeters: thicknessCm / 100,
+    conductivity: material.conductivity,
+    mu: material.mu,
+    isInsulation: true,
+  });
+  return { layers, insulationLayerId };
 }
 
 export function ExternalWallInsulationCalculator() {
+  const initialPreset = WALL_PRESETS[0];
   const [provinceId, setProvinceId] = useState("66");
-  const [districtId, setDistrictId] = useState<string | undefined>(undefined);
-  const [wallPresetId, setWallPresetId] = useState("brick-infill");
-  const [materialId, setMaterialId] = useState<"eps" | "xps" | "rockwool">("eps");
+  const [districtId, setDistrictId] = useState<string>();
+  const [wallPresetId, setWallPresetId] = useState(initialPreset.id);
+  const [materialId, setMaterialId] = useState(
+    initialPreset.defaultInsulationMaterialId ?? INSULATION_MATERIALS[0].id,
+  );
+  const [thicknessInput, setThicknessInput] = useState(
+    formatInputNumber((initialPreset.defaultInsulationThicknessMeters ?? 0.08) * 100),
+  );
+  const thicknessCm = parsePositiveNumber(thicknessInput);
 
   const selectedProvince = useMemo(() => getProvinceById(provinceId), [provinceId]);
   const districtOptions = useMemo(() => getDistrictOptions(provinceId), [provinceId]);
-  const shouldShowDistrictSelect = districtOptions.length > 0;
-  const districtRequired = useMemo(
-    () => provinceRequiresDistrictSelection(provinceId) && shouldShowDistrictSelect,
-    [provinceId, shouldShowDistrictSelect],
+  const districtRequired = provinceRequiresDistrictSelection(provinceId);
+  const selectedPreset = useMemo(
+    () => WALL_PRESETS.find((preset) => preset.id === wallPresetId) ?? WALL_PRESETS[0],
+    [wallPresetId],
   );
   const selectedMaterial = useMemo(
     () => INSULATION_MATERIALS.find((material) => material.id === materialId) ?? INSULATION_MATERIALS[0],
     [materialId],
   );
-  const selectedWallPreset = useMemo(
-    () => WALL_PRESETS.find((preset) => preset.id === wallPresetId) ?? WALL_PRESETS[0],
-    [wallPresetId],
+  const wallAssembly = useMemo(
+    () => createWallLayers(wallPresetId, materialId, thicknessCm),
+    [materialId, thicknessCm, wallPresetId],
   );
-
-  const calculation = useMemo(() => {
-    return calculateExternalWallInsulation(provinceId, wallPresetId, materialId, districtId);
-  }, [districtId, materialId, provinceId, wallPresetId]);
-
+  const calculation = useMemo(
+    () =>
+      calculateExternalWallInsulation(
+        provinceId,
+        wallAssembly.layers,
+        wallAssembly.insulationLayerId,
+        districtId,
+      ),
+    [districtId, provinceId, wallAssembly],
+  );
   const currentError = useMemo(() => {
-    if (!selectedProvince) {
-      return "İl seçimi bulunamadı. Lütfen liste üzerinden geçerli bir il seçin.";
-    }
-
-    if (districtRequired && !districtId) {
-      return "Bu il için TS 825 iklim grubu ilçe bazında değişiyor. Hesaplama için ilçe grubunu seçin.";
-    }
-
-    if (!calculation) {
-      return "Hesaplama verisi oluşturulamadı. Seçimleri kontrol edin.";
-    }
-
+    if (!selectedProvince) return "Geçerli bir il seçin.";
+    if (districtRequired && !districtId) return "Bu il için ilçe grubunu seçin.";
+    if (thicknessCm < 1 || thicknessCm > 40) return "Yalıtım kalınlığını 1–40 cm arasında girin.";
+    if (!calculation) return "Girdi değerleriyle hesap oluşturulamadı.";
     return null;
-  }, [calculation, districtId, districtRequired, selectedProvince]);
+  }, [calculation, districtId, districtRequired, selectedProvince, thicknessCm]);
+
+  function applyPreset(presetId: string) {
+    const preset = WALL_PRESETS.find((item) => item.id === presetId) ?? WALL_PRESETS[0];
+    setWallPresetId(preset.id);
+    setMaterialId(preset.defaultInsulationMaterialId ?? INSULATION_MATERIALS[0].id);
+    setThicknessInput(formatInputNumber((preset.defaultInsulationThicknessMeters ?? 0.08) * 100));
+  }
+
+  const recommendationIsHigher =
+    calculation && calculation.recommendedThicknessMm > calculation.currentInsulationThicknessMm + 0.1;
 
   return (
-    <div className="tool-page-shell py-8 md:py-14">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <div className="home-page min-h-screen py-8 md:py-14">
+      <div className="mx-auto max-w-[1120px] px-5 sm:px-8 lg:px-10">
         <PageContextNavigation
           showBreadcrumbs={false}
           className="mb-8"
-          backLinkClassName="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700 dark:border-border dark:bg-background/70 dark:text-muted-foreground dark:hover:border-cyan-900"
+          backLinkClassName="home-button-secondary inline-flex items-center gap-2 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em]"
         />
 
-        <div className="mb-10 max-w-3xl">
-          <Badge className="mb-4 rounded-full bg-cyan-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-200">
-            Isı yalıtımı aracı
-          </Badge>
-          <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
-            Bölgesel dış cephe yalıtım kalınlığı önerici
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-            TS 825:2024 mantığıyla il, gerekiyorsa ilçe, duvar tipi ve yalıtım malzemesine göre dış cephe için hızlı ön
-            tasarım önerisi alın.
-          </p>
-        </div>
+        <header className="mb-8 flex flex-col items-start justify-between gap-5 border-b border-[var(--home-border)] pb-8 md:flex-row md:items-end">
+          <div>
+            <p className="home-section-kicker">TS 825:2024 / Dış duvar</p>
+            <h1 className="mt-5 text-3xl font-black tracking-[-0.04em] text-[var(--home-fg)] md:text-5xl">
+              Yalıtım kalınlığı ve U değeri
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--home-muted)] md:text-base">
+              Konumu ve duvar tipini seçin. Mevcut kalınlığın yeterli olup olmadığını ve gereken asgari yalıtımı tek ekranda görün.
+            </p>
+          </div>
+          <ReferenceTablesDialog />
+        </header>
 
-        <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-          <section className="tool-panel rounded-[28px] p-6">
+        <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="min-w-0 rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-5 md:p-6">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Girdi bilgileri</p>
-                <h2 className="mt-2 text-2xl font-black text-foreground">Konum ve duvar kurgusu</h2>
+                <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--home-muted)]">01 / Hesap girdileri</p>
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.025em] text-[var(--home-fg)]">Dört adımda kontrol</h2>
               </div>
-              <div className="flex items-center gap-3">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="rounded-full border-zinc-200 bg-white/80 px-4 text-[11px] font-black uppercase tracking-[0.16em] text-zinc-700 dark:border-border dark:bg-card/70 dark:text-zinc-200"
-                    >
-                      <Info className="h-3.5 w-3.5" />
-                      Yönetmelik kuralları
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
-                        TS 825 hızlı rehber
-                      </p>
-                      <DialogTitle>Yönetmelik kuralları ve pratik kullanım özeti</DialogTitle>
-                      <DialogDescription>{REGULATION_GUIDE_INTRO}</DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-3">
-                      {REGULATION_GUIDE_RULES.map((rule, index) => (
-                        <div
-                          key={rule}
-                          className="flex gap-3 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"
-                        >
-                          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-black text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200">
-                            {index + 1}
-                          </span>
-                          <p className="text-sm leading-6 text-zinc-700 dark:text-muted-foreground">{rule}</p>
-                        </div>
-                      ))}
-
-                      <div className="rounded-2xl border border-blue-200/70 bg-blue-50/80 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
-                        <p className="text-sm leading-6 text-blue-950 dark:text-blue-100">{SOIL_CONTACT_NOTE}</p>
-                      </div>
-                    </div>
-
-                    <DialogFooter className="border-t border-zinc-200/80 pt-4 dark:border-border">
-                      <p className="mr-auto text-sm leading-6 text-muted-foreground">{REGULATION_GUIDE_NOTE}</p>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-
-                <div className="rounded-2xl bg-cyan-600/10 p-3 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-200">
-                  <Calculator className="h-5 w-5" />
-                </div>
-              </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" size="icon-sm" aria-label="Hesap esasını aç">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Hesap esası</DialogTitle>
+                    <DialogDescription>Dış duvar bileşeni için ısıl geçirgenlik kontrolü.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                    <p>U = 1 / (Rsi + Σ d/λ + Rse) bağıntısı kullanılır.</p>
+                    <p>Rsi = 0,13 ve Rse = 0,04 m²K/W alınır.</p>
+                    <p>Hedef U değeri TS 825:2024 iklim bölgesine göre belirlenir.</p>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
-            <div className={`grid gap-5 ${shouldShowDistrictSelect ? "sm:grid-cols-2" : ""}`}>
-              <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
-                <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                  <MapPinned className="h-3.5 w-3.5" />
-                  İl seçimi
-                </label>
-                <Select
-                  value={provinceId}
-                  onValueChange={(value) => {
-                    setProvinceId(value);
-                    setDistrictId(undefined);
-                  }}
-                >
-                  <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
-                    <SelectValue placeholder="İl seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROVINCE_CLIMATE_OPTIONS.map((province) => (
-                      <SelectItem key={province.id} value={province.id}>
-                        {province.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {shouldShowDistrictSelect ? (
-                <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
-                  <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                    <Building2 className="h-3.5 w-3.5" />
-                    İlçe / iklim grubu
-                  </label>
-                  <>
+            <div className="space-y-4">
+              <FieldShell number="01" icon={<MapPinned className="h-4 w-4" />} label="Proje konumu">
+                <div className={`grid gap-3 ${districtOptions.length ? "sm:grid-cols-2" : ""}`}>
+                  <Select
+                    value={provinceId}
+                    onValueChange={(value) => {
+                      setProvinceId(value);
+                      setDistrictId(getProvinceById(value)?.districtOptions?.[0]?.id);
+                    }}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="İl seçin" /></SelectTrigger>
+                    <SelectContent>
+                      {PROVINCE_CLIMATE_OPTIONS.map((province) => (
+                        <SelectItem key={province.id} value={province.id}>{province.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {districtOptions.length ? (
                     <Select value={districtId} onValueChange={setDistrictId}>
-                      <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
-                        <SelectValue placeholder="İlçe grubunu seçin" />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="İlçe grubu" /></SelectTrigger>
                       <SelectContent>
                         {districtOptions.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
+                          <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="mt-3 text-xs leading-5 text-muted-foreground">{DISTRICT_HELP_NOTE}</p>
-                  </>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
+                {selectedProvince ? (
+                  <div
+                    className="mt-3 overflow-hidden rounded-xl border border-blue-200/80 bg-blue-50/55 p-3 dark:border-blue-900/60 dark:bg-blue-950/15"
+                    role="img"
+                    aria-label={`Türkiye haritasında ${selectedProvince.name} seçili`}
+                    data-testid="ts825-province-map"
+                    data-selected-province={selectedProvince.name}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-sm font-black text-[var(--home-fg)]">{selectedProvince.name}</span>
+                      <span className="font-mono text-[10px] font-black uppercase tracking-[0.14em] text-blue-700 dark:text-blue-300">
+                        {calculation?.location.bucket ?? selectedProvince.defaultBucket}. iklim bölgesi
+                      </span>
+                    </div>
+                    <div className="w-full [&_.map]:!w-full [&_svg]:block [&_svg]:h-auto [&_svg]:w-full">
+                      <Turkey
+                        type="select-single"
+                        size={640}
+                        mapColor="#dbe3ec"
+                        strokeColor="#ffffff"
+                        strokeWidth={0.8}
+                        cityColors={{ [selectedProvince.name]: "#2563eb" }}
+                        disableClick
+                        disableHover
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </FieldShell>
 
-            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
-              <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                <SquareStack className="h-3.5 w-3.5" />
-                Duvar tipi
-              </label>
-              <Select value={wallPresetId} onValueChange={setWallPresetId}>
-                <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-zinc-50 font-bold dark:border-border dark:bg-card">
-                  <SelectValue placeholder="Duvar tipini seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  {WALL_PRESETS.map((preset) => (
-                    <SelectItem key={preset.id} value={preset.id}>
-                      {preset.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">{selectedWallPreset.summary}</p>
-            </div>
+              <FieldShell number="02" icon={<FileText className="h-4 w-4" />} label="Duvar tipi">
+                <Select value={wallPresetId} onValueChange={applyPreset}>
+                  <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {WALL_PRESETS.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>{preset.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">{selectedPreset.summary}</p>
+              </FieldShell>
 
-            <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 dark:border-border dark:bg-card/80">
-              <label className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-                <Layers3 className="h-3.5 w-3.5" />
-                Yalıtım malzemesi
-              </label>
-              <div className="grid gap-3 md:grid-cols-3">
-                {INSULATION_MATERIALS.map((material) => {
-                  const isActive = material.id === materialId;
+              <FieldShell number="03" icon={<Ruler className="h-4 w-4" />} label="Yalıtım malzemesi">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_132px]">
+                  <Select value={materialId} onValueChange={setMaterialId}>
+                    <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {INSULATION_MATERIALS.map((material) => (
+                        <SelectItem key={material.id} value={material.id}>{material.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-blue-300 bg-blue-50 px-3 shadow-[0_0_22px_rgba(37,99,235,0.14)] dark:border-blue-800 dark:bg-blue-950/30">
+                    <div>
+                      <p className="font-mono text-[9px] font-black uppercase tracking-[0.14em] text-blue-600 dark:text-blue-300">Lambda</p>
+                      <p className="text-lg font-black tracking-[-0.03em] text-blue-600 dark:text-blue-300">
+                        λ <span data-testid="ts825-lambda-value">{formatLambda(selectedMaterial.conductivity)}</span>
+                      </p>
+                    </div>
+                    <span className="text-[9px] font-bold text-blue-500 dark:text-blue-400">W/mK</span>
+                  </div>
+                </div>
+              </FieldShell>
 
-                  return (
-                    <button
-                      key={material.id}
-                      type="button"
-                      aria-pressed={isActive}
-                      onClick={() => setMaterialId(material.id)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition-all motion-reduce:transition-none ${
-                        isActive
-                          ? "border-cyan-500 bg-cyan-50 shadow-sm dark:border-cyan-500 dark:bg-cyan-950/30"
-                          : "border-zinc-200 bg-zinc-50 hover:border-cyan-300 dark:border-border dark:bg-card"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Snowflake className={`h-4 w-4 ${isActive ? "text-cyan-700 dark:text-cyan-200" : "text-zinc-400"}`} />
-                        <span className="font-black text-foreground">{material.name}</span>
-                      </div>
-                      <p className="mt-3 text-xs leading-5 text-muted-foreground">{material.summary}</p>
-                      <p className="mt-3 text-xs font-bold text-zinc-700 dark:text-muted-foreground">λ = {material.conductivity} W/mK</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-cyan-200/70 bg-cyan-50/70 p-4 dark:border-cyan-900/60 dark:bg-cyan-950/30">
-              <div className="flex items-start gap-3">
-                <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-700 dark:text-cyan-200" />
-                <p className="text-sm leading-6 text-cyan-950 dark:text-cyan-100">{PRELIMINARY_NOTE}</p>
-              </div>
+              <FieldShell number="04" icon={<Calculator className="h-4 w-4" />} label="Mevcut / planlanan kalınlık">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={thicknessInput}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      if (/^\d{0,2}([.,]\d{0,2})?$/.test(nextValue)) setThicknessInput(nextValue);
+                    }}
+                    onBlur={() => {
+                      if (thicknessCm > 0) setThicknessInput(formatInputNumber(thicknessCm));
+                    }}
+                    className="h-12 rounded-xl pr-14 text-lg font-black"
+                    aria-label="Yalıtım kalınlığı, santimetre"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-bold text-muted-foreground">cm</span>
+                </div>
+              </FieldShell>
             </div>
           </section>
 
-          <section className="flex flex-col gap-6">
-            <div
-              aria-live="polite"
-              className="tool-result-panel overflow-hidden rounded-[28px] p-6 text-white transition-all duration-500 motion-reduce:transition-none"
-            >
-              <div className="mb-6 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200/70">Canlı sonuç</p>
-                  <h2 className="mt-2 text-2xl font-black">Önerilen uygulama kalınlığı</h2>
-                </div>
-                <div className="rounded-2xl bg-white/10 p-3 text-cyan-200">
-                  <Snowflake className="h-5 w-5" />
-                </div>
-              </div>
-
+          <section aria-live="polite" className="min-w-0 space-y-6">
+            <div className="overflow-hidden rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-6 md:p-8">
               {currentError ? (
-                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
-                  <p className="text-lg font-bold text-white">Hesaplama için seçim tamamlanmadı</p>
-                  <p className="mt-3 text-sm leading-6 text-zinc-300">{currentError}</p>
+                <div className="rounded-lg border border-dashed border-[var(--home-border)] bg-[var(--home-surface-raised)] p-6">
+                  <p className="font-bold text-[var(--home-fg)]">Sonuç bekleniyor</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--home-muted)]">{currentError}</p>
                 </div>
               ) : calculation ? (
                 <>
-                  <p className="text-sm font-medium text-zinc-300">
-                    {calculation.location.province.name}
-                    {calculation.location.districtOption && calculation.location.districtOption.id !== "varsayilan"
-                      ? ` / ${calculation.location.districtOption.label}`
-                      : ""}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-end gap-3">
-                    <span className="text-4xl font-black tracking-tight md:text-6xl">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--home-muted)]">
+                        02 / {calculation.location.province.name} · {calculation.location.bucket}. iklim bölgesi
+                      </p>
+                      <h2 className="mt-2 text-2xl font-black tracking-[-0.025em] text-[var(--home-fg)]">Yalıtım sonucu</h2>
+                    </div>
+                    <Badge className={`rounded-full px-3 py-1 text-[11px] font-black uppercase ${
+                      calculation.statusLabel === "Uygun"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : calculation.statusLabel === "Sınırda"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-red-100 text-red-800"
+                    }`}>
+                      {calculation.statusLabel === "Uygun" ? "Mevcut kesit uygun" : calculation.statusLabel}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-8 flex items-end gap-3 border-l-4 border-[var(--home-accent-solid)] pl-5">
+                    <span className="text-6xl font-black tracking-[-0.055em] text-[var(--home-fg)] md:text-7xl">
                       {formatCm(calculation.recommendedThicknessMm)}
                     </span>
-                    <span className="pb-2 text-lg font-semibold text-cyan-200">cm</span>
+                    <span className="pb-2 text-lg font-semibold text-[var(--home-muted)]">cm U hedefi için</span>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <Badge className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${getStatusClass(calculation.statusLabel)}`}>
-                      {calculation.statusLabel}
-                    </Badge>
-                    <span className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
-                      İklim grubu {getClimateBucketLabel(calculation.location.bucket)}
-                    </span>
-                  </div>
-                  <p className="mt-5 max-w-xl text-sm leading-7 text-zinc-300">{calculation.narrative}</p>
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--home-muted)]">{calculation.narrative}</p>
 
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="rounded-2xl bg-white/5 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Hedef U</p>
-                      <p className="mt-3 text-2xl font-black">{formatNumber(calculation.targetUValue)}</p>
-                      <p className="mt-1 text-xs text-zinc-400">W/m²K</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/5 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Mevcut U</p>
-                      <p className="mt-3 text-2xl font-black">{formatNumber(calculation.existingUValue)}</p>
-                      <p className="mt-1 text-xs text-zinc-400">W/m²K</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/5 p-4">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">Uygulama sonrası U</p>
-                      <p className="mt-3 text-2xl font-black">{formatNumber(calculation.achievedUValue)}</p>
-                      <p className="mt-1 text-xs text-zinc-400">W/m²K</p>
-                    </div>
+                  <div className="mt-7 grid grid-cols-3 gap-3">
+                    <ResultMetric label="Mevcut U" value={calculation.currentUValue} />
+                    <ResultMetric label="Hedef U" value={calculation.targetUValue} />
+                    <ResultMetric label="Asgari kesit U" value={calculation.achievedUValue} />
+                  </div>
+
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    {recommendationIsHigher ? (
+                      <Button
+                        type="button"
+                        onClick={() => setThicknessInput(formatInputNumber(calculation.recommendedThicknessMm / 10))}
+                        className="home-button-primary"
+                      >
+                        <CheckCircle2 className="h-4 w-4" /> Öneriyi uygula
+                      </Button>
+                    ) : null}
+                    <Ts825WallReportDialog calculation={calculation} wallPresetName={selectedPreset.name} />
                   </div>
                 </>
               ) : null}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Seçilen malzeme</p>
-                <p className="mt-3 text-3xl font-black text-foreground">{selectedMaterial.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">λ = {selectedMaterial.conductivity} W/mK</p>
-              </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Duvar tipi</p>
-                <p className="mt-3 text-xl font-black text-foreground">{selectedWallPreset.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Preset katman yaklaşımı</p>
-              </div>
-              <div className="rounded-3xl border border-zinc-200/80 bg-white/80 p-5 backdrop-blur-sm dark:border-border dark:bg-background/70">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400">Varsayılan U hedefi</p>
-                <p className="mt-3 text-3xl font-black text-foreground">
-                  {formatNumber(TARGET_U_VALUES[selectedProvince?.defaultBucket ?? "5-6"])}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">İl bazlı ön bilgi</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="tool-panel rounded-[28px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Hesap özeti</p>
-                <h2 className="mt-2 text-2xl font-black text-foreground">Katman ve direnç kontrolü</h2>
-              </div>
-              <div className="rounded-2xl bg-cyan-500/10 p-3 text-cyan-700 dark:text-cyan-300">
-                <Layers3 className="h-5 w-5" />
-              </div>
-            </div>
-
-            {calculation ? (
-              <Accordion type="single" collapsible defaultValue="summary" className="w-full">
-                <AccordionItem value="summary">
-                  <AccordionTrigger className="py-3 text-sm font-black uppercase tracking-[0.16em] text-zinc-700 hover:no-underline dark:text-zinc-200">
-                    Hesap Özeti
+            <div className="rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-5 md:p-6">
+              <Accordion type="single" collapsible>
+                <AccordionItem value="calculation" className="border-0">
+                  <AccordionTrigger className="py-0 text-left text-xl font-black hover:no-underline">
+                    Hesap dökümü
                   </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
-                        <p className="text-sm font-bold text-foreground">Formül mantığı</p>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          Gerekli ek direnç = (1 / Uhedef) - Rmevcut. Yalıtım kalınlığı = λ × gerekli ek direnç.
-                        </p>
+                  <AccordionContent className="pb-0 pt-5">
+                    {calculation ? (
+                      <div className="space-y-2 text-sm">
+                        <DetailRow label="Duvar kurgusu" value={selectedPreset.name} />
+                        <DetailRow label="Yalıtım" value={`${selectedMaterial.name} · λ ${formatLambda(selectedMaterial.conductivity)} W/mK`} />
+                        <DetailRow label="Yalıtımsız duvar direnci" value={`${formatNumber(calculation.baseResistance)} m²K/W`} />
+                        <DetailRow label="Yalıtım direnci" value={`${formatNumber(thicknessCm / 100 / selectedMaterial.conductivity)} m²K/W`} />
+                        <DetailRow label="Toplam direnç" value={`${formatNumber(calculation.currentResistance)} m²K/W`} />
+                        <DetailRow
+                          label="Kontrol"
+                          value={`${formatNumber(calculation.currentUValue)} ${calculation.currentUValue <= calculation.targetUValue ? "≤" : ">"} ${formatNumber(calculation.targetUValue)} W/m²K`}
+                          strong={calculation.currentUValue <= calculation.targetUValue}
+                        />
                       </div>
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
-                        <p className="text-sm font-bold text-foreground">Özet değerler</p>
-                        <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
-                          <li>İklim grubu: {getClimateBucketLabel(calculation.location.bucket)}</li>
-                          <li>Rmevcut: {formatNumber(calculation.existingResistance)} m²K/W</li>
-                          <li>Ek direnç ihtiyacı: {formatNumber(calculation.requiredAdditionalResistance)} m²K/W</li>
-                          <li>Teorik minimum: {formatCm(calculation.theoreticalThicknessMm)} cm</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="layers">
-                  <AccordionTrigger className="py-3 text-sm font-black uppercase tracking-[0.16em] text-zinc-700 hover:no-underline dark:text-zinc-200">
-                    Katman Katman Direnç
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3">
-                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
-                        <p className="text-sm font-bold text-foreground">Yüzey dirençleri</p>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          İç yüzey: {formatNumber(0.13)} m²K/W, dış yüzey: {formatNumber(0.04)} m²K/W
-                        </p>
-                      </div>
-
-                      {calculation.wallPreset.layers.map((layer) => {
-                        const layerResistance = layer.thicknessMeters / layer.conductivity;
-
-                        return (
-                          <div
-                            key={layer.label}
-                            className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-sm font-bold text-foreground">{layer.label}</p>
-                              <Badge variant="outline" className="rounded-full border-zinc-300 dark:border-zinc-700">
-                                R = {formatNumber(layerResistance)}
-                              </Badge>
-                            </div>
-                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                              Kalınlık {formatNumber(layer.thicknessMeters * 100)} cm, λ = {layer.conductivity} W/mK
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    ) : null}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-border dark:text-muted-foreground">
-                Geçerli sonuç oluştuğunda hesap özeti burada görünür.
-              </div>
-            )}
-          </section>
-
-          <section className="tool-panel rounded-[28px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Karşılaştırma</p>
-                <h2 className="mt-2 text-2xl font-black text-foreground">Alternatif malzemeler</h2>
-              </div>
-              <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-700 dark:text-emerald-300">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
             </div>
-
-            {calculation ? (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Malzeme</TableHead>
-                      <TableHead>Teorik min.</TableHead>
-                      <TableHead>Önerilen</TableHead>
-                      <TableHead className="text-right">Usonuç</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {calculation.materialComparison.map((row) => {
-                      const isSelected = row.material.id === calculation.material.id;
-
-                      return (
-                        <TableRow key={row.material.id} className={isSelected ? "ring-1 ring-inset ring-cyan-500/30" : undefined}>
-                          <TableCell className="font-bold">
-                            <div className="flex items-center gap-2">
-                              <span>{row.material.name}</span>
-                              {isSelected ? (
-                                <Badge className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-black text-white hover:bg-cyan-600">
-                                  Seçili
-                                </Badge>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell>{formatCm(row.theoreticalThicknessMm)} cm</TableCell>
-                          <TableCell>{formatCm(row.recommendedThicknessMm)} cm</TableCell>
-                          <TableCell className="text-right font-medium">{formatNumber(row.achievedUValue)} W/m²K</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-
-                <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl border border-blue-200/70 bg-blue-50/70 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
-                    <div className="flex gap-3">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-700 dark:text-blue-200" />
-                      <p className="text-sm leading-6 text-blue-950 dark:text-blue-100">{SOIL_CONTACT_NOTE}</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80">
-                    <p className="text-sm font-bold text-foreground">Malzeme rehberi</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      EPS ile XPS arasındaki uygulama farklarını ve dış cephe dışındaki doğru kullanım alanlarını ayrı
-                      rehberde inceleyin.
-                    </p>
-                    <Link
-                      href="/eps-xps-yalitim-farklari"
-                      className="mt-4 inline-flex items-center gap-2 text-sm font-black text-cyan-700 transition-colors hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
-                    >
-                      EPS - XPS rehberini aç <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-sm text-zinc-500 dark:border-border dark:text-muted-foreground">
-                Hesaplama tamamlandığında alternatif malzeme tablosu burada görünür.
-              </div>
-            )}
           </section>
+        </div>
+
+        <section className="mt-6 min-w-0 overflow-hidden rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-5 md:p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--home-muted)]">03 / Aynı duvar · aynı hedef</p>
+              <h2 className="mt-2 text-xl font-black text-[var(--home-fg)]">Malzeme alternatifleri</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">Kalınlıklar bir üst uygulama adımına yuvarlanır.</p>
+          </div>
+          {calculation ? (
+            <div className="w-full max-w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Malzeme</TableHead>
+                    <TableHead>λ</TableHead>
+                    <TableHead>Teorik</TableHead>
+                    <TableHead>Uygulama</TableHead>
+                    <TableHead className="text-right">Sonuç U</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {calculation.materialComparison.map((row) => (
+                    <TableRow key={row.material.id} className={row.material.id === materialId ? "bg-blue-50/80 dark:bg-blue-950/20" : ""}>
+                      <TableCell className="font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setMaterialId(row.material.id)}
+                          className="inline-flex items-center gap-2 text-left transition-colors hover:text-blue-600"
+                          aria-label={`${row.material.name} malzemesini kullan`}
+                        >
+                          <span className={`h-1.5 w-1.5 rounded-full ${row.material.id === materialId ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"}`} />
+                          {row.material.name}
+                        </button>
+                      </TableCell>
+                      <TableCell>{formatLambda(row.material.conductivity)}</TableCell>
+                      <TableCell>{formatCm(row.theoreticalThicknessMm)} cm</TableCell>
+                      <TableCell className="font-black">{formatCm(row.recommendedThicknessMm)} cm</TableCell>
+                      <TableCell className="text-right">{formatNumber(row.achievedUValue)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
+        </section>
+
+        <div className="mt-5 flex flex-col justify-between gap-3 border-t border-border pt-5 text-xs leading-5 text-muted-foreground sm:flex-row sm:items-center">
+          <p>Dış duvar bileşeni U hesabıdır; tam bina TS 825 enerji raporu yerine geçmez.</p>
+          <Link href="/eps-xps-yalitim-farklari" className="inline-flex items-center gap-2 font-black text-[var(--home-accent)]">
+            Malzeme rehberi <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+function FieldShell({
+  number,
+  icon,
+  label,
+  children,
+}: {
+  number: string;
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--home-border)] bg-[var(--home-surface-raised)] p-4">
+      <p className="mb-3 flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--home-muted)]">
+        <span className="text-[var(--home-accent)]">{number}</span>
+        {icon}
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function ResultMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-[var(--home-border)] bg-[var(--home-surface-raised)] p-3">
+      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--home-muted)]">{label}</p>
+      <p className="mt-2 text-xl font-black text-[var(--home-fg)]">{formatNumber(value)}</p>
+      <p className="mt-1 text-[10px] text-[var(--home-muted)]">W/m²K</p>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex flex-col justify-between gap-1 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface-raised)] px-4 py-3 sm:flex-row sm:items-center">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={strong ? "font-black text-emerald-700 dark:text-emerald-300" : "font-bold text-foreground"}>{value}</span>
+    </div>
+  );
+}
+
+function ReferenceTablesDialog() {
+  const [search, setSearch] = useState("");
+  const normalizedSearch = search.trim().toLocaleLowerCase("tr-TR");
+  const filteredProvinces = PROVINCE_CLIMATE_OPTIONS.filter((province) =>
+    province.name.toLocaleLowerCase("tr-TR").includes(normalizedSearch),
+  );
+  const materials = [...INSULATION_MATERIALS, ...BUILDING_MATERIALS];
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="home-button-secondary shrink-0"
+          data-testid="ts825-reference-trigger"
+        >
+          <BookOpen className="h-4 w-4" /> Referans tabloları
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[88vh] max-w-4xl overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>TS 825 hesap referansları</DialogTitle>
+          <DialogDescription>İklim bölgeleri, hedef U değerleri ve hesapta kullanılan malzeme özellikleri.</DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="climate" className="min-h-0">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="climate">İklim bölgeleri</TabsTrigger>
+            <TabsTrigger value="materials" data-testid="ts825-materials-tab">Malzeme özellikleri</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="climate" className="min-h-0 space-y-4 pt-3">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {(Object.keys(TARGET_U_VALUES) as Array<keyof typeof TARGET_U_VALUES>).map((bucket) => (
+                <div key={bucket} className="rounded-xl border border-border bg-muted/25 p-3 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">{bucket}. bölge</p>
+                  <p className="mt-1 font-black text-foreground">{formatNumber(TARGET_U_VALUES[bucket])}</p>
+                  <p className="text-[10px] text-muted-foreground">W/m²K</p>
+                </div>
+              ))}
+            </div>
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Şehir ara: Yozgat, Ankara, İstanbul..."
+              className="h-11 rounded-xl"
+              aria-label="İklim bölgesi için şehir ara"
+              data-testid="ts825-climate-search"
+            />
+            <div className="max-h-[44vh] overflow-auto rounded-xl border border-border">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>İl / merkez</TableHead>
+                    <TableHead className="w-28 text-right">Bölge</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProvinces.map((province) => (
+                    <TableRow key={province.id}>
+                      <TableCell className="font-bold">{province.name}</TableCell>
+                      <TableCell className="text-right"><Badge variant="secondary">{province.defaultBucket}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold">
+              <a
+                href="https://meslekihizmetler.csb.gov.tr/haberler/isi-yalitim-uygulamasi-altyapisi-tamamlanarak-kullanima-sunuldu-291191"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-[var(--home-accent)]"
+              >
+                1 Nisan 2025 yürürlük duyurusu <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <a
+                href="https://www.epsder.org.tr/ts825/yozgat.pdf"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-[var(--home-accent)]"
+              >
+                Yozgat TS 825:2024 il föyü <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="materials" className="min-h-0 pt-3">
+            <div className="max-h-[58vh] overflow-auto rounded-xl border border-border">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Malzeme</TableHead>
+                    <TableHead className="w-32">λ (W/mK)</TableHead>
+                    <TableHead className="w-24">μ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {materials.map((material) => (
+                    <TableRow key={material.id}>
+                      <TableCell className="font-bold">{material.name}</TableCell>
+                      <TableCell>{formatLambda(material.conductivity)}</TableCell>
+                      <TableCell>{material.mu ?? "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              λ: ısıl iletkenlik hesap değeri. μ: su buharı difüzyon direnç katsayısı. Ürün beyanında farklı hesap değeri varsa proje hesabında beyan değeri kullanılır.
+            </p>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }

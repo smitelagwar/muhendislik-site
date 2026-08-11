@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 
 interface DepremKategoriHeroProps {
   articleCount: number;
@@ -7,39 +7,35 @@ interface DepremKategoriHeroProps {
 
 export default function DepremKategoriHero({ articleCount, seriesCount }: DepremKategoriHeroProps) {
   return (
-    <section className="border-b border-zinc-800 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.11),_transparent_30%)] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge className="border-none bg-amber-500/15 text-amber-300">Deprem ve Yönetmelikler</Badge>
-          <Badge variant="outline" className="border-zinc-700 text-zinc-300">
-            {articleCount} içerik
-          </Badge>
-          <Badge variant="outline" className="border-zinc-700 text-zinc-300">
-            {seriesCount} alt dal
-          </Badge>
-        </div>
-
-        <div className="space-y-4">
-          <h1 className="max-w-4xl text-4xl font-black tracking-tight text-white md:text-5xl">
-            Deprem, Yönetmelik ve Tasarım Rehberleri
-          </h1>
-          <p className="max-w-4xl text-base leading-8 text-zinc-400 md:text-lg">
-            TBDY 2018, TS 500, yangın, imar, otopark, enerji, zemin, erişilebilirlik, Eurocode, akustik, asansör, İSG ve çevre başlıklarını aynı merkezde takip edin.
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3 lg:max-w-3xl">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Odak</p>
-            <p className="mt-2 text-sm font-bold text-white">Tek merkez, çok alt dal</p>
+    <section aria-labelledby="deprem-hero-title" className="border-b border-[var(--home-border)] bg-[var(--home-surface-raised)] px-5 py-12 sm:px-8 lg:px-12 lg:py-16 xl:px-16">
+      <div className="mx-auto max-w-[1440px]">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--home-accent)]">
+          Mevzuat merkezi
+        </p>
+        <div className="mt-5 grid gap-8 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-8">
+            <h1 id="deprem-hero-title" className="max-w-5xl text-4xl font-black leading-[1.02] tracking-[-0.045em] text-[var(--home-fg)] sm:text-6xl">
+              Deprem yönetmeliği ve yapı mevzuatı
+            </h1>
+            <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--home-muted)] sm:text-lg">
+              TBDY 2018, TS 500, yangın, imar, enerji, erişilebilirlik ve diğer yapı standartlarına göre hazırlanmış teknik içerikler.
+            </p>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Yapı</p>
-            <p className="mt-2 text-sm font-bold text-white">Filtre, arama ve seri sıralaması</p>
-          </div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-zinc-500">Çıktı</p>
-            <p className="mt-2 text-sm font-bold text-white">İlgili araç ve referans bağlantıları</p>
+          <div className="lg:col-span-4">
+            <form action="/kategori/deprem-yonetmelik#icerikler" className="relative">
+              <label htmlFor="regulation-search" className="sr-only">Mevzuat ve teknik içerik ara</label>
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--home-muted)]" aria-hidden />
+              <input
+                id="regulation-search"
+                name="q"
+                type="search"
+                placeholder="Mevzuat veya konu ara"
+                className="h-12 w-full rounded-md border border-[var(--home-border)] bg-[var(--home-surface)] pl-11 pr-4 text-sm text-[var(--home-fg)] outline-none placeholder:text-[var(--home-muted)] focus:border-[var(--home-accent-solid)] focus:ring-2 focus:ring-amber-500/15"
+              />
+            </form>
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--home-muted)]">
+              {seriesCount} mevzuat başlığı · {articleCount} teknik içerik
+            </p>
           </div>
         </div>
       </div>

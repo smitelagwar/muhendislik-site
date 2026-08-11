@@ -1,4 +1,15 @@
-﻿export type ToolIconKey = "rebar" | "column" | "beam" | "slab" | "cover" | "site" | "insulation" | "plot" | "earthquake";
+export type ToolIconKey =
+  | "rebar"
+  | "column"
+  | "beam"
+  | "slab"
+  | "cover"
+  | "site"
+  | "insulation"
+  | "plot"
+  | "earthquake"
+  | "check"
+  | "soil";
 
 export interface ToolDefinition {
   id: string;
@@ -96,7 +107,7 @@ export const TOOLS: ToolDefinition[] = [
     id: "imar-hesaplayici",
     name: "İmar Hesaplayıcı",
     href: "/kategori/araclar/imar-hesaplayici",
-    description: "Arsa alanı, TAKS, KAKS ve çekme mesafelerine göre taban alanı, kat karşılığı ve yapılaşma özetini ön kontrol edin.",
+    description: "Arsa alanı, TAKS, KAKS ve çekme mesafelerine göre yapılaşma özetini kontrol edin.",
     iconKey: "plot",
     discipline: "İmar",
     featured: false,
@@ -105,14 +116,36 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "taban-kesme-kuvveti",
-    name: "Taban Kesme Kuvveti (Eşdeğer Deprem Yükü)",
-    href: "/kategori/araclar/taban-kesme-kuvveti",
-    description: "TBDY 2018'e göre Eşdeğer Deprem Yükü ve Minimum Taban Kesme Kuvveti hesabı.",
+    name: "Eşdeğer Deprem Yükü",
+    href: "/deprem-yonetmelik/araclar/esit-deprem-yuku",
+    description: "TBDY 2018'e göre taban kesme kuvvetini ve katlara dağılan yatay deprem yüklerini hesaplayın.",
     iconKey: "earthquake",
     discipline: "Deprem Mühendisliği",
     featured: false,
     status: "live",
     order: 9,
+  },
+  {
+    id: "duzensizlik-kontrolu",
+    name: "Düzensizlik Kontrolü",
+    href: "/deprem-yonetmelik/araclar/duzensizlik-kontrolu",
+    description: "TBDY 2018'e göre A1–A3 plan ve B1–B3 düşey düzensizliklerini kontrol edin.",
+    iconKey: "check",
+    discipline: "Deprem Mühendisliği",
+    featured: false,
+    status: "live",
+    order: 10,
+  },
+  {
+    id: "zemin-sinifi",
+    name: "Yerel Zemin Sınıfı",
+    href: "/deprem-yonetmelik/araclar/zemin-sinifi",
+    description: "Vs30, SPT-N60 veya cu verileriyle TBDY 2018 yerel zemin sınıfını belirleyin.",
+    iconKey: "soil",
+    discipline: "Geoteknik",
+    featured: false,
+    status: "live",
+    order: 11,
   },
 ];
 
@@ -128,4 +161,3 @@ export function getFeaturedTool(): ToolDefinition | null {
 export function getToolDefinition(id: string): ToolDefinition | undefined {
   return TOOLS.find((tool) => tool.id === id);
 }
-
