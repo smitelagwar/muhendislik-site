@@ -330,78 +330,18 @@ const topics: TopicSpec[] = [
     keywords: ["diyafram", "toplayıcı", "başlık donatısı"],
   },
 
-  {
-    slug: "ts500-karakteristik-tasarim-dayanimlari",
-    title: "Karakteristik ve Tasarım Dayanımları ile Malzeme Katsayıları",
-    description: "Beton ve donatı çeliği dayanımlarının kesit hesabında kullanılan tasarım değerlerine dönüşümünü açıklar.",
-    seriesId: "ts500",
-    decision: "Deney sonucu, karakteristik dayanım ve tasarım dayanımı aynı büyüklük değildir; hesap raporunda kullanılan değer türü açıkça yazılmalıdır.",
-    checks: ["Beton sınıfı ile karakteristik basınç dayanımını eşleştirin.", "Malzeme güvenlik katsayılarını doğru tasarım durumunda uygulayın.", "Program malzeme kartlarını proje paftalarıyla karşılaştırın."],
-    keywords: ["tasarım dayanımı", "beton", "donatı çeliği"],
-  },
-  {
-    slug: "ts500-narin-kolon-ikinci-mertebe",
-    title: "Narin Kolonlar ve İkinci Mertebe Momentleri",
-    description: "Kolon narinliği, etkin boy ve ikinci mertebe büyütmesinin kesit hesabına etkisini açıklar.",
-    seriesId: "ts500",
-    decision: "Narinlik ihmal edilemediğinde birinci mertebe momenti doğrudan tasarım momenti olarak kullanılamaz.",
-    checks: ["Kolon serbest boyu ve mesnet koşullarından etkin boyu belirleyin.", "İki asal doğrultuda narinliği ayrı hesaplayın.", "Büyütülmüş momentlerle P-M etkileşim kontrolünü yenileyin."],
-    keywords: ["narin kolon", "ikinci mertebe", "etkin boy"],
-  },
-  {
-    slug: "ts500-kiris-sehim-kontrolu",
-    title: "Betonarme Kirişlerde Sehim Kontrolü",
-    description: "Ani ve zamana bağlı sehimlerin kullanım ve bölme duvarı performansına etkisini açıklar.",
-    seriesId: "ts500",
-    decision: "Dayanımı yeterli bir kiriş, çatlama ve sünme nedeniyle servis koşullarında kabul edilemez sehim yapabilir.",
-    checks: ["Açıklık/etkin derinlik ön kontrolünü yapın.", "Çatlamış kesit ve uzun süreli yük etkisini hesaba katın.", "Toplam sehmi kaplama, cephe ve bölme duvarı toleranslarıyla karşılaştırın."],
-    keywords: ["kiriş sehmi", "kullanılabilirlik", "sünme"],
-  },
-  {
-    slug: "ts500-catlak-genisligi-kontrolu",
-    title: "Çatlak Genişliği ve Kullanılabilirlik Kontrolleri",
-    description: "Donatı gerilmesi, çapı ve aralığının betonarme çatlak kontrolündeki rolünü ele alır.",
-    seriesId: "ts500",
-    decision: "Çatlak kontrolü yalnız estetik değildir; durabilite, su geçirimsizlik ve kaplama performansını doğrudan etkiler.",
-    checks: ["Servis yükleri altındaki donatı gerilmesini belirleyin.", "Çubuk çapı ve aralığını çatlak dağılımıyla birlikte değerlendirin.", "Çevresel etki ve kullanım beklentisine uygun kabul sınırını seçin."],
-    keywords: ["çatlak genişliği", "servis yükü", "durabilite"],
-  },
-  {
-    slug: "ts500-kiris-burulma-donatisi",
-    title: "Kirişlerde Burulma Donatısı Tasarımı",
-    description: "Denge ve uyum burulmasını ayırarak kapalı etriye ve boyuna donatı gereksinimini açıklar.",
-    seriesId: "ts500",
-    decision: "Burulma talebini yalnız yazılım çıktısı olarak okumak yerine yük yolunun burulma olmadan dengede kalıp kalamadığı belirlenmelidir.",
-    checks: ["Burulmanın denge veya uyum burulması olduğunu belirleyin.", "Kesme ve burulma etkileşimini birlikte kontrol edin.", "Kapalı etriye ve köşe boyuna donatılarının sürekliliğini gösterin."],
-    keywords: ["burulma", "kapalı etriye", "kiriş"],
-  },
-  {
-    slug: "ts500-doseme-zimbalama-guvenligi",
-    title: "Döşemelerde Zımbalama Güvenliği",
-    description: "Kolon çevresindeki kritik çevre, kesme gerilmesi ve zımbalama donatısı kararlarını açıklar.",
-    seriesId: "ts500",
-    decision: "Döşeme eğilme donatısının yeterli olması kolon çevresindeki iki yönlü kesme göçmesini önlediği anlamına gelmez.",
-    checks: ["Kritik zımbalama çevresini kolon ve yükleme geometrisine göre kurun.", "Moment aktarımının çevredeki gerilme dağılımına etkisini dahil edin.", "Yetersizlikte kalınlık, başlık veya zımbalama donatısı seçeneğini karşılaştırın."],
-    keywords: ["zımbalama", "mantar döşeme", "kritik çevre"],
-  },
-  {
-    slug: "ts500-tekil-birlesik-temel-tasarimi",
-    title: "Tekil ve Birleşik Temel Tasarımı",
-    description: "Kolon yüklerinden temel boyutuna, zemin basıncına ve donatı hesabına uzanan tasarım sırasını açıklar.",
-    seriesId: "ts500",
-    decision: "Temel plan boyutu geoteknik taşıma gücüyle, kalınlık ve donatı ise betonarme kesme-eğilme kontrolleriyle belirlenir.",
-    checks: ["Servis yükleriyle zemin basıncı dağılımını kontrol edin.", "Tek yönlü kesme ve zımbalama için etkin derinliği belirleyin.", "Kolon filizi, alt donatı ve kenetlenme detaylarını birlikte çözün."],
-    keywords: ["tekil temel", "birleşik temel", "zemin basıncı"],
-  },
-  {
-    slug: "ts500-radye-temel-egilme-kesme",
-    title: "Radye Temellerde Eğilme ve Kesme Kontrolleri",
-    description: "Kolon-perde yükleri altındaki radye plağın şerit, zımbalama ve kesme tasarımını açıklar.",
-    seriesId: "ts500",
-    decision: "Radye sonuçları tek bir maksimum momentle donatıya çevrilmemeli; kolon şeritleri, orta şeritler ve perde altı bölgeler ayrı okunmalıdır.",
-    checks: ["Üst ve alt yüz tasarım moment zarflarını iki doğrultuda çıkarın.", "Kolon ve perde çevresinde zımbalama/tek yönlü kesmeyi kontrol edin.", "Donatı sürekliliği ile kolon-perde filizlerini paftada çakıştırın."],
-    keywords: ["radye temel", "eğilme", "zımbalama"],
-  },
+
+
+
+
+
+
+
+
+
+
+
+
 
   {
     slug: "mevcut-bina-riskli-yapi-ve-bolum-15-farki",
@@ -699,6 +639,6 @@ export const DEPREM_TOPIC_ARTICLES: ArticleData[] = topics.map((topic) => {
   return buildArticle(topic, relatedSlugs);
 });
 
-if (DEPREM_TOPIC_ARTICLES.length !== 64) {
-  throw new Error(`Deprem konu kataloğunda 64 yerine ${DEPREM_TOPIC_ARTICLES.length} içerik bulundu.`);
+if (DEPREM_TOPIC_ARTICLES.length !== 56) {
+  throw new Error(`Deprem konu kataloğunda 56 yerine ${DEPREM_TOPIC_ARTICLES.length} içerik bulundu.`);
 }

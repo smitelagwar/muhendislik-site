@@ -4,6 +4,7 @@ import type { SiteSectionId } from "./site-sections";
 import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
 import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
 import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
+import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
 
 export interface ArticleData {
     slug: string;
@@ -71,9 +72,21 @@ function parseArticles(fileContent: string) {
     try {
         const parsedArticles = JSON.parse(fileContent) as Record<string, ArticleData>;
         const normalizedArticles = Object.fromEntries(
-            Object.entries(parsedArticles).map(([slug, article]) => [slug, normalizeExistingDepremArticle(article)]),
+            Object.entries(parsedArticles)
+                // ts500-content modülünde yönetilen makaleleri data.json'dan hariç tut
+                .filter(([slug]) => !TS500_SLUGS.has(slug))
+                .map(([slug, article]) => [slug, normalizeExistingDepremArticle(article)]),
         ) as Record<string, ArticleData>;
 
+        // TS 500 zengin içerik makaleleri
+        for (const article of TS500_ARTICLES) {
+            if (normalizedArticles[article.slug]) {
+                throw new Error(`TS 500 içeriği mevcut bir slug ile çakışıyor: ${article.slug}`);
+            }
+            normalizedArticles[article.slug] = article;
+        }
+
+        // Deprem konu makaleleri (TBDY, mevcut bina vb.)
         for (const article of DEPREM_TOPIC_ARTICLES) {
             if (normalizedArticles[article.slug]) {
                 throw new Error(`Yeni deprem içeriği mevcut bir slug ile çakışıyor: ${article.slug}`);
