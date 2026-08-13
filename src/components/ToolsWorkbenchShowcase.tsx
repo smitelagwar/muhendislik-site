@@ -153,6 +153,36 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
     calcType: "Kubaj & Kamyon Sefer",
     accentColor: "#78350f",
   },
+  "pratik-donati-metraji": {
+    standardNorm: "Pratik Pursantaj",
+    calcType: "Yaklaşık Demir Tonajı",
+    accentColor: "#dc2626",
+  },
+  "pratik-kalip-metraji": {
+    standardNorm: "Şantiye Pratikleri",
+    calcType: "Kalıp Yüzeyi (m²)",
+    accentColor: "#ea580c",
+  },
+  "duvar-metraji-hesabi": {
+    standardNorm: "Tuğla & Bims & Ytong",
+    calcType: "Duvar Alanı & Adet",
+    accentColor: "#c2410c",
+  },
+  "siva-boya-metraji": {
+    standardNorm: "İnce İşler",
+    calcType: "Alçı & Boya Sarfiyatı",
+    accentColor: "#0284c7",
+  },
+  "cati-kaplama-metraji": {
+    standardNorm: "Oturtma Çatı",
+    calcType: "Kereste & Kiremit",
+    accentColor: "#9a3412",
+  },
+  "seramik-fayans-metraji": {
+    standardNorm: "Islak Hacim",
+    calcType: "Seramik & Yapıştırıcı",
+    accentColor: "#4f46e5",
+  },
 };
 
 const DISCIPLINE_CATEGORIES = [
@@ -161,7 +191,7 @@ const DISCIPLINE_CATEGORIES = [
   { id: "deprem", label: "Deprem (TBDY 2018)" },
   { id: "geoteknik", label: "Geoteknik & Temel" },
   { id: "celik-ahsap", label: "Çelik & Ahşap" },
-  { id: "santiye-imar", label: "Şantiye, İmar & Yalıtım" },
+  { id: "santiye-imar", label: "Şantiye, Metraj & İmar" },
 ] as const;
 
 function getDisciplineGroup(discipline: string, toolId: string): string {
@@ -182,6 +212,9 @@ function getDisciplineGroup(discipline: string, toolId: string): string {
   }
   if (discipline === "Çelik & Ahşap") {
     return "celik-ahsap";
+  }
+  if (discipline === "Şantiye & Metraj") {
+    return "santiye-imar";
   }
   return "santiye-imar";
 }

@@ -23,6 +23,12 @@ import {
   Trees,
   Calculator,
   Truck,
+  Weight,
+  Frame,
+  BrickWall,
+  PaintRoller,
+  Home,
+  Grid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolIconKey } from "@/lib/tools-data";
@@ -82,6 +88,18 @@ export function ToolIcon({ iconKey, className }: ToolIconProps) {
       return <Calculator className={cn("h-5 w-5", className)} />;
     case "earthwork":
       return <Truck className={cn("h-5 w-5", className)} />;
+    case "weight":
+      return <Weight className={cn("h-5 w-5", className)} />;
+    case "frame":
+      return <Frame className={cn("h-5 w-5", className)} />;
+    case "brickwall":
+      return <BrickWall className={cn("h-5 w-5", className)} />;
+    case "paintroller":
+      return <PaintRoller className={cn("h-5 w-5", className)} />;
+    case "home":
+      return <Home className={cn("h-5 w-5", className)} />;
+    case "grid":
+      return <Grid className={cn("h-5 w-5", className)} />;
     default:
       return <CircleGauge className={cn("h-5 w-5", className)} />;
   }

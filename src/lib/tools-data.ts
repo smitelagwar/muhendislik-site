@@ -22,7 +22,13 @@ export type ToolIconKey =
   | "bolt"
   | "timber"
   | "quantity"
-  | "earthwork";
+  | "earthwork"
+  | "weight"
+  | "frame"
+  | "brickwall"
+  | "paintroller"
+  | "home"
+  | "grid";
 
 export interface ToolDefinition {
   id: string;
@@ -305,14 +311,80 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "hafriyat-metraj-hesabi",
-    name: "Hafriyat & Kamyon Sefer Sayısı",
+    name: "Hafriyat & Kamyon Sefer",
     href: "/kategori/araclar/hafriyat-metraj-hesabi",
-    description: "Kazı kubajı, zemin kabarma oranı ve nakliye kamyon sefer sayısını hesaplayın.",
+    description: "Zemin türüne göre kabarma faktörlü kazı hacmi ve kamyon sefer sayısını çıkarın.",
     iconKey: "earthwork",
-    discipline: "Şantiye",
+    discipline: "Şantiye & Metraj",
     featured: false,
     status: "live",
     order: 25,
+  },
+  {
+    id: "pratik-donati-metraji",
+    name: "Pratik Demir Metrajı",
+    href: "/kategori/araclar/pratik-donati-metraji",
+    description: "Kat alanı veya beton hacmine göre yaklaşık donatı tonajını (pursantaj) hesaplayın.",
+    iconKey: "weight",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 26,
+  },
+  {
+    id: "pratik-kalip-metraji",
+    name: "Pratik Kalıp Metrajı",
+    href: "/kategori/araclar/pratik-kalip-metraji",
+    description: "Kat alanı üzerinden pratik katsayılar ile toplam kalıp yüzeyi alanını (m²) tahmin edin.",
+    iconKey: "frame",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 27,
+  },
+  {
+    id: "duvar-metraji-hesabi",
+    name: "Duvar & Tuğla Metrajı",
+    href: "/kategori/araclar/duvar-metraji-hesabi",
+    description: "Kat alanından duvar alanına geçiş yaparak tuğla, bims veya gazbeton adetlerini bulun.",
+    iconKey: "brickwall",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 28,
+  },
+  {
+    id: "siva-boya-metraji",
+    name: "Sıva & Boya Metrajı",
+    href: "/kategori/araclar/siva-boya-metraji",
+    description: "Duvar ve tavan alanlarından hareketle astar, boya tenekesi ve alçı sarfiyatını çıkarın.",
+    iconKey: "paintroller",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 29,
+  },
+  {
+    id: "cati-kaplama-metraji",
+    name: "Çatı & Ahşap Metrajı",
+    href: "/kategori/araclar/cati-kaplama-metraji",
+    description: "Bina taban alanı ve saçak payına göre kiremit, mebran, OSB ve ahşap karkas miktarını bulun.",
+    iconKey: "home",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 30,
+  },
+  {
+    id: "seramik-fayans-metraji",
+    name: "Seramik & Fayans Metrajı",
+    href: "/kategori/araclar/seramik-fayans-metraji",
+    description: "Islak hacimlerde metrekare üzerinden seramik adedi, yapıştırıcı ve derz dolgu miktarını bulun.",
+    iconKey: "grid",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 31,
   },
 ];
 

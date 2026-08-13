@@ -521,6 +521,130 @@ export function ToolWatermarkIllustration({
         </svg>
       );
 
+    case "pratik-donati-metraji":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <rect x="25" y="25" width="70" height="70" rx="12" strokeWidth="3" />
+          <path d="M 45 25 L 45 95 M 75 25 L 75 95" strokeWidth="3" />
+          <line x1="25" y1="45" x2="95" y2="45" strokeWidth="3" />
+          <line x1="25" y1="75" x2="95" y2="75" strokeWidth="3" />
+          <circle cx="45" cy="45" r="4" fill={color} fillOpacity="0.4" />
+          <circle cx="75" cy="45" r="4" fill={color} fillOpacity="0.4" />
+          <circle cx="45" cy="75" r="4" fill={color} fillOpacity="0.4" />
+          <circle cx="75" cy="75" r="4" fill={color} fillOpacity="0.4" />
+        </svg>
+      );
+
+    case "pratik-kalip-metraji":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <rect x="15" y="45" width="90" height="30" rx="2" strokeWidth="3" />
+          <line x1="30" y1="45" x2="30" y2="15" strokeWidth="3" />
+          <line x1="90" y1="45" x2="90" y2="15" strokeWidth="3" />
+          <line x1="30" y1="75" x2="30" y2="105" strokeWidth="3" />
+          <line x1="90" y1="75" x2="90" y2="105" strokeWidth="3" />
+          <line x1="10" y1="25" x2="110" y2="25" strokeDasharray="3 3" />
+          <line x1="10" y1="95" x2="110" y2="95" strokeDasharray="3 3" />
+        </svg>
+      );
+
+    case "duvar-metraji-hesabi":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <rect x="15" y="25" width="90" height="70" rx="4" strokeWidth="3" />
+          <line x1="15" y1="48" x2="105" y2="48" strokeWidth="2" />
+          <line x1="15" y1="72" x2="105" y2="72" strokeWidth="2" />
+          <line x1="45" y1="25" x2="45" y2="48" strokeWidth="2" />
+          <line x1="75" y1="25" x2="75" y2="48" strokeWidth="2" />
+          <line x1="30" y1="48" x2="30" y2="72" strokeWidth="2" />
+          <line x1="60" y1="48" x2="60" y2="72" strokeWidth="2" />
+          <line x1="90" y1="48" x2="90" y2="72" strokeWidth="2" />
+          <line x1="45" y1="72" x2="45" y2="95" strokeWidth="2" />
+          <line x1="75" y1="72" x2="75" y2="95" strokeWidth="2" />
+        </svg>
+      );
+
+    case "siva-boya-metraji":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <rect x="35" y="20" width="50" height="25" rx="6" strokeWidth="3" />
+          <line x1="45" y1="45" x2="40" y2="85" strokeWidth="4" strokeLinecap="round" />
+          <line x1="75" y1="45" x2="80" y2="85" strokeWidth="4" strokeLinecap="round" />
+          <rect x="25" y="85" width="70" height="20" rx="10" strokeWidth="3" fill={color} fillOpacity="0.2" />
+          <path d="M 45 20 Q 60 10 75 20" strokeWidth="2" strokeDasharray="3 3" />
+        </svg>
+      );
+
+    case "cati-kaplama-metraji":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <path d="M 15 65 L 60 20 L 105 65" strokeWidth="3.5" strokeLinecap="round" />
+          <rect x="25" y="65" width="70" height="40" strokeWidth="3" />
+          <line x1="35" y1="45" x2="85" y2="45" strokeDasharray="3 3" />
+          <line x1="45" y1="35" x2="75" y2="35" strokeDasharray="3 3" />
+          <line x1="60" y1="20" x2="60" y2="65" strokeWidth="2" />
+          <line x1="25" y1="65" x2="95" y2="65" strokeWidth="3" />
+        </svg>
+      );
+
+    case "seramik-fayans-metraji":
+      return (
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          className={commonClasses}
+          aria-hidden="true"
+        >
+          <rect x="20" y="20" width="80" height="80" rx="4" strokeWidth="3" />
+          <line x1="40" y1="20" x2="40" y2="100" strokeWidth="2" />
+          <line x1="60" y1="20" x2="60" y2="100" strokeWidth="2" />
+          <line x1="80" y1="20" x2="80" y2="100" strokeWidth="2" />
+          <line x1="20" y1="40" x2="100" y2="40" strokeWidth="2" />
+          <line x1="20" y1="60" x2="100" y2="60" strokeWidth="2" />
+          <line x1="20" y1="80" x2="100" y2="80" strokeWidth="2" />
+          <rect x="40" y="40" width="20" height="20" fill={color} fillOpacity="0.3" />
+          <rect x="80" y="60" width="20" height="20" fill={color} fillOpacity="0.3" />
+          <rect x="20" y="80" width="20" height="20" fill={color} fillOpacity="0.3" />
+        </svg>
+      );
+
     default:
       return (
         <svg
