@@ -14,6 +14,7 @@ import {
   Compass,
 } from "lucide-react";
 import { ToolIcon } from "@/components/tool-icon";
+import { ToolWatermarkIllustration } from "@/components/tool-watermarks";
 import { type ToolDefinition } from "@/lib/tools-data";
 
 /* ------------------------------------------------------------------ */
@@ -349,6 +350,9 @@ export default function ToolsWorkbenchShowcase({
                   className="absolute inset-x-0 top-0 h-[2.5px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                   style={{ backgroundColor: color }}
                 />
+
+                {/* Sağ alt filigran simge (Sağ altta şeffaf ve hover animasyonlu) */}
+                <ToolWatermarkIllustration toolId={tool.id} color={color} />
 
                 <div>
                   {/* Kart Üst Rozetler */}
