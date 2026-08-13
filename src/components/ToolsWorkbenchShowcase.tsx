@@ -31,89 +31,159 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
   "donati-hesabi": {
     standardNorm: "TS 500 & TS EN 1992",
     calcType: "Donatı Eşdeğerliği",
-    accentColor: "#f59e0b", // Amber
+    accentColor: "#f59e0b",
   },
   "kolon-on-boyutlandirma": {
     standardNorm: "TS 500 & TBDY 2018",
     calcType: "Eksenel Yük & Kesit",
-    accentColor: "#ef4444", // Red
+    accentColor: "#ef4444",
   },
   "kiris-kesiti": {
     standardNorm: "TS 500",
     calcType: "Eğilme & Kesme",
-    accentColor: "#3b82f6", // Blue
+    accentColor: "#3b82f6",
   },
   "doseme-kalinligi": {
     standardNorm: "TS 500",
     calcType: "Narinlik & Sehim",
-    accentColor: "#10b981", // Emerald
+    accentColor: "#10b981",
   },
   "pas-payi": {
     standardNorm: "TS EN 1992-1-1",
     calcType: "Çevre Sınıfı Örtüsü",
-    accentColor: "#6366f1", // Indigo
+    accentColor: "#6366f1",
   },
-  "kalip-sokum-suresi": {
-    standardNorm: "TS 500 & Şantiye",
-    calcType: "Beton Dayanım Takvimi",
-    accentColor: "#84cc16", // Lime
+  "zimbalama-kontrolu": {
+    standardNorm: "TS 500 & Eurocode 2",
+    calcType: "Kolon Çevresi Kayma",
+    accentColor: "#ec4899",
   },
-  "dis-cephe-yalitim-kalinligi": {
-    standardNorm: "TS 825:2024",
-    calcType: "Bölge U Değeri",
-    accentColor: "#06b6d4", // Cyan
+  "kiris-kesme-etriye": {
+    standardNorm: "TS 500 (Bölüm 8)",
+    calcType: "Vc + Vw Etriye Aralığı",
+    accentColor: "#f97316",
   },
-  "imar-hesaplayici": {
-    standardNorm: "3194 İmar Kanunu",
-    calcType: "TAKS, KAKS & Çekmeler",
-    accentColor: "#8b5cf6", // Purple
+  "kenetlenme-boyu": {
+    standardNorm: "TS 500 (Bölüm 9)",
+    calcType: "lb & lbd Bindirme Ek Boyu",
+    accentColor: "#14b8a6",
   },
   "taban-kesme-kuvveti": {
     standardNorm: "TBDY 2018",
     calcType: "Eşdeğer Deprem Yükü",
-    accentColor: "#f43f5e", // Rose
+    accentColor: "#f43f5e",
   },
   "duzensizlik-kontrolu": {
     standardNorm: "TBDY 2018",
     calcType: "A1-A3 & B1-B3 Kontrolü",
-    accentColor: "#d97706", // Amber-Dark
+    accentColor: "#d97706",
   },
   "zemin-sinifi": {
     standardNorm: "TBDY 2018 (Tablo 16.1)",
     calcType: "Vs30 & SPT-N60 Sınıfı",
-    accentColor: "#059669", // Emerald-Dark
+    accentColor: "#059669",
+  },
+  "deprem-periyot-hesabi": {
+    standardNorm: "TBDY 2018 (Bölüm 4)",
+    calcType: "SDS, SD1 & İvme Spektrumu",
+    accentColor: "#8b5cf6",
+  },
+  "goreli-kat-otelemesi": {
+    standardNorm: "TBDY 2018 (Tablo 4.3)",
+    calcType: "Drift & theta Tahkiki",
+    accentColor: "#e11d48",
+  },
+  "tekil-birlesik-temel": {
+    standardNorm: "TS 500 & TBDY 2018",
+    calcType: "Zemin Emniyet & Donatı",
+    accentColor: "#0284c7",
+  },
+  "radye-temel-hesabi": {
+    standardNorm: "TS 500 & TBDY 2018",
+    calcType: "Ampatman & Zımbalama",
+    accentColor: "#0d9488",
+  },
+  "iksa-toprak-basinci": {
+    standardNorm: "Rankine & Coulomb",
+    calcType: "Ka & Kp İtkisi",
+    accentColor: "#ca8a04",
+  },
+  "sev-stabilitesi": {
+    standardNorm: "Fellenius / Bishop",
+    calcType: "Fs Güvenlik Katsayısı",
+    accentColor: "#65a30d",
+  },
+  "celik-profil-secimi": {
+    standardNorm: "ÇYTHYE 2018 / AISC",
+    calcType: "IPE/HEA Narinlik & Burkulma",
+    accentColor: "#64748b",
+  },
+  "celik-birlestesi-hesabi": {
+    standardNorm: "ÇYTHYE 2018",
+    calcType: "Bulon & Kaynak Dikişi",
+    accentColor: "#475569",
+  },
+  "ahsap-eleman-hesabi": {
+    standardNorm: "TS 647 & Eurocode 5",
+    calcType: "Emniyet Gerilmesi & Narinlik",
+    accentColor: "#b45309",
+  },
+  "kalip-sokum-suresi": {
+    standardNorm: "TS 500 & Şantiye",
+    calcType: "Beton Dayanım Takvimi",
+    accentColor: "#84cc16",
+  },
+  "dis-cephe-yalitim-kalinligi": {
+    standardNorm: "TS 825:2024",
+    calcType: "Bölge U Değeri",
+    accentColor: "#06b6d4",
+  },
+  "imar-hesaplayici": {
+    standardNorm: "3194 İmar Kanunu",
+    calcType: "TAKS, KAKS & Çekmeler",
+    accentColor: "#8b5cf6",
+  },
+  "beton-metraj-hesabi": {
+    standardNorm: "Şantiye Metrajı",
+    calcType: "Zayiatlı Harç Hacmi",
+    accentColor: "#f59e0b",
+  },
+  "hafriyat-metraj-hesabi": {
+    standardNorm: "Kazı & Nakliye",
+    calcType: "Kubaj & Kamyon Sefer",
+    accentColor: "#78350f",
   },
 };
 
 const DISCIPLINE_CATEGORIES = [
   { id: "all", label: "Tümü" },
   { id: "betonarme", label: "Betonarme (TS 500)" },
-  { id: "deprem", label: "Deprem & Mevzuat (TBDY)" },
-  { id: "santiye", label: "Şantiye & Detay" },
-  { id: "imar-yalitim", label: "İmar & Yalıtım" },
+  { id: "deprem", label: "Deprem (TBDY 2018)" },
+  { id: "geoteknik", label: "Geoteknik & Temel" },
+  { id: "celik-ahsap", label: "Çelik & Ahşap" },
+  { id: "santiye-imar", label: "Şantiye, İmar & Yalıtım" },
 ] as const;
 
 function getDisciplineGroup(discipline: string, toolId: string): string {
   if (
-    toolId === "donati-hesabi" ||
-    toolId === "kolon-on-boyutlandirma" ||
-    toolId === "kiris-kesiti" ||
-    toolId === "doseme-kalinligi" ||
-    toolId === "pas-payi"
+    discipline === "Betonarme" ||
+    discipline === "Donatı Tasarımı" ||
+    discipline === "Kiriş Tasarımı" ||
+    discipline === "Döşeme Tasarımı" ||
+    discipline === "Betonarme Detay"
   ) {
     return "betonarme";
   }
-  if (
-    toolId === "taban-kesme-kuvveti" ||
-    toolId === "duzensizlik-kontrolu" ||
-    toolId === "zemin-sinifi"
-  ) {
+  if (discipline === "Deprem Mühendisliği") {
     return "deprem";
   }
-  if (toolId === "kalip-sokum-suresi") {
-    return "santiye";
+  if (discipline === "Geoteknik") {
+    return "geoteknik";
   }
-  return "imar-yalitim";
+  if (discipline === "Çelik & Ahşap") {
+    return "celik-ahsap";
+  }
+  return "santiye-imar";
 }
 
 /* ================================================================== */

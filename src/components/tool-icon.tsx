@@ -10,6 +10,19 @@ import {
   Ruler,
   Shield,
   Snowflake,
+  Target,
+  Scissors,
+  Link,
+  Timer,
+  MoveHorizontal,
+  Box,
+  Layers,
+  TrendingDown,
+  Wrench,
+  Zap,
+  Trees,
+  Calculator,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolIconKey } from "@/lib/tools-data";
@@ -43,6 +56,32 @@ export function ToolIcon({ iconKey, className }: ToolIconProps) {
       return <ListChecks className={cn("h-5 w-5", className)} />;
     case "soil":
       return <Compass className={cn("h-5 w-5", className)} />;
+    case "punching":
+      return <Target className={cn("h-5 w-5", className)} />;
+    case "shear":
+      return <Scissors className={cn("h-5 w-5", className)} />;
+    case "splice":
+      return <Link className={cn("h-5 w-5", className)} />;
+    case "period":
+      return <Timer className={cn("h-5 w-5", className)} />;
+    case "drift":
+      return <MoveHorizontal className={cn("h-5 w-5", className)} />;
+    case "foundation":
+      return <Box className={cn("h-5 w-5", className)} />;
+    case "retaining":
+      return <Layers className={cn("h-5 w-5", className)} />;
+    case "slope":
+      return <TrendingDown className={cn("h-5 w-5", className)} />;
+    case "steel":
+      return <Wrench className={cn("h-5 w-5", className)} />;
+    case "bolt":
+      return <Zap className={cn("h-5 w-5", className)} />;
+    case "timber":
+      return <Trees className={cn("h-5 w-5", className)} />;
+    case "quantity":
+      return <Calculator className={cn("h-5 w-5", className)} />;
+    case "earthwork":
+      return <Truck className={cn("h-5 w-5", className)} />;
     default:
       return <CircleGauge className={cn("h-5 w-5", className)} />;
   }
