@@ -1,5 +1,5 @@
-﻿import type { Metadata } from "next";
-import BinaMindMap from "@/components/BinaMindMap";
+import type { Metadata } from "next";
+import BinaConstructionTimeline from "@/components/BinaConstructionTimeline";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -12,11 +12,8 @@ export default function BinaAsamalariPage() {
   return (
     <div className="tool-page-shell py-6 md:py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <BinaMindMap />
+        <BinaConstructionTimeline />
       </div>
     </div>
   );
 }
-
-
-
