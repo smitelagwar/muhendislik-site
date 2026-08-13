@@ -366,10 +366,21 @@ function SearchOverlay({
             placeholder="Konu ara... (ör: kalıp, donatı, sıva)"
             className="flex-1 bg-transparent text-[15px] text-slate-900 placeholder:text-slate-400 outline-none dark:text-white dark:placeholder:text-white/25"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white/60"
+              title="Aramayı temizle"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white/60"
+            aria-label="Kapat"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-white/30 dark:hover:bg-white/10 dark:hover:text-white/60"
           >
             <X className="h-4 w-4" />
           </button>
