@@ -16,6 +16,7 @@ import {
   resolveSiteUrl,
 } from "@/lib/site-config";
 import "./globals.css";
+import "./home.css";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-sans",

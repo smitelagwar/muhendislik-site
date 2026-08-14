@@ -1,10 +1,10 @@
-"use client";
-
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, Building2, FileText, LandPlot, Layers3, type LucideIcon } from "lucide-react";
-import type { HomeResource } from "@/components/home-types";
 import { ToolIcon } from "@/components/tool-icon";
+import type {
+  HomeFeaturedCalculation,
+  HomeResourceLink,
+} from "@/lib/home-content";
 import type { CalculationPageIconKey } from "@/lib/calculation-pages";
 
 const CALCULATION_ICONS: Record<CalculationPageIconKey, LucideIcon> = {
@@ -14,14 +14,7 @@ const CALCULATION_ICONS: Record<CalculationPageIconKey, LucideIcon> = {
   layers: Layers3,
 };
 
-interface InteractiveCardStyle extends CSSProperties {
-  "--pointer-x": string;
-  "--pointer-y": string;
-  "--rotate-x": string;
-  "--rotate-y": string;
-}
-
-function ResourceIcon({ resource, className }: { resource: HomeResource; className: string }) {
+function ResourceIcon({ resource, className }: { resource: HomeResourceLink; className: string }) {
   if (resource.kind === "tool") {
     return <ToolIcon iconKey={resource.iconKey} className={className} />;
   }
@@ -30,99 +23,88 @@ function ResourceIcon({ resource, className }: { resource: HomeResource; classNa
   return <Icon className={className} />;
 }
 
-function supportsPointerEffects(event: ReactPointerEvent<HTMLAnchorElement>) {
+export function HomeFeaturedCalculationCard({ calculation }: { calculation: HomeFeaturedCalculation }) {
   return (
-    event.pointerType === "mouse" &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    <article
+      data-testid="home-featured-calculation"
+      className="home-featured-calculation relative overflow-hidden rounded-xl border border-[var(--home-border)]"
+    >
+      <div className="home-featured-blueprint pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative flex h-full flex-col p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <span className="home-section-kicker">Örnek ön metraj</span>
+          <span className="border border-[var(--home-border)] bg-[var(--home-surface)] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--home-muted)]">
+            Canlı hesap motoru
+          </span>
+        </div>
+
+        <div className="mt-8 max-w-2xl">
+          <h3 className="text-2xl font-bold tracking-[-0.03em] text-[var(--home-fg)] sm:text-4xl">
+            {calculation.title}
+          </h3>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--home-muted)]">{calculation.description}</p>
+          <p className="mt-5 border-l-2 border-[var(--home-info)] pl-3 font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--home-muted)]">
+            {calculation.scenario}
+          </p>
+        </div>
+
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[var(--home-border)] bg-[var(--home-border)] sm:grid-cols-4">
+          {calculation.metrics.map((metric) => (
+            <div key={metric.label} className="bg-[var(--home-surface)] px-4 py-5">
+              <span className="block font-mono text-[9px] uppercase tracking-[0.14em] text-[var(--home-muted)]">
+                {metric.label}
+              </span>
+              <strong className="mt-2 block font-mono text-lg font-bold tabular-nums text-[var(--home-fg)] sm:text-xl">
+                {metric.value}
+              </strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-5 border-t border-[var(--home-border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <ul className="flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] uppercase tracking-[0.11em] text-[var(--home-muted)]">
+            {calculation.proofPoints.map((point) => (
+              <li key={point} className="inline-flex items-center gap-2">
+                <span className="h-1.5 w-1.5 bg-[var(--home-accent-solid)]" aria-hidden />
+                {point}
+              </li>
+            ))}
+          </ul>
+          <Link href={calculation.href} className="home-button-primary shrink-0 justify-center">
+            Hesabı aç
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }
 
-function handlePointerMove(event: ReactPointerEvent<HTMLAnchorElement>) {
-  if (!supportsPointerEffects(event)) return;
-
-  const card = event.currentTarget;
-  const bounds = card.getBoundingClientRect();
-  const horizontal = (event.clientX - bounds.left) / bounds.width;
-  const vertical = (event.clientY - bounds.top) / bounds.height;
-
-  card.style.setProperty("--pointer-x", `${horizontal * 100}%`);
-  card.style.setProperty("--pointer-y", `${vertical * 100}%`);
-  card.style.setProperty("--rotate-x", `${(0.5 - vertical) * 6}deg`);
-  card.style.setProperty("--rotate-y", `${(horizontal - 0.5) * 6}deg`);
-}
-
-function handlePointerLeave(event: ReactPointerEvent<HTMLAnchorElement>) {
-  const card = event.currentTarget;
-  card.style.setProperty("--pointer-x", "50%");
-  card.style.setProperty("--pointer-y", "50%");
-  card.style.setProperty("--rotate-x", "0deg");
-  card.style.setProperty("--rotate-y", "0deg");
-}
-
-export function HomeResourceCard({ resource, featured }: { resource: HomeResource; featured: boolean }) {
-  const interactiveStyle: InteractiveCardStyle = {
-    "--pointer-x": "50%",
-    "--pointer-y": "50%",
-    "--rotate-x": "0deg",
-    "--rotate-y": "0deg",
-  };
-
+export function HomeCompactResourceLink({ resource }: { resource: HomeResourceLink }) {
   return (
     <Link
       href={resource.href}
-      aria-label={`${resource.title} aracını aç`}
-      data-testid="home-resource-card"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      style={interactiveStyle}
-      className={`home-resource-card home-interactive-card group relative flex h-full cursor-pointer overflow-hidden rounded-xl border p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)] ${
-        featured ? "home-resource-card-featured sm:p-8" : "border-[var(--home-border)]"
-      }`}
+      data-testid="home-resource-link"
+      className="home-resource-row group grid min-h-20 grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-4 border-b border-[var(--home-border)] py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)] sm:min-h-24 sm:py-4"
     >
-      <div
-        className="pointer-events-none absolute -bottom-10 -right-8 opacity-[0.055] transition-transform duration-300 group-hover:-translate-y-2 group-hover:scale-105 dark:opacity-[0.08]"
-        aria-hidden
-      >
-        <ResourceIcon resource={resource} className={featured ? "h-48 w-48" : "h-36 w-36"} />
-      </div>
-
-      <div className="relative z-10 flex h-full w-full flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <span className="home-resource-icon flex h-12 w-12 items-center justify-center rounded-lg border border-[var(--home-border)] bg-[var(--home-surface-raised)] text-[var(--home-accent)]">
-            <ResourceIcon resource={resource} className="h-5 w-5" />
-          </span>
-          <span className="border border-[var(--home-border)] bg-[var(--home-surface)] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.16em] text-[var(--home-muted)]">
+      <span className="flex h-11 w-11 items-center justify-center rounded-md border border-[var(--home-border)] bg-[var(--home-surface-raised)] text-[var(--home-accent)]">
+        <ResourceIcon resource={resource} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <strong className="text-sm font-bold text-[var(--home-fg)]">{resource.title}</strong>
+          <span className="font-mono text-[9px] uppercase tracking-[0.13em] text-[var(--home-info)]">
             {resource.reference}
           </span>
-        </div>
-
-        <div className={featured ? "mt-auto pt-16" : "mt-auto pt-10"}>
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--home-info)]">
-            {resource.label}
-          </p>
-          <h3
-            className={`mt-3 font-black leading-tight tracking-[-0.025em] text-[var(--home-fg)] ${
-              featured ? "max-w-xl text-2xl sm:text-3xl" : "text-xl"
-            }`}
-          >
-            {resource.title}
-          </h3>
-          <p
-            className={`mt-3 leading-6 text-[var(--home-muted)] ${
-              featured ? "max-w-xl text-sm" : "line-clamp-2 text-xs"
-            }`}
-          >
-            {resource.description}
-          </p>
-          <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--home-fg)] transition-colors group-hover:text-[var(--home-accent)]">
-            Aracı aç
-            <ArrowRight
-              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-              aria-hidden
-            />
-          </span>
-        </div>
-      </div>
+        </span>
+        <span className="mt-1.5 hidden line-clamp-1 text-xs leading-5 text-[var(--home-muted)] sm:block">
+          {resource.description}
+        </span>
+      </span>
+      <ArrowRight
+        className="h-4 w-4 text-[var(--home-muted)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[var(--home-accent)]"
+        aria-hidden
+      />
     </Link>
   );
 }

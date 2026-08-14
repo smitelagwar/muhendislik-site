@@ -1,14 +1,18 @@
-import Image from "next/image";
+import type { CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck } from "lucide-react";
-import type { HomeProjectPhase, HomeStandard } from "@/components/home-types";
+import { ArrowRight } from "lucide-react";
+import type { HomeProjectPhase } from "@/lib/home-content";
 
-interface HomeProjectPathProps {
-  phases: HomeProjectPhase[];
-  standards: HomeStandard[];
+interface PhaseFrameStyle extends CSSProperties {
+  "--phase-frame-position": string;
 }
 
-export function HomeProjectPath({ phases, standards }: HomeProjectPathProps) {
+function getPhaseFrameStyle(frameIndex: number): PhaseFrameStyle {
+  const position = `${(frameIndex / 5) * 100}%`;
+  return { "--phase-frame-position": position };
+}
+
+export function HomeProjectPath({ phases }: { phases: HomeProjectPhase[] }) {
   return (
     <section
       data-testid="home-phase-path"
@@ -20,36 +24,37 @@ export function HomeProjectPath({ phases, standards }: HomeProjectPathProps) {
         <div className="grid gap-8 border-b border-white/10 pb-8 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-8">
             <p className="home-section-kicker home-section-kicker-inverse">03 / Uygula</p>
-            <h2 id="home-phases-title" className="mt-5 max-w-4xl text-3xl font-black tracking-[-0.035em] text-white sm:text-5xl">
-              Bir binayı, projeden teslime adım adım izleyin.
+            <h2 id="home-phases-title" className="mt-5 max-w-4xl text-3xl font-bold tracking-[-0.035em] text-white sm:text-5xl">
+              Aynı yapının, projeden teslime altı hâli.
             </h2>
           </div>
           <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-4 lg:justify-self-end">
-            Tasarım kararından saha kabulüne uzanan altı ana fazı inceleyin; ihtiyaç duyduğunuz uygulama rehberine doğrudan geçin.
+            Tasarım kararını, saha uygulamasını ve teslim sürecini aynı yapı geometrisi üzerinden kesintisiz izleyin.
           </p>
         </div>
 
-        <div className="home-phase-rail relative mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-6" role="list">
+        <div className="home-phase-list mt-10" role="list">
           {phases.map((phase, index) => (
-            <article key={phase.id} className="relative" role="listitem">
+            <article key={phase.id} role="listitem" className="home-phase-item">
               <Link
                 href={phase.href}
-                className="group relative flex h-full min-h-72 flex-col border border-white/10 bg-[#111111]/90 p-5 backdrop-blur-sm transition-colors duration-200 hover:border-amber-400/45 hover:bg-[#171717] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                data-testid="home-phase-link"
+                className="group grid h-full grid-cols-[5.5rem_minmax(0,1fr)] gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 sm:grid-cols-[7rem_minmax(0,1fr)] sm:gap-5 sm:py-5 xl:block xl:py-0"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <span className="font-mono text-xs font-bold tracking-[0.18em] text-amber-400">
+                <div
+                  style={getPhaseFrameStyle(phase.frameIndex)}
+                  className="home-phase-frame aspect-[4/3] overflow-hidden rounded-md border border-white/10 bg-[#0b0d10]"
+                  aria-hidden
+                />
+                <div className="flex min-w-0 flex-col xl:min-h-56 xl:pt-5">
+                  <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-amber-400">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <div className="relative h-16 w-16 overflow-hidden rounded-md border border-white/10 bg-white/5">
-                    <Image src={phase.image} alt="" fill loading="eager" sizes="64px" className="object-cover opacity-90" aria-hidden />
-                  </div>
-                </div>
-                <div className="mt-auto pt-10">
-                  <h3 className="text-lg font-black leading-tight text-white transition-colors group-hover:text-amber-200">
+                  <h3 className="mt-3 text-base font-bold leading-tight text-white transition-colors group-hover:text-amber-200">
                     {phase.title}
                   </h3>
-                  <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-400">{phase.summary}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-slate-200">
+                  <p className="mt-3 hidden line-clamp-3 text-xs leading-5 text-slate-400 sm:block">{phase.summary}</p>
+                  <span className="mt-auto hidden items-center gap-2 pt-4 text-xs font-bold text-slate-200 sm:inline-flex">
                     Fazı incele
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
                   </span>
@@ -59,35 +64,11 @@ export function HomeProjectPath({ phases, standards }: HomeProjectPathProps) {
           ))}
         </div>
 
-        <div className="mt-8 flex justify-end">
+        <div className="mt-10 flex justify-end">
           <Link href="/kategori/bina-asamalari" className="home-button-primary justify-center">
-            İnteraktif bina haritasını aç
+            Tüm bina aşamalarını aç
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
-        </div>
-
-        <div className="mt-16 border border-white/10 bg-black/25">
-          <div className="grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
-            {standards.map((standard) => (
-              <Link
-                key={standard.code}
-                href={standard.href}
-                className="group flex min-h-24 items-center justify-between gap-4 bg-[#0d0d0d] px-5 py-4 transition-colors duration-200 hover:bg-[#171717] focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-              >
-                <span>
-                  <span className="block font-mono text-xs font-bold tracking-[0.12em] text-amber-400">{standard.code}</span>
-                  <span className="mt-2 block text-xs text-slate-400">{standard.label}</span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-slate-600 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-blue-400" aria-hidden />
-              </Link>
-            ))}
-          </div>
-          <div className="flex items-start gap-3 border-t border-white/10 px-5 py-4 text-xs leading-6 text-slate-400 sm:items-center">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-400 sm:mt-0" aria-hidden />
-            <p>
-              Hesap araçları ön boyutlandırma ve karşılaştırma amaçlıdır. Nihai mühendislik kararı, proje verileri ve yürürlükteki mevzuat birlikte değerlendirilerek yetkili uzman tarafından verilmelidir.
-            </p>
-          </div>
         </div>
       </div>
     </section>
