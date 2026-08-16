@@ -112,6 +112,9 @@ export function TaahhutnameStudio({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activeBlobUrlRef = useRef<string | null>(null);
   const latestPdfBytesRef = useRef<Uint8Array | null>(null);
+  const cachedPdfDocRef = useRef<any>(null);
+  const zoomLevelRef = useRef<number>(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
 
   // Field change handler
   const handleFieldChange = (key: keyof TaahhutnameData, value: string) => {
@@ -163,94 +166,69 @@ export function TaahhutnameStudio({
     return Object.values(formData).filter((v) => (v || "").trim().length > 0).length;
   }, [formData]);
 
-  // Render PDF onto Canvas fitting the entire page (height & width) into view
-  const renderPdfToCanvas = useCallback(
-    async (pdfBytes: Uint8Array, zoom: number) => {
-      const canvas = canvasRef.current;
-      const container = previewContainerRef.current;
-      if (!canvas || !container) return;
+  // Render already loaded PDF Page onto Canvas at the requested zoom level (Instant 60fps)
+  const renderPdfPage = useCallback(async (pdf: any, zoom: number) => {
+    const canvas = canvasRef.current;
+    const container = previewContainerRef.current;
+    if (!canvas || !container || !pdf) return;
 
-      try {
-        const pdfjs = await loadBrowserPdfJs();
-        if (!pdfjs) return;
-
-        if (renderTaskRef.current) {
-          try {
-            renderTaskRef.current.cancel();
-          } catch {
-            // ignore
-          }
+    try {
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {
+          // ignore
         }
-
-        // Create a completely detached-safe clone before transferring to PDF.js worker
-        const clonedBytes = new Uint8Array(pdfBytes.byteLength);
-        clonedBytes.set(pdfBytes);
-
-        const loadingTask = pdfjs.getDocument({
-          data: clonedBytes,
-          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
-          cMapPacked: true,
-        });
-
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-
-        // Native unscaled A4 viewport (595.28 x 841.89 pt)
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-
-        // Available dimensions inside container (with tight margin)
-        const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-        const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
-        const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
-
-        // Calculate fit scale: entire page fits vertically & horizontally at zoom 100%
-        let baseFitScale: number;
-        if (isMobile) {
-          baseFitScale = availableWidth / unscaledViewport.width;
-        } else {
-          const fitScaleByHeight = availableHeight / unscaledViewport.height;
-          const fitScaleByWidth = availableWidth / unscaledViewport.width;
-          baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
-        }
-
-        const effectiveScale = baseFitScale * (zoom / 100);
-
-        // High resolution multiplier for crystal-clear text
-        const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-        const viewport = page.getViewport({ scale: effectiveScale });
-
-        canvas.width = Math.floor(viewport.width * pixelRatio);
-        canvas.height = Math.floor(viewport.height * pixelRatio);
-
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-
-        const renderContext = {
-          canvasContext: ctx,
-          viewport: viewport,
-        };
-
-        const renderTask = page.render(renderContext);
-        renderTaskRef.current = renderTask;
-
-        await renderTask.promise;
-        setSyncStatus("synced");
-        setHasRenderedOnce(true);
-      } catch (err: any) {
-        if (err?.name === "RenderingCancelledException") return;
-        console.error("Canvas render error:", err);
-        setSyncStatus("error");
       }
-    },
-    []
-  );
 
-  // Debounced PDF Generation
+      const page = await pdf.getPage(1);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+      const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
+      const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
+
+      let baseFitScale: number;
+      if (isMobile) {
+        baseFitScale = availableWidth / unscaledViewport.width;
+      } else {
+        const fitScaleByHeight = availableHeight / unscaledViewport.height;
+        const fitScaleByWidth = availableWidth / unscaledViewport.width;
+        baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
+      }
+
+      const effectiveScale = baseFitScale * (zoom / 100);
+      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const viewport = page.getViewport({ scale: effectiveScale });
+
+      canvas.width = Math.floor(viewport.width * pixelRatio);
+      canvas.height = Math.floor(viewport.height * pixelRatio);
+
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+      };
+
+      const renderTask = page.render(renderContext);
+      renderTaskRef.current = renderTask;
+
+      await renderTask.promise;
+      setHasRenderedOnce(true);
+    } catch (err: any) {
+      if (err?.name === "RenderingCancelledException") return;
+      console.error("Canvas render error:", err);
+    }
+  }, []);
+
+  // Debounced PDF Generation (Triggers ONLY when formData changes)
   useEffect(() => {
     setSyncStatus("updating");
     setIsGenerating(true);
@@ -274,7 +252,24 @@ export function TaahhutnameStudio({
         activeBlobUrlRef.current = url;
         setBlobUrl(url);
 
-        await renderPdfToCanvas(storedBytes, zoomLevel);
+        const pdfjs = await loadBrowserPdfJs();
+        if (pdfjs) {
+          const clonedBytes = new Uint8Array(storedBytes.byteLength);
+          clonedBytes.set(storedBytes);
+
+          const loadingTask = pdfjs.getDocument({
+            data: clonedBytes,
+            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+            cMapPacked: true,
+          });
+
+          const pdf = await loadingTask.promise;
+          cachedPdfDocRef.current = pdf;
+
+          await renderPdfPage(pdf, zoomLevelRef.current);
+        }
+
+        setSyncStatus("synced");
         setIsGenerating(false);
       } catch (error) {
         console.error("PDF generation failure:", error);
@@ -288,9 +283,16 @@ export function TaahhutnameStudio({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [formData, renderPdfToCanvas, zoomLevel]);
+  }, [formData, renderPdfPage]);
 
-  // Re-render canvas when container size changes
+  // Instant Redraw when zoomLevel changes (NO PDF recompilation, NO sync status change)
+  useEffect(() => {
+    if (cachedPdfDocRef.current) {
+      renderPdfPage(cachedPdfDocRef.current, zoomLevel);
+    }
+  }, [zoomLevel, renderPdfPage]);
+
+  // Container resize observer (redraws page instantly on window resize)
   useEffect(() => {
     const container = previewContainerRef.current;
     if (!container) return;
@@ -299,10 +301,10 @@ export function TaahhutnameStudio({
     const observer = new ResizeObserver(() => {
       if (resizeTimer) clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (latestPdfBytesRef.current) {
-          renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
+        if (cachedPdfDocRef.current) {
+          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
         }
-      }, 80);
+      }, 50);
     });
 
     observer.observe(container);
@@ -310,7 +312,48 @@ export function TaahhutnameStudio({
       if (resizeTimer) clearTimeout(resizeTimer);
       observer.disconnect();
     };
-  }, [renderPdfToCanvas, zoomLevel]);
+  }, [renderPdfPage]);
+
+  // Ctrl + Mouse Wheel (or Trackpad Pinch) Zoom & Keyboard Zoom (+ / - / 0)
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.deltaY < 0) {
+          // Wheel up -> Zoom In
+          setZoomLevel((prev) => Math.min(250, prev + 25));
+        } else if (e.deltaY > 0) {
+          // Wheel down -> Zoom Out
+          setZoomLevel((prev) => Math.max(50, prev - 25));
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.min(250, prev + 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.max(50, prev - 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        setZoomLevel(100);
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // Handle direct download
   const handleDownload = async () => {

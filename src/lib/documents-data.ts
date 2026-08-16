@@ -19,6 +19,7 @@ export interface DocumentItem {
   badge: string;
   fileSize: string;
   downloadUrl: string;
+  studioUrl: string;
   updatedAt: string;
   tags: string[];
   targetAudience: string;
@@ -48,6 +49,7 @@ export const DOCUMENTS: DocumentItem[] = [
     badge: "Düzenlenebilir PDF Form",
     fileSize: "1.75 MB",
     downloadUrl: "/belgeler/beton-dokum-tutanagi.pdf",
+    studioUrl: "/belgeler/beton-dokum-tutanagi",
     updatedAt: "2026",
     tags: ["beton", "döküm", "tutanak", "şantiye", "yapı denetim", "slump", "numune", "irsaliye", "kalıp", "donatı", "c30", "c35"],
     targetAudience: "Şantiye Şefleri, Yapı Denetim Mühendisleri, Saha Mühendisleri",
@@ -113,6 +115,7 @@ Yapı Denetim Görevlisi: ${values.yapi_denetim || "........................"}
     badge: "Düzenlenebilir PDF Form",
     fileSize: "1.14 MB",
     downloadUrl: "/belgeler/santiye-sefi-taahhutnamesi.pdf",
+    studioUrl: "/belgeler/santiye-sefi-taahhutnamesi",
     updatedAt: "2026",
     tags: ["şantiye şefi", "taahhütname", "ruhsat", "belediye", "yapı denetim", "mimarlar odası", "imo", "yibf", "imar"],
     targetAudience: "Şantiye Şefleri, Mimarlar, İnşaat Mühendisleri, Yapı Müteahhitleri",
@@ -184,6 +187,7 @@ Tarih            : ${values.tarih || "-"}
     badge: "Düzenlenebilir PDF Form",
     fileSize: "1.76 MB",
     downloadUrl: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
+    studioUrl: "/belgeler/santiye-sefi-istifa-dilekcesi",
     updatedAt: "2026",
     tags: ["şantiye şefi", "istifa", "dilekçe", "belediye", "yapı kontrol", "imar kanunu", "görevden ayrılma", "ayrılış"],
     targetAudience: "Şantiye Şefleri, Mühendisler, Mimarlar",

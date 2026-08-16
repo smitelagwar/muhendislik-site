@@ -114,6 +114,9 @@ export function BetonDokumStudio({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activeBlobUrlRef = useRef<string | null>(null);
   const latestPdfBytesRef = useRef<Uint8Array | null>(null);
+  const cachedPdfDocRef = useRef<any>(null);
+  const zoomLevelRef = useRef<number>(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
 
   // Field change handler
   const handleFieldChange = (key: keyof BetonDokumData, value: string) => {
@@ -154,94 +157,69 @@ export function BetonDokumStudio({
     return Object.values(formData).filter((v) => (v || "").trim().length > 0).length;
   }, [formData]);
 
-  // Render PDF onto Canvas fitting the entire page (height & width) into view
-  const renderPdfToCanvas = useCallback(
-    async (pdfBytes: Uint8Array, zoom: number) => {
-      const canvas = canvasRef.current;
-      const container = previewContainerRef.current;
-      if (!canvas || !container) return;
+  // Render already loaded PDF Page onto Canvas at the requested zoom level (Instant 60fps)
+  const renderPdfPage = useCallback(async (pdf: any, zoom: number) => {
+    const canvas = canvasRef.current;
+    const container = previewContainerRef.current;
+    if (!canvas || !container || !pdf) return;
 
-      try {
-        const pdfjs = await loadBrowserPdfJs();
-        if (!pdfjs) return;
-
-        if (renderTaskRef.current) {
-          try {
-            renderTaskRef.current.cancel();
-          } catch {
-            // ignore
-          }
+    try {
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {
+          // ignore
         }
-
-        // Create a completely detached-safe clone before transferring to PDF.js worker
-        const clonedBytes = new Uint8Array(pdfBytes.byteLength);
-        clonedBytes.set(pdfBytes);
-
-        const loadingTask = pdfjs.getDocument({
-          data: clonedBytes,
-          cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
-          cMapPacked: true,
-        });
-
-        const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-
-        // Native unscaled A4 viewport (595.28 x 841.89 pt)
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-
-        // Available dimensions inside container (with tight margin)
-        const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-        const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
-        const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
-
-        // Calculate fit scale: entire page fits vertically & horizontally at zoom 100%
-        let baseFitScale: number;
-        if (isMobile) {
-          baseFitScale = availableWidth / unscaledViewport.width;
-        } else {
-          const fitScaleByHeight = availableHeight / unscaledViewport.height;
-          const fitScaleByWidth = availableWidth / unscaledViewport.width;
-          baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
-        }
-
-        const effectiveScale = baseFitScale * (zoom / 100);
-
-        // High resolution multiplier for crystal-clear text
-        const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-        const viewport = page.getViewport({ scale: effectiveScale });
-
-        canvas.width = Math.floor(viewport.width * pixelRatio);
-        canvas.height = Math.floor(viewport.height * pixelRatio);
-
-        canvas.style.width = `${Math.floor(viewport.width)}px`;
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-
-        const renderContext = {
-          canvasContext: ctx,
-          viewport: viewport,
-        };
-
-        const renderTask = page.render(renderContext);
-        renderTaskRef.current = renderTask;
-
-        await renderTask.promise;
-        setSyncStatus("synced");
-        setHasRenderedOnce(true);
-      } catch (err: any) {
-        if (err?.name === "RenderingCancelledException") return;
-        console.error("Canvas render error:", err);
-        setSyncStatus("error");
       }
-    },
-    []
-  );
 
-  // Debounced PDF Generation
+      const page = await pdf.getPage(1);
+      const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+      const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
+      const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
+
+      let baseFitScale: number;
+      if (isMobile) {
+        baseFitScale = availableWidth / unscaledViewport.width;
+      } else {
+        const fitScaleByHeight = availableHeight / unscaledViewport.height;
+        const fitScaleByWidth = availableWidth / unscaledViewport.width;
+        baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
+      }
+
+      const effectiveScale = baseFitScale * (zoom / 100);
+      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+      const viewport = page.getViewport({ scale: effectiveScale });
+
+      canvas.width = Math.floor(viewport.width * pixelRatio);
+      canvas.height = Math.floor(viewport.height * pixelRatio);
+
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport,
+      };
+
+      const renderTask = page.render(renderContext);
+      renderTaskRef.current = renderTask;
+
+      await renderTask.promise;
+      setHasRenderedOnce(true);
+    } catch (err: any) {
+      if (err?.name === "RenderingCancelledException") return;
+      console.error("Canvas render error:", err);
+    }
+  }, []);
+
+  // Debounced PDF Generation (Triggers ONLY when formData changes)
   useEffect(() => {
     setSyncStatus("updating");
     setIsGenerating(true);
@@ -265,7 +243,24 @@ export function BetonDokumStudio({
         activeBlobUrlRef.current = url;
         setBlobUrl(url);
 
-        await renderPdfToCanvas(storedBytes, zoomLevel);
+        const pdfjs = await loadBrowserPdfJs();
+        if (pdfjs) {
+          const clonedBytes = new Uint8Array(storedBytes.byteLength);
+          clonedBytes.set(storedBytes);
+
+          const loadingTask = pdfjs.getDocument({
+            data: clonedBytes,
+            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+            cMapPacked: true,
+          });
+
+          const pdf = await loadingTask.promise;
+          cachedPdfDocRef.current = pdf;
+
+          await renderPdfPage(pdf, zoomLevelRef.current);
+        }
+
+        setSyncStatus("synced");
         setIsGenerating(false);
       } catch (error) {
         console.error("PDF generation failure:", error);
@@ -279,7 +274,14 @@ export function BetonDokumStudio({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [formData, renderPdfToCanvas, zoomLevel]);
+  }, [formData, renderPdfPage]);
+
+  // Instant Redraw when zoomLevel changes (NO PDF recompilation, NO sync status change)
+  useEffect(() => {
+    if (cachedPdfDocRef.current) {
+      renderPdfPage(cachedPdfDocRef.current, zoomLevel);
+    }
+  }, [zoomLevel, renderPdfPage]);
 
   // Window / container resize observer to keep canvas perfectly fitted
   useEffect(() => {
@@ -288,14 +290,12 @@ export function BetonDokumStudio({
 
     let resizeTimer: NodeJS.Timeout | null = null;
     const observer = new ResizeObserver(() => {
-      if (latestPdfBytesRef.current) {
-        if (resizeTimer) clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          if (latestPdfBytesRef.current) {
-            renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
-          }
-        }, 100);
-      }
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (cachedPdfDocRef.current) {
+          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
+        }
+      }, 50);
     });
 
     observer.observe(container);
@@ -303,18 +303,59 @@ export function BetonDokumStudio({
       observer.disconnect();
       if (resizeTimer) clearTimeout(resizeTimer);
     };
-  }, [zoomLevel, renderPdfToCanvas]);
+  }, [renderPdfPage]);
 
   // Re-render canvas when switching to preview tab on mobile
   useEffect(() => {
-    if (activeTabMobile === "preview" && latestPdfBytesRef.current) {
+    if (activeTabMobile === "preview" && cachedPdfDocRef.current) {
       setTimeout(() => {
-        if (latestPdfBytesRef.current) {
-          renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
+        if (cachedPdfDocRef.current) {
+          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
         }
       }, 50);
     }
-  }, [activeTabMobile, zoomLevel, renderPdfToCanvas]);
+  }, [activeTabMobile, renderPdfPage]);
+
+  // Ctrl + Mouse Wheel (or Trackpad Pinch) Zoom & Keyboard Zoom (+ / - / 0)
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.deltaY < 0) {
+          // Wheel up -> Zoom In
+          setZoomLevel((prev) => Math.min(250, prev + 25));
+        } else if (e.deltaY > 0) {
+          // Wheel down -> Zoom Out
+          setZoomLevel((prev) => Math.max(50, prev - 25));
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.min(250, prev + 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.max(50, prev - 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        setZoomLevel(100);
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -413,22 +454,20 @@ export function BetonDokumStudio({
   return (
     <div
       data-studio-locked="true"
-      className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${
-        isModal
-          ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
-          : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
-      }`}
+      className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${isModal
+        ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
+        : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
+        }`}
     >
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
       <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
         <button
           type="button"
           onClick={() => setActiveTabMobile("form")}
-          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-            activeTabMobile === "form"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-          }`}
+          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTabMobile === "form"
+            ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+            : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+            }`}
         >
           <FileEdit className="h-3.5 w-3.5 text-amber-500" />
           <span>Form Alanları</span>
@@ -440,11 +479,10 @@ export function BetonDokumStudio({
         <button
           type="button"
           onClick={() => setActiveTabMobile("preview")}
-          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-            activeTabMobile === "preview"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
-              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-          }`}
+          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTabMobile === "preview"
+            ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+            : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+            }`}
         >
           <Eye className="h-3.5 w-3.5 text-amber-500" />
           <span>Canlı PDF Önizle</span>
@@ -460,9 +498,8 @@ export function BetonDokumStudio({
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-border">
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
-          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-2.5 sm:p-3.5 space-y-2.5 ${
-            activeTabMobile === "form" ? "block" : "hidden lg:block"
-          }`}
+          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-2.5 sm:p-3.5 space-y-2.5 ${activeTabMobile === "form" ? "block" : "hidden lg:block"
+            }`}
         >
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
@@ -511,15 +548,51 @@ export function BetonDokumStudio({
               />
             </div>
 
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-              {renderFieldHeader("YİBF No", "yibf")}
+            <div
+              className={`rounded-lg border p-2 transition-colors ${(formData.yibf || "").trim().length > 7
+                ? "border-red-500/60 bg-red-500/[0.04] dark:bg-red-950/20"
+                : "border-border/80 bg-card/60"
+                }`}
+            >
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                  <label className="text-[11px] font-bold text-foreground truncate">
+                    YİBF No
+                  </label>
+                  {(formData.yibf || "").trim().length > 7 ? (
+                    <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">
+                      (YİBF No normalde 7 haneli olmalıdır, kontrol ediniz)
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-mono text-muted-foreground/80">
+                      (7 Hane)
+                    </span>
+                  )}
+                </div>
+
+                {formData.yibf !== BETON_DOKUM_DEFAULT_DATA.yibf && (
+                  <button
+                    type="button"
+                    onClick={() => handleLocalFieldReset("yibf")}
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                    title='"YİBF No" alanını varsayılana sıfırla'
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" />
+                    <span>Sıfırla</span>
+                  </button>
+                )}
+              </div>
+
               <input
                 type="text"
                 inputMode="numeric"
                 value={formData.yibf || ""}
                 onChange={(e) => handleFieldChange("yibf", e.target.value)}
-                placeholder="1234567"
-                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono font-semibold text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                placeholder="2560855"
+                className={`h-8 w-full rounded-md border px-2.5 text-xs font-mono font-semibold transition-colors placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 ${(formData.yibf || "").trim().length > 7
+                  ? "border-red-500 text-red-600 dark:text-red-400 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-border bg-background text-foreground focus:border-amber-500 focus:ring-amber-500/20"
+                  }`}
               />
             </div>
           </div>
@@ -679,9 +752,8 @@ export function BetonDokumStudio({
 
         {/* Right Column: Full-Height Live PDF Canvas Panel (Starts right at top, fits 100% viewport) */}
         <div
-          className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
-            activeTabMobile === "preview" ? "block" : "hidden lg:flex"
-          }`}
+          className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${activeTabMobile === "preview" ? "block" : "hidden lg:flex"
+            }`}
         >
           {/* Top Mini Control Bar (Zoom, Fit, Open) */}
           <div className="flex items-center justify-between mb-1 px-1 shrink-0">
@@ -745,9 +817,8 @@ export function BetonDokumStudio({
           {/* Canvas Viewport Container: Maximized vertical area, local internal scroll when zoomed */}
           <div
             ref={previewContainerRef}
-            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${
-              zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
-            }`}
+            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
+              }`}
           >
             {isGenerating && !hasRenderedOnce && (
               <div className="sticky inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10 min-h-[260px]">
@@ -759,11 +830,10 @@ export function BetonDokumStudio({
             {/* Auto-Fitted Full A4 Canvas (centered, scrollable when zoomed in) */}
             <canvas
               ref={canvasRef}
-              className={`bg-white rounded-md shadow-2xl transition-all block shrink-0 ${
-                zoomLevel > 100
-                  ? "mx-auto my-2"
-                  : "max-h-full max-w-full mx-auto my-auto"
-              }`}
+              className={`bg-white rounded-md shadow-2xl transition-all block shrink-0 ${zoomLevel > 100
+                ? "mx-auto my-2"
+                : "max-h-full max-w-full mx-auto my-auto"
+                }`}
             />
           </div>
 

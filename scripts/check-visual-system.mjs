@@ -13,6 +13,7 @@ const routes = [
   "/kategori/yapi-tasarimi",
   "/kategori/deprem-yonetmelik",
   "/kategori/bina-asamalari",
+  "/belgeler",
   "/beton-dokumu-kontrol-listesi",
   "/konu-haritasi",
   "/hakkimizda",
@@ -27,6 +28,7 @@ const mobileRoutes = new Set([
   "/kategori/deprem-yonetmelik",
   "/beton-dokumu-kontrol-listesi",
   "/kategori/bina-asamalari",
+  "/belgeler",
 ]);
 
 function assert(condition, message) {
