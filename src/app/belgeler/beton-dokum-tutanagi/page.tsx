@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BetonDokumStudio } from "@/components/beton-dokum-studio";
-import { SitePageShell } from "@/components/site-page";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -14,14 +13,10 @@ export const metadata: Metadata = buildSeoMetadata({
 
 export default function BetonDokumTutanagiPage() {
   return (
-    <SitePageShell
-      className="tool-page-shell !p-0 !py-0 !m-0 !overflow-hidden"
-      width="ultra"
-      contentClassName="!max-w-none !w-full !px-2 sm:!px-3 !py-1.5 !overflow-hidden"
-    >
+    <main className="w-full h-[calc(100dvh-64px)] overflow-hidden flex flex-col p-1 sm:p-2">
       <div className="w-full h-full flex flex-col gap-1 overflow-hidden">
-        {/* Back Link Inline */}
-        <div className="shrink-0">
+        {/* Back Link */}
+        <div className="shrink-0 px-1">
           <Link
             href="/belgeler"
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
@@ -34,6 +29,6 @@ export default function BetonDokumTutanagiPage() {
         {/* Viewport Fit Studio */}
         <BetonDokumStudio isModal={false} />
       </div>
-    </SitePageShell>
+    </main>
   );
 }

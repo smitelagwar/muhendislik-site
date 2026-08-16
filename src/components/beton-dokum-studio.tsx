@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Building2,
   Calendar,
+  Check,
   CheckCircle2,
   Copy,
   Download,
@@ -18,6 +20,7 @@ import {
   RotateCcw,
   ShieldCheck,
   Trash2,
+  Undo2,
   UserCheck,
   X,
   ZoomIn,
@@ -117,7 +120,15 @@ export function BetonDokumStudio({
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Reset to original PDF default values (Sıfırla)
+  // Local per-field reset handler: restores ONLY this specific field to original default
+  const handleLocalFieldReset = (key: keyof BetonDokumData) => {
+    setFormData((prev) => ({
+      ...prev,
+      [key]: BETON_DOKUM_DEFAULT_DATA[key],
+    }));
+  };
+
+  // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
     setFormData({ ...BETON_DOKUM_DEFAULT_DATA });
   };
@@ -174,10 +185,10 @@ export function BetonDokumStudio({
         // Native unscaled A4 viewport (595.28 x 841.89 pt)
         const unscaledViewport = page.getViewport({ scale: 1.0 });
 
-        // Available dimensions inside container (with tight margin for max size)
+        // Available dimensions inside container (with tight margin)
         const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-        const availableHeight = Math.max(260, container.clientHeight - (isMobile ? 12 : 16));
-        const availableWidth = Math.max(260, container.clientWidth - (isMobile ? 12 : 16));
+        const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
+        const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
 
         // Calculate fit scale: entire page fits vertically & horizontally at zoom 100%
         let baseFitScale: number;
@@ -345,12 +356,49 @@ export function BetonDokumStudio({
     }
   };
 
+  // Helper component for label with per-field reset button
+  const renderFieldHeader = (
+    label: string,
+    fieldKey: keyof BetonDokumData,
+    badge?: string
+  ) => {
+    const isModified = formData[fieldKey] !== BETON_DOKUM_DEFAULT_DATA[fieldKey];
+
+    return (
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <label className="text-[11px] font-bold text-foreground truncate">
+            {label}
+          </label>
+          {badge && (
+            <span className="text-[9px] font-mono text-muted-foreground/80">
+              {badge}
+            </span>
+          )}
+        </div>
+
+        {/* Local Reset Button (Only appears when field is modified) */}
+        {isModified && (
+          <button
+            type="button"
+            onClick={() => handleLocalFieldReset(fieldKey)}
+            className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+            title={`"${label}" alanını varsayılana sıfırla`}
+          >
+            <RotateCcw className="h-2.5 w-2.5" />
+            <span>Sıfırla</span>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
-      className={`flex flex-col bg-background text-foreground w-full ${
+      className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${
         isModal
-          ? "h-full max-h-[96vh] overflow-hidden rounded-2xl border border-border shadow-2xl"
-          : "h-[calc(100vh-68px)] min-h-[580px] max-h-[100vh] rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md overflow-hidden"
+          ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
+          : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
       }`}
     >
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
@@ -390,18 +438,18 @@ export function BetonDokumStudio({
         </button>
       </div>
 
-      {/* Main Split Layout: Left Form (with action buttons at bottom) & Right Full Live PDF (Maximized height) */}
+      {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-border">
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
-          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-3 sm:p-3.5 space-y-2.5 ${
+          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-2.5 sm:p-3.5 space-y-2.5 ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
-              <FileEdit className="h-4 w-4 text-amber-500" />
+              <FileEdit className="h-3.5 w-3.5 text-amber-500" />
               <h2 className="text-xs font-bold text-foreground">
                 Beton Döküm Tutanağı (AcroForm)
               </h2>
@@ -420,11 +468,9 @@ export function BetonDokumStudio({
             )}
           </div>
 
-          {/* Tutanak Alt Başlığı */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-            <label className="block text-[11px] font-bold text-foreground">
-              Tutanak Alt Başlığı
-            </label>
+          {/* 1. Tutanak Alt Başlığı */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+            {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
             <input
               type="text"
               value={formData.tutanak_alt_baslik || ""}
@@ -434,12 +480,10 @@ export function BetonDokumStudio({
             />
           </div>
 
-          {/* Tarih & YİBF */}
+          {/* 2. Tarih & 3. YİBF */}
           <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-              <label className="block text-[11px] font-bold text-foreground">
-                Tarih
-              </label>
+            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+              {renderFieldHeader("Tarih", "tarih")}
               <input
                 type="text"
                 value={formData.tarih || ""}
@@ -449,10 +493,8 @@ export function BetonDokumStudio({
               />
             </div>
 
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-              <label className="block text-[11px] font-bold text-foreground">
-                YİBF No
-              </label>
+            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+              {renderFieldHeader("YİBF No", "yibf")}
               <input
                 type="text"
                 inputMode="numeric"
@@ -464,11 +506,9 @@ export function BetonDokumStudio({
             </div>
           </div>
 
-          {/* Şantiye Yeri */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-            <label className="block text-[11px] font-bold text-foreground">
-              Şantiye Yeri (İl, İlçe, Mahalle, Ada, Parsel)
-            </label>
+          {/* 4. Şantiye Yeri */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+            {renderFieldHeader("Şantiye Yeri", "yer", "(İl/İlçe/Mahalle/Ada/Parsel)")}
             <textarea
               rows={2}
               value={formData.yer || ""}
@@ -478,11 +518,9 @@ export function BetonDokumStudio({
             />
           </div>
 
-          {/* Olay Açıklaması */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-            <label className="block text-[11px] font-bold text-foreground">
-              Olay Açıklaması
-            </label>
+          {/* 5. Olay Açıklaması */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+            {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
             <textarea
               rows={3}
               value={formData.olay_aciklamasi || ""}
@@ -492,11 +530,9 @@ export function BetonDokumStudio({
             />
           </div>
 
-          {/* Gözlem ve Notlar */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-1">
-            <label className="block text-[11px] font-bold text-foreground">
-              Gözlem ve Notlar
-            </label>
+          {/* 6. Gözlem ve Notlar */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+            {renderFieldHeader("Gözlem ve Notlar", "gozlem_notlar")}
             <textarea
               rows={2}
               value={formData.gozlem_notlar || ""}
@@ -506,7 +542,7 @@ export function BetonDokumStudio({
             />
           </div>
 
-          {/* İmzacı Taraflar (4 Taraf - Compact 2x2 Grid) */}
+          {/* 7-10. İmzacı Taraflar (4 Taraf) */}
           <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               İmzacı Taraflar
@@ -514,9 +550,7 @@ export function BetonDokumStudio({
 
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <label className="block text-[10px] font-semibold text-foreground mb-0.5">
-                  1. Laboratuvar
-                </label>
+                {renderFieldHeader("1. Laboratuvar", "laboratuvar")}
                 <input
                   type="text"
                   value={formData.laboratuvar || ""}
@@ -527,9 +561,7 @@ export function BetonDokumStudio({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-foreground mb-0.5">
-                  2. Müteahhit
-                </label>
+                {renderFieldHeader("2. Müteahhit", "muteahhit")}
                 <input
                   type="text"
                   value={formData.muteahhit || ""}
@@ -540,9 +572,7 @@ export function BetonDokumStudio({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-foreground mb-0.5">
-                  3. Şantiye Şefi
-                </label>
+                {renderFieldHeader("3. Şantiye Şefi", "santiye_sefi")}
                 <input
                   type="text"
                   value={formData.santiye_sefi || ""}
@@ -553,9 +583,7 @@ export function BetonDokumStudio({
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-foreground mb-0.5">
-                  4. Yapı Denetim
-                </label>
+                {renderFieldHeader("4. Yapı Denetim", "yapi_denetim")}
                 <input
                   type="text"
                   value={formData.yapi_denetim || ""}
@@ -567,7 +595,7 @@ export function BetonDokumStudio({
             </div>
           </div>
 
-          {/* Action Buttons Panel (Positioned right below İmzacı Taraflar) */}
+          {/* Action Buttons Panel (Right below İmzacı Taraflar) */}
           <div className="pt-2 space-y-2 border-t border-border/60">
             {/* Secondary Action Row: Sıfırla, Temizle, Boş Form, Yazdır */}
             <div className="grid grid-cols-4 gap-1.5">
@@ -576,7 +604,7 @@ export function BetonDokumStudio({
                 size="sm"
                 onClick={handleResetToPdfDefaults}
                 className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                title="Orijinal PDF varsayılanlarını yükle"
+                title="Tüm alanları orijinal PDF varsayılanlarına sıfırla"
               >
                 <RotateCcw className="h-3 w-3 mr-1 shrink-0" />
                 <span>Sıfırla</span>
@@ -597,7 +625,7 @@ export function BetonDokumStudio({
                 href="/belgeler/beton-dokum-tutanagi.pdf"
                 download="BETON_DOKUM_TUTANAGI_BOS_SABLON.pdf"
                 className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                title="Doldurulmamış boş formu indir"
+                title="Doldurulmamış boş şablonu indir"
               >
                 <Download className="h-3 w-3 mr-1 shrink-0" />
                 <span>Boş Form</span>

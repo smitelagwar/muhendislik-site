@@ -1,8 +1,18 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 export function Footer() {
+  const pathname = usePathname();
+
+  // Hide footer on full-screen studio pages for single-screen view
+  if (pathname?.startsWith("/belgeler/beton-dokum-tutanagi")) {
+    return null;
+  }
+
   return (
     <footer className="relative mt-auto w-full overflow-hidden border-t border-white/10 bg-[#04060a] pb-24 pt-16 text-sm text-slate-400 md:pb-16">
       <div className="home-grid-backdrop absolute inset-0 opacity-50" />
@@ -58,33 +68,30 @@ export function Footer() {
             <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">İletişim</h5>
             <ul className="mt-5 space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
+                <MapPin className="mt-1 h-4 w-4 shrink-0 text-amber-300" />
                 <span>Teknopark İstanbul, No: 1, Pendik / İstanbul</span>
               </li>
               <li className="flex items-center gap-3">
-                <Mail className="h-5 w-5 shrink-0 text-blue-300" />
+                <Mail className="h-4 w-4 shrink-0 text-amber-300" />
                 <a href="mailto:info@insablog.com" className="transition-colors hover:text-white">info@insablog.com</a>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="h-5 w-5 shrink-0 text-blue-300" />
+                <Phone className="h-4 w-4 shrink-0 text-amber-300" />
                 <a href="tel:+902125550000" className="transition-colors hover:text-white">+90 (212) 555 00 00</a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 py-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p>&copy; {new Date().getFullYear()} İnşa Blog. Tüm hakları saklıdır.</p>
-            <p className="text-xs text-slate-600">
-              Tasarım ve içerik, mühendislik ekiplerinin hızlı ve kontrollü karar alması için optimize edilmiştir.
-            </p>
+        <div className="flex flex-col gap-6 pt-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p>© 2026 İnşa Blog. Tüm hakları saklıdır.</p>
+            <p className="mt-1 text-slate-400">Tasarım ve içerik, mühendislik ekiplerinin hızlı ve kontrollü karar alması için optimize edilmiştir.</p>
           </div>
 
-          <p className="max-w-2xl rounded-lg border border-white/10 bg-white/5 p-4 text-xs leading-6 text-slate-300">
-            <strong>Uyarı:</strong> Buradaki araçlar ve içerikler ön boyutlandırma ve referans amaçlıdır. Nihai
-            mühendislik kararı, projeyi yürüten uzman ekip tarafından verilmelidir.
-          </p>
+          <div className="max-w-xl rounded-md border border-white/10 bg-white/5 p-3 text-[11px] leading-relaxed text-slate-400">
+            <span className="font-semibold text-slate-200">Uyarı:</span> Buradaki araçlar ve içerikler ön boyutlandırma ve referans amaçlıdır. Nihai mühendislik kararı, projeyi yürüten uzman ekip tarafından verilmelidir.
+          </div>
         </div>
       </div>
     </footer>
