@@ -1240,3 +1240,26 @@ article:nth-child(2) > .home-resource-card-featured {
     animation: none !important;
   }
 }
+
+/* Zero-scroll lock for interactive studio pages */
+html:has([data-studio-locked="true"]),
+body:has([data-studio-locked="true"]) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+body:has([data-studio-locked="true"]) > div.flex.min-h-screen {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
+body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
+  height: calc(100vh - 68px) !important;
+  max-height: calc(100vh - 68px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}

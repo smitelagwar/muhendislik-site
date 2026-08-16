@@ -393,8 +393,29 @@ export function BetonDokumStudio({
     );
   };
 
+  // Lock window/body scroll when studio is active in full page mode
+  useEffect(() => {
+    if (isModal) return;
+    if (typeof window !== "undefined") {
+      const htmlEl = document.documentElement;
+      const bodyEl = document.body;
+
+      const prevHtmlOverflow = htmlEl.style.overflow;
+      const prevBodyOverflow = bodyEl.style.overflow;
+
+      htmlEl.style.overflow = "hidden";
+      bodyEl.style.overflow = "hidden";
+
+      return () => {
+        htmlEl.style.overflow = prevHtmlOverflow;
+        bodyEl.style.overflow = prevBodyOverflow;
+      };
+    }
+  }, [isModal]);
+
   return (
     <div
+      data-studio-locked="true"
       className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${
         isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"

@@ -13,8 +13,8 @@ export const metadata: Metadata = buildSeoMetadata({
 
 export default function BetonDokumTutanagiPage() {
   return (
-    <main className="w-full h-[calc(100dvh-64px)] overflow-hidden flex flex-col p-1 sm:p-2">
-      <div className="w-full h-full flex flex-col gap-1 overflow-hidden">
+    <main className="w-full h-full flex-1 min-h-0 overflow-hidden flex flex-col p-1 sm:p-2 box-border">
+      <div className="w-full h-full flex-1 min-h-0 flex flex-col gap-1 overflow-hidden">
         {/* Back Link */}
         <div className="shrink-0 px-1">
           <Link
@@ -27,7 +27,9 @@ export default function BetonDokumTutanagiPage() {
         </div>
 
         {/* Viewport Fit Studio */}
-        <BetonDokumStudio isModal={false} />
+        <div className="flex-1 min-h-0 w-full overflow-hidden">
+          <BetonDokumStudio isModal={false} />
+        </div>
       </div>
     </main>
   );
