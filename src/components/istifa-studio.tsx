@@ -577,7 +577,7 @@ export function IstifaStudio({
                 value={formData.ana_paragraf || ""}
                 onChange={(e) => handleFieldChange("ana_paragraf", e.target.value)}
                 placeholder="Arsa sahibi ... adına kayıtlı ... ada ... parselde bulunan inşaatta üstlenmiş olduğum şantiye şefliği görevimden..."
-                className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-y"
+                className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-y font-normal"
               />
             </div>
 
@@ -589,7 +589,7 @@ export function IstifaStudio({
                 value={formData.sonuc_cumlesi || ""}
                 onChange={(e) => handleFieldChange("sonuc_cumlesi", e.target.value)}
                 placeholder="İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim."
-                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-normal text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
           </div>
