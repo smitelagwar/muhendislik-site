@@ -1,17 +1,20 @@
 "use client";
 
-// Donatı düzeni krokisi — çubuk çap ve adet bilgisinden
-// tek veya çift sıra yatay yerleşim şeması çizer.
-// TS 500 Md. 7.4 — net çubuk aralığı kontrolü notu içerir.
-
+import { getRebarRowLayout } from "@/lib/rebar-calculations";
 import { cn } from "@/lib/utils";
-import { archTick, getRowLayout } from "./sketch-utils";
 import type { RebarSketchProps } from "./sketch-types";
 
-const SVG_W = 560;
-const SVG_H = 280;
-const MARGIN_Y = 18;
-const concreteBottomY = 200;
+const SVG_WIDTH = 560;
+const SVG_HEIGHT = 300;
+const CONCRETE_TOP = 34;
+const CONCRETE_BOTTOM = 226;
+
+function distributeBars(count: number, start: number, end: number): number[] {
+  if (count <= 0) return [];
+  if (count === 1) return [(start + end) / 2];
+  const step = (end - start) / (count - 1);
+  return Array.from({ length: count }, (_, index) => start + step * index);
+}
 
 export function RebarSectionSketch({
   diameterMm,
@@ -19,420 +22,130 @@ export function RebarSectionSketch({
   widthCm = 30,
   coverMm = 30,
   stirrupDiameterMm = 8,
-  isSpacingViolated: isViolatedOverride,
+  isSpacingViolated = false,
   className,
 }: RebarSketchProps) {
-  const isValid = diameterMm > 0 && quantity > 0 && quantity <= 30;
+  const isValid =
+    diameterMm > 0 &&
+    Number.isSafeInteger(quantity) &&
+    quantity > 0 &&
+    quantity <= 30 &&
+    widthCm > 0 &&
+    coverMm >= 0 &&
+    stirrupDiameterMm > 0;
 
   if (!isValid) {
     return (
-      <div
-        className={cn(
-          "flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950/20",
-          className,
-        )}
-      >
-        <p className="text-xs font-semibold text-zinc-500">Geçerli donatı değerleri bekleniyor</p>
+      <div className={cn("flex min-h-52 items-center justify-center rounded-lg border border-dashed border-border p-6", className)}>
+        <p className="text-center text-sm text-muted-foreground">Geçerli kesit değerleri bekleniyor.</p>
       </div>
     );
   }
 
-  const { rowCount, firstRow, secondRow } = getRowLayout(quantity);
-
-  // Dinamik ölçek hesabı (px/mm) - SVG_W = 560 için kullanılabilir alanı 480px yapıyoruz
-  const scaleIdeal = 480 / (widthCm * 10);
-  // Ölçeği sınırlandırarak çok dar kirişlerde aşırı büyümesini engelliyoruz (max 2.0)
-  const scale = Math.min(2.0, Math.max(0.3, scaleIdeal));
-
-  // Beton çizim sınırları (genişlik to-scale olarak ayarlanıyor ve ortalanıyor)
-  const concreteW_px = widthCm * 10 * scale;
-  const concreteLeftX = (SVG_W - concreteW_px) / 2;
-  const concreteRightX = SVG_W - concreteLeftX;
-
-  // Çevresel bağlam (Beton ve Etriye alt sınırları)
-  const stirrupLeftX = concreteLeftX + coverMm * scale;
-  const stirrupRightX = concreteRightX - coverMm * scale;
-  const stirrupBottomY = concreteBottomY - coverMm * scale;
-
-  // Çubuk piksel yarıçapı
-  const barR = Math.max(4, (diameterMm / 2) * scale);
-
-  // Boyuna donatıların yerleşeceği yatay sınırlar
-  const x_start = stirrupLeftX + (stirrupDiameterMm + diameterMm / 2) * scale;
-  const x_end = stirrupRightX - (stirrupDiameterMm + diameterMm / 2) * scale;
-
-  // Gerçek fiziksel net aralık hesabı (TS 500)
-  const b = widthCm * 10; // mm
-  const cover = coverMm; // mm
-  const ds = stirrupDiameterMm; // mm
-  const d = diameterMm; // mm
-
-  let calculatedSpacing = 0;
-  if (firstRow >= 2) {
-    calculatedSpacing = (b - 2 * cover - 2 * ds - firstRow * d) / (firstRow - 1);
-  }
-
-  const minSpacingMm = Math.max(25, 1.5 * d);
-  const isSpacingViolated = isViolatedOverride ?? (firstRow >= 2 && calculatedSpacing < minSpacingMm);
-
-  // Birinci sıra çubuk X pozisyonları
-  let row1Pos: number[] = [];
-  if (firstRow === 1) {
-    row1Pos = [SVG_W / 2];
-  } else if (firstRow >= 2) {
-    if (x_end > x_start) {
-      const step = (x_end - x_start) / (firstRow - 1);
-      row1Pos = Array.from({ length: firstRow }, (_, i) => x_start + i * step);
-    } else {
-      // Sığmama durumunda üst üste binmesinler diye sıkışık çiziyoruz
-      const center = SVG_W / 2;
-      const spacing = barR * 2 + 2;
-      const start = center - ((firstRow - 1) * spacing) / 2;
-      row1Pos = Array.from({ length: firstRow }, (_, i) => start + i * spacing);
-    }
-  }
-
-  // İkinci sıra çubuk X pozisyonları
-  let row2Pos: number[] = [];
-  if (secondRow === 1) {
-    row2Pos = [SVG_W / 2];
-  } else if (secondRow >= 2) {
-    if (x_end > x_start) {
-      const step = (x_end - x_start) / (secondRow - 1);
-      row2Pos = Array.from({ length: secondRow }, (_, i) => x_start + i * step);
-    } else {
-      const center = SVG_W / 2;
-      const spacing = barR * 2 + 2;
-      const start = center - ((secondRow - 1) * spacing) / 2;
-      row2Pos = Array.from({ length: secondRow }, (_, i) => start + i * spacing);
-    }
-  }
-
-  // Sıra Y pozisyonları
-  const rowY1 = concreteBottomY - (coverMm + stirrupDiameterMm + diameterMm / 2) * scale;
-  // İkinci sırayı birincinin üstüne TS 500 minimum düşey mesafesi (25mm + d) kadar yukarı yerleştiriyoruz
-  const rowY2 = rowY1 - (25 + diameterMm) * scale;
-
-  // Montaj Donatısı (Üst iki köşede etriyeyi tutan askı donatısı Ø12)
-  const barR_top = (12 / 2) * scale;
-  const topRebarY = MARGIN_Y + (stirrupDiameterMm + 12 / 2) * scale;
-  const topRebarLeftX = stirrupLeftX + (stirrupDiameterMm + 12 / 2) * scale;
-  const topRebarRightX = stirrupRightX - (stirrupDiameterMm + 12 / 2) * scale;
-
-  const hasSpacingVal = firstRow >= 2;
-  const spacingText =
-    calculatedSpacing <= 0
-      ? "Sığmıyor!"
-      : `${calculatedSpacing.toLocaleString("tr-TR", { maximumFractionDigits: 1 })} mm`;
-
-  const stirrupStrokeWidth = Math.max(1.8, Math.min(4, stirrupDiameterMm * scale));
+  const { rowCount, firstRow, secondRow } = getRebarRowLayout(quantity);
+  const scale = Math.min(2, Math.max(0.3, 470 / (widthCm * 10)));
+  const concreteWidth = widthCm * 10 * scale;
+  const concreteLeft = (SVG_WIDTH - concreteWidth) / 2;
+  const concreteRight = concreteLeft + concreteWidth;
+  const stirrupInset = coverMm * scale;
+  const stirrupLeft = concreteLeft + stirrupInset;
+  const stirrupRight = concreteRight - stirrupInset;
+  const stirrupTop = CONCRETE_TOP + stirrupInset;
+  const stirrupBottom = CONCRETE_BOTTOM - stirrupInset;
+  const barRadius = Math.max(4, (diameterMm / 2) * scale);
+  const barInset = (stirrupDiameterMm + diameterMm / 2) * scale;
+  const rowStart = stirrupLeft + barInset;
+  const rowEnd = stirrupRight - barInset;
+  const hasUsableWidth = rowEnd >= rowStart;
+  const safeStart = hasUsableWidth ? rowStart : SVG_WIDTH / 2 - Math.max(0, firstRow - 1) * (barRadius + 1);
+  const safeEnd = hasUsableWidth ? rowEnd : SVG_WIDTH / 2 + Math.max(0, firstRow - 1) * (barRadius + 1);
+  const firstRowPositions = distributeBars(firstRow, safeStart, safeEnd);
+  const secondRowPositions = distributeBars(
+    secondRow,
+    hasUsableWidth ? rowStart : SVG_WIDTH / 2 - Math.max(0, secondRow - 1) * (barRadius + 1),
+    hasUsableWidth ? rowEnd : SVG_WIDTH / 2 + Math.max(0, secondRow - 1) * (barRadius + 1),
+  );
+  const firstRowY = stirrupBottom - barInset;
+  const secondRowY = firstRowY - (25 + diameterMm) * scale;
+  const barColor = isSpacingViolated ? "#ef4444" : "#f59e0b";
+  const barStroke = isSpacingViolated ? "#991b1b" : "#b45309";
 
   return (
-    <div className={cn("w-full h-full flex flex-col select-none bg-slate-950 dark:bg-black/80 rounded-2xl border border-slate-200/50 dark:border-white/5 shadow-lg dark:shadow-2xl overflow-hidden", className)}>
-      <div className="shrink-0 flex items-center justify-between border-b border-slate-200/20 dark:border-white/10 px-5 py-3 bg-slate-900/40">
-        <span className="font-mono text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-          Enkesit Detay Görünümü (CAD Önizleme)
-        </span>
-        <span
-          className={cn(
-            "rounded-full px-2.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-wider border",
-            isSpacingViolated
-              ? "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
-              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
-          )}
+    <div className={cn("w-full overflow-hidden rounded-lg border border-white/10 bg-zinc-950 p-2 sm:p-3", className)}>
+      <svg
+        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+        className="block h-auto w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-labelledby="rebar-sketch-title rebar-sketch-description"
+      >
+        <title id="rebar-sketch-title">Donatı kesit önizlemesi</title>
+        <desc id="rebar-sketch-description">
+          {quantity} adet {diameterMm} milimetre çaplı donatının {rowCount === 1 ? "tek" : "çift"} sıra kesit yerleşimi.
+        </desc>
+        <defs>
+          <pattern id="rebar-concrete-hatch" width="18" height="18" patternUnits="userSpaceOnUse">
+            <circle cx="4" cy="5" r="0.9" fill="#64748b" opacity="0.28" />
+            <circle cx="13" cy="13" r="1.1" fill="#64748b" opacity="0.22" />
+          </pattern>
+        </defs>
+
+        <rect
+          x={concreteLeft}
+          y={CONCRETE_TOP}
+          width={concreteWidth}
+          height={CONCRETE_BOTTOM - CONCRETE_TOP}
+          rx="3"
+          fill="#111827"
+          stroke="#475569"
+          strokeWidth="2"
+        />
+        <rect
+          x={concreteLeft}
+          y={CONCRETE_TOP}
+          width={concreteWidth}
+          height={CONCRETE_BOTTOM - CONCRETE_TOP}
+          rx="3"
+          fill="url(#rebar-concrete-hatch)"
+        />
+
+        <rect
+          x={stirrupLeft}
+          y={stirrupTop}
+          width={Math.max(0, stirrupRight - stirrupLeft)}
+          height={Math.max(0, stirrupBottom - stirrupTop)}
+          rx={Math.max(5, 7 * scale)}
+          fill="none"
+          stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
+          strokeWidth={Math.max(2, Math.min(4, stirrupDiameterMm * scale))}
+        />
+
+        {firstRowPositions.map((x, index) => (
+          <g key={`first-${index}`}>
+            <circle cx={x} cy={firstRowY} r={barRadius + 1.5} fill="none" stroke={barColor} strokeWidth="1.5" opacity="0.42" />
+            <circle cx={x} cy={firstRowY} r={barRadius} fill={barColor} stroke={barStroke} strokeWidth="2" />
+          </g>
+        ))}
+
+        {secondRowPositions.map((x, index) => (
+          <g key={`second-${index}`}>
+            <circle cx={x} cy={secondRowY} r={barRadius + 1.5} fill="none" stroke={barColor} strokeWidth="1.5" opacity="0.34" />
+            <circle cx={x} cy={secondRowY} r={barRadius} fill={barColor} stroke={barStroke} strokeWidth="2" />
+          </g>
+        ))}
+
+        <text
+          x={SVG_WIDTH / 2}
+          y="265"
+          fill="#e4e4e7"
+          fontFamily="var(--font-mono), monospace"
+          fontSize="15"
+          fontWeight="700"
+          textAnchor="middle"
         >
-          {isSpacingViolated ? "TS 500 İhlali" : "Aralık Tamam"}
-        </span>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-4 bg-slate-950/20 min-h-0">
-        <svg
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          width="100%"
-          height="100%"
-          className="w-full h-full"
-          style={{ maxHeight: "100%", overflow: "visible" }}
-          aria-label="Donatı düzeni krokisi"
-          role="img"
-        >
-          <defs>
-            <pattern id="concrete-hatch-rebar-lg" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-              <circle cx="3" cy="3" r="0.75" fill="#71717a" opacity="0.3" />
-              <circle cx="12" cy="14" r="1" fill="#71717a" opacity="0.3" />
-              <polygon points="15,5 16,7 14,7" fill="#71717a" opacity="0.2" />
-              <polygon points="6,13 6.5,14 5,14.5" fill="#71717a" opacity="0.2" />
-            </pattern>
-          </defs>
-
-          {/* ── Çevresel Beton Sınırı (Kiriş Gövde Çizimi) ── */}
-          <path
-            d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
-            fill="#0f172a"
-            stroke="#475569"
-            strokeWidth={2}
-          />
-          <path
-            d={`M ${concreteLeftX} ${MARGIN_Y} L ${concreteLeftX} ${concreteBottomY} L ${concreteRightX} ${concreteBottomY} L ${concreteRightX} ${MARGIN_Y}`}
-            fill="url(#concrete-hatch-rebar-lg)"
-            style={{ pointerEvents: "none" }}
-          />
-
-          {/* ── Askı Donatıları (Üst Köşeler - 2Ø12 Montaj) ── */}
-          <g>
-            <circle
-              cx={topRebarLeftX}
-              cy={topRebarY}
-              r={barR_top}
-              fill="#64748b"
-              stroke="#475569"
-              strokeWidth={1}
-            />
-            <circle
-              cx={topRebarRightX}
-              cy={topRebarY}
-              r={barR_top}
-              fill="#64748b"
-              stroke="#475569"
-              strokeWidth={1}
-            />
-          </g>
-
-          {/* ── Etriye Sınırı (Kapalı Kutu ve 135 Derece Kanca Detayı) ── */}
-          <path
-            d={`M ${stirrupLeftX + 18 * scale} ${topRebarY + 18 * scale} L ${stirrupLeftX} ${topRebarY} L ${stirrupLeftX} ${stirrupBottomY} L ${stirrupRightX} ${stirrupBottomY} L ${stirrupRightX} ${topRebarY} L ${stirrupRightX - 18 * scale} ${topRebarY + 18 * scale}`}
-            fill="none"
-            stroke={isSpacingViolated ? "#ef4444" : "#64748b"}
-            strokeWidth={stirrupStrokeWidth}
-            opacity="0.95"
-          />
-
-          {/* ── 1. Sıra Çubuklar (Ana Donatı) ── */}
-          {row1Pos.map((cx, i) => (
-            <g key={`r1-${i}`}>
-              <circle
-                cx={cx}
-                cy={rowY1}
-                r={barR + 1.5}
-                fill="none"
-                stroke={isSpacingViolated ? "#ef4444" : "#f59e0b"}
-                strokeWidth={1.5}
-                opacity={0.4}
-              />
-              <circle
-                cx={cx}
-                cy={rowY1}
-                r={barR}
-                fill={isSpacingViolated ? "#ef4444" : "#f59e0b"}
-                stroke={isSpacingViolated ? "#b91c1c" : "#d97706"}
-                strokeWidth={2}
-                style={{ transition: "all 0.3s ease" }}
-              />
-              {/* Çap etiketi (ilk ve son çubuğa) */}
-              {(i === 0 || i === firstRow - 1) && (
-                <text
-                  x={cx}
-                  y={rowY1 - barR - 7}
-                  fontSize={13}
-                  fill={isSpacingViolated ? "#f87171" : "#f59e0b"}
-                  fontFamily="monospace"
-                  textAnchor="middle"
-                  fontWeight="black"
-                >
-                  Ø{diameterMm}
-                </text>
-              )}
-            </g>
-          ))}
-
-          {/* ── 2. Sıra Çubuklar (varsa) ── */}
-          {row2Pos.map((cx, i) => (
-            <g key={`r2-${i}`}>
-              <circle
-                cx={cx}
-                cy={rowY2}
-                r={barR + 1.5}
-                fill="none"
-                stroke={isSpacingViolated ? "#ef4444" : "#d97706"}
-                strokeWidth={1.5}
-                opacity={0.3}
-              />
-              <circle
-                cx={cx}
-                cy={rowY2}
-                r={barR}
-                fill={isSpacingViolated ? "#f87171" : "#d97706"}
-                stroke={isSpacingViolated ? "#991b1b" : "#b45309"}
-                strokeWidth={2}
-                style={{ transition: "all 0.3s ease" }}
-              />
-              {(i === 0 || i === secondRow - 1) && (
-                <text
-                  x={cx}
-                  y={rowY2 - barR - 7}
-                  fontSize={13}
-                  fill={isSpacingViolated ? "#f87171" : "#d97706"}
-                  fontFamily="monospace"
-                  textAnchor="middle"
-                  fontWeight="black"
-                >
-                  Ø{diameterMm}
-                </text>
-              )}
-            </g>
-          ))}
-
-          {/* ── Aralık Ölçülendirme Çizgisi (ilk iki çubuk arası) ── */}
-          {hasSpacingVal && (
-            <g>
-              <line
-                x1={row1Pos[0] + barR}
-                y1={rowY1 + barR + 14}
-                x2={row1Pos[1] - barR}
-                y2={rowY1 + barR + 14}
-                stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
-                strokeWidth={1.2}
-              />
-              <path
-                d={archTick({ x: row1Pos[0] + barR, y: rowY1 + barR + 14 }, "horizontal", 6)}
-                stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
-                strokeWidth={1.5}
-              />
-              <path
-                d={archTick({ x: row1Pos[1] - barR, y: rowY1 + barR + 14 }, "horizontal", 6)}
-                stroke={isSpacingViolated ? "#ef4444" : "#94a3b8"}
-                strokeWidth={1.5}
-              />
-              <text
-                x={(row1Pos[0] + row1Pos[1]) / 2}
-                y={rowY1 + barR + 30}
-                fontSize={13}
-                fill={isSpacingViolated ? "#f87171" : "#38bdf8"}
-                fontFamily="monospace"
-                fontWeight="black"
-                textAnchor="middle"
-              >
-                s = {spacingText}
-              </text>
-            </g>
-          )}
-
-          {/* ── Kiriş Genişliği Ölçülendirmesi (b) ── */}
-          <g>
-            <line
-              x1={concreteLeftX}
-              y1={concreteBottomY + 28}
-              x2={concreteRightX}
-              y2={concreteBottomY + 28}
-              stroke="#475569"
-              strokeWidth={1.2}
-            />
-            <line
-              x1={concreteLeftX}
-              y1={concreteBottomY + 4}
-              x2={concreteLeftX}
-              y2={concreteBottomY + 34}
-              stroke="#475569"
-              strokeWidth={1.2}
-            />
-            <line
-              x1={concreteRightX}
-              y1={concreteBottomY + 4}
-              x2={concreteRightX}
-              y2={concreteBottomY + 34}
-              stroke="#475569"
-              strokeWidth={1.2}
-            />
-            <path
-              d={archTick({ x: concreteLeftX, y: concreteBottomY + 28 }, "horizontal", 8)}
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-            />
-            <path
-              d={archTick({ x: concreteRightX, y: concreteBottomY + 28 }, "horizontal", 8)}
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-            />
-            <text
-              x={SVG_W / 2}
-              y={concreteBottomY + 50}
-              fontSize={14}
-              fill="#f1f5f9"
-              fontFamily="monospace"
-              fontWeight="black"
-              textAnchor="middle"
-            >
-              b = {widthCm * 10} mm
-            </text>
-          </g>
-
-          {/* ── Pas Payı Ölçülendirmesi (c) ── */}
-          <g>
-            <line
-              x1={concreteLeftX}
-              y1={concreteBottomY - 14}
-              x2={stirrupLeftX}
-              y2={concreteBottomY - 14}
-              stroke="#475569"
-              strokeWidth={1}
-            />
-            <path
-              d={archTick({ x: concreteLeftX, y: concreteBottomY - 14 }, "horizontal", 6)}
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-            />
-            <path
-              d={archTick({ x: stirrupLeftX, y: concreteBottomY - 14 }, "horizontal", 6)}
-              stroke="#94a3b8"
-              strokeWidth={1.5}
-            />
-            <text
-              x={(concreteLeftX + stirrupLeftX) / 2}
-              y={concreteBottomY - 22}
-              fontSize={12}
-              fill="#94a3b8"
-              fontFamily="monospace"
-              fontWeight="bold"
-              textAnchor="middle"
-            >
-              {coverMm}
-            </text>
-          </g>
-
-          {/* ── Başlık Yazısı ── */}
-          <text
-            x={SVG_W / 2}
-            y={MARGIN_Y + 2}
-            fontSize={14}
-            fill="#f1f5f9"
-            fontFamily="monospace"
-            textAnchor="middle"
-            fontWeight="black"
-          >
-            {quantity}Ø{diameterMm} — {rowCount === 1 ? "Tek Sıra" : "Çift Sıra"} Yerleşim
-          </text>
-        </svg>
-      </div>
-
-      {/* ── Teknik Dipnot ── */}
-      <div className="shrink-0 border-t border-white/10 px-5 py-3 space-y-1.5 font-mono text-[10px] text-slate-300">
-        <div className="flex justify-between items-center">
-          <span>Pas Payı (Beton Örtüsü):</span>
-          <span className="font-bold text-white">{coverMm} mm</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span>TS 500 Min. Net Aralık Limiti:</span>
-          <span className="font-bold text-amber-400">≥ {minSpacingMm.toFixed(1)} mm</span>
-        </div>
-        {hasSpacingVal && (
-          <div className="flex justify-between items-center border-t border-white/10 pt-1.5 mt-1">
-            <span>Mevcut Net Aralık (s):</span>
-            <span className={cn("font-black tracking-wide", isSpacingViolated ? "text-red-400 animate-pulse" : "text-cyan-400")}>
-              {calculatedSpacing <= 0 ? "Sığmıyor!" : `${calculatedSpacing.toFixed(1)} mm`}
-            </span>
-          </div>
-        )}
-      </div>
+          {quantity}Ø{diameterMm} · {rowCount === 1 ? "Tek sıra" : "Çift sıra"}
+        </text>
+      </svg>
     </div>
   );
 }

@@ -15,6 +15,7 @@
     "check:site-quality": "npm run check:deprem-content && tsx scripts/check-site-quality.ts",
     "check:navigation": "node scripts/check-navigation-consistency.mjs",
     "check:homepage": "node scripts/check-homepage.mjs",
+    "check:donati-hesabi": "tsx scripts/check-rebar-calculations.ts && node scripts/check-donati-hesabi.mjs",
     "check:visual-system": "node scripts/check-visual-system.mjs",
     "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
