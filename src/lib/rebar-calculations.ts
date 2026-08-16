@@ -128,7 +128,7 @@ export function calculateRebarSpacing({
   stirrupDiameterMm,
 }: {
   quantity: number;
-  diameter: RebarDiameter;
+  diameter: number;
   widthCm: number;
   coverMm: number;
   stirrupDiameterMm: number;

@@ -56,3 +56,4 @@ test_scrollytelling.js
 .next-dev.err.log
 .next-dev.out.log
 *.log
+scratch/

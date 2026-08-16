@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { pathname: "/", changeFrequency: "daily" as const, priority: 1 },
     { pathname: "/konu-haritasi", changeFrequency: "weekly" as const, priority: 0.7 },
     { pathname: "/hesaplamalar", changeFrequency: "weekly" as const, priority: 0.85 },
+    { pathname: "/belgeler", changeFrequency: "weekly" as const, priority: 0.85 },
     { pathname: "/kategori/araclar", changeFrequency: "weekly" as const, priority: 0.8 },
     { pathname: "/kategori/bina-asamalari", changeFrequency: "weekly" as const, priority: 0.75 },
     { pathname: "/hakkimizda", changeFrequency: "monthly" as const, priority: 0.5 },

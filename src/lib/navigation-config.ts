@@ -1,4 +1,4 @@
-﻿export interface SiteNavigationItem {
+export interface SiteNavigationItem {
   id: string;
   label: string;
   href: string;
@@ -30,6 +30,12 @@ export const PRIMARY_NAV_ITEMS: SiteNavigationItem[] = [
     label: "Bina Aşamaları",
     href: "/kategori/bina-asamalari",
     matchPrefixes: ["/kategori/bina-asamalari"],
+  },
+  {
+    id: "belgeler",
+    label: "Belgeler",
+    href: "/belgeler",
+    matchPrefixes: ["/belgeler"],
   },
   {
     id: "yapi-tasarimi",

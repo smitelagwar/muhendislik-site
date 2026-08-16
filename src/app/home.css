@@ -262,12 +262,6 @@
   filter: brightness(1.08);
 }
 
-html[data-home-logo-floating="true"] .home-navbar-logo-visual {
-  opacity: 1 !important;
-  transform: none !important;
-  pointer-events: auto !important;
-}
-
 @media (min-width: 1280px) {
   .home-phase-list {
     grid-template-columns: repeat(6, minmax(0, 1fr));

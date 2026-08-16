@@ -47,6 +47,11 @@ const BINA_ASAMALARI_BREADCRUMB: RouteBreadcrumb = {
   title: "Bina Aşamaları",
   href: BINA_ASAMALARI_ROUTE,
 };
+const BELGELER_ROUTE = "/belgeler";
+const BELGELER_BREADCRUMB: RouteBreadcrumb = {
+  title: "Belgeler",
+  href: BELGELER_ROUTE,
+};
 
 const CALCULATION_PAGE_BY_HREF = new Map(
   getCalculationPages().map((page) => [page.href, page] as const),
@@ -289,6 +294,20 @@ function resolveSiteMapMetadata(pathname: string) {
   });
 }
 
+function resolveBelgelerMetadata(pathname: string) {
+  if (pathname === BELGELER_ROUTE) {
+    return buildMetadata({
+      route: pathname,
+      parentRoute: "/",
+      hubRoute: BELGELER_ROUTE,
+      breadcrumbLabel: "Belgeler ve Şablonlar",
+      backLabel: "Ana Sayfa",
+      breadcrumbs: [HOME_BREADCRUMB, BELGELER_BREADCRUMB],
+    });
+  }
+  return null;
+}
+
 export function resolveRouteMetadata(pathname: string): RouteMetadata | null {
   const normalizedPath = normalizePathname(pathname);
 
@@ -299,6 +318,7 @@ export function resolveRouteMetadata(pathname: string): RouteMetadata | null {
   return (
     resolveCalculationMetadata(normalizedPath) ??
     resolveToolMetadata(normalizedPath) ??
+    resolveBelgelerMetadata(normalizedPath) ??
     resolveSiteMapMetadata(normalizedPath)
   );
 }

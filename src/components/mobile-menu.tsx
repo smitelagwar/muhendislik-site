@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Calculator,
   ChevronRight,
+  FileDown,
   FileText,
   GitBranchPlus,
   HardHat,
@@ -25,6 +26,7 @@ const MOBILE_ICONS: Record<string, ReactNode> = {
   hesaplamalar: <Calculator className="h-5 w-5" />,
   araclar: <Calculator className="h-5 w-5" />,
   "bina-asamalari": <GitBranchPlus className="h-5 w-5" />,
+  belgeler: <FileDown className="h-5 w-5" />,
   "yapi-tasarimi": <FileText className="h-5 w-5" />,
   santiye: <FileText className="h-5 w-5" />,
   "konu-haritasi": <FileText className="h-5 w-5" />,

@@ -1,5 +1,5 @@
-import { EarthquakeBaseShearCalculator } from "@/components/earthquake-base-shear-calculator";
+import { SeismicBaseShearCalculator } from "@/components/seismic-base-shear-calculator";
 
 export default function TabanKesmeKuvvetiPage() {
-  return <EarthquakeBaseShearCalculator />;
+  return <SeismicBaseShearCalculator />;
 }

@@ -7,7 +7,7 @@ import { PRIMARY_NAV_ITEMS, isNavigationItemActive } from "@/lib/navigation-conf
 export function NavbarDesktopNav() {
   const pathname = usePathname();
   const links = PRIMARY_NAV_ITEMS.filter((item) =>
-    ["home", "hesaplamalar", "araclar", "deprem-yonetmelik", "bina-asamalari"].includes(item.id),
+    ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "bina-asamalari", "belgeler"].includes(item.id),
   );
 
   return (

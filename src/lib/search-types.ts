@@ -1,4 +1,4 @@
-export type SearchItemType = "article" | "topic" | "tool" | "calculation" | "section";
+export type SearchItemType = "article" | "topic" | "tool" | "calculation" | "section" | "document";
 
 export interface SearchIndexItem {
   id: string;

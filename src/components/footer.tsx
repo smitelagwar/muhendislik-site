@@ -37,6 +37,7 @@ export function Footer() {
             <ul className="mt-5 space-y-3">
               <li><Link href="/kategori/araclar" className="transition-colors hover:text-white">Tüm araçlar</Link></li>
               <li><Link href="/hesaplamalar" className="transition-colors hover:text-white">Hesaplamalar</Link></li>
+              <li><Link href="/belgeler" className="transition-colors hover:text-white">Belgeler & Şablonlar</Link></li>
               <li><Link href="/kategori/deprem-yonetmelik" className="transition-colors hover:text-white">Deprem ve mevzuat</Link></li>
               <li><Link href="/konu-haritasi" className="transition-colors hover:text-white">Konu haritası</Link></li>
               <li><Link href="/kategori/bina-asamalari" className="transition-colors hover:text-white">Bina aşamaları</Link></li>

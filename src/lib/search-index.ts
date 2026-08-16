@@ -6,6 +6,7 @@ import { SITE_SECTIONS } from "./site-sections";
 import type { SearchIndexItem } from "./search-types";
 import { normalizeSearchValue, stripMarkdownForSearch } from "./search-utils";
 import { getLiveTools, TOOLS_HUB_HREF } from "./tools-data";
+import { DOCUMENTS } from "./documents-data";
 
 interface SearchIndexCache {
   articlesSignature: string;
@@ -191,6 +192,42 @@ function getSectionItems(): SearchIndexItem[] {
   ];
 }
 
+function getDocumentItems(): SearchIndexItem[] {
+  return [
+    createItem({
+      id: "section:belgeler",
+      href: "/belgeler",
+      title: "Belgeler ve Şablonlar",
+      category: "Kategori",
+      description: "İndirilebilir resmi tutanaklar, şantiye şefi taahhütnameleri ve istifa dilekçeleri.",
+      type: "section",
+      priority: 95,
+      searchParts: ["Belgeler", "şablonlar", "dilekçe", "taahhütname", "tutanak", "pdf", "/belgeler"],
+    }),
+    ...DOCUMENTS.map((doc) =>
+      createItem({
+        id: `document:${doc.id}`,
+        href: `/belgeler#${doc.id}`,
+        title: doc.title,
+        category: doc.categoryLabel,
+        description: doc.description,
+        type: "document",
+        priority: 88,
+        searchParts: [
+          doc.title,
+          doc.subtitle,
+          doc.description,
+          doc.categoryLabel,
+          doc.targetAudience,
+          doc.usageGuide,
+          doc.tags,
+          doc.fields.map((f) => f.label),
+        ],
+      }),
+    ),
+  ];
+}
+
 export function getSearchIndex(): SearchIndexItem[] {
   const articlesSignature = getArticlesCacheSignature();
 
@@ -204,6 +241,7 @@ export function getSearchIndex(): SearchIndexItem[] {
     ...getToolItems(),
     ...getCalculationItems(),
     ...getSectionItems(),
+    ...getDocumentItems(),
   ];
 
   const dedupedItems = new Map<string, SearchIndexItem>();

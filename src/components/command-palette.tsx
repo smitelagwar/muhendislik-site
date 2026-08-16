@@ -11,7 +11,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BarChart3, Calculator, Command, FileText, Layers, Map, Search, X, type LucideIcon } from "lucide-react";
+import { BarChart3, Calculator, Command, FileDown, FileText, Layers, Map, Search, X, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CALCULATIONS_HUB_HREF } from "@/lib/calculation-pages";
 import { normalizeSearchValue } from "@/lib/search-utils";
@@ -23,6 +23,7 @@ const LISTBOX_ID = "command-palette-listbox";
 
 const SHORTCUT_LINKS: Array<{ label: string; href: string; icon: LucideIcon }> = [
   { label: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: Map },
+  { label: "Belgeler", href: "/belgeler", icon: FileDown },
   { label: "Araçlar", href: TOOLS_HUB_HREF, icon: Calculator },
   { label: "Hesaplamalar", href: CALCULATIONS_HUB_HREF, icon: BarChart3 },
   { label: "Konu Haritası", href: "/konu-haritasi", icon: Layers },
@@ -96,6 +97,8 @@ function getItemTypeLabel(type: SearchItemType): string {
       return "Hesap";
     case "section":
       return "Kategori";
+    case "document":
+      return "Belge";
     default:
       return "Sonuç";
   }
@@ -110,6 +113,8 @@ function getItemIcon(type: SearchItemType) {
       return Map;
     case "section":
       return Layers;
+    case "document":
+      return FileDown;
     case "article":
     default:
       return FileText;
