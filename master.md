@@ -22,3 +22,15 @@ Bu dosya, site genelinde korunması gereken ürün ve arayüz kararlarını kayd
 - Kayan logo davranışı, geçiş animasyonu, navbar logosuyla karşılıklı görünürlük yönetimi ve açık/koyu zemin kontrast uyarlaması kaldırılmamalı veya devre dışı bırakılmamalıdır.
 - Mobil ve dar masaüstü görünümlerinde kayan logo alan kaplamamalı; navbar logosu normal şekilde görünür kalmalıdır.
 - Ana sayfa yeniden tasarımlarında `HomeScrollLogo` bileşenine ve ilgili `homeLogoFloating` durumuna dokunulmamalıdır.
+
+## Belgeler & Canlı PDF Stüdyosu Sistemi
+
+Belgeler (`/belgeler`) modülüne yeni bir resmi evrak/şablon ekleneceğinde veya mevcut stüdyolarda geliştirme yapılacağında **[docs/BELGELER_SISTEMI.md](docs/BELGELER_SISTEMI.md)** ve **[.agents/rules/belgeler-kurallari.md](.agents/rules/belgeler-kurallari.md)** dosyalarındaki mimari standartlara uyulmalıdır:
+
+1. **Hayalet Leke ve Yazı Önleme:** AcroForm alanları temizlendiğinde veya doldurulduğunda, `pdf-engine.ts` içinde hem field'dan hem de `field.acroField.getWidgets()` içindeki her widget'tan `AP` (Appearance Stream) ve `DV` (Default Value) kayıtları temizlenmelidir.
+2. **Font Ayrımı:** Gövde metinleri ve açıklamalar **daima Regular (Arial-Regular)**; başlıklar, ad-soyad ve kurum isimleri **Bold (Arial-Bold)** olmalıdır.
+3. **Masaüstü Dış Kaydırmasız Düzen (Zero Window Scroll):** Stüdyolar masaüstünde `100vh` tam ekran görünümüne oturmalı; tarayıcı penceresinde dış kaydırma çubuğu çıkmamalı, sol form kendi içinde kaymalı, sağ PDF tam sığmalıdır.
+4. **Anlık Zoom (60fps):** Zoom butonları veya `Ctrl + Mouse Wheel` ile yakınlaştırma yapılırken PDF sıfırdan derlenmemeli, önbellekteki PDF.js dokümanı anlık olarak canvas'a yeniden çizilmelidir.
+5. **Kullanıcıyı Engellemeyen Validasyon:** Karakter sınırlarında (örn. YİBF >7 hane) kullanıcı uyarılmalı ve input kırmızıya dönmeli ancak **yazması asla engellenmemelidir.**
+6. **Yalın Başlıklar:** Son kullanıcı arayüzünde `(AcroForm)` gibi yazılımsal terimler kesinlikle kullanılmamalıdır.
+
