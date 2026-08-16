@@ -5,6 +5,7 @@ const WIDTH_CLASSES = {
   content: "max-w-4xl",
   wide: "max-w-7xl",
   full: "max-w-[1440px]",
+  ultra: "max-w-none w-full",
 } as const;
 
 interface SitePageShellProps {

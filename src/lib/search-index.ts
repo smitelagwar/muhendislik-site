@@ -207,7 +207,10 @@ function getDocumentItems(): SearchIndexItem[] {
     ...DOCUMENTS.map((doc) =>
       createItem({
         id: `document:${doc.id}`,
-        href: `/belgeler#${doc.id}`,
+        href:
+          doc.id === "beton-dokum-tutanagi"
+            ? "/belgeler/beton-dokum-tutanagi"
+            : `/belgeler#${doc.id}`,
         title: doc.title,
         category: doc.categoryLabel,
         description: doc.description,

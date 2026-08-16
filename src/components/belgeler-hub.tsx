@@ -5,6 +5,7 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  ChevronRight,
   Download,
   Eye,
   FileCheck,
@@ -27,7 +28,9 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from "@/lib/documents-data";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { BetonDokumStudio } from "@/components/beton-dokum-studio";
 
 export function BelgelerHub() {
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>("all");
@@ -97,6 +100,39 @@ export function BelgelerHub() {
 
   return (
     <div>
+      {/* Spotlight Feature: Beton Döküm Tutanağı Studio */}
+      <div className="mb-8 relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent p-5 sm:p-6 shadow-md backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shadow-sm">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  Canlı PDF Stüdyosu
+                </span>
+                <span className="text-xs text-muted-foreground font-semibold">Resmi ÇŞB Şablonu</span>
+              </div>
+              <h3 className="mt-1 text-base sm:text-lg font-bold text-foreground">
+                Beton Döküm Tutanağı Doldurucu & Düzenleyici
+              </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground max-w-xl">
+                10 resmi AcroForm alanını tarayıcınızda doldurun, tam ekran canlı önizleyin ve anında resmi PDF formatında indirin.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/belgeler/beton-dokum-tutanagi"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-700 hover:shadow-amber-600/25 active:scale-[0.98] dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400 shrink-0"
+          >
+            <span>Stüdyo Sayfasına Git</span>
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
       {/* Search and Category Filter Toolbar */}
       <div className="mb-10 space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -212,9 +248,17 @@ export function BelgelerHub() {
                 </div>
 
                 {/* Title & Subtitle */}
-                <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
-                  {doc.title}
-                </h3>
+                {doc.id === "beton-dokum-tutanagi" ? (
+                  <Link href="/belgeler/beton-dokum-tutanagi" className="block group/link">
+                    <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover/link:text-amber-600 dark:group-hover/link:text-amber-400">
+                      {doc.title}
+                    </h3>
+                  </Link>
+                ) : (
+                  <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                    {doc.title}
+                  </h3>
+                )}
                 <p className="mt-1 text-xs font-semibold text-amber-700/80 dark:text-amber-400/80">
                   {doc.subtitle}
                 </p>
@@ -276,14 +320,25 @@ export function BelgelerHub() {
                 </div>
 
                 {/* Form Filler & Live Generator */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenForm(doc)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300"
-                >
-                  <FileEdit className="h-3.5 w-3.5" />
-                  <span>Formu Doldur & Canlı Önizle</span>
-                </button>
+                {doc.id === "beton-dokum-tutanagi" ? (
+                  <Link
+                    href="/belgeler/beton-dokum-tutanagi"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-2.5 text-xs font-bold text-amber-900 shadow-xs transition-all hover:border-amber-500/70 hover:bg-amber-500/25 dark:text-amber-200"
+                  >
+                    <FileEdit className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <span>Canlı PDF Stüdyosunu Aç</span>
+                    <ChevronRight className="h-3.5 w-3.5 ml-auto text-amber-600 dark:text-amber-400" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenForm(doc)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300"
+                  >
+                    <FileEdit className="h-3.5 w-3.5" />
+                    <span>Formu Doldur & Canlı Önizle</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -326,7 +381,16 @@ export function BelgelerHub() {
       </div>
 
       {/* Interactive Form Filler Modal */}
-      {activeFormDoc && (
+      {activeFormDoc && activeFormDoc.id === "beton-dokum-tutanagi" ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 md:p-6 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative h-[94vh] w-full max-w-7xl overflow-hidden rounded-2xl shadow-2xl">
+            <BetonDokumStudio
+              isModal={true}
+              onClose={() => setActiveFormDoc(null)}
+            />
+          </div>
+        </div>
+      ) : activeFormDoc ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
             {/* Modal Header */}
@@ -474,7 +538,7 @@ export function BelgelerHub() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* PDF Direct Viewer Modal */}
       {activePdfPreviewDoc && (
