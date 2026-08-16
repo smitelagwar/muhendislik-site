@@ -1,45 +1,35 @@
-# Belgeler & Canlı PDF Stüdyosu Geliştirme Kuralları
+# Belgeler & Canlı PDF Stüdyosu — Tecrübe ve Tavsiye Notları
 
-Bu kural dosyası, Mühendis Mimar Portalı'nın **Belgeler (`/belgeler`)** modülü üzerinde çalışacak tüm yapay zeka ajanları ve geliştiriciler için bağlayıcı kuralları tanımlar.
-
-Detaylı teknik mimari ve adım adım yeni belge ekleme rehberi için [docs/BELGELER_SISTEMI.md](file:///c:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/BELGELER_SISTEMI.md) dosyasını inceleyin.
-
----
-
-## 1. PDF & AcroForm Yönetimi (Değişmez Kurallar)
-
-1. **Hayalet Yazı / Leke Önleme (AP & DV Temizliği):**
-   - PDF şablonlarında form alanları doldurulurken veya temizlenirken, `pdf-lib` içerisinde sadece field dict'i değil, `field.acroField.getWidgets()` içindeki her bir widget annotation'ın `AP` (Appearance Stream) ve `DV` (Default Value) dictionary kayıtları **kesinlikle silinmelidir.** Aksi takdirde boşaltılan alanlarda leke ve hayalet metinler belirir.
-
-2. **Font Kalınlıkları:**
-   - Gövde metinleri, açıklamalar ve sonuç/talep cümleleri **daima Regular (Arial-Regular)** font ile yazılmalıdır; kalın (bold) yapılmamalıdır.
-   - Sadece başlıklar, kurum isimleri, ad-soyad ve tarih gibi alanlar **Bold (Arial-Bold)** olmalıdır.
-   - `pdf-engine.ts` içindeki `FIELD_SPECS`'te `bold: false` ve `bold: true` ayrımları doğru belirtilmelidir.
-
-3. **Metin Hizalama (Quadding - Q):**
-   - Paragraf ve adresler `q: 0` (sola yaslı), başlık ve isimler `q: 1` (ortalı), imza alanları `q: 2` (sağa yaslı) olmalıdır.
-
-4. **Yazılımsal İfadelerin Temizliği:**
-   - Başlıklarda veya butonlarda `(AcroForm)`, `(PDF Engine)` gibi yazılımsal ve teknik ifadeler kesinlikle kullanılmamalıdır.
+> **ÖNEMLİ (Token Tasarrufu):**  
+> Bu doküman **SADECE** `/belgeler` sayfası, PDF motoru (`pdf-engine.ts`) veya interaktif form doldurucu stüdyoları ile ilgili bir geliştirme/hata çözümü yapılacağı zaman okunmalıdır. Eğer mevcut göreviniz belgeler konusuyla ilgili **DEĞİLSE**, bu dosyayı okumanıza gerek yoktur; doğrudan atlayabilirsiniz.
 
 ---
 
-## 2. Kullanıcı Arayüzü & Stüdyo Standartları
+## Yaşanan Teknik Sorunlar, Kök Nedenler ve Tavsiyeler
 
-1. **Zero Window Scroll (100vh Tam Sayfa):**
-   - Masaüstü görünümünde tarayıcının ana gövdesinde dikey kaydırma çubuğu çıkmamalıdır. Sol form paneli kendi içinde scroll olmalı (`overflow-y-auto`), sağ PDF önizlemesi dikeyde ekrana tam sığmalıdır.
+Bu notlar, belgeler modülünün inşası sırasında karşılaşılan teknik engelleri, yapılan denemeleri ve en iyi sonucu veren pratik yöntemleri gelecekteki yapay zeka ajanlarına rehberlik etmesi amacıyla özetler.
 
-2. **Anlık Zoom (60fps - Yeniden Derleme Yok):**
-   - Zoom seviyesi değiştirildiğinde (butonlar veya `Ctrl + Mouse Wheel`) PDF yeniden compile edilmemeli (`syncStatus: 'updating'` yapılmamalıdır). Önbelleğe alınmış PDF.js belgesi üzerinden anlık canvas render yapılmalıdır.
+### 1. AcroForm Hayalet Leke ve Yazı Problemi (Ghost Stains / Artifacts)
+- **Yaşanan Durum:** Kullanıcı "Temizle" butonuna bastığında veya form alanını sildiğinde, PDF üzerinde eski metnin izleri, noktalar veya garip çizgiler (leke gibi) görünmeye devam ediyordu.
+- **Kök Neden:** PDF şablonları hazırlanırken form alanlarının arka planına önceden işlenmiş görünüm akışları (`AP` - Appearance Streams) ve varsayılan değerler (`DV`) gömülüyor. `pdf-lib` ile alan değeri silinse bile, PDF görüntüleyici (PDF.js) arkada kalan `AP` akışını render etmeye devam ediyor.
+- **Nerede Yaşıyor?:** Yapılan derin incelemede, `AP` ve `DV` akışlarının sadece üst `AcroField` objesinde değil, `field.acroField.getWidgets()` içindeki her bir **widget annotation** seviyesinde saklandığı tespit edildi.
+- **Tavsiye Edilen Çözüm:** `pdf-engine.ts` içinde form doldurulurken hem ana field'dan hem de her bir widget'tan `dict.delete('AP')` ve `dict.delete('DV')` çağrılarak eski stream'ler tamamen temizlenmelidir.
 
-3. **Yerel Sıfırlama Butonları:**
-   - Her form kutucuğunun yanında, alan değeri varsayılandan farklıysa beliren `↺ Sıfırla` butonu olmalıdır; varsayılana dönüldüğünde buton otomatik gizlenmelidir.
+### 2. Font Kalınlığı (Bold vs. Regular) Dengesi
+- **Yaşanan Durum:** İlk sürümlerde tüm PDF tek bir kalın fontla render ediliyordu; bu da resmi dilekçe gövde metinlerinin, adreslerin ve açıklamaların kaba görünmesine yol açıyordu.
+- **Tavsiye:** `pdf-engine.ts` çift font (`Arial-Bold.ttf` ve `Arial-Regular.ttf`) yükleyecek şekilde yapılandırıldı. Dilekçe gövde paragrafları (`ana_paragraf`), sonuç cümleleri ve adres detayları için `bold: false` (Regular); kurum hitapları, başlıklar ve isim/imza alanları için `bold: true` (Bold) kullanılması resmi evrak estetiği açısından önerilir.
 
-4. **Kullanıcıyı Engellemeyen Validasyon:**
-   - Karakter sınırı vb. kurallarda (örn. YİBF 7 hane kuralı) kullanıcı uyarılmalı ve alan kırmızıya dönmeli, ancak **yazması asla engellenmemelidir.**
+### 3. Zoom Sırasında Yavaşlık / Yeniden Derleme
+- **Yaşanan Durum:** Kullanıcı zoom yaptığında PDF her seferinde sıfırdan derlendiği için arayüzde donmalar ve "Derleniyor..." gecikmeleri yaşanıyordu.
+- **Tavsiye:** Form verisi değiştiğinde PDF bir kez derlenip `cachedPdfDocRef` içine alınmalı; zoom değiştiğinde ise PDF'i yeniden derlemek yerine önbellekteki PDF.js dokümanı üzerinden sadece canvas anlık olarak yeniden çizilmelidir (60fps anlık zoom).
 
-5. **Standart 5 Aksiyon:**
-   - `Sıfırla`, `Temizle`, `Boş Form`, `Yazdır` ve `Doldurulmuş PDF'i İndir` butonları tüm stüdyolarda yer almalıdır.
+### 4. Alan Bazlı Sıfırlama ve Kullanıcıyı Engellemeyen Validasyon
+- **Tavsiye (Yerel Sıfırlama):** Bir alandaki değer değiştirildiğinde hemen yanında beliren `↺ Sıfırla` butonu kullanıcı deneyimini çok artırdı.
+- **Tavsiye (Validasyon):** YİBF numarasında olduğu gibi belirli hane/format kuralları varsa, kullanıcının yazmasını kesin olarak engellemek yerine (harf sınırlaması gibi) alanı kırmızı çerçeveye alıp yanına bilgilendirici bir uyarı metni koymak çok daha kullanıcı dostu bir yaklaşımdır.
 
-6. **Mobil Deneyim:**
-   - Mobil ekranlarda segmented tab switcher (`Form Alanları` / `Canlı PDF Önizle`) bulunmalıdır.
+### 5. Sade Başlıklar ve Dış Kaydırma
+- **Tavsiye:** Başlıklarda son kullanıcıyı ilgilendirmeyen `(AcroForm)` gibi teknik etiketler kullanılmamalıdır.
+- **Tavsiye:** Masaüstü stüdyo düzeninde dış sayfa kaydırması (`outer scroll`) engellenip `100vh` tam ekrana oturtulduğunda, sol form kendi içinde kayıp sağ PDF tam sığdığında en temiz kullanım deneyimi elde edilmektedir.
+
+---
+*Daha kapsamlı mimari detaylar ve adım adım yeni belge ekleme rehberi için gerektiğinde [docs/BELGELER_SISTEMI.md](file:///c:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/BELGELER_SISTEMI.md) dosyasına göz atabilirsiniz.*

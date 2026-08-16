@@ -25,12 +25,15 @@ Bu dosya, site genelinde korunması gereken ürün ve arayüz kararlarını kayd
 
 ## Belgeler & Canlı PDF Stüdyosu Sistemi
 
-Belgeler (`/belgeler`) modülüne yeni bir resmi evrak/şablon ekleneceğinde veya mevcut stüdyolarda geliştirme yapılacağında **[docs/BELGELER_SISTEMI.md](docs/BELGELER_SISTEMI.md)** ve **[.agents/rules/belgeler-kurallari.md](.agents/rules/belgeler-kurallari.md)** dosyalarındaki mimari standartlara uyulmalıdır:
+> *(Not: Mevcut göreviniz `/belgeler` sayfası veya PDF stüdyosu ile ilgili DEĞİLSE bu bölümü ve referans verilen dosyaları okumanıza gerek yoktur.)*
 
-1. **Hayalet Leke ve Yazı Önleme:** AcroForm alanları temizlendiğinde veya doldurulduğunda, `pdf-engine.ts` içinde hem field'dan hem de `field.acroField.getWidgets()` içindeki her widget'tan `AP` (Appearance Stream) ve `DV` (Default Value) kayıtları temizlenmelidir.
-2. **Font Ayrımı:** Gövde metinleri ve açıklamalar **daima Regular (Arial-Regular)**; başlıklar, ad-soyad ve kurum isimleri **Bold (Arial-Bold)** olmalıdır.
-3. **Masaüstü Dış Kaydırmasız Düzen (Zero Window Scroll):** Stüdyolar masaüstünde `100vh` tam ekran görünümüne oturmalı; tarayıcı penceresinde dış kaydırma çubuğu çıkmamalı, sol form kendi içinde kaymalı, sağ PDF tam sığmalıdır.
-4. **Anlık Zoom (60fps):** Zoom butonları veya `Ctrl + Mouse Wheel` ile yakınlaştırma yapılırken PDF sıfırdan derlenmemeli, önbellekteki PDF.js dokümanı anlık olarak canvas'a yeniden çizilmelidir.
-5. **Kullanıcıyı Engellemeyen Validasyon:** Karakter sınırlarında (örn. YİBF >7 hane) kullanıcı uyarılmalı ve input kırmızıya dönmeli ancak **yazması asla engellenmemelidir.**
-6. **Yalın Başlıklar:** Son kullanıcı arayüzünde `(AcroForm)` gibi yazılımsal terimler kesinlikle kullanılmamalıdır.
+Belgeler modülünde çalışacak yapay zeka ajanları ve geliştiriciler için yaşanmış tecrübeler, hata çözümleri ve tavsiyeler **[docs/BELGELER_SISTEMI.md](docs/BELGELER_SISTEMI.md)** ve **[.agents/rules/belgeler-kurallari.md](.agents/rules/belgeler-kurallari.md)** dosyalarında derlenmiştir. 
+
+**Özet Tecrübe Notları:**
+1. **Leke ve Hayalet Yazı:** AcroForm temizleme işlemlerinde hem field hem de `field.acroField.getWidgets()` seviyesinde `AP` ve `DV` akışları temizlenmelidir (leke kalmaması için).
+2. **Font Dengesi:** Gövde metinleri `Arial-Regular` (ince), başlık ve isimler `Arial-Bold` olmalıdır.
+3. **Masaüstü Düzende Dış Kaydırma:** Stüdyolarda dış pencere scroll'u yerine, sol form paneli kendi içinde kaymalı (`overflow-y-auto`), sağ PDF ise dikeyde tam sayfaya sığmalıdır.
+4. **Anlık Zoom (60fps):** Yakınlaştırmada PDF yeniden derlenmemeli, önbellekteki PDF.js dokümanı üzerinden sadece canvas anlık çizilmelidir.
+5. **Kullanıcıyı Engellemeyen Validasyon:** Belirli hane kurallarında (örn. YİBF >7 hane) kullanıcı uyarılmalı ancak yazması engellenmemelidir.
+
 

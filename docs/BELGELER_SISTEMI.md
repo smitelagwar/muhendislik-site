@@ -1,8 +1,9 @@
-# Belgeler & Canlı PDF Stüdyosu Mimari Rehberi ve Standartları
+# Belgeler & Canlı PDF Stüdyosu — Mimari & Deneyim Notları
 
-Bu doküman, Mühendis Mimar Portalı bünyesindeki **Belgeler (`/belgeler`)** modülünün, PDF motorunun (`pdf-engine.ts`) ve interaktif canlı PDF stüdyolarının çalışma prensiplerini, yaşanmış teknik deneyimleri, kaçınılması gereken hataları ve yeni bir belge ekleme sürecini detaylandırır.
+> **ÖNEMLİ (Token Tasarrufu):**  
+> Bu doküman **SADECE** `/belgeler` sayfası, PDF motoru (`pdf-engine.ts`) veya resmi evrak stüdyoları ile ilgili bir işlem/geliştirme yapılacağı zaman okunmalıdır. Eğer göreviniz belgeler konusuyla ilgili **DEĞİLSE**, bu dokümanı okumanıza gerek yoktur; doğrudan atlayınız.
 
-Gelecekte bu modüle yeni bir belge ekleneceği veya mevcut belgeler üzerinde geliştirme yapılacağı zaman **bu rehberdeki kurallara ve mimari kararlara harfiyen uyulmalıdır.**
+Bu doküman, Mühendis Mimar Portalı bünyesindeki **Belgeler (`/belgeler`)** modülünün ve interaktif PDF stüdyolarının çalışma prensiplerini, yaşanmış teknik deneyimleri, karşılaşılan problemleri ve önerilen çözüm pratiklerini özetler. Gelecekteki geliştirmelerde yol gösterici bir tecrübe kütüphanesi niteliğindedir.
 
 ---
 
