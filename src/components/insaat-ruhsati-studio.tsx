@@ -2,29 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Building2,
-  Calendar,
-  Check,
   CheckCircle2,
   Dice5,
   ExternalLink,
   Eye,
   FileDown,
   FileEdit,
+  FilePenLine,
   FileText,
   Loader2,
-  Maximize2,
   MapPin,
-  Phone,
   Printer,
   RotateCcw,
-  ShieldCheck,
   Sparkles,
   Trash2,
   Undo2,
   User,
-  UserCheck,
   X,
   ZoomIn,
   ZoomOut,
@@ -57,7 +51,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     tel: "Tel: 0566 666 66 66",
   },
   {
-    tarih: new Date().toLocaleDateString("tr-TR"),
+    tarih: "16.08.2026",
     belediye_adi: "KADIKÖY BELEDİYESİ",
     mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
     ana_metin:
@@ -68,7 +62,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     tel: "Tel: 0566 666 66 66",
   },
   {
-    tarih: new Date().toLocaleDateString("tr-TR"),
+    tarih: "16.08.2026",
     belediye_adi: "ÇANKAYA BELEDİYESİ",
     mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
     ana_metin:
@@ -79,7 +73,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     tel: "Tel: 0566 666 66 66",
   },
   {
-    tarih: new Date().toLocaleDateString("tr-TR"),
+    tarih: "16.08.2026",
     belediye_adi: "NİLÜFER BELEDİYESİ",
     mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
     ana_metin:
@@ -306,7 +300,7 @@ export function InsaatRuhsatiStudio({
 
           const loadingTask = pdfjs.getDocument({
             data: clonedBytes,
-            cMapUrl: "/vendor/pdfjs/cmaps/",
+            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
             cMapPacked: true,
           });
           const pdf = await loadingTask.promise;
@@ -322,35 +316,40 @@ export function InsaatRuhsatiStudio({
         setSyncStatus("error");
         setIsGenerating(false);
       }
-    }, 180);
+    }, 150);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, [formData, renderPdfPage]);
 
-  // Instant Zoom Handler (Re-renders cached PDF document without re-compiling PDF)
-  const handleZoomChange = useCallback(
-    (newZoom: number) => {
-      const clampedZoom = Math.min(250, Math.max(50, newZoom));
-      setZoomLevel(clampedZoom);
-      zoomLevelRef.current = clampedZoom;
-      if (cachedPdfDocRef.current) {
-        renderPdfPage(cachedPdfDocRef.current, clampedZoom);
-      }
-    },
-    [renderPdfPage]
-  );
-
-  // Resize listener & container observer
+  // Instant Redraw when zoomLevel changes (NO PDF recompilation, NO sync status change)
   useEffect(() => {
-    const handleResize = () => {
-      if (cachedPdfDocRef.current) {
-        renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
-      }
+    if (cachedPdfDocRef.current) {
+      renderPdfPage(cachedPdfDocRef.current, zoomLevel);
+    }
+  }, [zoomLevel, renderPdfPage]);
+
+  // Window / container resize observer to keep canvas perfectly fitted
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    let resizeTimer: NodeJS.Timeout | null = null;
+    const observer = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (cachedPdfDocRef.current) {
+          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
+        }
+      }, 50);
+    });
+
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      if (resizeTimer) clearTimeout(resizeTimer);
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, [renderPdfPage]);
 
   // Re-render canvas when switching to preview tab on mobile
@@ -365,17 +364,44 @@ export function InsaatRuhsatiStudio({
     }
   }, [activeTabMobile, renderPdfPage]);
 
-  // Ctrl + Wheel Zoom Handler
-  const handlePreviewWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Ctrl + Mouse Wheel (or Trackpad Pinch) Zoom & Keyboard Zoom (+ / - / 0)
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        const delta = e.deltaY < 0 ? 10 : -10;
-        handleZoomChange(zoomLevelRef.current + delta);
+        e.stopPropagation();
+        if (e.deltaY < 0) {
+          setZoomLevel((prev) => Math.min(250, prev + 25));
+        } else if (e.deltaY > 0) {
+          setZoomLevel((prev) => Math.max(50, prev - 25));
+        }
       }
-    },
-    [handleZoomChange]
-  );
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.min(250, prev + 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        setZoomLevel((prev) => Math.max(50, prev - 25));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        setZoomLevel(100);
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -386,627 +412,493 @@ export function InsaatRuhsatiStudio({
     };
   }, []);
 
-  // Download Handler
-  const handleDownloadFilled = async () => {
+  // Download Filled PDF
+  const handleDownload = async () => {
     try {
       setIsDownloading(true);
       await downloadFilledInsaatRuhsatiPdf(formData);
     } catch (err) {
       console.error("Download failed:", err);
+      alert("PDF indirilirken bir sorun oluştu.");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // Download Blank Form Handler
-  const handleDownloadBlank = async () => {
-    try {
-      setIsDownloading(true);
-      const emptyData: InsaatRuhsatiData = {
-        tarih: "",
-        belediye_adi: "",
-        mudurluk_adi: "",
-        ana_metin: "",
-        ad_soyad: "",
-        adres: "",
-        tel: "",
-      };
-      await downloadFilledInsaatRuhsatiPdf(emptyData, "BOS_INSAAT_RUHSATI_DILEKCESI.pdf");
-    } catch (err) {
-      console.error("Blank download failed:", err);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  // Print Handler
+  // Direct Print
   const handlePrint = () => {
     if (!blobUrl) return;
     const printWindow = window.open(blobUrl, "_blank");
     if (printWindow) {
       printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
     }
   };
 
-  return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
-      {/* Top Header & Action Bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-[var(--site-surface)] px-4 sm:px-6">
-        <div className="flex items-center gap-3">
-          {onClose ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label="Kapat"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          ) : (
-            <a
-              href="/belgeler"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-              title="Belgelere Geri Dön"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </a>
+  // Helper for field headers with local reset buttons
+  const renderFieldHeader = (
+    label: string,
+    fieldKey: keyof InsaatRuhsatiData,
+    badge?: string
+  ) => {
+    const isModified = formData[fieldKey] !== INSAAT_RUHSATI_DEFAULT_DATA[fieldKey];
+
+    return (
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <label className="text-[11px] font-bold text-foreground truncate">
+            {label}
+          </label>
+          {badge && (
+            <span className="text-[9px] font-mono text-muted-foreground/80">
+              {badge}
+            </span>
           )}
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-400">
+        </div>
+
+        {isModified && (
+          <button
+            type="button"
+            onClick={() => handleLocalFieldReset(fieldKey)}
+            className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+            title={`"${label}" alanını varsayılana sıfırla`}
+          >
+            <RotateCcw className="h-2.5 w-2.5" />
+            <span>Sıfırla</span>
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // Lock window/body scroll when studio is active in full page mode
+  useEffect(() => {
+    if (isModal) return;
+    if (typeof window !== "undefined") {
+      const htmlEl = document.documentElement;
+      const bodyEl = document.body;
+
+      const prevHtmlOverflow = htmlEl.style.overflow;
+      const prevBodyOverflow = bodyEl.style.overflow;
+
+      htmlEl.style.overflow = "hidden";
+      bodyEl.style.overflow = "hidden";
+
+      return () => {
+        htmlEl.style.overflow = prevHtmlOverflow;
+        bodyEl.style.overflow = prevBodyOverflow;
+      };
+    }
+  }, [isModal]);
+
+  return (
+    <div
+      data-studio-locked="true"
+      className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${
+        isModal
+          ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
+          : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
+      }`}
+    >
+      {/* Modal Top Header (Visible in quick preview modal) */}
+      {isModal && (
+        <div className="flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Building2 className="h-4 w-4" />
             </span>
             <div>
-              <h1 className="text-sm font-bold leading-none text-foreground sm:text-base">
-                İnşaat Ruhsatı Dilekçesi Stüdyosu
-              </h1>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
+              <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight">
+                İnşaat Ruhsatı Dilekçesi
+              </h2>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">
                 Yapı Ruhsatı Başvuru & İdareye Talep Dilekçesi
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          {/* Sync indicator */}
-          <div className="hidden items-center gap-1.5 rounded-full border border-border bg-background/80 px-2.5 py-1 text-[11px] sm:inline-flex">
-            {syncStatus === "updating" ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin text-amber-600 dark:text-amber-400" />
-                <span className="text-muted-foreground">Güncelleniyor...</span>
-              </>
-            ) : syncStatus === "synced" ? (
-              <>
-                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-muted-foreground">Canlı Önizleme Hazır</span>
-              </>
-            ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-red-600 dark:bg-red-400" />
-                <span className="text-red-600 dark:text-red-400">Hata</span>
-              </>
+          <div className="flex items-center gap-2">
+            {syncStatus === "updating" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="hidden sm:inline">Derleniyor...</span>
+              </span>
+            )}
+            {syncStatus === "synced" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Canlı Önizleme Hazır</span>
+              </span>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                aria-label="Pencereyi Kapat"
+                title="Kapat"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRandomize}
-            className="hidden h-8 gap-1.5 border-amber-500/30 bg-amber-500/10 px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 sm:inline-flex"
-            title="Örnek / Rastgele Veri Doldur"
-          >
-            <Dice5 className="h-3.5 w-3.5" />
-            <span>Rastgele Örnek</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadBlank}
-            disabled={isDownloading}
-            className="hidden h-8 gap-1.5 border-border bg-background px-3 text-xs font-semibold text-foreground hover:bg-secondary md:inline-flex"
-            title="Boş Form Şablonunu İndir"
-          >
-            <FileDown className="h-3.5 w-3.5" />
-            <span>Boş Form</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            disabled={!blobUrl || isGenerating}
-            className="hidden h-8 gap-1.5 border-border bg-background px-3 text-xs font-semibold text-foreground hover:bg-secondary sm:inline-flex"
-            title="Yazdır"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            <span>Yazdır</span>
-          </Button>
-
-          <Button
-            size="sm"
-            onClick={handleDownloadFilled}
-            disabled={isDownloading || isGenerating}
-            className="h-8 gap-1.5 bg-foreground px-3.5 text-xs font-bold text-background transition hover:bg-foreground/90 focus-visible:ring-2 focus-visible:ring-amber-500"
-          >
-            {isDownloading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <FileDown className="h-3.5 w-3.5" />
-            )}
-            <span>PDF İndir</span>
-          </Button>
-
-          {isModal && onClose && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              aria-label="Kapat"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </div>
-      </header>
+      )}
 
-      {/* Mobile Tab Switcher */}
-      <div className="flex h-10 shrink-0 border-b border-border bg-muted/40 lg:hidden">
+      {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
+      <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
         <button
           type="button"
           onClick={() => setActiveTabMobile("form")}
-          className={`flex-1 text-xs font-bold transition-colors ${
+          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTabMobile === "form"
-              ? "border-b-2 border-amber-600 bg-background text-foreground dark:border-amber-400"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <span className="inline-flex items-center gap-1.5">
-            <FileEdit className="h-3.5 w-3.5" />
-            Formu Doldur ({filledFieldCount})
+          <FileEdit className="h-3.5 w-3.5 text-amber-500" />
+          <span>Form Alanları</span>
+          <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
+            {filledFieldCount}/8
           </span>
         </button>
+
         <button
           type="button"
           onClick={() => setActiveTabMobile("preview")}
-          className={`flex-1 text-xs font-bold transition-colors ${
+          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
             activeTabMobile === "preview"
-              ? "border-b-2 border-amber-600 bg-background text-foreground dark:border-amber-400"
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <span className="inline-flex items-center gap-1.5">
-            <Eye className="h-3.5 w-3.5" />
-            Canlı PDF Önizleme
-          </span>
+          <Eye className="h-3.5 w-3.5 text-amber-500" />
+          <span>Canlı PDF Önizle</span>
+          {syncStatus === "updating" ? (
+            <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+          ) : (
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          )}
         </button>
       </div>
 
-      {/* Main Workspace (Split Grid) */}
-      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[480px_1fr] xl:grid-cols-[520px_1fr]">
-        {/* LEFT COLUMN: Input Form Controls */}
-        <section
-          className={`flex flex-col border-r border-border bg-background ${
-            activeTabMobile === "form" ? "flex" : "hidden lg:flex"
-          } h-full overflow-hidden`}
+      {/* Main Split Layout: Left Form & Right Live PDF */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-border">
+        {/* Left Column: Form Inputs & Action Buttons */}
+        <div
+          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-2.5 sm:p-3.5 space-y-2.5 ${
+            activeTabMobile === "form" ? "block" : "hidden lg:block"
+          }`}
         >
-          {/* Form Header Toolbar */}
-          <div className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-[var(--site-surface)] px-4 sm:px-6">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-2 w-2 rounded-full bg-violet-500" />
-              <span className="text-xs font-bold text-foreground">
-                Dilekçe Bilgileri
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-                {filledFieldCount}/6 alan
-              </span>
-            </div>
-
+          {/* Top Title & Sync Status (Desktop compact inline) */}
+          <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
-              <Button
-                variant="ghost"
-                size="sm"
+              <Building2 className="h-3.5 w-3.5 text-amber-500" />
+              <h2 className="text-xs font-bold text-foreground">
+                İnşaat Ruhsatı Dilekçesi
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
                 onClick={handleRandomize}
-                className="h-7 gap-1 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-400"
-                title="Rastgele Örnek Veri Doldur"
+                className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 transition-all"
+                title="Rastgele örnek bilgileri doldur"
               >
-                <Sparkles className="h-3 w-3" />
-                <span>Örnek Doldur</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetToPdfDefaults}
-                className="h-7 gap-1 px-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                title="Şablon Varsayılanlarına Sıfırla"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span>Sıfırla</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearAll}
-                className="h-7 gap-1 px-2 text-[11px] font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
-                title="Tüm Alanları Temizle"
-              >
-                <Trash2 className="h-3 w-3" />
-                <span>Temizle</span>
-              </Button>
+                <Dice5 className="h-3 w-3" />
+                <span>Örnek Veri</span>
+              </button>
+              {syncStatus === "updating" && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  <span>Derleniyor</span>
+                </span>
+              )}
+              {syncStatus === "synced" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Canlı Senkron</span>
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Form Input Fields (Scrollable) */}
-          <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
-            {/* 1. Tarih & Muhatap İdare */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    1. Muhatap İdare & Tarih
-                  </h2>
-                </div>
-              </div>
+          {/* 1. Tarih & İlgili İdare */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <Building2 className="h-3 w-3 text-amber-500" />
+              1. İdare ve Tarih Bilgisi
+            </h3>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="belediye_adi"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      İlgili Belediye / İdare <span className="text-red-500">*</span>
-                    </label>
-                    {formData.belediye_adi !== INSAAT_RUHSATI_DEFAULT_DATA.belediye_adi && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("belediye_adi")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="belediye_adi"
-                    type="text"
-                    value={formData.belediye_adi || ""}
-                    onChange={(e) => handleFieldChange("belediye_adi", e.target.value)}
-                    placeholder="Örn: AKDAĞMADENİ BELEDİYESİ"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="mudurluk_adi"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      İlgili Birim / Müdürlük
-                    </label>
-                    {formData.mudurluk_adi !== INSAAT_RUHSATI_DEFAULT_DATA.mudurluk_adi && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("mudurluk_adi")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="mudurluk_adi"
-                    type="text"
-                    value={formData.mudurluk_adi || ""}
-                    onChange={(e) => handleFieldChange("mudurluk_adi", e.target.value)}
-                    placeholder="Örn: İmar ve Şehircilik Müdürlüğüne"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="tarih"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Dilekçe Tarihi
-                    </label>
-                    {formData.tarih !== INSAAT_RUHSATI_DEFAULT_DATA.tarih && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("tarih")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="tarih"
-                    type="text"
-                    value={formData.tarih || ""}
-                    onChange={(e) => handleFieldChange("tarih", e.target.value)}
-                    placeholder="Örn: 08.12.2023"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Talep ve Parsel Bilgileri Metni */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    2. Talep Metni & Parsel Bilgileri
-                  </h2>
-                </div>
-                {formData.ana_metin !== INSAAT_RUHSATI_DEFAULT_DATA.ana_metin && (
-                  <button
-                    type="button"
-                    onClick={() => handleLocalFieldReset("ana_metin")}
-                    className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                    title="Bu alanı varsayılana sıfırla"
-                  >
-                    <Undo2 className="h-2.5 w-2.5" />
-                    Sıfırla
-                  </button>
-                )}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                {renderFieldHeader("Dilekçe Tarihi", "tarih")}
+                <input
+                  type="text"
+                  value={formData.tarih || ""}
+                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  placeholder="08.12.2023"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
               </div>
 
               <div>
-                <label
-                  htmlFor="ana_metin"
-                  className="mb-1 block text-xs font-semibold text-foreground"
-                >
-                  Dilekçe Gövde & Parsel Açıklama Metni
-                </label>
-                <textarea
-                  id="ana_metin"
-                  rows={4}
-                  value={formData.ana_metin || ""}
-                  onChange={(e) => handleFieldChange("ana_metin", e.target.value)}
-                  placeholder="İlçenin ... Mahallesi ... ada, ... parselime yeni inşaat yapmak istiyorum..."
-                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                {renderFieldHeader("İlgili Belediye / İdare", "belediye_adi")}
+                <input
+                  type="text"
+                  value={formData.belediye_adi || ""}
+                  onChange={(e) => handleFieldChange("belediye_adi", e.target.value)}
+                  placeholder="ÇANKAYA BELEDİYESİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Mahalle, ada, parsel ve talep detaylarınızı serbestçe düzenleyebilirsiniz.
-                </p>
               </div>
             </div>
 
-            {/* 3. Başvuru Sahibi */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    3. Dilekçe Sahibi
-                  </h2>
-                </div>
-                {formData.ad_soyad !== INSAAT_RUHSATI_DEFAULT_DATA.ad_soyad && (
-                  <button
-                    type="button"
-                    onClick={() => handleLocalFieldReset("ad_soyad")}
-                    className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                    title="Bu alanı varsayılana sıfırla"
-                  >
-                    <Undo2 className="h-2.5 w-2.5" />
-                    Sıfırla
-                  </button>
-                )}
-              </div>
+            <div>
+              {renderFieldHeader("İlgili Birim / Müdürlük", "mudurluk_adi")}
+              <input
+                type="text"
+                value={formData.mudurluk_adi || ""}
+                onChange={(e) => handleFieldChange("mudurluk_adi", e.target.value)}
+                placeholder="İmar ve Şehircilik Müdürlüğüne"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+            </div>
+          </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                <label
-                  htmlFor="ad_soyad"
-                  className="mb-1 block text-xs font-semibold text-foreground"
-                >
-                  Adı Soyadı <span className="text-red-500">*</span>
-                </label>
+          {/* 2. Talep ve Parsel Bilgileri Metni */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+            {renderFieldHeader("Talep ve Parsel Bilgileri Metni", "ana_metin")}
+            <textarea
+              rows={3}
+              value={formData.ana_metin || ""}
+              onChange={(e) => handleFieldChange("ana_metin", e.target.value)}
+              placeholder="İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum..."
+              className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+            />
+          </div>
+
+          {/* 3. Dilekçe Sahibi */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <User className="h-3 w-3 text-amber-500" />
+              2. Dilekçe Sahibi
+            </h3>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                {renderFieldHeader("Adı Soyadı", "ad_soyad")}
                 <input
-                  id="ad_soyad"
                   type="text"
                   value={formData.ad_soyad || ""}
                   onChange={(e) => handleFieldChange("ad_soyad", e.target.value)}
-                  placeholder="Örn: Hüseyin GÜNAYDIN"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  placeholder="Hüseyin GÜNAYDIN"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label htmlFor="unvan" className="text-xs font-semibold text-foreground">
-                      Sıfat / Unvan
-                    </label>
-                    {formData.unvan !== INSAAT_RUHSATI_DEFAULT_DATA.unvan && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("unvan")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="unvan"
-                    type="text"
-                    value={formData.unvan || ""}
-                    onChange={(e) => handleFieldChange("unvan", e.target.value)}
-                    placeholder="Örn: Yapı Sahibi"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 4. İletişim & Adres Bilgileri */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    4. Adres ve İletişim
-                  </h2>
-                </div>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="adres"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Adres Bilgisi
-                    </label>
-                    {formData.adres !== INSAAT_RUHSATI_DEFAULT_DATA.adres && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("adres")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <textarea
-                    id="adres"
-                    rows={2}
-                    value={formData.adres || ""}
-                    onChange={(e) => handleFieldChange("adres", e.target.value)}
-                    placeholder="Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA"
-                    className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="tel"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Telefon Numarası
-                    </label>
-                    {formData.tel !== INSAAT_RUHSATI_DEFAULT_DATA.tel && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("tel")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="tel"
-                    type="text"
-                    value={formData.tel || ""}
-                    onChange={(e) => handleFieldChange("tel", e.target.value)}
-                    placeholder="Tel: 0566 666 66 66"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
+              <div>
+                {renderFieldHeader("Sıfat / Unvan", "unvan")}
+                <input
+                  type="text"
+                  value={formData.unvan || ""}
+                  onChange={(e) => handleFieldChange("unvan", e.target.value)}
+                  placeholder="Yapı Sahibi"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
               </div>
             </div>
           </div>
-        </section>
 
-        {/* RIGHT COLUMN: Interactive Real-Time Canvas PDF Preview */}
-        <section
-          className={`relative flex flex-col bg-zinc-900/90 dark:bg-black/95 ${
-            activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
-          } h-full overflow-hidden`}
+          {/* 4. İletişim ve Adres */}
+          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-amber-500" />
+              3. İletişim ve Tebligat Adresi
+            </h3>
+
+            <div>
+              {renderFieldHeader("Adres Bilgisi", "adres")}
+              <textarea
+                rows={2}
+                value={formData.adres || ""}
+                onChange={(e) => handleFieldChange("adres", e.target.value)}
+                placeholder="Adres: Örnek Mah. Mühendisler Cad. No:24/6 Çankaya / ANKARA"
+                className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+              />
+            </div>
+
+            <div>
+              {renderFieldHeader("Telefon Numarası", "tel")}
+              <input
+                type="text"
+                value={formData.tel || ""}
+                onChange={(e) => handleFieldChange("tel", e.target.value)}
+                placeholder="Tel: 0566 666 66 66"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons Panel */}
+          <div className="pt-2 space-y-2 border-t border-border/60">
+            {/* Secondary Action Row */}
+            <div className="grid grid-cols-4 gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetToPdfDefaults}
+                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                title="Tüm alanları orijinal varsayılanlara sıfırla"
+              >
+                <RotateCcw className="h-3 w-3 mr-1 shrink-0" />
+                <span>Sıfırla</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearAll}
+                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-rose-600 hover:border-rose-500/40"
+                title="Tüm alanları temizle"
+              >
+                <Trash2 className="h-3 w-3 mr-1 shrink-0" />
+                <span>Temizle</span>
+              </Button>
+
+              <a
+                href="/belgeler/insaat-ruhsati-dilekcesi.pdf"
+                download="INSAAT_RUHSATI_DILEKCESI_BOS.pdf"
+                className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                title="Doldurulmamış boş şablonu indir"
+              >
+                <FileDown className="h-3 w-3 mr-1 shrink-0" />
+                <span>Boş Form</span>
+              </a>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                className="h-8 px-1 text-[11px] font-semibold"
+                title="Yazdır"
+              >
+                <Printer className="h-3 w-3 mr-1 shrink-0" />
+                <span>Yazdır</span>
+              </Button>
+            </div>
+
+            {/* Primary Action Button */}
+            <Button
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="w-full h-10 gap-2 bg-amber-600 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-700 active:scale-[0.98] dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              <span>Doldurulmuş PDF'i İndir</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Right Column: Full-Height Live PDF Canvas Panel */}
+        <div
+          className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
+            activeTabMobile === "preview" ? "block" : "hidden lg:flex"
+          }`}
         >
-          {/* Toolbar on top of preview */}
-          <div className="flex h-11 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-950/80 px-4 backdrop-blur-md">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-300">
-                A4 Sayfa Önizleme
+          {/* Top Mini Control Bar (Zoom, Fit, Open) */}
+          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-amber-500" />
+                <span>Canlı Belge Önizlemesi</span>
               </span>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-mono text-zinc-400">
-                Sayfa 1/1
+              <span className="hidden sm:inline-flex items-center text-[10px] text-muted-foreground/80 font-mono">
+                (Otomatik Tam Sayfa Sığdırma)
               </span>
             </div>
 
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-1">
+            {/* Zoom & View Controls */}
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => handleZoomChange(zoomLevel - 15)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
-                title="Uzaklaştır"
+                onClick={() => setZoomLevel(100)}
+                className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold transition-all ${
+                  zoomLevel === 100
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+                title="Genişliğe ve yüksekliğe tam sığdır (%100)"
               >
-                <ZoomOut className="h-3.5 w-3.5" />
+                Sığdır
               </button>
-              <button
-                type="button"
-                onClick={() => handleZoomChange(100)}
-                className="h-7 px-2 font-mono text-xs font-semibold text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100"
-                title="Sığdır (%100)"
-              >
-                %{zoomLevel}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleZoomChange(zoomLevel + 15)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
-                title="Yakınlaştır"
-              >
-                <ZoomIn className="h-3.5 w-3.5" />
-              </button>
+
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
+                  className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title="Uzaklaştır"
+                >
+                  <ZoomOut className="h-3 w-3" />
+                </button>
+                <span className="text-[10px] font-mono font-semibold px-1 text-muted-foreground min-w-[36px] text-center">
+                  %{zoomLevel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.min(250, z + 25))}
+                  className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title="Yakınlaştır"
+                >
+                  <ZoomIn className="h-3 w-3" />
+                </button>
+              </div>
+
+              {blobUrl && (
+                <a
+                  href={blobUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title="Yeni sekmede tam ekran aç"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span className="hidden sm:inline">Tam Ekran</span>
+                </a>
+              )}
             </div>
           </div>
 
           {/* Canvas Viewport Container */}
           <div
             ref={previewContainerRef}
-            onWheel={handlePreviewWheel}
-            className="relative flex flex-1 items-center justify-center overflow-auto p-4 sm:p-6"
+            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${
+              zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
+            }`}
           >
             {isGenerating && !hasRenderedOnce && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/80 backdrop-blur-sm">
-                <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-                <p className="text-xs font-semibold text-zinc-300">
-                  PDF Şablonu Derleniyor...
-                </p>
+              <div className="sticky inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10 min-h-[260px]">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+                <p className="text-xs font-semibold">Resmi PDF Derleniyor...</p>
               </div>
             )}
 
-            {/* Canvas Page */}
-            <div className="flex items-center justify-center shadow-2xl transition-transform duration-75">
-              <canvas
-                ref={canvasRef}
-                className="rounded bg-white shadow-2xl"
-                style={{
-                  maxWidth: "100%",
-                  height: "auto",
-                  display: "block",
-                }}
-              />
-            </div>
+            <canvas
+              ref={canvasRef}
+              className={`bg-white rounded-md shadow-2xl transition-all block shrink-0 ${
+                zoomLevel > 100
+                  ? "mx-auto my-2"
+                  : "max-h-full max-w-full mx-auto my-auto"
+              }`}
+            />
           </div>
-        </section>
+        </div>
       </div>
 
       {/* Mobile Sticky Bottom Action Bar */}
@@ -1033,7 +925,7 @@ export function InsaatRuhsatiStudio({
 
         <Button
           type="button"
-          onClick={handleDownloadFilled}
+          onClick={handleDownload}
           disabled={isDownloading}
           className="flex-1 h-9 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md dark:bg-amber-500 dark:text-zinc-950"
         >

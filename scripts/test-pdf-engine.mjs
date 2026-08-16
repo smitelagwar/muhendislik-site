@@ -131,7 +131,7 @@ await simulateTemizle("public/belgeler/santiye-sefi-taahhutnamesi.pdf", [
 console.log("\n--- Simulating Temizle for İstifa ---");
 await simulateTemizle("public/belgeler/santiye-sefi-istifa-dilekcesi.pdf", [
   "hitap_1", "hitap_2", "ana_paragraf", "sonuc_cumlesi",
-  "tarih", "ad_soyad", "adres_etiket", "adres_deger",
+  "tarih", "unvan", "ad_soyad", "adres_etiket", "adres_deger",
   "tc_etiket", "tc_deger", "iletisim_etiket", "iletisim_deger"
 ]);
 
@@ -144,5 +144,13 @@ await simulateTemizle("public/belgeler/beton-dokum-tutanagi.pdf", [
 console.log("\n--- Simulating Temizle for İnşaat Ruhsatı ---");
 await simulateTemizle("public/belgeler/insaat-ruhsati-dilekcesi.pdf", [
   "tarih", "belediye_adi", "mudurluk_adi", "ana_metin",
-  "ad_soyad", "adres", "tel"
+  "ad_soyad", "unvan", "adres", "tel"
 ]);
+
+console.log("\n--- Simulating Temizle for Sözleşme ---");
+await simulateTemizle("public/belgeler/santiye-sefi-sozlesmesi.pdf", [
+  "muteahhit_unvan", "santiye_sefi_ad", "il", "ilce", "adres",
+  "yibf", "pafta", "mahalle", "ada", "parsel", "ucret",
+  "sozlesme_tarihi", "santiye_sefi_imza_adi", "muteahhit_imza_unvan"
+]);
+

@@ -19,13 +19,13 @@ import { buildSeoMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildSeoMetadata({
   title: "Belgeler ve İndirilebilir Şablonlar | Şantiye Şefi Taahhütname & Tutanaklar",
   description:
-    "Mühendis ve mimarlar için şantiye şefliği taahhütnamesi, beton döküm tutanağı ve istifa dilekçesi gibi düzenlenebilir PDF şablonları, form doldurucu ve resmi evrak arşivi.",
+    "Mühendis ve mimarlar için şantiye şefliği taahhütnamesi, hizmet sözleşmesi, beton döküm tutanağı, ruhsat ve istifa dilekçesi gibi düzenlenebilir PDF şablonları, form doldurucu ve resmi evrak arşivi.",
   pathname: "/belgeler",
 });
 
 const CAPABILITIES = [
-  { icon: FileCheck2, value: "3", label: "hazır şablon" },
-  { icon: MousePointer2, value: "3", label: "canlı stüdyo" },
+  { icon: FileCheck2, value: "5", label: "hazır şablon" },
+  { icon: MousePointer2, value: "5", label: "canlı stüdyo" },
   { icon: ShieldCheck, value: "PDF", label: "A4 çıktı" },
 ];
 

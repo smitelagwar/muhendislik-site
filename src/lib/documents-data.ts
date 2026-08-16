@@ -48,7 +48,7 @@ export const DOCUMENTS: DocumentItem[] = [
     category: "santiye-tutanak",
     categoryLabel: "Şantiye & Tutanak",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "1.75 MB",
+    fileSize: "2.81 MB",
     downloadUrl: "/belgeler/beton-dokum-tutanagi.pdf",
     studioUrl: "/belgeler/beton-dokum-tutanagi",
     updatedAt: "2026",
@@ -83,27 +83,22 @@ export const DOCUMENTS: DocumentItem[] = [
       santiye_sefi: "İnş. Müh. Hüseyin GÜNAYDIN",
       yapi_denetim: "GÜVEN YAPI DENETİM LTD. ŞTİ.",
     },
-    generatePreviewText: (values) => `
-T.C. ÇEVRE, ŞEHİRCİLİK VE İKLİM DEĞİŞİKLİĞİ BAKANLIĞI
-YAPI DENETİMİ VE ŞANTİYE BETON DÖKÜM TUTANAĞI
-
-Tutanak Konusu : ${values.tutanak_alt_baslik || "Beton Döküm Tutanağı"}
-Döküm Tarihi   : ${values.tarih || "-"}
-Şantiye Yeri   : ${values.yer || "-"}
-YİBF No        : ${values.yibf || "-"}
-
-YAPILAN İŞLEM VE ELEMAN BİLGİSİ:
-${values.olay_aciklamasi || "Belirtilmedi"}
-
-GÖZLEM, SLUMP VE NUMUNE KONTROLLERİ:
-${values.gozlem_notlar || "Kalıp, donatı ve vibrasyon kontrolleri mevzuata uygun şekilde tamamlanmıştır."}
-
-TARAFLAR VE İMZALAR:
-Laboratuvar Görevlisi : ${values.laboratuvar || "........................"}
-Müteahhit / Temsilci  : ${values.muteahhit || "........................"}
-Şantiye Şefi         : ${values.santiye_sefi || "........................"}
-Yapı Denetim Görevlisi: ${values.yapi_denetim || "........................"}
-    `.trim(),
+    generatePreviewText: (values) =>
+      "T.C. ÇEVRE, ŞEHİRCİLİK VE İKLİM DEĞİŞİKLİĞİ BAKANLIĞI\n" +
+      "YAPI DENETİMİ VE ŞANTİYE BETON DÖKÜM TUTANAĞI\n\n" +
+      "Tutanak Konusu : " + (values.tutanak_alt_baslik || "Beton Döküm Tutanağı") + "\n" +
+      "Döküm Tarihi   : " + (values.tarih || "-") + "\n" +
+      "Şantiye Yeri   : " + (values.yer || "-") + "\n" +
+      "YİBF No        : " + (values.yibf || "-") + "\n\n" +
+      "YAPILAN İŞLEM VE ELEMAN BİLGİSİ:\n" +
+      (values.olay_aciklamasi || "Belirtilmedi") + "\n\n" +
+      "GÖZLEM, SLUMP VE NUMUNE KONTROLLERİ:\n" +
+      (values.gozlem_notlar || "Kalıp, donatı ve vibrasyon kontrolleri mevzuata uygun şekilde tamamlanmıştır.") + "\n\n" +
+      "TARAFLAR VE İMZALAR:\n" +
+      "Laboratuvar Görevlisi : " + (values.laboratuvar || "........................") + "\n" +
+      "Müteahhit / Temsilci  : " + (values.muteahhit || "........................") + "\n" +
+      "Şantiye Şefi         : " + (values.santiye_sefi || "........................") + "\n" +
+      "Yapı Denetim Görevlisi: " + (values.yapi_denetim || "........................"),
   },
   {
     id: "santiye-sefi-taahhutnamesi",
@@ -114,7 +109,7 @@ Yapı Denetim Görevlisi: ${values.yapi_denetim || "........................"}
     category: "taahhutname",
     categoryLabel: "Taahhütname",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "1.14 MB",
+    fileSize: "2.20 MB",
     downloadUrl: "/belgeler/santiye-sefi-taahhutnamesi.pdf",
     studioUrl: "/belgeler/santiye-sefi-taahhutnamesi",
     updatedAt: "2026",
@@ -153,29 +148,23 @@ Yapı Denetim Görevlisi: ${values.yapi_denetim || "........................"}
       yapi_sahibi_adresi: "Çankaya / ANKARA",
       tarih: "16.08.2026",
     },
-    generatePreviewText: (values) => `
-${(values.ilgili_idare || "İLGİLİ BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")}
-İMAR VE ŞEHİRCİLİK MÜDÜRLÜĞÜ'NE
-
-ŞANTİYE ŞEFLİĞİ TAAHHÜTNAMESİ
-
-Yapı Sahibi      : ${values.yapi_sahibi || "-"}
-Yapı Adresi      : ${values.yapi_adresi || "-"}
-Tapu Kaydı       : ${values.pafta_ada_parsel || "-"} (${values.il_ilce || "-"})
-
-Yukarıda tapu kaydı ve adresi belirtilen inşaatın şantiye şefliği görevini 3194 sayılı İmar Kanunu, Şantiye Şefleri Hakkında Yönetmelik ve ilgili mevzuat hükümleri uyarınca üstlendiğimi; yapının ruhsat ve eklerine, fen ve sanat kurallarına, iş sağlığı ve güvenliği şartlarına uygun olarak yürütülmesinden sorumlu olacağımı beyan ve taahhüt ederim.
-
-ŞANTİYE ŞEFİ BİLGİLERİ:
-Adı Soyadı       : ${values.santiye_sefi_ad_soyad || "........................"}
-Unvanı / Mesleği : ${values.unvan || "-"}
-Oda Sicil No     : ${values.oda_sicil_no || "-"}
-T.C. Kimlik No   : ${values.tc_kimlik_no || "-"}
-Telefon          : ${values.telefon || "-"}
-Adres            : ${values.adres || "-"}
-Tarih            : ${values.tarih || "-"}
-
-İmza:
-    `.trim(),
+    generatePreviewText: (values) =>
+      ((values.ilgili_idare || "İLGİLİ BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")) + "\n" +
+      "İMAR VE ŞEHİRCİLİK MÜDÜRLÜĞÜ'NE\n\n" +
+      "ŞANTİYE ŞEFLİĞİ TAAHHÜTNAMESİ\n\n" +
+      "Yapı Sahibi      : " + (values.yapi_sahibi || "-") + "\n" +
+      "Yapı Adresi      : " + (values.yapi_adresi || "-") + "\n" +
+      "Tapu Kaydı       : " + (values.pafta_ada_parsel || "-") + " (" + (values.il_ilce || "-") + ")\n\n" +
+      "Yukarıda tapu kaydı ve adresi belirtilen inşaatın şantiye şefliği görevini 3194 sayılı İmar Kanunu, Şantiye Şefleri Hakkında Yönetmelik ve ilgili mevzuat hükümleri uyarınca üstlendiğimi; yapının ruhsat ve eklerine, fen ve sanat kurallarına, iş sağlığı ve güvenliği şartlarına uygun olarak yürütülmesinden sorumlu olacağımı beyan ve taahhüt ederim.\n\n" +
+      "ŞANTİYE ŞEFİ BİLGİLERİ:\n" +
+      "Adı Soyadı       : " + (values.santiye_sefi_ad_soyad || "........................") + "\n" +
+      "Unvanı / Mesleği : " + (values.unvan || "-") + "\n" +
+      "Oda Sicil No     : " + (values.oda_sicil_no || "-") + "\n" +
+      "T.C. Kimlik No   : " + (values.tc_kimlik_no || "-") + "\n" +
+      "Telefon          : " + (values.telefon || "-") + "\n" +
+      "Adres            : " + (values.adres || "-") + "\n" +
+      "Tarih            : " + (values.tarih || "-") + "\n\n" +
+      "İmza:",
   },
   {
     id: "santiye-sefi-istifa-dilekcesi",
@@ -186,7 +175,7 @@ Tarih            : ${values.tarih || "-"}
     category: "dilekce",
     categoryLabel: "Dilekçe & Başvuru",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "1.76 MB",
+    fileSize: "3.92 MB",
     downloadUrl: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
     studioUrl: "/belgeler/santiye-sefi-istifa-dilekcesi",
     updatedAt: "2026",
@@ -220,27 +209,20 @@ Tarih            : ${values.tarih || "-"}
       iletisim_deger: "0566 666 66 66",
       adres_deger: "Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA",
     },
-    generatePreviewText: (values) => `
-${(values.hitap_1 || "BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")}
-${values.hitap_2 || "ÇANKAYA"}
-
-KONU: Şantiye Şefliği Görevinden İstifa Bildirimi
-
-${values.ana_paragraf || "İlgili parseldeki inşaatın şantiye şefliği görevinden gördüğüm lüzum üzerine istifa etmiş bulunmaktayım."}
-
-${values.sonuc_cumlesi || "Gereğinin yapılmasını saygılarımla arz ve talep ederim."}
-
-Tarih: ${values.tarih || "-"}
-
-ŞANTİYE ŞEFİ:
-Unvanı        : ${values.unvan || "-"}
-Adı Soyadı   : ${values.ad_soyad || "........................"}
-T.C. No      : ${values.tc_deger || "-"}
-İletişim     : ${values.iletisim_deger || "-"}
-Adres        : ${values.adres_deger || "-"}
-
-İmza:
-    `.trim(),
+    generatePreviewText: (values) =>
+      ((values.hitap_1 || "BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")) + "\n" +
+      (values.hitap_2 || "ÇANKAYA") + "\n\n" +
+      "KONU: Şantiye Şefliği Görevinden İstifa Bildirimi\n\n" +
+      (values.ana_paragraf || "İlgili parseldeki inşaatın şantiye şefliği görevinden gördüğüm lüzum üzerine istifa etmiş bulunmaktayım.") + "\n\n" +
+      (values.sonuc_cumlesi || "Gereğinin yapılmasını saygılarımla arz ve talep ederim.") + "\n\n" +
+      "Tarih: " + (values.tarih || "-") + "\n\n" +
+      "ŞANTİYE ŞEFİ:\n" +
+      "Unvanı        : " + (values.unvan || "-") + "\n" +
+      "Adı Soyadı   : " + (values.ad_soyad || "........................") + "\n" +
+      "T.C. No      : " + (values.tc_deger || "-") + "\n" +
+      "İletişim     : " + (values.iletisim_deger || "-") + "\n" +
+      "Adres        : " + (values.adres_deger || "-") + "\n\n" +
+      "İmza:",
   },
   {
     id: "insaat-ruhsati-dilekcesi",
@@ -251,7 +233,7 @@ Adres        : ${values.adres_deger || "-"}
     category: "dilekce",
     categoryLabel: "Dilekçe & Başvuru",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "1.11 MB",
+    fileSize: "1.67 MB",
     downloadUrl: "/belgeler/insaat-ruhsati-dilekcesi.pdf",
     studioUrl: "/belgeler/insaat-ruhsati-dilekcesi",
     updatedAt: "2026",
@@ -281,21 +263,15 @@ Adres        : ${values.adres_deger || "-"}
       adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
       tel: "Tel: 0566 666 66 66",
     },
-    generatePreviewText: (values) => `
-                                                                                                          ${values.tarih || "-"}
-
-${(values.belediye_adi || "BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")}
-${values.mudurluk_adi || "İmar ve Şehircilik Müdürlüğüne"}
-
-${values.ana_metin || "Yeni inşaat yapmak istiyorum, yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim."}
-
-                                                ${values.ad_soyad || "........................"}
-                                                ${values.unvan || "Yapı Sahibi"}
-
-${values.adres || "-"}
-
-${values.tel || "-"}
-    `.trim(),
+    generatePreviewText: (values) =>
+      "                                                                                                          " + (values.tarih || "-") + "\n\n" +
+      ((values.belediye_adi || "BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")) + "\n" +
+      (values.mudurluk_adi || "İmar ve Şehircilik Müdürlüğüne") + "\n\n" +
+      (values.ana_metin || "Yeni inşaat yapmak istiyorum, yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.") + "\n\n" +
+      "                                                " + (values.ad_soyad || "........................") + "\n" +
+      "                                                " + (values.unvan || "Yapı Sahibi") + "\n\n" +
+      (values.adres || "-") + "\n\n" +
+      (values.tel || "-"),
   },
   {
     id: "santiye-sefi-sozlesmesi",
@@ -306,7 +282,7 @@ ${values.tel || "-"}
     category: "sozlesme",
     categoryLabel: "Sözleşme",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "1.1 MB",
+    fileSize: "1.18 MB",
     downloadUrl: "/belgeler/santiye-sefi-sozlesmesi.pdf",
     studioUrl: "/belgeler/santiye-sefi-sozlesmesi",
     updatedAt: "2026",
@@ -320,10 +296,10 @@ ${values.tel || "-"}
       { key: "santiye_sefi_ad", label: "Şantiye Şefi Adı Soyadı", placeholder: "HÜSEYİN GÜNAYDIN" },
       { key: "il", label: "İl", placeholder: "YOZGAT" },
       { key: "ilce", label: "İlçe", placeholder: "AKDAĞMADENİ" },
-      { key: "adres", label: "Açık Adres", placeholder: "ÖRNEK YAPI ADRESİ" },
-      { key: "yibf", label: "YİBF No", placeholder: "1234567" },
-      { key: "pafta", label: "Pafta", placeholder: "12" },
-      { key: "mahalle", label: "Mahalle", placeholder: "ÖRNEK MAHALLESİ" },
+      { key: "adres", label: "Açık Adres", placeholder: "-" },
+      { key: "yibf", label: "YİBF No", placeholder: "-" },
+      { key: "pafta", label: "Pafta", placeholder: "-" },
+      { key: "mahalle", label: "Mahalle", placeholder: "EMEK MAHALLESİ" },
       { key: "ada", label: "Ada", placeholder: "666" },
       { key: "parsel", label: "Parsel", placeholder: "66" },
       { key: "ucret", label: "Aylık Brüt Ücret", placeholder: "40.000,00 TL" },
@@ -336,10 +312,10 @@ ${values.tel || "-"}
       santiye_sefi_ad: "HÜSEYİN GÜNAYDIN",
       il: "YOZGAT",
       ilce: "AKDAĞMADENİ",
-      adres: "ÖRNEK YAPI ADRESİ",
-      yibf: "1234567",
-      pafta: "12",
-      mahalle: "ÖRNEK MAHALLESİ",
+      adres: "-",
+      yibf: "-",
+      pafta: "-",
+      mahalle: "EMEK MAHALLESİ",
       ada: "666",
       parsel: "66",
       ucret: "40.000,00 TL",
@@ -347,17 +323,12 @@ ${values.tel || "-"}
       santiye_sefi_imza_adi: "Hüseyin GÜNAYDIN",
       muteahhit_imza_unvan: "ABC İNŞAAT",
     },
-    generatePreviewText: (values) => `
-ŞANTİYE ŞEFLİĞİ HİZMET SÖZLEŞMESİ
-
-MADDE 1- ${values.muteahhit_unvan || "..."} isimli/unvanlı Yapı Müteahhidi ile Şantiye Şefi olarak ${values.santiye_sefi_ad || "..."} arasında sözleşme düzenlenmiştir.
-
-MADDE 2- İşyeri: ${values.il || "-"} ili, ${values.ilce || "-"} ilçesi, ${values.adres || "-"}, ${values.mahalle || "-"}, ${values.ada || "-"} ada, ${values.parsel || "-"} parsel. YİBF: ${values.yibf || "-"}, pafta: ${values.pafta || "-"}
-
-MADDE 5- Aylık Brüt Ücret: ${values.ucret || "-"}
-
-MADDE 8- Tarih: ${values.sozlesme_tarihi || "-"}, 2 nüsha olarak düzenlenmiştir.
-    `.trim(),
+    generatePreviewText: (values) =>
+      "ŞANTİYE ŞEFLİĞİ HİZMET SÖZLEŞMESİ\n\n" +
+      "MADDE 1- " + (values.muteahhit_unvan || "...") + " isimli/unvanlı Yapı Müteahhidi ile Şantiye Şefi olarak " + (values.santiye_sefi_ad || "...") + " arasında sözleşme düzenlenmiştir.\n\n" +
+      "MADDE 2- İşyeri: " + (values.il || "-") + " ili, " + (values.ilce || "-") + " ilçesi, " + (values.adres || "-") + ", " + (values.mahalle || "-") + ", " + (values.ada || "-") + " ada, " + (values.parsel || "-") + " parsel. YİBF: " + (values.yibf || "-") + ", pafta: " + (values.pafta || "-") + "\n\n" +
+      "MADDE 5- Aylık Brüt Ücret: " + (values.ucret || "-") + "\n\n" +
+      "MADDE 8- Tarih: " + (values.sozlesme_tarihi || "-") + ", 2 nüsha olarak düzenlenmiştir.",
   },
 ];
 

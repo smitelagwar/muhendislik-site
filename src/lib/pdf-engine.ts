@@ -149,7 +149,7 @@ const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold
   unvan: { size: 9.0, bold: false, q: 1 },
   ad_soyad: { size: 10.3, bold: true, q: 1 },
   adres_etiket: { size: 9.0, bold: true, q: 0 },
-  adres_deger: { size: 9.0, bold: false, q: 0 },
+  adres_deger: { size: 8.0, bold: false, q: 0 },
   tc_etiket: { size: 9.0, bold: true, q: 0 },
   tc_deger: { size: 9.0, bold: false, q: 0 },
   iletisim_etiket: { size: 9.0, bold: false, q: 0 },
@@ -406,10 +406,16 @@ async function populateForm<T extends object>(
       for (const widget of widgets) {
         widget.dict.delete(PDFName.of("AP"));
         widget.dict.delete(PDFName.of("DV"));
-        widget.dict.delete(PDFName.of("Border"));
-        const appearance = widget.dict.lookup(PDFName.of("MK"), PDFDict);
-        appearance.delete(PDFName.of("BC"));
-        appearance.delete(PDFName.of("BG"));
+        // Sözleşme şablonu metin alanlarını belgenin doğal bir parçası gibi
+        // gösterir. Diğer şablonlarda ise beyaz widget zemini, kaynak PDF'ye
+        // gömülü örnek metni örtmek için zorunludur; onu kaldırmak iki metnin
+        // üst üste çizilmesine neden olur.
+        if (docType === "sozlesme") {
+          widget.dict.delete(PDFName.of("Border"));
+          const appearance = widget.dict.lookup(PDFName.of("MK"), PDFDict);
+          appearance.delete(PDFName.of("BC"));
+          appearance.delete(PDFName.of("BG"));
+        }
         // Also sync DA and Q to each widget so they render consistently
         widget.dict.set(
           PDFName.of("DA"),
@@ -424,20 +430,12 @@ async function populateForm<T extends object>(
       const rawValue = (data as Record<string, unknown>)[key];
       const val = typeof rawValue === "string" ? rawValue : "";
       field.setText(val);
-      if (docType === "sozlesme") {
-        field.updateAppearances(useFont);
-      }
+      // Her alan kendi tanımlı font ağırlığıyla yeniden üretilir. Form
+      // seviyesinde tek bir fontla güncellemek regular alanları da kalınlaştırıp
+      // metinlerin taşmasına yol açıyordu.
+      field.updateAppearances(useFont);
     } catch {
       // Silently skip unknown fields
-    }
-  }
-
-  // Update appearances with the bold font as fallback (covers any fields not in specs)
-  if (docType !== "sozlesme") {
-    try {
-      form.updateFieldAppearances(boldFont);
-    } catch (err) {
-      console.warn("Field appearance notice:", err);
     }
   }
 

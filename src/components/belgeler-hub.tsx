@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Eye,
+  FileCheck2,
   FilePenLine,
   FileSignature,
   FileText,
@@ -35,6 +36,7 @@ import {
 function DocumentCategoryIcon({ category }: { category: DocumentCategory }) {
   if (category === "santiye-tutanak") return <ClipboardCheck className="h-7 w-7" />;
   if (category === "taahhutname") return <FileSignature className="h-7 w-7" />;
+  if (category === "sozlesme") return <FileCheck2 className="h-7 w-7" />;
   return <FilePenLine className="h-7 w-7" />;
 }
 
@@ -179,24 +181,30 @@ function DocumentCard({
   );
 }
 
-function StudioPreview({ document }: { document: DocumentItem }) {
+function StudioPreview({
+  document,
+  onClose,
+}: {
+  document: DocumentItem;
+  onClose?: () => void;
+}) {
   if (document.id === "beton-dokum-tutanagi") {
-    return <BetonDokumStudio isModal />;
+    return <BetonDokumStudio isModal onClose={onClose} />;
   }
 
   if (document.id === "santiye-sefi-taahhutnamesi") {
-    return <TaahhutnameStudio isModal />;
+    return <TaahhutnameStudio isModal onClose={onClose} />;
   }
 
   if (document.id === "insaat-ruhsati-dilekcesi") {
-    return <InsaatRuhsatiStudio isModal />;
+    return <InsaatRuhsatiStudio isModal onClose={onClose} />;
   }
 
   if (document.id === "santiye-sefi-sozlesmesi") {
-    return <SozlesmeStudio isModal />;
+    return <SozlesmeStudio isModal onClose={onClose} />;
   }
 
-  return <IstifaStudio isModal />;
+  return <IstifaStudio isModal onClose={onClose} />;
 }
 
 export function BelgelerHub() {
@@ -365,6 +373,7 @@ export function BelgelerHub() {
       <Dialog open={Boolean(activeFormDoc)} onOpenChange={(open) => !open && setActiveFormDoc(null)}>
         {activeFormDoc ? (
           <DialogContent
+            showCloseButton={false}
             className="block h-[100dvh] w-full max-w-full gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-2xl sm:h-[94dvh] sm:w-[calc(100%-2rem)] sm:max-w-7xl sm:rounded-xl sm:border sm:border-border sm:bg-transparent"
             overlayClassName="bg-black/80"
           >
@@ -372,7 +381,10 @@ export function BelgelerHub() {
             <DialogDescription className="sr-only">
               Belgeyi canlı stüdyoda düzenleyin ve PDF önizlemesini kontrol edin.
             </DialogDescription>
-            <StudioPreview document={activeFormDoc} />
+            <StudioPreview
+              document={activeFormDoc}
+              onClose={() => setActiveFormDoc(null)}
+            />
           </DialogContent>
         ) : null}
       </Dialog>

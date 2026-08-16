@@ -459,6 +459,49 @@ export function BetonDokumStudio({
         : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
         }`}
     >
+      {/* Modal Top Header (Visible in quick preview modal) */}
+      {isModal && (
+        <div className="flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <FileEdit className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight">
+                Beton Döküm Tutanağı
+              </h2>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">
+                Şantiye Beton Döküm & Kalite Kontrol Formu
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {syncStatus === "updating" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="hidden sm:inline">Derleniyor...</span>
+              </span>
+            )}
+            {syncStatus === "synced" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Canlı Önizleme Hazır</span>
+              </span>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                aria-label="Pencereyi Kapat"
+                title="Kapat"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
       <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
         <button
@@ -718,7 +761,7 @@ export function BetonDokumStudio({
                 className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
                 title="Doldurulmamış boş şablonu indir"
               >
-                <Download className="h-3 w-3 mr-1 shrink-0" />
+                <FileDown className="h-3 w-3 mr-1 shrink-0" />
                 <span>Boş Form</span>
               </a>
 
@@ -758,10 +801,11 @@ export function BetonDokumStudio({
           {/* Top Mini Control Bar (Zoom, Fit, Open) */}
           <div className="flex items-center justify-between mb-1 px-1 shrink-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Canlı Belge Önizlemesi
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-amber-500" />
+                <span>Canlı Belge Önizlemesi</span>
               </span>
-              <span className="hidden sm:inline-flex items-center text-[10px] text-muted-foreground/80">
+              <span className="hidden sm:inline-flex items-center text-[10px] text-muted-foreground/80 font-mono">
                 (Otomatik Tam Sayfa Sığdırma)
               </span>
             </div>

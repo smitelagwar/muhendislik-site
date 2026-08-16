@@ -11,6 +11,7 @@ import {
   Eye,
   FileDown,
   FileEdit,
+  FileSignature,
   FileText,
   Loader2,
   Maximize2,
@@ -456,6 +457,49 @@ export function TaahhutnameStudio({
           : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
       }`}
     >
+      {/* Modal Top Header (Visible in quick preview modal) */}
+      {isModal && (
+        <div className="flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <FileSignature className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight">
+                Şantiye Şefi Taahhütnamesi
+              </h2>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">
+                Görev Üstlenme & Yasal Sorumluluk Formu
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {syncStatus === "updating" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="hidden sm:inline">Derleniyor...</span>
+              </span>
+            )}
+            {syncStatus === "synced" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Canlı Önizleme Hazır</span>
+              </span>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                aria-label="Pencereyi Kapat"
+                title="Kapat"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
       <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
         <button
@@ -725,10 +769,10 @@ export function TaahhutnameStudio({
                 variant="outline"
                 size="sm"
                 onClick={handleResetToPdfDefaults}
-                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
-                title="Resmi örnek değerleri yükle"
+                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                title="Tüm alanları orijinal varsayılanlara sıfırla"
               >
-                <Undo2 className="h-3 w-3 text-amber-500" />
+                <RotateCcw className="h-3 w-3 mr-1 shrink-0" />
                 <span>Sıfırla</span>
               </Button>
 
@@ -737,49 +781,46 @@ export function TaahhutnameStudio({
                 variant="outline"
                 size="sm"
                 onClick={handleClearAll}
-                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
-                title="Tüm kutuları boşalt"
+                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-rose-600 hover:border-rose-500/40"
+                title="Tüm alanları temizle"
               >
-                <Trash2 className="h-3 w-3 text-rose-500" />
+                <Trash2 className="h-3 w-3 mr-1 shrink-0" />
                 <span>Temizle</span>
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadBlank}
-                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
-                title="Resmi boş PDF şablonunu indir"
+              <a
+                href="/belgeler/santiye-sefi-taahhutnamesi.pdf"
+                download="SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf"
+                className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                title="Doldurulmamış boş şablonu indir"
               >
-                <FileDown className="h-3 w-3" />
+                <FileDown className="h-3 w-3 mr-1 shrink-0" />
                 <span>Boş Form</span>
-              </Button>
+              </a>
 
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
-                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
-                title="Doğrudan yazdır"
+                className="h-8 px-1 text-[11px] font-semibold"
+                title="Yazdır"
               >
-                <Printer className="h-3 w-3" />
+                <Printer className="h-3 w-3 mr-1 shrink-0" />
                 <span>Yazdır</span>
               </Button>
             </div>
 
-            {/* Prominent Direct Download Button */}
+            {/* Primary Action Button */}
             <Button
-              type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className="w-full h-9 gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold text-xs shadow-md shadow-amber-600/20 active:scale-[0.99] dark:from-amber-500 dark:to-amber-600 dark:text-zinc-950"
+              className="w-full h-10 gap-2 bg-amber-600 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-700 active:scale-[0.98] dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
             >
               {isDownloading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <FileDown className="h-3.5 w-3.5" />
+                <FileDown className="h-4 w-4" />
               )}
               <span>Doldurulmuş PDF'i İndir</span>
             </Button>
