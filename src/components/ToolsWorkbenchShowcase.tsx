@@ -93,11 +93,6 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
     calcType: "Drift & theta Tahkiki",
     accentColor: "#e11d48",
   },
-  "tekil-birlesik-temel": {
-    standardNorm: "TS 500 & TBDY 2018",
-    calcType: "Zemin Emniyet & Donatı",
-    accentColor: "#0284c7",
-  },
   "radye-temel-hesabi": {
     standardNorm: "TS 500 & TBDY 2018",
     calcType: "Ampatman & Zımbalama",

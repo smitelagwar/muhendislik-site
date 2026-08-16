@@ -105,7 +105,6 @@ const SUPPORT_RESOURCE_SPECS = [
   { kind: "calculation", id: "tahmini-insaat-alani", reference: "TAKS · KAKS" },
   { kind: "calculation", id: "insaat-maliyeti", reference: "Maliyet" },
   { kind: "tool", id: "donati-hesabi", reference: "TS 500" },
-  { kind: "calculation", id: "tekil-temel", reference: "TS 500" },
   { kind: "tool", id: "taban-kesme-kuvveti", reference: "TBDY 2018" },
 ] as const;
 

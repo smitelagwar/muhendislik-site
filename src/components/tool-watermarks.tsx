@@ -216,25 +216,6 @@ export function ToolWatermarkIllustration({
         </svg>
       );
 
-    case "tekil-birlesik-temel":
-      // Spread footing pad with column pedestal and trapezoidal soil pressure
-      return (
-        <svg
-          viewBox="0 0 120 120"
-          fill="none"
-          stroke={color}
-          strokeWidth="2.5"
-          className={commonClasses}
-          aria-hidden="true"
-        >
-          <rect x="45" y="15" width="30" height="35" rx="3" strokeWidth="3" fill={color} fillOpacity="0.2" />
-          <polygon points="15,75 45,50 75,50 105,75" strokeWidth="3" />
-          <rect x="15" y="75" width="90" height="20" rx="3" strokeWidth="3" />
-          <line x1="15" y1="108" x2="105" y2="108" strokeWidth="2" />
-          <path d="M 25 108 L 25 97 M 50 108 L 50 97 M 75 108 L 75 97 M 95 108 L 95 97" strokeWidth="2" />
-        </svg>
-      );
-
     case "radye-temel-hesabi":
       // Mat raft foundation thick slab with column grid points
       return (

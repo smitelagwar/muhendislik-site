@@ -189,17 +189,6 @@ export const TOOLS: ToolDefinition[] = [
     order: 13,
   },
   {
-    id: "tekil-birlesik-temel",
-    name: "Tekil & Birleşik Temel Hesabı",
-    href: "/hesaplamalar/tekil-temel",
-    description: "TS 500 zemin emniyet gerilmesi, delme kesme ve donatı alanı hesabını gerçekleştirin.",
-    iconKey: "foundation",
-    discipline: "Geoteknik",
-    featured: false,
-    status: "live",
-    order: 14,
-  },
-  {
     id: "radye-temel-hesabi",
     name: "Radye Temel Kalınlık & Zımbalama",
     href: "/kategori/araclar/radye-temel-hesabi",

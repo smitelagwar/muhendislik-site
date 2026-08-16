@@ -114,18 +114,6 @@ const TOOL_MAPPINGS: Record<string, SuggestedTool> = {
     href: "/kategori/araclar/doseme-hesabi",
     cta: "Döşeme Hesabı Aracı"
   },
-  "radye-temel": {
-    title: "Tekil Temel Hesabı",
-    description: "TS 500 standartlarına göre temel boyutlandırması, zemin emniyet gerilmesi, delme kesme ve donatı alanı kontrollerini hızlıca yapın.",
-    href: "/hesaplamalar/tekil-temel",
-    cta: "Temel Hesabı Aracı"
-  },
-  "temel-donati": {
-    title: "Tekil Temel Hesabı",
-    description: "Temel altı zemin gerilmesi, eğilme momenti kapasitesi ve TS 500 donatı kurallarına göre minimum donatı tasarımı kontrollerini yapın.",
-    href: "/hesaplamalar/tekil-temel",
-    cta: "Temel Hesabı Aracı"
-  },
   "mimari-proje": {
     title: "İmar Durumu ve Yapılaşma Hesaplayıcı",
     description: "3194 Sayılı İmar Kanunu ve yerel imar yönetmeliklerine göre arsa alanı, TAKS ve KAKS (emsal) değerlerine göre taban alanı ve kat karşılığı fizibilite hesabı yapın.",
