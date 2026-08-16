@@ -15,16 +15,16 @@ export const metadata: Metadata = buildSeoMetadata({
 export default function BetonDokumTutanagiPage() {
   return (
     <SitePageShell
-      className="tool-page-shell"
+      className="tool-page-shell !p-0 !py-0 !m-0 !overflow-hidden"
       width="ultra"
-      contentClassName="!max-w-none !w-full !px-2 sm:!px-4 lg:!px-6 !py-2"
+      contentClassName="!max-w-none !w-full !px-2 sm:!px-3 !py-1.5 !overflow-hidden"
     >
-      <div className="w-full flex flex-col gap-1.5">
-        {/* Back Link */}
-        <div>
+      <div className="w-full h-full flex flex-col gap-1 overflow-hidden">
+        {/* Back Link Inline */}
+        <div className="shrink-0">
           <Link
             href="/belgeler"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
           >
             <ArrowLeft className="h-3 w-3" />
             <span>Tüm Belgelere Dön</span>
