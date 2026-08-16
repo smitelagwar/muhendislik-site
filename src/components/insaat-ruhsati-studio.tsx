@@ -337,7 +337,7 @@ export function InsaatRuhsatiStudio({
     [renderPdfPage]
   );
 
-  // Resize listener
+  // Resize listener & container observer
   useEffect(() => {
     const handleResize = () => {
       if (cachedPdfDocRef.current) {
@@ -347,6 +347,18 @@ export function InsaatRuhsatiStudio({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [renderPdfPage]);
+
+  // Re-render canvas when switching to preview tab on mobile
+  useEffect(() => {
+    if (activeTabMobile === "preview" && cachedPdfDocRef.current) {
+      const timer = setTimeout(() => {
+        if (cachedPdfDocRef.current) {
+          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTabMobile, renderPdfPage]);
 
   // Ctrl + Wheel Zoom Handler
   const handlePreviewWheel = useCallback(
@@ -961,6 +973,43 @@ export function InsaatRuhsatiStudio({
             </div>
           </div>
         </section>
+      </div>
+
+      {/* Mobile Sticky Bottom Action Bar */}
+      <div className="flex lg:hidden items-center justify-between gap-2 border-t border-border bg-background/95 backdrop-blur-md px-3 py-2 shrink-0 shadow-lg z-20">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setActiveTabMobile(activeTabMobile === "form" ? "preview" : "form")}
+          className="flex-1 h-9 gap-1.5 text-xs font-semibold"
+        >
+          {activeTabMobile === "form" ? (
+            <>
+              <Eye className="h-3.5 w-3.5 text-amber-500" />
+              <span>Canlı PDF Önizle</span>
+            </>
+          ) : (
+            <>
+              <FileEdit className="h-3.5 w-3.5 text-amber-500" />
+              <span>Formu Düzenle</span>
+            </>
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={handleDownloadFilled}
+          disabled={isDownloading}
+          className="flex-1 h-9 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md dark:bg-amber-500 dark:text-zinc-950"
+        >
+          {isDownloading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <FileDown className="h-3.5 w-3.5" />
+          )}
+          <span>PDF İndir</span>
+        </Button>
       </div>
     </div>
   );

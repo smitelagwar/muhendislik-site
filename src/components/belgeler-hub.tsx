@@ -296,7 +296,7 @@ export function BelgelerHub() {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2 overflow-x-auto border-t border-border pt-4 [scrollbar-width:thin]">
+            <div className="mt-4 flex gap-2 overflow-x-auto border-t border-border pt-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {DOCUMENT_CATEGORIES.map((category) => {
                 const isSelected = selectedCategory === category.id;
                 return (
@@ -354,7 +354,7 @@ export function BelgelerHub() {
       <Dialog open={Boolean(activeFormDoc)} onOpenChange={(open) => !open && setActiveFormDoc(null)}>
         {activeFormDoc ? (
           <DialogContent
-            className="block h-[94dvh] w-[calc(100%-0.75rem)] max-w-7xl gap-0 overflow-hidden rounded-xl border-0 bg-transparent p-0 shadow-2xl sm:w-[calc(100%-2rem)] sm:p-0"
+            className="block h-[100dvh] w-full max-w-full gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-2xl sm:h-[94dvh] sm:w-[calc(100%-2rem)] sm:max-w-7xl sm:rounded-xl sm:border sm:border-border sm:bg-transparent"
             overlayClassName="bg-black/80"
           >
             <DialogTitle className="sr-only">{activeFormDoc.title} hızlı önizleme</DialogTitle>

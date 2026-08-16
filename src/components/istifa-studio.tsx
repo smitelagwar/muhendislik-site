@@ -535,7 +535,7 @@ export function IstifaStudio({
             </div>
 
             {/* Hitap 1 & Hitap 2 */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 {renderFieldHeader("hitap_1", "Hitap Başlığı")}
                 <input
@@ -604,7 +604,7 @@ export function IstifaStudio({
             </div>
 
             {/* Tarih & Ad Soyad */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 {renderFieldHeader("tarih", "Dilekçe Tarihi")}
                 <input
@@ -629,7 +629,7 @@ export function IstifaStudio({
             </div>
 
             {/* TC No & İletişim */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 {renderFieldHeader("tc_deger", "T.C. Kimlik Numarası")}
                 <input
@@ -830,33 +830,44 @@ export function IstifaStudio({
               }`}
             />
           </div>
+        </div>
+      </div>
 
-          {/* Mobile Preview Bottom Bar */}
-          <div className="flex lg:hidden items-center gap-2 pt-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setActiveTabMobile("form")}
-              className="flex-1 h-9 gap-1.5 text-xs font-semibold"
-            >
+      {/* Mobile Sticky Bottom Action Bar (Persistent across Form and Preview tabs) */}
+      <div className="flex lg:hidden items-center justify-between gap-2 border-t border-border bg-background/95 backdrop-blur-md px-3 py-2 shrink-0 shadow-lg z-20">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setActiveTabMobile(activeTabMobile === "form" ? "preview" : "form")}
+          className="flex-1 h-9 gap-1.5 text-xs font-semibold"
+        >
+          {activeTabMobile === "form" ? (
+            <>
+              <Eye className="h-3.5 w-3.5 text-amber-500" />
+              <span>Canlı PDF Önizle</span>
+            </>
+          ) : (
+            <>
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
               <span>Formu Düzenle</span>
-            </Button>
+            </>
+          )}
+        </Button>
 
-            <Button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="flex-1 h-9 gap-1.5 bg-amber-600 text-xs font-bold text-white dark:bg-amber-500 dark:text-zinc-950"
-            >
-              {isDownloading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <FileDown className="h-3.5 w-3.5" />
-              )}
-              <span>İndir</span>
-            </Button>
-          </div>
-        </div>
+        <Button
+          type="button"
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="flex-1 h-9 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md dark:bg-amber-500 dark:text-zinc-950"
+        >
+          {isDownloading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <FileDown className="h-3.5 w-3.5" />
+          )}
+          <span>PDF İndir</span>
+        </Button>
       </div>
     </div>
   );
