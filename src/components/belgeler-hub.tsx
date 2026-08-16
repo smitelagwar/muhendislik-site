@@ -31,6 +31,8 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BetonDokumStudio } from "@/components/beton-dokum-studio";
+import { TaahhutnameStudio } from "@/components/taahhutname-studio";
+import { IstifaStudio } from "@/components/istifa-studio";
 
 export function BelgelerHub() {
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>("all");
@@ -248,17 +250,20 @@ export function BelgelerHub() {
                 </div>
 
                 {/* Title & Subtitle */}
-                {doc.id === "beton-dokum-tutanagi" ? (
-                  <Link href="/belgeler/beton-dokum-tutanagi" className="block group/link">
-                    <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover/link:text-amber-600 dark:group-hover/link:text-amber-400">
-                      {doc.title}
-                    </h3>
-                  </Link>
-                ) : (
-                  <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                <Link
+                  href={
+                    doc.id === "beton-dokum-tutanagi"
+                      ? "/belgeler/beton-dokum-tutanagi"
+                      : doc.id === "santiye-sefi-taahhutnamesi"
+                      ? "/belgeler/santiye-sefi-taahhutnamesi"
+                      : "/belgeler/santiye-sefi-istifa-dilekcesi"
+                  }
+                  className="block group/link"
+                >
+                  <h3 className="mt-4 text-xl font-bold text-foreground transition-colors group-hover/link:text-amber-600 dark:group-hover/link:text-amber-400">
                     {doc.title}
                   </h3>
-                )}
+                </Link>
                 <p className="mt-1 text-xs font-semibold text-amber-700/80 dark:text-amber-400/80">
                   {doc.subtitle}
                 </p>
@@ -311,7 +316,7 @@ export function BelgelerHub() {
                   {/* PDF Preview Modal */}
                   <button
                     type="button"
-                    onClick={() => setActivePdfPreviewDoc(doc)}
+                    onClick={() => handleOpenForm(doc)}
                     className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border/80 bg-background/80 px-3 py-2.5 text-xs font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.98]"
                   >
                     <Eye className="h-3.5 w-3.5 text-muted-foreground" />
@@ -320,25 +325,20 @@ export function BelgelerHub() {
                 </div>
 
                 {/* Form Filler & Live Generator */}
-                {doc.id === "beton-dokum-tutanagi" ? (
-                  <Link
-                    href="/belgeler/beton-dokum-tutanagi"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-2.5 text-xs font-bold text-amber-900 shadow-xs transition-all hover:border-amber-500/70 hover:bg-amber-500/25 dark:text-amber-200"
-                  >
-                    <FileEdit className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span>Canlı PDF Stüdyosunu Aç</span>
-                    <ChevronRight className="h-3.5 w-3.5 ml-auto text-amber-600 dark:text-amber-400" />
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenForm(doc)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300"
-                  >
-                    <FileEdit className="h-3.5 w-3.5" />
-                    <span>Formu Doldur & Canlı Önizle</span>
-                  </button>
-                )}
+                <Link
+                  href={
+                    doc.id === "beton-dokum-tutanagi"
+                      ? "/belgeler/beton-dokum-tutanagi"
+                      : doc.id === "santiye-sefi-taahhutnamesi"
+                      ? "/belgeler/santiye-sefi-taahhutnamesi"
+                      : "/belgeler/santiye-sefi-istifa-dilekcesi"
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 py-2.5 text-xs font-bold text-amber-900 shadow-xs transition-all hover:border-amber-500/70 hover:bg-amber-500/25 dark:text-amber-200"
+                >
+                  <FileEdit className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span>Canlı PDF Stüdyosunu Aç</span>
+                  <ChevronRight className="h-3.5 w-3.5 ml-auto text-amber-600 dark:text-amber-400" />
+                </Link>
               </div>
             </div>
           ))}
@@ -390,152 +390,22 @@ export function BelgelerHub() {
             />
           </div>
         </div>
-      ) : activeFormDoc ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-muted/40">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                  <FileEdit className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground text-base sm:text-lg">
-                    {activeFormDoc.title} - İnteraktif Form Doldurucu
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Bilgileri doldurun, sağ panelde canlı önizleyin ve anında yazdırın / PDF kaydedin.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleResetForm}
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Varsayılan değerlere sıfırla"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Sıfırla</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveFormDoc(null)}
-                  className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  aria-label="Kapat"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body: Split view (Inputs on Left, Live Document on Right) */}
-            <div className="grid flex-1 overflow-hidden lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border">
-              {/* Left Column: Form Inputs */}
-              <div className="lg:col-span-6 overflow-y-auto p-6 space-y-4 max-h-[50vh] lg:max-h-[70vh]">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Belge Alanları
-                  </h4>
-                  <span className="text-[11px] text-amber-600 dark:text-amber-400">
-                    * Tüm değişiklikler anında sağdaki önizlemeye yansır
-                  </span>
-                </div>
-
-                <div className="space-y-3.5">
-                  {activeFormDoc.fields.map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        {field.label}
-                      </label>
-                      {field.type === "textarea" ? (
-                        <textarea
-                          rows={3}
-                          value={formValues[field.key] || ""}
-                          onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          className="w-full rounded-xl border border-border bg-card/60 px-3.5 py-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                        />
-                      ) : (
-                        <input
-                          type={field.type === "date" ? "date" : "text"}
-                          value={formValues[field.key] || ""}
-                          onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          className="h-10 w-full rounded-xl border border-border bg-card/60 px-3.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Column: Live Formatted Document Preview */}
-              <div className="lg:col-span-6 overflow-y-auto p-6 bg-muted/20 flex flex-col justify-between max-h-[50vh] lg:max-h-[70vh]">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Canlı Belge Önizlemesi
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyText}
-                      className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
-                    >
-                      {isCopied ? "Kopyalandı!" : "Metni Kopyala"}
-                    </button>
-                  </div>
-
-                  {/* Formatted A4 Paper Simulation */}
-                  <div
-                    id="printable-document-content"
-                    className="rounded-xl border border-border bg-card p-6 sm:p-8 text-foreground shadow-sm font-mono text-xs leading-relaxed whitespace-pre-wrap selection:bg-amber-500/20"
-                  >
-                    {activeFormDoc.generatePreviewText
-                      ? activeFormDoc.generatePreviewText(formValues)
-                      : "Önizleme oluşturulamadı."}
-                  </div>
-                </div>
-
-                {/* Printable guidance notice */}
-                <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-[11px] text-amber-800 dark:text-amber-300">
-                  💡 <strong>İpucu:</strong> &quot;Yazdır / PDF Olarak Kaydet&quot; butonuna basarak tarayıcınızın yazdırma ekranından &quot;PDF olarak kaydet&quot; seçeneğiyle doğrudan dijital A4 belgesi oluşturabilirsiniz.
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/30 px-6 py-4">
-              <div className="flex items-center gap-2">
-                <a
-                  href={activeFormDoc.downloadUrl}
-                  download
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground hover:bg-secondary"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Orijinal Boş Formu İndir</span>
-                </a>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActiveFormDoc(null)}
-                >
-                  Kapat
-                </Button>
-                <Button
-                  size="sm"
-                  className="gap-2 bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
-                  onClick={handlePrint}
-                >
-                  <Printer className="h-4 w-4" />
-                  <span>Yazdır / PDF Olarak Kaydet</span>
-                </Button>
-              </div>
-            </div>
+      ) : activeFormDoc && activeFormDoc.id === "santiye-sefi-taahhutnamesi" ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 md:p-6 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative h-[94vh] w-full max-w-7xl overflow-hidden rounded-2xl shadow-2xl">
+            <TaahhutnameStudio
+              isModal={true}
+              onClose={() => setActiveFormDoc(null)}
+            />
+          </div>
+        </div>
+      ) : activeFormDoc && activeFormDoc.id === "santiye-sefi-istifa-dilekcesi" ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 md:p-6 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative h-[94vh] w-full max-w-7xl overflow-hidden rounded-2xl shadow-2xl">
+            <IstifaStudio
+              isModal={true}
+              onClose={() => setActiveFormDoc(null)}
+            />
           </div>
         </div>
       ) : null}

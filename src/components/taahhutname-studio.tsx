@@ -7,8 +7,6 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  Copy,
-  Download,
   ExternalLink,
   Eye,
   FileDown,
@@ -28,14 +26,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  BETON_DOKUM_DEFAULT_DATA,
-  BetonDokumData,
-  downloadFilledBetonDokumPdf,
-  generateBetonDokumPdf,
+  TAAHHUTNAME_DEFAULT_DATA,
+  TaahhutnameData,
+  downloadFilledTaahhutnamePdf,
+  generateTaahhutnamePdf,
 } from "@/lib/pdf-engine";
 
-interface BetonDokumStudioProps {
-  initialData?: Partial<BetonDokumData>;
+interface TaahhutnameStudioProps {
+  initialData?: Partial<TaahhutnameData>;
   onClose?: () => void;
   isModal?: boolean;
 }
@@ -90,13 +88,13 @@ async function loadBrowserPdfJs(): Promise<any> {
   });
 }
 
-export function BetonDokumStudio({
+export function TaahhutnameStudio({
   initialData,
   onClose,
   isModal = false,
-}: BetonDokumStudioProps) {
-  const [formData, setFormData] = useState<BetonDokumData>(() => ({
-    ...BETON_DOKUM_DEFAULT_DATA,
+}: TaahhutnameStudioProps) {
+  const [formData, setFormData] = useState<TaahhutnameData>(() => ({
+    ...TAAHHUTNAME_DEFAULT_DATA,
     ...initialData,
   }));
 
@@ -116,36 +114,47 @@ export function BetonDokumStudio({
   const latestPdfBytesRef = useRef<Uint8Array | null>(null);
 
   // Field change handler
-  const handleFieldChange = (key: keyof BetonDokumData, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+  const handleFieldChange = (key: keyof TaahhutnameData, value: string) => {
+    setFormData((prev) => {
+      const updated = { ...prev, [key]: value };
+      // Keep unvan and unvan_imza synchronized if unvan is changed
+      if (key === "unvan" && prev.unvan === prev.unvan_imza) {
+        updated.unvan_imza = value;
+      }
+      return updated;
+    });
   };
 
   // Local per-field reset handler: restores ONLY this specific field to original default
-  const handleLocalFieldReset = (key: keyof BetonDokumData) => {
+  const handleLocalFieldReset = (key: keyof TaahhutnameData) => {
     setFormData((prev) => ({
       ...prev,
-      [key]: BETON_DOKUM_DEFAULT_DATA[key],
+      [key]: TAAHHUTNAME_DEFAULT_DATA[key],
     }));
   };
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
-    setFormData({ ...BETON_DOKUM_DEFAULT_DATA });
+    setFormData({ ...TAAHHUTNAME_DEFAULT_DATA });
   };
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
     setFormData({
-      tutanak_alt_baslik: "",
+      oda_sicil_no: "",
+      tc_kimlik_no: "",
+      unvan: "",
+      adres: "",
+      telefon: "",
+      il_ilce: "",
+      ilgili_idare: "",
+      pafta_ada_parsel: "",
+      yapi_adresi: "",
+      yapi_sahibi: "",
+      yapi_sahibi_adresi: "",
       tarih: "",
-      yer: "",
-      yibf: "",
-      olay_aciklamasi: "",
-      gozlem_notlar: "",
-      laboratuvar: "",
-      muteahhit: "",
-      santiye_sefi: "",
-      yapi_denetim: "",
+      santiye_sefi_ad_soyad: "",
+      unvan_imza: "",
     });
   };
 
@@ -252,7 +261,7 @@ export function BetonDokumStudio({
 
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        const bytes = await generateBetonDokumPdf(formData);
+        const bytes = await generateTaahhutnamePdf(formData);
         const storedBytes = new Uint8Array(bytes.byteLength);
         storedBytes.set(bytes);
         latestPdfBytesRef.current = storedBytes;
@@ -281,95 +290,80 @@ export function BetonDokumStudio({
     };
   }, [formData, renderPdfToCanvas, zoomLevel]);
 
-  // Window / container resize observer to keep canvas perfectly fitted
+  // Re-render canvas when container size changes
   useEffect(() => {
     const container = previewContainerRef.current;
     if (!container) return;
 
     let resizeTimer: NodeJS.Timeout | null = null;
     const observer = new ResizeObserver(() => {
-      if (latestPdfBytesRef.current) {
-        if (resizeTimer) clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          if (latestPdfBytesRef.current) {
-            renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
-          }
-        }, 100);
-      }
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (latestPdfBytesRef.current) {
+          renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
+        }
+      }, 80);
     });
 
     observer.observe(container);
     return () => {
-      observer.disconnect();
       if (resizeTimer) clearTimeout(resizeTimer);
+      observer.disconnect();
     };
-  }, [zoomLevel, renderPdfToCanvas]);
+  }, [renderPdfToCanvas, zoomLevel]);
 
-  // Re-render canvas when switching to preview tab on mobile
-  useEffect(() => {
-    if (activeTabMobile === "preview" && latestPdfBytesRef.current) {
-      setTimeout(() => {
-        if (latestPdfBytesRef.current) {
-          renderPdfToCanvas(latestPdfBytesRef.current, zoomLevel);
-        }
-      }, 50);
-    }
-  }, [activeTabMobile, zoomLevel, renderPdfToCanvas]);
-
-  useEffect(() => {
-    return () => {
-      if (activeBlobUrlRef.current) {
-        URL.revokeObjectURL(activeBlobUrlRef.current);
-      }
-    };
-  }, []);
-
-  // Download filled PDF
+  // Handle direct download
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      await downloadFilledBetonDokumPdf(formData);
+      await downloadFilledTaahhutnamePdf(formData);
     } catch (err) {
       console.error("Download error:", err);
-      alert("PDF indirilirken bir hata oluştu. Lütfen tekrar deneyin.");
+      alert("PDF indirilirken bir sorun oluştu.");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // Direct print
-  const handlePrint = async () => {
-    try {
-      if (blobUrl) {
-        const printWindow = window.open(blobUrl);
-        if (printWindow) {
-          printWindow.focus();
-          return;
-        }
-      }
-      window.print();
-    } catch {
-      window.print();
+  // Download empty form
+  const handleDownloadBlank = () => {
+    const link = document.createElement("a");
+    link.href = "/belgeler/santiye-sefi-taahhutnamesi.pdf";
+    link.download = "SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Print form
+  const handlePrint = () => {
+    if (!blobUrl) return;
+    const printWindow = window.open(blobUrl, "_blank");
+    if (printWindow) {
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
     }
   };
 
-  // Helper component for label with per-field reset button
+  // Helper for field headers with local reset buttons
   const renderFieldHeader = (
+    fieldKey: keyof TaahhutnameData,
     label: string,
-    fieldKey: keyof BetonDokumData,
-    badge?: string
+    tag?: string
   ) => {
-    const isModified = formData[fieldKey] !== BETON_DOKUM_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== TAAHHUTNAME_DEFAULT_DATA[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-bold text-foreground truncate">
+          <label className="text-[11px] font-semibold text-foreground/90 truncate">
             {label}
           </label>
-          {badge && (
-            <span className="text-[9px] font-mono text-muted-foreground/80">
-              {badge}
+          {tag && (
+            <span className="rounded bg-muted px-1.5 py-0.2 text-[9px] font-medium text-muted-foreground shrink-0">
+              {tag}
             </span>
           )}
         </div>
@@ -433,7 +427,7 @@ export function BetonDokumStudio({
           <FileEdit className="h-3.5 w-3.5 text-amber-500" />
           <span>Form Alanları</span>
           <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
-            {filledFieldCount}/10
+            {filledFieldCount}/14
           </span>
         </button>
 
@@ -469,7 +463,7 @@ export function BetonDokumStudio({
             <div className="flex items-center gap-1.5">
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
               <h2 className="text-xs font-bold text-foreground">
-                Beton Döküm Tutanağı (AcroForm)
+                Şantiye Şefi Taahhütnamesi (AcroForm)
               </h2>
             </div>
             {syncStatus === "updating" && (
@@ -486,221 +480,298 @@ export function BetonDokumStudio({
             )}
           </div>
 
-          {/* 1. Tutanak Alt Başlığı */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
-            <input
-              type="text"
-              value={formData.tutanak_alt_baslik || ""}
-              onChange={(e) => handleFieldChange("tutanak_alt_baslik", e.target.value)}
-              placeholder="Beton Dökümü Sistem Onay Sorunu"
-              className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-            />
-          </div>
+          {/* Section: Şantiye Şefi Kimlik ve Oda Bilgileri */}
+          <div className="rounded-lg border border-border/70 bg-card/60 p-2 sm:p-2.5 space-y-2">
+            <div className="flex items-center justify-between border-b border-border/40 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <UserCheck className="h-3 w-3 text-amber-500" />
+                1. Şantiye Şefi Bilgileri
+              </span>
+            </div>
 
-          {/* 2. Tarih & 3. YİBF */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-              {renderFieldHeader("Tarih", "tarih")}
+            {/* Ad Soyad */}
+            <div>
+              {renderFieldHeader("santiye_sefi_ad_soyad", "Şantiye Şefi Adı Soyadı")}
               <input
                 type="text"
-                value={formData.tarih || ""}
-                onChange={(e) => handleFieldChange("tarih", e.target.value)}
-                placeholder="10.08.2026"
-                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                value={formData.santiye_sefi_ad_soyad || ""}
+                onChange={(e) => handleFieldChange("santiye_sefi_ad_soyad", e.target.value)}
+                placeholder="Örn: Hüseyin GÜNAYDIN"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
 
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-              {renderFieldHeader("YİBF No", "yibf")}
+            {/* Unvan & Oda Sicil */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                {renderFieldHeader("unvan", "Meslek / Unvan")}
+                <input
+                  type="text"
+                  value={formData.unvan || ""}
+                  onChange={(e) => handleFieldChange("unvan", e.target.value)}
+                  placeholder="İNŞAAT MÜHENDİSİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <div>
+                {renderFieldHeader("oda_sicil_no", "Oda Sicil No")}
+                <input
+                  type="text"
+                  value={formData.oda_sicil_no || ""}
+                  onChange={(e) => handleFieldChange("oda_sicil_no", e.target.value)}
+                  placeholder="123456"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            {/* TC No & Telefon */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                {renderFieldHeader("tc_kimlik_no", "T.C. Kimlik No")}
+                <input
+                  type="text"
+                  maxLength={11}
+                  value={formData.tc_kimlik_no || ""}
+                  onChange={(e) => handleFieldChange("tc_kimlik_no", e.target.value)}
+                  placeholder="12345678901"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <div>
+                {renderFieldHeader("telefon", "İletişim Telefonu")}
+                <input
+                  type="text"
+                  value={formData.telefon || ""}
+                  onChange={(e) => handleFieldChange("telefon", e.target.value)}
+                  placeholder="0546 414 57 13"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Tebligat Adresi */}
+            <div>
+              {renderFieldHeader("adres", "Tebligat Adresi")}
               <input
                 type="text"
-                inputMode="numeric"
-                value={formData.yibf || ""}
-                onChange={(e) => handleFieldChange("yibf", e.target.value)}
-                placeholder="1234567"
-                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono font-semibold text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                value={formData.adres || ""}
+                onChange={(e) => handleFieldChange("adres", e.target.value)}
+                placeholder="Akdağmadeni / YOZGAT"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
           </div>
 
-          {/* 4. Şantiye Yeri */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Şantiye Yeri", "yer", "(İl/İlçe/Mahalle/Ada/Parsel)")}
-            <textarea
-              rows={2}
-              value={formData.yer || ""}
-              onChange={(e) => handleFieldChange("yer", e.target.value)}
-              placeholder="YOZGAT İli AKDAĞMADENİ İlçesi İSTANBULLUOĞLU Mahallesi 666 ada 6 parsel"
-              className="w-full rounded-md border border-border bg-background p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
-            />
-          </div>
+          {/* Section: Yapı ve Ruhsat Bilgileri */}
+          <div className="rounded-lg border border-border/70 bg-card/60 p-2 sm:p-2.5 space-y-2">
+            <div className="flex items-center justify-between border-b border-border/40 pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-amber-500" />
+                2. Yapı ve İdare Bilgileri
+              </span>
+            </div>
 
-          {/* 5. Olay Açıklaması */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
-            <textarea
-              rows={3}
-              value={formData.olay_aciklamasi || ""}
-              onChange={(e) => handleFieldChange("olay_aciklamasi", e.target.value)}
-              placeholder="Yukarıda belirtilen şantiye adresinde gerçekleştirilen beton dökümü sırasında..."
-              className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
-            />
-          </div>
-
-          {/* 6. Gözlem ve Notlar */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Gözlem ve Notlar", "gozlem_notlar")}
-            <textarea
-              rows={2}
-              value={formData.gozlem_notlar || ""}
-              onChange={(e) => handleFieldChange("gozlem_notlar", e.target.value)}
-              placeholder="Beton dökümü gerçekleştirilmiştir..."
-              className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
-            />
-          </div>
-
-          {/* 7-10. İmzacı Taraflar (4 Taraf) */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              İmzacı Taraflar
-            </h3>
-
-            <div className="grid gap-2 sm:grid-cols-2">
+            {/* İlgili İdare & İl/İlçe */}
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                {renderFieldHeader("1. Laboratuvar", "laboratuvar")}
+                {renderFieldHeader("ilgili_idare", "İlgili İdare (Belediye)")}
                 <input
                   type="text"
-                  value={formData.laboratuvar || ""}
-                  onChange={(e) => handleFieldChange("laboratuvar", e.target.value)}
-                  placeholder="MEREN BETON LAB. LTD. ŞTİ"
-                  className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  value={formData.ilgili_idare || ""}
+                  onChange={(e) => handleFieldChange("ilgili_idare", e.target.value)}
+                  placeholder="AKDAĞMADENİ BELEDİYESİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
 
               <div>
-                {renderFieldHeader("2. Müteahhit", "muteahhit")}
+                {renderFieldHeader("il_ilce", "İl / İlçe")}
                 <input
                   type="text"
-                  value={formData.muteahhit || ""}
-                  onChange={(e) => handleFieldChange("muteahhit", e.target.value)}
-                  placeholder="ABC İNŞAAT"
-                  className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  value={formData.il_ilce || ""}
+                  onChange={(e) => handleFieldChange("il_ilce", e.target.value)}
+                  placeholder="YOZGAT/AKDAĞMADENİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Pafta / Ada / Parsel */}
+            <div>
+              {renderFieldHeader("pafta_ada_parsel", "Tapu Kaydı (Pafta / Ada / Parsel)")}
+              <input
+                type="text"
+                value={formData.pafta_ada_parsel || ""}
+                onChange={(e) => handleFieldChange("pafta_ada_parsel", e.target.value)}
+                placeholder="Pafta: 14, Ada: 666, Parsel: 6"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+            </div>
+
+            {/* Yapı Adresi */}
+            <div>
+              {renderFieldHeader("yapi_adresi", "Yapı Adresi")}
+              <input
+                type="text"
+                value={formData.yapi_adresi || ""}
+                onChange={(e) => handleFieldChange("yapi_adresi", e.target.value)}
+                placeholder="İSTANBULLUOĞLU MAH. /AKDAĞMADENİ / YOZGAT"
+                className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+            </div>
+
+            {/* Yapı Sahibi & Adresi */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                {renderFieldHeader("yapi_sahibi", "Yapı Sahibi")}
+                <input
+                  type="text"
+                  value={formData.yapi_sahibi || ""}
+                  onChange={(e) => handleFieldChange("yapi_sahibi", e.target.value)}
+                  placeholder="ABC İNŞAAT LTD. ŞTİ."
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
 
               <div>
-                {renderFieldHeader("3. Şantiye Şefi", "santiye_sefi")}
+                {renderFieldHeader("yapi_sahibi_adresi", "Yapı Sahibi Adresi")}
                 <input
                   type="text"
-                  value={formData.santiye_sefi || ""}
-                  onChange={(e) => handleFieldChange("santiye_sefi", e.target.value)}
-                  placeholder="İnş. Müh. Hüseyin GÜNAYDIN"
-                  className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  value={formData.yapi_sahibi_adresi || ""}
+                  onChange={(e) => handleFieldChange("yapi_sahibi_adresi", e.target.value)}
+                  placeholder="AKDAĞMADENİ/YOZGAT"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+            </div>
+
+            {/* Tarih & İmza Unvanı */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                {renderFieldHeader("tarih", "Taahhüt Tarihi")}
+                <input
+                  type="text"
+                  value={formData.tarih || ""}
+                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  placeholder="16.08.2026"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
 
               <div>
-                {renderFieldHeader("4. Yapı Denetim", "yapi_denetim")}
+                {renderFieldHeader("unvan_imza", "İmza Alanı Unvanı")}
                 <input
                   type="text"
-                  value={formData.yapi_denetim || ""}
-                  onChange={(e) => handleFieldChange("yapi_denetim", e.target.value)}
-                  placeholder="XYZ YAPI DENETİM LTD. ŞTİ."
-                  className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  value={formData.unvan_imza || ""}
+                  onChange={(e) => handleFieldChange("unvan_imza", e.target.value)}
+                  placeholder="İNŞAAT MÜHENDİSİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
             </div>
           </div>
 
-          {/* Action Buttons Panel (Right below İmzacı Taraflar) */}
-          <div className="pt-2 space-y-2 border-t border-border/60">
-            {/* Secondary Action Row: Sıfırla, Temizle, Boş Form, Yazdır */}
+          {/* Form Actions & Controls */}
+          <div className="pt-1 space-y-2">
             <div className="grid grid-cols-4 gap-1.5">
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleResetToPdfDefaults}
-                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                title="Tüm alanları orijinal PDF varsayılanlarına sıfırla"
+                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
+                title="Resmi örnek değerleri yükle"
               >
-                <RotateCcw className="h-3 w-3 mr-1 shrink-0" />
+                <Undo2 className="h-3 w-3 text-amber-500" />
                 <span>Sıfırla</span>
               </Button>
 
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleClearAll}
-                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-rose-600 hover:border-rose-500/40"
-                title="Tüm alanları temizle"
+                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
+                title="Tüm kutuları boşalt"
               >
-                <Trash2 className="h-3 w-3 mr-1 shrink-0" />
+                <Trash2 className="h-3 w-3 text-rose-500" />
                 <span>Temizle</span>
               </Button>
 
-              <a
-                href="/belgeler/beton-dokum-tutanagi.pdf"
-                download="BETON_DOKUM_TUTANAGI_BOS_SABLON.pdf"
-                className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                title="Doldurulmamış boş şablonu indir"
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadBlank}
+                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
+                title="Resmi boş PDF şablonunu indir"
               >
-                <Download className="h-3 w-3 mr-1 shrink-0" />
+                <FileDown className="h-3 w-3" />
                 <span>Boş Form</span>
-              </a>
+              </Button>
 
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
-                className="h-8 px-1 text-[11px] font-semibold"
-                title="Yazdır"
+                className="h-8 px-1 text-[11px] gap-1 font-semibold text-muted-foreground hover:text-foreground"
+                title="Doğrudan yazdır"
               >
-                <Printer className="h-3 w-3 mr-1 shrink-0" />
+                <Printer className="h-3 w-3" />
                 <span>Yazdır</span>
               </Button>
             </div>
 
-            {/* Primary Action Button: Doldurulmuş PDF'i İndir */}
+            {/* Prominent Direct Download Button */}
             <Button
+              type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className="w-full h-10 gap-2 bg-amber-600 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-700 active:scale-[0.98] dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
+              className="w-full h-9 gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold text-xs shadow-md shadow-amber-600/20 active:scale-[0.99] dark:from-amber-500 dark:to-amber-600 dark:text-zinc-950"
             >
               {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <FileDown className="h-4 w-4" />
+                <FileDown className="h-3.5 w-3.5" />
               )}
               <span>Doldurulmuş PDF'i İndir</span>
             </Button>
           </div>
         </div>
 
-        {/* Right Column: Full-Height Live PDF Canvas Panel (Starts right at top, fits 100% viewport) */}
+        {/* Right Column: Live PDF Canvas Preview (Fitted 100% inside view, zero window scroll) */}
         <div
-          className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
-            activeTabMobile === "preview" ? "block" : "hidden lg:flex"
+          className={`flex-1 min-h-0 flex flex-col p-2 sm:p-3 overflow-hidden bg-muted/20 ${
+            activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
           }`}
         >
-          {/* Top Mini Control Bar (Zoom, Fit, Open) */}
-          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                Canlı Belge Önizlemesi
+          {/* Canvas Toolbar */}
+          <div className="flex items-center justify-between pb-2 mb-1.5 border-b border-border shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-amber-500" />
+                <span>Canlı Belge Önizlemesi</span>
               </span>
-              <span className="hidden sm:inline-flex items-center text-[10px] text-muted-foreground/80">
+              <span className="hidden sm:inline-block text-[10px] text-muted-foreground/80 font-mono">
                 (Otomatik Tam Sayfa Sığdırma)
               </span>
             </div>
 
-            {/* Zoom & View Controls */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
+              {/* Reset Zoom / Fit Button */}
               <button
                 type="button"
                 onClick={() => setZoomLevel(100)}
-                className="rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                title="Genişliğe ve yüksekliğe tam sığdır (%100)"
+                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all border ${
+                  zoomLevel === 100
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground"
+                }`}
+                title="Varsayılan tam sayfa sığdırma ölçeğine dön"
               >
                 Sığdır
               </button>

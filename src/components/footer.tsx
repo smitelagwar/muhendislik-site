@@ -9,7 +9,7 @@ export function Footer() {
   const pathname = usePathname();
 
   // Hide footer on full-screen studio pages for single-screen view
-  if (pathname?.startsWith("/belgeler/beton-dokum-tutanagi")) {
+  if (pathname !== "/belgeler" && pathname?.startsWith("/belgeler/")) {
     return null;
   }
 

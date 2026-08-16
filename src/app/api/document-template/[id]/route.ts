@@ -6,7 +6,10 @@ const TEMPLATE_MAP: Record<string, string> = {
   "beton-dokum": "public/belgeler/beton-dokum-tutanagi.pdf",
   "beton-dokum-tutanagi": "public/belgeler/beton-dokum-tutanagi.pdf",
   "santiye-sefi-taahhutnamesi": "public/belgeler/santiye-sefi-taahhutnamesi.pdf",
-  "santiye-sefi-istifa": "public/belgeler/santiye-sefi-istifa.pdf",
+  "taahhutname": "public/belgeler/santiye-sefi-taahhutnamesi.pdf",
+  "santiye-sefi-istifa-dilekcesi": "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
+  "santiye-sefi-istifa": "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
+  "istifa": "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
 };
 
 export async function GET(

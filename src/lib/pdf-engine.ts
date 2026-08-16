@@ -1,6 +1,10 @@
 import { PDFDocument, PDFName, PDFString } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 
+// ==========================================
+// 1. BETON DÖKÜM TUTANAĞI
+// ==========================================
+
 export interface BetonDokumData {
   tutanak_alt_baslik?: string;
   tarih?: string;
@@ -14,7 +18,6 @@ export interface BetonDokumData {
   yapi_denetim?: string;
 }
 
-// Exact default values from original reference PDF
 export const BETON_DOKUM_DEFAULT_DATA: BetonDokumData = {
   tutanak_alt_baslik: "Beton Dökümü Sistem Onay Sorunu",
   tarih: "10.08.2026",
@@ -30,8 +33,7 @@ export const BETON_DOKUM_DEFAULT_DATA: BetonDokumData = {
   yapi_denetim: "XYZ YAPI DENETİM LTD. ŞTİ.",
 };
 
-// Exact font size specifications from original PDF's /DA dictionary
-const FIELD_FONT_SPECS: Record<keyof BetonDokumData, { size: number }> = {
+const BETON_DOKUM_FIELD_SPECS: Record<keyof BetonDokumData, { size: number }> = {
   tutanak_alt_baslik: { size: 11.0 },
   tarih: { size: 9.5 },
   yer: { size: 9.0 },
@@ -44,72 +46,180 @@ const FIELD_FONT_SPECS: Record<keyof BetonDokumData, { size: number }> = {
   yapi_denetim: { size: 8.6 },
 };
 
-// In-memory cache for fast interactive typing
-let cachedPdfBytes: Uint8Array | null = null;
+// ==========================================
+// 2. ŞANTİYE ŞEFİ TAAHHÜTNAMESİ
+// ==========================================
+
+export interface TaahhutnameData {
+  oda_sicil_no?: string;
+  tc_kimlik_no?: string;
+  unvan?: string;
+  adres?: string;
+  telefon?: string;
+  il_ilce?: string;
+  ilgili_idare?: string;
+  pafta_ada_parsel?: string;
+  yapi_adresi?: string;
+  yapi_sahibi?: string;
+  yapi_sahibi_adresi?: string;
+  tarih?: string;
+  santiye_sefi_ad_soyad?: string;
+  unvan_imza?: string;
+}
+
+export const TAAHHUTNAME_DEFAULT_DATA: TaahhutnameData = {
+  oda_sicil_no: "123456",
+  tc_kimlik_no: "12345678901",
+  unvan: "İNŞAAT MÜHENDİSİ",
+  adres: "Akdağmadeni / YOZGAT",
+  telefon: "0546 414 57 13",
+  il_ilce: "YOZGAT/AKDAĞMADENİ",
+  ilgili_idare: "AKDAĞMADENİ BELEDİYESİ",
+  pafta_ada_parsel: "Pafta: 14, Ada: 666, Parsel: 6",
+  yapi_adresi: "İSTANBULLUOĞLU MAH. /AKDAĞMADENİ / YOZGAT",
+  yapi_sahibi: "ABC İNŞAAT SAN. VE TİC. LTD. ŞTİ.",
+  yapi_sahibi_adresi: "AKDAĞMADENİ/YOZGAT",
+  tarih: "16.08.2026",
+  santiye_sefi_ad_soyad: "Hüseyin GÜNAYDIN",
+  unvan_imza: "İNŞAAT MÜHENDİSİ",
+};
+
+const TAAHHUTNAME_FIELD_SPECS: Record<keyof TaahhutnameData, { size: number }> = {
+  oda_sicil_no: { size: 8.0 },
+  tc_kimlik_no: { size: 8.0 },
+  unvan: { size: 7.4 },
+  adres: { size: 7.0 },
+  telefon: { size: 8.0 },
+  il_ilce: { size: 7.5 },
+  ilgili_idare: { size: 7.2 },
+  pafta_ada_parsel: { size: 7.2 },
+  yapi_adresi: { size: 6.8 },
+  yapi_sahibi: { size: 7.2 },
+  yapi_sahibi_adresi: { size: 6.8 },
+  tarih: { size: 7.8 },
+  santiye_sefi_ad_soyad: { size: 6.7 },
+  unvan_imza: { size: 7.2 },
+};
+
+// ==========================================
+// 3. ŞANTİYE ŞEFİ İSTİFA DİLEKÇESİ
+// ==========================================
+
+export interface IstifaDilekcesiData {
+  hitap_1?: string;
+  hitap_2?: string;
+  ana_paragraf?: string;
+  sonuc_cumlesi?: string;
+  tarih?: string;
+  ad_soyad?: string;
+  adres_etiket?: string;
+  adres_deger?: string;
+  tc_etiket?: string;
+  tc_deger?: string;
+  iletisim_etiket?: string;
+  iletisim_deger?: string;
+}
+
+export const ISTIFA_DILEKCESI_DEFAULT_DATA: IstifaDilekcesiData = {
+  hitap_1: "BELEDİYE BAŞKANLIĞINA",
+  hitap_2: "AKDAĞMADENİ",
+  ana_paragraf:
+    "        Arsa sahibi HSME İNŞAAT adına kayıtlı, Yozgat ili, Akdağmadeni ilçesi,\nYenimahalle Mahallesi, 725 ada 12 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
+  sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
+  tarih: "29.12.2025",
+  ad_soyad: "HÜSEYİN GÜNAYDIN",
+  adres_etiket: "ADRES :",
+  adres_deger: "Akdağmadeni / YOZGAT",
+  tc_etiket: "T.C. :",
+  tc_deger: "65242265136",
+  iletisim_etiket: "İletişim :",
+  iletisim_deger: "0546 414 57 13",
+};
+
+const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number }> = {
+  hitap_1: { size: 11.8 },
+  hitap_2: { size: 11.8 },
+  ana_paragraf: { size: 9.15 },
+  sonuc_cumlesi: { size: 9.15 },
+  tarih: { size: 9.1 },
+  ad_soyad: { size: 10.3 },
+  adres_etiket: { size: 9.0 },
+  adres_deger: { size: 9.0 },
+  tc_etiket: { size: 9.0 },
+  tc_deger: { size: 9.0 },
+  iletisim_etiket: { size: 9.0 },
+  iletisim_deger: { size: 9.0 },
+};
+
+// ==========================================
+// SHARED CACHES & UTILS
+// ==========================================
+
+const cachedPdfBytes: Record<string, Uint8Array> = {};
 let cachedFontBytes: Uint8Array | null = null;
 
-async function getPdfTemplateBytes(): Promise<Uint8Array> {
-  if (cachedPdfBytes) return cachedPdfBytes;
+async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa"): Promise<Uint8Array> {
+  if (cachedPdfBytes[docType]) return cachedPdfBytes[docType].slice(0);
+
+  const fileMap = {
+    "beton-dokum": { api: "/api/document-template/beton-dokum", direct: "/belgeler/beton-dokum-tutanagi.pdf", disk: "beton-dokum-tutanagi.pdf" },
+    "taahhutname": { api: "/api/document-template/santiye-sefi-taahhutnamesi", direct: "/belgeler/santiye-sefi-taahhutnamesi.pdf", disk: "santiye-sefi-taahhutnamesi.pdf" },
+    "istifa": { api: "/api/document-template/santiye-sefi-istifa-dilekcesi", direct: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf", disk: "santiye-sefi-istifa-dilekcesi.pdf" },
+  };
+
+  const config = fileMap[docType];
 
   if (typeof window !== "undefined") {
     try {
-      const response = await fetch("/api/document-template/beton-dokum");
+      const response = await fetch(config.api);
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
-        cachedPdfBytes = new Uint8Array(arrayBuffer);
-        return cachedPdfBytes;
+        cachedPdfBytes[docType] = new Uint8Array(arrayBuffer);
+        return cachedPdfBytes[docType].slice(0);
       }
     } catch {
       // ignore
     }
 
-    const directResponse = await fetch("/belgeler/beton-dokum-tutanagi.pdf");
+    const directResponse = await fetch(config.direct);
     if (!directResponse.ok) {
       throw new Error(`PDF şablonu yüklenemedi: HTTP ${directResponse.status}`);
     }
     const arrayBuffer = await directResponse.arrayBuffer();
-    cachedPdfBytes = new Uint8Array(arrayBuffer);
-    return cachedPdfBytes;
+    cachedPdfBytes[docType] = new Uint8Array(arrayBuffer);
+    return cachedPdfBytes[docType].slice(0);
   } else {
     const fs = await import("fs");
     const path = await import("path");
-    const filePath = path.join(
-      process.cwd(),
-      "public",
-      "belgeler",
-      "beton-dokum-tutanagi.pdf"
-    );
-    cachedPdfBytes = new Uint8Array(fs.readFileSync(filePath));
-    return cachedPdfBytes;
+    const filePath = path.join(process.cwd(), "public", "belgeler", config.disk);
+    cachedPdfBytes[docType] = new Uint8Array(fs.readFileSync(filePath));
+    return cachedPdfBytes[docType].slice(0);
   }
 }
 
 async function getFontBytes(): Promise<Uint8Array> {
-  if (cachedFontBytes) return cachedFontBytes;
+  if (cachedFontBytes) return cachedFontBytes.slice(0);
 
   if (typeof window !== "undefined") {
-    // Try Arial-Bold first (matches /FormBold in PDF)
     const response = await fetch("/fonts/Arial-Bold.ttf");
     if (response.ok) {
       const arrayBuffer = await response.arrayBuffer();
       cachedFontBytes = new Uint8Array(arrayBuffer);
-      return cachedFontBytes;
+      return cachedFontBytes.slice(0);
     }
-    // Fallback to Arial Regular
     const regResponse = await fetch("/fonts/Arial-Regular.ttf");
     if (regResponse.ok) {
       const regBuffer = await regResponse.arrayBuffer();
       cachedFontBytes = new Uint8Array(regBuffer);
-      return cachedFontBytes;
+      return cachedFontBytes.slice(0);
     }
-    // Final fallback to IBMPlexSerif
     const fbResponse = await fetch("/fonts/IBMPlexSerif-Regular.ttf");
     if (!fbResponse.ok) {
       throw new Error("Yazı tipi dosyası yüklenemedi.");
     }
     const fbBuffer = await fbResponse.arrayBuffer();
     cachedFontBytes = new Uint8Array(fbBuffer);
-    return cachedFontBytes;
+    return cachedFontBytes.slice(0);
   } else {
     const fs = await import("fs");
     const path = await import("path");
@@ -121,20 +231,19 @@ async function getFontBytes(): Promise<Uint8Array> {
       fontPath = path.join(process.cwd(), "public", "fonts", "IBMPlexSerif-Regular.ttf");
     }
     cachedFontBytes = new Uint8Array(fs.readFileSync(fontPath));
-    return cachedFontBytes;
+    return cachedFontBytes.slice(0);
   }
 }
 
-/**
- * Fills the official Beton Döküm Tutanağı PDF template with exact font sizes,
- * matching the reference PDF default appearance.
- */
-export async function generateBetonDokumPdf(
-  data: BetonDokumData,
+// Generic Form Populator
+async function populateForm<T extends Record<string, any>>(
+  docType: "beton-dokum" | "taahhutname" | "istifa",
+  data: T,
+  specs: Record<string, { size: number }>,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
   const [templateBytes, fontBytes] = await Promise.all([
-    getPdfTemplateBytes(),
+    getPdfTemplateBytes(docType),
     getFontBytes(),
   ]);
 
@@ -144,14 +253,10 @@ export async function generateBetonDokumPdf(
   const customFont = await pdfDoc.embedFont(fontBytes);
   const form = pdfDoc.getForm();
 
-  for (const [key, spec] of Object.entries(FIELD_FONT_SPECS) as [
-    keyof BetonDokumData,
-    { size: number },
-  ][]) {
+  for (const [key, spec] of Object.entries(specs)) {
     try {
       const field = form.getTextField(key);
       if (field) {
-        // Normalize /DA in the field dictionary to exact font and size (prevents auto-scaling blowout)
         field.acroField.dict.set(
           PDFName.of("DA"),
           PDFString.of(`/${customFont.name} ${spec.size} Tf 0 0 0 rg`)
@@ -160,7 +265,7 @@ export async function generateBetonDokumPdf(
         field.setText(val);
       }
     } catch {
-      // ignore individual field issues
+      // ignore
     }
   }
 
@@ -181,9 +286,17 @@ export async function generateBetonDokumPdf(
   return await pdfDoc.save();
 }
 
-/**
- * Triggers download of the filled PDF.
- */
+// ==========================================
+// EXPORTED GENERATORS & DOWNLOADERS
+// ==========================================
+
+export async function generateBetonDokumPdf(
+  data: BetonDokumData,
+  options: { flatten?: boolean } = { flatten: false }
+): Promise<Uint8Array> {
+  return populateForm("beton-dokum", data, BETON_DOKUM_FIELD_SPECS, options);
+}
+
 export async function downloadFilledBetonDokumPdf(
   data: BetonDokumData,
   fileName?: string
@@ -198,6 +311,70 @@ export async function downloadFilledBetonDokumPdf(
   const cleanDate = (data.tarih || "10.08.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
   const finalFileName =
     fileName || `BETON_DOKUM_TUTANAGI_${cleanYibf}_${cleanDate}.pdf`;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = finalFileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+export async function generateTaahhutnamePdf(
+  data: TaahhutnameData,
+  options: { flatten?: boolean } = { flatten: false }
+): Promise<Uint8Array> {
+  return populateForm("taahhutname", data, TAAHHUTNAME_FIELD_SPECS, options);
+}
+
+export async function downloadFilledTaahhutnamePdf(
+  data: TaahhutnameData,
+  fileName?: string
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const pdfBytes = await generateTaahhutnamePdf(data, { flatten: false });
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+
+  const cleanName = (data.santiye_sefi_ad_soyad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cleanDate = (data.tarih || "16.08.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
+  const finalFileName =
+    fileName || `SANTIYE_SEFI_TAAHHUTNAMESI_${cleanName}_${cleanDate}.pdf`;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = finalFileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+export async function generateIstifaDilekcesiPdf(
+  data: IstifaDilekcesiData,
+  options: { flatten?: boolean } = { flatten: false }
+): Promise<Uint8Array> {
+  return populateForm("istifa", data, ISTIFA_FIELD_SPECS, options);
+}
+
+export async function downloadFilledIstifaDilekcesiPdf(
+  data: IstifaDilekcesiData,
+  fileName?: string
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const pdfBytes = await generateIstifaDilekcesiPdf(data, { flatten: false });
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+
+  const cleanName = (data.ad_soyad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cleanDate = (data.tarih || "29.12.2025").replace(/[^a-zA-Z0-9_-]/g, ".");
+  const finalFileName =
+    fileName || `SANTIYE_SEFI_ISTIFA_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
 
   const link = document.createElement("a");
   link.href = url;
