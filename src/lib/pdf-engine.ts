@@ -293,12 +293,26 @@ async function populateForm<T extends Record<string, any>>(
         field.acroField.dict.set(PDFName.of("Q"), PDFNumber.of(spec.q));
       }
 
-      // 3. *** CRITICAL: Delete the stale pre-baked AP (Appearance) streams ***
-      //    These are the cause of "lekeler" (stains/ghost artifacts) — when a
-      //    field has a pre-rendered AP stream, the viewer shows BOTH the old
-      //    baked image AND the new dynamic rendering. Deleting AP forces the
-      //    viewer to freshly render using our new DA string.
+      // 3. *** CRITICAL FIX: Delete stale AP + DV from the AcroField dict AND
+      //    all widget annotations. Inspection showed AP lives on widget[0], not
+      //    on the field dict — so we must iterate widgets explicitly.
+      //    DV (Default Value) is also cleared to prevent bleed-through on empty fields.
       field.acroField.dict.delete(PDFName.of("AP"));
+      field.acroField.dict.delete(PDFName.of("DV"));
+
+      const widgets = field.acroField.getWidgets();
+      for (const widget of widgets) {
+        widget.dict.delete(PDFName.of("AP"));
+        widget.dict.delete(PDFName.of("DV"));
+        // Also sync DA and Q to each widget so they render consistently
+        widget.dict.set(
+          PDFName.of("DA"),
+          PDFString.of(`/${useFont.name} ${spec.size} Tf 0 0 0 rg`)
+        );
+        if (spec.q !== undefined) {
+          widget.dict.set(PDFName.of("Q"), PDFNumber.of(spec.q));
+        }
+      }
 
       // 4. Set the field value
       const val = data[key] ?? "";
@@ -325,6 +339,7 @@ async function populateForm<T extends Record<string, any>>(
 
   return await pdfDoc.save();
 }
+
 
 // ==========================================
 // EXPORTED GENERATORS & DOWNLOADERS
