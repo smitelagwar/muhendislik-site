@@ -506,7 +506,7 @@ export function TaahhutnameStudio({
             <div className="flex items-center gap-1.5">
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
               <h2 className="text-xs font-bold text-foreground">
-                Şantiye Şefi Taahhütnamesi (AcroForm)
+                Şantiye Şefi Taahhütnamesi
               </h2>
             </div>
             {syncStatus === "updating" && (

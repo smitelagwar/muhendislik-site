@@ -508,7 +508,7 @@ export function IstifaStudio({
             <div className="flex items-center gap-1.5">
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
               <h2 className="text-xs font-bold text-foreground">
-                Şantiye Şefi İstifa Dilekçesi (AcroForm)
+                Şantiye Şefi İstifa Dilekçesi
               </h2>
             </div>
             {syncStatus === "updating" && (
