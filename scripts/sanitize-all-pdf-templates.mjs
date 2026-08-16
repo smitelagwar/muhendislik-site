@@ -40,6 +40,7 @@ async function sanitizeTemplates() {
     const defaultBody = "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.";
     addField("ana_metin", 72, 520, 451, 65, defaultBody, true, 11, false, 0);
     addField("ad_soyad", 310, 445, 215, 22, "Hüseyin GÜNAYDIN", false, 11, false, 1);
+    addField("unvan", 310, 425, 215, 18, "Yapı Sahibi", false, 10, false, 1);
     const defaultAdres = "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA";
     addField("adres", 72, 335, 451, 44, defaultAdres, true, 10.5, false, 0);
     addField("tel", 72, 305, 451, 20, "Tel: 0566 666 66 66", false, 10.5, false, 0);
@@ -66,6 +67,7 @@ async function sanitizeTemplates() {
       ana_paragraf: "Arsa sahibi ABC İNŞAAT adına kayıtlı, Ankara ili, Çankaya ilçesi,\nÖrnek Mahallesi, 1234 ada 56 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
       sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
       tarih: "29.12.2025",
+      unvan: "İNŞAAT MÜHENDİSİ",
       ad_soyad: "HÜSEYİN GÜNAYDIN",
       adres_etiket: "ADRES :",
       adres_deger: "Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA",

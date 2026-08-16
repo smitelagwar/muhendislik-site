@@ -97,8 +97,8 @@ const TAAHHUTNAME_FIELD_SPECS: Record<keyof TaahhutnameData, { size: number; bol
   yapi_sahibi: { size: 7.2, bold: false, q: 0 },
   yapi_sahibi_adresi: { size: 6.8, bold: false, q: 0 },
   tarih: { size: 7.8, bold: false, q: 0 },
-  santiye_sefi_ad_soyad: { size: 6.7, bold: true, q: 1 },
-  unvan_imza: { size: 7.2, bold: false, q: 1 },
+  santiye_sefi_ad_soyad: { size: 7.2, bold: true, q: 2 },
+  unvan_imza: { size: 7.2, bold: false, q: 2 },
 };
 
 // ==========================================
@@ -111,6 +111,7 @@ export interface IstifaDilekcesiData {
   ana_paragraf?: string;
   sonuc_cumlesi?: string;
   tarih?: string;
+  unvan?: string;
   ad_soyad?: string;
   adres_etiket?: string;
   adres_deger?: string;
@@ -127,6 +128,7 @@ export const ISTIFA_DILEKCESI_DEFAULT_DATA: IstifaDilekcesiData = {
     "Arsa sahibi ABC İNŞAAT adına kayıtlı, Ankara ili, Çankaya ilçesi,\nÖrnek Mahallesi, 1234 ada 56 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
   sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
   tarih: "29.12.2025",
+  unvan: "İNŞAAT MÜHENDİSİ",
   ad_soyad: "HÜSEYİN GÜNAYDIN",
   adres_etiket: "ADRES :",
   adres_deger: "Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA",
@@ -143,7 +145,8 @@ const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold
   ana_paragraf: { size: 9.15, bold: false, q: 1 },
   // sonuc_cumlesi: regular (not bold), left-aligned
   sonuc_cumlesi: { size: 9.15, bold: false, q: 0 },
-  tarih: { size: 9.1, bold: true, q: 1 },
+  tarih: { size: 9.1, bold: true, q: 2 },
+  unvan: { size: 9.0, bold: false, q: 1 },
   ad_soyad: { size: 10.3, bold: true, q: 1 },
   adres_etiket: { size: 9.0, bold: true, q: 0 },
   adres_deger: { size: 9.0, bold: false, q: 0 },
@@ -163,6 +166,7 @@ export interface InsaatRuhsatiData {
   mudurluk_adi?: string;
   ana_metin?: string;
   ad_soyad?: string;
+  unvan?: string;
   adres?: string;
   tel?: string;
 }
@@ -174,6 +178,7 @@ export const INSAAT_RUHSATI_DEFAULT_DATA: InsaatRuhsatiData = {
   ana_metin:
     "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
   ad_soyad: "Hüseyin GÜNAYDIN",
+  unvan: "Yapı Sahibi",
   adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
   tel: "Tel: 0566 666 66 66",
 };
@@ -184,6 +189,7 @@ const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number
   mudurluk_adi: { size: 11.0, bold: true, q: 1 },
   ana_metin: { size: 11.0, bold: false, q: 0 },
   ad_soyad: { size: 11.0, bold: false, q: 1 },
+  unvan: { size: 10.0, bold: false, q: 1 },
   adres: { size: 10.5, bold: false, q: 0 },
   tel: { size: 10.5, bold: false, q: 0 },
 };

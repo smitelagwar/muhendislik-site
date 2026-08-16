@@ -142,6 +142,7 @@ export function IstifaStudio({
       ana_paragraf: "",
       sonuc_cumlesi: "",
       tarih: "",
+      unvan: "",
       ad_soyad: "",
       adres_etiket: "ADRES :",
       adres_deger: "",
@@ -603,8 +604,8 @@ export function IstifaStudio({
               </span>
             </div>
 
-            {/* Tarih & Ad Soyad */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Tarih, unvan & ad soyad */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 {renderFieldHeader("tarih", "Dilekçe Tarihi")}
                 <input
@@ -613,6 +614,17 @@ export function IstifaStudio({
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
                   placeholder="29.12.2025"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <div>
+                {renderFieldHeader("unvan", "Mesleki Unvan")}
+                <input
+                  type="text"
+                  value={formData.unvan || ""}
+                  onChange={(e) => handleFieldChange("unvan", e.target.value)}
+                  placeholder="İNŞAAT MÜHENDİSİ"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
 

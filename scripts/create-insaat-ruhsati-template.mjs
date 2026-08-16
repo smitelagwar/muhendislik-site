@@ -84,6 +84,7 @@ async function createInsaatRuhsatiTemplate() {
 
   // 4. Başvuru Sahibi (Sağ Taraf: y ≈ 445)
   addField("ad_soyad", 310, 445, 215, 22, "Hüseyin GÜNAYDIN", false, 11, false, 1);
+  addField("unvan", 310, 425, 215, 18, "Yapı Sahibi", false, 10, false, 1);
 
   // 5. Adres ve Telefon (Sol Alt: y ≈ 345 & 310)
   const defaultAdres = "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara";

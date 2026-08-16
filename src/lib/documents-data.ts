@@ -200,6 +200,7 @@ Tarih            : ${values.tarih || "-"}
       { key: "ana_paragraf", label: "İstifa & Proje Açıklama Metni", placeholder: "Örn: Arsa sahibi ABC İNŞAAT adına kayıtlı, Ankara ili, Çankaya ilçesi, Örnek Mahallesi, 1234 ada 56 parselde bulunan...", type: "textarea" },
       { key: "sonuc_cumlesi", label: "Sonuç & Talep Cümlesi", placeholder: "Örn: İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim." },
       { key: "tarih", label: "Dilekçe Tarihi", placeholder: "Örn: 29.12.2025" },
+      { key: "unvan", label: "Şantiye Şefi Unvanı", placeholder: "Örn: İNŞAAT MÜHENDİSİ" },
       { key: "ad_soyad", label: "Şantiye Şefi Adı Soyadı", placeholder: "Örn: HÜSEYİN GÜNAYDIN" },
       { key: "tc_deger", label: "T.C. Kimlik Numarası", placeholder: "Örn: 11111111110" },
       { key: "iletisim_deger", label: "İletişim Telefonu", placeholder: "Örn: 0566 666 66 66" },
@@ -212,6 +213,7 @@ Tarih            : ${values.tarih || "-"}
         "Arsa sahibi ABC İNŞAAT adına kayıtlı, Ankara ili, Çankaya ilçesi,\nÖrnek Mahallesi, 1234 ada 56 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
       sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
       tarih: "29.12.2025",
+      unvan: "İNŞAAT MÜHENDİSİ",
       ad_soyad: "HÜSEYİN GÜNAYDIN",
       tc_deger: "11111111110",
       iletisim_deger: "0566 666 66 66",
@@ -230,6 +232,7 @@ ${values.sonuc_cumlesi || "Gereğinin yapılmasını saygılarımla arz ve talep
 Tarih: ${values.tarih || "-"}
 
 ŞANTİYE ŞEFİ:
+Unvanı        : ${values.unvan || "-"}
 Adı Soyadı   : ${values.ad_soyad || "........................"}
 T.C. No      : ${values.tc_deger || "-"}
 İletişim     : ${values.iletisim_deger || "-"}
@@ -262,6 +265,7 @@ Adres        : ${values.adres_deger || "-"}
       { key: "mudurluk_adi", label: "İlgili Birim / Müdürlük", placeholder: "Örn: İmar ve Şehircilik Müdürlüğüne" },
       { key: "ana_metin", label: "Talep ve Parsel Bilgileri Metni", placeholder: "Örn: İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime...", type: "textarea" },
       { key: "ad_soyad", label: "Dilekçe Sahibi Adı Soyadı", placeholder: "Örn: Hüseyin GÜNAYDIN" },
+      { key: "unvan", label: "Başvuru Sıfatı", placeholder: "Örn: Yapı Sahibi" },
       { key: "adres", label: "Adres Bilgisi", placeholder: "Örn: Adres: Örnek Mah. Mühendisler Cad. No:24/6 Çankaya / ANKARA", type: "textarea" },
       { key: "tel", label: "Telefon Numarası", placeholder: "Örn: Tel: 0566 666 66 66" },
     ],
@@ -272,6 +276,7 @@ Adres        : ${values.adres_deger || "-"}
       ana_metin:
         "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
       ad_soyad: "Hüseyin GÜNAYDIN",
+      unvan: "Yapı Sahibi",
       adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
       tel: "Tel: 0566 666 66 66",
     },
@@ -284,6 +289,7 @@ ${values.mudurluk_adi || "İmar ve Şehircilik Müdürlüğüne"}
 ${values.ana_metin || "Yeni inşaat yapmak istiyorum, yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim."}
 
                                                 ${values.ad_soyad || "........................"}
+                                                ${values.unvan || "Yapı Sahibi"}
 
 ${values.adres || "-"}
 

@@ -52,6 +52,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     ana_metin:
       "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
+    unvan: "Yapı Sahibi",
     adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
     tel: "Tel: 0566 666 66 66",
   },
@@ -62,6 +63,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     ana_metin:
       "           İlçenin Fenerbahçe Mahallesi 1045 ada, 18 numaralı parselime yeni konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "İnş. Müh. Hüseyin GÜNAYDIN",
+    unvan: "Yapı Sahibi",
     adres: "Adres: Fenerbahçe Mah. Lale Sokak No:14/2\nKadıköy / İSTANBUL",
     tel: "Tel: 0566 666 66 66",
   },
@@ -72,6 +74,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     ana_metin:
       "           İlçenin Çayyolu Mahallesi 728 ada, 6 numaralı parselime yeni yapı inşaatı yapmak istiyorum, Yapı ruhsatı belgesinin tarafıma tanzim edilerek verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
+    unvan: "Yapı Sahibi",
     adres: "Adres: Ümitköy Mah. 2432. Cadde Park Sitesi B Blok No:8\nÇankaya / ANKARA",
     tel: "Tel: 0566 666 66 66",
   },
@@ -82,6 +85,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     ana_metin:
       "           İlçenin Görükle Mahallesi 412 ada, 9 numaralı parselime yeni ticari + konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
+    unvan: "Yapı Sahibi",
     adres: "Adres: Odunluk Mah. Akademi Cad. Plaza 16 Kat:4\nNilüfer / BURSA",
     tel: "Tel: 0566 666 66 66",
   },
@@ -198,6 +202,7 @@ export function InsaatRuhsatiStudio({
       mudurluk_adi: "",
       ana_metin: "",
       ad_soyad: "",
+      unvan: "",
       adres: "",
       tel: "",
     });
@@ -804,7 +809,8 @@ export function InsaatRuhsatiStudio({
                 )}
               </div>
 
-              <div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
                 <label
                   htmlFor="ad_soyad"
                   className="mb-1 block text-xs font-semibold text-foreground"
@@ -819,6 +825,34 @@ export function InsaatRuhsatiStudio({
                   placeholder="Örn: Hüseyin GÜNAYDIN"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
+                </div>
+
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label htmlFor="unvan" className="text-xs font-semibold text-foreground">
+                      Sıfat / Unvan
+                    </label>
+                    {formData.unvan !== INSAAT_RUHSATI_DEFAULT_DATA.unvan && (
+                      <button
+                        type="button"
+                        onClick={() => handleLocalFieldReset("unvan")}
+                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                        title="Bu alanı varsayılana sıfırla"
+                      >
+                        <Undo2 className="h-2.5 w-2.5" />
+                        Sıfırla
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="unvan"
+                    type="text"
+                    value={formData.unvan || ""}
+                    onChange={(e) => handleFieldChange("unvan", e.target.value)}
+                    placeholder="Örn: Yapı Sahibi"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
               </div>
             </div>
 
