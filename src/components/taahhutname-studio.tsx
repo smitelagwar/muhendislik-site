@@ -563,7 +563,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.oda_sicil_no || ""}
                   onChange={(e) => handleFieldChange("oda_sicil_no", e.target.value)}
-                  placeholder="123456"
+                  placeholder="12345"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -578,7 +578,7 @@ export function TaahhutnameStudio({
                   maxLength={11}
                   value={formData.tc_kimlik_no || ""}
                   onChange={(e) => handleFieldChange("tc_kimlik_no", e.target.value)}
-                  placeholder="12345678901"
+                  placeholder="11111111110"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -589,7 +589,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.telefon || ""}
                   onChange={(e) => handleFieldChange("telefon", e.target.value)}
-                  placeholder="0500 000 00 00"
+                  placeholder="0566 666 66 66"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -602,7 +602,7 @@ export function TaahhutnameStudio({
                 type="text"
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
-                placeholder="Akdağmadeni / YOZGAT"
+                placeholder="Örnek Mah. Mühendisler Cad. No:1/A Çankaya / ANKARA"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
@@ -625,7 +625,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.ilgili_idare || ""}
                   onChange={(e) => handleFieldChange("ilgili_idare", e.target.value)}
-                  placeholder="AKDAĞMADENİ BELEDİYESİ"
+                  placeholder="ÇANKAYA BELEDİYESİ"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -636,7 +636,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.il_ilce || ""}
                   onChange={(e) => handleFieldChange("il_ilce", e.target.value)}
-                  placeholder="YOZGAT/AKDAĞMADENİ"
+                  placeholder="ANKARA / ÇANKAYA"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -649,7 +649,7 @@ export function TaahhutnameStudio({
                 type="text"
                 value={formData.pafta_ada_parsel || ""}
                 onChange={(e) => handleFieldChange("pafta_ada_parsel", e.target.value)}
-                placeholder="Pafta: 14, Ada: 666, Parsel: 6"
+                placeholder="Pafta: 12, Ada: 345, Parsel: 6"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
@@ -661,7 +661,7 @@ export function TaahhutnameStudio({
                 type="text"
                 value={formData.yapi_adresi || ""}
                 onChange={(e) => handleFieldChange("yapi_adresi", e.target.value)}
-                placeholder="İSTANBULLUOĞLU MAH. /AKDAĞMADENİ / YOZGAT"
+                placeholder="Örnek Mah. Yapı Cad. No:10 Çankaya / ANKARA"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
@@ -674,7 +674,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.yapi_sahibi || ""}
                   onChange={(e) => handleFieldChange("yapi_sahibi", e.target.value)}
-                  placeholder="ABC İNŞAAT LTD. ŞTİ."
+                  placeholder="ABC YAPI İNŞAAT LTD. ŞTİ."
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -685,7 +685,7 @@ export function TaahhutnameStudio({
                   type="text"
                   value={formData.yapi_sahibi_adresi || ""}
                   onChange={(e) => handleFieldChange("yapi_sahibi_adresi", e.target.value)}
-                  placeholder="AKDAĞMADENİ/YOZGAT"
+                  placeholder="Çankaya / ANKARA"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>

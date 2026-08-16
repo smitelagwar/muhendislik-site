@@ -21,16 +21,16 @@ export interface BetonDokumData {
 export const BETON_DOKUM_DEFAULT_DATA: BetonDokumData = {
   tutanak_alt_baslik: "Beton Dökümü Sistem Onay Sorunu",
   tarih: "10.08.2026",
-  yer: "YOZGAT İli AKDAĞMADENİ İlçesi İSTANBULLUOĞLU Mahallesi 666 ada 6 parsel",
+  yer: "ANKARA İli ÇANKAYA İlçesi Örnek Mahallesi 1234 ada 56 parsel",
   yibf: "1234567",
   olay_aciklamasi:
     "Yukarıda belirtilen şantiye adresinde gerçekleştirilen beton dökümü sırasında, E-Devlet sisteminden kaynaklanan hata nedeniyle; şantiye şefi olarak beton dökümü mahallinde hazır bulunmama rağmen sistem üzerinden gerekli onay işlemi gerçekleştirilememiştir.",
   gozlem_notlar:
     "Beton dökümü gerçekleştirilmiştir. E-Devlet giriş sorunu nedeniyle sistem üzerinden onay işlemi yapılamamıştır.",
-  laboratuvar: "MEREN BETON LABORATUVAR HİZMETLERİ SAN. VE TİC. LTD. ŞTİ",
-  muteahhit: "ABC İNŞAAT",
+  laboratuvar: "XYZ BETON LABORATUVARI A.Ş.",
+  muteahhit: "ABC İNŞAAT TAAHHÜT LTD. ŞTİ.",
   santiye_sefi: "İnş. Müh. Hüseyin GÜNAYDIN",
-  yapi_denetim: "XYZ YAPI DENETİM LTD. ŞTİ.",
+  yapi_denetim: "GÜVEN YAPI DENETİM LTD. ŞTİ.",
 };
 
 const BETON_DOKUM_FIELD_SPECS: Record<keyof BetonDokumData, { size: number; bold?: boolean; q?: number }> = {
@@ -68,17 +68,17 @@ export interface TaahhutnameData {
 }
 
 export const TAAHHUTNAME_DEFAULT_DATA: TaahhutnameData = {
-  oda_sicil_no: "123456",
-  tc_kimlik_no: "12345678901",
+  oda_sicil_no: "12345",
+  tc_kimlik_no: "11111111110",
   unvan: "İNŞAAT MÜHENDİSİ",
-  adres: "Akdağmadeni / YOZGAT",
-  telefon: "0500 000 00 00",
-  il_ilce: "YOZGAT/AKDAĞMADENİ",
-  ilgili_idare: "AKDAĞMADENİ BELEDİYESİ",
-  pafta_ada_parsel: "Pafta: 14, Ada: 666, Parsel: 6",
-  yapi_adresi: "İSTANBULLUOĞLU MAH. /AKDAĞMADENİ / YOZGAT",
-  yapi_sahibi: "ABC İNŞAAT SAN. VE TİC. LTD. ŞTİ.",
-  yapi_sahibi_adresi: "AKDAĞMADENİ/YOZGAT",
+  adres: "Örnek Mah. Mühendisler Cad. No:1/A Çankaya / ANKARA",
+  telefon: "0566 666 66 66",
+  il_ilce: "ANKARA / ÇANKAYA",
+  ilgili_idare: "ÇANKAYA BELEDİYESİ",
+  pafta_ada_parsel: "Pafta: 12, Ada: 345, Parsel: 6",
+  yapi_adresi: "Örnek Mah. Yapı Cad. No:10 Çankaya / ANKARA",
+  yapi_sahibi: "ABC YAPI İNŞAAT LTD. ŞTİ.",
+  yapi_sahibi_adresi: "Çankaya / ANKARA",
   tarih: "16.08.2026",
   santiye_sefi_ad_soyad: "Hüseyin GÜNAYDIN",
   unvan_imza: "İNŞAAT MÜHENDİSİ",
@@ -122,18 +122,18 @@ export interface IstifaDilekcesiData {
 
 export const ISTIFA_DILEKCESI_DEFAULT_DATA: IstifaDilekcesiData = {
   hitap_1: "BELEDİYE BAŞKANLIĞINA",
-  hitap_2: "AKDAĞMADENİ",
+  hitap_2: "ÇANKAYA",
   ana_paragraf:
-    "Arsa sahibi ABC İNŞAAT adına kayıtlı, Yozgat ili, Akdağmadeni ilçesi,\nYenimahalle Mahallesi, 666 ada 66 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
+    "Arsa sahibi ABC İNŞAAT adına kayıtlı, Ankara ili, Çankaya ilçesi,\nÖrnek Mahallesi, 1234 ada 56 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
   sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
   tarih: "29.12.2025",
   ad_soyad: "HÜSEYİN GÜNAYDIN",
   adres_etiket: "ADRES :",
-  adres_deger: "Akdağmadeni / YOZGAT",
+  adres_deger: "Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA",
   tc_etiket: "T.C. :",
-  tc_deger: "12345678901",
+  tc_deger: "11111111110",
   iletisim_etiket: "İletişim :",
-  iletisim_deger: "0500 000 00 00",
+  iletisim_deger: "0566 666 66 66",
 };
 
 const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold?: boolean; q?: number }> = {
@@ -169,13 +169,13 @@ export interface InsaatRuhsatiData {
 
 export const INSAAT_RUHSATI_DEFAULT_DATA: InsaatRuhsatiData = {
   tarih: "08.12.2023",
-  belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
+  belediye_adi: "ÇANKAYA BELEDİYESİ",
   mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
   ana_metin:
-    "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+    "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
   ad_soyad: "Hüseyin GÜNAYDIN",
-  adres: "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara",
-  tel: "Tel: 0546 414 57 13",
+  adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
+  tel: "Tel: 0566 666 66 66",
 };
 
 const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number; bold?: boolean; q?: number }> = {

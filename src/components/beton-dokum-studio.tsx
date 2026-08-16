@@ -588,7 +588,7 @@ export function BetonDokumStudio({
                 inputMode="numeric"
                 value={formData.yibf || ""}
                 onChange={(e) => handleFieldChange("yibf", e.target.value)}
-                placeholder="2560855"
+                placeholder="1234567"
                 className={`h-8 w-full rounded-md border px-2.5 text-xs font-mono font-semibold transition-colors placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 ${(formData.yibf || "").trim().length > 7
                   ? "border-red-500 text-red-600 dark:text-red-400 focus:border-red-500 focus:ring-red-500/20"
                   : "border-border bg-background text-foreground focus:border-amber-500 focus:ring-amber-500/20"
@@ -604,7 +604,7 @@ export function BetonDokumStudio({
               rows={2}
               value={formData.yer || ""}
               onChange={(e) => handleFieldChange("yer", e.target.value)}
-              placeholder="YOZGAT İli AKDAĞMADENİ İlçesi İSTANBULLUOĞLU Mahallesi 666 ada 6 parsel"
+              placeholder="ANKARA İli ÇANKAYA İlçesi Örnek Mahallesi 1234 ada 56 parsel"
               className="w-full rounded-md border border-border bg-background p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
             />
           </div>
@@ -646,7 +646,7 @@ export function BetonDokumStudio({
                   type="text"
                   value={formData.laboratuvar || ""}
                   onChange={(e) => handleFieldChange("laboratuvar", e.target.value)}
-                  placeholder="MEREN BETON LAB. LTD. ŞTİ"
+                  placeholder="XYZ BETON LABORATUVARI A.Ş."
                   className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -657,7 +657,7 @@ export function BetonDokumStudio({
                   type="text"
                   value={formData.muteahhit || ""}
                   onChange={(e) => handleFieldChange("muteahhit", e.target.value)}
-                  placeholder="ABC İNŞAAT"
+                  placeholder="ABC İNŞAAT TAAHHÜT LTD. ŞTİ."
                   className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -679,7 +679,7 @@ export function BetonDokumStudio({
                   type="text"
                   value={formData.yapi_denetim || ""}
                   onChange={(e) => handleFieldChange("yapi_denetim", e.target.value)}
-                  placeholder="XYZ YAPI DENETİM LTD. ŞTİ."
+                  placeholder="GÜVEN YAPI DENETİM LTD. ŞTİ."
                   className="h-7.5 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>

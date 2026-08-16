@@ -47,13 +47,13 @@ interface InsaatRuhsatiStudioProps {
 const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
   {
     tarih: "08.12.2023",
-    belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
+    belediye_adi: "ÇANKAYA BELEDİYESİ",
     mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
     ana_metin:
-      "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+      "           İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
-    adres: "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara",
-    tel: "Tel: 0546 414 57 13",
+    adres: "Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA",
+    tel: "Tel: 0566 666 66 66",
   },
   {
     tarih: new Date().toLocaleDateString("tr-TR"),
@@ -63,7 +63,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
       "           İlçenin Fenerbahçe Mahallesi 1045 ada, 18 numaralı parselime yeni konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "İnş. Müh. Hüseyin GÜNAYDIN",
     adres: "Adres: Fenerbahçe Mah. Lale Sokak No:14/2\nKadıköy / İSTANBUL",
-    tel: "Tel: 0532 987 65 43",
+    tel: "Tel: 0566 666 66 66",
   },
   {
     tarih: new Date().toLocaleDateString("tr-TR"),
@@ -73,7 +73,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
       "           İlçenin Çayyolu Mahallesi 728 ada, 6 numaralı parselime yeni yapı inşaatı yapmak istiyorum, Yapı ruhsatı belgesinin tarafıma tanzim edilerek verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
     adres: "Adres: Ümitköy Mah. 2432. Cadde Park Sitesi B Blok No:8\nÇankaya / ANKARA",
-    tel: "Tel: 0555 123 45 67",
+    tel: "Tel: 0566 666 66 66",
   },
   {
     tarih: new Date().toLocaleDateString("tr-TR"),
@@ -83,7 +83,7 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
       "           İlçenin Görükle Mahallesi 412 ada, 9 numaralı parselime yeni ticari + konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
     ad_soyad: "Hüseyin GÜNAYDIN",
     adres: "Adres: Odunluk Mah. Akademi Cad. Plaza 16 Kat:4\nNilüfer / BURSA",
-    tel: "Tel: 0542 333 44 55",
+    tel: "Tel: 0566 666 66 66",
   },
 ];
 
@@ -847,7 +847,7 @@ export function InsaatRuhsatiStudio({
                     rows={2}
                     value={formData.adres || ""}
                     onChange={(e) => handleFieldChange("adres", e.target.value)}
-                    placeholder="Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara"
+                    placeholder="Adres: Örnek Mah. Mühendisler Cad. No:24/6\nÇankaya / ANKARA"
                     className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
@@ -877,7 +877,7 @@ export function InsaatRuhsatiStudio({
                     type="text"
                     value={formData.tel || ""}
                     onChange={(e) => handleFieldChange("tel", e.target.value)}
-                    placeholder="Tel: 0546 414 57 13"
+                    placeholder="Tel: 0566 666 66 66"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>

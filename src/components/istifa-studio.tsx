@@ -553,7 +553,7 @@ export function IstifaStudio({
                   type="text"
                   value={formData.hitap_2 || ""}
                   onChange={(e) => handleFieldChange("hitap_2", e.target.value)}
-                  placeholder="AKDAĞMADENİ"
+                  placeholder="ÇANKAYA"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-bold text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -637,7 +637,7 @@ export function IstifaStudio({
                   maxLength={11}
                   value={formData.tc_deger || ""}
                   onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
-                  placeholder="12345678901"
+                  placeholder="11111111110"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -648,7 +648,7 @@ export function IstifaStudio({
                   type="text"
                   value={formData.iletisim_deger || ""}
                   onChange={(e) => handleFieldChange("iletisim_deger", e.target.value)}
-                  placeholder="0500 000 00 00"
+                  placeholder="0566 666 66 66"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -661,7 +661,7 @@ export function IstifaStudio({
                 type="text"
                 value={formData.adres_deger || ""}
                 onChange={(e) => handleFieldChange("adres_deger", e.target.value)}
-                placeholder="Akdağmadeni / YOZGAT"
+                placeholder="Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
