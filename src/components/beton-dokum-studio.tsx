@@ -711,7 +711,7 @@ export function BetonDokumStudio({
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
-                  onClick={() => setZoomLevel((z) => Math.max(50, z - 15))}
+                  onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
                   className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   title="Uzaklaştır"
                 >
@@ -722,7 +722,7 @@ export function BetonDokumStudio({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setZoomLevel((z) => Math.min(200, z + 15))}
+                  onClick={() => setZoomLevel((z) => Math.min(250, z + 25))}
                   className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   title="Yakınlaştır"
                 >
@@ -745,22 +745,28 @@ export function BetonDokumStudio({
             </div>
           </div>
 
-          {/* Canvas Viewport Container: Maximized vertical area, 100% viewport locked */}
+          {/* Canvas Viewport Container: Maximized vertical area, local internal scroll when zoomed */}
           <div
             ref={previewContainerRef}
-            className="relative flex-1 min-h-0 w-full overflow-hidden flex items-center justify-center bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner"
+            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${
+              zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
+            }`}
           >
             {isGenerating && !hasRenderedOnce && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10">
+              <div className="sticky inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10 min-h-[260px]">
                 <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
                 <p className="text-xs font-semibold">Resmi PDF Derleniyor...</p>
               </div>
             )}
 
-            {/* Auto-Fitted Full A4 Canvas */}
+            {/* Auto-Fitted Full A4 Canvas (centered, scrollable when zoomed in) */}
             <canvas
               ref={canvasRef}
-              className="bg-white rounded-md shadow-2xl transition-all block max-h-full max-w-full shrink-0 mx-auto my-auto"
+              className={`bg-white rounded-md shadow-2xl transition-all block shrink-0 ${
+                zoomLevel > 100
+                  ? "mx-auto my-2"
+                  : "max-h-full max-w-full mx-auto my-auto"
+              }`}
             />
           </div>
 
