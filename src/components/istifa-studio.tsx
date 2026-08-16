@@ -637,7 +637,7 @@ export function IstifaStudio({
                   maxLength={11}
                   value={formData.tc_deger || ""}
                   onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
-                  placeholder="65242265136"
+                  placeholder="12345678901"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
@@ -648,7 +648,7 @@ export function IstifaStudio({
                   type="text"
                   value={formData.iletisim_deger || ""}
                   onChange={(e) => handleFieldChange("iletisim_deger", e.target.value)}
-                  placeholder="0546 414 57 13"
+                  placeholder="0500 000 00 00"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>

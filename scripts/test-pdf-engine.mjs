@@ -115,10 +115,11 @@ async function simulateTemizle(templatePath, fieldNames) {
   }
 }
 
-// Test all 3 templates
+// Test all 4 templates
 await testEmptyPdf("public/belgeler/beton-dokum-tutanagi.pdf", "output/beton-empty.pdf");
 await testEmptyPdf("public/belgeler/santiye-sefi-istifa-dilekcesi.pdf", "output/istifa-empty.pdf");
 await testEmptyPdf("public/belgeler/santiye-sefi-taahhutnamesi.pdf", "output/taahhut-empty.pdf");
+await testEmptyPdf("public/belgeler/insaat-ruhsati-dilekcesi.pdf", "output/insaat-ruhsati-empty.pdf");
 
 console.log("\n--- Simulating Temizle for Taahhütname ---");
 await simulateTemizle("public/belgeler/santiye-sefi-taahhutnamesi.pdf", [
@@ -138,4 +139,11 @@ console.log("\n--- Simulating Temizle for Beton Döküm ---");
 await simulateTemizle("public/belgeler/beton-dokum-tutanagi.pdf", [
   "tutanak_alt_baslik", "tarih", "yer", "yibf", "olay_aciklamasi",
   "gozlem_notlar", "laboratuvar", "muteahhit", "santiye_sefi", "yapi_denetim"
+]);
+
+console.log("\n--- Simulating Temizle for İnşaat Ruhsatı ---");
+await simulateTemizle("public/belgeler/insaat-ruhsati-dilekcesi.pdf", [
+  "tarih", "belediye_adi", "mudurluk_adi", "konu_baslik", "ana_metin",
+  "ad_soyad", "unvan", "imza_alani", "adres_etiket", "adres_deger",
+  "tel_etiket", "tel_deger", "tc_etiket", "tc_deger", "ekler_etiket", "ekler_deger"
 ]);

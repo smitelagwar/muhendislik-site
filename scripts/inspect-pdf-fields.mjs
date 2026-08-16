@@ -5,6 +5,7 @@ const files = [
   { name: "Taahhütname", path: "public/belgeler/santiye-sefi-taahhutnamesi.pdf" },
   { name: "İstifa", path: "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf" },
   { name: "Beton Döküm", path: "public/belgeler/beton-dokum-tutanagi.pdf" },
+  { name: "İnşaat Ruhsatı Dilekçesi", path: "public/belgeler/insaat-ruhsati-dilekcesi.pdf" },
 ];
 
 for (const f of files) {

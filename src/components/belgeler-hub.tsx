@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { BetonDokumStudio } from "@/components/beton-dokum-studio";
+import { InsaatRuhsatiStudio } from "@/components/insaat-ruhsati-studio";
 import { IstifaStudio } from "@/components/istifa-studio";
 import { TaahhutnameStudio } from "@/components/taahhutname-studio";
 import {
@@ -178,6 +179,10 @@ function StudioPreview({ document }: { document: DocumentItem }) {
 
   if (document.id === "santiye-sefi-taahhutnamesi") {
     return <TaahhutnameStudio isModal />;
+  }
+
+  if (document.id === "insaat-ruhsati-dilekcesi") {
+    return <InsaatRuhsatiStudio isModal />;
   }
 
   return <IstifaStudio isModal />;

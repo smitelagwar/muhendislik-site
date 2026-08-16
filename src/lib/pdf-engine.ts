@@ -72,7 +72,7 @@ export const TAAHHUTNAME_DEFAULT_DATA: TaahhutnameData = {
   tc_kimlik_no: "12345678901",
   unvan: "İNŞAAT MÜHENDİSİ",
   adres: "Akdağmadeni / YOZGAT",
-  telefon: "0546 414 57 13",
+  telefon: "0500 000 00 00",
   il_ilce: "YOZGAT/AKDAĞMADENİ",
   ilgili_idare: "AKDAĞMADENİ BELEDİYESİ",
   pafta_ada_parsel: "Pafta: 14, Ada: 666, Parsel: 6",
@@ -124,23 +124,23 @@ export const ISTIFA_DILEKCESI_DEFAULT_DATA: IstifaDilekcesiData = {
   hitap_1: "BELEDİYE BAŞKANLIĞINA",
   hitap_2: "AKDAĞMADENİ",
   ana_paragraf:
-    "        Arsa sahibi HSME İNŞAAT adına kayıtlı, Yozgat ili, Akdağmadeni ilçesi,\nYenimahalle Mahallesi, 725 ada 12 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
+    "Arsa sahibi ABC İNŞAAT adına kayıtlı, Yozgat ili, Akdağmadeni ilçesi,\nYenimahalle Mahallesi, 666 ada 66 parselde bulunan inşaatta üstlenmiş olduğum\nşantiye şefliği görevimden, gördüğüm lüzum üzerine bu tarihten itibaren\nistifa ediyorum.",
   sonuc_cumlesi: "İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim.",
   tarih: "29.12.2025",
   ad_soyad: "HÜSEYİN GÜNAYDIN",
   adres_etiket: "ADRES :",
   adres_deger: "Akdağmadeni / YOZGAT",
   tc_etiket: "T.C. :",
-  tc_deger: "65242265136",
+  tc_deger: "12345678901",
   iletisim_etiket: "İletişim :",
-  iletisim_deger: "0546 414 57 13",
+  iletisim_deger: "0500 000 00 00",
 };
 
 const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold?: boolean; q?: number }> = {
   hitap_1: { size: 11.8, bold: true, q: 1 },
   hitap_2: { size: 11.8, bold: true, q: 1 },
-  // ana_paragraf: regular (not bold), left-aligned as a formal letter body
-  ana_paragraf: { size: 9.15, bold: false, q: 0 },
+  // Center every line of the body text inside its page-centered field.
+  ana_paragraf: { size: 9.15, bold: false, q: 1 },
   // sonuc_cumlesi: regular (not bold), left-aligned
   sonuc_cumlesi: { size: 9.15, bold: false, q: 0 },
   tarih: { size: 9.1, bold: true, q: 1 },
@@ -154,6 +154,69 @@ const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold
 };
 
 // ==========================================
+// 4. İNŞAAT RUHSATI DİLEKÇESİ
+// ==========================================
+
+export interface InsaatRuhsatiData {
+  tarih?: string;
+  belediye_adi?: string;
+  mudurluk_adi?: string;
+  konu_baslik?: string;
+  ana_metin?: string;
+  ad_soyad?: string;
+  unvan?: string;
+  imza_alani?: string;
+  adres_etiket?: string;
+  adres_deger?: string;
+  tel_etiket?: string;
+  tel_deger?: string;
+  tc_etiket?: string;
+  tc_deger?: string;
+  ekler_etiket?: string;
+  ekler_deger?: string;
+}
+
+export const INSAAT_RUHSATI_DEFAULT_DATA: InsaatRuhsatiData = {
+  tarih: "08.12.2023",
+  belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
+  mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
+  konu_baslik: "KONU: Yapı (İnşaat) Ruhsatı Başvurusu",
+  ana_metin:
+    "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+  ad_soyad: "Eda AKÇA",
+  unvan: "Yapı Sahibi",
+  imza_alani: "(İmza)",
+  adres_etiket: "ADRES :",
+  adres_deger: "Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut / ANKARA",
+  tel_etiket: "TEL :",
+  tel_deger: "0532 397 92 34",
+  tc_etiket: "T.C. NO :",
+  tc_deger: "",
+  ekler_etiket: "EKLER :",
+  ekler_deger:
+    "1. Tapu Senedi Örneği\n2. İmar Durum Belgesi (Çap)\n3. Aplikasyon Krokisi\n4. Mimari, Statik, Mekanik ve Elektrik Projeleri",
+};
+
+const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number; bold?: boolean; q?: number }> = {
+  tarih: { size: 10.5, bold: true, q: 2 },
+  belediye_adi: { size: 13.0, bold: true, q: 1 },
+  mudurluk_adi: { size: 11.5, bold: true, q: 1 },
+  konu_baslik: { size: 10.0, bold: true, q: 0 },
+  ana_metin: { size: 10.5, bold: false, q: 0 },
+  ad_soyad: { size: 11.0, bold: true, q: 1 },
+  unvan: { size: 9.5, bold: false, q: 1 },
+  imza_alani: { size: 9.5, bold: false, q: 1 },
+  adres_etiket: { size: 9.5, bold: true, q: 0 },
+  adres_deger: { size: 9.5, bold: false, q: 0 },
+  tel_etiket: { size: 9.5, bold: true, q: 0 },
+  tel_deger: { size: 9.5, bold: false, q: 0 },
+  tc_etiket: { size: 9.5, bold: true, q: 0 },
+  tc_deger: { size: 9.5, bold: false, q: 0 },
+  ekler_etiket: { size: 9.5, bold: true, q: 0 },
+  ekler_deger: { size: 9.0, bold: false, q: 0 },
+};
+
+// ==========================================
 // SHARED CACHES & UTILS
 // ==========================================
 
@@ -161,13 +224,14 @@ const cachedPdfBytes: Record<string, Uint8Array> = {};
 let cachedBoldFontBytes: Uint8Array | null = null;
 let cachedRegularFontBytes: Uint8Array | null = null;
 
-async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa"): Promise<Uint8Array> {
+async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati"): Promise<Uint8Array> {
   if (cachedPdfBytes[docType]) return cachedPdfBytes[docType].slice(0);
 
   const fileMap = {
     "beton-dokum": { api: "/api/document-template/beton-dokum", direct: "/belgeler/beton-dokum-tutanagi.pdf", disk: "beton-dokum-tutanagi.pdf" },
     "taahhutname": { api: "/api/document-template/santiye-sefi-taahhutnamesi", direct: "/belgeler/santiye-sefi-taahhutnamesi.pdf", disk: "santiye-sefi-taahhutnamesi.pdf" },
     "istifa": { api: "/api/document-template/santiye-sefi-istifa-dilekcesi", direct: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf", disk: "santiye-sefi-istifa-dilekcesi.pdf" },
+    "insaat-ruhsati": { api: "/api/document-template/insaat-ruhsati-dilekcesi", direct: "/belgeler/insaat-ruhsati-dilekcesi.pdf", disk: "insaat-ruhsati-dilekcesi.pdf" },
   };
 
   const config = fileMap[docType];
@@ -254,7 +318,7 @@ async function getRegularFontBytes(): Promise<Uint8Array> {
 
 // Generic Form Populator
 async function populateForm<T extends Record<string, any>>(
-  docType: "beton-dokum" | "taahhutname" | "istifa",
+  docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati",
   data: T,
   specs: Record<string, { size: number; bold?: boolean; q?: number }>,
   options: { flatten?: boolean } = { flatten: false }
@@ -430,6 +494,38 @@ export async function downloadFilledIstifaDilekcesiPdf(
   const cleanDate = (data.tarih || "29.12.2025").replace(/[^a-zA-Z0-9_-]/g, ".");
   const finalFileName =
     fileName || `SANTIYE_SEFI_ISTIFA_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = finalFileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+export async function generateInsaatRuhsatiPdf(
+  data: InsaatRuhsatiData,
+  options: { flatten?: boolean } = { flatten: false }
+): Promise<Uint8Array> {
+  return populateForm("insaat-ruhsati", data, INSAAT_RUHSATI_FIELD_SPECS, options);
+}
+
+export async function downloadFilledInsaatRuhsatiPdf(
+  data: InsaatRuhsatiData,
+  fileName?: string
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const pdfBytes = await generateInsaatRuhsatiPdf(data, { flatten: false });
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+
+  const cleanName = (data.ad_soyad || "Basvuru_Sahibi").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cleanDate = (data.tarih || "08.12.2023").replace(/[^a-zA-Z0-9_-]/g, ".");
+  const finalFileName =
+    fileName || `INSAAT_RUHSATI_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
 
   const link = document.createElement("a");
   link.href = url;
