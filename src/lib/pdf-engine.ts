@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFNumber, PDFString } from "pdf-lib";
+import { PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 
 // ==========================================
@@ -210,14 +210,18 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
     "taahhutname": { api: "/api/document-template/santiye-sefi-taahhutnamesi", direct: "/belgeler/santiye-sefi-taahhutnamesi.pdf", disk: "santiye-sefi-taahhutnamesi.pdf" },
     "istifa": { api: "/api/document-template/santiye-sefi-istifa-dilekcesi", direct: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf", disk: "santiye-sefi-istifa-dilekcesi.pdf" },
     "insaat-ruhsati": { api: "/api/document-template/insaat-ruhsati-dilekcesi", direct: "/belgeler/insaat-ruhsati-dilekcesi.pdf", disk: "insaat-ruhsati-dilekcesi.pdf" },
-    "sozlesme": { api: "/api/document-template/santiye-sefi-sozlesmesi", direct: "/belgeler/santiye-sefi-sozlesmesi.pdf", disk: "santiye-sefi-sozlesmesi.pdf" },
+    "sozlesme": {
+      api: "/api/document-template/santiye-sefi-sozlesmesi?v=default-location-20260816",
+      direct: "/belgeler/santiye-sefi-sozlesmesi.pdf?v=default-location-20260816",
+      disk: "santiye-sefi-sozlesmesi.pdf",
+    },
   };
 
   const config = fileMap[docType];
 
   if (typeof window !== "undefined") {
     try {
-      const response = await fetch(config.api);
+      const response = await fetch(config.api, { cache: "no-store" });
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
         cachedPdfBytes[docType] = new Uint8Array(arrayBuffer);
@@ -227,7 +231,7 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
       // ignore
     }
 
-    const directResponse = await fetch(config.direct);
+    const directResponse = await fetch(config.direct, { cache: "no-store" });
     if (!directResponse.ok) {
       throw new Error(`PDF şablonu yüklenemedi: HTTP ${directResponse.status}`);
     }
@@ -302,10 +306,16 @@ async function getRegularFontBytes(): Promise<Uint8Array> {
 export interface SozlesmeData {
   muteahhit_unvan?: string;
   santiye_sefi_ad?: string;
-  is_yeri?: string;
+  il?: string;
+  ilce?: string;
+  adres?: string;
+  yibf?: string;
+  pafta?: string;
+  mahalle?: string;
+  ada?: string;
+  parsel?: string;
   ucret?: string;
   sozlesme_tarihi?: string;
-  sozlesme_nushalari?: string;
   santiye_sefi_imza_adi?: string;
   muteahhit_imza_unvan?: string;
 }
@@ -313,27 +323,39 @@ export interface SozlesmeData {
 export const SOZLESME_DEFAULT_DATA: SozlesmeData = {
   muteahhit_unvan: "ABC İNŞAAT",
   santiye_sefi_ad: "HÜSEYİN GÜNAYDIN",
-  is_yeri: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel",
+  il: "YOZGAT",
+  ilce: "AKDAĞMADENİ",
+  adres: "-",
+  yibf: "-",
+  pafta: "-",
+  mahalle: "EMEK MAHALLESİ",
+  ada: "666",
+  parsel: "66",
   ucret: "40.000,00 TL",
   sozlesme_tarihi: "01.05.2026",
-  sozlesme_nushalari: "2",
   santiye_sefi_imza_adi: "Hüseyin GÜNAYDIN",
   muteahhit_imza_unvan: "ABC İNŞAAT",
 };
 
 const SOZLESME_FIELD_SPECS: Record<keyof SozlesmeData, { size: number; bold?: boolean; q?: number }> = {
-  muteahhit_unvan: { size: 9.5, bold: true, q: 0 },
-  santiye_sefi_ad: { size: 9.5, bold: true, q: 0 },
-  is_yeri: { size: 9.5, bold: true, q: 0 },
-  ucret: { size: 9.5, bold: true, q: 0 },
-  sozlesme_tarihi: { size: 9.5, bold: true, q: 0 },
-  sozlesme_nushalari: { size: 9.5, bold: true, q: 1 },
-  santiye_sefi_imza_adi: { size: 9.5, bold: false, q: 0 },
-  muteahhit_imza_unvan: { size: 9.5, bold: false, q: 0 },
+  muteahhit_unvan: { size: 8.5, bold: true, q: 1 },
+  santiye_sefi_ad: { size: 8.5, bold: true, q: 1 },
+  il: { size: 9.5, bold: true, q: 1 },
+  ilce: { size: 9.5, bold: true, q: 1 },
+  adres: { size: 7.5, bold: false, q: 1 },
+  yibf: { size: 9.5, bold: false, q: 1 },
+  pafta: { size: 9.5, bold: false, q: 1 },
+  mahalle: { size: 7.8, bold: true, q: 1 },
+  ada: { size: 9.5, bold: true, q: 1 },
+  parsel: { size: 9.5, bold: true, q: 1 },
+  ucret: { size: 9.5, bold: true, q: 1 },
+  sozlesme_tarihi: { size: 9.5, bold: true, q: 1 },
+  santiye_sefi_imza_adi: { size: 8.2, bold: false, q: 1 },
+  muteahhit_imza_unvan: { size: 8.2, bold: false, q: 1 },
 };
 
 // Generic Form Populator
-async function populateForm<T extends Record<string, any>>(
+async function populateForm<T extends object>(
   docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati" | "sozlesme",
   data: T,
   specs: Record<string, { size: number; bold?: boolean; q?: number }>,
@@ -384,6 +406,10 @@ async function populateForm<T extends Record<string, any>>(
       for (const widget of widgets) {
         widget.dict.delete(PDFName.of("AP"));
         widget.dict.delete(PDFName.of("DV"));
+        widget.dict.delete(PDFName.of("Border"));
+        const appearance = widget.dict.lookup(PDFName.of("MK"), PDFDict);
+        appearance.delete(PDFName.of("BC"));
+        appearance.delete(PDFName.of("BG"));
         // Also sync DA and Q to each widget so they render consistently
         widget.dict.set(
           PDFName.of("DA"),
@@ -395,18 +421,24 @@ async function populateForm<T extends Record<string, any>>(
       }
 
       // 4. Set the field value
-      const val = data[key] ?? "";
+      const rawValue = (data as Record<string, unknown>)[key];
+      const val = typeof rawValue === "string" ? rawValue : "";
       field.setText(val);
+      if (docType === "sozlesme") {
+        field.updateAppearances(useFont);
+      }
     } catch {
       // Silently skip unknown fields
     }
   }
 
   // Update appearances with the bold font as fallback (covers any fields not in specs)
-  try {
-    form.updateFieldAppearances(boldFont);
-  } catch (err) {
-    console.warn("Field appearance notice:", err);
+  if (docType !== "sozlesme") {
+    try {
+      form.updateFieldAppearances(boldFont);
+    } catch (err) {
+      console.warn("Field appearance notice:", err);
+    }
   }
 
   if (options.flatten) {

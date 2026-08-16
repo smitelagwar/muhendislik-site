@@ -41,7 +41,10 @@ export async function GET(
       headers: {
         "Content-Type": "application/octet-stream",
         "Content-Length": fileBuffer.length.toString(),
-        "Cache-Control": "public, max-age=31536000, immutable",
+        // PDF şablonları geliştirildiğinde istemci mutlaka güncel dosyayı almalı.
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   } catch (error) {

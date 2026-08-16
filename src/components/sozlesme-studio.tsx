@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AlertCircle,
   Building2,
+  CheckCircle2,
   Eye,
   FileDown,
   FileEdit,
@@ -29,18 +31,53 @@ interface SozlesmeStudioProps {
   isModal?: boolean;
 }
 
-// Safely load PDF.js in browser
-async function loadBrowserPdfJs(): Promise<any> {
-  if (typeof window === "undefined") return null;
-  if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
+interface PdfViewport {
+  width: number;
+  height: number;
+}
 
-  return new Promise((resolve, reject) => {
+interface PdfRenderTask {
+  promise: Promise<void>;
+  cancel: () => void;
+}
+
+interface PdfPageProxy {
+  getViewport: (options: { scale: number }) => PdfViewport;
+  render: (options: {
+    canvasContext: CanvasRenderingContext2D;
+    viewport: PdfViewport;
+  }) => PdfRenderTask;
+}
+
+interface PdfDocumentProxy {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<PdfPageProxy>;
+  destroy: () => Promise<void>;
+}
+
+interface PdfJsLibrary {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument: (options: { data: Uint8Array }) => { promise: Promise<PdfDocumentProxy> };
+}
+
+declare global {
+  interface Window {
+    pdfjsLib?: PdfJsLibrary;
+  }
+}
+
+// Safely load PDF.js in browser
+async function loadBrowserPdfJs(): Promise<PdfJsLibrary | null> {
+  if (typeof window === "undefined") return null;
+  if (window.pdfjsLib) return window.pdfjsLib;
+
+  return new Promise<PdfJsLibrary>((resolve, reject) => {
     const existing = document.getElementById("pdfjs-dist-script");
     if (existing) {
       const check = setInterval(() => {
-        if ((window as any).pdfjsLib) {
+        if (window.pdfjsLib) {
           clearInterval(check);
-          resolve((window as any).pdfjsLib);
+          resolve(window.pdfjsLib);
         }
       }, 50);
       return;
@@ -50,7 +87,7 @@ async function loadBrowserPdfJs(): Promise<any> {
     script.id = "pdfjs-dist-script";
     script.src = "/vendor/pdfjs/pdf.min.js";
     script.onload = () => {
-      const pdfjs = (window as any).pdfjsLib;
+      const pdfjs = window.pdfjsLib;
       if (pdfjs) {
         pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.js";
         resolve(pdfjs);
@@ -63,7 +100,7 @@ async function loadBrowserPdfJs(): Promise<any> {
       cdnScript.src =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
       cdnScript.onload = () => {
-        const cdnPdfjs = (window as any).pdfjsLib;
+        const cdnPdfjs = window.pdfjsLib;
         if (cdnPdfjs) {
           cdnPdfjs.GlobalWorkerOptions.workerSrc =
             "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -96,17 +133,34 @@ export function SozlesmeStudio({
   const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
   const [previewPage, setPreviewPage] = useState(1);
   const [totalPages, setTotalPages] = useState(2);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const renderTaskRef = useRef<any>(null);
-  const pdfDocRef = useRef<any>(null);
+  const renderTaskRef = useRef<PdfRenderTask | null>(null);
+  const pdfDocRef = useRef<PdfDocumentProxy | null>(null);
   const lastDataRef = useRef<string>("");
   const renderDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleFieldChange = useCallback(
     (field: keyof SozlesmeData, value: string) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
+      setFormData((prev) => {
+        const next = { ...prev, [field]: value };
+        if (
+          field === "santiye_sefi_ad" &&
+          prev.santiye_sefi_imza_adi?.toLocaleUpperCase("tr-TR") ===
+            prev.santiye_sefi_ad?.toLocaleUpperCase("tr-TR")
+        ) {
+          next.santiye_sefi_imza_adi = value;
+        }
+        if (
+          field === "muteahhit_unvan" &&
+          prev.muteahhit_imza_unvan === prev.muteahhit_unvan
+        ) {
+          next.muteahhit_imza_unvan = value;
+        }
+        return next;
+      });
     },
     []
   );
@@ -135,7 +189,7 @@ export function SozlesmeStudio({
   // ── PDF Rendering ──────────────────────────────────────────────────────────
 
   const renderPage = useCallback(
-    async (pdfDoc: any, pageNum: number) => {
+    async (pdfDoc: PdfDocumentProxy, pageNum: number) => {
       if (!canvasRef.current || !previewContainerRef.current) return;
 
       const container = previewContainerRef.current;
@@ -167,7 +221,11 @@ export function SozlesmeStudio({
 
       const renderTask = page.render({ canvasContext: ctx, viewport: scaledVp });
       renderTaskRef.current = renderTask;
-      await renderTask.promise;
+      try {
+        await renderTask.promise;
+      } catch (error: unknown) {
+        if (!(error instanceof Error) || error.name !== "RenderingCancelledException") throw error;
+      }
       renderTaskRef.current = null;
       setHasRenderedOnce(true);
     },
@@ -175,11 +233,12 @@ export function SozlesmeStudio({
   );
 
   const renderPdf = useCallback(async () => {
-    const dataStr = JSON.stringify(formData) + previewPage;
+    const dataStr = JSON.stringify(formData);
     if (dataStr === lastDataRef.current) return;
     lastDataRef.current = dataStr;
 
     setIsGenerating(true);
+    setRenderError(null);
     try {
       const [pdfBytes, pdfjsLib] = await Promise.all([
         generateSozlesmePdf(formData),
@@ -188,11 +247,17 @@ export function SozlesmeStudio({
       if (!pdfjsLib) return;
 
       const pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+      const previousPdf = pdfDocRef.current;
       pdfDocRef.current = pdfDoc;
       setTotalPages(pdfDoc.numPages);
       await renderPage(pdfDoc, previewPage);
+      if (previousPdf && previousPdf !== pdfDoc) {
+        void previousPdf.destroy().catch(() => undefined);
+      }
     } catch (err) {
       console.error("PDF render error:", err);
+      lastDataRef.current = "";
+      setRenderError("Önizleme oluşturulamadı. Alanları kontrol edip yeniden deneyin.");
     } finally {
       setIsGenerating(false);
     }
@@ -213,12 +278,12 @@ export function SozlesmeStudio({
   useEffect(() => {
     if (activeTabMobile === "preview") {
       const t = setTimeout(() => {
-        lastDataRef.current = "";
-        renderPdf();
+        if (pdfDocRef.current) renderPage(pdfDocRef.current, previewPage);
+        else renderPdf();
       }, 60);
       return () => clearTimeout(t);
     }
-  }, [activeTabMobile, renderPdf]);
+  }, [activeTabMobile, previewPage, renderPage, renderPdf]);
 
   // Re-render on zoom change
   useEffect(() => {
@@ -226,15 +291,104 @@ export function SozlesmeStudio({
     renderPage(pdfDocRef.current, previewPage);
   }, [zoomLevel, previewPage, renderPage]);
 
+  // Panel boyutu değiştiğinde önbellekteki PDF'i yeni alana tekrar sığdır.
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    let animationFrame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        if (pdfDocRef.current) {
+          void renderPage(pdfDocRef.current, previewPage);
+        }
+      });
+    });
+    observer.observe(container);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      observer.disconnect();
+    };
+  }, [previewPage, renderPage]);
+
+  // PDF alanındayken Ctrl/Cmd + tekerlek yalnızca önizlemeyi yakınlaştırır.
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setZoomLevel((current) =>
+        Math.min(200, Math.max(50, current + (event.deltaY < 0 ? 10 : -10)))
+      );
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        setZoomLevel((current) => Math.min(200, current + 10));
+      } else if (event.key === "-") {
+        event.preventDefault();
+        setZoomLevel((current) => Math.max(50, current - 10));
+      } else if (event.key === "0") {
+        event.preventDefault();
+        setZoomLevel(100);
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  // Tam sayfa stüdyosunda yalnızca form ve PDF panelleri kaydırılabilir.
+  useEffect(() => {
+    if (isModal) return;
+    const htmlElement = document.documentElement;
+    const bodyElement = document.body;
+    const previousHtmlOverflow = htmlElement.style.overflow;
+    const previousBodyOverflow = bodyElement.style.overflow;
+
+    htmlElement.style.overflow = "hidden";
+    bodyElement.style.overflow = "hidden";
+    return () => {
+      htmlElement.style.overflow = previousHtmlOverflow;
+      bodyElement.style.overflow = previousBodyOverflow;
+    };
+  }, [isModal]);
+
+  useEffect(() => {
+    return () => {
+      renderTaskRef.current?.cancel?.();
+      void pdfDocRef.current?.destroy?.().catch?.(() => undefined);
+    };
+  }, []);
+
   const handleDownload = useCallback(async () => {
     if (isDownloading) return;
     setIsDownloading(true);
     try {
       await downloadFilledSozlesmePdf(formData);
+    } catch (error) {
+      console.error("PDF download error:", error);
+      window.alert("PDF indirilirken bir sorun oluştu. Lütfen tekrar deneyin.");
     } finally {
       setIsDownloading(false);
     }
   }, [formData, isDownloading]);
+
+  const yibfInvalid = Boolean(
+    formData.yibf && formData.yibf !== "-" && !/^\d{7}$/.test(formData.yibf)
+  );
+  const dateInvalid = Boolean(
+    formData.sozlesme_tarihi && !/^\d{2}\.\d{2}\.\d{4}$/.test(formData.sozlesme_tarihi)
+  );
 
   // ── Field header with reset button ────────────────────────────────────────
   const renderFieldHeader = (
@@ -268,7 +422,10 @@ export function SozlesmeStudio({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col w-full h-full min-h-0 overflow-hidden bg-background">
+    <div
+      data-studio-locked="true"
+      className="flex flex-col w-full h-full min-h-0 overflow-hidden bg-background"
+    >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 shrink-0 bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-2 min-w-0">
@@ -315,7 +472,7 @@ export function SozlesmeStudio({
       {/* Split body */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* ── LEFT: Form panel ── */}
-        <div className={`flex-col min-h-0 overflow-y-auto border-r border-border/50 bg-background/60 ${activeTabMobile === "form" ? "flex" : "hidden lg:flex"} lg:w-[340px] xl:w-[380px] w-full`}>
+        <div className={`flex-col min-h-0 overflow-y-auto overscroll-contain border-r border-border/50 bg-background/60 ${activeTabMobile === "form" ? "flex" : "hidden lg:flex"} lg:w-[340px] xl:w-[380px] w-full`}>
           <div className="flex flex-col gap-2 p-2 sm:p-2.5">
 
             {/* Section 1: Taraflar */}
@@ -331,6 +488,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("muteahhit_unvan", "Yapı Müteahhidi Unvanı")}
                 <input
                   type="text"
+                  maxLength={36}
                   value={formData.muteahhit_unvan || ""}
                   onChange={(e) => handleFieldChange("muteahhit_unvan", e.target.value)}
                   placeholder="ABC İNŞAAT"
@@ -342,6 +500,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("santiye_sefi_ad", "Şantiye Şefi Adı Soyadı")}
                 <input
                   type="text"
+                  maxLength={35}
                   value={formData.santiye_sefi_ad || ""}
                   onChange={(e) => handleFieldChange("santiye_sefi_ad", e.target.value)}
                   placeholder="HÜSEYİN GÜNAYDIN"
@@ -359,16 +518,109 @@ export function SozlesmeStudio({
                 </span>
               </div>
 
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  {renderFieldHeader("il", "İl")}
+                  <input
+                    type="text"
+                    maxLength={18}
+                    value={formData.il || ""}
+                    onChange={(e) => handleFieldChange("il", e.target.value)}
+                    placeholder="YOZGAT"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+                <div>
+                  {renderFieldHeader("ilce", "İlçe")}
+                  <input
+                    type="text"
+                    maxLength={22}
+                    value={formData.ilce || ""}
+                    onChange={(e) => handleFieldChange("ilce", e.target.value)}
+                    placeholder="AKDAĞMADENİ"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+
               <div>
-                {renderFieldHeader("is_yeri", "İşyeri Adresi", "(İl, İlçe, Mahalle, Ada, Parsel)")}
-                <textarea
-                  rows={3}
-                  value={formData.is_yeri || ""}
-                  onChange={(e) => handleFieldChange("is_yeri", e.target.value)}
-                  placeholder="YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel"
-                  className="w-full rounded-md border border-border bg-background p-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+                {renderFieldHeader("adres", "Açık Adres")}
+                <input
+                  type="text"
+                  maxLength={48}
+                  value={formData.adres || ""}
+                  onChange={(e) => handleFieldChange("adres", e.target.value)}
+                  placeholder="-"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
+
+              <div className="grid grid-cols-[2fr_1fr_1fr] gap-2">
+                <div>
+                  {renderFieldHeader("mahalle", "Mahalle")}
+                  <input
+                    type="text"
+                    maxLength={32}
+                    value={formData.mahalle || ""}
+                    onChange={(e) => handleFieldChange("mahalle", e.target.value)}
+                    placeholder="EMEK MAHALLESİ"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+                <div>
+                  {renderFieldHeader("ada", "Ada")}
+                  <input
+                    type="text"
+                    maxLength={8}
+                    value={formData.ada || ""}
+                    onChange={(e) => handleFieldChange("ada", e.target.value)}
+                    placeholder="666"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-xs font-mono text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+                <div>
+                  {renderFieldHeader("parsel", "Parsel")}
+                  <input
+                    type="text"
+                    maxLength={8}
+                    value={formData.parsel || ""}
+                    onChange={(e) => handleFieldChange("parsel", e.target.value)}
+                    placeholder="66"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-xs font-mono text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[2fr_1fr] gap-2">
+                <div>
+                  {renderFieldHeader("yibf", "YİBF No")}
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={7}
+                    value={formData.yibf || ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleFieldChange("yibf", value === "-" ? "-" : value.replace(/\D/g, ""));
+                    }}
+                    placeholder="-"
+                    aria-invalid={yibfInvalid}
+                    className={`h-8 w-full rounded-md border bg-background px-2 text-center text-xs font-mono text-foreground focus:outline-none focus:ring-1 ${yibfInvalid ? "border-red-500 focus:ring-red-500/20" : "border-border focus:border-amber-500 focus:ring-amber-500/20"}`}
+                  />
+                </div>
+                <div>
+                  {renderFieldHeader("pafta", "Pafta")}
+                  <input
+                    type="text"
+                    maxLength={12}
+                    value={formData.pafta || ""}
+                    onChange={(e) => handleFieldChange("pafta", e.target.value)}
+                    placeholder="-"
+                    className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-xs font-mono text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+              {yibfInvalid && <p className="text-[9px] leading-tight text-red-500">YİBF 7 rakam olmalı.</p>}
             </div>
 
             {/* Section 3: Ücret ve Sözleşme */}
@@ -387,31 +639,21 @@ export function SozlesmeStudio({
                   value={formData.ucret || ""}
                   onChange={(e) => handleFieldChange("ucret", e.target.value)}
                   placeholder="40.000,00 TL"
-                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  {renderFieldHeader("sozlesme_tarihi", "Sözleşme Tarihi (Madde 8)")}
-                  <input
-                    type="text"
-                    value={formData.sozlesme_tarihi || ""}
-                    onChange={(e) => handleFieldChange("sozlesme_tarihi", e.target.value)}
-                    placeholder="01.05.2026"
-                    className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-                  />
-                </div>
-                <div>
-                  {renderFieldHeader("sozlesme_nushalari", "Nüsha Sayısı")}
-                  <input
-                    type="text"
-                    value={formData.sozlesme_nushalari || ""}
-                    onChange={(e) => handleFieldChange("sozlesme_nushalari", e.target.value)}
-                    placeholder="2"
-                    className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-                  />
-                </div>
+              <div>
+                {renderFieldHeader("sozlesme_tarihi", "Sözleşme Tarihi (Madde 8)")}
+                <input
+                  type="text"
+                  value={formData.sozlesme_tarihi || ""}
+                  onChange={(e) => handleFieldChange("sozlesme_tarihi", e.target.value)}
+                  placeholder="01.05.2026"
+                  aria-invalid={dateInvalid}
+                  className={`h-8 w-full rounded-md border bg-background px-2.5 text-center text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 ${dateInvalid ? "border-red-500 focus:ring-red-500/20" : "border-border focus:border-amber-500 focus:ring-amber-500/20"}`}
+                />
+                {dateInvalid && <p className="mt-1 text-[9px] text-red-500">GG.AA.YYYY biçimini kullanın.</p>}
               </div>
             </div>
 
@@ -429,6 +671,7 @@ export function SozlesmeStudio({
                   {renderFieldHeader("santiye_sefi_imza_adi", "Şantiye Şefi Adı (İmza)")}
                   <input
                     type="text"
+                    maxLength={35}
                     value={formData.santiye_sefi_imza_adi || ""}
                     onChange={(e) => handleFieldChange("santiye_sefi_imza_adi", e.target.value)}
                     placeholder="Hüseyin GÜNAYDIN"
@@ -439,6 +682,7 @@ export function SozlesmeStudio({
                   {renderFieldHeader("muteahhit_imza_unvan", "Müteahhit Unvanı (İmza)")}
                   <input
                     type="text"
+                    maxLength={36}
                     value={formData.muteahhit_imza_unvan || ""}
                     onChange={(e) => handleFieldChange("muteahhit_imza_unvan", e.target.value)}
                     placeholder="ABC İNŞAAT"
@@ -496,15 +740,23 @@ export function SozlesmeStudio({
               <span className="text-[10px] font-semibold text-muted-foreground">
                 Canlı PDF Önizleme
               </span>
-              {isGenerating && (
+              {isGenerating ? (
                 <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+              ) : renderError ? (
+                <AlertCircle className="h-3 w-3 text-red-500" aria-label="Önizleme hatası" />
+              ) : hasRenderedOnce ? (
+                <CheckCircle2 className="h-3 w-3 text-emerald-500" aria-label="Önizleme güncel" />
+              ) : null}
+              {renderError && (
+                <span className="hidden xl:inline text-[9px] text-red-500">{renderError}</span>
               )}
             </div>
             {/* Page navigation for 2-page doc */}
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setPreviewPage(Math.max(1, previewPage - 1))}
+                onClick={() => setPreviewPage((page) => Math.max(1, page - 1))}
                 disabled={previewPage <= 1}
+                aria-label="Önceki PDF sayfası"
                 className="rounded px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors"
               >
                 ‹ Önceki
@@ -513,8 +765,9 @@ export function SozlesmeStudio({
                 {previewPage} / {totalPages}
               </span>
               <button
-                onClick={() => setPreviewPage(Math.min(totalPages, previewPage + 1))}
+                onClick={() => setPreviewPage((page) => Math.min(totalPages, page + 1))}
                 disabled={previewPage >= totalPages}
+                aria-label="Sonraki PDF sayfası"
                 className="rounded px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 transition-colors"
               >
                 Sonraki ›
@@ -524,6 +777,7 @@ export function SozlesmeStudio({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setZoomLevel((z) => Math.max(50, z - 10))}
+                aria-label="Önizlemeyi küçült"
                 className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ZoomOut className="h-3.5 w-3.5" />
@@ -531,6 +785,7 @@ export function SozlesmeStudio({
               <span className="text-[10px] font-mono text-muted-foreground w-9 text-center">{zoomLevel}%</span>
               <button
                 onClick={() => setZoomLevel((z) => Math.min(200, z + 10))}
+                aria-label="Önizlemeyi büyüt"
                 className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ZoomIn className="h-3.5 w-3.5" />
@@ -541,7 +796,7 @@ export function SozlesmeStudio({
           {/* Canvas container */}
           <div
             ref={previewContainerRef}
-            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"}`}
+            className={`relative flex-1 min-h-0 w-full overflow-auto overscroll-contain bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"}`}
           >
             {isGenerating && !hasRenderedOnce && (
               <div className="sticky inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10 min-h-[260px]">

@@ -302,11 +302,11 @@ ${values.tel || "-"}
     title: "Şantiye Şefi Hizmet Sözleşmesi",
     subtitle: "Müteahhit ↔ Şantiye Şefi 2 Sayfalı Hizmet Akdi",
     description:
-      "Yapı müteahhidi ile şantiye şefi arasında imzalanan resmi hizmet sözleşmesi. Taraflar, işyeri adresi, aylık brüt ücret ve sözleşme tarihi gibi değişken alanları tek panelden düzenleyip 2 sayfalı PDF olarak indirin.",
+      "Yapı müteahhidi ile şantiye şefi arasında imzalanan resmi hizmet sözleşmesi. Taraf, işyeri, YİBF ve tapu bilgilerini tek panelden düzenleyip 2 sayfalı PDF olarak indirin.",
     category: "sozlesme",
     categoryLabel: "Sözleşme",
     badge: "Düzenlenebilir PDF Form",
-    fileSize: "0.1 MB",
+    fileSize: "1.1 MB",
     downloadUrl: "/belgeler/santiye-sefi-sozlesmesi.pdf",
     studioUrl: "/belgeler/santiye-sefi-sozlesmesi",
     updatedAt: "2026",
@@ -318,20 +318,32 @@ ${values.tel || "-"}
     fields: [
       { key: "muteahhit_unvan", label: "Yapı Müteahhidi Unvanı", placeholder: "ABC İNŞAAT" },
       { key: "santiye_sefi_ad", label: "Şantiye Şefi Adı Soyadı", placeholder: "HÜSEYİN GÜNAYDIN" },
-      { key: "is_yeri", label: "İşyeri Adresi", placeholder: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel", type: "textarea" },
+      { key: "il", label: "İl", placeholder: "YOZGAT" },
+      { key: "ilce", label: "İlçe", placeholder: "AKDAĞMADENİ" },
+      { key: "adres", label: "Açık Adres", placeholder: "ÖRNEK YAPI ADRESİ" },
+      { key: "yibf", label: "YİBF No", placeholder: "1234567" },
+      { key: "pafta", label: "Pafta", placeholder: "12" },
+      { key: "mahalle", label: "Mahalle", placeholder: "ÖRNEK MAHALLESİ" },
+      { key: "ada", label: "Ada", placeholder: "666" },
+      { key: "parsel", label: "Parsel", placeholder: "66" },
       { key: "ucret", label: "Aylık Brüt Ücret", placeholder: "40.000,00 TL" },
       { key: "sozlesme_tarihi", label: "Sözleşme Tarihi", placeholder: "01.05.2026" },
-      { key: "sozlesme_nushalari", label: "Nüsha Sayısı", placeholder: "2" },
       { key: "santiye_sefi_imza_adi", label: "Şantiye Şefi İmza Adı", placeholder: "Hüseyin GÜNAYDIN" },
       { key: "muteahhit_imza_unvan", label: "Müteahhit İmza Unvanı", placeholder: "ABC İNŞAAT" },
     ],
     defaultValues: {
       muteahhit_unvan: "ABC İNŞAAT",
       santiye_sefi_ad: "HÜSEYİN GÜNAYDIN",
-      is_yeri: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel",
+      il: "YOZGAT",
+      ilce: "AKDAĞMADENİ",
+      adres: "ÖRNEK YAPI ADRESİ",
+      yibf: "1234567",
+      pafta: "12",
+      mahalle: "ÖRNEK MAHALLESİ",
+      ada: "666",
+      parsel: "66",
       ucret: "40.000,00 TL",
       sozlesme_tarihi: "01.05.2026",
-      sozlesme_nushalari: "2",
       santiye_sefi_imza_adi: "Hüseyin GÜNAYDIN",
       muteahhit_imza_unvan: "ABC İNŞAAT",
     },
@@ -340,11 +352,11 @@ ${values.tel || "-"}
 
 MADDE 1- ${values.muteahhit_unvan || "..."} isimli/unvanlı Yapı Müteahhidi ile Şantiye Şefi olarak ${values.santiye_sefi_ad || "..."} arasında sözleşme düzenlenmiştir.
 
-MADDE 2- İşyeri: ${values.is_yeri || "-"}
+MADDE 2- İşyeri: ${values.il || "-"} ili, ${values.ilce || "-"} ilçesi, ${values.adres || "-"}, ${values.mahalle || "-"}, ${values.ada || "-"} ada, ${values.parsel || "-"} parsel. YİBF: ${values.yibf || "-"}, pafta: ${values.pafta || "-"}
 
 MADDE 5- Aylık Brüt Ücret: ${values.ucret || "-"}
 
-MADDE 8- Tarih: ${values.sozlesme_tarihi || "-"}, ${values.sozlesme_nushalari || "2"} nüsha olarak düzenlenmiştir.
+MADDE 8- Tarih: ${values.sozlesme_tarihi || "-"}, 2 nüsha olarak düzenlenmiştir.
     `.trim(),
   },
 ];
