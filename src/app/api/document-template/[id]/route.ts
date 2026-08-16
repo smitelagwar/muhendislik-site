@@ -12,6 +12,8 @@ const TEMPLATE_MAP: Record<string, string> = {
   "istifa": "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
   "insaat-ruhsati-dilekcesi": "public/belgeler/insaat-ruhsati-dilekcesi.pdf",
   "insaat-ruhsati": "public/belgeler/insaat-ruhsati-dilekcesi.pdf",
+  "santiye-sefi-sozlesmesi": "public/belgeler/santiye-sefi-sozlesmesi.pdf",
+  "sozlesme": "public/belgeler/santiye-sefi-sozlesmesi.pdf",
 };
 
 export async function GET(

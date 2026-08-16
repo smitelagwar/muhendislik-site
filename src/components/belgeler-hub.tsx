@@ -17,6 +17,7 @@ import {
 import { BetonDokumStudio } from "@/components/beton-dokum-studio";
 import { InsaatRuhsatiStudio } from "@/components/insaat-ruhsati-studio";
 import { IstifaStudio } from "@/components/istifa-studio";
+import { SozlesmeStudio } from "@/components/sozlesme-studio";
 import { TaahhutnameStudio } from "@/components/taahhutname-studio";
 import {
   Dialog,
@@ -55,6 +56,12 @@ const DOCUMENT_CARD_THEMES = {
     icon: "border-violet-300/25 bg-violet-300/15 text-violet-200",
     glow: "bg-violet-400/25",
     line: "bg-violet-300/60",
+  },
+  sozlesme: {
+    surface: "bg-[linear-gradient(145deg,#0b1a12_0%,#132b1e_52%,#0a100d_100%)]",
+    icon: "border-emerald-300/25 bg-emerald-300/15 text-emerald-200",
+    glow: "bg-emerald-400/25",
+    line: "bg-emerald-300/60",
   },
 } as const;
 
@@ -185,6 +192,10 @@ function StudioPreview({ document }: { document: DocumentItem }) {
     return <InsaatRuhsatiStudio isModal />;
   }
 
+  if (document.id === "santiye-sefi-sozlesmesi") {
+    return <SozlesmeStudio isModal />;
+  }
+
   return <IstifaStudio isModal />;
 }
 
@@ -203,7 +214,7 @@ export function BelgelerHub() {
             : DOCUMENTS.filter((document) => document.category === category.id).length;
         return counts;
       },
-      { all: 0, "santiye-tutanak": 0, taahhutname: 0, dilekce: 0 },
+      { all: 0, "santiye-tutanak": 0, taahhutname: 0, dilekce: 0, sozlesme: 0 },
     );
   }, []);
 

@@ -1,4 +1,4 @@
-export type DocumentCategory = "all" | "santiye-tutanak" | "taahhutname" | "dilekce";
+export type DocumentCategory = "all" | "santiye-tutanak" | "taahhutname" | "dilekce" | "sozlesme";
 
 export interface DocumentFormField {
   key: string;
@@ -34,6 +34,7 @@ export const DOCUMENT_CATEGORIES: Array<{ id: DocumentCategory; label: string; c
   { id: "all", label: "Tüm Belgeler" },
   { id: "santiye-tutanak", label: "Şantiye & Tutanaklar" },
   { id: "taahhutname", label: "Taahhütnameler" },
+  { id: "sozlesme", label: "Sözleşmeler" },
   { id: "dilekce", label: "Dilekçeler & Başvurular" },
 ];
 
@@ -294,6 +295,56 @@ ${values.ana_metin || "Yeni inşaat yapmak istiyorum, yapı ruhsatının düzenl
 ${values.adres || "-"}
 
 ${values.tel || "-"}
+    `.trim(),
+  },
+  {
+    id: "santiye-sefi-sozlesmesi",
+    title: "Şantiye Şefi Hizmet Sözleşmesi",
+    subtitle: "Müteahhit ↔ Şantiye Şefi 2 Sayfalı Hizmet Akdi",
+    description:
+      "Yapı müteahhidi ile şantiye şefi arasında imzalanan resmi hizmet sözleşmesi. Taraflar, işyeri adresi, aylık brüt ücret ve sözleşme tarihi gibi değişken alanları tek panelden düzenleyip 2 sayfalı PDF olarak indirin.",
+    category: "sozlesme",
+    categoryLabel: "Sözleşme",
+    badge: "Düzenlenebilir PDF Form",
+    fileSize: "0.1 MB",
+    downloadUrl: "/belgeler/santiye-sefi-sozlesmesi.pdf",
+    studioUrl: "/belgeler/santiye-sefi-sozlesmesi",
+    updatedAt: "2026",
+    tags: ["sözleşme", "hizmet akdi", "şantiye şefi", "müteahhit", "ücret", "iş akdi", "yapı denetim", "yasal"],
+    targetAudience: "Şantiye Şefleri, Yapı Müteahhitleri, İnşaat Mühendisleri",
+    usageGuide:
+      "Yapı müteahhidi ile şantiye şefi atanmadan önce veya atama sürecinde doldurulur. Tarafların unvanı, işyeri adresi, aylık brüt ücret ve sözleşme tarihi girilir; 2 nüsha olarak çıktı alınıp her iki tarafça imzalanır.",
+    legalReference: "4708 sayılı Yapı Denetimi Hakkında Kanun / Şantiye Şefi Yönetmeliği",
+    fields: [
+      { key: "muteahhit_unvan", label: "Yapı Müteahhidi Unvanı", placeholder: "ABC İNŞAAT" },
+      { key: "santiye_sefi_ad", label: "Şantiye Şefi Adı Soyadı", placeholder: "HÜSEYİN GÜNAYDIN" },
+      { key: "is_yeri", label: "İşyeri Adresi", placeholder: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel", type: "textarea" },
+      { key: "ucret", label: "Aylık Brüt Ücret", placeholder: "40.000,00 TL" },
+      { key: "sozlesme_tarihi", label: "Sözleşme Tarihi", placeholder: "01.05.2026" },
+      { key: "sozlesme_nushalari", label: "Nüsha Sayısı", placeholder: "2" },
+      { key: "santiye_sefi_imza_adi", label: "Şantiye Şefi İmza Adı", placeholder: "Hüseyin GÜNAYDIN" },
+      { key: "muteahhit_imza_unvan", label: "Müteahhit İmza Unvanı", placeholder: "ABC İNŞAAT" },
+    ],
+    defaultValues: {
+      muteahhit_unvan: "ABC İNŞAAT",
+      santiye_sefi_ad: "HÜSEYİN GÜNAYDIN",
+      is_yeri: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel",
+      ucret: "40.000,00 TL",
+      sozlesme_tarihi: "01.05.2026",
+      sozlesme_nushalari: "2",
+      santiye_sefi_imza_adi: "Hüseyin GÜNAYDIN",
+      muteahhit_imza_unvan: "ABC İNŞAAT",
+    },
+    generatePreviewText: (values) => `
+ŞANTİYE ŞEFLİĞİ HİZMET SÖZLEŞMESİ
+
+MADDE 1- ${values.muteahhit_unvan || "..."} isimli/unvanlı Yapı Müteahhidi ile Şantiye Şefi olarak ${values.santiye_sefi_ad || "..."} arasında sözleşme düzenlenmiştir.
+
+MADDE 2- İşyeri: ${values.is_yeri || "-"}
+
+MADDE 5- Aylık Brüt Ücret: ${values.ucret || "-"}
+
+MADDE 8- Tarih: ${values.sozlesme_tarihi || "-"}, ${values.sozlesme_nushalari || "2"} nüsha olarak düzenlenmiştir.
     `.trim(),
   },
 ];

@@ -202,7 +202,7 @@ const cachedPdfBytes: Record<string, Uint8Array> = {};
 let cachedBoldFontBytes: Uint8Array | null = null;
 let cachedRegularFontBytes: Uint8Array | null = null;
 
-async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati"): Promise<Uint8Array> {
+async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati" | "sozlesme"): Promise<Uint8Array> {
   if (cachedPdfBytes[docType]) return cachedPdfBytes[docType].slice(0);
 
   const fileMap = {
@@ -210,6 +210,7 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
     "taahhutname": { api: "/api/document-template/santiye-sefi-taahhutnamesi", direct: "/belgeler/santiye-sefi-taahhutnamesi.pdf", disk: "santiye-sefi-taahhutnamesi.pdf" },
     "istifa": { api: "/api/document-template/santiye-sefi-istifa-dilekcesi", direct: "/belgeler/santiye-sefi-istifa-dilekcesi.pdf", disk: "santiye-sefi-istifa-dilekcesi.pdf" },
     "insaat-ruhsati": { api: "/api/document-template/insaat-ruhsati-dilekcesi", direct: "/belgeler/insaat-ruhsati-dilekcesi.pdf", disk: "insaat-ruhsati-dilekcesi.pdf" },
+    "sozlesme": { api: "/api/document-template/santiye-sefi-sozlesmesi", direct: "/belgeler/santiye-sefi-sozlesmesi.pdf", disk: "santiye-sefi-sozlesmesi.pdf" },
   };
 
   const config = fileMap[docType];
@@ -294,9 +295,46 @@ async function getRegularFontBytes(): Promise<Uint8Array> {
   }
 }
 
+// ==========================================
+// 5. ŞANTİYE ŞEFİ HİZMET SÖZLEŞMESİ
+// ==========================================
+
+export interface SozlesmeData {
+  muteahhit_unvan?: string;
+  santiye_sefi_ad?: string;
+  is_yeri?: string;
+  ucret?: string;
+  sozlesme_tarihi?: string;
+  sozlesme_nushalari?: string;
+  santiye_sefi_imza_adi?: string;
+  muteahhit_imza_unvan?: string;
+}
+
+export const SOZLESME_DEFAULT_DATA: SozlesmeData = {
+  muteahhit_unvan: "ABC İNŞAAT",
+  santiye_sefi_ad: "HÜSEYİN GÜNAYDIN",
+  is_yeri: "YOZGAT ili, AKDAĞMADENİ ilçesi, İSTANBULLUOĞLU MAHALLESİ, 368 ada, 2 parsel",
+  ucret: "40.000,00 TL",
+  sozlesme_tarihi: "01.05.2026",
+  sozlesme_nushalari: "2",
+  santiye_sefi_imza_adi: "Hüseyin GÜNAYDIN",
+  muteahhit_imza_unvan: "ABC İNŞAAT",
+};
+
+const SOZLESME_FIELD_SPECS: Record<keyof SozlesmeData, { size: number; bold?: boolean; q?: number }> = {
+  muteahhit_unvan: { size: 9.5, bold: true, q: 0 },
+  santiye_sefi_ad: { size: 9.5, bold: true, q: 0 },
+  is_yeri: { size: 9.5, bold: true, q: 0 },
+  ucret: { size: 9.5, bold: true, q: 0 },
+  sozlesme_tarihi: { size: 9.5, bold: true, q: 0 },
+  sozlesme_nushalari: { size: 9.5, bold: true, q: 1 },
+  santiye_sefi_imza_adi: { size: 9.5, bold: false, q: 0 },
+  muteahhit_imza_unvan: { size: 9.5, bold: false, q: 0 },
+};
+
 // Generic Form Populator
 async function populateForm<T extends Record<string, any>>(
-  docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati",
+  docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati" | "sozlesme",
   data: T,
   specs: Record<string, { size: number; bold?: boolean; q?: number }>,
   options: { flatten?: boolean } = { flatten: false }
@@ -504,6 +542,38 @@ export async function downloadFilledInsaatRuhsatiPdf(
   const cleanDate = (data.tarih || "08.12.2023").replace(/[^a-zA-Z0-9_-]/g, ".");
   const finalFileName =
     fileName || `INSAAT_RUHSATI_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = finalFileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+export async function generateSozlesmePdf(
+  data: SozlesmeData,
+  options: { flatten?: boolean } = { flatten: false }
+): Promise<Uint8Array> {
+  return populateForm("sozlesme", data, SOZLESME_FIELD_SPECS, options);
+}
+
+export async function downloadFilledSozlesmePdf(
+  data: SozlesmeData,
+  fileName?: string
+): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  const pdfBytes = await generateSozlesmePdf(data, { flatten: false });
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+
+  const cleanName = (data.santiye_sefi_ad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
+  const cleanDate = (data.sozlesme_tarihi || "01.05.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
+  const finalFileName =
+    fileName || `SANTIYE_SEFI_SOZLESMESI_${cleanName}_${cleanDate}.pdf`;
 
   const link = document.createElement("a");
   link.href = url;
