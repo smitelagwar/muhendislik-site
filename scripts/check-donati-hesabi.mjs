@@ -153,13 +153,8 @@ try {
   await interactionPage.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
 
   assert(
-    (await interactionPage.$$eval('[data-testid="mobile-equivalent-list"] > button[aria-pressed]', (buttons) => buttons.length)) === 5,
-    "Mobilde başlangıçta beş eşdeğer gösterilmeli.",
-  );
-  await interactionPage.click('[data-testid="mobile-equivalent-list"] > button:last-child');
-  assert(
-    (await interactionPage.$$eval('[data-testid="mobile-equivalent-list"] > button[aria-pressed]', (buttons) => buttons.length)) === 14,
-    "Tüm çaplar açıldığında 14 eşdeğer gösterilmeli.",
+    (await interactionPage.$$eval('[data-testid="mobile-equivalent-list"] > button[aria-pressed]', (buttons) => buttons.length)) === 7,
+    "Mobilde Ø8–Ø20 aralığındaki yedi eşdeğer doğrudan gösterilmeli.",
   );
 
   const alternativeButtons = await interactionPage.$$('[data-testid="mobile-equivalent-list"] > button[aria-pressed]');

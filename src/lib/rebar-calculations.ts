@@ -1,4 +1,4 @@
-export const REBAR_DIAMETERS = [8, 10, 12, 14, 16, 18, 20, 22, 24, 25, 26, 28, 30, 32] as const;
+export const REBAR_DIAMETERS = [8, 10, 12, 14, 16, 18, 20] as const;
 
 export type RebarDiameter = (typeof REBAR_DIAMETERS)[number];
 

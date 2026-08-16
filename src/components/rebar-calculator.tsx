@@ -33,7 +33,6 @@ import {
 } from "@/lib/rebar-calculations";
 import { cn } from "@/lib/utils";
 
-const MOBILE_ALTERNATIVE_LIMIT = 5;
 const SKETCH_QUANTITY_LIMIT = 30;
 
 function isValidAdvancedValue(value: number | "", minimum: number): value is number {
@@ -49,7 +48,6 @@ function toAdvancedValue(value: string): number | "" {
 export function RebarCalculator() {
   const [diameter, setDiameter] = useState<RebarDiameter>(14);
   const [quantityInput, setQuantityInput] = useState("5");
-  const [showAllMobileAlternatives, setShowAllMobileAlternatives] = useState(false);
   const [widthCm, setWidthCm] = useState<number | "">(30);
   const [coverMm, setCoverMm] = useState<number | "">(30);
   const [stirrupDiameterMm, setStirrupDiameterMm] = useState<number | "">(8);
@@ -82,10 +80,6 @@ export function RebarCalculator() {
       stirrupDiameterMm,
     });
   }, [advancedValuesAreValid, coverMm, diameter, result, stirrupDiameterMm, widthCm]);
-
-  const mobileRows = showAllMobileAlternatives
-    ? equivalentRows
-    : equivalentRows.slice(0, MOBILE_ALTERNATIVE_LIMIT);
 
   function incrementQuantity() {
     const current = quantityValidation.quantity ?? 0;
@@ -255,7 +249,7 @@ export function RebarCalculator() {
             {result ? (
               <>
                 <div className="mt-5 space-y-2 md:hidden" data-testid="mobile-equivalent-list">
-                  {mobileRows.map((row) => {
+                  {equivalentRows.map((row) => {
                     const isActive = row.diameter === diameter && row.quantity === result.quantity;
                     return (
                       <button
@@ -285,15 +279,6 @@ export function RebarCalculator() {
                     );
                   })}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAllMobileAlternatives((current) => !current)}
-                    className="mt-3 min-h-11 w-full"
-                    aria-expanded={showAllMobileAlternatives}
-                  >
-                    {showAllMobileAlternatives ? "Yakın seçenekleri göster" : "Tüm çapları göster"}
-                  </Button>
                 </div>
 
                 <div className="mt-5 hidden md:block" data-testid="desktop-equivalent-table">
