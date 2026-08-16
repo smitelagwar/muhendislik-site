@@ -259,53 +259,34 @@ Adres        : ${values.adres_deger || "-"}
       { key: "tarih", label: "Dilekçe Tarihi", placeholder: "Örn: 08.12.2023" },
       { key: "belediye_adi", label: "İlgili Belediye / İdare", placeholder: "Örn: AKDAĞMADENİ BELEDİYESİ" },
       { key: "mudurluk_adi", label: "İlgili Birim / Müdürlük", placeholder: "Örn: İmar ve Şehircilik Müdürlüğüne" },
-      { key: "konu_baslik", label: "Dilekçe Konusu", placeholder: "Örn: KONU: Yapı (İnşaat) Ruhsatı Başvurusu" },
       { key: "ana_metin", label: "Talep ve Parsel Bilgileri Metni", placeholder: "Örn: İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime...", type: "textarea" },
-      { key: "ad_soyad", label: "Başvuru Sahibi Adı Soyadı", placeholder: "Örn: Eda AKÇA" },
-      { key: "unvan", label: "Unvan / Sıfat", placeholder: "Örn: Yapı Sahibi / Arsa Sahibi" },
-      { key: "adres_deger", label: "Tebligat Adresi", placeholder: "Örn: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29 Etimesgut/Ankara", type: "textarea" },
-      { key: "tel_deger", label: "İletişim Telefonu", placeholder: "Örn: 0532 397 92 34" },
-      { key: "tc_deger", label: "T.C. Kimlik / Vergi No (Opsiyonel)", placeholder: "Örn: 12345678901" },
-      { key: "ekler_deger", label: "Eklenen Evraklar (Ekler)", placeholder: "Örn: 1. Tapu Fotokopisi\n2. İmar Durum Belgesi...", type: "textarea" },
+      { key: "ad_soyad", label: "Dilekçe Sahibi Adı Soyadı", placeholder: "Örn: Hüseyin GÜNAYDIN" },
+      { key: "adres", label: "Adres Bilgisi", placeholder: "Örn: Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara", type: "textarea" },
+      { key: "tel", label: "Telefon Numarası", placeholder: "Örn: Tel: 0546 414 57 13" },
     ],
     defaultValues: {
       tarih: "08.12.2023",
       belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
       mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
-      konu_baslik: "KONU: Yapı (İnşaat) Ruhsatı Başvurusu",
       ana_metin:
         "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
-      ad_soyad: "Eda AKÇA",
-      unvan: "Yapı Sahibi",
-      imza_alani: "(İmza)",
-      adres_etiket: "ADRES :",
-      adres_deger: "Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut / ANKARA",
-      tel_etiket: "TEL :",
-      tel_deger: "0532 397 92 34",
-      tc_etiket: "T.C. NO :",
-      tc_deger: "",
-      ekler_etiket: "EKLER :",
-      ekler_deger:
-        "1. Tapu Senedi Örneği\n2. İmar Durum Belgesi (Çap)\n3. Aplikasyon Krokisi\n4. Mimari, Statik, Mekanik ve Elektrik Projeleri",
+      ad_soyad: "Hüseyin GÜNAYDIN",
+      adres: "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara",
+      tel: "Tel: 0546 414 57 13",
     },
     generatePreviewText: (values) => `
-${values.tarih || "-"}
+                                                                                                          ${values.tarih || "-"}
 
 ${(values.belediye_adi || "BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")}
 ${values.mudurluk_adi || "İmar ve Şehircilik Müdürlüğüne"}
 
-${values.konu_baslik || "KONU: Yapı (İnşaat) Ruhsatı Talebi"}
-
 ${values.ana_metin || "Yeni inşaat yapmak istiyorum, yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim."}
 
                                                 ${values.ad_soyad || "........................"}
-                                                ${values.unvan || "Yapı Sahibi"}
-                                                (İmza)
 
-ADRES : ${values.adres_deger || "-"}
-TEL   : ${values.tel_deger || "-"}
-${values.tc_deger ? `T.C.  : ${values.tc_deger}` : ""}
-${values.ekler_deger ? `\nEKLER :\n${values.ekler_deger}` : ""}
+${values.adres || "-"}
+
+${values.tel || "-"}
     `.trim(),
   },
 ];

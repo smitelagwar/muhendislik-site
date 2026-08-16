@@ -143,7 +143,6 @@ await simulateTemizle("public/belgeler/beton-dokum-tutanagi.pdf", [
 
 console.log("\n--- Simulating Temizle for İnşaat Ruhsatı ---");
 await simulateTemizle("public/belgeler/insaat-ruhsati-dilekcesi.pdf", [
-  "tarih", "belediye_adi", "mudurluk_adi", "konu_baslik", "ana_metin",
-  "ad_soyad", "unvan", "imza_alani", "adres_etiket", "adres_deger",
-  "tel_etiket", "tel_deger", "tc_etiket", "tc_deger", "ekler_etiket", "ekler_deger"
+  "tarih", "belediye_adi", "mudurluk_adi", "ana_metin",
+  "ad_soyad", "adres", "tel"
 ]);

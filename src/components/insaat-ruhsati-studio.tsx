@@ -7,6 +7,7 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  Dice5,
   ExternalLink,
   Eye,
   FileDown,
@@ -14,13 +15,15 @@ import {
   FileText,
   Loader2,
   Maximize2,
-  Paperclip,
+  MapPin,
   Phone,
   Printer,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
   Trash2,
   Undo2,
+  User,
   UserCheck,
   X,
   ZoomIn,
@@ -39,6 +42,50 @@ interface InsaatRuhsatiStudioProps {
   onClose?: () => void;
   isModal?: boolean;
 }
+
+// Random Sample Presets for civil engineering & construction users
+const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
+  {
+    tarih: "08.12.2023",
+    belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
+    mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
+    ana_metin:
+      "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+    ad_soyad: "Hüseyin GÜNAYDIN",
+    adres: "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara",
+    tel: "Tel: 0546 414 57 13",
+  },
+  {
+    tarih: new Date().toLocaleDateString("tr-TR"),
+    belediye_adi: "KADIKÖY BELEDİYESİ",
+    mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
+    ana_metin:
+      "           İlçenin Fenerbahçe Mahallesi 1045 ada, 18 numaralı parselime yeni konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+    ad_soyad: "İnş. Müh. Hüseyin GÜNAYDIN",
+    adres: "Adres: Fenerbahçe Mah. Lale Sokak No:14/2\nKadıköy / İSTANBUL",
+    tel: "Tel: 0532 987 65 43",
+  },
+  {
+    tarih: new Date().toLocaleDateString("tr-TR"),
+    belediye_adi: "ÇANKAYA BELEDİYESİ",
+    mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
+    ana_metin:
+      "           İlçenin Çayyolu Mahallesi 728 ada, 6 numaralı parselime yeni yapı inşaatı yapmak istiyorum, Yapı ruhsatı belgesinin tarafıma tanzim edilerek verilmesini arz ederim.",
+    ad_soyad: "Hüseyin GÜNAYDIN",
+    adres: "Adres: Ümitköy Mah. 2432. Cadde Park Sitesi B Blok No:8\nÇankaya / ANKARA",
+    tel: "Tel: 0555 123 45 67",
+  },
+  {
+    tarih: new Date().toLocaleDateString("tr-TR"),
+    belediye_adi: "NİLÜFER BELEDİYESİ",
+    mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
+    ana_metin:
+      "           İlçenin Görükle Mahallesi 412 ada, 9 numaralı parselime yeni ticari + konut inşaatı yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
+    ad_soyad: "Hüseyin GÜNAYDIN",
+    adres: "Adres: Odunluk Mah. Akademi Cad. Plaza 16 Kat:4\nNilüfer / BURSA",
+    tel: "Tel: 0542 333 44 55",
+  },
+];
 
 // Safely load PDF.js in browser
 async function loadBrowserPdfJs(): Promise<any> {
@@ -136,25 +183,23 @@ export function InsaatRuhsatiStudio({
     setFormData({ ...INSAAT_RUHSATI_DEFAULT_DATA });
   };
 
+  // Randomize button handler
+  const handleRandomize = () => {
+    const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
+    const sample = RANDOM_SAMPLES[randomIndex];
+    setFormData({ ...sample });
+  };
+
   // Clear all fields (Temizle)
   const handleClearAll = () => {
     setFormData({
       tarih: "",
       belediye_adi: "",
       mudurluk_adi: "",
-      konu_baslik: "",
       ana_metin: "",
       ad_soyad: "",
-      unvan: "",
-      imza_alani: "(İmza)",
-      adres_etiket: "ADRES :",
-      adres_deger: "",
-      tel_etiket: "TEL :",
-      tel_deger: "",
-      tc_etiket: "T.C. NO :",
-      tc_deger: "",
-      ekler_etiket: "EKLER :",
-      ekler_deger: "",
+      adres: "",
+      tel: "",
     });
   };
 
@@ -344,19 +389,10 @@ export function InsaatRuhsatiStudio({
         tarih: "",
         belediye_adi: "",
         mudurluk_adi: "",
-        konu_baslik: "KONU: Yapı (İnşaat) Ruhsatı Başvurusu",
         ana_metin: "",
         ad_soyad: "",
-        unvan: "Yapı Sahibi",
-        imza_alani: "(İmza)",
-        adres_etiket: "ADRES :",
-        adres_deger: "",
-        tel_etiket: "TEL :",
-        tel_deger: "",
-        tc_etiket: "T.C. NO :",
-        tc_deger: "",
-        ekler_etiket: "EKLER :",
-        ekler_deger: "",
+        adres: "",
+        tel: "",
       };
       await downloadFilledInsaatRuhsatiPdf(emptyData, "BOS_INSAAT_RUHSATI_DILEKCESI.pdf");
     } catch (err) {
@@ -376,13 +412,7 @@ export function InsaatRuhsatiStudio({
   };
 
   return (
-    <div
-      className={`flex flex-col bg-background text-foreground ${
-        isModal
-          ? "h-full w-full overflow-hidden"
-          : "h-screen w-full overflow-hidden"
-      }`}
-    >
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       {/* Top Header & Action Bar */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-[var(--site-surface)] px-4 sm:px-6">
         <div className="flex items-center gap-3">
@@ -441,6 +471,17 @@ export function InsaatRuhsatiStudio({
               </>
             )}
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRandomize}
+            className="hidden h-8 gap-1.5 border-amber-500/30 bg-amber-500/10 px-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 sm:inline-flex"
+            title="Örnek / Rastgele Veri Doldur"
+          >
+            <Dice5 className="h-3.5 w-3.5" />
+            <span>Rastgele Örnek</span>
+          </Button>
 
           <Button
             variant="outline"
@@ -542,11 +583,21 @@ export function InsaatRuhsatiStudio({
                 Dilekçe Bilgileri
               </span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-                {filledFieldCount}/10 alan
+                {filledFieldCount}/6 alan
               </span>
             </div>
 
             <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRandomize}
+                className="h-7 gap-1 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-400"
+                title="Rastgele Örnek Veri Doldur"
+              >
+                <Sparkles className="h-3 w-3" />
+                <span>Örnek Doldur</span>
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -571,7 +622,7 @@ export function InsaatRuhsatiStudio({
           </div>
 
           {/* Form Input Fields (Scrollable) */}
-          <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
+          <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
             {/* 1. Tarih & Muhatap İdare */}
             <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
               <div className="flex items-center justify-between border-b border-border/80 pb-2">
@@ -673,36 +724,6 @@ export function InsaatRuhsatiStudio({
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
-
-                <div className="sm:col-span-2">
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="konu_baslik"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Konu Başlığı
-                    </label>
-                    {formData.konu_baslik !== INSAAT_RUHSATI_DEFAULT_DATA.konu_baslik && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("konu_baslik")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="konu_baslik"
-                    type="text"
-                    value={formData.konu_baslik || ""}
-                    onChange={(e) => handleFieldChange("konu_baslik", e.target.value)}
-                    placeholder="Örn: KONU: Yapı (İnşaat) Ruhsatı Başvurusu"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
               </div>
             </div>
 
@@ -749,199 +770,19 @@ export function InsaatRuhsatiStudio({
               </div>
             </div>
 
-            {/* 3. Başvuru Sahibi / İmza Bloğu */}
+            {/* 3. Başvuru Sahibi */}
             <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
               <div className="flex items-center justify-between border-b border-border/80 pb-2">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <User className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    3. Başvuru Sahibi & İmza
+                    3. Dilekçe Sahibi
                   </h2>
                 </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="ad_soyad"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Adı Soyadı <span className="text-red-500">*</span>
-                    </label>
-                    {formData.ad_soyad !== INSAAT_RUHSATI_DEFAULT_DATA.ad_soyad && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("ad_soyad")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="ad_soyad"
-                    type="text"
-                    value={formData.ad_soyad || ""}
-                    onChange={(e) => handleFieldChange("ad_soyad", e.target.value)}
-                    placeholder="Örn: Eda AKÇA"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="unvan"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Sıfatı / Unvanı
-                    </label>
-                    {formData.unvan !== INSAAT_RUHSATI_DEFAULT_DATA.unvan && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("unvan")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    id="unvan"
-                    type="text"
-                    value={formData.unvan || ""}
-                    onChange={(e) => handleFieldChange("unvan", e.target.value)}
-                    placeholder="Örn: Yapı Sahibi / Arsa Sahibi / Vekili"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 4. İletişim & Tebligat Bilgileri */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    4. İletişim & Tebligat Adresi
-                  </h2>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label
-                      htmlFor="adres_deger"
-                      className="text-xs font-semibold text-foreground"
-                    >
-                      Tebligat Adresi
-                    </label>
-                    {formData.adres_deger !== INSAAT_RUHSATI_DEFAULT_DATA.adres_deger && (
-                      <button
-                        type="button"
-                        onClick={() => handleLocalFieldReset("adres_deger")}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                        title="Bu alanı varsayılana sıfırla"
-                      >
-                        <Undo2 className="h-2.5 w-2.5" />
-                        Sıfırla
-                      </button>
-                    )}
-                  </div>
-                  <textarea
-                    id="adres_deger"
-                    rows={2}
-                    value={formData.adres_deger || ""}
-                    onChange={(e) => handleFieldChange("adres_deger", e.target.value)}
-                    placeholder="Örn: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29 Etimesgut / ANKARA"
-                    className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label
-                        htmlFor="tel_deger"
-                        className="text-xs font-semibold text-foreground"
-                      >
-                        İletişim Telefonu
-                      </label>
-                      {formData.tel_deger !== INSAAT_RUHSATI_DEFAULT_DATA.tel_deger && (
-                        <button
-                          type="button"
-                          onClick={() => handleLocalFieldReset("tel_deger")}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                          title="Bu alanı varsayılana sıfırla"
-                        >
-                          <Undo2 className="h-2.5 w-2.5" />
-                          Sıfırla
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      id="tel_deger"
-                      type="text"
-                      value={formData.tel_deger || ""}
-                      onChange={(e) => handleFieldChange("tel_deger", e.target.value)}
-                      placeholder="Örn: 0532 397 92 34"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label
-                        htmlFor="tc_deger"
-                        className="text-xs font-semibold text-foreground"
-                      >
-                        T.C. Kimlik / Vergi No <span className="text-[10px] font-normal text-muted-foreground">(İsteğe Bağlı)</span>
-                      </label>
-                      {formData.tc_deger !== INSAAT_RUHSATI_DEFAULT_DATA.tc_deger && (
-                        <button
-                          type="button"
-                          onClick={() => handleLocalFieldReset("tc_deger")}
-                          className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
-                          title="Bu alanı varsayılana sıfırla"
-                        >
-                          <Undo2 className="h-2.5 w-2.5" />
-                          Sıfırla
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      id="tc_deger"
-                      type="text"
-                      value={formData.tc_deger || ""}
-                      onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
-                      placeholder="Örn: 12345678901"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Ekler (Evrak Listesi) */}
-            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <Paperclip className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    5. Ekler (Eklenen Evraklar)
-                  </h2>
-                </div>
-                {formData.ekler_deger !== INSAAT_RUHSATI_DEFAULT_DATA.ekler_deger && (
+                {formData.ad_soyad !== INSAAT_RUHSATI_DEFAULT_DATA.ad_soyad && (
                   <button
                     type="button"
-                    onClick={() => handleLocalFieldReset("ekler_deger")}
+                    onClick={() => handleLocalFieldReset("ad_soyad")}
                     className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
                     title="Bu alanı varsayılana sıfırla"
                   >
@@ -953,19 +794,93 @@ export function InsaatRuhsatiStudio({
 
               <div>
                 <label
-                  htmlFor="ekler_deger"
+                  htmlFor="ad_soyad"
                   className="mb-1 block text-xs font-semibold text-foreground"
                 >
-                  Eklenen Belgeler Listesi
+                  Adı Soyadı <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  id="ekler_deger"
-                  rows={3}
-                  value={formData.ekler_deger || ""}
-                  onChange={(e) => handleFieldChange("ekler_deger", e.target.value)}
-                  placeholder="1. Tapu Senedi Örneği&#10;2. İmar Durum Belgesi (Çap)&#10;3. Aplikasyon Krokisi..."
-                  className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                <input
+                  id="ad_soyad"
+                  type="text"
+                  value={formData.ad_soyad || ""}
+                  onChange={(e) => handleFieldChange("ad_soyad", e.target.value)}
+                  placeholder="Örn: Hüseyin GÜNAYDIN"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
+              </div>
+            </div>
+
+            {/* 4. İletişim & Adres Bilgileri */}
+            <div className="space-y-3 rounded-xl border border-border bg-[var(--site-surface)] p-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-border/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
+                    4. Adres ve İletişim
+                  </h2>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label
+                      htmlFor="adres"
+                      className="text-xs font-semibold text-foreground"
+                    >
+                      Adres Bilgisi
+                    </label>
+                    {formData.adres !== INSAAT_RUHSATI_DEFAULT_DATA.adres && (
+                      <button
+                        type="button"
+                        onClick={() => handleLocalFieldReset("adres")}
+                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                        title="Bu alanı varsayılana sıfırla"
+                      >
+                        <Undo2 className="h-2.5 w-2.5" />
+                        Sıfırla
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    id="adres"
+                    rows={2}
+                    value={formData.adres || ""}
+                    onChange={(e) => handleFieldChange("adres", e.target.value)}
+                    placeholder="Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara"
+                    className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium leading-relaxed text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label
+                      htmlFor="tel"
+                      className="text-xs font-semibold text-foreground"
+                    >
+                      Telefon Numarası
+                    </label>
+                    {formData.tel !== INSAAT_RUHSATI_DEFAULT_DATA.tel && (
+                      <button
+                        type="button"
+                        onClick={() => handleLocalFieldReset("tel")}
+                        className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                        title="Bu alanı varsayılana sıfırla"
+                      >
+                        <Undo2 className="h-2.5 w-2.5" />
+                        Sıfırla
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="tel"
+                    type="text"
+                    value={formData.tel || ""}
+                    onChange={(e) => handleFieldChange("tel", e.target.value)}
+                    placeholder="Tel: 0546 414 57 13"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
               </div>
             </div>
           </div>

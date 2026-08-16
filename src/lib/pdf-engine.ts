@@ -161,59 +161,31 @@ export interface InsaatRuhsatiData {
   tarih?: string;
   belediye_adi?: string;
   mudurluk_adi?: string;
-  konu_baslik?: string;
   ana_metin?: string;
   ad_soyad?: string;
-  unvan?: string;
-  imza_alani?: string;
-  adres_etiket?: string;
-  adres_deger?: string;
-  tel_etiket?: string;
-  tel_deger?: string;
-  tc_etiket?: string;
-  tc_deger?: string;
-  ekler_etiket?: string;
-  ekler_deger?: string;
+  adres?: string;
+  tel?: string;
 }
 
 export const INSAAT_RUHSATI_DEFAULT_DATA: InsaatRuhsatiData = {
   tarih: "08.12.2023",
   belediye_adi: "AKDAĞMADENİ BELEDİYESİ",
   mudurluk_adi: "İmar ve Şehircilik Müdürlüğüne",
-  konu_baslik: "KONU: Yapı (İnşaat) Ruhsatı Başvurusu",
   ana_metin:
     "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.",
-  ad_soyad: "Eda AKÇA",
-  unvan: "Yapı Sahibi",
-  imza_alani: "(İmza)",
-  adres_etiket: "ADRES :",
-  adres_deger: "Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut / ANKARA",
-  tel_etiket: "TEL :",
-  tel_deger: "0532 397 92 34",
-  tc_etiket: "T.C. NO :",
-  tc_deger: "",
-  ekler_etiket: "EKLER :",
-  ekler_deger:
-    "1. Tapu Senedi Örneği\n2. İmar Durum Belgesi (Çap)\n3. Aplikasyon Krokisi\n4. Mimari, Statik, Mekanik ve Elektrik Projeleri",
+  ad_soyad: "Hüseyin GÜNAYDIN",
+  adres: "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara",
+  tel: "Tel: 0546 414 57 13",
 };
 
 const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number; bold?: boolean; q?: number }> = {
-  tarih: { size: 10.5, bold: true, q: 2 },
-  belediye_adi: { size: 13.0, bold: true, q: 1 },
-  mudurluk_adi: { size: 11.5, bold: true, q: 1 },
-  konu_baslik: { size: 10.0, bold: true, q: 0 },
-  ana_metin: { size: 10.5, bold: false, q: 0 },
-  ad_soyad: { size: 11.0, bold: true, q: 1 },
-  unvan: { size: 9.5, bold: false, q: 1 },
-  imza_alani: { size: 9.5, bold: false, q: 1 },
-  adres_etiket: { size: 9.5, bold: true, q: 0 },
-  adres_deger: { size: 9.5, bold: false, q: 0 },
-  tel_etiket: { size: 9.5, bold: true, q: 0 },
-  tel_deger: { size: 9.5, bold: false, q: 0 },
-  tc_etiket: { size: 9.5, bold: true, q: 0 },
-  tc_deger: { size: 9.5, bold: false, q: 0 },
-  ekler_etiket: { size: 9.5, bold: true, q: 0 },
-  ekler_deger: { size: 9.0, bold: false, q: 0 },
+  tarih: { size: 11.0, bold: true, q: 2 },
+  belediye_adi: { size: 12.0, bold: true, q: 1 },
+  mudurluk_adi: { size: 11.0, bold: true, q: 1 },
+  ana_metin: { size: 11.0, bold: false, q: 0 },
+  ad_soyad: { size: 11.0, bold: false, q: 1 },
+  adres: { size: 10.5, bold: false, q: 0 },
+  tel: { size: 10.5, bold: false, q: 0 },
 };
 
 // ==========================================

@@ -26,7 +26,7 @@ async function createInsaatRuhsatiTemplate() {
     height,
     defaultValue = "",
     multiline = false,
-    fontSize = 10,
+    fontSize = 11,
     isBold = false,
     alignment = 0 // 0=left, 1=center, 2=right
   ) => {
@@ -54,6 +54,7 @@ async function createInsaatRuhsatiTemplate() {
       tf.setText(defaultValue);
     }
 
+    // Clean widget and field AP/DV dictionaries
     tf.acroField.dict.delete(PDFName.of("AP"));
     tf.acroField.dict.delete(PDFName.of("DV"));
     const widgets = tf.acroField.getWidgets();
@@ -69,45 +70,33 @@ async function createInsaatRuhsatiTemplate() {
     return tf;
   };
 
-  // 1. Tarih (Sağ Üst)
-  addField("tarih", 380, 755, 160, 22, "08.12.2023", false, 11, true, 2);
+  // Exact coordinates matching the provided Word document screenshot:
+  // 1. Tarih (Sağ Üst: y ≈ 705)
+  addField("tarih", 350, 705, 175, 20, "08.12.2023", false, 11, true, 2);
 
-  // 2. Muhatap İdare (Ortalı & Kalın)
-  addField("belediye_adi", 54, 690, 487, 24, "AKDAĞMADENİ BELEDİYESİ", false, 13, true, 1);
-  addField("mudurluk_adi", 54, 662, 487, 22, "İmar ve Şehircilik Müdürlüğüne", false, 12, true, 1);
+  // 2. Muhatap İdare (Ortalı, Kalın: y ≈ 635 & 615)
+  addField("belediye_adi", 72, 635, 451, 22, "AKDAĞMADENİ BELEDİYESİ", false, 12, true, 1);
+  addField("mudurluk_adi", 72, 615, 451, 20, "İmar ve Şehircilik Müdürlüğüne", false, 11, true, 1);
 
-  // 3. Konu
-  addField("konu_baslik", 54, 615, 487, 20, "KONU: Yapı (İnşaat) Ruhsatı Başvurusu", false, 10, true, 0);
-
-  // 4. Ana Dilekçe Metni (Paragraf)
+  // 3. Ana Dilekçe Metni (Paragraf, girintili: y ≈ 530)
   const defaultBody = "           İlçenin Gültepe Mahallesi 351 ada, 162 numaralı parselime yeni inşaat yapmak istiyorum, Yapı ruhsatının düzenlenerek tarafıma verilmesini arz ederim.";
-  addField("ana_metin", 54, 480, 487, 120, defaultBody, true, 10.5, false, 0);
+  addField("ana_metin", 72, 520, 451, 65, defaultBody, true, 11, false, 0);
 
-  // 5. Başvuru Sahibi / İmza Bloğu (Sağ Blok)
-  addField("ad_soyad", 310, 425, 230, 22, "Eda AKÇA", false, 11, true, 1);
-  addField("unvan", 310, 405, 230, 18, "Yapı Sahibi", false, 9.5, false, 1);
-  addField("imza_alani", 310, 375, 230, 25, "(İmza)", false, 9.5, false, 1);
+  // 4. Başvuru Sahibi (Sağ Taraf: y ≈ 445)
+  addField("ad_soyad", 310, 445, 215, 22, "Hüseyin GÜNAYDIN", false, 11, false, 1);
 
-  // 6. İletişim / Tebligat Bilgileri (Sol Alt Blok)
-  addField("adres_etiket", 54, 325, 60, 18, "ADRES :", false, 9.5, true, 0);
-  addField("adres_deger", 120, 275, 420, 65, "Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut / ANKARA", true, 9.5, false, 0);
+  // 5. Adres ve Telefon (Sol Alt: y ≈ 345 & 310)
+  const defaultAdres = "Adres: Tunahan Mah. Üç Şehitler Cad. 12/C blok no:29\nEtimesgut/Ankara";
+  addField("adres", 72, 335, 451, 44, defaultAdres, true, 10.5, false, 0);
 
-  addField("tel_etiket", 54, 245, 60, 18, "TEL :", false, 9.5, true, 0);
-  addField("tel_deger", 120, 245, 200, 18, "0532 397 92 34", false, 9.5, false, 0);
-
-  addField("tc_etiket", 54, 218, 60, 18, "T.C. NO :", false, 9.5, true, 0);
-  addField("tc_deger", 120, 218, 200, 18, "", false, 9.5, false, 0);
-
-  addField("ekler_etiket", 54, 180, 60, 18, "EKLER :", false, 9.5, true, 0);
-  const defaultEkler = "1. Tapu Senedi Örneği\n2. İmar Durum Belgesi (Çap)\n3. Aplikasyon Krokisi\n4. Mimari, Statik, Mekanik ve Elektrik Projeleri";
-  addField("ekler_deger", 120, 95, 420, 100, defaultEkler, true, 9, false, 0);
+  addField("tel", 72, 305, 451, 20, "Tel: 0546 414 57 13", false, 10.5, false, 0);
 
   form.updateFieldAppearances(boldFont);
 
   const pdfBytes = await pdfDoc.save();
   const outputPath = path.join(process.cwd(), "public", "belgeler", "insaat-ruhsati-dilekcesi.pdf");
   fs.writeFileSync(outputPath, pdfBytes);
-  console.log(`✅ Generated template at: ${outputPath} (${pdfBytes.length} bytes)`);
+  console.log(`✅ Generated perfect 1:1 Insaat Ruhsati Template at: ${outputPath} (${pdfBytes.length} bytes)`);
 }
 
 createInsaatRuhsatiTemplate().catch(console.error);
