@@ -136,7 +136,7 @@ export const TOOLS: ToolDefinition[] = [
   {
     id: "taban-kesme-kuvveti",
     name: "Eşdeğer Deprem Yükü",
-    href: "/deprem-yonetmelik/araclar/esit-deprem-yuku",
+    href: "/kategori/araclar/taban-kesme-kuvveti",
     description: "TBDY 2018'e göre taban kesme kuvvetini ve katlara dağılan yatay deprem yüklerini hesaplayın.",
     iconKey: "earthquake",
     discipline: "Deprem Mühendisliği",
@@ -147,7 +147,7 @@ export const TOOLS: ToolDefinition[] = [
   {
     id: "duzensizlik-kontrolu",
     name: "Düzensizlik Kontrolü",
-    href: "/deprem-yonetmelik/araclar/duzensizlik-kontrolu",
+    href: "/kategori/araclar/duzensizlik-kontrolu",
     description: "TBDY 2018'e göre A1–A3 plan ve B1–B3 düşey düzensizliklerini kontrol edin.",
     iconKey: "check",
     discipline: "Deprem Mühendisliği",
@@ -158,7 +158,7 @@ export const TOOLS: ToolDefinition[] = [
   {
     id: "zemin-sinifi",
     name: "Yerel Zemin Sınıfı",
-    href: "/deprem-yonetmelik/araclar/zemin-sinifi",
+    href: "/kategori/araclar/zemin-sinifi",
     description: "Vs30, SPT-N60 veya cu verileriyle TBDY 2018 yerel zemin sınıfını belirleyin.",
     iconKey: "soil",
     discipline: "Geoteknik",

@@ -376,27 +376,27 @@ export function EstimatedConstructionAreaClient() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-6 py-10 sm:px-10 lg:px-16">
         <div className="mb-10 max-w-4xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-teal-700 dark:text-teal-300">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/15 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
             <Calculator className="h-3.5 w-3.5" />
             Emsalden inşaat alanına geçiş
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-5xl">
+          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
             Tahmini İnşaat Alanı Hesabı
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
             Net parsel alanı, TAKS, KAKS ve kat sayısından yola çıkarak emsale dahil alanı,
             emsal harici tipik büyümeyi ve bodrum katkısını birlikte değerlendirin. Amaç,
-            resmi işlem öncesinde savunulabilir bir <strong>yaklaşık toplam inşaat alanı</strong>{" "}
+            resmi işlem öncesinde savunulabilir bir <strong className="text-white">yaklaşık toplam inşaat alanı</strong>{" "}
             üretmektir.
           </p>
-          <div className="mt-6 rounded-[28px] border border-teal-200/70 bg-white/70 p-5 text-sm leading-7 text-zinc-700 shadow-[0_18px_48px_-36px_rgba(13,148,136,0.35)] dark:border-teal-900/70 dark:bg-zinc-950/60 dark:text-zinc-300">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
-              Aktif profil varsayımı
+          <div className="mt-6 rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-5 text-sm leading-7 text-slate-300 shadow-[0_18px_48px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+              Aktif Profil Varsayımı
             </p>
-            <p className="mt-2 text-base font-black text-zinc-950 dark:text-white">
+            <p className="mt-2 text-base font-black text-white">
               {activeProfile.label}
             </p>
-            <p className="mt-2">{activeProfile.helper}</p>
+            <p className="mt-1 text-xs text-slate-400">{activeProfile.helper}</p>
           </div>
         </div>
 

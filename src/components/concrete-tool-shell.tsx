@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { ConcreteStandardsNote } from "@/components/concrete-tool-primitives";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import {
@@ -33,41 +32,50 @@ export function ConcreteToolShell({
   children,
 }: ConcreteToolShellProps) {
   return (
-    <div className={cn(concreteBodyFont.className, "tool-page-shell py-8 md:py-14")}>
+    <div className={cn(concreteBodyFont.className, "tool-page-shell relative min-h-screen py-8 md:py-14 text-foreground")}>
+      {/* Background ambient glow flares */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-gradient-to-b from-purple-600/20 via-indigo-600/10 to-transparent blur-[120px] dark:from-purple-600/25" />
+        <div className="absolute top-[30%] right-[-10%] h-[400px] w-[500px] rounded-full bg-violet-600/10 blur-[130px] dark:bg-violet-600/18" />
+      </div>
+
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <PageContextNavigation
           showBreadcrumbs={false}
           className="mb-8"
           backLinkClassName={cn(
             concreteMonoFont.className,
-            "inline-flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-300",
+            "inline-flex items-center gap-2 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#120f28]/90 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200 backdrop-blur-xl transition-all hover:border-purple-500/50 hover:bg-card dark:hover:bg-[#1b173b] hover:text-foreground dark:hover:text-white",
           )}
         />
 
         <div className="mb-8 max-w-4xl">
-          <Badge
+          <div
             className={cn(
               concreteMonoFont.className,
-              "mb-4 bg-amber-500/10 px-4 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-800 hover:bg-amber-500/15 dark:text-amber-300",
+              "mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md",
             )}
           >
-            {badgeLabel}
-          </Badge>
+            <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
+            <span>{badgeLabel}</span>
+          </div>
+
           <h1
             className={cn(
               concreteDisplayFont.className,
-              "text-3xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-4xl md:text-6xl",
+              "text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl lg:text-6xl",
             )}
           >
             {title}
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
+
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground dark:text-zinc-300 md:text-base font-normal">
             {description}
           </p>
         </div>
 
-        <nav className="mb-6 overflow-x-auto pb-2">
-          <div className="flex min-w-max gap-3">
+        <nav className="mb-8 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex min-w-max gap-2.5">
             {CONCRETE_TOOL_NAV.map((item) => {
               const isActive = item.id === toolId;
 
@@ -78,10 +86,10 @@ export function ConcreteToolShell({
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     concreteMonoFont.className,
-                    "min-h-[44px] rounded-md border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
+                    "min-h-[42px] rounded-xl px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-95 flex items-center",
                     isActive
-                      ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                      : "border-border bg-card text-muted-foreground hover:border-blue-500/35 hover:text-blue-700 dark:hover:text-blue-300",
+                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] font-black"
+                      : "border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#120f28]/80 text-muted-foreground dark:text-zinc-300 hover:border-purple-500/40 hover:bg-purple-500/10 hover:text-foreground dark:hover:text-white",
                   )}
                 >
                   {item.label}
@@ -94,7 +102,7 @@ export function ConcreteToolShell({
         {children}
 
         <ConcreteStandardsNote
-          className="mt-6"
+          className="mt-8"
           standards={CONCRETE_TOOL_STANDARDS}
           note={CONCRETE_TOOL_DISCLAIMER}
         />

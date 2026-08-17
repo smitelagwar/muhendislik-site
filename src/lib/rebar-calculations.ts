@@ -1,6 +1,8 @@
 export const REBAR_DIAMETERS = [8, 10, 12, 14, 16, 18, 20] as const;
+export const ALL_REBAR_DIAMETERS = [6, 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32] as const;
 
 export type RebarDiameter = (typeof REBAR_DIAMETERS)[number];
+export type FullRebarDiameter = (typeof ALL_REBAR_DIAMETERS)[number];
 
 export interface RebarCalculationResult {
   barAreaMm2: number;
@@ -13,6 +15,23 @@ export interface EquivalentRebarRow {
   quantity: number;
   providedAreaMm2: number;
   surplusAreaMm2: number;
+}
+
+export interface RebarUnitWeightItem {
+  diameter: FullRebarDiameter;
+  barAreaCm2: number;
+  barAreaMm2: number;
+  weightPerMeterKg: number;
+  weightPerBar12mKg: number;
+  metersPerTon: number;
+  barsPerTon12m: number;
+}
+
+export interface RebarAreaMatrixRow {
+  diameter: FullRebarDiameter;
+  barAreaCm2: number;
+  barAreaMm2: number;
+  areas: { quantity: number; areaCm2: number; areaMm2: number }[];
 }
 
 export interface RebarRowLayout {
@@ -37,12 +56,25 @@ const integerFormatter = new Intl.NumberFormat("tr-TR", {
   maximumFractionDigits: 0,
 });
 
+const weightDecimalFormatter = new Intl.NumberFormat("tr-TR", {
+  minimumFractionDigits: 3,
+  maximumFractionDigits: 3,
+});
+
 export function formatDecimal(value: number): string {
   return fixedDecimalFormatter.format(value);
 }
 
+export function formatWeight(value: number): string {
+  return weightDecimalFormatter.format(value);
+}
+
 export function formatInteger(value: number): string {
   return integerFormatter.format(value);
+}
+
+export function calculateLinearWeight(diameterMm: number): number {
+  return (Math.PI * Math.pow(diameterMm / 1000, 2) / 4) * 7850;
 }
 
 export function formatAreaMm2(value: number): string {
@@ -77,7 +109,7 @@ export function parseRebarQuantity(value: string): { quantity: number | null; er
   return { quantity, error: null };
 }
 
-export function calculateBarArea(diameter: RebarDiameter): number {
+export function calculateBarArea(diameter: number): number {
   return (Math.PI * diameter * diameter) / 4;
 }
 
@@ -109,6 +141,52 @@ export function buildEquivalentRebarRows(totalAreaMm2: number): EquivalentRebarR
     (left, right) =>
       left.surplusAreaMm2 - right.surplusAreaMm2 || left.diameter - right.diameter,
   );
+}
+
+export function buildRebarUnitWeightTable(): RebarUnitWeightItem[] {
+  return ALL_REBAR_DIAMETERS.map((diameter) => {
+    const barAreaMm2 = calculateBarArea(diameter);
+    const barAreaCm2 = barAreaMm2 / 100;
+    const weightPerMeterKg = calculateLinearWeight(diameter);
+    const weightPerBar12mKg = weightPerMeterKg * 12;
+    const metersPerTon = 1000 / weightPerMeterKg;
+    const barsPerTon12m = Math.floor(1000 / weightPerBar12mKg);
+
+    return {
+      diameter,
+      barAreaCm2,
+      barAreaMm2,
+      weightPerMeterKg,
+      weightPerBar12mKg,
+      metersPerTon,
+      barsPerTon12m,
+    };
+  });
+}
+
+export function buildRebarAreaMatrix(maxQuantity = 10): RebarAreaMatrixRow[] {
+  const quantities = Array.from({ length: maxQuantity }, (_, i) => i + 1);
+
+  return ALL_REBAR_DIAMETERS.map((diameter) => {
+    const barAreaMm2 = calculateBarArea(diameter);
+    const barAreaCm2 = barAreaMm2 / 100;
+
+    const areas = quantities.map((q) => {
+      const totalMm2 = barAreaMm2 * q;
+      return {
+        quantity: q,
+        areaCm2: totalMm2 / 100,
+        areaMm2: totalMm2,
+      };
+    });
+
+    return {
+      diameter,
+      barAreaCm2,
+      barAreaMm2,
+      areas,
+    };
+  });
 }
 
 export function getRebarRowLayout(quantity: number): RebarRowLayout {

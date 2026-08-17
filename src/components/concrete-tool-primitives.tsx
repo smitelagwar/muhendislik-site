@@ -9,16 +9,16 @@ import { cn } from "@/lib/utils";
 type ValueTone = ConcreteStatusTone | "neutral";
 
 const valueToneClasses: Record<ValueTone, string> = {
-  neutral: "text-amber-200 dark:text-amber-200",
-  ok: "text-emerald-200 dark:text-emerald-200",
-  warn: "text-amber-200 dark:text-amber-200",
-  fail: "text-red-200 dark:text-red-200",
+  neutral: "text-purple-300 dark:text-purple-300",
+  ok: "text-emerald-400 dark:text-emerald-300",
+  warn: "text-amber-400 dark:text-amber-300",
+  fail: "text-rose-400 dark:text-rose-300",
 };
 
 const badgeToneClasses: Record<ConcreteStatusTone, string> = {
-  ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  warn: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  fail: "border-red-500/30 bg-red-500/10 text-red-300",
+  ok: "border-emerald-500/40 bg-emerald-500/15 text-emerald-400 dark:text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]",
+  warn: "border-amber-500/40 bg-amber-500/15 text-amber-400 dark:text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]",
+  fail: "border-rose-500/40 bg-rose-500/15 text-rose-400 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]",
 };
 
 export function ConcreteFieldLabel({
@@ -29,7 +29,7 @@ export function ConcreteFieldLabel({
   unit?: string;
 }) {
   return (
-    <label className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+    <label className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
       <span>{label}</span>
       {unit ? (
         <span className={cn(concreteMonoFont.className, "tool-chip rounded-md px-2 py-0.5 text-[10px] font-bold")}>
@@ -50,12 +50,12 @@ export function ConcreteFormulaCard({
   className?: string;
 }) {
   return (
-    <div className={cn("tool-formula-card rounded-xl p-4 shadow-sm", className)}>
+    <div className={cn("tool-formula-card rounded-2xl p-5 shadow-sm", className)}>
       <div className="flex items-center gap-2 text-zinc-300">
-        <FileText className="h-4 w-4 text-blue-300" />
-        <p className="text-base font-black uppercase tracking-[0.12em]">{title}</p>
+        <FileText className="h-4 w-4 text-purple-400" />
+        <p className="text-xs font-black uppercase tracking-wider text-purple-200">{title}</p>
       </div>
-      <div className={cn(concreteMonoFont.className, "mt-3 overflow-x-auto text-sm leading-6 text-zinc-100")}>{children}</div>
+      <div className={cn(concreteMonoFont.className, "mt-3 overflow-x-auto text-xs sm:text-sm leading-6 text-zinc-100 font-medium")}>{children}</div>
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function ConcreteStatusBadge({
   className?: string;
 }) {
   return (
-    <div className={cn(concreteMonoFont.className, "inline-flex rounded-md border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]", badgeToneClasses[tone], className)}>
+    <div className={cn(concreteMonoFont.className, "inline-flex rounded-xl border px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-sm", badgeToneClasses[tone], className)}>
       {label}
     </div>
   );
@@ -86,9 +86,9 @@ export function ConcreteResultRow({
   tone?: ValueTone;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-white/10 py-3 last:border-b-0 last:pb-0 first:pt-0">
-      <span className="text-sm text-slate-300/88">{label}</span>
-      <span className={cn(concreteMonoFont.className, "text-right text-sm font-semibold", valueToneClasses[tone])}>{value}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-border/60 dark:border-white/10 py-3 last:border-b-0 last:pb-0 first:pt-0">
+      <span className="text-xs sm:text-sm text-muted-foreground dark:text-zinc-300 font-medium">{label}</span>
+      <span className={cn(concreteMonoFont.className, "text-right text-xs sm:text-sm font-bold tabular-nums", valueToneClasses[tone])}>{value}</span>
     </div>
   );
 }
@@ -103,11 +103,11 @@ export function ConcreteMetricCard({
   unit: string;
 }) {
   return (
-    <div className="tool-panel rounded-xl p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">{label}</p>
-      <div className="mt-3 flex items-end gap-2">
-        <p className={cn(concreteMonoFont.className, "text-2xl font-black text-zinc-950 dark:text-white sm:text-3xl")}>{value}</p>
-        <p className={cn(concreteMonoFont.className, "pb-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400")}>{unit}</p>
+    <div className="tool-panel rounded-2xl p-5">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-400">{label}</p>
+      <div className="mt-3 flex items-baseline gap-2">
+        <p className={cn(concreteMonoFont.className, "text-2xl sm:text-3xl font-black text-foreground dark:text-white tabular-nums drop-shadow-[0_0_15px_rgba(192,132,252,0.3)]")}>{value}</p>
+        <p className={cn(concreteMonoFont.className, "text-xs font-bold text-purple-400 dark:text-purple-300")}>{unit}</p>
       </div>
     </div>
   );
@@ -123,15 +123,15 @@ export function ConcreteStandardsNote({
   className?: string;
 }) {
   return (
-    <div className={cn("tool-panel rounded-xl p-5", className)}>
-      <div className="flex items-start gap-3">
-        <div className="rounded-md bg-blue-500/10 p-3 text-blue-700 dark:text-blue-300">
-          <Sigma className="h-4 w-4" />
+    <div className={cn("tool-panel rounded-2xl p-6", className)}>
+      <div className="flex items-start gap-3.5">
+        <div className="rounded-xl bg-purple-500/15 border border-purple-500/30 p-3 text-purple-400 shrink-0">
+          <Sigma className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Referans standartlar</p>
-          <p className="mt-2 text-xl font-black tracking-tight text-zinc-950 dark:text-white">{standards}</p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{note}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-400">Referans Standartlar</p>
+          <p className="mt-1.5 text-base sm:text-lg font-black tracking-tight text-foreground dark:text-white">{standards}</p>
+          <p className="mt-2 text-xs sm:text-sm leading-relaxed text-muted-foreground dark:text-zinc-300 font-normal">{note}</p>
         </div>
       </div>
     </div>

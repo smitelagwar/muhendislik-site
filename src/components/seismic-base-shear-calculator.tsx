@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Activity, CheckCircle2, AlertTriangle, Copy, SlidersHorizontal, Info } from "lucide-react";
+import { ArrowLeft, Activity, Copy, SlidersHorizontal, Info, Check } from "lucide-react";
+import { PageContextNavigation } from "@/components/page-context-navigation";
+import { cn } from "@/lib/utils";
 
 const SOIL_CLASSES = [
   { name: "ZA (Sağlam Kayalık)", fs_low: 0.8, fs_high: 0.8, f1_low: 0.8, f1_high: 0.8 },
@@ -43,28 +45,23 @@ export function SeismicBaseShearCalculator() {
   const R = BUILDING_SYSTEMS[systemIdx].r;
 
   const results = useMemo(() => {
-    // Spectral coefficient amplification (Fs for SS, F1 for S1)
-    // Use average of range for simplicity (mid-range TBDY Table 2.1)
     const Fs = (selectedSoil.fs_low + selectedSoil.fs_high) / 2;
     const F1 = (selectedSoil.f1_low + selectedSoil.f1_high) / 2;
 
-    const SDs = Fs * ss; // Short design spectral accel.
-    const SD1 = F1 * s1; // Long design spectral accel.
+    const SDs = Fs * ss;
+    const SD1 = F1 * s1;
 
-    // Period limits
-    const TA = 0.2 * SD1 / SDs;
+    const TA = (0.2 * SD1) / SDs;
     const TB = SD1 / SDs;
-    const TL = 6.0; // Always 6 sec for Turkey per TBDY 2018
+    const TL = 6.0;
 
-    // Empirical period: T1 = Ct * HN^0.75
-    const Ct = 0.07; // Betonarme çerçeve
+    const Ct = 0.07;
     const HN = numFloors * floorHeightM;
     const T1emp = Ct * Math.pow(HN, 0.75);
 
-    // Spectral acceleration at T1
     let SaT1: number;
     if (T1emp <= TA) {
-      SaT1 = (0.4 + 0.6 * T1emp / TA) * SDs;
+      SaT1 = (0.4 + (0.6 * T1emp) / TA) * SDs;
     } else if (T1emp <= TB) {
       SaT1 = SDs;
     } else if (T1emp <= TL) {
@@ -73,18 +70,11 @@ export function SeismicBaseShearCalculator() {
       SaT1 = (SD1 * TL) / (T1emp * T1emp);
     }
 
-    // Equivalent seismic load method (Vt = m * Sar(T1) = W/g * Sar * g)
-    // Sar(T1) = SaT1 / R * I (seismic reduced demand)
     const Sar = (SaT1 * importance) / R;
-
-    // Total base shear Vt = W * Sar / g * g = W * Sar (since W already in force units)
     const Vt = totalWeightKn * Sar;
-
-    // Minimum Vt: TBDY 2018 - Vt >= 0.04 * I * SDS * W
     const VtMin = 0.04 * importance * SDs * totalWeightKn;
     const VtFinal = Math.max(Vt, VtMin);
 
-    // Floor force distribution (triangular)
     const floors = Array.from({ length: numFloors }, (_, i) => {
       const floorNum = i + 1;
       const hi = floorNum * floorHeightM;
@@ -114,10 +104,10 @@ export function SeismicBaseShearCalculator() {
       Fs: Fs.toFixed(2),
       F1: F1.toFixed(2),
     };
-  }, [ss, s1, soilClassIdx, importanceIdx, systemIdx, totalWeightKn, numFloors, floorHeightM]);
+  }, [ss, s1, soilClassIdx, importanceIdx, systemIdx, totalWeightKn, numFloors, floorHeightM, selectedSoil]);
 
   const handleCopyReport = () => {
-    const text = `TBDY 2018 EŞDEĞer DEPREM YÜK YÖNTEMİ — TABAN KESME KUVVETİ
+    const text = `TBDY 2018 EŞDEĞER DEPREM YÜK YÖNTEMİ — TABAN KESME KUVVETİ
 -----------------------------------------------------------
 Sahaya Özel Zemin Katsayıları:
   SS (Kısa Periyot): ${ss}  |  S1 (1 sn): ${s1}
@@ -147,198 +137,283 @@ SONUÇ:
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between">
-        <Link href="/kategori/araclar"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400 transition-colors">
-          <ArrowLeft className="h-4 w-4" />Hesap Araçlarına Dön
-        </Link>
-        <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">
-          TBDY 2018 Bölüm 4
-        </span>
+    <div className="tool-page-shell relative min-h-screen py-8 md:py-14 text-foreground">
+      {/* Cosmic Background Glows */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-gradient-to-b from-purple-600/20 via-indigo-600/10 to-transparent blur-[120px] dark:from-purple-600/25" />
       </div>
 
-      <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
-            <Activity className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
-              Eşdeğer Deprem Yükü & Taban Kesme Kuvveti
-            </h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
-              TBDY 2018 Denklem 4.1: Eşdeğer yük yöntemi ile kat deprem kuvvetleri ve taban kesme kuvveti hesabı.
-            </p>
-          </div>
-        </div>
-      </header>
+      <div className="mx-auto max-w-6xl space-y-8 px-4 sm:px-6 lg:px-8">
+        <PageContextNavigation
+          showBreadcrumbs={false}
+          className="mb-8"
+          backLinkClassName="inline-flex items-center gap-2 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#120f28]/90 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200 backdrop-blur-xl transition-all hover:border-purple-500/50 hover:bg-card dark:hover:bg-[#1b173b] hover:text-foreground dark:hover:text-white"
+        />
 
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Inputs */}
-        <div className="space-y-6 lg:col-span-7">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-7">
-            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4 dark:border-white/[0.06]">
-              <SlidersHorizontal className="h-5 w-5 text-rose-500" />
-              <h2 className="text-base font-black text-slate-900 dark:text-white">TBDY 2018 Parametreleri</h2>
+        {/* Hero Header Card */}
+        <section className="relative overflow-hidden rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
+                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
+                <span>TBDY 2018 Bölüm 4</span>
+              </div>
+              <h1 className="text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
+                Eşdeğer Deprem Yükü &{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-400">
+                  Taban Kesme Kuvveti
+                </span>
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground dark:text-zinc-300 md:text-base">
+                TBDY 2018 Denklem 4.1: Eşdeğer deprem yükü yöntemi ile kat deprem kuvvetleri ve toplam taban kesme kuvveti hesabı.
+              </p>
             </div>
-
-            <div className="mt-5 space-y-5">
-              {/* SS & S1 from AFAD */}
-              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5 text-xs text-blue-700 dark:text-blue-300 flex gap-2">
-                <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>$S_S$ ve $S_1$ değerlerini AFAD Deprem Tehlike Haritası'ndan elde edin (DTS, 50 yılda %10 aşılma olasılığı).</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                      Kısa Periyot $S_S$
-                    </label>
-                    <span className="font-mono text-xs font-bold text-rose-600 dark:text-rose-400">{ss.toFixed(2)}</span>
-                  </div>
-                  <input type="range" min={0.1} max={3.0} step={0.05} value={ss}
-                    onChange={(e) => setSs(Number(e.target.value))} className="mt-2 w-full accent-rose-500" />
-                </div>
-                <div>
-                  <div className="flex justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                      1 sn Periyot $S_1$
-                    </label>
-                    <span className="font-mono text-xs font-bold text-rose-600 dark:text-rose-400">{s1.toFixed(2)}</span>
-                  </div>
-                  <input type="range" min={0.05} max={1.5} step={0.05} value={s1}
-                    onChange={(e) => setS1(Number(e.target.value))} className="mt-2 w-full accent-rose-500" />
-                </div>
-              </div>
-
-              {/* Soil Class */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Yerel Zemin Sınıfı (TBDY 2018 Tablo 16.1)</label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {SOIL_CLASSES.map((sc, idx) => (
-                    <button key={sc.name} onClick={() => setSoilClassIdx(idx)}
-                      className={`rounded-xl border px-2 py-2.5 text-xs font-bold transition-all leading-tight ${soilClassIdx === idx ? "border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-400" : "border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"}`}>
-                      {sc.name.split(" ")[0]}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">Seçili: {SOIL_CLASSES[soilClassIdx].name}</p>
-              </div>
-
-              {/* Structural System */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Taşıyıcı Sistem (R Katsayısı)</label>
-                <select value={systemIdx} onChange={(e) => setSystemIdx(Number(e.target.value))}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white">
-                  {BUILDING_SYSTEMS.map((bs, idx) => (
-                    <option key={bs.name} value={idx}>{bs.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Importance */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Bina Önem Katsayısı I</label>
-                <div className="mt-2 space-y-2">
-                  {IMPORTANCE_FACTORS.map((f, idx) => (
-                    <label key={f.name} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/5">
-                      <input type="radio" name="importance" checked={importanceIdx === idx}
-                        onChange={() => setImportanceIdx(idx)} className="accent-rose-500" />
-                      <span className="text-sm font-semibold text-slate-900 dark:text-white">{f.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Building loads */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="flex justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">$W$ (kN)</label>
-                    <span className="font-mono text-xs font-bold text-rose-600 dark:text-rose-400">{totalWeightKn}</span>
-                  </div>
-                  <input type="range" min={500} max={50000} step={500} value={totalWeightKn}
-                    onChange={(e) => setTotalWeightKn(Number(e.target.value))} className="mt-2 w-full accent-rose-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Kat Sayısı N</label>
-                  <input type="number" value={numFloors} onChange={(e) => setNumFloors(Number(e.target.value))} min={1} max={30}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Kat Yük. h (m)</label>
-                  <input type="number" value={floorHeightM} onChange={(e) => setFloorHeightM(Number(e.target.value))} min={2.5} max={6} step={0.1}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white" />
-                </div>
-              </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 shrink-0">
+              <Activity className="h-6 w-6" />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Results */}
-        <div className="space-y-6 lg:col-span-5">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-7">
-            {/* Vt Banner */}
-            <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-center">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">Tasarım Taban Kesme Kuvveti</span>
-              <div className="mt-2 font-mono text-4xl font-black text-slate-900 dark:text-white">
-                {results.VtFinal} <span className="text-xl font-semibold text-slate-500">kN</span>
+        <div className="grid gap-8 lg:grid-cols-12">
+          {/* Inputs */}
+          <div className="space-y-6 lg:col-span-7">
+            <section className="tool-panel rounded-[32px] p-6 sm:p-8">
+              <div className="flex items-center gap-2.5 border-b border-border/70 dark:border-white/10 pb-4">
+                <SlidersHorizontal className="h-5 w-5 text-purple-400" />
+                <h2 className="text-lg font-black text-foreground dark:text-white">TBDY 2018 Parametreleri</h2>
               </div>
-              <div className="mt-1 text-xs text-slate-500">
-                T₁ = {results.T1emp} s | Sa(T₁) = {results.SaT1} | Sar = {results.Sar}
-              </div>
-            </div>
 
-            {/* Spectral params */}
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-                <span className="text-slate-500 dark:text-zinc-400">S_DS (Kısa Periyot)</span>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-white">{results.SDs}</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-                <span className="text-slate-500 dark:text-zinc-400">S_D1 (1 sn Periyot)</span>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-white">{results.SD1}</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-                <span className="text-slate-500 dark:text-zinc-400">T_A / T_B Limit</span>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-white">{results.TA} / {results.TB} s</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-                <span className="text-slate-500 dark:text-zinc-400">Bina Yük. H_N</span>
-                <div className="font-mono text-base font-black text-slate-900 dark:text-white">{results.HN} m</div>
-              </div>
-            </div>
+              <div className="mt-6 space-y-5">
+                {/* AFAD info alert */}
+                <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 text-xs text-purple-200 flex gap-3">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5 text-purple-400" />
+                  <span>Sₛ ve S₁ spektral ivme katsayılarını AFAD Türkiye Deprem Tehlike Haritası&apos;ndan elde edin (DD-2 deprem düzeyi, 50 yılda %10 aşılma olasılığı).</span>
+                </div>
 
-            {/* Floor Forces Table */}
-            <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-white/5">
-                    <th className="p-2.5 text-left font-bold text-slate-600 dark:text-zinc-300">Kat</th>
-                    <th className="p-2.5 text-right font-bold text-slate-600 dark:text-zinc-300">h (m)</th>
-                    <th className="p-2.5 text-right font-bold text-slate-600 dark:text-zinc-300">Fi (kN)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.floorForces.slice().reverse().map((f) => (
-                    <tr key={f.floorNum} className="border-t border-slate-100 dark:border-white/[0.04]">
-                      <td className="p-2.5 font-mono font-semibold text-slate-900 dark:text-white">{f.floorNum}. Kat</td>
-                      <td className="p-2.5 text-right font-mono text-slate-700 dark:text-zinc-300">{f.hi.toFixed(1)}</td>
-                      <td className="p-2.5 text-right font-mono font-bold text-rose-600 dark:text-rose-400">{f.Fi}</td>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
+                        Kısa Periyot Sₛ
+                      </label>
+                      <span className="font-mono text-xs font-black text-purple-400">{ss.toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.1}
+                      max={3.0}
+                      step={0.05}
+                      value={ss}
+                      onChange={(e) => setSs(Number(e.target.value))}
+                      className="mt-3 w-full cursor-pointer accent-[#a855f7]"
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
+                        1 sn Periyot S₁
+                      </label>
+                      <span className="font-mono text-xs font-black text-purple-400">{s1.toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.05}
+                      max={1.5}
+                      step={0.05}
+                      value={s1}
+                      onChange={(e) => setS1(Number(e.target.value))}
+                      className="mt-3 w-full cursor-pointer accent-[#a855f7]"
+                    />
+                  </div>
+                </div>
+
+                {/* Soil Class */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
+                    Yerel Zemin Sınıfı (TBDY 2018 Tablo 16.1)
+                  </label>
+                  <div className="mt-2.5 grid grid-cols-3 gap-2">
+                    {SOIL_CLASSES.map((sc, idx) => (
+                      <button
+                        key={sc.name}
+                        type="button"
+                        onClick={() => setSoilClassIdx(idx)}
+                        className={cn(
+                          "rounded-xl border px-2.5 py-3 text-xs font-bold transition-all text-center",
+                          soilClassIdx === idx
+                            ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.35)] border-transparent"
+                            : "border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 text-muted-foreground dark:text-zinc-300 hover:border-purple-500/40 hover:text-white",
+                        )}
+                      >
+                        {sc.name.split(" ")[0]}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground dark:text-zinc-400">Seçili: {SOIL_CLASSES[soilClassIdx].name}</p>
+                </div>
+
+                {/* Structural System */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
+                    Taşıyıcı Sistem (R Katsayısı)
+                  </label>
+                  <select
+                    value={systemIdx}
+                    onChange={(e) => setSystemIdx(Number(e.target.value))}
+                    className="tool-input mt-2 w-full h-12 text-foreground dark:text-white font-bold"
+                  >
+                    {BUILDING_SYSTEMS.map((bs, idx) => (
+                      <option key={bs.name} value={idx} className="bg-card dark:bg-[#16132e] text-foreground dark:text-white">
+                        {bs.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Importance */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
+                    Bina Önem Katsayısı (I)
+                  </label>
+                  <div className="mt-2.5 space-y-2">
+                    {IMPORTANCE_FACTORS.map((f, idx) => (
+                      <label
+                        key={f.name}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
+                          importanceIdx === idx
+                            ? "border-purple-500/50 bg-purple-500/15 text-white"
+                            : "border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 text-muted-foreground dark:text-zinc-300 hover:border-purple-500/30",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="importance"
+                          checked={importanceIdx === idx}
+                          onChange={() => setImportanceIdx(idx)}
+                          className="accent-[#a855f7]"
+                        />
+                        <span className="text-xs sm:text-sm font-semibold">{f.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Building loads */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-3.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">Yapı Ağırlığı W (kN)</label>
+                      <span className="font-mono text-xs font-black text-purple-400">{totalWeightKn}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={500}
+                      max={50000}
+                      step={500}
+                      value={totalWeightKn}
+                      onChange={(e) => setTotalWeightKn(Number(e.target.value))}
+                      className="mt-2.5 w-full cursor-pointer accent-[#a855f7]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">Kat Sayısı N</label>
+                    <input
+                      type="number"
+                      value={numFloors}
+                      onChange={(e) => setNumFloors(Number(e.target.value))}
+                      min={1}
+                      max={30}
+                      className="tool-input mt-2 w-full h-11 text-foreground dark:text-white font-mono font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">Kat Yük. h (m)</label>
+                    <input
+                      type="number"
+                      value={floorHeightM}
+                      onChange={(e) => setFloorHeightM(Number(e.target.value))}
+                      min={2.5}
+                      max={6}
+                      step={0.1}
+                      className="tool-input mt-2 w-full h-11 text-foreground dark:text-white font-mono font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Results Column */}
+          <div className="space-y-6 lg:col-span-5">
+            <section className="tool-panel rounded-[32px] p-6 sm:p-8">
+              {/* Vt Terminal Banner */}
+              <div className="tool-result-panel overflow-hidden rounded-2xl p-6 text-center text-white">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-200">
+                  Tasarım Taban Kesme Kuvveti
+                </span>
+                <div className="mt-2 font-mono text-4xl sm:text-5xl font-black text-white drop-shadow-[0_0_20px_rgba(192,132,252,0.45)]">
+                  {results.VtFinal} <span className="text-xl font-semibold text-purple-300">kN</span>
+                </div>
+                <div className="mt-2 text-xs font-mono text-zinc-300">
+                  T₁ = {results.T1emp} s | Sa(T₁) = {results.SaT1} | Sar = {results.Sar}
+                </div>
+              </div>
+
+              {/* Spectral params */}
+              <div className="mt-4 grid grid-cols-2 gap-2.5 text-xs">
+                <div className="tool-result-inner rounded-xl p-3">
+                  <span className="text-zinc-400">S_DS (Kısa Periyot)</span>
+                  <div className="font-mono text-base font-black text-white">{results.SDs}</div>
+                </div>
+                <div className="tool-result-inner rounded-xl p-3">
+                  <span className="text-zinc-400">S_D1 (1 sn Periyot)</span>
+                  <div className="font-mono text-base font-black text-white">{results.SD1}</div>
+                </div>
+                <div className="tool-result-inner rounded-xl p-3">
+                  <span className="text-zinc-400">T_A / T_B Limit</span>
+                  <div className="font-mono text-base font-black text-purple-300">{results.TA} / {results.TB} s</div>
+                </div>
+                <div className="tool-result-inner rounded-xl p-3">
+                  <span className="text-zinc-400">Bina Yük. H_N</span>
+                  <div className="font-mono text-base font-black text-white">{results.HN} m</div>
+                </div>
+              </div>
+
+              {/* Floor Forces Table */}
+              <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 dark:border-white/10">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/40 dark:bg-white/5 border-b border-border/70 dark:border-white/10">
+                      <th className="p-3 text-left font-bold text-foreground dark:text-zinc-200">Kat</th>
+                      <th className="p-3 text-right font-bold text-foreground dark:text-zinc-200">h (m)</th>
+                      <th className="p-3 text-right font-bold text-foreground dark:text-zinc-200">Fi (kN)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {results.floorForces.slice().reverse().map((f) => (
+                      <tr key={f.floorNum} className="border-t border-border/60 dark:border-white/[0.06] hover:bg-muted/20 dark:hover:bg-white/[0.02]">
+                        <td className="p-3 font-mono font-bold text-foreground dark:text-white">{f.floorNum}. Kat</td>
+                        <td className="p-3 text-right font-mono text-muted-foreground dark:text-zinc-300">{f.hi.toFixed(1)}</td>
+                        <td className="p-3 text-right font-mono font-black text-purple-400">{f.Fi}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="mt-4">
-              <button onClick={handleCopyReport}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-rose-500 py-3 text-xs font-bold text-white hover:bg-rose-600 transition-colors">
-                <Copy className="h-4 w-4" />
-                {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
-              </button>
-            </div>
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={handleCopyReport}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
+                >
+                  {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
+                </button>
+              </div>
+            </section>
           </div>
         </div>
       </div>

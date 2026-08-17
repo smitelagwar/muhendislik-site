@@ -22,14 +22,14 @@ function QuestionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="tool-panel rounded-[32px] p-6">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+    <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
         {step}
       </p>
-      <h2 className="mt-2 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+      <h2 className="mt-1.5 text-xl font-black tracking-tight text-white sm:text-2xl">
         {title}
       </h2>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+      <p className="mt-2 text-xs leading-relaxed text-slate-300">
         {description}
       </p>
       <div className="mt-5">{children}</div>
@@ -68,11 +68,11 @@ export function QuickModePanel({
             value={form.parcelAreaM2}
             onChange={(event) => onFieldChange("parcelAreaM2", event.target.value)}
             inputMode="decimal"
-            className="tool-input h-12"
+            className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
             placeholder="Örnek: 1200"
             data-testid="estimated-area-input-arsa"
           />
-          <div className="flex items-center justify-center rounded-2xl border border-zinc-200/80 bg-zinc-50 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0c1233] font-mono text-xs font-bold text-blue-300">
             m²
           </div>
         </div>
@@ -88,11 +88,11 @@ export function QuickModePanel({
             value={form.taks}
             onChange={(event) => onFieldChange("taks", event.target.value)}
             inputMode="decimal"
-            className="tool-input h-12"
+            className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
             placeholder="Örnek: 0.35"
             data-testid="estimated-area-input-taks"
           />
-          <div className="flex items-center justify-center rounded-2xl border border-zinc-200/80 bg-zinc-50 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0c1233] font-mono text-xs font-bold text-blue-300">
             katsayı
           </div>
         </div>
@@ -108,11 +108,11 @@ export function QuickModePanel({
             value={form.kaks}
             onChange={(event) => onFieldChange("kaks", event.target.value)}
             inputMode="decimal"
-            className="tool-input h-12"
+            className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
             placeholder="Örnek: 1.20"
             data-testid="estimated-area-input-kaks"
           />
-          <div className="flex items-center justify-center rounded-2xl border border-zinc-200/80 bg-zinc-50 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0c1233] font-mono text-xs font-bold text-blue-300">
             katsayı
           </div>
         </div>
@@ -128,11 +128,11 @@ export function QuickModePanel({
             value={form.normalFloorCount}
             onChange={(event) => onFieldChange("normalFloorCount", event.target.value)}
             inputMode="numeric"
-            className="tool-input h-12"
+            className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
             placeholder="Örnek: 5"
             data-testid="estimated-area-input-kat"
           />
-          <div className="flex items-center justify-center rounded-2xl border border-zinc-200/80 bg-zinc-50 text-sm font-bold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-[#0c1233] font-mono text-xs font-bold text-blue-300">
             normal kat
           </div>
         </div>
@@ -156,24 +156,29 @@ export function QuickModePanel({
                 onClick={() => onFieldChange("profile", profile.id)}
                 data-testid={`estimated-area-profile-${profile.id}`}
                 className={cn(
-                  "rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
+                  "rounded-2xl border p-4 text-left transition-all",
                   isActive
-                    ? "border-teal-300 bg-teal-50 text-teal-950 shadow-[0_18px_38px_-28px_rgba(13,148,136,0.55)] dark:border-teal-600/50 dark:bg-teal-950/40 dark:text-teal-100"
-                    : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700"
+                    ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                    : "border-white/10 bg-[#070b20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 dark:bg-white/5">
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-xl border transition-colors",
+                      isActive ? "border-blue-400/40 bg-blue-500/20 text-blue-300" : "border-white/10 bg-[#0c1233] text-slate-400"
+                    )}
+                  >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-black">{profile.label}</p>
-                    <p className="text-xs font-semibold text-current/70">
+                    <p className="text-sm font-bold text-white">{profile.label}</p>
+                    <p className="text-[11px] font-mono text-blue-300 font-semibold">
                       Baz oran %{Math.round(profile.baseNonEmsalRatio * 100)}
                     </p>
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-current/80">{profile.description}</p>
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-400">{profile.description}</p>
               </button>
             );
           })}
@@ -192,14 +197,14 @@ export function QuickModePanel({
             aria-pressed={!form.hasBasement}
             data-testid="estimated-area-basement-no"
             className={cn(
-              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
+              "min-h-11 rounded-2xl border p-4 text-left transition-all",
               !form.hasBasement
-                ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-700/60 dark:bg-teal-950/40 dark:text-teal-100"
-                : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                : "border-white/10 bg-[#070b20] text-slate-300 hover:border-blue-500/40"
             )}
           >
-            <span className="block text-sm font-black">Bodrum yok</span>
-            <span className="mt-1 block text-sm leading-6 opacity-80">
+            <span className="block text-sm font-bold text-white">Bodrum yok</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-400">
               Toplam sadece emsal ve emsal dışı artıştan oluşsun.
             </span>
           </button>
@@ -209,14 +214,14 @@ export function QuickModePanel({
             aria-pressed={form.hasBasement}
             data-testid="estimated-area-basement-yes"
             className={cn(
-              "min-h-11 rounded-[24px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-500/15",
+              "min-h-11 rounded-2xl border p-4 text-left transition-all",
               form.hasBasement
-                ? "border-teal-300 bg-teal-50 text-teal-950 dark:border-teal-700/60 dark:bg-teal-950/40 dark:text-teal-100"
-                : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                : "border-white/10 bg-[#070b20] text-slate-300 hover:border-blue-500/40"
             )}
           >
-            <span className="block text-sm font-black">Bodrum var</span>
-            <span className="mt-1 block text-sm leading-6 opacity-80">
+            <span className="block text-sm font-bold text-white">Bodrum var</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-400">
               Bodrum katlarını yaklaşık toplam inşaat alanına ekle.
             </span>
           </button>
@@ -224,29 +229,29 @@ export function QuickModePanel({
 
         {form.hasBasement ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-2" data-testid="estimated-area-basement-fields">
-            <div className="space-y-2">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
-                Bodrum kat sayısı
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                Bodrum Kat Sayısı
               </p>
               <Input
                 value={form.basementFloorCount}
                 onChange={(event) => onFieldChange("basementFloorCount", event.target.value)}
                 inputMode="numeric"
-                className="tool-input h-12"
+                className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 placeholder="Örnek: 1"
                 data-testid="estimated-area-input-bodrum-kat"
               />
             </div>
 
-            <div className="space-y-2">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
-                Bodrum kat alanı
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                Bodrum Kat Alanı (m²)
               </p>
               <Input
                 value={form.basementFloorAreaM2}
                 onChange={(event) => onFieldChange("basementFloorAreaM2", event.target.value)}
                 inputMode="decimal"
-                className="tool-input h-12"
+                className="h-12 rounded-xl border-white/15 bg-[#070a20] font-mono text-sm font-bold text-white focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-500/30"
                 placeholder="Opsiyonel"
                 data-testid="estimated-area-input-bodrum-alan"
               />

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Calculator, Home } from "lucide-react";
+import { Calculator, Home, Activity, Sparkles } from "lucide-react";
 import { CalculationsSectionNav } from "@/components/calculations-section-nav";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
-  title: "İnşaat Hesaplamaları",
-  description: "Tahmini inşaat alanı, inşaat maliyeti ve resmî birim maliyet araçları.",
+  title: "İnşaat Hesaplamaları & Maliyet Portalı",
+  description: "Tahmini inşaat alanı, detaylı inşaat maliyeti, hızlı metraj ve 2026 resmî birim maliyet analiz konsolu.",
   pathname: "/hesaplamalar",
 });
 
@@ -16,40 +16,53 @@ export default function HesaplamalarLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="border-b border-zinc-200/80 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-3 px-6 py-3 sm:px-10 lg:px-16">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-300"
-          >
-            <Home className="h-4 w-4" />
-            Ana Sayfa
-          </Link>
+    <div className="relative min-h-screen bg-[#04060f] text-slate-100 selection:bg-blue-500/30 selection:text-white">
+      {/* NeuroBank Atmospheric Cobalt & Purple Glow Layers */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[650px] w-[1200px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.18)_0%,rgba(99,102,241,0.12)_40%,transparent_70%)] blur-[120px]" />
+        <div className="absolute top-[450px] -right-40 h-[500px] w-[600px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.12)_0%,transparent_70%)] blur-[130px]" />
+        <div className="absolute top-[800px] -left-40 h-[500px] w-[600px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(6,182,212,0.08)_0%,transparent_70%)] blur-[130px]" />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-70" />
+      </div>
 
-          <div className="mx-1 hidden h-5 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" />
+      {/* NeuroBank Top Sticky Nav Bar */}
+      <header className="sticky top-14 z-30 border-b border-blue-500/15 bg-[#050816]/85 backdrop-blur-2xl transition-all">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
+          {/* Quick Hub Navigation */}
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0c1029]/80 px-3.5 py-1.5 text-xs font-bold text-slate-300 transition-all hover:border-blue-500/40 hover:bg-[#12173b] hover:text-white"
+            >
+              <Home className="h-3.5 w-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Ana Sayfa</span>
+            </Link>
 
+            <div className="hidden h-5 w-px bg-white/10 sm:block" />
+
+            <Link
+              href="/kategori/araclar"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0c1029]/80 px-3.5 py-1.5 text-xs font-bold text-slate-300 transition-all hover:border-purple-500/40 hover:bg-[#12173b] hover:text-white"
+            >
+              <Calculator className="h-3.5 w-3.5 text-purple-400" />
+              <span className="hidden md:inline">Mühendislik Araçları</span>
+              <span className="md:hidden">Araçlar</span>
+            </Link>
+
+            {/* Live Data Status Indicator */}
+            <div className="hidden lg:inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>2026 Resmî Tebliğ & Motoru Aktif</span>
+            </div>
+          </div>
+
+          {/* Calculations Sub-Section Tabs */}
           <CalculationsSectionNav />
         </div>
-      </div>
+      </header>
 
-      <div className="border-b border-border bg-[linear-gradient(90deg,rgba(245,158,11,0.1),transparent_45%,rgba(37,99,235,0.08))]">
-        <div className="mx-auto flex max-w-screen-2xl items-center gap-3 px-6 py-4 sm:px-10 lg:px-16">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
-            <Calculator className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-amber-700 dark:text-amber-300">
-              Hesaplama araçları
-            </p>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Alan fizibilitesi | maliyet | resmî referans | metraj odaklı karar desteği
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <main>{children}</main>
+      <main className="relative z-10">{children}</main>
     </div>
   );
 }

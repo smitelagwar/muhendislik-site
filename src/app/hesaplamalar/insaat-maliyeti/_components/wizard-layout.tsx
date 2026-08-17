@@ -227,8 +227,8 @@ export function Wizard({ onComplete }: WizardProps) {
 
   return (
     <div data-testid="construction-wizard" className="mx-auto w-full max-w-3xl">
-      {/* ── Progress Header ── */}
-      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {/* ── NeuroBank Progress Header ── */}
+      <div className="mb-6 rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-5 sm:p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
         {/* Steps Row */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center">
@@ -242,24 +242,24 @@ export function Wizard({ onComplete }: WizardProps) {
                     }}
                     disabled={s.id >= step}
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-all duration-300",
                       step === s.id
-                        ? "border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/30 dark:border-amber-400 dark:bg-amber-400 dark:text-slate-950"
+                        ? "border-blue-400 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                         : step > s.id
-                        ? "cursor-pointer border-emerald-500 bg-emerald-500 text-white hover:ring-4 hover:ring-emerald-500/20 dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-950"
-                        : "border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+                        ? "cursor-pointer border-emerald-500 bg-emerald-500/20 text-emerald-300 hover:ring-2 hover:ring-emerald-500/40"
+                        : "border-white/10 bg-[#0c1233] text-slate-500"
                     )}
                   >
-                    {step > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
+                    {step > s.id ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : s.id}
                   </button>
                   <span
                     className={cn(
-                      "hidden text-[11px] font-medium sm:block",
+                      "hidden text-[11px] font-bold uppercase tracking-wider sm:block",
                       step === s.id
-                        ? "text-amber-600 dark:text-amber-400"
+                        ? "text-blue-300"
                         : step > s.id
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-slate-400 dark:text-slate-500"
+                        ? "text-emerald-400"
+                        : "text-slate-500"
                     )}
                   >
                     {s.shortLabel}
@@ -268,10 +268,10 @@ export function Wizard({ onComplete }: WizardProps) {
                 {i < STEPS.length - 1 && (
                   <div
                     className={cn(
-                      "mx-2 h-1 flex-1 rounded-full transition-all duration-500",
+                      "mx-2.5 h-1 flex-1 rounded-full transition-all duration-500",
                       step > s.id
-                        ? "bg-emerald-500 dark:bg-emerald-400"
-                        : "bg-slate-200 dark:bg-slate-800"
+                        ? "bg-gradient-to-r from-emerald-500 to-blue-500"
+                        : "bg-white/10"
                     )}
                   />
                 )}
@@ -283,129 +283,170 @@ export function Wizard({ onComplete }: WizardProps) {
             type="button"
             data-testid="construction-copy-link-button"
             onClick={handleCopyLink}
-            className="flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 sm:self-center"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 shadow-sm transition-all hover:border-blue-500/40 hover:bg-[#131942] hover:text-white sm:self-center"
             title="Mevcut ayarları paylaşmak için bağlantıyı kopyala"
           >
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400">Kopyalandı</span>
+                <Check className="h-3.5 w-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-bold">Kopyalandı</span>
               </>
             ) : (
               <>
-                <Share2 className="h-3.5 w-3.5 text-amber-500" />
+                <Share2 className="h-3.5 w-3.5 text-blue-400" />
                 <span>Bağlantıyı Kopyala</span>
               </>
             )}
           </button>
         </div>
-        {/* Step Description */}
-        <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <span className="text-amber-500">{STEPS[step - 1].icon}</span>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            <span className="font-bold text-slate-900 dark:text-slate-200">Adım {step}/4 — </span>
-            {STEPS[step - 1].label}
-          </p>
-        </div>
       </div>
 
-      {/* ── Card ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 md:p-8">
-
+      {/* ── NeuroBank Step Content Container ── */}
+      <div className="rounded-[32px] border border-blue-500/20 bg-[#090d26]/85 p-6 sm:p-8 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
         {/* ───── Step 1: Yapı Tipi ───── */}
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-400">
-            <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">
-              Yapı türünü seçin
-            </h2>
-            <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-              Hesaplama, yapı türüne özgü beton, demir ve malzeme oranlarıyla yapılacak.
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 className="text-2xl font-black text-white">Yapı Türünü Seçin</h2>
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Adım 1 / 4</span>
+            </div>
+            <p className="mb-6 text-sm text-slate-300">
+              Hesaplama, seçilen yapı türünün betonarme taşıyıcı, mimari ve mekanik oranlarıyla simüle edilir.
             </p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {STRUCTURE_KINDS.map((sk) => (
+
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              {STRUCTURE_KINDS.map((item) => (
                 <button
-                  key={sk.id}
-                  data-testid={`construction-structure-${sk.id}`}
-                  onClick={() => upd("structureKind", sk.id)}
+                  key={item.id}
+                  data-testid={`construction-structure-${item.id}`}
+                  onClick={() => upd("structureKind", item.id)}
                   className={cn(
-                    "group flex items-start gap-4 rounded-md border-2 p-5 text-left transition-all hover:shadow-md",
-                    inputs.structureKind === sk.id
-                      ? "border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-500/10"
-                      : "border-slate-200 bg-white hover:border-amber-300 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-amber-700"
+                    "group flex items-start gap-4 rounded-2xl border p-4 text-left transition-all duration-200",
+                    inputs.structureKind === item.id
+                      ? "border-blue-500 bg-blue-500/15 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                      : "border-white/10 bg-[#070b20] hover:border-blue-500/40 hover:bg-[#0c1236]"
                   )}
                 >
-                  <div className={cn(
-                    "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                    inputs.structureKind === sk.id
-                      ? "bg-amber-500 text-white"
-                      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                  )}>
-                    {React.cloneElement(sk.icon, { className: "h-5 w-5" })}
+                  <div
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-colors",
+                      inputs.structureKind === item.id
+                        ? "border-blue-400/50 bg-blue-500/20 text-blue-300"
+                        : "border-white/10 bg-[#0c1233] text-slate-400 group-hover:text-blue-300"
+                    )}
+                  >
+                    {item.icon}
                   </div>
-                  <div>
-                    <div className={cn(
-                      "font-bold",
-                      inputs.structureKind === sk.id
-                        ? "text-amber-700 dark:text-amber-400"
-                        : "text-slate-900 dark:text-slate-100"
-                    )}>
-                      {sk.label}
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={cn(
+                        "font-bold text-sm flex items-center justify-between",
+                        inputs.structureKind === item.id ? "text-white" : "text-slate-200"
+                      )}
+                    >
+                      <span>{item.label}</span>
+                      {inputs.structureKind === item.id && (
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                          Seçildi
+                        </span>
+                      )}
                     </div>
-                    <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{sk.desc}</div>
+                    <div className="mt-1 text-xs leading-relaxed text-slate-400">
+                      {item.desc}
+                    </div>
                   </div>
-                  {inputs.structureKind === sk.id && (
-                    <CheckCircle2 className="ml-auto h-5 w-5 shrink-0 text-amber-500" />
-                  )}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ───── Step 2: Alanlar ───── */}
+        {/* ───── Step 2: Alanlar & Katlar ───── */}
         {step === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-400">
-            <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Alan ve Kat Bilgileri</h2>
-            <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-              Brüt inşaat alanı = Tüm katların toplam kapalı alanı (bodrum dahil).
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 className="text-2xl font-black text-white">Alan ve Kat Bilgileri</h2>
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">Adım 2 / 4</span>
+            </div>
+            <p className="mb-6 text-sm text-slate-300">
+              Toplam kapalı inşaat alanı ve kat dağılımı malzeme metrajlarını ve şantiye takvimini belirler.
             </p>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <InputField
-                id="construction-total-area"
-                testId="construction-total-area-input"
-                label="Toplam Brüt İnşaat Alanı"
-                unit="m²"
-                value={inputs.totalArea}
-                onChange={(v) => upd("totalArea", v)}
-                min={NUMBER_LIMITS.totalArea.min}
-                max={NUMBER_LIMITS.totalArea.max}
-                hint="Tüm katların toplam kapalı alanı"
-                error={totalAreaError}
-              />
-              <InputField
-                id="construction-floor-count"
-                testId="construction-floor-count-input"
-                label="Toplam Kat Sayısı"
-                unit="kat"
-                value={inputs.floorCount}
-                onChange={(v) => upd("floorCount", v)}
-                min={NUMBER_LIMITS.floorCount.min}
-                max={NUMBER_LIMITS.floorCount.max}
-                hint="Bodrum katlar dahil tüm katlar"
-                error={floorCountError}
-              />
-              <InputField
-                id="construction-basement-floors"
-                testId="construction-basement-floors-input"
-                label="Bodrum Kat Adedi"
-                unit="kat"
-                value={inputs.basementFloors}
-                onChange={(v) => upd("basementFloors", v)}
-                min={NUMBER_LIMITS.basementFloors.min}
-                max={NUMBER_LIMITS.basementFloors.max}
-                hint="Yoksa 0 girin"
-                error={basementFloorsError}
-              />
+
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-4">
+                <InputField
+                  id="construction-total-area"
+                  testId="construction-total-area-input"
+                  label="Toplam Brüt İnşaat Alanı"
+                  unit="m²"
+                  value={inputs.totalArea}
+                  onChange={(v) => upd("totalArea", v)}
+                  min={NUMBER_LIMITS.totalArea.min}
+                  max={NUMBER_LIMITS.totalArea.max}
+                  hint="Tüm katlar dahil toplam kapalı inşaat alanı"
+                  error={totalAreaError}
+                />
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <InputField
+                    id="construction-floor-count"
+                    testId="construction-floor-count-input"
+                    label="Toplam Kat Sayısı"
+                    unit="kat"
+                    value={inputs.floorCount}
+                    onChange={(v) => upd("floorCount", v)}
+                    min={NUMBER_LIMITS.floorCount.min}
+                    max={NUMBER_LIMITS.floorCount.max}
+                    hint="Zemin + normal + bodrum katlar toplamı"
+                    error={floorCountError}
+                  />
+
+                  <InputField
+                    id="construction-basement-floors"
+                    testId="construction-basement-floors-input"
+                    label="Bodrum Kat Adedi"
+                    unit="kat"
+                    value={inputs.basementFloors}
+                    onChange={(v) => upd("basementFloors", v)}
+                    min={NUMBER_LIMITS.basementFloors.min}
+                    max={NUMBER_LIMITS.basementFloors.max}
+                    hint="Bodrum perdeleri kaba maliyeti artırır"
+                    error={basementFloorsError}
+                  />
+                </div>
+              </div>
+
+              {/* Real-time Geometry & Logistics Preview Card */}
+              <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-[#0c1236] to-[#070b24] p-4 text-white flex flex-col justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                    ÖN GEOMETRİ & ŞANTİYE TAHMİNİ
+                  </p>
+                  <div className="mt-3 space-y-2.5">
+                    <div className="flex items-center justify-between rounded-xl border border-white/5 bg-[#070a20] p-2.5 text-xs">
+                      <span className="text-slate-400">Kat Başına Oturum:</span>
+                      <span className="font-mono font-bold text-white">
+                        ~{inputs.totalArea && inputs.floorCount ? Math.round(inputs.totalArea / inputs.floorCount) : 0} m²
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-white/5 bg-[#070a20] p-2.5 text-xs">
+                      <span className="text-slate-400">Tahmini Şantiye Süresi:</span>
+                      <span className="font-mono font-bold text-emerald-300">
+                        ~{inputs.floorCount ? Math.max(6, Math.min(36, Math.round(inputs.floorCount * 2.2))) : 12} Ay
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-white/5 bg-[#070a20] p-2.5 text-xs">
+                      <span className="text-slate-400">Tahmini Beton Hacmi:</span>
+                      <span className="font-mono font-bold text-blue-300">
+                        ~{inputs.totalArea ? Math.round(inputs.totalArea * 0.38) : 0} m³
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] text-slate-400">
+                  *Değerler girilen alana göre anlık simüle edilir.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -413,63 +454,76 @@ export function Wizard({ onComplete }: WizardProps) {
         {/* ───── Step 3: Konum & Zemin ───── */}
         {step === 3 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-400">
-            <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Konum ve Zemin</h2>
-            <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
-              Bölgesel işçilik ve malzeme maliyetleri ile zemin tipi, temel maliyetini etkiler.
+            <h2 className="mb-2 text-2xl font-black text-white">Konum ve Zemin Durumu</h2>
+            <p className="mb-6 text-sm text-slate-300">
+              Bölgesel işçilik/nakliye endeksleri ve zemin özellikleri temel maliyetini doğrudan etkiler.
             </p>
 
+            {/* Şehir Seçimi */}
             <div className="mb-6">
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <MapPin className="h-4 w-4 text-amber-500" /> Proje İli / Bölgesi
+              <label className="mb-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                <MapPin className="h-4 w-4 text-blue-400" /> Proje Konumu / Şehir
               </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {CITIES.map((c) => (
                   <button
                     key={c.id}
                     data-testid={`construction-city-${c.id}`}
                     onClick={() => upd("city", c.id)}
                     className={cn(
-                      "flex items-center justify-between rounded-md border-2 px-4 py-3 text-sm transition-all",
+                      "rounded-xl border p-3 text-left transition-all",
                       inputs.city === c.id
-                        ? "border-amber-500 bg-amber-50 font-bold text-amber-700 dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-400"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-amber-700"
+                        ? "border-blue-500 bg-blue-500/15 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                        : "border-white/10 bg-[#070b20] hover:border-blue-500/40 hover:bg-[#0c1236]"
                     )}
                   >
-                    <span>{c.label}</span>
-                    <span className={cn(
-                      "font-mono text-xs",
-                      inputs.city === c.id ? "text-amber-600 dark:text-amber-400" : "text-slate-400"
-                    )}>
-                      {c.mult}
-                    </span>
+                    <div
+                      className={cn(
+                        "font-bold text-xs",
+                        inputs.city === c.id ? "text-white" : "text-slate-200"
+                      )}
+                    >
+                      {c.label}
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] text-blue-400 font-semibold">{c.mult}</div>
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Zemin Seçimi */}
             <div>
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                <HardHat className="h-4 w-4 text-amber-500" /> Zemin Durumu
+              <label className="mb-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                <HardHat className="h-4 w-4 text-purple-400" /> Zemin Durumu
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2.5">
                 {(["iyi", "orta", "kotu"] as SoilClassV3[]).map((s) => {
-                  const meta = { iyi: { label: "İyi Zemin", sub: "×1.00" }, orta: { label: "Orta", sub: "×1.07" }, kotu: { label: "Kötü Zemin", sub: "×1.18" } };
+                  const meta = {
+                    iyi: { label: "İyi Zemin", sub: "×1.00" },
+                    orta: { label: "Orta Zemin", sub: "×1.07" },
+                    kotu: { label: "Kötü Zemin", sub: "×1.18" },
+                  };
                   return (
                     <button
                       key={s}
                       data-testid={`construction-soil-${s}`}
                       onClick={() => upd("soilClass", s)}
                       className={cn(
-                        "rounded-md border-2 py-3 text-center text-sm transition-all",
+                        "rounded-xl border py-3 text-center text-xs transition-all",
                         inputs.soilClass === s
-                          ? "border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-500/10"
-                          : "border-slate-200 bg-white hover:border-amber-300 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-amber-700"
+                          ? "border-purple-500 bg-purple-500/15 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                          : "border-white/10 bg-[#070b20] hover:border-purple-500/40 hover:bg-[#0c1236]"
                       )}
                     >
-                      <div className={cn("font-bold", inputs.soilClass === s ? "text-amber-700 dark:text-amber-400" : "text-slate-800 dark:text-slate-200")}>
+                      <div
+                        className={cn(
+                          "font-bold",
+                          inputs.soilClass === s ? "text-white" : "text-slate-200"
+                        )}
+                      >
                         {meta[s].label}
                       </div>
-                      <div className="mt-0.5 font-mono text-xs text-slate-400">{meta[s].sub}</div>
+                      <div className="mt-1 font-mono text-[11px] text-purple-300 font-semibold">{meta[s].sub}</div>
                     </button>
                   );
                 })}
@@ -481,14 +535,14 @@ export function Wizard({ onComplete }: WizardProps) {
         {/* ───── Step 4: Kalite & Sistemler ───── */}
         {step === 4 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-400">
-            <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-slate-100">Kalite ve Sistemler</h2>
-            <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
+            <h2 className="mb-2 text-2xl font-black text-white">Kalite ve Sistemler</h2>
+            <p className="mb-6 text-sm text-slate-300">
               İşçilik, malzeme kalitesi ve ek sistemler maliyet üzerinde doğrudan etkilidir.
             </p>
 
             {/* Kalite */}
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <div className="mb-6">
+              <label className="mb-2.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
                 İşçilik & Malzeme Kalitesi
               </label>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -498,25 +552,30 @@ export function Wizard({ onComplete }: WizardProps) {
                     data-testid={`construction-quality-${q.id}`}
                     onClick={() => upd("qualityLevel", q.id)}
                     className={cn(
-                      "rounded-md border-2 p-4 text-left transition-all",
+                      "rounded-2xl border p-4 text-left transition-all",
                       inputs.qualityLevel === q.id
-                        ? "border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-500/10"
-                        : "border-slate-200 bg-white hover:border-amber-300 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-amber-700"
+                        ? "border-blue-500 bg-blue-500/15 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                        : "border-white/10 bg-[#070b20] hover:border-blue-500/40 hover:bg-[#0c1236]"
                     )}
                   >
-                    <div className={cn("font-bold", inputs.qualityLevel === q.id ? "text-amber-700 dark:text-amber-400" : "text-slate-900 dark:text-slate-100")}>
+                    <div
+                      className={cn(
+                        "font-bold text-sm",
+                        inputs.qualityLevel === q.id ? "text-white" : "text-slate-200"
+                      )}
+                    >
                       {q.label}
                     </div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400 dark:text-slate-500">{q.range}</div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{q.desc}</div>
+                    <div className="mt-1 font-mono text-xs text-blue-300 font-semibold">{q.range}</div>
+                    <div className="mt-2 text-xs leading-relaxed text-slate-400">{q.desc}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Cephe */}
-            <div className="mb-5">
-              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <div className="mb-6">
+              <label className="mb-2.5 block text-xs font-bold uppercase tracking-wider text-slate-300">
                 Cephe / Dış Kabuk Sistemi
               </label>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -526,41 +585,52 @@ export function Wizard({ onComplete }: WizardProps) {
                     data-testid={`construction-facade-${f.id}`}
                     onClick={() => upd("facadeType", f.id)}
                     className={cn(
-                      "rounded-md border-2 p-4 text-left transition-all",
+                      "rounded-2xl border p-4 text-left transition-all",
                       inputs.facadeType === f.id
-                        ? "border-amber-500 bg-amber-50 dark:border-amber-500/60 dark:bg-amber-500/10"
-                        : "border-slate-200 bg-white hover:border-amber-300 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-amber-700"
+                        ? "border-indigo-500 bg-indigo-500/15 shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                        : "border-white/10 bg-[#070b20] hover:border-indigo-500/40 hover:bg-[#0c1236]"
                     )}
                   >
-                    <div className={cn("font-bold", inputs.facadeType === f.id ? "text-amber-700 dark:text-amber-400" : "text-slate-900 dark:text-slate-100")}>
+                    <div
+                      className={cn(
+                        "font-bold text-sm",
+                        inputs.facadeType === f.id ? "text-white" : "text-slate-200"
+                      )}
+                    >
                       {f.label}
                     </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{f.desc}</div>
+                    <div className="mt-1 text-xs text-slate-400">{f.desc}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Asansör */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950">
+            <div className="rounded-2xl border border-white/10 bg-[#070b20] p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-slate-800 dark:text-slate-200">Asansör</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Adet başına ~850.000 TL (bölge çarpanı ile)</div>
+                  <div className="font-bold text-sm text-white">Asansör Sistemi</div>
+                  <div className="text-xs text-slate-400">Adet başına ~850.000 TL (bölge katsayısı ile)</div>
                 </div>
                 <button
+                  type="button"
                   data-testid="construction-elevator-toggle"
                   onClick={() => upd("hasElevator", !inputs.hasElevator)}
                   className={cn(
                     "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    inputs.hasElevator ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
+                    inputs.hasElevator ? "bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.5)]" : "bg-[#182044]"
                   )}
                 >
-                  <span className={cn("inline-block h-4 w-4 translate-x-1 transform rounded-full bg-white shadow transition-transform", inputs.hasElevator && "translate-x-6")} />
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+                      inputs.hasElevator ? "translate-x-6" : "translate-x-1"
+                    )}
+                  />
                 </button>
               </div>
               {inputs.hasElevator && (
-                <div className="mt-3">
+                <div className="mt-4 pt-3 border-t border-white/10">
                   <InputField
                     id="construction-elevator-count"
                     testId="construction-elevator-count-input"
@@ -578,13 +648,14 @@ export function Wizard({ onComplete }: WizardProps) {
           </div>
         )}
 
-        {/* ── Navigation ── */}
-        <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-6 dark:border-slate-800">
+        {/* ── Navigation Actions ── */}
+        <div className="mt-8 flex items-center justify-between border-t border-white/10 pt-6">
           <button
+            type="button"
             data-testid="construction-back-button"
             onClick={() => setStep((s) => s - 1)}
             disabled={step === 1}
-            className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-2.5 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft className="h-4 w-4" /> Geri
           </button>
@@ -592,28 +663,37 @@ export function Wizard({ onComplete }: WizardProps) {
           {/* Step dots */}
           <div className="flex gap-1.5">
             {STEPS.map((s) => (
-              <div key={s.id} className={cn(
-                "h-2 rounded-full transition-all",
-                step === s.id ? "w-6 bg-amber-500" : step > s.id ? "w-2 bg-emerald-400" : "w-2 bg-slate-300 dark:bg-slate-700"
-              )} />
+              <div
+                key={s.id}
+                className={cn(
+                  "h-2 rounded-full transition-all duration-300",
+                  step === s.id
+                    ? "w-6 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                    : step > s.id
+                    ? "w-2 bg-emerald-400"
+                    : "w-2 bg-white/15"
+                )}
+              />
             ))}
           </div>
 
           {step < 4 ? (
             <button
+              type="button"
               data-testid="construction-next-button"
               onClick={() => setStep((s) => s + 1)}
               disabled={!canGoNext()}
-              className="flex items-center gap-2 rounded-md bg-amber-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-950"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-40 active:scale-98"
             >
               İleri <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
             <button
+              type="button"
               data-testid="construction-calculate-button"
               onClick={handleFinish}
               disabled={!canGoNext()}
-              className="flex items-center gap-2 rounded-md bg-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition-all hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-950"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:from-emerald-500 hover:to-teal-500 disabled:cursor-not-allowed disabled:opacity-40 active:scale-98"
             >
               Hesapla <Zap className="h-4 w-4" />
             </button>
@@ -643,14 +723,18 @@ function InputField({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">{label}</label>
-      {hint && <p className="text-xs text-slate-400 dark:text-slate-500">{hint}</p>}
-      <div className={cn(
-        "flex items-center overflow-hidden rounded-md border bg-white transition-all focus-within:ring-2 focus-within:ring-amber-500/20 dark:bg-slate-950",
-        error
-          ? "border-red-300 focus-within:border-red-400 dark:border-red-800"
-          : "border-slate-300 focus-within:border-amber-500 dark:border-slate-700"
-      )}>
+      <label htmlFor={id} className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+        {label}
+      </label>
+      {hint && <p className="text-xs text-slate-400">{hint}</p>}
+      <div
+        className={cn(
+          "flex items-center overflow-hidden rounded-xl border bg-[#070b20] transition-all focus-within:ring-2 focus-within:ring-blue-500/30",
+          error
+            ? "border-red-500 focus-within:border-red-400"
+            : "border-white/15 focus-within:border-blue-400"
+        )}
+      >
         <input
           id={id}
           data-testid={testId}
@@ -671,14 +755,14 @@ function InputField({
             const parsedValue = Number.parseFloat(rawValue);
             onChange(Number.isNaN(parsedValue) ? undefined : parsedValue);
           }}
-          className="flex-1 bg-transparent px-4 py-3 text-slate-900 outline-none dark:text-slate-100"
+          className="flex-1 bg-transparent px-4 py-3 font-mono text-sm font-bold text-white outline-none"
         />
-        <span className="border-l border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        <span className="border-l border-white/10 bg-[#0c1233] px-3.5 py-3 font-mono text-xs font-bold text-blue-300">
           {unit}
         </span>
       </div>
       {error ? (
-        <p id={errorId} role="alert" className="text-xs font-medium text-red-500 dark:text-red-400">
+        <p id={errorId} role="alert" className="text-xs font-medium text-red-400">
           {error}
         </p>
       ) : null}

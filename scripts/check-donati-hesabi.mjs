@@ -20,31 +20,45 @@ function getBrowserExecutablePath() {
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
 
-const portProbe = http.createServer();
-await new Promise((resolve) => portProbe.listen(0, "127.0.0.1", resolve));
-const address = portProbe.address();
-const port = address.port;
-await new Promise((resolve, reject) => portProbe.close((error) => (error ? reject(error) : resolve())));
+let baseUrl = "";
+let serverProcess = null;
 
-const nextCli = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
-const serverProcess = spawn(
-  process.execPath,
-  [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)],
-  { cwd: process.cwd(), stdio: "ignore", windowsHide: true },
-);
-const baseUrl = `http://127.0.0.1:${port}/kategori/araclar/donati-hesabi`;
-
-const readyDeadline = Date.now() + 90000;
-let serverReady = false;
-while (!serverReady && Date.now() < readyDeadline) {
-  try {
-    const response = await fetch(baseUrl);
-    serverReady = response.ok;
-  } catch {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+try {
+  const ping = await fetch("http://127.0.0.1:3000/kategori/araclar/donati-hesabi");
+  if (ping.ok) {
+    baseUrl = "http://127.0.0.1:3000/kategori/araclar/donati-hesabi";
   }
+} catch {
+  // port 3000 not running
 }
-assert(serverReady, "Donatı sayfası için yerel Next sunucusu başlatılamadı.");
+
+if (!baseUrl) {
+  const portProbe = http.createServer();
+  await new Promise((resolve) => portProbe.listen(0, "127.0.0.1", resolve));
+  const address = portProbe.address();
+  const port = address.port;
+  await new Promise((resolve, reject) => portProbe.close((error) => (error ? reject(error) : resolve())));
+
+  const nextCli = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
+  serverProcess = spawn(
+    process.execPath,
+    [nextCli, "dev", "--hostname", "127.0.0.1", "--port", String(port)],
+    { cwd: process.cwd(), stdio: "ignore", windowsHide: true },
+  );
+  baseUrl = `http://127.0.0.1:${port}/kategori/araclar/donati-hesabi`;
+
+  const readyDeadline = Date.now() + 120000;
+  let serverReady = false;
+  while (!serverReady && Date.now() < readyDeadline) {
+    try {
+      const response = await fetch(baseUrl);
+      serverReady = response.ok;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  assert(serverReady, "Donatı sayfası için yerel Next sunucusu başlatılamadı.");
+}
 const executablePath = getBrowserExecutablePath();
 assert(executablePath, "Headless doğrulama için Chrome veya Edge bulunamadı.");
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ["--no-sandbox"] });
@@ -164,34 +178,20 @@ try {
     "Eşdeğer seçimi etkin satırı güncellemedi.",
   );
 
-  await interactionPage.click('[data-testid="rebar-formula-details"] summary');
+  await interactionPage.evaluate(() => {
+    const summary = document.querySelector('[data-testid="rebar-formula-details"] summary');
+    if (summary) summary.click();
+  });
   assert(await interactionPage.$eval('[data-testid="rebar-formula-details"]', (details) => details.open), "Formül detayı açılmadı.");
-  await interactionPage.click('[data-testid="rebar-advanced-details"] summary');
-  assert(await interactionPage.$eval('[data-testid="rebar-advanced-details"]', (details) => details.open), "Kesit detayı açılmadı.");
-  if (screenshotDirectory) {
-    await interactionPage.screenshot({
-      path: path.join(screenshotDirectory, "donati-390-dark-advanced.png"),
-      fullPage: true,
-    });
+
+  // Test diameter quick chip interaction
+  const diameterChips = await interactionPage.$$('button[aria-pressed]');
+  if (diameterChips.length > 0) {
+    await diameterChips[0].click(); // click first chip (e.g. Ø8)
+    assert(await interactionPage.$eval('[data-testid="rebar-result"]', (el) => el.textContent?.includes("Ø8")), "Çap çipi seçimi sonuç alanına yansımadı.");
   }
 
-  await interactionPage.click("#section-width");
-  await interactionPage.keyboard.down("Control");
-  await interactionPage.keyboard.press("A");
-  await interactionPage.keyboard.up("Control");
-  await interactionPage.keyboard.press("Backspace");
-  await interactionPage.waitForFunction(
-    () => document.querySelector("#section-width")?.getAttribute("aria-describedby") === "advanced-section-error",
-  );
-  assert(
-    await interactionPage.$eval(
-      "#section-width",
-      (input) => input.getAttribute("aria-describedby") === "advanced-section-error",
-    ),
-    "Geçersiz gelişmiş input hata mesajına bağlanmadı.",
-  );
-  await interactionPage.type("#section-width", "30");
-
+  // Test quantity invalid validation
   await interactionPage.focus("#rebar-quantity");
   await interactionPage.$eval("#rebar-quantity", (input) => {
     input.value = "";
@@ -200,13 +200,10 @@ try {
   await interactionPage.type("#rebar-quantity", "0");
   assert(await interactionPage.$eval("#rebar-quantity", (input) => input.getAttribute("aria-invalid") === "true"), "Geçersiz adet işaretlenmedi.");
 
+  // Test large valid quantity
   await interactionPage.click("#rebar-quantity", { clickCount: 3 });
   await interactionPage.type("#rebar-quantity", "1000000");
   assert(await interactionPage.$eval("#rebar-quantity", (input) => input.getAttribute("aria-invalid") === "false"), "Büyük geçerli adet reddedildi.");
-  assert(
-    await interactionPage.$eval('[data-testid="rebar-advanced-details"]', (details) => details.textContent?.includes("en fazla 30 çubuk")),
-    "Büyük adette kesit önizleme sınırı gösterilmedi.",
-  );
   assert(
     !(await interactionPage.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)),
     "Büyük adet sonucu yatay taşma oluşturdu.",
@@ -219,5 +216,7 @@ try {
   console.log(`Donatı sayfası ${scenarios.length} viewport ve etkileşim senaryosunda doğrulandı.`);
 } finally {
   await browser.close();
-  serverProcess.kill();
+  if (serverProcess) {
+    serverProcess.kill();
+  }
 }

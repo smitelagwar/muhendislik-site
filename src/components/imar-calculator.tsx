@@ -60,7 +60,13 @@ export function ImarCalculator() {
   const [live, setLive] = useState<FormState>(DEFAULT_STATE);
   const [detailed, setDetailed] = useState(false);
   const [calculated, setCalculated] = useState(false);
-  useEffect(() => { if (!calculated) return; const id = window.setTimeout(() => setLive(form), 300); return () => window.clearTimeout(id); }, [form, calculated]);
+
+  useEffect(() => {
+    if (!calculated) return;
+    const t = setTimeout(() => setLive(form), 180);
+    return () => clearTimeout(t);
+  }, [form, calculated]);
+
   const active = calculated ? live : form;
   const parsed = useMemo(() => buildInput(active, detailed), [active, detailed]);
   const result = useMemo(() => parsed.input ? calculateImarValues(parsed.input) : null, [parsed.input]);
@@ -78,60 +84,352 @@ export function ImarCalculator() {
   ] : [];
   const setField = (k: keyof FormState, v: string) => setForm((s) => ({ ...s, [k]: v }));
 
-  return <div className={cn(imarBodyFont.className, "tool-page-shell py-8 md:py-14")}>
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
-      <PageContextNavigation
-        showBreadcrumbs={false}
-        className="mb-8"
-        backLinkClassName={cn(
-          imarMonoFont.className,
-          "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-zinc-600 dark:border-border dark:bg-background/70 dark:text-muted-foreground",
-        )}
-      />
-      <section className="mb-8 rounded-[32px] border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-border dark:bg-background/75 md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div><Badge className="mb-4 rounded-full bg-teal-100 px-4 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-teal-800 hover:bg-teal-100 dark:bg-teal-950/30 dark:text-teal-300">İmar aracı</Badge><h1 className={cn(imarDisplayFont.className, "text-4xl font-black tracking-tight text-foreground md:text-6xl")}>İmar hesaplayıcı</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">Arsa alanı, TAKS, KAKS ve çekmelere göre taban alanı, kat karşılığı ve yaklaşık yükseklik için hızlı ön değerlendirme alın.</p></div>
-          <div className="flex items-center gap-3"><Badge className="rounded-full bg-zinc-950 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-100 hover:bg-zinc-950 dark:bg-card">3194 Sayılı İmar Kanunu</Badge><Dialog><DialogTrigger asChild><Button type="button" variant="outline" className="rounded-full px-4 text-[11px] font-black uppercase tracking-[0.16em]"><Info className="h-3.5 w-3.5" />Mevzuat notları</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>İmar kuralları</DialogTitle><DialogDescription>{IMAR_REGULATION_GUIDE_INTRO}</DialogDescription></DialogHeader><div className="space-y-3">{IMAR_REGULATION_GUIDE_RULES.map((r, i) => <div key={r} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 text-sm leading-6 dark:border-border dark:bg-card/80"><span className="mr-2 font-black text-teal-700 dark:text-teal-300">{i + 1}.</span>{r}</div>)}</div><DialogFooter className="border-t border-zinc-200/80 pt-4 dark:border-border"><p className="mr-auto text-sm leading-6 text-muted-foreground">{IMAR_REGULATION_GUIDE_NOTE}</p></DialogFooter></DialogContent></Dialog></div>
-        </div>
-      </section>
-      <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-        <section className="rounded-[32px] border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-border dark:bg-background/75">
-          <div className="mb-6 flex items-start justify-between gap-4"><div><p className={cn(imarMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400")}>Girdi bilgileri</p><h2 className={cn(imarDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-foreground")}>Arsa ve katsayılar</h2></div><div className="rounded-2xl bg-teal-100 p-3 text-teal-700 dark:bg-teal-950/30 dark:text-teal-300"><Calculator className="h-5 w-5" /></div></div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2"><p className={cn(imarMonoFont.className, "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>Arsa alanı <span className="text-teal-700 dark:text-teal-300">[m²]</span></p><Input value={form.grossParcelAreaM2} onChange={(e) => setField("grossParcelAreaM2", e.target.value)} inputMode="decimal" className="tool-input h-12" /></div>
-            <div className="sm:col-span-2 rounded-[28px] border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"><p className={cn(imarMonoFont.className, "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>TAKS <span className="text-teal-700 dark:text-teal-300">[katsayı]</span></p><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_104px]"><input type="range" min={IMAR_TAKS_SLIDER.min} max={IMAR_TAKS_SLIDER.max} step={IMAR_TAKS_SLIDER.step} value={tVal} onChange={(e) => setField("taks", Number(e.target.value).toFixed(2))} className="h-2 w-full cursor-pointer accent-[#0d9488]" aria-label="TAKS" /><Input value={form.taks} onChange={(e) => setField("taks", e.target.value)} inputMode="decimal" className="tool-input h-11" /></div></div>
-            <div className="sm:col-span-2 rounded-[28px] border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"><p className={cn(imarMonoFont.className, "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>KAKS / emsal <span className="text-teal-700 dark:text-teal-300">[katsayı]</span></p><div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_104px]"><input type="range" min={IMAR_KAKS_SLIDER.min} max={IMAR_KAKS_SLIDER.max} step={IMAR_KAKS_SLIDER.step} value={kVal} onChange={(e) => setField("kaks", Number(e.target.value).toFixed(2))} className="h-2 w-full cursor-pointer accent-[#0d9488]" aria-label="KAKS" /><Input value={form.kaks} onChange={(e) => setField("kaks", e.target.value)} inputMode="decimal" className="tool-input h-11" /></div></div>
-            <div className="sm:col-span-2"><p className={cn(imarMonoFont.className, "mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500")}>Bodrum kat sayısı</p><Select value={form.basementCount} onValueChange={(v) => setField("basementCount", v)}><SelectTrigger className="h-12 rounded-none"><SelectValue /></SelectTrigger><SelectContent>{IMAR_BASEMENT_COUNT_OPTIONS.map((c) => <SelectItem key={c} value={String(c)}>{c}</SelectItem>)}</SelectContent></Select></div>
-          </div>
-          <div className="mt-6 rounded-[28px] border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-border dark:bg-card/80"><button type="button" onClick={() => setDetailed((v) => !v)} className={cn(imarMonoFont.className, "flex w-full items-center justify-between text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500")}><span>▸ Detaylı giriş</span><span>{detailed ? "Açık" : "Kapalı"}</span></button>{detailed ? <div className="mt-5 grid gap-4 sm:grid-cols-2"><Input value={form.parcelWidthM} onChange={(e) => setField("parcelWidthM", e.target.value)} placeholder="Parsel eni [m]" inputMode="decimal" className="h-11 rounded-none" /><Input value={form.parcelDepthM} onChange={(e) => setField("parcelDepthM", e.target.value)} placeholder="Parsel derinliği [m]" inputMode="decimal" className="h-11 rounded-none" /><Input value={form.frontSetbackM} onChange={(e) => setField("frontSetbackM", e.target.value)} placeholder="Ön çekme [m]" inputMode="decimal" className="h-11 rounded-none" /><Input value={form.rearSetbackM} onChange={(e) => setField("rearSetbackM", e.target.value)} placeholder="Arka çekme [m]" inputMode="decimal" className="h-11 rounded-none" /><div className="sm:col-span-2"><Input value={form.sideSetbackM} onChange={(e) => setField("sideSetbackM", e.target.value)} placeholder="Yan çekme [m]" inputMode="decimal" className="h-11 rounded-none" /></div></div> : null}<p className="mt-4 text-sm leading-6 text-muted-foreground">{IMAR_DETAIL_HELP}</p></div>
-          <Button type="button" onClick={() => { setLive(form); setCalculated(true); }} className="mt-6 h-12 w-full rounded-2xl bg-teal-700 text-sm font-black uppercase tracking-[0.14em] text-white hover:bg-teal-800">Hesapla</Button>
-        </section>
-        <section aria-live="polite" className="flex flex-col gap-6">{!calculated ? <div className="tool-panel rounded-[32px] p-6"><p className={cn(imarDisplayFont.className, "text-3xl font-black tracking-tight text-foreground")}>← Verileri girin</p><p className="mt-4 text-sm leading-7 text-muted-foreground">İlk hesaplamadan sonra sonuç kartları açılır. Sonraki değişiklikler kısa gecikmeyle yenilenir.</p></div> : error ? <div className="rounded-[32px] border border-red-200 bg-red-50/90 p-6 shadow-sm dark:border-red-950/60 dark:bg-red-950/20"><div className="flex items-start gap-3"><AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-300" /><div><p className={cn(imarDisplayFont.className, "text-2xl font-black tracking-tight text-red-950 dark:text-red-100")}>Hesap üretilemedi</p><p className="mt-3 text-sm leading-7 text-red-900 dark:text-red-100">{error}</p></div></div></div> : result ? <><div className="tool-result-panel overflow-hidden rounded-[32px] p-6 text-white"><div className="mb-6 flex items-start justify-between gap-4"><div><p className={cn(imarMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-200/80")}>Sonuç özeti</p><h2 className={cn(imarDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-white")}>Yapılaşma özeti</h2></div><div className="rounded-2xl bg-white/10 p-3 text-teal-200"><Calculator className="h-5 w-5" /></div></div><div className={cn(imarMonoFont.className, "inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]", result.statusTone === "ok" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200" : result.statusTone === "warn" ? "border-teal-400/30 bg-teal-500/10 text-teal-200" : "border-red-500/30 bg-red-500/10 text-red-200")}>{result.statusLabel}</div><div className="mt-6 grid gap-4 md:grid-cols-3"><div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-[0.18em] text-zinc-400")}>Taban alanı</p><p className={cn(imarMonoFont.className, "mt-3 text-4xl font-black text-teal-200")}>{fmt(result.maxGroundAreaM2)}</p><p className={cn(imarMonoFont.className, "text-xs text-zinc-500")}>m²</p></div><div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-[0.18em] text-zinc-400")}>Toplam inşaat</p><p className={cn(imarMonoFont.className, "mt-3 text-4xl font-black text-teal-200")}>{fmt(result.totalConstructionAreaM2)}</p><p className={cn(imarMonoFont.className, "text-xs text-zinc-500")}>m²</p></div><div className="rounded-[24px] border border-white/10 bg-white/5 p-4"><p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-[0.18em] text-zinc-400")}>Kat sayısı</p><p className={cn(imarMonoFont.className, "mt-3 text-4xl font-black text-emerald-200")}>{result.safeNormalFloorCount}</p><p className={cn(imarMonoFont.className, "text-xs text-zinc-500")}>normal kat</p></div></div><p className="mt-6 text-sm leading-7 text-zinc-300">Yaklaşık {fmt(result.maxGroundAreaM2)} m² taban oturumu, {result.safeNormalFloorCount} normal kat ve bodrum dahil {result.totalFloorCount} katlık ön fizibilite özeti üretildi.</p><div className="tool-result-inner mt-6 rounded-[24px] p-5"><div className="flex justify-between border-b border-white/10 py-3 text-sm"><span className={cn(imarMonoFont.className, "text-zinc-400")}>Net arsa</span><span className={cn(imarMonoFont.className, "text-teal-200")}>{fmt(result.netParcelAreaM2)} m²</span></div><div className="flex justify-between border-b border-white/10 py-3 text-sm"><span className={cn(imarMonoFont.className, "text-zinc-400")}>Boş alan</span><span className={cn(imarMonoFont.className, "text-emerald-300")}>{fmt(result.openAreaM2)} m²</span></div><div className="flex justify-between border-b border-white/10 py-3 text-sm"><span className={cn(imarMonoFont.className, "text-zinc-400")}>Teorik kat</span><span className={cn(imarMonoFont.className, "text-teal-200")}>{fmt(result.theoreticalFloorEquivalent)}</span></div><div className="flex justify-between border-b border-white/10 py-3 text-sm"><span className={cn(imarMonoFont.className, "text-zinc-400")}>Bodrum dahil kat</span><span className={cn(imarMonoFont.className, "text-teal-200")}>{result.totalFloorCount} kat</span></div><div className="flex justify-between py-3 text-sm"><span className={cn(imarMonoFont.className, "text-zinc-400")}>Tahmini yükseklik</span><span className={cn(imarMonoFont.className, "text-teal-200")}>{fmt(result.buildingHeightM)} m</span></div></div></div><div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]"><div className="tool-panel rounded-[32px] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-[0.2em] text-zinc-400")}>Arsa şeması</p><h2 className={cn(imarDisplayFont.className, "mt-2 text-3xl font-black tracking-tight text-foreground")}>Taban oranı</h2></div><div className="rounded-2xl bg-teal-100 p-3 text-teal-700 dark:bg-teal-950/30 dark:text-teal-300"><MapPinned className="h-5 w-5" /></div></div><div className="flex justify-center rounded-[28px] border border-zinc-200/80 bg-zinc-50/90 p-4 dark:border-border dark:bg-card/80"><svg viewBox="0 0 240 240" className="h-60 w-60"><rect x="20" y="20" width="200" height="200" rx="20" fill="#111827" opacity="0.08" stroke="#64748b" strokeWidth="2" /><rect x={120 - fill / 2} y={120 - fill / 2} width={fill} height={fill} rx="14" fill="rgba(13, 148, 136, 0.32)" stroke="#0d9488" strokeWidth="2" style={{ transition: "all 320ms ease" }} /><text x="120" y="116" textAnchor="middle" fontSize="18" fill="#0f172a" fontWeight="700">%{fmt(result.coverageRatio * 100)}</text><text x="120" y="138" textAnchor="middle" fontSize="11" fill="#0f172a" fontWeight="700">TAKS oturumu</text></svg></div></div><div className="tool-panel rounded-[32px] p-6"><p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-[0.2em] text-zinc-400")}>Formüller</p><div className="tool-formula-card mt-4 rounded-[28px] p-4"><div className={cn(imarMonoFont.className, "space-y-2 text-sm leading-6 text-zinc-100")}>{lines.map((line) => <div key={line}>{line}</div>)}</div></div><div className="mt-5 space-y-3">{result.warnings.map((w) => <div key={w.message} className={cn("rounded-2xl border p-4 text-sm leading-6", w.tone === "fail" ? "border-red-200 bg-red-50 text-red-900 dark:border-red-950/60 dark:bg-red-950/20 dark:text-red-100" : "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-950/60 dark:bg-teal-950/20 dark:text-teal-100")}>{w.message}</div>)}{result.warnings.length === 0 ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900 dark:border-emerald-950/60 dark:bg-emerald-950/20 dark:text-emerald-100">Girdi seti emsale göre tutarlı bir ön değerlendirme veriyor.</div> : null}{result.notes.map((n) => <div key={n} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4 text-sm leading-6 text-zinc-700 dark:border-border dark:bg-card/80 dark:text-muted-foreground">{n}</div>)}</div></div></div>
-
-{/* Tahmini İnşaat Alanı Analizi Önerisi */}
-<div className="rounded-[32px] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 via-zinc-950/20 to-emerald-500/10 p-6 shadow-sm dark:border-emerald-500/10 dark:from-zinc-900/40 dark:to-zinc-950/80">
-  <div className="flex items-start gap-4">
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xl shadow-emerald-500/5">
-      <Building className="h-6 w-6" />
-    </div>
-    <div className="flex-1">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Gelişmiş Değerlendirme</p>
-      <h3 className={cn(imarDisplayFont.className, "mt-2 text-xl font-black tracking-tight text-zinc-900 dark:text-white")}>Tahmini İnşaat Alanı Analizi Yapın</h3>
-      <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        Bu imar parametrelerine göre otopark, sığınak, asansör ve ortak alan kayıplarını netleştirip satılabilir / kiralanabilir bağımsız bölüm oranlarını öğrenmek için gelişmiş analiz modülünü kullanın.
-      </p>
-      <Button asChild className="mt-5 h-11 rounded-2xl bg-emerald-600 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-700">
-        <Link href="/hesaplamalar/tahmini-insaat-alani">
-          Tahmini İnşaat Alanı Aracı
-          <ArrowRight className="ml-2 h-3.5 w-3.5 text-white" />
-        </Link>
-      </Button>
-    </div>
-  </div>
-</div>
-</> : null}</section>
+  return (
+    <div className={cn(imarBodyFont.className, "tool-page-shell relative min-h-screen py-8 md:py-14 text-foreground")}>
+      {/* Cosmic Background Glows */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full bg-gradient-to-b from-purple-600/20 via-indigo-600/10 to-transparent blur-[120px] dark:from-purple-600/25" />
       </div>
-      <div className="mt-8 text-center text-xs text-zinc-500 dark:text-zinc-500">{IMAR_PAGE_NOTE} · 3194 Sayılı İmar Kanunu</div>
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <PageContextNavigation
+          showBreadcrumbs={false}
+          className="mb-8"
+          backLinkClassName={cn(
+            imarMonoFont.className,
+            "inline-flex items-center gap-2 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#120f28]/90 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200 backdrop-blur-xl transition-all hover:border-purple-500/50 hover:bg-card dark:hover:bg-[#1b173b] hover:text-foreground dark:hover:text-white",
+          )}
+        />
+
+        {/* Hero Header */}
+        <section className="mb-8 rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
+                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
+                <span>3194 Sayılı İmar Kanunu</span>
+              </div>
+              <h1 className={cn(imarDisplayFont.className, "text-4xl font-black tracking-tight text-foreground dark:text-white md:text-6xl")}>
+                İmar Hesaplayıcı
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground dark:text-zinc-300 md:text-base">
+                Arsa alanı, TAKS, KAKS ve çekmelere göre taban alanı, kat karşılığı ve yaklaşık yükseklik için yüksek hassasiyetli ön değerlendirme alın.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline" className="rounded-xl border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#16132e]/90 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200 hover:border-purple-500/50 hover:text-white">
+                    <Info className="mr-2 h-4 w-4 text-purple-400" />
+                    Mevzuat Notları
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl bg-card dark:bg-[#0c0a1e] border-border dark:border-purple-500/30 rounded-3xl p-6 shadow-[0_0_60px_rgba(139,92,246,0.2)]">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-black text-foreground dark:text-white">İmar Kuralları & Esaslar</DialogTitle>
+                    <DialogDescription className="text-muted-foreground dark:text-zinc-300">{IMAR_REGULATION_GUIDE_INTRO}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 mt-4">
+                    {IMAR_REGULATION_GUIDE_RULES.map((r, i) => (
+                      <div key={r} className="rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#120f26]/80 p-4 text-sm leading-6 text-foreground dark:text-zinc-200">
+                        <span className="mr-2 font-black text-purple-400">{i + 1}.</span>
+                        {r}
+                      </div>
+                    ))}
+                  </div>
+                  <DialogFooter className="border-t border-border/70 dark:border-white/10 pt-4 mt-4">
+                    <p className="mr-auto text-xs text-muted-foreground dark:text-zinc-400">{IMAR_REGULATION_GUIDE_NOTE}</p>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+          {/* Inputs Section */}
+          <section className="tool-panel rounded-[32px] p-6 sm:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4 border-b border-border/70 dark:border-white/10 pb-4">
+              <div>
+                <p className={cn(imarMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground dark:text-zinc-400")}>Girdi Bilgileri</p>
+                <h2 className={cn(imarDisplayFont.className, "mt-2 text-2xl sm:text-3xl font-black tracking-tight text-foreground dark:text-white")}>Arsa ve Katsayılar</h2>
+              </div>
+              <div className="rounded-2xl bg-purple-500/15 border border-purple-500/30 p-3 text-purple-400">
+                <Calculator className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <p className={cn(imarMonoFont.className, "mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300")}>
+                  Arsa Alanı <span className="text-purple-400">[m²]</span>
+                </p>
+                <Input
+                  value={form.grossParcelAreaM2}
+                  onChange={(e) => setField("grossParcelAreaM2", e.target.value)}
+                  inputMode="decimal"
+                  className="tool-input h-12 text-foreground dark:text-white font-mono font-bold"
+                />
+              </div>
+
+              <div className="sm:col-span-2 rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+                <p className={cn(imarMonoFont.className, "mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300")}>
+                  TAKS <span className="text-purple-400">[Taban Alanı Katsayısı]</span>
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_104px] items-center">
+                  <input
+                    type="range"
+                    min={IMAR_TAKS_SLIDER.min}
+                    max={IMAR_TAKS_SLIDER.max}
+                    step={IMAR_TAKS_SLIDER.step}
+                    value={tVal}
+                    onChange={(e) => setField("taks", Number(e.target.value).toFixed(2))}
+                    className="h-2 w-full cursor-pointer accent-[#a855f7]"
+                    aria-label="TAKS"
+                  />
+                  <Input
+                    value={form.taks}
+                    onChange={(e) => setField("taks", e.target.value)}
+                    inputMode="decimal"
+                    className="tool-input h-11 text-foreground dark:text-white font-mono font-bold text-center"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+                <p className={cn(imarMonoFont.className, "mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300")}>
+                  KAKS / Emsal <span className="text-purple-400">[Katsayı]</span>
+                </p>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_104px] items-center">
+                  <input
+                    type="range"
+                    min={IMAR_KAKS_SLIDER.min}
+                    max={IMAR_KAKS_SLIDER.max}
+                    step={IMAR_KAKS_SLIDER.step}
+                    value={kVal}
+                    onChange={(e) => setField("kaks", Number(e.target.value).toFixed(2))}
+                    className="h-2 w-full cursor-pointer accent-[#a855f7]"
+                    aria-label="KAKS"
+                  />
+                  <Input
+                    value={form.kaks}
+                    onChange={(e) => setField("kaks", e.target.value)}
+                    inputMode="decimal"
+                    className="tool-input h-11 text-foreground dark:text-white font-mono font-bold text-center"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className={cn(imarMonoFont.className, "mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300")}>
+                  Bodrum Kat Sayısı
+                </p>
+                <Select value={form.basementCount} onValueChange={(v) => setField("basementCount", v)}>
+                  <SelectTrigger className="tool-input h-12 text-foreground dark:text-white font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card dark:bg-[#16132e] border-border dark:border-white/15 text-foreground dark:text-white">
+                    {IMAR_BASEMENT_COUNT_OPTIONS.map((c) => (
+                      <SelectItem key={c} value={String(c)}>{c} Bodrum Kat</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Detailed Setbacks Toggle */}
+            <div className="mt-6 rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+              <button
+                type="button"
+                onClick={() => setDetailed((v) => !v)}
+                className={cn(imarMonoFont.className, "flex w-full items-center justify-between text-xs font-bold uppercase tracking-wider text-purple-400 hover:text-purple-300")}
+              >
+                <span>▸ Çekme Mesafeleri ve Parsel Boyutları</span>
+                <span className="rounded-lg bg-purple-500/20 px-2 py-0.5 text-[10px]">{detailed ? "Açık" : "Kapalı"}</span>
+              </button>
+              {detailed && (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <Input value={form.parcelWidthM} onChange={(e) => setField("parcelWidthM", e.target.value)} placeholder="Parsel eni [m]" inputMode="decimal" className="tool-input h-11" />
+                  <Input value={form.parcelDepthM} onChange={(e) => setField("parcelDepthM", e.target.value)} placeholder="Parsel derinliği [m]" inputMode="decimal" className="tool-input h-11" />
+                  <Input value={form.frontSetbackM} onChange={(e) => setField("frontSetbackM", e.target.value)} placeholder="Ön çekme [m]" inputMode="decimal" className="tool-input h-11" />
+                  <Input value={form.rearSetbackM} onChange={(e) => setField("rearSetbackM", e.target.value)} placeholder="Arka çekme [m]" inputMode="decimal" className="tool-input h-11" />
+                  <div className="sm:col-span-2">
+                    <Input value={form.sideSetbackM} onChange={(e) => setField("sideSetbackM", e.target.value)} placeholder="Yan çekme [m]" inputMode="decimal" className="tool-input h-11" />
+                  </div>
+                </div>
+              )}
+              <p className="mt-4 text-xs text-muted-foreground dark:text-zinc-400">{IMAR_DETAIL_HELP}</p>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => { setLive(form); setCalculated(true); }}
+              className="mt-6 h-12 w-full rounded-2xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-sm font-bold uppercase tracking-wider text-white shadow-[0_0_25px_rgba(139,92,246,0.4)] active:scale-98"
+            >
+              İmar Hesabını Çalıştır
+            </Button>
+          </section>
+
+          {/* Results Section */}
+          <section aria-live="polite" className="flex flex-col gap-6">
+            {!calculated ? (
+              <div className="tool-panel flex min-h-[300px] flex-col items-center justify-center rounded-[32px] p-6 text-center">
+                <Calculator className="h-10 w-10 text-purple-400 mb-3 opacity-60" />
+                <p className={cn(imarDisplayFont.className, "text-2xl font-black tracking-tight text-foreground dark:text-white")}>Girdileri Belirleyin</p>
+                <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground dark:text-zinc-300">
+                  Arsa alanı ve emsal katsayılarını girdikten sonra &apos;İmar Hesabını Çalıştır&apos; butonuna tıklayın.
+                </p>
+              </div>
+            ) : error ? (
+              <div className="rounded-[32px] border border-red-500/30 bg-red-500/10 p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-1 h-5 w-5 shrink-0 text-red-400" />
+                  <div>
+                    <p className={cn(imarDisplayFont.className, "text-xl font-black text-red-200")}>Hesap Üretilemedi</p>
+                    <p className="mt-2 text-sm text-red-300">{error}</p>
+                  </div>
+                </div>
+              </div>
+            ) : result ? (
+              <>
+                <div className="tool-result-panel overflow-hidden rounded-[32px] p-6 sm:p-8 text-white">
+                  <div className="mb-6 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+                    <div>
+                      <p className={cn(imarMonoFont.className, "text-[11px] font-semibold uppercase tracking-[0.2em] text-purple-200")}>Sonuç Özeti</p>
+                      <h2 className={cn(imarDisplayFont.className, "mt-1 text-2xl sm:text-3xl font-black tracking-tight text-white")}>Yapılaşma Özeti</h2>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-3 text-purple-200">
+                      <Calculator className="h-5 w-5" />
+                    </div>
+                  </div>
+
+                  <div className={cn(imarMonoFont.className, "inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]", result.statusTone === "ok" ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-300" : result.statusTone === "warn" ? "border-amber-500/40 bg-amber-500/20 text-amber-300" : "border-red-500/40 bg-red-500/20 text-red-300")}>
+                    {result.statusLabel}
+                  </div>
+
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-wider text-zinc-400")}>Taban Alanı</p>
+                      <p className={cn(imarMonoFont.className, "mt-2 text-3xl font-black text-white drop-shadow-[0_0_15px_rgba(192,132,252,0.3)]")}>{fmt(result.maxGroundAreaM2)}</p>
+                      <p className={cn(imarMonoFont.className, "text-xs text-purple-300")}>m²</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-wider text-zinc-400")}>Toplam İnşaat</p>
+                      <p className={cn(imarMonoFont.className, "mt-2 text-3xl font-black text-purple-200")}>{fmt(result.totalConstructionAreaM2)}</p>
+                      <p className={cn(imarMonoFont.className, "text-xs text-purple-300")}>m²</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-wider text-zinc-400")}>Kat Sayısı</p>
+                      <p className={cn(imarMonoFont.className, "mt-2 text-3xl font-black text-emerald-300")}>{result.safeNormalFloorCount}</p>
+                      <p className={cn(imarMonoFont.className, "text-xs text-zinc-400")}>normal kat</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-6 text-xs sm:text-sm leading-relaxed text-zinc-300">
+                    Yaklaşık {fmt(result.maxGroundAreaM2)} m² taban oturumu, {result.safeNormalFloorCount} normal kat ve bodrum dahil {result.totalFloorCount} katlık ön fizibilite özeti üretildi.
+                  </p>
+
+                  <div className="tool-result-inner mt-6 rounded-2xl p-5">
+                    <div className="flex justify-between border-b border-white/10 py-2.5 text-xs sm:text-sm">
+                      <span className={cn(imarMonoFont.className, "text-zinc-400")}>Net Arsa</span>
+                      <span className={cn(imarMonoFont.className, "text-white font-bold")}>{fmt(result.netParcelAreaM2)} m²</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/10 py-2.5 text-xs sm:text-sm">
+                      <span className={cn(imarMonoFont.className, "text-zinc-400")}>Boş Alan</span>
+                      <span className={cn(imarMonoFont.className, "text-emerald-300 font-bold")}>{fmt(result.openAreaM2)} m²</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/10 py-2.5 text-xs sm:text-sm">
+                      <span className={cn(imarMonoFont.className, "text-zinc-400")}>Teorik Kat</span>
+                      <span className={cn(imarMonoFont.className, "text-purple-300 font-bold")}>{fmt(result.theoreticalFloorEquivalent)}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-white/10 py-2.5 text-xs sm:text-sm">
+                      <span className={cn(imarMonoFont.className, "text-zinc-400")}>Bodrum Dahil Kat</span>
+                      <span className={cn(imarMonoFont.className, "text-white font-bold")}>{result.totalFloorCount} kat</span>
+                    </div>
+                    <div className="flex justify-between py-2.5 text-xs sm:text-sm">
+                      <span className={cn(imarMonoFont.className, "text-zinc-400")}>Tahmini Yükseklik</span>
+                      <span className={cn(imarMonoFont.className, "text-purple-200 font-bold")}>{fmt(result.buildingHeightM)} m</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Plot & Formulas Grid */}
+                <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                  <div className="tool-panel rounded-[32px] p-6">
+                    <div className="mb-5 flex items-start justify-between gap-4">
+                      <div>
+                        <p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-wider text-muted-foreground dark:text-zinc-400")}>Arsa Şeması</p>
+                        <h2 className={cn(imarDisplayFont.className, "mt-1 text-xl font-black tracking-tight text-foreground dark:text-white")}>Taban Oranı</h2>
+                      </div>
+                      <div className="rounded-2xl bg-purple-500/15 border border-purple-500/30 p-2.5 text-purple-400">
+                        <MapPinned className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <div className="flex justify-center rounded-2xl border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#16132e]/60 p-4">
+                      <svg viewBox="0 0 240 240" className="h-56 w-56">
+                        <rect x="20" y="20" width="200" height="200" rx="20" fill="currentColor" className="text-zinc-800/20 dark:text-white/5" stroke="#6366f1" strokeWidth="1.5" />
+                        <rect x={120 - fill / 2} y={120 - fill / 2} width={fill} height={fill} rx="14" fill="rgba(168, 85, 247, 0.35)" stroke="#c084fc" strokeWidth="2" style={{ transition: "all 320ms ease" }} />
+                        <text x="120" y="116" textAnchor="middle" fontSize="18" fill="currentColor" className="text-foreground dark:text-white font-bold">%{fmt(result.coverageRatio * 100)}</text>
+                        <text x="120" y="138" textAnchor="middle" fontSize="11" fill="currentColor" className="text-muted-foreground dark:text-purple-300 font-medium">TAKS Oturumu</text>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="tool-panel rounded-[32px] p-6">
+                    <p className={cn(imarMonoFont.className, "text-[11px] uppercase tracking-wider text-muted-foreground dark:text-zinc-400")}>Formüller</p>
+                    <div className="tool-formula-card mt-3 rounded-2xl p-4">
+                      <div className={cn(imarMonoFont.className, "space-y-2 text-xs leading-relaxed text-zinc-100")}>
+                        {lines.map((line) => <div key={line}>{line}</div>)}
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      {result.warnings.map((w) => (
+                        <div key={w.message} className={cn("rounded-xl border p-3 text-xs leading-relaxed", w.tone === "fail" ? "border-red-500/30 bg-red-500/10 text-red-300" : "border-purple-500/30 bg-purple-500/10 text-purple-200")}>
+                          {w.message}
+                        </div>
+                      ))}
+                      {result.warnings.length === 0 && (
+                        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+                          Girdi seti emsale göre tutarlı bir ön değerlendirme veriyor.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Advanced Estimation Promo */}
+                <div className="rounded-[32px] border border-purple-500/30 bg-gradient-to-br from-[#1c1540] via-[#120e2c] to-[#0a0818] p-6 sm:p-8 text-white shadow-xl backdrop-blur-2xl">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-300 shadow-xl">
+                      <Building className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300">Gelişmiş Değerlendirme</p>
+                      <h3 className={cn(imarDisplayFont.className, "mt-1 text-xl font-black tracking-tight text-white")}>Tahmini İnşaat Alanı Analizi Yapın</h3>
+                      <p className="mt-2 text-xs sm:text-sm leading-relaxed text-zinc-300">
+                        Bu imar parametrelerine göre otopark, sığınak, asansör ve ortak alan kayıplarını netleştirip satılabilir / kiralanabilir bağımsız bölüm oranlarını öğrenmek için gelişmiş analiz modülünü kullanın.
+                      </p>
+                      <Button asChild className="mt-4 h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:scale-[1.02] transition-all">
+                        <Link href="/hesaplamalar/tahmini-insaat-alani">
+                          Tahmini İnşaat Alanı Aracı
+                          <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </section>
+        </div>
+
+        <div className="mt-8 text-center text-xs text-muted-foreground dark:text-zinc-500">
+          {IMAR_PAGE_NOTE} · 3194 Sayılı İmar Kanunu
+        </div>
+      </div>
     </div>
-  </div>;
+  );
 }
