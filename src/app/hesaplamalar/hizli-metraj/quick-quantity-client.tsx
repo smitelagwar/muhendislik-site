@@ -706,17 +706,17 @@ export function QuickQuantityClient() {
   return (
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-8 lg:px-12 md:py-12">
-        <section className="mb-8 rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+        <section className="mb-8 rounded-3xl border border-border/80 bg-card/90 p-6 md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
           <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/15 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300 dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                 <Layers3 className="h-4 w-4" />
                 Taşıyıcı Sistem Ön Keşfi
               </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+              <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl dark:text-white">
                 Hızlı Metraj Hesaplayıcı
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base font-normal dark:text-slate-300">
                 Kat alanı, kat sayısı, deprem talebi, plan kompaktlığı ve bodrum çevre perdesi
                 kararlarına göre yaklaşık beton, donatı, kalıp ve kaba taşıyıcı maliyet bandını tek
                 ekranda görün. Aynı akışta yardımcı kaba iş metrajını ve 2026 resmî yaklaşık
@@ -779,17 +779,17 @@ export function QuickQuantityClient() {
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-          <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-7 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+          <section className="rounded-3xl border border-border/80 bg-card/90 p-6 md:p-7 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                   Hızlı Mod
                 </p>
-                <h2 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                <h2 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                   Bina Tipini ve Kaba Boyutları Girin
                 </h2>
               </div>
-              <div className="rounded-2xl border border-blue-500/30 bg-blue-500/15 p-2.5 text-blue-400">
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-500/15 p-2.5 text-blue-600 dark:text-blue-400">
                 <Calculator className="h-5 w-5" />
               </div>
             </div>
@@ -821,12 +821,12 @@ export function QuickQuantityClient() {
                     className={cn(
                       "rounded-2xl border p-4 text-left transition-all",
                       isActive
-                        ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                        : "border-white/10 bg-[#070a20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
+                        ? "border-blue-500 bg-blue-500/10 text-foreground shadow-[0_0_20px_rgba(59,130,246,0.15)] dark:bg-blue-500/15 dark:text-white dark:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                        : "border-border/80 bg-muted/40 text-foreground hover:border-blue-500/40 hover:bg-card dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                     )}
                   >
-                    <p className="text-sm font-bold text-white">{item.shortLabel}</p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{item.description}</p>
+                    <p className="text-sm font-bold text-foreground dark:text-white">{item.shortLabel}</p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">{item.description}</p>
                   </button>
                 );
               })}
@@ -834,7 +834,7 @@ export function QuickQuantityClient() {
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="block space-y-1.5">
-                <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                   Kat Alanı (m²)
                 </span>
                 <input
@@ -842,12 +842,12 @@ export function QuickQuantityClient() {
                   value={form.katAlaniM2}
                   onChange={(event) => updateField("katAlaniM2", event.target.value)}
                   inputMode="decimal"
-                  className="h-12 w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 font-mono text-sm font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                 />
               </label>
 
               <label className="block space-y-1.5">
-                <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                   Normal Kat Sayısı
                 </span>
                 <input
@@ -855,12 +855,12 @@ export function QuickQuantityClient() {
                   value={form.normalKatSayisi}
                   onChange={(event) => updateField("normalKatSayisi", event.target.value)}
                   inputMode="numeric"
-                  className="h-12 w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 font-mono text-sm font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                 />
               </label>
 
               <label className="block space-y-1.5">
-                <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                   Bodrum Kat Sayısı
                 </span>
                 <input
@@ -868,12 +868,12 @@ export function QuickQuantityClient() {
                   value={form.bodrumKatSayisi}
                   onChange={(event) => updateField("bodrumKatSayisi", event.target.value)}
                   inputMode="numeric"
-                  className="h-12 w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 font-mono text-sm font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                  className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                 />
               </label>
 
               <label className="block space-y-1.5">
-                <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                   Bodrum Kat Alanı (m²)
                 </span>
                 <input
@@ -883,9 +883,9 @@ export function QuickQuantityClient() {
                   inputMode="decimal"
                   disabled={!bodrumAktif}
                   placeholder="Boş bırakılırsa kat alanı kullanılır"
-                  className="h-12 w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 font-mono text-sm font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground dark:text-slate-400">
                   {bodrumAktif
                     ? "Bodrum alanı boş bırakılırsa normal kat alanı kabul edilir."
                     : "Bodrum kat sayısı 0 iken bu alan devre dışıdır."}
@@ -893,13 +893,13 @@ export function QuickQuantityClient() {
               </label>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-[#070a20] p-4">
+            <div className="mt-6 rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                     Resmî Sınıf
                   </p>
-                  <p className="mt-1 text-sm font-bold text-white">
+                  <p className="mt-1 text-sm font-bold text-foreground dark:text-white">
                     {parsed.resolvedSelection.grup}-{parsed.resolvedSelection.sinif}
                     {activeOfficialRow ? ` · ${activeOfficialRow.sinifAdi}` : ""}
                   </p>
@@ -908,8 +908,8 @@ export function QuickQuantityClient() {
                   className={cn(
                     "rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]",
                     supportedOfficialSelection
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                      : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                      : "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300"
                   )}
                 >
                   {supportedOfficialSelection ? "Desteklenen bant" : "Destek dışı bant"}
@@ -917,17 +917,17 @@ export function QuickQuantityClient() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-[#070a20] p-4">
+            <div className="mt-6 rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
               <button
                 type="button"
                 data-testid="hizli-metraj-advanced-toggle"
                 onClick={() => updateField("showAdvanced", !form.showAdvanced)}
                 className="flex w-full items-center justify-between text-left"
               >
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-300">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-300">
                   Gelişmiş Parametreler
                 </span>
-                <span className="rounded-lg border border-white/10 bg-[#0c1233] px-2.5 py-1 text-xs font-bold text-white">
+                <span className="rounded-lg border border-border/80 bg-card px-2.5 py-1 text-xs font-bold text-foreground shadow-2xs dark:border-white/10 dark:bg-[#0c1233] dark:text-white">
                   {form.showAdvanced ? "Kapat" : "Aç"}
                 </span>
               </button>
@@ -935,17 +935,17 @@ export function QuickQuantityClient() {
               {form.showAdvanced ? (
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Taşıyıcı Sistem
                     </span>
                     <select
                       data-testid="hizli-metraj-select-tasiyici"
                       value={form.tasiyiciSistem}
                       onChange={(event) => updateField("tasiyiciSistem", event.target.value as QuickQuantityFormState["tasiyiciSistem"])}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_STRUCTURAL_SYSTEM_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
@@ -953,17 +953,17 @@ export function QuickQuantityClient() {
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Döşeme Sistemi
                     </span>
                     <select
                       data-testid="hizli-metraj-select-doseme"
                       value={form.dosemeSistemi}
                       onChange={(event) => updateField("dosemeSistemi", event.target.value as QuickQuantityFormState["dosemeSistemi"])}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_SLAB_SYSTEM_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
@@ -971,17 +971,17 @@ export function QuickQuantityClient() {
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Temel Tipi
                     </span>
                     <select
                       data-testid="hizli-metraj-select-temel"
                       value={form.temelTipi}
                       onChange={(event) => updateField("temelTipi", event.target.value as QuickQuantityFormState["temelTipi"])}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_FOUNDATION_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
@@ -989,17 +989,17 @@ export function QuickQuantityClient() {
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Zemin Sınıfı
                     </span>
                     <select
                       data-testid="hizli-metraj-select-zemin"
                       value={form.zeminSinifi}
                       onChange={(event) => updateField("zeminSinifi", event.target.value as QuickQuantityFormState["zeminSinifi"])}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_SOIL_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
@@ -1007,7 +1007,7 @@ export function QuickQuantityClient() {
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Deprem Talebi
                     </span>
                     <select
@@ -1019,21 +1019,21 @@ export function QuickQuantityClient() {
                           event.target.value as QuickQuantityFormState["depremTalebi"]
                         )
                       }
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_SEISMIC_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
                     </select>
                     {depremTalebiDescription ? (
-                      <p className="text-xs text-slate-400">{depremTalebiDescription}</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">{depremTalebiDescription}</p>
                     ) : null}
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Plan Kompaktlığı
                     </span>
                     <select
@@ -1045,21 +1045,21 @@ export function QuickQuantityClient() {
                           event.target.value as QuickQuantityFormState["planKompaktligi"]
                         )
                       }
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_PLAN_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
                     </select>
                     {planKompaktligiDescription ? (
-                      <p className="text-xs text-slate-400">{planKompaktligiDescription}</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">{planKompaktligiDescription}</p>
                     ) : null}
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Bodrum Çevre Perdesi
                     </span>
                     <select
@@ -1072,21 +1072,21 @@ export function QuickQuantityClient() {
                           event.target.value as QuickQuantityFormState["bodrumCevrePerdesi"]
                         )
                       }
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_RETAINING_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
                     </select>
                     {bodrumPerdesiDescription ? (
-                      <p className="text-xs text-slate-400">{bodrumPerdesiDescription}</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">{bodrumPerdesiDescription}</p>
                     ) : null}
                   </label>
 
                   <label className="block space-y-1.5">
-                    <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                       Tipik Açıklık
                     </span>
                     <select
@@ -1098,20 +1098,20 @@ export function QuickQuantityClient() {
                           event.target.value as QuickQuantityFormState["tipikAciklik"]
                         )
                       }
-                      className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {QUICK_QUANTITY_SPAN_OPTIONS.map((item) => (
-                        <option key={item.value} value={item.value} className="bg-[#070a20] text-white">
+                        <option key={item.value} value={item.value} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                           {item.label}
                         </option>
                       ))}
                     </select>
                     {tipikAciklikDescription ? (
-                      <p className="text-xs text-slate-400">{tipikAciklikDescription}</p>
+                      <p className="text-xs text-muted-foreground dark:text-slate-400">{tipikAciklikDescription}</p>
                     ) : null}
                   </label>
 
-                  <label className="sm:col-span-2 flex items-center gap-3 rounded-xl border border-white/10 bg-[#070a20] px-4 py-3">
+                  <label className="sm:col-span-2 flex items-center gap-3 rounded-xl border border-border/80 bg-card p-3.5 dark:border-white/10 dark:bg-[#070a20]">
                     <input
                       type="checkbox"
                       checked={form.resmiSinifOverride}
@@ -1124,27 +1124,27 @@ export function QuickQuantityClient() {
                           resmiSinif: checked ? current.resmiSinif : preset.officialSelection.sinif,
                         }));
                       }}
-                      className="h-4 w-4 rounded border-white/20 bg-[#0c1233] text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border-input bg-muted text-blue-600 focus:ring-blue-500 dark:border-white/20 dark:bg-[#0c1233]"
                     />
-                    <span className="text-xs font-bold text-white">
-                      Resmî Sınıfı Elle Sabitle
+                    <span className="text-xs font-bold text-foreground dark:text-white">
+                      Resmî sınıfı elle sabitle
                     </span>
                   </label>
 
                   {form.resmiSinifOverride ? (
                     <>
                       <label className="block space-y-1.5">
-                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                           Resmî Grup
                         </span>
                         <select
                           data-testid="hizli-metraj-select-official-group"
                           value={form.resmiGrup}
                           onChange={(event) => updateField("resmiGrup", event.target.value)}
-                          className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                          className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                         >
                           {groupOptions.map((group) => (
-                            <option key={group} value={group} className="bg-[#070a20] text-white">
+                            <option key={group} value={group} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                               {group}
                             </option>
                           ))}
@@ -1152,17 +1152,17 @@ export function QuickQuantityClient() {
                       </label>
 
                       <label className="block space-y-1.5">
-                        <span className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        <span className="block text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300">
                           Resmî Sınıf
                         </span>
                         <select
                           data-testid="hizli-metraj-select-official-class"
                           value={form.resmiSinif}
                           onChange={(event) => updateField("resmiSinif", event.target.value)}
-                          className="h-12 w-full rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                          className="h-12 w-full rounded-xl border border-input bg-card px-4 py-3 text-xs font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                         >
                           {classOptions.map((option) => (
-                            <option key={option} value={option} className="bg-[#070a20] text-white">
+                            <option key={option} value={option} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                               {option}
                             </option>
                           ))}
@@ -1187,8 +1187,8 @@ export function QuickQuantityClient() {
                 <div className="flex items-start gap-3">
                   <ShieldAlert className="mt-1 h-5 w-5 flex-shrink-0" />
                   <div>
-                    <p className="text-xl font-bold tracking-tight text-white">Metraj Sonucu Üretilemedi</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-300">{resultError}</p>
+                    <p className="text-xl font-bold tracking-tight text-foreground dark:text-white">Metraj Sonucu Üretilemedi</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">{resultError}</p>
                     {!supportedOfficialSelection ? (
                       <Link
                         href={buildPathWithSearch(
@@ -1199,7 +1199,7 @@ export function QuickQuantityClient() {
                             sinif: parsed.resolvedSelection.sinif,
                           })
                         )}
-                        className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-blue-400"
+                        className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400"
                       >
                         Resmî Birim Maliyet aracına git
                         <ArrowRight className="h-4 w-4" />
@@ -1210,13 +1210,13 @@ export function QuickQuantityClient() {
               </div>
             ) : result ? (
               <>
-                <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-8 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
+                <section className="rounded-3xl border border-border/80 bg-card/90 p-6 md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
                   <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                         Sonuç Özeti
                       </p>
-                      <h2 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                      <h2 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                         Beton, Donatı ve Kalıp Dengesi
                       </h2>
                     </div>
@@ -1236,9 +1236,9 @@ export function QuickQuantityClient() {
                             setPdfError(getPreviewErrorMessage(error));
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                       >
-                        <FileText className="h-4 w-4 text-blue-400" />
+                        <FileText className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                         PDF Önizle
                       </button>
                       <button
@@ -1279,9 +1279,9 @@ export function QuickQuantityClient() {
                             setPdfError(getPreviewErrorMessage(error));
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                       >
-                        <Printer className="h-4 w-4 text-blue-400" />
+                        <Printer className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                         Yazdır
                       </button>
                     </div>
@@ -1289,19 +1289,19 @@ export function QuickQuantityClient() {
 
                   {/* ── 3-Box HUD + Total Area ── */}
                   <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Toplam Alan</p>
-                      <p data-testid="hizli-metraj-result-total-area" className="mt-2 font-mono text-3xl font-black text-white">
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">Toplam Alan</p>
+                      <p data-testid="hizli-metraj-result-total-area" className="mt-2 font-mono text-3xl font-black text-foreground dark:text-white">
                         {formatSayi(result.toplamInsaatAlaniM2, 1)}
                       </p>
-                      <p className="text-xs text-blue-300 font-bold">m²</p>
-                      <p className="mt-1.5 text-xs text-slate-400">
+                      <p className="text-xs text-blue-600 dark:text-blue-300 font-bold">m²</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground dark:text-slate-400">
                         Normal: {formatSayi(result.toplamNormalAlanM2, 1)} m² · Bodrum:{" "}
                         {formatSayi(result.toplamBodrumAlanM2, 1)} m²
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(37,99,235,0.25)]">
+                    <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(37,99,235,0.25)] text-white">
                       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">Beton (C30/37)</p>
                       <p data-testid="hizli-metraj-result-beton" className="mt-2 font-mono text-3xl font-black text-white">
                         {formatSayi(result.betonM3, 1)}
@@ -1312,7 +1312,7 @@ export function QuickQuantityClient() {
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-[#1e1045] via-[#140c36] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(139,92,246,0.25)]">
+                    <div className="rounded-2xl border border-purple-500/30 bg-gradient-to-br from-[#1e1045] via-[#140c36] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(139,92,246,0.25)] text-white">
                       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-purple-300">Donatı (B420C)</p>
                       <p data-testid="hizli-metraj-result-donati" className="mt-2 font-mono text-3xl font-black text-white">
                         {formatSayi(result.donatiTon, 2)}
@@ -1326,7 +1326,7 @@ export function QuickQuantityClient() {
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-[#141b4d] via-[#0c1236] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(99,102,241,0.25)]">
+                    <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-[#141b4d] via-[#0c1236] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(99,102,241,0.25)] text-white">
                       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-indigo-300">Kalıp</p>
                       <p data-testid="hizli-metraj-result-kalip" className="mt-2 font-mono text-3xl font-black text-white">
                         {formatSayi(result.kalipM2, 1)}
@@ -1337,40 +1337,40 @@ export function QuickQuantityClient() {
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                    <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                         Doğrudan Taşıyıcı Maliyet
                       </p>
-                      <p data-testid="hizli-metraj-result-direct-cost" className="mt-2 font-mono text-2xl font-black text-white">
+                      <p data-testid="hizli-metraj-result-direct-cost" className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                         {formatTL(result.dogrudanTasiyiciMaliyet)}
                       </p>
-                      <p className="mt-1.5 text-xs text-slate-400">
+                      <p className="mt-1.5 text-xs text-muted-foreground dark:text-slate-400">
                         Beton + donatı + kalıp · {result.priceBook.monthLabel}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                    <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-300">
                         Resmî Yaklaşık Maliyet
                       </p>
-                      <p data-testid="hizli-metraj-result-official-cost" className="mt-2 font-mono text-2xl font-black text-white">
+                      <p data-testid="hizli-metraj-result-official-cost" className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                         {formatTL(result.officialResult.resmiToplamMaliyet)}
                       </p>
-                      <p className="mt-1.5 text-xs text-slate-400">
+                      <p className="mt-1.5 text-xs text-muted-foreground dark:text-slate-400">
                         {result.officialResult.row.sinifKodu} · {result.officialResult.row.sinifAdi}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
                         Taşıyıcı Payı
                       </p>
-                      <p data-testid="hizli-metraj-result-carrying-share" className="mt-2 font-mono text-2xl font-black text-emerald-300">
+                      <p data-testid="hizli-metraj-result-carrying-share" className="mt-2 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-300">
                         {formatYuzde(result.tasiyiciPayi.actual)}
                       </p>
                       <p
                         data-testid="hizli-metraj-share-band"
-                        className="mt-1.5 font-mono text-xs text-emerald-400"
+                        className="mt-1.5 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-semibold"
                       >
                         Bant: {formatYuzde(result.tasiyiciPayi.low)} / {formatYuzde(
                           result.tasiyiciPayi.expected
@@ -1378,56 +1378,56 @@ export function QuickQuantityClient() {
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-purple-500/20 bg-purple-500/10 p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-purple-300">
+                    <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-purple-600 dark:text-purple-300">
                         Genişletilmiş Kaba Yapı
                       </p>
-                      <p className="mt-2 font-mono text-2xl font-black text-white">
+                      <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                         {formatTL(result.genisletilmisKabaYapiBandi.expectedAmount)}
                       </p>
-                      <p className="mt-1.5 text-xs text-slate-400">
+                      <p className="mt-1.5 text-xs text-muted-foreground dark:text-slate-400">
                         Low / High: {formatTL(result.genisletilmisKabaYapiBandi.lowAmount)} / {formatTL(
                           result.genisletilmisKabaYapiBandi.highAmount
                         )}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                         Doğrudan Maliyet / m²
                       </p>
-                      <p className="mt-2 font-mono text-2xl font-black text-white">
+                      <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                         {formatTL(result.yogunlukOzet.directCostPerM2).replace(" TL", " TL/m²")}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
                         Brüt inşaat alanına göre
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                         Yaklaşık Çevre Uzunluğu
                       </p>
-                      <p className="mt-2 font-mono text-2xl font-black text-white">
-                        {formatSayi(result.geometriOzet.perimeterM, 1)} <span className="text-xs text-blue-300">m</span>
+                      <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
+                        {formatSayi(result.geometriOzet.perimeterM, 1)} <span className="text-xs text-blue-600 dark:text-blue-300">m</span>
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">Kat geometrisi</p>
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Kat geometrisi</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                         Bodrum Perde Yüzeyi
                       </p>
-                      <p className="mt-2 font-mono text-2xl font-black text-white">
-                        {formatSayi(result.geometriOzet.basementWallAreaM2, 1)} <span className="text-xs text-blue-300">m²</span>
+                      <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
+                        {formatSayi(result.geometriOzet.basementWallAreaM2, 1)} <span className="text-xs text-blue-600 dark:text-blue-300">m²</span>
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">Toprak altı yüzey</p>
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">Toprak altı yüzey</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                         Yardımcı Kaba İş Bandı
                       </p>
-                      <p className="mt-2 font-mono text-2xl font-black text-white">
+                      <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                         {formatTL(result.yardimciKabaIsBandi.expectedAmount)}
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
                         %{formatYuzde(result.yardimciKabaIsBandi.expected)} oran kabulü
                       </p>
                     </div>
@@ -1441,16 +1441,16 @@ export function QuickQuantityClient() {
                 </section>
 
                 {/* ── Decision Focus Cards ── */}
-                <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                <section className="rounded-3xl border border-border/80 bg-card/90 p-6 md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                         Karar Özeti
                       </p>
-                      <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                      <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                         Mühendis ve Muhasebe Odakları
                       </h3>
-                      <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                         Bu panel, hangi grup ve hangi saha şartının sonucu sürüklediğini tek ekranda özetler.
                       </p>
                     </div>
@@ -1467,7 +1467,7 @@ export function QuickQuantityClient() {
                         <p className="text-[10px] font-bold uppercase tracking-[0.18em]">
                           {item.title}
                         </p>
-                        <p className="mt-2 text-base font-bold tracking-tight text-white">{item.value}</p>
+                        <p className="mt-2 text-base font-bold tracking-tight text-foreground dark:text-white">{item.value}</p>
                         <p className="mt-1.5 text-xs leading-relaxed opacity-90">{item.note}</p>
                       </div>
                     ))}
@@ -1476,28 +1476,28 @@ export function QuickQuantityClient() {
 
                 {/* ── Benchmark & Excavation ── */}
                 <section className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
-                  <div className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Mühendislik Kontrolü
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       Yoğunluk ve Benchmark Paneli
                     </h3>
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                       Bu kıyas, seçilen arketipin Türkiye betonarme pratiğindeki tipik referans bandına göre okunmalıdır.
                     </p>
                     <div className="mt-5 space-y-3">
                       {result.benchmarklar.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-white/10 bg-[#070a20] p-4"
+                          className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <p className="text-xs font-bold text-white">
+                              <p className="text-xs font-bold text-foreground dark:text-white">
                                 {item.label}
                               </p>
-                              <p className="mt-0.5 text-[11px] text-slate-400">{item.helper}</p>
+                              <p className="mt-0.5 text-[11px] text-muted-foreground dark:text-slate-400">{item.helper}</p>
                             </div>
                             <span
                               className={cn(
@@ -1510,14 +1510,14 @@ export function QuickQuantityClient() {
                           </div>
                           <div className="mt-3.5 grid gap-3 md:grid-cols-[0.95fr_1.05fr]">
                             <div>
-                              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Hesaplanan Değer</p>
-                              <p className="mt-1 font-mono text-lg font-black text-white">
+                              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground dark:text-slate-400">Hesaplanan Değer</p>
+                              <p className="mt-1 font-mono text-lg font-black text-foreground dark:text-white">
                                 {formatBenchmarkValue(item.value, item.unit)}
                               </p>
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Referans Bant</p>
-                              <p className="mt-1 font-mono text-xs font-bold text-blue-300">
+                              <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground dark:text-slate-400">Referans Bant</p>
+                              <p className="mt-1 font-mono text-xs font-bold text-blue-600 dark:text-blue-300">
                                 {formatBenchmarkValue(item.band.low, item.unit)} /{" "}
                                 {formatBenchmarkValue(item.band.expected, item.unit)} /{" "}
                                 {formatBenchmarkValue(item.band.high, item.unit)}
@@ -1529,28 +1529,28 @@ export function QuickQuantityClient() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Yardımcı Kaba İş Metrajı
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       Kazı, Bohçalama ve Drenaj Ön Keşfi
                     </h3>
                     <div className="mt-5 grid gap-3.5 sm:grid-cols-2">
                       {result.yardimciMetrajlar.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-white/10 bg-[#070a20] p-4"
+                          className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]"
                         >
-                          <p className="text-xs font-bold text-white">
+                          <p className="text-xs font-bold text-foreground dark:text-white">
                             {item.label}
                           </p>
-                          <p className="mt-2 font-mono text-2xl font-black text-white">
+                          <p className="mt-2 font-mono text-2xl font-black text-foreground dark:text-white">
                             {formatSayi(item.quantity, item.unit === "m" ? 1 : 2)}
-                            <span className="text-xs text-blue-300 ml-1.5">{item.unit}</span>
+                            <span className="text-xs text-blue-600 dark:text-blue-300 ml-1.5">{item.unit}</span>
                           </p>
-                          <p className="mt-2 text-[11px] text-slate-400">{item.basis}</p>
-                          <p className="mt-1 text-[11px] text-slate-400">
+                          <p className="mt-2 text-[11px] text-muted-foreground dark:text-slate-400">{item.basis}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground dark:text-slate-400">
                             {item.note}
                           </p>
                         </div>
@@ -1560,40 +1560,40 @@ export function QuickQuantityClient() {
                     <div className="mt-5 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-bold text-white">
+                          <p className="text-xs font-bold text-foreground dark:text-white">
                             Yardımcı Kaba İş Maliyet Bandı
                           </p>
-                          <p className="mt-1 text-xs text-slate-300">
+                          <p className="mt-1 text-xs text-muted-foreground dark:text-slate-300">
                             {result.yardimciKabaIsBandi.note}
                           </p>
                         </div>
-                        <p className="font-mono text-xl font-black text-white">
+                        <p className="font-mono text-xl font-black text-foreground dark:text-white">
                           {formatTL(result.yardimciKabaIsBandi.expectedAmount)}
                         </p>
                       </div>
-                      <p className="mt-2 text-xs text-blue-300 font-mono">
+                      <p className="mt-2 text-xs text-blue-600 dark:text-blue-300 font-mono font-bold">
                         Low / High: {formatTL(result.yardimciKabaIsBandi.lowAmount)} /{" "}
                         {formatTL(result.yardimciKabaIsBandi.highAmount)}
                       </p>
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-xs font-bold text-white">
+                    <div className="mt-4 rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-xs font-bold text-foreground dark:text-white">
                         Yardımcı İş Dağılımı
                       </p>
                       <div className="mt-3 space-y-2">
                         {result.yardimciKabaIsDagilimi.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between rounded-xl border border-white/5 bg-[#090d26] px-3.5 py-2.5 text-xs"
+                            className="flex items-center justify-between rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-xs dark:border-white/5 dark:bg-[#090d26]"
                           >
                             <div>
-                              <p className="font-bold text-white">{item.label}</p>
-                              <p className="text-[11px] text-slate-400">{item.note}</p>
+                              <p className="font-bold text-foreground dark:text-white">{item.label}</p>
+                              <p className="text-[11px] text-muted-foreground dark:text-slate-400">{item.note}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-mono font-bold text-white">{formatTL(item.amount)}</p>
-                              <p className="text-[11px] text-blue-300">{formatYuzde(item.share)}</p>
+                              <p className="font-mono font-bold text-foreground dark:text-white">{formatTL(item.amount)}</p>
+                              <p className="text-[11px] text-blue-600 dark:text-blue-300 font-semibold">{formatYuzde(item.share)}</p>
                             </div>
                           </div>
                         ))}
@@ -1604,46 +1604,46 @@ export function QuickQuantityClient() {
 
                 {/* ── Breakdowns & Price Book ── */}
                 <section className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
-                  <div className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Dağılım
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       Grup Bazında Kaba Taşıyıcı Sistem
                     </h3>
                     <div className="mt-5 space-y-3">
                       {result.breakdowns.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-white/10 bg-[#070a20] p-4 text-xs"
+                          className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070a20]"
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <p className="text-sm font-bold text-white">
+                              <p className="text-sm font-bold text-foreground dark:text-white">
                                 {item.label}
                               </p>
-                              <p className="mt-0.5 text-[11px] text-slate-400">{item.basisLabel}: {formatSayi(item.basisAreaM2, 1)} m²</p>
+                              <p className="mt-0.5 text-[11px] text-muted-foreground dark:text-slate-400">{item.basisLabel}: {formatSayi(item.basisAreaM2, 1)} m²</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-mono text-base font-black text-blue-300">
+                              <p className="font-mono text-base font-black text-blue-600 dark:text-blue-300">
                                 {formatTL(item.directCost)}
                               </p>
-                              <p className="text-[11px] text-slate-400">{formatYuzde(item.directCostShare)} pay</p>
+                              <p className="text-[11px] text-muted-foreground dark:text-slate-400">{formatYuzde(item.directCostShare)} pay</p>
                             </div>
                           </div>
 
-                          <div className="mt-3 grid gap-2 grid-cols-3 rounded-xl border border-white/5 bg-[#090d26] p-3 text-center">
+                          <div className="mt-3 grid gap-2 grid-cols-3 rounded-xl border border-border/60 bg-card p-3 text-center dark:border-white/5 dark:bg-[#090d26]">
                             <div>
-                              <p className="text-[10px] text-slate-400 uppercase">Beton</p>
-                              <p className="font-mono font-bold text-white">{formatSayi(item.betonM3, 1)} m³</p>
+                              <p className="text-[10px] text-muted-foreground dark:text-slate-400 uppercase font-semibold">Beton</p>
+                              <p className="font-mono font-bold text-foreground dark:text-white">{formatSayi(item.betonM3, 1)} m³</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-slate-400 uppercase">Donatı</p>
-                              <p className="font-mono font-bold text-white">{formatSayi(item.donatiTon, 2)} ton</p>
+                              <p className="text-[10px] text-muted-foreground dark:text-slate-400 uppercase font-semibold">Donatı</p>
+                              <p className="font-mono font-bold text-foreground dark:text-white">{formatSayi(item.donatiTon, 2)} ton</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-slate-400 uppercase">Kalıp</p>
-                              <p className="font-mono font-bold text-white">{formatSayi(item.kalipM2, 1)} m²</p>
+                              <p className="text-[10px] text-muted-foreground dark:text-slate-400 uppercase font-semibold">Kalıp</p>
+                              <p className="font-mono font-bold text-foreground dark:text-white">{formatSayi(item.kalipM2, 1)} m²</p>
                             </div>
                           </div>
                         </div>
@@ -1651,44 +1651,44 @@ export function QuickQuantityClient() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Birim Fiyat Seti
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       YFK Mart 2026 Resmî Rayiçleri
                     </h3>
                     <div className="mt-5 space-y-3">
-                      <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4 text-xs">
-                        <p className="font-bold text-white">
+                      <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070a20]">
+                        <p className="font-bold text-foreground dark:text-white">
                           {result.priceBook.entries.concreteC30_37.pozNo} · {result.priceBook.entries.concreteC30_37.label}
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-muted-foreground dark:text-slate-400">
                           {result.priceBook.entries.concreteC30_37.description}
                         </p>
-                        <p className="mt-2 font-mono text-base font-black text-blue-300">
+                        <p className="mt-2 font-mono text-base font-black text-blue-600 dark:text-blue-300">
                           {formatTL(result.betonBirimFiyat).replace(" TL", " TL/m³")}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4 text-xs">
-                        <p className="font-bold text-white">
+                      <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070a20]">
+                        <p className="font-bold text-foreground dark:text-white">
                           {result.priceBook.entries.rebar8To12.pozNo} / {result.priceBook.entries.rebar14To28.pozNo} · {result.priceBook.entries.rebar8To12.label}
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-muted-foreground dark:text-slate-400">
                           {result.priceBook.weightedRebarNote}
                         </p>
-                        <p className="mt-2 font-mono text-base font-black text-purple-300">
+                        <p className="mt-2 font-mono text-base font-black text-purple-600 dark:text-purple-300">
                           {formatTL(result.donatiBirimFiyat).replace(" TL", " TL/ton")}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4 text-xs">
-                        <p className="font-bold text-white">
+                      <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070a20]">
+                        <p className="font-bold text-foreground dark:text-white">
                           {result.priceBook.entries.formworkPlywood.pozNo} · {result.priceBook.entries.formworkPlywood.label}
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-muted-foreground dark:text-slate-400">
                           {result.priceBook.entries.formworkPlywood.description}
                         </p>
-                        <p className="mt-2 font-mono text-base font-black text-indigo-300">
+                        <p className="mt-2 font-mono text-base font-black text-indigo-600 dark:text-indigo-300">
                           {formatTL(result.kalipBirimFiyat).replace(" TL", " TL/m²")}
                         </p>
                       </div>
@@ -1697,18 +1697,18 @@ export function QuickQuantityClient() {
                       <Link
                         href={result.priceBook.sourceUrl}
                         target="_blank"
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                       >
                         YFK Mart 2026 PDF
-                        <ArrowRight className="h-4 w-4 text-blue-400" />
+                        <ArrowRight className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                       </Link>
                       <Link
                         href="https://webdosya.csb.gov.tr/v2/yfk/2026/02/M-MARLIK-M-HEND-SL-K-TEBL-2026-20260204101544.pdf"
                         target="_blank"
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                       >
                         2026 Tebliğ PDF
-                        <ArrowRight className="h-4 w-4 text-indigo-400" />
+                        <ArrowRight className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                       </Link>
                     </div>
                   </div>
@@ -1716,11 +1716,11 @@ export function QuickQuantityClient() {
 
                 {/* ── Warnings & Next Steps ── */}
                 <section className="grid gap-6 xl:grid-cols-[0.98fr_1.02fr]">
-                  <div className="rounded-3xl border border-white/10 bg-[#090d26]/85 p-6 backdrop-blur-2xl">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-[#090d26]/85">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Uyarılar ve Notlar
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       Yorum Sınırları
                     </h3>
                     <div className="mt-5 space-y-2.5">
@@ -1735,7 +1735,7 @@ export function QuickQuantityClient() {
                       {result.notes.map((note) => (
                         <div
                           key={note}
-                          className="rounded-xl border border-white/10 bg-[#070a20] px-3.5 py-2.5 text-xs leading-relaxed text-slate-300"
+                          className="rounded-xl border border-border/80 bg-muted/40 px-3.5 py-2.5 text-xs leading-relaxed text-foreground dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300"
                         >
                           {note}
                         </div>
@@ -1743,14 +1743,14 @@ export function QuickQuantityClient() {
                     </div>
                   </div>
 
-                  <div className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 backdrop-blur-2xl">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-300">
+                  <div className="rounded-3xl border border-border/80 bg-card/90 p-6 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-300">
                       Bir Sonraki Adım
                     </p>
-                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+                    <h3 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
                       Maliyete ve Benchmark’a Geçin
                     </h3>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                       Bu ekrandaki kaba taşıyıcı sistem çıktısını detaylı inşaat maliyeti ve resmî yaklaşık maliyet kıyası ile birlikte büyütebilirsiniz.
                     </p>
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -1759,13 +1759,13 @@ export function QuickQuantityClient() {
                         href={buildConstructionCostHref(result)}
                         className="group rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 transition-all hover:bg-blue-500/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                       >
-                        <p className="text-xs font-bold text-white">
+                        <p className="text-xs font-bold text-foreground dark:text-white">
                           İnşaat Maliyeti Analizi
                         </p>
-                        <p className="mt-1 text-[11px] leading-relaxed text-slate-300">
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground dark:text-slate-300">
                           Alan, kat ve resmî sınıf bağlamını taşıyarak senaryo maliyet ekranına geçin.
                         </p>
-                        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-blue-300">
+                        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-300">
                           Analize Git
                           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                         </div>
@@ -1774,13 +1774,13 @@ export function QuickQuantityClient() {
                         href={buildOfficialCostHref(result)}
                         className="group rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-4 transition-all hover:bg-indigo-500/20 hover:shadow-[0_0_20px_rgba(99,102,241,0.3)]"
                       >
-                        <p className="text-xs font-bold text-white">
+                        <p className="text-xs font-bold text-foreground dark:text-white">
                           Resmî Birim Maliyet 2026
                         </p>
-                        <p className="mt-1 text-[11px] leading-relaxed text-slate-300">
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground dark:text-slate-300">
                           Aynı toplam alan ve sınıf ile resmî yaklaşık maliyet ekranına geçin.
                         </p>
-                        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-300">
+                        <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-300">
                           Benchmark’a Git
                           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                         </div>

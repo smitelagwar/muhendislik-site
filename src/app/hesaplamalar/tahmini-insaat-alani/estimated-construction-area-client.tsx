@@ -374,29 +374,29 @@ export function EstimatedConstructionAreaClient() {
 
   return (
     <div className="tool-page-shell">
-      <div className="mx-auto max-w-screen-2xl px-6 py-10 sm:px-10 lg:px-16">
+      <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-8 lg:px-12 md:py-12">
         <div className="mb-10 max-w-4xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/15 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300 dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
             <Calculator className="h-3.5 w-3.5" />
             Emsalden inşaat alanına geçiş
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">
+          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl dark:text-white">
             Tahmini İnşaat Alanı Hesabı
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
+          <p className="mt-4 max-w-3xl text-sm md:text-base leading-7 text-muted-foreground font-normal dark:text-slate-300">
             Net parsel alanı, TAKS, KAKS ve kat sayısından yola çıkarak emsale dahil alanı,
             emsal harici tipik büyümeyi ve bodrum katkısını birlikte değerlendirin. Amaç,
-            resmi işlem öncesinde savunulabilir bir <strong className="text-white">yaklaşık toplam inşaat alanı</strong>{" "}
+            resmi işlem öncesinde savunulabilir bir <strong className="text-foreground dark:text-white">yaklaşık toplam inşaat alanı</strong>{" "}
             üretmektir.
           </p>
-          <div className="mt-6 rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-5 text-sm leading-7 text-slate-300 shadow-[0_18px_48px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+          <div className="mt-6 rounded-3xl border border-border/80 bg-card/90 p-5 text-sm leading-7 text-foreground shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:text-slate-300 dark:shadow-[0_18px_48px_rgba(0,0,0,0.4)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
               Aktif Profil Varsayımı
             </p>
-            <p className="mt-2 text-base font-black text-white">
+            <p className="mt-2 text-base font-black text-foreground dark:text-white">
               {activeProfile.label}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{activeProfile.helper}</p>
+            <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{activeProfile.helper}</p>
           </div>
         </div>
 

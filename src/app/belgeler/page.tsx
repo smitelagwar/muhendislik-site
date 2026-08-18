@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   ArrowDown,
-  ArrowUpRight,
-  Calculator,
   FileCheck2,
   FileDown,
-  GitBranchPlus,
-  HardHat,
-  Layers3,
   MousePointer2,
   ShieldCheck,
-  Wrench,
 } from "lucide-react";
 import { BelgelerHub } from "@/components/belgeler-hub";
+import { BelgelerGlassBg } from "@/components/belgeler-glass-bg";
+import { TextRotater } from "@/components/text-rotater";
+import { ChromaticGlassButton } from "@/components/chromatic-glass-button";
 import { buildSeoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -29,75 +25,114 @@ const CAPABILITIES = [
   { icon: ShieldCheck, value: "PDF", label: "A4 çıktı" },
 ];
 
-const RELATED_SECTIONS = [
-  {
-    icon: HardHat,
-    title: "Mevzuat ve Yönetmelikler",
-    description: "TBDY 2018, İmar Kanunu ve saha uygulamalarına ilişkin teknik kaynaklar.",
-    href: "/kategori/deprem-yonetmelik",
-  },
-  {
-    icon: GitBranchPlus,
-    title: "Bina Aşamaları",
-    description: "Ruhsattan iskâna kadar şantiye kontrol adımlarını takip edin.",
-    href: "/kategori/bina-asamalari",
-  },
-  {
-    icon: Calculator,
-    title: "İnşaat Hesaplamaları",
-    description: "Alan, metraj ve resmî birim maliyet araçlarına ulaşın.",
-    href: "/hesaplamalar",
-  },
-  {
-    icon: Wrench,
-    title: "Mühendislik Araçları",
-    description: "Sahada ihtiyaç duyulan hızlı teknik yardımcıları kullanın.",
-    href: "/kategori/araclar",
-  },
-];
-
 function DocumentStackVisual() {
   return (
-    <div className="relative mx-auto h-[360px] w-full max-w-[470px]" aria-hidden="true">
-      <div className="absolute left-14 top-12 h-[275px] w-[210px] -rotate-6 rounded-md border border-border bg-[var(--site-surface-raised)] shadow-[0_28px_70px_-48px_rgba(23,26,25,0.6)] dark:shadow-none" />
-      <div className="absolute right-9 top-4 h-[290px] w-[220px] rotate-6 rounded-md border border-blue-500/20 bg-[var(--site-surface)] shadow-[0_32px_80px_-48px_rgba(37,99,235,0.42)] dark:shadow-none" />
+    <div className="relative mx-auto flex h-[440px] w-full max-w-[490px] items-center justify-center" aria-hidden="true">
+      {/* Multi-color ambient background flare */}
+      <div
+        className="pointer-events-none absolute h-[380px] w-[380px] rounded-full blur-[85px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(59,130,246,0.35) 0%, rgba(139,92,246,0.25) 45%, rgba(245,158,11,0.15) 75%, transparent 100%)",
+          animation: "glow-pulse 6s ease-in-out infinite",
+          willChange: "transform, opacity",
+        }}
+      />
 
-      <div className="absolute left-1/2 top-7 h-[300px] w-[230px] -translate-x-1/2 overflow-hidden rounded-md border border-border bg-[var(--site-surface)] shadow-[0_32px_90px_-48px_rgba(23,26,25,0.72)] dark:shadow-none">
-        <div className="h-2 w-full bg-gradient-to-r from-amber-500 via-amber-400 to-blue-500" />
-        <div className="p-7">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-              <FileDown className="h-5 w-5" />
-            </div>
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              PDF / A4
-            </span>
-          </div>
-          <div className="mt-7 h-2 w-3/4 rounded-full bg-foreground/85" />
-          <div className="mt-3 h-1.5 w-1/2 rounded-full bg-muted-foreground/30" />
-          <div className="mt-8 space-y-3">
-            <div className="h-1.5 rounded-full bg-muted-foreground/18" />
-            <div className="h-1.5 rounded-full bg-muted-foreground/18" />
-            <div className="h-1.5 w-5/6 rounded-full bg-muted-foreground/18" />
-          </div>
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            <div className="h-12 rounded-sm border border-border bg-secondary/50" />
-            <div className="h-12 rounded-sm border border-border bg-secondary/50" />
-          </div>
-          <div className="mt-6 flex items-center justify-between border-t border-dashed border-border pt-4">
-            <div className="h-1.5 w-16 rounded-full bg-muted-foreground/20" />
-            <div className="h-7 w-7 rounded-full border-2 border-amber-500/45" />
-          </div>
+      {/* Back glass sheet */}
+      <div
+        className="absolute h-[310px] w-[235px] -rotate-6 rounded-[28px] border border-black/10 bg-white/70 p-6 shadow-xl backdrop-blur-xl dark:border-white/20 dark:bg-white/[0.04] dark:shadow-[0_30px_70px_-20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.25)]"
+        style={{
+          animation: "glass-float-slow 9s ease-in-out infinite",
+          willChange: "transform",
+        }}
+      >
+        <div className="flex items-center justify-between border-b border-black/10 pb-4 dark:border-white/10">
+          <div className="h-6 w-6 rounded-lg border border-black/10 bg-black/5 dark:border-white/20 dark:bg-white/10" />
+          <div className="h-2 w-12 rounded-full bg-black/10 dark:bg-white/15" />
+        </div>
+        <div className="mt-6 space-y-3">
+          <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10" />
+          <div className="h-2 w-4/5 rounded-full bg-black/10 dark:bg-white/10" />
+          <div className="h-2 w-3/5 rounded-full bg-black/10 dark:bg-white/10" />
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 rounded-md border border-border bg-[var(--site-surface)] px-4 py-3 shadow-sm">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Arşiv durumu</p>
-        <p className="mt-1 text-sm font-black text-foreground">Kullanıma hazır</p>
+      {/* Middle glass sheet */}
+      <div
+        className="absolute h-[325px] w-[245px] rotate-3 rounded-[30px] border border-blue-500/20 bg-white/80 p-6 shadow-xl backdrop-blur-xl dark:border-blue-400/30 dark:bg-white/[0.06] dark:shadow-[0_35px_80px_-25px_rgba(37,99,235,0.4),inset_0_1.5px_2px_rgba(255,255,255,0.35)]"
+        style={{
+          animation: "glass-float-slower 7.5s ease-in-out infinite",
+          willChange: "transform",
+        }}
+      >
+        <div className="flex items-center justify-between border-b border-blue-500/10 pb-4 dark:border-blue-300/15">
+          <div className="h-7 w-7 rounded-xl border border-blue-500/20 bg-blue-500/10 dark:border-blue-400/30 dark:bg-blue-500/15" />
+          <div className="h-2 w-16 rounded-full bg-blue-500/20 dark:bg-blue-300/20" />
+        </div>
+        <div className="mt-6 space-y-3">
+          <div className="h-2 w-5/6 rounded-full bg-black/10 dark:bg-white/15" />
+          <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/15" />
+          <div className="h-2 w-2/3 rounded-full bg-black/10 dark:bg-white/15" />
+        </div>
       </div>
-      <div className="absolute bottom-3 right-0 flex items-center gap-2 rounded-md border border-blue-500/25 bg-blue-500/10 px-4 py-3 text-blue-700 dark:text-blue-300">
-        <MousePointer2 className="h-4 w-4" />
-        <span className="text-xs font-black">Tarayıcıda doldur</span>
+
+      {/* Front hero glass document with folded corner style */}
+      <div
+        className="absolute h-[340px] w-[255px] overflow-hidden rounded-[32px] border border-black/10 bg-white/90 p-7 shadow-2xl backdrop-blur-2xl dark:border-white/40 dark:bg-gradient-to-b dark:from-white/[0.18] dark:via-white/[0.09] dark:to-white/[0.04] dark:shadow-[0_40px_100px_-30px_rgba(0,0,0,0.7),0_0_50px_rgba(59,130,246,0.2),inset_0_2px_4px_rgba(255,255,255,0.6)]"
+        style={{
+          animation: "glass-float 5.5s ease-in-out infinite",
+          willChange: "transform",
+        }}
+      >
+        {/* Top accent light bar */}
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent dark:via-white/80" />
+
+        <div className="flex items-start justify-between">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-600 shadow-sm dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-300 dark:shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+            <FileDown className="h-5 w-5" />
+          </div>
+          <span className="rounded-full border border-black/10 bg-black/5 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground shadow-sm dark:border-white/20 dark:bg-white/10 dark:text-white/80">
+            PDF / A4
+          </span>
+        </div>
+
+        {/* Embossed text preview lines */}
+        <div className="mt-7 space-y-3">
+          <div className="h-2.5 w-4/5 rounded-full bg-gradient-to-r from-amber-500/40 to-transparent dark:from-white/60 dark:to-white/30" />
+          <div className="h-2 w-3/5 rounded-full bg-black/10 dark:bg-white/30" />
+        </div>
+
+        <div className="mt-6 space-y-2.5">
+          <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/20" />
+          <div className="h-2 w-11/12 rounded-full bg-black/10 dark:bg-white/20" />
+          <div className="h-2 w-4/5 rounded-full bg-black/10 dark:bg-white/20" />
+          <div className="h-2 w-9/12 rounded-full bg-black/10 dark:bg-white/20" />
+        </div>
+
+        {/* Bottom signature & badge section */}
+        <div className="mt-7 flex items-center justify-between border-t border-black/10 pt-4 dark:border-white/15">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-12 rounded-full bg-black/15 dark:bg-white/25" />
+            <span className="h-2 w-6 rounded-full bg-amber-500/40 dark:bg-amber-400/40" />
+          </div>
+          <div className="h-7 w-7 rounded-full border-2 border-amber-500/50 bg-amber-500/10 shadow-sm dark:border-amber-400/60 dark:bg-amber-500/10 dark:shadow-[0_0_12px_rgba(245,158,11,0.3)]" />
+        </div>
+      </div>
+
+      {/* Floating status badge — Bottom Left */}
+      <div className="absolute -bottom-2 -left-2 z-20 flex items-center gap-2.5 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-foreground shadow-lg backdrop-blur-xl dark:border-white/20 dark:bg-black/50 dark:text-white dark:shadow-[0_16px_32px_rgba(0,0,0,0.3)]">
+        <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] dark:bg-emerald-400 dark:shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+        <div>
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/50">Arşiv durumu</p>
+          <p className="text-xs font-black text-foreground dark:text-white/95">Kullanıma hazır</p>
+        </div>
+      </div>
+
+      {/* Floating interactive badge — Bottom Right */}
+      <div className="absolute -bottom-1 -right-2 z-20 flex items-center gap-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-blue-700 shadow-lg backdrop-blur-xl dark:border-blue-400/30 dark:bg-blue-500/20 dark:text-blue-200 dark:shadow-[0_16px_32px_rgba(0,0,0,0.3),0_0_24px_rgba(59,130,246,0.25)]">
+        <MousePointer2 className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+        <span className="text-xs font-bold text-foreground dark:text-white">Tarayıcıda doldur</span>
       </div>
     </div>
   );
@@ -105,33 +140,57 @@ function DocumentStackVisual() {
 
 export default function BelgelerPage() {
   return (
-    <main className="site-page-shell">
-      <section className="border-b border-border/80">
-        <div className="mx-auto grid max-w-[1440px] gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-12 lg:items-center lg:px-12 lg:py-24 xl:px-16">
-          <div className="lg:col-span-7">
-            <p className="site-kicker">Resmî şablonlar ve saha evrakları</p>
-            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[0.96] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-7xl">
-              Evrak işini hızlandıran
-              <span className="block text-amber-700 dark:text-amber-400">teknik belge arşivi.</span>
-            </h1>
-            <p className="mt-7 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-              Şantiye şefleri, mühendisler ve mimarlar için hazırlanmış belge şablonlarını bulun;
-              tarayıcıda doldurun, kontrol edin ve PDF olarak indirin.
-            </p>
+    <main className="belgeler-page-shell relative">
+      <BelgelerGlassBg />
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="#belge-arsivi"
-                className="inline-flex min-h-11 items-center gap-2 rounded-md border border-amber-500 bg-amber-500 px-5 py-3 text-sm font-black text-zinc-950 transition hover:-translate-y-0.5 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transform-none"
-              >
-                Belgeleri incele
-                <ArrowDown className="h-4 w-4" />
-              </a>
+      {/* ─── Hero Section ─── */}
+      <section className="relative z-10 overflow-hidden border-b border-black/5 dark:border-white/[0.08]">
+        {/* Ambient volumetric spotlights */}
+        <div
+          className="pointer-events-none absolute -left-28 -top-28 h-[500px] w-[500px] rounded-full opacity-35 blur-[90px] dark:opacity-50"
+          style={{ background: "radial-gradient(circle, rgba(245,158,11,0.35) 0%, transparent 65%)" }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 right-1/4 h-[450px] w-[450px] rounded-full opacity-30 blur-[95px] dark:opacity-45"
+          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.35) 0%, transparent 65%)" }}
+        />
+
+        <div className="relative mx-auto grid max-w-[1440px] gap-12 px-5 py-14 sm:px-8 sm:py-18 lg:grid-cols-12 lg:items-center lg:px-12 lg:py-24 xl:px-16">
+          <div className="lg:col-span-7">
+            {/* Frosted glass kicker badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 shadow-sm backdrop-blur-md dark:border-amber-400/35 dark:bg-white/[0.08]">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+                Resmî şablonlar ve saha evrakları
+              </span>
             </div>
 
-            <div className="mt-11 grid max-w-2xl grid-cols-3 divide-x divide-border border-y border-border">
-              {CAPABILITIES.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="py-4 first:pr-4 not-first:px-4">
+            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.05] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl xl:text-7xl">
+              <span className="block">Evrak işini hızlandıran</span>
+              <span className="mt-2 block">
+                <TextRotater /> <span className="text-amber-600 dark:text-amber-400">teknik arşivi.</span>
+              </span>
+            </h1>
+
+            <p className="mt-7 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+              İhtiyacınız olan tüm mühendislik şablon, form ve sözleşmelerine kolayca ulaşın;
+              tarayıcıda canlı doldurun, kontrol edin ve A4 PDF olarak anında indirin.
+            </p>
+
+            {/* Chromatic Glass Action Button */}
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <ChromaticGlassButton href="#belge-arsivi" icon={<ArrowDown className="h-4 w-4 text-amber-500 dark:text-amber-400" />}>
+                Belgeleri İncele
+              </ChromaticGlassButton>
+            </div>
+
+            {/* Stats — Frosted Glass Panel */}
+            <div className="mt-11 grid max-w-2xl grid-cols-3 rounded-[24px] border border-black/5 bg-white/70 p-1 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl">
+              {CAPABILITIES.map(({ icon: Icon, value, label }, index) => (
+                <div
+                  key={label}
+                  className={`px-5 py-5 ${index < 2 ? "border-r border-black/5 dark:border-white/10" : ""}`}
+                >
                   <div className="flex items-center gap-2 text-foreground">
                     <Icon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                     <span className="text-lg font-black">{value}</span>
@@ -148,56 +207,21 @@ export default function BelgelerPage() {
         </div>
       </section>
 
-      <BelgelerHub />
+      {/* ─── Belge Kütüphanesi (BelgelerHub) ─── */}
+      <div className="relative z-10">
+        <BelgelerHub />
+      </div>
 
-      <section className="border-t border-border/80 bg-[var(--site-surface)]/45">
-        <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-12 lg:py-20 xl:px-16">
-          <div className="flex flex-col gap-3 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                <Layers3 className="h-4 w-4" />
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em]">Portal bağlantıları</p>
-              </div>
-              <h2 className="mt-3 text-2xl font-black tracking-[-0.03em] text-foreground sm:text-3xl">
-                Çalışmanıza buradan devam edin
-              </h2>
-            </div>
-            <p className="max-w-md text-sm leading-6 text-muted-foreground">
-              Belgenin dayandığı teknik bilgiye, saha adımlarına ve hesap araçlarına aynı sistem içinde ulaşın.
-            </p>
-          </div>
-
-          <div className="grid divide-y divide-border border-b border-border md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-4">
-            {RELATED_SECTIONS.map((section) => {
-              const Icon = section.icon;
-              return (
-                <Link
-                  key={section.href}
-                  href={section.href}
-                  className="group flex min-h-48 flex-col px-1 py-7 transition-colors hover:bg-secondary/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 md:px-6 xl:first:pl-1 xl:last:pr-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-amber-700 transition-colors group-hover:border-amber-500/45 dark:text-amber-400">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-blue-600 motion-reduce:transform-none dark:group-hover:text-blue-400" />
-                  </div>
-                  <h3 className="mt-5 text-base font-black text-foreground">{section.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{section.description}</p>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="flex justify-end pt-6">
-            <p className="inline-flex items-center gap-2.5 text-xs text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-              <span>Hazırlayan</span>
-              <span className="font-bold text-foreground">İnşaat Müh. Hüseyin GÜNAYDIN</span>
-            </p>
-          </div>
+      {/* Footer Author Bar */}
+      <div className="relative z-10 mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-12 xl:px-16">
+        <div className="flex justify-end border-t border-black/5 pt-6 dark:border-white/[0.08]">
+          <p className="inline-flex items-center gap-2.5 text-xs text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" aria-hidden="true" />
+            <span>Hazırlayan</span>
+            <span className="font-bold text-foreground">İnşaat Müh. Hüseyin GÜNAYDIN</span>
+          </p>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

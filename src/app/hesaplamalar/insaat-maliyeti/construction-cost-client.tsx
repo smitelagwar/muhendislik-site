@@ -101,37 +101,37 @@ export function ConstructionCostClient() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-8 lg:px-12 md:py-12">
         {/* ── Hero Header Card ── */}
-        <section className="mb-8 rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+        <section className="mb-8 rounded-3xl border border-border/80 bg-card/90 p-6 md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/15 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                <span className="flex h-2 w-2 rounded-full bg-blue-400 animate-ping" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.15)] dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300 dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping dark:bg-blue-400" />
                 2026 Türkiye Şantiye & Malzeme Analizi
               </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+              <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl dark:text-white">
                 İnşaat Maliyeti{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-300 dark:to-purple-400">
                   Analiz Motoru
                 </span>
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base font-normal dark:text-slate-300">
                 Betonarme taşıyıcı sistem, kaba yapı, ince işçilik, mekanik/elektrik tesisat ve şantiye genel
                 giderlerini kapsayan 12 kategorili gerçekçi ön maliyet simülasyonu. 2026 güncel malzeme rayiçleri ve bölgesel endekslerle anlık hesaplayın.
               </p>
 
               {/* Quick scenario preset chips */}
-              <div className="mt-6 flex flex-wrap gap-2 pt-2 border-t border-white/10">
-                <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mr-1 py-1">
-                  <Zap className="h-3.5 w-3.5 text-blue-400" /> Hızlı Senaryolar:
+              <div className="mt-6 flex flex-wrap gap-2 pt-2 border-t border-border/70 dark:border-white/10">
+                <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5 mr-1 py-1 dark:text-slate-400">
+                  <Zap className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" /> Hızlı Senaryolar:
                 </span>
                 {QUICK_PRESETS.map((p) => (
                   <Link
                     key={p.id}
                     href={`/hesaplamalar/insaat-maliyeti?tip=${p.tip}&alan=${p.alan}&kat=${p.kat}&bodrum=${p.bodrum}&sehir=${p.sehir}&zemin=${p.zemin}&kalite=${p.kalite}&cephe=${p.cephe}&asansor=${p.asansor}`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070a20] px-3 py-1 text-xs font-bold text-slate-300 transition-all hover:border-blue-500/40 hover:bg-[#0c1236] hover:text-white"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-muted/50 px-3 py-1 text-xs font-bold text-foreground transition-all hover:border-blue-500/40 hover:bg-card hover:text-blue-600 dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236] dark:hover:text-white"
                   >
                     <span>{p.title}</span>
-                    <span className="font-mono text-[10px] text-blue-300">({p.alan} m²)</span>
+                    <span className="font-mono text-[10px] text-blue-600 dark:text-blue-300">({p.alan} m²)</span>
                   </Link>
                 ))}
               </div>

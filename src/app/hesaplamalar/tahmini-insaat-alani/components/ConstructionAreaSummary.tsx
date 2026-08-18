@@ -32,19 +32,19 @@ function MetricCard({
   testId?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">{label}</p>
       <p className={cn("mt-2 font-mono text-2xl font-black", accentClass)}>
         <span data-testid={testId}>{value}</span>
       </p>
-      {unit ? <p className="mt-1 text-xs text-slate-400 font-medium">{unit}</p> : null}
+      {unit ? <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400 font-medium">{unit}</p> : null}
     </div>
   );
 }
 
 function ResultShell({ children }: { children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-[32px] border border-blue-500/20 bg-[#090d26]/85 p-6 text-white backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)] md:p-8">
+    <section className="overflow-hidden rounded-[32px] border border-border/80 bg-card/90 p-6 text-foreground shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:text-white dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)] md:p-8">
       {children}
     </section>
   );
@@ -52,12 +52,12 @@ function ResultShell({ children }: { children: ReactNode }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#070b20] p-6">
+    <div className="rounded-2xl border border-border/80 bg-muted/40 p-6 dark:border-white/10 dark:bg-[#070b20]">
       <div className="flex items-start gap-3">
-        <Info className="mt-0.5 h-5 w-5 text-blue-400" />
+        <Info className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
         <div>
-          <p className="text-base font-bold text-white">Verileri girin</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+          <p className="text-base font-bold text-foreground dark:text-white">Verileri girin</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
             Geçerli girdiler oluştuğunda tahmini toplam inşaat alanı, emsal dışı artış ve
             bodrum katkısı burada açılacak.
           </p>
@@ -69,12 +69,12 @@ function EmptyState() {
 
 function ErrorState({ error }: { error: string }) {
   return (
-    <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-red-200">
+    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-rose-700 dark:text-rose-200">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+        <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
         <div>
-          <p className="text-base font-bold text-white">Hesap üretilemedi</p>
-          <p className="mt-1.5 text-xs leading-relaxed text-red-300">{error}</p>
+          <p className="text-base font-bold text-foreground dark:text-white">Hesap üretilemedi</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-rose-600 dark:text-rose-300">{error}</p>
         </div>
       </div>
     </div>
@@ -100,9 +100,9 @@ function ActionButton({
       onClick={onClick}
       disabled={disabled}
       data-testid={testId}
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-2.5 text-xs font-bold text-slate-300 shadow-sm transition-all hover:bg-[#131a44] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border/80 bg-card px-4 py-2.5 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <Icon className="h-4 w-4 text-blue-400" />
+      <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
       {label}
     </button>
   );
@@ -111,42 +111,42 @@ function ActionButton({
 function FooterLinks({ officialCostHref }: { officialCostHref: string }) {
   return (
     <>
-      <div className="mt-6 rounded-2xl border border-white/10 bg-[#070b20] p-5">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+      <div className="mt-6 rounded-2xl border border-border/80 bg-muted/40 p-5 dark:border-white/10 dark:bg-[#070b20]">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
           Sonraki Adım
         </p>
         <div className="mt-3.5 grid gap-2.5">
           <Link
             href={officialCostHref}
             data-testid="estimated-area-official-link"
-            className="inline-flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-3.5 text-xs font-bold text-white transition-all hover:border-blue-500/40 hover:bg-[#131942]"
+            className="inline-flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card px-4 py-3.5 text-xs font-bold text-foreground shadow-2xs transition-all hover:border-blue-500/40 hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-white dark:hover:bg-[#131942]"
           >
             <span className="flex items-center gap-2.5">
-              <Building2 className="h-4 w-4 text-blue-400" />
+              <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               Resmî birim maliyete geç
             </span>
-            <ArrowRight className="h-4 w-4 text-blue-400" />
+            <ArrowRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </Link>
           <Link
             href="/kategori/araclar/imar-hesaplayici"
             data-testid="estimated-area-imar-link"
-            className="inline-flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-3.5 text-xs font-bold text-white transition-all hover:border-emerald-500/40 hover:bg-[#131942]"
+            className="inline-flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card px-4 py-3.5 text-xs font-bold text-foreground shadow-2xs transition-all hover:border-emerald-500/40 hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-white dark:hover:bg-[#131942]"
           >
             <span className="flex items-center gap-2.5">
-              <LandPlot className="h-4 w-4 text-emerald-400" />
+              <LandPlot className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               İmar aracıyla net parseli doğrula
             </span>
-            <ExternalLink className="h-4 w-4 text-emerald-400" />
+            <ExternalLink className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           </Link>
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
+      <div className="mt-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 h-4 w-4 flex-shrink-0">
-            <Info className="h-4 w-4 text-blue-400" />
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
           </span>
-          <p className="text-xs leading-relaxed text-slate-300">
+          <p className="text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
             Bu araç, emsalden toplam inşaat alanına geçiş için ön fizibilite üretir. Yerel
             plan notları, yönetmelik istisnaları ve ruhsat projeleri ayrıca doğrulanmalıdır.
           </p>
@@ -181,14 +181,14 @@ export function ConstructionAreaSummary({
     <ResultShell>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
             Sonuç Özeti
           </p>
-          <h2 className="mt-1.5 text-2xl font-black tracking-tight text-white">
+          <h2 className="mt-1.5 text-2xl font-black tracking-tight text-foreground dark:text-white">
             Tahmini Toplam İnşaat Alanı
           </h2>
         </div>
-        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/15 p-2.5 text-blue-400">
+        <div className="rounded-2xl border border-blue-500/30 bg-blue-500/15 p-2.5 text-blue-600 dark:text-blue-400">
           <Layers3 className="h-5 w-5" />
         </div>
       </div>
@@ -201,8 +201,8 @@ export function ConstructionAreaSummary({
             className={cn(
               "inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]",
               result.status === "ok"
-                ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                : "border-blue-500/30 bg-blue-500/15 text-blue-300"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300"
+                : "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300"
             )}
             data-testid="estimated-area-result-status"
           >
@@ -210,7 +210,7 @@ export function ConstructionAreaSummary({
           </div>
 
           {/* Grand Total Area HUD Box */}
-          <div className="rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-6 shadow-[0_20px_50px_rgba(37,99,235,0.25)]">
+          <div className="rounded-3xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-6 shadow-[0_20px_50px_rgba(37,99,235,0.25)] text-white">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
               Yaklaşık Toplam İnşaat Alanı
             </p>
@@ -218,7 +218,7 @@ export function ConstructionAreaSummary({
               <span data-testid="estimated-area-result-total">
                 {formatSayi(result.yaklasikToplamInsaatAlaniM2, 2)}
               </span>
-              <span className="text-xl font-bold text-blue-400 ml-2">m²</span>
+              <span className="text-xl font-bold text-blue-300 ml-2">m²</span>
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-300">
               Emsal alanı, emsal harici tipik büyüme ve bodrum katkısı birlikte hesaba katıldı.
@@ -230,96 +230,96 @@ export function ConstructionAreaSummary({
               label="Emsal Alanı"
               value={formatSayi(result.emsalAreaM2, 2)}
               unit="m²"
-              accentClass="text-blue-300"
+              accentClass="text-blue-600 dark:text-blue-300"
               testId="estimated-area-result-emsal"
             />
             <MetricCard
               label="Emsal Harici Ek Alan"
               value={formatSayi(result.emsalHariciEkAlanM2, 2)}
               unit="m²"
-              accentClass="text-indigo-300"
+              accentClass="text-indigo-600 dark:text-indigo-300"
               testId="estimated-area-result-non-emsal"
             />
             <MetricCard
               label="Toplam Bodrum Alanı"
               value={formatSayi(result.toplamBodrumAlanM2, 2)}
               unit="m²"
-              accentClass="text-purple-300"
+              accentClass="text-purple-600 dark:text-purple-300"
               testId="estimated-area-result-basement-total"
             />
             <MetricCard
               label="Maksimum Taban Alanı"
               value={formatSayi(result.maxGroundAreaM2, 2)}
               unit="m²"
-              accentClass="text-cyan-300"
+              accentClass="text-cyan-600 dark:text-cyan-300"
               testId="estimated-area-result-taban"
             />
           </div>
 
           <p
-            className="text-xs leading-relaxed text-slate-300"
+            className="text-xs leading-relaxed text-muted-foreground dark:text-slate-300"
             data-testid="estimated-area-result-status-message"
           >
             {result.statusMessage}
           </p>
 
-          <div className="rounded-2xl border border-white/10 bg-[#070b20] p-4 text-xs">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+          <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070b20]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
               Hesap Detayları
             </p>
-            <div className="mt-3 space-y-2.5 text-slate-300">
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-400">Kullanım Profili</span>
-                <span className="font-bold text-white" data-testid="estimated-area-result-profile">
+            <div className="mt-3 space-y-2.5 text-foreground dark:text-slate-300">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                <span className="text-muted-foreground dark:text-slate-400">Kullanım Profili</span>
+                <span className="font-bold text-foreground dark:text-white" data-testid="estimated-area-result-profile">
                   {result.profileLabel}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-400">Emsal Dışı Artış Oranı</span>
-                <span className="font-mono font-bold text-white" data-testid="estimated-area-result-non-emsal-ratio">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                <span className="text-muted-foreground dark:text-slate-400">Emsal Dışı Artış Oranı</span>
+                <span className="font-mono font-bold text-foreground dark:text-white" data-testid="estimated-area-result-non-emsal-ratio">
                   {formatYuzde(result.emsalHariciEkAlanOrani)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-400">Kat Yerleşim Kapasitesi</span>
-                <span className="font-mono font-bold text-white" data-testid="estimated-area-result-capacity">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                <span className="text-muted-foreground dark:text-slate-400">Kat Yerleşim Kapasitesi</span>
+                <span className="font-mono font-bold text-foreground dark:text-white" data-testid="estimated-area-result-capacity">
                   {formatSayi(result.katYerlesimKapasitesiM2, 2)} m²
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-400">Ortalama Gerekli Kat Alanı</span>
-                <span className="font-mono font-bold text-white">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                <span className="text-muted-foreground dark:text-slate-400">Ortalama Gerekli Kat Alanı</span>
+                <span className="font-mono font-bold text-foreground dark:text-white">
                   {formatSayi(result.averageRequiredFloorAreaM2, 2)} m² / kat
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-slate-400">Teorik Kat Karşılığı</span>
-                <span className="font-mono font-bold text-white" data-testid="estimated-area-result-theoretical-floor">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                <span className="text-muted-foreground dark:text-slate-400">Teorik Kat Karşılığı</span>
+                <span className="font-mono font-bold text-foreground dark:text-white" data-testid="estimated-area-result-theoretical-floor">
                   {formatSayi(result.theoreticalFloorEquivalent, 2)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-400">Bodrum Kat Alanı Kabulü</span>
-                <span className="font-mono font-bold text-white">
+                <span className="text-muted-foreground dark:text-slate-400">Bodrum Kat Alanı Kabulü</span>
+                <span className="font-mono font-bold text-foreground dark:text-white">
                   {formatSayi(result.resolvedBasementFloorAreaM2, 2)} m²
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#070b20] p-4 text-xs font-mono">
-            <p className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-blue-300">
+          <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs font-mono dark:border-white/10 dark:bg-[#070b20]">
+            <p className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
               Hesap Formülü Adımları
             </p>
-            <div className="mt-3 space-y-1.5 text-slate-300">
+            <div className="mt-3 space-y-1.5 text-foreground dark:text-slate-300">
               {formulaLines.map((line) => (
                 <div key={line}>{line}</div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-[#070b20] p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+          <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070b20]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
               Rapor İşlemleri
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -346,7 +346,7 @@ export function ConstructionAreaSummary({
               />
             </div>
             {exportError ? (
-              <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-300">
+              <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
                 {exportError}
               </div>
             ) : null}
@@ -356,7 +356,7 @@ export function ConstructionAreaSummary({
             {result.warnings.map((warning) => (
               <div
                 key={warning.message}
-                className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 font-semibold"
                 data-testid="estimated-area-warning"
               >
                 {warning.message}
@@ -365,7 +365,7 @@ export function ConstructionAreaSummary({
             {result.notes.map((note) => (
               <div
                 key={note}
-                className="rounded-xl border border-white/10 bg-[#070b20] p-3 text-xs text-slate-400"
+                className="rounded-xl border border-border/80 bg-card p-3 text-xs text-muted-foreground dark:border-white/10 dark:bg-[#070b20] dark:text-slate-400"
               >
                 {note}
               </div>

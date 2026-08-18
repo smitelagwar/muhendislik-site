@@ -459,14 +459,14 @@ export function OfficialUnitCostClient() {
     <div className="tool-page-shell">
       <div className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-8 lg:px-12 md:py-12">
         <div className="mb-10 max-w-4xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/15 px-3.5 py-1 text-xs font-bold text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)] backdrop-blur-md">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.15)] backdrop-blur-md dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300 dark:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
             <FileText className="h-3.5 w-3.5" />
             Resmî Referans Aracı
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl dark:text-white">
             Resmî Birim Maliyet 2026
           </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base font-normal dark:text-slate-300">
             Grubu biliyorsan doğrudan seç, bilmiyorsan yapı tipinden ilerle. Sade seçim
             akışıyla resmî m² birim maliyetini bul, toplam inşaat alanını yaz ve yaklaşık
             resmî maliyeti anında gör.
@@ -474,15 +474,15 @@ export function OfficialUnitCostClient() {
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[1.02fr_0.98fr]">
-          <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 md:p-8 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+          <section className="rounded-3xl border border-border/80 bg-card/90 p-6 md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
             <div className="mb-6">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                 Seçim Paneli
               </p>
-              <h2 className="mt-1.5 text-2xl font-black text-white">
+              <h2 className="mt-1.5 text-2xl font-black text-foreground dark:text-white">
                 Yapına Uygun Resmî Sınıfı Bul
               </h2>
-              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                 İki ayrı akış var. En kolayı yapı tipinden seçmek. Resmî sınıfı
                 biliyorsan sınıf kodunu veya bina tipini aratıp doğrudan seçim
                 yapabilirsin.
@@ -500,17 +500,17 @@ export function OfficialUnitCostClient() {
                 }}
                 className={`rounded-2xl border px-4 py-4 text-left transition-all ${
                   selectionMode === "guided"
-                    ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                    : "border-white/10 bg-[#070a20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
+                    ? "border-blue-500 bg-blue-500/10 text-foreground shadow-[0_0_20px_rgba(59,130,246,0.15)] dark:bg-blue-500/15 dark:text-white dark:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                    : "border-border/80 bg-muted/40 text-foreground hover:border-blue-500/40 hover:bg-card dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Compass className="h-4 w-4 text-blue-400" />
+                  <Compass className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span className="text-sm font-black uppercase tracking-[0.16em]">
                     Yapı tipinden bul
                   </span>
                 </div>
-                <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
+                <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                   Kullanıcı dostu, azaltılmış seçenekler. Konut, ticari, sağlık veya
                   sanayi gibi yapını seç ve sistem sana uygun resmî sınıfı önersin.
                 </p>
@@ -526,17 +526,17 @@ export function OfficialUnitCostClient() {
                 }}
                 className={`rounded-2xl border px-4 py-4 text-left transition-all ${
                   selectionMode === "manual"
-                    ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                    : "border-white/10 bg-[#070a20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
+                    ? "border-blue-500 bg-blue-500/10 text-foreground shadow-[0_0_20px_rgba(59,130,246,0.15)] dark:bg-blue-500/15 dark:text-white dark:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                    : "border-border/80 bg-muted/40 text-foreground hover:border-blue-500/40 hover:bg-card dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Search className="h-4 w-4 text-purple-400" />
+                  <Search className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span className="text-sm font-black uppercase tracking-[0.16em]">
                     Grubu biliyorum
                   </span>
                 </div>
-                <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
+                <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                   Sınıf kodunu, bina tipini veya örnek yapıları yaz. Sonra resmî grup ve
                   sınıfı doğrudan seçerek hızlı ilerle.
                 </p>
@@ -546,7 +546,7 @@ export function OfficialUnitCostClient() {
             {selectionMode === "guided" ? (
               <div className="space-y-6">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                     1. Adım: Yapı Kategorisi
                   </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -559,14 +559,14 @@ export function OfficialUnitCostClient() {
                         onClick={() => handleGuideCategorySelect(category.id)}
                         className={`rounded-2xl border p-4 text-left transition-all ${
                           category.id === activeGuideCategory.id
-                            ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                            : "border-white/10 bg-[#070a20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
+                            ? "border-blue-500 bg-blue-500/10 text-foreground shadow-[0_0_20px_rgba(59,130,246,0.15)] dark:bg-blue-500/15 dark:text-white dark:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                            : "border-border/80 bg-muted/40 text-foreground hover:border-blue-500/40 hover:bg-card dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                         }`}
                       >
-                        <p className="text-sm font-bold text-white">
+                        <p className="text-sm font-bold text-foreground dark:text-white">
                           {category.label}
                         </p>
-                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                           {category.description}
                         </p>
                       </button>
@@ -575,7 +575,7 @@ export function OfficialUnitCostClient() {
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                     2. Adım: Tipik Yapı Seçimi
                   </p>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -595,23 +595,23 @@ export function OfficialUnitCostClient() {
                           onClick={() => handleGuideOptionSelect(option.id)}
                           className={`rounded-2xl border p-4 text-left transition-all ${
                             option.id === activeGuidedOption.id
-                              ? "border-blue-500 bg-blue-500/15 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                              : "border-white/10 bg-[#070a20] text-slate-300 hover:border-blue-500/40 hover:bg-[#0c1236]"
+                              ? "border-blue-500 bg-blue-500/10 text-foreground shadow-[0_0_20px_rgba(59,130,246,0.15)] dark:bg-blue-500/15 dark:text-white dark:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                              : "border-border/80 bg-muted/40 text-foreground hover:border-blue-500/40 hover:bg-card dark:border-white/10 dark:bg-[#070a20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-4">
-                            <span className="text-sm font-bold text-white">
+                            <span className="text-sm font-bold text-foreground dark:text-white">
                               {option.label}
                             </span>
-                            <span className="rounded-full border border-blue-400/30 bg-blue-500/15 px-2.5 py-0.5 text-[10px] font-mono font-bold text-blue-300">
+                            <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-blue-600 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300">
                               {option.selection.grup}-{option.selection.sinif}
                             </span>
                           </div>
-                          <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                          <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                             {option.description}
                           </p>
                           {row ? (
-                            <p className="mt-2 text-[11px] text-slate-400">
+                            <p className="mt-2 text-[11px] text-muted-foreground dark:text-slate-400">
                               Resmî örnek: {row.ornekYapilar[0]}
                             </p>
                           ) : null}
@@ -623,15 +623,15 @@ export function OfficialUnitCostClient() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
+                <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
                   <label
                     htmlFor="resmi-search"
-                    className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300"
+                    className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300"
                   >
                     Sınıf Kodu veya Bina Tipi Ara
                   </label>
-                  <div className="mt-2.5 flex items-center gap-3 rounded-xl border border-white/15 bg-[#0c1233] px-4 py-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/30">
-                    <Search className="h-4 w-4 text-blue-400" />
+                  <div className="mt-2.5 flex items-center gap-3 rounded-xl border border-input bg-card px-4 py-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-white/15 dark:bg-[#0c1233] dark:focus-within:border-blue-400 dark:focus-within:ring-blue-500/30">
+                    <Search className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <input
                       id="resmi-search"
                       data-testid="official-search-input"
@@ -639,10 +639,10 @@ export function OfficialUnitCostClient() {
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Örnek: IV-A, villa, hastane, AVM, okul"
-                      className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500"
+                      className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground dark:text-white dark:placeholder:text-slate-500"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-2 text-xs text-muted-foreground dark:text-slate-400">
                     Yazdıkça resmî sınıfları, örnek yapıları ve sınıf kodlarını anlık tarar.
                   </p>
 
@@ -661,23 +661,23 @@ export function OfficialUnitCostClient() {
                                 `${row.sinifKodu} - ${row.sinifAdi}`
                               )
                             }
-                            className="rounded-xl border border-white/10 bg-[#070b20] p-3 text-left transition-all hover:border-blue-500/40 hover:bg-[#0c1236]"
+                            className="rounded-xl border border-border/80 bg-card p-3 text-left transition-all hover:border-blue-500/40 hover:bg-muted dark:border-white/10 dark:bg-[#070b20] dark:text-slate-300 dark:hover:bg-[#0c1236]"
                           >
                             <div className="flex items-center justify-between gap-3">
-                              <span className="text-xs font-bold text-white">
+                              <span className="text-xs font-bold text-foreground dark:text-white">
                                 {row.sinifAdi}
                               </span>
-                              <span className="rounded-full border border-blue-400/30 bg-blue-500/15 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-300">
+                              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-600 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300">
                                 {row.sinifKodu}
                               </span>
                             </div>
-                            <p className="mt-1.5 text-xs text-slate-400">
+                            <p className="mt-1.5 text-xs text-muted-foreground dark:text-slate-400">
                               {row.ornekYapilar.slice(0, 2).join(" / ")}
                             </p>
                           </button>
                         ))
                       ) : (
-                        <div className="rounded-xl border border-dashed border-white/15 px-4 py-4 text-xs text-slate-400 md:col-span-2">
+                        <div className="rounded-xl border border-dashed border-border/80 bg-card/50 px-4 py-4 text-xs text-muted-foreground md:col-span-2 dark:border-white/15 dark:bg-transparent dark:text-slate-400">
                           Sonuç bulunamadı. Konut, villa, okul, hastane, AVM gibi bina tipi
                           kelimeleri veya doğrudan sınıf kodu yazabilirsiniz.
                         </div>
@@ -689,7 +689,7 @@ export function OfficialUnitCostClient() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
                     <label
-                      className="text-xs font-bold uppercase tracking-wider text-slate-300"
+                      className="text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300"
                       htmlFor="resmi-grup"
                     >
                       Ana Grup
@@ -701,12 +701,12 @@ export function OfficialUnitCostClient() {
                       onChange={(event) =>
                         handleManualGroupChange(event.target.value as OfficialCostGroupCode)
                       }
-                      className="w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 text-sm font-semibold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {groups.map((groupCode) => {
                         const row = allRows.find((item) => item.anaGrupKodu === groupCode);
                         return (
-                          <option key={groupCode} value={groupCode} className="bg-[#070a20] text-white">
+                          <option key={groupCode} value={groupCode} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                             {row?.anaGrupAdi ?? groupCode}
                           </option>
                         );
@@ -716,7 +716,7 @@ export function OfficialUnitCostClient() {
 
                   <div className="space-y-1.5">
                     <label
-                      className="text-xs font-bold uppercase tracking-wider text-slate-300"
+                      className="text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300"
                       htmlFor="resmi-sinif"
                     >
                       Alt Grup / Sınıf
@@ -728,7 +728,7 @@ export function OfficialUnitCostClient() {
                       onChange={(event) =>
                         handleManualClassChange(event.target.value as OfficialCostClassCode)
                       }
-                      className="w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 text-sm font-semibold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                      className="w-full rounded-xl border border-input bg-card px-4 py-3 text-sm font-semibold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                     >
                       {manualClassOptions.map((classCode) => {
                         const row = allRows.find(
@@ -737,7 +737,7 @@ export function OfficialUnitCostClient() {
                             item.altGrupKodu === classCode
                         );
                         return (
-                          <option key={classCode} value={classCode} className="bg-[#070a20] text-white">
+                          <option key={classCode} value={classCode} className="bg-card text-foreground dark:bg-[#070a20] dark:text-white">
                             {row?.sinifAdi ?? `${manualSelection.grup}-${classCode}`}
                           </option>
                         );
@@ -751,7 +751,7 @@ export function OfficialUnitCostClient() {
             <div className="mt-6 grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div className="space-y-1.5">
                 <label
-                  className="text-xs font-bold uppercase tracking-wider text-slate-300"
+                  className="text-xs font-bold uppercase tracking-wider text-foreground dark:text-slate-300"
                   htmlFor="alan"
                 >
                   Toplam İnşaat Alanı (m²)
@@ -769,68 +769,68 @@ export function OfficialUnitCostClient() {
                     setExportError(null);
                   }}
                   onBlur={handleAreaBlur}
-                  className="w-full rounded-xl border border-white/15 bg-[#070a20] px-4 py-3 font-mono text-sm font-bold text-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full rounded-xl border border-input bg-card px-4 py-3 font-mono text-sm font-bold text-foreground outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus:border-blue-400 dark:focus:ring-blue-500/30"
                 />
                 {!hasValidArea ? (
-                  <p className="text-xs font-medium text-red-400">
+                  <p className="text-xs font-medium text-rose-600 dark:text-red-400">
                     Geçerli bir toplam inşaat alanı girin. Alan en az 1 m² olmalıdır.
                   </p>
                 ) : null}
               </div>
 
-              <div className="rounded-2xl border border-blue-500/30 bg-[#070a20] p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 dark:bg-[#070a20]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                   Seçilen Resmî Sınıf
                 </p>
-                <p className="mt-1 font-mono text-lg font-black text-white">
+                <p className="mt-1 font-mono text-lg font-black text-foreground dark:text-white">
                   <span data-testid="official-selected-class-code">
                     {selectedRow?.sinifKodu}
                   </span>
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                   {selectedRow?.sinifAdi}
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
-              <p className="text-xs font-bold text-white uppercase tracking-wider">Formül ve Kapsam</p>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+            <div className="mt-6 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider dark:text-white">Formül ve Kapsam</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                 Toplam inşaat alanı × resmî m² birim maliyeti = toplam resmî yaklaşık maliyet
               </p>
-              <p className="mt-1 text-[11px] text-slate-400">
+              <p className="mt-1 text-[11px] text-muted-foreground dark:text-slate-400">
                 Bu araç piyasa teklifi üretmez. Ruhsat, resmî referans ve yaklaşık bütçe karşılaştırması için kullanılır.
               </p>
             </div>
           </section>
 
           {/* ── Result HUD Panel ── */}
-          <section className="rounded-3xl border border-blue-500/20 bg-[#090d26]/85 p-6 text-white md:p-8 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
+          <section className="rounded-3xl border border-border/80 bg-card/90 p-6 text-foreground md:p-8 shadow-sm backdrop-blur-2xl dark:border-blue-500/20 dark:bg-[#090d26]/85 dark:text-white dark:shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
             {result && selectedRow ? (
               <div className="space-y-5">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                     Sonuç Paneli
                   </p>
-                  <h2 className="mt-1.5 text-2xl font-black text-white">{selectedRow.sinifAdi}</h2>
-                  <p className="mt-1.5 text-xs leading-relaxed text-slate-300">
+                  <h2 className="mt-1.5 text-2xl font-black text-foreground dark:text-white">{selectedRow.sinifAdi}</h2>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
                     Resmî seçim, {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi} içindeki{" "}
                     {selectedRow.sinifAdi} için hesaplandı.
                   </p>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                       Resmî m² Birim Maliyeti
                     </p>
-                    <p className="mt-1.5 font-mono text-2xl font-black text-blue-300">
+                    <p className="mt-1.5 font-mono text-2xl font-black text-blue-600 dark:text-blue-300">
                       <span data-testid="official-unit-cost-value">
                         {formatM2Fiyat(selectedRow.m2BirimMaliyet)}
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-4 shadow-[0_10px_30px_rgba(37,99,235,0.2)]">
+                  <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121945] via-[#0c1236] to-[#070b24] p-4 text-white shadow-[0_10px_30px_rgba(37,99,235,0.2)]">
                     <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
                       Toplam Resmî Maliyet
                     </p>
@@ -840,21 +840,21 @@ export function OfficialUnitCostClient() {
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                       Toplam İnşaat Alanı
                     </p>
-                    <p className="mt-1.5 font-mono text-2xl font-black text-white">
+                    <p className="mt-1.5 font-mono text-2xl font-black text-foreground dark:text-white">
                       <span data-testid="official-area-value">
                         {safeArea.toLocaleString("tr-TR")} m²
                       </span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs dark:border-white/10 dark:bg-[#070a20]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground dark:text-slate-400">
                       Resmî Sınıf Kodu
                     </p>
-                    <p className="mt-1.5 font-mono text-2xl font-black text-indigo-300">
+                    <p className="mt-1.5 font-mono text-2xl font-black text-indigo-600 dark:text-indigo-300">
                       <span data-testid="official-result-class-code">
                         {selectedRow.sinifKodu}
                       </span>
@@ -863,34 +863,34 @@ export function OfficialUnitCostClient() {
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,0.82fr)]">
-                  <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4 text-xs">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                  <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 text-xs dark:border-white/10 dark:bg-[#070a20]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                       Hesap Özeti
                     </p>
-                    <div className="mt-3 space-y-2.5 text-slate-300">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-400">Yıl</span>
-                        <span className="font-bold text-white">{YIL}</span>
+                    <div className="mt-3 space-y-2.5 text-foreground dark:text-slate-300">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                        <span className="text-muted-foreground dark:text-slate-400">Yıl</span>
+                        <span className="font-bold text-foreground dark:text-white">{YIL}</span>
                       </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-400">Ana Grup</span>
-                        <span className="font-bold text-white">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                        <span className="text-muted-foreground dark:text-slate-400">Ana Grup</span>
+                        <span className="font-bold text-foreground dark:text-white">
                           {selectedGroup?.anaGrupAdi ?? selectedRow.anaGrupAdi}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-400">Alt Grup / Sınıf</span>
-                        <span className="font-bold text-white">{selectedRow.sinifAdi}</span>
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                        <span className="text-muted-foreground dark:text-slate-400">Alt Grup / Sınıf</span>
+                        <span className="font-bold text-foreground dark:text-white">{selectedRow.sinifAdi}</span>
                       </div>
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <span className="text-slate-400">Formül</span>
-                        <span className="font-mono font-bold text-blue-300">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 dark:border-white/5">
+                        <span className="text-muted-foreground dark:text-slate-400">Formül</span>
+                        <span className="font-mono font-bold text-blue-600 dark:text-blue-300">
                           {result.formula}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400">Kapsam</span>
-                        <span className="text-right font-medium text-slate-300">
+                        <span className="text-muted-foreground dark:text-slate-400">Kapsam</span>
+                        <span className="text-right font-medium text-foreground dark:text-slate-300">
                           Ruhsat ve resmî karşılaştırma
                         </span>
                       </div>
@@ -899,24 +899,24 @@ export function OfficialUnitCostClient() {
 
                   <div className="space-y-3">
                     {activeGuideMeta ? (
-                      <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                      <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                           Seçim Bilgisi
                         </p>
-                        <p className="mt-2 text-sm font-bold text-white">
+                        <p className="mt-2 text-sm font-bold text-foreground dark:text-white">
                           {activeGuideMeta.category.label}
                         </p>
-                        <p className="mt-1 text-xs text-slate-300">
+                        <p className="mt-1 text-xs text-muted-foreground dark:text-slate-300">
                           {activeGuideMeta.option.label}
                         </p>
                       </div>
                     ) : null}
 
-                    <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                    <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                         Kaynak
                       </p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-muted-foreground dark:text-slate-400">
                         {OFFICIAL_UNIT_COST_SOURCE_2026.label} referans alınmıştır.
                       </p>
                       <a
@@ -924,21 +924,21 @@ export function OfficialUnitCostClient() {
                         target="_blank"
                         rel="noreferrer"
                         data-testid="official-source-link"
-                        className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0d1230] px-3.5 py-2 text-xs font-bold text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                       >
-                        <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                        <ExternalLink className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         Resmî Kaynak
                       </a>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-[#070a20] p-4">
+                <div className="rounded-2xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070a20]">
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-300">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-300">
                       {getExampleStructuresTitle(selectedRow)}
                     </p>
-                    <span className="text-[11px] font-mono text-slate-400">
+                    <span className="text-[11px] font-mono text-muted-foreground dark:text-slate-400">
                       {exampleStructures.length} örnek
                     </span>
                   </div>
@@ -946,7 +946,7 @@ export function OfficialUnitCostClient() {
                     {exampleStructures.map((example) => (
                       <div
                         key={example}
-                        className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300"
+                        className="rounded-lg border border-border/80 bg-card px-2.5 py-1 text-xs text-foreground shadow-2xs dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
                       >
                         {example}
                       </div>
@@ -955,7 +955,7 @@ export function OfficialUnitCostClient() {
                 </div>
 
                 {exportError ? (
-                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-300">
+                  <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-700 dark:text-rose-300">
                     {exportError}
                   </div>
                 ) : null}
@@ -965,9 +965,9 @@ export function OfficialUnitCostClient() {
                     type="button"
                     data-testid="official-print-button"
                     onClick={handlePrint}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-300 transition-all hover:bg-[#131a44] hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white"
                   >
-                    <Printer className="h-4 w-4 text-blue-400" />
+                    <Printer className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     Yazdır
                   </button>
                   <button
@@ -975,9 +975,9 @@ export function OfficialUnitCostClient() {
                     data-testid="official-pdf-preview-button"
                     onClick={handlePdfPreview}
                     disabled={isBusy || !hasValidArea}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0d1230] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-300 transition-all hover:bg-[#131a44] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-foreground shadow-2xs transition-all hover:bg-muted dark:border-white/10 dark:bg-[#0d1230] dark:text-slate-300 dark:hover:bg-[#131a44] dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Eye className="h-4 w-4 text-indigo-400" />
+                    <Eye className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                     {activePdfAction === "preview" ? "Hazırlanıyor" : "PDF Önizleme"}
                   </button>
                   <button
@@ -993,7 +993,7 @@ export function OfficialUnitCostClient() {
                   <Link
                     href={detailedCostLink}
                     data-testid="official-compare-link"
-                    className="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-300 transition-all hover:bg-blue-500/20"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-blue-600 transition-all hover:bg-blue-500/20 dark:text-blue-300"
                   >
                     <Compass className="h-4 w-4" />
                     Detaylı Maliyet ile Karşılaştır
@@ -1001,9 +1001,9 @@ export function OfficialUnitCostClient() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-[#070a20] p-6">
-                <p className="text-base font-bold text-white">Resmî sonuç hazır değil</p>
-                <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              <div className="rounded-2xl border border-border/80 bg-muted/40 p-6 dark:border-white/10 dark:bg-[#070a20]">
+                <p className="text-base font-bold text-foreground dark:text-white">Resmî sonuç hazır değil</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-400">
                   Geçerli bir grup, sınıf ve toplam inşaat alanı seçildiğinde resmî yaklaşık
                   maliyet burada gösterilecek.
                 </p>
