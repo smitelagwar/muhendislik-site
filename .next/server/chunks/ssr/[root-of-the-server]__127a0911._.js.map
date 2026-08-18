@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../src/app/giris/page.tsx"],"sourcesContent":["import { redirect } from \"next/navigation\";\n\nexport default function LoginRedirectPage() {\n  redirect(\"/iletisim\");\n}\n"],"names":[],"mappings":"geAAA,EAAA,CAAA,CAAA,QAAA,IAAA,EAAA,EAAA,CAAA,CAAA,QAEe,SAAS,IACtB,CAAA,EAAA,EAAA,QAAA,AAAQ,EAAC,YACX"}

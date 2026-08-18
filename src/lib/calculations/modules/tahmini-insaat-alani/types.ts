@@ -1,6 +1,13 @@
 export type EstimatedConstructionAreaStatus = "ok" | "warn";
 
-export type ConstructionAreaProfile = "konut" | "ticariOfis" | "karma";
+export type ConstructionAreaProfile = 
+  | "konut" 
+  | "ticariOfis" 
+  | "karma"
+  | "endustriyel"
+  | "otel"
+  | "saglik"
+  | "egitim";
 
 export interface EstimatedConstructionAreaWarning {
   tone: "warn";
@@ -13,6 +20,7 @@ export interface ConstructionAreaProfileDefinition {
   description: string;
   baseNonEmsalRatio: number;
   helper: string;
+  icon?: string;
 }
 
 export interface EstimatedConstructionAreaInput {
@@ -24,6 +32,9 @@ export interface EstimatedConstructionAreaInput {
   hasBasement: boolean;
   basementFloorCount: number;
   basementFloorAreaM2: number | null;
+  basementUsageType?: "park" | "depo" | "siginaK" | "tesis" | "karma";
+  soilCondition?: "normal" | "zayif" | "kaya";
+  customNonEmsalRatio?: number | null;
 }
 
 export interface EstimatedConstructionAreaResult {
@@ -47,6 +58,8 @@ export interface EstimatedConstructionAreaResult {
   statusMessage: string;
   warnings: EstimatedConstructionAreaWarning[];
   notes: string[];
+  kullanilanEmsalHariciOrani: number;
+  customRatioUsed: boolean;
 }
 
 export type QuickEstimatedConstructionAreaInput = EstimatedConstructionAreaInput;

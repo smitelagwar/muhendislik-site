@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Building2, LandPlot, Layers3 } from "lucide-react";
+import { Building2, LandPlot, Layers3, Factory, Hotel, Stethoscope, School, Settings, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   CONSTRUCTION_AREA_PROFILE_DEFINITIONS,
 } from "@/lib/calculations/modules/tahmini-insaat-alani/engine";
@@ -43,6 +45,14 @@ function getProfileIcon(profile: ConstructionAreaProfile) {
       return LandPlot;
     case "karma":
       return Layers3;
+    case "endustriyel":
+      return Factory;
+    case "otel":
+      return Hotel;
+    case "saglik":
+      return Stethoscope;
+    case "egitim":
+      return School;
     case "konut":
     default:
       return Building2;
@@ -257,6 +267,80 @@ export function QuickModePanel({
                 placeholder="Opsiyonel"
                 data-testid="estimated-area-input-bodrum-alan"
               />
+            </div>
+          </div>
+        ) : null}
+      </QuestionCard>
+
+      <QuestionCard
+        step="7. Özel emsal harici oran"
+        title="Profil varsayımını özelleştirin"
+        description="İsteğe bağlı olarak profil bazlı varsayılan emsal harici oran yerine kendi oranınınızı tanımlayın. Üst sınır %30'dur."
+      >
+        <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070b20]">
+          <div className="flex items-center gap-3">
+            <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div>
+              <p className="text-sm font-bold text-foreground dark:text-white">Özel Emsal Harici Oran Kullan</p>
+              <p className="text-xs text-muted-foreground dark:text-slate-400">Profil varsayımı yerine kendi oranınınızı girin</p>
+            </div>
+          </div>
+          <Switch
+            checked={form.useCustomNonEmsalRatio}
+            onCheckedChange={(checked) => onFieldChange("useCustomNonEmsalRatio", checked)}
+            data-testid="estimated-area-custom-ratio-toggle"
+          />
+        </div>
+
+        {form.useCustomNonEmsalRatio ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
+            <Input
+              value={form.customNonEmsalRatio}
+              onChange={(event) => onFieldChange("customNonEmsalRatio", event.target.value)}
+              inputMode="decimal"
+              className="h-12 rounded-xl border-input bg-card font-mono text-sm font-bold text-foreground focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus-visible:border-blue-400 dark:focus-visible:ring-blue-500/30"
+              placeholder="Örnek: 0.25"
+              data-testid="estimated-area-input-custom-ratio"
+            />
+            <div className="flex items-center justify-center rounded-xl border border-border/80 bg-muted font-mono text-xs font-bold text-blue-600 dark:border-white/10 dark:bg-[#0c1233] dark:text-blue-300">
+              oran
+            </div>
+          </div>
+        ) : null}
+      </QuestionCard>
+
+      <QuestionCard
+        step="8. Maliyet tahmini"
+        title="Yaklaşık inşaat maliyeti hesapla"
+        description="Toplam inşaat alanı üzerinden kabaca bir maliyet tahmini yapmak için birim fiyat girin."
+      >
+        <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/40 p-4 dark:border-white/10 dark:bg-[#070b20]">
+          <div className="flex items-center gap-3">
+            <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <div>
+              <p className="text-sm font-bold text-foreground dark:text-white">Maliyet Tahmini Dahil Et</p>
+              <p className="text-xs text-muted-foreground dark:text-slate-400">Birim fiyat ile yaklaşık toplam maliyet hesapla</p>
+            </div>
+          </div>
+          <Switch
+            checked={form.includeCostEstimate}
+            onCheckedChange={(checked) => onFieldChange("includeCostEstimate", checked)}
+            data-testid="estimated-area-cost-estimate-toggle"
+          />
+        </div>
+
+        {form.includeCostEstimate ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_140px]">
+            <Input
+              value={form.constructionCostPerM2}
+              onChange={(event) => onFieldChange("constructionCostPerM2", event.target.value)}
+              inputMode="numeric"
+              className="h-12 rounded-xl border-input bg-card font-mono text-sm font-bold text-foreground focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/15 dark:bg-[#070a20] dark:text-white dark:focus-visible:border-emerald-400 dark:focus-visible:ring-emerald-500/30"
+              placeholder="Örnek: 15000"
+              data-testid="estimated-area-input-cost-per-m2"
+            />
+            <div className="flex items-center justify-center rounded-xl border border-border/80 bg-muted font-mono text-xs font-bold text-emerald-600 dark:border-white/10 dark:bg-[#0c1233] dark:text-emerald-300">
+              TL / m²
             </div>
           </div>
         ) : null}

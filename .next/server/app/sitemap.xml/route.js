@@ -1,0 +1,7 @@
+var R=require("../../chunks/[turbopack]_runtime.js")("server/app/sitemap.xml/route.js")
+R.c("server/chunks/[root-of-the-server]__326d9421._.js")
+R.c("server/chunks/src_lib_e90408c3._.js")
+R.c("server/chunks/[root-of-the-server]__f408c708._.js")
+R.c("server/chunks/_next-internal_server_app_sitemap_xml_route_actions_12658ace.js")
+R.m(283345)
+module.exports=R.m(283345).exports

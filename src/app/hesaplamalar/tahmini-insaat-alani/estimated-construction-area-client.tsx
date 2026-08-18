@@ -76,6 +76,8 @@ function parseInitialForm(
   const hasBasement = searchParams.get("bodrum") === "1";
   const bodrumKatRaw = searchParams.get("bodrumKat") ?? "";
   const bodrumAlanRaw = searchParams.get("bodrumAlan") ?? "";
+  const basementUsageRaw = searchParams.get("bodrumKullanim") ?? "";
+  const soilConditionRaw = searchParams.get("zemin") ?? "";
 
   return {
     parcelAreaM2: parsePositiveDecimal(parcelAreaRaw)
@@ -98,7 +100,37 @@ function parseInitialForm(
         : DEFAULT_ESTIMATED_AREA_FORM.basementFloorCount,
     basementFloorAreaM2:
       hasBasement && parsePositiveDecimal(bodrumAlanRaw) ? bodrumAlanRaw : "",
+    basementUsageType: parseBasementUsageType(basementUsageRaw),
+    soilCondition: parseSoilCondition(soilConditionRaw),
   };
+}
+
+function parseBasementUsageType(raw: string | null): "park" | "depo" | "siginaK" | "tesis" | "karma" {
+  switch (raw) {
+    case "depo":
+      return "depo";
+    case "siginaK":
+      return "siginaK";
+    case "tesis":
+      return "tesis";
+    case "karma":
+      return "karma";
+    case "park":
+    default:
+      return "park";
+  }
+}
+
+function parseSoilCondition(raw: string | null): "normal" | "zayif" | "kaya" {
+  switch (raw) {
+    case "zayif":
+      return "zayif";
+    case "kaya":
+      return "kaya";
+    case "normal":
+    default:
+      return "normal";
+  }
 }
 
 function buildInput(form: EstimatedAreaFormState): {
@@ -153,6 +185,8 @@ function buildInput(form: EstimatedAreaFormState): {
       hasBasement: form.hasBasement,
       basementFloorCount: basementFloorCount ?? 0,
       basementFloorAreaM2,
+      basementUsageType: form.basementUsageType,
+      soilCondition: form.soilCondition,
     },
     error: null,
   };
@@ -171,6 +205,8 @@ function buildQueryString(form: EstimatedAreaFormState): string {
   setParamIfMeaningful(params, "kat", normalFloorCount ? String(normalFloorCount) : null);
   setParamIfMeaningful(params, "profil", form.profile, { defaultValue: DEFAULT_ESTIMATED_AREA_FORM.profile });
   setParamIfMeaningful(params, "bodrum", form.hasBasement ? "1" : null, { defaultValue: "0" });
+  setParamIfMeaningful(params, "bodrumKullanim", form.basementUsageType, { defaultValue: DEFAULT_ESTIMATED_AREA_FORM.basementUsageType });
+  setParamIfMeaningful(params, "zemin", form.soilCondition, { defaultValue: DEFAULT_ESTIMATED_AREA_FORM.soilCondition });
 
   if (form.hasBasement) {
     const basementFloorCount = parsePositiveInteger(form.basementFloorCount);
