@@ -1,59 +1,55 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+dist/
+build/
+target/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Dependencies
+.venv/
+venv/
+node_modules/
+.julia/
+zig-cache/
+.deps/
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# local helper content / generated artifacts
-.agent/
-eklediklerim/
-get-shit-done/
--EKLEDİKLERİM/
-.tmp/
-output.html
-lint.txt
-lint_output.txt
-snapshot*.png
-puppeteer*.js
-test_scrollytelling.js
-.next-dev.err.log
-.next-dev.out.log
+# Logs and temp files
 *.log
-scratch/
+*.tmp
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Build systems
+.gradle/
+.mypy_cache/
+.pytest_cache/

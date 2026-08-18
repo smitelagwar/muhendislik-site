@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../src/app/araclar/page.tsx"],"sourcesContent":["import { redirect } from \"next/navigation\";\n\nexport default function LegacyToolsPage() {\n    redirect(\"/kategori/araclar\");\n}\n"],"names":[],"mappings":"ieAAA,EAAA,CAAA,CAAA,QAAA,IAAA,EAAA,EAAA,CAAA,CAAA,QAEe,SAAS,IACpB,CAAA,EAAA,EAAA,QAAA,AAAQ,EAAC,oBACb"}

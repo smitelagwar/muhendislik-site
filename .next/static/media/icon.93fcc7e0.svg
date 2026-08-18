@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="İnşa Blog Favicon">
+  <title>İnşa Blog</title>
+  <rect width="64" height="64" fill="#162448" rx="10"/>
+
+  <!-- Corner brackets -->
+  <path d="M8,22 L8,8 L22,8"   fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="square"/>
+  <path d="M42,8  L56,8 L56,22" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="square"/>
+  <path d="M8,42  L8,56 L22,56" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="square"/>
+  <path d="M42,56 L56,56 L56,42" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- İB monogram centered -->
+  <text x="10" y="46"
+    font-family="'Barlow Condensed', 'Arial Narrow', Arial, sans-serif"
+    font-size="34"
+    font-weight="600"
+    fill="#FFFFFF"
+    letter-spacing="-1">İB</text>
+</svg>

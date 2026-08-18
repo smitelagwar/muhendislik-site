@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Building2, LandPlot, Layers3 } from "lucide-react";
+import { Building2, LandPlot, Layers3, Factory, Hotel, Stethoscope, School } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   CONSTRUCTION_AREA_PROFILE_DEFINITIONS,
@@ -43,6 +43,14 @@ function getProfileIcon(profile: ConstructionAreaProfile) {
       return LandPlot;
     case "karma":
       return Layers3;
+    case "endustriyel":
+      return Factory;
+    case "otel":
+      return Hotel;
+    case "saglik":
+      return Stethoscope;
+    case "egitim":
+      return School;
     case "konut":
     default:
       return Building2;

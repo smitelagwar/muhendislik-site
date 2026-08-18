@@ -1,0 +1,17 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/src/app/kategori/bina-asamalari/ic-siva/page": [
+      "static/media/57215795b8570f5c-s.p.0f2c7ba8.woff2",
+      "static/media/03fc1b4a8d284b5e-s.p.af4fcd24.woff2",
+      "static/media/2fe89d53234c61d4-s.p.cb53f04b.woff2",
+      "static/media/99e609270109b47d-s.p.64b9304e.woff2",
+      "static/media/68757d6cddeff913-s.p.e6cd1753.woff2",
+      "static/media/effe91970fc4db64-s.p.19510058.woff2",
+      "static/media/5689d89b20a4bd5b-s.p.4a78f533.woff2",
+      "static/media/a7e15459c1805da0-s.p.ec654d65.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

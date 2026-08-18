@@ -12,6 +12,8 @@ export interface EstimatedAreaFormState {
   hasBasement: boolean;
   basementFloorCount: string;
   basementFloorAreaM2: string;
+  basementUsageType: "park" | "depo" | "siginaK" | "tesis" | "karma";
+  soilCondition: "normal" | "zayif" | "kaya";
 }
 
 export const DEFAULT_ESTIMATED_AREA_FORM: EstimatedAreaFormState = {
@@ -23,4 +25,6 @@ export const DEFAULT_ESTIMATED_AREA_FORM: EstimatedAreaFormState = {
   hasBasement: false,
   basementFloorCount: "1",
   basementFloorAreaM2: "",
+  basementUsageType: "park",
+  soilCondition: "normal",
 };
