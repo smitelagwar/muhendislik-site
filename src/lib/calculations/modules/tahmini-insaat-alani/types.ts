@@ -34,6 +34,7 @@ export interface EstimatedConstructionAreaInput {
   basementFloorAreaM2: number | null;
   basementUsageType?: "park" | "depo" | "siginaK" | "tesis" | "karma";
   soilCondition?: "normal" | "zayif" | "kaya";
+  customNonEmsalRatio?: number | null;
 }
 
 export interface EstimatedConstructionAreaResult {
@@ -57,6 +58,8 @@ export interface EstimatedConstructionAreaResult {
   statusMessage: string;
   warnings: EstimatedConstructionAreaWarning[];
   notes: string[];
+  kullanilanEmsalHariciOrani: number;
+  customRatioUsed: boolean;
 }
 
 export type QuickEstimatedConstructionAreaInput = EstimatedConstructionAreaInput;

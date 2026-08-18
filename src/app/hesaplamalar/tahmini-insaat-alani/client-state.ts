@@ -14,6 +14,10 @@ export interface EstimatedAreaFormState {
   basementFloorAreaM2: string;
   basementUsageType: "park" | "depo" | "siginaK" | "tesis" | "karma";
   soilCondition: "normal" | "zayif" | "kaya";
+  useCustomNonEmsalRatio: boolean;
+  customNonEmsalRatio: string;
+  includeCostEstimate: boolean;
+  constructionCostPerM2: string;
 }
 
 export const DEFAULT_ESTIMATED_AREA_FORM: EstimatedAreaFormState = {
@@ -27,4 +31,18 @@ export const DEFAULT_ESTIMATED_AREA_FORM: EstimatedAreaFormState = {
   basementFloorAreaM2: "",
   basementUsageType: "park",
   soilCondition: "normal",
+  useCustomNonEmsalRatio: false,
+  customNonEmsalRatio: "0.24",
+  includeCostEstimate: false,
+  constructionCostPerM2: "15000",
 };
+
+export const ESTIMATED_AREA_SAVED_SCENARIOS_KEY =
+  "estimated_construction_area_saved_scenarios_v1";
+
+export interface SavedScenario {
+  id: string;
+  name: string;
+  createdAt: number;
+  form: EstimatedAreaFormState;
+}

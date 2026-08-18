@@ -118,6 +118,7 @@ export function calculateEstimatedConstructionArea(
     basementFloorAreaM2,
     basementUsageType = "park",
     soilCondition = "normal",
+    customNonEmsalRatio = null,
   } = input;
 
   if (
@@ -161,10 +162,18 @@ export function calculateEstimatedConstructionArea(
     soilAdjustmentRatio = -0.02;
   }
   
-  const emsalHariciEkAlanOrani = Math.min(
-    profileDefinition.baseNonEmsalRatio + katAdediDuzeltmesiOrani + soilAdjustmentRatio,
+  const customRatioUsed = customNonEmsalRatio !== null && customNonEmsalRatio !== undefined && customNonEmsalRatio > 0;
+  const bazEmsalHariciOrani = customRatioUsed ? customNonEmsalRatio! : profileDefinition.baseNonEmsalRatio;
+  
+  let emsalHariciEkAlanOrani = Math.min(
+    bazEmsalHariciOrani + katAdediDuzeltmesiOrani + soilAdjustmentRatio,
     0.3
   );
+  
+  if (customRatioUsed) {
+    emsalHariciEkAlanOrani = Math.min(customNonEmsalRatio!, 0.3);
+  }
+  
   const emsalHariciEkAlanM2 = emsalAreaM2 * emsalHariciEkAlanOrani;
   
   let basementAreaMultiplier = 1;
@@ -201,8 +210,13 @@ export function calculateEstimatedConstructionArea(
   const notes = [
     "Emsal harici ek alan; merdiven, asansör çekirdeği, ortak hacimler, teknik alanlar ve proje tipine göre değişebilen tipik alanlar için ön fizibilite varsayımıdır.",
     "Planlı Alanlar İmar Yönetmeliği ve yerel plan notları emsal dışı alanları proje bazında farklı değerlendirebilir; bu araç ruhsat hesabı yerine geçmez.",
-    profileDefinition.helper,
   ];
+  
+  if (customRatioUsed) {
+    notes.push(`Özel emsal harici oran (${(customNonEmsalRatio! * 100).toFixed(1)}%) kullanıldı. Profil bazlı varsayımlar yerine kullanıcı tanımı önceliklidir.`);
+  } else {
+    notes.push(profileDefinition.helper);
+  }
 
   if (katYerlesimKapasitesiM2 < emsalAreaM2) {
     warnings.push({
@@ -250,7 +264,7 @@ export function calculateEstimatedConstructionArea(
     katYerlesimKapasitesiM2,
     averageRequiredFloorAreaM2,
     theoreticalFloorEquivalent,
-    bazEmsalHariciOrani: profileDefinition.baseNonEmsalRatio,
+    bazEmsalHariciOrani: customRatioUsed ? customNonEmsalRatio! : profileDefinition.baseNonEmsalRatio,
     katAdediDuzeltmesiOrani,
     emsalHariciEkAlanOrani,
     emsalHariciEkAlanM2,
@@ -263,6 +277,8 @@ export function calculateEstimatedConstructionArea(
     statusMessage,
     warnings,
     notes,
+    kullanilanEmsalHariciOrani: emsalHariciEkAlanOrani,
+    customRatioUsed,
   };
 }
 
