@@ -66,8 +66,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       });
     }
 
-    // İndirme sayacını artır
-    await incrementShareDownload(link.id);
+    // İndirme sayacını artır ve limit kontrolü yap
+    const isAllowed = await incrementShareDownload(link.id);
+    if (!isAllowed) {
+      return new NextResponse("İndirme limiti aşıldı veya bağlantı geçerli değil.", {
+        status: 403,
+      });
+    }
 
     let fileBuffer: Buffer | ArrayBuffer | Uint8Array | ReadableStream<Uint8Array>;
 
@@ -84,24 +89,25 @@ export async function GET(request: Request, { params }: RouteParams) {
 
       fileBuffer = fs.default.readFileSync(diskPath);
     } else {
-      // Private Blob dosyasını oku
+      // Vercel Private Blob: Resmi SDK get() ile güvenli okuma
+      const { get } = await import("@vercel/blob");
       const blobToken = getBlobToken();
-      const fetchHeaders: HeadersInit = {};
-      if (blobToken) {
-        fetchHeaders["Authorization"] = `Bearer ${blobToken}`;
+      if (!blobToken) {
+        return new NextResponse("Depolama yapılandırması eksik.", { status: 503 });
       }
 
-      const blobResponse = await fetch(file.blob_url, {
-        headers: fetchHeaders,
+      const getResult = await get(file.blob_pathname, {
+        access: "private",
+        token: blobToken,
       });
 
-      if (!blobResponse.ok || !blobResponse.body) {
+      if (!getResult || !getResult.stream) {
         return new NextResponse("Dosya depolama alanından alınamadı.", {
           status: 502,
         });
       }
 
-      fileBuffer = blobResponse.body;
+      fileBuffer = getResult.stream;
     }
 
     const responseHeaders = new Headers();

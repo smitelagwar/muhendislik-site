@@ -19,10 +19,13 @@ export async function GET() {
     const envName = isVercel ? "production" : (process.env.NODE_ENV || "development");
 
     // 1. Veritabanı Kontrolleri
+    const { getLatestSchemaVersion, LATEST_REQUIRED_SCHEMA_VERSION } = await import("@/lib/dokumantasyon/db");
     const dbStatus = {
       configured: hasDatabaseUrl(),
       reachable: false,
       schemaReady: false,
+      currentSchemaVersion: "none",
+      requiredSchemaVersion: LATEST_REQUIRED_SCHEMA_VERSION,
     };
 
     if (dbStatus.configured) {
@@ -34,10 +37,10 @@ export async function GET() {
         const { ensureDatabaseTables } = await import("@/lib/dokumantasyon/db");
         await ensureDatabaseTables(sql);
 
-        const tableCheck = await sql`
-          SELECT COUNT(*) as count FROM dok_files;
-        `;
-        if (tableCheck && tableCheck.length > 0) {
+        const currentVer = await getLatestSchemaVersion(sql);
+        dbStatus.currentSchemaVersion = currentVer;
+
+        if (currentVer >= LATEST_REQUIRED_SCHEMA_VERSION) {
           dbStatus.schemaReady = true;
         }
       } catch (err) {
@@ -51,7 +54,7 @@ export async function GET() {
     const blobStatus = {
       configured: Boolean(blobToken),
       reachable: false,
-      private: true,
+      access: "private",
     };
 
     if (blobStatus.configured && blobToken) {

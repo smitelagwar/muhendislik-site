@@ -77,10 +77,32 @@ export async function GET(request: Request, { params }: RouteParams) {
             zip.file(zipPath, buffer);
           }
         } else {
-          const blobRes = await fetch(file.blob_url, { headers: fetchHeaders });
-          if (blobRes.ok) {
-            const arrayBuffer = await blobRes.arrayBuffer();
-            zip.file(zipPath, arrayBuffer);
+          // Vercel Private Blob: Resmi SDK get() ile güvenli okuma
+          const { get } = await import("@vercel/blob");
+          const blobToken = getBlobToken();
+          if (blobToken) {
+            const getResult = await get(file.blob_pathname, {
+              access: "private",
+              token: blobToken,
+            });
+            if (getResult && getResult.stream) {
+              const reader = getResult.stream.getReader();
+              const chunks: Uint8Array[] = [];
+              let done = false;
+              while (!done) {
+                const { value, done: isDone } = await reader.read();
+                if (value) chunks.push(value);
+                done = isDone;
+              }
+              const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+              const combined = new Uint8Array(totalLen);
+              let offset = 0;
+              for (const chunk of chunks) {
+                combined.set(chunk, offset);
+                offset += chunk.length;
+              }
+              zip.file(zipPath, combined);
+            }
           }
         }
       } catch (e) {
@@ -94,8 +116,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       compressionOptions: { level: 6 },
     });
 
-    // İndirme sayacını artır
-    await incrementShareDownload(link.id);
+    // İndirme sayacını artır ve limit kontrolü yap
+    const isAllowed = await incrementShareDownload(link.id);
+    if (!isAllowed) {
+      return new NextResponse("İndirme limiti aşıldı veya bağlantı geçerli değil.", {
+        status: 403,
+      });
+    }
 
     const safeTitle = (link.title || "arsiv")
       .replace(/[^a-zA-Z0-9_-]/g, "_")

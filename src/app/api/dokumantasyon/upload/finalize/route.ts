@@ -156,6 +156,11 @@ export async function POST(request: Request) {
       extension: ext,
     });
 
+    if (intentToken) {
+      const { markUploadIntentFinalized } = await import("@/lib/dokumantasyon/upload-intent");
+      await markUploadIntentFinalized(body.intentId || blobPathname, file.id);
+    }
+
     return NextResponse.json({ success: true, file });
   } catch (err: unknown) {
     if (blobPathnameToDeleteOnError && !blobPathnameToDeleteOnError.startsWith("local:")) {

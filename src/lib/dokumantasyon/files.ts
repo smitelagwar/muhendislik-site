@@ -8,7 +8,7 @@ import { del } from "@vercel/blob";
 import path from "path";
 import fs from "fs";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
-import { hasDatabaseUrl } from "./runtime-mode";
+import { hasDatabaseUrl, getBlobToken } from "./runtime-mode";
 
 /**
  * Belirtilen ID'ye sahip dosyayı getirir
@@ -81,13 +81,12 @@ export async function createFileRecord(data: {
   mime_type: string;
   extension: string;
 }): Promise<DokFile> {
-  const uniqueName = await getUniqueFileName(data.folder_id, data.display_name);
-
   if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const existing = db.files.find((f) => f.blob_pathname === data.blob_pathname && !f.deleted_at);
     if (existing) return existing;
 
+    const uniqueName = await getUniqueFileName(data.folder_id, data.display_name);
     const newFile: DokFile = {
       id: crypto.randomUUID(),
       folder_id: data.folder_id,
@@ -107,6 +106,8 @@ export async function createFileRecord(data: {
   }
 
   const sql = getDb();
+
+  // 1. Varsa mevcut kaydı döndür (idempotency)
   const existingRows = await sql`
     SELECT * FROM dok_files
     WHERE blob_pathname = ${data.blob_pathname} AND deleted_at IS NULL
@@ -116,28 +117,46 @@ export async function createFileRecord(data: {
     return existingRows[0] as DokFile;
   }
 
-  const rows = await sql`
-    INSERT INTO dok_files (
-      folder_id,
-      display_name,
-      blob_pathname,
-      blob_url,
-      size_bytes,
-      mime_type,
-      extension
-    ) VALUES (
-      ${data.folder_id},
-      ${uniqueName},
-      ${data.blob_pathname},
-      ${data.blob_url},
-      ${data.size_bytes},
-      ${data.mime_type},
-      ${data.extension}
-    )
-    RETURNING *;
-  `;
+  // 2. Atomic insert & çakışma durumunda isim retry
+  let candidateName = await getUniqueFileName(data.folder_id, data.display_name);
+  let attempts = 0;
+  const maxAttempts = 10;
 
-  return rows[0] as DokFile;
+  while (attempts < maxAttempts) {
+    try {
+      const rows = await sql`
+        INSERT INTO dok_files (
+          folder_id,
+          display_name,
+          blob_pathname,
+          blob_url,
+          size_bytes,
+          mime_type,
+          extension
+        ) VALUES (
+          ${data.folder_id},
+          ${candidateName},
+          ${data.blob_pathname},
+          ${data.blob_url},
+          ${data.size_bytes},
+          ${data.mime_type},
+          ${data.extension}
+        )
+        ON CONFLICT (blob_pathname) DO UPDATE SET updated_at = NOW()
+        RETURNING *;
+      `;
+      return rows[0] as DokFile;
+    } catch (err: unknown) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        candidateName = await getUniqueFileName(data.folder_id, data.display_name);
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  throw new Error("Dosya veritabanı kaydı oluşturulamadı.");
 }
 
 export async function createFile(data: {
@@ -301,21 +320,33 @@ export async function permanentDeleteFile(id: string): Promise<void> {
   const file = await getFile(id);
   if (!file) return;
 
-  if (file.blob_url?.startsWith("local:")) {
+  const isLocal = file.blob_url?.startsWith("local:");
+  if (isLocal) {
     const fileNameOnDisk = file.blob_url.replace("local:", "");
     const diskPath = path.join(getLocalStorageDir(), fileNameOnDisk);
     if (fs.existsSync(diskPath)) {
       try {
         fs.unlinkSync(diskPath);
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
-  } else if (file.blob_url) {
+  } else if (file.blob_pathname || file.blob_url) {
+    const blobToken = getBlobToken();
     try {
-      await del(file.blob_url);
-    } catch (err) {
-      console.error("Vercel Blob silme hatası:", err);
+      if (blobToken) {
+        await del(file.blob_pathname || file.blob_url, { token: blobToken });
+      }
+    } catch (err: unknown) {
+      console.warn("Vercel Blob silme uyarısı:", err);
+      if (hasDatabaseUrl()) {
+        const sql = getDb();
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await sql`
+          UPDATE dok_files
+          SET purge_status = 'failed', purge_last_error = ${errMsg}
+          WHERE id = ${id};
+        `;
+        throw new Error(`Kalıcı depolamadaki dosya silinemedi: ${errMsg}`);
+      }
     }
   }
 

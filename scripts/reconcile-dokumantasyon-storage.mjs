@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — AŞAMA 4/6: DEPOLAMA VE VERİTABANI MUTABAKATI (RECONCILIATION)
+// DÖKÜMANTASYON MODÜLÜ — DEPOLAMA VE VERİTABANI MUTABAKATI (SAFE RECONCILIATION)
 // ============================================================================
 
 import fs from "fs";
@@ -22,18 +22,19 @@ if (fs.existsSync(envLocalPath)) {
 }
 
 const args = process.argv.slice(2);
-const isRepairMode = args.includes("--repair-orphans");
+const isDeleteSafeOrphansMode = args.includes("--delete-safe-orphans");
 
 console.log("======================================================================");
-console.log(`DÖKÜMANTASYON MODÜLÜ — DEPOLAMA MUTABAKAT VE KURTARMA (MOD: ${isRepairMode ? "REPAIR" : "REPORT ONLY"})`);
+console.log(`DÖKÜMANTASYON MODÜLÜ — GÜVENLİ DEPOLAMA MUTABAKATI (MOD: ${isDeleteSafeOrphansMode ? "SAFE CLEANUP" : "REPORT ONLY / DRY-RUN"})`);
 console.log("======================================================================\n");
 
 async function runReconciliation() {
-  const { isExplicitLocalDokMode } = await import("../src/lib/dokumantasyon/runtime-mode.ts");
-  const { readLocalDb, writeLocalDb, getLocalStorageDir } = await import("../src/lib/dokumantasyon/local-store.ts");
+  const { isExplicitLocalDokMode, getBlobToken, hasDatabaseUrl } = await import("../src/lib/dokumantasyon/runtime-mode.ts");
+  const { readLocalDb, getLocalStorageDir } = await import("../src/lib/dokumantasyon/local-store.ts");
 
-  const hasDb = Boolean(process.env.DATABASE_URL);
-  const hasBlob = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  const hasDb = hasDatabaseUrl();
+  const blobToken = getBlobToken();
+  const hasBlob = Boolean(blobToken);
 
   let dbFiles = [];
   let physicalObjects = [];
@@ -44,7 +45,7 @@ async function runReconciliation() {
       const { getDb } = await import("../src/lib/dokumantasyon/db.ts");
       const sql = getDb();
       dbFiles = (await sql`
-        SELECT id, display_name, blob_pathname, blob_url, size_bytes, mime_type, extension, created_at, deleted_at
+        SELECT id, display_name, blob_pathname, blob_url, size_bytes, mime_type, extension, created_at, deleted_at, purge_status
         FROM dok_files;
       `) || [];
     } catch (err) {
@@ -65,7 +66,7 @@ async function runReconciliation() {
       const { list } = await import("@vercel/blob");
       let cursor;
       do {
-        const res = await list({ prefix: "dok_storage/", cursor });
+        const res = await list({ prefix: "dok_storage/", cursor, token: blobToken });
         physicalObjects.push(
           ...res.blobs.map((b) => ({
             pathname: b.pathname,
@@ -121,79 +122,51 @@ async function runReconciliation() {
     }
   }
 
+  const nowMs = Date.now();
+  const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 saat grace period
+
   for (const phys of physicalObjects) {
     if (!dbPathnames.has(phys.pathname)) {
-      orphanBlobs.push(phys);
+      const uploadTime = new Date(phys.uploadedAt).getTime();
+      const isOlderThanGrace = (nowMs - uploadTime) > GRACE_PERIOD_MS;
+      orphanBlobs.push({ ...phys, isOlderThanGrace });
     }
   }
 
   console.log(`\n▶ 2. Mutabakat Sonuçları`);
   console.log(`  ✓ Eşleşen (Sağlıklı) Dosyalar: ${matched.length}`);
-  console.log(`  ⚠️ Orphan (Sahipsiz / Kurtarılabilir) Depo Objeleri: ${orphanBlobs.length}`);
+  console.log(`  ⚠️ Orphan (Sahipsiz) Depo Objeleri: ${orphanBlobs.length}`);
   console.log(`  ❌ Kırık DB Kayıtları (Depoda Yok): ${brokenDbRows.length}`);
   console.log(`  ℹ Yerel URL (local:) Kayıtları: ${localUrlRows.length}`);
 
   if (orphanBlobs.length > 0) {
     console.log("\n▶ 3. Tespit Edilen Orphan Objeler:");
     orphanBlobs.forEach((o, idx) => {
-      console.log(`   [${idx + 1}] Pathname: ${o.pathname}, Boyut: ${o.size} byte, Tarih: ${o.uploadedAt}`);
+      console.log(`   [${idx + 1}] Pathname: ${o.pathname}, Boyut: ${o.size} byte, Tarih: ${o.uploadedAt} (Grace süresi ${o.isOlderThanGrace ? "DOLDU" : "AKTİF"})`);
     });
 
-    if (isRepairMode) {
-      console.log("\n▶ 4. Kurtarma İşlemi Gerçekleştiriliyor (--repair-orphans)...");
-      let recoveredCount = 0;
-
+    if (isDeleteSafeOrphansMode && hasBlob) {
+      const { del } = await import("@vercel/blob");
+      let deletedCount = 0;
       for (const o of orphanBlobs) {
-        const ext = path.extname(o.pathname) || ".bin";
-        const shortId = path.basename(o.pathname, ext).slice(0, 8);
-        const displayName = `Kurtarılan_Dosya_${shortId}${ext}`;
-
-        if (hasDb) {
-          const { getDb } = await import("../src/lib/dokumantasyon/db.ts");
-          const sql = getDb();
-          await sql`
-            INSERT INTO dok_files (
-              id, display_name, folder_id, blob_url, blob_pathname, size_bytes, mime_type, extension, created_at, updated_at
-            ) VALUES (
-              ${crypto.randomUUID()},
-              ${displayName},
-              NULL,
-              ${o.url},
-              ${o.pathname},
-              ${o.size},
-              ${"application/octet-stream"},
-              ${ext.toLowerCase()},
-              NOW(),
-              NOW()
-            );
-          `;
-          recoveredCount++;
-        } else if (isExplicitLocalDokMode()) {
-          const db = readLocalDb();
-          db.files.push({
-            id: crypto.randomUUID(),
-            display_name: displayName,
-            folder_id: null,
-            blob_url: o.url,
-            blob_pathname: o.pathname,
-            size_bytes: o.size,
-            mime_type: "application/octet-stream",
-            extension: ext.toLowerCase(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-          writeLocalDb(db);
-          recoveredCount++;
+        if (o.isOlderThanGrace) {
+          try {
+            await del(o.pathname, { token: blobToken });
+            deletedCount++;
+            console.log(`   ✓ Silindi: ${o.pathname}`);
+          } catch (e) {
+            console.error(`   ❌ Silinemedi (${o.pathname}):`, e.message);
+          }
         }
       }
-      console.log(`  ✓ ${recoveredCount} adet orphan obje veritabanına başarıyla kurtarıldı!`);
+      console.log(`\n  ✓ Toplam ${deletedCount} adet süresi dolmuş sahipsiz obje kalıcı olarak temizlendi.`);
     } else {
-      console.log("\n  ℹ [BİLGİ] Bu orphan objeleri veritabanına kurtarmak için komutu '--repair-orphans' bayrağıyla çalıştırabilirsiniz.");
+      console.log("\n  ℹ [BİLGİ] Varsayılan mod 'Report Only'dir. 24 saatten eski sahipsiz objeleri temizlemek için '--delete-safe-orphans' bayrağını kullanabilirsiniz.");
     }
   }
 
   console.log("\n======================================================================");
-  console.log("AŞAMA 4/6: RECONCILIATION DENETİMİ TAMAMLANDI!");
+  console.log("MUTABAKAT RAPORU TAMAMLANDI");
   console.log("======================================================================\n");
 }
 

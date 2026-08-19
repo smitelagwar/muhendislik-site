@@ -179,24 +179,32 @@ export async function verifyShareAccessJwt(
 /**
  * İndirme sayacını atomik olarak artırır ve son erişim tarihini günceller
  */
-export async function incrementShareDownload(shareLinkId: string): Promise<void> {
+export async function incrementShareDownload(shareLinkId: string): Promise<boolean> {
   if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const link = db.shares.find((s) => s.id === shareLinkId);
     if (link) {
+      if (link.max_downloads !== null && link.download_count >= link.max_downloads) {
+        return false;
+      }
       link.download_count = (link.download_count || 0) + 1;
       link.last_accessed_at = new Date().toISOString();
       writeLocalDb(db);
+      return true;
     }
-    return;
+    return false;
   }
 
   const sql = getDb();
-  await sql`
+  const rows = await sql`
     UPDATE dok_share_links
     SET 
       download_count = download_count + 1,
       last_accessed_at = NOW()
-    WHERE id = ${shareLinkId};
+    WHERE id = ${shareLinkId}
+      AND (max_downloads IS NULL OR download_count < max_downloads)
+      AND revoked_at IS NULL
+    RETURNING id;
   `;
+  return rows.length > 0;
 }

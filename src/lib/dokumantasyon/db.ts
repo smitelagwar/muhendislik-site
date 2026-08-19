@@ -9,10 +9,24 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
+export const LATEST_REQUIRED_SCHEMA_VERSION = "002";
+
+export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
+  try {
+    const rows = await sql`
+      SELECT version FROM dok_schema_migrations ORDER BY version DESC LIMIT 1;
+    `;
+    return (rows[0]?.version as string) || "none";
+  } catch {
+    return "none";
+  }
+}
+
 export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>): Promise<void> {
   if (schemaEnsured) return;
 
   try {
+    // 1. Migration 001: Temel Tablolar
     await sql`
       CREATE TABLE IF NOT EXISTS dok_schema_migrations (
         version VARCHAR(64) PRIMARY KEY,
@@ -103,6 +117,54 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     `;
 
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_auth_attempts_lookup ON dok_auth_attempts(scope, subject_hash, created_at);`;
+
+    // 2. Migration 002: Yükleme Bütünlüğü ve İdempotency
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS uq_dok_files_blob_pathname ON dok_files(blob_pathname);`;
+
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_dok_files_name_per_folder
+      ON dok_files(COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(display_name))
+      WHERE deleted_at IS NULL;
+    `;
+
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_dok_folders_name_per_parent
+      ON dok_folders(COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name))
+      WHERE deleted_at IS NULL;
+    `;
+
+    await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS purge_status VARCHAR(32) DEFAULT 'none';`;
+    await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS purge_last_error TEXT NULL;`;
+
+    await sql`ALTER TABLE dok_folders ADD COLUMN IF NOT EXISTS purge_status VARCHAR(32) DEFAULT 'none';`;
+    await sql`ALTER TABLE dok_folders ADD COLUMN IF NOT EXISTS purge_last_error TEXT NULL;`;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_upload_intents (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        pathname VARCHAR(1024) UNIQUE NOT NULL,
+        expected_filename VARCHAR(255) NOT NULL,
+        expected_size_bytes BIGINT NOT NULL,
+        folder_id UUID NULL,
+        username VARCHAR(128) NOT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'issued',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        finalized_at TIMESTAMPTZ NULL,
+        file_id UUID NULL,
+        last_error_code VARCHAR(64) NULL
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_upload_intents_status ON dok_upload_intents(status);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_upload_intents_expires ON dok_upload_intents(expires_at);`;
+
+    // Sürümleri kaydet
+    await sql`
+      INSERT INTO dok_schema_migrations (version, applied_at)
+      VALUES ('001', NOW()), ('002', NOW())
+      ON CONFLICT (version) DO NOTHING;
+    `;
 
     schemaEnsured = true;
   } catch (err) {
