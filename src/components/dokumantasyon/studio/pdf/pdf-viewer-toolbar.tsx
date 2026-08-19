@@ -62,7 +62,10 @@ export function PdfViewerToolbar({
   onPrint,
 }: PdfViewerToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-800 bg-zinc-900/90 px-3 py-1.5 text-xs text-zinc-200 backdrop-blur-md z-30 select-none">
+    <div
+      data-testid="pdf-viewer-toolbar"
+      className="flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-800 bg-zinc-900/90 px-3 py-1.5 text-xs text-zinc-200 backdrop-blur-md z-30 select-none shrink-0"
+    >
       {/* Sol Alan: Kenar Çubuğu ve Sayfa Gezintisi */}
       <div className="flex items-center gap-1">
         <StudioCommandButton

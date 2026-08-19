@@ -356,6 +356,37 @@ npm run check:dokumantasyon:scenarios  # 10/10 Gerçek Kullanıcı Uçtan Uca Se
 ### 19.4 Production Sign-Off Özeti
 Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştirilmiş plana uygun olarak eksiksiz tamamlanmış, tüm regresyon testleri doğrulanmış ve üretime hazır hale getirilmiştir.
 
+---
+
+## 20. Acil Düzeltme ve Profesyonel PDF/CAD Planı (3 Aşamalı Revizyon)
+
+### 20.1 Aşama 1/3 — Kök Neden Analizi ve Viewport / Toolbar Düzeltmesi (19.08.2026)
+- **Kök Neden:**
+  1. `src/components/navbar-chrome.tsx` bileşeninin `z-[100]` z-index seviyesine sahip olması ve `src/app/layout.tsx` içinde her rotada render edilmesi, `DocumentStudioShell` (`z-50`) üzerinde yer alarak üst stüdyo çubuğunun (StudioTopbar) üzerine binmesine ve site navbar'ının Document Studio içinde görünmesine sebep oluyordu.
+  2. `src/components/footer.tsx` bileşeninde `/dokumantasyon/dosya/` rotası için gizleme kuralı eksikti.
+  3. `PdfJsStudio` varsayılan ölçek değeri statik `1.2` idi; geniş ekranlarda sayfa ekranın ortasında küçük kalıyordu.
+- **Uygulanan Düzeltmeler:**
+  1. `src/components/navbar.tsx` ve `src/components/footer.tsx` bileşenlerine `pathname.startsWith("/dokumantasyon/dosya/")` denetimi eklenerek Studio rotasında site navbar ve footer'ı tamamen devre dışı bırakıldı.
+  2. `src/components/dokumantasyon/studio/document-studio-shell.tsx` `z-[200]` ve `data-testid="document-studio-shell"` ile izole edildi.
+  3. `src/components/dokumantasyon/studio/studio-topbar.tsx` (`data-testid="document-studio-topbar"`) ve `pdf-viewer-toolbar.tsx` (`data-testid="pdf-viewer-toolbar"`) test öznitelikleri tanımlandı.
+  4. `src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx` açılışta ilk sayfa genişliğine ve kapsayıcıya göre dinamik `fit-width` otomatik ölçekleme yapacak şekilde güncellendi.
+  5. `scripts/check-dokumantasyon-studio-stage1-v3.mjs` test paketi oluşturuldu ve `npm run check:document-studio:stage1-v3` ile %100 doğrulandı.
+
+### 20.2 Aşama 2/3 — Profesyonel PDF.js Studio Motoru ve Kalite Doğrulaması (19.08.2026)
+- **PDF.js Güvenlik & Self-Hosted:** `/vendor/pdfjs/pdf.min.js`, CDN fallback yok, `isEvalSupported: false`, `enableScripting: false`.
+- **Continuous Scroll & TextLayer:** Tüm sayfalar dikey continuous scroll ile render ediliyor, HTML TextLayer span haritalaması doğal metin seçimi (`select-text`, `cursor-text`) sunuyor.
+- **Doküman İçi Arama:** Türkçe karakter duyarlı (`İ/i`, `I/ı`, `Ş/ş`, `Ğ/ğ`, `Ü/ü`, `Ö/ö`, `Ç/ç`) `normalizeTurkishText` ve TextLayer üzeri `<mark>` highlight.
+- **100+ Sayfa Sanallaştırılmış Kenar Çubuğu:** IntersectionObserver ile tembel yüklenen küçük resimler.
+- **Fare / Klavye UX:** `Ctrl + wheel` imleç odaklı yakınlaştırma, Pan/Hand aracı, `Ctrl+F`, `Ctrl++`, `Ctrl+-`, `Ctrl+0`, `Ctrl+1`, `Ctrl+R`, `Ctrl+P`, `Home`, `End`, `PageUp`, `PageDown` kısayolları.
+- **Testler:** `scripts/check-dokumantasyon-studio-stage2-v3.mjs` test paketi ile %100 doğrulandı.
+
+### 20.3 Aşama 3/3 — Gerçek PDF Edit, Sürümleme, CAD Dürüstlüğü ve Final QA (19.08.2026)
+- **DB Migration 003 & Sürümleme:** `dok_file_versions` tablosu, `current_version_number` alanı, `POST /api/dokumantasyon/files/[id]/versions` endpoint'i ile Versioned Save (`v1 -> v2 -> v3 -> restore v4`) ve SHA-256 bütünlük doğrulaması.
+- **Public Paylaşım Snapshot Değişmezliği:** Paylaşım oluşturulma anındaki sürüm `dok_share_items.file_version_id` olarak kilitlenir; dosya admin tarafından güncellense dahi eski link orijinal sürümü sunmaya devam eder.
+- **CAD Dürüstlük Sözleşmesi:** APS API anahtarları tanımlı olmadığında sahte URN veya mock simülasyon üretilmez; `status: "unconfigured"` (`BLOCKED_EXTERNAL_DEPENDENCY`) dürüst durum kartı ve orijinal indirme bağlantısı (`cad.download`) sunulur.
+- **Format Stüdyoları & XSS Güvenliği:** Image Studio (Zoom, 90° Rotate, Flip, Transparency Checkerboard), Metin/JSON/CSV (Satır numaraları, CSV tablo modu, JSON biçimlendirme) ve Markdown (`skipHtml={true}` XSS koruması) eksiksiz doğrulandı.
+- **Doğrulama:** `scripts/check-dokumantasyon-studio-stage3-v3.mjs`, `scripts/check-dokumantasyon-studio-all.mjs` ve tüm modül testleri %100 PASS ile tamamlandı.
+
 
 
 

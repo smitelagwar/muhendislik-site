@@ -1,3 +1,6 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { NavbarActions } from "@/components/navbar-actions";
 import { NavbarChrome } from "@/components/navbar-chrome";
 import { NavbarDesktopNav } from "@/components/navbar-desktop-nav";
@@ -5,6 +8,13 @@ import { NavbarLeading } from "@/components/navbar-leading";
 import { NavbarRouteTracker } from "@/components/navbar-route-tracker";
 
 export function Navbar() {
+  const pathname = usePathname();
+
+  // Document Studio tam ekran rotasında site navbar'ını gizle
+  if (pathname?.startsWith("/dokumantasyon/dosya/")) {
+    return null;
+  }
+
   return (
     <>
       <NavbarRouteTracker />

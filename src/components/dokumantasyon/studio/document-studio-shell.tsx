@@ -269,7 +269,8 @@ export function DocumentStudioShell({
   return (
     <div
       ref={studioRootRef}
-      className="fixed inset-0 z-50 flex h-[100dvh] w-[100dvw] flex-col overflow-hidden bg-background text-foreground select-none"
+      data-testid="document-studio-shell"
+      className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden bg-background text-foreground select-none"
     >
       {/* 1. Minimal Stüdyo Üst Çubuğu */}
       <StudioTopbar

@@ -67,6 +67,18 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
+
+        try {
+          const firstPage = await doc.getPage(1);
+          const vp = firstPage.getViewport({ scale: 1.0 });
+          const pageWidth = vp.width || 595;
+          const containerWidth = scrollContainerRef.current?.clientWidth || (typeof window !== "undefined" ? window.innerWidth - 64 : 1200);
+          const computedScale = Math.min(Math.max((containerWidth - 64) / pageWidth, 0.75), 2.2);
+          setScale(parseFloat(computedScale.toFixed(2)));
+        } catch {
+          setScale(1.4);
+        }
+
         setLoading(false);
       } catch (err: unknown) {
         if (!isMounted) return;

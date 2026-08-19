@@ -69,7 +69,10 @@ export function StudioTopbar({
   actionsSlot,
 }: StudioTopbarProps & { onSave?: () => void; isSaving?: boolean }) {
   return (
-    <header className="flex h-13 shrink-0 items-center justify-between border-b border-border/80 bg-card/90 px-3 sm:px-4 backdrop-blur-md z-30 select-none">
+    <header
+      data-testid="document-studio-topbar"
+      className="flex h-13 shrink-0 items-center justify-between border-b border-border/80 bg-card/90 px-3 sm:px-4 backdrop-blur-md z-30 select-none"
+    >
       {/* Sol Alan: Geri Dönüş Butonu, Dosya Bilgileri ve Rozetler */}
       <div className="flex items-center gap-2.5 min-w-0 pr-2">
         <StudioCommandButton

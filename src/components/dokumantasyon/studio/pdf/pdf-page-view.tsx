@@ -45,7 +45,7 @@ export function PdfPageView({
   const [page, setPage] = useState<any>(null);
   const [viewport, setViewport] = useState<any>(null);
   const [textItems, setTextItems] = useState<TextItem[]>([]);
-  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [isVisible, setIsVisible] = useState<boolean>(pageNumber <= 2);
   const [isRendered, setIsRendered] = useState<boolean>(false);
 
   // 1. IntersectionObserver — Yalnızca Ekrana Yaklaşan Sayfaları Render Et
