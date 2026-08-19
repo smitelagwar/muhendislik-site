@@ -366,21 +366,34 @@ export function DokumantasyonFileManager() {
             throw new Error(errData.error || "Yerel yükleme başarısız.");
           }
         } else {
-          // Vercel Blob Üretim Ortamı
+          // Vercel Blob Üretim Ortamı (Private Blob)
           setUploadQueue((prev) =>
             prev.map((item) =>
-              item.id === queueId ? { ...item, progress: 40 } : item
+              item.id === queueId ? { ...item, progress: 10 } : item
             )
           );
 
           const blob = await put(tokenData.pathname, file, {
-            access: "public",
+            access: "private",
             token: tokenData.clientToken,
+            multipart: file.size >= 5 * 1024 * 1024,
+            onUploadProgress: ({ percentage }) => {
+              setUploadQueue((prev) =>
+                prev.map((item) =>
+                  item.id === queueId
+                    ? {
+                        ...item,
+                        progress: Math.min(90, Math.max(10, Math.round(percentage * 0.8 + 10))),
+                      }
+                    : item
+                )
+              );
+            },
           });
 
           setUploadQueue((prev) =>
             prev.map((item) =>
-              item.id === queueId ? { ...item, progress: 85 } : item
+              item.id === queueId ? { ...item, status: "finalizing", progress: 92 } : item
             )
           );
 
@@ -399,8 +412,9 @@ export function DokumantasyonFileManager() {
           });
 
           if (!finalizeRes.ok) {
-            const errData = await finalizeRes.json();
-            throw new Error(errData.error || "Kayıt tamamlanamadı.");
+            const errData = await finalizeRes.json().catch(() => ({}));
+            const msg = errData.error?.message || errData.error || "Kayıt tamamlanamadı.";
+            throw new Error(msg);
           }
         }
 
@@ -411,13 +425,14 @@ export function DokumantasyonFileManager() {
         );
       } catch (err: unknown) {
         console.error("Yükleme hatası:", err);
+        const errMsg = err instanceof Error ? err.message : "Yüklenemedi";
         setUploadQueue((prev) =>
           prev.map((item) =>
             item.id === queueId
               ? {
                   ...item,
                   status: "error",
-                  error: err instanceof Error ? err.message : "Yüklenemedi",
+                  errorMessage: errMsg,
                 }
               : item
           )

@@ -6,15 +6,15 @@ import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createFileRecord } from "@/lib/dokumantasyon/files";
-import { del } from "@vercel/blob";
+import { del, get } from "@vercel/blob";
 import path from "path";
-import { getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
+import { getBlobToken, isExplicitLocalDokMode, DokRuntimeConfigError } from "@/lib/dokumantasyon/runtime-mode";
 
 export async function POST(request: Request) {
-  let blobUrlToDeleteOnError: string | null = null;
+  let blobPathnameToDeleteOnError: string | null = null;
 
   try {
-    await requireDokumantasyonAdmin();
+    const session = await requireDokumantasyonAdmin();
     assertSameOriginForMutation(request);
 
     const body = await request.json().catch(() => ({}));
@@ -28,20 +28,18 @@ export async function POST(request: Request) {
       intentToken,
     } = body;
 
-    if (!blobUrl || !blobPathname || !displayName || !sizeBytes) {
+    if (!blobPathname || !displayName || !sizeBytes) {
       return NextResponse.json(
         { error: "Eksik dosya yükleme parametreleri." },
         { status: 400 }
       );
     }
 
-    blobUrlToDeleteOnError = blobUrl;
+    blobPathnameToDeleteOnError = blobPathname;
     const ext = path.extname(displayName).toLowerCase();
-
-    // 1. Upload Intent Doğrulaması (Kalıcı üretim ortamında zorunlu)
-    const { isExplicitLocalDokMode } = await import("@/lib/dokumantasyon/runtime-mode");
     const isLocal = isExplicitLocalDokMode();
 
+    // 1. Upload Intent Doğrulaması (Kalıcı üretim ortamında zorunlu)
     if (!isLocal && !intentToken) {
       return NextResponse.json(
         { error: "Kalıcı yükleme için geçerli bir upload intent belirteci (intentToken) zorunludur." },
@@ -56,7 +54,9 @@ export async function POST(request: Request) {
         !verifiedIntent ||
         verifiedIntent.pathname !== blobPathname ||
         verifiedIntent.filename !== displayName.trim() ||
-        Number(verifiedIntent.sizeBytes) !== Number(sizeBytes)
+        Number(verifiedIntent.sizeBytes) !== Number(sizeBytes) ||
+        (verifiedIntent.folderId || null) !== (folderId || null) ||
+        (session?.username && verifiedIntent.username !== session.username)
       ) {
         return NextResponse.json(
           { error: "Geçersiz, tahrif edilmiş veya uyuşmayan yükleme belirteci (Upload Intent)." },
@@ -65,11 +65,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Post-Upload Dosya Başlığı (Magic Byte) Doğrulaması
+    // 2. Post-Upload Dosya Başlığı (Magic Byte) Doğrulaması & Canonical URL Çözümleme
     let headerBuffer: Buffer | Uint8Array | null = null;
+    let canonicalBlobUrl = blobUrl || `blob:${blobPathname}`;
 
-    if (blobUrl.startsWith("local:")) {
-      const fileNameOnDisk = blobUrl.replace("local:", "");
+    if (blobUrl?.startsWith("local:") || (isLocal && !getBlobToken())) {
+      const fileNameOnDisk = (blobUrl || blobPathname).replace("local:", "");
       const { getLocalStorageDir } = await import("@/lib/dokumantasyon/local-store");
       const fs = await import("fs");
       const diskPath = path.join(getLocalStorageDir(), fileNameOnDisk);
@@ -81,22 +82,39 @@ export async function POST(request: Request) {
         fs.closeSync(fd);
         headerBuffer = buf;
       }
+      canonicalBlobUrl = `local:${fileNameOnDisk}`;
     } else {
-      // Vercel Private Blob dosyasının ilk 512 baytını oku
+      // Vercel Private Blob: Resmi SDK get() ile güvenli (SSRF-free) stream okuma
       const blobToken = getBlobToken();
-      const fetchHeaders: HeadersInit = { Range: "bytes=0-511" };
-      if (blobToken) {
-        fetchHeaders["Authorization"] = `Bearer ${blobToken}`;
+      if (!blobToken) {
+        throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
       }
 
       try {
-        const headRes = await fetch(blobUrl, { headers: fetchHeaders });
-        if (headRes.ok) {
-          const ab = await headRes.arrayBuffer();
-          headerBuffer = new Uint8Array(ab);
+        const blobGetResult = await get(blobPathname, {
+          access: "private",
+          token: blobToken,
+          useCache: false,
+        });
+
+        if (!blobGetResult || !blobGetResult.stream) {
+          return NextResponse.json(
+            { error: "Yüklenen dosya kalıcı depolama alanında bulunamadı." },
+            { status: 404 }
+          );
         }
-      } catch (headErr) {
-        console.warn("Post-upload header fetch uyarısı:", headErr);
+
+        canonicalBlobUrl = blobGetResult.blob.url;
+
+        // İlk 512 baytı stream'den oku
+        const reader = blobGetResult.stream.getReader();
+        const { value } = await reader.read();
+        if (value) {
+          headerBuffer = value.subarray(0, 512);
+        }
+        reader.cancel().catch(() => {});
+      } catch (getErr) {
+        console.warn("Private blob doğrulama uyarısı:", getErr);
       }
     }
 
@@ -108,10 +126,13 @@ export async function POST(request: Request) {
 
       if (!validation.isValid) {
         // Geçersiz imza: Güvenlik gereği Blob depolamasından derhal temizle
-        if (blobUrlToDeleteOnError && !blobUrlToDeleteOnError.startsWith("local:")) {
-          try {
-            await del(blobUrlToDeleteOnError);
-          } catch {}
+        if (blobPathnameToDeleteOnError && !blobPathnameToDeleteOnError.startsWith("local:")) {
+          const blobToken = getBlobToken();
+          if (blobToken) {
+            try {
+              await del(blobPathnameToDeleteOnError, { token: blobToken });
+            } catch {}
+          }
         }
         return NextResponse.json(
           { error: validation.errorMessage || "Dosya biçimi ve içeriği uyuşmuyor." },
@@ -129,7 +150,7 @@ export async function POST(request: Request) {
       folder_id: folderId || null,
       display_name: displayName.trim(),
       blob_pathname: blobPathname,
-      blob_url: blobUrl,
+      blob_url: canonicalBlobUrl,
       size_bytes: Number(sizeBytes),
       mime_type: finalMimeType,
       extension: ext,
@@ -137,19 +158,23 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, file });
   } catch (err: unknown) {
-    // 2. Compensation / Cleanup: DB kaydı başarısız olursa Blob'u temizle
-    if (blobUrlToDeleteOnError) {
-      try {
-        console.warn("Upload finalize DB hatası -> Blob compensation temizliği yapılıyor:", blobUrlToDeleteOnError);
-        await del(blobUrlToDeleteOnError);
-      } catch (cleanupErr) {
-        console.error("Blob cleanup hatası:", cleanupErr);
+    if (blobPathnameToDeleteOnError && !blobPathnameToDeleteOnError.startsWith("local:")) {
+      const blobToken = getBlobToken();
+      if (blobToken) {
+        try {
+          await del(blobPathnameToDeleteOnError, { token: blobToken });
+        } catch {}
       }
+    }
+
+    if (err instanceof DokRuntimeConfigError) {
+      return NextResponse.json({ error: err.message }, { status: 503 });
     }
 
     if (err instanceof Error && err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+
     console.error("Upload finalize hatası:", err);
     return NextResponse.json(
       { error: "Dosya kaydı tamamlanırken bir hata oluştu." },

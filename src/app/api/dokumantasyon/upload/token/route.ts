@@ -12,7 +12,7 @@ import crypto from "crypto";
 
 export async function POST(request: Request) {
   try {
-    await requireDokumantasyonAdmin();
+    const session = await requireDokumantasyonAdmin();
     assertSameOriginForMutation(request);
 
     const body = await request.json().catch(() => ({}));
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       filename,
       sizeBytes: sizeNum,
       folderId: folderId || null,
-      username: "admin",
+      username: session?.username || "admin",
     });
 
     const { isExplicitLocalDokMode, getBlobToken } = await import("@/lib/dokumantasyon/runtime-mode");
@@ -84,8 +84,8 @@ export async function POST(request: Request) {
     const clientToken = await generateClientTokenFromReadWriteToken({
       token: blobRwToken,
       pathname: storagePathname,
-      maximumSizeInBytes: DOKUMANTASYON_CONFIG.MAX_FILE_SIZE_BYTES,
-      validUntil: Date.now() + 10 * 60 * 1000, // 10 dakika geçerli
+      maximumSizeInBytes: Math.min(sizeNum, DOKUMANTASYON_CONFIG.MAX_FILE_SIZE_BYTES),
+      validUntil: Date.now() + 30 * 60 * 1000, // 30 dakika geçerli
     });
 
     return NextResponse.json({

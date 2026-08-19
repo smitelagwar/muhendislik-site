@@ -9,7 +9,7 @@ import { getPublicShareInfo, verifyShareAccessJwt } from "./public-share";
 import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { cookies } from "next/headers";
 import { DokFile } from "./types";
-import { getBlobToken, hasBlobToken } from "./runtime-mode";
+import { getBlobToken, hasBlobToken, isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
 export interface FileAccessResult {
   file: {
@@ -47,7 +47,7 @@ export async function getAdminFileAccess(
 
   const previewKind = getPreviewKind(file.extension);
   const blobRwToken = getBlobToken();
-  const isLocal = file.blob_url?.startsWith("local:") || !blobRwToken;
+  const isLocal = Boolean(file.blob_url?.startsWith("local:") && isExplicitLocalDokMode());
 
   // 1. Yerel Geliştirme Modu (Local Stream URL)
   if (isLocal) {
@@ -63,7 +63,7 @@ export async function getAdminFileAccess(
 
   // 2. Üretim (Vercel Private Blob Signed GET URL)
   if (!blobRwToken) {
-    throw new Error("BLOB_TOKEN_MISSING");
+    throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 
   const validUntil = Date.now() + ttlSeconds * 1000;
@@ -77,7 +77,7 @@ export async function getAdminFileAccess(
   const presigned = await presignUrl(signedToken, {
     pathname: file.blob_pathname,
     operation: "get",
-    access: "public",
+    access: "private",
   });
 
   return {
@@ -132,7 +132,7 @@ export async function getPublicShareFileAccess(
 
   const previewKind = getPreviewKind(file.extension);
   const blobRwToken = getBlobToken();
-  const isLocal = file.blob_url?.startsWith("local:") || !blobRwToken;
+  const isLocal = Boolean(file.blob_url?.startsWith("local:") && isExplicitLocalDokMode());
 
   if (isLocal) {
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
@@ -146,7 +146,7 @@ export async function getPublicShareFileAccess(
   }
 
   if (!blobRwToken) {
-    throw new Error("BLOB_TOKEN_MISSING");
+    throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 
   const validUntil = Date.now() + ttlSeconds * 1000;
@@ -160,7 +160,7 @@ export async function getPublicShareFileAccess(
   const presigned = await presignUrl(signedToken, {
     pathname: file.blob_pathname,
     operation: "get",
-    access: "public",
+    access: "private",
   });
 
   return {
