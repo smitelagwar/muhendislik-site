@@ -7,6 +7,7 @@ import { DokShareLink, DokShareItem, DokFile } from "./types";
 import { hashShareToken, verifyPassword } from "./security";
 import { SignJWT, jwtVerify } from "jose";
 import { readLocalDb, writeLocalDb } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 const SHARE_ACCESS_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET ||
@@ -44,7 +45,7 @@ export async function getPublicShareInfo(rawToken: string): Promise<PublicShareR
   let link: DokShareLink | undefined;
   let items: Array<DokShareItem & { file_extension?: string }> = [];
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     link = db.shares.find((s) => s.token_hash === tokenHash);
 
@@ -179,7 +180,7 @@ export async function verifyShareAccessJwt(
  * İndirme sayacını atomik olarak artırır ve son erişim tarihini günceller
  */
 export async function incrementShareDownload(shareLinkId: string): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const link = db.shares.find((s) => s.id === shareLinkId);
     if (link) {

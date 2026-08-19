@@ -8,12 +8,14 @@ import { getDb } from "@/lib/dokumantasyon/db";
 import { getBreadcrumbs, getFolder } from "@/lib/dokumantasyon/folders";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { readLocalDb } from "@/lib/dokumantasyon/local-store";
+import { hasDatabaseUrl, assertDurableDokumantasyonRuntime } from "@/lib/dokumantasyon/runtime-mode";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
     await requireDokumantasyonAdmin();
+    assertDurableDokumantasyonRuntime(false);
 
     const { searchParams } = new URL(request.url);
     const folderId = searchParams.get("folderId") || null;
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
     let folderRows: DokFolder[] = [];
     let fileRows: DokFile[] = [];
 
-    if (!process.env.DATABASE_URL) {
+    if (!hasDatabaseUrl()) {
       const db = readLocalDb();
       folderRows = db.folders.filter(
         (f) => (f.parent_id === folderId || (!f.parent_id && !folderId)) && !f.deleted_at

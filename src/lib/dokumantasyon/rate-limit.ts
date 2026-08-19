@@ -4,6 +4,7 @@
 
 import { getDb } from "./db";
 import { hashIpFingerprint } from "./security";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -67,8 +68,7 @@ export async function checkRateLimit(
   const subjectHash = hashIpFingerprint(ip, scope);
 
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
+    if (!hasDatabaseUrl()) {
       return checkInMemoryRateLimit(subjectHash, maxAttempts, windowSeconds);
     }
 
@@ -137,8 +137,7 @@ export async function recordAuthAttempt(
   }
 
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) return;
+    if (!hasDatabaseUrl()) return;
 
     const sql = getDb();
 

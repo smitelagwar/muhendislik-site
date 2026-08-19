@@ -5,6 +5,7 @@
 import { getDb } from "./db";
 import { DokFile, DokFolder } from "./types";
 import { readLocalDb } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 /**
  * SQL LIKE joker karakterlerini (% ve _) güvenli biçimde escape eder
@@ -22,7 +23,7 @@ export async function searchItems(
     return { files: [], folders: [] };
   }
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const lower = trimmed.toLowerCase();
     const folders = db.folders

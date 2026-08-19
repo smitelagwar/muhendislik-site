@@ -4,7 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
-import { isVercelDeployment, isExplicitLocalDokMode } from "@/lib/dokumantasyon/runtime-mode";
+import { isVercelDeployment, isExplicitLocalDokMode, hasDatabaseUrl, hasBlobToken, getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
 import { getDb } from "@/lib/dokumantasyon/db";
 import { list } from "@vercel/blob";
 
@@ -20,7 +20,7 @@ export async function GET() {
 
     // 1. Veritabanı Kontrolleri
     const dbStatus = {
-      configured: Boolean(process.env.DATABASE_URL),
+      configured: hasDatabaseUrl(),
       reachable: false,
       schemaReady: false,
     };
@@ -44,15 +44,16 @@ export async function GET() {
     }
 
     // 2. Vercel Blob Kontrolleri
+    const blobToken = getBlobToken();
     const blobStatus = {
-      configured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      configured: Boolean(blobToken),
       reachable: false,
       private: true,
     };
 
-    if (blobStatus.configured) {
+    if (blobStatus.configured && blobToken) {
       try {
-        await list({ prefix: "dok_storage/", limit: 1 });
+        await list({ prefix: "dok_storage/", limit: 1, token: blobToken });
         blobStatus.reachable = true;
       } catch (err) {
         blobStatus.reachable = false;

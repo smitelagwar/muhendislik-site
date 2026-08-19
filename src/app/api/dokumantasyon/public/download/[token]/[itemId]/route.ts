@@ -10,6 +10,7 @@ import {
 } from "@/lib/dokumantasyon/public-share";
 import { getFile } from "@/lib/dokumantasyon/files";
 import { cookies } from "next/headers";
+import { getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       fileBuffer = fs.default.readFileSync(diskPath);
     } else {
       // Private Blob dosyasını oku
-      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      const blobToken = getBlobToken();
       const fetchHeaders: HeadersInit = {};
       if (blobToken) {
         fetchHeaders["Authorization"] = `Bearer ${blobToken}`;

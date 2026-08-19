@@ -9,6 +9,7 @@ import { getPublicShareInfo, verifyShareAccessJwt } from "./public-share";
 import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { cookies } from "next/headers";
 import { DokFile } from "./types";
+import { getBlobToken, hasBlobToken } from "./runtime-mode";
 
 export interface FileAccessResult {
   file: {
@@ -45,7 +46,8 @@ export async function getAdminFileAccess(
   }
 
   const previewKind = getPreviewKind(file.extension);
-  const isLocal = file.blob_url?.startsWith("local:") || !process.env.BLOB_READ_WRITE_TOKEN;
+  const blobRwToken = getBlobToken();
+  const isLocal = file.blob_url?.startsWith("local:") || !blobRwToken;
 
   // 1. Yerel Geliştirme Modu (Local Stream URL)
   if (isLocal) {
@@ -60,7 +62,6 @@ export async function getAdminFileAccess(
   }
 
   // 2. Üretim (Vercel Private Blob Signed GET URL)
-  const blobRwToken = process.env.BLOB_READ_WRITE_TOKEN;
   if (!blobRwToken) {
     throw new Error("BLOB_TOKEN_MISSING");
   }
@@ -130,7 +131,8 @@ export async function getPublicShareFileAccess(
   }
 
   const previewKind = getPreviewKind(file.extension);
-  const isLocal = file.blob_url?.startsWith("local:") || !process.env.BLOB_READ_WRITE_TOKEN;
+  const blobRwToken = getBlobToken();
+  const isLocal = file.blob_url?.startsWith("local:") || !blobRwToken;
 
   if (isLocal) {
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
@@ -143,7 +145,6 @@ export async function getPublicShareFileAccess(
     };
   }
 
-  const blobRwToken = process.env.BLOB_READ_WRITE_TOKEN;
   if (!blobRwToken) {
     throw new Error("BLOB_TOKEN_MISSING");
   }

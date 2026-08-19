@@ -8,12 +8,13 @@ import { del } from "@vercel/blob";
 import path from "path";
 import fs from "fs";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 /**
  * Belirtilen ID'ye sahip dosyayı getirir
  */
 export async function getFile(id: string): Promise<DokFile | null> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     return db.files.find((f) => f.id === id) || null;
   }
@@ -34,7 +35,7 @@ export async function getUniqueFileName(
 ): Promise<string> {
   let existingNames: Set<string>;
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     existingNames = new Set(
       db.files
@@ -82,7 +83,7 @@ export async function createFileRecord(data: {
 }): Promise<DokFile> {
   const uniqueName = await getUniqueFileName(data.folder_id, data.display_name);
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const existing = db.files.find((f) => f.blob_pathname === data.blob_pathname && !f.deleted_at);
     if (existing) return existing;
@@ -168,7 +169,7 @@ export async function renameFile(id: string, newDisplayName: string): Promise<Do
 
   const uniqueName = await getUniqueFileName(file.folder_id, newDisplayName.trim());
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.files.find((f) => f.id === id);
     if (!item) throw new Error("Dosya bulunamadı.");
@@ -198,7 +199,7 @@ export async function moveFile(id: string, newFolderId: string | null): Promise<
 
   const uniqueName = await getUniqueFileName(newFolderId, file.display_name);
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.files.find((f) => f.id === id);
     if (!item) throw new Error("Dosya bulunamadı.");
@@ -224,7 +225,7 @@ export async function moveFile(id: string, newFolderId: string | null): Promise<
  * Dosyayı çöp kutusuna taşır ve bu dosyayı içeren tüm aktif paylaşımları iptal eder
  */
 export async function trashFile(id: string): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.files.find((f) => f.id === id);
     if (item) {
@@ -265,7 +266,7 @@ export async function restoreFile(id: string): Promise<void> {
   const file = await getFile(id);
   if (!file) throw new Error("Dosya bulunamadı.");
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.files.find((f) => f.id === id);
     if (item) {
@@ -318,7 +319,7 @@ export async function permanentDeleteFile(id: string): Promise<void> {
     }
   }
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     db.files = db.files.filter((f) => f.id !== id);
     db.share_items = db.share_items.filter((si) => si.file_id !== id);

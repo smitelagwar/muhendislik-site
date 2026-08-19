@@ -8,12 +8,13 @@ import { del } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 /**
  * Belirtilen ID'ye sahip klasörü getirir
  */
 export async function getFolder(id: string): Promise<DokFolder | null> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     return db.folders.find((f) => f.id === id) || null;
   }
@@ -32,7 +33,7 @@ export async function getBreadcrumbs(folderId: string | null): Promise<DokBreadc
   const breadcrumbs: DokBreadcrumbItem[] = [{ id: null, name: "Kök Dizin" }];
   if (!folderId) return breadcrumbs;
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     let currentId: string | null = folderId;
     const chain: DokBreadcrumbItem[] = [];
@@ -73,7 +74,7 @@ export async function getBreadcrumbs(folderId: string | null): Promise<DokBreadc
 export async function isDescendantOf(candidateParentId: string, folderId: string): Promise<boolean> {
   if (candidateParentId === folderId) return true;
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     let currentId: string | null = candidateParentId;
     const visited = new Set<string>();
@@ -114,7 +115,7 @@ export async function isDescendantOf(candidateParentId: string, folderId: string
 export async function getUniqueFolderName(parentId: string | null, baseName: string): Promise<string> {
   let existingNames: Set<string>;
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     existingNames = new Set(
       db.folders
@@ -148,7 +149,7 @@ export async function getUniqueFolderName(parentId: string | null, baseName: str
 export async function createFolder(name: string, parentId: string | null): Promise<DokFolder> {
   const uniqueName = await getUniqueFolderName(parentId, name.trim());
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const newFolder: DokFolder = {
       id: crypto.randomUUID(),
@@ -181,7 +182,7 @@ export async function renameFolder(id: string, newName: string): Promise<DokFold
 
   const uniqueName = await getUniqueFolderName(folder.parent_id, newName.trim());
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.folders.find((f) => f.id === id);
     if (!item) throw new Error("Klasör bulunamadı.");
@@ -220,7 +221,7 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
 
   const uniqueName = await getUniqueFolderName(newParentId, folder.name);
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.folders.find((f) => f.id === id);
     if (!item) throw new Error("Klasör bulunamadı.");
@@ -245,7 +246,7 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
  * Klasörün altındaki tüm alt klasör ID'lerini recursive olarak bulur
  */
 export async function getAllSubfolderIds(rootFolderId: string): Promise<string[]> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const result: string[] = [rootFolderId];
     let currentLevel = [rootFolderId];
@@ -284,7 +285,7 @@ export async function getAllSubfolderIds(rootFolderId: string): Promise<string[]
 export async function trashFolder(id: string): Promise<{ affectedFiles: number; affectedFolders: number }> {
   const folderIds = await getAllSubfolderIds(id);
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const now = new Date().toISOString();
 
@@ -363,7 +364,7 @@ export async function trashFolder(id: string): Promise<{ affectedFiles: number; 
  * Klasörü ve doğrudan altındaki öğeleri çöp kutusundan geri yükler
  */
 export async function restoreFolder(id: string): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const folder = db.folders.find((f) => f.id === id);
     if (!folder) return;
@@ -413,7 +414,7 @@ export async function restoreFolder(id: string): Promise<void> {
 export async function permanentDeleteFolder(id: string): Promise<{ deletedBlobs: string[]; deletedCount: number }> {
   const folderIds = await getAllSubfolderIds(id);
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const storageDir = getLocalStorageDir();
     const filesToDelete = db.files.filter((f) => f.folder_id && folderIds.includes(f.folder_id));

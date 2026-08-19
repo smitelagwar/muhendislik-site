@@ -10,6 +10,7 @@ import {
 } from "@/lib/dokumantasyon/public-share";
 import { getFile } from "@/lib/dokumantasyon/files";
 import { cookies } from "next/headers";
+import { getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
 import JSZip from "jszip";
 
 export const dynamic = "force-dynamic";
@@ -24,19 +25,17 @@ export async function GET(request: Request, { params }: RouteParams) {
     const shareInfo = await getPublicShareInfo(token);
 
     if (shareInfo.status !== "ok" || !shareInfo.link || !shareInfo.items) {
-      const statusCode = shareInfo.status === "revoked" || shareInfo.status === "expired" ? 410 : 400;
-      return new NextResponse(
-        shareInfo.errorMessage || "Geçersiz veya süresi dolmuş bağlantı.",
-        { status: statusCode }
-      );
+      return new NextResponse("Paylaşım bağlantısı geçersiz veya süresi dolmuş.", {
+        status: 404,
+      });
     }
 
     const link = shareInfo.link;
 
-    // Şifre Koruması Kontrolü
+    // Şifreli ise JWT Doğrula
     if (link.password_hash) {
       const cookieStore = await cookies();
-      const cookieJwt = cookieStore.get(`dok_share_${link.id}`)?.value;
+      const cookieJwt = cookieStore.get(`dok_share_${link.id}`)?.value || cookieStore.get(`share_auth_${link.id}`)?.value;
       const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");
       const url = new URL(request.url);
       const queryAuth = url.searchParams.get("auth") || undefined;
@@ -52,7 +51,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const zip = new JSZip();
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const blobToken = getBlobToken();
     const fetchHeaders: HeadersInit = {};
     if (blobToken) {
       fetchHeaders["Authorization"] = `Bearer ${blobToken}`;

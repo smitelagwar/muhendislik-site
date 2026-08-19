@@ -15,6 +15,7 @@ import { DOKUMANTASYON_CONFIG } from "./config";
 import { getFile } from "./files";
 import { getFolder } from "./folders";
 import { readLocalDb, writeLocalDb } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 export interface ResolvedShareFile {
   file: DokFile;
@@ -50,7 +51,7 @@ export async function resolveItemsForShare(
       while (folderQueue.length > 0) {
         const current = folderQueue.shift()!;
 
-        if (!process.env.DATABASE_URL) {
+        if (!hasDatabaseUrl()) {
           const db = readLocalDb();
           const fileRows = db.files.filter((f) => f.folder_id === current.folderId && !f.deleted_at);
           for (const file of fileRows) {
@@ -158,7 +159,7 @@ export async function createShareLink(options: {
   let shareLink: DokShareLink;
   let totalSizeBytes = 0;
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const linkId = crypto.randomUUID();
 
@@ -276,7 +277,7 @@ export async function getAdminShareLinks(): Promise<
 > {
   const now = Date.now();
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     return db.shares.map((r) => {
       const expiresAtTime = new Date(r.expires_at).getTime();
@@ -357,7 +358,7 @@ export async function getAdminShareLinks(): Promise<
  * Paylaşım linkini derhal iptal eder (Revoke)
  */
 export async function revokeShareLink(id: string): Promise<void> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const link = db.shares.find((s) => s.id === id);
     if (link) {

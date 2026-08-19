@@ -8,6 +8,7 @@ import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createFileRecord } from "@/lib/dokumantasyon/files";
 import { del } from "@vercel/blob";
 import path from "path";
+import { getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
 
 export async function POST(request: Request) {
   let blobUrlToDeleteOnError: string | null = null;
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       }
     } else {
       // Vercel Private Blob dosyasının ilk 512 baytını oku
-      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      const blobToken = getBlobToken();
       const fetchHeaders: HeadersInit = { Range: "bytes=0-511" };
       if (blobToken) {
         fetchHeaders["Authorization"] = `Bearer ${blobToken}`;

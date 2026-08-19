@@ -62,8 +62,8 @@ export async function POST(request: Request) {
       username: "admin",
     });
 
-    const { isExplicitLocalDokMode } = await import("@/lib/dokumantasyon/runtime-mode");
-    const blobRwToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const { isExplicitLocalDokMode, getBlobToken } = await import("@/lib/dokumantasyon/runtime-mode");
+    const blobRwToken = getBlobToken();
     if (!blobRwToken) {
       if (isExplicitLocalDokMode()) {
         // Yalnızca açık yerel geliştirme modunda çalışır

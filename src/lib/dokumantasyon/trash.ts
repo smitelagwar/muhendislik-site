@@ -8,12 +8,13 @@ import { del } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 /**
  * Çöp kutusundaki tüm silinmiş dosya ve klasörleri listeler
  */
 export async function getTrashItems(): Promise<DokTrashItem[]> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const folderItems: DokTrashItem[] = db.folders
       .filter((f) => f.deleted_at)
@@ -87,7 +88,7 @@ export async function getTrashItems(): Promise<DokTrashItem[]> {
  * Çöp kutusunu tamamen boşaltır
  */
 export async function emptyTrash(): Promise<{ deletedFilesCount: number; deletedFoldersCount: number }> {
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const storageDir = getLocalStorageDir();
 

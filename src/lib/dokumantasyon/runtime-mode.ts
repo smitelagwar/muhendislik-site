@@ -46,8 +46,23 @@ export function hasDatabaseUrl(): boolean {
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
     process.env.POSTGRES_PRISMA_URL ||
-    process.env.POSTGRES_URL_NON_POOLING
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.STORAGE_POSTGRES_URL ||
+    process.env.VERCEL_POSTGRES_URL
   );
+}
+
+export function getBlobToken(): string | undefined {
+  return (
+    process.env.BLOB_READ_WRITE_TOKEN ||
+    process.env.VERCEL_BLOB_READ_WRITE_TOKEN ||
+    process.env.STORAGE_BLOB_READ_WRITE_TOKEN
+  );
+}
+
+export function hasBlobToken(): boolean {
+  return Boolean(getBlobToken());
 }
 
 /**
@@ -62,7 +77,7 @@ export function assertDurableDokumantasyonRuntime(requireBlob: boolean = false):
     throw new DokRuntimeConfigError("DATABASE_NOT_CONFIGURED");
   }
 
-  if (requireBlob && !process.env.BLOB_READ_WRITE_TOKEN) {
+  if (requireBlob && !hasBlobToken()) {
     throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 }
