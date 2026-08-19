@@ -8,9 +8,10 @@ import { DokumantasyonFileManager } from "./file-manager";
 
 interface AdminShellProps {
   username: string;
+  children?: React.ReactNode;
 }
 
-export function DokumantasyonAdminShell({ username }: AdminShellProps) {
+export function DokumantasyonAdminShell({ username, children }: AdminShellProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -75,8 +76,8 @@ export function DokumantasyonAdminShell({ username }: AdminShellProps) {
         </div>
       </div>
 
-      {/* Drive Benzeri Dosya Yöneticisi */}
-      <DokumantasyonFileManager />
+      {/* İçerik veya Drive Benzeri Dosya Yöneticisi */}
+      {children ? children : <DokumantasyonFileManager />}
     </div>
   );
 }

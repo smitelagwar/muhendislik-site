@@ -11,7 +11,7 @@ import { dummyCompare, verifyPassword } from "./security";
 /**
  * JWT imzalama anahtarını Uint8Array olarak döndürür
  */
-function getJwtSecret(): Uint8Array {
+export function getJwtSecret(): Uint8Array {
   const secret =
     process.env.SESSION_SECRET ||
     "super_secret_dokumantasyon_session_key_2026_min_32_chars";

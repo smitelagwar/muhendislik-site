@@ -103,12 +103,26 @@ export async function GET(request: Request) {
       }
     }
 
+    const { getPreviewKind } = await import("@/lib/dokumantasyon/preview-capabilities");
+
+    const safeFiles = fileRows.map((file) => ({
+      id: file.id,
+      folder_id: file.folder_id,
+      display_name: file.display_name,
+      size_bytes: Number(file.size_bytes),
+      mime_type: file.mime_type,
+      extension: file.extension,
+      created_at: file.created_at,
+      updated_at: file.updated_at,
+      preview_kind: getPreviewKind(file.extension),
+    }));
+
     return NextResponse.json(
       {
         folder: currentFolder,
         breadcrumbs,
         folders: folderRows,
-        files: fileRows,
+        files: safeFiles,
       },
       {
         headers: { "Cache-Control": "private, no-store" },

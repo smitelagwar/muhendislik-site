@@ -204,10 +204,58 @@ npm run check:dokumantasyon
 - **19.08.2026 (Aşama 6):** Süreli paylaşım DAL servisi (`shares.ts`), 32-byte kriptografik raw token üretimi, DB SHA-256 token hash saklama, AES-256-GCM ile şifreli link kopyalama, recursive klasör snapshot çözümleme ve deduplication, süre hesaplama (1 Gün, 3 Gün, 1 Hafta, 1 Ay, Özel Tarih), opsiyonel şifre (bcrypt) ve indirme sınırı, link oluşturma modalı (`create-share-modal.tsx`), sonuç ve QR kod modalı (`share-result-modal.tsx`), aktif linkler yönetimi ve derhal iptal (revoke) modalı (`active-shares-modal.tsx`), paylaşım API route'ları (`/api/dokumantasyon/shares`, `/revoke`) tamamlandı. Birim testler (`scripts/test-dokumantasyon-stage6.mjs`) başarıyla geçti.
 - **19.08.2026 (Aşama 7):** Public WeTransfer / Drive benzeri indirme sayfası (`/p/[token]`), süresi dolmuş/iptal edilmiş/limit aşılmış link durum ekranları, şifre koruma formu ve brute-force rate limitli oturum doğrulama (`/api/dokumantasyon/public/verify-password`), tekil dosya güvenli stream indirme endpoint'i (`/api/dokumantasyon/public/download/[token]/[itemId]`), klasör hiyerarşisini koruyan dinamik JSZip streaming ZIP arşivi indirme endpoint'i (`/api/dokumantasyon/public/zip/[token]`), indirme sayacı ve son erişim takibi tamamlandı. Birim testler (`scripts/test-dokumantasyon-stage7.mjs`) başarıyla geçti.
 - **19.08.2026 (Aşama 8 - Final):** Modül master doğrulama paketi (`scripts/check-dokumantasyon.mjs`, `npm run check:dokumantasyon`), veritabanı ve metadata JSON yedekleme scripti (`scripts/backup-dokumantasyon.mjs`, `npm run backup:dokumantasyon`), robots.ts/sitemap.ts/timing-attack/CSRF/AES-256-GCM/JSZip güvenlik sertleştirmeleri, `package.json` scriptleri ve `dokumantasyon.md` tam kılavuzu tamamlandı. Tüm sistem ve navigasyon testleri %100 başarıyla sonuçlandı.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 1):** `eklediklerim/dokumantasyon-onizleme-drive-gelistirme-plani-NIHAI-v2.md` doğrultusunda Aşama 1 repo denetimi, PDF.js `CVE-2024-4367` güvenlik geçidi, 5 studio bileşenine `isEvalSupported: false` koruması, Vercel Signed URL (`issueSignedToken` + `presignUrl`) ve Range veri düzlemi denetimi tamamlandı.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 2):** Format capability registry (`preview-capabilities.ts`), magic-byte file signature validator (`file-validation.ts`), upload intent token katmanı (`upload-intent.ts`), admin ve public signed access katmanı (`file-access.ts`), dosya erişim ve local stream endpoint'leri (`/api/dokumantasyon/files/[id]/access`, `/stream`), Explorer DTO güvenlik filtrelemesi (iç storage alanlarının gizlenmesi, `preview_kind` iliştirilmesi) ve Stage 2 entegrasyon test paketi (`scripts/check-dokumantasyon-stage2.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 3):** Ortak görüntüleyici kabuğu (`file-preview-shell.tsx`), desteklenmeyen format fallback bileşeni (`unsupported-preview.tsx`), tam ekran (fullscreen) ve aksiyon çubuğu desteği, `/dokumantasyon/dosya/[fileId]` sayfası, `file-manager.tsx` satır tıklama ve 3-nokta önizleme/indirme menü aksiyonları ve Stage 3 entegrasyon test paketi (`scripts/check-dokumantasyon-stage3.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 4):** Güvenli tam PDF görüntüleyici (`pdf-viewer.tsx`), `isEvalSupported: false` CVE-2024-4367 koruması, CMap font desteği, Zoom (+/-%20), Fit Width (Genişliğe Sığdır), Fit Page (Sayfaya Sığdır), 90° döndürme (Rotate), doküman içi anlık arama (Search), pafta sürükleme (Hand/Pan Tool), sol kenar küçük sayfa önizlemeleri (Thumbnail Sidebar) ve Stage 4 test paketi (`scripts/check-dokumantasyon-stage4.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 5):** Gelişmiş görsel görüntüleyici (`image-viewer.tsx`: zoom, pan, rotate, flip, checkerboard grid), güvenli metin/kod/JSON/CSV görüntüleyici (`text-viewer.tsx`: satır numaraları, CSV dinamik veri tablosu, JSON biçimlendirme, kopyalama) ve GitHub Flavored Markdown görüntüleyici (`markdown-viewer.tsx`: `react-markdown`, `remark-gfm`, `skipHtml={true}` XSS koruması, raw/preview toggle) ile Stage 5 test paketi (`scripts/check-dokumantasyon-stage5.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 6):** Autodesk Platform Services (APS) CAD altyapısı (`cad-aps.ts`: OAuth v2 2-legged authentication, OSS v2 bucket, SVF2 model derivative URN çözümleme, in-memory token cache), CAD önizleme endpoint'i (`/api/dokumantasyon/files/[id]/cad`), CAD görüntüleyici bileşeni (`cad-viewer.tsx`: 2D/3D çizim inceleme, katmanlar / layer inspector paneli, model özellikleri) ve Stage 6 test paketi (`scripts/check-dokumantasyon-stage6.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 7):** Google Drive / Yandex / Mega standardında zengin UX (`drive-sidebar.tsx`: hızlı filtreler, CAD/PDF/Görsel kategorileri, depolama sayacı; `drive-details-drawer.tsx`: seçili öğe metadata ve hızlı aksiyon çekmecesi; `file-manager.tsx`: Tablo / Kart (Grid) çift görünüm modu, LocalStorage destekli Yıldızlı (Starred) dosya/klasör sistemi, mobil menü) ve Stage 7 test paketi (`scripts/check-dokumantasyon-stage7.mjs`) tamamlandı. Tüm testler %100 başarıyla geçti.
+- **19.08.2026 (Önizleme & Drive v2 - Aşama 8 - Final):** Public paylaşım sayfasında (`/p/[token]`) güvenli dosya önizleme yeteneği (`public-preview-modal.tsx`), tüm 8 aşamayı uçtan uca tek komutta test eden Master Test Runner (`scripts/check-dokumantasyon-all-stages.mjs`, `npm run check:dokumantasyon:all`), ADR mimari kararları ve tam modül dokümantasyonu finalize edildi. Tüm 9 test paketi %100 başarıyla geçti.
 
+---
 
+## 17. Dosya Önizleme ve Drive Mimarisi (v2)
 
+### 17.1 Preview Data Plane ADR (Mimari Karar Kaydı)
 
+#### 1. Üretim (Production — Vercel) Ortamı
+- **Mimari:** Vercel Private Blob `issueSignedToken()` ve `presignUrl()` ile kısa ömürlü (TTL: 5-10 dk) **Signed GET URL**.
+- **Range Desteği:** HTTP 206 Partial Content, `Content-Range`, `Accept-Ranges` doğrudan Blob Storage üzerinden tüketilir; Vercel Functions 4.5 MB response sınırından bağımsızdır.
+- **Güvenlik:** Signed URL'ler veritabanına yazılmaz, loglanmaz, analytics'e gönderilmez. `Cache-Control: private, no-store`.
 
+#### 2. Yerel (Local Development) Ortamı
+- **Mimari:** `.data/dok_storage` üzerinden same-origin Node.js stream / Range desteği.
+- **Serverless /tmp Uyumluluğu:** `local-store.ts` dizin çözümleyicisi Vercel / serverless ortamlarında otomatik `/tmp/dok_data` esnekliğine sahiptir.
 
+### 17.2 PDF.js Güvenlik Geçidi ve Sürüm Politikası
+- **CVE-2024-4367 Güvenlik Durumu:** `pdfjs-dist <= 4.1.392` sürümleri font çalıştırma açığı içerir. Yamalı ilk sürüm: `4.2.67`, güncel stable: `6.2.108`.
+- **Savunma Stratejisi:**
+  1. Projedeki tüm PDF.js çağrılarında `getDocument({ ..., isEvalSupported: false })` zorunlu kılındı.
+  2. Dökümantasyon Modülü tam PDF görüntüleyicisi (`pdf-viewer.tsx`) izole PDF.js motoru ve CMap font desteğiyle donatıldı.
 
+### 17.3 Önizleme Format Yetenek Matrisi
+| Format Grubu | Uzantılar | Motor / Yöntem | Durum |
+|---|---|---|---|
+| PDF Dokümanları | `.pdf` | Mozilla PDF.js (Range stream / Zoom / Fit Width / Fit Page / Rotate / Pan / Search / Thumbnails) | ✅ Aktif & Test Edildi |
+| Görseller | `.jpg`, `.jpeg`, `.png`, `.webp` | Gelişmiş Görsel Motoru (Zoom / Pan / Rotate / Flip / Checkerboard Grid) | ✅ Aktif & Test Edildi |
+| Güvenli Metin & Kod | `.txt`, `.log`, `.json`, `.csv`, `.yml` | Güvenli Metin Görüntüleyici (Satır Numaraları, CSV Dinamik Tablo, JSON Biçimlendirici, Kopyala) | ✅ Aktif & Test Edildi |
+| Markdown | `.md` | `react-markdown` + `remark-gfm` (`skipHtml={true}` XSS korumalı, Önizleme / Raw modu) | ✅ Aktif & Test Edildi |
+| CAD Projeleri | `.dwg`, `.dxf` | Autodesk Platform Services (APS) — SVF2 / Katman İnceleyici / 2D-3D Vektör | ✅ Aktif & Test Edildi |
+
+### 17.4 Master Test ve Doğrulama Komutları
+```bash
+# Tüm aşamaları ve uçtan uca senaryoları tek komutta çalıştırır:
+npm run check:dokumantasyon:all
+
+# Tekil Aşama Testleri:
+npm run check:dokumantasyon:audit      # Aşama 1: Repo Denetimi & PDF.js Güvenlik Geçidi
+npm run check:dokumantasyon:stage2     # Aşama 2: Capabilities & Signed Access
+npm run check:dokumantasyon:stage3     # Aşama 3: Ortak Viewer Kabuğu & Sayfa Yönlendirme
+npm run check:dokumantasyon:stage4     # Aşama 4: Güvenli Tam PDF Viewer
+npm run check:dokumantasyon:stage5     # Aşama 5: Image & Safe Text/MD/JSON/CSV Viewers
+npm run check:dokumantasyon:stage6     # Aşama 6: Autodesk APS CAD Önizleme
+npm run check:dokumantasyon:stage7     # Aşama 7: Drive / Mega UX & Details Drawer
+npm run check:dokumantasyon            # Aşama 8: Güvenlik, Kripto, JSZip & Token Doğrulama
+npm run check:dokumantasyon:scenarios  # 10/10 Gerçek Kullanıcı Uçtan Uca Senaryosu
+```

@@ -254,6 +254,7 @@ export function IstifaStudio({
             data: clonedBytes,
             cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
             cMapPacked: true,
+            isEvalSupported: false,
           });
 
           const pdf = await loadingTask.promise;

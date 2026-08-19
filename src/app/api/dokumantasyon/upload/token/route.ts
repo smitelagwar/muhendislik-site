@@ -52,6 +52,16 @@ export async function POST(request: Request) {
     const sanitizedExt = ext.replace(/[^a-z0-9.]/gi, "");
     const storagePathname = `dok_storage/${randomId}${sanitizedExt}`;
 
+    const { createUploadIntentToken } = await import("@/lib/dokumantasyon/upload-intent");
+    const intentToken = await createUploadIntentToken({
+      intentId: randomId,
+      pathname: storagePathname,
+      filename,
+      sizeBytes: sizeNum,
+      folderId: folderId || null,
+      username: "admin",
+    });
+
     const blobRwToken = process.env.BLOB_READ_WRITE_TOKEN;
     if (!blobRwToken) {
       // Yerel geliştirme modu (Vercel Blob token olmadan çalışır)
@@ -59,6 +69,7 @@ export async function POST(request: Request) {
         isLocalMode: true,
         pathname: storagePathname,
         folderId: folderId || null,
+        intentToken,
       });
     }
 
@@ -74,6 +85,7 @@ export async function POST(request: Request) {
       clientToken,
       pathname: storagePathname,
       folderId: folderId || null,
+      intentToken,
     });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "UNAUTHORIZED") {

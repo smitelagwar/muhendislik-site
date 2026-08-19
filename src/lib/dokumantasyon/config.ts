@@ -34,6 +34,13 @@ export const DOKUMANTASYON_CONFIG = {
     ".zip",
     ".dwg",
     ".dxf",
+    ".txt",
+    ".md",
+    ".json",
+    ".csv",
+    ".log",
+    ".yml",
+    ".yaml",
   ] as const,
 
   // MIME type eşleştirmeleri
@@ -50,6 +57,13 @@ export const DOKUMANTASYON_CONFIG = {
     zip: "application/zip",
     dwg: "application/acad",
     dxf: "application/dxf",
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    csv: "text/csv",
+    log: "text/plain",
+    yml: "text/yaml",
+    yaml: "text/yaml",
   } as Record<string, string>,
 
   // Rate Limiting Kuralları

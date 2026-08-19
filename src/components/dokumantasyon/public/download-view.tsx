@@ -10,10 +10,12 @@ import {
   HardDrive,
   CheckCircle2,
   Share2,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokShareLink, DokShareItem } from "@/lib/dokumantasyon/types";
 import { formatBytes, formatDate, getFileIcon } from "../ui-helpers";
+import { PublicPreviewModal } from "./public-preview-modal";
 
 interface DownloadViewProps {
   rawToken: string;
@@ -32,6 +34,7 @@ export function PublicShareDownloadView({
 }: DownloadViewProps) {
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [downloadingItemId, setDownloadingItemId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<(DokShareItem & { file_extension?: string }) | null>(null);
 
   const handleDownloadZip = async () => {
     if (downloadingZip) return;
@@ -158,7 +161,17 @@ export function PublicShareDownloadView({
                   </div>
                 </div>
 
-                <div className="shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setPreviewItem(item)}
+                    className="gap-1.5 text-xs text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Önizle</span>
+                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline"
@@ -179,6 +192,14 @@ export function PublicShareDownloadView({
           })}
         </div>
       </div>
+
+      {/* Public Önizleme Modalı */}
+      <PublicPreviewModal
+        isOpen={previewItem !== null}
+        rawToken={rawToken}
+        item={previewItem}
+        onClose={() => setPreviewItem(null)}
+      />
     </div>
   );
 }
