@@ -84,6 +84,9 @@ export async function createFileRecord(data: {
 
   if (!process.env.DATABASE_URL) {
     const db = readLocalDb();
+    const existing = db.files.find((f) => f.blob_pathname === data.blob_pathname && !f.deleted_at);
+    if (existing) return existing;
+
     const newFile: DokFile = {
       id: crypto.randomUUID(),
       folder_id: data.folder_id,
@@ -103,6 +106,15 @@ export async function createFileRecord(data: {
   }
 
   const sql = getDb();
+  const existingRows = await sql`
+    SELECT * FROM dok_files
+    WHERE blob_pathname = ${data.blob_pathname} AND deleted_at IS NULL
+    LIMIT 1;
+  `;
+  if (existingRows.length > 0) {
+    return existingRows[0] as DokFile;
+  }
+
   const rows = await sql`
     INSERT INTO dok_files (
       folder_id,

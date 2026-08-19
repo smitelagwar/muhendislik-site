@@ -35,6 +35,7 @@ import {
   FileText,
   Image as ImageIcon,
   Menu,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder, DokBreadcrumbItem } from "@/lib/dokumantasyon/types";
@@ -123,6 +124,7 @@ export function DokumantasyonFileManager() {
   // Yükleme Sırası ve Sürükle-Bırak
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Yıldızlıları LocalStorage'dan Oku
@@ -163,11 +165,14 @@ export function DokumantasyonFileManager() {
       const data = await res.json();
 
       if (res.ok) {
+        setConfigError(null);
         setCurrentFolder(data.folder || null);
         setBreadcrumbs(data.breadcrumbs || [{ id: null, name: "Kök Dizin" }]);
         setFolders(data.folders || []);
         setFiles(data.files || []);
         setSelectedIds(new Set());
+      } else if (res.status === 503 || data.code?.includes("CONFIGURED") || data.code?.includes("FORBIDDEN")) {
+        setConfigError(data.error || "Dökümantasyon kalıcı depolama altyapısı hazır değil.");
       }
     } catch (err) {
       console.error("Dosyalar yüklenirken hata:", err);
@@ -321,27 +326,25 @@ export function DokumantasyonFileManager() {
       );
 
       try {
-        const isLocalDev = process.env.NODE_ENV === "development";
+        const tokenRes = await fetch("/api/dokumantasyon/upload/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            size: file.size,
+            mimeType: file.type || "application/octet-stream",
+            folderId: currentFolderId,
+          }),
+        });
 
-        if (isLocalDev) {
-          const tokenRes = await fetch("/api/dokumantasyon/upload/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: file.name,
-              size: file.size,
-              mimeType: file.type || "application/octet-stream",
-              folderId: currentFolderId,
-            }),
-          });
+        if (!tokenRes.ok) {
+          const errData = await tokenRes.json();
+          throw new Error(errData.error || "Upload token alınamadı.");
+        }
 
-          if (!tokenRes.ok) {
-            const errData = await tokenRes.json();
-            throw new Error(errData.error || "Upload token alınamadı.");
-          }
+        const tokenData = await tokenRes.json();
 
-          const tokenData = await tokenRes.json();
-
+        if (tokenData.isLocalMode) {
           const formData = new FormData();
           formData.append("file", file);
           formData.append("pathname", tokenData.pathname);
@@ -364,11 +367,23 @@ export function DokumantasyonFileManager() {
           }
         } else {
           // Vercel Blob Üretim Ortamı
+          setUploadQueue((prev) =>
+            prev.map((item) =>
+              item.id === queueId ? { ...item, progress: 40 } : item
+            )
+          );
+
           const blob = await upload(file.name, file, {
             access: "public",
             handleUploadUrl: "/api/dokumantasyon/upload/token",
             clientPayload: JSON.stringify({ folderId: currentFolderId }),
           });
+
+          setUploadQueue((prev) =>
+            prev.map((item) =>
+              item.id === queueId ? { ...item, progress: 85 } : item
+            )
+          );
 
           const finalizeRes = await fetch("/api/dokumantasyon/upload/finalize", {
             method: "POST",
@@ -376,10 +391,11 @@ export function DokumantasyonFileManager() {
             body: JSON.stringify({
               blobUrl: blob.url,
               blobPathname: blob.pathname,
-              filename: file.name,
-              size: file.size,
+              displayName: file.name,
+              sizeBytes: file.size,
               mimeType: file.type || "application/octet-stream",
               folderId: currentFolderId,
+              intentToken: tokenData.intentToken,
             }),
           });
 
@@ -605,6 +621,18 @@ export function DokumantasyonFileManager() {
               >
                 Temizle
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Kalıcı Depolama Yapılandırma Uyarısı */}
+        {configError && (
+          <div className="mx-4 mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-400 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-red-400" />
+            <div className="space-y-1 text-xs">
+              <div className="font-bold text-sm text-red-300">Kalıcı Depolama Yapılandırma Hatası</div>
+              <div>{configError}</div>
+              <div className="text-muted-foreground">Veri kaybını önlemek için yükleme ve değiştirme işlemleri güvenlik amacıyla durdurulmuştur.</div>
             </div>
           </div>
         )}

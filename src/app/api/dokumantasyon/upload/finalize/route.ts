@@ -37,13 +37,28 @@ export async function POST(request: Request) {
     blobUrlToDeleteOnError = blobUrl;
     const ext = path.extname(displayName).toLowerCase();
 
-    // 1. Upload Intent Doğrulaması (varsa)
+    // 1. Upload Intent Doğrulaması (Kalıcı üretim ortamında zorunlu)
+    const { isExplicitLocalDokMode } = await import("@/lib/dokumantasyon/runtime-mode");
+    const isLocal = isExplicitLocalDokMode();
+
+    if (!isLocal && !intentToken) {
+      return NextResponse.json(
+        { error: "Kalıcı yükleme için geçerli bir upload intent belirteci (intentToken) zorunludur." },
+        { status: 400 }
+      );
+    }
+
     if (intentToken) {
       const { verifyUploadIntentToken } = await import("@/lib/dokumantasyon/upload-intent");
       const verifiedIntent = await verifyUploadIntentToken(intentToken);
-      if (!verifiedIntent || verifiedIntent.pathname !== blobPathname) {
+      if (
+        !verifiedIntent ||
+        verifiedIntent.pathname !== blobPathname ||
+        verifiedIntent.filename !== displayName.trim() ||
+        Number(verifiedIntent.sizeBytes) !== Number(sizeBytes)
+      ) {
         return NextResponse.json(
-          { error: "Geçersiz veya süresi dolmuş yükleme belirteci (Upload Intent)." },
+          { error: "Geçersiz, tahrif edilmiş veya uyuşmayan yükleme belirteci (Upload Intent)." },
           { status: 400 }
         );
       }

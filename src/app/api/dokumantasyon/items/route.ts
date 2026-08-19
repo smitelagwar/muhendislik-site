@@ -132,6 +132,13 @@ export async function GET(request: Request) {
     if (err instanceof Error && err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const { DokRuntimeConfigError } = await import("@/lib/dokumantasyon/runtime-mode");
+    if (err instanceof DokRuntimeConfigError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status: 503, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
     console.error("Öğe listeleme hatası:", err);
     return NextResponse.json(
       { error: "Öğeler listelenirken bir hata oluştu." },

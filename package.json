@@ -37,7 +37,10 @@
     "check:dokumantasyon:stage6": "node scripts/check-dokumantasyon-stage6.mjs",
     "check:dokumantasyon:stage7": "node scripts/check-dokumantasyon-stage7.mjs",
     "check:dokumantasyon:scenarios": "node scripts/check-dokumantasyon-full-scenarios.mjs",
+    "check:dokumantasyon:persistence": "tsx scripts/check-dokumantasyon-persistence-rules.mjs",
+    "check:dokumantasyon:readiness": "node scripts/check-dokumantasyon-production-readiness.mjs",
     "check:dokumantasyon:all": "node scripts/check-dokumantasyon-all-stages.mjs",
+    "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
   },
   "dependencies": {

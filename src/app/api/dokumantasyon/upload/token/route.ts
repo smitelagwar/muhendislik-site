@@ -62,15 +62,22 @@ export async function POST(request: Request) {
       username: "admin",
     });
 
+    const { isExplicitLocalDokMode } = await import("@/lib/dokumantasyon/runtime-mode");
     const blobRwToken = process.env.BLOB_READ_WRITE_TOKEN;
     if (!blobRwToken) {
-      // Yerel geliştirme modu (Vercel Blob token olmadan çalışır)
-      return NextResponse.json({
-        isLocalMode: true,
-        pathname: storagePathname,
-        folderId: folderId || null,
-        intentToken,
-      });
+      if (isExplicitLocalDokMode()) {
+        // Yalnızca açık yerel geliştirme modunda çalışır
+        return NextResponse.json({
+          isLocalMode: true,
+          pathname: storagePathname,
+          folderId: folderId || null,
+          intentToken,
+        });
+      }
+      return NextResponse.json(
+        { error: "Dökümantasyon kalıcı depolama (Vercel Blob) yapılandırılmamış." },
+        { status: 503 }
+      );
     }
 
     // 4. Client Upload Token Üretimi (Vercel Private Blob)

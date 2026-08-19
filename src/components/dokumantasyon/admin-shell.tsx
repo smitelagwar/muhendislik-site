@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FolderArchive, LogOut, User, Loader2 } from "lucide-react";
+import { FolderArchive, LogOut, User, Loader2, ShieldCheck, ShieldAlert, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokumantasyonFileManager } from "./file-manager";
 
@@ -14,6 +14,17 @@ interface AdminShellProps {
 export function DokumantasyonAdminShell({ username, children }: AdminShellProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [readiness, setReadiness] = useState<{
+    storageMode?: "durable" | "local_dev" | "blocked";
+    ok?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dokumantasyon/readiness")
+      .then((res) => res.json())
+      .then((data) => setReadiness(data))
+      .catch(() => setReadiness({ storageMode: "blocked", ok: false }));
+  }, []);
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -45,6 +56,24 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
               <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                 Admin
               </span>
+              {readiness && (
+                readiness.storageMode === "durable" ? (
+                  <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <ShieldCheck className="h-3 w-3" />
+                    <span>Kalıcı Depolama (Neon + Blob)</span>
+                  </span>
+                ) : readiness.storageMode === "local_dev" ? (
+                  <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+                    <Laptop className="h-3 w-3" />
+                    <span>Yerel Geliştirme (Local)</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
+                    <ShieldAlert className="h-3 w-3" />
+                    <span>Depolama Eksik (Korumalı)</span>
+                  </span>
+                )
+              )}
             </div>
             <p className="text-xs text-muted-foreground sm:text-sm">
               Özel dosya depolama, klasörleme ve süreli link paylaşım paneli

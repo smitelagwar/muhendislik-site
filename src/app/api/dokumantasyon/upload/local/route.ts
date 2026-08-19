@@ -9,9 +9,17 @@ import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createFile } from "@/lib/dokumantasyon/files";
 import { getLocalStorageDir } from "@/lib/dokumantasyon/local-store";
+import { isExplicitLocalDokMode } from "@/lib/dokumantasyon/runtime-mode";
 
 export async function POST(request: Request) {
   try {
+    if (!isExplicitLocalDokMode()) {
+      return NextResponse.json(
+        { error: "Vercel üretim ortamında yerel dosya yükleme yasaktır. Kalıcı Vercel Blob gereklidir." },
+        { status: 403 }
+      );
+    }
+
     await requireDokumantasyonAdmin();
     assertSameOriginForMutation(request);
 

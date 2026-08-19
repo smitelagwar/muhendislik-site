@@ -7,6 +7,8 @@ import path from "path";
 import os from "os";
 import { DokFile, DokFolder, DokShareItem, DokShareLink } from "./types";
 
+import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
+
 interface LocalDatabaseState {
   folders: DokFolder[];
   files: DokFile[];
@@ -16,7 +18,10 @@ interface LocalDatabaseState {
 
 function resolveDataDir(): string {
   if (process.env.VERCEL) {
-    return path.join(os.tmpdir(), "dok_data");
+    throw new DokRuntimeConfigError("LOCAL_STORAGE_FORBIDDEN");
+  }
+  if (!isExplicitLocalDokMode()) {
+    throw new DokRuntimeConfigError("DATABASE_NOT_CONFIGURED");
   }
   return path.join(process.cwd(), ".data");
 }

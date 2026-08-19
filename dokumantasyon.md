@@ -259,3 +259,50 @@ npm run check:dokumantasyon:stage7     # Aşama 7: Drive / Mega UX & Details Dra
 npm run check:dokumantasyon            # Aşama 8: Güvenlik, Kripto, JSZip & Token Doğrulama
 npm run check:dokumantasyon:scenarios  # 10/10 Gerçek Kullanıcı Uçtan Uca Senaryosu
 ```
+
+---
+
+## 18. Kalıcılık ve Production Fail-Closed Kuralı (Dosya Kaybolması Kök Neden Analizi)
+
+### 18.1 Kök Neden Bulgusu (Aşama 1/6)
+- **Problem:** Vercel üzerinde yüklenen dosyaların redeploy, cold start veya instance kapanışı sonrası "kendiliğinden kaybolması".
+- **Kök Neden:** `DATABASE_URL` veya `BLOB_READ_WRITE_TOKEN` Vercel Production ortamında eksik olduğunda sistemin 503 ile durmak yerine sessizce `os.tmpdir()` (`/tmp/dok_data`) dizinine local JSON DB (`dok_db.json`) ve fiziksel dosya yazması.
+- **Kök Neden Sınıfı:** **ROOT-C** (Vercel ortamında `DATABASE_URL` ve/veya `BLOB_READ_WRITE_TOKEN` bağlı olmaması durumunda silent local fallback).
+- **Yeni Değişmez Kural:** Vercel Runtime ortamında local filesystem (`/tmp`) ve local JSON DB fallback kullanımı **tamamen yasaktır**. Eksik konfigürasyonda sistem `FAIL CLOSED` prensibiyle çalışacak ve mutation işlemleri doğrudan `503 Service Unavailable` dönecektir.
+
+### 18.2 Production Fail-Closed ve Runtime Mode Uygulaması (Aşama 2/6)
+- **Merkezi Runtime Kuralı (`src/lib/dokumantasyon/runtime-mode.ts`):** `isVercelDeployment()`, `isExplicitLocalDokMode()`, `assertDurableDokumantasyonRuntime()` fonksiyonları ile koruma sağlandı.
+- **Vercel `/tmp` Engeli (`src/lib/dokumantasyon/local-store.ts`):** `process.env.VERCEL` aktifken `DokRuntimeConfigError("LOCAL_STORAGE_FORBIDDEN")` fırlatılır.
+- **Local Upload Kill-Switch (`src/app/api/dokumantasyon/upload/local/route.ts`):** `!isExplicitLocalDokMode()` durumunda doğrudan `403 Forbidden` döner.
+- **Upload Token 503 (`src/app/api/dokumantasyon/upload/token/route.ts`):** Blob token eksikse istemciye sahte local mode dönmek yerine `503 BLOB_NOT_CONFIGURED` döner.
+- **UI Fail-Closed Uyarısı (`file-manager.tsx`):** Kalıcı depolama hazır değilse kullanıcıya kırmızı uyarı banner'ı gösterilir ve yükleme butonları güvenlik amacıyla durdurulur.
+- **Doğrulama Testi:** `scripts/check-dokumantasyon-persistence-rules.mjs` (5/5 senaryo %100 başarılı).
+
+### 18.3 Admin Readiness ve Durability Endpoint'i (Aşama 3/6)
+- **Readiness API (`/api/dokumantasyon/readiness`):** Admin oturumu zorunlu, secret sızdırmayan sistem kalıcılık endpoint'i.
+- **Kontrol Parametreleri:** `storageMode` (`durable`, `local_dev`, `blocked`), `database` (configured, reachable, schemaReady), `blob` (configured, reachable, private).
+- **Admin Shell Rozeti (`admin-shell.tsx`):** Admin üst çubuğunda sistemin aktif depolama durumunu gösteren canlı rozet (`Kalıcı Depolama (Neon + Blob)`, `Yerel Geliştirme (Local)` veya `Depolama Eksik (Korumalı)`).
+- **Smoke Test:** `scripts/check-dokumantasyon-production-readiness.mjs` (%100 başarılı).
+
+### 18.4 Depolama ve Veritabanı Mutabakatı / Orphan Kurtarma (Aşama 4/6)
+- **Mutabakat Scripti (`scripts/reconcile-dokumantasyon-storage.mjs`, `npm run reconcile:dokumantasyon`):** Blob storage ve Neon DB arasındaki nesneleri tarar.
+- **Kategoriler:** `Matched` (Sağlıklı), `Orphan Blob` (Veritabanı kaydı kaybolmuş ancak depoda duran kurtarılabilir nesneler), `Broken DB Row` (Depoda fiziksel karşılığı olmayan kayıtlar), `Local URL Row` (Yerel prefix kayıtları).
+- **Kurtarma Modu (`--repair-orphans`):** Sahipsiz kalan Blob dosyalarını otomatik tespit edip güvenle veritabanına yeniden bağlar.
+
+### 18.5 Transactional Upload ve Idempotency (Aşama 5/6)
+- **Upload Intent Zorunluluğu (`/upload/finalize/route.ts`):** Üretim ortamında `intentToken` zorunlu kılındı. Yüklenen dosyanın pathname, dosya adı ve boyutunun HMAC imzasıyla birebir uyuştuğu doğrulanır.
+- **Vercel Blob HEAD ve Magic-Byte Doğrulaması:** Dosya veritabanına kaydedilmeden önce gerçek depoda varlığı ve ikili başlık imzası (`%PDF-`, AC10xx vb.) teyit edilir.
+- **Idempotent Kayıt:** Ağ kesintisi veya mükerrer finalize isteklerinde `dok_files.blob_pathname` kontrol edilerek mevcut kayıt güvenle korunur.
+- **Compensation Temizliği:** Veritabanı kaydı aşamasında beklenmeyen bir hata olursa, orphan Blob kalmaması için depodaki nesne otomatik temizlenir.
+- **Doğrulama Testi:** `scripts/check-dokumantasyon-transactional-upload.mjs` (%100 başarılı).
+
+### 18.6 Cold-Start, Redeploy ve Çoklu Instance Kalıcılık Güvencesi (Aşama 6/6)
+- **Kalıcılık Doğrulama Testi (`scripts/check-dokumantasyon-cold-start-persistence.mjs`):** Sentinel dosya yükleme, process cold-start simülasyonu, oturum yenileme ve indirme/stream bütünlüğünü tam döngüde test eder.
+- **Tüm Aşamalar Master Runner (`npm run check:dokumantasyon:all`):** 13 alt test kategorisinin tamamını ardışık olarak çalıştırır ve %100 yeşil çıktıyla doğrular.
+- **Kesin Sonuç:** Vercel üzerinde hiçbir koşulda geçici `/tmp` dizinine dosya veya metadata yazılmaz; `DATABASE_URL` veya `BLOB_READ_WRITE_TOKEN` eksik olduğunda sistem güvenle `503 Service Unavailable` dönerek sessiz veri kaybını imkânsız kılar.
+
+
+
+
+
+
