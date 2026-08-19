@@ -4,6 +4,7 @@
 
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { getDokAuthRuntimeConfig } from "./auth-config";
 
 const DUMMY_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"; // bcrypt hash of random text
 
@@ -51,11 +52,7 @@ export function hashShareToken(rawToken: string): string {
  * IP adresi ve işlem alanını HMAC-SHA256 ile hashler (düz IP saklanmaz)
  */
 export function hashIpFingerprint(ip: string, scope: string): string {
-  const salt = process.env.RATE_LIMIT_SALT;
-  if (!salt && (process.env.NODE_ENV === "production" || process.env.VERCEL)) {
-    throw new Error("RATE_LIMIT_SALT ortam değişkeni tanımlanmamış.");
-  }
-  const effectiveSalt = salt || "dev_rate_limit_salt_change_in_prod";
+  const effectiveSalt = getDokAuthRuntimeConfig().rateLimitSalt;
   const normalizedIp = ip.trim().toLowerCase();
   return crypto.createHmac("sha256", effectiveSalt).update(`${scope}:${normalizedIp}`).digest("hex");
 }

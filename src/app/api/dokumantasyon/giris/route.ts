@@ -9,12 +9,14 @@ import {
   createDokumantasyonSessionToken,
   setSessionCookie,
 } from "@/lib/dokumantasyon/auth";
+import { DokAuthConfigError, validateDokAuthConfig } from "@/lib/dokumantasyon/auth-config";
 import { checkRateLimit, recordAuthAttempt } from "@/lib/dokumantasyon/rate-limit";
 import { extractClientIp } from "@/lib/dokumantasyon/security";
 import { DOKUMANTASYON_CONFIG } from "@/lib/dokumantasyon/config";
 
 export async function POST(request: Request) {
   try {
+    const authConfig = await validateDokAuthConfig();
     const ip = extractClientIp(request);
 
     // 1. Rate limit kontrolü
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
     const { username, password } = parseResult.data;
 
     // 3. Kimlik doğrulama
-    const isValid = await validateAdminCredentials(username, password);
+    const isValid = await validateAdminCredentials(username, password, authConfig);
 
     if (!isValid) {
       await recordAuthAttempt("admin_login", ip, false);
@@ -81,6 +83,13 @@ export async function POST(request: Request) {
       }
     );
   } catch (err) {
+    if (err instanceof DokAuthConfigError) {
+      console.error(err.code);
+      return NextResponse.json(
+        { error: "Yönetici giriş sistemi geçici olarak hazır değil. Lütfen daha sonra tekrar deneyin." },
+        { status: 503, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
     console.error("Giriş API hatası:", err);
     return NextResponse.json(
       { error: "Giriş işlemi sırasında bir hata oluştu." },

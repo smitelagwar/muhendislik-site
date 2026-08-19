@@ -11,10 +11,9 @@ export function DokumantasyonLoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitLogin = async () => {
     if (loading) return;
 
     setError(null);
@@ -32,7 +31,10 @@ export function DokumantasyonLoginForm() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error || "Kullanıcı adı veya şifre hatalı.");
+        setError({
+          message: data.error || "Kullanıcı adı veya şifre hatalı.",
+          retryable: res.status === 503,
+        });
         setLoading(false);
         return;
       }
@@ -40,9 +42,19 @@ export function DokumantasyonLoginForm() {
       // Başarılı giriş -> sayfayı yenileyerek admin shell'e geçiş yap
       router.refresh();
     } catch {
-      setError("Bağlantı hatası oluştu. Lütfen tekrar deneyin.");
+      setError({
+        message: navigator.onLine
+          ? "Bağlantı hatası oluştu. Lütfen tekrar deneyin."
+          : "İnternet bağlantısı yok. Bağlantınızı kontrol edip tekrar deneyin.",
+        retryable: true,
+      });
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submitLogin();
   };
 
   return (
@@ -66,9 +78,21 @@ export function DokumantasyonLoginForm() {
         <div className="rounded-xl border border-border bg-card/80 p-6 shadow-xl backdrop-blur-sm sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
+              <div role="alert" aria-live="assertive" className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+                <div className="min-w-0 flex-1">
+                  <span>{error.message}</span>
+                  {error.retryable && (
+                    <button
+                      type="button"
+                      onClick={() => void submitLogin()}
+                      disabled={loading}
+                      className="mt-2 block text-xs font-semibold underline underline-offset-2 hover:text-red-700 disabled:opacity-50 dark:hover:text-red-300"
+                    >
+                      Tekrar dene
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

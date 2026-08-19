@@ -7,27 +7,20 @@ import { SignJWT, jwtVerify } from "jose";
 import { DOKUMANTASYON_CONFIG } from "./config";
 import { DokSessionPayload } from "./types";
 import { dummyCompare, verifyPassword } from "./security";
+import { DokAuthRuntimeConfig, getDokAuthRuntimeConfig } from "./auth-config";
 
 /**
  * JWT imzalama anahtarını Uint8Array olarak döndürür
  */
 export function getJwtSecret(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-      throw new Error("SESSION_SECRET ortam değişkeni tanımlanmamış. Güvenlik gereği varsayılan secret ile başlatılamaz.");
-    }
-    return new TextEncoder().encode("dev_dokumantasyon_session_key_min_32_chars_2026");
-  }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(getDokAuthRuntimeConfig().sessionSecret);
 }
 
 /**
  * Güncel admin oturum versiyonunu döndürür
  */
 export function getCurrentSessionVersion(): number {
-  const v = Number(process.env.ADMIN_SESSION_VERSION);
-  return !isNaN(v) && v > 0 ? v : 1;
+  return getDokAuthRuntimeConfig().sessionVersion;
 }
 
 /**
@@ -138,16 +131,12 @@ export async function requireDokumantasyonAdmin(): Promise<DokSessionPayload> {
  */
 export async function validateAdminCredentials(
   username: string,
-  password: string
+  password: string,
+  config: DokAuthRuntimeConfig = getDokAuthRuntimeConfig()
 ): Promise<boolean> {
-  const expectedUsername = process.env.ADMIN_USERNAME || "admin";
-  const expectedHash =
-    process.env.ADMIN_PASSWORD_HASH ||
-    "$2b$10$TxzKJSpWjjhIwB8honXpuOGcE4VQdEEsN2WGFadTRG1GdvqiCrRfO"; // bcrypt hash of "admin"
-
   // Kullanıcı adı karşılaştırması
   const usernameMatches =
-    username.trim().toLowerCase() === expectedUsername.trim().toLowerCase();
+    username.trim().toLowerCase() === config.username.trim().toLowerCase();
 
   if (!usernameMatches) {
     await dummyCompare(password);
@@ -155,5 +144,5 @@ export async function validateAdminCredentials(
   }
 
   // Şifre karşılaştırması
-  return verifyPassword(password, expectedHash);
+  return verifyPassword(password, config.passwordHash);
 }

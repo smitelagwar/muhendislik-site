@@ -29,6 +29,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { PreviewKind } from "@/lib/dokumantasyon/preview-capabilities";
+import { ModeToggle } from "@/components/mode-toggle";
 
 interface StudioTopbarProps {
   file: {
@@ -131,6 +132,9 @@ export function StudioTopbar({
 
       {/* Sağ Alan: Eylem Butonları */}
       <div className="flex items-center gap-1.5 shrink-0">
+        <div className="origin-right scale-75 sm:scale-90" aria-label="Tema kontrolü">
+          <ModeToggle />
+        </div>
         {onSave && (
           <StudioCommandButton
             commandId="studio.save"

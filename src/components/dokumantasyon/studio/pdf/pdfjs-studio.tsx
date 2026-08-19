@@ -49,6 +49,17 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
   });
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [firstPageWidth, setFirstPageWidth] = useState<number | null>(null);
+  const fitWidthActiveRef = useRef(true);
+
+  const applyFitWidth = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !firstPageWidth) return;
+
+    const availableWidth = Math.max(container.clientWidth - 64, 1);
+    const targetScale = Math.min(Math.max(availableWidth / firstPageWidth, 0.25), 5.0);
+    setScale(parseFloat(targetScale.toFixed(2)));
+  }, [firstPageWidth]);
 
   // 1. PDF Dokümanını Yükle ve Güvenli Yaşam Döngüsü Başlat
   useEffect(() => {
@@ -71,12 +82,9 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
         try {
           const firstPage = await doc.getPage(1);
           const vp = firstPage.getViewport({ scale: 1.0 });
-          const pageWidth = vp.width || 595;
-          const containerWidth = scrollContainerRef.current?.clientWidth || (typeof window !== "undefined" ? window.innerWidth - 64 : 1200);
-          const computedScale = Math.min(Math.max((containerWidth - 64) / pageWidth, 0.75), 2.2);
-          setScale(parseFloat(computedScale.toFixed(2)));
+          setFirstPageWidth(vp.width || 595);
         } catch {
-          setScale(1.4);
+          setFirstPageWidth(595);
         }
 
         setLoading(false);
@@ -108,6 +116,26 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
       }
     };
   }, [accessUrl]);
+
+  // The scroll viewport mounts only after loading completes. Measure it then,
+  // and keep fit-width stable when the studio viewport changes size.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (loading || !container || !firstPageWidth) return;
+
+    const updateFitWidth = () => {
+      if (fitWidthActiveRef.current) applyFitWidth();
+    };
+
+    const frame = window.requestAnimationFrame(updateFitWidth);
+    const observer = new ResizeObserver(updateFitWidth);
+    observer.observe(container);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [applyFitWidth, firstPageWidth, loading]);
 
   // 2. Sayfaya Kaydırma (Scroll to Page)
   const scrollToPage = useCallback((pageNum: number) => {
@@ -176,11 +204,7 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-
-        const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
+        fitWidthActiveRef.current = false;
         const delta = e.deltaY < 0 ? 0.15 : -0.15;
         setScale((prev) => {
           const next = Math.min(Math.max(prev + delta, 0.25), 5.0);
@@ -207,15 +231,18 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
         setIsSearchOpen((prev) => !prev);
       } else if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
         e.preventDefault();
+        fitWidthActiveRef.current = false;
         setScale((s) => Math.min(s + 0.2, 5.0));
       } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
         e.preventDefault();
+        fitWidthActiveRef.current = false;
         setScale((s) => Math.max(s - 0.2, 0.25));
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
         handleFitPage();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "1") {
         e.preventDefault();
+        fitWidthActiveRef.current = false;
         setScale(1.0);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
         e.preventDefault();
@@ -246,15 +273,13 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
 
   // 6. Genişliğe / Sayfaya Sığdırma Hesaplamaları
   const handleFitWidth = () => {
-    if (!scrollContainerRef.current) return;
-    const containerWidth = scrollContainerRef.current.clientWidth - 80;
-    // Standart A4 genişliği (595 pt) bazlı deterministik oran
-    const targetScale = Math.min(Math.max(containerWidth / 595, 0.4), 4.0);
-    setScale(parseFloat(targetScale.toFixed(2)));
+    fitWidthActiveRef.current = true;
+    applyFitWidth();
   };
 
   const handleFitPage = () => {
     if (!scrollContainerRef.current) return;
+    fitWidthActiveRef.current = false;
     const containerHeight = scrollContainerRef.current.clientHeight - 80;
     // Standart A4 yüksekliği (842 pt) bazlı deterministik oran
     const targetScale = Math.min(Math.max(containerHeight / 842, 0.4), 4.0);
@@ -288,7 +313,7 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
   const currentMatch = searchResult.matches[currentMatchIndex];
 
   return (
-    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 overflow-hidden select-none">
+    <div className="flex h-full w-full flex-col overflow-hidden select-none bg-background text-foreground">
       {/* 1. PDF Studio Toolbar */}
       <PdfViewerToolbar
         numPages={numPages}
@@ -300,9 +325,9 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onPageChange={scrollToPage}
         onSetHandTool={setIsHandTool}
-        onZoomIn={() => setScale((s) => Math.min(s + 0.2, 5.0))}
-        onZoomOut={() => setScale((s) => Math.max(s - 0.2, 0.25))}
-        onZoom100={() => setScale(1.0)}
+        onZoomIn={() => { fitWidthActiveRef.current = false; setScale((s) => Math.min(s + 0.2, 5.0)); }}
+        onZoomOut={() => { fitWidthActiveRef.current = false; setScale((s) => Math.max(s - 0.2, 0.25)); }}
+        onZoom100={() => { fitWidthActiveRef.current = false; setScale(1.0); }}
         onFitWidth={handleFitWidth}
         onFitPage={handleFitPage}
         onRotateView={() => setRotation((r) => (r + 90) % 360)}
@@ -363,7 +388,7 @@ export function PdfJsStudio({ accessUrl, displayName }: PdfJsStudioProps) {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className={`flex-1 overflow-auto p-4 sm:p-8 bg-zinc-900/60 ${
+            className={`flex-1 overflow-auto bg-muted/50 p-4 sm:p-8 dark:bg-zinc-900/60 ${
               isHandTool
                 ? isDragging
                   ? "cursor-grabbing"

@@ -83,20 +83,20 @@ function ThumbnailItem({
       className={`group flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer transition-all ${
         isActive
           ? "bg-amber-500/15 border-2 border-amber-500 shadow-md shadow-amber-500/10"
-          : "hover:bg-zinc-800/80 border-2 border-transparent"
+          : "border-2 border-transparent hover:bg-muted"
       }`}
     >
-      <div className="relative flex items-center justify-center min-h-[100px] w-full rounded bg-zinc-900 overflow-hidden border border-zinc-800">
+      <div className="relative flex min-h-[100px] w-full items-center justify-center overflow-hidden rounded border border-border bg-muted">
         <canvas ref={canvasRef} className="block mx-auto max-w-full" />
         {!rendered && (
-          <div className="absolute inset-0 flex items-center justify-center text-zinc-600">
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
             <FileText className="h-6 w-6 opacity-30" />
           </div>
         )}
       </div>
       <span
         className={`text-[11px] font-mono font-medium ${
-          isActive ? "text-amber-400 font-bold" : "text-zinc-400 group-hover:text-zinc-200"
+          isActive ? "font-bold text-amber-500" : "text-muted-foreground group-hover:text-foreground"
         }`}
       >
         Sayfa {pageNumber}
@@ -116,11 +116,11 @@ export function PdfThumbnailSidebar({
   if (!isOpen) return null;
 
   return (
-    <aside className="relative flex w-56 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950/95 backdrop-blur-md z-20 select-none">
-      <div className="flex h-11 items-center justify-between border-b border-zinc-800 px-3">
+    <aside className="relative z-20 flex w-56 shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur-md select-none">
+      <div className="flex h-11 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-bold text-zinc-200">Sayfalar ({numPages})</span>
+          <span className="text-xs font-bold text-foreground">Sayfalar ({numPages})</span>
         </div>
       </div>
 

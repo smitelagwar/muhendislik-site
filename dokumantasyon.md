@@ -387,6 +387,34 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
 - **Format Stüdyoları & XSS Güvenliği:** Image Studio (Zoom, 90° Rotate, Flip, Transparency Checkerboard), Metin/JSON/CSV (Satır numaraları, CSV tablo modu, JSON biçimlendirme) ve Markdown (`skipHtml={true}` XSS koruması) eksiksiz doğrulandı.
 - **Doğrulama:** `scripts/check-dokumantasyon-studio-stage3-v3.mjs`, `scripts/check-dokumantasyon-studio-all.mjs` ve tüm modül testleri %100 PASS ile tamamlandı.
 
+---
+
+## 21. Production Auth ve Document Studio Kabuğu — Aşama 1 Ek Güvence (19.08.2026)
+
+### 21.1 Production Auth Configuration
+
+- **Doğrulanmış canlı kök neden:** Vercel Function logu, giriş isteğinin `RATE_LIMIT_SALT ortam değişkeni tanımlanmamış` istisnasıyla rate-limit IP fingerprint aşamasında kesildiğini gösterdi. Bu nedenle görünen generic 500, yanlış kullanıcı adı/şifre sonucu değildir.
+- **Fail-closed validator:** `src/lib/dokumantasyon/auth-config.ts`, Production/Vercel ortamında `ADMIN_USERNAME`, geçerli bcrypt `ADMIN_PASSWORD_HASH`, en az 32 UTF-8 byte `SESSION_SECRET` ve `RATE_LIMIT_SALT`, ayrıca pozitif `ADMIN_SESSION_VERSION` ister. Kaynak koddaki geliştirme fallback'leri Production'da kullanılamaz.
+- **Güvenli hata davranışı:** `POST /api/dokumantasyon/giris`, config hatalarını yalnızca `DOK_AUTH_CONFIG_*` koduyla server loguna yazar ve istemciye secret içermeyen 503 yanıtı döner. Beklenmeyen hatalar generic 500 olarak kalır.
+- **Operasyonel zorunluluk:** Vercel Production environment'a benzersiz, 32+ byte rastgele `RATE_LIMIT_SALT` eklenmeli; değişiklikten sonra yeni Production deployment yapılmalıdır. Ardından login, secure HttpOnly cookie, refresh, logout ve tekrar login smoke testi canlıda uygulanmalıdır.
+
+### 21.2 Studio Theme ve Fit-Width Sözleşmesi
+
+- Studio topbar mevcut global `ModeToggle` bileşenini kullanır; ikinci bir ThemeProvider yoktur. Yeni sekme mevcut tema tercihini paylaşır ve tercih yenilemede korunur.
+- PDF çalışma alanı toolbar/thumbnail yüzeylerinde semantic light/dark renkleri kullanır; PDF canvas ve text layer'a tema kaynaklı invert/filter uygulanmaz.
+- İlk PDF sayfasının gerçek genişliği, scroll viewport mount edildikten sonra ölçülür. Aktif Fit Width modu `ResizeObserver` ile viewport değişiminde korunur; kullanıcı manuel zoom yaptığında otomatik yeniden ölçekleme devre dışı kalır.
+
+### 21.3 Aşama 1 Kanıtı
+
+| Test | Sonuç |
+| :--- | :---: |
+| `npm run check:dokumantasyon:auth` | **PASS** — eksik/placeholder/bozuk bcrypt/kısa secret/geçersiz version matrisi |
+| `npm run check:dokumantasyon` | **PASS** (14/14) |
+| `npm run check:document-studio:stage1-v3` | **PASS** (5/5) |
+| `npm run check:document-studio:e2e` | **PASS** — Chromium: new tab, tema mirası/persistence, viewport, toolbar, canvas pixel değişmezliği |
+| `npx tsc --noEmit` ve `npm run build` | **PASS** |
+
+**Bilinen dış bağımlılık:** Vercel Production env değişikliği, redeploy ve canlı smoke hâlâ deployment erişimi gerektirir; source code bu adımı otomatik gerçekleştirmez.
 
 
 

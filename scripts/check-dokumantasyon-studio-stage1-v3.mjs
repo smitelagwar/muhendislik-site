@@ -124,7 +124,8 @@ async function runStage1Tests() {
 
   assert(
     studioViewerContent.includes("getViewport({ scale: 1.0 })") &&
-    studioViewerContent.includes("computedScale"),
+    studioViewerContent.includes("firstPageWidth") &&
+    studioViewerContent.includes("ResizeObserver"),
     "pdfjs-studio.tsx açılışta sayfa genişliğini hesaplayarak dinamik fit-width ölçeklemesi yapmalıdır."
   );
 
@@ -134,6 +135,34 @@ async function runStage1Tests() {
     "pdfjs-studio.tsx handleFitWidth ve handleFitPage fonksiyonlarını barındırmalıdır."
   );
   logSuccess("PDF dinamik fit-width ve başlangıç ölçeklemesi doğrulandı.");
+
+  // -------------------------------------------------------------------
+  // TEST 5: Production auth fail-closed and studio theme contract
+  // -------------------------------------------------------------------
+  logStep("TEST 5: Production Auth ve Theme Sözleşmesi");
+
+  const authConfigPath = path.join(ROOT, "src/lib/dokumantasyon/auth-config.ts");
+  const authPath = path.join(ROOT, "src/lib/dokumantasyon/auth.ts");
+  const loginRoutePath = path.join(ROOT, "src/app/api/dokumantasyon/giris/route.ts");
+  const fileManagerPath = path.join(ROOT, "src/components/dokumantasyon/file-manager.tsx");
+  const envExamplePath = path.join(ROOT, ".env.example");
+
+  const authConfig = fs.readFileSync(authConfigPath, "utf-8");
+  const auth = fs.readFileSync(authPath, "utf-8");
+  const loginRoute = fs.readFileSync(loginRoutePath, "utf-8");
+  const fileManager = fs.readFileSync(fileManagerPath, "utf-8");
+  const envExample = fs.readFileSync(envExamplePath, "utf-8");
+
+  for (const key of ["ADMIN_USERNAME", "ADMIN_PASSWORD_HASH", "SESSION_SECRET", "RATE_LIMIT_SALT", "ADMIN_SESSION_VERSION"]) {
+    assert(authConfig.includes(key), `auth-config.ts ${key} gereksinimini doğrulamalıdır.`);
+  }
+  assert(!auth.includes("process.env.ADMIN_USERNAME ||"), "Production admin fallback'i auth.ts içinde bulunmamalıdır.");
+  assert(loginRoute.includes("validateDokAuthConfig") && loginRoute.includes("status: 503"), "Login route config hatasını 503 ile yanıtlamalıdır.");
+  assert(envExample.includes("CHANGE_ME_VALID_BCRYPT_HASH"), ".env.example gerçek bcrypt hash içermemelidir.");
+  assert(fileManager.includes('target="_blank"') && fileManager.includes('rel="noopener noreferrer"'), "Dosyalar gerçek new-tab anchor ile açılmalıdır.");
+  assert(topbarContent.includes("ModeToggle"), "Studio topbar global ModeToggle bileşenini kullanmalıdır.");
+  assert(studioViewerContent.includes("bg-background") && !studioViewerContent.includes("filter: invert"), "PDF çalışma alanı theme-aware olmalı; PDF içeriği invert edilmemelidir.");
+  logSuccess("Production auth, new-tab ve studio theme sözleşmeleri doğrulandı.");
 
   console.log("\n======================================================================");
   console.log("AŞAMA 1/3 TEST SONUCU: TÜM ACİL DÜZELTME VE VIEWPORT TESTLERİ %100 BAŞARILI!");

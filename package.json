@@ -29,6 +29,7 @@
     "check:insaat-maliyeti-pdf": "tsx scripts/check-insaat-maliyeti-pdf.mjs",
     "check:insaat-maliyeti-full": "npm run build && npm run check:insaat-maliyeti && npm run check:insaat-maliyeti-pdf",
     "check:dokumantasyon": "node scripts/check-dokumantasyon.mjs",
+    "check:dokumantasyon:auth": "tsx scripts/check-dokumantasyon-auth-config.ts",
     "check:dokumantasyon:audit": "node scripts/poc-stage1-audit-and-data-plane.mjs",
     "check:dokumantasyon:stage2": "tsx scripts/check-dokumantasyon-stage2.mjs",
     "check:dokumantasyon:stage3": "node scripts/check-dokumantasyon-stage3.mjs",
@@ -48,6 +49,7 @@
     "check:document-studio:stage5": "tsx scripts/check-dokumantasyon-studio-stage5.mjs",
     "check:document-studio:stage6": "tsx scripts/check-dokumantasyon-studio-stage6.mjs",
     "check:document-studio:all": "tsx scripts/check-dokumantasyon-studio-all.mjs",
+    "check:document-studio:e2e": "playwright test --config=playwright.config.ts",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
   },
@@ -84,6 +86,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/d3": "^7.4.3",
