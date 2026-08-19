@@ -41,6 +41,15 @@ export function isExplicitLocalDokMode(): boolean {
   );
 }
 
+export function hasDatabaseUrl(): boolean {
+  return Boolean(
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL_NON_POOLING
+  );
+}
+
 /**
  * Kalıcı depolama gerektiren route veya fonksiyonlarda fail-closed çalışma zamanı denetimi yapar
  */
@@ -49,7 +58,7 @@ export function assertDurableDokumantasyonRuntime(requireBlob: boolean = false):
     return;
   }
 
-  if (!process.env.DATABASE_URL) {
+  if (!hasDatabaseUrl()) {
     throw new DokRuntimeConfigError("DATABASE_NOT_CONFIGURED");
   }
 
