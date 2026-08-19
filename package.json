@@ -40,6 +40,12 @@
     "check:dokumantasyon:persistence": "tsx scripts/check-dokumantasyon-persistence-rules.mjs",
     "check:dokumantasyon:readiness": "node scripts/check-dokumantasyon-production-readiness.mjs",
     "check:dokumantasyon:all": "node scripts/check-dokumantasyon-all-stages.mjs",
+    "check:document-studio:stage2": "tsx scripts/check-dokumantasyon-studio-stage2.mjs",
+    "check:document-studio:stage3": "tsx scripts/check-dokumantasyon-studio-stage3.mjs",
+    "check:document-studio:stage4": "tsx scripts/check-dokumantasyon-studio-stage4.mjs",
+    "check:document-studio:stage5": "tsx scripts/check-dokumantasyon-studio-stage5.mjs",
+    "check:document-studio:stage6": "tsx scripts/check-dokumantasyon-studio-stage6.mjs",
+    "check:document-studio:all": "tsx scripts/check-dokumantasyon-studio-all.mjs",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
   },

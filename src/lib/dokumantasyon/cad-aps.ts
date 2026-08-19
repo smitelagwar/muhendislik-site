@@ -127,6 +127,7 @@ export async function getApsViewerToken(): Promise<string | null> {
 
 /**
  * Bir DWG/DXF dosyasının CAD önizleme durumunu çözümler
+ * Güvenlik ve Doğruluk Kuralı: Sahte/uydurma URN veya mock katmanlar kesinlikle yasaktır.
  */
 export async function resolveCadPreviewStatus(fileId: string, extension: string): Promise<CadPreviewStatus> {
   const provider = getCadProvider();
@@ -140,13 +141,13 @@ export async function resolveCadPreviewStatus(fileId: string, extension: string)
     };
   }
 
-  if (provider === "mock" || !isApsConfigured()) {
+  if (!isApsConfigured()) {
     return {
-      provider: "mock",
-      isAvailable: true,
-      status: "ready",
-      urn: Buffer.from(`urn:adsk.objects:os.object:dok_cad_bucket/${fileId}${extension}`).toString("base64url"),
-      viewerToken: "mock_aps_client_token_for_cad_viewer",
+      provider: "aps",
+      isAvailable: false,
+      status: "unconfigured",
+      errorMessage:
+        "Autodesk Platform Services (APS) API anahtarları (APS_CLIENT_ID ve APS_CLIENT_SECRET) yapılandırılmamış. DWG dosyası güvenli bir şekilde saklandı ve doğrudan indirilerek incelenebilir.",
     };
   }
 
@@ -157,7 +158,7 @@ export async function resolveCadPreviewStatus(fileId: string, extension: string)
       provider: "aps",
       isAvailable: false,
       status: "failed",
-      errorMessage: "Autodesk Platform Services ile bağlantı kurulamadı.",
+      errorMessage: "Autodesk Platform Services (APS) kimlik doğrulama sunucusu ile bağlantı kurulamadı.",
     };
   }
 

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Folder,
   FolderPlus,
@@ -849,8 +850,7 @@ export function DokumantasyonFileManager() {
                   return (
                     <div
                       key={file.id}
-                      onClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
-                      className={`grid grid-cols-12 items-center px-4 py-3 text-sm transition-colors cursor-pointer ${
+                      className={`grid grid-cols-12 items-center px-4 py-3 text-sm transition-colors ${
                         isSelected ? "bg-amber-500/10" : "hover:bg-secondary/60"
                       }`}
                     >
@@ -858,6 +858,7 @@ export function DokumantasyonFileManager() {
                         <button
                           onClick={(e) => handleToggleSelect(file.id, e)}
                           className="text-muted-foreground hover:text-foreground shrink-0"
+                          aria-label="Dosya Seç"
                         >
                           {isSelected ? (
                             <CheckSquare className="h-4 w-4 text-amber-500" />
@@ -869,17 +870,24 @@ export function DokumantasyonFileManager() {
                         <button
                           onClick={(e) => toggleStar(file.id, e)}
                           className="text-muted-foreground hover:text-amber-400 shrink-0"
+                          aria-label="Yıldızla"
                         >
                           <Star
                             className={`h-4 w-4 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`}
                           />
                         </button>
 
-                        <span className="shrink-0">{getFileIcon(file.extension)}</span>
-
-                        <span className="font-medium text-foreground truncate max-w-[200px] sm:max-w-xs hover:text-amber-500">
-                          {file.display_name}
-                        </span>
+                        <Link
+                          href={`/dokumantasyon/dosya/${file.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 min-w-0 flex-1 group/link"
+                        >
+                          <span className="shrink-0">{getFileIcon(file.extension)}</span>
+                          <span className="font-medium text-foreground truncate max-w-[200px] sm:max-w-xs group-hover/link:text-amber-500 group-hover/link:underline">
+                            {file.display_name}
+                          </span>
+                        </Link>
                       </div>
 
                       <div className="hidden sm:col-span-2 sm:block text-xs font-mono text-muted-foreground">
@@ -896,30 +904,33 @@ export function DokumantasyonFileManager() {
                             <button
                               onClick={(e) => e.stopPropagation()}
                               className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                              aria-label="Dosya İşlemleri"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48 bg-card border-border shadow-xl">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/dokumantasyon/dosya/${file.id}`);
-                              }}
-                              className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 focus:text-amber-500"
-                            >
-                              <Eye className="h-3.5 w-3.5 text-amber-500" />
-                              <span>Önizle</span>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/dokumantasyon/dosya/${file.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 focus:text-amber-500"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-amber-500" />
+                                <span>Önizle</span>
+                              </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(`/dokumantasyon/dosya/${file.id}`, "_blank");
-                              }}
-                              className="flex items-center gap-2 cursor-pointer text-xs"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span>Yeni Sekmede Aç</span>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/dokumantasyon/dosya/${file.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 cursor-pointer text-xs"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span>Yeni Sekmede Aç</span>
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) => {
@@ -1034,27 +1045,39 @@ export function DokumantasyonFileManager() {
                       return (
                         <div
                           key={file.id}
-                          onClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
-                          className={`group relative flex flex-col justify-between rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md ${
+                          className={`group relative flex flex-col justify-between rounded-xl border p-3 transition-all hover:shadow-md ${
                             isSelected
                               ? "border-amber-500 bg-amber-500/10"
                               : "border-border bg-card hover:border-border/80 hover:bg-secondary/40"
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="shrink-0">{getFileIcon(file.extension)}</span>
+                            <Link
+                              href={`/dokumantasyon/dosya/${file.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0"
+                            >
+                              {getFileIcon(file.extension)}
+                            </Link>
                             <button
                               onClick={(e) => toggleStar(file.id, e)}
                               className="text-muted-foreground hover:text-amber-400"
+                              aria-label="Yıldızla"
                             >
                               <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`} />
                             </button>
                           </div>
 
                           <div className="mt-3 space-y-1">
-                            <span className="text-xs font-bold text-foreground truncate block group-hover:text-amber-500">
+                            <Link
+                              href={`/dokumantasyon/dosya/${file.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-bold text-foreground truncate block hover:text-amber-500 hover:underline"
+                            >
                               {file.display_name}
-                            </span>
+                            </Link>
                             <span className="text-[10px] font-mono text-muted-foreground block">
                               {formatBytes(Number(file.size_bytes))}
                             </span>
@@ -1075,7 +1098,7 @@ export function DokumantasyonFileManager() {
         <DriveDetailsDrawer
           selectedItem={selectedItemForDrawer}
           onClose={() => setIsDetailsOpen(false)}
-          onPreview={(fileId) => router.push(`/dokumantasyon/dosya/${fileId}`)}
+          onPreview={(fileId) => window.open(`/dokumantasyon/dosya/${fileId}`, "_blank", "noopener,noreferrer")}
           onShare={(item) => handleOpenShareSingle(item)}
           onRename={(item) => setRenameItem({ ...item, type: item.type })}
           onDelete={(item) => setDeleteItem({ ...item, type: item.type })}

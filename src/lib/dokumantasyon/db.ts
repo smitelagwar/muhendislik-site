@@ -9,7 +9,7 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
-export const LATEST_REQUIRED_SCHEMA_VERSION = "002";
+export const LATEST_REQUIRED_SCHEMA_VERSION = "003";
 
 export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
   try {
@@ -159,10 +159,34 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_upload_intents_status ON dok_upload_intents(status);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_upload_intents_expires ON dok_upload_intents(expires_at);`;
 
+    // 3. Migration 003: Versiyonlama ve Snapshot Bütünlüğü
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_file_versions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        file_id UUID NOT NULL REFERENCES dok_files(id) ON DELETE CASCADE,
+        version_number INT NOT NULL,
+        blob_pathname VARCHAR(1024) NOT NULL,
+        blob_url VARCHAR(2048) NOT NULL,
+        size_bytes BIGINT NOT NULL,
+        mime_type VARCHAR(255) NOT NULL,
+        sha256_hash VARCHAR(64) NULL,
+        comment VARCHAR(512) NULL,
+        created_by VARCHAR(128) NOT NULL DEFAULT 'admin',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT uq_dok_file_versions_number UNIQUE (file_id, version_number)
+      );
+    `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_file_versions_file_id ON dok_file_versions(file_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_file_versions_created_at ON dok_file_versions(created_at);`;
+
+    await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS current_version_number INT NOT NULL DEFAULT 1;`;
+    await sql`ALTER TABLE dok_share_items ADD COLUMN IF NOT EXISTS file_version_id UUID NULL REFERENCES dok_file_versions(id) ON DELETE SET NULL;`;
+
     // Sürümleri kaydet
     await sql`
       INSERT INTO dok_schema_migrations (version, applied_at)
-      VALUES ('001', NOW()), ('002', NOW())
+      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW())
       ON CONFLICT (version) DO NOTHING;
     `;
 

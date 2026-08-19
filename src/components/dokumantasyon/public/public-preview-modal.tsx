@@ -34,11 +34,12 @@ export function PublicPreviewModal({
 
   const ext = item.file_extension || `.${item.snapshot_name.split(".").pop()?.toLowerCase()}`;
   const previewKind = getPreviewKind(ext);
-  const accessUrl = `/api/dokumantasyon/public/download/${rawToken}/${item.id}`;
+  const accessUrl = `/api/dokumantasyon/public/download/${rawToken}/${item.id}?inline=1`;
+  const downloadUrl = `/api/dokumantasyon/public/download/${rawToken}/${item.id}`;
 
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href = accessUrl;
+    link.href = downloadUrl;
     link.download = item.snapshot_name;
     document.body.appendChild(link);
     link.click();

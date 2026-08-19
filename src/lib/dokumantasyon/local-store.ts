@@ -5,13 +5,14 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { DokFile, DokFolder, DokShareItem, DokShareLink } from "./types";
+import { DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
 
 import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
 interface LocalDatabaseState {
   folders: DokFolder[];
   files: DokFile[];
+  file_versions?: DokFileVersion[];
   shares: DokShareLink[];
   share_items: DokShareItem[];
 }

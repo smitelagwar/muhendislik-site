@@ -1,10 +1,7 @@
-// ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — SAĞ DETAY VE METADATA ÇEKMECESİ (DETAILS DRAWER)
-// ============================================================================
-
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   X,
   Eye,
@@ -93,14 +90,20 @@ export function DriveDetailsDrawer({
 
       {/* 3. Hızlı Eylem Butonları */}
       <div className="grid grid-cols-2 gap-2 border-b border-border/60 pb-4">
-        {isFile && onPreview && (
+        {isFile && (
           <Button
+            asChild
             size="sm"
-            onClick={() => onPreview(file!.id)}
             className="col-span-2 gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
           >
-            <Eye className="h-3.5 w-3.5" />
-            <span>Önizle</span>
+            <Link
+              href={`/dokumantasyon/dosya/${file!.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Önizle (Yeni Sekme)</span>
+            </Link>
           </Button>
         )}
 

@@ -2,7 +2,7 @@
 // DÖKÜMANTASYON MODÜLÜ — PAYLAŞIM LİNKİ VERİ KATMANI (WITH LOCAL FALLBACK)
 // ============================================================================
 
-import { getDb } from "./db";
+import { getDb, ensureDatabaseTables } from "./db";
 import { DokFile, DokFolder, DokShareLink, DokShareItem } from "./types";
 import {
   generateRawToken,
@@ -183,10 +183,36 @@ export async function createShareLink(options: {
       const size = Number(file.size_bytes);
       totalSizeBytes += size;
 
+      // Versiyon snapshot tespiti (Eğer henüz v1 yoksa otomatik oluştur)
+      if (!db.file_versions) db.file_versions = [];
+      let latestV = db.file_versions
+        .filter((v) => v.file_id === file.id)
+        .sort((a, b) => b.version_number - a.version_number)[0];
+
+      if (!latestV) {
+        latestV = {
+          id: crypto.randomUUID(),
+          file_id: file.id,
+          version_number: 1,
+          blob_pathname: file.blob_pathname,
+          blob_url: file.blob_url,
+          size_bytes: file.size_bytes,
+          mime_type: file.mime_type,
+          sha256_hash: null,
+          comment: "Orijinal yükleme",
+          created_by: "admin",
+          created_at: file.created_at || new Date().toISOString(),
+        };
+        db.file_versions.push(latestV);
+      }
+
+      const fileVersionId = latestV.id;
+
       const item: DokShareItem = {
         id: crypto.randomUUID(),
         share_link_id: linkId,
         file_id: file.id,
+        file_version_id: fileVersionId,
         snapshot_name: file.display_name,
         relative_path: relativePath,
         snapshot_size_bytes: size,
@@ -198,6 +224,7 @@ export async function createShareLink(options: {
     writeLocalDb(db);
   } else {
     const sql = getDb();
+    await ensureDatabaseTables(sql);
 
     // 4. Share Link DB Kaydı
     const linkRows = await sql`
@@ -221,16 +248,34 @@ export async function createShareLink(options: {
 
     shareLink = linkRows[0] as DokShareLink;
 
-    // 5. Snapshot Item Kayıtları
+    // 5. Snapshot Item Kayıtları (file_version_id ile versiyon kilitleme)
     for (let i = 0; i < resolvedFiles.length; i++) {
       const { file, relativePath } = resolvedFiles[i];
       const size = Number(file.size_bytes);
       totalSizeBytes += size;
 
+      // En son versiyonu al veya v1 üret
+      const versionRows = await sql`
+        SELECT id FROM dok_file_versions WHERE file_id = ${file.id} ORDER BY version_number DESC LIMIT 1;
+      `;
+      let fileVersionId: string | null = versionRows[0]?.id || null;
+
+      if (!fileVersionId) {
+        fileVersionId = crypto.randomUUID();
+        await sql`
+          INSERT INTO dok_file_versions (
+            id, file_id, version_number, blob_pathname, blob_url, size_bytes, mime_type, comment, created_by, created_at
+          ) VALUES (
+            ${fileVersionId}, ${file.id}, 1, ${file.blob_pathname}, ${file.blob_url}, ${file.size_bytes}, ${file.mime_type}, 'Orijinal yükleme', 'admin', ${file.created_at}
+          ) ON CONFLICT (file_id, version_number) DO NOTHING;
+        `;
+      }
+
       await sql`
         INSERT INTO dok_share_items (
           share_link_id,
           file_id,
+          file_version_id,
           snapshot_name,
           relative_path,
           snapshot_size_bytes,
@@ -239,6 +284,7 @@ export async function createShareLink(options: {
         ) VALUES (
           ${shareLink.id},
           ${file.id},
+          ${fileVersionId},
           ${file.display_name},
           ${relativePath},
           ${size},

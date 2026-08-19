@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — GÜVENLİ METİN, KOD, JSON VE CSV GÖRÜNTÜLEYİCİ
+// DÖKÜMANTASYON MODÜLÜ — GÜVENLİ METİN, KOD, JSON VE CSV GÖRÜNTÜLEYİCİ / EDİTÖR
 // ============================================================================
 
 "use client";
@@ -15,27 +15,35 @@ import {
   AlertCircle,
   WrapText,
   AlignLeft,
+  Edit3,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { StudioCommandButton } from "../studio/studio-command-button";
 
 interface DokTextViewerProps {
   accessUrl: string;
   displayName: string;
   extension: string;
+  onContentChange?: (newContent: string) => void;
 }
 
-export function DokTextViewer({ accessUrl, displayName, extension }: DokTextViewerProps) {
+export function DokTextViewer({
+  accessUrl,
+  displayName,
+  extension,
+  onContentChange,
+}: DokTextViewerProps) {
   const [rawText, setRawText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [wrapLines, setWrapLines] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<"text" | "table" | "formatted_json">(
     extension === ".csv" ? "table" : extension === ".json" ? "formatted_json" : "text"
   );
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const isJson = extension === ".json";
   const isCsv = extension === ".csv";
@@ -79,6 +87,11 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
     }
   };
 
+  const handleTextEditChange = (newVal: string) => {
+    setRawText(newVal);
+    onContentChange?.(newVal);
+  };
+
   // 3. JSON Biçimlendirme
   const formattedJsonText = useMemo(() => {
     if (!isJson || !rawText) return rawText;
@@ -90,14 +103,13 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
     }
   }, [isJson, rawText]);
 
-  // 4. CSV Ayrıştırma (Basit ve Güvenli Tablo Ayrıştırıcı)
+  // 4. CSV Ayrıştırma
   const csvData = useMemo(() => {
     if (!isCsv || !rawText) return { headers: [], rows: [] };
 
     const lines = rawText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     if (lines.length === 0) return { headers: [], rows: [] };
 
-    // Delimiter tespiti (virgül veya noktalı virgül)
     const firstLine = lines[0];
     const delimiter = firstLine.includes(";") ? ";" : ",";
 
@@ -128,7 +140,7 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
   }, [isCsv, rawText]);
 
   // 5. Gösterilecek Satırlar
-  const activeContent = isJson && viewMode === "formatted_json" ? formattedJsonText : rawText;
+  const activeContent = isJson && viewMode === "formatted_json" && !isEditing ? formattedJsonText : rawText;
   const lines = useMemo(() => activeContent.split(/\r?\n/), [activeContent]);
 
   const stats = useMemo(() => {
@@ -138,12 +150,28 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
   }, [activeContent, lines]);
 
   return (
-    <div className="flex h-full min-h-[550px] w-full flex-col bg-zinc-950 text-zinc-100 font-mono text-xs">
+    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 font-mono text-xs select-none">
       {/* Üst Araç Çubuğu */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 backdrop-blur-md">
-        {/* Sol Alan: Mod Seçimi ve Arama */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 backdrop-blur-md z-30">
+        {/* Sol Alan: Mod Seçimi ve Düzenleme Toggle */}
         <div className="flex items-center gap-2">
-          {isCsv && (
+          {onContentChange && (
+            <Button
+              size="sm"
+              variant={isEditing ? "default" : "outline"}
+              onClick={() => setIsEditing((e) => !e)}
+              className={`h-7 gap-1.5 px-2.5 text-[11px] font-semibold border-zinc-700 ${
+                isEditing
+                  ? "bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400"
+                  : "text-zinc-300 hover:bg-zinc-800"
+              }`}
+            >
+              {isEditing ? <Eye className="h-3.5 w-3.5" /> : <Edit3 className="h-3.5 w-3.5 text-amber-400" />}
+              <span>{isEditing ? "Önizlemeye Dön" : "Metni Düzenle"}</span>
+            </Button>
+          )}
+
+          {isCsv && !isEditing && (
             <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
               <Button
                 size="sm"
@@ -164,24 +192,25 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
                   viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
                 }`}
               >
-                <AlignLeft className="h-3.5 w-3.5" />
+                <FileCode className="h-3.5 w-3.5" />
                 <span>Ham Metin</span>
               </Button>
             </div>
           )}
 
-          {isJson && (
+          {isJson && !isEditing && (
             <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setViewMode("formatted_json")}
                 className={`h-7 gap-1.5 px-2.5 text-[11px] font-medium ${
-                  viewMode === "formatted_json" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                  viewMode === "formatted_json"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "text-zinc-400 hover:text-zinc-100"
                 }`}
               >
-                <FileCode className="h-3.5 w-3.5" />
-                <span>Biçimlendirilmiş</span>
+                <span>Biçimlendirilmiş JSON</span>
               </Button>
               <Button
                 size="sm"
@@ -191,98 +220,95 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
                   viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
                 }`}
               >
-                <AlignLeft className="h-3.5 w-3.5" />
                 <span>Ham JSON</span>
               </Button>
             </div>
           )}
 
-          <div className="hidden sm:flex items-center gap-2 text-[11px] text-zinc-400">
+          {/* İstatistik Rozeti */}
+          <div className="hidden md:flex items-center gap-3 text-[11px] text-zinc-400 pl-2">
             <span>{stats.linesCount} satır</span>
-            <span>•</span>
             <span>{stats.words} kelime</span>
-            <span>•</span>
             <span>{stats.chars} karakter</span>
           </div>
         </div>
 
         {/* Sağ Alan: Satır Kaydırma ve Kopyalama */}
         <div className="flex items-center gap-2">
-          {viewMode !== "table" && (
-            <Button
-              size="sm"
-              variant="ghost"
+          {!isEditing && viewMode !== "table" && (
+            <StudioCommandButton
+              commandId="text.wrap"
               onClick={() => setWrapLines((w) => !w)}
-              className={`h-7 gap-1.5 px-2 text-[11px] ${wrapLines ? "bg-amber-500/20 text-amber-400" : "text-zinc-400 hover:text-zinc-100"}`}
-              title="Satır Kaydırmayı Aç/Kapat"
-            >
-              <WrapText className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Kaydır</span>
-            </Button>
+              active={wrapLines}
+              showLabel={false}
+              className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+              icon={wrapLines ? <WrapText className="h-3.5 w-3.5" /> : <AlignLeft className="h-3.5 w-3.5" />}
+            />
           )}
 
-          <Button
-            size="sm"
+          <StudioCommandButton
+            commandId="text.copy"
             onClick={handleCopy}
             disabled={loading || !rawText}
             className="h-7 gap-1.5 bg-amber-500 px-3 text-[11px] font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                <span>Kopyalandı</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>Tümünü Kopyala</span>
-              </>
-            )}
-          </Button>
+            icon={copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            label={copied ? "Kopyalandı" : "Tümünü Kopyala"}
+          />
         </div>
       </div>
 
-      {/* Ana İçerik Alanı */}
-      <div className="relative flex-1 overflow-auto bg-zinc-950 p-4">
+      {/* Ana Metin / Tablo / Düzenleyici Alanı */}
+      <div className="relative flex-1 overflow-auto bg-zinc-950 select-text">
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mb-3" />
+            <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
             <span className="text-sm font-medium">Metin yükleniyor...</span>
           </div>
         )}
 
         {error && (
-          <div className="mx-auto max-w-md rounded-xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl">
-            <AlertCircle className="mx-auto h-8 w-8 text-red-500 mb-2" />
-            <h3 className="text-sm font-bold text-red-300">Yüklenemedi</h3>
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl backdrop-blur-md mt-10">
+            <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
+            <h3 className="text-sm font-bold text-red-300">Yükleme Hatası</h3>
             <p className="mt-1 text-xs text-zinc-400">{error}</p>
           </div>
         )}
 
-        {!loading && !error && viewMode === "table" && isCsv && (
-          <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/40">
-            <table className="w-full text-left text-xs border-collapse">
+        {!loading && !error && isEditing && (
+          <div className="flex h-full w-full p-4">
+            <textarea
+              value={rawText}
+              onChange={(e) => handleTextEditChange(e.target.value)}
+              className="h-full w-full resize-none border-0 bg-transparent p-0 font-mono text-xs leading-6 text-zinc-100 focus:outline-none focus:ring-0 select-text"
+              placeholder="Metni düzenleyin..."
+              spellCheck={false}
+            />
+          </div>
+        )}
+
+        {!loading && !error && !isEditing && viewMode === "table" && isCsv && (
+          <div className="p-4 overflow-auto">
+            <table className="w-full border-collapse text-left text-xs text-zinc-300">
               <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/90 text-amber-400 font-bold">
-                  <th className="px-3 py-2 text-center text-zinc-600 w-12">#</th>
+                <tr className="border-b border-zinc-800 bg-zinc-900/80 sticky top-0">
+                  <th className="p-2 text-[10px] font-bold text-zinc-500 w-12 text-center border-r border-zinc-800">
+                    #
+                  </th>
                   {csvData.headers.map((h, i) => (
-                    <th key={i} className="px-3 py-2 border-r border-zinc-800/60 last:border-r-0">
+                    <th key={i} className="p-2.5 font-bold text-amber-400 border-r border-zinc-800/60 last:border-0">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/40 font-sans">
+              <tbody className="divide-y divide-zinc-800/60">
                 {csvData.rows.map((row, rIdx) => (
-                  <tr key={rIdx} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-3 py-1.5 text-center text-zinc-500 font-mono text-[11px]">
+                  <tr key={rIdx} className="hover:bg-zinc-900/40 transition-colors">
+                    <td className="p-2 text-[10px] text-zinc-500 font-mono text-center border-r border-zinc-800 bg-zinc-950/40">
                       {rIdx + 1}
                     </td>
                     {row.map((cell, cIdx) => (
-                      <td
-                        key={cIdx}
-                        className="px-3 py-1.5 text-zinc-300 border-r border-zinc-800/40 last:border-r-0 max-w-xs truncate"
-                      >
+                      <td key={cIdx} className="p-2.5 border-r border-zinc-800/40 last:border-0 truncate max-w-xs">
                         {cell}
                       </td>
                     ))}
@@ -293,25 +319,25 @@ export function DokTextViewer({ accessUrl, displayName, extension }: DokTextView
           </div>
         )}
 
-        {!loading && !error && viewMode !== "table" && (
-          <div className="flex select-text font-mono text-xs leading-relaxed">
+        {!loading && !error && !isEditing && viewMode !== "table" && (
+          <div className="flex min-w-full p-4">
             {/* Satır Numaraları */}
-            <div className="shrink-0 select-none pr-4 text-right text-zinc-600 border-r border-zinc-800/80 mr-4 space-y-0.5">
-              {lines.map((_, idx) => (
-                <div key={idx} className="h-5 text-[11px]">
-                  {idx + 1}
-                </div>
+            <div className="flex flex-col pr-4 text-right text-zinc-600 select-none border-r border-zinc-800/80">
+              {lines.map((_, i) => (
+                <span key={i} className="leading-6 text-[11px] h-6">
+                  {i + 1}
+                </span>
               ))}
             </div>
 
             {/* Metin Satırları */}
             <div
-              className={`flex-1 text-zinc-300 space-y-0.5 ${
-                wrapLines ? "break-words whitespace-pre-wrap" : "whitespace-pre overflow-x-auto"
+              className={`flex-1 pl-4 text-zinc-300 leading-6 text-[11px] ${
+                wrapLines ? "whitespace-pre-wrap break-all" : "whitespace-pre overflow-x-auto"
               }`}
             >
-              {lines.map((line, idx) => (
-                <div key={idx} className="h-5">
+              {lines.map((line, i) => (
+                <div key={i} className="h-6">
                   {line || " "}
                 </div>
               ))}

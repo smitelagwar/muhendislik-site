@@ -1,13 +1,12 @@
 // ============================================================================
-// /dokumantasyon/dosya/[fileId] — DÖKÜMANTASYON DOSYA ÖNİZLEME SAYFASI
+// /dokumantasyon/dosya/[fileId] — DÖKÜMANTASYON DOCUMENT STUDIO SAYFASI
 // ============================================================================
 
 import { notFound } from "next/navigation";
 import { getAdminFileAccess } from "@/lib/dokumantasyon/file-access";
 import { getDokumantasyonSession } from "@/lib/dokumantasyon/auth";
 import { DokumantasyonLoginForm } from "@/components/dokumantasyon/login-form";
-import { DokumantasyonAdminShell } from "@/components/dokumantasyon/admin-shell";
-import { FilePreviewShell } from "@/components/dokumantasyon/preview/file-preview-shell";
+import { DocumentStudioShell } from "@/components/dokumantasyon/studio/document-studio-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -31,17 +30,13 @@ export default async function DokumantasyonFilePage({ params }: FilePageProps) {
     const accessData = await getAdminFileAccess(fileId);
 
     return (
-      <DokumantasyonAdminShell username={session.username}>
-        <div className="mx-auto w-full py-2">
-          <FilePreviewShell
-            file={accessData.file}
-            accessUrl={accessData.accessUrl}
-            previewKind={accessData.previewKind}
-            expiresAt={accessData.expiresAt}
-            isLocal={accessData.isLocal}
-          />
-        </div>
-      </DokumantasyonAdminShell>
+      <DocumentStudioShell
+        file={accessData.file}
+        accessUrl={accessData.accessUrl}
+        previewKind={accessData.previewKind}
+        expiresAt={accessData.expiresAt}
+        isLocal={accessData.isLocal}
+      />
     );
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
@@ -51,3 +46,4 @@ export default async function DokumantasyonFilePage({ params }: FilePageProps) {
     notFound();
   }
 }
+

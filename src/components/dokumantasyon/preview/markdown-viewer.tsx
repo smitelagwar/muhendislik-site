@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — GÜVENLİ MARKDOWN GÖRÜNTÜLEYİCİ (MARKDOWN VIEWER)
+// DÖKÜMANTASYON MODÜLÜ — GÜVENLİ MARKDOWN GÖRÜNTÜLEYİCİ / EDİTÖR (MARKDOWN STUDIO)
 // ============================================================================
 
 "use client";
@@ -15,20 +15,27 @@ import {
   Loader2,
   AlertCircle,
   BookOpen,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StudioCommandButton } from "../studio/studio-command-button";
 
 interface DokMarkdownViewerProps {
   accessUrl: string;
   displayName: string;
+  onContentChange?: (newContent: string) => void;
 }
 
-export function DokMarkdownViewer({ accessUrl, displayName }: DokMarkdownViewerProps) {
+export function DokMarkdownViewer({
+  accessUrl,
+  displayName,
+  onContentChange,
+}: DokMarkdownViewerProps) {
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [mode, setMode] = useState<"preview" | "raw">("preview");
+  const [mode, setMode] = useState<"preview" | "raw" | "edit">("preview");
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
@@ -68,10 +75,15 @@ export function DokMarkdownViewer({ accessUrl, displayName }: DokMarkdownViewerP
     }
   };
 
+  const handleContentChange = (newText: string) => {
+    setContent(newText);
+    onContentChange?.(newText);
+  };
+
   return (
-    <div className="flex h-full min-h-[550px] w-full flex-col bg-zinc-950 text-zinc-100">
+    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 select-none">
       {/* Üst Araç Çubuğu */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 text-xs backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 text-xs backdrop-blur-md z-30">
         {/* Sol Alan: Mod Geçişi */}
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
@@ -80,61 +92,84 @@ export function DokMarkdownViewer({ accessUrl, displayName }: DokMarkdownViewerP
               variant="ghost"
               onClick={() => setMode("preview")}
               className={`h-7 gap-1.5 px-3 text-[11px] font-medium ${
-                mode === "preview" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                mode === "preview"
+                  ? "bg-amber-500 text-zinc-950 font-bold"
+                  : "text-zinc-400 hover:text-zinc-100"
               }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span>Önizleme</span>
             </Button>
+
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setMode("raw")}
               className={`h-7 gap-1.5 px-3 text-[11px] font-medium ${
-                mode === "raw" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                mode === "raw"
+                  ? "bg-amber-500 text-zinc-950 font-bold"
+                  : "text-zinc-400 hover:text-zinc-100"
               }`}
             >
               <Code2 className="h-3.5 w-3.5" />
-              <span>Ham Kaynak (Raw)</span>
+              <span>Ham Kaynak</span>
             </Button>
+
+            {onContentChange && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setMode("edit")}
+                className={`h-7 gap-1.5 px-3 text-[11px] font-medium ${
+                  mode === "edit"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "text-zinc-400 hover:text-zinc-100"
+                }`}
+              >
+                <Edit3 className="h-3.5 w-3.5 text-amber-400" />
+                <span>Düzenle</span>
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Sağ Alan: Kopyala Butonu */}
-        <Button
-          size="sm"
+        <StudioCommandButton
+          commandId="text.copy"
           onClick={handleCopy}
           disabled={loading || !content}
           className="h-7 gap-1.5 bg-amber-500 px-3 text-[11px] font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              <span>Kopyalandı</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              <span>Tümünü Kopyala</span>
-            </>
-          )}
-        </Button>
+          icon={copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          label={copied ? "Kopyalandı" : "Tümünü Kopyala"}
+        />
       </div>
 
       {/* Ana İçerik Alanı */}
       <div className="relative flex-1 overflow-auto p-6 sm:p-10 select-text">
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mb-3" />
+            <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
             <span className="text-sm font-medium">Markdown yükleniyor...</span>
           </div>
         )}
 
         {error && (
-          <div className="mx-auto max-w-md rounded-xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl">
-            <AlertCircle className="mx-auto h-8 w-8 text-red-500 mb-2" />
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl backdrop-blur-md">
+            <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
             <h3 className="text-sm font-bold text-red-300">Yüklenemedi</h3>
             <p className="mt-1 text-xs text-zinc-400">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && mode === "edit" && (
+          <div className="mx-auto max-w-4xl h-full">
+            <textarea
+              value={content}
+              onChange={(e) => handleContentChange(e.target.value)}
+              className="h-full min-h-[400px] w-full resize-none rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 font-mono text-xs leading-relaxed text-zinc-100 focus:border-amber-500 focus:outline-none select-text"
+              placeholder="Markdown metnini düzenleyin..."
+              spellCheck={false}
+            />
           </div>
         )}
 

@@ -56,6 +56,31 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/dokumantasyon/dosya/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "no-referrer",
+          },
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, noarchive, nosnippet",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+        ],
+      },
     ];
   },
 };

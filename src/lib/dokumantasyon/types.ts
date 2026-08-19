@@ -23,6 +23,21 @@ export interface DokFile {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  current_version_number?: number;
+}
+
+export interface DokFileVersion {
+  id: string;
+  file_id: string;
+  version_number: number;
+  blob_pathname: string;
+  blob_url: string;
+  size_bytes: string | number;
+  mime_type: string;
+  sha256_hash?: string | null;
+  comment?: string | null;
+  created_by: string;
+  created_at: string;
 }
 
 export interface DokShareLink {
@@ -43,6 +58,7 @@ export interface DokShareItem {
   id: string;
   share_link_id: string;
   file_id: string;
+  file_version_id?: string | null;
   snapshot_name: string;
   relative_path: string;
   snapshot_size_bytes: string | number;

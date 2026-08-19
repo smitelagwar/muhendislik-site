@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — GELİŞMİŞ GÖRSEL GÖRÜNTÜLEYİCİ (IMAGE VIEWER)
+// DÖKÜMANTASYON MODÜLÜ — GELİŞMİŞ GÖRSEL GÖRÜNTÜLEYİCİ (IMAGE VIEWER STUDIO)
 // ============================================================================
 
 "use client";
@@ -16,9 +16,10 @@ import {
   Grid,
   Loader2,
   AlertCircle,
+  Hand,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { StudioCommandButton } from "../studio/studio-command-button";
 
 interface DokImageViewerProps {
   accessUrl: string;
@@ -64,7 +65,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     const heightRatio = containerHeight / naturalSize.height;
     const fitRatio = Math.min(widthRatio, heightRatio, 1);
 
-    setScale(Math.max(fitRatio, 0.2));
+    setScale(parseFloat(Math.max(fitRatio, 0.2).toFixed(2)));
   }, [naturalSize]);
 
   useEffect(() => {
@@ -73,12 +74,25 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     }
   }, [naturalSize, handleFitScreen]);
 
-  // Mouse Wheel Zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.15 : -0.15;
-    setScale((prev) => Math.min(Math.max(prev + delta, 0.1), 5.0));
-  };
+  // Ctrl + Wheel Zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.15 : -0.15;
+        setScale((prev) => {
+          const next = Math.min(Math.max(prev + delta, 0.1), 5.0);
+          return parseFloat(next.toFixed(2));
+        });
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
 
   // Pan (Sürükleme) Olayları
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -107,9 +121,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   return (
-    <div className="flex h-full min-h-[550px] w-full flex-col bg-zinc-950 text-zinc-100 select-none">
+    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 select-none">
       {/* Görsel Araç Çubuğu (Toolbar) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-3 py-2 text-xs backdrop-blur-md">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-3 py-1.5 text-xs backdrop-blur-md z-30">
         {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
         <div className="flex items-center gap-2 text-xs text-zinc-400">
           {naturalSize ? (
@@ -122,121 +136,101 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         </div>
 
         {/* Sağ Alan: Zoom, Döndürme, Aynalama, Zemin */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Zoom Kontrolleri */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setScale((s) => Math.max(s - 0.2, 0.1))}
-            className="h-8 w-7 p-0 text-zinc-400 hover:text-zinc-100"
-            title="Uzaklaştır (%-20)"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
+          <StudioCommandButton
+            commandId="image.zoom.out"
+            onClick={() => setScale((s) => Math.max(parseFloat((s - 0.2).toFixed(2)), 0.1))}
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<ZoomOut className="h-3.5 w-3.5" />}
+          />
 
-          <span className="min-w-[44px] text-center text-[11px] font-medium text-zinc-300">
-            {Math.round(scale * 100)}%
-          </span>
+          <StudioCommandButton
+            commandId="image.zoom.100"
+            onClick={() => setScale(1.0)}
+            className="h-6 px-1.5 text-[11px] font-mono text-zinc-300 hover:text-zinc-100 rounded-md"
+            label={`${Math.round(scale * 100)}%`}
+          />
 
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setScale((s) => Math.min(s + 0.2, 5.0))}
-            className="h-8 w-7 p-0 text-zinc-400 hover:text-zinc-100"
-            title="Yakınlaştır (%+20)"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+          <StudioCommandButton
+            commandId="image.zoom.in"
+            onClick={() => setScale((s) => Math.min(parseFloat((s + 0.2).toFixed(2)), 5.0))}
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<ZoomIn className="h-3.5 w-3.5" />}
+          />
 
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.zoom.fit"
             onClick={handleFitScreen}
-            className="hidden sm:inline-flex h-8 px-2 text-[11px] text-zinc-400 hover:text-zinc-100"
-            title="Ekrana Sığdır"
-          >
-            Sığdır
-          </Button>
+            showLabel={false}
+            className="hidden sm:inline-flex h-7 px-2 text-[11px] text-zinc-400 hover:text-zinc-100 rounded-md"
+            label="Sığdır"
+          />
 
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setScale(1)}
-            className="hidden sm:inline-flex h-8 px-2 text-[11px] text-zinc-400 hover:text-zinc-100"
-            title="%100 Orijinal Boyut"
-          >
-            %100
-          </Button>
-
-          <div className="h-4 w-px bg-zinc-700 mx-0.5" />
+          <div className="h-4 w-px bg-zinc-800 mx-1" />
 
           {/* Döndürme */}
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.rotate.ccw"
             onClick={() => setRotation((r) => (r - 90 + 360) % 360)}
-            className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-100"
-            title="Sola Döndür (-90°)"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<RotateCcw className="h-3.5 w-3.5" />}
+          />
 
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.rotate.cw"
             onClick={() => setRotation((r) => (r + 90) % 360)}
-            className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-100"
-            title="Sağa Döndür (+90°)"
-          >
-            <RotateCw className="h-4 w-4" />
-          </Button>
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<RotateCw className="h-3.5 w-3.5" />}
+          />
 
-          <div className="h-4 w-px bg-zinc-700 mx-0.5" />
+          <div className="h-4 w-px bg-zinc-800 mx-1" />
 
           {/* Aynalama */}
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.flip.h"
             onClick={() => setFlipH((f) => !f)}
-            className={`h-8 w-8 p-0 ${flipH ? "bg-amber-500/20 text-amber-400" : "text-zinc-400 hover:text-zinc-100"}`}
-            title="Yatay Aynala (Flip Horizontal)"
-          >
-            <FlipHorizontal className="h-4 w-4" />
-          </Button>
+            active={flipH}
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<FlipHorizontal className="h-3.5 w-3.5" />}
+          />
 
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.flip.v"
             onClick={() => setFlipV((f) => !f)}
-            className={`h-8 w-8 p-0 ${flipV ? "bg-amber-500/20 text-amber-400" : "text-zinc-400 hover:text-zinc-100"}`}
-            title="Dikey Aynala (Flip Vertical)"
-          >
-            <FlipVertical className="h-4 w-4" />
-          </Button>
+            active={flipV}
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<FlipVertical className="h-3.5 w-3.5" />}
+          />
 
-          <div className="h-4 w-px bg-zinc-700 mx-0.5" />
+          <div className="h-4 w-px bg-zinc-800 mx-1" />
 
           {/* Şeffaflık Izgarası (Checkerboard) */}
-          <Button
-            size="sm"
-            variant="ghost"
+          <StudioCommandButton
+            commandId="image.checkerboard"
             onClick={() => setShowCheckerboard((c) => !c)}
-            className={`h-8 w-8 p-0 ${showCheckerboard ? "bg-amber-500/20 text-amber-400" : "text-zinc-400 hover:text-zinc-100"}`}
-            title="Şeffaflık Izgarasını Aç/Kapat"
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
+            active={showCheckerboard}
+            showLabel={false}
+            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            icon={<Grid className="h-3.5 w-3.5" />}
+          />
         </div>
       </div>
 
-      {/* Ana Görsel Görüntüleme Alanı */}
+      {/* Görsel Çalışma Alanı (Viewport) */}
       <div
         ref={containerRef}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        className={`relative flex flex-1 items-center justify-center overflow-auto p-6 sm:p-10 ${
+        onMouseLeave={handleMouseUp}
+        className={`relative flex flex-1 items-center justify-center overflow-auto p-4 sm:p-8 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           showCheckerboard
@@ -246,19 +240,20 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       >
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500 mb-3" />
+            <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
             <span className="text-sm font-medium">Görsel yükleniyor...</span>
           </div>
         )}
 
         {error && (
-          <div className="mx-auto max-w-md rounded-xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl">
-            <AlertCircle className="mx-auto h-8 w-8 text-red-500 mb-2" />
-            <h3 className="text-sm font-bold text-red-300">Görsel Yüklenemedi</h3>
+          <div className="mx-auto max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl backdrop-blur-md">
+            <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
+            <h3 className="text-sm font-bold text-red-300">Görsel Yükleme Hatası</h3>
             <p className="mt-1 text-xs text-zinc-400">{error}</p>
           </div>
         )}
 
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imageRef}
           src={accessUrl}
@@ -269,7 +264,6 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
           className={`max-w-none origin-center rounded shadow-2xl transition-opacity duration-200 pointer-events-none select-none ${
             loading ? "opacity-0" : "opacity-100"
           }`}
-          draggable={false}
         />
       </div>
     </div>

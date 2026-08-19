@@ -28,7 +28,7 @@ export interface FileAccessResult {
   isLocal: boolean;
 }
 
-const DEFAULT_ADMIN_ACCESS_TTL_SECONDS = 10 * 60; // 10 dakika
+const DEFAULT_ADMIN_ACCESS_TTL_SECONDS = Number(process.env.DOK_ADMIN_VIEW_ACCESS_TTL_SECONDS) || 3600; // Varsayılan 60 dakika
 const DEFAULT_PUBLIC_ACCESS_TTL_SECONDS = 3 * 60; // 3 dakika
 
 /**
