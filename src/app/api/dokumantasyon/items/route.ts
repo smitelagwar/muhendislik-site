@@ -57,6 +57,8 @@ export async function GET(request: Request) {
       }
     } else {
       const sql = getDb();
+      const { ensureDatabaseTables } = await import("@/lib/dokumantasyon/db");
+      await ensureDatabaseTables(sql);
 
       // 2. Alt klasörler
       if (folderId) {

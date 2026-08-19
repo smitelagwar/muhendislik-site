@@ -28,7 +28,9 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         version VARCHAR(64) PRIMARY KEY,
         applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `;
 
+    await sql`
       CREATE TABLE IF NOT EXISTS dok_folders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
@@ -37,11 +39,13 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ NULL
       );
+    `;
 
-      CREATE INDEX IF NOT EXISTS idx_dok_folders_parent_id ON dok_folders(parent_id);
-      CREATE INDEX IF NOT EXISTS idx_dok_folders_deleted_at ON dok_folders(deleted_at);
-      CREATE INDEX IF NOT EXISTS idx_dok_folders_name ON dok_folders(name);
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_folders_parent_id ON dok_folders(parent_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_folders_deleted_at ON dok_folders(deleted_at);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_folders_name ON dok_folders(name);`;
 
+    await sql`
       CREATE TABLE IF NOT EXISTS dok_files (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         folder_id UUID NULL REFERENCES dok_folders(id) ON DELETE RESTRICT,
@@ -55,11 +59,13 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         deleted_at TIMESTAMPTZ NULL
       );
+    `;
 
-      CREATE INDEX IF NOT EXISTS idx_dok_files_folder_id ON dok_files(folder_id);
-      CREATE INDEX IF NOT EXISTS idx_dok_files_deleted_at ON dok_files(deleted_at);
-      CREATE INDEX IF NOT EXISTS idx_dok_files_display_name ON dok_files(display_name);
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_files_folder_id ON dok_files(folder_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_files_deleted_at ON dok_files(deleted_at);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_files_display_name ON dok_files(display_name);`;
 
+    await sql`
       CREATE TABLE IF NOT EXISTS dok_share_links (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         token_hash VARCHAR(64) NOT NULL UNIQUE,
@@ -73,11 +79,13 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         last_accessed_at TIMESTAMPTZ NULL,
         url_token_encrypted TEXT NULL
       );
+    `;
 
-      CREATE INDEX IF NOT EXISTS idx_dok_share_links_token_hash ON dok_share_links(token_hash);
-      CREATE INDEX IF NOT EXISTS idx_dok_share_links_expires_at ON dok_share_links(expires_at);
-      CREATE INDEX IF NOT EXISTS idx_dok_share_links_revoked_at ON dok_share_links(revoked_at);
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_share_links_token_hash ON dok_share_links(token_hash);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_share_links_expires_at ON dok_share_links(expires_at);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_share_links_revoked_at ON dok_share_links(revoked_at);`;
 
+    await sql`
       CREATE TABLE IF NOT EXISTS dok_share_items (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         share_link_id UUID NOT NULL REFERENCES dok_share_links(id) ON DELETE CASCADE,
@@ -89,10 +97,12 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         sort_order INT NOT NULL DEFAULT 0,
         CONSTRAINT uq_dok_share_items_link_file UNIQUE (share_link_id, file_id)
       );
+    `;
 
-      CREATE INDEX IF NOT EXISTS idx_dok_share_items_link_id ON dok_share_items(share_link_id);
-      CREATE INDEX IF NOT EXISTS idx_dok_share_items_file_id ON dok_share_items(file_id);
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_share_items_link_id ON dok_share_items(share_link_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_share_items_file_id ON dok_share_items(file_id);`;
 
+    await sql`
       CREATE TABLE IF NOT EXISTS dok_auth_attempts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         scope VARCHAR(64) NOT NULL,
@@ -100,9 +110,10 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
         success BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-
-      CREATE INDEX IF NOT EXISTS idx_dok_auth_attempts_lookup ON dok_auth_attempts(scope, subject_hash, created_at);
     `;
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_auth_attempts_lookup ON dok_auth_attempts(scope, subject_hash, created_at);`;
+
     schemaEnsured = true;
   } catch (err) {
     console.warn("Otomatik veritabanı şema doğrulama uyarısı:", err);

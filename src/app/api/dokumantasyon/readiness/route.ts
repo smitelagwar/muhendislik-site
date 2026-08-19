@@ -31,6 +31,9 @@ export async function GET() {
         await sql`SELECT 1 as test;`;
         dbStatus.reachable = true;
 
+        const { ensureDatabaseTables } = await import("@/lib/dokumantasyon/db");
+        await ensureDatabaseTables(sql);
+
         const tableCheck = await sql`
           SELECT COUNT(*) as count FROM dok_files;
         `;
