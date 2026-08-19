@@ -234,7 +234,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       steps: [
         {
-          title: "Katman düzenini kur",
+          title: "Katman düzenini kür",
           result: "60 cm yüksekliğin tek sefer yerine iki katmanda yönetilmesi vibrasyon etkinliğini artırır.",
           note: "İlk katman tam yerleşmeden ikinci katmana geçmek uygun değildir.",
         },
@@ -308,7 +308,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Dökümden önce eleman tipine ve hava durumuna göre kür yöntemini ve sorumlu ekibi belirle.",
       "Beton yüzeyi ilk fırsatta örtü, membran veya kontrollü sulama ile koruma altına al.",
       "Özellikle rüzgarlı ve sıcak havada yüzey nem kaybını sık aralıklarla gözle ve müdahale et.",
-      "Kalıp sökümüyle birlikte koruma kesintiye uğramayacak şekilde alternatif kür düzeni kur.",
+      "Kalıp sökümüyle birlikte koruma kesintiye uğramayacak şekilde alternatif kür düzeni kür.",
       "Kür süresini yalnız gün sayısıyla değil yüzey davranışı, sıcaklık ve iş programı ile birlikte değerlendir.",
     ],
     criticalChecks: [
@@ -531,7 +531,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       steps: [
         {
-          title: "Temsil ilkesini kur",
+          title: "Temsil ilkesini kür",
           result: "Numune planı yalnız ilk araçtan değil, farklı döküm bölgelerini temsil edecek şekilde kurgulanmalıdır.",
           note: "Aksi halde sonuç bir bölgeyi doğrular, tüm dökümü değil.",
         },
@@ -603,7 +603,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Aks aplikasyonunu ve kolon ayak izini döşeme üzerinde net biçimde işaretle.",
-      "Panel birleşimlerini, köşe elemanlarını ve gergileri kesite uygun sıkılıkta kur.",
+      "Panel birleşimlerini, köşe elemanlarını ve gergileri kesite uygun sıkılıkta kür.",
       "Donatı ile kalıp arasında pas payı ve filiz konumunun bozulmadığını kontrol et.",
       "Şakül ve aks ölçümünü beton öncesi son kez alarak saha kaydına işle.",
       "Döküm sırasında ilk yükselen betonda kolon kalıbını gözle izle ve olası açılmalara anında müdahale et.",
@@ -702,7 +702,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Kolon üst kotlarını kontrol ederek kiriş alt kot referansını doğru noktadan başlat.",
-      "Yan panelleri ve alt tablaları kesit yüksekliğine tam uyacak şekilde kur.",
+      "Yan panelleri ve alt tablaları kesit yüksekliğine tam uyacak şekilde kür.",
       "İskele ve tali destek düzenini açıklık ve yük durumuna göre sıkılaştır.",
       "Açıklık boyunca lazer veya nivo ile alt kot sürekliliğini kontrol et.",
       "Düğüm bölgelerinde donatı, rezervasyon ve beton geçişinin kalıpla uyumlu olduğunu beton öncesi doğrula.",
@@ -729,7 +729,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       steps: [
         {
-          title: "Kontrol noktalarını kur",
+          title: "Kontrol noktalarını kür",
           result: "Yalnız orta nokta değil, iki mesnet ve orta açıklık birlikte okunmalıdır.",
           note: "Tek nokta ölçümü açıklık boyunca eğriyi gizleyebilir.",
         },
@@ -801,7 +801,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Kolon ve kiriş referanslarından döşeme üst ve alt kotlarını netleştir.",
-      "Panel, teleskopik dikme ve tali taşıyıcı düzenini açıklık ve yük durumuna göre kur.",
+      "Panel, teleskopik dikme ve tali taşıyıcı düzenini açıklık ve yük durumuna göre kür.",
       "Şaft, boşluk ve tesisat rezervasyonlarını kalıp kapanmadan önce yerleştir.",
       "Geniş alan boyunca nivo ile kot kontrolü yaparak yerel dalgaları beton öncesi düzelt.",
       "Döküm sırasında çalışma trafiğini kalıp sistemini bozmayacak şekilde sınırla.",
@@ -1595,7 +1595,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       "Şantiyeye gelen blokları kırık, çatlak ve ölçü farkı açısından ayıkla.",
       "İlk sırayı düzgün kotta kurarak değişken blok toleransını başlangıçta kontrol altına al.",
       "Derz kalınlığını düzenli tutup yüzey sürekliliğini mastarla sık kontrol et.",
-      "Kapı, pencere ve birleşim bölgelerinde düzensiz kısa parçalardan kaçınarak temiz detay kur.",
+      "Kapı, pencere ve birleşim bölgelerinde düzensiz kısa parçalardan kaçınarak temiz detay kür.",
       "Sıva öncesi duvar yüzeyini dalga, boşluk ve tesisat kırıkları açısından yeniden değerlendir.",
     ],
     criticalChecks: [
@@ -1692,7 +1692,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Ahşap elemanları montaj öncesi nem, eğrilik ve kesit doğruluğu açısından ayıkla.",
-      "Makas, aşık ve mertek düzenini çatı planı ve açıklık mantığına göre kur.",
+      "Makas, aşık ve mertek düzenini çatı planı ve açıklık mantığına göre kür.",
       "Bağlantı levhası, ankraj ve oturma detaylarını yalnız çivi alışkanlığına bırakmadan tamamla.",
       "Kaplama altı düzlemi, havalandırma boşluğu ve buhar katmanını taşıyıcı iskeletle birlikte düşün.",
       "Montaj sonrası mahya doğrultusu, eğim ve rüzgara karşı ankraj sürekliliğini son kez kontrol et.",
@@ -1819,7 +1819,7 @@ export const kabaInsaatLeafSpecs: BinaGuidePageSpec[] = [
       ],
       steps: [
         {
-          title: "Ana montaj sırasını kur",
+          title: "Ana montaj sırasını kür",
           result: "Makaslar tek tek kaldırılırken aradaki aşık ve çaprazlar sistem davranışını hızlıca tamamlamalıdır.",
           note: "Aksi halde her makas uzun süre geçici durumda kalır.",
         },

@@ -47,7 +47,7 @@ const getKaziExtraSpecs = (): BinaGuidePageSpec[] => [
     designOrApplicationSteps: [
       "Kazı sınırını, kotları ve nakliye güzergahını uygulama öncesi işaretle.",
       "Kazıyı tabaka davranışına göre kademeli ilerlet ve son kötü ölçüyle kapat.",
-      "Su çıkışı olan bölgelerde geçici drenaj ve pompa düzenini aynı gün kur.",
+      "Su çıkışı olan bölgelerde geçici drenaj ve pompa düzenini aynı gün kür.",
       "Kazı tabanını gevşek malzeme ve çamurdan temizleyerek grobeton öncesi teslim et.",
       "Komşu yapı veya yol etkisi varsa kazı ilerleyişini izleme noktalarıyla birlikte yönet.",
     ],
@@ -348,7 +348,7 @@ export const kaziTemelSpecs: BinaGuidePageSpec[] = [
         parameter: "Geoteknik veri kullanımı",
         limitOrRequirement: "Zemin raporu tasarım ve saha gözlemiyle birlikte teyit edilmeli",
         reference: "TBDY 2018, Bölüm 16",
-        note: "Kazı sırasında karşılaşılan zemin koşulları rapordan sapıyorsa tasarım gözden geçirilir.",
+        note: "Kazı sırasında karşılaşılan zemin koşulları rapordan şapıyorsa tasarım gözden geçirilir.",
       },
       {
         parameter: "Temel tasarımı",

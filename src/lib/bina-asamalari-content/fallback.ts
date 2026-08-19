@@ -8,6 +8,7 @@ import {
 } from "../bina-asamalari";
 import type { BinaGuideData, BinaGuideSection, BinaGuideSource } from "./types";
 import { BRANCH_SOURCE_LEDGER } from "./source-ledger";
+import { getTopicVisual } from "./builders";
 
 const AUTHOR = "İnşaat Mühendisi Hüseyin Günaydın" as const;
 const AUTHOR_TITLE = "Yazar" as const;
@@ -410,7 +411,7 @@ export function buildFallbackGuide(node: IndexedBinaNode): BinaGuideData {
     authorTitle: AUTHOR_TITLE,
     date: DISPLAY_DATE,
     readTime: estimateReadTime(sections),
-    image: branchMeta.image,
+    image: getTopicVisual(node).hero,
     quote: {
       text: `${node.plainLabel}, doğru malzeme kadar doğru sıra, ölçü ve kayıt disiplini gerektiren bir uygulama paketidir.`,
     },

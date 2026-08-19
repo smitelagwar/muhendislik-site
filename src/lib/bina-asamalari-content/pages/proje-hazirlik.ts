@@ -44,7 +44,7 @@ const getProjeExtraSpecs = (): BinaGuidePageSpec[] => [
       },
     ],
     designOrApplicationSteps: [
-      "Yük listesi ve kullanım senaryosuna göre ana pano ve tali pano düzenini kur.",
+      "Yük listesi ve kullanım senaryosuna göre ana pano ve tali pano düzenini kür.",
       "Tava, boru ve şaft güzergahlarını mekanik sistemlerle aynı model veya overlay üzerinde kilitle.",
       "Aydınlatma, priz, zayıf akım ve yangın algılama devrelerini ayırıp pano şemasına bağla.",
       "Topraklama, eşpotansiyel ve kritik cihaz beslemelerini proje notu olmaktan çıkarıp detay paftaya taşı.",

@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#f87171" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <!-- Outer Tech Border Frame -->
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <!-- Header Bar -->
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <!-- Category Badge -->
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#818cf8" fill-opacity="0.18" stroke="#818cf8" stroke-width="1.5" />
+    <text x="86" y="37" fill="#818cf8" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">YAPI RUHSATI</text>
+    
+    <!-- Title -->
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">3194 Sayılı İmar Kanunu & Yapı Ruhsatı Aşamaları</text>
+    
+    <!-- Standard/Status Badge -->
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">TEKNİK ŞARTNAME</text>
+  </g>
+
+  <!-- Main Content Drawing Area -->
+  <g transform="translate(60, 130)">
+      <!-- Left: Step by Step Permit Workflow -->
+      <rect x="0" y="0" width="680" height="420" rx="12" fill="#0f172a" stroke="#818cf8" stroke-width="2" />
+      
+      <g transform="translate(40, 30)">
+        <!-- Step 1 -->
+        <rect x="0" y="0" width="180" height="90" rx="8" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" />
+        <circle cx="24" cy="24" r="12" fill="#6366f1" />
+        <text x="24" y="29" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">1</text>
+        <text x="44" y="28" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="700">İmar Durum Belgesi</text>
+        <text x="14" y="52" fill="#94a3b8" font-family="sans-serif" font-size="11">Belediye İmar Md.</text>
+        <text x="14" y="70" fill="#a5b4fc" font-family="sans-serif" font-size="11">Çap, Kot-Kesit, Yol Terkleri</text>
+
+        <line x1="180" y1="45" x2="210" y2="45" stroke="#6366f1" stroke-width="2" />
+
+        <!-- Step 2 -->
+        <rect x="210" y="0" width="180" height="90" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+        <circle cx="234" cy="24" r="12" fill="#38bdf8" />
+        <text x="234" y="29" fill="#0f172a" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">2</text>
+        <text x="254" y="28" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="700">Zemin &amp; Projeler</text>
+        <text x="224" y="52" fill="#94a3b8" font-family="sans-serif" font-size="11">Mühendis / Mimar</text>
+        <text x="224" y="70" fill="#7dd3fc" font-family="sans-serif" font-size="11">Mimari, Statik, MEP, Zemin</text>
+
+        <line x1="390" y1="45" x2="420" y2="45" stroke="#38bdf8" stroke-width="2" />
+
+        <!-- Step 3 -->
+        <rect x="420" y="0" width="180" height="90" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+        <circle cx="444" cy="24" r="12" fill="#f59e0b" />
+        <text x="444" y="29" fill="#0f172a" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">3</text>
+        <text x="464" y="28" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="700">Yapı Denetim</text>
+        <text x="434" y="52" fill="#94a3b8" font-family="sans-serif" font-size="11">YDS Sistemi (E-Dağıtım)</text>
+        <text x="434" y="70" fill="#fcd34d" font-family="sans-serif" font-size="11">Proje Uygunluk Raporu</text>
+
+        <!-- Downward arrow to Step 4 -->
+        <path d="M 510 90 L 510 130 L 90 130 L 90 160" stroke="#f59e0b" stroke-width="2" fill="none" />
+
+        <!-- Step 4 -->
+        <rect x="0" y="160" width="180" height="90" rx="8" fill="#1e293b" stroke="#a855f7" stroke-width="1.5" />
+        <circle cx="24" cy="184" r="12" fill="#a855f7" />
+        <text x="24" y="189" fill="#ffffff" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">4</text>
+        <text x="44" y="188" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="700">Kurum Görüşleri</text>
+        <text x="14" y="212" fill="#94a3b8" font-family="sans-serif" font-size="11">İtfaiye, İSKİ/ASKİ, TEDAŞ</text>
+        <text x="14" y="230" fill="#d8b4fe" font-family="sans-serif" font-size="11">Sığınak &amp; Otopark Onayı</text>
+
+        <line x1="180" y1="205" x2="210" y2="205" stroke="#a855f7" stroke-width="2" />
+
+        <!-- Step 5 -->
+        <rect x="210" y="160" width="180" height="90" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
+        <circle cx="234" cy="184" r="12" fill="#10b981" />
+        <text x="234" y="189" fill="#0f172a" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">5</text>
+        <text x="254" y="188" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="700">Harç ve Teminatlar</text>
+        <text x="224" y="212" fill="#94a3b8" font-family="sans-serif" font-size="11">Belediye Gelirleri</text>
+        <text x="224" y="230" fill="#6ee7b7" font-family="sans-serif" font-size="11">Otopark, Kanal, Harç Ödeme</text>
+
+        <line x1="390" y1="205" x2="420" y2="205" stroke="#10b981" stroke-width="2" />
+
+        <!-- Step 6 (Final Milestone) -->
+        <rect x="420" y="150" width="180" height="110" rx="10" fill="#312e81" stroke="#818cf8" stroke-width="2.5" />
+        <rect x="430" y="160" width="40" height="22" rx="4" fill="#818cf8" />
+        <text x="450" y="176" fill="#0f172a" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle">SON</text>
+        <text x="478" y="177" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="900">YAPI RUHSATI</text>
+        <line x1="430" y1="192" x2="590" y2="192" stroke="#6366f1" stroke-width="1" />
+        <text x="430" y="212" fill="#c7d2fe" font-family="sans-serif" font-size="11">Şantiye Şefi Sözleşmesi</text>
+        <text x="430" y="230" fill="#c7d2fe" font-family="sans-serif" font-size="11">Müteahhitlik Sicili</text>
+        <text x="430" y="248" fill="#34d399" font-family="sans-serif" font-size="11" font-weight="700">İnşaata Başlama İzni ✓</text>
+
+        <!-- Validity Period Badge -->
+        <rect x="100" y="280" width="400" height="50" rx="8" fill="#1e293b" stroke="#334155" />
+        <text x="300" y="302" fill="#f8fafc" font-family="sans-serif" font-size="12" font-weight="700" text-anchor="middle">RUHSAT GEÇERLİLİK SÜRELERİ (3194 Md. 29)</text>
+        <text x="300" y="320" fill="#94a3b8" font-family="sans-serif" font-size="11" text-anchor="middle">Başlama: 2 Yıl • Tamamlama: 5 Yıl (Ruhsat Yenileme Şartı)</text>
+      </g>
+
+      <!-- Right Panel: Legal Checklist -->
+      <g transform="translate(710, 0)">
+        <rect x="0" y="0" width="370" height="420" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+        <rect x="20" y="20" width="330" height="36" rx="6" fill="#0f172a" />
+        <text x="185" y="43" fill="#818cf8" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">RUHSAT EKLERİ VE KONTROLLER</text>
+        
+        <g transform="translate(20, 75)" font-family="sans-serif" font-size="12">
+          <rect x="0" y="0" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="22" fill="#f8fafc" font-weight="700">1. Tapu ve Mülkiyet Kontrolü</text>
+          <text x="12" y="40" fill="#94a3b8">Hissedar onayları, vekaletnameler, şerhler</text>
+
+          <rect x="0" y="62" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="84" fill="#f8fafc" font-weight="700">2. Proje Müellifleri Sicil Durumu</text>
+          <text x="12" y="102" fill="#94a3b8">Mimar/Mühendis Oda Sicil Durum Belgeleri (SMM)</text>
+
+          <rect x="0" y="124" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="146" fill="#f8fafc" font-weight="700">3. Yapı Müteahhidi Yetki Belgesi</text>
+          <text x="12" y="164" fill="#94a3b8">ÇŞİDB YAMBİS Grup Yeterlilik Kontrolü (A-H)</text>
+
+          <rect x="0" y="186" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="208" fill="#f8fafc" font-weight="700">4. Şantiye Şefi Taahhütnamesi</text>
+          <text x="12" y="226" fill="#94a3b8">Aktif şantiye sayısı ve m² sınırları kontrolü</text>
+
+          <rect x="0" y="248" width="330" height="75" rx="6" fill="#1e1b4b" stroke="#818cf8" />
+          <text x="12" y="270" fill="#e0e7ff" font-weight="800">Ruhsatsız Başlama Cezası</text>
+          <text x="12" y="290" fill="#c7d2fe" font-size="11">Ruhsat alınmadan hafriyat veya temel atılması</text>
+          <text x="12" y="308" fill="#c7d2fe" font-size="11">3194 Md. 32/42 gereğince mühürleme ve ceza sebebidir.</text>
+        </g>
+      </g>
+    </g>
+
+  <!-- Footer Info Bar -->
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: ŞANTİYE UYGULAMA DETAYI</text>
+  </g>
+</svg>

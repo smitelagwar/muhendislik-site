@@ -7,7 +7,7 @@ const PEYZAJ_TOOLS: BinaGuideTool[] = [
   { category: "Ölçüm", name: "Total station, lazer nivo ve drenaj kontrol listesi", purpose: "Acik alan kotlarini, yüzey egimlerini ve su yonunu sayisal olarak dogrulamak." },
   { category: "Koordinasyon", name: "Peyzaj as-built ve altyapi matrisi", purpose: "Sulama, aydinlatma, drenaj ve sert zemin detaylarini tek kapanis setinde toplamak." },
   { category: "Bakım", name: "Bitkisel bakım ve mevsimsel takip plani", purpose: "Teslim sonrasi ilk bakım surecini isletme ekibine okunabilir halde devretmek." },
-  { category: "Kontrol", name: "Acil alan kullanimi ve yaya rotasi checklisti", purpose: "Acik alanin yalnız estetik degil guvenli kullanım performansini da denetlemek." },
+  { category: "Kontrol", name: "Acil alan kullanimi ve yaya rotasi checklisti", purpose: "Acik alanin yalnız estetik değil güvenli kullanım performansini da denetlemek." },
 ];
 
 const PEYZAJ_EQUIPMENT: BinaGuideEquipment[] = [
@@ -21,37 +21,37 @@ export const peyzajTeslimDeepOverrides: BinaGuidePageSpec[] = [
   {
     slugPath: "peyzaj-teslim/peyzaj-ve-cevre-duzenleme",
     kind: "topic",
-    quote: "Peyzaj ve çevre duzenleme, bina cevresini guzellestirmekten once suyu, erisimi ve acik alan kullanimini doğru yonetme isidir.",
-    tip: "Dış sahayi sadece son görsel dokunus gibi gormek, ilk yagmurda ortaya cikacak kot, golenme ve erişim sorunlarini gizlemekten baska bir sey degildir.",
+    quote: "Peyzaj ve çevre düzenleme, bina cevresini guzellestirmekten önce suyu, erisimi ve acik alan kullanimini doğru yonetme isidir.",
+    tip: "Dış sahayi sadece son görsel dokunus gibi görmek, ilk yagmurda ortaya cikacak kot, golenme ve erişim sorunlarini gizlemekten baska bir sey degildir.",
     intro: [
-      "Peyzaj ve çevre duzenleme, bir yapinin kullaniciyla ilk fiziksel temas kurdugu alandir. Yaya akslari, girisler, sert zeminler, bordurler, yesil alanlar, sulama ve acik alan mobilyalari burada bir araya gelir. Kullanıcı binayi gormeden once çoğu kez dış sahayi deneyimler; bu nedenle acik alan performansi, yapinin genel kalite algisinin parcasidir.",
-      "Sahada en sık yapılan hata, peyzaji santiyenin sonunda kalan dekoratif paket gibi ele almaktir. Oysa dış saha; yagmur suyunun nereye gittigini, aracin nerede durdugunu, engelli veya cocuklu bir kullanicinin nasıl ilerledigini ve bakım ekibinin bu alanlari nasil yonetecegini belirler. Yani mesele bitki secmekten daha büyüktür.",
-      "Bir insaat muhendisi için peyzaj ve çevre duzenleme; kot, egim, sikistirma, drenaj, altyapi koordinasyonu ve teslim sonrasi bakım bilgisinin birlikte kapatildigi son saha paketidir. Bu paket zayif kaldiginda bina fiziksel olarak bitmis görünse bile kullanima hazir görünmez.",
+      "Peyzaj ve çevre düzenleme, bir yapının kullaniciyla ilk fiziksel temas kurdugu alandir. Yaya akslari, girisler, sert zeminler, bordurler, yesil alanlar, sulama ve acik alan mobilyalari burada bir araya gelir. Kullanıcı binayi gormeden önce çoğu kez dış sahayi deneyimler; bu nedenle acik alan performansi, yapının genel kalite algisinin parcasidir.",
+      "Sahada en sık yapılan hata, peyzaji şantiyenin sonunda kalan dekoratif paket gibi ele almaktir. Oysa dış saha; yağmur suyunun nereye gittigini, aracin nerede durdugunu, engelli veya cocuklu bir kullanicinin nasıl ilerledigini ve bakım ekibinin bu alanlari nasil yonetecegini belirler. Yani mesele bitki secmekten daha büyüktür.",
+      "Bir inşaat mühendisi için peyzaj ve çevre düzenleme; kot, egim, sikistirma, drenaj, altyapi koordinasyonu ve teslim sonrasi bakım bilgisinin birlikte kapatildigi son saha paketidir. Bu paket zayif kaldiginda bina fiziksel olarak bitmis görünse bile kullanima hazir görünmez.",
       "Bu nedenle dış sahayi son anda tamamlanan bir estetik kalem yerine, projenin acik alan performansini tanimlayan teknik kapanis fazi olarak okumak gerekir.",
     ],
     theory: [
-      "Dış saha performansinin ana belirleyicisi su yonetimidir. Sert zemin doğru egimde degilse, bordur ve ızgara kotlari uyumlu degilse veya alt temel suyu saglikli tasimiyorsa en pahali kaplama bile kısa surede cökme, golenme veya kirlenme problemi uretir. Yuzeyde gorunen kusur çoğu zaman altyapı problemidir.",
+      "Dış saha performansinin ana belirleyicisi su yonetimidir. Sert zemin doğru egimde degilse, bordur ve ızgara kotlari uyumlu degilse veya alt temel suyu sağlıklı tasimiyorsa en pahali kaplama bile kısa surede cökme, golenme veya kirlenme problemi uretir. Yuzeyde gorunen kusur çoğu zaman altyapı problemidir.",
       "Bitkisel peyzaj tarafında da benzer bir durum vardir. Bitki secimi kadar toprak derinligi, sulama altyapisi, drenaj ve mevsimsel bakım planı kritiktir. Sadece dikilen ama yasatilmayan peyzaj, teslim aninda güzel görünse de ilk mevsim degisiminde kalite kaybeder. Bu nedenle peyzajın teknik başarısı, dikim gunu değil sonraki bakım senaryosuyla ölçülür.",
       "Açik alanlar aynı zamanda güvenlik ve erişim alanlarıdır. Giriş rampasi, yaya yolu, otopark geçişi, acil durum erişimi ve gece kullanımı birlikte çözülmelidir. Yüzey kaplamasinin kayma davranışı, kot farklarının yönetimi ve aydınlatma ile yönlendirme elemanları bu performansin ayrılmaz parçasıdır.",
-      "Bu yüzden peyzaj ve çevre duzenleme, mimari çizimde renkli tarama olarak görülen bir tema değil; su, zemin ve kullanıcı hareketinin birlikte yönetildigi açık alan mühendisliğidir.",
+      "Bu yüzden peyzaj ve çevre düzenleme, mimari çizimde renkli tarama olarak görülen bir tema değil; su, zemin ve kullanıcı hareketinin birlikte yönetildigi açık alan mühendisliğidir.",
     ],
     ruleTable: [
       {
         parameter: "Kot ve egim sürekliligi",
         limitOrRequirement: "Acik alan suyu yapidan uzağa ve tasarlanan drenaj noktasina yonlendirilmeli",
-        reference: "Planli Alanlar Imar Yonetmeligi + saha kalite plani",
+        reference: "Planli Alanlar Imar Yönetmeliği + saha kalite plani",
         note: "Dış sahada yanlış kot, binaya doğru su basma riskini büyütür.",
       },
       {
         parameter: "Alt temel ve sikistirma",
-        limitOrRequirement: "Sert zemin kaplamasi taşıyıcı alt temel ve yeterli sikistirma uzerine kurulmalı",
+        limitOrRequirement: "Sert zemin kaplaması taşıyıcı alt temel ve yeterli sikistirma uzerine kurulmalı",
         reference: "Saha kabul disiplini",
         note: "Kaplamanin ömrü üst malzemeden çok alt hazırlığa bağlıdır.",
       },
       {
         parameter: "Yaya erisimi ve güvenlik",
         limitOrRequirement: "Yaya rotalari, girişler ve kot farklari güvenli, okunabilir ve bakım dostu olmalı",
-        reference: "Planli Alanlar Imar Yonetmeligi",
+        reference: "Planli Alanlar Imar Yönetmeliği",
         note: "Peyzaj estetik kadar günlük kullanım güvenliği de üretmelidir.",
       },
       {
@@ -73,7 +73,7 @@ export const peyzajTeslimDeepOverrides: BinaGuidePageSpec[] = [
       "Yaya akslari, araç rotasi, engelli erişimi ve bakım güzergahlarini çakışma üretmeyecek şekilde planla.",
       "Bitkisel alanlarda toprak derinligi, drenaj tabakasi ve sulama zonlarini dikimden önce sahada doğrula.",
       "Bordür, kaplama, yeşil alan ve altyapi kapaklari arasindaki kot geçişlerini temiz bitiş detayıyla tamamla.",
-      "Teslimden once yagmur veya su verme senaryosu üzerinden açık alanı gez; golenme, çamur, kayma ve erişim riskini fiilen test et.",
+      "Teslimden önce yağmur veya su verme senaryosu üzerinden açık alanı gez; golenme, çamur, kayma ve erişim riskini fiilen test et.",
     ],
     criticalChecks: [
       "Giriş ve yaya yollarinda suyu yapıya geri iten ters egim var mi?",
@@ -134,15 +134,15 @@ export const peyzajTeslimDeepOverrides: BinaGuidePageSpec[] = [
     ],
     designVsField: [
       "Tasarim tarafinda peyzaj renkli ve davetkar bir plan gibi görünür; sahada ise suyun nereye gittigi, kullanicinin nereden yürüdügü ve bakım ekibinin alanı nasıl yönetecegi asıl kaliteyi belirler.",
-      "Dış saha ne kadar iyi tasarlanırsa tasarlansin, eger kot ve altyapi düzgün kurulmamissa ilk yagmur kalite testini başarısız geçirir.",
-      "Bu nedenle çevre duzenleme, mimari son dokunus degil işleyen açık alan sistemi üretme işidir.",
+      "Dış saha ne kadar iyi tasarlanırsa tasarlansin, eger kot ve altyapi düzgün kurulmamissa ilk yağmur kalite testini başarısız geçirir.",
+      "Bu nedenle çevre düzenleme, mimari son dokunus değil işleyen açık alan sistemi üretme işidir.",
     ],
     conclusion: [
-      "Peyzaj ve çevre duzenleme doğru kot, doğru altyapi ve doğru bakım devri ile yürütüldüğünde yapının açık alan performansını güvenli ve uzun ömürlü hale getirir. Aynı alan bu disiplinler kurulmadan tamamlanırsa sorun ilk mevsim değişiminde görünür olur.",
+      "Peyzaj ve çevre düzenleme doğru kot, doğru altyapi ve doğru bakım devri ile yürütüldüğünde yapının açık alan performansını güvenli ve uzun ömürlü hale getirir. Aynı alan bu disiplinler kurulmadan tamamlanırsa sorun ilk mevsim değişiminde görünür olur.",
       "Saha tarafinda en sağlam yaklaşım, dış sahayi son dakika kapanan dekoratif kalem değil, teslimin en görünür fonksiyon testi olarak yönetmektir. Bu bakış, hem kullanıcı memnuniyetini hem de teslim sonrasi bakım maliyetini doğrudan etkiler.",
     ],
     sources: [...PEYZAJ_DEEP_SOURCES, SOURCE_LEDGER.planliAlanlar, SOURCE_LEDGER.imarKanunu],
-    keywords: ["peyzaj ve çevre duzenleme", "dış saha kötü", "drenaj", "sert zemin", "teslim ve bakım"],
+    keywords: ["peyzaj ve çevre düzenleme", "dış saha kötü", "drenaj", "sert zemin", "teslim ve bakım"],
     relatedPaths: ["peyzaj-teslim", "peyzaj-teslim/sert-zemin", "peyzaj-teslim/bitkisel-peyzaj"],
   },
 ];

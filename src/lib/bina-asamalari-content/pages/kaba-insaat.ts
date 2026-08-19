@@ -291,7 +291,7 @@ const getKabaExtraSpecs = (): BinaGuidePageSpec[] => [
     ],
     designOrApplicationSteps: [
       "Çatı tipine göre eğim, açıklık ve taşıyıcı aileyi netleştir.",
-      "Makas veya ana taşıyıcıları akslara bağlı şekilde kur.",
+      "Makas veya ana taşıyıcıları akslara bağlı şekilde kür.",
       "Aşık ve tali taşıyıcıları kaplama sistemine uygun aralıkta yerleştir.",
       "Baca, süzgeç ve ekipman geçişlerini iskelet aşamasında planla.",
       "Mahya, dere ve en düşük kotları lazer ölçümle doğrulayarak karkas düzlemini kilitle.",
@@ -525,7 +525,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Aks ve kot aplikasyonunu kalıp kurulumundan önce doğrula.",
-      "Panel, kuşak ve iskele düzenini eleman yüküne göre kur.",
+      "Panel, kuşak ve iskele düzenini eleman yüküne göre kür.",
       "Donatı ve rezervasyonla çakışmayan temiz kalıp iç yüzeyi bırak.",
       "Döküm öncesi düşeylik, alt kot ve ölçü kontrolünü kayda geçir.",
       "Söküm planını beton dayanımı ve açıklık durumuna göre önceden belirle.",
@@ -564,7 +564,7 @@ export const kabaInsaatSpecs: BinaGuidePageSpec[] = [
           note: "Lazer nivo ile kontrol, sonraki kırma riskini azaltır.",
         },
         {
-          title: "Söküm mantığını baştan kur",
+          title: "Söküm mantığını baştan kür",
           result: "Açıklığın ortasında çalışan tali destekler erken çekilirse kalıcı sehim ve yüzey bozukluğu riski artar.",
           note: "Kalıp tasarımı, kurulum kadar açılma sırasını da tarif etmelidir.",
         },

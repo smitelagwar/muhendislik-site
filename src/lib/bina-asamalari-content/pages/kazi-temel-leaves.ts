@@ -270,7 +270,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Zemin tipi, su seviyesi ve komşu hassasiyetine göre palplanş profilini ve sürme yöntemini seç.",
-      "Başlangıç panelini kılavuz çerçeve ile düşey ve aksında kur; sonraki panelleri buna göre ilerlet.",
+      "Başlangıç panelini kılavuz çerçeve ile düşey ve aksında kür; sonraki panelleri buna göre ilerlet.",
       "Her panelde kilit birleşimini ve başlık kotunu sahada ölçerek zincir hatasını büyütme.",
       "Sürme sırasında titreşim, gürültü ve komşu yapı hareketlerini belirlenen eşiklere göre izle.",
       "Palplanş tamamlandıktan sonra iç destek, ankraj veya kuşak kirişi ile birlikte sistem davranışını doğrula.",
@@ -571,7 +571,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
     ],
     designOrApplicationSteps: [
       "Shop drawing ve büküm listesini aks, kot ve rezervasyonlarla birlikte sahaya indir.",
-      "Alt donatı katmanını pas payı takozları ve sehpa sistemi üzerinde proje aralığında kur.",
+      "Alt donatı katmanını pas payı takozları ve sehpa sistemi üzerinde proje aralığında kür.",
       "Perde ve kolon filizlerini alt-üst donatı ile çakışmayacak sırada yerleştir.",
       "Bindirme boylarını kritik moment bölgelerinde yığmadan dağıt; foto ve ölçü kaydı al.",
       "Beton öncesi yürüyüş yollarını belirleyip donatının ezilmesini ve pas payı kaybını önle.",
@@ -670,7 +670,7 @@ export const kaziTemelLeafSpecs: BinaGuidePageSpec[] = [
       },
     ],
     designOrApplicationSteps: [
-      "Beton hacmi, pompa kapasitesi, transmikser çevrim süresi ve vardiya planını döküm öncesi birlikte kur.",
+      "Beton hacmi, pompa kapasitesi, transmikser çevrim süresi ve vardiya planını döküm öncesi birlikte kür.",
       "İlk gelen araçtan itibaren slump, sıcaklık ve numune alma zincirini aynı ekip tarafından yönet.",
       "Döküm sırasını geniş alanlarda şeritler halinde planlayarak soğuk derz riskini azalt.",
       "Vibratör erişimi zor düğüm bölgelerinde ilave personel ve yedek ekipman bulundur.",

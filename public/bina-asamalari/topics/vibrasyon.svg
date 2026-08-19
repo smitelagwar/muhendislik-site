@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#10b981" fill-opacity="0.18" stroke="#10b981" stroke-width="1.5" />
+    <text x="86" y="37" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">VİBRASYON</text>
+    
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">Daldırma İğne Vibratör Tekniği & Etki Yarıçapı</text>
+    
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">ŞANTİYE REHBERİ</text>
+  </g>
+
+  <g transform="translate(60, 130)">
+      <!-- Left: Vibrator Action Diagram -->
+      <rect x="0" y="0" width="680" height="420" rx="12" fill="#0f172a" stroke="#10b981" stroke-width="2" />
+      
+      <g transform="translate(60, 30)">
+        <!-- Concrete Mass -->
+        <rect x="40" y="40" width="480" height="280" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+
+        <!-- Vibrator 1 (Active) -->
+        <line x1="140" y1="0" x2="140" y2="240" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" />
+        <circle cx="140" cy="240" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="2" />
+
+        <!-- Compaction Radius Waves -->
+        <circle cx="140" cy="240" r="60" fill="#10b981" fill-opacity="0.25" stroke="#10b981" stroke-width="2" stroke-dasharray="4 2" />
+        <circle cx="140" cy="240" r="90" fill="#10b981" fill-opacity="0.1" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6 3" />
+        <text x="140" y="165" fill="#34d399" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle">Etki Alanı (R ≈ 30-40 cm)</text>
+
+        <!-- Vibrator 2 (Overlapping Zone) -->
+        <line x1="280" y1="0" x2="280" y2="240" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" />
+        <circle cx="280" cy="240" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="2" />
+        <circle cx="280" cy="240" r="60" fill="#10b981" fill-opacity="0.25" stroke="#10b981" stroke-width="2" stroke-dasharray="4 2" />
+        <circle cx="280" cy="240" r="90" fill="#10b981" fill-opacity="0.1" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6 3" />
+
+        <!-- Overlap Distance Arrow -->
+        <line x1="140" y1="20" x2="280" y2="20" stroke="#38bdf8" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+        <text x="210" y="12" fill="#38bdf8" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle">Daldırma Aralığı: 1.5 x R (40-50 cm)</text>
+
+        <!-- Penetration into previous layer -->
+        <line x1="40" y1="200" x2="520" y2="200" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="440" y="190" fill="#94a3b8" font-family="sans-serif" font-size="11">Alt Tabakaya 10 cm Giriş</text>
+        <text x="440" y="270" fill="#94a3b8" font-family="sans-serif" font-size="11">Bekleme: 10-15 saniye</text>
+      </g>
+
+      <!-- Right Panel: Rules -->
+      <g transform="translate(710, 0)">
+        <rect x="0" y="0" width="370" height="420" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+        <rect x="20" y="20" width="330" height="36" rx="6" fill="#0f172a" />
+        <text x="185" y="43" fill="#10b981" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">VİBRASYON UYGULAMA İLKELERİ</text>
+        
+        <g transform="translate(20, 75)" font-family="sans-serif" font-size="12">
+          <rect x="0" y="0" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="22" fill="#f8fafc" font-weight="700">1. Dikey Daldırma &amp; Çekme</text>
+          <text x="12" y="40" fill="#94a3b8">Hızlı batırılır, boşluk bırakmadan yavaşça çekilir (3-5 cm/sn)</text>
+
+          <rect x="0" y="62" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="84" fill="#f8fafc" font-weight="700">2. Yatay Sürükleme Yasağı</text>
+          <text x="12" y="102" fill="#94a3b8">Vibratör ucu betonu taşımak/yaymak için kullanılamaz</text>
+
+          <rect x="0" y="124" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="146" fill="#f8fafc" font-weight="700">3. Donatı ve Kalıba Değmeme</text>
+          <text x="12" y="164" fill="#94a3b8">Donatıya temas aderansı bozar, kalıba temas yüzeyi açar</text>
+
+          <rect x="0" y="186" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="208" fill="#f8fafc" font-weight="700">4. Aşırı Vibrasyon Tehlikesi</text>
+          <text x="12" y="226" fill="#94a3b8">20 sn üzeri vibrasyon agrega çökmesi ve su kusması yapar</text>
+
+          <rect x="0" y="248" width="330" height="75" rx="6" fill="#064e3b" stroke="#10b981" />
+          <text x="12" y="270" fill="#d1fae5" font-weight="800">Yeterli Vibrasyonun Belirtisi</text>
+          <text x="12" y="290" fill="#a7f3d0" font-size="11">Beton yüzeyinin parlaklaşması ve büyük hava kabarcıklarının</text>
+          <text x="12" y="308" fill="#a7f3d0" font-size="11">çıkışının durması işlemin tamamlandığını gösterir.</text>
+        </g>
+      </g>
+    </g>
+
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: UYGULAMA VE KONTROL ŞEMASI</text>
+  </g>
+</svg>

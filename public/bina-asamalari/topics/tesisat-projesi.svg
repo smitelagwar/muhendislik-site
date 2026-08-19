@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#f87171" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <!-- Outer Tech Border Frame -->
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <!-- Header Bar -->
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <!-- Category Badge -->
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#06b6d4" fill-opacity="0.18" stroke="#06b6d4" stroke-width="1.5" />
+    <text x="86" y="37" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">MEKANİK TESİSAT</text>
+    
+    <!-- Title -->
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">Mekanik Tesisat, Şaft & Asma Tavan Koordinasyonu</text>
+    
+    <!-- Standard/Status Badge -->
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">TEKNİK ŞARTNAME</text>
+  </g>
+
+  <!-- Main Content Drawing Area -->
+  <g transform="translate(60, 130)">
+      <!-- Left: Cross Section of MEP Plenum -->
+      <rect x="0" y="0" width="680" height="420" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="2" />
+      
+      <!-- Concrete Slab Top & Bottom -->
+      <rect x="40" y="30" width="600" height="40" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+      <text x="340" y="55" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="700" text-anchor="middle">ÜST KAT BETONARME DÖŞEME (KOD: +3.20)</text>
+
+      <line x1="40" y1="260" x2="640" y2="260" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4" />
+      <text x="630" y="250" fill="#94a3b8" font-family="sans-serif" font-size="11" text-anchor="end">ASMA TAVAN ÇİZGİSİ (KOD: +2.60)</text>
+
+      <rect x="40" y="350" width="600" height="40" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+      <text x="340" y="375" fill="#f8fafc" font-family="sans-serif" font-size="14" font-weight="700" text-anchor="middle">ALT KAT DÖŞEME / TEMİZ DÖŞEME (KOD: ±0.00)</text>
+
+      <!-- MEP Services inside False Ceiling Plenum (h=60cm) -->
+      <!-- HVAC Duct -->
+      <rect x="80" y="90" width="160" height="80" rx="4" fill="#0284c7" stroke="#38bdf8" stroke-width="2" fill-opacity="0.85" />
+      <line x1="80" y1="90" x2="240" y2="170" stroke="#38bdf8" stroke-width="1" />
+      <line x1="80" y1="170" x2="240" y2="90" stroke="#38bdf8" stroke-width="1" />
+      <text x="160" y="135" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">HVAC HAVA KANALI</text>
+
+      <!-- Fire Sprinkler Line (Red Pipe) -->
+      <line x1="60" y1="190" x2="620" y2="190" stroke="#ef4444" stroke-width="8" stroke-linecap="round" />
+      <circle cx="280" cy="190" r="10" fill="#ef4444" stroke="#ffffff" stroke-width="2" />
+      <circle cx="480" cy="190" r="10" fill="#ef4444" stroke="#ffffff" stroke-width="2" />
+      <text x="280" y="225" fill="#f87171" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">Sprinkler Başlığı</text>
+
+      <!-- Cable Tray (Orange) -->
+      <rect x="280" y="100" width="140" height="30" rx="4" fill="#d97706" stroke="#fbbf24" stroke-width="2" />
+      <text x="350" y="120" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle">KABLO TAVASI</text>
+
+      <!-- Drainage Gravity Pipe with Slope -->
+      <line x1="460" y1="95" x2="620" y2="125" stroke="#10b981" stroke-width="10" stroke-linecap="round" />
+      <text x="540" y="90" fill="#34d399" font-family="sans-serif" font-size="11" font-weight="800">PİS SU (%1.5 EĞİM)</text>
+
+      <!-- Hangers / Rods -->
+      <line x1="160" y1="70" x2="160" y2="90" stroke="#cbd5e1" stroke-width="3" />
+      <line x1="350" y1="70" x2="350" y2="100" stroke="#cbd5e1" stroke-width="3" />
+
+      <!-- Right Panel: Coordination Checklist -->
+      <g transform="translate(710, 0)">
+        <rect x="0" y="0" width="370" height="420" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+        <rect x="20" y="20" width="330" height="36" rx="6" fill="#0f172a" />
+        <text x="185" y="43" fill="#06b6d4" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">MEP KOORDİNASYON İLKELERİ</text>
+        
+        <g transform="translate(20, 75)" font-family="sans-serif" font-size="12">
+          <rect x="0" y="0" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="22" fill="#f8fafc" font-weight="700">1. Eğilimli Hatlar Önceliği</text>
+          <text x="12" y="40" fill="#94a3b8">Pis su ve yağmur hatları yön değiştiremez.</text>
+
+          <rect x="0" y="62" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="84" fill="#f8fafc" font-weight="700">2. Büyük Kesitli Kanallar</text>
+          <text x="12" y="102" fill="#94a3b8">Hava kanalları döşeme altına en yakın asılır.</text>
+
+          <rect x="0" y="124" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="146" fill="#f8fafc" font-weight="700">3. Yangın ve Basınçlı Hatlar</text>
+          <text x="12" y="164" fill="#94a3b8">Sprinkler ve temiz su kolay by-pass yapabilir.</text>
+
+          <rect x="0" y="186" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="208" fill="#f8fafc" font-weight="700">4. Kablo Tavaları Ayrımı</text>
+          <text x="12" y="226" fill="#94a3b8">Boru hatlarının üstünde veya izole güzergahta.</text>
+
+          <rect x="0" y="248" width="330" height="75" rx="6" fill="#083344" stroke="#06b6d4" />
+          <text x="12" y="270" fill="#cffafe" font-weight="800">Kiriş Delme Yasağı (TS 500)</text>
+          <text x="12" y="290" fill="#a5f3fc" font-size="11">Taşıyıcı kiriş gövdesinden habersiz boru geçişi</text>
+          <text x="12" y="308" fill="#a5f3fc" font-size="11">kesinlikle yasaktır; rezervasyon projede çözülür.</text>
+        </g>
+      </g>
+    </g>
+
+  <!-- Footer Info Bar -->
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: ŞANTİYE UYGULAMA DETAYI</text>
+  </g>
+</svg>

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#10b981" fill-opacity="0.18" stroke="#10b981" stroke-width="1.5" />
+    <text x="86" y="37" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">İNCE İŞLER</text>
+    
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">Gizli Işık Bandı ve Işık Havuzu Detayı</text>
+    
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">ŞANTİYE REHBERİ</text>
+  </g>
+
+  
+    <g transform="translate(80, 140)">
+      <rect x="0" y="0" width="1040" height="430" rx="12" fill="#1e293b" fill-opacity="0.6" stroke="#334155" stroke-width="1.2" />
+      
+      <!-- Kuru Yapı Şeması -->
+      <g transform="translate(50, 40)">
+        <rect x="0" y="0" width="340" height="340" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.2" />
+        
+        <!-- Üst ve Alt U Profilleri -->
+        <rect x="20" y="20" width="300" height="24" fill="#64748b" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="170" y="37" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">Tavan U Profili + Akustik İzolasyon Bandı</text>
+
+        <rect x="20" y="296" width="300" height="24" fill="#64748b" stroke="#94a3b8" stroke-width="1.5" />
+        <text x="170" y="313" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">Zemin U Profili + Akustik İzolasyon Bandı</text>
+
+        <!-- Düşey C Profilleri -->
+        <rect x="50" y="44" width="20" height="252" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1" />
+        <rect x="160" y="44" width="20" height="252" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1" />
+        <rect x="270" y="44" width="20" height="252" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1" />
+
+        <!-- Aks Ölçüsü -->
+        <line x1="60" y1="170" x2="170" y2="170" stroke="#f59e0b" stroke-width="1.5" />
+        <text x="115" y="160" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">Aks: 60 cm</text>
+
+        <!-- Taşyünü Yalıtım Dolgusu -->
+        <rect x="70" y="44" width="90" height="252" fill="#ca8a04" fill-opacity="0.3" stroke="#eab308" stroke-dasharray="4 2" />
+        <text x="115" y="230" fill="#fef08a" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">50 mm Taşyünü</text>
+
+        <rect x="180" y="44" width="90" height="252" fill="#ca8a04" fill-opacity="0.3" stroke="#eab308" stroke-dasharray="4 2" />
+        <text x="225" y="230" fill="#fef08a" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">50 mm Taşyünü</text>
+
+        <!-- Çift Kat Alçıpan Levhalar -->
+        <rect x="10" y="44" width="10" height="252" fill="#e2e8f0" stroke="#94a3b8" />
+        <rect x="320" y="44" width="10" height="252" fill="#e2e8f0" stroke="#94a3b8" />
+        <text x="15" y="280" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="10" transform="rotate(-90 15 280)">12.5 mm Alçıpan</text>
+      </g>
+
+      <!-- Standart ve Montaj Detayı -->
+      <g transform="translate(420, 40)">
+        <rect x="0" y="0" width="560" height="340" rx="8" fill="#0f172a" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+        <text x="20" y="35" fill="#10b981" font-family="system-ui, sans-serif" font-size="16" font-weight="800">KURU YAPI SİSTEM KRİTERLERİ (TS EN 520 / TS EN 14195)</text>
+        
+        <g transform="translate(20, 60)">
+          <text x="0" y="20" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">1. Karkas ve Malzeme Standartları:</text>
+          <text x="15" y="45" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Profil Sac Kalınlığı: Min. 0.60 mm galvanizli çelik (C50/C75/C100).</text>
+          <text x="15" y="70" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Profil Aks Aralığı: Standart duvarlarda 60 cm, seramik altı duvarlarda 40 cm.</text>
+          <text x="15" y="95" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Vida Aralığı: Borazan vidalar tek katta 25 cm, çift katta 15 cm sıklıkta atılmalıdır.</text>
+
+          <text x="0" y="130" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">2. Ses, Yangın ve Derz Uygulaması:</text>
+          <text x="15" y="155" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Akustik Yalıtım Bandı: U ve C profillerin zemin, tavan ve duvara bastığı her noktaya çekilmelidir.</text>
+          <text x="15" y="180" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Derz Şaşırtması: Çift kat alçıpan uygulamasında 1. ve 2. kat derzleri en az 40 cm şaşırtılmalıdır.</text>
+          <text x="15" y="205" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Derz Bandı ve Dolgusu: Kendinden yapışkanlı file bant veya kağıt bant + 3 kat derz dolgu alçısı.</text>
+          <text x="15" y="230" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Islak Hacim: Suya dayanıklı yeşil (WR) veya neme/küfe ekstra dayanıklı levha kullanılmalıdır.</text>
+          <text x="15" y="255" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12">• Alüminyum LED soğutma profili, endirekt ışık açısı ve pürüzsüz boyalı alçıpan havuz imalatı.</text>
+        </g>
+      </g>
+    </g>
+  
+
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: UYGULAMA VE KONTROL ŞEMASI</text>
+  </g>
+</svg>

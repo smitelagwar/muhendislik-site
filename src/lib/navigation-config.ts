@@ -38,6 +38,12 @@ export const PRIMARY_NAV_ITEMS: SiteNavigationItem[] = [
     matchPrefixes: ["/belgeler"],
   },
   {
+    id: "dokumantasyon",
+    label: "Dökümantasyon",
+    href: "/dokumantasyon",
+    matchPrefixes: ["/dokumantasyon"],
+  },
+  {
     id: "yapi-tasarimi",
     label: "Yapı",
     href: "/kategori/yapi-tasarimi",

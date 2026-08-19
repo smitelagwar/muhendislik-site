@@ -315,10 +315,11 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
                 return <HeadingTag key={`${sectionItem.id}-${blockIndex}`}>{block.content}</HeadingTag>;
               }
               if (block.type === "image") {
+                const isSvg = block.src.toLowerCase().includes(".svg");
                 return (
                   <figure key={`${sectionItem.id}-${blockIndex}`} className="not-prose site-panel my-10 overflow-hidden rounded-xl">
-                    <div className="relative aspect-[16/9]">
-                      <Image src={block.src} alt={block.alt || article.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
+                    <div className="relative aspect-[16/9] bg-zinc-950/5 dark:bg-zinc-900/40">
+                      <Image src={block.src} alt={block.alt || article.title} fill unoptimized={isSvg} className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
                     </div>
                     {block.caption ? <figcaption className="border-t border-zinc-200 px-5 py-4 text-sm leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">{block.caption}</figcaption> : null}
                   </figure>
@@ -570,7 +571,14 @@ export default function ArticleClient({
 
           {article.image ? (
             <div className="relative mb-12 aspect-[16/9] overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <Image src={article.image} alt={article.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
+              <Image
+                src={article.image}
+                alt={article.title}
+                fill
+                unoptimized={article.image.toLowerCase().includes(".svg")}
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 900px"
+              />
             </div>
           ) : null}
 

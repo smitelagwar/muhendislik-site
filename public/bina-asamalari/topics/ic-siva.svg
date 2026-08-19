@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#10b981" fill-opacity="0.18" stroke="#10b981" stroke-width="1.5" />
+    <text x="86" y="37" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">İNCE İŞLER</text>
+    
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">İç Sıva Uygulama ve Ano Mastar Detayı</text>
+    
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">ŞANTİYE REHBERİ</text>
+  </g>
+
+  
+    <g transform="translate(80, 140)">
+      <rect x="0" y="0" width="1040" height="430" rx="12" fill="#1e293b" fill-opacity="0.6" stroke="#334155" stroke-width="1.2" />
+      
+      <!-- Duvar Katman Kesiti -->
+      <g transform="translate(60, 40)">
+        <rect x="0" y="0" width="140" height="340" fill="#b45309" fill-opacity="0.4" stroke="#d97706" stroke-width="1.5" />
+        <text x="70" y="170" fill="#fde68a" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle" transform="rotate(-90 70 170)">TUĞLA / GAZBETON DUVAR</text>
+
+        <!-- Serpme Katmanı -->
+        <rect x="140" y="0" width="20" height="340" fill="#64748b" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2 2" />
+        <text x="150" y="360" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Aderans Serpmesi</text>
+
+        <!-- Kaba Sıva -->
+        <rect x="160" y="0" width="50" height="340" fill="#475569" stroke="#94a3b8" stroke-width="1.2" />
+        <text x="185" y="170" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle" transform="rotate(-90 185 170)">Kaba Sıva (15-20 mm)</text>
+
+        <!-- Donatı Filesi -->
+        <line x1="210" y1="0" x2="210" y2="340" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 2" />
+        <text x="210" y="375" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">160 g/m² Sıva Filesi</text>
+
+        <!-- İnce Sıva / Saten -->
+        <rect x="210" y="0" width="30" height="340" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
+        <text x="225" y="170" fill="#0f172a" font-family="system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle" transform="rotate(-90 225 170)">İnce Sıva / Alçı</text>
+
+        <!-- Boya Astar & Son Kat -->
+        <rect x="240" y="0" width="10" height="340" fill="#10b981" />
+        <text x="245" y="360" fill="#10b981" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Boya</text>
+
+        <!-- Ano Çıtası ve Mastar Çizgisi -->
+        <line x1="160" y1="40" x2="240" y2="40" stroke="#f59e0b" stroke-width="2" />
+        <circle cx="200" cy="40" r="4" fill="#f59e0b" />
+        <text x="250" y="45" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="11">Ano Kot Çizgisi</text>
+      </g>
+
+      <!-- Açıklamalar ve Tablo -->
+      <g transform="translate(420, 40)">
+        <rect x="0" y="0" width="560" height="340" rx="8" fill="#0f172a" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+        <text x="20" y="35" fill="#10b981" font-family="system-ui, sans-serif" font-size="16" font-weight="800">SIVA TEKNİK ÖZELLİKLERİ VE SAHA KURALLARI</text>
+        
+        <g transform="translate(20, 60)">
+          <text x="0" y="20" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">1. Harç Karışım Oranları:</text>
+          <text x="15" y="45" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Serpme Aderans: 1 m³ yıkanmış kum + 350-400 kg çimento + aderans katkısı</text>
+          <text x="15" y="70" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Kaba Sıva: 1 m³ 0-3 mm kum + 250-300 kg çimento + kireç (15-20 mm)</text>
+          <text x="15" y="95" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• İnce Sıva: 1 m³ 0-1 mm elenmiş ince kum + 200 kg çimento (3-5 mm)</text>
+
+          <text x="0" y="130" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">2. Kritik Kontrol Adımları:</text>
+          <text x="15" y="155" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Yüzey nemlendirme: Kuru tuğla/gazbeton sıva suyunu emmemesi için ıslatılmalı.</text>
+          <text x="15" y="180" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Farklı malzeme birleşimleri (beton-tuğla) fileli sıva ile takviye edilmeli (min. 20 cm bindirme).</text>
+          <text x="15" y="205" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Köşelerde alüminyum/PVC fileli köşe profili şakülünde yerleştirilmeli.</text>
+          <text x="15" y="230" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Mastar kontrolü: 2 metrede sapma max 2 mm (TS EN 13914 standardı).</text>
+          <text x="15" y="255" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12">• İç mekan nem dengesi sağlanmalı; cereyan ve hızlı kuruma çatlaklarına engel olunmalı.</text>
+        </g>
+      </g>
+    </g>
+  
+
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: UYGULAMA VE KONTROL ŞEMASI</text>
+  </g>
+</svg>

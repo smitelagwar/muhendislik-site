@@ -36,4 +36,23 @@ Belgeler modülünde çalışacak yapay zeka ajanları ve geliştiriciler için 
 4. **Anlık Zoom (60fps):** Yakınlaştırmada PDF yeniden derlenmemeli, önbellekteki PDF.js dokümanı üzerinden sadece canvas anlık çizilmelidir.
 5. **Kullanıcıyı Engellemeyen Validasyon:** Belirli hane kurallarında (örn. YİBF >7 hane) kullanıcı uyarılmalı ancak yazması engellenmemelidir.
 
+## 🔒 Dökümantasyon Modülü Kuralı (ZORUNLU)
+
+Bu projede `/dokumantasyon` altında çalışan; tek admin girişli, özel dosya/klasör saklama, süreli paylaşım linki üretme ve `/p/[token]` üzerinden kontrollü indirme sağlayan ayrı bir Dökümantasyon modülü vardır.
+
+**Yalnızca Dökümantasyon modülüyle doğrudan ilgili bir görev geldiğinde**, kod değişikliğine başlamadan önce proje kökündeki `dokumantasyon.md` dosyasını baştan sona oku. Oradaki güncel mimari, veri, güvenlik ve test kurallarını uygula. Görev tamamlandığında `dokumantasyon.md` dosyasını gerçek değişikliklerle güncelle.
+
+Dökümantasyon kapsamına giren örnek işler:
+- `/dokumantasyon` admin ekranı ve login/session,
+- Dökümantasyon dosya/klasör DB ve Blob işlemleri,
+- süreli share linkleri,
+- `/p/[token]` public paylaşım sayfası,
+- Dökümantasyon download/ZIP API'leri,
+- Dökümantasyon güvenlik, backup ve migration işleri.
+
+**Bu kural sitenin diğer bölümleri için geçerli değildir.** Ana Sayfa, Mevzuat, Hesaplamalar, Araçlar, Bina Aşamaları, `/belgeler` ve PDF stüdyoları gibi Dökümantasyon dışı işlerde sırf bu dosya var diye `dokumantasyon.md` okuma.
+
+`/belgeler` ile `/dokumantasyon` birbirinden ayrı sistemlerdir.
+
+
 

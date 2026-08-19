@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#06b6d4" fill-opacity="0.18" stroke="#06b6d4" stroke-width="1.5" />
+    <text x="86" y="37" fill="#06b6d4" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">FORE KAZIK</text>
+    
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">Fore Kazık Kesiti, Donatı Kafesi & Tremi Betonu</text>
+    
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">ŞANTİYE REHBERİ</text>
+  </g>
+
+  <g transform="translate(60, 130)">
+      <!-- Left: Bored Pile Construction Cross Section -->
+      <rect x="0" y="0" width="680" height="420" rx="12" fill="#0f172a" stroke="#06b6d4" stroke-width="2" />
+      
+      <g transform="translate(60, 20)">
+        <!-- Cap Beam (Başlık Kirişi) -->
+        <rect x="40" y="20" width="220" height="50" rx="4" fill="#334155" stroke="#64748b" stroke-width="2" />
+        <text x="150" y="50" fill="#f8fafc" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">BAŞLIK KİRİŞİ (80x100 cm)</text>
+
+        <!-- Pile Shaft -->
+        <rect x="80" y="70" width="140" height="300" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+        
+        <!-- Steel Rebar Cage Inside Pile -->
+        <g stroke="#f59e0b" stroke-width="3">
+          <line x1="95" y1="50" x2="95" y2="350" />
+          <line x1="205" y1="50" x2="205" y2="350" />
+          
+          <!-- Spiral / Ties -->
+          <line x1="95" y1="100" x2="205" y2="100" stroke-dasharray="4 2" />
+          <line x1="95" y1="140" x2="205" y2="140" stroke-dasharray="4 2" />
+          <line x1="95" y1="180" x2="205" y2="180" stroke-dasharray="4 2" />
+          <line x1="95" y1="220" x2="205" y2="220" stroke-dasharray="4 2" />
+          <line x1="95" y1="260" x2="205" y2="260" stroke-dasharray="4 2" />
+          <line x1="95" y1="300" x2="205" y2="300" stroke-dasharray="4 2" />
+        </g>
+
+        <!-- Tremie Pipe Pouring System -->
+        <rect x="135" y="10" width="30" height="320" fill="#ef4444" stroke="#f87171" stroke-width="1.5" fill-opacity="0.8" />
+        <polygon points="120,10 180,10 165,30 135,30" fill="#ef4444" />
+        <text x="150" y="160" fill="#ffffff" font-family="sans-serif" font-size="11" font-weight="900" transform="rotate(-90, 150, 160)" text-anchor="middle">TREMİ BORUSU (Ø250 mm)</text>
+
+        <!-- Concrete Level Rising Arrow -->
+        <path d="M 120 330 Q 150 310 180 330" fill="#64748b" stroke="#94a3b8" stroke-width="2" />
+        <text x="150" y="355" fill="#34d399" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">Taze C30/37 Betonu</text>
+
+        <!-- Dimension Callout: Diameter -->
+        <line x1="80" y1="380" x2="220" y2="380" stroke="#06b6d4" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+        <text x="150" y="398" fill="#38bdf8" font-family="sans-serif" font-size="12" font-weight="800" text-anchor="middle">Kazık Çapı: Ø80 cm - Ø100 cm</text>
+      </g>
+
+      <!-- Right Panel: TS EN 1536 Standards -->
+      <g transform="translate(710, 0)">
+        <rect x="0" y="0" width="370" height="420" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5" />
+        <rect x="20" y="20" width="330" height="36" rx="6" fill="#0f172a" />
+        <text x="185" y="43" fill="#06b6d4" font-family="sans-serif" font-size="13" font-weight="800" text-anchor="middle">TS EN 1536 FORE KAZIK ESASLARI</text>
+        
+        <g transform="translate(20, 75)" font-family="sans-serif" font-size="12">
+          <rect x="0" y="0" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="22" fill="#f8fafc" font-weight="700">1. Bentonit / Muhafaza Borusu</text>
+          <text x="12" y="40" fill="#94a3b8">Gevşek/sulu zeminde kuyu göçmesini önler.</text>
+
+          <rect x="0" y="62" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="84" fill="#f8fafc" font-weight="700">2. Tremi Daldırma Derinliği</text>
+          <text x="12" y="102" fill="#94a3b8">Boru ucu taze beton içine min. 2.0 m gömülü kalmalı.</text>
+
+          <rect x="0" y="124" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="146" fill="#f8fafc" font-weight="700">3. Kazık Başı Kırım (Pus Pası)</text>
+          <text x="12" y="164" fill="#94a3b8">Kirlenmiş üst 50-80 cm beton başlık öncesi kırılır.</text>
+
+          <rect x="0" y="186" width="330" height="52" rx="6" fill="#0f172a" stroke="#334155" />
+          <text x="12" y="208" fill="#f8fafc" font-weight="700">4. Süreklilik (PIT) ve Yük Testi</text>
+          <text x="12" y="226" fill="#94a3b8">Sonic logging tüpleri veya sonic yankı deneyi.</text>
+
+          <rect x="0" y="248" width="330" height="75" rx="6" fill="#083344" stroke="#06b6d4" />
+          <text x="12" y="270" fill="#cffafe" font-weight="800">Donatı Kafesi Paspayı</text>
+          <text x="12" y="290" fill="#a5f3fc" font-size="11">Kazık boyunca dairesel plastik takozlar (min 7.5 cm)</text>
+          <text x="12" y="308" fill="#a5f3fc" font-size="11">kullanılarak çeliğin kuyu cidarına sürtünmesi engellenir.</text>
+        </g>
+      </g>
+    </g>
+
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: UYGULAMA VE KONTROL ŞEMASI</text>
+  </g>
+</svg>

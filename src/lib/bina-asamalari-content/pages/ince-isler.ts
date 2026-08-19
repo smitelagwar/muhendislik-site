@@ -302,7 +302,7 @@ const getInceExtraSpecs = (): BinaGuidePageSpec[] => [
     ],
     designVsField: [
       "Projede bir pencere boşluğu çizgisel görünür; sahada ise kasa, ankraj, su tahliyesi, ısı köprüsü ve kullanım konforu aynı birleşimde toplanır.",
-      "Bu nedenle kapi-pencere işleri, cephe ve iç mekan performansının eşik kalemidir.",
+      "Bu nedenle kapı-pencere işleri, cephe ve iç mekan performansının eşik kalemidir.",
     ],
     conclusion: [
       "Kapı ve pencere sistemleri doğru montajla birleştiğinde yapı kabuğu güvenle çalışır. Hatalı birleşim ise şikayetleri ilk doğuran ve en görünür sorunlardan biri haline gelir.",
@@ -427,7 +427,7 @@ export const inceIslerSpecs: BinaGuidePageSpec[] = [
   ...inceIslerLeafSpecs,
   ...inceIslerMoreLeafSpecs,
   ...inceIslerTopicOverrides.filter(
-    (spec) => spec.slugPath !== "ince-isler/siva" && spec.slugPath !== "ince-isler/alcipan",
+    (spec) => spec.slugPath !== "ince-isler/sıva" && spec.slugPath !== "ince-isler/alçıpan",
   ),
   {
     slugPath: "ince-isler",
@@ -436,7 +436,7 @@ export const inceIslerSpecs: BinaGuidePageSpec[] = [
     tip: "Nem, yüzey toleransı ve bitiş kararı çözülmeden malzeme seçmek, sorunu yalnızca üst katmanda gizler.",
     intro: [
       "İnce işler fazı, kullanıcının doğrudan gördüğü kaliteyi üretir. Ancak bu kalite, yalnızca seçilen kaplama veya boya markasından değil; alt yüzey hazırlığı, nem kontrolü ve bitiş detaylarının doğruluğundan doğar.",
-      "Sıva, alçıpan, zemin ve duvar kaplamaları, kapi-pencere sistemleri ve çatı kaplaması bu fazın ana halkalarıdır. Her biri bir diğerine tolerans ve bitiş şartı bırakır.",
+      "Sıva, alçıpan, zemin ve duvar kaplamaları, kapı-pencere sistemleri ve çatı kaplaması bu fazın ana halkalarıdır. Her biri bir diğerine tolerans ve bitiş şartı bırakır.",
       "Bu rehber, ince iş kararlarını estetik seçimler değil; mühendislik ve uygulama disiplini olarak ele alır.",
     ],
     theory: [
@@ -628,7 +628,7 @@ export const inceIslerSpecs: BinaGuidePageSpec[] = [
     sources: [...INCE_SOURCES, SOURCE_LEDGER.tsEn13914],
     keywords: ["sıva", "alçı sıva", "dış sıva", "yüzey düzgünlüğü", "TS EN 13914"],
   },
-  inceIslerTopicOverrides.find((spec) => spec.slugPath === "ince-isler/siva")!,
+  inceIslerTopicOverrides.find((spec) => spec.slugPath === "ince-isler/sıva")!,
   {
     slugPath: "ince-isler/alcipan",
     kind: "topic",

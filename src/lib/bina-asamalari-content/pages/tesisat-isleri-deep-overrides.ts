@@ -4,9 +4,9 @@ import type { BinaGuideEquipment, BinaGuidePageSpec, BinaGuideTool } from "../ty
 const TESISAT_DEEP_SOURCES = [...BRANCH_SOURCE_LEDGER["tesisat-isleri"]];
 
 const ELEKTRIK_TOOLS: BinaGuideTool[] = [
-  { category: "Proje", name: "Tek hat semasi ve panel yuk tablosu", purpose: "Pano cikislari, koruma elemanlari ve hat dagitimini saha ile aynı dilde okumak." },
-  { category: "Analiz", name: "Caneco veya benzeri yuk hesap araci", purpose: "Talep gucu, koruma secimi ve hat akimlarini ilk tasarimla karsilastirmak." },
-  { category: "Ölçüm", name: "Megger, topraklama test cihazi ve loop olcer", purpose: "Kapatma öncesi ve devreye alma aninda elektriksel guvenligi sayisal olarak dogrulamak." },
+  { category: "Proje", name: "Tek hat semasi ve panel yük tablosu", purpose: "Pano cikislari, koruma elemanlari ve hat dagitimini saha ile aynı dilde okumak." },
+  { category: "Analiz", name: "Caneco veya benzeri yük hesap araci", purpose: "Talep gucu, koruma secimi ve hat akimlarini ilk tasarimla karsilastirmak." },
+  { category: "Ölçüm", name: "Megger, topraklama test cihazi ve loop olcer", purpose: "Kapatma öncesi ve devreye alma aninda elektriksel güvenliği sayisal olarak dogrulamak." },
   { category: "Koordinasyon", name: "Saha etiketleme ve devre takip matrisi", purpose: "Buat, linye, panel ve priz devrelerini teslimde okunabilir kılmak." },
 ];
 
@@ -24,21 +24,21 @@ export const tesisatIsleriDeepOverrides: BinaGuidePageSpec[] = [
     quote: "Elektrik tesisati görünmez calisir; ama hatali kuruldugunda kendini ya ariza ya da güvenlik riski olarak en sert bicimde hissettirir.",
     tip: "Boru ve kabloyu duvara gommek isi bitirmek degildir; test, etiketleme ve panoda okunabilirlik kurulmadan sistem teslim edilmis sayilmaz.",
     intro: [
-      "Elektrik tesisati, bir binanin gunluk kullanım kalitesini ve emniyetini aynı anda belirleyen temel omurgalardan biridir. Aydinlatma, priz, zayif akim, pano dagitimi, topraklama ve yanginla iliskili geçiş detaylari bir araya gelerek yalnız enerji surekliligini degil, can ve mal guvenligini de etkiler.",
-      "Sahada elektrik isleri cogu zaman iki asamada görülür: borulama ve kablolama. Oysa teknik bakimdan asil mesele bu iki asama arasindaki koordinasyon, paneldeki secicilik, hat etiketleme, test disiplini ve yangin dayanimli gecislerin birlikte yonetilmesidir. Sadece kabloyu cekmek, sistemin doğru calisacagini garanti etmez.",
-      "Bir insaat muhendisi için elektrik tesisatini anlamak, elektrik muhendisi rolunu almak anlamina gelmez; ama saha kapanmadan once hangi kontrollere bakilacagini, hangi eksiklerin kapatma öncesi yakalanmasi gerektigini bilmek anlamina gelir. Cunku sıva kapanıp seramik bittikten sonra fark edilen bir buat, eksik topraklama veya plansiz kanal, en pahali tekrar islerden birine donusebilir.",
-      "Bu nedenle elektrik tesisati, yalnız bir uzmanlık paketi olarak degil, butun santiyenin koordinasyon ve teslim kalitesi problemi olarak ele alinmalidir.",
+      "Elektrik tesisati, bir binanin gunluk kullanım kalitesini ve emniyetini aynı anda belirleyen temel omurgalardan biridir. Aydinlatma, priz, zayif akim, pano dagitimi, topraklama ve yanginla iliskili geçiş detaylari bir araya gelerek yalnız enerji surekliligini değil, can ve mal guvenligini de etkiler.",
+      "Sahada elektrik isleri cogu zaman iki asamada görülür: borulama ve kablolama. Oysa teknik bakimdan asil mesele bu iki asama arasindaki koordinasyon, paneldeki secicilik, hat etiketleme, test disiplini ve yangın dayanimli gecislerin birlikte yonetilmesidir. Sadece kabloyu cekmek, sistemin doğru calisacagini garanti etmez.",
+      "Bir inşaat mühendisi için elektrik tesisatini anlamak, elektrik mühendisi rolunu almak anlamina gelmez; ama saha kapanmadan önce hangi kontrollere bakilacagini, hangi eksiklerin kapatma öncesi yakalanmasi gerektigini bilmek anlamina gelir. Cunku sıva kapanıp seramik bittikten sonra fark edilen bir buat, eksik topraklama veya plansiz kanal, en pahali tekrar islerden birine donusebilir.",
+      "Bu nedenle elektrik tesisati, yalnız bir uzmanlık paketi olarak değil, butun şantiyenin koordinasyon ve teslim kalitesi problemi olarak ele alinmalidir.",
     ],
     theory: [
-      "Elektrik tesisati performansinda ana mesele, akimin kaynaktan yuke guvenli sekilde ulasmasidir. Ancak bu güvenlik yalnız kablo kesitiyle saglanmaz. Koruma elemani secimi, kısa devre davranisi, kacak akim korumasi, topraklama butunlugu ve hat etiketleme birlikte okunmalidir.",
+      "Elektrik tesisati performansinda ana mesele, akimin kaynaktan yuke güvenli sekilde ulasmasidir. Ancak bu güvenlik yalnız kablo kesitiyle saglanmaz. Koruma elemani secimi, kısa devre davranisi, kacak akim korumasi, topraklama butunlugu ve hat etiketleme birlikte okunmalidir.",
       "Saha tarafinda en yaygin sorunlardan biri, mekanik ve mimari koordinasyon eksikligidir. Asma tavan icinde mekanik kanal ile tava cakismasi, duvarda doğrama yanina gelen buat, islak hacimde plansiz priz yeri veya şaft icinde bakım erisimsiz kutu; bunlar tasarimin kağıt üzerinde doğru, sahada ise zorlanmis uygulandigini gösterir.",
       "Elektrik tesisatinda kapatma öncesi test çok kritiktir. İzolasyon ölçümü, devre sürekliliği, pano etiketleme ve topraklama testi yapilmadan alan kapatilirse sistem yalnız görünmez hale gelmez, aynı zamanda izlenemez hale gelir. Ariza aninda hangi linye nereye gidiyor sorusunun cevabi yoksa bakım maliyeti hızla yükselir.",
-      "Ayrıca yangin güvenligi boyutu unutulmamalidir. Şaft, duvar ve döşeme geçişlerinde yangin dayaniminin bozulmasi, elektrik tesisatini yalnız enerji sistemi olmaktan cikarir ve yapinin bütün güvenlik senaryosunu etkiler. Bu nedenle elektrik isleri ile yangin geçiş detaylari birlikte değerlendirilmelidir.",
+      "Ayrıca yangın güvenligi boyutu unutulmamalidir. Şaft, duvar ve döşeme geçişlerinde yangın dayaniminin bozulmasi, elektrik tesisatini yalnız enerji sistemi olmaktan cikarir ve yapının bütün güvenlik senaryosunu etkiler. Bu nedenle elektrik isleri ile yangın geçiş detaylari birlikte değerlendirilmelidir.",
     ],
     ruleTable: [
       {
         parameter: "Koruma ve dağıtım mantigi",
-        limitOrRequirement: "Pano, sigorta ve kacak akim koruma duzeni hat kullanimina uygun ve okunabilir olmalı",
+        limitOrRequirement: "Pano, sigorta ve kacak akim koruma düzeni hat kullanimina uygun ve okunabilir olmalı",
         reference: "TS HD 60364",
         note: "Koruma elemani yalnız secilmis olmamali, devreyle doğru eşleşmelidir.",
       },
@@ -55,10 +55,10 @@ export const tesisatIsleriDeepOverrides: BinaGuidePageSpec[] = [
         note: "Olculmeyen koruma, varsayilan korumadir.",
       },
       {
-        parameter: "Yangin gecisleri ve saft disiplini",
-        limitOrRequirement: "Duvar ve doseme gecislerinde yangin guvenligi detaylari bozulmadan tamamlanmali",
-        reference: "Binalarin Yangindan Korunmasi Hakkinda Yonetmelik",
-        note: "Tesisat gecisi bir delik degil, yangin butunlugu kararidir.",
+        parameter: "Yangın gecisleri ve saft disiplini",
+        limitOrRequirement: "Duvar ve döşeme gecislerinde yangın güvenliği detaylari bozulmadan tamamlanmali",
+        reference: "Binalarin Yangindan Korunmasi Hakkinda Yönetmelik",
+        note: "Tesisat gecisi bir delik değil, yangın butunlugu kararidir.",
       },
       {
         parameter: "Devreye alma ve etiketleme",
@@ -68,10 +68,10 @@ export const tesisatIsleriDeepOverrides: BinaGuidePageSpec[] = [
       },
     ],
     designOrApplicationSteps: [
-      "Tek hat semasi, mahal bazli priz-aydinlatma plani ve pano cikislarini sahaya inmeden once ortak koordinasyon diline cevir.",
+      "Tek hat semasi, mahal bazli priz-aydinlatma plani ve pano cikislarini sahaya inmeden önce ortak koordinasyon diline cevir.",
       "Boru ve tava guzergahlarini mekanik hatlar, asma tavan boşlukları ve doğrama detaylariyla cakistirarak yürüt.",
-      "Buat, priz, anahtar ve zayif akim noktalarini duvar örme ve siva bitişleriyle birlikte düşün; sonradan kırma gerektirecek karar verme.",
-      "Pano iclerini yalnız montajla degil, devre numarasi, etiketleme ve yedek kapasite mantigiyla tamamla.",
+      "Buat, priz, anahtar ve zayif akim noktalarini duvar örme ve sıva bitişleriyle birlikte düşün; sonradan kırma gerektirecek karar verme.",
+      "Pano iclerini yalnız montajla değil, devre numarasi, etiketleme ve yedek kapasite mantigiyla tamamla.",
       "Kapatma öncesi izolasyon, sureklilik, topraklama ve gerekiyorsa fonksiyon testlerini olcerek kayda bagla.",
       "Teslim öncesi devre listesi, pano etiketi, as-built ve kritik nokta fotoğraflarini tek pakette birlestir.",
     ],
@@ -80,28 +80,28 @@ export const tesisatIsleriDeepOverrides: BinaGuidePageSpec[] = [
       "Boru ve tava güzergahlari bakım veya ilave çekim için erişilebilir mi?",
       "Islak hacim, şaft ve kaçış yolu geçişlerinde yanlış konumlanmış elektrik elemani var mı?",
       "İzolasyon, topraklama ve süreklilik ölçümleri gerçekten kayıt altina alindi mi?",
-      "Kapatma öncesi buat ve linye foto kaydi alindi mi?",
-      "Yangin durdurucu detaylar elektrik geçişlerinde eksiksiz mi?",
+      "Kapatma öncesi buat ve linye foto kaydı alindi mi?",
+      "Yangın durdurucu detaylar elektrik geçişlerinde eksiksiz mi?",
     ],
     numericalExample: {
       title: "Kat panosu için talep akimi yorumu",
       inputs: [
-        { label: "Toplam bagli yuk", value: "18 kW", note: "Bir katin aydinlatma ve priz toplami" },
+        { label: "Toplam bagli yük", value: "18 kW", note: "Bir katin aydinlatma ve priz toplami" },
         { label: "Talep katsayisi", value: "0,60", note: "Ornek saha planlama katsayisi" },
         { label: "Sistem", value: "3 faz, 400 V", note: "Kat panosu beslemesi" },
         { label: "Guc faktoru", value: "0,90", note: "Ornek yorum degeri" },
       ],
       assumptions: [
-        "Yukler kat boyunca dengeli dagitilmistir.",
-        "Talep katsayisi, yapinin kullanım senaryosuna göre belirlenmistir.",
-        "Kesin koruma elemani secimi için kısa devre ve secicilik kontrolu ayrıca yapilacaktir.",
+        "Yükler kat boyunca dengeli dagitilmistir.",
+        "Talep katsayisi, yapının kullanım senaryosuna göre belirlenmistir.",
+        "Kesin koruma elemani secimi için kısa devre ve secicilik kontrolü ayrıca yapilacaktir.",
       ],
       steps: [
         {
           title: "Talep gücünü bul",
           formula: "18 x 0,60 = 10,8 kW",
           result: "Kat panosu için hesapta dikkate alinacak talep gücü 10,8 kW olur.",
-          note: "Bagli yuk ile gercek işletme yükü aynı kabul edilmemelidir.",
+          note: "Bagli yük ile gercek işletme yükü aynı kabul edilmemelidir.",
         },
         {
           title: "Hat akimini hesapla",
@@ -121,15 +121,15 @@ export const tesisatIsleriDeepOverrides: BinaGuidePageSpec[] = [
         "Pano etiketleme ve devre dagilimi, hesap sonucuyla uyumlu olmalıdır.",
         "Kritik yüklere ayrılan devreler genel yükten bağımsız okunabilir kalmalıdır.",
       ],
-      engineeringComment: "Elektrik tesisatinda rakamlar, yalnız tasarim ofisi için degil; panonun sahada neden o sekilde kuruldugunu anlamak için de gereklidir.",
+      engineeringComment: "Elektrik tesisatinda rakamlar, yalnız tasarim ofisi için değil; panonun sahada neden o sekilde kuruldugunu anlamak için de gereklidir.",
     },
     tools: ELEKTRIK_TOOLS,
     equipmentAndMaterials: ELEKTRIK_EQUIPMENT,
     mistakes: [
       { wrong: "Pano etiketlerini montaj sonuna veya teslim gunune birakmak.", correct: "Her devreyi kablo cekildigi anda tanimlayip pano ile sahayi birlikte etiketlemek." },
-      { wrong: "Megger ve topraklama testlerini formalite gormek.", correct: "Kapatma öncesi teknik kabulun ana maddesi olarak uygulamak." },
+      { wrong: "Megger ve topraklama testlerini formalite görmek.", correct: "Kapatma öncesi teknik kabulun ana maddesi olarak uygulamak." },
       { wrong: "Buat ve priz yerlerini yalnız mimari bitise göre secmek.", correct: "Mekanik, doğrama ve kullanıcı rotasiyla birlikte koordine etmek." },
-      { wrong: "Shaft gecislerini delik acip kablo geçirmek seviyesinde görmek.", correct: "Yangin butunlugu kararini da birlikte tamamlamak." },
+      { wrong: "Shaft gecislerini delik acip kablo geçirmek seviyesinde görmek.", correct: "Yangın butunlugu kararini da birlikte tamamlamak." },
       { wrong: "As-built setini saha degisikliklerinden kopuk tutmak.", correct: "Her degisikligi pano ve guzergahla birlikte belgelemek." },
       { wrong: "Bakım erisimi olmayan tava ve kutu bırakmak.", correct: "Teslim sonrası işletmeyi düşünerek erişilebilir sistem kurmak." },
     ],

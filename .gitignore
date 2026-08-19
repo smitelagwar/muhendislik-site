@@ -57,3 +57,4 @@ test_scrollytelling.js
 .next-dev.out.log
 *.log
 scratch/
+.data/

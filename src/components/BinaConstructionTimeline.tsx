@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   X,
@@ -23,6 +24,21 @@ import {
   BINA_BRANCH_COLORS,
   type BinaMindMapNode,
 } from "@/lib/bina-asamalari";
+
+const TOPIC_IMAGE_MAP: Record<string, string> = {
+  "mimari-proje": "/bina-asamalari/images/mimari-proje-hero.jpg",
+  siva: "/bina-asamalari/topics/siva-isleri.svg",
+  "siva-isleri": "/bina-asamalari/topics/siva-isleri.svg",
+  alcipan: "/bina-asamalari/topics/alcipan.svg",
+  "alcipan-asma-tavan": "/bina-asamalari/topics/alcipan.svg",
+};
+
+function getTopicImageUrl(nodeId: string): string {
+  if (TOPIC_IMAGE_MAP[nodeId]) {
+    return TOPIC_IMAGE_MAP[nodeId];
+  }
+  return `/bina-asamalari/topics/${nodeId}.svg`;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Faz ikonları & etiketleri                                         */
@@ -137,42 +153,68 @@ function TopicCard({
   color: string;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const hasChildren = !!node.children && node.children.length > 0;
   const label = node.label.replace(/\n/g, " ");
+  const imageSrc = getTopicImageUrl(node.id);
 
   return (
     <div className="group/card relative">
       <Link
         href={node.url}
-        className="relative block overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-300 hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-md dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/[0.15] dark:hover:bg-white/[0.06] dark:hover:shadow-lg dark:hover:shadow-black/20"
+        className="relative block overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-xs transition-all duration-300 hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-md dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:border-white/[0.15] dark:hover:bg-white/[0.06] dark:hover:shadow-lg dark:hover:shadow-black/20"
       >
         {/* Üst accent çizgi */}
         <div
-          className="absolute inset-x-0 top-0 h-[2.5px] opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+          className="absolute inset-x-0 top-0 z-10 h-[2.5px] opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
           style={{ backgroundColor: color }}
         />
 
-        <h4 className="text-[15px] font-bold leading-snug tracking-tight text-slate-900 transition-colors group-hover/card:text-slate-950 dark:text-white/90 dark:group-hover/card:text-white">
-          {label}
-        </h4>
-
-        <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-slate-600 transition-colors group-hover/card:text-slate-700 dark:text-white/40 dark:group-hover/card:text-white/55">
-          {node.summary}
-        </p>
-
-        <div className="mt-4 flex items-center justify-between">
-          {hasChildren && (
+        {/* Görsel Thumbnail */}
+        {!imgError && (
+          <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-900/60 border-b border-slate-200/60 dark:border-white/[0.04]">
+            <Image
+              src={imageSrc}
+              alt={label}
+              fill
+              unoptimized
+              onError={() => setImgError(true)}
+              className="object-cover transition-transform duration-500 group-hover/card:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
-              style={{
-                backgroundColor: `${color}18`,
-                color: color,
-              }}
+              className="absolute bottom-2.5 right-2.5 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs"
+              style={{ backgroundColor: `${color}cc` }}
             >
-              {node.children!.length} alt konu
+              Teknik Şema
             </span>
-          )}
-          <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover/card:translate-x-1 group-hover/card:text-slate-600 dark:text-white/20 dark:group-hover/card:text-white/60" />
+          </div>
+        )}
+
+        <div className="p-5">
+          <h4 className="text-[15px] font-bold leading-snug tracking-tight text-slate-900 transition-colors group-hover/card:text-slate-950 dark:text-white/90 dark:group-hover/card:text-white">
+            {label}
+          </h4>
+
+          <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-slate-600 transition-colors group-hover/card:text-slate-700 dark:text-white/40 dark:group-hover/card:text-white/55">
+            {node.summary}
+          </p>
+
+          <div className="mt-4 flex items-center justify-between">
+            {hasChildren && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+                style={{
+                  backgroundColor: `${color}18`,
+                  color: color,
+                }}
+              >
+                {node.children!.length} alt konu
+              </span>
+            )}
+            <ArrowRight className="ml-auto h-4 w-4 text-slate-300 transition-all duration-300 group-hover/card:translate-x-1 group-hover/card:text-slate-600 dark:text-white/20 dark:group-hover/card:text-white/60" />
+          </div>
         </div>
       </Link>
 
@@ -196,25 +238,33 @@ function TopicCard({
 
       {/* Genişletilmiş alt konular */}
       {expanded && hasChildren && (
-        <div className="mt-1 space-y-1 pl-3 border-l-2 border-slate-200 dark:border-white/[0.06]">
-          {node.children!.map((child) => (
-            <Link
-              key={child.id}
-              href={child.url}
-              className="group/sub flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-slate-100/80 dark:hover:bg-white/[0.04]"
-            >
-              <div
-                className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              <div className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-medium text-slate-700 transition-colors group-hover/sub:text-slate-900 dark:text-white/60 dark:group-hover/sub:text-white/85">
-                  {child.label.replace(/\n/g, " ")}
-                </span>
-              </div>
-              <ArrowRight className="h-3 w-3 shrink-0 text-slate-300 transition-all group-hover/sub:translate-x-0.5 group-hover/sub:text-slate-600 dark:text-white/15 dark:group-hover/sub:text-white/40" />
-            </Link>
-          ))}
+        <div className="mt-1 space-y-1.5 pl-3 border-l-2 border-slate-200 dark:border-white/[0.06]">
+          {node.children!.map((child) => {
+            const childImg = getTopicImageUrl(child.id);
+            return (
+              <Link
+                key={child.id}
+                href={child.url}
+                className="group/sub flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-slate-100/80 dark:hover:bg-white/[0.04]"
+              >
+                <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-900 dark:border-white/10">
+                  <Image
+                    src={childImg}
+                    alt={child.label}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium text-slate-700 transition-colors group-hover/sub:text-slate-900 dark:text-white/60 dark:group-hover/sub:text-white/85">
+                    {child.label.replace(/\n/g, " ")}
+                  </span>
+                </div>
+                <ArrowRight className="h-3 w-3 shrink-0 text-slate-300 transition-all group-hover/sub:translate-x-0.5 group-hover/sub:text-slate-600 dark:text-white/15 dark:group-hover/sub:text-white/40" />
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
@@ -239,6 +289,7 @@ function PhaseSection({
     "#6c63ff";
   const label = phase.label.replace(/\n/g, " ");
   const topicCount = countDescendants(phase);
+  const phaseImage = getTopicImageUrl(phase.id);
 
   return (
     <section
@@ -252,45 +303,76 @@ function PhaseSection({
       )}
 
       {/* Phase header */}
-      <div className="relative mb-6 flex items-start gap-4 sm:gap-6">
-        {/* Numara dairesi */}
-        <div
-          className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 text-lg font-black text-slate-900 shadow-xs dark:text-white sm:h-14 sm:w-14 sm:text-xl"
-          style={{
-            borderColor: color,
-            backgroundColor: `${color}15`,
-          }}
-        >
-          {index + 1}
-        </div>
-
-        <div className="min-w-0 flex-1 pt-1">
-          {/* Faz etiketi */}
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[11px] font-black uppercase tracking-[0.2em]"
-              style={{ color }}
+      <div className="relative mb-6 overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/50 p-5 shadow-xs dark:border-white/[0.06] dark:from-white/[0.04] dark:via-white/[0.02] dark:to-transparent sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4 sm:gap-6">
+            {/* Numara dairesi */}
+            <div
+              className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 text-lg font-black text-slate-900 shadow-xs dark:text-white sm:h-14 sm:w-14 sm:text-xl"
+              style={{
+                borderColor: color,
+                backgroundColor: `${color}15`,
+              }}
             >
-              {index + 1}. Aşama
-            </span>
-            <span className="text-slate-300 dark:text-white/20">·</span>
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-white/30">
-              {topicCount} konu
-            </span>
+              {index + 1}
+            </div>
+
+            <div className="min-w-0 flex-1 pt-1">
+              {/* Faz etiketi */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-[11px] font-black uppercase tracking-[0.2em]"
+                  style={{ color }}
+                >
+                  {index + 1}. Aşama
+                </span>
+                <span className="text-slate-300 dark:text-white/20">·</span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-white/30">
+                  {topicCount} konu
+                </span>
+              </div>
+
+              <Link
+                href={phase.url}
+                className="group/title mt-1 inline-flex items-center gap-2"
+              >
+                <h3 className="text-xl font-black tracking-tight text-slate-900 transition-colors group-hover/title:text-slate-950 dark:text-white sm:text-2xl">
+                  {label}
+                </h3>
+                <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover/title:translate-x-1 dark:text-white/40" />
+              </Link>
+
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-white/45">
+                {phase.summary}
+              </p>
+            </div>
           </div>
 
-          <h3 className="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">
-            {label}
-          </h3>
-
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-white/45">
-            {phase.summary}
-          </p>
+          {/* Phase Hero Mini Banner */}
+          <Link
+            href={phase.url}
+            className="group/banner relative hidden h-28 w-52 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-xs transition-all hover:scale-105 hover:shadow-md dark:border-white/10 lg:block"
+          >
+            <Image
+              src={phaseImage}
+              alt={label}
+              fill
+              unoptimized
+              className="object-cover transition-transform duration-500 group-hover/banner:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+            <span
+              className="absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white"
+              style={{ backgroundColor: `${color}cc` }}
+            >
+              Ana Dal Rehberi
+            </span>
+          </Link>
         </div>
       </div>
 
       {/* Topic card grid */}
-      <div className="ml-0 grid gap-3 sm:ml-[4.5rem] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="ml-0 grid gap-4 sm:ml-[4.5rem] sm:grid-cols-2 lg:grid-cols-3">
         {phase.children?.map((topic) => (
           <TopicCard key={topic.id} node={topic} color={color} />
         ))}

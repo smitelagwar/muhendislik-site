@@ -32,40 +32,192 @@ const GUIDE_ALIASES: Record<string, string> = {
   "kalip-ve-iskele": "kalip-isleri",
   "kolon-kiris-donatisi": "donati-isleri",
   "temel-donatisi": "temel-donati",
+  "ince-isler/siva-isleri": "ince-isler/siva",
+  "ince-isler/siva-isleri/ic-siva": "ince-isler/siva/ic-siva",
+  "ince-isler/siva-isleri/dis-siva": "ince-isler/siva/dis-siva",
+  "ince-isler/siva-isleri/alci-siva": "ince-isler/siva/alci-siva",
+  "ince-isler/alcipan-asma-tavan": "ince-isler/alcipan",
+  "ince-isler/alcipan-asma-tavan/bolme-duvar": "ince-isler/alcipan/bolme-duvar",
+  "ince-isler/alcipan-asma-tavan/asma-tavan": "ince-isler/alcipan/asma-tavan",
 };
 
 const BRANCH_META = {
   "proje-hazirlik": {
     color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300",
-    hero: "/bina-asamalari/hero/proje-hazirlik.svg",
-    diagram: "/bina-asamalari/diagrams/proje-hazirlik.svg",
+    hero: "/bina-asamalari/topics/proje-hazirlik.svg",
+    diagram: "/bina-asamalari/topics/proje-hazirlik.svg",
   },
   "kazi-temel": {
     color: "bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300",
-    hero: "/bina-asamalari/hero/kazi-temel.svg",
-    diagram: "/bina-asamalari/diagrams/kazi-temel.svg",
+    hero: "/bina-asamalari/topics/kazi-temel.svg",
+    diagram: "/bina-asamalari/topics/kazi-temel.svg",
   },
   "kaba-insaat": {
     color: "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300",
-    hero: "/bina-asamalari/hero/kaba-insaat.svg",
-    diagram: "/bina-asamalari/diagrams/kaba-insaat.svg",
+    hero: "/bina-asamalari/topics/kaba-insaat.svg",
+    diagram: "/bina-asamalari/topics/kaba-insaat.svg",
   },
   "ince-isler": {
     color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
-    hero: "/bina-asamalari/hero/ince-isler.svg",
-    diagram: "/bina-asamalari/diagrams/ince-isler.svg",
+    hero: "/bina-asamalari/topics/ince-isler.svg",
+    diagram: "/bina-asamalari/topics/ince-isler.svg",
   },
   "tesisat-isleri": {
     color: "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
-    hero: "/bina-asamalari/hero/tesisat-isleri.svg",
-    diagram: "/bina-asamalari/diagrams/tesisat-isleri.svg",
+    hero: "/bina-asamalari/topics/tesisat-isleri.svg",
+    diagram: "/bina-asamalari/topics/tesisat-isleri.svg",
   },
   "peyzaj-teslim": {
     color: "bg-lime-100 text-lime-800 dark:bg-lime-950/40 dark:text-lime-300",
-    hero: "/bina-asamalari/hero/peyzaj-teslim.svg",
-    diagram: "/bina-asamalari/diagrams/peyzaj-teslim.svg",
+    hero: "/bina-asamalari/topics/peyzaj-teslim.svg",
+    diagram: "/bina-asamalari/topics/peyzaj-teslim.svg",
   },
 } as const;
+
+const KNOWN_TOPIC_SVGS = new Set([
+  // 1. Proje & İzinler
+  "proje-hazirlik",
+  "mimari-proje",
+  "statik-proje",
+  "tesisat-projesi",
+  "elektrik-projesi",
+  "yapi-ruhsati",
+  // 2. Kazı & Temel
+  "kazi-temel",
+  "zemin-etudu",
+  "hafriyat",
+  "iksa-sistemi",
+  "fore-kazik",
+  "ankrajli-iksa",
+  "palplans",
+  "temel-turleri",
+  "radye-temel",
+  "grobeton",
+  "temel-donati",
+  "temel-betonlama",
+  "temel-su-yalitimi",
+  // 3. Kaba İnşaat
+  "kaba-insaat",
+  "kalip-isleri",
+  "kolon-kalibi",
+  "kiris-kalibi",
+  "doseme-kalibi",
+  "kalip-sokumu",
+  "donati-isleri",
+  "kolon-donati",
+  "kiris-donati",
+  "doseme-donati",
+  "pas-payi",
+  "beton-isleri",
+  "beton-sinifi",
+  "beton-dokumu",
+  "vibrasyon",
+  "kur-islemi",
+  "beton-testi",
+  "duvar-orme",
+  "tugla-duvar",
+  "ytong-gazbeton",
+  "briket",
+  "cati-iskeleti",
+  "ahsap-cati",
+  "celik-cati",
+  "teras-cati",
+  // 4. İnce İşler
+  "ince-isler",
+  "siva-isleri",
+  "ic-siva",
+  "dis-siva",
+  "alci-siva",
+  "kara-siva",
+  "dekoratif-siva",
+  "alcipan",
+  "alcipan-asma-tavan",
+  "bolme-duvar",
+  "alcipan-bolme-duvar",
+  "asma-tavan",
+  "klasik-asma-tavan",
+  "moduler-asma-tavan",
+  "gizli-isik-bandi",
+  "zemin-kaplamalari",
+  "tesviye-sapi",
+  "seramik-kaplama",
+  "seramik-fayans-zemin",
+  "parke-kaplama",
+  "parke-laminat",
+  "mermer-kaplama",
+  "epoksi-kaplama",
+  "epoksi-zemin",
+  "duvar-kaplamalari",
+  "fayans",
+  "boya",
+  "duvar-boyasi",
+  "duvar-kagidi",
+  "ahsap-duvar-paneli",
+  "kapi-pencere",
+  "dis-kapi",
+  "ic-kapi",
+  "ic-kapilar",
+  "celik-kapi",
+  "pencere",
+  "pvc-dograma",
+  "aluminyum-dograma",
+  "cati-kaplamasi",
+  "kiremit",
+  "kiremit-cati",
+  "membran-cati",
+  "sandvic-panel",
+  "shingle",
+  "metal-cati",
+  // 5. Tesisat İşleri
+  "tesisat-isleri",
+  "sihhi-tesisat",
+  "temiz-su",
+  "pis-su",
+  "elektrik-tesisati",
+  "kablolama",
+  "pano-montaj",
+  "isitma-sogutma",
+  "yerden-isitma",
+  "klima-tesisat",
+  "yangin-tesisati",
+  "yangin-sprinkler",
+  "yangin-dolabi",
+  // 6. Peyzaj & Teslim
+  "peyzaj-teslim",
+  "peyzaj-ve-cevre-duzenleme",
+  "sert-zemin",
+  "bitkisel-peyzaj",
+  "iskan-ruhsati",
+]);
+
+const TOPIC_CUSTOM_IMAGES: Record<string, { hero: string; diagram: string }> = {
+  "mimari-proje": {
+    hero: "/bina-asamalari/images/mimari-proje-hero.jpg",
+    diagram: "/bina-asamalari/images/mimari-proje-detay.jpg",
+  },
+};
+
+export function getTopicVisual(node: IndexedBinaNode): { hero: string; diagram: string } {
+  const topicKey = node.slugPath.split("/").pop() || node.id;
+  const branchMeta = getBranchMeta(node.branchId);
+
+  if (TOPIC_CUSTOM_IMAGES[topicKey]) {
+    return TOPIC_CUSTOM_IMAGES[topicKey];
+  }
+
+  if (KNOWN_TOPIC_SVGS.has(topicKey)) {
+    const customSvg = `/bina-asamalari/topics/${topicKey}.svg`;
+    return {
+      hero: customSvg,
+      diagram: customSvg,
+    };
+  }
+
+  return {
+    hero: branchMeta.hero,
+    diagram: branchMeta.diagram,
+  };
+}
 
 function unique(items: readonly string[]): string[] {
   return [...new Set(items.filter(Boolean))];
@@ -231,7 +383,7 @@ function resolveRelatedPaths(spec: BinaGuidePageSpec, node: IndexedBinaNode): st
 function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): BinaGuideSection[] {
   const branchNode = getBranchNode(node);
   const children = getBinaChildren(node.slugPath);
-  const meta = getBranchMeta(node.branchId);
+  const visual = getTopicVisual(node);
 
   return [
     {
@@ -241,8 +393,8 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       content: [
         `${node.plainLabel}, ${node.summary.toLocaleLowerCase("tr-TR")} için ilk referans katmanıdır.`,
         ...spec.intro,
-        `![${node.plainLabel} hero görseli](${meta.hero})`,
-        `*Bu görsel, ${node.plainLabel.toLocaleLowerCase("tr-TR")} altında kararların sahaya hangi sırayla indiğini temsil eder.*`,
+        `![${node.plainLabel} teknik uygulama şeması](${visual.hero})`,
+        `*Bu teknik görsel, ${node.plainLabel.toLocaleLowerCase("tr-TR")} kapsamındaki kararların ve imalat paketlerinin sahaya aktarım sırasını gösterir.*`,
         `> [!TIP]\n> ${spec.tip}`,
       ].join("\n\n"),
     },
@@ -357,7 +509,7 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
     node.parentSlugPath ? getIndexedBinaNodeBySlugPath(node.parentSlugPath) : undefined,
     ...getSiblingBinaNodes(node.slugPath).slice(0, 2),
   ].filter((item): item is IndexedBinaNode => Boolean(item));
-  const meta = getBranchMeta(node.branchId);
+  const visual = getTopicVisual(node);
 
   return [
     {
@@ -367,8 +519,8 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
       content: [
         `${node.plainLabel}, ${branchNode.plainLabel.toLocaleLowerCase("tr-TR")} içinde ${node.summary.toLocaleLowerCase("tr-TR")} başlığıyla okunur.`,
         ...spec.intro,
-        `![${node.plainLabel} diyagramı](${meta.diagram})`,
-        `*Bu diyagram, ${node.plainLabel.toLocaleLowerCase("tr-TR")} kararının hangi kontrol halkalarıyla sahaya taşındığını özetler.*`,
+        `![${node.plainLabel} teknik uygulama şeması](${visual.diagram})`,
+        `*Bu teknik şema, ${node.plainLabel.toLocaleLowerCase("tr-TR")} için sahada uygulanacak standart detayları, geometrik toleransları ve kritik kontrol adımlarını özetler.*`,
         `> [!TIP]\n> ${spec.tip}`,
       ].join("\n\n"),
     },
@@ -472,6 +624,7 @@ export function buildGuideFromSpec(spec: BinaGuidePageSpec): BinaGuideData {
   const node = getNode(spec.slugPath);
   const branchNode = getBranchNode(node);
   const meta = getBranchMeta(node.branchId);
+  const visual = getTopicVisual(node);
   const sections = spec.kind === "branch" ? buildBranchSections(spec, node) : buildTopicSections(spec, node);
   const standards = unique(spec.sources.map((source) => source.shortCode));
 
@@ -486,7 +639,7 @@ export function buildGuideFromSpec(spec: BinaGuidePageSpec): BinaGuideData {
     authorTitle: AUTHOR_TITLE,
     date: DISPLAY_DATE,
     readTime: estimateReadTime(sections),
-    image: meta.hero,
+    image: visual.hero,
     quote: { text: spec.quote },
     sections,
     relatedPaths: resolveRelatedPaths(spec, node),
@@ -499,7 +652,11 @@ export function buildGuideFromSpec(spec: BinaGuidePageSpec): BinaGuideData {
 }
 
 export function buildGuideMap(specs: readonly BinaGuidePageSpec[]) {
-  return new Map(specs.map((spec) => [spec.slugPath, buildGuideFromSpec(spec)] as const));
+  return new Map(
+    specs
+      .filter((spec): spec is BinaGuidePageSpec => Boolean(spec && spec.slugPath))
+      .map((spec) => [spec.slugPath, buildGuideFromSpec(spec)] as const),
+  );
 }
 
 export function getAllIndexedDepthOneAndTwoPaths(): string[] {

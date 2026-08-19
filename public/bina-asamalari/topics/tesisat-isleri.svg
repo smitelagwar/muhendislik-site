@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <pattern id="blueprintGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" />
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#334155" stroke-width="1.5" stroke-opacity="0.5" />
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#bgGrad)" />
+  <rect width="1200" height="675" fill="url(#blueprintGrid)" />
+
+  <rect x="24" y="24" width="1152" height="627" rx="16" fill="none" stroke="#334155" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.6" />
+  
+  <g transform="translate(48, 44)">
+    <rect x="0" y="0" width="1104" height="64" rx="12" fill="url(#panelGrad)" stroke="#334155" stroke-width="1.2" />
+    <rect x="16" y="14" width="140" height="36" rx="8" fill="#0284c7" fill-opacity="0.18" stroke="#0284c7" stroke-width="1.5" />
+    <text x="86" y="37" fill="#0284c7" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="800" text-anchor="middle" letter-spacing="1.2">TESİSAT İŞLERİ</text>
+    
+    <text x="176" y="40" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">Mekanik, Elektrik ve Yangın Koordinasyon Şeması</text>
+    
+    <rect x="940" y="14" width="148" height="36" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="958" cy="32" r="4" fill="#10b981" />
+    <text x="1018" y="37" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" text-anchor="middle">ŞANTİYE REHBERİ</text>
+  </g>
+
+  
+  <g transform="translate(80, 140)">
+    <rect x="0" y="0" width="1040" height="430" rx="12" fill="#1e293b" fill-opacity="0.6" stroke="#334155" stroke-width="1.2" />
+    
+    <g transform="translate(40, 40)">
+      <rect x="0" y="0" width="340" height="340" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.5" />
+      <text x="170" y="30" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="14" font-weight="800" text-anchor="middle">ASMA TAVAN PLENUMU (MEP ŞAFTI)</text>
+      
+      <!-- Döşeme Altı -->
+      <rect x="20" y="50" width="300" height="20" fill="#475569" />
+      <text x="170" y="65" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="10" text-anchor="middle">Betonarme Döşeme Tavanı</text>
+
+      <!-- Yangın Sprinkler Hattı -->
+      <line x1="30" y1="90" x2="310" y2="90" stroke="#ef4444" stroke-width="6" />
+      <circle cx="90" cy="105" r="6" fill="#ef4444" />
+      <circle cx="210" cy="105" r="6" fill="#ef4444" />
+      <text x="260" y="85" fill="#ef4444" font-family="system-ui, sans-serif" font-size="10" font-weight="700">Yangın Hattı (Kırmızı)</text>
+
+      <!-- Havalandırma Kanalı -->
+      <rect x="40" y="120" width="120" height="50" fill="#94a3b8" stroke="#cbd5e1" />
+      <text x="100" y="150" fill="#0f172a" font-family="system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle">HVAC Kanalı</text>
+
+      <!-- Kablo Tavası -->
+      <rect x="180" y="120" width="130" height="25" fill="#ca8a04" stroke="#eab308" />
+      <text x="245" y="137" fill="#0f172a" font-family="system-ui, sans-serif" font-size="10" font-weight="700" text-anchor="middle">Kablo Tavası</text>
+
+      <!-- Temiz ve Pis Su Hatları -->
+      <line x1="40" y1="200" x2="310" y2="200" stroke="#0284c7" stroke-width="5" />
+      <text x="100" y="195" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="10">PPRC Temiz Su (Mavi)</text>
+
+      <line x1="40" y1="230" x2="310" y2="245" stroke="#64748b" stroke-width="8" />
+      <text x="120" y="242" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="10">Pis Su Q110 (%2 Eğim)</text>
+
+      <!-- Asma Tavan Çizgisi -->
+      <line x1="20" y1="280" x2="320" y2="280" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2" />
+      <text x="170" y="305" fill="#f59e0b" font-family="system-ui, sans-serif" font-size="11" text-anchor="middle">Asma Tavan Kotu ve Armatürler</text>
+    </g>
+
+    <g transform="translate(420, 40)">
+      <rect x="0" y="0" width="570" height="340" rx="8" fill="#0f172a" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+      <text x="20" y="35" fill="#0284c7" font-family="system-ui, sans-serif" font-size="16" font-weight="800">MEP DİSİPLİNLER ARASI KOORDİNASYON KURALLARI</text>
+      
+      <g transform="translate(20, 60)">
+        <text x="0" y="20" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">1. Asma Tavan İçi Yükseklik Hiyerarşisi:</text>
+        <text x="15" y="45" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• En Üst Katman: Yangın sprinkler ana ve branşman boruları (en az eğim ihtiyacı).</text>
+        <text x="15" y="70" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Orta Katman: Havalandırma kanalları ve kuvvetli/zayıf akım kablo tavaları.</text>
+        <text x="15" y="95" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Alt Katman: Yerçekimli pis su ve drenaj hatları (kesintisiz %1.5 - 2 eğim).</text>
+
+        <text x="0" y="130" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="13" font-weight="700">2. Test ve Devreye Alma Standartları:</text>
+        <text x="15" y="155" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Basınç Testi: Temiz su boruları işletme basıncının 1.5 katında (min. 10 bar) 24 saat test edilir.</text>
+        <text x="15" y="180" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Kaçak Akım Testi: 30 mA insan hayatı koruma ve 300 mA yangın koruma röleleri doğrulanır.</text>
+        <text x="15" y="205" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Duman &amp; Sızdırmazlık: Pis su kolonları su/duman testiyle sızdırmazlığı onaylanır.</text>
+        <text x="15" y="230" fill="#cbd5e1" font-family="system-ui, sans-serif" font-size="12">• Şaft Geçişleri: Kat döşemesi geçişlerinde yangın durdurucu harç/manşon zorunludur.</text>
+        <text x="15" y="255" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12">• BIM / Çakışma Yönetimi: Sahaya inmeden önce tüm şaft ve asma tavan çakışmaları çözülmelidir.</text>
+      </g>
+    </g>
+  </g>
+
+
+  <g transform="translate(48, 605)">
+    <line x1="0" y1="0" x2="1104" y2="0" stroke="#334155" stroke-width="1" opacity="0.6" />
+    <text x="0" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600">BİNA AŞAMALARI TEKNİK REHBERİ • MÜHENDİSLİK &amp; MİMARLIK PORTALI</text>
+    <text x="1104" y="24" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" text-anchor="end">ÖLÇEK: UYGULAMA VE KONTROL ŞEMASI</text>
+  </g>
+</svg>
