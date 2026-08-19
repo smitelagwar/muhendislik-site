@@ -58,7 +58,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { upload } from "@vercel/blob/client";
+import { put } from "@vercel/blob/client";
 
 export function DokumantasyonFileManager() {
   const router = useRouter();
@@ -373,10 +373,9 @@ export function DokumantasyonFileManager() {
             )
           );
 
-          const blob = await upload(file.name, file, {
+          const blob = await put(tokenData.pathname, file, {
             access: "public",
-            handleUploadUrl: "/api/dokumantasyon/upload/token",
-            clientPayload: JSON.stringify({ folderId: currentFolderId }),
+            token: tokenData.clientToken,
           });
 
           setUploadQueue((prev) =>

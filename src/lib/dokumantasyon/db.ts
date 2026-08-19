@@ -3,21 +3,11 @@
 // ============================================================================
 
 import { neon, NeonQueryFunction } from "@neondatabase/serverless";
+import { getDatabaseUrl } from "./runtime-mode";
+export { getDatabaseUrl };
 
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
-
-export function getDatabaseUrl(): string | undefined {
-  return (
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_URL ||
-    process.env.POSTGRES_PRISMA_URL ||
-    process.env.POSTGRES_URL_NON_POOLING ||
-    process.env.NEON_DATABASE_URL ||
-    process.env.STORAGE_POSTGRES_URL ||
-    process.env.VERCEL_POSTGRES_URL
-  );
-}
 
 export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>): Promise<void> {
   if (schemaEnsured) return;
