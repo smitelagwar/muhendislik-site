@@ -9,11 +9,13 @@ import { SignJWT, jwtVerify } from "jose";
 import { readLocalDb, writeLocalDb } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";
 
-const SHARE_ACCESS_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET ||
-    process.env.DOKUMANTASYON_SESSION_SECRET ||
-    "default_share_access_secret_key_change_in_prod"
-);
+function getShareAccessSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET || process.env.DOKUMANTASYON_SESSION_SECRET;
+  if (!secret && (process.env.NODE_ENV === "production" || process.env.VERCEL)) {
+    throw new Error("SESSION_SECRET / SHARE_TOKEN_ENCRYPTION_KEY ortam değişkeni tanımlanmamış.");
+  }
+  return new TextEncoder().encode(secret || "dev_share_access_secret_key_change_in_prod");
+}
 
 export type PublicShareStatus =
   | "ok"
@@ -156,11 +158,12 @@ export async function getPublicShareInfo(rawToken: string): Promise<PublicShareR
  * Şifreli link için parola doğrulama ve JWT yetki tokenı üretimi
  */
 export async function createShareAccessJwt(shareLinkId: string): Promise<string> {
+  const secret = getShareAccessSecret();
   return new SignJWT({ shareLinkId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("6h")
-    .sign(SHARE_ACCESS_SECRET);
+    .sign(secret);
 }
 
 export async function verifyShareAccessJwt(
@@ -169,7 +172,8 @@ export async function verifyShareAccessJwt(
 ): Promise<boolean> {
   if (!jwt) return false;
   try {
-    const { payload } = await jwtVerify(jwt, SHARE_ACCESS_SECRET);
+    const secret = getShareAccessSecret();
+    const { payload } = await jwtVerify(jwt, secret);
     return payload.shareLinkId === expectedShareLinkId;
   } catch {
     return false;

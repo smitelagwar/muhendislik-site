@@ -21,6 +21,7 @@ const stages = [
   { name: "KALICILIK 2: Readiness & Durability Smoke Testi", cmd: "node scripts/check-dokumantasyon-production-readiness.mjs" },
   { name: "KALICILIK 3: Transactional Upload & Idempotency", cmd: "npx tsx scripts/check-dokumantasyon-transactional-upload.mjs" },
   { name: "KALICILIK 4: Cold-Start & Kalıcılık Doğrulaması", cmd: "node scripts/check-dokumantasyon-cold-start-persistence.mjs" },
+  { name: "KALICILIK 5: Private Access Invariant, SSRF Koruması & Atomic Limits", cmd: "npx tsx scripts/check-dokumantasyon-stage3-deep.mjs" },
   { name: "UÇTAN UCA: 10/10 Gerçek Kullanıcı Senaryo Testleri", cmd: "node scripts/check-dokumantasyon-full-scenarios.mjs" },
 ];
 

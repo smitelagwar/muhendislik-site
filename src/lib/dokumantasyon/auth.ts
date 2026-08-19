@@ -12,9 +12,13 @@ import { dummyCompare, verifyPassword } from "./security";
  * JWT imzalama anahtarını Uint8Array olarak döndürür
  */
 export function getJwtSecret(): Uint8Array {
-  const secret =
-    process.env.SESSION_SECRET ||
-    "super_secret_dokumantasyon_session_key_2026_min_32_chars";
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      throw new Error("SESSION_SECRET ortam değişkeni tanımlanmamış. Güvenlik gereği varsayılan secret ile başlatılamaz.");
+    }
+    return new TextEncoder().encode("dev_dokumantasyon_session_key_min_32_chars_2026");
+  }
   return new TextEncoder().encode(secret);
 }
 
