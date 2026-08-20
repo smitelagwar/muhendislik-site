@@ -424,9 +424,9 @@ export default function HesaplamalarPage() {
 
                     {tool.id === "tahmini-insaat-alani" && (
                       <div className="mt-5 rounded-2xl border border-border/80 bg-muted/50 p-3 text-xs flex items-center justify-between dark:border-white/10 dark:bg-[#070a1e]">
-                        <span className="text-muted-foreground dark:text-slate-400">İmar Hesap Formülü:</span>
+                        <span className="text-muted-foreground dark:text-slate-400">Ön Etüt Akışı:</span>
                         <span className="font-mono font-bold text-blue-600 dark:text-blue-300">
-                          Net Emsal + %30 Emsal Harici + Bodrum
+                          Veri Güveni → İmar Hakkı → Senaryo
                         </span>
                       </div>
                     )}

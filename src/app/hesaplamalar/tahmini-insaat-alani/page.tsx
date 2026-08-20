@@ -1,16 +1,16 @@
 import { SoftwareApplicationJsonLd } from "@/components/software-application-json-ld";
 import { buildSeoMetadata } from "@/lib/seo";
-import { EstimatedConstructionAreaClient } from "./estimated-construction-area-client";
+import { RuhsatOnFizibiliteClient } from "./ruhsat-on-fizibilite-client";
 
-const PAGE_TITLE = "Tahmini İnşaat Alanı Hesabı";
+const PAGE_TITLE = "Ruhsat Ön Fizibilite ve Daire Senaryoları";
 const PAGE_DESCRIPTION =
-  "Net parsel, TAKS ve KAKS üzerinden emsal alanını, emsal harici büyümeyi ve bodrum katkısını birlikte değerlendirerek yaklaşık toplam inşaat alanını görün.";
+  "Parsel, TAKS/KAKS, kat, belge güveni ve açık varsayımlarla ruhsat ön fizibilitesini; teorik imar haklarını ve daire senaryolarını birlikte değerlendirin.";
 const PAGE_PATH = "/hesaplamalar/tahmini-insaat-alani";
 const PAGE_KEYWORDS = [
-  "tahmini inşaat alanı",
-  "emsal hesabı",
+  "ruhsat ön fizibilite",
+  "daire senaryosu",
+  "imar hakkı",
   "taks kaks",
-  "toplam inşaat alanı",
   "arsa alanı",
 ];
 
@@ -31,7 +31,7 @@ export default function TahminiInsaatAlaniPage() {
         keywords={PAGE_KEYWORDS}
         section={{ title: "Hesaplamalar", href: "/hesaplamalar" }}
       />
-      <EstimatedConstructionAreaClient />
+      <RuhsatOnFizibiliteClient />
     </>
   );
 }

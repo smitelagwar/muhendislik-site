@@ -49,14 +49,14 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
   {
     id: "tahmini-insaat-alani",
     href: "/hesaplamalar/tahmini-insaat-alani",
-    title: "Tahmini İnşaat Alanı",
-    navLabel: "Tahmini İnşaat Alanı",
+    title: "Ruhsat Ön Fizibilite",
+    navLabel: "Ruhsat Ön Fizibilite",
     description:
-      "Net parsel, TAKS ve KAKS verilerini girin; emsal dışı büyümeyi ve bodrum katkısını ekleyerek yaklaşık toplam inşaat alanını görün.",
-    badge: "Yeni",
+      "Parsel, TAKS/KAKS, kat ve belge verilerini birlikte değerlendirin; teorik imar haklarını, veri güvenini ve daire senaryolarını görün.",
+    badge: "Ön etüt",
     iconKey: "plot",
     order: 3,
-    keywords: ["arsa", "emsal", "kaks", "taks", "imar", "alan hesabı"],
+    keywords: ["arsa", "emsal", "kaks", "taks", "imar", "ruhsat", "daire senaryosu", "ön fizibilite"],
   },
   {
     id: "resmi-birim-maliyet-2026",

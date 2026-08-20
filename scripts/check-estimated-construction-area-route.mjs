@@ -8,12 +8,9 @@ import puppeteer from "puppeteer";
 
 const requestedPort = Number(process.argv[2] ?? "0");
 const BUILD_FILES = [".next/BUILD_ID", ".next/server/middleware-manifest.json"];
-const legacyDraftKey = "estimated_construction_area_detailed_draft_v1";
 
 function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
+  if (!condition) throw new Error(message);
 }
 
 function normalizeWhitespace(value) {
@@ -33,60 +30,21 @@ function getBrowserExecutablePath() {
   return candidates.find((candidate) => fsSync.existsSync(candidate));
 }
 
-async function wait(ms) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function waitForProductionBuild(timeoutMs = 60000) {
   const startedAt = Date.now();
-
   while (Date.now() - startedAt < timeoutMs) {
     const ready = await Promise.all(
-      BUILD_FILES.map((file) =>
-        fs
-          .access(path.resolve(process.cwd(), file))
-          .then(() => true)
-          .catch(() => false)
-      )
+      BUILD_FILES.map((file) => fs.access(path.resolve(process.cwd(), file)).then(() => true).catch(() => false))
     );
-
-    if (ready.every(Boolean)) {
-      return;
-    }
-
-    await wait(500);
+    if (ready.every(Boolean)) return;
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
-
   throw new Error("Production build artifacts were not ready in time.");
-}
-
-async function waitForDownload(downloadDir, timeoutMs = 15000) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    const entries = await fs.readdir(downloadDir);
-    const pdfFile = entries.find((entry) => entry.toLowerCase().endsWith(".pdf"));
-    if (pdfFile) {
-      return path.join(downloadDir, pdfFile);
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-
-  throw new Error("PDF export did not create a file within the expected time.");
-}
-
-async function clearDirectory(directory) {
-  const entries = await fs.readdir(directory);
-  await Promise.all(
-    entries.map((entry) => fs.rm(path.join(directory, entry), { force: true, recursive: true }))
-  );
 }
 
 async function getText(page, selector) {
   await page.waitForSelector(selector, { visible: true });
-  const text = await page.$eval(selector, (element) => element.textContent ?? "");
-  return normalizeWhitespace(text);
+  return normalizeWhitespace(await page.$eval(selector, (element) => element.textContent ?? ""));
 }
 
 async function setInputValue(page, selector, value) {
@@ -96,261 +54,223 @@ async function setInputValue(page, selector, value) {
   await page.type(selector, value);
 }
 
-async function expectPopup(page, clickSelector) {
+async function waitForDownload(downloadDirectory, extension, timeoutMs = 15000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const entries = await fs.readdir(downloadDirectory);
+    const match = entries.find((entry) => entry.toLowerCase().endsWith(extension));
+    if (match) return path.join(downloadDirectory, match);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Expected ${extension} download was not created in time.`);
+}
+
+async function clearDownloads(downloadDirectory) {
+  const entries = await fs.readdir(downloadDirectory);
+  await Promise.all(entries.map((entry) => fs.rm(path.join(downloadDirectory, entry), { force: true })));
+}
+
+async function expectPopup(page, selector) {
   const popupPromise = new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(null), 2500);
-    page.once("popup", async (popup) => {
+    const timeout = setTimeout(() => resolve(null), 5000);
+    page.once("popup", (popup) => {
       clearTimeout(timeout);
       resolve(popup);
     });
   });
-
-  await page.click(clickSelector);
+  await page.click(selector);
   return popupPromise;
 }
 
-await waitForProductionBuild();
-const executablePath = getBrowserExecutablePath();
-assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
-
-const app = next({
-  dev: false,
-  dir: process.cwd(),
-  hostname: "127.0.0.1",
-  port: requestedPort || 3000,
-});
-
-await app.prepare();
-
-const handle = app.getRequestHandler();
-const server = http.createServer((request, response) => handle(request, response));
-
-await new Promise((resolve) => {
-  server.listen(requestedPort, "127.0.0.1", resolve);
-});
-
-const downloadDir = await fs.mkdtemp(path.join(os.tmpdir(), "estimated-area-download-"));
-const resolvedPort = server.address()?.port;
-const baseUrl = `http://127.0.0.1:${resolvedPort}`;
-const routeUrl = `${baseUrl}/hesaplamalar/tahmini-insaat-alani?mod=detailed&arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut&bodrum=1`;
-const browser = await puppeteer.launch({
-  headless: true,
-  executablePath,
-  args: ["--no-sandbox"],
-});
-const page = await browser.newPage();
-const consoleErrors = [];
-const requestFailures = [];
-const pageErrors = [];
-const steps = [];
-
-page.on("console", (message) => {
-  if (message.type() === "error") {
-    consoleErrors.push(message.text());
-  }
-});
-
-page.on("requestfailed", (request) => {
-  requestFailures.push({
-    url: request.url(),
-    error: request.failure()?.errorText ?? "unknown",
-  });
-});
-
-page.on("pageerror", (error) => {
-  pageErrors.push(error.message);
-});
-
-await page.setViewport({ width: 1440, height: 1800, deviceScaleFactor: 1 });
-const client = await page.target().createCDPSession();
-await client.send("Page.setDownloadBehavior", {
-  behavior: "allow",
-  downloadPath: downloadDir,
-});
-
-try {
-  const response = await page.goto(routeUrl, {
-    waitUntil: "networkidle2",
-    timeout: 30000,
-  });
-
-  assert(
-    response?.status() === 200,
-    `Estimated area route returned status ${response?.status() ?? "unknown"}.`
+function isIgnorablePrefetchFailure({ url, error }) {
+  const parsed = new URL(url);
+  return (
+    error === "net::ERR_ABORTED" &&
+    parsed.pathname === "/dokumantasyon" &&
+    parsed.searchParams.has("_rsc")
   );
-
-  await page.evaluate((key) => {
-    window.localStorage.setItem(key, JSON.stringify({ stale: true }));
-  }, legacyDraftKey);
-  await page.reload({ waitUntil: "networkidle2" });
-  await page.waitForSelector('[data-testid="estimated-area-input-arsa"]', { visible: true });
-  steps.push("page-load");
-
-  await page.waitForFunction(
-    () => !new URL(window.location.href).searchParams.has("mod"),
-    { timeout: 5000 }
-  );
-  const legacyDraftValue = await page.evaluate(
-    (key) => window.localStorage.getItem(key),
-    legacyDraftKey
-  );
-  assert(legacyDraftValue === null, "Legacy detailed draft should be removed on load.");
-  steps.push("legacy-cleanup");
-
-  const bodyText = await page.evaluate(() => document.body.innerText);
-  assert(!bodyText.includes("Hızlı Mod"), "Hızlı Mod text should not appear anymore.");
-  assert(!bodyText.includes("Detaylı Mod"), "Detaylı Mod text should not appear anymore.");
-  steps.push("single-mode");
-
-  await page.waitForFunction(
-    () =>
-      (document.querySelector('[data-testid="estimated-area-result-total"]')?.textContent ?? "")
-        .replace(/\s+/g, " ")
-        .includes("2.220"),
-    { timeout: 5000 }
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-profile"]')) === "Konut",
-    "Default profile should resolve to Konut."
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-non-emsal-ratio"]')).includes("%25,0"),
-    "Konut scenario should apply a %25,0 non-emsal ratio."
-  );
-  steps.push("base-calculation");
-
-  await page.click('[data-testid="estimated-area-profile-ticariOfis"]');
-  await page.waitForFunction(
-    () =>
-      (document.querySelector('[data-testid="estimated-area-result-profile"]')?.textContent ?? "")
-        .replace(/\s+/g, " ")
-        .includes("Ticari / Ofis"),
-    { timeout: 5000 }
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-total"]')).includes("2.133,60"),
-    "Ticari / Ofis profile should reduce the total area."
-  );
-  steps.push("profile-change");
-
-  await page.click('[data-testid="estimated-area-basement-no"]');
-  await page.waitForFunction(
-    () => !document.querySelector('[data-testid="estimated-area-basement-fields"]'),
-    { timeout: 5000 }
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-basement-total"]')).includes("0"),
-    "Basement total should reset to zero when basement is disabled."
-  );
-  steps.push("basement-off");
-
-  await page.click('[data-testid="estimated-area-basement-yes"]');
-  await page.waitForSelector('[data-testid="estimated-area-basement-fields"]', { visible: true });
-  await setInputValue(page, '[data-testid="estimated-area-input-bodrum-kat"]', "2");
-  await setInputValue(page, '[data-testid="estimated-area-input-bodrum-alan"]', "360");
-  await page.click('[data-testid="estimated-area-profile-karma"]');
-  await page.waitForFunction(
-    () =>
-      (document.querySelector('[data-testid="estimated-area-result-total"]')?.textContent ?? "")
-        .replace(/\s+/g, " ")
-        .includes("2.491,20"),
-    { timeout: 5000 }
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-basement-total"]')).includes("720"),
-    "Two 360 m2 basement floors should resolve to 720 m2."
-  );
-  assert(
-    (await getText(page, '[data-testid="estimated-area-result-profile"]')) === "Karma Kullanım",
-    "Profile should switch to Karma Kullanım."
-  );
-  steps.push("basement-custom");
-
-  const previewPopup = await expectPopup(page, '[data-testid="estimated-area-pdf-preview-button"]');
-  assert(previewPopup, "PDF preview did not open a new tab.");
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  assert(previewPopup.url() !== "", "PDF preview popup did not resolve to a URL.");
-  await previewPopup.close();
-  steps.push("pdf-preview");
-
-  await clearDirectory(downloadDir);
-  await page.click('[data-testid="estimated-area-pdf-button"]');
-  const downloadedFile = await waitForDownload(downloadDir);
-  assert(downloadedFile.toLowerCase().endsWith(".pdf"), "PDF export did not create a PDF file.");
-  steps.push("pdf-export");
-
-  const printPopup = await expectPopup(page, '[data-testid="estimated-area-print-button"]');
-  assert(printPopup, "Print action did not open a printable PDF tab.");
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  assert(printPopup.url() !== "", "Print popup did not resolve to a URL.");
-  await printPopup.close();
-  steps.push("print");
-
-  const officialHref = await page.$eval(
-    '[data-testid="estimated-area-official-link"]',
-    (element) => element.getAttribute("href") ?? ""
-  );
-  assert(
-    officialHref.includes("/hesaplamalar/resmi-birim-maliyet-2026?alan=2491.2"),
-    "Official cost link should carry the recalculated total construction area."
-  );
-  steps.push("official-link");
-
-  const wasDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
-  await page.click('[data-testid="theme-toggle"]');
-  await page.waitForFunction(
-    (previous) => document.documentElement.classList.contains("dark") !== previous,
-    { timeout: 5000 },
-    wasDark
-  );
-  steps.push("theme-toggle");
-
-  await page.setViewport({ width: 390, height: 1100, deviceScaleFactor: 1 });
-  await page.waitForSelector('[data-testid="estimated-area-pdf-preview-button"]', {
-    visible: true,
-  });
-  const hasMobileOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - window.innerWidth > 4
-  );
-  assert(
-    !hasMobileOverflow,
-    "Estimated construction area route should not overflow horizontally on mobile viewport."
-  );
-  steps.push("mobile-layout");
-
-  assert(consoleErrors.length === 0, `Console error(s) detected: ${consoleErrors.join(" | ")}`);
-  assert(pageErrors.length === 0, `Page error(s) detected: ${pageErrors.join(" | ")}`);
-  assert(
-    requestFailures.length === 0,
-    `Request failure/failures detected: ${requestFailures
-      .map((item) => `${item.error} @ ${item.url}`)
-      .join(" | ")}`
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-        baseUrl,
-        routeUrl,
-        status: "ok",
-        steps,
-      },
-      null,
-      2
-    )
-  );
-} finally {
-  await page.close();
-  await browser.close();
-  await fs.rm(downloadDir, { recursive: true, force: true });
-  await new Promise((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve();
-    });
-  });
 }
+
+async function main() {
+  await waitForProductionBuild();
+  const executablePath = getBrowserExecutablePath();
+  assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
+
+  const app = next({ dev: false, dir: process.cwd(), hostname: "127.0.0.1", port: requestedPort || 3000 });
+  await app.prepare();
+  const server = http.createServer((request, response) => app.getRequestHandler()(request, response));
+  await new Promise((resolve) => server.listen(requestedPort, "127.0.0.1", resolve));
+
+  const resolvedPort = server.address()?.port;
+  const baseUrl = `http://127.0.0.1:${resolvedPort}`;
+  const legacyUrl = `${baseUrl}/hesaplamalar/tahmini-insaat-alani?arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut`;
+  const browser = await puppeteer.launch({ headless: true, executablePath, args: ["--no-sandbox"] });
+  const page = await browser.newPage();
+  const downloadDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "ruhsat-report-download-"));
+  const consoleErrors = [];
+  const requestFailures = [];
+  const pageErrors = [];
+  const steps = [];
+
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("requestfailed", (request) => {
+    requestFailures.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" });
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  try {
+    const client = await page.target().createCDPSession();
+    await client.send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: downloadDirectory });
+    await page.setViewport({ width: 1440, height: 1600, deviceScaleFactor: 1 });
+    const response = await page.goto(legacyUrl, { waitUntil: "networkidle2", timeout: 30000 });
+    assert(response?.status() === 200, `Ruhsat route returned status ${response?.status() ?? "unknown"}.`);
+    await page.waitForSelector('[data-testid="ruhsat-input-flow"]', { visible: true });
+    await page.waitForFunction(() => window.location.search === "", { timeout: 5000 });
+    steps.push("canonical-url-and-empty-state");
+
+    const seoState = await page.evaluate(async () => {
+      const sitemap = await fetch("/sitemap.xml").then((response) => response.text());
+      return {
+        title: document.title,
+        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
+        description: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
+        hasSoftwareSchema: Array.from(document.querySelectorAll('script[type="application/ld+json"]')).some((script) => script.textContent?.includes("SoftwareApplication")),
+        sitemap,
+      };
+    });
+    assert(seoState.title.includes("Ruhsat Ön Fizibilite"), "Route metadata should use the ruhsat product title.");
+    assert(seoState.canonical.endsWith("/hesaplamalar/tahmini-insaat-alani"), "Route should publish its canonical path.");
+    assert(seoState.description.includes("Parsel"), "Route should publish a useful Turkish description.");
+    assert(seoState.hasSoftwareSchema, "Route should expose SoftwareApplication JSON-LD.");
+    assert(seoState.sitemap.includes("/hesaplamalar/tahmini-insaat-alani"), "Route should remain registered in the sitemap.");
+    steps.push("metadata-schema-and-sitemap");
+
+    assert((await getText(page, '[data-testid="ruhsat-result-status"]')).includes("kritik veri eksik"), "Empty state should explain missing critical data.");
+    assert((await getText(page, '[data-testid="ruhsat-confidence"]')).includes("henüz"), "Empty state should show below-A confidence.");
+
+    await setInputValue(page, '[data-testid="ruhsat-input-permit-date"]', "2026-07-15");
+    await setInputValue(page, '[data-testid="ruhsat-input-parcel-area"]', "1.000,00");
+    await setInputValue(page, '[data-testid="ruhsat-input-taks"]', "0,40");
+    await setInputValue(page, '[data-testid="ruhsat-input-kaks"]', "1,50");
+    await setInputValue(page, '[data-testid="ruhsat-input-floor-count"]', "5");
+    await page.waitForFunction(
+      () => (document.querySelector('[data-testid="ruhsat-result-status"]')?.textContent ?? "").includes("hesaplandı"),
+      { timeout: 5000 }
+    );
+    assert((await getText(page, '[data-testid="ruhsat-result-taks-max"]')).includes("400,00"), "Comma decimal TAKS should resolve to 400,00 m².");
+    assert((await getText(page, '[data-testid="ruhsat-result-emsal-max"]')).includes("1.500,00"), "Comma decimal KAKS should resolve to 1.500,00 m².");
+    await page.waitForSelector('[data-testid="ruhsat-scenario-ready"]', { visible: true });
+    steps.push("localized-decimal-and-calculation");
+
+    await page.waitForSelector('[data-testid="ruhsat-results-experience"]', { visible: true });
+    assert(await page.$$eval('[data-testid^="ruhsat-scenario-"][aria-pressed]', (elements) => elements.length === 3), "Exactly three canonical scenario cards should be shown.");
+    assert((await getText(page, '[data-testid="ruhsat-main-bottleneck"]')).includes("Geometri"), "The missing manual geometry should be the primary bottleneck.");
+    await page.focus('[data-testid="ruhsat-scenario-COMPACT_MAX_UNITS"]');
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="ruhsat-scenario-COMPACT_MAX_UNITS"]')?.getAttribute("aria-pressed") === "true",
+      { timeout: 5000 }
+    );
+    await page.click('[data-testid="ruhsat-why-details"] summary');
+    assert((await getText(page, '[data-testid="ruhsat-why-details"]')).includes("Teknik kontrol özeti"), "The why view should expose technical trigger context.");
+    await page.click('[data-testid="ruhsat-evidence-details"] summary');
+    assert((await getText(page, '[data-testid="ruhsat-evidence-details"]')).includes("TAKS üst sınırı"), "The evidence view should expose legal trace provenance.");
+    steps.push("scenario-compare-explainability-and-keyboard-selection");
+
+    const initialCompactScenario = await getText(page, '[data-testid="ruhsat-scenario-COMPACT_MAX_UNITS"]');
+    await setInputValue(page, '[data-testid="ruhsat-input-kaks"]', "0,60");
+    await page.waitForFunction(
+      (previous) => (document.querySelector('[data-testid="ruhsat-scenario-COMPACT_MAX_UNITS"]')?.textContent ?? "").replace(/\s+/g, " ").trim() !== previous,
+      { timeout: 5000 },
+      initialCompactScenario
+    );
+    await setInputValue(page, '[data-testid="ruhsat-input-kaks"]', "1,50");
+    await page.waitForFunction(
+      (expected) => (document.querySelector('[data-testid="ruhsat-scenario-COMPACT_MAX_UNITS"]')?.textContent ?? "").replace(/\s+/g, " ").trim() === expected,
+      { timeout: 5000 },
+      initialCompactScenario
+    );
+    steps.push("scenario-recalculation-no-stale-result");
+
+    await page.waitForSelector('[data-testid="ruhsat-report-actions"]', { visible: true });
+    await page.click('[data-testid="ruhsat-report-pdf"]');
+    const pdfDownload = await waitForDownload(downloadDirectory, ".pdf");
+    assert((await fs.stat(pdfDownload)).size > 10_000, "The generated ruhsat PDF should contain a real document payload.");
+    await clearDownloads(downloadDirectory);
+    await page.click('[data-testid="ruhsat-report-json"]');
+    const jsonDownload = await waitForDownload(downloadDirectory, ".json");
+    const jsonExport = JSON.parse(await fs.readFile(jsonDownload, "utf8"));
+    assert(jsonExport.schemaVersion === "ruhsat-on-fizibilite-export@1", "JSON export should carry its schema version.");
+    assert(jsonExport.analysis?.versions?.ruleSnapshot, "JSON export should retain the rule snapshot trace.");
+    const printPopup = await expectPopup(page, '[data-testid="ruhsat-report-print"]');
+    assert(printPopup, "Printable ruhsat report should open a dedicated browser tab.");
+    await printPopup.close();
+    const privacyState = await page.evaluate(() => ({
+      search: window.location.search,
+      ruhsatStorageKeys: Object.keys(window.localStorage).filter((key) => key.toLocaleLowerCase("tr-TR").includes("ruhsat")),
+    }));
+    assert(privacyState.search === "", "Ruhsat data should not be placed in the route query string.");
+    assert(privacyState.ruhsatStorageKeys.length === 0, "Ruhsat data should not be persisted in localStorage.");
+    steps.push("local-pdf-print-json-export-and-privacy");
+
+    await page.click('[data-testid="ruhsat-advanced-parcel"] summary');
+    await page.waitForSelector('[data-testid="ruhsat-input-geometry"]', { visible: true });
+    await page.click('[data-testid="ruhsat-assumptions"] summary');
+    await page.waitForSelector('#ruhsat-COMPACT_MAX_UNITS-targetNetAreaM2', { visible: true });
+    steps.push("progressive-disclosure");
+
+    await setInputValue(page, '[data-testid="ruhsat-input-parcel-area"]', "0");
+    await page.waitForFunction(
+      () => (document.querySelector('[data-testid="ruhsat-result-status"]')?.textContent ?? "").includes("Girdileri kontrol edin"),
+      { timeout: 5000 }
+    );
+    await page.waitForSelector('[data-testid="ruhsat-missing-data"]', { visible: true });
+    await page.waitForSelector('[data-testid="ruhsat-results-empty"]', { visible: true });
+    assert((await page.$('[data-testid="ruhsat-report-actions"]')) === null, "Invalid input must remove stale report actions.");
+    steps.push("invalid-input");
+
+    await page.focus('[data-testid="ruhsat-input-parcel-area"]');
+    await page.keyboard.press("Tab");
+    const activeElementId = await page.evaluate(() => document.activeElement?.id ?? "");
+    assert(activeElementId.length > 0, "Keyboard focus should move through the form.");
+    steps.push("keyboard-flow");
+
+    const wasDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+    await page.click('[data-testid="theme-toggle"]');
+    await page.waitForFunction((previous) => document.documentElement.classList.contains("dark") !== previous, { timeout: 5000 }, wasDark);
+    steps.push("theme-toggle");
+
+    await setInputValue(page, '[data-testid="ruhsat-input-parcel-area"]', "1000");
+    await page.waitForSelector('[data-testid="ruhsat-results-experience"]', { visible: true });
+    await page.setViewport({ width: 360, height: 1100, deviceScaleFactor: 1 });
+    await page.waitForSelector('[data-testid="ruhsat-input-flow"]', { visible: true });
+    const hasMobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth > 4);
+    assert(!hasMobileOverflow, "Ruhsat route should not overflow horizontally at 360 px.");
+    const mobileHierarchy = await page.evaluate(() => {
+      const results = document.querySelector('[data-testid="ruhsat-results-experience"]')?.getBoundingClientRect();
+      const input = document.querySelector('[data-testid="ruhsat-input-flow"]')?.getBoundingClientRect();
+      return Boolean(results && input && results.top < input.top);
+    });
+    assert(mobileHierarchy, "Mobile layout should prioritize the results experience above the input flow.");
+    steps.push("mobile-layout");
+
+    assert(consoleErrors.length === 0, `Console error(s) detected: ${consoleErrors.join(" | ")}`);
+    assert(pageErrors.length === 0, `Page error(s) detected: ${pageErrors.join(" | ")}`);
+    const relevantFailures = requestFailures.filter((item) => !isIgnorablePrefetchFailure(item));
+    assert(relevantFailures.length === 0, `Request failure(s) detected: ${relevantFailures.map((item) => `${item.error} @ ${item.url}`).join(" | ")}`);
+
+    console.log(JSON.stringify({ baseUrl, status: "ok", steps }, null, 2));
+  } finally {
+    await page.close();
+    await browser.close();
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await fs.rm(downloadDirectory, { recursive: true, force: true });
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

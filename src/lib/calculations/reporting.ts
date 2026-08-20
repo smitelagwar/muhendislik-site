@@ -40,6 +40,7 @@ export interface PdfHighlight {
 
 export interface PdfExportSnapshot {
   variant: PdfVariant;
+  badge?: string;
   title: string;
   subtitle: string;
   generatedAt: string;
@@ -207,6 +208,52 @@ function openPdfBlobPreview(createDocument: () => jsPDF): void {
   }, 60_000);
 }
 
+/**
+ * Yapılandırılmış hesap özeti için hafif PDF önizlemesi açar. Çağıran ekran
+ * modülü dinamik yüklediğinde jsPDF ilk hesap ekranının bundle'ına girmez.
+ */
+export function openPdfExportPreview(snapshot: PdfExportSnapshot): void {
+  openPdfBlobPreview(() => createCalculationPdfDocument(snapshot));
+}
+
+export function createPdfExportDocument(snapshot: PdfExportSnapshot): jsPDF {
+  return createCalculationPdfDocument(snapshot);
+}
+
+export function printPdfExport(snapshot: PdfExportSnapshot, targetWindow?: Window | null): void {
+  if (typeof window === "undefined") {
+    throw new Error("Yazdırma yalnızca tarayıcı ortamında kullanılabilir.");
+  }
+
+  const printWindow = targetWindow ?? window.open("", "_blank");
+  if (!printWindow) {
+    throw new Error("Yazdırma penceresi açılamadı.");
+  }
+
+  let blobUrl = "";
+  try {
+    const pdf = createCalculationPdfDocument(snapshot);
+    blobUrl = URL.createObjectURL(pdf.output("blob"));
+    printWindow.location.href = blobUrl;
+  } catch (error) {
+    printWindow.close();
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    throw error;
+  }
+
+  window.setTimeout(() => {
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch {
+      // Tarayıcının PDF görüntüleyicisi yazdırma kontrolünü yeni sekmeye devredebilir.
+    }
+  }, 1200);
+  window.setTimeout(() => {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+  }, 60_000);
+}
+
 function paintPageBackground(pdf: jsPDF, pageNumber: number) {
   const width = pdf.internal.pageSize.getWidth();
   const height = pdf.internal.pageSize.getHeight();
@@ -236,7 +283,7 @@ function drawHero(pdf: jsPDF, snapshot: PdfExportSnapshot): number {
   setFont(pdf, "bold");
   pdf.setFontSize(8);
   pdf.text(
-    snapshot.variant === "official" ? "RESMÎ REFERANS" : "MALİYET RAPORU",
+    snapshot.badge ?? (snapshot.variant === "official" ? "RESMÎ REFERANS" : "MALİYET RAPORU"),
     PAGE_MARGIN + 11,
     heroY + 11.5
   );
@@ -418,7 +465,7 @@ function drawFootnotes(pdf: jsPDF, footnotes: string[], y: number, variant: PdfV
   let height = 18;
 
   footnotes.forEach((note) => {
-    height += pdf.splitTextToSize(normalizePdfText(note), width - 18).length * 4.6;
+    height += pdf.splitTextToSize(normalizePdfText(note), width - 18).length * 4.6 + 2.5;
   });
 
   setFill(pdf, COLORS.card);
@@ -855,7 +902,7 @@ function createCalculationPdfDocument(snapshot: PdfExportSnapshot): jsPDF {
   });
 
   const notesHeight = snapshot.footnotes.reduce((total, note) => {
-    return total + pdf.splitTextToSize(normalizePdfText(note), pdf.internal.pageSize.getWidth() - PAGE_MARGIN * 2 - 18).length * 4.6;
+    return total + pdf.splitTextToSize(normalizePdfText(note), pdf.internal.pageSize.getWidth() - PAGE_MARGIN * 2 - 18).length * 4.6 + 2.5;
   }, 24);
 
   if (y + notesHeight > pageHeight - PAGE_BOTTOM) {

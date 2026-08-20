@@ -11,8 +11,8 @@
 |------|-------|
 | **Site** | muhendislik-site.vercel.app |
 | **Repo** | github.com/smitelagwar/muhendislik-site |
-| **Framework** | Next.js 14 App Router, TypeScript |
-| **Stil** | Tailwind CSS |
+| **Framework** | Next.js 16 App Router, React 19, TypeScript |
+| **Stil** | Tailwind CSS 4 |
 | **Görselleştirme** | D3.js |
 | **Deployment** | Vercel (main push → otomatik deploy) |
 | **Hedef kitle** | Türk inşaat / yapı mühendisleri |
@@ -53,20 +53,14 @@ skilleri otomatik olarak verdiğim işin konusuna ve ihtiyacına göre sen belir
 
 ```
 muhendislik-site/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx          # Root layout (lang="tr", charset)
-│   ├── page.tsx            # Ana sayfa
-│   └── [section]/          # Dinamik bölümler
-├── components/             # Paylaşılan React componentleri
-│   ├── calculators/        # Hesap araçları
-│   └── visualizations/     # D3.js bileşenleri
-├── public/                 # Static dosyalar
-├── styles/                 # Global CSS
-├── lib/                    # Utility fonksiyonlar
-├── PROJECT.md              # ← Bu dosya (proje gerçek kaynağı)
-├── CLAUDE.md               # Claude Code wrapper
-├── AGENTS.md               # Codex wrapper
-└── GEMINI.md               # Gemini CLI wrapper
+├── src/
+│   ├── app/                # Next.js App Router ve global stiller
+│   ├── components/         # Paylaşılan React componentleri
+│   └── lib/                # Veri, utility ve hesap modülleri
+├── docs/                   # Teknik karar ve uygulama kayıtları
+├── public/                 # Statik dosyalar
+├── scripts/                # Smoke ve doğrulama scriptleri
+└── PROJECT.md              # Proje özeti
 ```
 
 ---
@@ -86,7 +80,7 @@ muhendislik-site/
 --border:         #262626
 ```
 
-**Kritik:** Dark tema korunacak. Açık arka plan (`bg-white`, `bg-gray-100`) **yasak**.
+**Kritik:** Dark Industrial görsel kimliği korunur; uygulama mevcut light/dark tema desteğiyle birlikte çalışır. Tema eşliğini bozan tek taraflı renk kullanımı yapılmaz.
 
 ### Tipografi
 - Başlıklar: `font-bold` / `font-extrabold`
@@ -119,6 +113,20 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - TBDY 2018 atıfları zorunlu
 - Sayısal örnekler ve sık yapılan hatalar bölümü
 - SEO: Türkçe başlık, kebab-case slug
+
+### 4. Ruhsat Ön Fizibilite ve Daire Senaryoları
+- Üretim rotası: `/hesaplamalar/tahmini-insaat-alani` (yerinde dönüşüm)
+- Yeni domain sınırı: `src/lib/calculations/modules/ruhsat-on-fizibilite/`
+- Aşama 5–8, `/hesaplamalar/tahmini-insaat-alani` rotasını yerinde Ruhsat Ön Fizibilite ürününe dönüştürür ve release denetimini tamamlar: progressive form, açık HEURISTIC varsayımlar, normalizasyon/motor bağlantısı, confidence/missing-data özeti, üç aday senaryo karşılaştırması, seçili darboğaz, isteğe bağlı teknik açıklanabilirlik, klavye erişimi, mobil sonuç önceliği, yerel PDF/print ve JSON dışa aktarımı sağlanır. PDF renderer kullanıcı eyleminde lazy yüklenir. URL veya `localStorage` ile proje verisi tutulmaz; otomatik taslak, backend ve JSON import V1 dışındadır.
+- Domain doğrulaması: `npm run check:ruhsat-domain`
+- Motor doğrulaması: `npm run check:ruhsat-engine`
+- Test fortress: `npm run check:ruhsat-fortress` (tümü: `npm run check:ruhsat`)
+- UI smoke: `npm run check:ruhsat-ui` (tümü: `npm run check:ruhsat-full`)
+- Adversarial audit: `npm run check:ruhsat-audit`
+- Tam release kapısı: `npm run check:ruhsat-release`
+- Test matrisi: `docs/ruhsat-on-fizibilite/TEST_MATRIX.md`
+- Uygulama durumu: `docs/ruhsat-on-fizibilite/IMPLEMENTATION_STATE.md`
+- Release denetimi: `docs/ruhsat-on-fizibilite/RELEASE_AUDIT.md`
 
 ---
 
@@ -166,7 +174,7 @@ Birimler: `kN`, `kNm`, `MPa`, `cm²`, `mm`
 ## Türkçe Karakter — Kritik Kontrol
 
 ```tsx
-// app/layout.tsx
+// src/app/layout.tsx
 <html lang="tr">
 ```
 
@@ -188,7 +196,7 @@ const font = localFont({
 - ❌ Hardcoded secret / API key
 - ❌ TypeScript `any`
 - ❌ Mobile kıran tasarım
-- ❌ Dark theme'i bozan açık arka planlar (`bg-white` vb.)
+- ❌ Light/dark tema eşliğini bozan tek taraflı renk kullanımı
 - ❌ `latin-ext` olmadan font tanımı (Türkçe karakter bozulur)
 
 ---
@@ -204,5 +212,5 @@ const font = localFont({
 
 ---
 
-*Son güncelleme: Mart 2026*
+*Son güncelleme: Ağustos 2026*
 *Bu dosyayı güncel tutmak senin sorumluluğun — değişiklik yapınca ilgili bölümü güncelle.*
