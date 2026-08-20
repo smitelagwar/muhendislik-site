@@ -428,6 +428,14 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
 - **Kalıcılık:** Okuma, signed URL, silme, ZIP, public download ve sürümleme SDK çağrıları ortak OIDC/legacy command options katmanını kullanır. Vercel'de `BLOB_STORE_ID` yoksa fail-closed `503`; `/tmp` fallback yoktur. Legacy read/write token yalnız Vercel dışı local geliştirme için korunur.
 - **Doğrulanan yerel kanıt:** `npx tsc --noEmit`, `npm run check:dokumantasyon:persistence` (OIDC store matrisi dahil) ve `npm run check:dokumantasyon` geçti. Gerçek Production PDF upload, callback, Neon satırı, Private Blob nesnesi ve redeploy sonrası kalıcılık doğrulaması Vercel deployment erişimi gerektirir ve bu repo çalışma ortamında dış bağımlılıktır.
 
+---
+
+## 23. Nullable UUID PostgreSQL 42P18 Regresyon Düzeltmesi (20.08.2026)
+
+- **Kök neden:** Production presigned upload callback'i Blob yazımından sonra `finalizePresignedUpload()` → `createFileRecord()` → `getUniqueFileName(null, ...)` zincirine ulaşırken Neon PostgreSQL `could not determine data type of parameter $2` (SQLSTATE `42P18`) döndürdü. Eski sorgu aynı nullable UUID değerini iki ayrı placeholder olarak kullanıyordu: `folder_id = ${folderId} OR (folder_id IS NULL AND ${folderId} IS NULL)`. İkinci placeholder yalnız null denetimi içinde kaldığından PostgreSQL tür çıkarımı yapamıyordu.
+- **Null-safe sorgu standardı:** Nullable UUID sibling sorguları dallanır. Root dizin için parametresiz `folder_id IS NULL` / `parent_id IS NULL`; alt klasör için `folder_id = ${folderId}::uuid` / `parent_id = ${parentId}::uuid` kullanılır. Raw SQL interpolation yoktur; tüm UUID değerleri Neon tagged template ile parametrelenir.
+- **Kapsam:** Aynı hata sınıfı `getUniqueFolderName(null, ...)` içinde de vardı ve root klasör oluşturmayı etkileyebilirdi; düzeltildi. Dökümantasyon DAL ve API SQL kaynaklarında adversarial tarama yapıldı, tipsiz nullable parameter kalmadı.
+- **Regresyon kanıtı:** `npm run check:dokumantasyon:nullable-uuid`, root/alt klasör dosya ve klasör sorgu dallarını, eski iki-placeholder deseninin yokluğunu ve tüm kaynaklarda tipsiz null parametre taramasını denetler. Gerçek Neon/Production callback testi deployment erişimi gerektirir; test yapılmadan başarılı olarak kaydedilmez.
 
 
 

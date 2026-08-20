@@ -10,6 +10,16 @@ import path from "path";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";
 
+interface FolderBreadcrumbRow {
+  id: string;
+  name: string;
+  parent_id: string | null;
+}
+
+interface FolderParentRow {
+  parent_id: string | null;
+}
+
 /**
  * Belirtilen ID'ye sahip klasörü getirir
  */
@@ -56,9 +66,9 @@ export async function getBreadcrumbs(folderId: string | null): Promise<DokBreadc
 
   while (currentId && !visited.has(currentId)) {
     visited.add(currentId);
-    const rows: Record<string, any>[] = await sql`
+    const rows = await sql`
       SELECT id, name, parent_id FROM dok_folders WHERE id = ${currentId} LIMIT 1;
-    `;
+    ` as FolderBreadcrumbRow[];
     if (!rows[0]) break;
 
     chain.unshift({ id: rows[0].id as string, name: rows[0].name as string });
@@ -99,9 +109,9 @@ export async function isDescendantOf(candidateParentId: string, folderId: string
       return true;
     }
 
-    const rows: Record<string, any>[] = await sql`
+    const rows = await sql`
       SELECT parent_id FROM dok_folders WHERE id = ${currentId} LIMIT 1;
-    `;
+    ` as FolderParentRow[];
     if (!rows[0]) break;
     currentId = rows[0].parent_id as string | null;
   }
@@ -124,12 +134,23 @@ export async function getUniqueFolderName(parentId: string | null, baseName: str
     );
   } else {
     const sql = getDb();
-    const rows = await sql`
-      SELECT name FROM dok_folders
-      WHERE (parent_id = ${parentId} OR (parent_id IS NULL AND ${parentId} IS NULL))
-        AND deleted_at IS NULL;
-    `;
-    existingNames = new Set(rows.map((r) => r.name.toLowerCase()));
+    // Root parent için parametresiz IS NULL, alt klasör için açık UUID cast'i.
+    // Böylece Neon/PostgreSQL'te tipsiz `$n IS NULL` (42P18) oluşmaz.
+    if (parentId === null) {
+      const rows = await sql`
+        SELECT name FROM dok_folders
+        WHERE parent_id IS NULL
+          AND deleted_at IS NULL;
+      `;
+      existingNames = new Set(rows.map((r) => r.name.toLowerCase()));
+    } else {
+      const rows = await sql`
+        SELECT name FROM dok_folders
+        WHERE parent_id = ${parentId}::uuid
+          AND deleted_at IS NULL;
+      `;
+      existingNames = new Set(rows.map((r) => r.name.toLowerCase()));
+    }
   }
 
   if (!existingNames.has(baseName.toLowerCase())) {

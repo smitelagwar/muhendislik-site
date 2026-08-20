@@ -44,12 +44,24 @@ export async function getUniqueFileName(
     );
   } else {
     const sql = getDb();
-    const rows = await sql`
-      SELECT display_name FROM dok_files
-      WHERE (folder_id = ${folderId} OR (folder_id IS NULL AND ${folderId} IS NULL))
-        AND deleted_at IS NULL;
-    `;
-    existingNames = new Set(rows.map((r) => r.display_name.toLowerCase()));
+    // Nullable UUID değerini ikinci bir tipsiz null denetiminde bağlama:
+    // PostgreSQL bu placeholder'ın türünü 42P18 ile çözemeyebilir.
+    // Root ve alt klasör sorgularını ayrı, tip bağlamı açık dallarda tutuyoruz.
+    if (folderId === null) {
+      const rows = await sql`
+        SELECT display_name FROM dok_files
+        WHERE folder_id IS NULL
+          AND deleted_at IS NULL;
+      `;
+      existingNames = new Set(rows.map((r) => r.display_name.toLowerCase()));
+    } else {
+      const rows = await sql`
+        SELECT display_name FROM dok_files
+        WHERE folder_id = ${folderId}::uuid
+          AND deleted_at IS NULL;
+      `;
+      existingNames = new Set(rows.map((r) => r.display_name.toLowerCase()));
+    }
   }
 
   if (!existingNames.has(originalName.toLowerCase())) {
