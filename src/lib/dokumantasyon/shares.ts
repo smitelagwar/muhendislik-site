@@ -16,6 +16,7 @@ import { getFile } from "./files";
 import { getFolder } from "./folders";
 import { readLocalDb, writeLocalDb } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";
+import { buildPublicShareUrl } from "@/lib/site-config";
 
 export interface ResolvedShareFile {
   file: DokFile;
@@ -153,6 +154,7 @@ export async function createShareLink(options: {
 
   // 3. Token Üretimi (32 byte base64url) ve DB Hashing (SHA-256)
   const rawToken = generateRawToken();
+  const shareUrl = buildPublicShareUrl(rawToken);
   const tokenHash = hashShareToken(rawToken);
   const urlTokenEncrypted = encryptToken(rawToken);
 
@@ -294,9 +296,6 @@ export async function createShareLink(options: {
       `;
     }
   }
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const shareUrl = `${siteUrl}/p/${rawToken}`;
 
   return {
     shareLink,

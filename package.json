@@ -51,6 +51,8 @@
     "check:document-studio:stage6": "tsx scripts/check-dokumantasyon-studio-stage6.mjs",
     "check:document-studio:all": "tsx scripts/check-dokumantasyon-studio-all.mjs",
     "check:document-studio:e2e": "playwright test --config=playwright.config.ts",
+    "check:document-studio:share-origin": "tsx scripts/check-dokumantasyon-share-origin.ts",
+    "check:document-studio:cad-aps": "tsx scripts/check-cad-aps-adapter.ts",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
   },
@@ -64,6 +66,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
+    "dxf-viewer": "^1.0.48",
     "framer-motion": "^12.34.3",
     "html2canvas": "^1.4.1",
     "jose": "^6.2.9",

@@ -437,5 +437,228 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
 - **Kapsam:** Aynı hata sınıfı `getUniqueFolderName(null, ...)` içinde de vardı ve root klasör oluşturmayı etkileyebilirdi; düzeltildi. Dökümantasyon DAL ve API SQL kaynaklarında adversarial tarama yapıldı, tipsiz nullable parameter kalmadı.
 - **Regresyon kanıtı:** `npm run check:dokumantasyon:nullable-uuid`, root/alt klasör dosya ve klasör sorgu dallarını, eski iki-placeholder deseninin yokluğunu ve tüm kaynaklarda tipsiz null parametre taramasını denetler. Gerçek Neon/Production callback testi deployment erişimi gerektirir; test yapılmadan başarılı olarak kaydedilmez.
 
+---
 
+## 24. PDF Viewport ve Toolbar Scroll Ownership Düzeltmesi (20.08.2026)
 
+- **Scroll ownership:** `DocumentStudioShell` mount süresince `html` ve `body` scroll'unu önceki inline değerleri saklayarak kilitler; unmount'ta eksiksiz geri yükler. PDF çalışma alanında tek ana scroll owner `data-testid="pdf-scroll-viewport"` olan `overflow-auto` viewport'tur. Shell, workspace, sidebar ve viewport zinciri `min-h-0` / `min-w-0` ile intrinsic PDF ölçülerinin dış layout'u büyütmesini engeller.
+- **Gerçek zoom geometrisi:** PDF sayfa sarmalayıcısı küçük sayfalarda ortalar, büyük sayfalarda scroll origin'i erişilebilir bırakır. Sayfa navigasyonu yalnızca PDF viewport'una `scrollTo` uygular; dış sayfa scroll'u kullanılmaz.
+- **Responsive toolbar:** PDF toolbar sabit tek satırdır. Dar ekranda önceki/sonraki sayfa, sayfa numarası, arama ve zoom görünür kalır; sidebar, ilk/son sayfa, el/seçim araçları, fit seçenekleri, döndürme ve yazdırma ikincil menüden erişilir. Studio topbar'ın mobil taşmasını önlemek için tema kontrolü ve eylem etiketleri dar ekranda gizlenir.
+- **Regresyon kanıtı:** `npm run check:document-studio:e2e` 390×844, 430×932, 768×1024, 1024×768, 1366×768, 1440×900 ve 1920×1080 viewport'larında %500 zoomu doğrular. Her ölçümde dış `html/body` yüksekliği viewport'ta sabit, shell genişliği taşmasız ve 390 px'de yatay/dikey overflow yalnızca PDF viewport'undadır. `npx tsc --noEmit` ve `npm run build` de geçti.
+
+---
+
+## 25. PDF Zoom Interaction, Fit Modes and Wheel Ownership (20.08.2026)
+
+- `PdfJsStudio` has one zoom source of truth: `ZoomState` stores both the mode
+  (`custom`, `actual-size`, `fit-width`, `fit-page`) and the scale. Manual
+  toolbar, keyboard and Ctrl/Cmd + wheel zoom actions share the same custom zoom
+  pipeline, bounded to 25%--500%.
+- Ctrl/Cmd + wheel is attached natively with `passive: false` only after the PDF
+  scroll viewport and document are ready. It calls `preventDefault()`
+  synchronously, so browser zoom is suppressed only inside the PDF viewport;
+  normal wheel scrolling and wheel events outside the viewport remain native.
+- Wheel deltas are collected into one animation frame. The scroll position is
+  corrected after the scaled PDF geometry commits so the document point beneath
+  the pointer remains anchored.
+- Fit Width / Fit Page calculate from actual scroll viewport dimensions, page
+  size and rotation. `ResizeObserver` recalculates only an active fit mode;
+  custom and actual-size modes are preserved across resize.
+- E2E proof covers Ctrl-wheel prevention and scale change, normal/outside wheel
+  pass-through, pointer-anchor drift below 20 PDF pixels, fit-width resize, and
+  custom zoom stability after resize. The dedicated Stage 3 report is
+  `docs/pdf-viewer-paylasim-asama-3-raporu.md`.
+
+---
+
+## 26. Vercel Share Baseline Follow-up (20.08.2026)
+
+- Vercel CLI is authenticated and the production alias
+  `https://muhendislik-site.vercel.app` points to a Ready deployment.
+- Production configuration has admin, Neon and Blob variables, but it does not
+  define `NEXT_PUBLIC_SITE_URL`. Since the current share builder still uses
+  `process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"`, a newly
+  created production share will currently receive a localhost origin. This
+  confirms the Stage 1 production baseline failure.
+- The public `/p/[token]` route is reachable without an admin cookie and a
+  random token returns a controlled route response without raw backend error.
+  This is not a valid-token access proof.
+- The known Preview deployment is in Error state. A valid Preview and
+  Production anonymous-share smoke still requires an authenticated share
+  creation flow after the production-origin configuration is corrected.
+
+### 26.1 Production origin remediation
+
+- Added `NEXT_PUBLIC_SITE_URL=https://muhendislik-site.vercel.app` to the
+  Production environment and rebuilt the existing Production deployment. The
+  canonical alias is now attached to the Ready deployment
+  `muhendislik-site-bsusz0gpd-huseying5713-2819s-projects.vercel.app`.
+- The existing share builder consequently receives the canonical origin at
+  runtime and new Production share URLs will have the required
+  `https://muhendislik-site.vercel.app/p/<token>` form.
+- A real passwordless-share request without admin cookies remains pending,
+  because no authenticated browser admin session is available in this runtime.
+
+---
+
+## 27. PDF Renderer and Access Lease Resilience (20.08.2026)
+
+- `PdfPageView` limits backing-store resolution with a 2.5 DPR cap and a
+  16-million-pixel per-canvas ceiling. Logical PDF layout remains unchanged,
+  while extreme zoom/DPR combinations reduce only render resolution.
+- PDF.js render tasks are cancelled by their owning effect, preventing stale
+  renders from cancelling or overwriting a newer page render. Visible-page
+  rendering and the existing IntersectionObserver prefetch margin remain the
+  multi-page memory boundary.
+- Link annotations are rendered as viewport-transformed overlays, aligned with
+  the canvas during scale and rotation. Text spans use viewport coordinate
+  conversion and retain `user-select: text` outside hand mode.
+- Hand/pan now uses Pointer Events with capture, move, up and cancel handling.
+- A PDF 401/403 triggers one access-lease refresh through the existing admin
+  access endpoint. Concurrent refreshes are coalesced, new signed URLs stay in
+  component state only, and a failed refresh resolves to a controlled error
+  rather than an infinite spinner.
+- Verification: `npx tsc --noEmit`, the 3/3 document-studio Playwright suite,
+  and `npm run build` pass. Production TTL-expiry smoke remains dependent on an
+  authenticated browser session and a real Private Blob URL.
+
+---
+
+## 28. Canonical Public Share Origin (20.08.2026)
+
+- Public share links are built only through `getPublicSiteOrigin()` and
+  `buildPublicShareUrl()` in `src/lib/site-config.ts`. Configuration precedence
+  is `NEXT_PUBLIC_SITE_URL`, then `VERCEL_PROJECT_PRODUCTION_URL`; a missing
+  origin uses `http://localhost:3000` only outside Production.
+- Production fails closed for a missing origin, localhost origin, non-HTTPS
+  origin, malformed URL or a configured path/query/hash. This avoids emitting
+  a public `localhost` share link. `new URL()` owns path construction and
+  normalization.
+- Share creation and the active-share listing API return canonical `shareUrl`
+  values. The active-share modal copies and encodes that server-produced value
+  for QR use; it no longer derives an origin from `window.location.origin`.
+- `npm run check:document-studio:share-origin` verifies development fallback,
+  production primary/fallback origin selection, normalization, and production
+  failure cases. `npm run check:dokumantasyon` (14/14),
+  `npm run check:document-studio:e2e` (3/3), `npx tsc --noEmit`, and
+  `npm run build` pass.
+- The Vercel Production environment already has
+  `NEXT_PUBLIC_SITE_URL=https://muhendislik-site.vercel.app`. The source
+  changes in this section require a subsequent Production deployment before a
+  valid anonymous-share smoke can be performed.
+
+---
+
+## 29. PDF Viewer ve Public Share Nihai Regresyon Kontrolu (20.08.2026)
+
+- Stage 6 Playwright coverage now exercises normal-wheel PDF-local scrolling,
+  sidebar plus Fit Width, the full rotation cycle, pointer-event hand/pan, and
+  fullscreen entry/exit. The suite passes 4/4; the Studio master regression
+  gate also passes 5/5.
+- The PDF toolbar dropdown was found behind the Studio fixed layer, allowing
+  the PDF text layer to intercept clicks. Its portal content now uses `z-[210]`
+  above the `z-[200]` Studio shell; the visible menu action is covered by E2E.
+- Production deployment
+  `muhendislik-site-n49aphsrj-huseying5713-2819s-projects.vercel.app` is Ready
+  and owns `https://muhendislik-site.vercel.app`. Root, documentation, and an
+  anonymous random `/p/<token>` request return controlled responses; the
+  invalid token page exposes no localhost origin or raw runtime error.
+- Preview deployment is Vercel SSO-protected, so an anonymous Preview share
+  smoke cannot be run externally. An authenticated Production admin browser
+  session is still needed for valid-link creation, incognito access, real Blob
+  TTL recovery, and visual viewer controls smoke. This is an external
+  verification boundary, not a source-code failure.
+- `npx tsc --noEmit`, `npm run build`, `npm run check:dokumantasyon` (14/14),
+  `npm run check:document-studio:share-origin`, E2E (4/4), and the Studio
+  master gate (5/5) pass. Full-repository `npm run lint` remains an existing
+  baseline failure (113 errors, 160 warnings); the Stage 6 toolbar and test
+  files pass targeted ESLint.
+
+---
+
+## 30. DWG/DXF Baslangic Viewer Baseline (20.08.2026)
+
+- `.dwg` ve `.dxf` dosyalari mevcut capability kaydinda `cad` turune,
+  sirasiyla `application/acad` ve `application/dxf` MIME tiplerine eslenir;
+  admin preview acik, public preview kapalidir. Magic-byte kontrolu ve signed
+  Blob/yerel stream erisim katmani halihazirda vardir.
+- Mevcut `DokCadViewer` dosyanin `accessUrl` degerini okuyup render etmez:
+  sadece APS durum endpoint'ini sorgular. APS yapilandirilmadiginda indirme
+  karti gosterir; hazir durumunda da bir viewer baslatmaz. Bu nedenle sorun
+  erisim veya MIME degil, gercek DXF/DWG parser ve viewport'un olmamasidir.
+- DXF icin MPL-2.0 lisansli `dxf-viewer` secildi. DWG icin sadece
+  worker-yalitimli bir adapter siniri secildi; GPL-3.0 LibreDWG ve
+  AGPL-3.0-only `@flyfish-dev/cad-viewer`, proje sahibi tarafindan ayri bir
+  lisans onayi verilene kadar uretim bagimliligi olarak eklenmeyecek.
+- Ayrintili kabul kaydi ve Vercel/WASM/worker riskleri
+  `docs/cad-viewer-baseline.md` dosyasindadir. `npm run check:dokumantasyon:stage2`
+  ve `npx tsc --noEmit` basarilidir. Bu asamada uretim kodu degismedi.
+
+---
+
+## 31. DXF Viewer Referans Implementasyonu (20.08.2026)
+
+- `dxf-viewer@1.0.48` MPL-2.0 ile eklendi. DXF renderer yalnizca client'ta
+  lazy-load edilir; private/local erisim URL'si once metin olarak fetch edilir,
+  gecici object URL ile worker'a verilir ve is bitince serbest birakilir.
+- Parse/geometri hazirlama `dxf-viewer-worker.ts` ile web worker'a tasinir.
+  `Destroy()` lifecycle'i worker, WebGL ve event kaynaklarini route degisiminde
+  temizler. Viewport `min-h-0`/`min-w-0`/`overflow-hidden` sinirinda kalir;
+  auto-fit, wheel zoom, drag-pan, Sigdir ve Sifirla calisir.
+- Hata fallback'i dosya adi, boyut, neden ve yeniden deneme/indirme eylemlerini
+  gosterir. Playwright; kucuk, proje-benzeri ve buyuk DXF'leri, bozuk DXF'i ve
+  bu makinedeki 8.4 MB gercek proje DXF'ini basariyla denetledi.
+- Ayrintili Aşama 2 kaydi `docs/cad-viewer-asama-2-raporu.md` dosyasindadir.
+  DWG lisans blokaji degismemistir.
+
+---
+
+## 32. DWG Decoder Lisans Karari (20.08.2026)
+
+- Repo, GPL-3.0 LibreDWG veya AGPL-3.0-only `@flyfish-dev/cad-viewer` icin
+  uyumluluk/onay belirtmez; ticari ya da permissive bir browser-side DWG
+  decoder de saglanmamistir. Bu nedenle hicbiri production dependency olarak
+  eklenmedi.
+- Aşama 3'un iki gercek DWG dosyasini acma kabul kriteri, proje sahibinin
+  copyleft yukumluluklerini yazili kabul etmesi veya lisansli alternatif
+  saglamasi olmadan karsilanamaz. Karar kaydi
+  `docs/cad-viewer-license-decision.md` dosyasindadir.
+
+---
+
+## 33. CodeCAD DWG PoC Karari (20.08.2026)
+
+- `backkem/codecad` ust proje olarak MIT lisanslidir; ancak DWG parser yolu
+  `acadrust 0.3.4` MPL-2.0 lisanslidir. MPL-2.0 GPL/AGPL degildir fakat
+  permissive de olmadigindan, yalnizca permissive DWG cozumleri sinirini
+  karsilamaz.
+- CodeCAD'in WASM embed ciktisi ayri bir parser/render SDK'si degil,
+  yaklasik 23.5 MB monolitik viewer paketidir. Kaynaktan uretim Rust,
+  wasm-bindgen-cli, pnpm ve just gerektirir; bu ortamda bu build araclari
+  yoktur. Bu nedenle Next.js/Vercel'e minimum ve tekrarlanabilir entegrasyon
+  kabul edilmedi.
+- Uretim kodu, bagimlilik, WASM veya worker degismedi. PDF ve DXF akisi
+  korunmustur. Asama 3 kabul edilmeden Asama 4'e gecilmeyecektir. Ayrintili
+  karar `docs/cad-viewer-license-decision.md` dosyasindadir.
+
+---
+
+## 34. Autodesk APS DWG Donusum Hatti (20.08.2026)
+
+- DWG yolu server-side APS adaptoruna tasindi: private Blob kaynak dosyasi
+  yalniz yetkili backend tarafindan okunur, APS OSS'ye aktarilir ve Model
+  Derivative sonucu APS Viewer icinde izole olarak yuklenir. DXF browser-side
+  `dxf-viewer` akisi degismemistir.
+- `dok_cad_derivatives` kalici tablosu kaynak surum anahtari/hash, APS URN ve
+  `pending/uploading/translating/ready/failed` durumunu saklar. Ayni kaynak
+  tekrar donusturulmez; eszamanli baslatmalar tek job kaydinda birlesir.
+- `APS_CLIENT_ID`, `APS_CLIENT_SECRET` ve `APS_BUCKET_KEY` server-side
+  degiskenlerdir; internal token DB'ye yazilmaz. Bu ortamda bu degiskenler
+  tanimli olmadigindan gercek APS/DWG/Vercel smoke henuz yapilamadi. Aşama 3
+  kabul edilmeden Aşama 4'e gecilmeyecektir.
+- Preview `muhendislik-site-qp4fo0xyx-huseying5713-2819s-projects.vercel.app`
+  Ready durumundadir. Kok ve `/dokumantasyon` 200, oturumsuz CAD API 401
+  donmustur. Yerel TypeScript/build, Document Studio regresyonlari ve APS
+  adaptorunun durum, dedupe, concurrency, token ve lifecycle kontrolleri
+  gecmistir. Gercek APS kimlik bilgileri olmadan gercek DWG kabul testi
+  tamamlanmis sayilmamistir.

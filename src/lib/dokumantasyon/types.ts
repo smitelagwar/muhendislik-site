@@ -40,6 +40,23 @@ export interface DokFileVersion {
   created_at: string;
 }
 
+export interface DokCadDerivative {
+  id: string;
+  file_id: string;
+  source_version_key: string;
+  source_sha256: string | null;
+  aps_urn: string | null;
+  aps_object_key: string | null;
+  status: "pending" | "uploading" | "translating" | "ready" | "failed";
+  error_code: string | null;
+  error_message: string | null;
+  lock_expires_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DokShareLink {
   id: string;
   token_hash: string;

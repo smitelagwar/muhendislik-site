@@ -9,7 +9,7 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
-export const LATEST_REQUIRED_SCHEMA_VERSION = "003";
+export const LATEST_REQUIRED_SCHEMA_VERSION = "004";
 
 export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
   try {
@@ -183,10 +183,35 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS current_version_number INT NOT NULL DEFAULT 1;`;
     await sql`ALTER TABLE dok_share_items ADD COLUMN IF NOT EXISTS file_version_id UUID NULL REFERENCES dok_file_versions(id) ON DELETE SET NULL;`;
 
+    // 4. Migration 004: APS DWG derivative durumlari
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_cad_derivatives (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        file_id UUID NOT NULL REFERENCES dok_files(id) ON DELETE CASCADE,
+        source_version_key VARCHAR(1200) NOT NULL,
+        source_sha256 VARCHAR(64) NULL,
+        aps_urn TEXT NULL,
+        aps_object_key VARCHAR(1024) NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'pending',
+        error_code VARCHAR(96) NULL,
+        error_message TEXT NULL,
+        lock_expires_at TIMESTAMPTZ NULL,
+        started_at TIMESTAMPTZ NULL,
+        completed_at TIMESTAMPTZ NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT uq_dok_cad_derivatives_source UNIQUE (file_id, source_version_key),
+        CONSTRAINT ck_dok_cad_derivatives_status CHECK (status IN ('pending', 'uploading', 'translating', 'ready', 'failed'))
+      );
+    `;
+    await sql`ALTER TABLE dok_cad_derivatives ADD COLUMN IF NOT EXISTS lock_expires_at TIMESTAMPTZ NULL;`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_derivatives_file_id ON dok_cad_derivatives(file_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_derivatives_hash_ready ON dok_cad_derivatives(source_sha256) WHERE status = 'ready';`;
+
     // Sürümleri kaydet
     await sql`
       INSERT INTO dok_schema_migrations (version, applied_at)
-      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW())
+      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW())
       ON CONFLICT (version) DO NOTHING;
     `;
 

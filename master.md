@@ -27,9 +27,10 @@ Bu dosya, site genelinde korunması gereken ürün ve arayüz kararlarını kayd
 
 > *(Not: Mevcut göreviniz `/belgeler` sayfası veya PDF stüdyosu ile ilgili DEĞİLSE bu bölümü ve referans verilen dosyaları okumanıza gerek yoktur.)*
 
-Belgeler modülünde çalışacak yapay zeka ajanları ve geliştiriciler için yaşanmış tecrübeler, hata çözümleri ve tavsiyeler **[docs/BELGELER_SISTEMI.md](docs/BELGELER_SISTEMI.md)** ve **[.agents/rules/belgeler-kurallari.md](.agents/rules/belgeler-kurallari.md)** dosyalarında derlenmiştir. 
+Belgeler modülünde çalışacak yapay zeka ajanları ve geliştiriciler için yaşanmış tecrübeler, hata çözümleri ve tavsiyeler **[docs/BELGELER_SISTEMI.md](docs/BELGELER_SISTEMI.md)** ve **[.agents/rules/belgeler-kurallari.md](.agents/rules/belgeler-kurallari.md)** dosyalarında derlenmiştir.
 
 **Özet Tecrübe Notları:**
+
 1. **Leke ve Hayalet Yazı:** AcroForm temizleme işlemlerinde hem field hem de `field.acroField.getWidgets()` seviyesinde `AP` ve `DV` akışları temizlenmelidir (leke kalmaması için).
 2. **Font Dengesi:** Gövde metinleri `Arial-Regular` (ince), başlık ve isimler `Arial-Bold` olmalıdır.
 3. **Masaüstü Düzende Dış Kaydırma:** Stüdyolarda dış pencere scroll'u yerine, sol form paneli kendi içinde kaymalı (`overflow-y-auto`), sağ PDF ise dikeyde tam sayfaya sığmalıdır.
@@ -43,6 +44,7 @@ Bu projede `/dokumantasyon` altında çalışan; tek admin girişli, özel dosya
 **Yalnızca Dökümantasyon modülüyle doğrudan ilgili bir görev geldiğinde**, kod değişikliğine başlamadan önce proje kökündeki `dokumantasyon.md` dosyasını baştan sona oku. Oradaki güncel mimari, veri, güvenlik ve test kurallarını uygula. Görev tamamlandığında `dokumantasyon.md` dosyasını gerçek değişikliklerle güncelle.
 
 Dökümantasyon kapsamına giren örnek işler:
+
 - `/dokumantasyon` admin ekranı ve login/session,
 - Dökümantasyon dosya/klasör DB ve Blob işlemleri,
 - süreli share linkleri,
@@ -54,5 +56,22 @@ Dökümantasyon kapsamına giren örnek işler:
 
 `/belgeler` ile `/dokumantasyon` birbirinden ayrı sistemlerdir.
 
+## 🚀 Vercel CLI & Canlı / Preview Dağıtım ve Test Kuralları
 
+Proje Vercel CLI ile `muhendislik-site` (`huseying5713-2819s-projects`) projesine kalıcı olarak bağlanmıştır (`vercel link`). CLI kimlik doğrulaması (`vercel whoami`, `vercel list`, `vercel env ls`) tamamlanmıştır.
+
+### Dağıtım ve Test İlkeleri:
+1. **Preview ve Smoke Testleri Atlama:** Görev/plan adımlarında belirtilen Vercel Preview ve Production smoke testlerini ASLA atlama.
+2. **Otonom Preview Oluşturma:** Test ve doğrulama için Preview gerekiyorsa ajan doğrudan CLI ile preview oluşturmalı (`vercel`), dönen canlı URL'i kontrol etmeli ve smoke testleri gerçekleştirmelidir.
+3. **Canlı/Preview Doğrulama:**
+   - DB / Neon, Blob depolama ve Auth/Admin gibi backend değişkenlerinin Vercel ortamlarında (`Production, Preview`) eksiksiz olduğunu `vercel env ls` ile teyit et.
+   - İhtiyaç halinde yerel env dosyasını güncellemek için `vercel env pull .env.local` kullan.
+   - Dağıtım sonrası ilgili URL üzerinde kritik rotaların (Ana sayfa, `/dokumantasyon`, `/belgeler`, `/p/[token]` vb.) HTTP durum kodlarını ve arayüz/API yanıtlarını doğrula.
+4. **Temel CLI Komutları:**
+   - `vercel whoami` : Kullanıcı ve oturum durumu
+   - `vercel list` : Son deploy durumları ve URL'leri
+   - `vercel env ls` : Ortam değişkeni listesi
+   - `vercel` : Yeni preview dağıtımı
+   - `vercel --prod` : Doğrudan production dağıtımı (gerektiğinde)
+   - `vercel logs <deployment-url>` : Canlı log analizi
 

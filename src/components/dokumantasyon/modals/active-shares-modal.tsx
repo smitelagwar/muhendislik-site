@@ -30,6 +30,7 @@ interface ShareLinkItem {
   total_files: number;
   total_size_bytes: number;
   decrypted_token: string | null;
+  shareUrl: string | null;
   is_expired: boolean;
   is_active: boolean;
 }
@@ -68,12 +69,10 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
   };
 
   const handleCopyLink = async (link: ShareLinkItem) => {
-    if (!link.decrypted_token) return;
-    const siteUrl = window.location.origin;
-    const fullUrl = `${siteUrl}/p/${link.decrypted_token}`;
+    if (!link.shareUrl) return;
 
     try {
-      await navigator.clipboard.writeText(fullUrl);
+      await navigator.clipboard.writeText(link.shareUrl);
       setCopiedId(link.id);
       setTimeout(() => setCopiedId(null), 3000);
     } catch {
@@ -82,14 +81,12 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
   };
 
   const handleShowQr = async (link: ShareLinkItem) => {
-    if (!link.decrypted_token) return;
-    const siteUrl = window.location.origin;
-    const fullUrl = `${siteUrl}/p/${link.decrypted_token}`;
+    if (!link.shareUrl) return;
 
     try {
-      const qrSrc = await QRCode.toDataURL(fullUrl, { width: 256, margin: 1.5 });
+      const qrSrc = await QRCode.toDataURL(link.shareUrl, { width: 256, margin: 1.5 });
       setQrModalData({
-        url: fullUrl,
+        url: link.shareUrl,
         qrSrc,
         title: link.title || "Paylaşım Bağlantısı",
       });
@@ -203,7 +200,7 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
 
                 {/* Aksiyon Butonları */}
                 <div className="flex items-center gap-2 shrink-0 border-t border-border/40 pt-2 sm:border-t-0 sm:pt-0">
-                  {link.decrypted_token && link.is_active && (
+                  {link.shareUrl && link.is_active && (
                     <>
                       <Button
                         size="sm"

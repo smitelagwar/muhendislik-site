@@ -10,8 +10,9 @@ import { PdfJsStudio } from "../studio/pdf/pdfjs-studio";
 interface DokPdfViewerProps {
   accessUrl: string;
   displayName: string;
+  onAccessExpired?: () => Promise<unknown>;
 }
 
-export function DokPdfViewer({ accessUrl, displayName }: DokPdfViewerProps) {
-  return <PdfJsStudio accessUrl={accessUrl} displayName={displayName} />;
+export function DokPdfViewer({ accessUrl, displayName, onAccessExpired }: DokPdfViewerProps) {
+  return <PdfJsStudio accessUrl={accessUrl} displayName={displayName} onAccessExpired={onAccessExpired} />;
 }

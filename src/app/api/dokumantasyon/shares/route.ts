@@ -7,6 +7,7 @@ import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createShareSchema } from "@/lib/dokumantasyon/validation";
 import { createShareLink, getAdminShareLinks } from "@/lib/dokumantasyon/shares";
+import { buildPublicShareUrl, PublicSiteOriginError } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,10 @@ export async function GET() {
   try {
     await requireDokumantasyonAdmin();
 
-    const links = await getAdminShareLinks();
+    const links = (await getAdminShareLinks()).map((link) => ({
+      ...link,
+      shareUrl: link.decrypted_token ? buildPublicShareUrl(link.decrypted_token) : null,
+    }));
 
     return NextResponse.json(
       { links },
@@ -23,6 +27,12 @@ export async function GET() {
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+    }
+    if (err instanceof PublicSiteOriginError) {
+      return NextResponse.json(
+        { error: "Paylaşım bağlantısı yapılandırması hazır değil." },
+        { status: 503, headers: { "Cache-Control": "private, no-store" } }
+      );
     }
     console.error("Paylaşım linkleri listeleme hatası:", err);
     return NextResponse.json(
@@ -56,6 +66,13 @@ export async function POST(request: Request) {
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+    }
+    if (err instanceof PublicSiteOriginError) {
+      console.error("Paylaşım origin yapılandırması hatası:", err.message);
+      return NextResponse.json(
+        { error: "Paylaşım bağlantısı yapılandırması hazır değil." },
+        { status: 503, headers: { "Cache-Control": "private, no-store" } }
+      );
     }
     const message = err instanceof Error ? err.message : "Paylaşım linki oluşturulamadı.";
     console.error("Link oluşturma hatası:", err);

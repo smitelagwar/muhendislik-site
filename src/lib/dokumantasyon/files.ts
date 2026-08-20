@@ -9,6 +9,7 @@ import path from "path";
 import fs from "fs";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { hasDatabaseUrl, getBlobCommandOptions, hasBlobAccessConfiguration } from "./runtime-mode";
+import { releaseCadDerivatives } from "./cad-aps";
 
 /**
  * Belirtilen ID'ye sahip dosyayı getirir
@@ -256,6 +257,8 @@ export async function moveFile(id: string, newFolderId: string | null): Promise<
  * Dosyayı çöp kutusuna taşır ve bu dosyayı içeren tüm aktif paylaşımları iptal eder
  */
 export async function trashFile(id: string): Promise<void> {
+  await releaseCadDerivatives(id);
+
   if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     const item = db.files.find((f) => f.id === id);
@@ -331,6 +334,8 @@ export async function restoreFile(id: string): Promise<void> {
 export async function permanentDeleteFile(id: string): Promise<void> {
   const file = await getFile(id);
   if (!file) return;
+
+  await releaseCadDerivatives(id);
 
   const isLocal = file.blob_url?.startsWith("local:");
   if (isLocal) {

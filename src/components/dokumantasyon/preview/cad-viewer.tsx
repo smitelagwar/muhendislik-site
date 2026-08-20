@@ -1,26 +1,11 @@
-// ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — AUTODESK APS CAD GÖRÜNTÜLEYİCİ (CAD VIEWER)
-// ============================================================================
-
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Compass,
-  Download,
-  AlertCircle,
-  Loader2,
-  Box,
-  FileCode2,
-  Info,
-  ExternalLink,
-  ShieldAlert,
-  HardDrive,
-  Calendar,
-} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertCircle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
+import { ApsDwgViewer } from "./aps-dwg-viewer";
 
 interface DokCadViewerProps {
   accessUrl: string;
@@ -30,178 +15,266 @@ interface DokCadViewerProps {
   sizeBytes: number;
 }
 
-export function DokCadViewer({
-  accessUrl,
-  displayName,
-  fileId,
-  extension,
-  sizeBytes,
-}: DokCadViewerProps) {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [cadStatus, setCadStatus] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+type DxfViewerInstance = {
+  Destroy: () => void;
+  FitView: (minX: number, maxX: number, minY: number, maxY: number, padding?: number) => void;
+  GetBounds: () => { maxX: number; maxY: number; minX: number; minY: number } | null;
+  GetOrigin: () => { x: number; y: number };
+  HasRenderer: () => boolean;
+  Load: (params: {
+    url: string;
+    progressCbk?: (phase: "font" | "fetch" | "parse" | "prepare") => void;
+    workerFactory?: () => Worker;
+  }) => Promise<void>;
+  Subscribe: (eventName: "viewChanged", handler: () => void) => void;
+  Unsubscribe: (eventName: "viewChanged", handler: () => void) => void;
+};
 
-  // 1. CAD Durumunu API'den Sorgula
-  useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
+type ViewerLoadState = "loading" | "ready" | "error";
+type ViewerErrorKind = "fetch" | "parse" | "render" | "unsupported";
 
-    fetch(`/api/dokumantasyon/files/${fileId}/cad`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!isMounted) return;
-        if (data.success) {
-          setCadStatus(data);
-        } else {
-          setError(data.error || "CAD önizleme durumu alınamadı.");
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        console.error("CAD durumu alma hatası:", err);
-        setError("CAD durumu sorgulanırken sunucu ile iletişim kurulamadı.");
-        setLoading(false);
-      });
+interface ViewerError {
+  kind: ViewerErrorKind;
+  message: string;
+}
 
-    return () => {
-      isMounted = false;
-    };
-  }, [fileId]);
+function normalizeExtension(extension: string): string {
+  return extension.trim().toLowerCase();
+}
 
-  const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = accessUrl;
-    link.download = displayName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+function errorMessageFor(error: unknown, fallbackKind: ViewerErrorKind): ViewerError {
+  const message = error instanceof Error ? error.message : "Bilinmeyen bir hata oluştu.";
+  return { kind: fallbackKind, message };
+}
 
-  const isConfigured = cadStatus?.status === "ready" && !!cadStatus?.viewerToken;
+function downloadFile(accessUrl: string, displayName: string) {
+  const link = document.createElement("a");
+  link.href = accessUrl;
+  link.download = displayName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes }: DokCadViewerProps) {
+  const normalizedExtension = normalizeExtension(extension);
+
+  if (normalizedExtension === ".dwg") {
+    return <ApsDwgViewer fileId={fileId} displayName={displayName} sizeBytes={sizeBytes} accessUrl={accessUrl} />;
+  }
+
+  if (normalizedExtension !== ".dxf") {
+    return <DwgDownloadFallback accessUrl={accessUrl} displayName={displayName} extension={extension} sizeBytes={sizeBytes} />;
+  }
 
   return (
-    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 select-none">
-      {/* CAD Stüdyo Araç Çubuğu */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 text-xs backdrop-blur-md z-30">
-        {/* Sol Alan: CAD Format Rozeti */}
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-amber-400">
-            <Compass className="h-4 w-4 text-amber-500" />
-            <span>CAD {extension.replace(".", "").toUpperCase()}</span>
-          </span>
+    <DxfViewer
+      key={`${fileId}:${accessUrl}`}
+      accessUrl={accessUrl}
+      displayName={displayName}
+      sizeBytes={sizeBytes}
+    />
+  );
+}
 
-          <div className="h-4 w-px bg-zinc-700 mx-1" />
+function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps, "accessUrl" | "displayName" | "sizeBytes">) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<DxfViewerInstance | null>(null);
+  const [loadState, setLoadState] = useState<ViewerLoadState>("loading");
+  const [progress, setProgress] = useState("Dosya alınıyor");
+  const [error, setError] = useState<ViewerError | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const [viewRevision, setViewRevision] = useState(0);
 
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-              isConfigured
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-            }`}
-          >
-            <Box className="h-3 w-3" />
-            <span>
-              {isConfigured ? "Autodesk APS (Canlı)" : "APS Lisans Yapılandırması Bekleniyor"}
-            </span>
-          </span>
+  const fitDrawing = useCallback(() => {
+    const viewer = viewerRef.current;
+    const bounds = viewer?.GetBounds();
+    const origin = viewer?.GetOrigin();
+    if (!viewer || !bounds || !origin) return;
+
+    viewer.FitView(
+      bounds.minX - origin.x,
+      bounds.maxX - origin.x,
+      bounds.minY - origin.y,
+      bounds.maxY - origin.y,
+      0.1
+    );
+  }, []);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    let active = true;
+    let viewer: DxfViewerInstance | null = null;
+    let objectUrl: string | null = null;
+    let onViewChanged: (() => void) | null = null;
+
+    const load = async () => {
+      setLoadState("loading");
+      setError(null);
+      setProgress("Dosya alınıyor");
+
+      try {
+        const response = await fetch(accessUrl, { signal: abortController.signal });
+        if (!response.ok) {
+          throw new Error(`Dosya indirilemedi (HTTP ${response.status}).`);
+        }
+
+        const dxfText = await response.text();
+        if (!dxfText.trim()) {
+          throw new Error("DXF dosyası boş.");
+        }
+        objectUrl = URL.createObjectURL(new Blob([dxfText], { type: "application/dxf" }));
+
+        setProgress("Görüntüleyici hazırlanıyor");
+        const dxfModule = await import("dxf-viewer");
+        if (!active || !containerRef.current) return;
+
+        viewer = new dxfModule.DxfViewer(containerRef.current, {
+          autoResize: true,
+          clearAlpha: 1,
+          antialias: true,
+          colorCorrection: true,
+          blackWhiteInversion: true,
+        }) as DxfViewerInstance;
+
+        if (!viewer.HasRenderer()) {
+          throw new Error("WebGL görüntüleyicisi başlatılamadı.");
+        }
+
+        onViewChanged = () => {
+          if (active) setViewRevision((revision) => revision + 1);
+        };
+        viewer.Subscribe("viewChanged", onViewChanged);
+        viewerRef.current = viewer;
+
+        await viewer.Load({
+          url: objectUrl,
+          workerFactory: () => new Worker(new URL("./dxf-viewer-worker.ts", import.meta.url), { type: "module" }),
+          progressCbk: (phase) => {
+            if (!active) return;
+            const phaseLabels = {
+              fetch: "Dosya alınıyor",
+              parse: "DXF verisi okunuyor",
+              prepare: "Geometri hazırlanıyor",
+              font: "Yazılar hazırlanıyor",
+            } as const;
+            setProgress(phaseLabels[phase]);
+          },
+        });
+
+        if (!active) return;
+        fitDrawing();
+        setLoadState("ready");
+      } catch (caughtError: unknown) {
+        if (!active || abortController.signal.aborted) return;
+        const kind: ViewerErrorKind = viewer ? "parse" : "fetch";
+        setError(errorMessageFor(caughtError, kind));
+        setLoadState("error");
+      } finally {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+          objectUrl = null;
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+      abortController.abort();
+      if (viewer && onViewChanged) viewer.Unsubscribe("viewChanged", onViewChanged);
+      viewer?.Destroy();
+      if (viewerRef.current === viewer) viewerRef.current = null;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [accessUrl, fitDrawing, retryKey]);
+
+  const handleDownload = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
+
+  return (
+    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100" data-testid="cad-dxf-viewer">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-3 py-2 text-xs backdrop-blur-md">
+        <div className="flex min-w-0 items-center gap-2">
+          <Compass className="h-4 w-4 shrink-0 text-amber-400" />
+          <span className="truncate font-bold text-amber-300">DXF görüntüleyici</span>
+          <span className="hidden text-zinc-500 sm:inline">{formatBytes(sizeBytes)}</span>
         </div>
-
-        {/* Sağ Alan: İndirme Butonu */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <StudioCommandButton
+            commandId="cad.dxf.fit"
+            onClick={fitDrawing}
+            disabled={loadState !== "ready"}
+            className="h-7 gap-1.5 px-2.5 text-[11px]"
+            icon={<ScanLine className="h-3.5 w-3.5" />}
+            label="Sığdır"
+          />
+          <StudioCommandButton
+            commandId="cad.dxf.reset"
+            onClick={fitDrawing}
+            disabled={loadState !== "ready"}
+            className="h-7 gap-1.5 px-2.5 text-[11px]"
+            icon={<RotateCcw className="h-3.5 w-3.5" />}
+            label="Sıfırla"
+          />
           <StudioCommandButton
             commandId="cad.download"
             onClick={handleDownload}
-            className="h-7 gap-1.5 bg-amber-500 px-3 text-[11px] font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
+            className="h-7 gap-1.5 bg-amber-500 px-2.5 text-[11px] font-bold text-zinc-950 hover:bg-amber-400"
             icon={<Download className="h-3.5 w-3.5" />}
-            label={`${extension.replace(".", "").toUpperCase()} İndir`}
+            label="İndir"
           />
         </div>
-      </div>
+      </header>
 
-      {/* Ana CAD Çalışma Alanı */}
-      <div className="relative flex flex-1 overflow-auto items-center justify-center p-4 sm:p-8 bg-radial from-zinc-900 to-zinc-950">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-            <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
-            <span className="text-sm font-medium">CAD model durumu denetleniyor...</span>
-          </div>
-        )}
+      <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden" data-view-revision={viewRevision}>
+        <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
 
-        {error && (
-          <div className="mx-auto max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center text-red-400 shadow-xl backdrop-blur-md">
-            <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
-            <h3 className="text-sm font-bold text-red-300">CAD Sunucu Hatası</h3>
-            <p className="mt-1 text-xs text-zinc-400">{error}</p>
-          </div>
-        )}
-
-        {!loading && !error && !isConfigured && (
-          <div className="relative w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-900/90 p-6 sm:p-8 shadow-2xl backdrop-blur-md text-center space-y-6">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-amber-500/30 bg-amber-500/10 text-amber-500 shadow-inner">
-              <Compass className="h-10 w-10 text-amber-400" />
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-lg font-bold text-zinc-100 sm:text-xl">{displayName}</h2>
-              <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
-                Bu dosya orijinal formatında saklanmaktadır. Web tabanlı 2D/3D model görüntüleme için Autodesk Platform Services (APS) ortam anahtarları gereklidir.
-              </p>
-            </div>
-
-            {/* Dosya Metadata İstatistikleri */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-left">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-                <span className="text-[10px] text-zinc-500 block uppercase font-bold">Format</span>
-                <span className="text-xs font-semibold text-amber-400">
-                  AutoCAD ({extension.toUpperCase()})
-                </span>
-              </div>
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-                <span className="text-[10px] text-zinc-500 block uppercase font-bold">Boyut</span>
-                <span className="text-xs font-semibold text-zinc-200">{formatBytes(sizeBytes)}</span>
-              </div>
-              <div className="col-span-2 sm:col-span-1 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-                <span className="text-[10px] text-zinc-500 block uppercase font-bold">Durum</span>
-                <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
-                  <Info className="h-3 w-3" />
-                  <span>İndirmeye Hazır</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Birincil İndirme Butonu */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button
-                onClick={handleDownload}
-                className="w-full sm:w-auto gap-2 bg-amber-500 px-6 py-2.5 font-bold text-zinc-950 hover:bg-amber-400 shadow-lg shadow-amber-500/10"
-              >
-                <Download className="h-4 w-4" />
-                <span>Dosyayı İndir ve AutoCAD ile Aç</span>
-              </Button>
-            </div>
-
-            {/* Teknik Bilgilendirme Notu */}
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4 text-left text-[11px] text-zinc-400 leading-relaxed">
-              <div className="flex items-center gap-1.5 font-semibold text-zinc-300 mb-1">
-                <Info className="h-3.5 w-3.5 text-blue-400" />
-                <span>Web CAD Önizleme Entegrasyonu Hakkında</span>
-              </div>
-              <p>
-                Tarayıcı içinde interaktif 2D/3D model incelemesi, katman yönetimi ve ölçülendirme için sunucuda <code className="text-amber-400 font-mono">APS_CLIENT_ID</code> ve <code className="text-amber-400 font-mono">APS_CLIENT_SECRET</code> ortam değişkenlerinin yapılandırılması gerekmektedir.
-              </p>
+        {loadState === "loading" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/90 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">DXF hazırlanıyor</p>
+              <p className="mt-1 text-xs text-zinc-400">{progress}</p>
             </div>
           </div>
         )}
 
-        {!loading && !error && isConfigured && (
-          <div className="flex flex-1 flex-col items-center justify-center h-full w-full">
-            <div className="text-xs text-zinc-400">
-              Autodesk APS Model Görüntüleyici Yükleniyor...
+        {loadState === "error" && error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 p-5">
+            <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center">
+              <AlertCircle className="mx-auto h-9 w-9 text-red-400" />
+              <h2 className="mt-3 text-base font-bold text-red-200">DXF açılamadı</h2>
+              <dl className="mt-4 space-y-1 text-left text-xs text-zinc-300">
+                <div><dt className="inline text-zinc-500">Dosya: </dt><dd className="inline break-all">{displayName}</dd></div>
+                <div><dt className="inline text-zinc-500">Boyut: </dt><dd className="inline">{formatBytes(sizeBytes)}</dd></div>
+                <div><dt className="inline text-zinc-500">Sebep: </dt><dd className="inline">{error.kind} — {error.message}</dd></div>
+              </dl>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setRetryKey((key) => key + 1)} className="bg-amber-500 text-zinc-950 hover:bg-amber-400">Tekrar dene</Button>
+                <Button variant="outline" onClick={handleDownload} className="border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800">Dosyayı indir</Button>
+              </div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </section>
+  );
+}
+
+function DwgDownloadFallback({ accessUrl, displayName, extension, sizeBytes }: Omit<DokCadViewerProps, "fileId">) {
+  const handleDownload = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
+
+  return (
+    <section className="flex h-full w-full items-center justify-center bg-zinc-950 p-5 text-zinc-100">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center">
+        <Compass className="mx-auto h-10 w-10 text-amber-400" />
+        <h2 className="mt-3 text-base font-bold">DWG görüntüleyici lisans kararı bekliyor</h2>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-400">{displayName} ({extension.toUpperCase()}, {formatBytes(sizeBytes)}) güvenli olarak indirilebilir. DWG decoder’i, onaylı lisans olmadan bu sürüme eklenmeyecek.</p>
+        <Button onClick={handleDownload} className="mt-5 bg-amber-500 text-zinc-950 hover:bg-amber-400">
+          <Download className="mr-2 h-4 w-4" />Dosyayı indir
+        </Button>
+      </div>
+    </section>
   );
 }

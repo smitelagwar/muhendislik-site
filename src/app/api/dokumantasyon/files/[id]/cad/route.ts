@@ -5,9 +5,10 @@
 import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { getFile } from "@/lib/dokumantasyon/files";
-import { resolveCadPreviewStatus } from "@/lib/dokumantasyon/cad-aps";
+import { resolveCadPreviewStatus, startCadPreview } from "@/lib/dokumantasyon/cad-aps";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -31,7 +32,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    const cadStatus = await resolveCadPreviewStatus(file.id, file.extension);
+    const cadStatus = await resolveCadPreviewStatus(file);
 
     return NextResponse.json(
       {
@@ -57,5 +58,35 @@ export async function GET(request: Request, { params }: RouteParams) {
       { error: "CAD önizleme durumu alınırken bir hata oluştu." },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(request: Request, { params }: RouteParams) {
+  try {
+    await requireDokumantasyonAdmin();
+
+    const { id } = await params;
+    const file = await getFile(id);
+    if (!file || file.deleted_at) {
+      return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 404 });
+    }
+    if (file.extension.toLowerCase() !== ".dwg") {
+      return NextResponse.json({ error: "APS dönüşümü yalnızca DWG dosyaları için kullanılabilir." }, { status: 400 });
+    }
+
+    const body: unknown = await request.json().catch(() => ({}));
+    const retry = typeof body === "object" && body !== null && "retry" in body && body.retry === true;
+    const cadStatus = await startCadPreview(file, retry);
+
+    return NextResponse.json(
+      { success: true, file: { id: file.id, display_name: file.display_name, extension: file.extension, size_bytes: Number(file.size_bytes) }, ...cadStatus },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+    }
+    console.error("CAD dönüşüm başlatma hatası:", err);
+    return NextResponse.json({ error: "CAD dönüşümü başlatılırken bir hata oluştu." }, { status: 500 });
   }
 }

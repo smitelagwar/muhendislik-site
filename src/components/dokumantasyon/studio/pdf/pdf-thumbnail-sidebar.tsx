@@ -116,7 +116,7 @@ export function PdfThumbnailSidebar({
   if (!isOpen) return null;
 
   return (
-    <aside className="relative z-20 flex w-56 shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur-md select-none">
+    <aside className="relative z-20 flex min-h-0 w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-card/95 backdrop-blur-md select-none">
       <div className="flex h-11 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-amber-500" />
@@ -124,7 +124,7 @@ export function PdfThumbnailSidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-2">
         {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
           <ThumbnailItem
             key={pageNum}

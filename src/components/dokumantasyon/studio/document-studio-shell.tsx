@@ -48,6 +48,7 @@ export function DocumentStudioShell({
 }: DocumentStudioShellProps) {
   const router = useRouter();
   const studioRootRef = useRef<HTMLDivElement>(null);
+  const leaseRefreshPromiseRef = useRef<Promise<DocumentAccessLease> | null>(null);
 
   // Erişim Kiralaması (Access Lease State)
   const [currentLease, setCurrentLease] = useState<DocumentAccessLease>({
@@ -81,6 +82,29 @@ export function DocumentStudioShell({
     };
   }, []);
 
+  // Stüdyo sabit bir viewport olarak çalışır. Alttaki sayfanın kaymasını
+  // engellerken, kapatıldığında önceki inline değerleri birebir geri yükle.
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    const bodyElement = document.body;
+    const previousHtmlOverflow = htmlElement.style.overflow;
+    const previousBodyOverflow = bodyElement.style.overflow;
+    const previousHtmlOverscrollBehavior = htmlElement.style.overscrollBehavior;
+    const previousBodyOverscrollBehavior = bodyElement.style.overscrollBehavior;
+
+    htmlElement.style.overflow = "hidden";
+    bodyElement.style.overflow = "hidden";
+    htmlElement.style.overscrollBehavior = "none";
+    bodyElement.style.overscrollBehavior = "none";
+
+    return () => {
+      htmlElement.style.overflow = previousHtmlOverflow;
+      bodyElement.style.overflow = previousBodyOverflow;
+      htmlElement.style.overscrollBehavior = previousHtmlOverscrollBehavior;
+      bodyElement.style.overscrollBehavior = previousBodyOverscrollBehavior;
+    };
+  }, []);
+
   // Kaydedilmemiş değişiklik varken sekmeyi kapatmayı engelle
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -105,6 +129,21 @@ export function DocumentStudioShell({
     }
   }, []);
 
+  const refreshCurrentLease = useCallback(async () => {
+    if (isLocal) throw new Error("Yerel dosya erişim bağlantısı yenilenemez.");
+    if (!leaseRefreshPromiseRef.current) {
+      leaseRefreshPromiseRef.current = refreshDocumentAccessLease(file.id)
+        .then((freshLease) => {
+          setCurrentLease(freshLease);
+          return freshLease;
+        })
+        .finally(() => {
+          leaseRefreshPromiseRef.current = null;
+        });
+    }
+    return leaseRefreshPromiseRef.current;
+  }, [file.id, isLocal]);
+
   // Erişim Kiralama Süresini Arka Planda İzleme ve Gerekirse Yenileme
   useEffect(() => {
     if (isLocal) return;
@@ -112,8 +151,7 @@ export function DocumentStudioShell({
     const interval = setInterval(async () => {
       if (isAccessLeaseExpiring(currentLease, 120)) {
         try {
-          const freshLease = await refreshDocumentAccessLease(file.id);
-          setCurrentLease(freshLease);
+          await refreshCurrentLease();
         } catch (err) {
           console.warn("Document access lease refresh failed:", err);
         }
@@ -121,14 +159,13 @@ export function DocumentStudioShell({
     }, 60 * 1000); // Her 60 saniyede bir kontrol et
 
     return () => clearInterval(interval);
-  }, [currentLease, isLocal, file.id]);
+  }, [currentLease, isLocal, refreshCurrentLease]);
 
   const handleDownload = useCallback(async () => {
     try {
       let downloadUrl = currentLease.url;
       if (!isLocal && isAccessLeaseExpiring(currentLease, 30)) {
-        const fresh = await refreshDocumentAccessLease(file.id);
-        setCurrentLease(fresh);
+        const fresh = await refreshCurrentLease();
         downloadUrl = fresh.url;
       }
 
@@ -141,7 +178,7 @@ export function DocumentStudioShell({
     } catch (err) {
       console.error("İndirme başlatılamadı:", err);
     }
-  }, [currentLease, isLocal, file.id, file.display_name]);
+  }, [currentLease, isLocal, refreshCurrentLease, file.display_name]);
 
   const handleBack = useCallback(() => {
     if (isDirty) {
@@ -203,6 +240,7 @@ export function DocumentStudioShell({
           <DokPdfViewer
             accessUrl={currentLease.url}
             displayName={file.display_name}
+            onAccessExpired={refreshCurrentLease}
           />
         );
 
@@ -270,7 +308,8 @@ export function DocumentStudioShell({
     <div
       ref={studioRootRef}
       data-testid="document-studio-shell"
-      className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden bg-background text-foreground select-none"
+      data-studio-locked="true"
+      className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden overscroll-none bg-background text-foreground select-none"
     >
       {/* 1. Minimal Stüdyo Üst Çubuğu */}
       <StudioTopbar

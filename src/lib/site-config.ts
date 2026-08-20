@@ -31,3 +31,51 @@ export function resolveMediaUrl(src?: string | null) {
 
   return resolveSiteUrl(src);
 }
+
+export class PublicSiteOriginError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PublicSiteOriginError";
+  }
+}
+
+function normalizePublicOrigin(value: string): string {
+  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  let origin: URL;
+  try {
+    origin = new URL(candidate);
+  } catch {
+    throw new PublicSiteOriginError("Canonical public site URL is invalid.");
+  }
+
+  if (origin.pathname !== "/" || origin.search || origin.hash) {
+    throw new PublicSiteOriginError("Canonical public site URL must be an origin without a path.");
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const isLocalhost = origin.hostname === "localhost" || origin.hostname === "127.0.0.1";
+  if (isProduction && (origin.protocol !== "https:" || isLocalhost)) {
+    throw new PublicSiteOriginError("Production public site URL must use HTTPS and cannot be localhost.");
+  }
+
+  return origin.origin;
+}
+
+export function getPublicSiteOrigin(): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (configuredOrigin) return normalizePublicOrigin(configuredOrigin);
+
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:3000";
+  }
+
+  throw new PublicSiteOriginError("Production canonical public site URL is not configured.");
+}
+
+export function buildPublicShareUrl(rawToken: string): string {
+  if (!/^[A-Za-z0-9_-]{32,}$/.test(rawToken)) {
+    throw new PublicSiteOriginError("Share token is not URL-safe.");
+  }
+
+  return new URL(`/p/${rawToken}`, getPublicSiteOrigin()).toString();
+}

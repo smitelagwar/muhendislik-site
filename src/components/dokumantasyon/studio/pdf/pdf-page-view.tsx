@@ -4,7 +4,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { normalizeTurkishText } from "@/lib/dokumantasyon/studio/pdf/pdf-search";
 
 interface TextItem {
@@ -28,6 +28,9 @@ interface PdfPageViewProps {
   onPageVisible?: (pageNumber: number) => void;
 }
 
+const MAX_DEVICE_PIXEL_RATIO = 2.5;
+const MAX_CANVAS_PIXELS = 16_000_000;
+
 export function PdfPageView({
   pdfDoc,
   pageNumber,
@@ -45,8 +48,8 @@ export function PdfPageView({
   const [page, setPage] = useState<any>(null);
   const [viewport, setViewport] = useState<any>(null);
   const [textItems, setTextItems] = useState<TextItem[]>([]);
+  const [annotations, setAnnotations] = useState<any[]>([]);
   const [isVisible, setIsVisible] = useState<boolean>(pageNumber <= 2);
-  const [isRendered, setIsRendered] = useState<boolean>(false);
 
   // 1. IntersectionObserver — Yalnızca Ekrana Yaklaşan Sayfaları Render Et
   useEffect(() => {
@@ -89,6 +92,12 @@ export function PdfPageView({
         if (!active) return;
         setTextItems(tc.items || []);
       }).catch(() => {});
+
+      p.getAnnotations({ intent: "display" }).then((items: any[]) => {
+        if (active) setAnnotations(items || []);
+      }).catch(() => {
+        if (active) setAnnotations([]);
+      });
     });
 
     return () => {
@@ -109,9 +118,13 @@ export function PdfPageView({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5); // Bellek taşması koruması
-    canvas.width = Math.floor(viewport.width * dpr);
-    canvas.height = Math.floor(viewport.height * dpr);
+    const requestedDpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+    const requestedPixels = viewport.width * viewport.height * requestedDpr * requestedDpr;
+    const dpr = requestedPixels > MAX_CANVAS_PIXELS
+      ? requestedDpr * Math.sqrt(MAX_CANVAS_PIXELS / requestedPixels)
+      : requestedDpr;
+    canvas.width = Math.max(1, Math.floor(viewport.width * dpr));
+    canvas.height = Math.max(1, Math.floor(viewport.height * dpr));
     canvas.style.width = `${Math.floor(viewport.width)}px`;
     canvas.style.height = `${Math.floor(viewport.height)}px`;
 
@@ -128,18 +141,18 @@ export function PdfPageView({
 
     task.promise
       .then(() => {
-        setIsRendered(true);
+        if (renderTaskRef.current === task) renderTaskRef.current = null;
       })
       .catch((err: any) => {
+        if (renderTaskRef.current === task) renderTaskRef.current = null;
         if (err?.name !== "RenderingCancelledException") {
           console.warn(`Sayfa ${pageNumber} render hatası:`, err);
         }
       });
 
     return () => {
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
+      task.cancel();
+      if (renderTaskRef.current === task) renderTaskRef.current = null;
     };
   }, [page, viewport, isVisible, pageNumber]);
 
@@ -207,8 +220,7 @@ export function PdfPageView({
           // PDF.js koordinat dönüşümü
           const tx = item.transform;
           const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) * scale;
-          const x = tx[4] * scale;
-          const y = (viewport.rawDims?.pageHeight ? viewport.rawDims.pageHeight * scale : height) - (tx[5] * scale);
+          const [x, y] = viewport.convertToViewportPoint(tx[4], tx[5]);
 
           return (
             <span
@@ -227,6 +239,31 @@ export function PdfPageView({
           );
         })}
       </div>
+
+      {annotations.map((annotation, index) => {
+        if (annotation.subtype !== "Link" || !annotation.rect || !viewport) return null;
+        const [x1, y1] = viewport.convertToViewportPoint(annotation.rect[0], annotation.rect[1]);
+        const [x2, y2] = viewport.convertToViewportPoint(annotation.rect[2], annotation.rect[3]);
+        const left = Math.min(x1, x2);
+        const top = Math.min(y1, y2);
+        const annotationWidth = Math.abs(x2 - x1);
+        const annotationHeight = Math.abs(y2 - y1);
+        const href = typeof annotation.url === "string" ? annotation.url : null;
+
+        if (!href || annotationWidth < 1 || annotationHeight < 1) return null;
+
+        return (
+          <a
+            key={`${annotation.id || index}-${href}`}
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="absolute z-10 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            style={{ left, top, width: annotationWidth, height: annotationHeight }}
+            aria-label={annotation.title || "PDF bağlantısını aç"}
+          />
+        );
+      })}
 
       {/* Sayfa Numarası Rozeti */}
       <div className="absolute bottom-2 right-2 rounded bg-zinc-900/60 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-300 backdrop-blur-xs pointer-events-none opacity-0 hover:opacity-100 transition-opacity">

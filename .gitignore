@@ -60,3 +60,6 @@ test_scrollytelling.js
 *.log
 scratch/
 .data/
+
+.vercel
+.env*

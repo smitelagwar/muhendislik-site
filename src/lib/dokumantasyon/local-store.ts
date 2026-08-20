@@ -5,7 +5,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
+import { DokCadDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
 
 import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
@@ -13,6 +13,7 @@ interface LocalDatabaseState {
   folders: DokFolder[];
   files: DokFile[];
   file_versions?: DokFileVersion[];
+  cad_derivatives?: DokCadDerivative[];
   shares: DokShareLink[];
   share_items: DokShareItem[];
 }
@@ -58,6 +59,7 @@ export function readLocalDb(): LocalDatabaseState {
     const initialState: LocalDatabaseState = {
       folders: [],
       files: [],
+      cad_derivatives: [],
       shares: [],
       share_items: [],
     };
@@ -72,6 +74,7 @@ export function readLocalDb(): LocalDatabaseState {
     return {
       folders: [],
       files: [],
+      cad_derivatives: [],
       shares: [],
       share_items: [],
     };

@@ -132,7 +132,7 @@ export function StudioTopbar({
 
       {/* Sağ Alan: Eylem Butonları */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <div className="origin-right scale-75 sm:scale-90" aria-label="Tema kontrolü">
+        <div className="hidden origin-right scale-90 sm:block" aria-label="Tema kontrolü">
           <ModeToggle />
         </div>
         {onSave && (
@@ -144,6 +144,7 @@ export function StudioTopbar({
             className="h-8 gap-1.5 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm disabled:opacity-40"
             icon={<Save className="h-3.5 w-3.5" />}
             label={isSaving ? "Kaydediliyor..." : "Sürüm Kaydet"}
+            labelClassName="hidden sm:inline"
             showLabel={true}
           />
         )}
@@ -155,6 +156,7 @@ export function StudioTopbar({
           variant="outline"
           className="h-8 gap-1.5 border-border text-xs font-semibold text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/40"
           icon={<Share2 className="h-3.5 w-3.5" />}
+          labelClassName="hidden sm:inline"
           showLabel={true}
         />
 
@@ -164,6 +166,7 @@ export function StudioTopbar({
           size="sm"
           className="h-8 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
           icon={<Download className="h-3.5 w-3.5" />}
+          labelClassName="hidden sm:inline"
           showLabel={true}
         />
 

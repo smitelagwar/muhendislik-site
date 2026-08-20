@@ -16,6 +16,7 @@ interface StudioCommandButtonProps
   asChild?: boolean;
   icon?: React.ReactNode;
   label?: string;
+  labelClassName?: string;
   showLabel?: boolean;
   active?: boolean;
 }
@@ -29,6 +30,7 @@ export const StudioCommandButton = React.forwardRef<
       commandId,
       icon,
       label,
+      labelClassName = "",
       showLabel = true,
       active = false,
       variant = "ghost",
@@ -64,7 +66,7 @@ export const StudioCommandButton = React.forwardRef<
         {...props}
       >
         {icon}
-        {showLabel && <span>{displayLabel}</span>}
+        {showLabel && <span className={labelClassName}>{displayLabel}</span>}
         {children}
       </Button>
     );

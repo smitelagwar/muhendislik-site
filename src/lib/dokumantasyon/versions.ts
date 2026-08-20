@@ -10,6 +10,7 @@ import { getDb, ensureDatabaseTables } from "./db";
 import { DokRuntimeConfigError, getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode } from "./runtime-mode";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { DokFile, DokFileVersion } from "./types";
+import { releaseCadDerivatives } from "./cad-aps";
 
 /**
  * Dosya için SHA-256 hash hesaplar
@@ -194,6 +195,9 @@ export async function createNewFileVersion(params: {
     };
 
     writeLocalDb(db);
+    if (file.extension.toLowerCase() === ".dwg") {
+      await releaseCadDerivatives(fileId);
+    }
     return newVersion;
   }
 
@@ -259,6 +263,10 @@ export async function createNewFileVersion(params: {
       updated_at = NOW()
     WHERE id = ${file.id};
   `;
+
+  if (file.extension.toLowerCase() === ".dwg") {
+    await releaseCadDerivatives(fileId);
+  }
 
   return {
     id: versionId,
