@@ -168,9 +168,9 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "deprem-periyot-hesabi",
-    name: "Hakim Periyot & Spektral İvme",
+    name: "Ampirik Periyot & Elastik Spektrum",
     href: "/kategori/araclar/deprem-periyot-hesabi",
-    description: "TBDY 2018 ivme spektrumu katsayıları (SDS, SD1) ve yapı periyodu (T) hesabını yapın.",
+    description: "TBDY 2018'e göre ampirik periyodu (TpA) ve yatay elastik tasarım spektrumunu hesaplayın.",
     iconKey: "period",
     discipline: "Deprem Mühendisliği",
     featured: false,
