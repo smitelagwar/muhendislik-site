@@ -89,8 +89,49 @@ export function getBlobToken(): string | undefined {
   return undefined;
 }
 
-export function hasBlobToken(): boolean {
+/**
+ * Vercel'in Blob OIDC entegrasyonu store kimliğini bu değişkene bağlar.
+ * Production'da uzun ömürlü read/write token yerine bu kimlik + Vercel'in
+ * function'a otomatik verdiği kısa ömürlü OIDC token kullanılır.
+ */
+export function getBlobStoreId(): string | undefined {
+  const storeId = process.env.BLOB_STORE_ID?.trim();
+  return storeId || undefined;
+}
+
+/** Vercel üzerinde OIDC Blob erişimi için yeterli yapılandırma var mı? */
+export function hasBlobOidcConfiguration(): boolean {
+  return isVercelDeployment() && Boolean(getBlobStoreId());
+}
+
+/**
+ * @vercel/blob SDK komutlarına geçirilecek kimlik bilgileri.
+ * Vercel'de OIDC her zaman önceliklidir; legacy token yalnızca Vercel dışı
+ * geliştirme/CLI senaryoları için geriye dönük uyumluluk sağlar.
+ */
+export function getBlobCommandOptions(): { storeId?: string; token?: string } {
+  const storeId = getBlobStoreId();
+  if (isVercelDeployment() && storeId) {
+    return { storeId };
+  }
+
+  const token = getBlobToken();
+  return token ? { token } : {};
+}
+
+/** Blob'a erişmek için OIDC veya (yalnız Vercel dışında) legacy token mevcut mu? */
+export function hasBlobAccessConfiguration(): boolean {
+  // Vercel Production/Preview'de legacy token bir kaçış yolu değildir.
+  // OIDC store bağlantısı yoksa sistem fail-closed kalır.
+  if (isVercelDeployment()) {
+    return hasBlobOidcConfiguration();
+  }
   return Boolean(getBlobToken());
+}
+
+export function hasBlobToken(): boolean {
+  // Eski çağıranlar için ad korunur; OIDC store yapılandırması da Blob-ready'dir.
+  return hasBlobAccessConfiguration();
 }
 
 /**
@@ -105,7 +146,7 @@ export function assertDurableDokumantasyonRuntime(requireBlob: boolean = false):
     throw new DokRuntimeConfigError("DATABASE_NOT_CONFIGURED");
   }
 
-  if (requireBlob && !hasBlobToken()) {
+  if (requireBlob && !hasBlobAccessConfiguration()) {
     throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 }

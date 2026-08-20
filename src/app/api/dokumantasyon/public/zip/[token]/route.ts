@@ -10,7 +10,7 @@ import {
 } from "@/lib/dokumantasyon/public-share";
 import { getFile } from "@/lib/dokumantasyon/files";
 import { cookies } from "next/headers";
-import { getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
+import { getBlobCommandOptions, hasBlobAccessConfiguration } from "@/lib/dokumantasyon/runtime-mode";
 import JSZip from "jszip";
 
 export const dynamic = "force-dynamic";
@@ -51,12 +51,6 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const zip = new JSZip();
-    const blobToken = getBlobToken();
-    const fetchHeaders: HeadersInit = {};
-    if (blobToken) {
-      fetchHeaders["Authorization"] = `Bearer ${blobToken}`;
-    }
-
     // Dosyaları ZIP içine ekle
     for (const item of shareInfo.items) {
       const file = await getFile(item.file_id);
@@ -79,11 +73,10 @@ export async function GET(request: Request, { params }: RouteParams) {
         } else {
           // Vercel Private Blob: Resmi SDK get() ile güvenli okuma
           const { get } = await import("@vercel/blob");
-          const blobToken = getBlobToken();
-          if (blobToken) {
+          if (hasBlobAccessConfiguration()) {
             const getResult = await get(file.blob_pathname, {
               access: "private",
-              token: blobToken,
+              ...getBlobCommandOptions(),
             });
             if (getResult && getResult.stream) {
               const reader = getResult.stream.getReader();

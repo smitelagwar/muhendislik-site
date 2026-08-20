@@ -59,7 +59,7 @@ async function runStage6Tests() {
   // Geçerli AC1027 AutoCAD DWG ikili verisi
   const dwgBytes = Buffer.from("AC1027\0\0\0\0\0\0\0\0DWG_STAGE6_TEST_CONTENT_BLOCK");
 
-  const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/token`, {
+  const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/intent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: authCookie },
     body: JSON.stringify({

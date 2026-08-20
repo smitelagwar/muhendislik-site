@@ -37,7 +37,7 @@ async function runStage3Tests() {
 
   // Test dosyası yükle
   const pdfContent = Buffer.from("%PDF-1.7\n1 0 obj\n<< /Title (Aşama 3 Test Paftası) >>\nendobj\n%%EOF");
-  const uploadTokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/token`, {
+  const uploadTokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/intent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: authCookie },
     body: JSON.stringify({

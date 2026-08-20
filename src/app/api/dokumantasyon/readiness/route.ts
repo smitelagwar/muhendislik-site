@@ -4,7 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
-import { isVercelDeployment, isExplicitLocalDokMode, hasDatabaseUrl, hasBlobToken, getBlobToken } from "@/lib/dokumantasyon/runtime-mode";
+import { isVercelDeployment, isExplicitLocalDokMode, hasDatabaseUrl, getBlobCommandOptions, hasBlobAccessConfiguration, hasBlobOidcConfiguration } from "@/lib/dokumantasyon/runtime-mode";
 import { getDb } from "@/lib/dokumantasyon/db";
 import { list } from "@vercel/blob";
 
@@ -50,16 +50,16 @@ export async function GET() {
     }
 
     // 2. Vercel Blob Kontrolleri
-    const blobToken = getBlobToken();
     const blobStatus = {
-      configured: Boolean(blobToken),
+      configured: hasBlobAccessConfiguration(),
       reachable: false,
       access: "private",
+      authentication: hasBlobOidcConfiguration() ? "vercel_oidc" : "legacy_token",
     };
 
-    if (blobStatus.configured && blobToken) {
+    if (blobStatus.configured) {
       try {
-        await list({ prefix: "dok_storage/", limit: 1, token: blobToken });
+        await list({ prefix: "dok_storage/", limit: 1, ...getBlobCommandOptions() });
         blobStatus.reachable = true;
       } catch (err) {
         blobStatus.reachable = false;

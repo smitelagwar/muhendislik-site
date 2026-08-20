@@ -38,7 +38,7 @@ async function runStage5Tests() {
   const createdFileIds = [];
 
   async function uploadTestFile(name, content, mimeType) {
-    const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/token`, {
+    const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/intent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", cookie: authCookie },
       body: JSON.stringify({

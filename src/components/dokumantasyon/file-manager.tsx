@@ -59,7 +59,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { put } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 
 export function DokumantasyonFileManager() {
   const router = useRouter();
@@ -327,7 +327,7 @@ export function DokumantasyonFileManager() {
       );
 
       try {
-        const tokenRes = await fetch("/api/dokumantasyon/upload/token", {
+        const tokenRes = await fetch("/api/dokumantasyon/upload/intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -340,7 +340,7 @@ export function DokumantasyonFileManager() {
 
         if (!tokenRes.ok) {
           const errData = await tokenRes.json();
-          throw new Error(errData.error || "Upload token alınamadı.");
+          throw new Error(errData.error || "Yükleme yetkisi alınamadı.");
         }
 
         const tokenData = await tokenRes.json();
@@ -374,9 +374,11 @@ export function DokumantasyonFileManager() {
             )
           );
 
-          const blob = await put(tokenData.pathname, file, {
+          await uploadPresigned(tokenData.pathname, file, {
             access: "private",
-            token: tokenData.clientToken,
+            handleUploadUrl: tokenData.handleUploadUrl,
+            clientPayload: JSON.stringify({ intentToken: tokenData.intentToken }),
+            contentType: tokenData.mimeType,
             multipart: file.size >= 5 * 1024 * 1024,
             onUploadProgress: ({ percentage }) => {
               setUploadQueue((prev) =>
@@ -398,25 +400,7 @@ export function DokumantasyonFileManager() {
             )
           );
 
-          const finalizeRes = await fetch("/api/dokumantasyon/upload/finalize", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              blobUrl: blob.url,
-              blobPathname: blob.pathname,
-              displayName: file.name,
-              sizeBytes: file.size,
-              mimeType: file.type || "application/octet-stream",
-              folderId: currentFolderId,
-              intentToken: tokenData.intentToken,
-            }),
-          });
-
-          if (!finalizeRes.ok) {
-            const errData = await finalizeRes.json().catch(() => ({}));
-            const msg = errData.error?.message || errData.error || "Kayıt tamamlanamadı.";
-            throw new Error(msg);
-          }
+          // Neon metadata kaydı, imzalı upload-completed webhook'i tarafından oluşturulur.
         }
 
         setUploadQueue((prev) =>

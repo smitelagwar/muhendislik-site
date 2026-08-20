@@ -49,7 +49,7 @@ async function runColdStartPersistenceTest() {
   console.log(`\n▶ 2. Sentinel Dosyası Yükleme: ${sentinelFilename}`);
   const pdfContent = Buffer.from("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
 
-  const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/token`, {
+  const tokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/intent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: authCookie },
     body: JSON.stringify({

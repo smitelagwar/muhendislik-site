@@ -8,7 +8,7 @@ import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createFileRecord } from "@/lib/dokumantasyon/files";
 import { del, get } from "@vercel/blob";
 import path from "path";
-import { getBlobToken, isExplicitLocalDokMode, DokRuntimeConfigError } from "@/lib/dokumantasyon/runtime-mode";
+import { getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode, DokRuntimeConfigError } from "@/lib/dokumantasyon/runtime-mode";
 
 export async function POST(request: Request) {
   let blobPathnameToDeleteOnError: string | null = null;
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     let headerBuffer: Buffer | Uint8Array | null = null;
     let canonicalBlobUrl = blobUrl || `blob:${blobPathname}`;
 
-    if (blobUrl?.startsWith("local:") || (isLocal && !getBlobToken())) {
+    if (blobUrl?.startsWith("local:") || (isLocal && !hasBlobAccessConfiguration())) {
       const fileNameOnDisk = (blobUrl || blobPathname).replace("local:", "");
       const { getLocalStorageDir } = await import("@/lib/dokumantasyon/local-store");
       const fs = await import("fs");
@@ -85,15 +85,14 @@ export async function POST(request: Request) {
       canonicalBlobUrl = `local:${fileNameOnDisk}`;
     } else {
       // Vercel Private Blob: Resmi SDK get() ile güvenli (SSRF-free) stream okuma
-      const blobToken = getBlobToken();
-      if (!blobToken) {
+      if (!hasBlobAccessConfiguration()) {
         throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
       }
 
       try {
         const blobGetResult = await get(blobPathname, {
           access: "private",
-          token: blobToken,
+          ...getBlobCommandOptions(),
           useCache: false,
         });
 
@@ -127,10 +126,9 @@ export async function POST(request: Request) {
       if (!validation.isValid) {
         // Geçersiz imza: Güvenlik gereği Blob depolamasından derhal temizle
         if (blobPathnameToDeleteOnError && !blobPathnameToDeleteOnError.startsWith("local:")) {
-          const blobToken = getBlobToken();
-          if (blobToken) {
+          if (hasBlobAccessConfiguration()) {
             try {
-              await del(blobPathnameToDeleteOnError, { token: blobToken });
+              await del(blobPathnameToDeleteOnError, getBlobCommandOptions());
             } catch {}
           }
         }
@@ -164,10 +162,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, file });
   } catch (err: unknown) {
     if (blobPathnameToDeleteOnError && !blobPathnameToDeleteOnError.startsWith("local:")) {
-      const blobToken = getBlobToken();
-      if (blobToken) {
+      if (hasBlobAccessConfiguration()) {
         try {
-          await del(blobPathnameToDeleteOnError, { token: blobToken });
+          await del(blobPathnameToDeleteOnError, getBlobCommandOptions());
         } catch {}
       }
     }

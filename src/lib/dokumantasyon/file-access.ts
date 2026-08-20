@@ -9,7 +9,7 @@ import { getPublicShareInfo, verifyShareAccessJwt } from "./public-share";
 import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { cookies } from "next/headers";
 import { DokFile } from "./types";
-import { getBlobToken, hasBlobToken, isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
+import { getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
 export interface FileAccessResult {
   file: {
@@ -46,7 +46,7 @@ export async function getAdminFileAccess(
   }
 
   const previewKind = getPreviewKind(file.extension);
-  const blobRwToken = getBlobToken();
+  const blobConfigured = hasBlobAccessConfiguration();
   const isLocal = Boolean(file.blob_url?.startsWith("local:") && isExplicitLocalDokMode());
 
   // 1. Yerel Geliştirme Modu (Local Stream URL)
@@ -62,7 +62,7 @@ export async function getAdminFileAccess(
   }
 
   // 2. Üretim (Vercel Private Blob Signed GET URL)
-  if (!blobRwToken) {
+  if (!blobConfigured) {
     throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 
@@ -71,7 +71,7 @@ export async function getAdminFileAccess(
     pathname: file.blob_pathname,
     operations: ["get", "head"],
     validUntil,
-    token: blobRwToken,
+    ...getBlobCommandOptions(),
   });
 
   const presigned = await presignUrl(signedToken, {
@@ -131,7 +131,7 @@ export async function getPublicShareFileAccess(
   }
 
   const previewKind = getPreviewKind(file.extension);
-  const blobRwToken = getBlobToken();
+  const blobConfigured = hasBlobAccessConfiguration();
   const isLocal = Boolean(file.blob_url?.startsWith("local:") && isExplicitLocalDokMode());
 
   if (isLocal) {
@@ -145,7 +145,7 @@ export async function getPublicShareFileAccess(
     };
   }
 
-  if (!blobRwToken) {
+  if (!blobConfigured) {
     throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 
@@ -154,7 +154,7 @@ export async function getPublicShareFileAccess(
     pathname: file.blob_pathname,
     operations: ["get", "head"],
     validUntil,
-    token: blobRwToken,
+    ...getBlobCommandOptions(),
   });
 
   const presigned = await presignUrl(signedToken, {

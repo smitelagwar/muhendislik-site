@@ -13,6 +13,7 @@ function resetEnv() {
   delete process.env.DOK_ALLOW_LOCAL_STORAGE;
   delete process.env.DATABASE_URL;
   delete process.env.BLOB_READ_WRITE_TOKEN;
+  delete process.env.BLOB_STORE_ID;
   process.env.NODE_ENV = "development";
 }
 
@@ -48,12 +49,13 @@ async function runTests() {
   console.log("  ✓ [BAŞARILI] Vercel ortamında local storage ve /tmp çağrısı güvenle engellendi (LOCAL_STORAGE_FORBIDDEN).");
 
   // -------------------------------------------------------------------
-  // TEST 2: VERCEL=1 iken DATABASE_URL var ama BLOB_TOKEN yok -> UPLOAD FAIL-CLOSED
+  // TEST 2: VERCEL=1 iken DATABASE_URL var ama BLOB_STORE_ID yok -> UPLOAD FAIL-CLOSED
   // -------------------------------------------------------------------
-  console.log("\n▶ TEST 2: VERCEL=1 Ortamında Blob Token Eksikse Upload Fail-Closed Olmalıdır");
+  console.log("\n▶ TEST 2: VERCEL=1 Ortamında Blob Store Kimliği Eksikse Upload Fail-Closed Olmalıdır");
   resetEnv();
   process.env.VERCEL = "1";
   process.env.DATABASE_URL = "postgresql://mock:mock@ep-mock.neon.tech/neondb";
+  process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_legacy_token_must_not_enable_vercel";
 
   let test2Threw = false;
   try {
@@ -63,8 +65,19 @@ async function runTests() {
     assert(err instanceof DokRuntimeConfigError, "Hata DokRuntimeConfigError olmalıdır.");
     assert.strictEqual(err.code, "BLOB_NOT_CONFIGURED", "Hata kodu BLOB_NOT_CONFIGURED olmalıdır.");
   }
-  assert.strictEqual(test2Threw, true, "Blob token eksikse assertDurableDokumantasyonRuntime(true) hata fırlatmalıdır.");
-  console.log("  ✓ [BAŞARILI] Blob token eksikliği sessiz local fallback yerine 503 BLOB_NOT_CONFIGURED üretti.");
+  assert.strictEqual(test2Threw, true, "Blob OIDC yapılandırması eksikse assertDurableDokumantasyonRuntime(true) hata fırlatmalıdır.");
+  console.log("  ✓ [BAŞARILI] Legacy token Vercel'de kaçış yolu olmadı; OIDC eksikliği 503 BLOB_NOT_CONFIGURED üretti.");
+
+  // -------------------------------------------------------------------
+  // TEST 2b: VERCEL=1 + BLOB_STORE_ID -> OIDC Blob-ready kabul edilir
+  // -------------------------------------------------------------------
+  console.log("\n▶ TEST 2b: Vercel OIDC + BLOB_STORE_ID Blob-ready Kabul Edilmelidir");
+  resetEnv();
+  process.env.VERCEL = "1";
+  process.env.DATABASE_URL = "postgresql://mock:mock@ep-mock.neon.tech/neondb";
+  process.env.BLOB_STORE_ID = "store_mock_oidc";
+  assert.doesNotThrow(() => assertDurableDokumantasyonRuntime(true));
+  console.log("  ✓ [BAŞARILI] Legacy BLOB_READ_WRITE_TOKEN olmadan Vercel OIDC store yapılandırması kabul edildi.");
 
   // -------------------------------------------------------------------
   // TEST 3: VERCEL=1 iken Her İkisi de Eksikse -> FAIL-CLOSED

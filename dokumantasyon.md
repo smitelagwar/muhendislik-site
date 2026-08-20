@@ -50,7 +50,9 @@ Bu modül; site sahibi (tek admin) için Google Drive / Yandex Disk benzeri hiye
 | `ADMIN_SESSION_VERSION` | Oturum versiyonu (artırıldığında aktif tüm oturumlar düşer) |
 | `RATE_LIMIT_SALT` | Rate limiting IP hashleme tuzu |
 | `DATABASE_URL` | Neon Postgres bağlantı URL'si (Vercel Marketplace) |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Private Blob store server okuma/yazma token'ı |
+| `BLOB_STORE_ID` | Vercel Production OIDC Blob store kimliği |
+| `BLOB_WEBHOOK_PUBLIC_KEY` | Presigned upload callback Ed25519 imza doğrulama açık anahtarı |
+| `BLOB_READ_WRITE_TOKEN` | Yalnız Vercel dışı yerel geliştirme/CLI legacy fallback'i; Production'da kullanılmaz |
 | `DOK_MAX_FILE_SIZE_MB` | İzin verilen maksimum tekil dosya boyutu (varsayılan: 100 MB) |
 | `SHARE_TOKEN_ENCRYPTION_KEY` | (Opsiyonel) Aktif linklerin admin tarafından tekrar kopyalanabilmesi için AES-GCM anahtarı |
 
@@ -416,7 +418,15 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
 
 **Bilinen dış bağımlılık:** Vercel Production env değişikliği, redeploy ve canlı smoke hâlâ deployment erişimi gerektirir; source code bu adımı otomatik gerçekleştirmez.
 
+---
 
+## 22. Vercel Blob OIDC ve Presigned Private Upload Geçişi (20.08.2026)
+
+- **Production kimlik modeli:** Vercel Function'ları `BLOB_STORE_ID` ile store'u seçer; `@vercel/blob@2.8.0`, Vercel'in kısa ömürlü OIDC kimliğini otomatik kullanır. Production Blob-ready durumu artık `BLOB_READ_WRITE_TOKEN` varlığına göre değil, OIDC store kimliği ile yapılan gerçek `list()` erişim denemesine göre belirlenir.
+- **İstemci yükleme akışı:** `POST /api/dokumantasyon/upload/intent` admin oturumu ve same-origin doğrulamasıyla tek pathname'e bağlı, 30 dakikalık upload intent üretir. Browser `uploadPresigned()` ile `/api/dokumantasyon/upload/token` kontrol düzleminden alınan sınırlı presigned URL'ye yalnız bu pathname, boyut ve MIME için Private Blob yazabilir.
+- **Webhook ve Neon metadata:** `handleUploadPresigned()` callback imzasını `BLOB_WEBHOOK_PUBLIC_KEY` ile Ed25519 doğrular. Callback Blob nesnesini SDK ile yeniden okur, gerçek boyutu ve magic-byte imzasını denetler; ardından canonical Blob URL/pathname ile Neon `dok_files` kaydını idempotent oluşturur. İstemcinin bildirdiği Blob URL metadata için güven kaynağı değildir.
+- **Kalıcılık:** Okuma, signed URL, silme, ZIP, public download ve sürümleme SDK çağrıları ortak OIDC/legacy command options katmanını kullanır. Vercel'de `BLOB_STORE_ID` yoksa fail-closed `503`; `/tmp` fallback yoktur. Legacy read/write token yalnız Vercel dışı local geliştirme için korunur.
+- **Doğrulanan yerel kanıt:** `npx tsc --noEmit`, `npm run check:dokumantasyon:persistence` (OIDC store matrisi dahil) ve `npm run check:dokumantasyon` geçti. Gerçek Production PDF upload, callback, Neon satırı, Private Blob nesnesi ve redeploy sonrası kalıcılık doğrulaması Vercel deployment erişimi gerektirir ve bu repo çalışma ortamında dış bağımlılıktır.
 
 
 

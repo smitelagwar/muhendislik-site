@@ -10,7 +10,7 @@ import {
 } from "@/lib/dokumantasyon/public-share";
 import { getFile } from "@/lib/dokumantasyon/files";
 import { cookies } from "next/headers";
-import { getBlobToken, hasDatabaseUrl } from "@/lib/dokumantasyon/runtime-mode";
+import { getBlobCommandOptions, hasBlobAccessConfiguration, hasDatabaseUrl } from "@/lib/dokumantasyon/runtime-mode";
 import { getDb } from "@/lib/dokumantasyon/db";
 import { readLocalDb, getLocalStorageDir } from "@/lib/dokumantasyon/local-store";
 
@@ -106,7 +106,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     let fileBuffer: Buffer | ArrayBuffer | Uint8Array | ReadableStream<Uint8Array>;
 
-    if (targetBlobUrl?.startsWith("local:") || targetBlobPathname?.startsWith("dok_storage/")) {
+    if (targetBlobUrl?.startsWith("local:")) {
       const fileNameOnDisk = targetBlobPathname.startsWith("dok_storage/")
         ? targetBlobPathname.replace("dok_storage/", "")
         : targetBlobUrl.replace("local:", "");
@@ -122,14 +122,13 @@ export async function GET(request: Request, { params }: RouteParams) {
     } else {
       // Vercel Private Blob: Resmi SDK get() ile güvenli okuma
       const { get } = await import("@vercel/blob");
-      const blobToken = getBlobToken();
-      if (!blobToken) {
+      if (!hasBlobAccessConfiguration()) {
         return new NextResponse("Depolama yapılandırması eksik.", { status: 503 });
       }
 
       const getResult = await get(targetBlobPathname, {
         access: "private",
-        token: blobToken,
+        ...getBlobCommandOptions(),
       });
 
       if (!getResult || !getResult.stream) {

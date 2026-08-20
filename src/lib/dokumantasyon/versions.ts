@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { put } from "@vercel/blob";
 import { getDb, ensureDatabaseTables } from "./db";
-import { isExplicitLocalDokMode } from "./runtime-mode";
+import { DokRuntimeConfigError, getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode } from "./runtime-mode";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { DokFile, DokFileVersion } from "./types";
 
@@ -229,20 +229,16 @@ export async function createNewFileVersion(params: {
   let blob_pathname = `dokumantasyon/${file.id}_v${nextVersionNumber}${file.extension}`;
   let blob_url = "";
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (hasBlobAccessConfiguration()) {
     const blobRes = await put(blob_pathname, contentBuffer, {
       access: "private",
       contentType: params.mimeType || file.mime_type,
+      ...getBlobCommandOptions(),
     });
     blob_pathname = blobRes.pathname;
     blob_url = blobRes.url;
   } else {
-    const filename = `${file.id}_v${nextVersionNumber}${file.extension}`;
-    const storageDir = getLocalStorageDir();
-    const filePath = path.join(storageDir, filename);
-    fs.writeFileSync(filePath, contentBuffer);
-    blob_pathname = `dok_storage/${filename}`;
-    blob_url = `/api/dokumantasyon/files/${file.id}/access`;
+    throw new DokRuntimeConfigError("BLOB_NOT_CONFIGURED");
   }
 
   const versionId = crypto.randomUUID();

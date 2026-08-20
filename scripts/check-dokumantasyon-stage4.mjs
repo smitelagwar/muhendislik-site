@@ -81,7 +81,7 @@ async function runStage4Tests() {
     "trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n185\n%%EOF"
   );
 
-  const uploadTokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/token`, {
+  const uploadTokenRes = await fetch(`${BASE_URL}/api/dokumantasyon/upload/intent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", cookie: authCookie },
     body: JSON.stringify({

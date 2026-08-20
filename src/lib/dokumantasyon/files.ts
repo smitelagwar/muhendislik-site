@@ -8,7 +8,7 @@ import { del } from "@vercel/blob";
 import path from "path";
 import fs from "fs";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
-import { hasDatabaseUrl, getBlobToken } from "./runtime-mode";
+import { hasDatabaseUrl, getBlobCommandOptions, hasBlobAccessConfiguration } from "./runtime-mode";
 
 /**
  * Belirtilen ID'ye sahip dosyayı getirir
@@ -330,10 +330,9 @@ export async function permanentDeleteFile(id: string): Promise<void> {
       } catch {}
     }
   } else if (file.blob_pathname || file.blob_url) {
-    const blobToken = getBlobToken();
     try {
-      if (blobToken) {
-        await del(file.blob_pathname || file.blob_url, { token: blobToken });
+      if (hasBlobAccessConfiguration()) {
+        await del(file.blob_pathname || file.blob_url, getBlobCommandOptions());
       }
     } catch (err: unknown) {
       console.warn("Vercel Blob silme uyarısı:", err);
