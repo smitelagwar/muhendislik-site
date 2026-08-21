@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft,
   Download,
@@ -15,10 +16,7 @@ import {
   MoreVertical,
   Edit3,
   Trash2,
-  HardDrive,
   Calendar,
-  Layers,
-  FileCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,11 +32,13 @@ import { ShareResultModal } from "../modals/share-result-modal";
 import { RenameModal } from "../modals/rename-modal";
 import { DeleteConfirmModal } from "../modals/delete-confirm-modal";
 import { UnsupportedPreview } from "./unsupported-preview";
-import { DokPdfViewer } from "./pdf-viewer";
-import { DokImageViewer } from "./image-viewer";
-import { DokTextViewer } from "./text-viewer";
-import { DokMarkdownViewer } from "./markdown-viewer";
-import { DokCadViewer } from "./cad-viewer";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
+
+const DokPdfViewer = dynamic(() => import("./pdf-viewer").then((module) => module.DokPdfViewer), { ssr: false });
+const DokImageViewer = dynamic(() => import("./image-viewer").then((module) => module.DokImageViewer), { ssr: false });
+const DokTextViewer = dynamic(() => import("./text-viewer").then((module) => module.DokTextViewer), { ssr: false });
+const DokMarkdownViewer = dynamic(() => import("./markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
+const DokCadViewer = dynamic(() => import("./cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
 
 interface FilePreviewShellProps {
   file: {
@@ -58,12 +58,19 @@ interface FilePreviewShellProps {
   children?: React.ReactNode;
 }
 
+type ShareResult = {
+  shareUrl: string;
+  rawToken: string;
+  expiresAt: string;
+  totalFiles: number;
+  totalSizeBytes: number;
+  title?: string | null;
+};
+
 export function FilePreviewShell({
   file,
   accessUrl,
   previewKind,
-  expiresAt,
-  isLocal,
   children,
 }: FilePreviewShellProps) {
   const router = useRouter();
@@ -72,7 +79,7 @@ export function FilePreviewShell({
 
   // Modallar
   const [isCreateShareOpen, setIsCreateShareOpen] = useState(false);
-  const [shareResult, setShareResult] = useState<any | null>(null);
+  const [shareResult, setShareResult] = useState<ShareResult | null>(null);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -324,7 +331,8 @@ export function FilePreviewShell({
         }}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={async () => {
-          await fetch(`/api/dokumantasyon/files/${file.id}`, { method: "DELETE" });
+          const result = await requestDokMutation(`/api/dokumantasyon/files/${file.id}`, { method: "DELETE" });
+          if (!result.ok) throw new Error(result.message);
           handleDeleteSuccess();
         }}
       />

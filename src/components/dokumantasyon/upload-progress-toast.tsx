@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, X, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, X, CheckCircle2, AlertCircle, Loader2, RotateCw } from "lucide-react";
 import { formatBytes } from "./ui-helpers";
 
 export interface UploadQueueItem {
@@ -8,16 +8,20 @@ export interface UploadQueueItem {
   name: string;
   size: number;
   progress: number; // 0 to 100
-  status: "pending" | "uploading" | "finalizing" | "completed" | "error";
+  status: "queued" | "authorizing" | "uploading" | "finalizing" | "confirming_metadata" | "completed" | "error";
   errorMessage?: string;
+  file?: File;
+  targetFolderId?: string | null;
+  relativePath?: string;
 }
 
 interface UploadProgressToastProps {
   queue: UploadQueueItem[];
   onDismiss: () => void;
+  onRetry: (itemId: string) => void;
 }
 
-export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastProps) {
+export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgressToastProps) {
   if (queue.length === 0) return null;
 
   const isAllDone = queue.every(
@@ -28,7 +32,12 @@ export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastPro
   const errorCount = queue.filter((i) => i.status === "error").length;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm rounded-xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-md">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Yükleme durumu"
+      className="fixed bottom-6 right-6 z-50 w-full max-w-sm rounded-xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-md"
+    >
       <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
         <div className="flex items-center gap-2">
           {isAllDone ? (
@@ -42,12 +51,15 @@ export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastPro
               : `Dosyalar Yükleniyor (${completedCount}/${queue.length})...`}
           </span>
         </div>
-        <button
-          onClick={onDismiss}
-          className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        {isAllDone && (
+          <button
+            onClick={onDismiss}
+            aria-label="Yükleme listesini kapat"
+            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="mt-3 max-h-48 space-y-2.5 overflow-y-auto pr-1">
@@ -62,8 +74,21 @@ export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastPro
               </span>
             </div>
 
+            {item.relativePath && item.relativePath !== item.name && (
+              <p className="truncate text-[10px] text-muted-foreground" title={item.relativePath}>
+                {item.relativePath}
+              </p>
+            )}
+
             {/* İlerleme Çubuğu */}
-            <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              role="progressbar"
+              aria-label={`${item.name} yükleme ilerlemesi`}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={item.status === "completed" ? 100 : item.progress}
+              className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+            >
               <div
                 className={`h-full transition-all duration-300 ${
                   item.status === "error"
@@ -83,8 +108,14 @@ export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastPro
 
             {/* Durum Metni */}
             <div className="flex items-center justify-between text-[10px]">
-              {item.status === "pending" && (
+              {item.status === "queued" && (
                 <span className="text-muted-foreground">Sırada...</span>
+              )}
+              {item.status === "authorizing" && (
+                <span className="flex items-center gap-1 text-amber-500 font-medium">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Yükleme yetkisi alınıyor...</span>
+                </span>
               )}
               {item.status === "uploading" && (
                 <span className="flex items-center gap-1 text-amber-500 font-medium">
@@ -98,14 +129,27 @@ export function UploadProgressToast({ queue, onDismiss }: UploadProgressToastPro
                   <span>Kaydediliyor...</span>
                 </span>
               )}
+              {item.status === "confirming_metadata" && (
+                <span className="flex items-center gap-1 text-blue-500 font-medium">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Liste kaydı doğrulanıyor...</span>
+                </span>
+              )}
               {item.status === "completed" && (
                 <span className="text-emerald-500 font-medium">Tamamlandı</span>
               )}
               {item.status === "error" && (
-                <span className="flex items-center gap-1 text-red-500 font-medium">
-                  <AlertCircle className="h-3 w-3" />
-                  <span>{item.errorMessage || "Hata oluştu"}</span>
-                </span>
+                <>
+                  <span role="alert" className="flex min-w-0 items-center gap-1 text-red-500 font-medium">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{item.errorMessage || "Hata oluştu"}</span>
+                  </span>
+                  {item.file && (
+                    <button type="button" onClick={() => onRetry(item.id)} className="inline-flex min-h-8 items-center gap-1 rounded px-1.5 font-semibold text-amber-500 hover:bg-amber-500/10">
+                      <RotateCw className="h-3 w-3" /> Tekrar dene
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

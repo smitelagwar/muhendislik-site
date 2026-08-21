@@ -9,7 +9,7 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
-export const LATEST_REQUIRED_SCHEMA_VERSION = "004";
+export const LATEST_REQUIRED_SCHEMA_VERSION = "006";
 
 export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
   try {
@@ -208,10 +208,34 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_derivatives_file_id ON dok_cad_derivatives(file_id);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_derivatives_hash_ready ON dok_cad_derivatives(source_sha256) WHERE status = 'ready';`;
 
+    // 5. Migration 005: Drive yönetim meta verileri
+    // Tek yönetici için ayrı bir favorites tablosu yerine öğe meta verisi yeterlidir.
+    await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ NULL;`;
+    await sql`ALTER TABLE dok_folders ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ NULL;`;
+    await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ NULL;`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_files_starred_at ON dok_files(starred_at DESC) WHERE starred_at IS NOT NULL AND deleted_at IS NULL;`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_folders_starred_at ON dok_folders(starred_at DESC) WHERE starred_at IS NOT NULL AND deleted_at IS NULL;`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_files_last_opened_at ON dok_files(last_opened_at DESC) WHERE last_opened_at IS NOT NULL AND deleted_at IS NULL;`;
+
+    // 6. Migration 006: Kullanıcı açısından anlamlı dosya yönetimi olayları.
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_activity_log (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        action VARCHAR(32) NOT NULL,
+        item_type VARCHAR(16) NOT NULL,
+        item_id UUID NULL,
+        display_name VARCHAR(255) NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT ck_dok_activity_action CHECK (action IN ('upload', 'rename', 'move', 'trash', 'restore', 'share_create', 'share_revoke')),
+        CONSTRAINT ck_dok_activity_item_type CHECK (item_type IN ('file', 'folder', 'share'))
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_activity_log_created_at ON dok_activity_log(created_at DESC);`;
+
     // Sürümleri kaydet
     await sql`
       INSERT INTO dok_schema_migrations (version, applied_at)
-      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW())
+      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW()), ('005', NOW()), ('006', NOW())
       ON CONFLICT (version) DO NOTHING;
     `;
 

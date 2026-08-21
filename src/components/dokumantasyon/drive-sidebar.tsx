@@ -35,6 +35,8 @@ interface DriveSidebarProps {
   totalFoldersCount: number;
   totalSizeBytes: number;
   starredCount: number;
+  className?: string;
+  onNavigate?: () => void;
 }
 
 export function DriveSidebar({
@@ -48,13 +50,20 @@ export function DriveSidebar({
   totalFoldersCount,
   totalSizeBytes,
   starredCount,
+  className = "",
+  onNavigate,
 }: DriveSidebarProps) {
+  const completeNavigation = () => onNavigate?.();
+
   return (
-    <aside className="flex w-64 shrink-0 flex-col gap-4 border-r border-border/70 bg-card/40 p-4 select-none">
+    <aside className={`flex w-64 shrink-0 flex-col gap-4 border-r border-border/70 bg-card/40 p-4 select-none ${className}`}>
       {/* 1. Hızlı Eylem Butonları */}
       <div className="flex flex-col gap-2">
         <Button
-          onClick={onUploadClick}
+          onClick={() => {
+            onUploadClick();
+            completeNavigation();
+          }}
           className="w-full justify-start gap-2 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
         >
           <Upload className="h-4 w-4" />
@@ -63,7 +72,10 @@ export function DriveSidebar({
 
         <Button
           variant="outline"
-          onClick={onNewFolder}
+          onClick={() => {
+            onNewFolder();
+            completeNavigation();
+          }}
           className="w-full justify-start gap-2 border-border/80 text-xs font-semibold hover:bg-secondary"
         >
           <FolderPlus className="h-4 w-4 text-amber-500" />
@@ -78,7 +90,10 @@ export function DriveSidebar({
         </span>
 
         <button
-          onClick={() => onFilterChange("all")}
+          onClick={() => {
+            onFilterChange("all");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "all"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -93,7 +108,10 @@ export function DriveSidebar({
         </button>
 
         <button
-          onClick={() => onFilterChange("recent")}
+          onClick={() => {
+            onFilterChange("recent");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "recent"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -102,12 +120,15 @@ export function DriveSidebar({
         >
           <span className="flex items-center gap-2.5">
             <Clock className="h-4 w-4 text-blue-400" />
-            <span>Son Eklenenler</span>
+            <span>Son Açılanlar</span>
           </span>
         </button>
 
         <button
-          onClick={() => onFilterChange("starred")}
+          onClick={() => {
+            onFilterChange("starred");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "starred"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -133,7 +154,10 @@ export function DriveSidebar({
         </span>
 
         <button
-          onClick={() => onFilterChange("cad")}
+          onClick={() => {
+            onFilterChange("cad");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "cad"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -147,7 +171,10 @@ export function DriveSidebar({
         </button>
 
         <button
-          onClick={() => onFilterChange("pdf")}
+          onClick={() => {
+            onFilterChange("pdf");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "pdf"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -161,7 +188,10 @@ export function DriveSidebar({
         </button>
 
         <button
-          onClick={() => onFilterChange("image")}
+          onClick={() => {
+            onFilterChange("image");
+            completeNavigation();
+          }}
           className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors ${
             activeFilter === "image"
               ? "bg-amber-500/10 text-amber-500 font-bold"
@@ -182,7 +212,10 @@ export function DriveSidebar({
         </span>
 
         <button
-          onClick={onOpenActiveShares}
+          onClick={() => {
+            onOpenActiveShares();
+            completeNavigation();
+          }}
           className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           <span className="flex items-center gap-2.5">
@@ -192,7 +225,10 @@ export function DriveSidebar({
         </button>
 
         <button
-          onClick={onOpenTrash}
+          onClick={() => {
+            onOpenTrash();
+            completeNavigation();
+          }}
           className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-red-400 transition-colors"
         >
           <span className="flex items-center gap-2.5">
@@ -214,9 +250,9 @@ export function DriveSidebar({
           </span>
         </div>
 
-        <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
-          <div className="h-full bg-amber-500 rounded-full" style={{ width: "28%" }} />
-        </div>
+        <p className="text-[10px] leading-4 text-muted-foreground">
+          Depolama kotası yapılandırılmadı; yalnız bu klasördeki içerik toplamı gösterilir.
+        </p>
 
         <div className="flex justify-between text-[10px] text-muted-foreground">
           <span>{totalFoldersCount} Klasör</span>

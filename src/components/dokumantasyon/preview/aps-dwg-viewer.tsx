@@ -186,8 +186,19 @@ export function ApsDwgViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsD
     if (!viewerData || !containerRef.current) return;
     let disposed = false;
     let viewer: AutodeskViewerInstance | null = null;
+    const container = containerRef.current;
     const observer = new ResizeObserver(() => viewer?.resize());
-    observer.observe(containerRef.current);
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      if (disposed) return;
+      viewer?.finish();
+      disposed = true;
+      setViewerData(null);
+      setStatus("failed");
+      setError("WebGL bağlamı kayboldu. Görünümü tekrar deneyin veya dosyayı indirin.");
+    };
+    observer.observe(container);
+    container.addEventListener("webglcontextlost", onContextLost, true);
 
     const mount = async () => {
       try {
@@ -229,6 +240,7 @@ export function ApsDwgViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsD
     return () => {
       disposed = true;
       observer.disconnect();
+      container.removeEventListener("webglcontextlost", onContextLost, true);
       viewer?.finish();
       viewerRef.current = null;
     };

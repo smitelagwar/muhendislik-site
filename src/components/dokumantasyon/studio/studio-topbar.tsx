@@ -82,7 +82,7 @@ export function StudioTopbar({
           size="sm"
           variant="ghost"
           showLabel={false}
-          className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground shrink-0 rounded-lg"
+          className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground shrink-0 rounded-lg sm:h-8 sm:w-8"
           icon={<ArrowLeft className="h-4 w-4" />}
         />
 
@@ -154,7 +154,7 @@ export function StudioTopbar({
           onClick={onShare}
           size="sm"
           variant="outline"
-          className="h-8 gap-1.5 border-border text-xs font-semibold text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/40"
+          className="h-10 w-10 p-0 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/40 sm:h-8 sm:w-auto sm:px-3"
           icon={<Share2 className="h-3.5 w-3.5" />}
           labelClassName="hidden sm:inline"
           showLabel={true}
@@ -164,7 +164,7 @@ export function StudioTopbar({
           commandId="studio.download"
           onClick={onDownload}
           size="sm"
-          className="h-8 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
+          className="h-10 w-10 p-0 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm sm:h-8 sm:w-auto sm:px-3"
           icon={<Download className="h-3.5 w-3.5" />}
           labelClassName="hidden sm:inline"
           showLabel={true}
@@ -191,7 +191,7 @@ export function StudioTopbar({
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Daha Fazla İşlem"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-8 sm:w-8"
             >
               <MoreVertical className="h-4 w-4" />
             </button>

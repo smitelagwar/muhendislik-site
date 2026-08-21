@@ -4,11 +4,11 @@
 
 import { getDb } from "./db";
 import { DokTrashItem } from "./types";
-import { del } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";
+import { permanentDeleteFile } from "./files";
 
 /**
  * Çöp kutusundaki tüm silinmiş dosya ve klasörleri listeler
@@ -98,11 +98,7 @@ export async function emptyTrash(): Promise<{ deletedFilesCount: number; deleted
         const fileNameOnDisk = file.blob_url.replace("local:", "");
         const diskPath = path.join(storageDir, fileNameOnDisk);
         if (fs.existsSync(diskPath)) {
-          try {
-            fs.unlinkSync(diskPath);
-          } catch {
-            // ignore
-          }
+          fs.unlinkSync(diskPath);
         }
       }
     });
@@ -123,24 +119,13 @@ export async function emptyTrash(): Promise<{ deletedFilesCount: number; deleted
 
   // 1. Silinmiş dosyaların Blob URL'lerini al
   const fileRows = await sql`
-    SELECT id, blob_url FROM dok_files WHERE deleted_at IS NOT NULL;
+    SELECT id FROM dok_files WHERE deleted_at IS NOT NULL;
   `;
-
-  const blobUrls = fileRows.map((r) => r.blob_url).filter(Boolean);
-  const fileIds = fileRows.map((r) => r.id);
-
-  if (blobUrls.length > 0) {
-    try {
-      await del(blobUrls);
-    } catch (err) {
-      console.error("Çöp kutusu Blob temizliği hatası:", err);
-    }
-  }
-
-  // 2. DB'den silinmiş dosyaları ve share item bağlantılarını sil
-  if (fileIds.length > 0) {
-    await sql`DELETE FROM dok_share_items WHERE file_id = ANY(${fileIds});`;
-    await sql`DELETE FROM dok_files WHERE id = ANY(${fileIds});`;
+  let deletedFilesCount = 0;
+  for (const fileRow of fileRows) {
+    // Blob silinemezse permanentDeleteFile hata atar ve DB satırını korur.
+    await permanentDeleteFile(fileRow.id as string);
+    deletedFilesCount++;
   }
 
   // 3. Silinmiş klasörleri sil
@@ -154,7 +139,7 @@ export async function emptyTrash(): Promise<{ deletedFilesCount: number; deleted
   }
 
   return {
-    deletedFilesCount: fileIds.length,
+    deletedFilesCount,
     deletedFoldersCount: folderIds.length,
   };
 }

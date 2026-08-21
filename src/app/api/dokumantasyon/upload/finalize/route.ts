@@ -9,9 +9,11 @@ import { createFileRecord } from "@/lib/dokumantasyon/files";
 import { del, get } from "@vercel/blob";
 import path from "path";
 import { getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode, DokRuntimeConfigError } from "@/lib/dokumantasyon/runtime-mode";
+import { safeFileNameSchema } from "@/lib/dokumantasyon/validation";
 
 export async function POST(request: Request) {
   let blobPathnameToDeleteOnError: string | null = null;
+  let verifiedIntentId: string | null = null;
 
   try {
     const session = await requireDokumantasyonAdmin();
@@ -28,15 +30,20 @@ export async function POST(request: Request) {
       intentToken,
     } = body;
 
-    if (!blobPathname || !displayName || !sizeBytes) {
+    if (!blobPathname || !displayName || !sizeBytes || typeof blobPathname !== "string" || !blobPathname.startsWith("dok_storage/")) {
       return NextResponse.json(
         { error: "Eksik dosya yükleme parametreleri." },
         { status: 400 }
       );
     }
 
+    const safeDisplayName = safeFileNameSchema.safeParse(displayName);
+    if (!safeDisplayName.success) {
+      return NextResponse.json({ error: safeDisplayName.error.issues[0]?.message || "Geçersiz dosya adı." }, { status: 400 });
+    }
+
     blobPathnameToDeleteOnError = blobPathname;
-    const ext = path.extname(displayName).toLowerCase();
+    const ext = path.extname(safeDisplayName.data).toLowerCase();
     const isLocal = isExplicitLocalDokMode();
 
     // 1. Upload Intent Doğrulaması (Kalıcı üretim ortamında zorunlu)
@@ -53,7 +60,7 @@ export async function POST(request: Request) {
       if (
         !verifiedIntent ||
         verifiedIntent.pathname !== blobPathname ||
-        verifiedIntent.filename !== displayName.trim() ||
+        verifiedIntent.filename !== safeDisplayName.data ||
         Number(verifiedIntent.sizeBytes) !== Number(sizeBytes) ||
         (verifiedIntent.folderId || null) !== (folderId || null) ||
         (session?.username && verifiedIntent.username !== session.username)
@@ -63,6 +70,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+      verifiedIntentId = verifiedIntent.intentId;
     }
 
     // 2. Post-Upload Dosya Başlığı (Magic Byte) Doğrulaması & Canonical URL Çözümleme
@@ -114,6 +122,10 @@ export async function POST(request: Request) {
         reader.cancel().catch(() => {});
       } catch (getErr) {
         console.warn("Private blob doğrulama uyarısı:", getErr);
+        return NextResponse.json(
+          { error: "Yüklenen dosya depolama alanında doğrulanamadı; metadata kaydı oluşturulmadı." },
+          { status: 502 }
+        );
       }
     }
 
@@ -121,7 +133,7 @@ export async function POST(request: Request) {
 
     if (headerBuffer && headerBuffer.length > 0) {
       const { validateFileContent } = await import("@/lib/dokumantasyon/file-validation");
-      const validation = validateFileContent(headerBuffer, displayName);
+      const validation = validateFileContent(headerBuffer, safeDisplayName.data);
 
       if (!validation.isValid) {
         // Geçersiz imza: Güvenlik gereği Blob depolamasından derhal temizle
@@ -146,7 +158,7 @@ export async function POST(request: Request) {
     // 3. Veritabanı kaydını oluştur
     const file = await createFileRecord({
       folder_id: folderId || null,
-      display_name: displayName.trim(),
+      display_name: safeDisplayName.data,
       blob_pathname: blobPathname,
       blob_url: canonicalBlobUrl,
       size_bytes: Number(sizeBytes),
@@ -156,7 +168,7 @@ export async function POST(request: Request) {
 
     if (intentToken) {
       const { markUploadIntentFinalized } = await import("@/lib/dokumantasyon/upload-intent");
-      await markUploadIntentFinalized(body.intentId || blobPathname, file.id);
+      if (verifiedIntentId) await markUploadIntentFinalized(verifiedIntentId, file.id);
     }
 
     return NextResponse.json({ success: true, file });

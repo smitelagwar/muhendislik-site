@@ -662,3 +662,21 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
   adaptorunun durum, dedupe, concurrency, token ve lifecycle kontrolleri
   gecmistir. Gercek APS kimlik bilgileri olmadan gercek DWG kabul testi
   tamamlanmis sayilmamistir.
+
+---
+
+## 35. Asama 6 Release QA (22.08.2026)
+
+- Release Playwright kapisi Chromium, mobil Chromium, WebKit ve mobil WebKit
+  profillerinde login, yanlis kimlik bilgisi, session refresh, logout,
+  protected-route 401, console/network temizligi ve 320x568 ile 1440x900
+  arasindaki yedi viewport icin yatay tasma denetimini calistirir.
+- Login, explorer empty/list/grid, mobil sidebar, details sheet, selection,
+  share modal, upload retry, PDF/image desktop-mobil ve gecersiz public-share
+  ekranlari deterministik screenshot referanslari ile denetlenir. Test,
+  snapshot almadan once yukleme/empty-state hazirliklarini bekler; Next dev
+  teknik issue portali urun goruntusune dahil edilmez.
+- Mobil coklu-secim eylem cubugu sabit alt navigasyonun ustune tasindi;
+  safe-area padding'i CSS module ile uygulanarak Tailwind cache kaynakli CSS
+  parse hatasi ortadan kaldirildi. Playwright icin ayri Next output dizini
+  kullanilir ve `.next-playwright*` git tarafindan yok sayilir.

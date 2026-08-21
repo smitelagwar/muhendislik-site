@@ -14,21 +14,18 @@ import {
   isExplicitLocalDokMode,
 } from "@/lib/dokumantasyon/runtime-mode";
 import { createUploadIntentToken } from "@/lib/dokumantasyon/upload-intent";
+import { uploadIntentSchema } from "@/lib/dokumantasyon/validation";
 
 export async function POST(request: Request) {
   try {
     const session = await requireDokumantasyonAdmin();
     assertSameOriginForMutation(request);
 
-    const { filename, size, mimeType, folderId } = await request.json().catch(() => ({}));
-    if (!filename || typeof filename !== "string") {
-      return NextResponse.json({ error: "Dosya adı belirtilmedi." }, { status: 400 });
+    const parsed = uploadIntentSchema.safeParse(await request.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message || "Geçersiz yükleme isteği." }, { status: 400 });
     }
-
-    const sizeNum = Number(size);
-    if (!Number.isFinite(sizeNum) || sizeNum <= 0) {
-      return NextResponse.json({ error: "Geçersiz dosya boyutu." }, { status: 400 });
-    }
+    const { filename, size: sizeNum, mimeType, folderId } = parsed.data;
     if (sizeNum > DOKUMANTASYON_CONFIG.MAX_FILE_SIZE_BYTES) {
       const maxMb = Math.round(DOKUMANTASYON_CONFIG.MAX_FILE_SIZE_BYTES / (1024 * 1024));
       return NextResponse.json({ error: `Dosya boyutu maksimum sınırı (${maxMb} MB) aşıyor.` }, { status: 400 });

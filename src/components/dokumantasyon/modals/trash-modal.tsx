@@ -5,6 +5,7 @@ import { Trash2, X, Loader2, RotateCcw, AlertTriangle, Folder, HardDrive } from 
 import { Button } from "@/components/ui/button";
 import { DokTrashItem } from "@/lib/dokumantasyon/types";
 import { formatBytes, formatDate, getFileIcon } from "../ui-helpers";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface TrashModalProps {
   isOpen: boolean;
@@ -22,10 +23,12 @@ export function TrashModal({
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [emptyLoading, setEmptyLoading] = useState(false);
   const [confirmEmpty, setConfirmEmpty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setConfirmEmpty(false);
+      setError(null);
       fetchTrashItems();
     }
   }, [isOpen]);
@@ -47,19 +50,20 @@ export function TrashModal({
 
   const handleRestore = async (item: DokTrashItem) => {
     setActionLoadingId(item.id);
+    setError(null);
     try {
       const endpoint =
         item.type === "folder"
           ? `/api/dokumantasyon/folders/${item.id}/restore`
           : `/api/dokumantasyon/files/${item.id}/restore`;
 
-      const res = await fetch(endpoint, { method: "POST" });
-      if (res.ok) {
+      const result = await requestDokMutation(endpoint, { method: "POST" });
+      if (result.ok) {
         setItems((prev) => prev.filter((i) => i.id !== item.id));
         onRefreshExplorer();
+      } else {
+        setError(result.message);
       }
-    } catch (err) {
-      console.error("Geri yükleme hatası:", err);
     } finally {
       setActionLoadingId(null);
     }
@@ -71,18 +75,19 @@ export function TrashModal({
     }
 
     setActionLoadingId(item.id);
+    setError(null);
     try {
       const endpoint =
         item.type === "folder"
           ? `/api/dokumantasyon/trash/folders/${item.id}`
           : `/api/dokumantasyon/trash/files/${item.id}`;
 
-      const res = await fetch(endpoint, { method: "DELETE" });
-      if (res.ok) {
+      const result = await requestDokMutation(endpoint, { method: "DELETE" });
+      if (result.ok) {
         setItems((prev) => prev.filter((i) => i.id !== item.id));
+      } else {
+        setError(result.message);
       }
-    } catch (err) {
-      console.error("Kalıcı silme hatası:", err);
     } finally {
       setActionLoadingId(null);
     }
@@ -90,14 +95,15 @@ export function TrashModal({
 
   const handleEmptyTrash = async () => {
     setEmptyLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/dokumantasyon/trash/empty", { method: "POST" });
-      if (res.ok) {
+      const result = await requestDokMutation("/api/dokumantasyon/trash/empty", { method: "POST" });
+      if (result.ok) {
         setItems([]);
         setConfirmEmpty(false);
+      } else {
+        setError(result.message);
       }
-    } catch (err) {
-      console.error("Çöp kutusunu boşaltma hatası:", err);
     } finally {
       setEmptyLoading(false);
     }
@@ -167,6 +173,13 @@ export function TrashModal({
             </button>
           </div>
         </div>
+
+        {error && (
+          <div role="alert" className="mt-4 flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Liste */}
         <div className="mt-4 max-h-[60vh] space-y-2 overflow-y-auto pr-1">

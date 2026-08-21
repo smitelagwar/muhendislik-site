@@ -4,8 +4,7 @@
 
 import fs from "fs";
 import path from "path";
-import os from "os";
-import { DokCadDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
+import { DokActivityEvent, DokCadDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
 
 import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
@@ -16,6 +15,7 @@ interface LocalDatabaseState {
   cad_derivatives?: DokCadDerivative[];
   shares: DokShareLink[];
   share_items: DokShareItem[];
+  activity_log?: DokActivityEvent[];
 }
 
 function resolveDataDir(): string {
@@ -62,6 +62,7 @@ export function readLocalDb(): LocalDatabaseState {
       cad_derivatives: [],
       shares: [],
       share_items: [],
+      activity_log: [],
     };
     fs.writeFileSync(dbFile, JSON.stringify(initialState, null, 2), "utf8");
     return initialState;
@@ -77,6 +78,7 @@ export function readLocalDb(): LocalDatabaseState {
       cad_derivatives: [],
       shares: [],
       share_items: [],
+      activity_log: [],
     };
   }
 }

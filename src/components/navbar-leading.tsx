@@ -14,7 +14,7 @@ export function NavbarLeading() {
   }
 
   return (
-    <div data-home-navbar-logo className="flex shrink-0 items-center">
+    <div data-home-navbar-logo className="flex shrink-0 items-center max-[360px]:hidden">
       <SiteLogo
         href="/"
         priority

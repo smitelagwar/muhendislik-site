@@ -4,21 +4,22 @@ import { useState, useEffect } from "react";
 import { FolderInput, X, Loader2, AlertCircle, Folder, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFolder } from "@/lib/dokumantasyon/types";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface MoveModalProps {
   isOpen: boolean;
-  item: { id: string; name: string; type: "file" | "folder" } | null;
-  currentFolderId: string | null;
+  items: Array<{ id: string; name: string; type: "file" | "folder"; parentId: string | null }>;
   onClose: () => void;
   onSuccess: () => void;
+  onPartialFailure?: (failedIds: string[]) => void;
 }
 
 export function MoveModal({
   isOpen,
-  item,
-  currentFolderId,
+  items,
   onClose,
   onSuccess,
+  onPartialFailure,
 }: MoveModalProps) {
   const [folders, setFolders] = useState<DokFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function MoveModal({
     if (isOpen) {
       setError(null);
       setSelectedFolderId(null);
-      fetchAvailableFolders();
+      void fetchAvailableFolders();
     }
   }, [isOpen]);
 
@@ -38,7 +39,7 @@ export function MoveModal({
     setFetchingFolders(true);
     try {
       // Kök ve alt klasörleri getir
-      const res = await fetch("/api/dokumantasyon/items");
+      const res = await fetch("/api/dokumantasyon/folders/tree");
       const data = await res.json();
       if (res.ok && data.folders) {
         setFolders(data.folders);
@@ -50,7 +51,7 @@ export function MoveModal({
     }
   };
 
-  if (!isOpen || !item) return null;
+  if (!isOpen || items.length === 0) return null;
 
   const handleMove = async () => {
     if (loading) return;
@@ -59,31 +60,31 @@ export function MoveModal({
     setError(null);
 
     try {
-      const endpoint =
-        item.type === "folder"
-          ? `/api/dokumantasyon/folders/${item.id}`
-          : `/api/dokumantasyon/files/${item.id}`;
+      const failedIds: string[] = [];
+      let movedCount = 0;
 
-      const body =
-        item.type === "folder"
-          ? { parentId: selectedFolderId }
-          : { folderId: selectedFolderId };
+      for (const item of items) {
+        // Aynı hedefe yeniden taşıma sessizce isim çoğaltmamalıdır.
+        if (item.parentId === selectedFolderId) continue;
+        const endpoint = item.type === "folder" ? `/api/dokumantasyon/folders/${item.id}` : `/api/dokumantasyon/files/${item.id}`;
+        const body = item.type === "folder" ? { parentId: selectedFolderId } : { folderId: selectedFolderId };
+        const result = await requestDokMutation(endpoint, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      const res = await fetch(endpoint, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        if (result.ok) movedCount += 1;
+        else failedIds.push(item.id);
+      }
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error || "Taşıma işlemi başarısız oldu.");
-        setLoading(false);
+      if (movedCount > 0) await onSuccess();
+      if (failedIds.length > 0) {
+        onPartialFailure?.(failedIds);
+        setError(`${items.length} öğeden ${failedIds.length}'si taşınamadı. Başarısız öğeler seçili bırakıldı.`);
         return;
       }
 
-      onSuccess();
       onClose();
     } catch {
       setError("Bağlantı hatası oluştu.");
@@ -93,13 +94,15 @@ export function MoveModal({
   };
 
   // Mevcut klasör ve döngüye girecek klasörleri filtrele
-  const filteredFolders = folders.filter((f) => {
-    if (item.type === "folder" && f.id === item.id) return false;
-    return true;
-  });
+  const selectedFolderIds = new Set(items.filter((item) => item.type === "folder").map((item) => item.id));
+  const filteredFolders = folders.filter((folder) => !selectedFolderIds.has(folder.id));
+  const itemLabel = items.length === 1 ? items[0].name : `${items.length} öğe`;
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Öğeleri taşı"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -109,7 +112,7 @@ export function MoveModal({
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2 font-bold text-foreground">
             <FolderInput className="h-5 w-5 text-amber-500" />
-            <span>{item.name} Öğesini Taşı</span>
+            <span>{itemLabel} Öğesini Taşı</span>
           </div>
           <button
             onClick={onClose}
@@ -182,7 +185,7 @@ export function MoveModal({
               type="button"
               size="sm"
               onClick={handleMove}
-              disabled={loading || selectedFolderId === currentFolderId}
+              disabled={loading || items.every((item) => item.parentId === selectedFolderId)}
               className="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400"
             >
               {loading ? (

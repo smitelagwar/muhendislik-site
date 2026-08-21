@@ -8,7 +8,8 @@ import { del } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
-import { hasDatabaseUrl } from "./runtime-mode";
+import { getBlobCommandOptions, hasDatabaseUrl } from "./runtime-mode";
+import { recordDokActivity } from "./activity";
 
 interface FolderBreadcrumbRow {
   id: string;
@@ -210,6 +211,7 @@ export async function renameFolder(id: string, newName: string): Promise<DokFold
     item.name = uniqueName;
     item.updated_at = new Date().toISOString();
     writeLocalDb(db);
+    await recordDokActivity({ action: "rename", item_type: "folder", item_id: item.id, display_name: item.name });
     return item;
   }
 
@@ -220,7 +222,9 @@ export async function renameFolder(id: string, newName: string): Promise<DokFold
     WHERE id = ${id}
     RETURNING *;
   `;
-  return rows[0] as DokFolder;
+  const renamedFolder = rows[0] as DokFolder;
+  await recordDokActivity({ action: "rename", item_type: "folder", item_id: renamedFolder.id, display_name: renamedFolder.name });
+  return renamedFolder;
 }
 
 /**
@@ -250,6 +254,7 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
     item.name = uniqueName;
     item.updated_at = new Date().toISOString();
     writeLocalDb(db);
+    await recordDokActivity({ action: "move", item_type: "folder", item_id: item.id, display_name: item.name });
     return item;
   }
 
@@ -260,6 +265,44 @@ export async function moveFolder(id: string, newParentId: string | null): Promis
     WHERE id = ${id}
     RETURNING *;
   `;
+  const movedFolder = rows[0] as DokFolder;
+  await recordDokActivity({ action: "move", item_type: "folder", item_id: movedFolder.id, display_name: movedFolder.name });
+  return movedFolder;
+}
+
+/** Dosya yöneticisi modal ve klasör yükleme akışları için tüm aktif klasörler. */
+export async function getActiveFolders(): Promise<DokFolder[]> {
+  if (!hasDatabaseUrl()) {
+    return readLocalDb().folders
+      .filter((folder) => !folder.deleted_at)
+      .sort((a, b) => a.name.localeCompare(b.name, "tr"));
+  }
+
+  const sql = getDb();
+  return (await sql`
+    SELECT * FROM dok_folders
+    WHERE deleted_at IS NULL
+    ORDER BY name ASC;
+  `) as DokFolder[];
+}
+
+/** Klasörün yıldızlı durumunu kalıcı olarak değiştirir. */
+export async function setFolderStarred(id: string, starred: boolean): Promise<DokFolder> {
+  if (!hasDatabaseUrl()) {
+    const db = readLocalDb();
+    const item = db.folders.find((folder) => folder.id === id && !folder.deleted_at);
+    if (!item) throw new Error("Klasör bulunamadı.");
+    item.starred_at = starred ? new Date().toISOString() : null;
+    item.updated_at = new Date().toISOString();
+    writeLocalDb(db);
+    return item;
+  }
+
+  const sql = getDb();
+  const rows = starred
+    ? await sql`UPDATE dok_folders SET starred_at = NOW(), updated_at = NOW() WHERE id = ${id} AND deleted_at IS NULL RETURNING *;`
+    : await sql`UPDATE dok_folders SET starred_at = NULL, updated_at = NOW() WHERE id = ${id} AND deleted_at IS NULL RETURNING *;`;
+  if (!rows[0]) throw new Error("Klasör bulunamadı.");
   return rows[0] as DokFolder;
 }
 
@@ -344,6 +387,7 @@ export async function trashFolder(id: string): Promise<{ affectedFiles: number; 
     }
 
     writeLocalDb(db);
+    await recordDokActivity({ action: "trash", item_type: "folder", item_id: id, display_name: db.folders.find((folder) => folder.id === id)?.name || null });
     return { affectedFiles, affectedFolders };
   }
 
@@ -374,6 +418,7 @@ export async function trashFolder(id: string): Promise<{ affectedFiles: number; 
     SET deleted_at = NOW(), updated_at = NOW()
     WHERE id = ANY(${folderIds});
   `;
+  await recordDokActivity({ action: "trash", item_type: "folder", item_id: id, display_name: null });
 
   return {
     affectedFiles: fileIds.length,
@@ -408,6 +453,7 @@ export async function restoreFolder(id: string): Promise<void> {
     });
 
     writeLocalDb(db);
+    await recordDokActivity({ action: "restore", item_type: "folder", item_id: folder.id, display_name: folder.name });
     return;
   }
 
@@ -427,6 +473,7 @@ export async function restoreFolder(id: string): Promise<void> {
   await sql`
     UPDATE dok_files SET deleted_at = NULL, updated_at = NOW() WHERE folder_id = ${id};
   `;
+  await recordDokActivity({ action: "restore", item_type: "folder", item_id: id, display_name: folder?.name || null });
 }
 
 /**
@@ -445,11 +492,7 @@ export async function permanentDeleteFolder(id: string): Promise<{ deletedBlobs:
         const fileNameOnDisk = file.blob_url.replace("local:", "");
         const diskPath = path.join(storageDir, fileNameOnDisk);
         if (fs.existsSync(diskPath)) {
-          try {
-            fs.unlinkSync(diskPath);
-          } catch {
-            // ignore
-          }
+          fs.unlinkSync(diskPath);
         }
       }
     });
@@ -468,17 +511,23 @@ export async function permanentDeleteFolder(id: string): Promise<{ deletedBlobs:
 
   const sql = getDb();
   const fileRows = await sql`
-    SELECT id, blob_url FROM dok_files WHERE folder_id = ANY(${folderIds});
+    SELECT id, blob_pathname FROM dok_files WHERE folder_id = ANY(${folderIds});
   `;
 
-  const blobUrls = fileRows.map((r) => r.blob_url).filter(Boolean);
+  const blobPathnames = fileRows.map((r) => r.blob_pathname).filter(Boolean);
   const fileIds = fileRows.map((r) => r.id);
 
-  if (blobUrls.length > 0) {
+  if (blobPathnames.length > 0) {
     try {
-      await del(blobUrls);
+      await del(blobPathnames, getBlobCommandOptions());
     } catch (err) {
-      console.error("Vercel Blob toplu silme hatası:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      await sql`
+        UPDATE dok_files
+        SET purge_status = 'failed', purge_last_error = ${message}
+        WHERE id = ANY(${fileIds});
+      `;
+      throw new Error(`Klasörün Blob nesneleri silinemedi; metadata korundu: ${message}`);
     }
   }
 
@@ -490,7 +539,7 @@ export async function permanentDeleteFolder(id: string): Promise<{ deletedBlobs:
   await sql`DELETE FROM dok_folders WHERE id = ANY(${folderIds});`;
 
   return {
-    deletedBlobs: blobUrls,
+    deletedBlobs: blobPathnames,
     deletedCount: fileIds.length,
   };
 }

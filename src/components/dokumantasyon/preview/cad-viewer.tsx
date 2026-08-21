@@ -107,6 +107,18 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     let viewer: DxfViewerInstance | null = null;
     let objectUrl: string | null = null;
     let onViewChanged: (() => void) | null = null;
+    const container = containerRef.current;
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      if (!active) return;
+      active = false;
+      abortController.abort();
+      viewer?.Destroy();
+      if (viewerRef.current === viewer) viewerRef.current = null;
+      setError({ kind: "render", message: "WebGL bağlamı kayboldu. Görünümü tekrar deneyin veya dosyayı indirin." });
+      setLoadState("error");
+    };
+    container?.addEventListener("webglcontextlost", onContextLost, true);
 
     const load = async () => {
       setLoadState("loading");
@@ -183,6 +195,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     return () => {
       active = false;
       abortController.abort();
+      container?.removeEventListener("webglcontextlost", onContextLost, true);
       if (viewer && onViewChanged) viewer.Unsubscribe("viewChanged", onViewChanged);
       viewer?.Destroy();
       if (viewerRef.current === viewer) viewerRef.current = null;

@@ -10,6 +10,9 @@ import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { createFile } from "@/lib/dokumantasyon/files";
 import { getLocalStorageDir } from "@/lib/dokumantasyon/local-store";
 import { isExplicitLocalDokMode } from "@/lib/dokumantasyon/runtime-mode";
+import { DOKUMANTASYON_CONFIG } from "@/lib/dokumantasyon/config";
+import { safeFileNameSchema } from "@/lib/dokumantasyon/validation";
+import { validateFileContent } from "@/lib/dokumantasyon/file-validation";
 
 export async function POST(request: Request) {
   try {
@@ -32,24 +35,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 400 });
     }
 
-    const storageDir = getLocalStorageDir();
+    const safeName = safeFileNameSchema.safeParse(file.name);
+    if (!safeName.success) {
+      return NextResponse.json({ error: safeName.error.issues[0]?.message || "Geçersiz dosya adı." }, { status: 400 });
+    }
+    if (file.size <= 0 || file.size > DOKUMANTASYON_CONFIG.MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json({ error: "Geçersiz veya çok büyük dosya." }, { status: 400 });
+    }
+    const extension = path.extname(safeName.data).toLowerCase();
+    if (!(DOKUMANTASYON_CONFIG.ALLOWED_EXTENSIONS as readonly string[]).includes(extension)) {
+      return NextResponse.json({ error: "Desteklenmeyen dosya türü." }, { status: 400 });
+    }
     const fileNameOnDisk = path.basename(pathname);
+    const canonicalPathname = `dok_storage/${fileNameOnDisk}`;
+    // Eski yerel test istemcileri yalnız basename gönderiyordu. Onu canonical
+    // namespace'e alırken traversal veya alt dizin kabul edilmez.
+    if (
+      !/^[A-Za-z0-9._-]+$/.test(fileNameOnDisk) ||
+      (pathname !== fileNameOnDisk && pathname !== canonicalPathname)
+    ) {
+      return NextResponse.json({ error: "Geçersiz yükleme yolu." }, { status: 400 });
+    }
+
+    const storageDir = getLocalStorageDir();
     const targetFilePath = path.join(storageDir, fileNameOnDisk);
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const validation = validateFileContent(buffer.subarray(0, 512), safeName.data);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.errorMessage || "Dosya imzası doğrulanamadı." }, { status: 400 });
+    }
     fs.writeFileSync(targetFilePath, buffer);
 
     const localUrl = `local:${fileNameOnDisk}`;
 
     // Veritabanı veya yerel kayıt oluştur
     const createdFile = await createFile({
-      displayName: file.name,
+      displayName: safeName.data,
       folderId: folderId && folderId !== "null" ? folderId : null,
       blobUrl: localUrl,
-      blobPathname: pathname,
+      blobPathname: canonicalPathname,
       sizeBytes: file.size,
-      mimeType: file.type || "application/octet-stream",
+      mimeType: validation.detectedMime || "application/octet-stream",
     });
 
     return NextResponse.json({

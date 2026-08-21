@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { formatBytes, formatDate, getFileIcon } from "./ui-helpers";
+import styles from "./dok-workspace.module.css";
 
 interface DriveDetailsDrawerProps {
   selectedItem: {
@@ -26,7 +27,6 @@ interface DriveDetailsDrawerProps {
     folder?: DokFolder;
   } | null;
   onClose: () => void;
-  onPreview?: (fileId: string) => void;
   onShare: (item: { id: string; type: "file" | "folder"; name: string; size?: number }) => void;
   onRename: (item: { id: string; type: "file" | "folder"; name: string }) => void;
   onDelete: (item: { id: string; type: "file" | "folder"; name: string }) => void;
@@ -35,7 +35,6 @@ interface DriveDetailsDrawerProps {
 export function DriveDetailsDrawer({
   selectedItem,
   onClose,
-  onPreview,
   onShare,
   onRename,
   onDelete,
@@ -53,7 +52,7 @@ export function DriveDetailsDrawer({
   const extension = isFile ? file!.extension : "Klasör";
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-border/70 bg-card/60 p-4 select-none backdrop-blur-md">
+    <aside className={`hidden w-80 shrink-0 flex-col border-l border-border/70 bg-card/60 p-4 select-none lg:flex ${styles.details}`}>
       {/* 1. Başlık ve Kapat Butonu */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -98,11 +97,9 @@ export function DriveDetailsDrawer({
           >
             <Link
               href={`/dokumantasyon/dosya/${file!.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
             >
               <Eye className="h-3.5 w-3.5" />
-              <span>Önizle (Yeni Sekme)</span>
+              <span>Önizle</span>
             </Link>
           </Button>
         )}

@@ -4,6 +4,7 @@
 
 import { notFound } from "next/navigation";
 import { getAdminFileAccess } from "@/lib/dokumantasyon/file-access";
+import { markFileOpened } from "@/lib/dokumantasyon/files";
 import { getDokumantasyonSession } from "@/lib/dokumantasyon/auth";
 import { DokumantasyonLoginForm } from "@/components/dokumantasyon/login-form";
 import { DocumentStudioShell } from "@/components/dokumantasyon/studio/document-studio-shell";
@@ -26,18 +27,13 @@ export default async function DokumantasyonFilePage({ params }: FilePageProps) {
     notFound();
   }
 
+  let accessData: Awaited<ReturnType<typeof getAdminFileAccess>>;
   try {
-    const accessData = await getAdminFileAccess(fileId);
-
-    return (
-      <DocumentStudioShell
-        file={accessData.file}
-        accessUrl={accessData.accessUrl}
-        previewKind={accessData.previewKind}
-        expiresAt={accessData.expiresAt}
-        isLocal={accessData.isLocal}
-      />
-    );
+    accessData = await getAdminFileAccess(fileId);
+    // Bu yalnız gerçek preview route açılışında çalışır; viewer render/scroll'unda çağrılmaz.
+    await markFileOpened(fileId).catch((error) => {
+      console.warn("Son açılanlar güncellemesi tamamlanamadı:", error);
+    });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === "NOT_FOUND") {
       notFound();
@@ -45,5 +41,14 @@ export default async function DokumantasyonFilePage({ params }: FilePageProps) {
     console.error("Önizleme sayfası yükleme hatası:", err);
     notFound();
   }
-}
 
+  return (
+    <DocumentStudioShell
+      file={accessData.file}
+      accessUrl={accessData.accessUrl}
+      previewKind={accessData.previewKind}
+      expiresAt={accessData.expiresAt}
+      isLocal={accessData.isLocal}
+    />
+  );
+}

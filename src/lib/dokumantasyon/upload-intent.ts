@@ -4,6 +4,8 @@
 
 import { SignJWT, jwtVerify } from "jose";
 import { getJwtSecret } from "./auth";
+import { ensureDatabaseTables, getDb } from "./db";
+import { hasDatabaseUrl } from "./runtime-mode";
 
 export interface UploadIntentPayload {
   intentId: string;
@@ -40,24 +42,19 @@ export async function createUploadIntentToken(payload: UploadIntentPayload): Pro
     .sign(secret);
 
   // DB'de intent yaşam döngüsünü kaydet
-  const { hasDatabaseUrl } = await import("./runtime-mode");
   if (hasDatabaseUrl()) {
-    try {
-      const { getDb } = await import("./db");
-      const sql = getDb();
-      const expiresAt = new Date(Date.now() + INTENT_TTL_SECONDS * 1000).toISOString();
-      await sql`
-        INSERT INTO dok_upload_intents (
-          id, pathname, expected_filename, expected_size_bytes, folder_id, username, status, expires_at
-        ) VALUES (
-          ${payload.intentId}, ${payload.pathname}, ${payload.filename}, ${payload.sizeBytes},
-          ${payload.folderId}, ${payload.username}, 'issued', ${expiresAt}
-        )
-        ON CONFLICT (pathname) DO NOTHING;
-      `;
-    } catch (e) {
-      console.warn("DB intent kaydetme uyarısı:", e);
-    }
+    const sql = getDb();
+    await ensureDatabaseTables(sql);
+    const expiresAt = new Date(Date.now() + INTENT_TTL_SECONDS * 1000).toISOString();
+    await sql`
+      INSERT INTO dok_upload_intents (
+        id, pathname, expected_filename, expected_size_bytes, folder_id, username, status, expires_at
+      ) VALUES (
+        ${payload.intentId}, ${payload.pathname}, ${payload.filename}, ${payload.sizeBytes},
+        ${payload.folderId}, ${payload.username}, 'issued', ${expiresAt}
+      )
+      ON CONFLICT (pathname) DO NOTHING;
+    `;
   }
 
   return token;
@@ -104,15 +101,14 @@ export async function verifyUploadIntentToken(tokenString: string): Promise<Uplo
  * Intent durumunu finalize olarak işaretler
  */
 export async function markUploadIntentFinalized(intentId: string, fileId?: string): Promise<void> {
-  const { hasDatabaseUrl } = await import("./runtime-mode");
   if (hasDatabaseUrl()) {
     try {
-      const { getDb } = await import("./db");
       const sql = getDb();
       await sql`
         UPDATE dok_upload_intents
         SET status = 'finalized', finalized_at = NOW(), file_id = ${fileId || null}
-        WHERE id = ${intentId};
+        WHERE id = ${intentId}
+          AND (status <> 'finalized' OR file_id IS NULL);
       `;
     } catch {}
   }
@@ -122,10 +118,8 @@ export async function markUploadIntentFinalized(intentId: string, fileId?: strin
  * Intent durumunu failed olarak işaretler
  */
 export async function markUploadIntentFailed(intentId: string, errorCode: string): Promise<void> {
-  const { hasDatabaseUrl } = await import("./runtime-mode");
   if (hasDatabaseUrl()) {
     try {
-      const { getDb } = await import("./db");
       const sql = getDb();
       await sql`
         UPDATE dok_upload_intents

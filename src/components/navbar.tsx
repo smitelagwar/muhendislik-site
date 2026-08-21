@@ -21,9 +21,9 @@ export function Navbar() {
       <NavbarChrome>
         <div className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-blue-500" />
 
-        <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-16">
+        <div className="mx-auto max-w-screen-2xl px-2 sm:px-6 lg:px-16">
           <div className="flex items-center justify-between py-5 transition-all duration-500 group-data-[scrolled=true]/navbar:py-3">
-            <div className="flex flex-shrink-0 items-center gap-8">
+            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-8">
               <NavbarLeading />
               <NavbarDesktopNav />
             </div>

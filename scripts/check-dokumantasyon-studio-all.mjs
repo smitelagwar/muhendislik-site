@@ -160,17 +160,30 @@ async function runMasterE2ETests() {
   );
 
   const cadApsModule = await import(pathToFileURL(cadApsPath).href);
-  const statusRes = await cadApsModule.resolveCadPreviewStatus("test-file-id", ".dwg");
+  const statusRes = await cadApsModule.resolveCadPreviewStatus({
+    id: "test-file-id",
+    folder_id: null,
+    display_name: "test.dwg",
+    blob_pathname: "dok_storage/test.dwg",
+    blob_url: "local:test.dwg",
+    size_bytes: 1,
+    mime_type: "application/acad",
+    extension: ".dwg",
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+    deleted_at: null,
+  });
   assert.strictEqual(
     statusRes.status,
-    "unconfigured",
-    "APS anahtarları yokken CAD durumu 'unconfigured' olmalıdır."
+    "failed",
+    "APS anahtarları yokken CAD durumu kontrollü 'failed' olmalıdır."
   );
   assert.strictEqual(
     statusRes.isAvailable,
     false,
     "APS anahtarları yokken isAvailable false olmalıdır."
   );
+  assert.strictEqual(statusRes.errorCode, "APS_NOT_CONFIGURED");
 
   const mdViewerPath = path.join(
     ROOT,

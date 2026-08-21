@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FolderPlus, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface NewFolderModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export function NewFolderModal({
     setError(null);
 
     try {
-      const res = await fetch("/api/dokumantasyon/folders", {
+      const result = await requestDokMutation("/api/dokumantasyon/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -40,11 +41,8 @@ export function NewFolderModal({
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error || "Klasör oluşturulamadı.");
-        setLoading(false);
+      if (!result.ok) {
+        setError(result.message);
         return;
       }
 

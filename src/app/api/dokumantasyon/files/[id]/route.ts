@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { assertSameOriginForMutation } from "@/lib/dokumantasyon/security";
 import { updateFileSchema } from "@/lib/dokumantasyon/validation";
-import { renameFile, moveFile, trashFile } from "@/lib/dokumantasyon/files";
+import { renameFile, moveFile, setFileStarred, trashFile } from "@/lib/dokumantasyon/files";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
-    const { displayName, folderId } = parseResult.data;
+    const { displayName, folderId, starred } = parseResult.data;
     let updatedFile;
 
     if (displayName !== undefined && displayName !== null) {
@@ -37,6 +37,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (folderId !== undefined) {
       updatedFile = await moveFile(id, folderId || null);
+    }
+
+    if (starred !== undefined) {
+      updatedFile = await setFileStarred(id, starred);
     }
 
     return NextResponse.json({ success: true, file: updatedFile });

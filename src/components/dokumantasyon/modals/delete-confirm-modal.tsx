@@ -65,7 +65,7 @@ export function DeleteConfirmModal({
 
         <div className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <div role="alert" className="flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>

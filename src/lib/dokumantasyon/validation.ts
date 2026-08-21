@@ -4,6 +4,17 @@
 
 import { z } from "zod";
 
+export const safeFileNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Dosya adı boş bırakılamaz.")
+  .max(255, "Dosya adı en fazla 255 karakter olabilir.")
+  .refine((value) => value !== "." && value !== "..", "Dosya adı geçersiz.")
+  .refine(
+    (value) => !/[\\/:*?"<>|\u0000-\u001F\u007F]/.test(value),
+    "Dosya adı yol, kontrol veya sistem karakteri içeremez."
+  );
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1, "Kullanıcı adı boş bırakılamaz."),
   password: z.string().min(1, "Şifre boş bırakılamaz."),
@@ -28,17 +39,24 @@ export const updateFolderSchema = z.object({
     .refine((val) => !/[\\/:*?"<>|]/.test(val), "Klasör adı geçersiz karakterler içeremez.")
     .optional(),
   parentId: z.string().uuid("Geçersiz üst klasör kimliği.").nullable().optional(),
+  starred: z.boolean().optional(),
 });
 
 export const updateFileSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(1, "Dosya adı boş bırakılamaz.")
-    .max(255, "Dosya adı en fazla 255 karakter olabilir.")
-    .refine((val) => !/[\\/:*?"<>|]/.test(val), "Dosya adı geçersiz karakterler içeremez.")
-    .optional(),
+  displayName: safeFileNameSchema.optional(),
   folderId: z.string().uuid("Geçersiz klasör kimliği.").nullable().optional(),
+  starred: z.boolean().optional(),
+});
+
+export const uploadIntentSchema = z.object({
+  filename: safeFileNameSchema,
+  size: z.number().finite().positive("Geçersiz dosya boyutu."),
+  mimeType: z.string().trim().max(255).optional(),
+  folderId: z.string().uuid("Geçersiz klasör kimliği.").nullable().optional(),
+});
+
+export const legacyStarMigrationSchema = z.object({
+  ids: z.array(z.string().uuid("Geçersiz yıldızlı öğe kimliği.")).max(500),
 });
 
 export const createShareSchema = z.object({

@@ -17,6 +17,7 @@ import { getFolder } from "./folders";
 import { readLocalDb, writeLocalDb } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";
 import { buildPublicShareUrl } from "@/lib/site-config";
+import { recordDokActivity } from "./activity";
 
 export interface ResolvedShareFile {
   file: DokFile;
@@ -297,6 +298,8 @@ export async function createShareLink(options: {
     }
   }
 
+  await recordDokActivity({ action: "share_create", item_type: "share", item_id: shareLink.id, display_name: shareLink.title || null });
+
   return {
     shareLink,
     rawToken,
@@ -365,12 +368,13 @@ export async function getAdminShareLinks(): Promise<
     ORDER BY l.created_at DESC;
   `;
 
-  return rows.map((r: Record<string, any>) => {
+  return rows.map((r: Record<string, unknown>) => {
     const expiresAtTime = new Date(r.expires_at as string).getTime();
     const isExpired = expiresAtTime <= now;
     const isRevoked = r.revoked_at !== null;
-    const isOverDownloadLimit =
-      r.max_downloads !== null && r.download_count >= r.max_downloads;
+    const maxDownloads = r.max_downloads === null ? null : Number(r.max_downloads);
+    const downloadCount = Number(r.download_count || 0);
+    const isOverDownloadLimit = maxDownloads !== null && downloadCount >= maxDownloads;
     const isActive = !isExpired && !isRevoked && !isOverDownloadLimit;
 
     let decryptedToken: string | null = null;
@@ -384,8 +388,8 @@ export async function getAdminShareLinks(): Promise<
       title: (r.title as string) || null,
       expires_at: r.expires_at as string,
       password_hash: (r.password_hash as string) || null,
-      max_downloads: r.max_downloads !== null ? Number(r.max_downloads) : null,
-      download_count: Number(r.download_count || 0),
+      max_downloads: maxDownloads,
+      download_count: downloadCount,
       created_at: r.created_at as string,
       revoked_at: (r.revoked_at as string) || null,
       last_accessed_at: (r.last_accessed_at as string) || null,
@@ -409,6 +413,7 @@ export async function revokeShareLink(id: string): Promise<void> {
     if (link) {
       link.revoked_at = new Date().toISOString();
       writeLocalDb(db);
+      await recordDokActivity({ action: "share_revoke", item_type: "share", item_id: link.id, display_name: link.title || null });
     }
     return;
   }
@@ -419,4 +424,5 @@ export async function revokeShareLink(id: string): Promise<void> {
     SET revoked_at = NOW()
     WHERE id = ${id};
   `;
+  await recordDokActivity({ action: "share_revoke", item_type: "share", item_id: id, display_name: null });
 }

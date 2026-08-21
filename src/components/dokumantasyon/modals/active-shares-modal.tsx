@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import QRCode from "qrcode";
 import { formatDate, formatBytes } from "../ui-helpers";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface ShareLinkItem {
   id: string;
@@ -46,6 +47,7 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [qrModalData, setQrModalData] = useState<{ url: string; qrSrc: string; title: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -55,14 +57,14 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
 
   const fetchShares = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/dokumantasyon/shares");
-      const data = await res.json();
-      if (res.ok) {
-        setLinks(data.links || []);
-      }
-    } catch (err) {
-      console.error("Paylaşım linkleri yüklenirken hata:", err);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setLinks(data.links || []);
+      else setError(data.error || "Paylaşım bağlantıları listelenemedi.");
+    } catch {
+      setError("Paylaşım bağlantıları listelenemedi.");
     } finally {
       setLoading(false);
     }
@@ -101,15 +103,16 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
     }
 
     setRevokingId(id);
+    setError(null);
     try {
-      const res = await fetch(`/api/dokumantasyon/shares/${id}/revoke`, {
+      const result = await requestDokMutation(`/api/dokumantasyon/shares/${id}/revoke`, {
         method: "POST",
       });
-      if (res.ok) {
+      if (result.ok) {
         fetchShares();
+      } else {
+        setError(result.message);
       }
-    } catch (err) {
-      console.error("Link iptal hatası:", err);
     } finally {
       setRevokingId(null);
     }
@@ -137,6 +140,13 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {error && (
+          <div role="alert" className="mt-4 flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Liste */}
         <div className="mt-4 max-h-[60vh] space-y-3 overflow-y-auto pr-1">

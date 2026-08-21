@@ -187,7 +187,7 @@ async function runStage3Tests() {
 
   for (const cmd of expectedPdfCommands) {
     assert(
-      toolbarContent.includes(`commandId="${cmd}"`),
+      toolbarContent.includes(`commandId="${cmd}"`) || toolbarContent.includes(`data-command-id="${cmd}"`),
       `Toolbar '${cmd}' komutunu içermelidir.`
     );
   }

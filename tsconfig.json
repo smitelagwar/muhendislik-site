@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -28,7 +34,37 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    ".next-playwright/types/**/*.ts",
+    ".next-playwright/dev/types/**/*.ts",
+    ".next-playwright-3108/types/**/*.ts",
+    ".next-playwright-3108/dev/types/**/*.ts",
+    ".next-playwright-3109/types/**/*.ts",
+    ".next-playwright-3109/dev/types/**/*.ts",
+    ".next-playwright-3110/types/**/*.ts",
+    ".next-playwright-3110/dev/types/**/*.ts",
+    ".next-playwright-3111/types/**/*.ts",
+    ".next-playwright-3111/dev/types/**/*.ts",
+    ".next-playwright-3112/types/**/*.ts",
+    ".next-playwright-3112/dev/types/**/*.ts",
+    ".next-playwright-3113/types/**/*.ts",
+    ".next-playwright-3113/dev/types/**/*.ts",
+    ".next-playwright-3114/types/**/*.ts",
+    ".next-playwright-3114/dev/types/**/*.ts",
+    ".next-playwright-3115/types/**/*.ts",
+    ".next-playwright-3115/dev/types/**/*.ts",
+    ".next-playwright-3117/types/**/*.ts",
+    ".next-playwright-3117/dev/types/**/*.ts",
+    ".next-playwright-3118/types/**/*.ts",
+    ".next-playwright-3118/dev/types/**/*.ts",
+    ".next-playwright-3119/types/**/*.ts",
+    ".next-playwright-3119/dev/types/**/*.ts",
+    ".next-playwright-3120/types/**/*.ts",
+    ".next-playwright-3120/dev/types/**/*.ts",
+    ".next-playwright-3121/types/**/*.ts",
+    ".next-playwright-3121/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

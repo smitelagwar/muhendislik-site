@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Edit3, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface RenameModalProps {
   isOpen: boolean;
@@ -48,17 +49,14 @@ export function RenameModal({
           ? { name: name.trim() }
           : { displayName: name.trim() };
 
-      const res = await fetch(endpoint, {
+      const result = await requestDokMutation(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error || "Yeniden adlandırma başarısız oldu.");
-        setLoading(false);
+      if (!result.ok) {
+        setError(result.message);
         return;
       }
 

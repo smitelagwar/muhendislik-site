@@ -9,6 +9,7 @@ export interface DokFolder {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  starred_at?: string | null;
 }
 
 export interface DokFile {
@@ -23,6 +24,8 @@ export interface DokFile {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  starred_at?: string | null;
+  last_opened_at?: string | null;
   current_version_number?: number;
 }
 
@@ -37,6 +40,15 @@ export interface DokFileVersion {
   sha256_hash?: string | null;
   comment?: string | null;
   created_by: string;
+  created_at: string;
+}
+
+export interface DokActivityEvent {
+  id: string;
+  action: "upload" | "rename" | "move" | "trash" | "restore" | "share_create" | "share_revoke";
+  item_type: "file" | "folder" | "share";
+  item_id: string | null;
+  display_name: string | null;
   created_at: string;
 }
 

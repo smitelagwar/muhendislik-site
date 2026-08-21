@@ -62,9 +62,9 @@ async function runStage2Tests() {
   logSuccess("DocumentStudioShell 100dvw x 100dvh tam ekran kapsayıcı doğrulaması geçti.");
 
   // -------------------------------------------------------------------
-  // TEST 2: Dosya Yöneticisi Gerçek Anchor (<Link target="_blank">) Semantiği
+  // TEST 2: Dosya Yöneticisi Preview / Yeni Sekme Semantiği
   // -------------------------------------------------------------------
-  logStep("TEST 2: Dosya Yöneticisi Gerçek Link ve Yeni Sekme Davranışı");
+  logStep("TEST 2: Dosya Yöneticisi Gerçek Link, Preview ve Yeni Sekme Davranışı");
 
   const fileManagerPath = path.join(ROOT, "src/components/dokumantasyon/file-manager.tsx");
   assert(fs.existsSync(fileManagerPath), "file-manager.tsx mevcut olmalıdır.");
@@ -72,11 +72,11 @@ async function runStage2Tests() {
 
   assert(
     fileManagerContent.includes('target="_blank"'),
-    "file-manager.tsx içinde dosya bağlantıları target='_blank' içermelidir."
+    "file-manager.tsx içinde yalnız açık yeni-sekme komutu için target='_blank' bulunmalıdır."
   );
   assert(
     fileManagerContent.includes('rel="noopener noreferrer"'),
-    "file-manager.tsx içinde dosya bağlantıları rel='noopener noreferrer' içermelidir."
+    "file-manager.tsx yeni-sekme bağlantısında rel='noopener noreferrer' kullanmalıdır."
   );
   assert(
     fileManagerContent.includes("href={`/dokumantasyon/dosya/${file.id}`}"),
@@ -86,7 +86,11 @@ async function runStage2Tests() {
     fileManagerContent.includes("handleToggleSelect(file.id, e)"),
     "Checkbox tıklamaları ayrı event handler ve propagation izolasyonuna sahip olmalıdır."
   );
-  logSuccess("Dosya yöneticisi liste ve kart görünümlerinde gerçek semantic anchor doğrulandı.");
+  assert(
+    fileManagerContent.includes("<span>Önizle</span>") && fileManagerContent.includes("<span>Yeni Sekmede Aç</span>"),
+    "Önizle ve Yeni Sekmede Aç ayrı semantik komutlar olarak bulunmalıdır."
+  );
+  logSuccess("Dosya yöneticisi preview ve açık yeni-sekme semantiği doğrulandı.");
 
   // -------------------------------------------------------------------
   // TEST 3: Command Registry ve Contract Doğrulaması

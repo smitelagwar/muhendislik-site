@@ -11,7 +11,7 @@ export function NavbarDesktopNav() {
   );
 
   return (
-    <nav className="hidden items-center gap-1 lg:flex">
+    <nav className="hidden items-center gap-1 xl:flex">
       {links.map((link) => {
         const isActive = isNavigationItemActive(pathname, link);
 

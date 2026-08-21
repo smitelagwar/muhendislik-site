@@ -6,19 +6,23 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { PreviewKind } from "@/lib/dokumantasyon/preview-capabilities";
 import { StudioTopbar } from "./studio-topbar";
 import { CreateShareModal } from "../modals/create-share-modal";
 import { ShareResultModal } from "../modals/share-result-modal";
 import { RenameModal } from "../modals/rename-modal";
 import { DeleteConfirmModal } from "../modals/delete-confirm-modal";
-import { DokPdfViewer } from "../preview/pdf-viewer";
-import { DokImageViewer } from "../preview/image-viewer";
-import { DokTextViewer } from "../preview/text-viewer";
-import { DokMarkdownViewer } from "../preview/markdown-viewer";
-import { DokCadViewer } from "../preview/cad-viewer";
 import { UnsupportedPreview } from "../preview/unsupported-preview";
 import { refreshDocumentAccessLease, isAccessLeaseExpiring, DocumentAccessLease } from "@/lib/dokumantasyon/studio/access-lease";
+
+// Viewer motorları yalnız gerekli preview türü açıldığında indirilsin; Explorer
+// ve başka bir viewer türü PDF.js/CAD kodunu ilk JS'e taşımamalıdır.
+const DokPdfViewer = dynamic(() => import("../preview/pdf-viewer").then((module) => module.DokPdfViewer), { ssr: false });
+const DokImageViewer = dynamic(() => import("../preview/image-viewer").then((module) => module.DokImageViewer), { ssr: false });
+const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((module) => module.DokTextViewer), { ssr: false });
+const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
+const DokCadViewer = dynamic(() => import("../preview/cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
 
 interface DocumentStudioShellProps {
   file: {
@@ -37,6 +41,15 @@ interface DocumentStudioShellProps {
   isLocal: boolean;
   versionNo?: number;
 }
+
+type ShareResult = {
+  shareUrl: string;
+  rawToken: string;
+  expiresAt: string;
+  totalFiles: number;
+  totalSizeBytes: number;
+  title?: string | null;
+};
 
 export function DocumentStudioShell({
   file,
@@ -66,7 +79,7 @@ export function DocumentStudioShell({
 
   // Modallar
   const [isCreateShareOpen, setIsCreateShareOpen] = useState(false);
-  const [shareResult, setShareResult] = useState<any | null>(null);
+  const [shareResult, setShareResult] = useState<ShareResult | null>(null);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 

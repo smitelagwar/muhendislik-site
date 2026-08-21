@@ -222,16 +222,16 @@ export function PdfViewerToolbar({
               Kaydırma / el aracı
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-xs" onClick={onFitWidth}>
+            <DropdownMenuItem data-command-id="pdf.zoom.fitWidth" className="cursor-pointer text-xs" onClick={onFitWidth}>
               Genişliğe sığdır
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs" onClick={onFitPage}>
+            <DropdownMenuItem data-command-id="pdf.zoom.fitPage" className="cursor-pointer text-xs" onClick={onFitPage}>
               Sayfaya sığdır
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs" onClick={onRotateView}>
+            <DropdownMenuItem data-command-id="pdf.rotateView" className="cursor-pointer text-xs" onClick={onRotateView}>
               Görünümü döndür
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs" onClick={onPrint}>
+            <DropdownMenuItem data-command-id="pdf.print" className="cursor-pointer text-xs" onClick={onPrint}>
               PDF yazdır
             </DropdownMenuItem>
           </DropdownMenuContent>

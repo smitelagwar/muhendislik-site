@@ -41,16 +41,16 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <div className="mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8">
       {/* Üst Bar / Header */}
-      <div className="flex flex-col gap-4 rounded-xl border border-border bg-card/60 p-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-500">
-            <FolderArchive className="h-6 w-6" />
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/70 p-3 shadow-lg backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
+            <FolderArchive className="h-5 w-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
                 Dökümantasyon Modülü
               </h1>
               <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
@@ -58,31 +58,31 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
               </span>
               {readiness && (
                 readiness.storageMode === "durable" ? (
-                  <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400 sm:basis-auto">
                     <ShieldCheck className="h-3 w-3" />
                     <span>Kalıcı Depolama (Neon + Blob)</span>
                   </span>
                 ) : readiness.storageMode === "local_dev" ? (
-                  <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400 sm:basis-auto">
                     <Laptop className="h-3 w-3" />
                     <span>Yerel Geliştirme (Local)</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400">
+                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400 sm:basis-auto">
                     <ShieldAlert className="h-3 w-3" />
                     <span>Depolama Eksik (Korumalı)</span>
                   </span>
                 )
               )}
             </div>
-            <p className="text-xs text-muted-foreground sm:text-sm">
+            <p className="hidden text-xs text-muted-foreground sm:block">
               Özel dosya depolama, klasörleme ve süreli link paylaşım paneli
             </p>
           </div>
         </div>
 
         {/* Kullanıcı Rozeti ve Çıkış Yap Butonu */}
-        <div className="flex items-center gap-3 border-t border-border/60 pt-3 sm:border-t-0 sm:pt-0">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
           <div className="flex items-center gap-2 rounded-lg border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground">
             <User className="h-3.5 w-3.5 text-amber-500" />
             <span>{username}</span>

@@ -42,7 +42,7 @@ function createPortraitFixturePdfBase64(): string {
   return Buffer.from(document, "utf8").toString("base64");
 }
 
-test("new-tab studio inherits theme, fills the viewport, and preserves PDF pixels", async ({ page }) => {
+test("same-tab studio inherits theme, fills the viewport, and preserves PDF pixels", async ({ page }) => {
   await page.goto("/dokumantasyon");
   await page.getByLabel("Kullanıcı Adı").fill("admin");
   await page.locator("input#password").fill("admin");
@@ -68,10 +68,8 @@ test("new-tab studio inherits theme, fills the viewport, and preserves PDF pixel
   await page.getByTestId("theme-toggle").first().click();
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 
-  const popupPromise = page.waitForEvent("popup");
   await fileLink.click();
-  const studio = await popupPromise;
-  await studio.waitForLoadState("domcontentloaded");
+  const studio = page;
   await expect(studio).toHaveURL(new RegExp(`/dokumantasyon/dosya/${fileId}$`));
 
   await expect(studio.locator('[data-testid="document-studio-shell"]')).toBeVisible();
@@ -120,9 +118,8 @@ test("PDF overflow stays in its viewport and the compact toolbar does not wrap",
   }, createFixturePdfBase64());
 
   await page.reload();
-  const popupPromise = page.waitForEvent("popup");
   await page.locator(`a[href="/dokumantasyon/dosya/${fileId}"]`).first().click();
-  const studio = await popupPromise;
+  const studio = page;
   await studio.setViewportSize({ width: 390, height: 844 });
   await expect(studio.locator("canvas").first()).toBeVisible();
 
@@ -202,9 +199,8 @@ test("Ctrl-wheel zoom is viewport-scoped, cursor-anchored, and preserves zoom mo
   }, createFixturePdfBase64());
 
   await page.reload();
-  const popupPromise = page.waitForEvent("popup");
   await page.locator(`a[href="/dokumantasyon/dosya/${fileId}"]`).first().click();
-  const studio = await popupPromise;
+  const studio = page;
   await studio.setViewportSize({ width: 390, height: 844 });
   await expect(studio.locator("canvas").first()).toBeVisible();
 
@@ -298,9 +294,8 @@ test("Stage 6 controls preserve PDF-local scroll, rotation, pan, and fullscreen"
   }, createPortraitFixturePdfBase64());
 
   await page.reload();
-  const popupPromise = page.waitForEvent("popup");
   await page.locator(`a[href="/dokumantasyon/dosya/${fileId}"]`).first().click();
-  const studio = await popupPromise;
+  const studio = page;
   await studio.setViewportSize({ width: 1024, height: 768 });
   await expect(studio.locator("canvas").first()).toBeVisible();
 

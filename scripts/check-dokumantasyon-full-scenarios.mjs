@@ -112,7 +112,7 @@ async function runAllScenarios() {
 
   // 3.1 DWG Yükleme
   const dwgFormData = new FormData();
-  const dwgBlob = new Blob(["AUTOCAD DWG HEADER 2026 BINARY STREAM"], { type: "application/acad" });
+  const dwgBlob = new Blob(["AC1027 AUTOCAD DWG HEADER 2026 BINARY STREAM"], { type: "application/acad" });
   dwgFormData.append("file", dwgBlob, "kiris_detaylari_kat1.dwg");
   dwgFormData.append("pathname", "dok_storage/kiris_detaylari_kat1.dwg");
   dwgFormData.append("folderId", subFolderId);

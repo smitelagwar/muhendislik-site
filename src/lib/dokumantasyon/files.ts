@@ -10,6 +10,7 @@ import fs from "fs";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
 import { hasDatabaseUrl, getBlobCommandOptions, hasBlobAccessConfiguration } from "./runtime-mode";
 import { releaseCadDerivatives } from "./cad-aps";
+import { recordDokActivity } from "./activity";
 
 /**
  * Belirtilen ID'ye sahip dosyayı getirir
@@ -23,6 +24,22 @@ export async function getFile(id: string): Promise<DokFile | null> {
   const sql = getDb();
   const rows = await sql`
     SELECT * FROM dok_files WHERE id = ${id} LIMIT 1;
+  `;
+  return (rows[0] as DokFile) || null;
+}
+
+/** Upload callback'inin oluşturduğu metadata kaydını pathname ile doğrular. */
+export async function getFileByBlobPathname(pathname: string): Promise<DokFile | null> {
+  if (!hasDatabaseUrl()) {
+    const db = readLocalDb();
+    return db.files.find((file) => file.blob_pathname === pathname && !file.deleted_at) || null;
+  }
+
+  const sql = getDb();
+  const rows = await sql`
+    SELECT * FROM dok_files
+    WHERE blob_pathname = ${pathname} AND deleted_at IS NULL
+    LIMIT 1;
   `;
   return (rows[0] as DokFile) || null;
 }
@@ -115,6 +132,7 @@ export async function createFileRecord(data: {
     };
     db.files.push(newFile);
     writeLocalDb(db);
+    await recordDokActivity({ action: "upload", item_type: "file", item_id: newFile.id, display_name: newFile.display_name });
     return newFile;
   }
 
@@ -155,10 +173,20 @@ export async function createFileRecord(data: {
           ${data.mime_type},
           ${data.extension}
         )
-        ON CONFLICT (blob_pathname) DO UPDATE SET updated_at = NOW()
+        ON CONFLICT (blob_pathname) DO NOTHING
         RETURNING *;
       `;
-      return rows[0] as DokFile;
+      const createdFile = rows[0] as DokFile | undefined;
+      if (createdFile) {
+        await recordDokActivity({ action: "upload", item_type: "file", item_id: createdFile.id, display_name: createdFile.display_name });
+        return createdFile;
+      }
+
+      const duplicateRows = await sql`
+        SELECT * FROM dok_files WHERE blob_pathname = ${data.blob_pathname} LIMIT 1;
+      `;
+      if (duplicateRows[0]) return duplicateRows[0] as DokFile;
+      throw new Error("Dosya finalize yarışı çözümlenemedi.");
     } catch (err: unknown) {
       attempts++;
       if (attempts < maxAttempts) {
@@ -208,6 +236,7 @@ export async function renameFile(id: string, newDisplayName: string): Promise<Do
     item.display_name = uniqueName;
     item.updated_at = new Date().toISOString();
     writeLocalDb(db);
+    await recordDokActivity({ action: "rename", item_type: "file", item_id: item.id, display_name: item.display_name });
     return item;
   }
 
@@ -219,7 +248,9 @@ export async function renameFile(id: string, newDisplayName: string): Promise<Do
     RETURNING *;
   `;
 
-  return rows[0] as DokFile;
+  const renamedFile = rows[0] as DokFile;
+  await recordDokActivity({ action: "rename", item_type: "file", item_id: renamedFile.id, display_name: renamedFile.display_name });
+  return renamedFile;
 }
 
 /**
@@ -239,6 +270,7 @@ export async function moveFile(id: string, newFolderId: string | null): Promise<
     item.display_name = uniqueName;
     item.updated_at = new Date().toISOString();
     writeLocalDb(db);
+    await recordDokActivity({ action: "move", item_type: "file", item_id: item.id, display_name: item.display_name });
     return item;
   }
 
@@ -250,7 +282,96 @@ export async function moveFile(id: string, newFolderId: string | null): Promise<
     RETURNING *;
   `;
 
+  const movedFile = rows[0] as DokFile;
+  await recordDokActivity({ action: "move", item_type: "file", item_id: movedFile.id, display_name: movedFile.display_name });
+  return movedFile;
+}
+
+/** Dosyanın yıldızlı durumunu kalıcı olarak değiştirir. */
+export async function setFileStarred(id: string, starred: boolean): Promise<DokFile> {
+  if (!hasDatabaseUrl()) {
+    const db = readLocalDb();
+    const item = db.files.find((file) => file.id === id && !file.deleted_at);
+    if (!item) throw new Error("Dosya bulunamadı.");
+    item.starred_at = starred ? new Date().toISOString() : null;
+    item.updated_at = new Date().toISOString();
+    writeLocalDb(db);
+    return item;
+  }
+
+  const sql = getDb();
+  const rows = starred
+    ? await sql`UPDATE dok_files SET starred_at = NOW(), updated_at = NOW() WHERE id = ${id} AND deleted_at IS NULL RETURNING *;`
+    : await sql`UPDATE dok_files SET starred_at = NULL, updated_at = NOW() WHERE id = ${id} AND deleted_at IS NULL RETURNING *;`;
+  if (!rows[0]) throw new Error("Dosya bulunamadı.");
   return rows[0] as DokFile;
+}
+
+/**
+ * Önizleme açılışını kaydeder. Aynı dosya için kısa aralıkta tekrar yazmaz;
+ * scroll/render olayları bu fonksiyonu hiç çağırmaz.
+ */
+export async function markFileOpened(id: string): Promise<void> {
+  const debounceMs = 2 * 60 * 1000;
+
+  if (!hasDatabaseUrl()) {
+    const db = readLocalDb();
+    const item = db.files.find((file) => file.id === id && !file.deleted_at);
+    if (!item) return;
+    const lastOpened = item.last_opened_at ? new Date(item.last_opened_at).getTime() : 0;
+    if (Date.now() - lastOpened < debounceMs) return;
+    item.last_opened_at = new Date().toISOString();
+    writeLocalDb(db);
+    return;
+  }
+
+  const sql = getDb();
+  await sql`
+    UPDATE dok_files
+    SET last_opened_at = NOW()
+    WHERE id = ${id}
+      AND deleted_at IS NULL
+      AND (last_opened_at IS NULL OR last_opened_at < NOW() - INTERVAL '2 minutes');
+  `;
+}
+
+/** LocalStorage'daki eski, typesız yıldız id'lerini tek seferlik taşımak içindir. */
+export async function migrateLegacyStarredIds(ids: string[]): Promise<number> {
+  const uniqueIds = [...new Set(ids)].slice(0, 500);
+  if (uniqueIds.length === 0) return 0;
+
+  if (!hasDatabaseUrl()) {
+    const db = readLocalDb();
+    const now = new Date().toISOString();
+    let migrated = 0;
+    for (const file of db.files) {
+      if (uniqueIds.includes(file.id) && !file.deleted_at && !file.starred_at) {
+        file.starred_at = now;
+        migrated++;
+      }
+    }
+    for (const folder of db.folders) {
+      if (uniqueIds.includes(folder.id) && !folder.deleted_at && !folder.starred_at) {
+        folder.starred_at = now;
+        migrated++;
+      }
+    }
+    writeLocalDb(db);
+    return migrated;
+  }
+
+  const sql = getDb();
+  const fileRows = await sql`
+    UPDATE dok_files SET starred_at = COALESCE(starred_at, NOW()), updated_at = NOW()
+    WHERE id = ANY(${uniqueIds}) AND deleted_at IS NULL
+    RETURNING id;
+  `;
+  const folderRows = await sql`
+    UPDATE dok_folders SET starred_at = COALESCE(starred_at, NOW()), updated_at = NOW()
+    WHERE id = ANY(${uniqueIds}) AND deleted_at IS NULL
+    RETURNING id;
+  `;
+  return fileRows.length + folderRows.length;
 }
 
 /**
@@ -271,8 +392,9 @@ export async function trashFile(id: string): Promise<void> {
         .forEach((si) => {
           const link = db.shares.find((s) => s.id === si.share_link_id);
           if (link) link.revoked_at = new Date().toISOString();
-        });
+      });
       writeLocalDb(db);
+      await recordDokActivity({ action: "trash", item_type: "file", item_id: item.id, display_name: item.display_name });
     }
     return;
   }
@@ -291,6 +413,7 @@ export async function trashFile(id: string): Promise<void> {
     SET deleted_at = NOW(), updated_at = NOW()
     WHERE id = ${id};
   `;
+  await recordDokActivity({ action: "trash", item_type: "file", item_id: id, display_name: null });
 }
 
 /**
@@ -307,6 +430,7 @@ export async function restoreFile(id: string): Promise<void> {
       item.deleted_at = null;
       item.updated_at = new Date().toISOString();
       writeLocalDb(db);
+      await recordDokActivity({ action: "restore", item_type: "file", item_id: item.id, display_name: item.display_name });
     }
     return;
   }
@@ -326,6 +450,7 @@ export async function restoreFile(id: string): Promise<void> {
     SET deleted_at = NULL, updated_at = NOW()
     WHERE id = ${id};
   `;
+  await recordDokActivity({ action: "restore", item_type: "file", item_id: id, display_name: file.display_name });
 }
 
 /**
@@ -344,13 +469,26 @@ export async function permanentDeleteFile(id: string): Promise<void> {
     if (fs.existsSync(diskPath)) {
       try {
         fs.unlinkSync(diskPath);
-      } catch {}
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Yerel depolamadaki dosya silinemedi; metadata korundu: ${message}`);
+      }
     }
   } else if (file.blob_pathname || file.blob_url) {
-    try {
-      if (hasBlobAccessConfiguration()) {
-        await del(file.blob_pathname || file.blob_url, getBlobCommandOptions());
+    if (!hasBlobAccessConfiguration()) {
+      const errorMessage = "Kalıcı depolama yapılandırılmadığı için Blob silinmedi; metadata kaydı korundu.";
+      if (hasDatabaseUrl()) {
+        const sql = getDb();
+        await sql`
+          UPDATE dok_files
+          SET purge_status = 'failed', purge_last_error = ${errorMessage}
+          WHERE id = ${id};
+        `;
       }
+      throw new Error(errorMessage);
+    }
+    try {
+      await del(file.blob_pathname || file.blob_url, getBlobCommandOptions());
     } catch (err: unknown) {
       console.warn("Vercel Blob silme uyarısı:", err);
       if (hasDatabaseUrl()) {

@@ -5,17 +5,19 @@
 "use client";
 
 import React from "react";
-import { X, Download, Maximize, Minimize } from "lucide-react";
+import dynamic from "next/dynamic";
+import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokShareItem } from "@/lib/dokumantasyon/types";
-import { DokPdfViewer } from "../preview/pdf-viewer";
-import { DokImageViewer } from "../preview/image-viewer";
-import { DokTextViewer } from "../preview/text-viewer";
-import { DokMarkdownViewer } from "../preview/markdown-viewer";
-import { DokCadViewer } from "../preview/cad-viewer";
 import { UnsupportedPreview } from "../preview/unsupported-preview";
 import { getPreviewKind } from "@/lib/dokumantasyon/preview-capabilities";
 import { formatBytes } from "../ui-helpers";
+
+const DokPdfViewer = dynamic(() => import("../preview/pdf-viewer").then((module) => module.DokPdfViewer), { ssr: false });
+const DokImageViewer = dynamic(() => import("../preview/image-viewer").then((module) => module.DokImageViewer), { ssr: false });
+const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((module) => module.DokTextViewer), { ssr: false });
+const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
+const DokCadViewer = dynamic(() => import("../preview/cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
 
 interface PublicPreviewModalProps {
   isOpen: boolean;
@@ -111,7 +113,7 @@ export function PublicPreviewModal({
               extension={ext}
               sizeBytes={Number(item.snapshot_size_bytes)}
               mimeType={item.snapshot_mime_type}
-              createdAt={(item as any).created_at || new Date().toISOString()}
+              createdAt={new Date().toISOString()}
               accessUrl={accessUrl}
             />
           )}

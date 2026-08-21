@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { formatBytes } from "../ui-helpers";
+import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
 interface CreateShareModalProps {
   isOpen: boolean;
@@ -63,7 +64,13 @@ export function CreateShareModal({
         customExpiresAtIso = new Date(customDate).toISOString();
       }
 
-      const res = await fetch("/api/dokumantasyon/shares", {
+      const result = await requestDokMutation<{
+        shareUrl: string;
+        rawToken: string;
+        shareLink: { expires_at: string; title?: string | null };
+        totalFiles: number;
+        totalSizeBytes: number;
+      }>("/api/dokumantasyon/shares", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,11 +83,8 @@ export function CreateShareModal({
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || "Paylaşım linki oluşturulamadı.");
-      }
+      if (!result.ok) throw new Error(result.message);
+      const data = result.data;
 
       onSuccess({
         shareUrl: data.shareUrl,
@@ -171,7 +175,7 @@ export function CreateShareModal({
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setDuration(opt.id as any)}
+                  onClick={() => setDuration(opt.id as "1_DAY" | "3_DAYS" | "1_WEEK" | "1_MONTH")}
                   className={`rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors ${
                     duration === opt.id
                       ? "border-amber-500 bg-amber-500/15 text-foreground font-bold"

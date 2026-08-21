@@ -111,15 +111,28 @@ export function assertSameOriginForMutation(request: Request): void {
 }
 
 /**
+ * Ayrı paylaşım şifreleme anahtarı önerilir. Tanımlı değilse üretim auth
+ * yapılandırmasının zorunlu session secret'ı kullanılır; sabit anahtar yoktur.
+ */
+function getShareTokenEncryptionKey(): string | null {
+  const configuredKey = process.env.SHARE_TOKEN_ENCRYPTION_KEY?.trim();
+  if (configuredKey) return configuredKey;
+  try {
+    return getDokAuthRuntimeConfig().sessionSecret;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Aktif linklerin admin tarafından tekrar kopyalanabilmesi için AES-256-GCM ile token şifreler
  */
 export function encryptToken(rawToken: string): string | null {
-  const keyHex =
-    process.env.SHARE_TOKEN_ENCRYPTION_KEY ||
-    "super_secure_key_for_testing_shares_2026_aes_gcm";
+  const encryptionKey = getShareTokenEncryptionKey();
+  if (!encryptionKey) return null;
 
   try {
-    const key = crypto.createHash("sha256").update(keyHex).digest();
+    const key = crypto.createHash("sha256").update(encryptionKey).digest();
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
     
@@ -138,9 +151,8 @@ export function encryptToken(rawToken: string): string | null {
  * AES-256-GCM ile şifrelenmiş token'ı çözer
  */
 export function decryptToken(encryptedPayload: string): string | null {
-  const keyHex =
-    process.env.SHARE_TOKEN_ENCRYPTION_KEY ||
-    "super_secure_key_for_testing_shares_2026_aes_gcm";
+  const encryptionKey = getShareTokenEncryptionKey();
+  if (!encryptionKey) return null;
 
   if (!encryptedPayload) {
     return null;
@@ -151,7 +163,7 @@ export function decryptToken(encryptedPayload: string): string | null {
     if (parts.length !== 3) return null;
 
     const [ivHex, authTagHex, encryptedText] = parts;
-    const key = crypto.createHash("sha256").update(keyHex).digest();
+    const key = crypto.createHash("sha256").update(encryptionKey).digest();
     const iv = Buffer.from(ivHex, "hex");
     const authTag = Buffer.from(authTagHex, "hex");
 
