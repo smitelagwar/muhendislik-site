@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, Palette, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   DxfDiagnosticCategory,
@@ -19,6 +20,9 @@ const CATEGORY_LABELS: Record<DxfDiagnosticCategory, string> = {
   viewport: "Görünüm",
   renderer: "Renderer",
 };
+
+const MONOCHROME_FILTER = "grayscale(1) brightness(12) contrast(1.05)";
+type DxfColorMode = "true-color" | "monochrome";
 
 function statusText(report: DxfStage5DiagnosticsReport): string {
   if (report.status === "blocked") return `${report.blockingCount} engel`;
@@ -44,6 +48,64 @@ function SeverityIcon({ item }: { item: DxfDiagnosticItem }) {
   return <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />;
 }
 
+function applyDxfColorMode(root: HTMLElement, mode: DxfColorMode) {
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
+  if (!canvas) return;
+
+  canvas.dataset.dxfColorMode = mode;
+  canvas.style.filter = mode === "monochrome" ? MONOCHROME_FILTER : "";
+  canvas.style.transition = "filter 120ms ease-out";
+}
+
+function DxfColorModeButton() {
+  const hostRef = useRef<HTMLSpanElement>(null);
+  const [mode, setMode] = useState<DxfColorMode>("true-color");
+  const monochrome = mode === "monochrome";
+
+  useEffect(() => {
+    const root = hostRef.current?.closest<HTMLElement>('[data-testid="cad-dxf-viewer"]');
+    if (!root) return;
+
+    const sync = () => applyDxfColorMode(root, mode);
+    sync();
+
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
+      if (canvas) {
+        canvas.style.filter = "";
+        delete canvas.dataset.dxfColorMode;
+      }
+    };
+  }, [mode]);
+
+  return (
+    <span ref={hostRef} className="contents">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setMode(monochrome ? "true-color" : "monochrome")}
+        aria-pressed={monochrome}
+        aria-label={monochrome ? "Renk modu: Siyah-Beyaz. Gerçek Renke geç" : "Renk modu: Gerçek Renk. Siyah-Beyaza geç"}
+        title={monochrome ? "Siyah-Beyaz görünüm — Gerçek Renk moduna geç" : "Gerçek Renk görünümü — Siyah-Beyaz moduna geç"}
+        data-testid="cad-dxf-color-mode-toggle"
+        data-mode={mode}
+        className={monochrome
+          ? "h-7 gap-1.5 border-zinc-500/60 bg-zinc-800 px-2.5 text-[11px] text-zinc-100 hover:bg-zinc-700"
+          : "h-7 gap-1.5 border-sky-500/30 bg-sky-500/10 px-2.5 text-[11px] text-sky-200 hover:bg-sky-500/15"}
+      >
+        <Palette className="h-3.5 w-3.5" />
+        <span className="sm:hidden">{monochrome ? "S/B" : "Gerçek"}</span>
+        <span className="hidden sm:inline">{monochrome ? "Siyah-Beyaz" : "Gerçek Renk"}</span>
+      </Button>
+    </span>
+  );
+}
+
 export function DxfDiagnosticsButton({
   report,
   open,
@@ -54,21 +116,24 @@ export function DxfDiagnosticsButton({
   onToggle: () => void;
 }) {
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={onToggle}
-      aria-expanded={open}
-      aria-controls="cad-dxf-diagnostics-panel"
-      data-testid="cad-dxf-diagnostics-toggle"
-      className={`h-7 gap-1.5 px-2.5 text-[11px] ${statusClasses(report)}`}
-    >
-      <StatusIcon report={report} />
-      <span className="hidden sm:inline">Denetim:</span>
-      <span>{statusText(report)}</span>
-      {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-    </Button>
+    <div className="flex items-center gap-1.5">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls="cad-dxf-diagnostics-panel"
+        data-testid="cad-dxf-diagnostics-toggle"
+        className={`h-7 gap-1.5 px-2.5 text-[11px] ${statusClasses(report)}`}
+      >
+        <StatusIcon report={report} />
+        <span className="hidden sm:inline">Denetim:</span>
+        <span>{statusText(report)}</span>
+        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </Button>
+      <DxfColorModeButton />
+    </div>
   );
 }
 
