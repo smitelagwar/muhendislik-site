@@ -32,6 +32,13 @@ import {
   buildDxfStage5DiagnosticsReport,
   type DxfStage5DiagnosticsReport,
 } from "@/lib/dokumantasyon/dxf-stage5-diagnostics";
+import {
+  auditDxfTextRenderSource,
+  auditParsedDxfText,
+  evaluateDxfTextRenderEvidence,
+  probeDxfFontUrls,
+  type DxfTextRenderEvidence,
+} from "@/lib/dokumantasyon/dxf-text-render-audit";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
@@ -63,6 +70,7 @@ type DxfViewerInstance = {
   FitView: (minX: number, maxX: number, minY: number, maxY: number, padding?: number) => void;
   GetBounds: () => { maxX: number; maxY: number; minX: number; minY: number } | null;
   GetCamera: () => DxfCamera;
+  GetDxf?: () => unknown;
   GetLayers: () => Iterable<DxfLayerInfo>;
   GetOrigin: () => { x: number; y: number };
   HasRenderer: () => boolean;
@@ -74,6 +82,8 @@ type DxfViewerInstance = {
   }) => Promise<void>;
   Subscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
   Unsubscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
+  hasMissingChars?: boolean;
+  parsedDxf?: unknown;
 };
 
 type ViewerLoadState = "loading" | "ready" | "error";
@@ -155,6 +165,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [diagnosticsReport, setDiagnosticsReport] = useState<DxfStage5DiagnosticsReport | null>(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [runtimeSnapshot, setRuntimeSnapshot] = useState<DxfStage4ViewerSnapshot | null>(null);
+  const [textRenderEvidence, setTextRenderEvidence] = useState<DxfTextRenderEvidence | null>(null);
 
   const fitDrawing = useCallback(() => {
     const viewer = viewerRef.current;
@@ -202,6 +213,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       setDiagnosticsReport(null);
       setDiagnosticsOpen(false);
       setRuntimeSnapshot(null);
+      setTextRenderEvidence(null);
       setProgress("Dosya alınıyor");
 
       try {
@@ -235,6 +247,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         const stage3Audit = auditDxfStage3(dxfText);
         const stage4Audit = auditDxfStage4(dxfText);
         const releaseHardeningAudit = auditDxfReleaseHardening(dxfText);
+        const textSourceAudit = auditDxfTextRenderSource(dxfText);
+        const fontProbes = textSourceAudit.renderCandidateTextRecords > 0
+          ? await probeDxfFontUrls(DXF_FONT_URLS, abortController.signal)
+          : [];
         const stage3Normalization = normalizeDxfTextForStage3Rendering(dxfText);
         const stage4Normalization = normalizeDxfForStage4Rendering(stage3Normalization.text);
         const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
@@ -311,6 +327,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           colorCorrection: true,
           blackWhiteInversion: true,
           fileEncoding: "utf-8",
+          retainParsedDxf: textSourceAudit.renderCandidateTextRecords > 0,
           sceneOptions: {
             suppressPaperSpace: true,
           },
@@ -353,6 +370,29 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         });
 
         if (!active) return;
+
+        const parsedDxf = viewer.GetDxf?.() ?? viewer.parsedDxf;
+        const parsedTextAudit = auditParsedDxfText(parsedDxf);
+        const textEvidence = evaluateDxfTextRenderEvidence({
+          source: textSourceAudit,
+          parsed: parsedTextAudit,
+          fontProbes,
+          rendererMissingChars: viewer.hasMissingChars ?? null,
+        });
+        setTextRenderEvidence(textEvidence);
+        // retainParsedDxf is enabled only long enough to compare source and upstream parser output.
+        // Drop the retained object immediately after the audit so large engineering files do not
+        // keep a second complete DXF representation in memory for the rest of the viewer session.
+        viewer.parsedDxf = undefined;
+
+        if (textEvidence.status === "blocking") {
+          setDiagnosticsOpen(true);
+          throw new DxfViewerLoadError(
+            "render",
+            `Metin fidelity doğrulaması başarısız. ${textEvidence.issues.join(" ")}`
+          );
+        }
+
         fitDrawing();
 
         const camera = viewer.GetCamera();
@@ -383,6 +423,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         const viewerValidation = validateDxfStage4ViewerSnapshot(stage4Audit, snapshot);
         const finalFidelityWarnings = uniqueMessages([
           ...preRenderWarnings,
+          ...textEvidence.issues,
           ...viewerValidation.warnings,
           ...viewerValidation.blockingIssues,
           ...capturedViewerWarnings,
@@ -495,6 +536,27 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       </header>
 
       {diagnosticsOpen && diagnosticsReport && <DxfDiagnosticsPanel report={diagnosticsReport} />}
+      {textRenderEvidence && textRenderEvidence.source.renderCandidateTextRecords > 0 && (
+        <div
+          data-testid="cad-dxf-text-evidence"
+          data-status={textRenderEvidence.status}
+          className={textRenderEvidence.status === "blocking"
+            ? "shrink-0 border-b border-red-500/30 bg-red-950/30 px-3 py-1.5 text-[11px] text-red-200"
+            : textRenderEvidence.status === "warning"
+              ? "shrink-0 border-b border-amber-500/20 bg-amber-950/20 px-3 py-1.5 text-[11px] text-amber-200"
+              : "shrink-0 border-b border-emerald-500/20 bg-emerald-950/15 px-3 py-1.5 text-[11px] text-emerald-300"}
+        >
+          <span className="font-semibold">Metin denetimi:</span>{" "}
+          kaynak {textRenderEvidence.source.renderCandidateTextRecords} · parser {textRenderEvidence.parsed?.totalTextRecords ?? "?"} · font {textRenderEvidence.fontProbes.filter((font) => font.ok).length}/{textRenderEvidence.fontProbes.length}
+          {textRenderEvidence.rendererMissingChars === true ? " · eksik glyph" : ""}
+          {textRenderEvidence.issues[0] ? ` · ${textRenderEvidence.issues[0]}` : ""}
+        </div>
+      )}
+      {textRenderEvidence && (
+        <output className="sr-only" data-testid="cad-dxf-text-render-evidence">
+          {JSON.stringify(textRenderEvidence)}
+        </output>
+      )}
       {runtimeSnapshot && (
         <output className="sr-only" data-testid="cad-dxf-runtime-snapshot">
           {JSON.stringify(runtimeSnapshot)}
@@ -524,6 +586,9 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
                 <div><dt className="inline text-zinc-500">Boyut: </dt><dd className="inline">{formatBytes(sizeBytes)}</dd></div>
                 {encodingResolution && <div><dt className="inline text-zinc-500">Kaynak encoding: </dt><dd className="inline">{encodingResolution.encoding} ({encodingResolution.source})</dd></div>}
                 <div><dt className="inline text-zinc-500">Sebep: </dt><dd className="inline">{error.kind} — {error.message}</dd></div>
+                {textRenderEvidence && textRenderEvidence.source.renderCandidateTextRecords > 0 && (
+                  <div><dt className="inline text-zinc-500">Metin: </dt><dd className="inline">kaynak {textRenderEvidence.source.renderCandidateTextRecords}, parser {textRenderEvidence.parsed?.totalTextRecords ?? "?"}, font {textRenderEvidence.fontProbes.filter((font) => font.ok).length}/{textRenderEvidence.fontProbes.length}.</dd></div>
+                )}
                 {diagnosticsReport && diagnosticsReport.blockingCount > 0 && (
                   <div><dt className="inline text-zinc-500">Fidelity engeli: </dt><dd className="inline">{diagnosticsReport.blockingCount} doğruluk problemi — ayrıntılar üstteki Denetim panelinde.</dd></div>
                 )}
