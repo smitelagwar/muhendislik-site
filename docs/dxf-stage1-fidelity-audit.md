@@ -1,72 +1,84 @@
-# DXF Viewer — Stage 1 Fidelity Audit
+# DXF Viewer — Stage 1–2 Fidelity Hardening
 
 ## Amaç
 
-Bu aşamanın hedefi yeni CAD özellikleri eklemek değil, mevcut `/dokumantasyon` DXF hattında "dosya yüklendi" ile "mühendislik bilgisi doğru görüntülendi" durumlarını birbirinden ayırmak ve kaybolan entity'leri teşhis edilebilir hale getirmektir.
+Bu çalışma `/dokumantasyon` DXF hattında "dosya yüklendi" ile "mühendislik bilgisi doğru görüntülendi" durumlarını ayırır. Stage 1 görünürlük ve temel text düzeltmesini, Stage 2 ise byte-level encoding ile BLOCK/INSERT/OCS güvenlik katmanını kapsar. Yeni CAD özellikleri ve UI genişletmeleri bilinçli olarak kapsam dışındadır.
 
-## Doğrulanmış kök nedenler
+## Stage 1 — doğrulanmış düzeltmeler
 
-### 1. Fontlar `dxf-viewer` yüklemesine verilmemişti
+### Font hattı
 
-`dxf-viewer` metin render etmek için `Load({ fonts: [...] })` bekliyor. Önceki entegrasyon `fonts` göndermediği için TEXT, MTEXT ve DIMENSION içindeki yazıların kaybolması mümkündü. Repo içinde zaten mevcut olan aşağıdaki fontlar DXF yüklemesine bağlandı:
+`dxf-viewer` metin render etmek için `Load({ fonts: [...] })` bekler. Önceki entegrasyon font göndermiyordu. Repo içindeki fontlar doğrudan DXF yüklemesine bağlandı:
 
 - `/fonts/Arial-Regular.ttf`
 - `/fonts/Arial-Bold.ttf`
 
-Bu düzeltme harici CDN veya yeni font bağımlılığı eklemez.
+### Fidelity audit
 
-### 2. `Load()` başarılı sonucu fidelity kanıtı değildi
+`src/lib/dokumantasyon/dxf-fidelity-audit.ts` ham DXF group-code çiftlerinden entity census üretir. TEXT/MTEXT/ATTRIB/ATTDEF, DIMENSION, INSERT, paper-space, block içi entity ve unsupported tipler görünür hale getirilir. `VERTEX`, `SEQEND`, `BLOCK`, `ENDBLK` gibi yapısal kayıtlar yanlışlıkla unsupported entity sayılmaz.
 
-Önceki akış `await viewer.Load()` tamamlandığında doğrudan `ready` durumuna geçiyordu. Yeni Stage 1 gate, DXF içinde entity bulunmasına rağmen geçerli/sonlu çizim sınırları üretilemiyorsa yüklemeyi başarılı saymıyor.
+### Ready gate
 
-### 3. Desteklenmeyen entity tipleri sessiz kaybolabiliyordu
+`viewer.Load()` sonucunun tek başına başarı olmadığı kabul edilir. Entity bulunan dosyada sonlu/geçerli bounds oluşmazsa viewer `ready` durumuna geçmez. Renderer `message` event warning/error kayıtları da kullanıcıya yansıtılır.
 
-Ham DXF üzerinde entity census eklenmiştir. Mevcut `dxf-viewer` entegrasyonunda doğrudan işlenen ana tipler:
+## Stage 2 — byte-level encoding
 
-- LINE
-- POLYLINE / LWPOLYLINE
-- ARC / CIRCLE / ELLIPSE
-- POINT / SPLINE
-- INSERT
-- TEXT / MTEXT
-- 3DFACE / SOLID
-- DIMENSION
-- ATTRIB
-- HATCH
+Önceki akış `response.text()` kullanıyordu. Bu yaklaşım eski ANSI DXF'lerde byte'ları UTF-8 varsayımıyla erken çözdüğü için Türkçe karakterleri geri döndürülemez biçimde bozabiliyordu.
 
-Bunların dışındaki entity tipleri Stage 1 tanılamasında görünür uyarıya dönüşür. Özellikle LEADER ve MLEADER regression fixture ile bilinçli olarak izlenmektedir.
+Yeni akış:
 
-## Eklenen tanılama
+1. DXF `response.arrayBuffer()` ile ham byte olarak alınır.
+2. İlk header bölgesi ASCII-safe biçimde taranır.
+3. `$ACADVER` ve `$DWGCODEPAGE` okunur.
+4. AutoCAD 2007 / `AC1021` ve üstünde UTF-8 seçilir.
+5. Eski sürümlerde `ANSI_1250`–`ANSI_1258`, `ANSI_874`, `ANSI_932`, `ANSI_936`, `ANSI_949`, `ANSI_950` gibi codepage değerleri WHATWG `TextDecoder` etiketlerine eşlenir.
+6. `ANSI_1254` doğrudan `windows-1254` olarak çözülür; `ÇĞİÖŞÜ çğıöşü` kaybı engellenir.
+7. Aynı encoding hem fidelity audit hem `dxf-viewer` constructor `fileEncoding` seçeneğinde kullanılır.
+8. Renderer'a tekrar encode edilmiş string değil, orijinal `ArrayBuffer` Blob'u verilir.
 
-`src/lib/dokumantasyon/dxf-fidelity-audit.ts` ham DXF group-code çiftlerini tarar ve aşağıdaki bilgileri çıkarır:
+Binary DXF signature algılanırsa dosya sessizce yanlış parse edilmez; ASCII DXF gerektiğini söyleyen `unsupported` hatası üretilir.
 
-- `$ACADVER`
-- `$DWGCODEPAGE`
-- model/top-level entity sayısı
-- block içi entity sayısı
-- paper-space entity sayısı
-- TEXT/MTEXT/ATTRIB/ATTDEF sayısı
-- DIMENSION sayısı
-- INSERT sayısı
-- desteklenmeyen entity sayısı ve tipleri
-- entity-type census
+İlgili modül: `src/lib/dokumantasyon/dxf-encoding.ts`.
 
-`VERTEX`, `SEQEND`, `BLOCK`, `ENDBLK` gibi yapısal DXF kayıtları yanlış biçimde unsupported entity olarak raporlanmaz.
+## Stage 2 — BLOCK / INSERT / koordinat sistemi audit'i
 
-## Viewer görünürlüğü
+Audit artık ayrıca şunları çıkarır:
 
-DXF başarıyla açıldığında üst barda minimum fidelity özeti gösterilir:
+- block definition sayısı
+- nested INSERT sayısı
+- rotation/scale içeren transformed INSERT sayısı
+- mirrored INSERT
+- non-uniform scale
+- row/column array / MINSERT
+- zero-scale INSERT
+- tanımsız block referansları
+- non-default extrusion / OCS kullanan entity sayısı
+- non-default OCS kullanan INSERT sayısı
+- indirect recursive block zincirleri
 
-- entity sayısı
-- yazı entity sayısı
-- ölçü entity sayısı
-- warning sayısı
+Bu bilgiler özellikle gerçek mühendislik dosyalarında nested block ve annotation kaybını kaynak dosya seviyesinde ayırmak için kullanılır.
 
-Renderer'ın kendi `message` event uyarıları da yakalanır. Eksik font/glif, boş doküman veya unsupported entity gibi durumlarda kullanıcıya "DXF açıldı, her şey doğrudur" izlenimi verilmez.
+## Bilinen upstream BLOCK sınırlamaları ve Stage 2 gate
+
+Mevcut `dxf-viewer` kaynak kodunda:
+
+- grid/block array instancing henüz desteklenmiyor,
+- INSERT extrusion direction uygulanmıyor,
+- indirect recursive block handling tamamlanmış değil.
+
+Bu nedenle aşağıdaki durumlarda viewer eksik çizimi "başarılı" göstermeyi reddeder:
+
+1. indirect recursive BLOCK/INSERT cycle,
+2. grid/array INSERT,
+3. non-default extrusion/OCS kullanan INSERT.
+
+Bu dosyalarda `unsupported` hatası gösterilir ve indirme yolu korunur. Amaç kullanıcıya eksik mühendislik çizimini doğruymuş gibi sunmamaktır.
+
+Missing block reference, nested INSERT, mirror/non-uniform transform ve genel non-default OCS durumları ayrıca diagnostic warning olarak raporlanır.
 
 ## Regression corpus
 
-Stage 1 için şu küçük ve deterministik fixture'lar eklendi:
+Stage 1 fixture'ları:
 
 - `geometry-basic.dxf`
 - `text-turkish.dxf`
@@ -74,38 +86,53 @@ Stage 1 için şu küçük ve deterministik fixture'lar eklendi:
 - `blocks-attrib.dxf`
 - `unsupported-annotations.dxf`
 
-`scripts/check-dxf-stage1-fidelity.mjs` fixture census beklentilerini ve viewer entegrasyonundaki kritik Stage 1 hook'larını kontrol eder.
+Stage 2 fixture/test kapsamı:
 
-## Bilinçli olarak çözülmeyen konular
+- `stage2-block-transforms.dxf`
+- Windows-1254 byte fixture üretimi
+- `AC1021` UTF-8 version precedence
+- Binary DXF signature
+- nested/transformed/mirrored/non-uniform/array INSERT census
+- missing block reference
+- OCS detection
+- indirect block cycle detection
+- viewer'ın `response.text()` kullanmadığının statik kontrolü
+- `fileEncoding` ve raw Blob entegrasyonu
 
-Bunlar Stage 1 tamamlanma iddiasına dahil değildir ve sonraki aşamalarda ele alınmalıdır:
+Kontrol komutları:
 
-1. Eski DXF'lerde gerçek byte-level ANSI / `$DWGCODEPAGE` decoding. Mevcut istemci hattı `response.text()` ve viewer varsayılan UTF-8 davranışına dayanır.
-2. Parsed entity ile render batch arasında birebir derin telemetry.
-3. MTEXT ileri biçimlendirme uyumluluğu.
-4. DIMSTYLE ve tüm DIMENSION varyantlarının AutoCAD seviyesinde doğrulanması.
-5. LEADER / MLEADER gibi upstream tarafından doğrudan desteklenmeyen annotation tiplerinin render edilmesi.
-6. SHX font substitution / mapping politikası.
-7. OCS, paper-space/layout/viewports ve daha az yaygın entity tiplerinin tam fidelity kapsamı.
+```bash
+node scripts/check-dxf-stage1-fidelity.mjs
+npx tsx scripts/check-dxf-stage2-hardening.ts
+```
 
-## Stage 1 kabul kapısı
+## Stage 2 karar kapısı
 
-Stage 1 şu koşullarla kabul edilir:
+Şimdilik `dxf-viewer` korunuyor; çünkü temel geometry, block transform ve text hattının önemli kısmı kullanılabilir ve encoding sorunu uygulama adapter'ında düzeltilebiliyor. Ancak engine'in bilinen MINSERT/INSERT-OCS/ileri annotation sınırlamaları compatibility gate ile açıkça sınırlandı.
 
-- DXF text render hattına gerçek font URL'leri veriliyor.
-- Ham entity census yükleme öncesinde oluşuyor.
-- Unsupported entity tipleri sessizce göz ardı edilmiyor; kullanıcıya/diagnostic katmana yansıyor.
-- Viewer warning eventleri yakalanıyor.
-- Entity bulunan dosyada null/NaN/Infinity bounds `ready` kabul edilmiyor.
-- Temel geometry, Turkish text, linear dimension, block/attribute ve unsupported annotation fixture'ları repoda bulunuyor.
-- Vercel preview build TypeScript/Next build kapısından geçiyor.
+Gerçek proje corpus'unda P0 mühendislik bilgisi bu sınırlamalara sık sık çarpıyorsa sonraki adım kontrollü fork/patch veya alternatif renderer değerlendirmesidir. Kütüphane sırf "daha yeni olabilir" varsayımıyla değiştirilmemelidir.
 
-## Stage 1 sonrası karar
+## Stage 2 kabul kapısı
 
-Stage 2'ye geçmeden önce gerçek mühendislik DXF örnekleri bu tanılama ile açılmalı ve her eksik bilgi şu üç sınıftan birine atanmalıdır:
+Stage 2 şu koşullarla kabul edilir:
 
-1. yerel entegrasyon hatası,
-2. upstream `dxf-viewer` sınırlaması,
-3. kaynak DXF/export/encoding problemi.
+- DXF byte'ları `response.text()` ile erken bozulmuyor.
+- `$ACADVER` / `$DWGCODEPAGE` üzerinden deterministic encoding seçiliyor.
+- `ANSI_1254` Türkçe karakterleri doğru decode ediliyor.
+- Seçilen encoding `dxf-viewer.fileEncoding` ile renderer'a aktarılıyor.
+- BLOCK/INSERT transform riskleri ve missing references sayılıyor.
+- indirect recursive block cycle saptanıyor.
+- upstream tarafından kesin eksik render edileceği bilinen INSERT topolojileri `ready` kabul edilmiyor.
+- Stage 1 font/fidelity davranışı korunuyor.
+- Auth, Blob/storage, share, PDF ve image viewer akışlarına dokunulmuyor.
+- Vercel Preview Next/TypeScript build kapısı geçiliyor.
 
-Bu sınıflandırma yapılmadan renderer değiştirme, yeni UI özelliği ekleme veya geniş kapsamlı refactor yapılmamalıdır.
+## Sonraki aşamaya kalanlar
+
+- TEXT/MTEXT biçim ve alignment fidelity
+- SHX substitution/mapping
+- DIMSTYLE ve dimension varyantları
+- LEADER/MLEADER
+- daha geniş OCS entity coverage
+- paper-space/layout/viewports
+- visual golden tests ve gerçek mühendislik DXF corpus karşılaştırması
