@@ -80,6 +80,39 @@ Viewer aşağıdaki test hedeflerini üretir:
 
 Bir sorun bulunursa ilk neden aynı satırda gösterilir.
 
+## Browser-level kanıt
+
+Chromium release testi artık iki bağımsız kanıt kullanır:
+
+1. Viewer runtime kanıtı:
+   - bounds,
+   - origin,
+   - camera,
+   - layer listesi,
+   - text source/parser/font evidence.
+2. Gerçek compositor görüntüsü:
+   - Playwright doğrudan WebGL canvas elementinin ekran görüntüsünü alır,
+   - PNG built-in `zlib` ile decode edilir,
+   - dört köşeden arka plan rengi tahmin edilir,
+   - foreground piksel sinyali aranır.
+
+Önceki doğrudan `gl.readPixels()` yaklaşımı kaldırılmıştır. WebGL drawing buffer `preserveDrawingBuffer=false` iken compositor'da görünür geometri olmasına rağmen `readPixels()` sıfır dönebildiği için bu yöntem yanlış negatif üretiyordu. Production performansını değiştirmek adına `preserveDrawingBuffer=true` yapılmamıştır.
+
+`stage3-text-mtext.dxf` browser testinde ayrıca şu sözleşme zorunludur:
+
+- görünür kaynak text adayı = `3`,
+- upstream parser text sayısı = `3`,
+- parser loss = `0`,
+- fallback font probe = `2/2` HTTP 200 ve gerçek byte içeriği,
+- renderer missing-character sinyali = false,
+- kaynak fixture'ın sıfır-height/style riskleri nedeniyle overall text evidence = warning, blocking değil.
+
+Bu koşullar, “font URL'si kodda yazıyor” yerine font veri düzleminin ve parser korumasının gerçek browser oturumunda çalıştığını kanıtlar.
+
+## Bulge/browser test notu
+
+DXF viewer varsayılan olarak yayları yaklaşık 10° hedef açıyla tessellate eder. Bu nedenle browser runtime bounds analitik yay ekstremumunu tam sayı hassasiyetinde vermek zorunda değildir. Signed-bulge testi yönü ve analitik ekstremuma `0.5` model birimi içinde yakınlığı kontrol eder. Böylece test doğru bulge yönünü kilitler fakat production renderer'ı sırf test için 10 kat daha yoğun tessellation'a zorlamaz.
+
 ## Fail-closed kuralları — Aşama 1
 
 Aşağıdaki durumlar artık `ready` kabul edilmez:
