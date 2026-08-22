@@ -85,7 +85,10 @@ scenePrototype.Build = async function (
   dxf: DxfTextStage2ParsedDxf,
   fontFetchers: unknown[]
 ) {
-  normalizeParsedDxfTextStage2(dxf);
+  const stage2Report = normalizeParsedDxfTextStage2(dxf);
+  if (stage2Report.blockingIssues.length > 0) {
+    throw new Error(`DXF text Stage 2 fidelity engeli: ${stage2Report.blockingIssues.join(" ")}`);
+  }
   return upstreamBuild.call(this, dxf, fontFetchers);
 };
 
