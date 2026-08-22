@@ -251,7 +251,8 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
     await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText(/Denetim temiz|uyarı/);
 
-    const canvas = page.getByTestId("cad-dxf-canvas").locator("canvas").first();
+    const surface = page.getByTestId("cad-dxf-canvas");
+    const canvas = surface.locator("canvas").first();
     const modeToggle = page.getByTestId("cad-dxf-color-mode-toggle");
     await expect(canvas).toBeVisible();
     await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
@@ -260,7 +261,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     const snapshot = await runtimeSnapshot(page);
     const runtimeBefore = await page.getByTestId("cad-dxf-runtime-snapshot").textContent();
     const layerBefore = await page.getByTestId("cad-dxf-layer-snapshot").textContent();
-    const trueColorImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    const trueColorImage = decodePng(await surface.screenshot({ animations: "disabled" }));
 
     const sampled = {
       byLayerAciRed: expectModelRgb(trueColorImage, snapshot, { x: 10, y: 10 }, [255, 0, 0], "BYLAYER ACI red"),
@@ -283,7 +284,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(canvas).toHaveCSS("filter", /grayscale\(1\)/);
     await page.waitForTimeout(180);
 
-    const monochromeImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    const monochromeImage = decodePng(await surface.screenshot({ animations: "disabled" }));
     expect(countStronglyColoredPixels(monochromeImage), "monochrome mode must remove chromatic pixels").toBeLessThanOrEqual(2);
     expect(countBrightNeutralPixels(monochromeImage), "monochrome mode must retain visible bright CAD linework").toBeGreaterThan(20);
     expect(await page.getByTestId("cad-dxf-runtime-snapshot").textContent(), "camera/runtime state changed on color mode toggle").toBe(runtimeBefore);
@@ -297,7 +298,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(canvas).toHaveCSS("filter", "none");
     await page.waitForTimeout(180);
 
-    const restoredImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    const restoredImage = decodePng(await surface.screenshot({ animations: "disabled" }));
     expectModelRgb(restoredImage, snapshot, { x: 10, y: 10 }, [255, 0, 0], "restored BYLAYER red");
     expectModelRgb(restoredImage, snapshot, { x: 40, y: 10 }, [0, 255, 0], "restored layer green");
     expectModelRgb(restoredImage, snapshot, { x: 70, y: 10 }, [0, 0, 255], "restored entity blue");
@@ -326,6 +327,8 @@ test.describe("DXF Stage 5 color fidelity", () => {
     const modeToggle = page.getByTestId("cad-dxf-color-mode-toggle");
     await expect(viewer).toBeVisible();
     await expect(canvas).toBeVisible();
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText(/Denetim temiz|uyarı/);
+    await runtimeSnapshot(page);
     await expect(modeToggle).toBeVisible();
 
     const metrics = await viewer.evaluate((element) => ({
