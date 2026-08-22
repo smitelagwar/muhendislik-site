@@ -169,7 +169,6 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           antialias: true,
           colorCorrection: true,
           blackWhiteInversion: true,
-          retainParsedDxf: true,
         }) as DxfViewerInstance;
 
         if (!viewer.HasRenderer()) {
