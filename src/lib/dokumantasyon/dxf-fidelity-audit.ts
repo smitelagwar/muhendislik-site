@@ -33,6 +33,8 @@ export const DXF_STAGE1_P0_ENTITY_TYPES = new Set([
   "HATCH",
 ]);
 
+const DXF_STRUCTURAL_RECORD_TYPES = new Set(["BLOCK", "ENDBLK", "VERTEX", "SEQEND"]);
+
 export interface DxfEntityCensusRow {
   type: string;
   count: number;
@@ -104,9 +106,7 @@ export function auditDxfText(text: string): DxfFidelityAudit {
   const flushRecord = () => {
     if (!currentType) return;
     if (section !== "ENTITIES" && section !== "BLOCKS") return;
-
-    const structuralBlockMarkers = currentType === "BLOCK" || currentType === "ENDBLK";
-    if (section === "BLOCKS" && structuralBlockMarkers) return;
+    if (DXF_STRUCTURAL_RECORD_TYPES.has(currentType)) return;
 
     increment(entityCounts, currentType);
     if (section === "ENTITIES") {
@@ -162,7 +162,6 @@ export function auditDxfText(text: string): DxfFidelityAudit {
     .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
 
   const unsupportedRows = entityCensus.filter((row) => row.rendererSupport === "unsupported");
-
   const countType = (type: string) => entityCounts.get(type) ?? 0;
 
   return {
