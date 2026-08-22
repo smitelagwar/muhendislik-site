@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { decodeDxfBytes, detectDxfEncoding, type DxfEncodingResolution } from "@/lib/dokumantasyon/dxf-encoding";
 import { auditDxfText, getDxfFidelityWarnings, type DxfFidelityAudit } from "@/lib/dokumantasyon/dxf-fidelity-audit";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
@@ -44,11 +45,19 @@ interface ViewerError {
   message: string;
 }
 
+class DxfViewerLoadError extends Error {
+  constructor(public readonly kind: ViewerErrorKind, message: string) {
+    super(message);
+    this.name = "DxfViewerLoadError";
+  }
+}
+
 function normalizeExtension(extension: string): string {
   return extension.trim().toLowerCase();
 }
 
 function errorMessageFor(error: unknown, fallbackKind: ViewerErrorKind): ViewerError {
+  if (error instanceof DxfViewerLoadError) return { kind: error.kind, message: error.message };
   const message = error instanceof Error ? error.message : "Bilinmeyen bir hata oluştu.";
   return { kind: fallbackKind, message };
 }
@@ -96,6 +105,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [error, setError] = useState<ViewerError | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [viewRevision, setViewRevision] = useState(0);
+  const [encodingResolution, setEncodingResolution] = useState<DxfEncodingResolution | null>(null);
   const [fidelityAudit, setFidelityAudit] = useState<DxfFidelityAudit | null>(null);
   const [fidelityWarnings, setFidelityWarnings] = useState<string[]>([]);
   const [viewerWarnings, setViewerWarnings] = useState<string[]>([]);
@@ -138,6 +148,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     const load = async () => {
       setLoadState("loading");
       setError(null);
+      setEncodingResolution(null);
       setFidelityAudit(null);
       setFidelityWarnings([]);
       setViewerWarnings([]);
@@ -146,18 +157,34 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       try {
         const response = await fetch(accessUrl, { signal: abortController.signal });
         if (!response.ok) {
-          throw new Error(`Dosya indirilemedi (HTTP ${response.status}).`);
+          throw new DxfViewerLoadError("fetch", `Dosya indirilemedi (HTTP ${response.status}).`);
         }
 
-        const dxfText = await response.text();
+        const dxfBuffer = await response.arrayBuffer();
+        if (dxfBuffer.byteLength === 0) {
+          throw new DxfViewerLoadError("parse", "DXF dosyası boş.");
+        }
+
+        const dxfBytes = new Uint8Array(dxfBuffer);
+        const encoding = detectDxfEncoding(dxfBytes);
+        setEncodingResolution(encoding);
+        if (encoding.isBinary) {
+          throw new DxfViewerLoadError(
+            "unsupported",
+            "Binary DXF algılandı. Mevcut DXF parser ASCII DXF bekliyor; dosyayı ASCII DXF olarak dışa aktarın."
+          );
+        }
+
+        setProgress(`Encoding çözümleniyor (${encoding.encoding})`);
+        const dxfText = decodeDxfBytes(dxfBytes, encoding.encoding);
         if (!dxfText.trim()) {
-          throw new Error("DXF dosyası boş.");
+          throw new DxfViewerLoadError("parse", "DXF içeriği seçilen encoding ile çözümlenemedi.");
         }
 
         const audit = auditDxfText(dxfText);
         setFidelityAudit(audit);
-        setFidelityWarnings(getDxfFidelityWarnings(audit));
-        objectUrl = URL.createObjectURL(new Blob([dxfText], { type: "application/dxf" }));
+        setFidelityWarnings([...encoding.warnings, ...getDxfFidelityWarnings(audit)]);
+        objectUrl = URL.createObjectURL(new Blob([dxfBuffer], { type: "application/dxf" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
         const dxfModule = await import("dxf-viewer");
@@ -169,10 +196,11 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           antialias: true,
           colorCorrection: true,
           blackWhiteInversion: true,
+          fileEncoding: encoding.encoding,
         }) as DxfViewerInstance;
 
         if (!viewer.HasRenderer()) {
-          throw new Error("WebGL görüntüleyicisi başlatılamadı.");
+          throw new DxfViewerLoadError("render", "WebGL görüntüleyicisi başlatılamadı.");
         }
 
         onViewChanged = () => {
@@ -197,9 +225,9 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           progressCbk: (phase) => {
             if (!active) return;
             const phaseLabels = {
-              fetch: "Dosya alınıyor",
-              parse: "DXF verisi okunuyor",
-              prepare: "Geometri hazırlanıyor",
+              fetch: "Ham DXF byte'ları okunuyor",
+              parse: "DXF yapısı parse ediliyor",
+              prepare: "Block ve geometri hazırlanıyor",
               font: "Yazılar ve glifler hazırlanıyor",
             } as const;
             setProgress(phaseLabels[phase]);
@@ -209,7 +237,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         if (!active) return;
         const bounds = viewer.GetBounds();
         if ((audit.entityCount > 0 || audit.blockEntityCount > 0) && !hasFiniteBounds(bounds)) {
-          throw new Error("DXF parse edildi ancak geçerli çizim sınırları üretilemedi. Yükleme başarılı sayılamaz.");
+          throw new DxfViewerLoadError(
+            "render",
+            "DXF parse edildi ancak geçerli çizim sınırları üretilemedi. Yükleme başarılı sayılamaz."
+          );
         }
 
         fitDrawing();
@@ -258,6 +289,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               title={allWarnings.join("\n")}
             >
               {fidelityAudit.entityCount} entity · {fidelityAudit.textEntityCount} yazı · {fidelityAudit.dimensionEntityCount} ölçü
+              {encodingResolution ? ` · ${encodingResolution.encoding}` : ""}
               {allWarnings.length > 0 ? ` · ${allWarnings.length} uyarı` : " · denetim temiz"}
             </span>
           )}
@@ -319,6 +351,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               <dl className="mt-4 space-y-1 text-left text-xs text-zinc-300">
                 <div><dt className="inline text-zinc-500">Dosya: </dt><dd className="inline break-all">{displayName}</dd></div>
                 <div><dt className="inline text-zinc-500">Boyut: </dt><dd className="inline">{formatBytes(sizeBytes)}</dd></div>
+                {encodingResolution && <div><dt className="inline text-zinc-500">Encoding: </dt><dd className="inline">{encodingResolution.encoding} ({encodingResolution.source})</dd></div>}
                 <div><dt className="inline text-zinc-500">Sebep: </dt><dd className="inline">{error.kind} — {error.message}</dd></div>
               </dl>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
