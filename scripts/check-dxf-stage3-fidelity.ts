@@ -95,7 +95,8 @@ async function main() {
   assert.match(viewerSource, /normalizeDxfTextForStage3Rendering\(dxfText\)/);
   assert.match(viewerSource, /getDxfStage3BlockingIssues\(stage3Audit\)/);
   assert.match(viewerSource, /normalizeDxfForStage4Rendering\(stage3Normalization\.text\)/);
-  assert.match(viewerSource, /new Blob\(\[stage4Normalization\.text\]/);
+  assert.match(viewerSource, /normalizeDxfLayersForInteractiveControl\(stage4Normalization\.text\)/);
+  assert.match(viewerSource, /new Blob\(\[interactiveLayerNormalization\.text\]/);
   assert.match(viewerSource, /fileEncoding:\s*"utf-8"/);
   assert.doesNotMatch(viewerSource, /new Blob\(\[dxfBuffer\]/);
 
