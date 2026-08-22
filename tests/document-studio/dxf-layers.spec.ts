@@ -228,7 +228,7 @@ test.describe("DXF interactive layer controls", () => {
     await page.getByRole("button", { name: "Tümünü kapat" }).click();
     await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toBeVisible();
     await expect(page.getByRole("button", { name: "Sığdır" })).toBeDisabled();
-    await page.getByRole("button", { name: "Katmanları kapat" }).click();
+    await page.getByRole("button", { name: "Katman panelini kapat", exact: true }).click();
     await page.getByRole("button", { name: "Kaynak görünürlüğüne dön" }).click();
     await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toHaveCount(0);
     expect((await layerSnapshot(page)).allHidden).toBe(false);
