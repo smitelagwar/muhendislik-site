@@ -41,7 +41,7 @@ async function main() {
   assert.deepEqual(renderAudit.frozenLayers, [], "interactive render copy must retain frozen geometry in scene");
 
   let renderCount = 0;
-  let fitArgs: number[] | null = null;
+  let fitArgs: Array<number | undefined> | null = null;
   const internalLayers = new Map([
     ["0", { objects: [{ visible: true, geometry: { attributes: { position: position([[0, 0], [100, 0]]) } } }] }],
     ["ACTIVE_B", { objects: [{ visible: true, geometry: { attributes: { position: position([[0, 50], [100, 50]]) } } }] }],
