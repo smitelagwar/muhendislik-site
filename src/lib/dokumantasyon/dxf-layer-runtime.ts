@@ -48,6 +48,7 @@ export type DxfLayerRuntimeViewer = {
   GetLayers: (nonEmptyOnly?: boolean) => Iterable<DxfLayerInfo>;
   ShowLayer: (name: string, show: boolean) => void;
   FitView: (minX: number, maxX: number, minY: number, maxY: number, padding?: number) => void;
+  Render?: () => void;
   layers?: Map<string, InternalLayerLike>;
 };
 
@@ -71,7 +72,7 @@ function parsePairs(text: string): Pair[] {
 /**
  * The upstream renderer excludes frozen layers while building the scene. For interactive layer
  * control we must retain those objects in the temporary render copy, then apply source visibility
- * with ShowLayer after Load(). The uploaded/downloadable DXF is never modified.
+ * after Load(). The uploaded/downloadable DXF is never modified.
  */
 export function normalizeDxfLayersForInteractiveControl(text: string): DxfInteractiveLayerNormalizationResult {
   const pairs = parsePairs(text);
@@ -213,6 +214,23 @@ function sourceState(audit: DxfStage4Audit, name: string): { sourceOff: boolean;
   };
 }
 
+function setInternalLayerVisible(viewer: DxfLayerRuntimeViewer, name: string, visible: boolean): boolean {
+  const layer = viewer.layers?.get(name);
+  if (!layer?.objects) return false;
+  for (const object of layer.objects) object.visible = visible;
+  return true;
+}
+
+function batchVisibility(viewer: DxfLayerRuntimeViewer, changes: Array<{ name: string; visible: boolean }>) {
+  const canBatch = changes.every((change) => viewer.layers?.has(change.name));
+  if (canBatch) {
+    for (const change of changes) setInternalLayerVisible(viewer, change.name, change.visible);
+    viewer.Render?.();
+    return;
+  }
+  for (const change of changes) viewer.ShowLayer(change.name, change.visible);
+}
+
 export function initializeDxfLayerRuntime(
   viewer: DxfLayerRuntimeViewer,
   audit: DxfStage4Audit
@@ -234,9 +252,10 @@ export function initializeDxfLayerRuntime(
     } satisfies DxfLayerRuntimeItem;
   });
 
-  for (const item of items) {
-    if (!item.visible) viewer.ShowLayer(item.name, false);
-  }
+  batchVisibility(
+    viewer,
+    items.filter((item) => !item.visible).map((item) => ({ name: item.name, visible: false }))
+  );
   return items.sort((a, b) => a.displayName.localeCompare(b.displayName, "tr"));
 }
 
@@ -275,7 +294,7 @@ export function setAllDxfLayersVisible(
   layers: DxfLayerRuntimeItem[],
   visible: boolean
 ): DxfLayerRuntimeItem[] {
-  for (const layer of layers) viewer.ShowLayer(layer.name, visible);
+  batchVisibility(viewer, layers.map((layer) => ({ name: layer.name, visible })));
   return layers.map((layer) => ({ ...layer, visible }));
 }
 
@@ -283,11 +302,12 @@ export function resetDxfLayersToSource(
   viewer: DxfLayerRuntimeViewer,
   layers: DxfLayerRuntimeItem[]
 ): DxfLayerRuntimeItem[] {
-  return layers.map((layer) => {
-    const visible = !layer.sourceOff && !layer.sourceFrozen;
-    viewer.ShowLayer(layer.name, visible);
-    return { ...layer, visible };
-  });
+  const next = layers.map((layer) => ({
+    ...layer,
+    visible: !layer.sourceOff && !layer.sourceFrozen,
+  }));
+  batchVisibility(viewer, next.map((layer) => ({ name: layer.name, visible: layer.visible })));
+  return next;
 }
 
 export function buildDxfLayerRuntimeSnapshot(layers: DxfLayerRuntimeItem[]): DxfLayerRuntimeSnapshot {
