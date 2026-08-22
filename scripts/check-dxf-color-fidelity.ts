@@ -112,7 +112,13 @@ async function main() {
   assert.equal(Number(value(textEntity, 420)), 0x00ffff, "TEXT must carry explicit cyan TrueColor");
 
   const dimension = records.find((record) => record.section === "ENTITIES" && record.type === "DIMENSION");
-  assert.equal(Number(value(dimension, 62)), 2, "DIMENSION must carry explicit ACI 2");
+  assert.equal(Number(value(dimension, 62)), 2, "DIMENSION entity carries ACI 2 as a secondary source color signal");
+  const dimStyle = records.find(
+    (record) => record.section === "TABLES" && record.type === "DIMSTYLE" && value(record, 2) === "STANDARD"
+  );
+  assert.equal(Number(value(dimStyle, 176)), 2, "DIMCLRD must make the dimension line ACI 2/yellow");
+  assert.equal(Number(value(dimStyle, 177)), 2, "DIMCLRE must make extension lines ACI 2/yellow");
+  assert.equal(Number(value(dimStyle, 178)), 2, "DIMCLRT must make dimension text ACI 2/yellow");
 
   assert.deepEqual(getDxfStage3BlockingIssues(auditDxfStage3(text)), []);
   assert.deepEqual(getDxfStage4BlockingIssues(auditDxfStage4(text)), []);
@@ -125,6 +131,7 @@ async function main() {
   assert.match(browserSpec, /0,\s*255,\s*0/);
   assert.match(browserSpec, /0,\s*0,\s*255/);
   assert.match(browserSpec, /255,\s*0,\s*255/);
+  assert.match(browserSpec, /255,\s*255,\s*0/);
 
   console.log("DXF Stage 5 color fidelity checks passed.");
 }
