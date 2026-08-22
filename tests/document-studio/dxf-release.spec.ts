@@ -75,7 +75,7 @@ async function getRuntimeSnapshot(page: Page): Promise<RuntimeSnapshot> {
 
 async function expectForegroundGeometrySignal(page: Page) {
   const canvas = page.getByTestId("cad-dxf-canvas").locator("canvas").first();
-  const foreground = await expect.poll(async () => canvas.evaluate((element) => {
+  await expect.poll(async () => canvas.evaluate((element) => {
     const htmlCanvas = element as HTMLCanvasElement;
     const gl = htmlCanvas.getContext("webgl2") || htmlCanvas.getContext("webgl");
     if (!gl) return -1;
@@ -100,7 +100,6 @@ async function expectForegroundGeometrySignal(page: Page) {
     message: "DXF WebGL framebuffer should contain foreground geometry, not only a blank canvas",
     timeout: 12_000,
   }).toBeGreaterThan(8);
-  void foreground;
 }
 
 async function expectRenderableCanvas(page: Page, requireForeground = true) {
@@ -149,7 +148,7 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "DXF WebGL release gate is deterministic in Chromium; cross-browser UI coverage remains in release.spec.ts.");
 
   test("clean and warning DXFs reach ready state with actionable diagnostics on desktop and mobile", async ({ page }, testInfo) => {
-    test.setTimeout(210_000);
+    test.setTimeout(240_000);
     await page.setViewportSize(DESKTOP);
     await login(page);
 
@@ -180,6 +179,18 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     expect(spanY).toBeLessThan(500);
     expect(largeSnapshot.layers).toContain("0");
     await attachEvidence(page, testInfo, "dxf-large-coordinate-bulge.png");
+
+    await page.goto("/dokumantasyon");
+    const signedBulgeId = await uploadDxf(page, "stage7-bulge-signs.dxf");
+    await openDxf(page, signedBulgeId);
+    await expectRenderableCanvas(page);
+    const signedBulgeSnapshot = await getRuntimeSnapshot(page);
+    expect(signedBulgeSnapshot.bounds).not.toBeNull();
+    expect(signedBulgeSnapshot.bounds?.minX ?? Number.NaN).toBeCloseTo(0, 3);
+    expect(signedBulgeSnapshot.bounds?.maxX ?? Number.NaN).toBeCloseTo(200, 3);
+    expect(signedBulgeSnapshot.bounds?.minY ?? Number.NaN).toBeCloseTo(-20.710678, 2);
+    expect(signedBulgeSnapshot.bounds?.maxY ?? Number.NaN).toBeCloseTo(120.710678, 2);
+    await attachEvidence(page, testInfo, "dxf-signed-closed-bulge.png");
 
     await page.goto("/dokumantasyon");
     const colorHatchId = await uploadDxf(page, "stage7-color-hatch.dxf");
