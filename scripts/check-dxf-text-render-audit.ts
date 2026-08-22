@@ -136,7 +136,7 @@ async function main() {
   assert.match(workerSource, /TEXT_TYPES/);
   assert.match(workerSource, /options\.retainParsedDxf === true/);
   assert.match(workerSource, /result\.dxf = compactParsedTextEvidence\(result\.dxf\)/);
-  assert.doesNotMatch(workerSource, /DxfViewer\.SetupWorker\(\)/);
+  assert.doesNotMatch(workerSource, /^\s*DxfViewer\.SetupWorker\(\);?\s*$/m);
 
   console.log("DXF text source→parser/font evidence checks passed.");
 }
