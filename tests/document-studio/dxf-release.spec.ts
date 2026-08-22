@@ -6,6 +6,21 @@ const DXF_FIXTURE_DIR = path.resolve(process.cwd(), "tests", "fixtures", "dxf");
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 
+type RuntimeSnapshot = {
+  viewport: { width: number; height: number };
+  bounds: { minX: number; maxX: number; minY: number; maxY: number } | null;
+  origin: { x: number; y: number } | null;
+  camera: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+    zoom: number;
+    position: { x: number; y: number; z: number };
+  } | null;
+  layers: string[];
+};
+
 async function login(page: Page) {
   await page.goto("/dokumantasyon");
   await page.getByLabel("Kullanıcı Adı").fill("admin");
@@ -50,7 +65,45 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(geometry.scrollWidth, "DXF page-level horizontal overflow").toBeLessThanOrEqual(geometry.clientWidth);
 }
 
-async function expectRenderableCanvas(page: Page) {
+async function getRuntimeSnapshot(page: Page): Promise<RuntimeSnapshot> {
+  const output = page.getByTestId("cad-dxf-runtime-snapshot");
+  await expect(output).toBeAttached();
+  const raw = await output.textContent();
+  expect(raw, "DXF runtime snapshot should contain JSON").toBeTruthy();
+  return JSON.parse(raw || "{}") as RuntimeSnapshot;
+}
+
+async function expectForegroundGeometrySignal(page: Page) {
+  const canvas = page.getByTestId("cad-dxf-canvas").locator("canvas").first();
+  const foreground = await expect.poll(async () => canvas.evaluate((element) => {
+    const htmlCanvas = element as HTMLCanvasElement;
+    const gl = htmlCanvas.getContext("webgl2") || htmlCanvas.getContext("webgl");
+    if (!gl) return -1;
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+    if (width < 2 || height < 2) return 0;
+    gl.finish();
+    const pixels = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const bgR = pixels[0];
+    const bgG = pixels[1];
+    const bgB = pixels[2];
+    let different = 0;
+    const stridePixels = Math.max(1, Math.floor((width * height) / 120_000));
+    for (let pixel = 0; pixel < width * height; pixel += stridePixels) {
+      const index = pixel * 4;
+      const delta = Math.abs(pixels[index] - bgR) + Math.abs(pixels[index + 1] - bgG) + Math.abs(pixels[index + 2] - bgB);
+      if (delta > 18) different += 1;
+    }
+    return different;
+  }), {
+    message: "DXF WebGL framebuffer should contain foreground geometry, not only a blank canvas",
+    timeout: 12_000,
+  }).toBeGreaterThan(8);
+  void foreground;
+}
+
+async function expectRenderableCanvas(page: Page, requireForeground = true) {
   const canvasHost = page.getByTestId("cad-dxf-canvas");
   await expect(canvasHost).toBeVisible();
   const canvas = canvasHost.locator("canvas").first();
@@ -66,6 +119,23 @@ async function expectRenderableCanvas(page: Page) {
   expect(size.width).toBeGreaterThan(100);
   expect(size.height).toBeGreaterThan(100);
   await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
+  await getRuntimeSnapshot(page);
+  if (requireForeground) await expectForegroundGeometrySignal(page);
+}
+
+async function expectBlockedDxf(page: Page, fixtureName: string, evidenceText: RegExp | string) {
+  await page.goto("/dokumantasyon");
+  const fileId = await uploadDxf(page, fixtureName);
+  await openDxf(page, fileId);
+  await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeVisible();
+  await expect(page.getByText(/fidelity engeli/i)).toBeVisible();
+  const panel = page.getByTestId("cad-dxf-diagnostics-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('[data-severity="blocking"]')).not.toHaveCount(0);
+  await expect(panel).toContainText(evidenceText);
+  const download = page.getByRole("button", { name: "Orijinal dosyayı indir" });
+  await expect(download).toBeVisible();
+  await expect(page.getByTestId("cad-dxf-runtime-snapshot")).toHaveCount(0);
 }
 
 async function attachEvidence(page: Page, testInfo: TestInfo, name: string) {
@@ -79,7 +149,7 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "DXF WebGL release gate is deterministic in Chromium; cross-browser UI coverage remains in release.spec.ts.");
 
   test("clean and warning DXFs reach ready state with actionable diagnostics on desktop and mobile", async ({ page }, testInfo) => {
-    test.setTimeout(150_000);
+    test.setTimeout(210_000);
     await page.setViewportSize(DESKTOP);
     await login(page);
 
@@ -92,6 +162,33 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toBeVisible();
     await expect(page.getByTestId("cad-dxf-diagnostics-panel").locator('[data-severity="blocking"]')).toHaveCount(0);
     await attachEvidence(page, testInfo, "dxf-clean-desktop.png");
+
+    await page.goto("/dokumantasyon");
+    const largeId = await uploadDxf(page, "stage7-large-coordinate-bulge.dxf");
+    await openDxf(page, largeId);
+    await expectRenderableCanvas(page);
+    const largeSnapshot = await getRuntimeSnapshot(page);
+    expect(largeSnapshot.origin).not.toBeNull();
+    expect(Math.abs(largeSnapshot.origin?.x ?? 0)).toBeGreaterThan(100_000);
+    expect(Math.abs(largeSnapshot.origin?.y ?? 0)).toBeGreaterThan(1_000_000);
+    expect(largeSnapshot.bounds).not.toBeNull();
+    const spanX = (largeSnapshot.bounds?.maxX ?? 0) - (largeSnapshot.bounds?.minX ?? 0);
+    const spanY = (largeSnapshot.bounds?.maxY ?? 0) - (largeSnapshot.bounds?.minY ?? 0);
+    expect(spanX).toBeGreaterThan(50);
+    expect(spanX).toBeLessThan(500);
+    expect(spanY).toBeGreaterThan(30);
+    expect(spanY).toBeLessThan(500);
+    expect(largeSnapshot.layers).toContain("0");
+    await attachEvidence(page, testInfo, "dxf-large-coordinate-bulge.png");
+
+    await page.goto("/dokumantasyon");
+    const colorHatchId = await uploadDxf(page, "stage7-color-hatch.dxf");
+    await openDxf(page, colorHatchId);
+    await expectRenderableCanvas(page);
+    const colorSnapshot = await getRuntimeSnapshot(page);
+    expect(colorSnapshot.layers).toEqual(expect.arrayContaining(["0", "ACI_LAYER", "TRUE_LAYER"]));
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText("Denetim temiz");
+    await attachEvidence(page, testInfo, "dxf-color-hatch.png");
 
     await page.goto("/dokumantasyon");
     const geometryWarningId = await uploadDxf(page, "stage4-geometry-layers.dxf");
@@ -117,6 +214,7 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     expect(mobilePanelHeight).toBeLessThanOrEqual(MOBILE.height * 0.38 + 4);
     await attachEvidence(page, testInfo, "dxf-warning-mobile.png");
 
+    await page.setViewportSize(DESKTOP);
     await page.goto("/dokumantasyon");
     const textId = await uploadDxf(page, "stage3-text-mtext.dxf");
     await openDxf(page, textId);
@@ -127,8 +225,23 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toContainText("Yazı");
   });
 
+  test("unsupported entities, missing blocks and arbitrary OCS fail closed before renderer success", async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize(DESKTOP);
+    await login(page);
+
+    await expectBlockedDxf(page, "unsupported-annotations.dxf", /LEADER|MLEADER/);
+    await attachEvidence(page, testInfo, "dxf-blocked-unsupported.png");
+
+    await expectBlockedDxf(page, "missing-block-only.dxf", "MISSING_DETAIL");
+    await attachEvidence(page, testInfo, "dxf-blocked-missing-block.png");
+
+    await expectBlockedDxf(page, "ocs-arc-circle.dxf", /OCS|extrusion/i);
+    await attachEvidence(page, testInfo, "dxf-blocked-ocs.png");
+  });
+
   test("known incomplete dimension, spline and hatch cases fail closed instead of reporting success", async ({ page }, testInfo) => {
-    test.setTimeout(150_000);
+    test.setTimeout(180_000);
     await page.setViewportSize(DESKTOP);
     await login(page);
 
@@ -158,6 +271,12 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
 
     await page.setViewportSize(MOBILE);
     await expectNoHorizontalOverflow(page);
+    const download = page.getByRole("button", { name: "Orijinal dosyayı indir" });
+    await download.scrollIntoViewIfNeeded();
+    await expect(download).toBeVisible();
+    const retry = page.getByRole("button", { name: "Tekrar dene" });
+    await retry.scrollIntoViewIfNeeded();
+    await expect(retry).toBeVisible();
     await attachEvidence(page, testInfo, "dxf-blocked-geometry-mobile.png");
   });
 });
