@@ -203,6 +203,36 @@ function countNearRgb(image: DecodedPng, expected: Rgb, tolerance = 40): number 
   return count;
 }
 
+function countStronglyColoredPixels(image: DecodedPng, channelSpread = 10): number {
+  let count = 0;
+  const step = Math.max(1, Math.floor((image.width * image.height) / 300_000));
+  for (let pixel = 0; pixel < image.width * image.height; pixel += step) {
+    const offset = pixel * image.channels;
+    const red = image.pixels[offset];
+    const green = image.pixels[offset + 1];
+    const blue = image.pixels[offset + 2];
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    if (max > 45 && max - min > channelSpread) count += 1;
+  }
+  return count;
+}
+
+function countBrightNeutralPixels(image: DecodedPng, minimum = 170, channelSpread = 8): number {
+  let count = 0;
+  const step = Math.max(1, Math.floor((image.width * image.height) / 300_000));
+  for (let pixel = 0; pixel < image.width * image.height; pixel += step) {
+    const offset = pixel * image.channels;
+    const red = image.pixels[offset];
+    const green = image.pixels[offset + 1];
+    const blue = image.pixels[offset + 2];
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    if (min >= minimum && max - min <= channelSpread) count += 1;
+  }
+  return count;
+}
+
 async function attach(page: Page, testInfo: TestInfo, name: string) {
   await testInfo.attach(name, { body: await page.screenshot({ animations: "disabled" }), contentType: "image/png" });
 }
@@ -210,7 +240,7 @@ async function attach(page: Page, testInfo: TestInfo, name: string) {
 test.describe("DXF Stage 5 color fidelity", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "DXF color evidence is gated in Chromium.");
 
-  test("ACI, BYLAYER, BYBLOCK and TrueColor remain distinct in the actual WebGL canvas", async ({ page }, testInfo) => {
+  test("true-color and monochrome modes preserve CAD state and restore source colors", async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1200, height: 800 });
     await login(page);
@@ -222,28 +252,99 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText(/Denetim temiz|uyarı/);
 
     const canvas = page.getByTestId("cad-dxf-canvas").locator("canvas").first();
+    const modeToggle = page.getByTestId("cad-dxf-color-mode-toggle");
     await expect(canvas).toBeVisible();
+    await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
+    await expect(modeToggle).toContainText("Gerçek Renk");
+
     const snapshot = await runtimeSnapshot(page);
-    const image = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    const runtimeBefore = await page.getByTestId("cad-dxf-runtime-snapshot").textContent();
+    const layerBefore = await page.getByTestId("cad-dxf-layer-snapshot").textContent();
+    const trueColorImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
 
     const sampled = {
-      byLayerAciRed: expectModelRgb(image, snapshot, { x: 10, y: 10 }, [255, 0, 0], "BYLAYER ACI red"),
-      layerTrueGreen: expectModelRgb(image, snapshot, { x: 40, y: 10 }, [0, 255, 0], "layer TrueColor green"),
-      entityTrueBlue: expectModelRgb(image, snapshot, { x: 70, y: 10 }, [0, 0, 255], "entity TrueColor blue"),
-      byBlockMagenta: expectModelRgb(image, snapshot, { x: 100, y: 10 }, [255, 0, 255], "BYBLOCK/INSERT magenta"),
-      blackContrast: expectModelRgb(image, snapshot, { x: 160, y: 10 }, [255, 255, 255], "black-on-dark contrast inversion", 40),
+      byLayerAciRed: expectModelRgb(trueColorImage, snapshot, { x: 10, y: 10 }, [255, 0, 0], "BYLAYER ACI red"),
+      layerTrueGreen: expectModelRgb(trueColorImage, snapshot, { x: 40, y: 10 }, [0, 255, 0], "layer TrueColor green"),
+      entityTrueBlue: expectModelRgb(trueColorImage, snapshot, { x: 70, y: 10 }, [0, 0, 255], "entity TrueColor blue"),
+      byBlockMagenta: expectModelRgb(trueColorImage, snapshot, { x: 100, y: 10 }, [255, 0, 255], "BYBLOCK/INSERT magenta"),
+      blackContrast: expectModelRgb(trueColorImage, snapshot, { x: 160, y: 10 }, [255, 255, 255], "black-on-dark contrast inversion", 40),
     };
 
     const signatures = Object.values(sampled).map((rgb) => rgb.map((channel) => Math.round(channel / 24)).join(":"));
     expect(new Set(signatures).size, "independent DXF colors must not collapse to monochrome").toBeGreaterThanOrEqual(4);
+    expect(countNearRgb(trueColorImage, [0, 255, 255]), "cyan TEXT pixels").toBeGreaterThan(4);
+    expect(countNearRgb(trueColorImage, [255, 255, 0]), "yellow DIMENSION pixels").toBeGreaterThan(4);
+    expect(countStronglyColoredPixels(trueColorImage), "true-color mode must contain chromatic pixels").toBeGreaterThan(20);
 
-    expect(countNearRgb(image, [0, 255, 255]), "cyan TEXT pixels").toBeGreaterThan(4);
-    expect(countNearRgb(image, [255, 255, 0]), "yellow DIMENSION pixels").toBeGreaterThan(4);
+    await modeToggle.click();
+    await expect(modeToggle).toHaveAttribute("data-mode", "monochrome");
+    await expect(modeToggle).toContainText("Siyah-Beyaz");
+    await expect(canvas).toHaveAttribute("data-dxf-color-mode", "monochrome");
+    await expect(canvas).toHaveCSS("filter", /grayscale\(1\)/);
+    await page.waitForTimeout(180);
 
-    const darkPoint = modelToPixel(snapshot, image, 130, 10);
-    const darkSample = rgbAt(image, darkPoint.x, darkPoint.y);
-    console.log("DXF Stage 5 color samples:", JSON.stringify({ ...sampled, darkSample }));
+    const monochromeImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    expect(countStronglyColoredPixels(monochromeImage), "monochrome mode must remove chromatic pixels").toBeLessThanOrEqual(2);
+    expect(countBrightNeutralPixels(monochromeImage), "monochrome mode must retain visible bright CAD linework").toBeGreaterThan(20);
+    expect(await page.getByTestId("cad-dxf-runtime-snapshot").textContent(), "camera/runtime state changed on color mode toggle").toBe(runtimeBefore);
+    expect(await page.getByTestId("cad-dxf-layer-snapshot").textContent(), "layer state changed on color mode toggle").toBe(layerBefore);
 
-    await attach(page, testInfo, "dxf-stage5-color-fidelity.png");
+    await attach(page, testInfo, "dxf-stage1-monochrome-mode.png");
+
+    await modeToggle.click();
+    await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
+    await expect(canvas).toHaveAttribute("data-dxf-color-mode", "true-color");
+    await expect(canvas).toHaveCSS("filter", "none");
+    await page.waitForTimeout(180);
+
+    const restoredImage = decodePng(await canvas.screenshot({ animations: "disabled" }));
+    expectModelRgb(restoredImage, snapshot, { x: 10, y: 10 }, [255, 0, 0], "restored BYLAYER red");
+    expectModelRgb(restoredImage, snapshot, { x: 40, y: 10 }, [0, 255, 0], "restored layer green");
+    expectModelRgb(restoredImage, snapshot, { x: 70, y: 10 }, [0, 0, 255], "restored entity blue");
+    expectModelRgb(restoredImage, snapshot, { x: 100, y: 10 }, [255, 0, 255], "restored BYBLOCK magenta");
+    expect(countNearRgb(restoredImage, [0, 255, 255]), "restored cyan TEXT pixels").toBeGreaterThan(4);
+    expect(countNearRgb(restoredImage, [255, 255, 0]), "restored yellow DIMENSION pixels").toBeGreaterThan(4);
+    expect(await page.getByTestId("cad-dxf-runtime-snapshot").textContent()).toBe(runtimeBefore);
+    expect(await page.getByTestId("cad-dxf-layer-snapshot").textContent()).toBe(layerBefore);
+
+    const darkPoint = modelToPixel(snapshot, trueColorImage, 130, 10);
+    const darkSample = rgbAt(trueColorImage, darkPoint.x, darkPoint.y);
+    console.log("DXF color mode samples:", JSON.stringify({ ...sampled, darkSample }));
+
+    await attach(page, testInfo, "dxf-stage1-true-color-restored.png");
+  });
+
+  test("color mode control remains reachable without horizontal overflow on mobile", async ({ page }, testInfo) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    const fileId = await uploadFixture(page);
+    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+
+    const viewer = page.getByTestId("cad-dxf-viewer");
+    const canvas = page.getByTestId("cad-dxf-canvas").locator("canvas").first();
+    const modeToggle = page.getByTestId("cad-dxf-color-mode-toggle");
+    await expect(viewer).toBeVisible();
+    await expect(canvas).toBeVisible();
+    await expect(modeToggle).toBeVisible();
+
+    const metrics = await viewer.evaluate((element) => ({
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    }));
+    expect(metrics.scrollWidth, "DXF viewer horizontally overflows at 390px").toBeLessThanOrEqual(metrics.clientWidth + 1);
+
+    const box = await modeToggle.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+
+    await modeToggle.click();
+    await expect(modeToggle).toHaveAttribute("data-mode", "monochrome");
+    await expect(canvas).toHaveAttribute("data-dxf-color-mode", "monochrome");
+    await modeToggle.click();
+    await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
+
+    await attach(page, testInfo, "dxf-stage1-color-mode-mobile.png");
   });
 });
