@@ -11,6 +11,10 @@ import {
   type DxfFidelityAudit,
 } from "@/lib/dokumantasyon/dxf-fidelity-audit";
 import {
+  auditDxfReleaseHardening,
+  getDxfReleaseHardeningBlockingIssues,
+} from "@/lib/dokumantasyon/dxf-release-hardening";
+import {
   auditDxfStage3,
   getDxfStage3BlockingIssues,
   getDxfStage3Warnings,
@@ -22,6 +26,7 @@ import {
   getDxfStage4Warnings,
   normalizeDxfForStage4Rendering,
   validateDxfStage4ViewerSnapshot,
+  type DxfStage4ViewerSnapshot,
 } from "@/lib/dokumantasyon/dxf-stage4-fidelity";
 import {
   buildDxfStage5DiagnosticsReport,
@@ -149,6 +154,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [viewerWarnings, setViewerWarnings] = useState<string[]>([]);
   const [diagnosticsReport, setDiagnosticsReport] = useState<DxfStage5DiagnosticsReport | null>(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [runtimeSnapshot, setRuntimeSnapshot] = useState<DxfStage4ViewerSnapshot | null>(null);
 
   const fitDrawing = useCallback(() => {
     const viewer = viewerRef.current;
@@ -195,6 +201,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       setViewerWarnings([]);
       setDiagnosticsReport(null);
       setDiagnosticsOpen(false);
+      setRuntimeSnapshot(null);
       setProgress("Dosya alınıyor");
 
       try {
@@ -227,12 +234,19 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         const audit = auditDxfText(dxfText);
         const stage3Audit = auditDxfStage3(dxfText);
         const stage4Audit = auditDxfStage4(dxfText);
+        const releaseHardeningAudit = auditDxfReleaseHardening(dxfText);
         const stage3Normalization = normalizeDxfTextForStage3Rendering(dxfText);
         const stage4Normalization = normalizeDxfForStage4Rendering(stage3Normalization.text);
         const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
         const stage3BlockingIssues = getDxfStage3BlockingIssues(stage3Audit);
         const stage4BlockingIssues = getDxfStage4BlockingIssues(stage4Audit);
-        const blockingIssues = [...stage2BlockingIssues, ...stage3BlockingIssues, ...stage4BlockingIssues];
+        const releaseHardeningBlockingIssues = getDxfReleaseHardeningBlockingIssues(releaseHardeningAudit);
+        const blockingIssues = [
+          ...stage2BlockingIssues,
+          ...stage3BlockingIssues,
+          ...stage4BlockingIssues,
+          ...releaseHardeningBlockingIssues,
+        ];
         const normalizationWarnings = [
           ...(stage3Normalization.stackedFractionFallbackCount > 0
             ? [`${stage3Normalization.stackedFractionFallbackCount} MTEXT stacked fraction görünür plain-text biçimine dönüştürüldü.`]
@@ -255,9 +269,11 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           audit,
           stage3: stage3Audit,
           stage4: stage4Audit,
+          releaseHardening: releaseHardeningAudit,
           stage2BlockingIssues,
           stage3BlockingIssues,
           stage4BlockingIssues,
+          releaseHardeningBlockingIssues,
         });
 
         setFidelityAudit(audit);
@@ -340,7 +356,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         fitDrawing();
 
         const camera = viewer.GetCamera();
-        const viewerValidation = validateDxfStage4ViewerSnapshot(stage4Audit, {
+        const snapshot: DxfStage4ViewerSnapshot = {
           viewport: {
             width: renderContainer.clientWidth,
             height: renderContainer.clientHeight,
@@ -362,7 +378,9 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               }
             : null,
           layers: [...viewer.GetLayers()].map((layer) => layer.name),
-        });
+        };
+        setRuntimeSnapshot(snapshot);
+        const viewerValidation = validateDxfStage4ViewerSnapshot(stage4Audit, snapshot);
         const finalFidelityWarnings = uniqueMessages([
           ...preRenderWarnings,
           ...viewerValidation.warnings,
@@ -374,9 +392,11 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           audit,
           stage3: stage3Audit,
           stage4: stage4Audit,
+          releaseHardening: releaseHardeningAudit,
           stage2BlockingIssues,
           stage3BlockingIssues,
           stage4BlockingIssues,
+          releaseHardeningBlockingIssues,
           viewerValidation,
           rendererWarnings: capturedViewerWarnings,
         });
@@ -475,6 +495,11 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       </header>
 
       {diagnosticsOpen && diagnosticsReport && <DxfDiagnosticsPanel report={diagnosticsReport} />}
+      {runtimeSnapshot && (
+        <output className="sr-only" data-testid="cad-dxf-runtime-snapshot">
+          {JSON.stringify(runtimeSnapshot)}
+        </output>
+      )}
 
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden" data-view-revision={viewRevision}>
         <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
