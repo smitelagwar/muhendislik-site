@@ -5,6 +5,7 @@
 import { DxfWorker } from "dxf-viewer/src/DxfWorker.js";
 // @ts-expect-error dxf-viewer internal module has no declaration file
 import { DxfScene } from "dxf-viewer/src/DxfScene.js";
+import { normalizeParsedDxfDimensionColors } from "../../../lib/dokumantasyon/dxf-dimension-color-normalization";
 import {
   dxfTextStage2ReportKey,
   normalizeParsedDxfTextStage2,
@@ -93,7 +94,9 @@ function compactParsedTextEvidence(dxf: DxfTextStage2ParsedDxf | undefined): Com
 // Normalize only the worker-owned parsed representation. The original uploaded/downloadable DXF and
 // the UTF-8 render Blob on the main thread remain unchanged. Stage 2 repairs ATTRIB/ATTDEF semantics;
 // Stage 3 then rejects text layout transforms which the upstream glyph renderer cannot reproduce
-// reliably instead of silently showing an approximate engineering annotation.
+// reliably instead of silently showing an approximate engineering annotation. Dimension ACI colors
+// are converted after those gates because upstream parses DIMCLRD/DIMCLRE/DIMCLRT as ACI indices but
+// later consumes the same numbers as RGB values.
 const scenePrototype = (DxfScene as unknown as { prototype: InternalDxfScenePrototype }).prototype;
 const upstreamBuild = scenePrototype.Build;
 scenePrototype.Build = async function (
@@ -111,6 +114,7 @@ scenePrototype.Build = async function (
     throw new Error(`DXF text Stage 3 fidelity engeli: ${stage3Report.blockingIssues.join(" ")}`);
   }
 
+  normalizeParsedDxfDimensionColors(dxf);
   return upstreamBuild.call(this, dxf, fontFetchers);
 };
 
