@@ -15,6 +15,10 @@
 /playwright-report/
 /test-results/
 
+# private DXF fidelity corpus; README is safe to commit, project drawings are not
+/tests/private-dxf-corpus/*
+!/tests/private-dxf-corpus/README.md
+
 # next.js
 /.next/
 /.next-playwright*/
