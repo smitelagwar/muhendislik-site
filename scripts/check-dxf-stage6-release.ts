@@ -4,6 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { detectDxfEncoding } from "../src/lib/dokumantasyon/dxf-encoding";
 import { auditDxfText, getDxfStage2BlockingIssues } from "../src/lib/dokumantasyon/dxf-fidelity-audit";
+import {
+  auditDxfReleaseHardening,
+  getDxfReleaseHardeningBlockingIssues,
+} from "../src/lib/dokumantasyon/dxf-release-hardening";
 import { auditDxfStage3, getDxfStage3BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage3-fidelity";
 import { auditDxfStage4, getDxfStage4BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage4-fidelity";
 import { buildDxfStage5DiagnosticsReport, type DxfDiagnosticCategory } from "../src/lib/dokumantasyon/dxf-stage5-diagnostics";
@@ -20,10 +24,16 @@ type MatrixRow = {
 
 const releaseMatrix: MatrixRow[] = [
   { fixture: "geometry-basic.dxf", expectedStatus: "clean" },
+  { fixture: "stage7-large-coordinate-bulge.dxf", expectedStatus: "clean" },
+  { fixture: "stage7-color-hatch.dxf", expectedStatus: "clean" },
+  { fixture: "suppressed-unsupported.dxf", expectedStatus: "clean", requiredCategories: ["structure", "layer"] },
   { fixture: "stage3-text-mtext.dxf", expectedStatus: "warning", requiredCategories: ["text"] },
   { fixture: "stage4-geometry-layers.dxf", expectedStatus: "warning", requiredCategories: ["layer", "geometry", "viewport"] },
+  { fixture: "unsupported-annotations.dxf", expectedStatus: "blocked", requiredCategories: ["structure", "renderer"] },
+  { fixture: "missing-block-only.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
+  { fixture: "ocs-arc-circle.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
   { fixture: "stage2-block-transforms.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
-  { fixture: "stage2-ocs-insert.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
+  { fixture: "stage2-ocs-insert.dxf", expectedStatus: "blocked", requiredCategories: ["block", "geometry", "renderer"] },
   { fixture: "stage3-dimensions.dxf", expectedStatus: "blocked", requiredCategories: ["dimension", "renderer"] },
   { fixture: "stage4-risky-geometry.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
 ];
@@ -38,17 +48,21 @@ async function main() {
     const audit = auditDxfText(text);
     const stage3 = auditDxfStage3(text);
     const stage4 = auditDxfStage4(text);
+    const releaseHardening = auditDxfReleaseHardening(text);
     const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
     const stage3BlockingIssues = getDxfStage3BlockingIssues(stage3);
     const stage4BlockingIssues = getDxfStage4BlockingIssues(stage4);
+    const releaseHardeningBlockingIssues = getDxfReleaseHardeningBlockingIssues(releaseHardening);
     const report = buildDxfStage5DiagnosticsReport({
       encoding,
       audit,
       stage3,
       stage4,
+      releaseHardening,
       stage2BlockingIssues,
       stage3BlockingIssues,
       stage4BlockingIssues,
+      releaseHardeningBlockingIssues,
     });
 
     assert.equal(report.status, row.expectedStatus, `${row.fixture} release status changed`);
@@ -71,15 +85,28 @@ async function main() {
   }
 
   const browserSpec = await readFile(path.join(root, "tests", "document-studio", "dxf-release.spec.ts"), "utf8");
-  for (const fixture of ["geometry-basic.dxf", "stage3-text-mtext.dxf", "stage4-geometry-layers.dxf", "stage3-dimensions.dxf", "stage4-risky-geometry.dxf"]) {
+  for (const fixture of [
+    "geometry-basic.dxf",
+    "stage7-large-coordinate-bulge.dxf",
+    "stage7-color-hatch.dxf",
+    "stage3-text-mtext.dxf",
+    "stage4-geometry-layers.dxf",
+    "unsupported-annotations.dxf",
+    "missing-block-only.dxf",
+    "ocs-arc-circle.dxf",
+    "stage3-dimensions.dxf",
+    "stage4-risky-geometry.dxf",
+  ]) {
     assert.match(browserSpec, new RegExp(fixture.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `browser gate must cover ${fixture}`);
   }
   assert.match(browserSpec, /cad-dxf-diagnostics-toggle/);
   assert.match(browserSpec, /cad-dxf-diagnostics-panel/);
   assert.match(browserSpec, /cad-dxf-canvas/);
+  assert.match(browserSpec, /cad-dxf-runtime-snapshot/);
   assert.match(browserSpec, /Orijinal dosyayı indir/);
   assert.match(browserSpec, /width:\s*390,\s*height:\s*844/);
   assert.match(browserSpec, /page\.screenshot/);
+  assert.match(browserSpec, /foreground/i);
 
   const playwrightConfig = await readFile(path.join(root, "playwright.config.ts"), "utf8");
   assert.match(playwrightConfig, /DOK_ALLOW_LOCAL_STORAGE:\s*"true"/);
