@@ -55,6 +55,7 @@ async function main() {
 
   const dimensionFixture = await readFixture("stage3-dimensions.dxf");
   const dimensionAudit = auditDxfStage3(dimensionFixture);
+  console.log("Stage 3 dimension audit:", JSON.stringify(dimensionAudit, null, 2));
   assert.equal(dimensionAudit.dimensionCount, 5);
   assert.equal(dimensionAudit.linearDimensionCount, 2);
   assert.equal(dimensionAudit.alignedDimensionCount, 1);
