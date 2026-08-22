@@ -1,0 +1,146 @@
+name: dxf-fidelity-release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dxf-fidelity-release.yml"
+      - ".github/workflows/vercel-preflight.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "scripts/check-dxf-*"
+      - "tests/fixtures/dxf/**"
+      - "tests/document-studio/dxf-release.spec.ts"
+      - "tests/document-studio/dxf-text-stage2.spec.ts"
+      - "tests/document-studio/dxf-text-stage3.spec.ts"
+      - "tests/document-studio/dxf-layers.spec.ts"
+      - "tests/document-studio/dxf-color.spec.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/dxf-fidelity-release.yml"
+      - ".github/workflows/vercel-preflight.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "scripts/check-dxf-*"
+      - "tests/fixtures/dxf/**"
+      - "tests/document-studio/dxf-release.spec.ts"
+      - "tests/document-studio/dxf-text-stage2.spec.ts"
+      - "tests/document-studio/dxf-text-stage3.spec.ts"
+      - "tests/document-studio/dxf-layers.spec.ts"
+      - "tests/document-studio/dxf-color.spec.ts"
+
+concurrency:
+  group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gate:
+    name: DXF fidelity release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Targeted DXF lint
+        run: >-
+          npx eslint
+          "src/components/dokumantasyon/preview/cad-viewer.tsx"
+          "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+          "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
+          "src/lib/dokumantasyon/dxf-*.ts"
+          "scripts/check-dxf-*"
+          "tests/document-studio/dxf-release.spec.ts"
+          "tests/document-studio/dxf-text-stage2.spec.ts"
+          "tests/document-studio/dxf-text-stage3.spec.ts"
+          "tests/document-studio/dxf-layers.spec.ts"
+          "tests/document-studio/dxf-color.spec.ts"
+
+      - name: Typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Stage 1 fidelity audit
+        run: node scripts/check-dxf-stage1-fidelity.mjs
+
+      - name: Stage 2 encoding and block hardening
+        run: npx tsx scripts/check-dxf-stage2-hardening.ts
+
+      - name: Stage 3 text and dimension fidelity
+        run: npx tsx scripts/check-dxf-stage3-fidelity.ts
+
+      - name: Text source parser and font evidence
+        run: npx tsx scripts/check-dxf-text-render-audit.ts
+
+      - name: Text Stage 2 ATTRIB and ATTDEF rendering
+        run: npx tsx scripts/check-dxf-text-stage2.ts
+
+      - name: Text Stage 3 layout fidelity
+        run: npx tsx scripts/check-dxf-text-stage3-layout.ts
+
+      - name: Stage 4 geometry layer and viewport fidelity
+        run: npx tsx scripts/check-dxf-stage4-fidelity.ts
+
+      - name: Interactive layer runtime
+        run: npx tsx scripts/check-dxf-layer-controls.ts
+
+      - name: Stage 5 color fidelity
+        run: npx tsx scripts/check-dxf-color-fidelity.ts
+
+      - name: Stage 5 actionable diagnostics
+        run: npx tsx scripts/check-dxf-stage5-diagnostics.ts
+
+      - name: Release fail-closed hardening
+        run: npx tsx scripts/check-dxf-release-hardening.ts
+
+      - name: Extended geometry color and hatch fidelity
+        run: npx tsx scripts/check-dxf-stage7-extended-fidelity.ts
+
+      - name: Stage 6 release matrix
+        run: npx tsx scripts/check-dxf-stage6-release.ts
+
+      - name: Install Chromium for DXF browser gate
+        run: npx playwright install --with-deps chromium
+
+      - name: DXF browser release gate
+        run: >-
+          npx playwright test --config=playwright.config.ts
+          tests/document-studio/dxf-release.spec.ts
+          tests/document-studio/dxf-text-stage2.spec.ts
+          tests/document-studio/dxf-text-stage3.spec.ts
+          tests/document-studio/dxf-layers.spec.ts
+          tests/document-studio/dxf-color.spec.ts
+          --project=chromium
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: dxf-playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
