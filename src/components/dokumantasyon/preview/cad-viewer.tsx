@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
+import { AlertCircle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { decodeDxfBytes, detectDxfEncoding, type DxfEncodingResolution } from "@/lib/dokumantasyon/dxf-encoding";
 import {
@@ -23,9 +23,14 @@ import {
   normalizeDxfForStage4Rendering,
   validateDxfStage4ViewerSnapshot,
 } from "@/lib/dokumantasyon/dxf-stage4-fidelity";
+import {
+  buildDxfStage5DiagnosticsReport,
+  type DxfStage5DiagnosticsReport,
+} from "@/lib/dokumantasyon/dxf-stage5-diagnostics";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
+import { DxfDiagnosticsButton, DxfDiagnosticsPanel } from "./dxf-diagnostics-panel";
 
 const DXF_FONT_URLS = ["/fonts/Arial-Regular.ttf", "/fonts/Arial-Bold.ttf"];
 
@@ -142,6 +147,8 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [fidelityAudit, setFidelityAudit] = useState<DxfFidelityAudit | null>(null);
   const [fidelityWarnings, setFidelityWarnings] = useState<string[]>([]);
   const [viewerWarnings, setViewerWarnings] = useState<string[]>([]);
+  const [diagnosticsReport, setDiagnosticsReport] = useState<DxfStage5DiagnosticsReport | null>(null);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const fitDrawing = useCallback(() => {
     const viewer = viewerRef.current;
@@ -165,6 +172,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     let objectUrl: string | null = null;
     let onViewChanged: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
     let onViewerMessage: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
+    const capturedViewerWarnings: string[] = [];
     const container = containerRef.current;
     const onContextLost = (event: Event) => {
       event.preventDefault();
@@ -185,6 +193,8 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       setFidelityAudit(null);
       setFidelityWarnings([]);
       setViewerWarnings([]);
+      setDiagnosticsReport(null);
+      setDiagnosticsOpen(false);
       setProgress("Dosya alınıyor");
 
       try {
@@ -240,10 +250,22 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           ...blockingIssues,
         ]);
 
+        const preRenderDiagnostics = buildDxfStage5DiagnosticsReport({
+          encoding,
+          audit,
+          stage3: stage3Audit,
+          stage4: stage4Audit,
+          stage2BlockingIssues,
+          stage3BlockingIssues,
+          stage4BlockingIssues,
+        });
+
         setFidelityAudit(audit);
         setFidelityWarnings(preRenderWarnings);
+        setDiagnosticsReport(preRenderDiagnostics);
 
         if (blockingIssues.length > 0) {
+          setDiagnosticsOpen(true);
           throw new DxfViewerLoadError(
             "unsupported",
             `DXF eksik render edileceği için görüntüleme durduruldu. ${blockingIssues.join(" ")}`
@@ -290,6 +312,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           const detail = event.detail;
           if (detail?.level === "warn" || detail?.level === "error") {
             const message = detail.message?.trim();
+            if (message && !capturedViewerWarnings.includes(message)) capturedViewerWarnings.push(message);
             if (message) setViewerWarnings((current) => current.includes(message) ? current : [...current, message]);
           }
         };
@@ -344,10 +367,24 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           ...preRenderWarnings,
           ...viewerValidation.warnings,
           ...viewerValidation.blockingIssues,
+          ...capturedViewerWarnings,
         ]);
+        const finalDiagnostics = buildDxfStage5DiagnosticsReport({
+          encoding,
+          audit,
+          stage3: stage3Audit,
+          stage4: stage4Audit,
+          stage2BlockingIssues,
+          stage3BlockingIssues,
+          stage4BlockingIssues,
+          viewerValidation,
+          rendererWarnings: capturedViewerWarnings,
+        });
         setFidelityWarnings(finalFidelityWarnings);
+        setDiagnosticsReport(finalDiagnostics);
 
         if (viewerValidation.blockingIssues.length > 0) {
+          setDiagnosticsOpen(true);
           throw new DxfViewerLoadError(
             "render",
             `DXF geometri/viewport doğrulaması başarısız. ${viewerValidation.blockingIssues.join(" ")}`
@@ -392,19 +429,25 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           <Compass className="h-4 w-4 shrink-0 text-amber-400" />
           <span className="truncate font-bold text-amber-300">DXF görüntüleyici</span>
           <span className="hidden text-zinc-500 sm:inline">{formatBytes(sizeBytes)}</span>
-          {loadState === "ready" && fidelityAudit && (
+          {fidelityAudit && (
             <span
               data-testid="cad-dxf-fidelity"
-              className={allWarnings.length > 0 ? "hidden text-amber-300 md:inline" : "hidden text-emerald-400 md:inline"}
+              className={diagnosticsReport?.status === "blocked" ? "hidden text-red-300 md:inline" : diagnosticsReport?.status === "warning" ? "hidden text-amber-300 md:inline" : "hidden text-emerald-400 md:inline"}
               title={allWarnings.join("\n")}
             >
               {fidelityAudit.entityCount} entity · {fidelityAudit.textEntityCount} yazı · {fidelityAudit.dimensionEntityCount} ölçü
               {encodingResolution ? ` · kaynak ${encodingResolution.encoding}` : ""}
-              {allWarnings.length > 0 ? ` · ${allWarnings.length} uyarı` : " · denetim temiz"}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1.5">
+          {diagnosticsReport && (
+            <DxfDiagnosticsButton
+              report={diagnosticsReport}
+              open={diagnosticsOpen}
+              onToggle={() => setDiagnosticsOpen((open) => !open)}
+            />
+          )}
           <StudioCommandButton
             commandId="cad.dxf.fit"
             onClick={fitDrawing}
@@ -431,14 +474,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         </div>
       </header>
 
-      {loadState === "ready" && allWarnings.length > 0 && (
-        <div className="flex shrink-0 items-start gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100" data-testid="cad-dxf-fidelity-warning">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
-          <p className="min-w-0 truncate" title={allWarnings.join("\n")}>
-            DXF açıldı; ancak sadakat denetimi uyarı verdi: {allWarnings.join(" ")}
-          </p>
-        </div>
-      )}
+      {diagnosticsOpen && diagnosticsReport && <DxfDiagnosticsPanel report={diagnosticsReport} />}
 
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden" data-view-revision={viewRevision}>
         <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
@@ -454,7 +490,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         )}
 
         {loadState === "error" && error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 p-5">
+          <div className="absolute inset-0 flex items-center justify-center overflow-y-auto bg-zinc-950 p-5">
             <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center">
               <AlertCircle className="mx-auto h-9 w-9 text-red-400" />
               <h2 className="mt-3 text-base font-bold text-red-200">DXF açılamadı</h2>
@@ -463,10 +499,13 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
                 <div><dt className="inline text-zinc-500">Boyut: </dt><dd className="inline">{formatBytes(sizeBytes)}</dd></div>
                 {encodingResolution && <div><dt className="inline text-zinc-500">Kaynak encoding: </dt><dd className="inline">{encodingResolution.encoding} ({encodingResolution.source})</dd></div>}
                 <div><dt className="inline text-zinc-500">Sebep: </dt><dd className="inline">{error.kind} — {error.message}</dd></div>
+                {diagnosticsReport && diagnosticsReport.blockingCount > 0 && (
+                  <div><dt className="inline text-zinc-500">Fidelity engeli: </dt><dd className="inline">{diagnosticsReport.blockingCount} doğruluk problemi — ayrıntılar üstteki Denetim panelinde.</dd></div>
+                )}
               </dl>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 <Button onClick={() => setRetryKey((key) => key + 1)} className="bg-amber-500 text-zinc-950 hover:bg-amber-400">Tekrar dene</Button>
-                <Button variant="outline" onClick={handleDownload} className="border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800">Dosyayı indir</Button>
+                <Button variant="outline" onClick={handleDownload} className="border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800">Orijinal dosyayı indir</Button>
               </div>
             </div>
           </div>
