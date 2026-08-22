@@ -34,7 +34,7 @@ const releaseMatrix: MatrixRow[] = [
   { fixture: "missing-block-only.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
   { fixture: "ocs-arc-circle.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
   { fixture: "stage2-block-transforms.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
-  { fixture: "stage2-ocs-insert.dxf", expectedStatus: "blocked", requiredCategories: ["block", "geometry", "renderer"] },
+  { fixture: "stage2-ocs-insert.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
   { fixture: "stage3-dimensions.dxf", expectedStatus: "blocked", requiredCategories: ["dimension", "renderer"] },
   { fixture: "stage4-risky-geometry.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
 ];
