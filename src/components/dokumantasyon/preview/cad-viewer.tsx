@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
+import { AlertCircle, AlertTriangle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { auditDxfText, getDxfFidelityWarnings, type DxfFidelityAudit } from "@/lib/dokumantasyon/dxf-fidelity-audit";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
+
+const DXF_FONT_URLS = ["/fonts/Arial-Regular.ttf", "/fonts/Arial-Bold.ttf"];
 
 interface DokCadViewerProps {
   accessUrl: string;
@@ -15,6 +18,8 @@ interface DokCadViewerProps {
   sizeBytes: number;
 }
 
+type DxfViewerMessage = { message?: string; level?: string };
+
 type DxfViewerInstance = {
   Destroy: () => void;
   FitView: (minX: number, maxX: number, minY: number, maxY: number, padding?: number) => void;
@@ -23,11 +28,12 @@ type DxfViewerInstance = {
   HasRenderer: () => boolean;
   Load: (params: {
     url: string;
+    fonts?: string[];
     progressCbk?: (phase: "font" | "fetch" | "parse" | "prepare") => void;
     workerFactory?: () => Worker;
   }) => Promise<void>;
-  Subscribe: (eventName: "viewChanged", handler: () => void) => void;
-  Unsubscribe: (eventName: "viewChanged", handler: () => void) => void;
+  Subscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
+  Unsubscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
 };
 
 type ViewerLoadState = "loading" | "ready" | "error";
@@ -54,6 +60,11 @@ function downloadFile(accessUrl: string, displayName: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function hasFiniteBounds(bounds: ReturnType<DxfViewerInstance["GetBounds"]>): boolean {
+  if (!bounds) return false;
+  return [bounds.minX, bounds.maxX, bounds.minY, bounds.maxY].every(Number.isFinite);
 }
 
 export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes }: DokCadViewerProps) {
@@ -85,12 +96,15 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [error, setError] = useState<ViewerError | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [viewRevision, setViewRevision] = useState(0);
+  const [fidelityAudit, setFidelityAudit] = useState<DxfFidelityAudit | null>(null);
+  const [fidelityWarnings, setFidelityWarnings] = useState<string[]>([]);
+  const [viewerWarnings, setViewerWarnings] = useState<string[]>([]);
 
   const fitDrawing = useCallback(() => {
     const viewer = viewerRef.current;
     const bounds = viewer?.GetBounds();
     const origin = viewer?.GetOrigin();
-    if (!viewer || !bounds || !origin) return;
+    if (!viewer || !bounds || !origin || !hasFiniteBounds(bounds)) return;
 
     viewer.FitView(
       bounds.minX - origin.x,
@@ -106,7 +120,8 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     let active = true;
     let viewer: DxfViewerInstance | null = null;
     let objectUrl: string | null = null;
-    let onViewChanged: (() => void) | null = null;
+    let onViewChanged: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
+    let onViewerMessage: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
     const container = containerRef.current;
     const onContextLost = (event: Event) => {
       event.preventDefault();
@@ -123,6 +138,9 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     const load = async () => {
       setLoadState("loading");
       setError(null);
+      setFidelityAudit(null);
+      setFidelityWarnings([]);
+      setViewerWarnings([]);
       setProgress("Dosya alınıyor");
 
       try {
@@ -135,6 +153,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         if (!dxfText.trim()) {
           throw new Error("DXF dosyası boş.");
         }
+
+        const audit = auditDxfText(dxfText);
+        setFidelityAudit(audit);
+        setFidelityWarnings(getDxfFidelityWarnings(audit));
         objectUrl = URL.createObjectURL(new Blob([dxfText], { type: "application/dxf" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
@@ -147,6 +169,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           antialias: true,
           colorCorrection: true,
           blackWhiteInversion: true,
+          retainParsedDxf: true,
         }) as DxfViewerInstance;
 
         if (!viewer.HasRenderer()) {
@@ -156,11 +179,21 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         onViewChanged = () => {
           if (active) setViewRevision((revision) => revision + 1);
         };
+        onViewerMessage = (event) => {
+          if (!active) return;
+          const detail = event.detail;
+          if (detail?.level === "warn" || detail?.level === "error") {
+            const message = detail.message?.trim();
+            if (message) setViewerWarnings((current) => current.includes(message) ? current : [...current, message]);
+          }
+        };
         viewer.Subscribe("viewChanged", onViewChanged);
+        viewer.Subscribe("message", onViewerMessage);
         viewerRef.current = viewer;
 
         await viewer.Load({
           url: objectUrl,
+          fonts: DXF_FONT_URLS,
           workerFactory: () => new Worker(new URL("./dxf-viewer-worker.ts", import.meta.url), { type: "module" }),
           progressCbk: (phase) => {
             if (!active) return;
@@ -168,13 +201,18 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               fetch: "Dosya alınıyor",
               parse: "DXF verisi okunuyor",
               prepare: "Geometri hazırlanıyor",
-              font: "Yazılar hazırlanıyor",
+              font: "Yazılar ve glifler hazırlanıyor",
             } as const;
             setProgress(phaseLabels[phase]);
           },
         });
 
         if (!active) return;
+        const bounds = viewer.GetBounds();
+        if ((audit.entityCount > 0 || audit.blockEntityCount > 0) && !hasFiniteBounds(bounds)) {
+          throw new Error("DXF parse edildi ancak geçerli çizim sınırları üretilemedi. Yükleme başarılı sayılamaz.");
+        }
+
         fitDrawing();
         setLoadState("ready");
       } catch (caughtError: unknown) {
@@ -197,6 +235,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       abortController.abort();
       container?.removeEventListener("webglcontextlost", onContextLost, true);
       if (viewer && onViewChanged) viewer.Unsubscribe("viewChanged", onViewChanged);
+      if (viewer && onViewerMessage) viewer.Unsubscribe("message", onViewerMessage);
       viewer?.Destroy();
       if (viewerRef.current === viewer) viewerRef.current = null;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -204,6 +243,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   }, [accessUrl, fitDrawing, retryKey]);
 
   const handleDownload = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
+  const allWarnings = [...fidelityWarnings, ...viewerWarnings];
 
   return (
     <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100" data-testid="cad-dxf-viewer">
@@ -212,6 +252,16 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           <Compass className="h-4 w-4 shrink-0 text-amber-400" />
           <span className="truncate font-bold text-amber-300">DXF görüntüleyici</span>
           <span className="hidden text-zinc-500 sm:inline">{formatBytes(sizeBytes)}</span>
+          {loadState === "ready" && fidelityAudit && (
+            <span
+              data-testid="cad-dxf-fidelity"
+              className={allWarnings.length > 0 ? "hidden text-amber-300 md:inline" : "hidden text-emerald-400 md:inline"}
+              title={allWarnings.join("\n")}
+            >
+              {fidelityAudit.entityCount} entity · {fidelityAudit.textEntityCount} yazı · {fidelityAudit.dimensionEntityCount} ölçü
+              {allWarnings.length > 0 ? ` · ${allWarnings.length} uyarı` : " · denetim temiz"}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <StudioCommandButton
@@ -239,6 +289,15 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           />
         </div>
       </header>
+
+      {loadState === "ready" && allWarnings.length > 0 && (
+        <div className="flex shrink-0 items-start gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100" data-testid="cad-dxf-fidelity-warning">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+          <p className="min-w-0 truncate" title={allWarnings.join("\n")}>
+            DXF açıldı; ancak sadakat denetimi uyarı verdi: {allWarnings.join(" ")}
+          </p>
+        </div>
+      )}
 
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden" data-view-revision={viewRevision}>
         <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
