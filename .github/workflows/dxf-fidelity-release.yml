@@ -10,6 +10,7 @@ on:
       - "playwright.config.ts"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "scripts/check-dxf-*"
@@ -17,6 +18,7 @@ on:
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
+      - "tests/document-studio/dxf-layers.spec.ts"
   push:
     branches:
       - main
@@ -28,6 +30,7 @@ on:
       - "playwright.config.ts"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+      - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "scripts/check-dxf-*"
@@ -35,6 +38,7 @@ on:
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
+      - "tests/document-studio/dxf-layers.spec.ts"
 
 concurrency:
   group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
@@ -64,11 +68,13 @@ jobs:
           npx eslint
           "src/components/dokumantasyon/preview/cad-viewer.tsx"
           "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+          "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
           "src/lib/dokumantasyon/dxf-*.ts"
           "scripts/check-dxf-*"
           "tests/document-studio/dxf-release.spec.ts"
           "tests/document-studio/dxf-text-stage2.spec.ts"
           "tests/document-studio/dxf-text-stage3.spec.ts"
+          "tests/document-studio/dxf-layers.spec.ts"
 
       - name: Typecheck
         run: npx tsc --noEmit --incremental false
@@ -94,6 +100,9 @@ jobs:
       - name: Stage 4 geometry layer and viewport fidelity
         run: npx tsx scripts/check-dxf-stage4-fidelity.ts
 
+      - name: Interactive layer runtime
+        run: npx tsx scripts/check-dxf-layer-controls.ts
+
       - name: Stage 5 actionable diagnostics
         run: npx tsx scripts/check-dxf-stage5-diagnostics.ts
 
@@ -115,6 +124,7 @@ jobs:
           tests/document-studio/dxf-release.spec.ts
           tests/document-studio/dxf-text-stage2.spec.ts
           tests/document-studio/dxf-text-stage3.spec.ts
+          tests/document-studio/dxf-layers.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence
