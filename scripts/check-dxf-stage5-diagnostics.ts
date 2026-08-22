@@ -3,6 +3,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { auditDxfText, getDxfStage2BlockingIssues } from "../src/lib/dokumantasyon/dxf-fidelity-audit";
+import {
+  auditDxfReleaseHardening,
+  getDxfReleaseHardeningBlockingIssues,
+} from "../src/lib/dokumantasyon/dxf-release-hardening";
 import { auditDxfStage3, getDxfStage3BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage3-fidelity";
 import { auditDxfStage4, getDxfStage4BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage4-fidelity";
 import { buildDxfStage5DiagnosticsReport } from "../src/lib/dokumantasyon/dxf-stage5-diagnostics";
@@ -22,14 +26,17 @@ async function reportFor(name: string) {
   const audit = auditDxfText(text);
   const stage3 = auditDxfStage3(text);
   const stage4 = auditDxfStage4(text);
+  const releaseHardening = auditDxfReleaseHardening(text);
   return buildDxfStage5DiagnosticsReport({
     encoding,
     audit,
     stage3,
     stage4,
+    releaseHardening,
     stage2BlockingIssues: getDxfStage2BlockingIssues(audit),
     stage3BlockingIssues: getDxfStage3BlockingIssues(stage3),
     stage4BlockingIssues: getDxfStage4BlockingIssues(stage4),
+    releaseHardeningBlockingIssues: getDxfReleaseHardeningBlockingIssues(releaseHardening),
   });
 }
 
@@ -58,6 +65,24 @@ async function main() {
   assert.equal(dimensionReport.status, "blocked");
   assert.ok(dimensionReport.items.some((item) => item.id === "dimension-blocking" && item.category === "dimension"));
 
+  const unsupportedReport = await reportFor("unsupported-annotations.dxf");
+  assert.equal(unsupportedReport.status, "blocked");
+  assert.ok(unsupportedReport.items.some((item) => item.id === "unsupported-entities" && item.severity === "blocking"));
+
+  const missingBlockReport = await reportFor("missing-block-only.dxf");
+  assert.equal(missingBlockReport.status, "blocked");
+  assert.ok(missingBlockReport.items.some((item) => item.id === "missing-blocks" && item.severity === "blocking"));
+
+  const ocsReport = await reportFor("ocs-arc-circle.dxf");
+  assert.equal(ocsReport.status, "blocked");
+  assert.ok(ocsReport.items.some((item) => item.id === "ocs-hardening" && item.severity === "blocking"));
+
+  const suppressedUnsupportedReport = await reportFor("suppressed-unsupported.dxf");
+  assert.equal(suppressedUnsupportedReport.status, "clean");
+  assert.equal(suppressedUnsupportedReport.blockingCount, 0);
+  assert.equal(suppressedUnsupportedReport.warningCount, 0);
+  assert.ok(suppressedUnsupportedReport.items.some((item) => item.id === "unsupported-entities-suppressed" && item.severity === "info"));
+
   const viewerSource = await readFile(
     path.join(root, "src", "components", "dokumantasyon", "preview", "cad-viewer.tsx"),
     "utf8"
@@ -67,10 +92,12 @@ async function main() {
     "utf8"
   );
   assert.match(viewerSource, /buildDxfStage5DiagnosticsReport/);
+  assert.match(viewerSource, /auditDxfReleaseHardening\(dxfText\)/);
   assert.match(viewerSource, /DxfDiagnosticsButton/);
   assert.match(viewerSource, /DxfDiagnosticsPanel/);
   assert.match(viewerSource, /setDiagnosticsOpen\(true\)/);
   assert.match(viewerSource, /Orijinal dosyayı indir/);
+  assert.match(viewerSource, /cad-dxf-runtime-snapshot/);
   assert.doesNotMatch(viewerSource, /cad-dxf-fidelity-warning/);
   assert.match(panelSource, /cad-dxf-diagnostics-toggle/);
   assert.match(panelSource, /cad-dxf-diagnostics-panel/);
