@@ -67,7 +67,8 @@ const viewerSource = await readFile(
 assert.match(viewerSource, /auditDxfStage3\(dxfText\)/);
 assert.match(viewerSource, /normalizeDxfTextForStage3Rendering\(dxfText\)/);
 assert.match(viewerSource, /getDxfStage3BlockingIssues\(stage3Audit\)/);
-assert.match(viewerSource, /new Blob\(\[normalization\.text\]/);
+assert.match(viewerSource, /normalizeDxfForStage4Rendering\(stage3Normalization\.text\)/);
+assert.match(viewerSource, /new Blob\(\[stage4Normalization\.text\]/);
 assert.match(viewerSource, /fileEncoding:\s*"utf-8"/);
 assert.doesNotMatch(viewerSource, /new Blob\(\[dxfBuffer\]/);
 
