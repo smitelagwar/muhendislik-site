@@ -16,6 +16,13 @@ import {
   getDxfStage3Warnings,
   normalizeDxfTextForStage3Rendering,
 } from "@/lib/dokumantasyon/dxf-stage3-fidelity";
+import {
+  auditDxfStage4,
+  getDxfStage4BlockingIssues,
+  getDxfStage4Warnings,
+  normalizeDxfForStage4Rendering,
+  validateDxfStage4ViewerSnapshot,
+} from "@/lib/dokumantasyon/dxf-stage4-fidelity";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
@@ -31,11 +38,22 @@ interface DokCadViewerProps {
 }
 
 type DxfViewerMessage = { message?: string; level?: string };
+type DxfLayerInfo = { name: string; displayName: string; color: number };
+type DxfCamera = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  zoom: number;
+  position: { x: number; y: number; z: number };
+};
 
 type DxfViewerInstance = {
   Destroy: () => void;
   FitView: (minX: number, maxX: number, minY: number, maxY: number, padding?: number) => void;
   GetBounds: () => { maxX: number; maxY: number; minX: number; minY: number } | null;
+  GetCamera: () => DxfCamera;
+  GetLayers: () => Iterable<DxfLayerInfo>;
   GetOrigin: () => { x: number; y: number };
   HasRenderer: () => boolean;
   Load: (params: {
@@ -85,6 +103,10 @@ function downloadFile(accessUrl: string, displayName: string) {
 function hasFiniteBounds(bounds: ReturnType<DxfViewerInstance["GetBounds"]>): boolean {
   if (!bounds) return false;
   return [bounds.minX, bounds.maxX, bounds.minY, bounds.maxY].every(Number.isFinite);
+}
+
+function uniqueMessages(messages: string[]): string[] {
+  return [...new Set(messages.filter(Boolean))];
 }
 
 export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes }: DokCadViewerProps) {
@@ -194,22 +216,32 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
 
         const audit = auditDxfText(dxfText);
         const stage3Audit = auditDxfStage3(dxfText);
-        const normalization = normalizeDxfTextForStage3Rendering(dxfText);
+        const stage4Audit = auditDxfStage4(dxfText);
+        const stage3Normalization = normalizeDxfTextForStage3Rendering(dxfText);
+        const stage4Normalization = normalizeDxfForStage4Rendering(stage3Normalization.text);
         const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
         const stage3BlockingIssues = getDxfStage3BlockingIssues(stage3Audit);
-        const blockingIssues = [...stage2BlockingIssues, ...stage3BlockingIssues];
-        const normalizationWarnings = normalization.stackedFractionFallbackCount > 0
-          ? [`${normalization.stackedFractionFallbackCount} MTEXT stacked fraction görünür plain-text biçimine dönüştürüldü.`]
-          : [];
-
-        setFidelityAudit(audit);
-        setFidelityWarnings([
+        const stage4BlockingIssues = getDxfStage4BlockingIssues(stage4Audit);
+        const blockingIssues = [...stage2BlockingIssues, ...stage3BlockingIssues, ...stage4BlockingIssues];
+        const normalizationWarnings = [
+          ...(stage3Normalization.stackedFractionFallbackCount > 0
+            ? [`${stage3Normalization.stackedFractionFallbackCount} MTEXT stacked fraction görünür plain-text biçimine dönüştürüldü.`]
+            : []),
+          ...(stage4Normalization.offLayersFrozenForRendering > 0
+            ? [`${stage4Normalization.offLayersFrozenForRendering} kapalı layer bounds ve model görünümünden çıkarıldı.`]
+            : []),
+        ];
+        const preRenderWarnings = uniqueMessages([
           ...encoding.warnings,
           ...getDxfFidelityWarnings(audit),
           ...getDxfStage3Warnings(stage3Audit),
+          ...getDxfStage4Warnings(stage4Audit),
           ...normalizationWarnings,
           ...blockingIssues,
         ]);
+
+        setFidelityAudit(audit);
+        setFidelityWarnings(preRenderWarnings);
 
         if (blockingIssues.length > 0) {
           throw new DxfViewerLoadError(
@@ -218,22 +250,32 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
-        // Rendering copy is intentionally transcoded to UTF-8 after source bytes were decoded with
-        // their real DXF code page. This preserves legacy Turkish text while allowing Stage 3
-        // MTEXT visibility fallbacks without mutating the stored/downloaded original file.
-        objectUrl = URL.createObjectURL(new Blob([normalization.text], { type: "application/dxf;charset=utf-8" }));
+        // The stored/downloaded DXF is never mutated. Stage 3 first preserves visible MTEXT
+        // content, then Stage 4 hides source-off layers in the temporary render copy so they do not
+        // contaminate model-space bounds/FitView. The final render copy is UTF-8.
+        objectUrl = URL.createObjectURL(new Blob([stage4Normalization.text], { type: "application/dxf;charset=utf-8" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
         const dxfModule = await import("dxf-viewer");
-        if (!active || !containerRef.current) return;
+        const renderContainer = containerRef.current;
+        if (!active || !renderContainer) return;
+        if (renderContainer.clientWidth < 2 || renderContainer.clientHeight < 2) {
+          throw new DxfViewerLoadError(
+            "render",
+            `DXF viewport boyutu geçersiz (${renderContainer.clientWidth}×${renderContainer.clientHeight}).`
+          );
+        }
 
-        viewer = new dxfModule.DxfViewer(containerRef.current, {
+        viewer = new dxfModule.DxfViewer(renderContainer, {
           autoResize: true,
           clearAlpha: 1,
           antialias: true,
           colorCorrection: true,
           blackWhiteInversion: true,
           fileEncoding: "utf-8",
+          sceneOptions: {
+            suppressPaperSpace: true,
+          },
         }) as DxfViewerInstance;
 
         if (!viewer.HasRenderer()) {
@@ -264,7 +306,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
             const phaseLabels = {
               fetch: "Normalize edilmiş DXF okunuyor",
               parse: "DXF yapısı parse ediliyor",
-              prepare: "Block, ölçü ve geometri hazırlanıyor",
+              prepare: "Layer, block, ölçü ve geometri hazırlanıyor",
               font: "TEXT/MTEXT glifleri hazırlanıyor",
             } as const;
             setProgress(phaseLabels[phase]);
@@ -272,15 +314,46 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         });
 
         if (!active) return;
-        const bounds = viewer.GetBounds();
-        if ((audit.entityCount > 0 || audit.blockEntityCount > 0) && !hasFiniteBounds(bounds)) {
+        fitDrawing();
+
+        const camera = viewer.GetCamera();
+        const viewerValidation = validateDxfStage4ViewerSnapshot(stage4Audit, {
+          viewport: {
+            width: renderContainer.clientWidth,
+            height: renderContainer.clientHeight,
+          },
+          bounds: viewer.GetBounds(),
+          origin: viewer.GetOrigin(),
+          camera: camera
+            ? {
+                left: camera.left,
+                right: camera.right,
+                top: camera.top,
+                bottom: camera.bottom,
+                zoom: camera.zoom,
+                position: {
+                  x: camera.position.x,
+                  y: camera.position.y,
+                  z: camera.position.z,
+                },
+              }
+            : null,
+          layers: [...viewer.GetLayers()].map((layer) => layer.name),
+        });
+        const finalFidelityWarnings = uniqueMessages([
+          ...preRenderWarnings,
+          ...viewerValidation.warnings,
+          ...viewerValidation.blockingIssues,
+        ]);
+        setFidelityWarnings(finalFidelityWarnings);
+
+        if (viewerValidation.blockingIssues.length > 0) {
           throw new DxfViewerLoadError(
             "render",
-            "DXF parse edildi ancak geçerli çizim sınırları üretilemedi. Yükleme başarılı sayılamaz."
+            `DXF geometri/viewport doğrulaması başarısız. ${viewerValidation.blockingIssues.join(" ")}`
           );
         }
 
-        fitDrawing();
         setLoadState("ready");
       } catch (caughtError: unknown) {
         if (!active || abortController.signal.aborted) return;
