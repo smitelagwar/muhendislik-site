@@ -45,16 +45,30 @@ async function login(page: Page) {
 
 async function uploadFixture(page: Page, fixtureName = "stage4-layer-interaction.dxf"): Promise<string> {
   const buffer = await readFile(path.join(DXF_FIXTURE_DIR, fixtureName));
-  const response = await page.request.post("/api/dokumantasyon/upload/local", {
-    multipart: {
-      file: { name: `layers-${fixtureName}`, mimeType: "application/dxf", buffer },
-      pathname: `dok_storage/dxf-layers-${Date.now()}-${Math.random().toString(36).slice(2)}-${fixtureName}`,
-    },
-  });
-  const payload = await response.json();
-  expect(response.ok(), payload.error || "DXF layer fixture upload failed").toBeTruthy();
-  expect(payload.file?.id).toBeTruthy();
-  return payload.file.id as string;
+  let lastNetworkError: unknown = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await page.request.post("/api/dokumantasyon/upload/local", {
+        multipart: {
+          file: { name: `layers-${fixtureName}`, mimeType: "application/dxf", buffer },
+          pathname: `dok_storage/dxf-layers-${Date.now()}-${Math.random().toString(36).slice(2)}-${fixtureName}`,
+        },
+      });
+      const payload = await response.json();
+      expect(response.ok(), payload.error || "DXF layer fixture upload failed").toBeTruthy();
+      expect(payload.file?.id).toBeTruthy();
+      return payload.file.id as string;
+    } catch (error) {
+      lastNetworkError = error;
+      if (attempt === 0) {
+        await page.waitForTimeout(300);
+        continue;
+      }
+    }
+  }
+
+  throw lastNetworkError instanceof Error ? lastNetworkError : new Error("DXF layer fixture upload failed after transient retry");
 }
 
 async function layerSnapshot(page: Page): Promise<LayerSnapshot> {
@@ -187,8 +201,8 @@ test.describe("DXF interactive layer controls", () => {
     await attach(page, testInfo, "dxf-layers-mobile.png");
   });
 
-  test("390px mobile canvas keeps zoom and pan inside the CAD surface and recovers from all-hidden layers", async ({ page }, testInfo) => {
-    test.setTimeout(150_000);
+  test("390px mobile canvas keeps wheel, drag and pinch inside the CAD surface and recovers from all-hidden layers", async ({ page }, testInfo) => {
+    test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 844 });
     await login(page);
     const fileId = await uploadFixture(page);
@@ -224,6 +238,34 @@ test.describe("DXF interactive layer controls", () => {
     await expectCanvasImageToChange(canvas, panBefore, "drag pan must visibly change the DXF canvas");
     expect(await page.evaluate(() => window.scrollY), "CAD pan must stay inside the viewer").toBe(scrollBeforeZoom);
 
+    const pinchBefore = await canvas.screenshot({ animations: "disabled" });
+    const visualScaleBefore = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    const centerX = Math.round(hostBox!.x + hostBox!.width * 0.5);
+    const centerY = Math.round(hostBox!.y + hostBox!.height * 0.5);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [
+        { x: centerX - 28, y: centerY },
+        { x: centerX + 28, y: centerY },
+      ],
+    });
+    for (const distance of [40, 54, 68]) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          { x: centerX - distance, y: centerY },
+          { x: centerX + distance, y: centerY },
+        ],
+      });
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await cdp.detach();
+    await expectCanvasImageToChange(canvas, pinchBefore, "two-finger pinch must visibly change the DXF canvas");
+    expect(await page.evaluate(() => window.scrollY), "CAD pinch must not scroll the document").toBe(scrollBeforeZoom);
+    expect(await page.evaluate(() => window.visualViewport?.scale ?? 1), "CAD pinch must not browser-zoom the page").toBeCloseTo(visualScaleBefore, 5);
+
     await page.getByRole("button", { name: "Katmanlar" }).click();
     await page.getByRole("button", { name: "Tümünü kapat" }).click();
     await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toBeVisible();
@@ -234,7 +276,7 @@ test.describe("DXF interactive layer controls", () => {
     expect((await layerSnapshot(page)).allHidden).toBe(false);
     await expect(page.getByRole("button", { name: "Sığdır" })).toBeEnabled();
     await expectNoHorizontalOverflow(page);
-    await attach(page, testInfo, "dxf-mobile-pan-zoom-recovery.png");
+    await attach(page, testInfo, "dxf-mobile-wheel-pan-pinch-recovery.png");
   });
 
   test("each accepted geometry entity type produces isolated renderer bounds", async ({ page }, testInfo) => {
