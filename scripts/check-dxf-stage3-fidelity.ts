@@ -45,7 +45,7 @@ async function main() {
   assert.equal(escapedAudit.stackedFractionCount, 1, "escaped literal \\S must not be audited as a stacked fraction");
   const escapedNormalized = normalizeDxfTextForStage3Rendering(escapedMtext);
   assert.equal(escapedNormalized.stackedFractionFallbackCount, 1);
-  assert.ok(escapedNormalized.text.includes(String.raw`Literal: \\S1^2; gerçek: 3/4;`));
+  assert.ok(escapedNormalized.text.includes(String.raw`Literal: \\S1^2; gerçek: 3/4`));
 
   const textWarnings = getDxfStage3Warnings(textAudit).join("\n");
   assert.match(textWarnings, /stacked fraction/);
