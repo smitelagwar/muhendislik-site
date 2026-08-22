@@ -19,6 +19,7 @@ on:
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
       - "tests/document-studio/dxf-layers.spec.ts"
+      - "tests/document-studio/dxf-color.spec.ts"
   push:
     branches:
       - main
@@ -39,6 +40,7 @@ on:
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
       - "tests/document-studio/dxf-layers.spec.ts"
+      - "tests/document-studio/dxf-color.spec.ts"
 
 concurrency:
   group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
@@ -75,6 +77,7 @@ jobs:
           "tests/document-studio/dxf-text-stage2.spec.ts"
           "tests/document-studio/dxf-text-stage3.spec.ts"
           "tests/document-studio/dxf-layers.spec.ts"
+          "tests/document-studio/dxf-color.spec.ts"
 
       - name: Typecheck
         run: npx tsc --noEmit --incremental false
@@ -103,6 +106,9 @@ jobs:
       - name: Interactive layer runtime
         run: npx tsx scripts/check-dxf-layer-controls.ts
 
+      - name: Stage 5 color fidelity
+        run: npx tsx scripts/check-dxf-color-fidelity.ts
+
       - name: Stage 5 actionable diagnostics
         run: npx tsx scripts/check-dxf-stage5-diagnostics.ts
 
@@ -125,6 +131,7 @@ jobs:
           tests/document-studio/dxf-text-stage2.spec.ts
           tests/document-studio/dxf-text-stage3.spec.ts
           tests/document-studio/dxf-layers.spec.ts
+          tests/document-studio/dxf-color.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence
