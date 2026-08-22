@@ -10,6 +10,8 @@ const MTEXT_PARAGRAPH_RE = /(?<!\\)\\P/gi;
 type PointLike = { x?: unknown; y?: unknown } | null | undefined;
 
 export type DxfTextStage3LayoutEntity = DxfTextStage2Entity & {
+  startPoint?: PointLike;
+  endPoint?: PointLike;
   height?: unknown;
   position?: PointLike;
   direction?: PointLike;
