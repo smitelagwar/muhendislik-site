@@ -119,6 +119,10 @@ async function main() {
     path.join(root, "src", "components", "dokumantasyon", "preview", "cad-viewer.tsx"),
     "utf8"
   );
+  const workerSource = await readFile(
+    path.join(root, "src", "components", "dokumantasyon", "preview", "dxf-viewer-worker.ts"),
+    "utf8"
+  );
   assert.match(viewerSource, /auditDxfTextRenderSource\(dxfText\)/);
   assert.match(viewerSource, /probeDxfFontUrls\(DXF_FONT_URLS/);
   assert.match(viewerSource, /retainParsedDxf:\s*textSourceAudit\.renderCandidateTextRecords > 0/);
@@ -126,6 +130,13 @@ async function main() {
   assert.match(viewerSource, /viewer\.parsedDxf = undefined/);
   assert.match(viewerSource, /cad-dxf-text-evidence/);
   assert.match(viewerSource, /cad-dxf-text-render-evidence/);
+
+  assert.match(workerSource, /dxf-viewer\/src\/DxfWorker\.js/);
+  assert.match(workerSource, /compactParsedTextEvidence/);
+  assert.match(workerSource, /TEXT_TYPES/);
+  assert.match(workerSource, /options\.retainParsedDxf === true/);
+  assert.match(workerSource, /result\.dxf = compactParsedTextEvidence\(result\.dxf\)/);
+  assert.doesNotMatch(workerSource, /DxfViewer\.SetupWorker\(\)/);
 
   console.log("DXF text source→parser/font evidence checks passed.");
 }
