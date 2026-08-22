@@ -1,5 +1,6 @@
 import type { DxfEncodingResolution } from "./dxf-encoding";
 import type { DxfFidelityAudit } from "./dxf-fidelity-audit";
+import type { DxfReleaseHardeningAudit } from "./dxf-release-hardening";
 import type { DxfStage3Audit } from "./dxf-stage3-fidelity";
 import type { DxfStage4Audit, DxfStage4ViewerValidation } from "./dxf-stage4-fidelity";
 
@@ -43,9 +44,11 @@ interface BuildDxfStage5DiagnosticsInput {
   audit: DxfFidelityAudit;
   stage3: DxfStage3Audit;
   stage4: DxfStage4Audit;
+  releaseHardening?: DxfReleaseHardeningAudit | null;
   stage2BlockingIssues?: string[];
   stage3BlockingIssues?: string[];
   stage4BlockingIssues?: string[];
+  releaseHardeningBlockingIssues?: string[];
   viewerValidation?: DxfStage4ViewerValidation | null;
   rendererWarnings?: string[];
 }
@@ -65,9 +68,11 @@ export function buildDxfStage5DiagnosticsReport({
   audit,
   stage3,
   stage4,
+  releaseHardening = null,
   stage2BlockingIssues = [],
   stage3BlockingIssues = [],
   stage4BlockingIssues = [],
+  releaseHardeningBlockingIssues = [],
   viewerValidation = null,
   rendererWarnings = [],
 }: BuildDxfStage5DiagnosticsInput): DxfStage5DiagnosticsReport {
@@ -84,41 +89,78 @@ export function buildDxfStage5DiagnosticsReport({
     evidence: joinEvidence(encoding.warnings),
   });
 
-  if (audit.unsupportedEntityCount > 0) {
+  const blockedUnsupportedCount = releaseHardening?.blockedUnsupportedEntityCount ?? 0;
+  if (blockedUnsupportedCount > 0) {
     add(items, {
       id: "unsupported-entities",
-      severity: "warning",
+      severity: "blocking",
       category: "structure",
-      title: `${audit.unsupportedEntityCount} desteklenmeyen entity`,
-      detail: "Bu entity tipleri mevcut renderer'ın doğrudan işleme listesinde değil; çizimde bilgi kaybı olabilir.",
+      title: `${blockedUnsupportedCount} görünür/erişilebilir desteklenmeyen entity`,
+      detail: "Bu entity'ler model-space görünümünde veya gerçekten kullanılan BLOCK zincirinde yer alıyor. Sessiz bilgi kaybını önlemek için render durdurulur.",
+      count: blockedUnsupportedCount,
+      evidence: joinEvidence(releaseHardening?.blockedUnsupportedTypes ?? []),
+    });
+  } else if (audit.unsupportedEntityCount > 0) {
+    add(items, {
+      id: "unsupported-entities-suppressed",
+      severity: releaseHardening ? "info" : "warning",
+      category: "structure",
+      title: `${audit.unsupportedEntityCount} renderer dışı entity kaynakta mevcut`,
+      detail: releaseHardening
+        ? "Bu kayıtlar görünür model yolu dışında (ör. paper-space, hidden/off layer veya erişilmeyen BLOCK) kaldığı için model görünümünü bloke etmiyor."
+        : "Bu entity tipleri mevcut renderer'ın doğrudan işleme listesinde değil; çizimde bilgi kaybı olabilir.",
       count: audit.unsupportedEntityCount,
       evidence: joinEvidence(audit.unsupportedTypes),
     });
   }
 
-  if (audit.missingBlockReferenceCount > 0) {
+  const blockedMissingBlockCount = releaseHardening?.blockedMissingBlockReferenceCount ?? 0;
+  if (blockedMissingBlockCount > 0) {
     add(items, {
       id: "missing-blocks",
-      severity: "warning",
+      severity: "blocking",
       category: "block",
-      title: `${audit.missingBlockReferenceCount} çözülemeyen block referansı`,
-      detail: "INSERT kaydı var ancak karşılık gelen BLOCK tanımı dosyada bulunamadı.",
+      title: `${blockedMissingBlockCount} görünür/erişilebilir çözülemeyen BLOCK`,
+      detail: "INSERT gerçekten kullanılan çizim yolunda ancak karşılık gelen BLOCK tanımı dosyada yok. Eksik geometri başarı olarak gösterilmez.",
+      count: blockedMissingBlockCount,
+      evidence: joinEvidence(releaseHardening?.blockedMissingBlockReferences ?? []),
+    });
+  } else if (audit.missingBlockReferenceCount > 0) {
+    add(items, {
+      id: "missing-blocks-suppressed",
+      severity: releaseHardening ? "info" : "warning",
+      category: "block",
+      title: `${audit.missingBlockReferenceCount} çözülemeyen BLOCK referansı kaynakta mevcut`,
+      detail: releaseHardening
+        ? "Eksik referans görünür/erişilebilir model yolunda olmadığı için bu model görünümünü bloke etmiyor."
+        : "INSERT kaydı var ancak karşılık gelen BLOCK tanımı dosyada bulunamadı.",
       count: audit.missingBlockReferenceCount,
       evidence: joinEvidence(audit.missingBlockReferences),
     });
   }
 
-  if (audit.arrayInsertCount > 0 || audit.nonDefaultOcsInsertCount > 0 || audit.blockCycleCount > 0) {
+  if ((releaseHardening?.unsafeOcsEntityCount ?? 0) > 0) {
+    add(items, {
+      id: "ocs-hardening",
+      severity: "blocking",
+      category: "geometry",
+      title: `${releaseHardening?.unsafeOcsEntityCount ?? 0} non-default OCS/extrusion entity`,
+      detail: "Upstream renderer arbitrary OCS dönüşümünü tam uygulamıyor. +Z dışındaki extrusion yönleri entity bazında doğrulanmadan render edilmez.",
+      count: releaseHardening?.unsafeOcsEntityCount ?? 0,
+      evidence: joinEvidence(releaseHardening?.unsafeOcsTypes ?? []),
+    });
+  }
+
+  if (audit.arrayInsertCount > 0 || audit.blockCycleCount > 0) {
     add(items, {
       id: "block-render-risk",
       severity: "blocking",
       category: "block",
       title: "BLOCK/INSERT güvenilirlik sınırı aşıldı",
-      detail: "MINSERT/grid, INSERT OCS veya recursive block zinciri mevcut renderer tarafından güvenilir biçimde üretilemiyor.",
-      count: audit.arrayInsertCount + audit.nonDefaultOcsInsertCount + audit.blockCycleCount,
+      detail: "MINSERT/grid veya recursive block zinciri mevcut renderer tarafından güvenilir biçimde üretilemiyor.",
+      count: audit.arrayInsertCount + audit.blockCycleCount,
       evidence: joinEvidence([
         ...(audit.arrayInsertCount > 0 ? [`${audit.arrayInsertCount} grid/array INSERT`] : []),
-        ...(audit.nonDefaultOcsInsertCount > 0 ? [`${audit.nonDefaultOcsInsertCount} OCS INSERT`] : []),
         ...audit.blockCycles,
       ]),
     });
@@ -252,7 +294,12 @@ export function buildDxfStage5DiagnosticsReport({
     });
   }
 
-  for (const [index, issue] of [...stage2BlockingIssues, ...stage3BlockingIssues, ...stage4BlockingIssues].entries()) {
+  for (const [index, issue] of [
+    ...stage2BlockingIssues,
+    ...stage3BlockingIssues,
+    ...stage4BlockingIssues,
+    ...releaseHardeningBlockingIssues,
+  ].entries()) {
     add(items, {
       id: `compatibility-${index}-${issue}`,
       severity: "blocking",
