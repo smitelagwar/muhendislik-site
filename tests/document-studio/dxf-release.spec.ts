@@ -6,6 +6,7 @@ import { inflateSync } from "node:zlib";
 const DXF_FIXTURE_DIR = path.resolve(process.cwd(), "tests", "fixtures", "dxf");
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
+const BULGE_TESSELLATION_BOUNDS_TOLERANCE = 0.5;
 
 type RuntimeSnapshot = {
   viewport: { width: number; height: number };
@@ -342,8 +343,15 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     expect(signedBulgeSnapshot.bounds).not.toBeNull();
     expect(signedBulgeSnapshot.bounds?.minX ?? Number.NaN).toBeCloseTo(0, 3);
     expect(signedBulgeSnapshot.bounds?.maxX ?? Number.NaN).toBeCloseTo(200, 3);
-    expect(signedBulgeSnapshot.bounds?.minY ?? Number.NaN).toBeCloseTo(-20.710678, 2);
-    expect(signedBulgeSnapshot.bounds?.maxY ?? Number.NaN).toBeCloseTo(120.710678, 2);
+    const renderedMinY = signedBulgeSnapshot.bounds?.minY ?? Number.NaN;
+    const renderedMaxY = signedBulgeSnapshot.bounds?.maxY ?? Number.NaN;
+    // dxf-viewer tessellates arcs at a default 10-degree target angle. The sampled scene bounds
+    // therefore approximate the analytical extrema; require the correct bulge direction and keep
+    // the approximation tightly bounded without forcing production to tessellate 10x more arcs.
+    expect(renderedMinY).toBeLessThan(-20);
+    expect(renderedMaxY).toBeGreaterThan(120);
+    expect(Math.abs(renderedMinY - (-20.710678))).toBeLessThan(BULGE_TESSELLATION_BOUNDS_TOLERANCE);
+    expect(Math.abs(renderedMaxY - 120.710678)).toBeLessThan(BULGE_TESSELLATION_BOUNDS_TOLERANCE);
     await attachEvidence(page, testInfo, "dxf-signed-closed-bulge.png");
 
     await page.goto("/dokumantasyon");
