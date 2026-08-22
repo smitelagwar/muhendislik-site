@@ -88,6 +88,11 @@ assert.match(warnings, /non-default extrusion\/OCS/);
 const blocking = getDxfStage2BlockingIssues(audit).join("\n");
 assert.match(blocking, /grid\/array INSERT/);
 
+const ocsFixture = await readFile(path.join(root, "tests", "fixtures", "dxf", "stage2-ocs-insert.dxf"), "utf8");
+const ocsAudit = auditDxfText(ocsFixture);
+assert.equal(ocsAudit.nonDefaultOcsInsertCount, 1);
+assert.match(getDxfStage2BlockingIssues(ocsAudit).join("\n"), /INSERT non-default extrusion\/OCS/);
+
 const cycleText = [
   "0", "SECTION", "2", "BLOCKS",
   "0", "BLOCK", "8", "0", "2", "A", "70", "0", "10", "0", "20", "0", "30", "0", "3", "A", "1", "",
