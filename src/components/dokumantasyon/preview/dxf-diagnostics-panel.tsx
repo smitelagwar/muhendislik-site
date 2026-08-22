@@ -90,7 +90,7 @@ function DxfColorModeButton() {
         size="sm"
         onClick={() => setMode(monochrome ? "true-color" : "monochrome")}
         aria-pressed={monochrome}
-        aria-label={monochrome ? "Renk modu: Siyah-Beyaz. Gerçek Renke geç" : "Renk modu: Gerçek Renk. Siyah-Beyaza geç"}
+        aria-label={monochrome ? "Renk modu: Siyah-Beyaz. Gerçek Renge geç" : "Renk modu: Gerçek Renk. Siyah-Beyaza geç"}
         title={monochrome ? "Siyah-Beyaz görünüm — Gerçek Renk moduna geç" : "Gerçek Renk görünümü — Siyah-Beyaz moduna geç"}
         data-testid="cad-dxf-color-mode-toggle"
         data-mode={mode}
@@ -116,24 +116,36 @@ export function DxfDiagnosticsButton({
   onToggle: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls="cad-dxf-diagnostics-panel"
-        data-testid="cad-dxf-diagnostics-toggle"
-        className={`h-7 gap-1.5 px-2.5 text-[11px] ${statusClasses(report)}`}
-      >
-        <StatusIcon report={report} />
-        <span className="hidden sm:inline">Denetim:</span>
-        <span>{statusText(report)}</span>
-        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-      </Button>
-      <DxfColorModeButton />
-    </div>
+    <>
+      <style>{`
+        @media (max-width: 639px) {
+          [data-testid="cad-dxf-viewer"] > header > div:last-child {
+            width: 100%;
+            max-width: 100%;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+          }
+        }
+      `}</style>
+      <div className="flex items-center gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls="cad-dxf-diagnostics-panel"
+          data-testid="cad-dxf-diagnostics-toggle"
+          className={`h-7 gap-1.5 px-2.5 text-[11px] ${statusClasses(report)}`}
+        >
+          <StatusIcon report={report} />
+          <span className="hidden sm:inline">Denetim:</span>
+          <span>{statusText(report)}</span>
+          {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </Button>
+        <DxfColorModeButton />
+      </div>
+    </>
   );
 }
 
