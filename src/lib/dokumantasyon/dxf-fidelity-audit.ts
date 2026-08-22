@@ -34,6 +34,7 @@ export const DXF_STAGE1_P0_ENTITY_TYPES = new Set([
 ]);
 
 const DXF_STRUCTURAL_RECORD_TYPES = new Set(["BLOCK", "ENDBLK", "VERTEX", "SEQEND"]);
+const EPSILON = 1e-9;
 
 export interface DxfEntityCensusRow {
   type: string;
@@ -47,10 +48,20 @@ export interface DxfFidelityAudit {
   codePage: string | null;
   entityCount: number;
   blockEntityCount: number;
+  blockDefinitionCount: number;
   paperSpaceEntityCount: number;
   textEntityCount: number;
   dimensionEntityCount: number;
   insertEntityCount: number;
+  nestedInsertCount: number;
+  transformedInsertCount: number;
+  mirroredInsertCount: number;
+  nonUniformScaleInsertCount: number;
+  arrayInsertCount: number;
+  zeroScaleInsertCount: number;
+  missingBlockReferenceCount: number;
+  missingBlockReferences: string[];
+  nonDefaultOcsEntityCount: number;
   unsupportedEntityCount: number;
   unsupportedTypes: string[];
   entityCensus: DxfEntityCensusRow[];
@@ -59,6 +70,7 @@ export interface DxfFidelityAudit {
 }
 
 type Pair = { code: number; value: string };
+type InsertReference = { blockName: string; inBlockDefinition: boolean };
 
 function parsePairs(text: string): Pair[] {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
@@ -87,25 +99,68 @@ function increment(map: Map<string, number>, type: string) {
   map.set(type, (map.get(type) ?? 0) + 1);
 }
 
+function valueForCode(record: Pair[], code: number): string | null {
+  return record.find((pair) => pair.code === code)?.value ?? null;
+}
+
+function numberForCode(record: Pair[], code: number, fallback: number): number {
+  const raw = valueForCode(record, code);
+  if (raw === null) return fallback;
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function isPaperSpaceRecord(record: Pair[]): boolean {
   return record.some((pair) => pair.code === 67 && pair.value === "1");
+}
+
+function hasNonDefaultOcs(record: Pair[]): boolean {
+  const hasExtrusion = record.some((pair) => pair.code === 210 || pair.code === 220 || pair.code === 230);
+  if (!hasExtrusion) return false;
+  const x = numberForCode(record, 210, 0);
+  const y = numberForCode(record, 220, 0);
+  const z = numberForCode(record, 230, 1);
+  return Math.abs(x) > EPSILON || Math.abs(y) > EPSILON || Math.abs(z - 1) > EPSILON;
 }
 
 export function auditDxfText(text: string): DxfFidelityAudit {
   const pairs = parsePairs(text);
   const entityCounts = new Map<string, number>();
+  const blockDefinitions = new Set<string>();
+  const insertReferences: InsertReference[] = [];
   let section: string | null = null;
   let currentRecord: Pair[] = [];
   let currentType: string | null = null;
+  let currentBlockName: string | null = null;
   let entityCount = 0;
   let blockEntityCount = 0;
   let paperSpaceEntityCount = 0;
+  let nestedInsertCount = 0;
+  let transformedInsertCount = 0;
+  let mirroredInsertCount = 0;
+  let nonUniformScaleInsertCount = 0;
+  let arrayInsertCount = 0;
+  let zeroScaleInsertCount = 0;
+  let nonDefaultOcsEntityCount = 0;
   let hasEntitiesSection = false;
   let hasBlocksSection = false;
 
   const flushRecord = () => {
     if (!currentType) return;
     if (section !== "ENTITIES" && section !== "BLOCKS") return;
+
+    if (section === "BLOCKS" && currentType === "BLOCK") {
+      const name = valueForCode(currentRecord, 2) ?? valueForCode(currentRecord, 3);
+      currentBlockName = name;
+      if (name) blockDefinitions.add(name);
+      return;
+    }
+
+    if (section === "BLOCKS" && currentType === "ENDBLK") {
+      currentBlockName = null;
+      return;
+    }
+
     if (DXF_STRUCTURAL_RECORD_TYPES.has(currentType)) return;
 
     increment(entityCounts, currentType);
@@ -114,6 +169,34 @@ export function auditDxfText(text: string): DxfFidelityAudit {
       if (isPaperSpaceRecord(currentRecord)) paperSpaceEntityCount += 1;
     } else {
       blockEntityCount += 1;
+    }
+
+    if (hasNonDefaultOcs(currentRecord)) nonDefaultOcsEntityCount += 1;
+
+    if (currentType === "INSERT") {
+      const blockName = valueForCode(currentRecord, 2);
+      if (blockName) insertReferences.push({ blockName, inBlockDefinition: section === "BLOCKS" && currentBlockName !== null });
+      if (section === "BLOCKS" && currentBlockName !== null) nestedInsertCount += 1;
+
+      const xScale = numberForCode(currentRecord, 41, 1);
+      const yScale = numberForCode(currentRecord, 42, 1);
+      const zScale = numberForCode(currentRecord, 43, 1);
+      const rotation = numberForCode(currentRecord, 50, 0);
+      const columnCount = Math.max(1, Math.trunc(numberForCode(currentRecord, 70, 1)));
+      const rowCount = Math.max(1, Math.trunc(numberForCode(currentRecord, 71, 1)));
+
+      if (
+        Math.abs(xScale - 1) > EPSILON ||
+        Math.abs(yScale - 1) > EPSILON ||
+        Math.abs(zScale - 1) > EPSILON ||
+        Math.abs(rotation) > EPSILON
+      ) {
+        transformedInsertCount += 1;
+      }
+      if (xScale < 0 || yScale < 0 || zScale < 0) mirroredInsertCount += 1;
+      if (Math.abs(Math.abs(xScale) - Math.abs(yScale)) > EPSILON) nonUniformScaleInsertCount += 1;
+      if (columnCount > 1 || rowCount > 1) arrayInsertCount += 1;
+      if (Math.abs(xScale) <= EPSILON || Math.abs(yScale) <= EPSILON || Math.abs(zScale) <= EPSILON) zeroScaleInsertCount += 1;
     }
   };
 
@@ -124,6 +207,7 @@ export function auditDxfText(text: string): DxfFidelityAudit {
       flushRecord();
       currentRecord = [];
       currentType = null;
+      currentBlockName = null;
       const sectionName = pairs[index + 1];
       if (sectionName?.code === 2) {
         section = sectionName.value;
@@ -137,6 +221,7 @@ export function auditDxfText(text: string): DxfFidelityAudit {
       flushRecord();
       currentRecord = [];
       currentType = null;
+      currentBlockName = null;
       section = null;
       continue;
     }
@@ -163,16 +248,28 @@ export function auditDxfText(text: string): DxfFidelityAudit {
 
   const unsupportedRows = entityCensus.filter((row) => row.rendererSupport === "unsupported");
   const countType = (type: string) => entityCounts.get(type) ?? 0;
+  const missingInsertReferences = insertReferences.filter((reference) => !blockDefinitions.has(reference.blockName));
+  const missingBlockReferences = [...new Set(missingInsertReferences.map((reference) => reference.blockName))].sort();
 
   return {
     acadVersion: readHeaderVariable(pairs, "$ACADVER"),
     codePage: readHeaderVariable(pairs, "$DWGCODEPAGE"),
     entityCount,
     blockEntityCount,
+    blockDefinitionCount: blockDefinitions.size,
     paperSpaceEntityCount,
     textEntityCount: countType("TEXT") + countType("MTEXT") + countType("ATTRIB") + countType("ATTDEF"),
     dimensionEntityCount: countType("DIMENSION"),
     insertEntityCount: countType("INSERT"),
+    nestedInsertCount,
+    transformedInsertCount,
+    mirroredInsertCount,
+    nonUniformScaleInsertCount,
+    arrayInsertCount,
+    zeroScaleInsertCount,
+    missingBlockReferenceCount: missingInsertReferences.length,
+    missingBlockReferences,
+    nonDefaultOcsEntityCount,
     unsupportedEntityCount: unsupportedRows.reduce((total, row) => total + row.count, 0),
     unsupportedTypes: unsupportedRows.map((row) => row.type),
     entityCensus,
@@ -193,6 +290,25 @@ export function getDxfFidelityWarnings(audit: DxfFidelityAudit): string[] {
   }
   if (audit.paperSpaceEntityCount > 0) {
     warnings.push(`${audit.paperSpaceEntityCount} entity paper space içinde; görünüm ayrıca doğrulanmalı.`);
+  }
+  if (audit.missingBlockReferenceCount > 0) {
+    warnings.push(
+      `${audit.missingBlockReferenceCount} INSERT tanımsız block referansına sahip: ${audit.missingBlockReferences.join(", ")}.`
+    );
+  }
+  if (audit.zeroScaleInsertCount > 0) {
+    warnings.push(`${audit.zeroScaleInsertCount} INSERT sıfır ölçek içeriyor; geometri görünmeyebilir.`);
+  }
+  if (audit.nestedInsertCount > 0) {
+    warnings.push(`${audit.nestedInsertCount} nested INSERT bulundu; block dönüşüm zinciri doğrulanmalı.`);
+  }
+  if (audit.mirroredInsertCount > 0 || audit.nonUniformScaleInsertCount > 0 || audit.arrayInsertCount > 0) {
+    warnings.push(
+      `Riskli INSERT dönüşümleri: ${audit.mirroredInsertCount} mirrored, ${audit.nonUniformScaleInsertCount} non-uniform scale, ${audit.arrayInsertCount} array.`
+    );
+  }
+  if (audit.nonDefaultOcsEntityCount > 0) {
+    warnings.push(`${audit.nonDefaultOcsEntityCount} entity non-default extrusion/OCS kullanıyor; tam OCS sadakati doğrulanmalı.`);
   }
 
   return warnings;
