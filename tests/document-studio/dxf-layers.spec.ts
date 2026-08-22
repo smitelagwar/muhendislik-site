@@ -3,6 +3,20 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const DXF_FIXTURE_DIR = path.resolve(process.cwd(), "tests", "fixtures", "dxf");
+const ENTITY_COVERAGE_LAYERS = [
+  "COV_LINE",
+  "COV_LWPOLYLINE",
+  "COV_POLYLINE",
+  "COV_ARC",
+  "COV_CIRCLE",
+  "COV_ELLIPSE",
+  "COV_POINT",
+  "COV_SOLID",
+  "COV_3DFACE",
+  "COV_SPLINE",
+  "COV_HATCH",
+  "COV_INSERT",
+] as const;
 
 type LayerSnapshot = {
   visibleLayerNames: string[];
@@ -29,8 +43,7 @@ async function login(page: Page) {
   await expect(page.getByLabel("Kullanıcı Adı")).toBeHidden();
 }
 
-async function uploadFixture(page: Page): Promise<string> {
-  const fixtureName = "stage4-layer-interaction.dxf";
+async function uploadFixture(page: Page, fixtureName = "stage4-layer-interaction.dxf"): Promise<string> {
   const buffer = await readFile(path.join(DXF_FIXTURE_DIR, fixtureName));
   const response = await page.request.post("/api/dokumantasyon/upload/local", {
     multipart: {
@@ -59,6 +72,14 @@ async function runtimeSnapshot(page: Page): Promise<RuntimeSnapshot> {
 function spanX(snapshot: LayerSnapshot): number {
   expect(snapshot.visibleBounds).not.toBeNull();
   return snapshot.visibleBounds!.maxX - snapshot.visibleBounds!.minX;
+}
+
+function expectFiniteNonDegenerateBounds(bounds: LayerSnapshot["visibleBounds"], label: string) {
+  expect(bounds, `${label} should contribute renderer bounds`).not.toBeNull();
+  const values = [bounds!.minX, bounds!.maxX, bounds!.minY, bounds!.maxY];
+  expect(values.every(Number.isFinite), `${label} renderer bounds must be finite`).toBe(true);
+  const combinedSpan = bounds!.maxX - bounds!.minX + bounds!.maxY - bounds!.minY;
+  expect(combinedSpan, `${label} should produce non-degenerate renderer geometry`).toBeGreaterThan(0);
 }
 
 async function attach(page: Page, testInfo: TestInfo, name: string) {
@@ -148,5 +169,47 @@ test.describe("DXF interactive layer controls", () => {
     await expect(page.getByRole("button", { name: "Tümünü kapat" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Kaynak", exact: true })).toBeVisible();
     await attach(page, testInfo, "dxf-layers-mobile.png");
+  });
+
+  test("each accepted geometry entity type produces isolated renderer bounds", async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize({ width: 1280, height: 820 });
+    await login(page);
+    const fileId = await uploadFixture(page, "stage6-entity-coverage.dxf");
+    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+
+    await expect(page.getByTestId("cad-dxf-viewer")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
+    await expect(page.getByTestId("cad-dxf-runtime-snapshot")).toBeAttached({ timeout: 30_000 });
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText("Denetim temiz");
+    await attach(page, testInfo, "dxf-stage6-entity-coverage-all.png");
+
+    await page.getByRole("button", { name: "Katmanlar" }).click();
+    await expect(page.getByTestId("cad-dxf-layer-panel")).toBeVisible();
+    await page.getByRole("button", { name: "Tümünü kapat" }).click();
+    expect((await layerSnapshot(page)).allHidden).toBe(true);
+
+    for (const layer of ENTITY_COVERAGE_LAYERS) {
+      const toggle = page.getByTestId(`cad-dxf-layer-${layer}`);
+      await expect(toggle).toBeVisible();
+      await toggle.click();
+
+      const isolated = await layerSnapshot(page);
+      expect(isolated.visibleLayerNames, `${layer} must be the only visible entity layer`).toEqual([layer]);
+      expectFiniteNonDegenerateBounds(isolated.visibleBounds, layer);
+
+      await page.getByRole("button", { name: "Sığdır" }).click();
+      await expect.poll(async () => (await runtimeSnapshot(page)).bounds, {
+        message: `${layer} FitView must publish renderer bounds`,
+      }).not.toBeNull();
+
+      await toggle.click();
+      expect((await layerSnapshot(page)).allHidden, `${layer} must be removable through layer visibility`).toBe(true);
+    }
+
+    await page.getByRole("button", { name: "Tümünü aç" }).click();
+    const restored = await layerSnapshot(page);
+    for (const layer of ENTITY_COVERAGE_LAYERS) expect(restored.visibleLayerNames).toContain(layer);
+    await attach(page, testInfo, "dxf-stage6-entity-coverage-restored.png");
   });
 });
