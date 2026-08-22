@@ -129,7 +129,7 @@ function hasLinearDimensionGeometry(record: Pair[]): boolean {
 }
 
 function countStackedFractions(value: string): number {
-  return [...value.matchAll(/\\S[^;]*;/gi)].length;
+  return [...value.matchAll(/(?<!\\)\\S[^;]*;/gi)].length;
 }
 
 export function auditDxfStage3(text: string): DxfStage3Audit {
@@ -193,7 +193,10 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
       continue;
     }
 
-    if (record.type !== "DIMENSION") continue;
+    // Dimension fidelity gates describe top-level drawing dimensions. DIMENSION records that live
+    // inside BLOCKS are implementation/detail content and must not be double-counted as model-space
+    // dimensions merely because their parent block is referenced elsewhere.
+    if (record.section !== "ENTITIES" || record.type !== "DIMENSION") continue;
     dimensionCount += 1;
     const rawType = Math.trunc(numberForCode(record.pairs, 70, 0));
     const type = rawType & 0xf;
@@ -280,7 +283,7 @@ export function getDxfStage3BlockingIssues(audit: DxfStage3Audit): string[] {
 
 function normalizeStackedFractions(value: string): { value: string; count: number } {
   let count = 0;
-  const normalized = value.replace(/\\S([^;]*);/gi, (_match, body: string) => {
+  const normalized = value.replace(/(?<!\\)\\S([^;]*);/gi, (_match, body: string) => {
     count += 1;
     const separatorIndex = body.search(/[\^#/]/);
     if (separatorIndex < 0) return body;
