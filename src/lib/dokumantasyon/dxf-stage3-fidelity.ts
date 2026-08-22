@@ -3,6 +3,7 @@ type RecordData = { section: string | null; type: string; pairs: Pair[]; blockNa
 
 const EPSILON = 1e-9;
 const TEXT_ENTITY_TYPES = new Set(["TEXT", "MTEXT", "ATTRIB", "ATTDEF"]);
+const SINGLE_LINE_TEXT_TYPES = new Set(["TEXT", "ATTRIB", "ATTDEF"]);
 const SUPPORTED_SYNTH_DIMENSION_TYPES = new Set([0, 1]);
 
 export interface DxfStage3Audit {
@@ -12,6 +13,14 @@ export interface DxfStage3Audit {
   nonPositiveTextHeightCount: number;
   mtextCount: number;
   stackedFractionCount: number;
+  unsupportedTextObliqueCount: number;
+  unsupportedTextGenerationFlagCount: number;
+  invalidTextWidthFactorCount: number;
+  invalidTextAlignmentCodeCount: number;
+  missingTextAlignmentPointCount: number;
+  invalidMtextAttachmentCount: number;
+  invalidMtextDirectionCount: number;
+  invalidMtextLineSpacingCount: number;
   styleDefinitionCount: number;
   shxStyleCount: number;
   shxStyles: string[];
@@ -56,6 +65,13 @@ function numberForCode(record: Pair[], code: number, fallback: number): number {
   if (raw === null) return fallback;
   const parsed = Number.parseFloat(raw);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function optionalNumberForCode(record: Pair[], code: number): number | null {
+  const raw = valueForCode(record, code);
+  if (raw === null) return null;
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function hasCode(record: Pair[], code: number): boolean {
@@ -159,6 +175,14 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
   let nonPositiveTextHeightCount = 0;
   let mtextCount = 0;
   let stackedFractionCount = 0;
+  let unsupportedTextObliqueCount = 0;
+  let unsupportedTextGenerationFlagCount = 0;
+  let invalidTextWidthFactorCount = 0;
+  let invalidTextAlignmentCodeCount = 0;
+  let missingTextAlignmentPointCount = 0;
+  let invalidMtextAttachmentCount = 0;
+  let invalidMtextDirectionCount = 0;
+  let invalidMtextLineSpacingCount = 0;
   let dimensionCount = 0;
   let linearDimensionCount = 0;
   let alignedDimensionCount = 0;
@@ -182,10 +206,44 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
       const height = numberForCode(record.pairs, 40, 1);
       if (height <= EPSILON) nonPositiveTextHeightCount += 1;
       if (Math.abs(numberForCode(record.pairs, 50, 0)) > EPSILON) rotatedTextCount += 1;
-      if (record.type === "TEXT" && (numberForCode(record.pairs, 72, 0) !== 0 || numberForCode(record.pairs, 73, 0) !== 0)) alignedTextCount += 1;
+
+      if (SINGLE_LINE_TEXT_TYPES.has(record.type)) {
+        const hAlign = numberForCode(record.pairs, 72, 0);
+        const vAlign = numberForCode(record.pairs, 73, 0);
+        if (hAlign !== 0 || vAlign !== 0) {
+          alignedTextCount += 1;
+          if (!hasCode(record.pairs, 11) || !hasCode(record.pairs, 21)) missingTextAlignmentPointCount += 1;
+        }
+        if (!Number.isInteger(hAlign) || hAlign < 0 || hAlign > 5 || !Number.isInteger(vAlign) || vAlign < 0 || vAlign > 3) {
+          invalidTextAlignmentCodeCount += 1;
+        }
+        const widthFactor = optionalNumberForCode(record.pairs, 41);
+        if (widthFactor !== null && widthFactor <= EPSILON) invalidTextWidthFactorCount += 1;
+        if (Math.abs(numberForCode(record.pairs, 51, 0)) > EPSILON) unsupportedTextObliqueCount += 1;
+        const generationFlags = Math.trunc(numberForCode(record.pairs, 71, 0));
+        if ((generationFlags & 2) !== 0 || (generationFlags & 4) !== 0) unsupportedTextGenerationFlagCount += 1;
+      }
+
       if (record.type === "MTEXT") {
         mtextCount += 1;
-        if (numberForCode(record.pairs, 71, 1) !== 1) alignedTextCount += 1;
+        const attachment = numberForCode(record.pairs, 71, 1);
+        if (attachment !== 1) alignedTextCount += 1;
+        if (!Number.isInteger(attachment) || attachment < 1 || attachment > 9) invalidMtextAttachmentCount += 1;
+
+        const hasDirectionX = hasCode(record.pairs, 11);
+        const hasDirectionY = hasCode(record.pairs, 21);
+        if (hasDirectionX || hasDirectionY) {
+          if (!hasDirectionX || !hasDirectionY) {
+            invalidMtextDirectionCount += 1;
+          } else {
+            const dx = numberForCode(record.pairs, 11, 0);
+            const dy = numberForCode(record.pairs, 21, 0);
+            if (Math.hypot(dx, dy) <= EPSILON) invalidMtextDirectionCount += 1;
+          }
+        }
+        const lineSpacing = optionalNumberForCode(record.pairs, 44);
+        if (lineSpacing !== null && (lineSpacing < 0.25 || lineSpacing > 4)) invalidMtextLineSpacingCount += 1;
+
         for (const pair of record.pairs) {
           if (pair.code === 1 || pair.code === 3) stackedFractionCount += countStackedFractions(pair.value);
         }
@@ -237,6 +295,14 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
     nonPositiveTextHeightCount,
     mtextCount,
     stackedFractionCount,
+    unsupportedTextObliqueCount,
+    unsupportedTextGenerationFlagCount,
+    invalidTextWidthFactorCount,
+    invalidTextAlignmentCodeCount,
+    missingTextAlignmentPointCount,
+    invalidMtextAttachmentCount,
+    invalidMtextDirectionCount,
+    invalidMtextLineSpacingCount,
     styleDefinitionCount: styleDefinitions.size,
     shxStyleCount: shxStyles.length,
     shxStyles,
@@ -272,6 +338,30 @@ export function getDxfStage3Warnings(audit: DxfStage3Audit): string[] {
 
 export function getDxfStage3BlockingIssues(audit: DxfStage3Audit): string[] {
   const issues: string[] = [];
+  if (audit.unsupportedTextObliqueCount > 0) {
+    issues.push(`${audit.unsupportedTextObliqueCount} TEXT/ATTRIB/ATTDEF oblique açı içeriyor; upstream parser/renderer shear bilgisini güvenilir taşımıyor.`);
+  }
+  if (audit.unsupportedTextGenerationFlagCount > 0) {
+    issues.push(`${audit.unsupportedTextGenerationFlagCount} TEXT/ATTRIB/ATTDEF backwards/upside-down generation flag içeriyor; sessiz yön kaybı başarı sayılamaz.`);
+  }
+  if (audit.invalidTextWidthFactorCount > 0) {
+    issues.push(`${audit.invalidTextWidthFactorCount} text entity sıfır/negatif X width factor içeriyor; güvenilir text bounds üretilemez.`);
+  }
+  if (audit.invalidTextAlignmentCodeCount > 0) {
+    issues.push(`${audit.invalidTextAlignmentCodeCount} text entity geçersiz horizontal/vertical justification kodu içeriyor.`);
+  }
+  if (audit.missingTextAlignmentPointCount > 0) {
+    issues.push(`${audit.missingTextAlignmentPointCount} aligned/center/right/fit text için zorunlu ikinci alignment noktası yok.`);
+  }
+  if (audit.invalidMtextAttachmentCount > 0) {
+    issues.push(`${audit.invalidMtextAttachmentCount} MTEXT attachment point 1–9 aralığı dışında.`);
+  }
+  if (audit.invalidMtextDirectionCount > 0) {
+    issues.push(`${audit.invalidMtextDirectionCount} MTEXT direction vektörü eksik/sıfır; orientation güvenilir hesaplanamaz.`);
+  }
+  if (audit.invalidMtextLineSpacingCount > 0) {
+    issues.push(`${audit.invalidMtextLineSpacingCount} MTEXT line-spacing factor 0.25–4.0 aralığı dışında.`);
+  }
   if (audit.unsupportedDimensionWithoutBlockCount > 0) {
     issues.push(`${audit.unsupportedDimensionWithoutBlockCount} angular/radius/diameter/ordinate sınıfı DIMENSION için render edilebilir hazır block yok; mevcut engine bu ölçüleri güvenilir sentezleyemez.`);
   }
