@@ -119,7 +119,7 @@ test.describe("DXF interactive layer controls", () => {
     await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toBeVisible();
     await expect(page.getByRole("button", { name: "Sığdır" })).toBeDisabled();
 
-    await page.getByRole("button", { name: "Kaynak" }).click();
+    await page.getByRole("button", { name: "Kaynak", exact: true }).click();
     layers = await layerSnapshot(page);
     expect(layers.visibleLayerNames).toEqual(["0", "ACTIVE_B"]);
     expect(spanX(layers)).toBeCloseTo(100, 3);
@@ -146,7 +146,7 @@ test.describe("DXF interactive layer controls", () => {
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
     await expect(page.getByRole("button", { name: "Tümünü aç" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Tümünü kapat" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Kaynak" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Kaynak", exact: true })).toBeVisible();
     await attach(page, testInfo, "dxf-layers-mobile.png");
   });
 });
