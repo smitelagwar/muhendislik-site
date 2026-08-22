@@ -119,7 +119,9 @@ async function main() {
   assert.match(viewerSource, /response\.arrayBuffer\(\)/);
   assert.match(viewerSource, /detectDxfEncoding\(dxfBytes\)/);
   assert.match(viewerSource, /decodeDxfBytes\(dxfBytes, encoding\.encoding\)/);
-  assert.match(viewerSource, /new Blob\(\[stage4Normalization\.text\]/);
+  assert.match(viewerSource, /normalizeDxfForStage4Rendering\(stage3Normalization\.text\)/);
+  assert.match(viewerSource, /normalizeDxfLayersForInteractiveControl\(stage4Normalization\.text\)/);
+  assert.match(viewerSource, /new Blob\(\[interactiveLayerNormalization\.text\]/);
   assert.match(viewerSource, /fileEncoding:\s*"utf-8"/);
   assert.match(viewerSource, /getDxfStage2BlockingIssues\(audit\)/);
   assert.doesNotMatch(viewerSource, /response\.text\(\)/);
