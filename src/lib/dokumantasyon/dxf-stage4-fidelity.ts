@@ -3,10 +3,17 @@ type RecordData = { section: string | null; type: string; pairs: Pair[] };
 
 const EPSILON = 1e-9;
 const ENTITY_SECTIONS = new Set(["ENTITIES", "BLOCKS"]);
+const GEOMETRY_ENTITY_TYPES = new Set([
+  "LINE", "POLYLINE", "LWPOLYLINE", "ARC", "CIRCLE", "ELLIPSE", "POINT", "SPLINE",
+  "INSERT", "TEXT", "MTEXT", "3DFACE", "SOLID", "DIMENSION", "ATTRIB", "HATCH",
+]);
+const LINETYPE_ENTITY_TYPES = new Set(["LINE", "POLYLINE", "LWPOLYLINE", "ARC", "CIRCLE", "ELLIPSE", "SPLINE", "INSERT"]);
 const CONTINUOUS_LINETYPES = new Set(["", "CONTINUOUS", "BYLAYER", "BYBLOCK"]);
 
 export interface DxfStage4Audit {
   layerDefinitionCount: number;
+  activeLayerCount: number;
+  activeLayers: string[];
   offLayerCount: number;
   offLayers: string[];
   frozenLayerCount: number;
@@ -32,6 +39,7 @@ export interface DxfStage4Audit {
   degenerateCurveCount: number;
   paperSpaceGeometryCount: number;
   modelSpaceGeometryCount: number;
+  visibleModelSpaceGeometryCount: number;
 }
 
 export interface DxfStage4NormalizationResult {
@@ -141,13 +149,6 @@ function isPaperSpace(record: Pair[]): boolean {
   return valueForCode(record, 67) === "1";
 }
 
-function isGeometryRecord(type: string): boolean {
-  return new Set([
-    "LINE", "POLYLINE", "LWPOLYLINE", "ARC", "CIRCLE", "ELLIPSE", "POINT", "SPLINE",
-    "INSERT", "TEXT", "MTEXT", "3DFACE", "SOLID", "DIMENSION", "ATTRIB", "HATCH",
-  ]).has(type);
-}
-
 function hasPolylineWidth(record: Pair[]): boolean {
   return [40, 41, 43].some((code) => numbersForCode(record, code).some((value) => Math.abs(value) > EPSILON));
 }
@@ -176,6 +177,7 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
 
   const offLayers = [...layers.entries()].filter(([, layer]) => layer.off).map(([name]) => name).sort();
   const frozenLayers = [...layers.entries()].filter(([, layer]) => layer.frozen).map(([name]) => name).sort();
+  const activeLayers = [...layers.entries()].filter(([, layer]) => !layer.off && !layer.frozen).map(([name]) => name).sort();
   const missingLayerReferences = new Set<string>();
   const nonContinuousLinetypes = new Set<string>();
   let missingLayerReferenceCount = 0;
@@ -196,27 +198,39 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
   let degenerateCurveCount = 0;
   let paperSpaceGeometryCount = 0;
   let modelSpaceGeometryCount = 0;
+  let visibleModelSpaceGeometryCount = 0;
 
   for (const record of records) {
     if (!ENTITY_SECTIONS.has(record.section ?? "")) continue;
-    if (isGeometryRecord(record.type)) {
-      if (record.section === "ENTITIES" && isPaperSpace(record.pairs)) paperSpaceGeometryCount += 1;
-      else if (record.section === "ENTITIES") modelSpaceGeometryCount += 1;
+
+    const isGeometry = GEOMETRY_ENTITY_TYPES.has(record.type);
+    const layerName = valueForCode(record.pairs, 8) ?? "0";
+    const layerState = layers.get(layerName);
+    const hidden = valueForCode(record.pairs, 60) === "1";
+
+    if (isGeometry && record.section === "ENTITIES") {
+      if (isPaperSpace(record.pairs)) {
+        paperSpaceGeometryCount += 1;
+      } else {
+        modelSpaceGeometryCount += 1;
+        if (!hidden && !layerState?.off && !layerState?.frozen) visibleModelSpaceGeometryCount += 1;
+      }
     }
 
-    if (record.type !== "VERTEX" && isGeometryRecord(record.type)) {
-      const layerName = valueForCode(record.pairs, 8) ?? "0";
+    if (isGeometry) {
       if (layers.size > 0 && !layers.has(layerName)) {
         missingLayerReferenceCount += 1;
         missingLayerReferences.add(layerName);
       }
-      const explicitLinetype = valueForCode(record.pairs, 6);
-      const effectiveLinetype = explicitLinetype && explicitLinetype.toUpperCase() !== "BYLAYER"
-        ? explicitLinetype
-        : layers.get(layerName)?.linetype ?? null;
-      if (isNonContinuousLinetype(effectiveLinetype)) {
-        nonContinuousLinetypeEntityCount += 1;
-        if (effectiveLinetype) nonContinuousLinetypes.add(effectiveLinetype);
+      if (LINETYPE_ENTITY_TYPES.has(record.type)) {
+        const explicitLinetype = valueForCode(record.pairs, 6);
+        const effectiveLinetype = explicitLinetype && explicitLinetype.toUpperCase() !== "BYLAYER"
+          ? explicitLinetype
+          : layerState?.linetype ?? null;
+        if (isNonContinuousLinetype(effectiveLinetype)) {
+          nonContinuousLinetypeEntityCount += 1;
+          if (effectiveLinetype) nonContinuousLinetypes.add(effectiveLinetype);
+        }
       }
     }
 
@@ -248,16 +262,15 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
       const fitPointCount = numbersForCode(record.pairs, 11).length;
       const degree = Math.trunc(numberForCode(record.pairs, 71, 3));
       const knotCount = numbersForCode(record.pairs, 40).length;
-      const weightCount = numbersForCode(record.pairs, 41).length;
+      const weights = numbersForCode(record.pairs, 41);
       const flags = Math.trunc(numberForCode(record.pairs, 70, 0));
       if (controlPointCount === 0 && fitPointCount > 0) fitPointOnlySplineCount += 1;
-      if (weightCount > 0) weightedSplineCount += 1;
+      if (weights.some((weight) => Math.abs(weight - 1) > EPSILON)) weightedSplineCount += 1;
       if ((flags & 1) !== 0 || (flags & 2) !== 0) closedOrPeriodicSplineCount += 1;
       if (hasNonDefaultOcs(record.pairs)) nonDefaultOcsSplineCount += 1;
       if (
-        controlPointCount === 0 ||
-        degree < 1 ||
-        (controlPointCount > 0 && degree > controlPointCount - 1) ||
+        (controlPointCount === 0 && fitPointCount === 0) ||
+        (controlPointCount > 0 && (degree < 1 || degree > controlPointCount - 1)) ||
         (knotCount > 0 && controlPointCount > 0 && knotCount !== controlPointCount + degree + 1)
       ) {
         malformedSplineCount += 1;
@@ -276,6 +289,8 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
 
   return {
     layerDefinitionCount: layers.size,
+    activeLayerCount: activeLayers.length,
+    activeLayers,
     offLayerCount: offLayers.length,
     offLayers,
     frozenLayerCount: frozenLayers.length,
@@ -301,6 +316,7 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
     degenerateCurveCount,
     paperSpaceGeometryCount,
     modelSpaceGeometryCount,
+    visibleModelSpaceGeometryCount,
   };
 }
 
@@ -310,7 +326,7 @@ export function getDxfStage4Warnings(audit: DxfStage4Audit): string[] {
   if (audit.frozenLayerCount > 0) warnings.push(`${audit.frozenLayerCount} frozen layer kaynak DXF görünürlük durumuna uygun olarak render edilmeyecek.`);
   if (audit.missingLayerReferenceCount > 0) warnings.push(`${audit.missingLayerReferenceCount} entity tanımsız layer referansına sahip: ${audit.missingLayerReferences.join(", ")}.`);
   if (audit.nonContinuousLinetypeEntityCount > 0) warnings.push(`${audit.nonContinuousLinetypeEntityCount} entity non-continuous linetype kullanıyor (${audit.nonContinuousLinetypes.join(", ")}); mevcut engine line pattern lookup uygulamadığı için çizgi deseni birebir olmayabilir.`);
-  if (audit.widthPolylineCount > 0) warnings.push(`${audit.widthPolylineCount} polyline width bilgisi içeriyor; mevcut engine shaped polyline genişliğini uygulamıyor.`);
+  if (audit.widthPolylineCount > 0) warnings.push(`${audit.widthPolylineCount} polyline width kaydı bulundu; mevcut engine shaped polyline genişliğini uygulamıyor.`);
   if (audit.patternedHatchCount > 0) warnings.push(`${audit.patternedHatchCount} patterned HATCH bulundu; pattern tessellation sonucu kaynak CAD ile görsel olarak doğrulanmalı.`);
   if (audit.paperSpaceGeometryCount > 0) warnings.push(`${audit.paperSpaceGeometryCount} paper-space entity model görünümünden ayrıştırılacak; layout/viewports sonraki aşama kapsamındadır.`);
   if (audit.degenerateCurveCount > 0) warnings.push(`${audit.degenerateCurveCount} degenerate curve/polyline bulundu; kaynak geometri ayrıca kontrol edilmeli.`);
@@ -347,53 +363,50 @@ export function getDxfStage4BlockingIssues(audit: DxfStage4Audit): string[] {
 }
 
 export function normalizeDxfForStage4Rendering(text: string): DxfStage4NormalizationResult {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  const pairs = parsePairs(text);
+  const output: Pair[] = [];
   let section: string | null = null;
-  let currentType: string | null = null;
-  let recordStart = -1;
+  let index = 0;
   let offLayersFrozenForRendering = 0;
 
-  const normalizeLayerRecord = (start: number, end: number) => {
-    if (section !== "TABLES" || currentType !== "LAYER" || start < 0) return;
-    let colorIndex: number | null = null;
-    let flagValueIndex: number | null = null;
-    let flags = 0;
-    for (let index = start; index + 1 < end; index += 2) {
-      const code = Number.parseInt(lines[index].trim(), 10);
-      if (code === 62) colorIndex = Number.parseFloat(lines[index + 1].trim());
-      if (code === 70) {
-        flagValueIndex = index + 1;
-        flags = Number.parseInt(lines[index + 1].trim(), 10) || 0;
-      }
+  while (index < pairs.length) {
+    if (pairs[index].code !== 0) {
+      output.push(pairs[index]);
+      index += 1;
+      continue;
     }
-    if (colorIndex === null || colorIndex >= 0) return;
-    if (flagValueIndex !== null) {
-      lines[flagValueIndex] = String(flags | 1);
-    } else {
-      lines.splice(end, 0, "70", "1");
-    }
-    offLayersFrozenForRendering += 1;
-  };
 
-  for (let index = 0; index + 1 < lines.length; index += 2) {
-    const code = Number.parseInt(lines[index].trim(), 10);
-    if (!Number.isFinite(code)) continue;
-    const value = lines[index + 1].trim().toUpperCase();
-    if (code === 0) {
-      normalizeLayerRecord(recordStart, index);
-      if (value === "SECTION") {
-        const nextCode = Number.parseInt(lines[index + 2]?.trim() ?? "", 10);
-        section = nextCode === 2 ? lines[index + 3]?.trim().toUpperCase() ?? null : null;
-      } else if (value === "ENDSEC") {
-        section = null;
+    let end = index + 1;
+    while (end < pairs.length && pairs[end].code !== 0) end += 1;
+    const record = pairs.slice(index, end).map((pair) => ({ ...pair }));
+    const type = record[0].value.trim().toUpperCase();
+
+    if (type === "SECTION") {
+      section = record.find((pair) => pair.code === 2)?.value.trim().toUpperCase() ?? null;
+    } else if (section === "TABLES" && type === "LAYER") {
+      const color = record.find((pair) => pair.code === 62);
+      const colorIndex = color ? Number.parseFloat(color.value.trim()) : 7;
+      if (Number.isFinite(colorIndex) && colorIndex < 0) {
+        const flagsPair = record.find((pair) => pair.code === 70);
+        if (flagsPair) {
+          const flags = Number.parseInt(flagsPair.value.trim(), 10) || 0;
+          flagsPair.value = String(flags | 1);
+        } else {
+          record.push({ code: 70, value: "1" });
+        }
+        offLayersFrozenForRendering += 1;
       }
-      currentType = value;
-      recordStart = index;
     }
+
+    output.push(...record);
+    if (type === "ENDSEC") section = null;
+    index = end;
   }
-  normalizeLayerRecord(recordStart, lines.length);
 
-  return { text: lines.join("\n"), offLayersFrozenForRendering };
+  return {
+    text: output.map((pair) => `${pair.code}\n${pair.value}`).join("\n") + "\n",
+    offLayersFrozenForRendering,
+  };
 }
 
 function finite(values: number[]): boolean {
@@ -411,9 +424,9 @@ export function validateDxfStage4ViewerSnapshot(
     blockingIssues.push("DXF viewport boyutu sıfır veya geçersiz; güvenilir FitView hesaplanamaz.");
   }
 
-  if (audit.modelSpaceGeometryCount > 0) {
+  if (audit.visibleModelSpaceGeometryCount > 0) {
     if (!snapshot.bounds || !finite([snapshot.bounds.minX, snapshot.bounds.maxX, snapshot.bounds.minY, snapshot.bounds.maxY])) {
-      blockingIssues.push("Model-space geometri var ancak renderer sonlu bounds üretmedi.");
+      blockingIssues.push("Görünür model-space geometri var ancak renderer sonlu bounds üretmedi.");
     } else if (snapshot.bounds.minX > snapshot.bounds.maxX || snapshot.bounds.minY > snapshot.bounds.maxY) {
       blockingIssues.push("Renderer bounds sıralaması geçersiz.");
     }
@@ -457,8 +470,12 @@ export function validateDxfStage4ViewerSnapshot(
   }
 
   const viewerLayers = new Set(snapshot.layers);
-  for (const layer of audit.frozenLayers) {
-    if (viewerLayers.has(layer)) warnings.push(`Frozen layer renderer layer listesinde kaldı: ${layer}.`);
+  for (const layer of [...audit.offLayers, ...audit.frozenLayers]) {
+    if (viewerLayers.has(layer)) warnings.push(`Kaynakta kapalı/frozen layer renderer layer listesinde kaldı: ${layer}.`);
   }
+  for (const layer of audit.activeLayers) {
+    if (!viewerLayers.has(layer)) blockingIssues.push(`Aktif DXF layer renderer'a taşınmadı: ${layer}.`);
+  }
+
   return { warnings, blockingIssues };
 }
