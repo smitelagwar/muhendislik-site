@@ -1,4 +1,4 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -80,6 +80,21 @@ function expectFiniteNonDegenerateBounds(bounds: LayerSnapshot["visibleBounds"],
   expect(values.every(Number.isFinite), `${label} renderer bounds must be finite`).toBe(true);
   const combinedSpan = bounds!.maxX - bounds!.minX + bounds!.maxY - bounds!.minY;
   expect(combinedSpan, `${label} should produce non-degenerate renderer geometry`).toBeGreaterThan(0);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const geometry = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(geometry.scrollWidth, "DXF mobile viewer must not create page-level horizontal overflow").toBeLessThanOrEqual(geometry.clientWidth);
+}
+
+async function expectCanvasImageToChange(canvas: Locator, before: Buffer, message: string) {
+  await expect.poll(async () => {
+    const current = await canvas.screenshot({ animations: "disabled" });
+    return before.equals(current);
+  }, { message, timeout: 8_000 }).toBe(false);
 }
 
 async function attach(page: Page, testInfo: TestInfo, name: string) {
@@ -168,7 +183,58 @@ test.describe("DXF interactive layer controls", () => {
     await expect(page.getByRole("button", { name: "Tümünü aç" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Tümünü kapat" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Kaynak", exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
     await attach(page, testInfo, "dxf-layers-mobile.png");
+  });
+
+  test("390px mobile canvas keeps zoom and pan inside the CAD surface and recovers from all-hidden layers", async ({ page }, testInfo) => {
+    test.setTimeout(150_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    const fileId = await uploadFixture(page);
+    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+
+    const viewer = page.getByTestId("cad-dxf-viewer");
+    const canvasHost = page.getByTestId("cad-dxf-canvas");
+    const canvas = canvasHost.locator("canvas").first();
+    await expect(viewer).toBeVisible();
+    await expect(canvas).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
+    await expectNoHorizontalOverflow(page);
+
+    const hostBox = await canvasHost.boundingBox();
+    expect(hostBox).not.toBeNull();
+    expect(hostBox!.width).toBeGreaterThan(250);
+    expect(hostBox!.height).toBeGreaterThan(300);
+
+    const scrollBeforeZoom = await page.evaluate(() => window.scrollY);
+    const zoomBefore = await canvas.screenshot({ animations: "disabled" });
+    await page.mouse.move(hostBox!.x + hostBox!.width * 0.5, hostBox!.y + hostBox!.height * 0.5);
+    await page.mouse.wheel(0, -650);
+    await expectCanvasImageToChange(canvas, zoomBefore, "wheel zoom must visibly change the DXF canvas");
+    expect(await page.evaluate(() => window.scrollY), "CAD zoom must not scroll the document").toBe(scrollBeforeZoom);
+
+    const panBefore = await canvas.screenshot({ animations: "disabled" });
+    const startX = hostBox!.x + hostBox!.width * 0.55;
+    const startY = hostBox!.y + hostBox!.height * 0.55;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 55, startY + 35, { steps: 6 });
+    await page.mouse.up();
+    await expectCanvasImageToChange(canvas, panBefore, "drag pan must visibly change the DXF canvas");
+    expect(await page.evaluate(() => window.scrollY), "CAD pan must stay inside the viewer").toBe(scrollBeforeZoom);
+
+    await page.getByRole("button", { name: "Katmanlar" }).click();
+    await page.getByRole("button", { name: "Tümünü kapat" }).click();
+    await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sığdır" })).toBeDisabled();
+    await page.getByRole("button", { name: "Katmanları kapat" }).click();
+    await page.getByRole("button", { name: "Kaynak görünürlüğüne dön" }).click();
+    await expect(page.getByTestId("cad-dxf-all-layers-hidden")).toHaveCount(0);
+    expect((await layerSnapshot(page)).allHidden).toBe(false);
+    await expect(page.getByRole("button", { name: "Sığdır" })).toBeEnabled();
+    await expectNoHorizontalOverflow(page);
+    await attach(page, testInfo, "dxf-mobile-pan-zoom-recovery.png");
   });
 
   test("each accepted geometry entity type produces isolated renderer bounds", async ({ page }, testInfo) => {
