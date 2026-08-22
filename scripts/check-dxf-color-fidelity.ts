@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeParsedDxfDimensionColors } from "../src/lib/dokumantasyon/dxf-dimension-color-normalization";
 import { auditDxfReleaseHardening, getDxfReleaseHardeningBlockingIssues } from "../src/lib/dokumantasyon/dxf-release-hardening";
 import { auditDxfStage3, getDxfStage3BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage3-fidelity";
 import { auditDxfStage4, getDxfStage4BlockingIssues } from "../src/lib/dokumantasyon/dxf-stage4-fidelity";
@@ -120,6 +121,50 @@ async function main() {
   assert.equal(Number(value(dimStyle, 177)), 2, "DIMCLRE must make extension lines ACI 2/yellow");
   assert.equal(Number(value(dimStyle, 178)), 2, "DIMCLRT must make dimension text ACI 2/yellow");
 
+  // Lock the worker-only compatibility normalization independently from the browser test. Upstream
+  // stores DIMSTYLE colors as raw ACI integers even though its scene consumes them as RGB values.
+  const parsedProbe = {
+    tables: {
+      dimstyle: {
+        dimStyles: {
+          STANDARD: { DIMCLRD: 2, DIMCLRE: 0, DIMCLRT: 256 },
+        },
+      },
+    },
+    entities: [
+      {
+        type: "DIMENSION",
+        xdata: {
+          ACAD: {
+            DSTYLE: {
+              values: [
+                { code: 1070, value: 176 },
+                { code: 1070, value: 5 },
+              ],
+            },
+          },
+        },
+      },
+    ],
+  };
+  const normalization = normalizeParsedDxfDimensionColors(parsedProbe);
+  assert.equal(parsedProbe.tables.dimstyle.dimStyles.STANDARD.DIMCLRD, 0xffff00, "ACI 2 must become RGB yellow");
+  assert.equal(parsedProbe.tables.dimstyle.dimStyles.STANDARD.DIMCLRE, null, "BYBLOCK must defer to resolved entity/block color");
+  assert.equal(parsedProbe.tables.dimstyle.dimStyles.STANDARD.DIMCLRT, null, "BYLAYER must defer to resolved entity/layer color");
+  assert.equal(parsedProbe.entities[0].xdata.ACAD.DSTYLE.values[1].value, 0x0000ff, "DSTYLE ACI override must use the same palette");
+  assert.deepEqual(normalization, {
+    styleColorCount: 3,
+    overrideColorCount: 1,
+    inheritedColorCount: 2,
+    invalidColorCount: 0,
+  });
+  assert.deepEqual(normalizeParsedDxfDimensionColors(parsedProbe), {
+    styleColorCount: 0,
+    overrideColorCount: 0,
+    inheritedColorCount: 0,
+    invalidColorCount: 0,
+  }, "normalization must be idempotent for the same parsed DXF object");
+
   assert.deepEqual(getDxfStage3BlockingIssues(auditDxfStage3(text)), []);
   assert.deepEqual(getDxfStage4BlockingIssues(auditDxfStage4(text)), []);
   assert.deepEqual(getDxfReleaseHardeningBlockingIssues(auditDxfReleaseHardening(text)), []);
@@ -132,6 +177,12 @@ async function main() {
   assert.match(browserSpec, /0,\s*0,\s*255/);
   assert.match(browserSpec, /255,\s*0,\s*255/);
   assert.match(browserSpec, /255,\s*255,\s*0/);
+
+  const workerSource = await readFile(
+    path.join(root, "src", "components", "dokumantasyon", "preview", "dxf-viewer-worker.ts"),
+    "utf8"
+  );
+  assert.match(workerSource, /normalizeParsedDxfDimensionColors\(dxf\)/);
 
   console.log("DXF Stage 5 color fidelity checks passed.");
 }
