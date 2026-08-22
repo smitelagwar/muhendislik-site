@@ -85,6 +85,9 @@ jobs:
       - name: Release fail-closed hardening
         run: npx tsx scripts/check-dxf-release-hardening.ts
 
+      - name: Extended geometry color and hatch fidelity
+        run: npx tsx scripts/check-dxf-stage7-extended-fidelity.ts
+
       - name: Stage 6 release matrix
         run: npx tsx scripts/check-dxf-stage6-release.ts
 
