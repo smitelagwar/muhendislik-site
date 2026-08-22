@@ -16,6 +16,7 @@ on:
       - "tests/fixtures/dxf/**"
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
+      - "tests/document-studio/dxf-text-stage3.spec.ts"
   push:
     branches:
       - main
@@ -33,6 +34,7 @@ on:
       - "tests/fixtures/dxf/**"
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
+      - "tests/document-studio/dxf-text-stage3.spec.ts"
 
 concurrency:
   group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
@@ -66,6 +68,7 @@ jobs:
           "scripts/check-dxf-*"
           "tests/document-studio/dxf-release.spec.ts"
           "tests/document-studio/dxf-text-stage2.spec.ts"
+          "tests/document-studio/dxf-text-stage3.spec.ts"
 
       - name: Typecheck
         run: npx tsc --noEmit --incremental false
@@ -84,6 +87,9 @@ jobs:
 
       - name: Text Stage 2 ATTRIB and ATTDEF rendering
         run: npx tsx scripts/check-dxf-text-stage2.ts
+
+      - name: Text Stage 3 layout fidelity
+        run: npx tsx scripts/check-dxf-text-stage3-layout.ts
 
       - name: Stage 4 geometry layer and viewport fidelity
         run: npx tsx scripts/check-dxf-stage4-fidelity.ts
@@ -108,6 +114,7 @@ jobs:
           npx playwright test --config=playwright.config.ts
           tests/document-studio/dxf-release.spec.ts
           tests/document-studio/dxf-text-stage2.spec.ts
+          tests/document-studio/dxf-text-stage3.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence
