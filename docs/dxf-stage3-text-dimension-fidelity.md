@@ -107,6 +107,8 @@ Kontrol komutu:
 npx tsx scripts/check-dxf-stage3-fidelity.ts
 ```
 
+Fixture audit beklentileri ayrıca bağımsız olarak doğrulandı. Stage 3 kaynaklarını ve test scriptini içeren Vercel Preview production build'i Next.js compile + TypeScript + deployment adımlarını başarıyla tamamladı.
+
 ## Bilinçli sınırlar
 
 Stage 3 AutoCAD ile piksel-piksel tipografi eşitliği iddia etmez. Aşağıdakiler sonraki aşamalarda ele alınmalıdır:
