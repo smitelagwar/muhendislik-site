@@ -63,8 +63,8 @@ assert.equal(unsupported.get("MLEADER"), 1);
 
 const viewerSource = await readFile(path.join(root, "src", "components", "dokumantasyon", "preview", "cad-viewer.tsx"), "utf8");
 assert.match(viewerSource, /fonts:\s*DXF_FONT_URLS/);
-assert.match(viewerSource, /retainParsedDxf:\s*true/);
 assert.match(viewerSource, /auditDxfText\(dxfText\)/);
 assert.match(viewerSource, /cad-dxf-fidelity/);
+assert.match(viewerSource, /GetBounds\(\)/);
 
 console.log("DXF Stage 1 fidelity checks passed.");
