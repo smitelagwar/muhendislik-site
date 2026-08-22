@@ -178,10 +178,20 @@ function referencedBlock(record: RecordData): string | null {
 export function auditDxfReleaseHardening(text: string): DxfReleaseHardeningAudit {
   const records = parseRecords(text);
   const layers = parseLayers(records);
+  const definedBlockNames = new Set<string>();
   const blockDefinitions = new Map<string, RecordData[]>();
 
   for (const record of records) {
-    if (record.section !== "BLOCKS" || !record.blockName) continue;
+    if (record.section !== "BLOCKS") continue;
+    if (record.type === "BLOCK") {
+      const name = valueForCode(record.pairs, 2) ?? valueForCode(record.pairs, 3);
+      if (name) {
+        definedBlockNames.add(name);
+        if (!blockDefinitions.has(name)) blockDefinitions.set(name, []);
+      }
+      continue;
+    }
+    if (!record.blockName) continue;
     const list = blockDefinitions.get(record.blockName) ?? [];
     list.push(record);
     blockDefinitions.set(record.blockName, list);
@@ -225,7 +235,7 @@ export function auditDxfReleaseHardening(text: string): DxfReleaseHardeningAudit
 
     const blockName = referencedBlock(record);
     if (!blockName) return;
-    if (!blockDefinitions.has(blockName)) {
+    if (!definedBlockNames.has(blockName)) {
       if (location === "model") {
         visibleMissingBlockReferenceCount += 1;
         visibleMissingBlockReferences.add(blockName);
