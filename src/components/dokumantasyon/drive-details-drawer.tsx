@@ -9,11 +9,7 @@ import {
   Download,
   Edit3,
   Trash2,
-  Calendar,
-  HardDrive,
   Folder,
-  Layers,
-  FileCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
@@ -30,6 +26,7 @@ interface DriveDetailsDrawerProps {
   onShare: (item: { id: string; type: "file" | "folder"; name: string; size?: number }) => void;
   onRename: (item: { id: string; type: "file" | "folder"; name: string }) => void;
   onDelete: (item: { id: string; type: "file" | "folder"; name: string }) => void;
+  onDownload?: (file: DokFile) => void;
 }
 
 export function DriveDetailsDrawer({
@@ -38,6 +35,7 @@ export function DriveDetailsDrawer({
   onShare,
   onRename,
   onDelete,
+  onDownload,
 }: DriveDetailsDrawerProps) {
   if (!selectedItem) return null;
 
@@ -55,12 +53,12 @@ export function DriveDetailsDrawer({
     <aside className={`hidden w-80 shrink-0 flex-col border-l border-border/70 bg-card/60 p-4 select-none lg:flex ${styles.details}`}>
       {/* 1. Başlık ve Kapat Butonu */}
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
           Öğe Detayları
         </span>
         <button
           onClick={onClose}
-          className="rounded-lg p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           aria-label="Kapat"
         >
           <X className="h-4 w-4" />
@@ -68,21 +66,21 @@ export function DriveDetailsDrawer({
       </div>
 
       {/* 2. Görsel / İkon Alanı */}
-      <div className="my-4 flex flex-col items-center justify-center rounded-xl border border-border/80 bg-secondary/30 p-6 text-center">
+      <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-secondary/30 p-6 text-center shadow-inner">
         {isFile ? (
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-card border border-border shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border/80 shadow-md">
             {getFileIcon(file!.extension)}
           </div>
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500">
-            <Folder className="h-8 w-8" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-sm">
+            <Folder className="h-9 w-9" />
           </div>
         )}
 
-        <h4 className="mt-3 text-xs font-bold text-foreground break-all line-clamp-2">
+        <h4 className="mt-3.5 text-xs font-bold text-foreground break-all line-clamp-2">
           {displayName}
         </h4>
-        <span className="mt-1 inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase">
+        <span className="mt-1.5 inline-flex items-center rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
           {extension}
         </span>
       </div>
@@ -90,18 +88,32 @@ export function DriveDetailsDrawer({
       {/* 3. Hızlı Eylem Butonları */}
       <div className="grid grid-cols-2 gap-2 border-b border-border/60 pb-4">
         {isFile && (
-          <Button
-            asChild
-            size="sm"
-            className="col-span-2 gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
-          >
-            <Link
-              href={`/dokumantasyon/dosya/${file!.id}`}
+          <>
+            <Button
+              asChild
+              size="sm"
+              className="gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-9 shadow-sm"
             >
-              <Eye className="h-3.5 w-3.5" />
-              <span>Önizle</span>
-            </Link>
-          </Button>
+              <Link
+                href={`/dokumantasyon/dosya/${file!.id}`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>Önizle</span>
+              </Link>
+            </Button>
+
+            {onDownload && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onDownload(file!)}
+                className="gap-1.5 text-xs border-border/80 hover:bg-secondary rounded-xl h-9 font-semibold"
+              >
+                <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>İndir</span>
+              </Button>
+            )}
+          </>
         )}
 
         <Button
@@ -115,7 +127,7 @@ export function DriveDetailsDrawer({
               size: sizeBytes,
             })
           }
-          className="gap-1 text-xs border-border/80 hover:bg-secondary"
+          className={`gap-1.5 text-xs border-border/80 hover:bg-secondary rounded-xl h-9 font-semibold ${!isFile ? "col-span-1" : ""}`}
         >
           <Share2 className="h-3.5 w-3.5 text-blue-500" />
           <span>Paylaş</span>
@@ -131,7 +143,7 @@ export function DriveDetailsDrawer({
               name: displayName,
             })
           }
-          className="gap-1 text-xs border-border/80 hover:bg-secondary"
+          className={`gap-1.5 text-xs border-border/80 hover:bg-secondary rounded-xl h-9 font-semibold ${!isFile ? "col-span-1" : ""}`}
         >
           <Edit3 className="h-3.5 w-3.5 text-amber-500" />
           <span>Adlandır</span>
@@ -139,28 +151,28 @@ export function DriveDetailsDrawer({
       </div>
 
       {/* 4. Metadata Listesi */}
-      <div className="mt-4 space-y-3 text-xs">
+      <div className="mt-4 space-y-3.5 text-xs">
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
             Boyut
           </span>
-          <p className="font-mono text-foreground font-medium">
+          <p className="font-mono text-foreground font-bold">
             {isFile ? formatBytes(sizeBytes) : "—"}
           </p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
             Oluşturulma Tarihi
           </span>
-          <p className="text-foreground">{formatDate(createdAt)}</p>
+          <p className="text-foreground font-medium">{formatDate(createdAt)}</p>
         </div>
 
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
             Son Güncelleme
           </span>
-          <p className="text-foreground">{formatDate(updatedAt || createdAt)}</p>
+          <p className="text-foreground font-medium">{formatDate(updatedAt || createdAt)}</p>
         </div>
       </div>
 
@@ -176,7 +188,7 @@ export function DriveDetailsDrawer({
               name: displayName,
             })
           }
-          className="w-full justify-center gap-1.5 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-500"
+          className="w-full justify-center gap-1.5 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-500 rounded-xl h-9 font-semibold"
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span>Çöp Kutusuna Gönder</span>

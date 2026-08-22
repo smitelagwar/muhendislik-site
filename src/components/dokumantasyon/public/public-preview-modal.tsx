@@ -4,7 +4,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,15 @@ export function PublicPreviewModal({
   item,
   onClose,
 }: PublicPreviewModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !item) return null;
 
   const ext = item.file_extension || `.${item.snapshot_name.split(".").pop()?.toLowerCase()}`;
@@ -49,18 +58,23 @@ export function PublicPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-md animate-in fade-in">
-      <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden text-zinc-100">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-md animate-in fade-in"
+    >
+      <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-border/80 bg-card/95 shadow-2xl overflow-hidden text-foreground backdrop-blur-xl">
         {/* Üst Bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800 bg-zinc-900/90 px-4 backdrop-blur-md">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 px-4 backdrop-blur-md">
           <div className="flex items-center gap-3 min-w-0 pr-2">
-            <span className="truncate text-xs sm:text-sm font-bold text-zinc-100 max-w-sm sm:max-w-md">
+            <span className="truncate text-xs sm:text-sm font-bold text-foreground max-w-sm sm:max-w-md">
               {item.snapshot_name}
             </span>
-            <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-amber-400 uppercase">
+            <span className="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase font-mono">
               {ext}
             </span>
-            <span className="hidden sm:inline text-xs text-zinc-500 font-mono">
+            <span className="hidden sm:inline text-xs text-muted-foreground font-mono">
               {formatBytes(item.snapshot_size_bytes)}
             </span>
           </div>
@@ -69,7 +83,7 @@ export function PublicPreviewModal({
             <Button
               size="sm"
               onClick={handleDownload}
-              className="gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400"
+              className="gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-9 px-3.5 shadow-sm"
             >
               <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">İndir</span>
@@ -77,7 +91,7 @@ export function PublicPreviewModal({
 
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
               aria-label="Kapat"
             >
               <X className="h-5 w-5" />
@@ -86,7 +100,7 @@ export function PublicPreviewModal({
         </header>
 
         {/* Ana İçerik */}
-        <main className="relative flex-1 overflow-hidden bg-zinc-950 flex flex-col">
+        <main className="relative flex-1 overflow-hidden bg-background flex flex-col">
           {previewKind === "pdf" ? (
             <DokPdfViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
           ) : previewKind === "image" ? (

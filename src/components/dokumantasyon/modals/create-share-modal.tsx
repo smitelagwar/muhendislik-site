@@ -12,7 +12,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { formatBytes } from "../ui-helpers";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
@@ -108,17 +107,19 @@ export function CreateShareModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
     >
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2 font-bold text-foreground">
-            <Link2 className="h-5 w-5 text-amber-500" />
-            <span>Süreli Paylaşım Linki Oluştur</span>
+      <div className="w-full max-w-lg rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+          <div className="flex items-center gap-2.5 font-bold text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <Link2 className="h-4 w-4" />
+            </div>
+            <span className="text-base">Süreli Paylaşım Linki Oluştur</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -126,17 +127,17 @@ export function CreateShareModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Seçili Öğeler Özeti */}
-          <div className="rounded-lg border border-border/80 bg-secondary/30 p-3 text-xs">
+          <div className="rounded-xl border border-border/80 bg-secondary/30 p-3.5 text-xs shadow-inner">
             <div className="flex items-center justify-between font-semibold text-foreground">
               <span>Seçilen Öğeler:</span>
-              <span className="text-amber-500">
+              <span className="text-amber-500 font-bold font-mono">
                 {selectedItems.length} Öğe ({formatBytes(totalApproxSize)})
               </span>
             </div>
@@ -155,7 +156,7 @@ export function CreateShareModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Örn: Ruhsat Projeleri - Mimar Ahmet Bey"
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="mt-1.5 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
             />
           </div>
 
@@ -176,10 +177,10 @@ export function CreateShareModal({
                   key={opt.id}
                   type="button"
                   onClick={() => setDuration(opt.id as "1_DAY" | "3_DAYS" | "1_WEEK" | "1_MONTH")}
-                  className={`rounded-lg border px-3 py-2 text-center text-xs font-medium transition-colors ${
+                  className={`rounded-xl border px-3 py-2 text-center text-xs transition-all ${
                     duration === opt.id
-                      ? "border-amber-500 bg-amber-500/15 text-foreground font-bold"
-                      : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                      ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold shadow-sm"
+                      : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground font-medium"
                   }`}
                 >
                   {opt.label}
@@ -192,10 +193,10 @@ export function CreateShareModal({
               <button
                 type="button"
                 onClick={() => setDuration("CUSTOM")}
-                className={`w-full rounded-lg border px-3 py-1.5 text-center text-xs font-medium transition-colors ${
+                className={`w-full rounded-xl border px-3 py-2 text-center text-xs transition-all ${
                   duration === "CUSTOM"
-                    ? "border-amber-500 bg-amber-500/15 text-foreground font-bold"
-                    : "border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold shadow-sm"
+                    : "border-border/80 bg-background/80 text-muted-foreground hover:bg-secondary hover:text-foreground font-medium"
                 }`}
               >
                 Özel Tarih Belirle
@@ -207,7 +208,7 @@ export function CreateShareModal({
                   required
                   value={customDate}
                   onChange={(e) => setCustomDate(e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="mt-2 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
                 />
               )}
             </div>
@@ -225,7 +226,7 @@ export function CreateShareModal({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Örn: 2026!Proje"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="mt-1.5 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
               />
             </div>
 
@@ -241,30 +242,29 @@ export function CreateShareModal({
                 value={maxDownloads}
                 onChange={(e) => setMaxDownloads(e.target.value)}
                 placeholder="Örn: 3 kez"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="mt-1.5 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2 text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/60">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onClose}
               disabled={loading}
+              className="rounded-xl h-10 px-4 text-xs font-medium border-border/80"
             >
               İptal
             </Button>
             <Button
               type="submit"
-              size="sm"
               disabled={loading}
-              className="gap-1.5 bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400"
+              className="gap-2 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-10 px-5 text-xs shadow-sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   <span>Oluşturuluyor...</span>
                 </>
               ) : (

@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — DOCUMENT STUDIO TOPBAR (MINIMAL & RICH UX)
+// DÖKÜMANTASYON MODÜLÜ — DOCUMENT STUDIO TOPBAR (MINIMAL & RICH WARM GLASS UX)
 // ============================================================================
 
 "use client";
@@ -14,9 +14,6 @@ import {
   MoreVertical,
   Edit3,
   Trash2,
-  Sparkles,
-  Shield,
-  Layers,
   Save,
 } from "lucide-react";
 import { formatBytes, getFileIcon } from "../ui-helpers";
@@ -72,7 +69,7 @@ export function StudioTopbar({
   return (
     <header
       data-testid="document-studio-topbar"
-      className="flex h-13 shrink-0 items-center justify-between border-b border-border/80 bg-card/90 px-3 sm:px-4 backdrop-blur-md z-30 select-none"
+      className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 px-3 sm:px-4 backdrop-blur-md z-30 select-none"
     >
       {/* Sol Alan: Geri Dönüş Butonu, Dosya Bilgileri ve Rozetler */}
       <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -82,7 +79,7 @@ export function StudioTopbar({
           size="sm"
           variant="ghost"
           showLabel={false}
-          className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground shrink-0 rounded-lg sm:h-8 sm:w-8"
+          className="h-9 w-9 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground shrink-0 rounded-xl transition-colors sm:h-8 sm:w-8"
           icon={<ArrowLeft className="h-4 w-4" />}
         />
 
@@ -100,7 +97,7 @@ export function StudioTopbar({
             </h1>
 
             {/* Sürüm Rozeti */}
-            <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-500 border border-amber-500/20 shrink-0">
+            <span className="inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 font-mono">
               v{versionNo}
             </span>
 
@@ -114,9 +111,9 @@ export function StudioTopbar({
           </div>
 
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span>{formatBytes(file.size_bytes)}</span>
+            <span className="font-mono">{formatBytes(file.size_bytes)}</span>
             <span>•</span>
-            <span className="uppercase font-semibold text-amber-500/80">
+            <span className="uppercase font-bold text-amber-500/90 font-mono">
               {file.extension.replace(".", "") || previewKind}
             </span>
           </div>
@@ -131,7 +128,7 @@ export function StudioTopbar({
       )}
 
       {/* Sağ Alan: Eylem Butonları */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <div className="hidden origin-right scale-90 sm:block" aria-label="Tema kontrolü">
           <ModeToggle />
         </div>
@@ -141,7 +138,7 @@ export function StudioTopbar({
             onClick={onSave}
             disabled={!isDirty || isSaving}
             size="sm"
-            className="h-8 gap-1.5 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm disabled:opacity-40"
+            className="h-9 gap-1.5 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-500 shadow-sm disabled:opacity-40 rounded-xl"
             icon={<Save className="h-3.5 w-3.5" />}
             label={isSaving ? "Kaydediliyor..." : "Sürüm Kaydet"}
             labelClassName="hidden sm:inline"
@@ -154,7 +151,7 @@ export function StudioTopbar({
           onClick={onShare}
           size="sm"
           variant="outline"
-          className="h-10 w-10 p-0 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/40 sm:h-8 sm:w-auto sm:px-3"
+          className="h-9 w-9 p-0 text-xs font-semibold text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/40 rounded-xl sm:h-9 sm:w-auto sm:px-3.5"
           icon={<Share2 className="h-3.5 w-3.5" />}
           labelClassName="hidden sm:inline"
           showLabel={true}
@@ -164,7 +161,7 @@ export function StudioTopbar({
           commandId="studio.download"
           onClick={onDownload}
           size="sm"
-          className="h-10 w-10 p-0 text-xs font-bold text-zinc-950 hover:bg-amber-400 shadow-sm sm:h-8 sm:w-auto sm:px-3"
+          className="h-9 w-9 p-0 text-xs font-bold text-zinc-950 bg-amber-500 hover:bg-amber-400 shadow-sm rounded-xl sm:h-9 sm:w-auto sm:px-3.5"
           icon={<Download className="h-3.5 w-3.5" />}
           labelClassName="hidden sm:inline"
           showLabel={true}
@@ -176,7 +173,7 @@ export function StudioTopbar({
           size="sm"
           variant="ghost"
           showLabel={false}
-          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+          className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hidden sm:inline-flex rounded-xl"
           icon={
             isFullscreen ? (
               <Minimize2 className="h-4 w-4" />
@@ -191,17 +188,17 @@ export function StudioTopbar({
           <DropdownMenuTrigger asChild>
             <button
               aria-label="Daha Fazla İşlem"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-8 sm:w-8"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-card border-border shadow-xl">
+          <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
             {onRename && (
               <DropdownMenuItem
                 data-command-id="studio.rename"
                 onClick={onRename}
-                className="flex items-center gap-2 cursor-pointer text-xs"
+                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
               >
                 <Edit3 className="h-3.5 w-3.5 text-blue-500" />
                 <span>Yeniden Adlandır</span>
@@ -210,18 +207,18 @@ export function StudioTopbar({
             <DropdownMenuItem
               data-command-id="studio.download"
               onClick={onDownload}
-              className="flex items-center gap-2 cursor-pointer text-xs"
+              className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
             >
               <Download className="h-3.5 w-3.5 text-amber-500" />
               <span>Orijinalini İndir</span>
             </DropdownMenuItem>
             {onDelete && (
               <>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator className="bg-border/60" />
                 <DropdownMenuItem
                   data-command-id="studio.delete"
                   onClick={onDelete}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                  className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg font-medium"
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />
                   <span>Çöp Kutusuna At</span>

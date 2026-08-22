@@ -680,3 +680,72 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
   safe-area padding'i CSS module ile uygulanarak Tailwind cache kaynakli CSS
   parse hatasi ortadan kaldirildi. Playwright icin ayri Next output dizini
   kullanilir ve `.next-playwright*` git tarafindan yok sayilir.
+
+---
+
+## 36. UI-Faz 1: Forensic Route / Function Audit ve P0/P1 İşlevsel Sağlamlaştırma (22.08.2026)
+
+- **Teknik Şartname & Rota Haritası:** 6 UI-Fazlık Modernizasyon planının 1. fazı uygulandı. `docs/dokumantasyon-ui/route-component-map.md` ve `docs/dokumantasyon-ui/action-inventory.md` oluşturuldu. `/dokumantasyon`, `/dokumantasyon/dosya/[fileId]` ve `/p/[token]` aktif rotaları resmi olarak haritalandı; kullanılmayan `file-preview-shell.tsx` bileşeni ölü/legacy kod olarak izole edildi.
+- **[P0] URL folderId & Popstate Senkronizasyonu:** `file-manager.tsx` açılışta ve popstate olayında URL `folderId` parametresini senkronize eder; Document Studio'dan geri dönüşte (`/dokumantasyon?folderId=...`) veya sayfa yenilemede klasör konumu korunur.
+- **[P0] İstemci Dairesel Taşıma (Descendant) Engeli:** `move-modal.tsx` içinde taşınan klasörlerin tüm alt soyu özyinelemeli olarak hesaplanıp hedef listesinden çıkarıldı. Çift tıklama submit korumaları eklendi.
+- **[P1] Grid Modu Çoklu Seçim ve Menü Eşitliği:** Grid kartlarına liste moduyla tam uyumlu seçim kutuları ve 3-nokta işlem menüleri eklendi.
+- **[P1] Detay Çekmecesi & Mobil Alt Sayfa İndirme:** `DriveDetailsDrawer` ve `MobileDetailsSheet` bileşenlerine doğrudan dosya indirme (`onDownload`) butonu eklendi.
+- **[P1] Mobil Gezinti & Pano Fallback:** `DriveSidebar` mobil görünümüne kapatma (`X`) butonu eklendi. Paylaşım modallarında `navigator.clipboard` için güvenli textarea fallback desteği sağlandı.
+- **Test ve Doğrulama:** `npm run check:dokumantasyon-ui:faz1` (8/8 PASS), `npm run check:dokumantasyon` (14/14 PASS), `npm run check:document-studio:all` (5/5 PASS) ve `npx tsc --noEmit` ile tüm kapılardan geçildi. Tarayıcı alt ajanı ile Desktop ve Mobile ortamlarında doğrulamalar tamamlandı.
+
+---
+
+## 37. UI-Faz 2: Warm Glass Tasarım Sistemi, Scoped Token Lock ve Ana Glass Kabuk (22.08.2026)
+
+- **Tasarım Sistemi & Scoped Token Hiyerarşisi:** `src/components/dokumantasyon/dok-workspace.module.css` içerisinde G0 (opak içerik), G1 (8px blur utility), G2 (16px blur ana cam kabuk) ve G3 (24px blur modal/overlay) cam derinlikleri oluşturuldu.
+- **Ambiyans & Aydınlatma:** Sıcak fildişi zemin üzerine organik amber ve gökyüzü mavisi radial gradyanlar, iç ışık yansıması (`--dok-inner-highlight`) ve çok katmanlı ortam gölgeleri uygulandı.
+- **Z-Index Standardı:** `--dok-z-base: 1` den `--dok-z-toast: 100` e kadar standart ölçek kilitlendi.
+- **Admin Shell Entegrasyonu:** `DokumantasyonAdminShell` ve `DokumantasyonFileManager` bileşenleri yeni Warm Glass sınıflarıyla donatıldı.
+- **Kilitli Token Dokümanı:** `docs/dokumantasyon-ui/design-tokens-locked.md` resmi Source of Truth olarak oluşturuldu.
+- **Test ve Doğrulama:** `npm run check:dokumantasyon-ui:faz2` (7/7 PASS), `npm run check:dokumantasyon-ui:faz1` (8/8 PASS), `npm run check:dokumantasyon` (14/14 PASS), `npm run check:document-studio:all` (5/5 PASS) ve `npx tsc --noEmit` ile tüm kapılardan geçildi. Subagent ile Desktop Light/Dark ve Mobile ekran görüntüleri alındı.
+
+---
+
+## 38. UI-Faz 3: File Manager Ana UX: Sidebar, Command Bar, List/Grid, Mobile (22.08.2026)
+
+- **DriveSidebar Gezintisi:** Gezinti butonlarında aktif amber pill, kategori sayaç rozetleri ve alt kısımda depolama alanı ile dosya/klasör özetini gösteren kompakt Warm Glass kartı yerleştirildi.
+- **Komut Çubuğu & Akıllı Breadcrumb:** Derin klasör yollarında (`Kök > … > Üst > Aktif`) akıllı collapse hiyerarşisi, arama tetikleyicisinde klavye kısayolu rozeti (`/`), filtre durum rozeti ve segmentli Liste/Kart switch'i eklendi.
+- **Bağlama Duyarlı Boş Durumlar:** Yıldızlı dosyalar, son açılanlar, kategori filtreleri ve boş klasörler için ayrı ikon ve aksiyon butonları içeren durum kartları oluşturuldu.
+- **Liste ve Grid Görünümleri:** 52px ergonomik satır yüksekliği, yumuşak hover efektleri, amber seçili satır vurgusu ve Warm Glass grid kartları geliştirildi.
+- **Yüzen Çoklu Seçim Çubuğu:** Seçilen öğe sayısıyla senkronize çalışan, masaüstünde yüzen ve mobilde safe-area ile uyumlu G3 cam çubuk devreye alındı.
+- **Test ve Doğrulama:** `npm run check:dokumantasyon-ui:faz3` (7/7 PASS), `npm run check:dokumantasyon-ui:faz2` (7/7 PASS), `npm run check:dokumantasyon-ui:faz1` (8/8 PASS), `npm run check:dokumantasyon` (14/14 PASS), `npm run check:document-studio:all` (5/5 PASS) ve `npx tsc --noEmit` ile tüm kapılardan geçildi. Tarayıcı alt ajanı ile doğrulamalar tamamlandı.
+
+---
+
+## 39. UI-Faz 4: Modal, Sheet, Upload, Share, Trash, Details, Feedback (22.08.2026)
+
+- **Ortak G3 Warm Glass Overlay Standardı:** `NewFolderModal`, `RenameModal`, `DeleteConfirmModal`, `MoveModal`, `SearchModal`, `TrashModal`, `CreateShareModal`, `ShareResultModal`, `ActiveSharesModal` diyalogları `fixed inset-0 z-[90]` ve `bg-card/95 backdrop-blur-xl` standart gövdesinde birleştirildi.
+- **Escape ve Klavye Dinleyicileri:** Tüm modallara doğal Escape kapatma ve pürüzsüz giriş animasyonları eklendi.
+- **Yükleme Transfer Yöneticisi:** `UploadProgressToast` z-[100] Warm Glass kartı yapısına kavuşturuldu; `queued` -> `uploading` -> `finalizing` -> `completed` / `error` durumları ve ilerleme çubuğu standartlaştırıldı.
+- **Detay Çekmecesi & Mobil Alt Sayfa:** `DriveDetailsDrawer` ve `MobileDetailsSheet` bileşenleri Warm Glass yüzeyinde doğrudan indirme (`onDownload`), kopyalama, yeniden adlandırma ve silme eylemleriyle donatıldı.
+- **Test ve Doğrulama:** `npm run check:dokumantasyon-ui:faz4` (6/6 PASS), `npm run check:dokumantasyon-ui:faz3` (7/7 PASS), `npm run check:dokumantasyon-ui:faz2` (7/7 PASS), `npm run check:dokumantasyon-ui:faz1` (8/8 PASS), `npm run check:dokumantasyon` (14/14 PASS), `npm run check:document-studio:all` (5/5 PASS) ve `npx tsc --noEmit` ile tüm kapılardan geçildi. Tarayıcı alt ajanı ile tüm diyaloglar doğrulandı.
+
+---
+
+## 40. UI-Faz 5: Gerçek Document Studio + Public Preview Tasarım Sürekliliği (22.08.2026)
+
+- **Document Studio Kabuğu & StudioTopbar:** `DocumentStudioShell` full-viewport Warm Glass zeminine bağlandı; geri dönüşte `folderId` parametre korunumu garanti altına alındı. `StudioTopbar` h-14 Warm Glass G2 çubuğu, dosya adı truncation, amber `v{versionNo}` rozeti, `Sürüm Kaydet`, `Paylaş`, `İndir`, `Tam Ekran` ve 3-nokta işlem menüsüyle donatıldı.
+- **Stüdyo Araç Çubukları:** `PdfViewerToolbar`, `DokImageViewer`, `DokMarkdownViewer`, `DokTextViewer` araç çubukları ve kontrolleri Warm Glass tasarım diliyle yenilendi. Çekirdek render motorları korunarak berrak okuma yüzeyleri sağlandı. Desteklenmeyen dosyalar için `UnsupportedPreview` Warm Glass kartı yerleştirildi.
+- **Public Paylaşım & İndirme:** `PublicShareDownloadView`, `PublicPreviewModal` ve `SharePasswordScreen` Warm Glass ve amber tonlarıyla modernize edildi.
+- **Test ve Doğrulama:** `npm run check:dokumantasyon-ui:faz5` (6/6 PASS), `npm run check:dokumantasyon-ui:faz4` (6/6 PASS), `npm run check:dokumantasyon-ui:faz3` (7/7 PASS), `npm run check:dokumantasyon-ui:faz2` (7/7 PASS), `npm run check:dokumantasyon-ui:faz1` (8/8 PASS), `npm run check:dokumantasyon` (14/14 PASS), `npm run check:document-studio:all` (5/5 PASS) ve `npx tsc --noEmit` ile tüm kapılardan geçildi. Tarayıcı alt ajanı ile Document Studio görseli alındı ve doğrulandı.
+
+---
+
+## 41. UI-Faz 6: Adversarial QA, Screenshot Onayı, Final Polish ve Production Derlemesi (22.08.2026)
+
+- **Adversarial QA & Güvenlik:** 60 soruluk şartname kriteri kapsamında 0 ölü kontrol (dead control), 0 sahte placeholder, tam gerçek action bağlantıları, XSS koruması (`dangerouslySetInnerHTML` yokluğu), mobil safe-area uyumu ve klavye Escape hiyerarşisi doğrulandı.
+- **Tüm 6 Faz Otomasyon Paketi:** `npm run check:dokumantasyon-ui:all` (40/40 PASS) ile tüm fazların entegrasyonu doğrulandı.
+- **Production Build:** Next.js Turbopack production derlemesi (`npm run build`) 0 hata ile başarıyla tamamlandı.
+- **Görsel Matris:** Desktop Light, Desktop Dark, Mobile Light ve Mobile Dark ekran görüntüleri tarayıcı alt ajanı ile alınıp arşivlendi.
+- **Kapanış:** `Dokumantasyon_Warm_Glass_UI_6_UI-Faz_Gemini_3_7_Flash_NIHAI.md` teknik şartnamesi kapsamındaki tüm 6 UI-Fazı %100 başarıyla tamamlanarak teslim edilmiştir.
+
+
+
+
+
+

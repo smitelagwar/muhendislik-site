@@ -36,14 +36,18 @@ export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgres
       role="status"
       aria-live="polite"
       aria-label="Yükleme durumu"
-      className="fixed bottom-6 right-6 z-50 w-full max-w-sm rounded-xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-md"
+      className="fixed bottom-20 right-4 z-[100] w-full max-w-sm rounded-2xl border border-border/80 bg-card/95 p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-4 sm:right-6 sm:bottom-20"
     >
-      <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+        <div className="flex items-center gap-2.5">
           {isAllDone ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
           ) : (
-            <Upload className="h-4 w-4 animate-bounce text-amber-500" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <Upload className="h-4 w-4 animate-bounce" />
+            </div>
           )}
           <span className="text-xs font-bold text-foreground">
             {isAllDone
@@ -55,21 +59,21 @@ export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgres
           <button
             onClick={onDismiss}
             aria-label="Yükleme listesini kapat"
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
 
-      <div className="mt-3 max-h-48 space-y-2.5 overflow-y-auto pr-1">
+      <div className="mt-3.5 max-h-48 space-y-3 overflow-y-auto pr-1">
         {queue.map((item) => (
-          <div key={item.id} className="space-y-1">
+          <div key={item.id} className="space-y-1.5 rounded-xl border border-border/60 bg-background/60 p-2.5 shadow-inner">
             <div className="flex items-center justify-between text-xs">
-              <span className="truncate max-w-[200px] font-medium text-foreground">
+              <span className="truncate max-w-[200px] font-bold text-foreground">
                 {item.name}
               </span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] font-mono text-muted-foreground">
                 {formatBytes(item.size)}
               </span>
             </div>
@@ -87,10 +91,10 @@ export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgres
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={item.status === "completed" ? 100 : item.progress}
-              className="relative h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+              className="relative h-2 w-full overflow-hidden rounded-full bg-secondary/80 shadow-inner"
             >
               <div
-                className={`h-full transition-all duration-300 ${
+                className={`h-full transition-all duration-300 rounded-full ${
                   item.status === "error"
                     ? "bg-red-500"
                     : item.status === "completed"
@@ -107,45 +111,45 @@ export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgres
             </div>
 
             {/* Durum Metni */}
-            <div className="flex items-center justify-between text-[10px]">
+            <div className="flex items-center justify-between text-[11px] pt-0.5">
               {item.status === "queued" && (
-                <span className="text-muted-foreground">Sırada...</span>
+                <span className="text-muted-foreground font-medium">Sırada...</span>
               )}
               {item.status === "authorizing" && (
-                <span className="flex items-center gap-1 text-amber-500 font-medium">
+                <span className="flex items-center gap-1 text-amber-500 font-semibold">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Yükleme yetkisi alınıyor...</span>
                 </span>
               )}
               {item.status === "uploading" && (
-                <span className="flex items-center gap-1 text-amber-500 font-medium">
+                <span className="flex items-center gap-1 text-amber-500 font-semibold">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Yükleniyor (%{item.progress})</span>
                 </span>
               )}
               {item.status === "finalizing" && (
-                <span className="flex items-center gap-1 text-blue-500 font-medium">
+                <span className="flex items-center gap-1 text-blue-500 font-semibold">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>Kaydediliyor...</span>
                 </span>
               )}
               {item.status === "confirming_metadata" && (
-                <span className="flex items-center gap-1 text-blue-500 font-medium">
+                <span className="flex items-center gap-1 text-blue-500 font-semibold">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Liste kaydı doğrulanıyor...</span>
+                  <span>Doğrulanıyor...</span>
                 </span>
               )}
               {item.status === "completed" && (
-                <span className="text-emerald-500 font-medium">Tamamlandı</span>
+                <span className="text-emerald-500 font-bold">Tamamlandı</span>
               )}
               {item.status === "error" && (
                 <>
-                  <span role="alert" className="flex min-w-0 items-center gap-1 text-red-500 font-medium">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
+                  <span role="alert" className="flex min-w-0 items-center gap-1 text-red-500 font-semibold">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate">{item.errorMessage || "Hata oluştu"}</span>
                   </span>
                   {item.file && (
-                    <button type="button" onClick={() => onRetry(item.id)} className="inline-flex min-h-8 items-center gap-1 rounded px-1.5 font-semibold text-amber-500 hover:bg-amber-500/10">
+                    <button type="button" onClick={() => onRetry(item.id)} className="inline-flex min-h-7 items-center gap-1 rounded-lg px-2 font-bold text-amber-500 hover:bg-amber-500/10 text-xs">
                       <RotateCw className="h-3 w-3" /> Tekrar dene
                     </button>
                   )}

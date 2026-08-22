@@ -202,7 +202,7 @@ export function DocumentStudioShell({
     }
 
     if (file.folder_id) {
-      router.push(`/dokumantasyon?folder=${file.folder_id}`);
+      router.push(`/dokumantasyon?folderId=${file.folder_id}`);
     } else {
       router.push("/dokumantasyon");
     }

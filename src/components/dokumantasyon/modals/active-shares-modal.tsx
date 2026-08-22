@@ -52,8 +52,13 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
   useEffect(() => {
     if (isOpen) {
       fetchShares();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const fetchShares = async () => {
     setLoading(true);
@@ -74,11 +79,28 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
     if (!link.shareUrl) return;
 
     try {
-      await navigator.clipboard.writeText(link.shareUrl);
-      setCopiedId(link.id);
-      setTimeout(() => setCopiedId(null), 3000);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link.shareUrl);
+        setCopiedId(link.id);
+        setTimeout(() => setCopiedId(null), 3000);
+        return;
+      }
+      throw new Error("Clipboard API unavailable");
     } catch {
-      // Fallback
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = link.shareUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopiedId(link.id);
+        setTimeout(() => setCopiedId(null), 3000);
+      } catch (err) {
+        console.warn("Kopyalama başarısız oldu:", err);
+      }
     }
   };
 
@@ -125,24 +147,26 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
     >
-      <div className="w-full max-w-4xl rounded-xl border border-border bg-card p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2 font-bold text-foreground">
-            <Link2 className="h-5 w-5 text-amber-500" />
-            <span>Paylaşım Bağlantıları ({links.length})</span>
+      <div className="w-full max-w-4xl rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+          <div className="flex items-center gap-2.5 font-bold text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              <Link2 className="h-4 w-4" />
+            </div>
+            <span className="text-base">Paylaşım Bağlantıları ({links.length})</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {error && (
-          <div role="alert" className="mt-4 flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+          <div role="alert" className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -151,9 +175,9 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
         {/* Liste */}
         <div className="mt-4 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Bağlantılar yükleniyor...</span>
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+              <Loader2 className="h-7 w-7 animate-spin text-amber-500" />
+              <span className="text-xs">Bağlantılar yükleniyor...</span>
             </div>
           ) : links.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
@@ -163,46 +187,46 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
             links.map((link) => (
               <div
                 key={link.id}
-                className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/70 p-4 transition-all hover:border-border hover:bg-card shadow-sm sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="space-y-1 min-w-0 pr-2">
+                <div className="space-y-1.5 min-w-0 pr-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-foreground truncate max-w-xs sm:max-w-md">
+                    <span className="font-bold text-sm text-foreground truncate max-w-xs sm:max-w-md">
                       {link.title || "İsimsiz Paylaşım"}
                     </span>
 
                     {/* Durum Rozetleri */}
                     {link.is_active ? (
-                      <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+                      <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-500">
                         Aktif
                       </span>
                     ) : link.revoked_at ? (
-                      <span className="rounded bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-500">
+                      <span className="rounded-full bg-red-500/15 border border-red-500/30 px-2.5 py-0.5 text-[10px] font-bold text-red-500">
                         İptal Edildi
                       </span>
                     ) : (
-                      <span className="rounded bg-zinc-500/15 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      <span className="rounded-full bg-zinc-500/15 border border-zinc-500/30 px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
                         Süresi Doldu
                       </span>
                     )}
 
                     {link.password_hash && (
-                      <span className="rounded bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">
+                      <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-[10px] font-medium text-blue-400">
                         Şifreli
                       </span>
                     )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span>{link.total_files} Dosya ({formatBytes(link.total_size_bytes)})</span>
+                    <span className="font-mono">{link.total_files} Dosya ({formatBytes(link.total_size_bytes)})</span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Download className="h-3 w-3" />
+                      <Download className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>{link.download_count}{link.max_downloads ? `/${link.max_downloads}` : ""} İndirme</span>
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-amber-500" />
+                      <Clock className="h-3.5 w-3.5 text-amber-500" />
                       <span>Bitiş: {formatDate(link.expires_at)}</span>
                     </span>
                   </div>
@@ -216,24 +240,24 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
                         size="sm"
                         variant="outline"
                         onClick={() => handleCopyLink(link)}
-                        className="gap-1 text-xs border-amber-500/30 hover:bg-amber-500/10"
+                        className="gap-1.5 text-xs border-amber-500/40 hover:bg-amber-500/10 rounded-xl h-9"
                       >
                         {copiedId === link.id ? (
                           <Check className="h-3.5 w-3.5 text-emerald-500" />
                         ) : (
                           <Copy className="h-3.5 w-3.5 text-amber-500" />
                         )}
-                        <span>{copiedId === link.id ? "Kopyalandı!" : "Linki Kopyala"}</span>
+                        <span className="font-semibold">{copiedId === link.id ? "Kopyalandı!" : "Linki Kopyala"}</span>
                       </Button>
 
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleShowQr(link)}
-                        className="p-2 border-border"
+                        className="p-2 border-border/80 rounded-xl h-9 w-9"
                         aria-label="QR Kod Göster"
                       >
-                        <QrCode className="h-3.5 w-3.5 text-foreground" />
+                        <QrCode className="h-4 w-4 text-foreground" />
                       </Button>
                     </>
                   )}
@@ -244,7 +268,7 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
                       variant="ghost"
                       onClick={() => handleRevoke(link.id)}
                       disabled={revokingId === link.id}
-                      className="gap-1 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-600"
+                      className="gap-1.5 text-xs text-red-500 hover:bg-red-500/10 hover:text-red-600 rounded-xl h-9 font-medium"
                     >
                       {revokingId === link.id ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -262,29 +286,29 @@ export function ActiveSharesModal({ isOpen, onClose }: ActiveSharesModalProps) {
 
         {/* QR Önizleme Alt Modalı */}
         {qrModalData && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4">
-            <div className="w-full max-w-sm rounded-xl border border-border bg-card p-5 text-center shadow-2xl space-y-3">
-              <div className="flex items-center justify-between border-b border-border pb-2">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-sm rounded-2xl border border-border/80 bg-card p-5 text-center shadow-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
                 <span className="text-sm font-bold text-foreground truncate">
                   {qrModalData.title}
                 </span>
                 <button
                   onClick={() => setQrModalData(null)}
-                  className="rounded p-1 text-muted-foreground hover:bg-secondary"
+                  className="rounded-lg p-1 text-muted-foreground hover:bg-secondary"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex justify-center p-3 rounded bg-white">
-                <img src={qrModalData.qrSrc} alt="QR Kod" className="h-44 w-44" />
+              <div className="flex justify-center p-4 rounded-xl bg-white shadow-inner">
+                <img src={qrModalData.qrSrc} alt="QR Kod" className="h-44 w-44 object-contain rounded" />
               </div>
 
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setQrModalData(null)}
-                className="w-full text-xs"
+                className="w-full text-xs rounded-xl h-9 font-semibold"
               >
                 Kapat
               </Button>

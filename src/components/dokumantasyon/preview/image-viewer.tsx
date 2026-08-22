@@ -176,13 +176,13 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   return (
-    <div data-zoom-mode={isFitMode ? "fit" : "custom"} data-rotation={rotation} className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 select-none">
+    <div data-zoom-mode={isFitMode ? "fit" : "custom"} data-rotation={rotation} className="flex h-full w-full flex-col bg-background text-foreground select-none">
       {/* Görsel Araç Çubuğu (Toolbar) */}
-      <div className="z-30 flex h-11 shrink-0 items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-2 text-xs backdrop-blur-md sm:px-3">
+      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-3 text-xs backdrop-blur-md">
         {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
-        <div className="flex items-center gap-2 text-xs text-zinc-400">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {naturalSize ? (
-            <span className="font-mono text-[11px] text-zinc-300">
+            <span className="font-mono text-[11px] font-bold text-foreground">
               {naturalSize.width} × {naturalSize.height} px
             </span>
           ) : (
@@ -191,20 +191,20 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         </div>
 
         {/* Sağ Alan: Zoom, Döndürme, Aynalama, Zemin */}
-        <div className="flex items-center gap-0.5 sm:gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Zoom Kontrolleri */}
           <StudioCommandButton
             commandId="image.zoom.out"
             onClick={() => setCustomScale((current) => current - 0.2)}
             showLabel={false}
-            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
             icon={<ZoomOut className="h-3.5 w-3.5" />}
           />
 
           <StudioCommandButton
             commandId="image.zoom.100"
             onClick={resetView}
-            className="h-6 px-1.5 text-[11px] font-mono text-zinc-300 hover:text-zinc-100 rounded-md"
+            className="h-7 px-2 text-[11px] font-mono font-bold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
             label={`${Math.round(scale * 100)}%`}
           />
 
@@ -212,7 +212,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.zoom.in"
             onClick={() => setCustomScale((current) => current + 0.2)}
             showLabel={false}
-            className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
+            className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
             icon={<ZoomIn className="h-3.5 w-3.5" />}
           />
 
@@ -222,35 +222,35 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
               setIsFitMode(true);
               handleFitScreen();
             }}
-            className="inline-flex h-7 px-2 text-[11px] text-zinc-400 hover:text-zinc-100 rounded-md"
+            className="inline-flex h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
             label="Sığdır"
           />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 sm:hidden">
+              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-zinc-900 text-zinc-100">
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-zinc-800" />
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border/60" />
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="hidden h-4 w-px bg-zinc-800 sm:mx-1 sm:block" />
+          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
           {/* Döndürme */}
           <StudioCommandButton
             commandId="image.rotate.ccw"
             onClick={() => rotate(-1)}
             showLabel={false}
-            className="hidden h-7 w-7 rounded-md p-0 text-zinc-400 hover:text-zinc-100 sm:inline-flex"
+            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<RotateCcw className="h-3.5 w-3.5" />}
           />
 
@@ -258,40 +258,40 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.rotate.cw"
             onClick={() => rotate(1)}
             showLabel={false}
-            className="hidden h-7 w-7 rounded-md p-0 text-zinc-400 hover:text-zinc-100 sm:inline-flex"
+            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<RotateCw className="h-3.5 w-3.5" />}
           />
 
-          <div className="hidden h-4 w-px bg-zinc-800 sm:mx-1 sm:block" />
+          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
           {/* Aynalama */}
           <StudioCommandButton
-            commandId="image.flip.h"
-            onClick={() => setFlipH((f) => !f)}
+            commandId="image.flip.horizontal"
+            onClick={() => setFlipH((value) => !value)}
             active={flipH}
             showLabel={false}
-            className="hidden h-7 w-7 rounded-md p-0 text-zinc-400 hover:text-zinc-100 sm:inline-flex"
+            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<FlipHorizontal className="h-3.5 w-3.5" />}
           />
 
           <StudioCommandButton
-            commandId="image.flip.v"
-            onClick={() => setFlipV((f) => !f)}
+            commandId="image.flip.vertical"
+            onClick={() => setFlipV((value) => !value)}
             active={flipV}
             showLabel={false}
-            className="hidden h-7 w-7 rounded-md p-0 text-zinc-400 hover:text-zinc-100 sm:inline-flex"
+            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<FlipVertical className="h-3.5 w-3.5" />}
           />
 
-          <div className="hidden h-4 w-px bg-zinc-800 sm:mx-1 sm:block" />
+          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
-          {/* Şeffaflık Izgarası (Checkerboard) */}
+          {/* Şeffaflık Arkaplan Izgarası */}
           <StudioCommandButton
-            commandId="image.checkerboard"
-            onClick={() => setShowCheckerboard((c) => !c)}
+            commandId="image.checkerboard.toggle"
+            onClick={() => setShowCheckerboard((value) => !value)}
             active={showCheckerboard}
             showLabel={false}
-            className="hidden h-7 w-7 rounded-md p-0 text-zinc-400 hover:text-zinc-100 sm:inline-flex"
+            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<Grid className="h-3.5 w-3.5" />}
           />
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FolderInput, X, Loader2, AlertCircle, Folder, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFolder } from "@/lib/dokumantasyon/types";
@@ -38,7 +38,6 @@ export function MoveModal({
   const fetchAvailableFolders = async () => {
     setFetchingFolders(true);
     try {
-      // Kök ve alt klasörleri getir
       const res = await fetch("/api/dokumantasyon/folders/tree");
       const data = await res.json();
       if (res.ok && data.folders) {
@@ -50,6 +49,32 @@ export function MoveModal({
       setFetchingFolders(false);
     }
   };
+
+  // Taşınan klasörlerin kendileri ve tüm alt soyları (descendants) hedef olamaz.
+  const invalidTargetFolderIds = useMemo(() => {
+    const invalidIds = new Set<string>(
+      items.filter((item) => item.type === "folder").map((item) => item.id)
+    );
+
+    let addedMore = true;
+    while (addedMore) {
+      addedMore = false;
+      for (const folder of folders) {
+        if (folder.parent_id && invalidIds.has(folder.parent_id) && !invalidIds.has(folder.id)) {
+          invalidIds.add(folder.id);
+          addedMore = true;
+        }
+      }
+    }
+
+    return invalidIds;
+  }, [items, folders]);
+
+  const filteredFolders = useMemo(() => {
+    return folders.filter((folder) => !invalidTargetFolderIds.has(folder.id));
+  }, [folders, invalidTargetFolderIds]);
+
+  const itemLabel = items.length === 1 ? items[0].name : `${items.length} öğe`;
 
   if (!isOpen || items.length === 0) return null;
 
@@ -64,7 +89,6 @@ export function MoveModal({
       let movedCount = 0;
 
       for (const item of items) {
-        // Aynı hedefe yeniden taşıma sessizce isim çoğaltmamalıdır.
         if (item.parentId === selectedFolderId) continue;
         const endpoint = item.type === "folder" ? `/api/dokumantasyon/folders/${item.id}` : `/api/dokumantasyon/files/${item.id}`;
         const body = item.type === "folder" ? { parentId: selectedFolderId } : { folderId: selectedFolderId };
@@ -93,11 +117,6 @@ export function MoveModal({
     }
   };
 
-  // Mevcut klasör ve döngüye girecek klasörleri filtrele
-  const selectedFolderIds = new Set(items.filter((item) => item.type === "folder").map((item) => item.id));
-  const filteredFolders = folders.filter((folder) => !selectedFolderIds.has(folder.id));
-  const itemLabel = items.length === 1 ? items[0].name : `${items.length} öğe`;
-
   return (
     <div
       role="dialog"
@@ -106,17 +125,19 @@ export function MoveModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
     >
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2 font-bold text-foreground">
-            <FolderInput className="h-5 w-5 text-amber-500" />
-            <span>{itemLabel} Öğesini Taşı</span>
+      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+          <div className="flex items-center gap-2.5 font-bold text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
+              <FolderInput className="h-4 w-4" />
+            </div>
+            <span className="text-base truncate max-w-[280px]">{itemLabel} Öğesini Taşı</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -124,32 +145,32 @@ export function MoveModal({
 
         <div className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground">Hedef klasörü seçin:</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hedef klasörü seçin:</p>
 
-          <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-lg border border-border bg-background p-2">
+          <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-xl border border-border bg-background/80 p-2 shadow-inner">
             {/* Kök Dizin Seçeneği */}
             <button
               type="button"
               onClick={() => setSelectedFolderId(null)}
-              className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs transition-all ${
                 selectedFolderId === null
-                  ? "bg-amber-500/20 font-semibold text-foreground border border-amber-500/40"
-                  : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+                  ? "bg-amber-500/15 font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-sm"
+                  : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground border border-transparent font-medium"
               }`}
             >
-              <HardDrive className="h-4 w-4 text-amber-500" />
+              <HardDrive className="h-4 w-4 text-amber-500 shrink-0" />
               <span>Kök Dizin (Root)</span>
             </button>
 
             {fetchingFolders ? (
-              <div className="flex items-center justify-center py-4 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                 <span className="text-xs">Klasörler taranıyor...</span>
               </div>
             ) : (
@@ -158,39 +179,38 @@ export function MoveModal({
                   key={f.id}
                   type="button"
                   onClick={() => setSelectedFolderId(f.id)}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs transition-all ${
                     selectedFolderId === f.id
-                      ? "bg-amber-500/20 font-semibold text-foreground border border-amber-500/40"
-                      : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+                      ? "bg-amber-500/15 font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-sm"
+                      : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground border border-transparent font-medium"
                   }`}
                 >
-                  <Folder className="h-4 w-4 text-amber-500" />
+                  <Folder className="h-4 w-4 text-amber-500 shrink-0" />
                   <span className="truncate">{f.name}</span>
                 </button>
               ))
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onClose}
               disabled={loading}
+              className="rounded-xl h-10 px-4 text-xs font-medium border-border/80"
             >
               İptal
             </Button>
             <Button
               type="button"
-              size="sm"
               onClick={handleMove}
               disabled={loading || items.every((item) => item.parentId === selectedFolderId)}
-              className="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400"
+              className="bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-10 px-5 text-xs shadow-sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   <span>Taşınıyor...</span>
                 </>
               ) : (

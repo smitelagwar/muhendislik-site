@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FolderArchive, LogOut, User, Loader2, ShieldCheck, ShieldAlert, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokumantasyonFileManager } from "./file-manager";
+import styles from "./dok-workspace.module.css";
 
 interface AdminShellProps {
   username: string;
@@ -41,72 +42,80 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8">
-      {/* Üst Bar / Header */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card/70 p-3 shadow-lg backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
-            <FolderArchive className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
-                Dökümantasyon Modülü
-              </h1>
-              <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                Admin
-              </span>
-              {readiness && (
-                readiness.storageMode === "durable" ? (
-                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400 sm:basis-auto">
-                    <ShieldCheck className="h-3 w-3" />
-                    <span>Kalıcı Depolama (Neon + Blob)</span>
-                  </span>
-                ) : readiness.storageMode === "local_dev" ? (
-                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400 sm:basis-auto">
-                    <Laptop className="h-3 w-3" />
-                    <span>Yerel Geliştirme (Local)</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-400 sm:basis-auto">
-                    <ShieldAlert className="h-3 w-3" />
-                    <span>Depolama Eksik (Korumalı)</span>
-                  </span>
-                )
-              )}
+    <div className="relative min-h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05]">
+      {/* Ambiyans Warm Glass Işık Küreleri (Luminous Background Glow) */}
+      {/* BUG-2 FIX: fixed → absolute, overflow-hidden wrapper küreler sayfaya sızmasın */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-[32rem] w-[32rem] rounded-full bg-amber-500/20 blur-[130px] dark:bg-amber-500/15" />
+      <div className="pointer-events-none absolute top-1/4 -right-32 h-[36rem] w-[36rem] rounded-full bg-orange-500/15 blur-[150px] dark:bg-orange-600/12" />
+      <div className="pointer-events-none absolute -bottom-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-400/20 blur-[140px] dark:bg-amber-600/10" />
+
+      <div className="relative mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8 z-10">
+        {/* Üst Bar / Header */}
+        <div className={`flex flex-col gap-3 rounded-2xl p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${styles.workspaceHeader}`}>
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400 shadow-sm">
+              <FolderArchive className="h-5 w-5" />
             </div>
-            <p className="hidden text-xs text-muted-foreground sm:block">
-              Özel dosya depolama, klasörleme ve süreli link paylaşım paneli
-            </p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+                  Dökümantasyon Modülü
+                </h1>
+                <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                  Admin
+                </span>
+                {readiness && (
+                  readiness.storageMode === "durable" ? (
+                    <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 sm:basis-auto">
+                      <ShieldCheck className="h-3 w-3" />
+                      <span>Kalıcı Depolama (Neon + Blob)</span>
+                    </span>
+                  ) : readiness.storageMode === "local_dev" ? (
+                    <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400 sm:basis-auto">
+                      <Laptop className="h-3 w-3" />
+                      <span>Yerel Geliştirme (Local)</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex max-w-full basis-full items-center gap-1 whitespace-normal rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-500 sm:basis-auto">
+                      <ShieldAlert className="h-3 w-3" />
+                      <span>Depolama Eksik (Korumalı)</span>
+                    </span>
+                  )
+                )}
+              </div>
+              <p className="hidden text-xs text-muted-foreground sm:block">
+                Özel dosya depolama, klasörleme ve süreli link paylaşım paneli
+              </p>
+            </div>
+          </div>
+
+          {/* Kullanıcı Rozeti ve Çıkış Yap Butonu */}
+          <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
+            <div className="flex items-center gap-2 rounded-xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-inner">
+              <User className="h-3.5 w-3.5 text-amber-500" />
+              <span>{username}</span>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="gap-1.5 rounded-xl border-border/80 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500 shadow-sm"
+            >
+              {loggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
+              <span>Çıkış Yap</span>
+            </Button>
           </div>
         </div>
 
-        {/* Kullanıcı Rozeti ve Çıkış Yap Butonu */}
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-background/80 px-3 py-1.5 text-xs font-medium text-foreground">
-            <User className="h-3.5 w-3.5 text-amber-500" />
-            <span>{username}</span>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="gap-1.5 border-border hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500"
-          >
-            {loggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            <span>Çıkış Yap</span>
-          </Button>
-        </div>
+        {/* İçerik veya Drive Benzeri Dosya Yöneticisi */}
+        {children ? children : <DokumantasyonFileManager />}
       </div>
-
-      {/* İçerik veya Drive Benzeri Dosya Yöneticisi */}
-      {children ? children : <DokumantasyonFileManager />}
     </div>
   );
 }

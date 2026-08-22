@@ -150,9 +150,9 @@ export function DokTextViewer({
   }, [activeContent, lines]);
 
   return (
-    <div className="flex h-full w-full flex-col bg-zinc-950 text-zinc-100 font-mono text-xs select-none">
+    <div className="flex h-full w-full flex-col bg-background text-foreground font-mono text-xs select-none">
       {/* Üst Araç Çubuğu */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-4 py-2 backdrop-blur-md z-30">
+      <div className="z-30 flex h-12 flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-4 py-1.5 backdrop-blur-md">
         {/* Sol Alan: Mod Seçimi ve Düzenleme Toggle */}
         <div className="flex items-center gap-2">
           {onContentChange && (
@@ -160,25 +160,25 @@ export function DokTextViewer({
               size="sm"
               variant={isEditing ? "default" : "outline"}
               onClick={() => setIsEditing((e) => !e)}
-              className={`h-7 gap-1.5 px-2.5 text-[11px] font-semibold border-zinc-700 ${
+              className={`h-8 gap-1.5 px-3 text-xs font-semibold rounded-xl border-border/80 ${
                 isEditing
                   ? "bg-amber-500 text-zinc-950 font-bold hover:bg-amber-400"
-                  : "text-zinc-300 hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               }`}
             >
-              {isEditing ? <Eye className="h-3.5 w-3.5" /> : <Edit3 className="h-3.5 w-3.5 text-amber-400" />}
+              {isEditing ? <Eye className="h-3.5 w-3.5" /> : <Edit3 className="h-3.5 w-3.5 text-amber-500" />}
               <span>{isEditing ? "Önizlemeye Dön" : "Metni Düzenle"}</span>
             </Button>
           )}
 
           {isCsv && !isEditing && (
-            <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
+            <div className="flex items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setViewMode("table")}
-                className={`h-7 gap-1.5 px-2.5 text-[11px] font-medium ${
-                  viewMode === "table" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                className={`h-7 gap-1.5 px-3 text-[11px] font-semibold rounded-lg transition-all ${
+                  viewMode === "table" ? "bg-amber-500 text-zinc-950 font-bold shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <TableIcon className="h-3.5 w-3.5" />
@@ -188,8 +188,8 @@ export function DokTextViewer({
                 size="sm"
                 variant="ghost"
                 onClick={() => setViewMode("text")}
-                className={`h-7 gap-1.5 px-2.5 text-[11px] font-medium ${
-                  viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                className={`h-7 gap-1.5 px-3 text-[11px] font-semibold rounded-lg transition-all ${
+                  viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <FileCode className="h-3.5 w-3.5" />
@@ -199,15 +199,15 @@ export function DokTextViewer({
           )}
 
           {isJson && !isEditing && (
-            <div className="flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5">
+            <div className="flex items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setViewMode("formatted_json")}
-                className={`h-7 gap-1.5 px-2.5 text-[11px] font-medium ${
+                className={`h-7 gap-1.5 px-3 text-[11px] font-semibold rounded-lg transition-all ${
                   viewMode === "formatted_json"
-                    ? "bg-amber-500 text-zinc-950 font-bold"
-                    : "text-zinc-400 hover:text-zinc-100"
+                    ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <span>Biçimlendirilmiş JSON</span>
@@ -216,43 +216,52 @@ export function DokTextViewer({
                 size="sm"
                 variant="ghost"
                 onClick={() => setViewMode("text")}
-                className={`h-7 gap-1.5 px-2.5 text-[11px] font-medium ${
-                  viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold" : "text-zinc-400 hover:text-zinc-100"
+                className={`h-7 gap-1.5 px-3 text-[11px] font-semibold rounded-lg transition-all ${
+                  viewMode === "text" ? "bg-amber-500 text-zinc-950 font-bold shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <span>Ham JSON</span>
               </Button>
             </div>
           )}
-
-          {/* İstatistik Rozeti */}
-          <div className="hidden md:flex items-center gap-3 text-[11px] text-zinc-400 pl-2">
-            <span>{stats.linesCount} satır</span>
-            <span>{stats.words} kelime</span>
-            <span>{stats.chars} karakter</span>
-          </div>
         </div>
 
-        {/* Sağ Alan: Satır Kaydırma ve Kopyalama */}
-        <div className="flex items-center gap-2">
-          {!isEditing && viewMode !== "table" && (
-            <StudioCommandButton
-              commandId="text.wrap"
-              onClick={() => setWrapLines((w) => !w)}
-              active={wrapLines}
-              showLabel={false}
-              className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 rounded-md"
-              icon={wrapLines ? <WrapText className="h-3.5 w-3.5" /> : <AlignLeft className="h-3.5 w-3.5" />}
-            />
-          )}
+        {/* Sağ Alan: İstatistikler, Satır Kaydırma ve Kopyala */}
+        <div className="flex items-center gap-2 sm:gap-3 text-muted-foreground">
+          <div className="hidden items-center gap-2 text-[11px] text-muted-foreground md:flex">
+            <span>{stats.linesCount} satır</span>
+            <span>•</span>
+            <span>{stats.words} kelime</span>
+            <span>•</span>
+            <span>{stats.chars} karakter</span>
+          </div>
+
+          <div className="hidden h-4 w-px bg-border/80 md:block" />
+
+          {/* Satır Kaydırma Toggle */}
+          <button
+            onClick={() => setWrapLines((w) => !w)}
+            aria-label="Satır kaydırmayı aç/kapat"
+            title={wrapLines ? "Satır kaydırmayı kapat" : "Satır kaydırmayı aç"}
+            className={`flex h-8 w-8 items-center justify-center rounded-xl border transition-colors ${
+              wrapLines
+                ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold"
+                : "border-border/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+          >
+            {wrapLines ? <WrapText className="h-3.5 w-3.5" /> : <AlignLeft className="h-3.5 w-3.5" />}
+          </button>
 
           <StudioCommandButton
             commandId="text.copy"
             onClick={handleCopy}
             disabled={loading || !rawText}
-            className="h-7 gap-1.5 bg-amber-500 px-3 text-[11px] font-bold text-zinc-950 hover:bg-amber-400 shadow-sm"
-            icon={copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            label={copied ? "Kopyalandı" : "Tümünü Kopyala"}
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-3 text-xs rounded-xl border-border/80 hover:bg-secondary"
+            icon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-amber-500" />}
+            label={copied ? "Kopyalandı" : "Metni Kopyala"}
+            showLabel={true}
           />
         </div>
       </div>

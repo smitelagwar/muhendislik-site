@@ -55,19 +55,19 @@ export function SharePasswordScreen({
   };
 
   return (
-    <div className="mx-auto max-w-md w-full rounded-2xl border border-border bg-card p-6 shadow-2xl backdrop-blur-md sm:p-8">
+    <div className="mx-auto max-w-md w-full rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
       <div className="flex flex-col items-center text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-500">
-          <Lock className="h-7 w-7" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-500 shadow-sm">
+          <Lock className="h-8 w-8" />
         </div>
 
         <h1 className="mt-4 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           Şifre Korumalı Paylaşım
         </h1>
 
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+        <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm leading-relaxed">
           {title ? (
-            <span className="font-semibold text-foreground">"{title}"</span>
+            <span className="font-bold text-foreground">"{title}"</span>
           ) : (
             "Bu dosya paketi"
           )}{" "}
@@ -77,7 +77,7 @@ export function SharePasswordScreen({
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
+          <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -87,7 +87,7 @@ export function SharePasswordScreen({
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Erişim Şifresi
           </label>
-          <div className="relative mt-1">
+          <div className="relative mt-1.5">
             <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="password"
@@ -96,7 +96,7 @@ export function SharePasswordScreen({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifrenizi yazın..."
-              className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-3 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-xl border border-input bg-background/80 py-2.5 pl-10 pr-3.5 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner"
             />
           </div>
         </div>
@@ -104,7 +104,7 @@ export function SharePasswordScreen({
         <Button
           type="submit"
           disabled={loading || !password.trim()}
-          className="w-full gap-2 bg-amber-500 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-amber-400"
+          className="w-full gap-2 bg-amber-500 h-11 text-sm font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-md"
         >
           {loading ? (
             <>

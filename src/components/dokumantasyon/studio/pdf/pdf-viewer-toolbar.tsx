@@ -1,5 +1,5 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — PDF VIEWER TOOLBAR (ACTIONS & COMMANDS)
+// DÖKÜMANTASYON MODÜLÜ — PDF VIEWER TOOLBAR (WARM GLASS ACTIONS & COMMANDS)
 // ============================================================================
 
 "use client";
@@ -69,7 +69,7 @@ export function PdfViewerToolbar({
   return (
     <div
       data-testid="pdf-viewer-toolbar"
-      className="z-30 flex h-11 min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1 border-b border-border bg-card/95 px-2 py-1.5 text-xs text-foreground backdrop-blur-md select-none sm:px-3"
+      className="z-30 flex h-12 min-w-0 shrink-0 flex-nowrap items-center justify-between gap-1 border-b border-border/70 bg-card/85 px-2 py-1.5 text-xs text-foreground backdrop-blur-md select-none sm:px-3"
     >
       {/* Sol Alan: Kenar Çubuğu ve Sayfa Gezintisi */}
       <div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
@@ -78,18 +78,18 @@ export function PdfViewerToolbar({
           onClick={onToggleSidebar}
           active={isSidebarOpen}
           showLabel={false}
-          className="hidden h-7 w-7 rounded-md p-0 text-muted-foreground hover:text-foreground sm:inline-flex"
+          className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
           icon={<Sidebar className="h-4 w-4" />}
         />
 
-        <div className="hidden h-4 w-px bg-border sm:mx-1 sm:block" />
+        <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
         <StudioCommandButton
           commandId="pdf.page.first"
           onClick={() => onPageChange(1)}
           disabled={currentPage <= 1}
           showLabel={false}
-          className="hidden h-7 w-7 rounded-md p-0 text-muted-foreground disabled:opacity-30 sm:inline-flex"
+          className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground disabled:opacity-30 sm:inline-flex"
           icon={<ChevronsLeft className="h-4 w-4" />}
         />
 
@@ -98,11 +98,11 @@ export function PdfViewerToolbar({
           onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
           disabled={currentPage <= 1}
           showLabel={false}
-          className="h-7 w-7 rounded-md p-0 text-muted-foreground disabled:opacity-30"
+          className="h-8 w-8 rounded-lg p-0 text-muted-foreground disabled:opacity-30"
           icon={<ChevronLeft className="h-4 w-4" />}
         />
 
-        <div className="flex shrink-0 items-center gap-0.5 px-0.5 text-xs sm:gap-1 sm:px-1">
+        <div className="flex shrink-0 items-center gap-1 px-1 text-xs font-medium">
           <input
             type="number"
             min={1}
@@ -114,10 +114,10 @@ export function PdfViewerToolbar({
                 onPageChange(val);
               }
             }}
-            className="h-6 w-11 rounded border border-border bg-background px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none"
+            className="h-7 w-12 rounded-lg border border-input bg-background/80 px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner"
             aria-label="Geçerli Sayfa"
           />
-          <span className="font-medium text-muted-foreground">/ {numPages || "—"}</span>
+          <span className="font-semibold text-muted-foreground font-mono">/ {numPages || "—"}</span>
         </div>
 
         <StudioCommandButton
@@ -125,7 +125,7 @@ export function PdfViewerToolbar({
           onClick={() => onPageChange(Math.min(currentPage + 1, numPages))}
           disabled={currentPage >= numPages}
           showLabel={false}
-          className="h-7 w-7 shrink-0 rounded-md p-0 text-muted-foreground disabled:opacity-30"
+          className="h-8 w-8 shrink-0 rounded-lg p-0 text-muted-foreground disabled:opacity-30"
           icon={<ChevronRight className="h-4 w-4" />}
         />
 
@@ -134,30 +134,30 @@ export function PdfViewerToolbar({
           onClick={() => onPageChange(numPages)}
           disabled={currentPage >= numPages}
           showLabel={false}
-          className="hidden h-7 w-7 rounded-md p-0 text-muted-foreground disabled:opacity-30 sm:inline-flex"
+          className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground disabled:opacity-30 sm:inline-flex"
           icon={<ChevronsRight className="h-4 w-4" />}
         />
       </div>
 
       {/* Orta Alan: Arama, İmleç Araçları ve Zoom */}
-      <div className="flex min-w-0 items-center justify-end gap-0.5 sm:gap-1">
+      <div className="flex min-w-0 items-center justify-end gap-1">
         <StudioCommandButton
           commandId="pdf.search.open"
           onClick={onToggleSearch}
           active={isSearchOpen}
           showLabel={false}
-          className="h-7 w-7 rounded-md p-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<Search className="h-4 w-4" />}
         />
 
-        <div className="hidden h-4 w-px bg-border sm:mx-1 sm:block" />
+        <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
         <StudioCommandButton
           commandId="pdf.tool.select"
           onClick={() => onSetHandTool(false)}
           active={!isHandTool}
           showLabel={false}
-          className="hidden h-7 w-7 rounded-md p-0 text-muted-foreground hover:text-foreground sm:inline-flex"
+          className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
           icon={<MousePointer className="h-3.5 w-3.5" />}
         />
 
@@ -166,24 +166,24 @@ export function PdfViewerToolbar({
           onClick={() => onSetHandTool(true)}
           active={isHandTool}
           showLabel={false}
-          className="hidden h-7 w-7 rounded-md p-0 text-muted-foreground hover:text-foreground sm:inline-flex"
+          className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
           icon={<Hand className="h-3.5 w-3.5" />}
         />
 
-        <div className="hidden h-4 w-px bg-border sm:mx-1 sm:block" />
+        <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
 
         <StudioCommandButton
           commandId="pdf.zoom.out"
           onClick={onZoomOut}
           showLabel={false}
-          className="h-7 w-7 shrink-0 rounded-md p-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<ZoomOut className="h-3.5 w-3.5" />}
         />
 
         <StudioCommandButton
           commandId="pdf.zoom.100"
           onClick={onZoom100}
-          className="h-6 shrink-0 rounded-md px-1.5 font-mono text-[11px] text-muted-foreground hover:text-foreground"
+          className="h-7 shrink-0 rounded-lg px-2 font-mono text-[11px] font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           label={`${Math.round(scale * 100)}%`}
         />
 
@@ -191,7 +191,7 @@ export function PdfViewerToolbar({
           commandId="pdf.zoom.in"
           onClick={onZoomIn}
           showLabel={false}
-          className="h-7 w-7 shrink-0 rounded-md p-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<ZoomIn className="h-3.5 w-3.5" />}
         />
 
@@ -200,38 +200,38 @@ export function PdfViewerToolbar({
             <button
               type="button"
               aria-label="PDF ek işlemleri"
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="z-[210] w-48 bg-card text-foreground">
-            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden" onClick={onToggleSidebar}>
+          <DropdownMenuContent align="end" className="z-[210] w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
+            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden rounded-lg" onClick={onToggleSidebar}>
               Kenar çubuğunu aç/kapat
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden" onClick={() => onPageChange(1)}>
+            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden rounded-lg" onClick={() => onPageChange(1)}>
               İlk sayfaya git
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden" onClick={() => onPageChange(numPages)}>
+            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden rounded-lg" onClick={() => onPageChange(numPages)}>
               Son sayfaya git
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden" onClick={() => onSetHandTool(false)}>
+            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden rounded-lg" onClick={() => onSetHandTool(false)}>
               Metin seçim imleci
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden" onClick={() => onSetHandTool(true)}>
+            <DropdownMenuItem className="cursor-pointer text-xs sm:hidden rounded-lg" onClick={() => onSetHandTool(true)}>
               Kaydırma / el aracı
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem data-command-id="pdf.zoom.fitWidth" className="cursor-pointer text-xs" onClick={onFitWidth}>
+            <DropdownMenuSeparator className="bg-border/60" />
+            <DropdownMenuItem data-command-id="pdf.zoom.fitWidth" className="cursor-pointer text-xs rounded-lg" onClick={onFitWidth}>
               Genişliğe sığdır
             </DropdownMenuItem>
-            <DropdownMenuItem data-command-id="pdf.zoom.fitPage" className="cursor-pointer text-xs" onClick={onFitPage}>
+            <DropdownMenuItem data-command-id="pdf.zoom.fitPage" className="cursor-pointer text-xs rounded-lg" onClick={onFitPage}>
               Sayfaya sığdır
             </DropdownMenuItem>
-            <DropdownMenuItem data-command-id="pdf.rotateView" className="cursor-pointer text-xs" onClick={onRotateView}>
+            <DropdownMenuItem data-command-id="pdf.rotateView" className="cursor-pointer text-xs rounded-lg" onClick={onRotateView}>
               Görünümü döndür
             </DropdownMenuItem>
-            <DropdownMenuItem data-command-id="pdf.print" className="cursor-pointer text-xs" onClick={onPrint}>
+            <DropdownMenuItem data-command-id="pdf.print" className="cursor-pointer text-xs rounded-lg" onClick={onPrint}>
               PDF yazdır
             </DropdownMenuItem>
           </DropdownMenuContent>

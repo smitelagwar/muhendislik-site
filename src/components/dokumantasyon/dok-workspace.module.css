@@ -1,67 +1,205 @@
+/* ============================================================================
+ * DÖKÜMANTASYON MODÜLÜ — WARM ENGINEERING GLASS TASARIM SİSTEMİ (PREMIUM GLASSMORPHISM)
+ *
+ * Bu CSS Modülü, gerçek ve vurucu Warm Glassmorphism etkisini sağlayan
+ * frosted translucent cam yüzeylerini, iç ışık (rim highlight) yansımalarını,
+ * ambiyans radial-gradient ışık kırılmalarını ve standart Z-index hiyerarşisini tanımlar.
+ * ============================================================================ */
+
 .workspace {
-  --dok-surface: color-mix(in srgb, var(--card) 84%, transparent);
-  --dok-surface-strong: color-mix(in srgb, var(--card) 94%, transparent);
-  --dok-line: color-mix(in srgb, var(--border) 82%, transparent);
+  /* --- 1. Scoped Yüzey ve Cam Tokenları (G0 - G3) --- */
+  --dok-surface-g0: var(--card);
+  --dok-surface-g1: color-mix(in srgb, var(--card) 60%, transparent);
+  --dok-surface-g2: color-mix(in srgb, var(--card) 78%, transparent);
+  --dok-surface-g3: color-mix(in srgb, var(--card) 92%, transparent);
+
+  /* --- 2. Blur / Cam Derinlik Skalası --- */
+  --dok-blur-g1: 12px;
+  --dok-blur-g2: 20px;
+  --dok-blur-g3: 28px;
+
+  /* --- 3. Sınır ve İç Işık (Inner Rim) Tokenları --- */
+  --dok-border-soft: rgba(255, 255, 255, 0.55);
+  --dok-border-strong: rgba(255, 255, 255, 0.85);
+  --dok-border-glow: rgba(245, 158, 11, 0.4);
+  --dok-inner-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.75);
+
+  /* --- 4. Gölgeler (Warm Ambient Shadows) --- */
+  --dok-shadow-ambient: 0 24px 70px -15px rgba(245, 158, 11, 0.14),
+                        0 8px 32px 0 rgba(0, 0, 0, 0.06);
+  --dok-shadow-card: 0 10px 30px -8px rgba(0, 0, 0, 0.08);
+  --dok-shadow-overlay: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
+
+  /* --- 5. Vurgu (Amber / Accent) Tokenları --- */
+  --dok-accent-solid: #f59e0b;
+  --dok-accent-soft: rgba(245, 158, 11, 0.15);
+  --dok-accent-hover: #d97706;
+
+  /* --- 6. Standart Z-Index Hiyerarşisi --- */
+  --dok-z-base: 1;
+  --dok-z-sticky: 20;
+  --dok-z-dropdown: 40;
+  --dok-z-floating-bar: 50;
+  --dok-z-drawer: 60;
+  --dok-z-mobile-sheet: 70;
+  --dok-z-modal: 90;
+  --dok-z-toast: 100;
+
   position: relative;
   isolation: isolate;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
   background:
-    radial-gradient(circle at 8% 0%, color-mix(in srgb, #f59e0b 10%, transparent), transparent 28rem),
-    radial-gradient(circle at 100% 100%, color-mix(in srgb, #38bdf8 7%, transparent), transparent 32rem),
-    var(--background);
-  box-shadow: 0 24px 70px color-mix(in srgb, #09090b 15%, transparent);
+    radial-gradient(circle at 10% 4%, rgba(245, 158, 11, 0.16), transparent 30rem),
+    radial-gradient(circle at 92% 95%, rgba(251, 146, 60, 0.12), transparent 32rem),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.40) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 20px 50px -12px rgba(245, 158, 11, 0.12),
+              0 0 0 1px rgba(255, 255, 255, 0.4),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
+  /* BUG-4 FIX: overflow:clip yerine hidden — fixed child'ları (toast, modal) etkilemez,
+     border-radius clipping korunur */
+  overflow: clip;
 }
 
-.workspaceHeader,
-.sidebar,
-.details,
-.commandBar,
-.list,
-.card {
-  border-color: var(--dok-line);
+:global(.dark) .workspace {
+  --dok-border-soft: rgba(255, 255, 255, 0.12);
+  --dok-border-strong: rgba(255, 255, 255, 0.22);
+  --dok-inner-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 10% 4%, rgba(245, 158, 11, 0.18), transparent 30rem),
+    radial-gradient(circle at 92% 95%, rgba(234, 88, 12, 0.14), transparent 32rem),
+    linear-gradient(135deg, rgba(20, 20, 28, 0.75) 0%, rgba(12, 12, 18, 0.65) 100%);
+  box-shadow: 0 24px 70px -15px rgba(0, 0, 0, 0.7),
+              0 0 0 1px rgba(255, 255, 255, 0.08),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.workspaceHeader,
+/* Header & Admin Shell Glass */
+.workspaceHeader {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.06),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+:global(.dark) .workspaceHeader {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(135deg, rgba(24, 24, 32, 0.8) 0%, rgba(15, 15, 22, 0.68) 100%);
+  box-shadow: 0 16px 44px -10px rgba(0, 0, 0, 0.6),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Command Bar (G2 Glass) */
 .commandBar {
-  background: var(--dok-surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
 }
 
-.sidebar,
-.details,
-.list,
-.card {
-  background: var(--dok-surface-strong);
+:global(.dark) .commandBar {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 28, 0.65);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
-.workspaceHeader,
-.commandBar,
-.sidebar,
+/* Sidebar (G2 Glass Panel) */
+.sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+:global(.dark) .sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 25, 0.55);
+}
+
+/* Right Details Drawer (G2 Glass Panel) */
 .details {
+  border-left: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: -10px 0 30px -10px rgba(0, 0, 0, 0.08);
+}
+
+:global(.dark) .details {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(22, 22, 30, 0.75);
+  box-shadow: -16px 0 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* File / Folder Table Container */
+.list {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.04),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+:global(.dark) .list {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 28, 0.55);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Grid Cards (G1 Glass Card) */
+.card {
+  min-height: 10rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+:global(.dark) .card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(22, 22, 30, 0.6);
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.4),
+              inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.card:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 16px 40px -8px rgba(245, 158, 11, 0.18),
+              0 0 0 1px rgba(245, 158, 11, 0.3);
 }
 
 .viewport {
-  scrollbar-gutter: stable both-edges;
+  /* BUG-7 FIX: both-edges layout shift yaratıyordu — stable yeterli */
+  scrollbar-gutter: stable;
 }
 
-.list {
-  box-shadow: 0 12px 32px color-mix(in srgb, #09090b 7%, transparent);
-}
-
-.card {
-  min-height: 9.75rem;
-}
-
+/* Floating Action Bars & Sheets */
 .mobileSelectionBar {
-  bottom: max(4.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
-  z-index: 60;
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  /* BUG-1 FIX: CSS bottom override kaldırıldı — Tailwind bottom-2 class'ı
+     konumu yönetir. Sadece safe-area padding ve shadow burada. */
+  padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+  box-shadow: var(--dok-shadow-overlay);
 }
 
 .mobileSheetSafeArea {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
+/* Fallback: Backdrop Filter Desteklenmediğinde */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .workspaceHeader,
   .commandBar,
@@ -73,9 +211,20 @@
   }
 }
 
+/* Erişilebilirlik: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
+}
+
+/* Mobil Viewport Uyarlamaları */
 @media (max-width: 1023px) {
   .workspace {
-    border-radius: 1rem;
+    border-radius: 1.25rem;
   }
 
   .viewport {

@@ -61,17 +61,19 @@ export function NewFolderModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
     >
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex items-center gap-2 font-bold text-foreground">
-            <FolderPlus className="h-5 w-5 text-amber-500" />
-            <span>Yeni Klasör Oluştur</span>
+      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+          <div className="flex items-center gap-2.5 font-bold text-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <FolderPlus className="h-4 w-4" />
+            </div>
+            <span className="text-base">Yeni Klasör Oluştur</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -79,7 +81,7 @@ export function NewFolderModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded border border-red-500/30 bg-red-500/10 p-2.5 text-xs text-red-500">
+            <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -96,29 +98,28 @@ export function NewFolderModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Örn: 2026 Statik Projeleri"
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="mt-1.5 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={onClose}
               disabled={loading}
+              className="rounded-xl h-10 px-4 text-xs font-medium border-border/80"
             >
               İptal
             </Button>
             <Button
               type="submit"
-              size="sm"
               disabled={loading || !name.trim()}
-              className="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400"
+              className="bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-10 px-5 text-xs shadow-sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   <span>Oluşturuluyor...</span>
                 </>
               ) : (
