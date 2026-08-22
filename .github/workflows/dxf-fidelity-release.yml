@@ -76,6 +76,9 @@ jobs:
       - name: Stage 3 text and dimension fidelity
         run: npx tsx scripts/check-dxf-stage3-fidelity.ts
 
+      - name: Text source parser and font evidence
+        run: npx tsx scripts/check-dxf-text-render-audit.ts
+
       - name: Stage 4 geometry layer and viewport fidelity
         run: npx tsx scripts/check-dxf-stage4-fidelity.ts
 
