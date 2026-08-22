@@ -84,6 +84,18 @@ async function attachEvidence(page: Page, testInfo: TestInfo, name: string) {
 test.describe("DXF Text Stage 2 renderer hardening", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "Worker/WebGL fidelity gate runs in Chromium.");
 
+  test.beforeEach(async ({ page }) => {
+    page.on("console", (message) => {
+      const text = message.text();
+      if (/dxf|worker|font|error|fail/i.test(text) || message.type() === "error") {
+        console.log(`[browser:${message.type()}] ${text}`);
+      }
+    });
+    page.on("pageerror", (error) => {
+      console.log(`[browser:pageerror] ${error.message}`);
+    });
+  });
+
   test("constant ATTDEF becomes real block-instanced text geometry", async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1200, height: 800 });
