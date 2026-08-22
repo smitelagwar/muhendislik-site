@@ -10,6 +10,12 @@ import {
   getDxfStage2BlockingIssues,
   type DxfFidelityAudit,
 } from "@/lib/dokumantasyon/dxf-fidelity-audit";
+import {
+  auditDxfStage3,
+  getDxfStage3BlockingIssues,
+  getDxfStage3Warnings,
+  normalizeDxfTextForStage3Rendering,
+} from "@/lib/dokumantasyon/dxf-stage3-fidelity";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
@@ -187,10 +193,24 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         }
 
         const audit = auditDxfText(dxfText);
-        const auditWarnings = getDxfFidelityWarnings(audit);
-        const blockingIssues = getDxfStage2BlockingIssues(audit);
+        const stage3Audit = auditDxfStage3(dxfText);
+        const normalization = normalizeDxfTextForStage3Rendering(dxfText);
+        const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
+        const stage3BlockingIssues = getDxfStage3BlockingIssues(stage3Audit);
+        const blockingIssues = [...stage2BlockingIssues, ...stage3BlockingIssues];
+        const normalizationWarnings = normalization.stackedFractionFallbackCount > 0
+          ? [`${normalization.stackedFractionFallbackCount} MTEXT stacked fraction görünür plain-text biçimine dönüştürüldü.`]
+          : [];
+
         setFidelityAudit(audit);
-        setFidelityWarnings([...encoding.warnings, ...auditWarnings, ...blockingIssues]);
+        setFidelityWarnings([
+          ...encoding.warnings,
+          ...getDxfFidelityWarnings(audit),
+          ...getDxfStage3Warnings(stage3Audit),
+          ...normalizationWarnings,
+          ...blockingIssues,
+        ]);
+
         if (blockingIssues.length > 0) {
           throw new DxfViewerLoadError(
             "unsupported",
@@ -198,7 +218,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
-        objectUrl = URL.createObjectURL(new Blob([dxfBuffer], { type: "application/dxf" }));
+        // Rendering copy is intentionally transcoded to UTF-8 after source bytes were decoded with
+        // their real DXF code page. This preserves legacy Turkish text while allowing Stage 3
+        // MTEXT visibility fallbacks without mutating the stored/downloaded original file.
+        objectUrl = URL.createObjectURL(new Blob([normalization.text], { type: "application/dxf;charset=utf-8" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
         const dxfModule = await import("dxf-viewer");
@@ -210,7 +233,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           antialias: true,
           colorCorrection: true,
           blackWhiteInversion: true,
-          fileEncoding: encoding.encoding,
+          fileEncoding: "utf-8",
         }) as DxfViewerInstance;
 
         if (!viewer.HasRenderer()) {
@@ -239,10 +262,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           progressCbk: (phase) => {
             if (!active) return;
             const phaseLabels = {
-              fetch: "Ham DXF byte'ları okunuyor",
+              fetch: "Normalize edilmiş DXF okunuyor",
               parse: "DXF yapısı parse ediliyor",
-              prepare: "Block ve geometri hazırlanıyor",
-              font: "Yazılar ve glifler hazırlanıyor",
+              prepare: "Block, ölçü ve geometri hazırlanıyor",
+              font: "TEXT/MTEXT glifleri hazırlanıyor",
             } as const;
             setProgress(phaseLabels[phase]);
           },
@@ -303,7 +326,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               title={allWarnings.join("\n")}
             >
               {fidelityAudit.entityCount} entity · {fidelityAudit.textEntityCount} yazı · {fidelityAudit.dimensionEntityCount} ölçü
-              {encodingResolution ? ` · ${encodingResolution.encoding}` : ""}
+              {encodingResolution ? ` · kaynak ${encodingResolution.encoding}` : ""}
               {allWarnings.length > 0 ? ` · ${allWarnings.length} uyarı` : " · denetim temiz"}
             </span>
           )}
@@ -365,7 +388,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
               <dl className="mt-4 space-y-1 text-left text-xs text-zinc-300">
                 <div><dt className="inline text-zinc-500">Dosya: </dt><dd className="inline break-all">{displayName}</dd></div>
                 <div><dt className="inline text-zinc-500">Boyut: </dt><dd className="inline">{formatBytes(sizeBytes)}</dd></div>
-                {encodingResolution && <div><dt className="inline text-zinc-500">Encoding: </dt><dd className="inline">{encodingResolution.encoding} ({encodingResolution.source})</dd></div>}
+                {encodingResolution && <div><dt className="inline text-zinc-500">Kaynak encoding: </dt><dd className="inline">{encodingResolution.encoding} ({encodingResolution.source})</dd></div>}
                 <div><dt className="inline text-zinc-500">Sebep: </dt><dd className="inline">{error.kind} — {error.message}</dd></div>
               </dl>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
