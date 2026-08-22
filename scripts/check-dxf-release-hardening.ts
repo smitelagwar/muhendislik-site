@@ -27,6 +27,18 @@ async function main() {
   assert.deepEqual(missingBlock.blockedMissingBlockReferences, ["MISSING_DETAIL"]);
   assert.match(getDxfReleaseHardeningBlockingIssues(missingBlock).join("\n"), /MISSING_DETAIL/);
 
+  const emptyDefinedBlock = auditDxfReleaseHardening([
+    "0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1027", "0", "ENDSEC",
+    "0", "SECTION", "2", "BLOCKS",
+    "0", "BLOCK", "8", "0", "2", "EMPTY_OK", "70", "0", "10", "0", "20", "0", "30", "0", "3", "EMPTY_OK",
+    "0", "ENDBLK", "0", "ENDSEC",
+    "0", "SECTION", "2", "ENTITIES",
+    "0", "INSERT", "8", "0", "2", "EMPTY_OK", "10", "0", "20", "0", "30", "0",
+    "0", "ENDSEC", "0", "EOF", "",
+  ].join("\n"));
+  assert.equal(emptyDefinedBlock.blockedMissingBlockReferenceCount, 0, "defined empty BLOCK must not be mislabeled as missing");
+  assert.equal(emptyDefinedBlock.reachableBlockCount, 1);
+
   const arbitraryOcs = auditDxfReleaseHardening(await fixture("ocs-arc-circle.dxf"));
   assert.equal(arbitraryOcs.unsafeOcsEntityCount, 2);
   assert.deepEqual(arbitraryOcs.unsafeOcsTypes, ["ARC", "CIRCLE"]);
