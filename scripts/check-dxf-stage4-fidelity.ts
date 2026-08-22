@@ -129,13 +129,14 @@ async function main() {
   );
   assert.match(viewerSource, /auditDxfStage4\(dxfText\)/);
   assert.match(viewerSource, /normalizeDxfForStage4Rendering\(stage3Normalization\.text\)/);
+  assert.match(viewerSource, /normalizeDxfLayersForInteractiveControl\(stage4Normalization\.text\)/);
   assert.match(viewerSource, /getDxfStage4BlockingIssues\(stage4Audit\)/);
   assert.match(viewerSource, /suppressPaperSpace:\s*true/);
   assert.match(viewerSource, /renderContainer\.clientWidth < 2/);
   assert.match(viewerSource, /validateDxfStage4ViewerSnapshot\(stage4Audit/);
   assert.match(viewerSource, /GetCamera/);
   assert.match(viewerSource, /GetLayers/);
-  assert.match(viewerSource, /new Blob\(\[stage4Normalization\.text\]/);
+  assert.match(viewerSource, /new Blob\(\[interactiveLayerNormalization\.text\]/);
 
   console.log("DXF Stage 4 geometry/layer/bounds/viewport fidelity checks passed.");
 }
