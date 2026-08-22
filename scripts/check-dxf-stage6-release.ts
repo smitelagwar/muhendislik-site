@@ -25,6 +25,7 @@ type MatrixRow = {
 const releaseMatrix: MatrixRow[] = [
   { fixture: "geometry-basic.dxf", expectedStatus: "clean" },
   { fixture: "stage7-large-coordinate-bulge.dxf", expectedStatus: "clean" },
+  { fixture: "stage7-bulge-signs.dxf", expectedStatus: "clean" },
   { fixture: "stage7-color-hatch.dxf", expectedStatus: "clean" },
   { fixture: "suppressed-unsupported.dxf", expectedStatus: "clean", requiredCategories: ["structure", "layer"] },
   { fixture: "stage3-text-mtext.dxf", expectedStatus: "warning", requiredCategories: ["text"] },
@@ -88,6 +89,7 @@ async function main() {
   for (const fixture of [
     "geometry-basic.dxf",
     "stage7-large-coordinate-bulge.dxf",
+    "stage7-bulge-signs.dxf",
     "stage7-color-hatch.dxf",
     "stage3-text-mtext.dxf",
     "stage4-geometry-layers.dxf",
