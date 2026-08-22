@@ -40,6 +40,11 @@ type InternalDxfScenePrototype = {
   ) => Promise<void>;
 };
 
+type WorkerFetchScope = {
+  fetch: typeof fetch;
+  location: Location;
+};
+
 const TEXT_TYPES = new Set(["TEXT", "MTEXT", "ATTRIB", "ATTDEF"]);
 const REPORT_KEY = dxfTextStage2ReportKey();
 
@@ -91,6 +96,22 @@ scenePrototype.Build = async function (
   }
   return upstreamBuild.call(this, dxf, fontFetchers);
 };
+
+// Chromium can execute a bundled module worker from a blob URL. In that case dxf-viewer's
+// `fetch("/fonts/...")` call cannot derive a hierarchical base URL and fails before glyph parsing.
+// Resolve only root-relative requests against the owning app origin. Absolute/blob URLs and Request
+// objects keep the browser's native fetch semantics unchanged.
+const workerFetchScope = self as unknown as WorkerFetchScope;
+const upstreamFetch = workerFetchScope.fetch.bind(workerFetchScope);
+workerFetchScope.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  if (typeof input === "string" && input.startsWith("/")) {
+    const origin = workerFetchScope.location.origin;
+    if (origin && origin !== "null") {
+      return upstreamFetch(new URL(input, `${origin}/`), init);
+    }
+  }
+  return upstreamFetch(input, init);
+}) as typeof fetch;
 
 const workerScope = self as unknown as Worker;
 const worker = new DxfWorker(workerScope, true) as InternalDxfWorker;
