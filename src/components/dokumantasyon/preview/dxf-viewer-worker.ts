@@ -13,12 +13,19 @@ import {
   type DxfTextStage2ParsedDxf,
   type DxfTextStage2Report,
 } from "../../../lib/dokumantasyon/dxf-text-stage2";
+import {
+  auditParsedDxfTextStage3Layout,
+  dxfTextStage3LayoutReportKey,
+  type DxfTextStage3LayoutParsedDxf,
+  type DxfTextStage3LayoutReport,
+} from "../../../lib/dokumantasyon/dxf-text-stage3-layout";
 
 type ParsedBlock = { entities?: DxfTextStage2Entity[] };
 type CompactParsedDxf = {
   entities?: DxfTextStage2Entity[];
   blocks?: Record<string, ParsedBlock>;
   __dxfTextStage2?: DxfTextStage2Report;
+  __dxfTextStage3Layout?: DxfTextStage3LayoutReport;
 };
 type WorkerLoadResult = { scene: unknown; dxf?: DxfTextStage2ParsedDxf };
 type WorkerOptions = { retainParsedDxf?: boolean } & Record<string, unknown>;
@@ -46,7 +53,8 @@ type WorkerFetchScope = {
 };
 
 const TEXT_TYPES = new Set(["TEXT", "MTEXT", "ATTRIB", "ATTDEF"]);
-const REPORT_KEY = dxfTextStage2ReportKey();
+const STAGE2_REPORT_KEY = dxfTextStage2ReportKey();
+const STAGE3_LAYOUT_REPORT_KEY = dxfTextStage3LayoutReportKey();
 
 function textType(entity: DxfTextStage2Entity): string | null {
   const type = originalDxfTextType(entity);
@@ -70,19 +78,22 @@ function compactParsedTextEvidence(dxf: DxfTextStage2ParsedDxf | undefined): Com
     if (textEntities.length > 0) blocks[name] = { entities: textEntities };
   }
 
-  const stage2Report = dxf[REPORT_KEY] as DxfTextStage2Report | undefined;
+  const stage2Report = dxf[STAGE2_REPORT_KEY] as DxfTextStage2Report | undefined;
+  const stage3Report = (dxf as DxfTextStage3LayoutParsedDxf)[STAGE3_LAYOUT_REPORT_KEY] as
+    | DxfTextStage3LayoutReport
+    | undefined;
   return {
     entities,
     blocks,
     ...(stage2Report ? { __dxfTextStage2: stage2Report } : {}),
+    ...(stage3Report ? { __dxfTextStage3Layout: stage3Report } : {}),
   };
 }
 
 // Normalize only the worker-owned parsed representation. The original uploaded/downloadable DXF and
-// the UTF-8 render Blob on the main thread remain unchanged. This fixes two upstream annotation
-// gaps before DxfScene consumes the entities:
-// 1) ATTRIB group 41 is an X width factor, not a multiplier for text height.
-// 2) constant ATTDEF has no per-INSERT ATTRIB and must be rendered from the block definition.
+// the UTF-8 render Blob on the main thread remain unchanged. Stage 2 repairs ATTRIB/ATTDEF semantics;
+// Stage 3 then rejects text layout transforms which the upstream glyph renderer cannot reproduce
+// reliably instead of silently showing an approximate engineering annotation.
 const scenePrototype = (DxfScene as unknown as { prototype: InternalDxfScenePrototype }).prototype;
 const upstreamBuild = scenePrototype.Build;
 scenePrototype.Build = async function (
@@ -94,6 +105,12 @@ scenePrototype.Build = async function (
   if (stage2Report.blockingIssues.length > 0) {
     throw new Error(`DXF text Stage 2 fidelity engeli: ${stage2Report.blockingIssues.join(" ")}`);
   }
+
+  const stage3Report = auditParsedDxfTextStage3Layout(dxf as DxfTextStage3LayoutParsedDxf);
+  if (stage3Report.blockingIssues.length > 0) {
+    throw new Error(`DXF text Stage 3 fidelity engeli: ${stage3Report.blockingIssues.join(" ")}`);
+  }
+
   return upstreamBuild.call(this, dxf, fontFetchers);
 };
 
@@ -120,7 +137,7 @@ const upstreamLoad = worker._Load.bind(worker);
 // `retainParsedDxf=true` normally sends the entire parsed DXF back through structured clone after
 // scene preparation. For real engineering drawings that duplicates megabytes of parsed state on the
 // main thread. Keep parsing/render preparation in the exact upstream worker, then replace the return
-// value with a clone-safe text census + Stage 2 annotation report before postMessage.
+// value with a clone-safe text census + Stage 2/3 annotation reports before postMessage.
 worker._Load = async (url, fonts, options, progressCbk) => {
   const result = await upstreamLoad(url, fonts, options, progressCbk);
   if (options.retainParsedDxf === true) {
