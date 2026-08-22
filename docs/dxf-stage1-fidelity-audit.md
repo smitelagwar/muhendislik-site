@@ -89,12 +89,13 @@ Stage 1 fixture'ları:
 Stage 2 fixture/test kapsamı:
 
 - `stage2-block-transforms.dxf`
+- `stage2-ocs-insert.dxf`
 - Windows-1254 byte fixture üretimi
 - `AC1021` UTF-8 version precedence
 - Binary DXF signature
 - nested/transformed/mirrored/non-uniform/array INSERT census
 - missing block reference
-- OCS detection
+- entity ve INSERT OCS detection
 - indirect block cycle detection
 - viewer'ın `response.text()` kullanmadığının statik kontrolü
 - `fileEncoding` ve raw Blob entegrasyonu
