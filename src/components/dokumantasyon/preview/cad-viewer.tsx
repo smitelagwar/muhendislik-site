@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Compass, Download, Layers3, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { decodeDxfBytes, detectDxfEncoding, type DxfEncodingResolution } from "@/lib/dokumantasyon/dxf-encoding";
 import {
@@ -10,6 +10,17 @@ import {
   getDxfStage2BlockingIssues,
   type DxfFidelityAudit,
 } from "@/lib/dokumantasyon/dxf-fidelity-audit";
+import {
+  buildDxfLayerRuntimeSnapshot,
+  fitVisibleDxfLayers,
+  initializeDxfLayerRuntime,
+  normalizeDxfLayersForInteractiveControl,
+  resetDxfLayersToSource,
+  setAllDxfLayersVisible,
+  setDxfLayerVisible,
+  type DxfLayerBounds,
+  type DxfLayerRuntimeItem,
+} from "@/lib/dokumantasyon/dxf-layer-runtime";
 import {
   auditDxfReleaseHardening,
   getDxfReleaseHardeningBlockingIssues,
@@ -43,6 +54,7 @@ import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
 import { DxfDiagnosticsButton, DxfDiagnosticsPanel } from "./dxf-diagnostics-panel";
+import { DxfLayerPanel } from "./dxf-layer-panel";
 
 const DXF_FONT_URLS = ["/fonts/Arial-Regular.ttf", "/fonts/Arial-Bold.ttf"];
 
@@ -71,7 +83,7 @@ type DxfViewerInstance = {
   GetBounds: () => { maxX: number; maxY: number; minX: number; minY: number } | null;
   GetCamera: () => DxfCamera;
   GetDxf?: () => unknown;
-  GetLayers: () => Iterable<DxfLayerInfo>;
+  GetLayers: (nonEmptyOnly?: boolean) => Iterable<DxfLayerInfo>;
   GetOrigin: () => { x: number; y: number };
   HasRenderer: () => boolean;
   Load: (params: {
@@ -80,6 +92,7 @@ type DxfViewerInstance = {
     progressCbk?: (phase: "font" | "fetch" | "parse" | "prepare") => void;
     workerFactory?: () => Worker;
   }) => Promise<void>;
+  ShowLayer: (name: string, show: boolean) => void;
   Subscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
   Unsubscribe: (eventName: "viewChanged" | "message", handler: (event: CustomEvent<DxfViewerMessage>) => void) => void;
   hasMissingChars?: boolean;
@@ -129,6 +142,48 @@ function uniqueMessages(messages: string[]): string[] {
   return [...new Set(messages.filter(Boolean))];
 }
 
+function captureViewerSnapshot(
+  viewer: DxfViewerInstance,
+  container: HTMLElement,
+  visibleLocalBounds: DxfLayerBounds | null = null,
+  layerNames?: string[]
+): DxfStage4ViewerSnapshot {
+  const origin = viewer.GetOrigin();
+  const camera = viewer.GetCamera();
+  const bounds = visibleLocalBounds && origin
+    ? {
+        minX: visibleLocalBounds.minX + origin.x,
+        maxX: visibleLocalBounds.maxX + origin.x,
+        minY: visibleLocalBounds.minY + origin.y,
+        maxY: visibleLocalBounds.maxY + origin.y,
+      }
+    : viewer.GetBounds();
+
+  return {
+    viewport: {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    },
+    bounds,
+    origin,
+    camera: camera
+      ? {
+          left: camera.left,
+          right: camera.right,
+          top: camera.top,
+          bottom: camera.bottom,
+          zoom: camera.zoom,
+          position: {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+          },
+        }
+      : null,
+    layers: layerNames ?? [...viewer.GetLayers()].map((layer) => layer.name),
+  };
+}
+
 export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes }: DokCadViewerProps) {
   const normalizedExtension = normalizeExtension(extension);
 
@@ -153,6 +208,7 @@ export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBy
 function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps, "accessUrl" | "displayName" | "sizeBytes">) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<DxfViewerInstance | null>(null);
+  const layerRuntimeRef = useRef<DxfLayerRuntimeItem[]>([]);
   const [loadState, setLoadState] = useState<ViewerLoadState>("loading");
   const [progress, setProgress] = useState("Dosya alınıyor");
   const [error, setError] = useState<ViewerError | null>(null);
@@ -166,12 +222,43 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [runtimeSnapshot, setRuntimeSnapshot] = useState<DxfStage4ViewerSnapshot | null>(null);
   const [textRenderEvidence, setTextRenderEvidence] = useState<DxfTextRenderEvidence | null>(null);
+  const [layerRuntime, setLayerRuntime] = useState<DxfLayerRuntimeItem[]>([]);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [layerQuery, setLayerQuery] = useState("");
+
+  const layerSnapshot = useMemo(() => buildDxfLayerRuntimeSnapshot(layerRuntime), [layerRuntime]);
+
+  const commitLayerRuntime = useCallback((next: DxfLayerRuntimeItem[]) => {
+    layerRuntimeRef.current = next;
+    setLayerRuntime(next);
+    setViewRevision((revision) => revision + 1);
+  }, []);
 
   const fitDrawing = useCallback(() => {
     const viewer = viewerRef.current;
-    const bounds = viewer?.GetBounds();
-    const origin = viewer?.GetOrigin();
-    if (!viewer || !bounds || !origin || !hasFiniteBounds(bounds)) return;
+    const container = containerRef.current;
+    if (!viewer || !container) return;
+
+    const currentLayers = layerRuntimeRef.current;
+    if (currentLayers.length > 0) {
+      const visibleBounds = fitVisibleDxfLayers(viewer, currentLayers, 0.1);
+      if (visibleBounds) {
+        setRuntimeSnapshot(
+          captureViewerSnapshot(
+            viewer,
+            container,
+            visibleBounds,
+            currentLayers.filter((layer) => layer.visible).map((layer) => layer.name)
+          )
+        );
+        return;
+      }
+      if (currentLayers.every((layer) => !layer.visible)) return;
+    }
+
+    const bounds = viewer.GetBounds();
+    const origin = viewer.GetOrigin();
+    if (!bounds || !origin || !hasFiniteBounds(bounds)) return;
 
     viewer.FitView(
       bounds.minX - origin.x,
@@ -180,6 +267,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       bounds.maxY - origin.y,
       0.1
     );
+    setRuntimeSnapshot(captureViewerSnapshot(viewer, container));
   }, []);
 
   useEffect(() => {
@@ -214,6 +302,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       setDiagnosticsOpen(false);
       setRuntimeSnapshot(null);
       setTextRenderEvidence(null);
+      layerRuntimeRef.current = [];
+      setLayerRuntime([]);
+      setLayerPanelOpen(false);
+      setLayerQuery("");
       setProgress("Dosya alınıyor");
 
       try {
@@ -253,6 +345,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           : [];
         const stage3Normalization = normalizeDxfTextForStage3Rendering(dxfText);
         const stage4Normalization = normalizeDxfForStage4Rendering(stage3Normalization.text);
+        const interactiveLayerNormalization = normalizeDxfLayersForInteractiveControl(stage4Normalization.text);
         const stage2BlockingIssues = getDxfStage2BlockingIssues(audit);
         const stage3BlockingIssues = getDxfStage3BlockingIssues(stage3Audit);
         const stage4BlockingIssues = getDxfStage4BlockingIssues(stage4Audit);
@@ -263,19 +356,19 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           ...stage4BlockingIssues,
           ...releaseHardeningBlockingIssues,
         ];
+        const stage4Warnings = getDxfStage4Warnings(stage4Audit).filter(
+          (warning) => !warning.includes("kapalı layer") && !warning.includes("frozen layer")
+        );
         const normalizationWarnings = [
           ...(stage3Normalization.stackedFractionFallbackCount > 0
             ? [`${stage3Normalization.stackedFractionFallbackCount} MTEXT stacked fraction görünür plain-text biçimine dönüştürüldü.`]
-            : []),
-          ...(stage4Normalization.offLayersFrozenForRendering > 0
-            ? [`${stage4Normalization.offLayersFrozenForRendering} kapalı layer bounds ve model görünümünden çıkarıldı.`]
             : []),
         ];
         const preRenderWarnings = uniqueMessages([
           ...encoding.warnings,
           ...getDxfFidelityWarnings(audit),
           ...getDxfStage3Warnings(stage3Audit),
-          ...getDxfStage4Warnings(stage4Audit),
+          ...stage4Warnings,
           ...normalizationWarnings,
           ...blockingIssues,
         ]);
@@ -304,10 +397,11 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
-        // The stored/downloaded DXF is never mutated. Stage 3 first preserves visible MTEXT
-        // content, then Stage 4 hides source-off layers in the temporary render copy so they do not
-        // contaminate model-space bounds/FitView. The final render copy is UTF-8.
-        objectUrl = URL.createObjectURL(new Blob([stage4Normalization.text], { type: "application/dxf;charset=utf-8" }));
+        // The stored/downloaded DXF is never mutated. Stage 3 preserves visible MTEXT content,
+        // Stage 4 keeps its source audit, and the final interactive render copy temporarily clears
+        // frozen bits so every supported layer can exist in the scene. Source off/frozen visibility
+        // is restored immediately after Load() and can then be changed by the user.
+        objectUrl = URL.createObjectURL(new Blob([interactiveLayerNormalization.text], { type: "application/dxf;charset=utf-8" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
         const dxfModule = await import("dxf-viewer");
@@ -380,9 +474,6 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           rendererMissingChars: viewer.hasMissingChars ?? null,
         });
         setTextRenderEvidence(textEvidence);
-        // retainParsedDxf is enabled only long enough to compare source and upstream parser output.
-        // Drop the retained object immediately after the audit so large engineering files do not
-        // keep a second complete DXF representation in memory for the rest of the viewer session.
         viewer.parsedDxf = undefined;
 
         if (textEvidence.status === "blocking") {
@@ -393,32 +484,32 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
-        fitDrawing();
+        const runtimeLayers = initializeDxfLayerRuntime(viewer, stage4Audit);
+        layerRuntimeRef.current = runtimeLayers;
+        setLayerRuntime(runtimeLayers);
 
-        const camera = viewer.GetCamera();
-        const snapshot: DxfStage4ViewerSnapshot = {
-          viewport: {
-            width: renderContainer.clientWidth,
-            height: renderContainer.clientHeight,
-          },
-          bounds: viewer.GetBounds(),
-          origin: viewer.GetOrigin(),
-          camera: camera
-            ? {
-                left: camera.left,
-                right: camera.right,
-                top: camera.top,
-                bottom: camera.bottom,
-                zoom: camera.zoom,
-                position: {
-                  x: camera.position.x,
-                  y: camera.position.y,
-                  z: camera.position.z,
-                },
-              }
-            : null,
-          layers: [...viewer.GetLayers()].map((layer) => layer.name),
-        };
+        let visibleBounds: DxfLayerBounds | null = null;
+        if (runtimeLayers.length > 0) {
+          visibleBounds = fitVisibleDxfLayers(viewer, runtimeLayers, 0.1);
+        }
+        if (!visibleBounds && !runtimeLayers.every((layer) => !layer.visible)) {
+          const globalBounds = viewer.GetBounds();
+          const origin = viewer.GetOrigin();
+          if (globalBounds && origin && hasFiniteBounds(globalBounds)) {
+            viewer.FitView(
+              globalBounds.minX - origin.x,
+              globalBounds.maxX - origin.x,
+              globalBounds.minY - origin.y,
+              globalBounds.maxY - origin.y,
+              0.1
+            );
+          }
+        }
+
+        const initialVisibleLayerNames = runtimeLayers.length > 0
+          ? runtimeLayers.filter((layer) => layer.visible).map((layer) => layer.name)
+          : undefined;
+        const snapshot = captureViewerSnapshot(viewer, renderContainer, visibleBounds, initialVisibleLayerNames);
         setRuntimeSnapshot(snapshot);
         const viewerValidation = validateDxfStage4ViewerSnapshot(stage4Audit, snapshot);
         const finalFidelityWarnings = uniqueMessages([
@@ -478,7 +569,31 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       if (viewerRef.current === viewer) viewerRef.current = null;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [accessUrl, fitDrawing, retryKey]);
+  }, [accessUrl, retryKey]);
+
+  const handleToggleLayer = useCallback((name: string, visible: boolean) => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    commitLayerRuntime(setDxfLayerVisible(viewer, layerRuntimeRef.current, name, visible));
+  }, [commitLayerRuntime]);
+
+  const handleShowAllLayers = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    commitLayerRuntime(setAllDxfLayersVisible(viewer, layerRuntimeRef.current, true));
+  }, [commitLayerRuntime]);
+
+  const handleHideAllLayers = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    commitLayerRuntime(setAllDxfLayersVisible(viewer, layerRuntimeRef.current, false));
+  }, [commitLayerRuntime]);
+
+  const handleResetLayers = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    commitLayerRuntime(resetDxfLayersToSource(viewer, layerRuntimeRef.current));
+  }, [commitLayerRuntime]);
 
   const handleDownload = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
   const allWarnings = [...fidelityWarnings, ...viewerWarnings];
@@ -510,9 +625,17 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
             />
           )}
           <StudioCommandButton
+            commandId="cad.dxf.layers"
+            onClick={() => setLayerPanelOpen((open) => !open)}
+            disabled={loadState !== "ready" || layerRuntime.length === 0}
+            className="h-7 gap-1.5 px-2.5 text-[11px]"
+            icon={<Layers3 className="h-3.5 w-3.5" />}
+            label="Katmanlar"
+          />
+          <StudioCommandButton
             commandId="cad.dxf.fit"
             onClick={fitDrawing}
-            disabled={loadState !== "ready"}
+            disabled={loadState !== "ready" || layerSnapshot.allHidden}
             className="h-7 gap-1.5 px-2.5 text-[11px]"
             icon={<ScanLine className="h-3.5 w-3.5" />}
             label="Sığdır"
@@ -520,7 +643,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           <StudioCommandButton
             commandId="cad.dxf.reset"
             onClick={fitDrawing}
-            disabled={loadState !== "ready"}
+            disabled={loadState !== "ready" || layerSnapshot.allHidden}
             className="h-7 gap-1.5 px-2.5 text-[11px]"
             icon={<RotateCcw className="h-3.5 w-3.5" />}
             label="Sıfırla"
@@ -562,9 +685,39 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           {JSON.stringify(runtimeSnapshot)}
         </output>
       )}
+      {layerRuntime.length > 0 && (
+        <output className="sr-only" data-testid="cad-dxf-layer-snapshot">
+          {JSON.stringify(layerSnapshot)}
+        </output>
+      )}
 
       <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden" data-view-revision={viewRevision}>
         <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
+
+        {layerPanelOpen && loadState === "ready" && layerRuntime.length > 0 && (
+          <DxfLayerPanel
+            layers={layerRuntime}
+            query={layerQuery}
+            onQueryChange={setLayerQuery}
+            onToggleLayer={handleToggleLayer}
+            onShowAll={handleShowAllLayers}
+            onHideAll={handleHideAllLayers}
+            onResetSource={handleResetLayers}
+            onClose={() => setLayerPanelOpen(false)}
+          />
+        )}
+
+        {loadState === "ready" && layerSnapshot.allHidden && (
+          <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center p-5" data-testid="cad-dxf-all-layers-hidden">
+            <div className="pointer-events-auto rounded-2xl border border-zinc-800 bg-zinc-950/90 px-5 py-4 text-center shadow-xl backdrop-blur">
+              <Layers3 className="mx-auto h-6 w-6 text-zinc-500" />
+              <p className="mt-2 text-xs font-semibold text-zinc-200">Tüm katmanlar gizli</p>
+              <button type="button" onClick={handleResetLayers} className="mt-2 text-[11px] font-medium text-amber-300 hover:text-amber-200">
+                Kaynak görünürlüğüne dön
+              </button>
+            </div>
+          </div>
+        )}
 
         {loadState === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-950/90 text-center">
