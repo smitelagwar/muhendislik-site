@@ -73,7 +73,7 @@ async function main() {
   assert.equal(audit.nestedInsertCount, 1);
   assert.equal(audit.transformedInsertCount, 2);
   assert.equal(audit.mirroredInsertCount, 1);
-  assert.equal(audit.nonUniformScaleInsertCount, 1);
+  assert.equal(audit.nonUniformScaleInsertCount, 2);
   assert.equal(audit.arrayInsertCount, 1);
   assert.equal(audit.zeroScaleInsertCount, 0);
   assert.equal(audit.missingBlockReferenceCount, 1);
