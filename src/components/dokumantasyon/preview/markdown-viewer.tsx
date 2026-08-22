@@ -1,29 +1,17 @@
 ﻿// ============================================================================
 // DÖKÜMANTASYON MODÜLÜ — OBSİDİAN TARZI MARKDOWN GÖRÜNTÜLEYİCİ
-// Başlıklar, tablolar, kod blokları, callout'lar, görev listeleri, TOC
+// Collapsible headings, tablolar, kod blokları, TOC, görev listeleri
 // ============================================================================
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import {
-  FileText,
-  Code2,
-  Copy,
-  Check,
-  Loader2,
-  AlertCircle,
-  BookOpen,
-  Edit3,
-  List,
-  Info,
-  AlertTriangle,
-  Lightbulb,
-  Flame,
-  Shield,
+  FileText, Code2, Copy, Check, Loader2, AlertCircle,
+  BookOpen, Edit3, List, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudioCommandButton } from "../studio/studio-command-button";
@@ -34,30 +22,83 @@ interface DokMarkdownViewerProps {
   onContentChange?: (newContent: string) => void;
 }
 
-// Başlıktan anchor ID üretir
+// ─── Başlıktan anchor ID ──────────────────────────────────────────────────────
 function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+// ─── TOC öğesi ────────────────────────────────────────────────────────────────
 interface TocItem { level: number; text: string; id: string; }
-
 function extractToc(markdown: string): TocItem[] {
   const toc: TocItem[] = [];
   for (const line of markdown.split("\n")) {
     const m = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (m) {
-      const text = m[2].replace(/[*_`~]/g, "").trim();
-      toc.push({ level: m[1].length, text, id: slugify(text) });
-    }
+    if (m) { const text = m[2].replace(/[*_`~]/g, "").trim(); toc.push({ level: m[1].length, text, id: slugify(text) }); }
   }
   return toc;
 }
 
-// Kod Bloğu Bileşeni
+// ─── Markdown'ı bölümlere ayır ────────────────────────────────────────────────
+interface MdSection {
+  id: string;
+  level: number;        // 1-6
+  headingText: string;  // plain text
+  headingMd: string;    // orijinal #...# satırı (ReactMarkdown ile render edilecek)
+  body: string;         // bu başlıktan sonraki, bir sonraki başlığa kadar olan içerik
+}
+
+function splitSections(markdown: string): { preamble: string; sections: MdSection[] } {
+  const lines = markdown.split("\n");
+  const sections: MdSection[] = [];
+  let preamble = "";
+  let current: MdSection | null = null;
+  const ids = new Map<string, number>();
+
+  for (const line of lines) {
+    const m = /^(#{1,6})\s+(.+)$/.exec(line);
+    if (m) {
+      if (current) sections.push(current);
+      const level = m[1].length;
+      const headingText = m[2].replace(/[*_`~[\]()]/g, "").trim();
+      const base = slugify(headingText) || "section";
+      const count = (ids.get(base) ?? 0) + 1;
+      ids.set(base, count);
+      const id = count === 1 ? base : `${base}-${count}`;
+      current = { id, level, headingText, headingMd: line, body: "" };
+    } else {
+      if (current) current.body += line + "\n";
+      else preamble += line + "\n";
+    }
+  }
+  if (current) sections.push(current);
+  return { preamble, sections };
+}
+
+// ─── Parent zinciri hesapla ───────────────────────────────────────────────────
+function computeParentIds(sections: MdSection[]): (string | null)[] {
+  return sections.map((sec, i) => {
+    for (let j = i - 1; j >= 0; j--) {
+      if (sections[j].level < sec.level) return sections[j].id;
+    }
+    return null;
+  });
+}
+
+function isAncestorCollapsed(
+  sectionId: string,
+  sections: MdSection[],
+  parentIds: (string | null)[],
+  collapsed: Set<string>
+): boolean {
+  const idx = sections.findIndex((s) => s.id === sectionId);
+  if (idx === -1) return false;
+  const parentId = parentIds[idx];
+  if (!parentId) return false;
+  if (collapsed.has(parentId)) return true;
+  return isAncestorCollapsed(parentId, sections, parentIds, collapsed);
+}
+
+// ─── Kod Bloğu ───────────────────────────────────────────────────────────────
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const [copied, setCopied] = useState(false);
   const code = typeof children === "string" ? children : String(children ?? "");
@@ -78,15 +119,14 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
   );
 }
 
-// Özel render bileşenleri
+// ─── Özel renderer bileşenleri (body için — başlıklar ayrı render edildiğinden dışarıda) ──
 function buildComponents(): Components {
   return {
-    h1: ({ children }) => { const id = slugify(String(children)); return <h1 id={id} className="group mt-8 mb-4 scroll-mt-20 border-b border-border/60 pb-3 text-3xl font-bold tracking-tight text-foreground"><a href={`#${id}`} className="no-underline">{children}</a></h1>; },
-    h2: ({ children }) => { const id = slugify(String(children)); return <h2 id={id} className="group mt-7 mb-3 scroll-mt-20 border-b border-border/40 pb-2 text-2xl font-bold tracking-tight text-foreground"><a href={`#${id}`} className="no-underline">{children}</a></h2>; },
-    h3: ({ children }) => { const id = slugify(String(children)); return <h3 id={id} className="mt-6 mb-2 scroll-mt-20 text-xl font-bold text-foreground">{children}</h3>; },
-    h4: ({ children }) => { const id = slugify(String(children)); return <h4 id={id} className="mt-5 mb-2 scroll-mt-20 text-lg font-semibold text-foreground">{children}</h4>; },
-    h5: ({ children }) => <h5 className="mt-4 mb-1 text-base font-semibold text-muted-foreground">{children}</h5>,
-    h6: ({ children }) => <h6 className="mt-3 mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{children}</h6>,
+    // Body içindeki başlıklar (iç içe markdown varsa — normalde body'de heading olmaz ama fallback)
+    h1: ({ children }) => <p className="text-3xl font-bold text-foreground my-3">{children}</p>,
+    h2: ({ children }) => <p className="text-2xl font-bold text-foreground my-3">{children}</p>,
+    h3: ({ children }) => <p className="text-xl font-bold text-foreground my-2">{children}</p>,
+    h4: ({ children }) => <p className="text-lg font-semibold text-foreground my-2">{children}</p>,
     p: ({ children }) => <p className="my-3.5 leading-7 text-foreground/90">{children}</p>,
     a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="font-medium text-amber-600 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-500 dark:text-amber-400">{children}</a>,
     code: ({ children, className }) => {
@@ -127,7 +167,87 @@ function buildComponents(): Components {
   };
 }
 
-// TOC Paneli
+// ─── Collapsible Heading başlık elemanı ──────────────────────────────────────
+const HEADING_STYLES: Record<number, string> = {
+  1: "text-3xl font-bold border-b border-border/60 pb-3 mt-8 mb-1",
+  2: "text-2xl font-bold border-b border-border/40 pb-2 mt-7 mb-1",
+  3: "text-xl font-bold mt-6 mb-1",
+  4: "text-lg font-semibold mt-5 mb-1",
+  5: "text-base font-semibold text-muted-foreground mt-4 mb-0.5",
+  6: "text-sm font-semibold uppercase tracking-wider text-muted-foreground mt-3 mb-0.5",
+};
+
+function CollapsibleSection({
+  section,
+  isCollapsed,
+  isHidden,
+  onToggle,
+  components,
+}: {
+  section: MdSection;
+  isCollapsed: boolean;
+  isHidden: boolean;
+  onToggle: () => void;
+  components: Components;
+}) {
+  if (isHidden) return null;
+
+  const headingStyle = HEADING_STYLES[section.level] ?? HEADING_STYLES[6];
+  const hasBody = section.body.trim().length > 0;
+  const indent = (section.level - 1) * 12; // px, görsel hiyerarşi ipucu
+
+  return (
+    <div style={{ paddingLeft: section.level > 1 ? `${indent}px` : undefined }}>
+      {/* Başlık + Chevron */}
+      <div
+        id={section.id}
+        className={`group scroll-mt-20 flex items-center gap-1.5 ${headingStyle} ${hasBody ? "cursor-pointer select-none" : ""}`}
+        onClick={hasBody ? onToggle : undefined}
+        role={hasBody ? "button" : undefined}
+        tabIndex={hasBody ? 0 : undefined}
+        onKeyDown={hasBody ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } } : undefined}
+        aria-expanded={hasBody ? !isCollapsed : undefined}
+      >
+        {/* Chevron butonu */}
+        {hasBody ? (
+          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-all duration-200 group-hover:bg-secondary/60 group-hover:text-amber-500 ${isCollapsed ? "" : "rotate-0"}`}>
+            {isCollapsed
+              ? <ChevronRight className="h-4 w-4" />
+              : <ChevronDown className="h-4 w-4" />
+            }
+          </span>
+        ) : (
+          <span className="h-5 w-5 shrink-0" />
+        )}
+
+        {/* Başlık metni */}
+        <span className="flex-1 text-foreground">{section.headingText}</span>
+
+        {/* Gizlendi etiketi */}
+        {isCollapsed && hasBody && (
+          <span className="ml-2 rounded-full border border-border/50 bg-secondary/50 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+            gizlendi
+          </span>
+        )}
+      </div>
+
+      {/* İçerik — collapse animasyonu */}
+      {hasBody && (
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "max-h-0 opacity-0" : "max-h-[9999px] opacity-100"}`}
+        >
+          <div className={`pt-1 ${section.level > 1 ? "border-l-2 border-border/30 pl-4 ml-2" : ""}`}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components}>
+              {section.body}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TOC Paneli ───────────────────────────────────────────────────────────────
 function TocPanel({ items }: { items: TocItem[] }) {
   if (!items.length) return null;
   return (
@@ -149,7 +269,7 @@ function TocPanel({ items }: { items: TocItem[] }) {
   );
 }
 
-// Ana Bileşen
+// ─── Ana Bileşen ──────────────────────────────────────────────────────────────
 export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: DokMarkdownViewerProps) {
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -157,9 +277,12 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const [mode, setMode] = useState<"preview" | "raw" | "edit">("preview");
   const [copied, setCopied] = useState<boolean>(false);
   const [showToc, setShowToc] = useState<boolean>(true);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const components = useCallback(() => buildComponents(), []);
-  const toc = extractToc(content);
+  const toc = useMemo(() => extractToc(content), [content]);
+  const { preamble, sections } = useMemo(() => splitSections(content), [content]);
+  const parentIds = useMemo(() => computeParentIds(sections), [sections]);
   const wordCount = content.split(/\s+/).filter(Boolean).length;
 
   useEffect(() => {
@@ -167,7 +290,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
     setLoading(true); setError(null);
     fetch(accessUrl)
       .then((res) => { if (!res.ok) throw new Error("İndirilemedi."); return res.text(); })
-      .then((text) => { if (!isMounted) return; setContent(text); setLoading(false); })
+      .then((text) => { if (!isMounted) return; setContent(text); setCollapsed(new Set()); setLoading(false); })
       .catch(() => { if (!isMounted) return; setError("Markdown yüklenirken hata oluştu."); setLoading(false); });
     return () => { isMounted = false; };
   }, [accessUrl]);
@@ -175,6 +298,17 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(content); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
+
+  const toggleSection = useCallback((id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleCollapseAll = () => setCollapsed(new Set(sections.map((s) => s.id)));
+  const handleExpandAll = () => setCollapsed(new Set());
 
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
@@ -191,13 +325,28 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
               </Button>
             ))}
           </div>
-          {mode === "preview" && toc.length > 0 && (
-            <button onClick={() => setShowToc((v) => !v)}
-              className={`hidden xl:flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition-all ${showToc ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" : "border-border/60 text-muted-foreground hover:text-foreground"}`}>
-              <List className="h-3.5 w-3.5" /><span>İçindekiler</span>
-            </button>
+
+          {mode === "preview" && sections.length > 0 && (
+            <>
+              {/* Tümünü Küçült / Genişlet */}
+              <button onClick={handleCollapseAll}
+                className="hidden sm:flex items-center gap-1 rounded-xl border border-border/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all hover:border-amber-500/40 hover:bg-amber-500/8 hover:text-amber-600">
+                <ChevronRight className="h-3.5 w-3.5" /><span>Tümünü Kapat</span>
+              </button>
+              <button onClick={handleExpandAll}
+                className="hidden sm:flex items-center gap-1 rounded-xl border border-border/60 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground transition-all hover:border-amber-500/40 hover:bg-amber-500/8 hover:text-amber-600">
+                <ChevronDown className="h-3.5 w-3.5" /><span>Tümünü Aç</span>
+              </button>
+              {toc.length > 0 && (
+                <button onClick={() => setShowToc((v) => !v)}
+                  className={`hidden xl:flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition-all ${showToc ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400" : "border-border/60 text-muted-foreground hover:text-foreground"}`}>
+                  <List className="h-3.5 w-3.5" /><span>İçindekiler</span>
+                </button>
+              )}
+            </>
           )}
         </div>
+
         <div className="flex items-center gap-2">
           {!loading && content && (
             <span className="hidden sm:block font-mono text-[11px] text-muted-foreground">
@@ -236,12 +385,12 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
           {!loading && !error && mode === "raw" && (
             <div className="p-6">
-              <pre className="mx-auto max-w-4xl whitespace-pre-wrap rounded-xl border border-border/60 bg-zinc-950/50 p-6 font-mono text-xs leading-relaxed text-zinc-300">{content}</pre>
+              <pre className="mx-auto max-w-5xl whitespace-pre-wrap rounded-xl border border-border/60 bg-zinc-950/50 p-6 font-mono text-xs leading-relaxed text-zinc-300">{content}</pre>
             </div>
           )}
           {!loading && !error && mode === "preview" && (
             <div className="px-5 py-8 sm:px-10 sm:py-10">
-              <article className="mx-auto max-w-3xl">
+              <article className="mx-auto max-w-5xl">
                 {/* Dosya meta kartı */}
                 <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3.5">
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
@@ -252,10 +401,29 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                     </p>
                   </div>
                 </div>
-                {/* Markdown render */}
-                <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components()}>
-                  {content}
-                </ReactMarkdown>
+
+                {/* Başlık öncesi içerik (varsa) */}
+                {preamble.trim() && (
+                  <div className="mb-6">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components()}>
+                      {preamble}
+                    </ReactMarkdown>
+                  </div>
+                )}
+
+                {/* Collapsible bölümler */}
+                <div className="space-y-0">
+                  {sections.map((section, i) => (
+                    <CollapsibleSection
+                      key={section.id}
+                      section={section}
+                      isCollapsed={collapsed.has(section.id)}
+                      isHidden={isAncestorCollapsed(section.id, sections, parentIds, collapsed)}
+                      onToggle={() => toggleSection(section.id)}
+                      components={components()}
+                    />
+                  ))}
+                </div>
               </article>
             </div>
           )}
