@@ -94,7 +94,7 @@ async function main() {
   assert.match(workerSource, /normalizeParsedDxfTextStage2\(dxf\)/);
   assert.match(workerSource, /DxfScene\.js/);
   assert.match(workerSource, /originalDxfTextType/);
-  assert.match(workerSource, /clone-safe text census \+ Stage 2 annotation report/);
+  assert.match(workerSource, /clone-safe text census \+ Stage 2\/3 annotation reports/);
 
   console.log("DXF Text Stage 2 ATTRIB/ATTDEF rendering checks passed.");
 }
