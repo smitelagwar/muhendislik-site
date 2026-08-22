@@ -121,7 +121,7 @@ export function DxfDiagnosticsPanel({ report }: { report: DxfStage5DiagnosticsRe
         )}
 
         <p className="text-[10px] leading-relaxed text-zinc-500">
-          Denetim paneli yalnız mevcut DXF'nin görüntüleme güvenilirliğini açıklar. Kaynak dosya değiştirilmez; indirilen dosya orijinal içeriktir.
+          Denetim paneli yalnız mevcut DXF’nin görüntüleme güvenilirliğini açıklar. Kaynak dosya değiştirilmez; indirilen dosya orijinal içeriktir.
         </p>
       </div>
     </section>
