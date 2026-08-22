@@ -62,6 +62,9 @@ export interface DxfFidelityAudit {
   missingBlockReferenceCount: number;
   missingBlockReferences: string[];
   nonDefaultOcsEntityCount: number;
+  nonDefaultOcsInsertCount: number;
+  blockCycleCount: number;
+  blockCycles: string[];
   unsupportedEntityCount: number;
   unsupportedTypes: string[];
   entityCensus: DxfEntityCensusRow[];
@@ -70,7 +73,7 @@ export interface DxfFidelityAudit {
 }
 
 type Pair = { code: number; value: string };
-type InsertReference = { blockName: string; inBlockDefinition: boolean };
+type InsertReference = { blockName: string; parentBlockName: string | null };
 
 function parsePairs(text: string): Pair[] {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
@@ -123,6 +126,45 @@ function hasNonDefaultOcs(record: Pair[]): boolean {
   return Math.abs(x) > EPSILON || Math.abs(y) > EPSILON || Math.abs(z - 1) > EPSILON;
 }
 
+function findBlockCycles(insertReferences: InsertReference[]): string[] {
+  const graph = new Map<string, Set<string>>();
+  for (const reference of insertReferences) {
+    if (!reference.parentBlockName) continue;
+    let children = graph.get(reference.parentBlockName);
+    if (!children) {
+      children = new Set<string>();
+      graph.set(reference.parentBlockName, children);
+    }
+    children.add(reference.blockName);
+  }
+
+  const state = new Map<string, 0 | 1 | 2>();
+  const stack: string[] = [];
+  const cycles = new Set<string>();
+
+  const visit = (node: string) => {
+    state.set(node, 1);
+    stack.push(node);
+    for (const child of graph.get(node) ?? []) {
+      const childState = state.get(child) ?? 0;
+      if (childState === 0) {
+        visit(child);
+      } else if (childState === 1) {
+        const start = stack.lastIndexOf(child);
+        if (start >= 0) cycles.add([...stack.slice(start), child].join(" → "));
+      }
+    }
+    stack.pop();
+    state.set(node, 2);
+  };
+
+  for (const node of graph.keys()) {
+    if ((state.get(node) ?? 0) === 0) visit(node);
+  }
+
+  return [...cycles].sort();
+}
+
 export function auditDxfText(text: string): DxfFidelityAudit {
   const pairs = parsePairs(text);
   const entityCounts = new Map<string, number>();
@@ -142,6 +184,7 @@ export function auditDxfText(text: string): DxfFidelityAudit {
   let arrayInsertCount = 0;
   let zeroScaleInsertCount = 0;
   let nonDefaultOcsEntityCount = 0;
+  let nonDefaultOcsInsertCount = 0;
   let hasEntitiesSection = false;
   let hasBlocksSection = false;
 
@@ -171,12 +214,14 @@ export function auditDxfText(text: string): DxfFidelityAudit {
       blockEntityCount += 1;
     }
 
-    if (hasNonDefaultOcs(currentRecord)) nonDefaultOcsEntityCount += 1;
+    const nonDefaultOcs = hasNonDefaultOcs(currentRecord);
+    if (nonDefaultOcs) nonDefaultOcsEntityCount += 1;
 
     if (currentType === "INSERT") {
       const blockName = valueForCode(currentRecord, 2);
-      if (blockName) insertReferences.push({ blockName, inBlockDefinition: section === "BLOCKS" && currentBlockName !== null });
+      if (blockName) insertReferences.push({ blockName, parentBlockName: section === "BLOCKS" ? currentBlockName : null });
       if (section === "BLOCKS" && currentBlockName !== null) nestedInsertCount += 1;
+      if (nonDefaultOcs) nonDefaultOcsInsertCount += 1;
 
       const xScale = numberForCode(currentRecord, 41, 1);
       const yScale = numberForCode(currentRecord, 42, 1);
@@ -250,6 +295,7 @@ export function auditDxfText(text: string): DxfFidelityAudit {
   const countType = (type: string) => entityCounts.get(type) ?? 0;
   const missingInsertReferences = insertReferences.filter((reference) => !blockDefinitions.has(reference.blockName));
   const missingBlockReferences = [...new Set(missingInsertReferences.map((reference) => reference.blockName))].sort();
+  const blockCycles = findBlockCycles(insertReferences);
 
   return {
     acadVersion: readHeaderVariable(pairs, "$ACADVER"),
@@ -270,6 +316,9 @@ export function auditDxfText(text: string): DxfFidelityAudit {
     missingBlockReferenceCount: missingInsertReferences.length,
     missingBlockReferences,
     nonDefaultOcsEntityCount,
+    nonDefaultOcsInsertCount,
+    blockCycleCount: blockCycles.length,
+    blockCycles,
     unsupportedEntityCount: unsupportedRows.reduce((total, row) => total + row.count, 0),
     unsupportedTypes: unsupportedRows.map((row) => row.type),
     entityCensus,
@@ -310,6 +359,25 @@ export function getDxfFidelityWarnings(audit: DxfFidelityAudit): string[] {
   if (audit.nonDefaultOcsEntityCount > 0) {
     warnings.push(`${audit.nonDefaultOcsEntityCount} entity non-default extrusion/OCS kullanıyor; tam OCS sadakati doğrulanmalı.`);
   }
+  if (audit.blockCycleCount > 0) {
+    warnings.push(`Recursive block zinciri bulundu: ${audit.blockCycles.join("; ")}.`);
+  }
 
   return warnings;
+}
+
+export function getDxfStage2BlockingIssues(audit: DxfFidelityAudit): string[] {
+  const issues: string[] = [];
+
+  if (audit.blockCycleCount > 0) {
+    issues.push(`Dolaylı recursive BLOCK/INSERT zinciri mevcut (${audit.blockCycles.join("; ")}); mevcut renderer bu topolojiyi güvenli işleyemez.`);
+  }
+  if (audit.arrayInsertCount > 0) {
+    issues.push(`${audit.arrayInsertCount} grid/array INSERT bulundu; mevcut renderer MINSERT/grid instancing'i eksiksiz render etmiyor.`);
+  }
+  if (audit.nonDefaultOcsInsertCount > 0) {
+    issues.push(`${audit.nonDefaultOcsInsertCount} INSERT non-default extrusion/OCS kullanıyor; mevcut renderer INSERT extrusion dönüşümünü uygulamıyor.`);
+  }
+
+  return issues;
 }
