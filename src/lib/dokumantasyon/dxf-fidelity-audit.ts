@@ -14,6 +14,7 @@ export const DXF_VIEWER_SUPPORTED_ENTITY_TYPES = new Set([
   "SOLID",
   "DIMENSION",
   "ATTRIB",
+  "ATTDEF",
   "HATCH",
 ]);
 
@@ -23,6 +24,7 @@ export const DXF_STAGE1_P0_ENTITY_TYPES = new Set([
   "DIMENSION",
   "INSERT",
   "ATTRIB",
+  "ATTDEF",
   "LINE",
   "POLYLINE",
   "LWPOLYLINE",
