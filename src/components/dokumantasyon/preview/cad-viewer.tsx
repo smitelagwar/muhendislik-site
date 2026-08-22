@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, AlertTriangle, Compass, Download, Loader2, RotateCcw, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { decodeDxfBytes, detectDxfEncoding, type DxfEncodingResolution } from "@/lib/dokumantasyon/dxf-encoding";
-import { auditDxfText, getDxfFidelityWarnings, type DxfFidelityAudit } from "@/lib/dokumantasyon/dxf-fidelity-audit";
+import {
+  auditDxfText,
+  getDxfFidelityWarnings,
+  getDxfStage2BlockingIssues,
+  type DxfFidelityAudit,
+} from "@/lib/dokumantasyon/dxf-fidelity-audit";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { ApsDwgViewer } from "./aps-dwg-viewer";
@@ -182,8 +187,17 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         }
 
         const audit = auditDxfText(dxfText);
+        const auditWarnings = getDxfFidelityWarnings(audit);
+        const blockingIssues = getDxfStage2BlockingIssues(audit);
         setFidelityAudit(audit);
-        setFidelityWarnings([...encoding.warnings, ...getDxfFidelityWarnings(audit)]);
+        setFidelityWarnings([...encoding.warnings, ...auditWarnings, ...blockingIssues]);
+        if (blockingIssues.length > 0) {
+          throw new DxfViewerLoadError(
+            "unsupported",
+            `DXF eksik render edileceği için görüntüleme durduruldu. ${blockingIssues.join(" ")}`
+          );
+        }
+
         objectUrl = URL.createObjectURL(new Blob([dxfBuffer], { type: "application/dxf" }));
 
         setProgress("Görüntüleyici hazırlanıyor");
