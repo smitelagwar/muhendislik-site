@@ -201,7 +201,7 @@ test.describe("DXF interactive layer controls", () => {
     await attach(page, testInfo, "dxf-layers-mobile.png");
   });
 
-  test("390px mobile canvas keeps wheel, drag and pinch inside the CAD surface and recovers from all-hidden layers", async ({ page }, testInfo) => {
+  test("390px mobile canvas keeps wheel, drag, touch and pinch inside the CAD surface and recovers from all-hidden layers", async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 844 });
     await login(page);
@@ -238,12 +238,29 @@ test.describe("DXF interactive layer controls", () => {
     await expectCanvasImageToChange(canvas, panBefore, "drag pan must visibly change the DXF canvas");
     expect(await page.evaluate(() => window.scrollY), "CAD pan must stay inside the viewer").toBe(scrollBeforeZoom);
 
-    const pinchBefore = await canvas.screenshot({ animations: "disabled" });
     const visualScaleBefore = await page.evaluate(() => window.visualViewport?.scale ?? 1);
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     const centerX = Math.round(hostBox!.x + hostBox!.width * 0.5);
     const centerY = Math.round(hostBox!.y + hostBox!.height * 0.5);
+
+    const touchBefore = await canvas.screenshot({ animations: "disabled" });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: centerX, y: centerY }],
+    });
+    for (const offset of [18, 36, 54]) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: centerX + offset, y: centerY + Math.round(offset * 0.5) }],
+      });
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expectCanvasImageToChange(canvas, touchBefore, "one-finger touch pan must visibly change the DXF canvas");
+    expect(await page.evaluate(() => window.scrollY), "CAD one-finger touch must not scroll the document").toBe(scrollBeforeZoom);
+    expect(await page.evaluate(() => window.visualViewport?.scale ?? 1), "CAD one-finger touch must not browser-zoom the page").toBeCloseTo(visualScaleBefore, 5);
+
+    const pinchBefore = await canvas.screenshot({ animations: "disabled" });
     await cdp.send("Input.dispatchTouchEvent", {
       type: "touchStart",
       touchPoints: [
@@ -276,7 +293,7 @@ test.describe("DXF interactive layer controls", () => {
     expect((await layerSnapshot(page)).allHidden).toBe(false);
     await expect(page.getByRole("button", { name: "Sığdır" })).toBeEnabled();
     await expectNoHorizontalOverflow(page);
-    await attach(page, testInfo, "dxf-mobile-wheel-pan-pinch-recovery.png");
+    await attach(page, testInfo, "dxf-mobile-wheel-drag-touch-pinch-recovery.png");
   });
 
   test("each accepted geometry entity type produces isolated renderer bounds", async ({ page }, testInfo) => {
