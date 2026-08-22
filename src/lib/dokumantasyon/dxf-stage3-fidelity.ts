@@ -15,6 +15,7 @@ export interface DxfStage3Audit {
   stackedFractionCount: number;
   unsupportedTextObliqueCount: number;
   unsupportedTextGenerationFlagCount: number;
+  unsupportedAttribAttachmentCount: number;
   invalidTextWidthFactorCount: number;
   invalidTextAlignmentCodeCount: number;
   missingTextAlignmentPointCount: number;
@@ -177,6 +178,7 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
   let stackedFractionCount = 0;
   let unsupportedTextObliqueCount = 0;
   let unsupportedTextGenerationFlagCount = 0;
+  let unsupportedAttribAttachmentCount = 0;
   let invalidTextWidthFactorCount = 0;
   let invalidTextAlignmentCodeCount = 0;
   let missingTextAlignmentPointCount = 0;
@@ -209,7 +211,8 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
 
       if (SINGLE_LINE_TEXT_TYPES.has(record.type)) {
         const hAlign = numberForCode(record.pairs, 72, 0);
-        const vAlign = numberForCode(record.pairs, 73, 0);
+        const verticalCode = record.type === "TEXT" ? 73 : 74;
+        const vAlign = numberForCode(record.pairs, verticalCode, 0);
         if (hAlign !== 0 || vAlign !== 0) {
           alignedTextCount += 1;
           if (!hasCode(record.pairs, 11) || !hasCode(record.pairs, 21)) missingTextAlignmentPointCount += 1;
@@ -220,8 +223,15 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
         const widthFactor = optionalNumberForCode(record.pairs, 41);
         if (widthFactor !== null && widthFactor <= EPSILON) invalidTextWidthFactorCount += 1;
         if (Math.abs(numberForCode(record.pairs, 51, 0)) > EPSILON) unsupportedTextObliqueCount += 1;
-        const generationFlags = Math.trunc(numberForCode(record.pairs, 71, 0));
-        if ((generationFlags & 2) !== 0 || (generationFlags & 4) !== 0) unsupportedTextGenerationFlagCount += 1;
+
+        if (record.type === "TEXT" || record.type === "ATTDEF") {
+          const generationFlags = Math.trunc(numberForCode(record.pairs, 71, 0));
+          if ((generationFlags & 2) !== 0 || (generationFlags & 4) !== 0) unsupportedTextGenerationFlagCount += 1;
+        }
+        if (record.type === "ATTRIB") {
+          const attachmentPoint = Math.trunc(numberForCode(record.pairs, 71, 0));
+          if (attachmentPoint !== 0) unsupportedAttribAttachmentCount += 1;
+        }
       }
 
       if (record.type === "MTEXT") {
@@ -297,6 +307,7 @@ export function auditDxfStage3(text: string): DxfStage3Audit {
     stackedFractionCount,
     unsupportedTextObliqueCount,
     unsupportedTextGenerationFlagCount,
+    unsupportedAttribAttachmentCount,
     invalidTextWidthFactorCount,
     invalidTextAlignmentCodeCount,
     missingTextAlignmentPointCount,
@@ -342,7 +353,10 @@ export function getDxfStage3BlockingIssues(audit: DxfStage3Audit): string[] {
     issues.push(`${audit.unsupportedTextObliqueCount} TEXT/ATTRIB/ATTDEF oblique açı içeriyor; upstream parser/renderer shear bilgisini güvenilir taşımıyor.`);
   }
   if (audit.unsupportedTextGenerationFlagCount > 0) {
-    issues.push(`${audit.unsupportedTextGenerationFlagCount} TEXT/ATTRIB/ATTDEF backwards/upside-down generation flag içeriyor; sessiz yön kaybı başarı sayılamaz.`);
+    issues.push(`${audit.unsupportedTextGenerationFlagCount} TEXT/ATTDEF backwards/upside-down generation flag içeriyor; sessiz yön kaybı başarı sayılamaz.`);
+  }
+  if (audit.unsupportedAttribAttachmentCount > 0) {
+    issues.push(`${audit.unsupportedAttribAttachmentCount} ATTRIB attachment point içeriyor; mevcut TEXT normalizasyonu bu attachment semantiğini güvenilir uygulamıyor.`);
   }
   if (audit.invalidTextWidthFactorCount > 0) {
     issues.push(`${audit.invalidTextWidthFactorCount} text entity sıfır/negatif X width factor içeriyor; güvenilir text bounds üretilemez.`);
