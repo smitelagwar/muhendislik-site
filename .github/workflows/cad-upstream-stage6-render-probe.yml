@@ -33,8 +33,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .stage6-render-probe
-          cd .stage6-render-probe
+          mkdir -p stage6-render-probe
+          cd stage6-render-probe
           npm init -y >/dev/null
           npm install --ignore-scripts --save-exact @mlightcad/cad-simple-viewer-cli@1.6.2
           node -e 'const p=require("./node_modules/@mlightcad/cad-simple-viewer-cli/package.json"); if(p.version!=="1.6.2") process.exit(1)'
@@ -43,14 +43,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd .stage6-render-probe
+          cd stage6-render-probe
           npx playwright install --with-deps chromium
 
       - name: Render upstream public DWG fixture
         shell: bash
         run: |
           set -euo pipefail
-          cd .stage6-render-probe
+          cd stage6-render-probe
           mkdir -p out-png out-html
           node_modules/.bin/cad-simple-viewer-cli \
             -i https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/canteen.dwg \
@@ -70,8 +70,8 @@ jobs:
           node <<'NODE'
           const fs = require('fs')
           const path = require('path')
-          const pngDir = '.stage6-render-probe/out-png'
-          const htmlDir = '.stage6-render-probe/out-html'
+          const pngDir = 'stage6-render-probe/out-png'
+          const htmlDir = 'stage6-render-probe/out-html'
           const png = fs.readdirSync(pngDir).find(x => x.toLowerCase().endsWith('.png'))
           const html = fs.readdirSync(htmlDir).find(x => x.toLowerCase().endsWith('.html'))
           if (!png) throw new Error('PNG render output missing')
@@ -92,7 +92,7 @@ jobs:
         with:
           name: cad-upstream-stage6-public-render
           path: |
-            .stage6-render-probe/out-png/*.png
-            .stage6-render-probe/out-html/*.html
+            stage6-render-probe/out-png/*.png
+            stage6-render-probe/out-html/*.html
           if-no-files-found: error
           retention-days: 3
