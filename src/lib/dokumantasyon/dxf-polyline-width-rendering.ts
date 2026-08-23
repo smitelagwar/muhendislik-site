@@ -7,6 +7,15 @@ const CONTINUOUS = "CONTINUOUS";
 const BY_LAYER = "BYLAYER";
 const BY_BLOCK = "BYBLOCK";
 
+export class DxfPolylineWidthTriangleLimitError extends Error {
+  readonly code = "DXF_POLYLINE_WIDTH_TRIANGLE_LIMIT_EXCEEDED";
+
+  constructor() {
+    super("DXF polyline width triangle expansion limit exceeded");
+    this.name = "DxfPolylineWidthTriangleLimitError";
+  }
+}
+
 export interface DxfPolylineWidthVertex {
   x: number;
   y: number;
@@ -162,11 +171,15 @@ function valueForCode(pairs: Pair[], code: number): string | null {
   return pairs.find((pair) => pair.code === code)?.value ?? null;
 }
 
-function optionalNumberForCode(pairs: Pair[], code: number): number | undefined {
+function rawWidthForCode(pairs: Pair[], code: number): { present: boolean; value?: number; invalid: boolean } {
   const raw = valueForCode(pairs, code);
-  if (raw === null) return undefined;
+  if (raw === null) return { present: false, invalid: false };
   const value = Number.parseFloat(raw);
-  return Number.isFinite(value) ? value : undefined;
+  return {
+    present: true,
+    ...(Number.isFinite(value) ? { value } : {}),
+    invalid: !Number.isFinite(value) || value < -EPSILON,
+  };
 }
 
 function widthValue(value: unknown): number {
@@ -186,22 +199,28 @@ function normalizeName(value: unknown): string {
 }
 
 function sourceFromLwPolyline(record: RecordData): DxfPolylineWidthEntitySource {
-  const constantWidth = optionalNumberForCode(record.pairs, 43) ?? null;
+  const constant = rawWidthForCode(record.pairs, 43);
+  const constantWidth = constant.present ? (constant.value ?? Number.NaN) : null;
   const vertices: DxfPolylineWidthEntitySource["vertices"] = [];
   let current: { startWidth?: number; endWidth?: number } | null = null;
+  let invalidWidth = constant.invalid;
+
   for (const pair of record.pairs) {
     if (pair.code === 10) {
       if (current) vertices.push(current);
       current = {};
-    } else if (current && pair.code === 40) {
-      const value = Number.parseFloat(pair.value);
-      if (Number.isFinite(value)) current.startWidth = value;
-    } else if (current && pair.code === 41) {
-      const value = Number.parseFloat(pair.value);
-      if (Number.isFinite(value)) current.endWidth = value;
+      continue;
+    }
+    if (!current || (pair.code !== 40 && pair.code !== 41)) continue;
+    const value = Number.parseFloat(pair.value);
+    if (!Number.isFinite(value) || value < -EPSILON) invalidWidth = true;
+    if (Number.isFinite(value)) {
+      if (pair.code === 40) current.startWidth = value;
+      else current.endWidth = value;
     }
   }
   if (current) vertices.push(current);
+
   const widths = [constantWidth, ...vertices.flatMap((vertex) => [vertex.startWidth, vertex.endWidth])];
   return {
     handle: valueForCode(record.pairs, 5),
@@ -211,13 +230,15 @@ function sourceFromLwPolyline(record: RecordData): DxfPolylineWidthEntitySource 
     defaultEndWidth: 0,
     vertices,
     hasWidth: widths.some(isPositiveWidth),
-    invalidWidth: widths.some(isInvalidWidth),
+    invalidWidth: invalidWidth || widths.some(isInvalidWidth),
   };
 }
 
 function sourceFromLegacyPolyline(record: RecordData): DxfPolylineWidthEntitySource {
-  const defaultStartWidth = optionalNumberForCode(record.pairs, 40) ?? 0;
-  const defaultEndWidth = optionalNumberForCode(record.pairs, 41) ?? 0;
+  const start = rawWidthForCode(record.pairs, 40);
+  const end = rawWidthForCode(record.pairs, 41);
+  const defaultStartWidth = start.value ?? 0;
+  const defaultEndWidth = end.value ?? 0;
   return {
     handle: valueForCode(record.pairs, 5),
     type: "POLYLINE",
@@ -226,7 +247,7 @@ function sourceFromLegacyPolyline(record: RecordData): DxfPolylineWidthEntitySou
     defaultEndWidth,
     vertices: [],
     hasWidth: isPositiveWidth(defaultStartWidth) || isPositiveWidth(defaultEndWidth),
-    invalidWidth: isInvalidWidth(defaultStartWidth) || isInvalidWidth(defaultEndWidth),
+    invalidWidth: start.invalid || end.invalid,
   };
 }
 
@@ -248,13 +269,17 @@ export function auditDxfPolylineWidthSource(text: string): DxfPolylineWidthSourc
       continue;
     }
     if (activeLegacy && record.type === "VERTEX") {
-      const startWidth = optionalNumberForCode(record.pairs, 40);
-      const endWidth = optionalNumberForCode(record.pairs, 41);
+      const start = rawWidthForCode(record.pairs, 40);
+      const end = rawWidthForCode(record.pairs, 41);
+      const startWidth = start.present ? start.value : undefined;
+      const endWidth = end.present ? end.value : undefined;
       activeLegacy.vertices.push({ startWidth, endWidth });
       const effectiveStart = startWidth ?? activeLegacy.defaultStartWidth;
       const effectiveEnd = endWidth ?? activeLegacy.defaultEndWidth;
       if (isPositiveWidth(effectiveStart) || isPositiveWidth(effectiveEnd)) activeLegacy.hasWidth = true;
-      if (isInvalidWidth(effectiveStart) || isInvalidWidth(effectiveEnd)) activeLegacy.invalidWidth = true;
+      if (start.invalid || end.invalid || isInvalidWidth(effectiveStart) || isInvalidWidth(effectiveEnd)) {
+        activeLegacy.invalidWidth = true;
+      }
       continue;
     }
     if (activeLegacy && record.type === "SEQEND") activeLegacy = null;
@@ -264,15 +289,16 @@ export function auditDxfPolylineWidthSource(text: string): DxfPolylineWidthSourc
   return {
     widthPolylineCount: widthRecords.length,
     variableWidthPolylineCount: widthRecords.filter((source) =>
-      source.constantWidth === null && source.vertices.some((vertex) =>
-        vertex.startWidth !== undefined || vertex.endWidth !== undefined
+      source.constantWidth === null && (
+        Math.abs(source.defaultStartWidth - source.defaultEndWidth) > EPSILON ||
+        source.vertices.some((vertex) => vertex.startWidth !== undefined || vertex.endWidth !== undefined)
       )
     ).length,
     constantWidthPolylineCount: widthRecords.filter((source) =>
-      source.constantWidth !== null && source.constantWidth > EPSILON
+      source.constantWidth !== null && isPositiveWidth(source.constantWidth)
     ).length,
     legacyPolylineCount: widthRecords.filter((source) => source.type === "POLYLINE").length,
-    invalidWidthPolylineCount: widthRecords.filter((source) => source.invalidWidth).length,
+    invalidWidthPolylineCount: sources.filter((source) => source.invalidWidth).length,
     unmatchedSourceCount: 0,
     records: sources,
   };
@@ -298,6 +324,7 @@ export function enrichParsedDxfPolylineWidths(
   let unmatchedSourceCount = 0;
   for (const source of audit.records) {
     let entity = source.handle ? byHandle.get(source.handle) : undefined;
+    if (entity && entity.type !== source.type) entity = undefined;
     if (!entity) {
       const candidates = unmatchedByType.get(source.type) ?? [];
       entity = candidates.shift();
@@ -319,7 +346,7 @@ export function enrichParsedDxfPolylineWidths(
       const constant = source.constantWidth ?? widthValue(entity.width);
       for (let index = 0; index < vertices.length; index += 1) {
         const sourceVertex = source.vertices[index] ?? {};
-        if (constant > EPSILON) {
+        if (isPositiveWidth(constant)) {
           vertices[index].startWidth = constant;
           vertices[index].endWidth = constant;
         } else {
@@ -503,6 +530,7 @@ export function buildDxfWidePolylineMesh({
   maxTriangles?: number;
 }): DxfWidePolylineMesh | null {
   if (sourceVertices.length < 2) return null;
+  if (!Number.isFinite(maxTriangles) || maxTriangles < 0) throw new DxfPolylineWidthTriangleLimitError();
   const sourceSegmentCount = closed ? sourceVertices.length : sourceVertices.length - 1;
   const strips: Strip[] = [];
 
@@ -533,7 +561,7 @@ export function buildDxfWidePolylineMesh({
   let tessellatedSegmentCount = 0;
   const ensureBudget = (additionalTriangles: number) => {
     if (indices.length / 3 + additionalTriangles > maxTriangles) {
-      throw new Error("DXF_POLYLINE_WIDTH_TRIANGLE_LIMIT_EXCEEDED");
+      throw new DxfPolylineWidthTriangleLimitError();
     }
   };
 
@@ -641,14 +669,21 @@ function normalizeEntityCollection(
   const output: DxfPolylineWidthEntity[] = [];
 
   for (const entity of entities) {
-    if ((entity.type !== "LWPOLYLINE" && entity.type !== "POLYLINE") || !entity.__dxfPolylineWidthSource?.hasWidth) {
+    if (entity.type !== "LWPOLYLINE" && entity.type !== "POLYLINE") {
       output.push(entity);
       continue;
     }
 
     const source = entity.__dxfPolylineWidthSource;
+    if (!source) {
+      output.push(entity);
+      continue;
+    }
     if (source.invalidWidth) {
-      audit.invalidWidthPolylineCount += 1;
+      output.push(entity);
+      continue;
+    }
+    if (!source.hasWidth) {
       output.push(entity);
       continue;
     }
@@ -676,7 +711,13 @@ function normalizeEntityCollection(
       continue;
     }
 
-    const mesh = buildDxfWidePolylineMesh({ vertices, closed: Boolean(entity.shape) });
+    const remainingBudget = DXF_POLYLINE_WIDTH_MAX_TRIANGLES - audit.generatedTriangleCount;
+    if (remainingBudget <= 0) throw new DxfPolylineWidthTriangleLimitError();
+    const mesh = buildDxfWidePolylineMesh({
+      vertices,
+      closed: Boolean(entity.shape),
+      maxTriangles: remainingBudget,
+    });
     if (!mesh) {
       output.push(entity);
       continue;
