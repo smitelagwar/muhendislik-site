@@ -64,6 +64,18 @@ assert.match(workerBuild, /path\.join\(ROOT, "public\/workers"\)/);
 assert.match(workerBuild, /path\.join\(OUTPUT_DIR, "dwg-dxf-conversion-worker\.js"\)/);
 assert.match(workerBuild, /@node-projects\/acad-ts/);
 
+const validation = read("src/lib/dokumantasyon/dwg/validation.ts");
+for (const code of ["LINE_TYPE_MISMATCH", "LINE_WEIGHT_MISMATCH", "COLOR_SEMANTICS_MISMATCH"]) {
+  assert.match(
+    validation,
+    new RegExp(`"${code}"[\\s\\S]{0,260}"warning"`),
+    `${code} must not force APS fallback when geometry is structurally intact`
+  );
+}
+assert.match(validation, /code: "EXTENTS_MISMATCH"[\s\S]{0,100}severity: "blocking"/);
+assert.match(validation, /"ENTITY_COUNT_MISMATCH"/);
+assert.match(validation, /"BLOCK_ENTITY_COUNT_MISMATCH"/);
+
 const viewer = read("src/components/dokumantasyon/preview/aps-dwg-viewer.tsx");
 assert.match(viewer, /function DwgToDxfViewer/);
 assert.match(viewer, /DWG_DXF_WORKER_ASSET_URL/);
@@ -75,6 +87,8 @@ assert.match(viewer, /extension="\.dxf"/);
 assert.match(viewer, /DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES/);
 assert.match(viewer, /DWG_BROWSER_DXF_HARD_LIMIT_BYTES/);
 assert.match(viewer, /DWG_BROWSER_WORKER_TIMEOUT_MS/);
+assert.match(viewer, /chooseAps\(result\.errorCode \|\| "FIDELITY_OR_CONVERSION_FALLBACK"\)/);
+assert.match(viewer, /data-dwg-dxf-fallback=\{fastPath\.reason\}/);
 assert.doesNotMatch(viewer, /new Worker\(new URL\("\.\/dwg-dxf-conversion-worker\.ts"/);
 
 const worker = read("src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts");
@@ -83,6 +97,9 @@ assert.match(worker, /WORKER_SOURCE_LIMIT_EXCEEDED/);
 assert.match(worker, /WORKER_DXF_OUTPUT_LIMIT_EXCEEDED/);
 assert.match(worker, /WORKER_CLASS_NAME_CONTRACT_FAILED/);
 assert.match(worker, /validation\.decision === "REJECT"/);
+assert.match(worker, /function blockingIssueCodes/);
+assert.match(worker, /function fidelityRejectCode/);
+assert.match(worker, /errorCode: exactErrorCode/);
 
 const route = read("src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts");
 assert.match(route, /findReadyDwgDxfDerivativeForFile/);
@@ -154,6 +171,8 @@ const evidence = {
     privateDerivativeStreaming: true,
     browserServerBoundary: true,
     ephemeralProductionPersistenceForbidden: true,
+    presentationOnlyMismatchWarns: true,
+    exactFidelityFallbackReasonPreserved: true,
   },
 };
 fs.writeFileSync(
