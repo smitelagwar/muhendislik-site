@@ -8,12 +8,14 @@ on:
       - "package-lock.json"
       - "next.config.ts"
       - "playwright.config.ts"
+      - "scripts/check-dokumantasyon-persistence-rules.mjs"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "src/lib/dokumantasyon/dwg/**"
+      - "src/lib/dokumantasyon/runtime-mode.ts"
       - "tests/document-studio/cad-dxf.spec.ts"
       - "tests/document-studio/cad-dwg-aps.spec.ts"
   push:
@@ -25,12 +27,14 @@ on:
       - "package-lock.json"
       - "next.config.ts"
       - "playwright.config.ts"
+      - "scripts/check-dokumantasyon-persistence-rules.mjs"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "src/lib/dokumantasyon/dwg/**"
+      - "src/lib/dokumantasyon/runtime-mode.ts"
       - "tests/document-studio/cad-dxf.spec.ts"
       - "tests/document-studio/cad-dwg-aps.spec.ts"
   workflow_dispatch:
@@ -68,11 +72,16 @@ jobs:
           "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
           "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
           "src/lib/dokumantasyon/dxf-runtime-policy.ts"
+          "src/lib/dokumantasyon/runtime-mode.ts"
+          "scripts/check-dokumantasyon-persistence-rules.mjs"
           "tests/document-studio/cad-dxf.spec.ts"
           "tests/document-studio/cad-dwg-aps.spec.ts"
 
       - name: Full typecheck
         run: npx tsc --noEmit --incremental false
+
+      - name: Persistence and production-test isolation
+        run: node scripts/check-dokumantasyon-persistence-rules.mjs
 
       - name: Production Next build
         run: npm run build
