@@ -107,3 +107,12 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           compression-level: 1
+
+      - name: Upload isolated Chrome for Testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-stage6-playwright-chromium
+          path: /home/runner/.cache/ms-playwright/chromium-1234/**
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
