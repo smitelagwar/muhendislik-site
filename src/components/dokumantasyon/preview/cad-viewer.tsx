@@ -59,7 +59,6 @@ import {
 } from "@/lib/dokumantasyon/dxf-text-render-audit";
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
-import { ApsDwgViewer } from "./aps-dwg-viewer";
 import { DxfDiagnosticsButton, DxfDiagnosticsPanel } from "./dxf-diagnostics-panel";
 import { DxfLayerPanel } from "./dxf-layer-panel";
 
@@ -276,10 +275,6 @@ function captureViewerSnapshot(
 
 export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes, onViewerFailure }: DokCadViewerProps) {
   const normalizedExtension = normalizeExtension(extension);
-
-  if (normalizedExtension === ".dwg") {
-    return <ApsDwgViewer fileId={fileId} displayName={displayName} sizeBytes={sizeBytes} accessUrl={accessUrl} />;
-  }
 
   if (normalizedExtension !== ".dxf") {
     return <DwgDownloadFallback accessUrl={accessUrl} displayName={displayName} extension={extension} sizeBytes={sizeBytes} />;
