@@ -5,6 +5,7 @@ const viewer = fs.readFileSync("src/components/dokumantasyon/preview/aps-dwg-vie
 const dxfViewer = fs.readFileSync("src/components/dokumantasyon/preview/cad-viewer.tsx", "utf8");
 const dxfRuntimePolicy = fs.readFileSync("src/lib/dokumantasyon/dxf-runtime-policy.ts", "utf8");
 const worker = fs.readFileSync("src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts", "utf8");
+const validation = fs.readFileSync("src/lib/dokumantasyon/dwg/validation.ts", "utf8");
 const route = fs.readFileSync("src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts", "utf8");
 const browserIndex = fs.readFileSync("src/lib/dokumantasyon/dwg/index.ts", "utf8");
 const serverIndex = fs.readFileSync("src/lib/dokumantasyon/dwg/server.ts", "utf8");
@@ -23,9 +24,25 @@ assert.match(viewer, /extension="\.dxf"/);
 assert.match(viewer, /ResolvedDxfCadViewer/);
 assert.match(viewer, /onViewerFailure=\{handleDxfViewerFailure\}/);
 assert.match(viewer, /DXF_RENDER_FAILED/);
+assert.match(viewer, /chooseAps\(result\.errorCode \|\| "FIDELITY_OR_CONVERSION_FALLBACK"\)/);
+assert.match(viewer, /data-dwg-dxf-fallback=\{fastPath\.reason\}/);
 // Stage 5 centralizes the Stage 4 browser ceiling/watchdog in runtime-policy.
 assert.match(viewer, /DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES/);
 assert.match(viewer, /DWG_BROWSER_WORKER_TIMEOUT_MS/);
+
+// Stage 1 CAD repair policy: presentation-only semantic differences must not force
+// an otherwise structurally faithful DWG into APS, while structural loss remains blocking.
+for (const code of ["LINE_TYPE_MISMATCH", "LINE_WEIGHT_MISMATCH", "COLOR_SEMANTICS_MISMATCH"]) {
+  assert.match(
+    validation,
+    new RegExp(`"${code}"[\\s\\S]{0,260}"warning"`),
+    `${code} must remain warning-only`
+  );
+}
+for (const code of ["ENTITY_COUNT_MISMATCH", "MODELSPACE_COUNT_MISMATCH", "BLOCK_ENTITY_COUNT_MISMATCH"]) {
+  assert.match(validation, new RegExp(`"${code}"`), `${code} structural gate missing`);
+}
+assert.match(validation, /code: "EXTENTS_MISMATCH"[\s\S]{0,100}severity: "blocking"/);
 
 // The shared DXF renderer must have terminal deadlines as well. Otherwise a successful
 // DWG conversion can still leave the user on an infinite spinner before APS gets a chance.
@@ -42,7 +59,10 @@ assert.match(dxfRuntimePolicy, /DXF_BROWSER_SOURCE_HARD_LIMIT_BYTES = 256 \* 102
 
 assert.match(worker, /convertAndValidateDwgToDxf/);
 assert.match(worker, /validation\.decision === "REJECT"/);
-assert.match(worker, /FIDELITY_REJECTED/);
+assert.match(worker, /function blockingIssueCodes/);
+assert.match(worker, /function fidelityRejectCode/);
+assert.match(worker, /FIDELITY_REJECTED:\$\{codes\.join\(","\)\}/);
+assert.match(worker, /errorCode: exactErrorCode/);
 assert.match(worker, /\[dxfBuffer\]/);
 assert.match(worker, /WORKER_CLASS_NAME_CONTRACT_FAILED/);
 
