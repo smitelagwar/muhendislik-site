@@ -1,0 +1,418 @@
+name: dwg-dxf-stage6-release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dwg-dxf-stage6-release.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "playwright.config.ts"
+      - "scripts/build-dwg-dxf-worker.mjs"
+      - "scripts/check-dwg-dxf-*"
+      - "scripts/check-dxf-*"
+      - "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+      - "src/components/dokumantasyon/preview/**"
+      - "src/lib/dokumantasyon/dwg/**"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dxf-*.js"
+      - "src/lib/dokumantasyon/db.ts"
+      - "src/lib/dokumantasyon/types.ts"
+      - "src/lib/dokumantasyon/local-store.ts"
+      - "src/lib/dokumantasyon/runtime-mode.ts"
+      - "tests/fixtures/dxf/**"
+      - "tests/document-studio/dxf-*.spec.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/dwg-dxf-stage6-release.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "playwright.config.ts"
+      - "scripts/build-dwg-dxf-worker.mjs"
+      - "scripts/check-dwg-dxf-*"
+      - "scripts/check-dxf-*"
+      - "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+      - "src/components/dokumantasyon/preview/**"
+      - "src/lib/dokumantasyon/dwg/**"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dxf-*.js"
+      - "src/lib/dokumantasyon/db.ts"
+      - "src/lib/dokumantasyon/types.ts"
+      - "src/lib/dokumantasyon/local-store.ts"
+      - "src/lib/dokumantasyon/runtime-mode.ts"
+      - "tests/fixtures/dxf/**"
+      - "tests/document-studio/dxf-*.spec.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dwg-dxf-stage6-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: DWG→DXF canonical release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js matching Vercel production
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies from exact lock
+        run: npm ci
+
+      - name: Prepare release evidence
+        run: mkdir -p artifacts/dwg-dxf-stage6-release .poc/stage6-fixtures
+
+      - name: Targeted release lint
+        run: >-
+          npx eslint
+          "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+          "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+          "src/components/dokumantasyon/preview/cad-viewer.tsx"
+          "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
+          "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
+          "src/lib/dokumantasyon/dwg/**/*.ts"
+          "src/lib/dokumantasyon/dxf-*.ts"
+          "src/lib/dokumantasyon/dxf-*.js"
+          "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+          "scripts/check-dwg-dxf-stage2-core.ts"
+          "scripts/check-dwg-dxf-stage3-fidelity.ts"
+          "scripts/check-dwg-dxf-stage4-orchestration.ts"
+          "scripts/check-dwg-dxf-stage5-hardening.ts"
+          "scripts/check-dwg-dxf-stage6-release.ts"
+          "scripts/check-dxf-*"
+
+      - name: Full typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Stage 6 canonical static release contract
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage6-release.ts | tee artifacts/dwg-dxf-stage6-release/static-contract.txt
+
+      - name: Fetch pinned public DWG fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://raw.githubusercontent.com/node-projects/acad-ts/15b87c1ca2784fca623c44a6836f723e77411fd8/samples"
+          for VERSION in AC1014 AC1032; do
+            curl --fail --location --retry 3 --retry-delay 2 \
+              "${BASE}/sample_${VERSION}.dwg" \
+              --output ".poc/stage6-fixtures/sample_${VERSION}.dwg"
+          done
+          sha256sum .poc/stage6-fixtures/*.dwg | tee artifacts/dwg-dxf-stage6-release/fixture-sha256.txt
+
+      - name: Stage 2 deterministic conversion gate
+        shell: bash
+        env:
+          DWG_STAGE2_FIXTURE_DIR: .poc/stage6-fixtures
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage2-core.ts | tee artifacts/dwg-dxf-stage6-release/stage2-core.txt
+
+      - name: Stage 3 structural fidelity and cache gate
+        shell: bash
+        env:
+          DWG_STAGE3_FIXTURE_DIR: .poc/stage6-fixtures
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage3-fidelity.ts | tee artifacts/dwg-dxf-stage6-release/stage3-fidelity.txt
+
+      - name: Stage 4 orchestration gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage4-orchestration.ts | tee artifacts/dwg-dxf-stage6-release/stage4-orchestration.txt
+
+      - name: Stage 5 runtime and Vercel hardening gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage5-hardening.ts | tee artifacts/dwg-dxf-stage6-release/stage5-hardening.txt
+
+      - name: Existing DXF fidelity static matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            node scripts/check-dxf-stage1-fidelity.mjs
+            npx tsx scripts/check-dxf-stage2-hardening.ts
+            npx tsx scripts/check-dxf-stage3-fidelity.ts
+            npx tsx scripts/check-dxf-text-render-audit.ts
+            npx tsx scripts/check-dxf-text-stage2.ts
+            npx tsx scripts/check-dxf-text-stage3-layout.ts
+            npx tsx scripts/check-dxf-stage4-fidelity.ts
+            npx tsx scripts/check-dxf-layer-controls.ts
+            npx tsx scripts/check-dxf-color-fidelity.ts
+            npx tsx scripts/check-dxf-stage5-diagnostics.ts
+            npx tsx scripts/check-dxf-release-hardening.ts
+            npx tsx scripts/check-dxf-stage7-extended-fidelity.ts
+            npx tsx scripts/check-dxf-stage6-release.ts
+          } | tee artifacts/dwg-dxf-stage6-release/dxf-static-matrix.txt
+
+      - name: Generate ephemeral final Worker probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/__dwg-stage6
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {
+            ACadVersion,
+            CadDocument,
+            DwgWriter,
+            Line,
+            Point,
+            XYZ,
+          } from '@node-projects/acad-ts';
+
+          const document = new CadDocument();
+          document.header.version = ACadVersion.AC1014;
+          if (!document.entities) throw new Error('Synthetic document entity collection is unavailable.');
+          document.entities.add(new Point(new XYZ(10, 5, 0)));
+          document.entities.add(new Line(new XYZ(0, 0, 0), new XYZ(50, 30, 0)));
+          const buffer = new ArrayBuffer(4 * 1024 * 1024);
+          const writer = new DwgWriter(buffer, document);
+          writer.write();
+          if (!writer.bytesWritten) throw new Error('Synthetic DWG writer produced no bytes.');
+          fs.writeFileSync(
+            'public/__dwg-stage6/simple_AC1014.dwg',
+            new Uint8Array(buffer, 0, writer.bytesWritten)
+          );
+          console.log(`Stage 6 fixture bytes: ${writer.bytesWritten}`);
+          NODE
+
+          cat > public/__dwg-stage6/probe.html <<'HTML'
+          <!doctype html>
+          <html>
+          <body>
+            <pre id="result" data-state="pending">null</pre>
+            <script type="module">
+              const resultNode = document.querySelector('#result');
+              const WORKER_URL = '/workers/dwg-dxf-conversion-worker.js?v=acad-ts-2.4.0-dwg-dxf-v1';
+              const SOURCE_LIMIT = 4 * 1024 * 1024;
+
+              function invokeWorker(requestId, buffer, timeoutMs = 20000) {
+                return new Promise((resolve, reject) => {
+                  const worker = new Worker(WORKER_URL, { type: 'module' });
+                  const timer = setTimeout(() => {
+                    worker.terminate();
+                    reject(new Error(`Worker timed out for ${requestId}`));
+                  }, timeoutMs);
+                  worker.onerror = (event) => {
+                    clearTimeout(timer);
+                    worker.terminate();
+                    reject(new Error(event.message || `Worker error for ${requestId}`));
+                  };
+                  worker.onmessageerror = () => {
+                    clearTimeout(timer);
+                    worker.terminate();
+                    reject(new Error(`Worker message error for ${requestId}`));
+                  };
+                  worker.onmessage = (event) => {
+                    if (event.data?.requestId !== requestId) return;
+                    clearTimeout(timer);
+                    worker.terminate();
+                    resolve(event.data);
+                  };
+                  worker.postMessage({ requestId, buffer }, [buffer]);
+                });
+              }
+
+              try {
+                const sourceResponse = await fetch('/__dwg-stage6/simple_AC1014.dwg', { cache: 'no-store' });
+                if (!sourceResponse.ok) throw new Error(`Fixture fetch failed: ${sourceResponse.status}`);
+                const sourceBuffer = await sourceResponse.arrayBuffer();
+                const normal = await invokeWorker('stage6-normal', sourceBuffer);
+                const oversized = await invokeWorker('stage6-oversized', new ArrayBuffer(SOURCE_LIMIT + 1), 5000);
+                resultNode.dataset.state = 'complete';
+                resultNode.textContent = JSON.stringify({ normal, oversized });
+              } catch (error) {
+                resultNode.dataset.state = 'error';
+                resultNode.textContent = JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
+              }
+            </script>
+          </body>
+          </html>
+          HTML
+
+      - name: Production Next build with stable Worker
+        run: npm run build
+
+      - name: Verify final Worker artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKER="public/workers/dwg-dxf-conversion-worker.js"
+          test -f "$WORKER"
+          SIZE="$(stat -c '%s' "$WORKER")"
+          test "$SIZE" -gt 100000
+          grep -q 'WORKER_SOURCE_LIMIT_EXCEEDED' "$WORKER"
+          grep -q 'WORKER_DXF_OUTPUT_LIMIT_EXCEEDED' "$WORKER"
+          grep -q 'WORKER_CLASS_NAME_CONTRACT_FAILED' "$WORKER"
+          node --input-type=module <<NODE
+          import fs from 'node:fs';
+          fs.writeFileSync(
+            'artifacts/dwg-dxf-stage6-release/worker-evidence.json',
+            JSON.stringify({ sizeBytes: Number('${SIZE}'), esbuildVersion: '0.27.4', keepNames: true, target: 'es2022' }, null, 2) + '\n'
+          );
+          NODE
+          echo "Final stable Worker: ${SIZE} bytes"
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Final DWG Worker Chromium release gate
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PORT=3016 npm start > /tmp/dwg-stage6-next.log 2>&1 &
+          SERVER_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:3016/__dwg-stage6/probe.html" >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              cat /tmp/dwg-stage6-next.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import { chromium } from '@playwright/test';
+
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const page = await browser.newPage();
+            const browserErrors = [];
+            page.on('console', (message) => {
+              if (message.type() === 'error' || message.type() === 'warning') {
+                browserErrors.push(`${message.type()}: ${message.text()}`);
+              }
+            });
+            page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
+
+            await page.goto('http://127.0.0.1:3016/__dwg-stage6/probe.html', { waitUntil: 'domcontentloaded' });
+            await page.waitForFunction(() => {
+              const node = document.querySelector('#result');
+              const state = node?.getAttribute('data-state');
+              return state === 'complete' || state === 'error';
+            }, null, { timeout: 25000 });
+
+            const state = await page.locator('#result').getAttribute('data-state');
+            const text = await page.locator('#result').textContent();
+            const result = text ? JSON.parse(text) : null;
+            console.log({ state, result, browserErrors });
+
+            assert.equal(state, 'complete', `Stage 6 browser probe failed: ${JSON.stringify({ state, result, browserErrors })}`);
+            assert.equal(result.normal.requestId, 'stage6-normal');
+            assert.equal(result.normal.ok, true, `${result.normal.errorCode || ''} ${result.normal.errorMessage || ''}`);
+            assert.ok(result.normal.decision === 'PASS' || result.normal.decision === 'WARN');
+            assert.ok(result.normal.dxfBytes > 0 && result.normal.dxfBytes <= 64 * 1024 * 1024);
+            assert.equal(result.oversized.requestId, 'stage6-oversized');
+            assert.equal(result.oversized.ok, false);
+            assert.equal(result.oversized.fallback, true);
+            assert.equal(result.oversized.errorCode, 'WORKER_SOURCE_LIMIT_EXCEEDED');
+            assert.equal(result.oversized.sourceBytes, 4 * 1024 * 1024 + 1);
+            assert.deepEqual(browserErrors, []);
+
+            const evidence = {
+              commitSha: process.env.RELEASE_SHA || null,
+              normal: {
+                sourceBytes: result.normal.sourceBytes,
+                dxfBytes: result.normal.dxfBytes,
+                decision: result.normal.decision,
+                elapsedMs: result.normal.elapsedMs,
+              },
+              oversized: {
+                sourceBytes: result.oversized.sourceBytes,
+                errorCode: result.oversized.errorCode,
+                fallback: result.oversized.fallback,
+                elapsedMs: result.oversized.elapsedMs,
+              },
+              browserErrors,
+            };
+            fs.writeFileSync(
+              'artifacts/dwg-dxf-stage6-release/browser-evidence.json',
+              JSON.stringify(evidence, null, 2) + '\n'
+            );
+          } finally {
+            await browser.close();
+          }
+          NODE
+
+      - name: Remove ephemeral DWG release probe
+        if: always()
+        run: rm -rf public/__dwg-stage6
+
+      - name: Existing DXF Chromium release matrix
+        run: >-
+          npx playwright test --config=playwright.config.ts
+          tests/document-studio/dxf-release.spec.ts
+          tests/document-studio/dxf-text-stage2.spec.ts
+          tests/document-studio/dxf-text-stage3.spec.ts
+          tests/document-studio/dxf-layers.spec.ts
+          tests/document-studio/dxf-color.spec.ts
+          tests/document-studio/dxf-render-modes-stage2.spec.ts
+          --project=chromium
+
+      - name: Finalize machine-readable release evidence
+        if: always()
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const dir = 'artifacts/dwg-dxf-stage6-release';
+          const readJson = (name) => {
+            const file = `${dir}/${name}`;
+            return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+          };
+          const evidence = {
+            stage: 6,
+            commitSha: process.env.RELEASE_SHA || null,
+            static: readJson('static-evidence.json'),
+            worker: readJson('worker-evidence.json'),
+            browser: readJson('browser-evidence.json'),
+            dxfBrowserMatrix: fs.existsSync('playwright-report') ? 'executed' : 'executed-no-html-report-detected',
+          };
+          fs.writeFileSync(`${dir}/release-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
+          console.log(JSON.stringify(evidence, null, 2));
+          NODE
+
+      - name: Upload canonical Stage 6 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwg-dxf-stage6-release-${{ github.sha }}
+          path: |
+            artifacts/dwg-dxf-stage6-release/
+            playwright-report/
+            test-results/
+          if-no-files-found: error
+          retention-days: 14
