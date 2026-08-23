@@ -6,6 +6,8 @@ Branch: `feat/cad-upstream-transplant`
 
 Durum: **devam ediyor**. Bu belge release kapısını tanımlar; tüm CI, Vercel preview ve security kontrolleri PASS olmadan migration merge/production release yapılmaz.
 
+CI notu: `CAD upstream Stage 8 release gate` main'de aktiftir ve final release evidence bu branch head üzerinden yeniden üretilir.
+
 ## Önkoşul
 
 Aşama 7 final cleanup gate:
