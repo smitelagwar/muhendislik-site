@@ -19,6 +19,7 @@ export type CadUpstreamErrorCode =
   | "worker-unavailable"
   | "source-fetch-failed"
   | "source-empty"
+  | "open-timeout"
   | "open-failed"
   | "adapter-destroyed";
 
