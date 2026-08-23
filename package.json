@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/build-dwg-dxf-worker.mjs",
+    "predev": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/build-dwg-dxf-worker.mjs",
+    "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -81,7 +81,8 @@
     "check:document-studio:share-origin": "tsx scripts/check-dokumantasyon-share-origin.ts",
     "check:document-studio:cad-aps": "tsx scripts/check-cad-aps-adapter.ts",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
-    "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
+    "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs",
+    "check:cad-upstream:stage3": "node scripts/check-cad-upstream-stage3.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -115,7 +116,10 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@mlightcad/cad-simple-viewer": "1.6.0",
+    "@mlightcad/data-model": "1.13.0",
+    "@mlightcad/libredwg-converter": "3.13.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
