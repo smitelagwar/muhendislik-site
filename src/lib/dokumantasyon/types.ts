@@ -75,6 +75,7 @@ export interface DokDwgDxfDerivative {
   source_version_key: string;
   source_sha256: string;
   converter_signature: string;
+  converter_signature_sha256: string;
   dwg_version: string | null;
   status: "pending" | "converting" | "validating" | "ready" | "failed";
   validation_decision: "PASS" | "WARN" | "REJECT" | null;
