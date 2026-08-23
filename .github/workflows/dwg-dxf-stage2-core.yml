@@ -1,0 +1,97 @@
+name: dwg-dxf-stage2-core
+
+on:
+  push:
+    branches:
+      - feat/dwg-dxf-stage2-core
+    paths:
+      - "src/lib/dokumantasyon/dwg/**"
+      - "scripts/check-dwg-dxf-stage2-core.ts"
+      - ".github/workflows/dwg-dxf-stage2-core.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+  pull_request:
+    paths:
+      - "src/lib/dokumantasyon/dwg/**"
+      - "scripts/check-dwg-dxf-stage2-core.ts"
+      - ".github/workflows/dwg-dxf-stage2-core.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dwg-dxf-stage2-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js matching Vercel production
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies from exact lock
+        run: npm ci
+
+      - name: Fetch pinned DWG fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .poc/stage2-fixtures artifacts/dwg-dxf-stage2-core
+          BASE="https://raw.githubusercontent.com/node-projects/acad-ts/15b87c1ca2784fca623c44a6836f723e77411fd8/samples"
+          for VERSION in AC1014 AC1032; do
+            curl --fail --location --retry 3 --retry-delay 2 \
+              "${BASE}/sample_${VERSION}.dwg" \
+              --output ".poc/stage2-fixtures/sample_${VERSION}.dwg"
+          done
+          sha256sum .poc/stage2-fixtures/*.dwg | tee artifacts/dwg-dxf-stage2-core/fixture-sha256.txt
+
+      - name: Targeted lint
+        run: npx eslint "src/lib/dokumantasyon/dwg/**/*.ts" "scripts/check-dwg-dxf-stage2-core.ts"
+
+      - name: Typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Deterministic conversion release check
+        shell: bash
+        env:
+          DWG_STAGE2_FIXTURE_DIR: .poc/stage2-fixtures
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-dwg-dxf-stage2-core.ts | tee artifacts/dwg-dxf-stage2-core/release-check.txt
+
+      - name: Verify browser bundling contract
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false esbuild@0.25.9
+          npx esbuild src/lib/dokumantasyon/dwg/index.ts \
+            --bundle \
+            --format=esm \
+            --platform=browser \
+            --target=es2022 \
+            --keep-names \
+            --outfile=.poc/dwg-dxf-stage2-core.js \
+            --metafile=artifacts/dwg-dxf-stage2-core/browser-bundle-meta.json
+          stat -c 'Stage 2 browser bundle: %s bytes' .poc/dwg-dxf-stage2-core.js | tee artifacts/dwg-dxf-stage2-core/browser-bundle-size.txt
+
+      - name: Upload Stage 2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwg-dxf-stage2-core-${{ github.sha }}
+          path: artifacts/dwg-dxf-stage2-core/
+          if-no-files-found: error
+          retention-days: 14
