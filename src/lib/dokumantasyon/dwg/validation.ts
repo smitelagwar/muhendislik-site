@@ -42,7 +42,11 @@ function extentsMatch(source: DwgStructuralSnapshot["extents"], output: DwgStruc
 }
 
 function diagnosticSeverity(diagnostic: DwgDiagnostic): DwgFidelityIssue["severity"] {
-  if (diagnostic.category === "unknown-object" || diagnostic.category === "missing-reference") {
+  if (
+    diagnostic.category === "unsupported-feature" ||
+    diagnostic.category === "unknown-object" ||
+    diagnostic.category === "missing-reference"
+  ) {
     return "blocking";
   }
   return "warning";
