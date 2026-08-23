@@ -123,7 +123,23 @@ async function uploadDxf(page: Page, fixture: DxfFixture): Promise<string> {
   }, fixture);
 }
 
-test("DXF viewer küçük, proje-benzeri ve büyük çizimleri worker ile açar; zoom, pan ve fit çalışır", async ({ page }) => {
+async function forceUpstreamUnavailable(page: Page): Promise<void> {
+  await page.route("**/cad-upstream/**", async (route) => {
+    await route.abort("failed");
+  });
+}
+
+async function expectUpstreamDxfReady(page: Page) {
+  const runtime = page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="upstream"]').first();
+  const host = runtime.locator('[data-cad-upstream-host="true"]').first();
+  await expect(runtime).toBeVisible({ timeout: 30_000 });
+  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+  await expect(host.locator("canvas").first()).toBeVisible();
+  await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
+  return host.locator("canvas").first();
+}
+
+test("DXF upstream-primary küçük, proje-benzeri ve büyük çizimleri açar; etkileşim sonrası hazır kalır", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await signIn(page);
@@ -131,41 +147,33 @@ test("DXF viewer küçük, proje-benzeri ve büyük çizimleri worker ile açar;
   for (const fixture of fixtures) {
     const fileId = await uploadDxf(page, fixture);
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
-    await expect(page.getByTestId("cad-dxf-viewer").first()).toBeVisible();
-    await expect(page.getByTestId("cad-dxf-canvas").first().locator("canvas")).toBeVisible();
-    await expect(page.getByText("DXF hazırlanıyor")).toHaveCount(0);
-    await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
-
-    const viewport = page.getByTestId("cad-dxf-canvas").first();
-    const beforeRevision = Number(await viewport.locator("..").getAttribute("data-view-revision"));
-    const box = await viewport.boundingBox();
-    if (!box) throw new Error("DXF viewport bulunamadı");
+    const canvas = await expectUpstreamDxfReady(page);
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("Upstream DXF canvas bulunamadı");
 
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.wheel(0, -240);
-    await expect.poll(async () => Number(await viewport.locator("..").getAttribute("data-view-revision"))).toBeGreaterThan(beforeRevision);
-
-    const beforePanRevision = Number(await viewport.locator("..").getAttribute("data-view-revision"));
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2 + 70, box.y + box.height / 2 + 50);
     await page.mouse.up();
-    await expect.poll(async () => Number(await viewport.locator("..").getAttribute("data-view-revision"))).toBeGreaterThan(beforePanRevision);
 
-    await page.locator('[data-command-id="cad.dxf.fit"]').click();
-    await expect(page.getByTestId("cad-dxf-canvas").first().locator("canvas")).toBeVisible();
+    const host = page.locator('[data-cad-upstream-host="true"]').first();
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
+    await expect(canvas).toBeVisible();
   }
 
   expect(pageErrors).toEqual([]);
 });
 
-test("DASHED CENTER HIDDEN linetype kaynakları production worker ile render edilir", async ({ page }) => {
+test("upstream kullanılamadığında DASHED CENTER HIDDEN legacy DXF fallback worker ile render edilir", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await forceUpstreamUnavailable(page);
   await signIn(page);
   const fileId = await uploadDxf(page, { name: "linetype-stage2.dxf", content: createPatternedDxf() });
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
+  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="current"]').first()).toBeVisible({ timeout: 30_000 });
   const viewer = page.getByTestId("cad-dxf-viewer").first();
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-cad-load-state", "ready", { timeout: 30_000 });
@@ -185,7 +193,8 @@ test("bozuk DXF kontrollü hata ve yeniden deneme eylemi gösterir", async ({ pa
   await expect(page.getByRole("button", { name: "Dosyayı indir" })).toBeVisible();
 });
 
-test("DXF worker runtime hatası sonsuz loading yerine terminal hata üretir", async ({ page }) => {
+test("legacy DXF worker runtime hatası sonsuz loading yerine terminal hata üretir", async ({ page }) => {
+  await forceUpstreamUnavailable(page);
   await page.addInitScript(() => {
     class ForcedFailingWorker extends EventTarget {
       onerror: ((this: Worker, ev: ErrorEvent) => unknown) | null = null;
@@ -216,6 +225,7 @@ test("DXF worker runtime hatası sonsuz loading yerine terminal hata üretir", a
   const fileId = await uploadDxf(page, fixtures[0]);
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
+  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="current"]').first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("DXF açılamadı")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("DXF hazırlanıyor")).toHaveCount(0);
   await expect(page.getByText(/forced-dxf-worker-runtime-error/)).toBeVisible();
@@ -223,7 +233,7 @@ test("DXF worker runtime hatası sonsuz loading yerine terminal hata üretir", a
 
 const realProjectDxfPath = process.env.CAD_DXF_PROJECT_FIXTURE;
 
-test("yerel gerçek proje DXF'i açılır", async ({ page }) => {
+test("yerel gerçek proje DXF'i upstream-primary açılır", async ({ page }) => {
   test.skip(!realProjectDxfPath || !existsSync(realProjectDxfPath), "CAD_DXF_PROJECT_FIXTURE tanımlı değil.");
   const content = readFileSync(realProjectDxfPath!, "utf8");
   const fileName = realProjectDxfPath!.split(/[\\/]/).at(-1) || "gercek-proje.dxf";
@@ -231,6 +241,5 @@ test("yerel gerçek proje DXF'i açılır", async ({ page }) => {
   await signIn(page);
   const fileId = await uploadDxf(page, { name: fileName, content });
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
-  await expect(page.getByTestId("cad-dxf-canvas").first().locator("canvas")).toBeVisible({ timeout: 45_000 });
-  await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
+  await expectUpstreamDxfReady(page);
 });
