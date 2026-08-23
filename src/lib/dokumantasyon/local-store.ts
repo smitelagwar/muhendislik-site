@@ -4,7 +4,7 @@
 
 import fs from "fs";
 import path from "path";
-import { DokActivityEvent, DokCadDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
+import { DokActivityEvent, DokCadDerivative, DokDwgDxfDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
 
 import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
@@ -13,6 +13,7 @@ interface LocalDatabaseState {
   files: DokFile[];
   file_versions?: DokFileVersion[];
   cad_derivatives?: DokCadDerivative[];
+  dwg_dxf_derivatives?: DokDwgDxfDerivative[];
   shares: DokShareLink[];
   share_items: DokShareItem[];
   activity_log?: DokActivityEvent[];
@@ -60,6 +61,7 @@ export function readLocalDb(): LocalDatabaseState {
       folders: [],
       files: [],
       cad_derivatives: [],
+      dwg_dxf_derivatives: [],
       shares: [],
       share_items: [],
       activity_log: [],
@@ -76,6 +78,7 @@ export function readLocalDb(): LocalDatabaseState {
       folders: [],
       files: [],
       cad_derivatives: [],
+      dwg_dxf_derivatives: [],
       shares: [],
       share_items: [],
       activity_log: [],

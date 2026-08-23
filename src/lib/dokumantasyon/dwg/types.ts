@@ -19,6 +19,10 @@ export type DwgDiagnosticCategory =
   | "missing-reference"
   | "library-warning";
 
+export type DwgFidelityDecision = "PASS" | "WARN" | "REJECT";
+
+export type DwgFidelitySeverity = "warning" | "blocking";
+
 export interface DwgVersionInfo {
   magic: string;
   label: string;
@@ -82,6 +86,54 @@ export interface DwgConversionOptions {
   maxOutputBytes?: number;
 }
 
+export interface DwgCadExtents {
+  min: [number, number, number];
+  max: [number, number, number];
+}
+
+export interface DwgColorCensus {
+  byLayer: number;
+  byBlock: number;
+  indexed: Record<string, number>;
+  trueColor: Record<string, number>;
+}
+
+export interface DwgStructuralSnapshot {
+  entityCount: number;
+  modelSpaceEntityCount: number;
+  paperSpaceEntityCount: number;
+  blockEntityCount: number;
+  blockDefinitionCount: number;
+  layerCount: number;
+  entityTypes: Record<string, number>;
+  layerNames: string[];
+  blockNames: string[];
+  lineTypes: Record<string, number>;
+  lineWeights: Record<string, number>;
+  colors: DwgColorCensus;
+  xDataEntityCount: number;
+  proxyGeometryEntityCount: number;
+  xrefBlockCount: number;
+  boundingBoxUnavailableCount: number;
+  extents: DwgCadExtents | null;
+}
+
+export interface DwgFidelityIssue {
+  code: string;
+  severity: DwgFidelitySeverity;
+  message: string;
+  sourceValue?: unknown;
+  outputValue?: unknown;
+}
+
+export interface DwgFidelityValidation {
+  decision: DwgFidelityDecision;
+  source: DwgStructuralSnapshot;
+  output: DwgStructuralSnapshot | null;
+  issues: DwgFidelityIssue[];
+  outputDiagnostics: DwgDiagnostic[];
+}
+
 export interface DwgConversionStats {
   sourceBytes: number;
   outputBytes: number;
@@ -106,6 +158,7 @@ export interface DwgConversionResult {
   dxfBytes: Uint8Array;
   dxfEnvelope: DxfEnvelopeInspection;
   diagnostics: DwgDiagnostic[];
+  sourceSnapshot: DwgStructuralSnapshot;
   stats: DwgConversionStats;
 }
 

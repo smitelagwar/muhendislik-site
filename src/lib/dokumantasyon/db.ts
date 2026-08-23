@@ -9,7 +9,7 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
-export const LATEST_REQUIRED_SCHEMA_VERSION = "006";
+export const LATEST_REQUIRED_SCHEMA_VERSION = "007";
 
 export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
   try {
@@ -209,7 +209,6 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_derivatives_hash_ready ON dok_cad_derivatives(source_sha256) WHERE status = 'ready';`;
 
     // 5. Migration 005: Drive yönetim meta verileri
-    // Tek yönetici için ayrı bir favorites tablosu yerine öğe meta verisi yeterlidir.
     await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ NULL;`;
     await sql`ALTER TABLE dok_folders ADD COLUMN IF NOT EXISTS starred_at TIMESTAMPTZ NULL;`;
     await sql`ALTER TABLE dok_files ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ NULL;`;
@@ -232,10 +231,49 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     `;
     await sql`CREATE INDEX IF NOT EXISTS idx_dok_activity_log_created_at ON dok_activity_log(created_at DESC);`;
 
+    // 7. Migration 007: DWG → DXF doğrulanmış derivative cache.
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_dwg_dxf_derivatives (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        file_id UUID NOT NULL REFERENCES dok_files(id) ON DELETE CASCADE,
+        source_version_key VARCHAR(1200) NOT NULL,
+        source_sha256 VARCHAR(64) NOT NULL,
+        converter_signature TEXT NOT NULL,
+        converter_signature_sha256 VARCHAR(64) NOT NULL,
+        dwg_version VARCHAR(16) NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'pending',
+        validation_decision VARCHAR(16) NULL,
+        dxf_blob_pathname VARCHAR(1024) NULL,
+        dxf_blob_url VARCHAR(2048) NULL,
+        dxf_sha256 VARCHAR(64) NULL,
+        dxf_size_bytes BIGINT NULL,
+        conversion_ms INT NULL,
+        validation_ms INT NULL,
+        diagnostics_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        validation_json JSONB NULL,
+        error_code VARCHAR(96) NULL,
+        error_message TEXT NULL,
+        lock_expires_at TIMESTAMPTZ NULL,
+        started_at TIMESTAMPTZ NULL,
+        completed_at TIMESTAMPTZ NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT uq_dok_dwg_dxf_derivatives_source UNIQUE (file_id, source_version_key, converter_signature_sha256),
+        CONSTRAINT ck_dok_dwg_dxf_derivatives_status CHECK (status IN ('pending', 'converting', 'validating', 'ready', 'failed')),
+        CONSTRAINT ck_dok_dwg_dxf_derivatives_validation CHECK (validation_decision IS NULL OR validation_decision IN ('PASS', 'WARN', 'REJECT'))
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_dwg_dxf_derivatives_file_id ON dok_dwg_dxf_derivatives(file_id);`;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_dok_dwg_dxf_derivatives_hash_ready
+      ON dok_dwg_dxf_derivatives(source_sha256, converter_signature_sha256)
+      WHERE status = 'ready' AND validation_decision IN ('PASS', 'WARN');
+    `;
+
     // Sürümleri kaydet
     await sql`
       INSERT INTO dok_schema_migrations (version, applied_at)
-      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW()), ('005', NOW()), ('006', NOW())
+      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW()), ('005', NOW()), ('006', NOW()), ('007', NOW())
       ON CONFLICT (version) DO NOTHING;
     `;
 
