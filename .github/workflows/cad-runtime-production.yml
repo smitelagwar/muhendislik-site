@@ -1,0 +1,102 @@
+name: cad-runtime-production
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cad-runtime-production.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-viewer.tsx"
+      - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dwg/**"
+      - "tests/document-studio/cad-dxf.spec.ts"
+      - "tests/document-studio/cad-dwg-aps.spec.ts"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cad-runtime-production.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-viewer.tsx"
+      - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+      - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dwg/**"
+      - "tests/document-studio/cad-dxf.spec.ts"
+      - "tests/document-studio/cad-dwg-aps.spec.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-runtime-production-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-runtime:
+    name: CAD production runtime gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js matching Vercel production
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Targeted CAD runtime lint
+        run: >-
+          npx eslint
+          "src/components/dokumantasyon/preview/cad-viewer.tsx"
+          "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+          "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+          "src/lib/dokumantasyon/dxf-runtime-policy.ts"
+          "tests/document-studio/cad-dxf.spec.ts"
+          "tests/document-studio/cad-dwg-aps.spec.ts"
+
+      - name: Full typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production Next build
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Production CAD browser gate
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3018"
+        run: >-
+          npx playwright test --config=playwright.config.ts
+          tests/document-studio/cad-dxf.spec.ts
+          tests/document-studio/cad-dwg-aps.spec.ts
+          --project=chromium
+
+      - name: Upload production CAD evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cad-production-runtime-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
