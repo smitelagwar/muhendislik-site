@@ -96,7 +96,39 @@ async function checkSimplePositive(versionName: (typeof SIMPLE_VERSIONS)[number]
   };
   const rejected = await validateDwgToDxfConversion(tampered);
   assert.equal(rejected.decision, "REJECT");
-  assert.ok(rejected.issues.some((issue) => issue.code === "ENTITY_COUNT_MISMATCH"));
+  const entityMismatch = rejected.issues.find((issue) => issue.code === "ENTITY_COUNT_MISMATCH");
+  assert.ok(entityMismatch);
+  assert.equal(entityMismatch.severity, "blocking");
+
+  // Presentation semantics can be repaired/represented by the renderer without
+  // inventing or deleting geometry. They must therefore warn, not route an otherwise
+  // structurally faithful DWG into an unavailable external fallback service.
+  const presentationTampered: DwgConversionResult = {
+    ...conversion,
+    sourceSnapshot: {
+      ...conversion.sourceSnapshot,
+      lineTypes: {
+        ...conversion.sourceSnapshot.lineTypes,
+        __STAGE1_PRESENTATION_TEST__: 1,
+      },
+      lineWeights: {
+        ...conversion.sourceSnapshot.lineWeights,
+        __STAGE1_PRESENTATION_TEST__: 1,
+      },
+      colors: {
+        ...conversion.sourceSnapshot.colors,
+        byLayer: conversion.sourceSnapshot.colors.byLayer + 1,
+      },
+    },
+  };
+  const warned = await validateDwgToDxfConversion(presentationTampered);
+  assert.equal(warned.decision, "WARN");
+  assert.equal(warned.issues.filter((issue) => issue.severity === "blocking").length, 0);
+  for (const code of ["LINE_TYPE_MISMATCH", "LINE_WEIGHT_MISMATCH", "COLOR_SEMANTICS_MISMATCH"]) {
+    const issue = warned.issues.find((candidate) => candidate.code === code);
+    assert.ok(issue, `Presentation policy must report ${code}`);
+    assert.equal(issue.severity, "warning", `${code} must remain presentation-only warning evidence`);
+  }
 
   return { source, conversion, validation, elapsedMs };
 }
