@@ -16,6 +16,28 @@ import {
   getDwgDxfSourceVersionKey,
 } from "./derivative-cache";
 
+export interface ReadyDwgDxfDerivativeStream {
+  stream: ReadableStream<Uint8Array>;
+  sizeBytes: number | null;
+}
+
+function assertReadyDerivative(derivative: DokDwgDxfDerivative): void {
+  if (
+    derivative.status !== "ready" ||
+    (derivative.validation_decision !== "PASS" && derivative.validation_decision !== "WARN") ||
+    !derivative.dxf_blob_pathname
+  ) {
+    throw new Error("DWG_DXF_DERIVATIVE_NOT_READY");
+  }
+}
+
+function normalizedDerivativeSize(value: string | number | null): number | null {
+  if (value === null) return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
+}
+
 export async function findReadyDwgDxfDerivativeForFile(
   file: DokFile,
   converterSignature: string = DWG_DXF_CONVERTER_SIGNATURE
@@ -54,28 +76,55 @@ export async function findReadyDwgDxfDerivativeForFile(
   return (rows[0] as DokDwgDxfDerivative | undefined) || null;
 }
 
-export async function readReadyDwgDxfDerivativeBytes(
+export async function openReadyDwgDxfDerivativeStream(
   derivative: DokDwgDxfDerivative
-): Promise<Uint8Array> {
-  if (
-    derivative.status !== "ready" ||
-    (derivative.validation_decision !== "PASS" && derivative.validation_decision !== "WARN") ||
-    !derivative.dxf_blob_pathname
-  ) {
-    throw new Error("DWG_DXF_DERIVATIVE_NOT_READY");
-  }
+): Promise<ReadyDwgDxfDerivativeStream> {
+  assertReadyDerivative(derivative);
 
   if (!hasDatabaseUrl()) {
     if (!isExplicitLocalDokMode()) assertDurableDokumantasyonRuntime(true);
     const diskPath = path.join(
       getLocalStorageDir(),
-      ...derivative.dxf_blob_pathname.split("/")
+      ...derivative.dxf_blob_pathname!.split("/")
+    );
+    const fileBytes = await fs.readFile(diskPath);
+    const exactBytes = new Uint8Array(fileBytes.byteLength);
+    exactBytes.set(fileBytes);
+    return {
+      stream: new Blob([exactBytes]).stream(),
+      sizeBytes: exactBytes.byteLength,
+    };
+  }
+
+  assertDurableDokumantasyonRuntime(true);
+  const blob = await get(derivative.dxf_blob_pathname!, {
+    access: "private",
+    ...getBlobCommandOptions(),
+  });
+  if (!blob?.stream) throw new Error("DWG_DXF_DERIVATIVE_BLOB_MISSING");
+
+  return {
+    stream: blob.stream as ReadableStream<Uint8Array>,
+    sizeBytes: normalizedDerivativeSize(derivative.dxf_size_bytes),
+  };
+}
+
+export async function readReadyDwgDxfDerivativeBytes(
+  derivative: DokDwgDxfDerivative
+): Promise<Uint8Array> {
+  assertReadyDerivative(derivative);
+
+  if (!hasDatabaseUrl()) {
+    if (!isExplicitLocalDokMode()) assertDurableDokumantasyonRuntime(true);
+    const diskPath = path.join(
+      getLocalStorageDir(),
+      ...derivative.dxf_blob_pathname!.split("/")
     );
     return new Uint8Array(await fs.readFile(diskPath));
   }
 
   assertDurableDokumantasyonRuntime(true);
-  const blob = await get(derivative.dxf_blob_pathname, {
+  const blob = await get(derivative.dxf_blob_pathname!, {
     access: "private",
     ...getBlobCommandOptions(),
   });
