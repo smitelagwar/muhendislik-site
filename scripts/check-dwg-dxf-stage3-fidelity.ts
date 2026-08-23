@@ -48,10 +48,13 @@ async function createSimpleDwg(versionName: (typeof SIMPLE_VERSIONS)[number]): P
   assert.equal(typeof version, "number", `Missing acad-ts DWG version ${versionName}`);
 
   const document = new acad.CadDocument();
-  assert.ok(document.header, "Synthetic DWG document must have a header");
-  document.header.version = version;
-  document.entities.add(new acad.Point(new acad.XYZ(10, 5, 0)));
-  document.entities.add(new acad.Line(new acad.XYZ(0, 0, 0), new acad.XYZ(50, 30, 0)));
+  const header = document.header;
+  const entities = document.entities;
+  assert.ok(header, "Synthetic DWG document must have a header");
+  assert.ok(entities, "Synthetic DWG document must have a model-space entity collection");
+  header.version = version;
+  entities.add(new acad.Point(new acad.XYZ(10, 5, 0)));
+  entities.add(new acad.Line(new acad.XYZ(0, 0, 0), new acad.XYZ(50, 30, 0)));
 
   const buffer = new ArrayBuffer(4 * 1024 * 1024);
   const writer = new acad.DwgWriter(buffer, document);
