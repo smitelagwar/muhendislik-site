@@ -47,12 +47,17 @@ jobs:
       - name: Typecheck adapter and site
         run: npx tsc --noEmit --incremental false
 
-      - name: Ensure frozen production CAD surface is untouched
+      - name: Verify historical freeze or current migration ownership
         shell: bash
         run: |
-          git diff --exit-code origin/main...HEAD -- \
-            src/components/dokumantasyon/preview/cad-viewer.tsx \
-            src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
-            src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
-            src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
-            src/lib/dokumantasyon/dwg
+          set -euo pipefail
+          if [ -f scripts/check-cad-upstream-stage7.mjs ]; then
+            node scripts/check-cad-upstream-stage7.mjs
+          else
+            git diff --exit-code origin/main...HEAD -- \
+              src/components/dokumantasyon/preview/cad-viewer.tsx \
+              src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
+              src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
+              src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
+              src/lib/dokumantasyon/dwg
+          fi
