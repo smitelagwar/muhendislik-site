@@ -68,14 +68,19 @@ jobs:
       - name: Production build
         run: npm run build
 
-      - name: Verify selector patch is one-line and legacy engines remain rollback-only
+      - name: Verify historical Stage 5 freeze or current Stage 7 ownership
         shell: bash
         run: |
-          read additions deletions _ < <(git diff --numstat origin/main...HEAD -- src/components/dokumantasyon/preview/file-preview-shell.tsx)
-          test "${additions:-0}" = "1"
-          test "${deletions:-0}" = "1"
-          git diff --exit-code origin/main...HEAD -- \
-            src/components/dokumantasyon/preview/cad-viewer.tsx \
-            src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
-            src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
-            src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts
+          set -euo pipefail
+          if [ -f scripts/check-cad-upstream-stage7.mjs ]; then
+            node scripts/check-cad-upstream-stage7.mjs
+          else
+            read additions deletions _ < <(git diff --numstat origin/main...HEAD -- src/components/dokumantasyon/preview/file-preview-shell.tsx)
+            test "${additions:-0}" = "1"
+            test "${deletions:-0}" = "1"
+            git diff --exit-code origin/main...HEAD -- \
+              src/components/dokumantasyon/preview/cad-viewer.tsx \
+              src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
+              src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
+              src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts
+          fi
