@@ -18,7 +18,7 @@ async function ensureSignedIn(page: Page) {
   await expect(dashboard).toBeVisible();
 }
 
-test("APS yapılandırılmamışsa DWG kontrollü hata ve indirme eylemi gösterir", async ({ page }) => {
+test("APS yapılandırılmamışsa orchestrator DWG'yi kontrollü terminal hata ve indirme eylemine taşır", async ({ page }) => {
   await ensureSignedIn(page);
 
   const fileId = await page.evaluate(async () => {
@@ -33,7 +33,8 @@ test("APS yapılandırılmamışsa DWG kontrollü hata ve indirme eylemi göster
   });
 
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
-  await expect(page.getByTestId("cad-dwg-viewer").first()).toBeVisible();
+  await expect(page.locator('[data-cad-runtime="orchestrator"]').first()).toBeVisible();
+  await expect(page.getByTestId("cad-dwg-aps-only")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("DWG açılamadı").first()).toBeVisible();
   await expect(page.getByText("DWG görüntüleme servisi yapılandırılmamış.").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Tekrar dene" }).first()).toBeVisible();
