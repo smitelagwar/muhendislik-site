@@ -1,10 +1,6 @@
-import {
-  DwgReader,
-  DwgReaderConfiguration,
-  DxfWriter,
-  DxfWriterConfiguration,
-} from "@node-projects/acad-ts";
+import type { CadDocument } from "@node-projects/acad-ts";
 import { normalizeDiagnostics, notificationMessage } from "./diagnostics";
+import { loadAcadTsEngine, type AcadTsEngine } from "./engine";
 import { assertConvertibleDwg, inspectDwgBytes } from "./inspect";
 import { DWG_DXF_CONVERTER_SIGNATURE, DWG_DXF_PROFILE } from "./signature";
 import {
@@ -80,8 +76,8 @@ function countCollection(value: unknown): number {
   return 0;
 }
 
-function createReaderConfiguration(): DwgReaderConfiguration {
-  const configuration = new DwgReaderConfiguration();
+function createReaderConfiguration(acad: AcadTsEngine) {
+  const configuration = new acad.DwgReaderConfiguration();
   const profile = DWG_DXF_PROFILE.reader;
   configuration.failsafe = profile.failsafe;
   configuration.keepUnknownEntities = profile.keepUnknownEntities;
@@ -91,8 +87,8 @@ function createReaderConfiguration(): DwgReaderConfiguration {
   return configuration;
 }
 
-function createWriterConfiguration(): DxfWriterConfiguration {
-  const configuration = new DxfWriterConfiguration();
+function createWriterConfiguration(acad: AcadTsEngine) {
+  const configuration = new acad.DxfWriterConfiguration();
   const profile = DWG_DXF_PROFILE.writer;
   configuration.writeAllHeaderVariables = profile.writeAllHeaderVariables;
   configuration.writeOptionalValues = profile.writeOptionalValues;
@@ -115,7 +111,8 @@ function normalizePositiveInteger(value: number | undefined, fallback: number, n
 }
 
 function writeAsciiDxf(
-  document: Parameters<typeof DxfWriter.writeToStream>[1],
+  acad: AcadTsEngine,
+  document: CadDocument,
   sourceBytes: number,
   writeMessages: string[],
   options: DwgConversionOptions
@@ -138,11 +135,11 @@ function writeAsciiDxf(
     attempts += 1;
     const target = new Uint8Array(capacity);
     try {
-      DxfWriter.writeToStream(
+      acad.DxfWriter.writeToStream(
         target,
         document,
         false,
-        createWriterConfiguration(),
+        createWriterConfiguration(acad),
         (_sender, event) => writeMessages.push(notificationMessage(event))
       );
       const usedBytes = usedUint8Length(target);
@@ -171,22 +168,23 @@ function writeAsciiDxf(
   }
 }
 
-export function convertDwgToDxf(
+export async function convertDwgToDxf(
   input: Uint8Array | ArrayBuffer,
   options: DwgConversionOptions = {}
-): DwgConversionResult {
+): Promise<DwgConversionResult> {
   const source = toUint8Array(input);
   const inspection = inspectDwgBytes(source);
   assertConvertibleDwg(inspection);
 
+  const acad = await loadAcadTsEngine();
   const readMessages: string[] = [];
   const writeMessages: string[] = [];
-  let document: ReturnType<typeof DwgReader.readFromStreamWithConfig>;
+  let document: CadDocument;
 
   try {
-    document = DwgReader.readFromStreamWithConfig(
+    document = acad.DwgReader.readFromStreamWithConfig(
       exactArrayBuffer(source),
-      createReaderConfiguration(),
+      createReaderConfiguration(acad),
       (_sender, event) => readMessages.push(notificationMessage(event))
     );
   } catch (error) {
@@ -197,7 +195,7 @@ export function convertDwgToDxf(
     });
   }
 
-  const output = writeAsciiDxf(document, source.byteLength, writeMessages, options);
+  const output = writeAsciiDxf(acad, document, source.byteLength, writeMessages, options);
   const dxfEnvelope = inspectDxfEnvelope(output.bytes);
   if (!dxfEnvelope.valid) {
     throw new DwgConversionError(
