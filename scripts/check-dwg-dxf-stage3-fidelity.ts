@@ -7,6 +7,7 @@ import {
   convertAndValidateDwgToDxf,
   validateDwgToDxfConversion,
   type DwgConversionResult,
+  type DwgFidelityValidation,
 } from "../src/lib/dokumantasyon/dwg";
 import {
   claimDwgDxfDerivative,
@@ -17,7 +18,8 @@ import {
 } from "../src/lib/dokumantasyon/dwg/server";
 
 const FIXTURE_DIR = process.env.DWG_STAGE3_FIXTURE_DIR || ".poc/stage3-fixtures";
-const FIXTURES = ["sample_AC1014.dwg", "sample_AC1032.dwg"] as const;
+const COMPLEX_FIXTURES = ["sample_AC1014.dwg", "sample_AC1032.dwg"] as const;
+const SIMPLE_VERSIONS = ["AC1014", "AC1032"] as const;
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
@@ -40,27 +42,47 @@ function makeFile(id: string, fileName: string, source: Uint8Array): DokFile {
   };
 }
 
-async function checkFixture(fileName: (typeof FIXTURES)[number]) {
-  const source = new Uint8Array(await fs.readFile(path.join(FIXTURE_DIR, fileName)));
-  const started = performance.now();
-  const { conversion, validation } = await convertAndValidateDwgToDxf(source);
-  const elapsedMs = performance.now() - started;
+async function createSimpleDwg(versionName: (typeof SIMPLE_VERSIONS)[number]): Promise<Uint8Array> {
+  const acad = await import("@node-projects/acad-ts");
+  const version = acad.ACadVersion[versionName];
+  assert.equal(typeof version, "number", `Missing acad-ts DWG version ${versionName}`);
 
-  if (validation.decision === "REJECT") {
-    console.error(`FIDELITY_REJECT ${fileName}`);
-    console.error(JSON.stringify({ source: validation.source, output: validation.output, issues: validation.issues }, null, 2));
-  }
+  const document = new acad.CadDocument();
+  assert.ok(document.header, "Synthetic DWG document must have a header");
+  document.header.version = version;
+  document.entities.add(new acad.Point(new acad.XYZ(10, 5, 0)));
+  document.entities.add(new acad.Line(new acad.XYZ(0, 0, 0), new acad.XYZ(50, 30, 0)));
 
-  assert.notEqual(validation.decision, "REJECT", `${fileName} must not fail the fidelity gate`);
-  assert.ok(validation.output, `${fileName} output snapshot missing`);
+  const buffer = new ArrayBuffer(4 * 1024 * 1024);
+  const writer = new acad.DwgWriter(buffer, document);
+  writer.write();
+  assert.ok(writer.bytesWritten > 0, `${versionName} synthetic DWG writer produced no bytes`);
+  return new Uint8Array(buffer, 0, writer.bytesWritten).slice();
+}
+
+function assertStructurallyEqual(validation: DwgFidelityValidation, label: string): void {
+  assert.notEqual(validation.decision, "REJECT", `${label} must not fail the fidelity gate`);
+  assert.ok(validation.output, `${label} output snapshot missing`);
   assert.equal(validation.issues.filter((issue) => issue.severity === "blocking").length, 0);
+  assert.equal(validation.source.entityCount, validation.output.entityCount);
+  assert.equal(validation.source.modelSpaceEntityCount, validation.output.modelSpaceEntityCount);
   assert.deepEqual(validation.source.entityTypes, validation.output.entityTypes);
   assert.deepEqual(validation.source.layerNames, validation.output.layerNames);
   assert.deepEqual(validation.source.blockNames, validation.output.blockNames);
   assert.deepEqual(validation.source.lineWeights, validation.output.lineWeights);
   assert.deepEqual(validation.source.lineTypes, validation.output.lineTypes);
   assert.deepEqual(validation.source.colors, validation.output.colors);
-  assert.equal(validation.source.modelSpaceEntityCount, validation.output.modelSpaceEntityCount);
+  assert.equal(validation.source.xDataEntityCount, validation.output.xDataEntityCount);
+}
+
+async function checkSimplePositive(versionName: (typeof SIMPLE_VERSIONS)[number]) {
+  const source = await createSimpleDwg(versionName);
+  const started = performance.now();
+  const { conversion, validation } = await convertAndValidateDwgToDxf(source);
+  const elapsedMs = performance.now() - started;
+
+  assert.equal(conversion.inspection.magic, versionName);
+  assertStructurallyEqual(validation, `simple_${versionName}.dwg`);
 
   const tampered: DwgConversionResult = {
     ...conversion,
@@ -76,68 +98,95 @@ async function checkFixture(fileName: (typeof FIXTURES)[number]) {
   return { source, conversion, validation, elapsedMs };
 }
 
+async function checkComplexFixture(fileName: (typeof COMPLEX_FIXTURES)[number]) {
+  const source = new Uint8Array(await fs.readFile(path.join(FIXTURE_DIR, fileName)));
+  const started = performance.now();
+  const { conversion, validation } = await convertAndValidateDwgToDxf(source);
+  const elapsedMs = performance.now() - started;
+  const blocking = validation.issues.filter((issue) => issue.severity === "blocking");
+
+  if (fileName === "sample_AC1014.dwg") {
+    assert.equal(validation.decision, "REJECT", "Known complex AC1014 fixture must be rejected rather than cached as faithful");
+    assert.ok(blocking.length > 0);
+    for (const code of [
+      "ENTITY_COUNT_MISMATCH",
+      "MODELSPACE_COUNT_MISMATCH",
+      "ENTITY_TYPES_MISMATCH",
+      "EXTENTS_MISMATCH",
+    ]) {
+      assert.ok(validation.issues.some((issue) => issue.code === code), `AC1014 rejection must include ${code}`);
+    }
+    assert.ok(
+      validation.issues.some(
+        (issue) => issue.severity === "blocking" && /NOT_IMPLEMENTED|UNSUPPORTED|UNKNOWN|MISSING/i.test(issue.code)
+      ),
+      "AC1014 rejection must retain at least one blocking engine diagnostic"
+    );
+  } else if (validation.decision === "REJECT") {
+    assert.ok(blocking.length > 0, `${fileName} REJECT must have blocking evidence`);
+  } else {
+    assertStructurallyEqual(validation, fileName);
+  }
+
+  return { source, conversion, validation, elapsedMs };
+}
+
 async function checkLocalCache(
-  source: Uint8Array,
-  conversion: Awaited<ReturnType<typeof convertAndValidateDwgToDxf>>["conversion"],
-  validation: Awaited<ReturnType<typeof convertAndValidateDwgToDxf>>["validation"]
+  positive: Awaited<ReturnType<typeof checkSimplePositive>>,
+  negative: Awaited<ReturnType<typeof checkComplexFixture>>
 ): Promise<void> {
   process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
   await fs.rm(".data", { recursive: true, force: true });
 
-  const sourceHash = sha256(source);
-  const file = makeFile("11111111-1111-4111-8111-111111111111", "cache-pass.dwg", source);
+  const positiveHash = sha256(positive.source);
+  const passFile = makeFile("11111111-1111-4111-8111-111111111111", "cache-pass.dwg", positive.source);
   const claimed = await claimDwgDxfDerivative({
-    file,
-    sourceSha256: sourceHash,
-    dwgVersion: conversion.inspection.magic,
+    file: passFile,
+    sourceSha256: positiveHash,
+    dwgVersion: positive.conversion.inspection.magic,
   });
   assert.equal(claimed.claimed, true);
   assert.equal(claimed.derivative.status, "converting");
 
-  await markDwgDxfDerivativeValidating(claimed.derivative.id, 10, conversion.diagnostics);
+  await markDwgDxfDerivativeValidating(claimed.derivative.id, 10, positive.conversion.diagnostics);
   const ready = await completeDwgDxfDerivative({
     id: claimed.derivative.id,
-    dxfBytes: conversion.dxfBytes,
-    validation,
+    dxfBytes: positive.conversion.dxfBytes,
+    validation: positive.validation,
     conversionMs: 10,
     validationMs: 5,
-    diagnostics: conversion.diagnostics,
+    diagnostics: positive.conversion.diagnostics,
   });
   assert.equal(ready.status, "ready");
   assert.ok(ready.validation_decision === "PASS" || ready.validation_decision === "WARN");
   assert.ok(ready.dxf_blob_pathname);
-  assert.equal(ready.dxf_sha256, sha256(conversion.dxfBytes));
+  assert.equal(ready.dxf_sha256, sha256(positive.conversion.dxfBytes));
 
-  const hit = await findReadyDwgDxfDerivativeByHash(sourceHash);
+  const hit = await findReadyDwgDxfDerivativeByHash(positiveHash);
   assert.ok(hit);
   assert.equal(hit.id, ready.id);
 
-  const rejectFile = makeFile("22222222-2222-4222-8222-222222222222", "cache-reject.dwg", source);
+  assert.equal(negative.validation.decision, "REJECT", "Negative cache fixture must be rejected");
+  const negativeHash = sha256(negative.source);
+  const rejectFile = makeFile("22222222-2222-4222-8222-222222222222", "cache-reject.dwg", negative.source);
   const rejectClaim = await claimDwgDxfDerivative({
     file: rejectFile,
-    sourceSha256: sourceHash,
-    dwgVersion: conversion.inspection.magic,
+    sourceSha256: negativeHash,
+    dwgVersion: negative.conversion.inspection.magic,
   });
-  await markDwgDxfDerivativeValidating(rejectClaim.derivative.id, 10, conversion.diagnostics);
-  const rejectedValidation = {
-    ...validation,
-    decision: "REJECT" as const,
-    issues: [
-      ...validation.issues,
-      { code: "TEST_BLOCK", severity: "blocking" as const, message: "Synthetic blocking fidelity failure." },
-    ],
-  };
+  await markDwgDxfDerivativeValidating(rejectClaim.derivative.id, 10, negative.conversion.diagnostics);
   const failed = await completeDwgDxfDerivative({
     id: rejectClaim.derivative.id,
-    dxfBytes: conversion.dxfBytes,
-    validation: rejectedValidation,
+    dxfBytes: negative.conversion.dxfBytes,
+    validation: negative.validation,
     conversionMs: 10,
     validationMs: 5,
-    diagnostics: conversion.diagnostics,
+    diagnostics: negative.conversion.diagnostics,
   });
   assert.equal(failed.status, "failed");
   assert.equal(failed.validation_decision, "REJECT");
   assert.equal(failed.dxf_blob_pathname, null);
+  assert.equal(await findReadyDwgDxfDerivativeByHash(negativeHash), null);
 
   const sigHash = getDwgDxfConverterSignatureHash();
   assert.match(sigHash, /^[a-f0-9]{64}$/);
@@ -156,29 +205,45 @@ async function checkMigration(): Promise<void> {
 
 async function main(): Promise<void> {
   await checkMigration();
-  const results = [];
-  let cacheSeed: Awaited<ReturnType<typeof checkFixture>> | null = null;
+  const results: Array<Record<string, string | number>> = [];
+  const positives = [];
 
-  for (const fixture of FIXTURES) {
-    const result = await checkFixture(fixture);
-    cacheSeed ??= result;
+  for (const version of SIMPLE_VERSIONS) {
+    const result = await checkSimplePositive(version);
+    positives.push(result);
     results.push({
-      fixture,
+      fixture: `synthetic_simple_${version}`,
+      expected: "PASS/WARN",
       decision: result.validation.decision,
       sourceEntities: result.validation.source.entityCount,
       outputEntities: result.validation.output?.entityCount ?? -1,
-      layers: result.validation.source.layerCount,
-      blocks: result.validation.source.blockDefinitionCount,
-      xrefs: result.validation.source.xrefBlockCount,
-      proxyEntities: result.validation.source.proxyGeometryEntityCount,
       issues: result.validation.issues.length,
       elapsedMs: Math.round(result.elapsedMs),
       dxfSha256: sha256(result.conversion.dxfBytes),
     });
   }
 
-  assert.ok(cacheSeed);
-  await checkLocalCache(cacheSeed.source, cacheSeed.conversion, cacheSeed.validation);
+  const complexResults = [];
+  for (const fixture of COMPLEX_FIXTURES) {
+    const result = await checkComplexFixture(fixture);
+    complexResults.push(result);
+    results.push({
+      fixture,
+      expected: fixture === "sample_AC1014.dwg" ? "REJECT" : "evidence-driven",
+      decision: result.validation.decision,
+      sourceEntities: result.validation.source.entityCount,
+      outputEntities: result.validation.output?.entityCount ?? -1,
+      blockingIssues: result.validation.issues.filter((issue) => issue.severity === "blocking").length,
+      issues: result.validation.issues.length,
+      elapsedMs: Math.round(result.elapsedMs),
+      dxfSha256: sha256(result.conversion.dxfBytes),
+    });
+  }
+
+  const negative = complexResults.find((result) => result.validation.decision === "REJECT");
+  assert.ok(positive[0]);
+  assert.ok(negative, "At least one complex fixture must exercise the REJECT cache path");
+  await checkLocalCache(positives[0], negative);
 
   console.log("DWG→DXF Stage 3 fidelity/cache: PASS");
   console.table(results);
