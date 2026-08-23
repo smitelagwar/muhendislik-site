@@ -241,7 +241,7 @@ async function main(): Promise<void> {
   }
 
   const negative = complexResults.find((result) => result.validation.decision === "REJECT");
-  assert.ok(positive[0]);
+  assert.ok(positives[0], "At least one positive fixture must exercise the ready cache path");
   assert.ok(negative, "At least one complex fixture must exercise the REJECT cache path");
   await checkLocalCache(positives[0], negative);
 
