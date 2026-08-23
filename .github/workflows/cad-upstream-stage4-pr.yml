@@ -1,0 +1,70 @@
+name: CAD upstream Stage 4 gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+      - scripts/sync-cad-upstream-assets.mjs
+      - scripts/check-cad-upstream-stage3.mjs
+      - scripts/check-cad-upstream-stage4.mjs
+      - src/lib/dokumantasyon/cad-upstream/**
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - docs/cad-upstream-migration-stage4.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-stage4-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify-stage4-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact root lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Sync upstream worker assets
+        run: node scripts/sync-cad-upstream-assets.mjs
+
+      - name: Re-run Stage 3 adapter gate
+        run: node scripts/check-cad-upstream-stage3.mjs
+
+      - name: Run Stage 4 host gate
+        run: node scripts/check-cad-upstream-stage4.mjs
+
+      - name: Targeted lint
+        run: npx eslint src/lib/dokumantasyon/cad-upstream/adapter.ts src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production build
+        run: npm run build
+
+      - name: Ensure production CAD selector and rollback surface are untouched
+        shell: bash
+        run: |
+          git diff --exit-code origin/main...HEAD -- \
+            src/components/dokumantasyon/preview/file-preview-shell.tsx \
+            src/components/dokumantasyon/preview/cad-viewer.tsx \
+            src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
+            src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
+            src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
+            src/lib/dokumantasyon/dwg
