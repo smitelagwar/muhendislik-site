@@ -11,8 +11,8 @@ const MAX_BROWSER_FAST_PATH_BYTES = 4 * 1024 * 1024;
 const BROWSER_FAST_PATH_TIMEOUT_MS = 25_000;
 
 const ResolvedDxfCadViewer = lazy(async () => {
-  const module = await import("./cad-viewer");
-  return { default: module.DokCadViewer };
+  const cadViewerModule = await import("./cad-viewer");
+  return { default: cadViewerModule.DokCadViewer };
 });
 
 type DwgStatus = "pending" | "uploading" | "translating" | "ready" | "failed";
