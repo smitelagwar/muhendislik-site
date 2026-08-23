@@ -46,8 +46,15 @@ jobs:
       - name: Re-run Stage 3 adapter gate
         run: node scripts/check-cad-upstream-stage3.mjs
 
-      - name: Run Stage 4 host gate
-        run: node scripts/check-cad-upstream-stage4.mjs
+      - name: Run historical Stage 4 gate or current migration ownership gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f scripts/check-cad-upstream-stage7.mjs ]; then
+            node scripts/check-cad-upstream-stage7.mjs
+          else
+            node scripts/check-cad-upstream-stage4.mjs
+          fi
 
       - name: Targeted lint
         run: npx eslint src/lib/dokumantasyon/cad-upstream/adapter.ts src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
@@ -58,13 +65,18 @@ jobs:
       - name: Production build
         run: npm run build
 
-      - name: Ensure production CAD selector and rollback surface are untouched
+      - name: Verify historical freeze or current migration ownership
         shell: bash
         run: |
-          git diff --exit-code origin/main...HEAD -- \
-            src/components/dokumantasyon/preview/file-preview-shell.tsx \
-            src/components/dokumantasyon/preview/cad-viewer.tsx \
-            src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
-            src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
-            src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
-            src/lib/dokumantasyon/dwg
+          set -euo pipefail
+          if [ -f scripts/check-cad-upstream-stage7.mjs ]; then
+            node scripts/check-cad-upstream-stage7.mjs
+          else
+            git diff --exit-code origin/main...HEAD -- \
+              src/components/dokumantasyon/preview/file-preview-shell.tsx \
+              src/components/dokumantasyon/preview/cad-viewer.tsx \
+              src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
+              src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
+              src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
+              src/lib/dokumantasyon/dwg
+          fi
