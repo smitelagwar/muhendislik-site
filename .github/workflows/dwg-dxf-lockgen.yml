@@ -6,6 +6,9 @@ on:
       - feat/dwg-dxf-auto-preview
     paths:
       - ".github/workflows/dwg-dxf-lockgen.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/dwg-dxf-lockgen.yml"
   workflow_dispatch:
 
 permissions:
