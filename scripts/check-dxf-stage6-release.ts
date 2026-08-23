@@ -37,7 +37,8 @@ const releaseMatrix: MatrixRow[] = [
   { fixture: "stage7-color-hatch.dxf", expectedStatus: "clean" },
   { fixture: "suppressed-unsupported.dxf", expectedStatus: "clean", requiredCategories: ["structure", "layer"] },
   { fixture: "stage3-text-mtext.dxf", expectedStatus: "warning", requiredCategories: ["text"] },
-  { fixture: "stage4-geometry-layers.dxf", expectedStatus: "warning", requiredCategories: ["layer", "geometry", "viewport"] },
+  { fixture: "stage4-geometry-layers.dxf", expectedStatus: "clean", requiredCategories: ["layer", "viewport"] },
+  { fixture: "stage3-wide-polylines.dxf", expectedStatus: "clean" },
   { fixture: "unsupported-annotations.dxf", expectedStatus: "blocked", requiredCategories: ["structure", "renderer"] },
   { fixture: "missing-block-only.dxf", expectedStatus: "blocked", requiredCategories: ["block", "renderer"] },
   { fixture: "ocs-arc-circle.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
@@ -172,6 +173,8 @@ async function main() {
   assert.match(workerSource, /scenePrototype\._ProcessPolyline = function/);
   assert.match(workerSource, /expandDxfSimpleLinetypePath/);
   assert.match(workerSource, /DXF_LINETYPE_MAX_RENDER_PRIMITIVES/);
+  assert.match(workerSource, /normalizeParsedDxfWidePolylines/);
+  assert.match(workerSource, /polylineWidthRenderAudit/);
 
   const playwrightConfig = await readFile(path.join(root, "playwright.config.ts"), "utf8");
   assert.match(playwrightConfig, /DOK_ALLOW_LOCAL_STORAGE:\s*"true"/);
