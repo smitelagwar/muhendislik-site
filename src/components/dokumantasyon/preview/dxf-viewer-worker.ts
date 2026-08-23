@@ -11,6 +11,22 @@ import { BatchingKey } from "dxf-viewer/src/BatchingKey.js";
 import DxfParser from "dxf-viewer/src/parser/DxfParser.js";
 import { normalizeParsedDxfDimensionColors } from "../../../lib/dokumantasyon/dxf-dimension-color-normalization";
 import {
+  DXF_LINETYPE_BY_BLOCK,
+  DXF_LINETYPE_BY_LAYER,
+  DXF_LINETYPE_CONTINUOUS,
+  DXF_LINETYPE_MAX_RENDER_PRIMITIVES,
+  auditDxfLinetypeSource,
+  collectDxfSimpleLinetypes,
+  enrichParsedDxfLinetypes,
+  expandDxfSimpleLinetypePath,
+  normalizeDxfLinetypeName,
+  resolveDxfLayerLinetype,
+  resolveDxfLinetypeScale,
+  type DxfLinetypeParsedDxf,
+  type DxfLinetypePoint,
+  type DxfSimpleLinetypeDefinition,
+} from "../../../lib/dokumantasyon/dxf-linetype-rendering";
+import {
   auditDxfLineweightSource,
   DXF_LINEWEIGHT_BY_BLOCK,
   DXF_LINEWEIGHT_BY_LAYER,
@@ -34,8 +50,17 @@ import {
   type DxfTextStage3LayoutReport,
 } from "../../../lib/dokumantasyon/dxf-text-stage3-layout";
 
+type DxfLineEntity = DxfTextStage2Entity & {
+  color?: number;
+  layer?: string | null;
+  lineType?: string | number | null;
+  lineTypeScale?: number | null;
+  lineweight?: number;
+  shape?: boolean;
+  vertices?: DxfLinetypePoint[];
+};
 type ParsedBlock = { entities?: DxfTextStage2Entity[] };
-type WorkerParsedDxf = DxfTextStage2ParsedDxf & DxfLineweightParsedDxf;
+type WorkerParsedDxf = DxfTextStage2ParsedDxf & DxfLineweightParsedDxf & DxfLinetypeParsedDxf;
 type CompactParsedDxf = {
   entities?: DxfTextStage2Entity[];
   blocks?: Record<string, ParsedBlock>;
@@ -63,15 +88,34 @@ type InternalBatchKey = {
   Compare: (other: InternalBatchKey) => number;
 };
 type InternalBatch = { key: InternalBatchKey };
+type ActiveLinetypePattern = {
+  definition: DxfSimpleLinetypeDefinition;
+  scale: number;
+};
 type InternalDxfScene = {
   __dxfLineweightContext?: number;
   __dxfLineweightDefault?: number;
   __dxfLineweightLayers?: Record<string, number>;
+  __dxfLinetypeDefinitions?: Record<string, DxfSimpleLinetypeDefinition>;
+  __dxfLinetypeLayers?: Record<string, string>;
+  __dxfLinetypeGlobalScale?: number;
+  __dxfLinetypePatternIds?: Map<string, number>;
+  __dxfLinetypePatterns?: Map<number, ActiveLinetypePattern>;
+  __dxfLinetypeNextId?: number;
+  __dxfLinetypePrimitiveCount?: number;
+  __dxfLinetypePatternedEntityCount?: number;
+  __dxfLinetypeWarnings?: string[];
   scene?: {
     layers?: Array<{ name: string; lineweight?: number }>;
     lineweightDefault?: number;
     lineweightLayers?: Record<string, number>;
     lineweightSourceAudit?: DxfLineweightSourceAudit;
+    linetypeRenderAudit?: {
+      definitions: string[];
+      patternedEntityCount: number;
+      generatedPrimitiveCount: number;
+      warnings: string[];
+    };
   };
 };
 type InternalDxfScenePrototype = {
@@ -82,7 +126,7 @@ type InternalDxfScenePrototype = {
   ) => Promise<void>;
   _ProcessDxfEntity: (
     this: InternalDxfScene,
-    entity: DxfTextStage2Entity & { lineweight?: number },
+    entity: DxfLineEntity,
     blockCtx?: unknown
   ) => unknown;
   _GetBatch: (this: InternalDxfScene, key: InternalBatchKey) => unknown;
@@ -93,6 +137,27 @@ type InternalDxfScenePrototype = {
     blockColor: number,
     blockLineType: number,
     transform: unknown
+  ) => unknown;
+  _GetLineType: (
+    this: InternalDxfScene,
+    entity: DxfLineEntity,
+    vertex?: DxfLineEntity | DxfLinetypePoint | null,
+    blockCtx?: unknown
+  ) => number;
+  _ProcessLineSegments: (
+    this: InternalDxfScene,
+    entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+    blockCtx?: unknown
+  ) => unknown;
+  _ProcessPolyline: (
+    this: InternalDxfScene,
+    entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+    blockCtx?: unknown
+  ) => unknown;
+  _ProcessPoints: (
+    this: InternalDxfScene,
+    entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+    blockCtx?: unknown
   ) => unknown;
 };
 type InternalDxfParserPrototype = {
@@ -146,14 +211,78 @@ function compactParsedTextEvidence(dxf: WorkerParsedDxf | undefined): CompactPar
   };
 }
 
-// Upstream parses entity group 370, but drops group 370 in the LAYER table. Enrich only the
-// worker-owned parsed representation from the exact source text. Uploaded/downloadable bytes remain
-// unchanged, so source fidelity and later re-download are independent from rendering metadata.
+function addLinetypeWarning(scene: InternalDxfScene, warning: string): void {
+  scene.__dxfLinetypeWarnings ??= [];
+  if (!scene.__dxfLinetypeWarnings.includes(warning)) scene.__dxfLinetypeWarnings.push(warning);
+}
+
+function registerLinetypePattern(
+  scene: InternalDxfScene,
+  definition: DxfSimpleLinetypeDefinition,
+  scale: number
+): number {
+  scene.__dxfLinetypePatternIds ??= new Map();
+  scene.__dxfLinetypePatterns ??= new Map();
+  scene.__dxfLinetypeNextId ??= 1;
+  const key = `${definition.name}|${scale.toPrecision(12)}`;
+  const existing = scene.__dxfLinetypePatternIds.get(key);
+  if (existing !== undefined) return existing;
+  const id = scene.__dxfLinetypeNextId++;
+  scene.__dxfLinetypePatternIds.set(key, id);
+  scene.__dxfLinetypePatterns.set(id, { definition, scale });
+  return id;
+}
+
+function activeLinetypePattern(scene: InternalDxfScene, lineType: unknown): ActiveLinetypePattern | null {
+  const id = typeof lineType === "number" && Number.isFinite(lineType) ? Math.trunc(lineType) : 0;
+  if (id <= 0) return null;
+  return scene.__dxfLinetypePatterns?.get(id) ?? null;
+}
+
+function renderExpandedPattern(
+  scene: InternalDxfScene,
+  entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+  vertices: readonly DxfLinetypePoint[],
+  closed: boolean,
+  blockCtx: unknown,
+  processLineSegments: InternalDxfScenePrototype["_ProcessLineSegments"],
+  processPoints: InternalDxfScenePrototype["_ProcessPoints"]
+): boolean {
+  const activePattern = activeLinetypePattern(scene, entity.lineType);
+  if (!activePattern) return false;
+
+  const used = scene.__dxfLinetypePrimitiveCount ?? 0;
+  const remainingBudget = DXF_LINETYPE_MAX_RENDER_PRIMITIVES - used;
+  const expanded = expandDxfSimpleLinetypePath({
+    vertices,
+    closed,
+    pattern: activePattern.definition.pattern,
+    scale: activePattern.scale,
+    maxPrimitives: remainingBudget,
+  });
+
+  scene.__dxfLinetypePrimitiveCount = used + expanded.primitiveCount;
+  scene.__dxfLinetypePatternedEntityCount = (scene.__dxfLinetypePatternedEntityCount ?? 0) + 1;
+
+  if (expanded.lineVertices.length > 0) {
+    processLineSegments.call(scene, { ...entity, lineType: 0, shape: false, vertices: expanded.lineVertices }, blockCtx);
+  }
+  if (expanded.dotVertices.length > 0) {
+    processPoints.call(scene, { ...entity, lineType: null, shape: false, vertices: expanded.dotVertices }, blockCtx);
+  }
+  return true;
+}
+
+// Upstream parses entity group 370 but drops group 370 in the LAYER table. It also parses the LTYPE
+// table and entity group 6/48, but drops LAYER group 6. Enrich only the worker-owned representation
+// from exact source text. Uploaded/downloadable bytes remain unchanged.
 const parserPrototype = (DxfParser as unknown as { prototype: InternalDxfParserPrototype }).prototype;
 const upstreamParseSync = parserPrototype.parseSync;
 parserPrototype.parseSync = function (source: string) {
   const dxf = upstreamParseSync.call(this, source);
-  return enrichParsedDxfLineweights(dxf, auditDxfLineweightSource(source)) as WorkerParsedDxf;
+  enrichParsedDxfLineweights(dxf, auditDxfLineweightSource(source));
+  enrichParsedDxfLinetypes(dxf, auditDxfLinetypeSource(source));
+  return dxf as WorkerParsedDxf;
 };
 
 // Upstream batch identity does not include lineweight. Keep otherwise identical/coincident entities
@@ -174,12 +303,15 @@ const scenePrototype = (DxfScene as unknown as { prototype: InternalDxfSceneProt
 const upstreamProcessDxfEntity = scenePrototype._ProcessDxfEntity;
 const upstreamGetBatch = scenePrototype._GetBatch;
 const upstreamFlattenBatch = scenePrototype._FlattenBatch;
+const upstreamProcessLineSegments = scenePrototype._ProcessLineSegments;
+const upstreamProcessPolyline = scenePrototype._ProcessPolyline;
+const upstreamProcessPoints = scenePrototype._ProcessPoints;
 
 // Keep raw inheritance semantics (-1 BYBLOCK, -2 BYLAYER, -3 DEFAULT, or explicit 1/100 mm) while
 // DxfScene decomposes a parsed entity into render entities.
 scenePrototype._ProcessDxfEntity = function (
   this: InternalDxfScene,
-  entity: DxfTextStage2Entity & { lineweight?: number },
+  entity: DxfLineEntity,
   blockCtx?: unknown
 ) {
   const previous = this.__dxfLineweightContext;
@@ -204,9 +336,104 @@ scenePrototype._GetBatch = function (this: InternalDxfScene, key: InternalBatchK
   return upstreamGetBatch.call(this, key);
 };
 
+// dxf-viewer currently hardcodes `_GetLineType()` to 0 even though its parser already understands
+// entity group 6/48 and the LTYPE table. Resolve the common simple-linetype path here. BYBLOCK and
+// layer-0 inheritance inside block definitions stay solid rather than fabricating an incorrect
+// pattern; they are recorded as warnings for later fidelity work.
+scenePrototype._GetLineType = function (
+  this: InternalDxfScene,
+  entity: DxfLineEntity,
+  vertex?: DxfLineEntity | DxfLinetypePoint | null,
+  blockCtx?: unknown
+): number {
+  const vertexLineType = (vertex as DxfLineEntity | null | undefined)?.lineType;
+  const requested = normalizeDxfLinetypeName(vertexLineType ?? entity.lineType ?? DXF_LINETYPE_BY_LAYER) || DXF_LINETYPE_BY_LAYER;
+  let resolved = requested;
+
+  if (requested === DXF_LINETYPE_BY_LAYER) {
+    const layerName = typeof entity.layer === "string" && entity.layer ? entity.layer : blockCtx ? null : "0";
+    if (blockCtx && (!layerName || layerName === "0")) {
+      addLinetypeWarning(this, "BYLAYER linetype on block layer 0 requires INSERT-layer inheritance; rendered solid.");
+      return 0;
+    }
+    resolved = resolveDxfLayerLinetype(layerName, this.__dxfLinetypeLayers ?? {});
+  }
+
+  if (resolved === DXF_LINETYPE_BY_BLOCK) {
+    if (blockCtx) addLinetypeWarning(this, "BYBLOCK linetype inheritance is not resolved in CAD Stage 2; rendered solid.");
+    return 0;
+  }
+  if (!resolved || resolved === DXF_LINETYPE_CONTINUOUS || resolved === DXF_LINETYPE_BY_LAYER) return 0;
+
+  const definition = this.__dxfLinetypeDefinitions?.[resolved];
+  if (!definition) {
+    addLinetypeWarning(this, `Linetype ${resolved} has no simple LTYPE pattern; rendered solid.`);
+    return 0;
+  }
+
+  const scale = resolveDxfLinetypeScale(this.__dxfLinetypeGlobalScale ?? 1, entity.lineTypeScale ?? 1);
+  return registerLinetypePattern(this, definition, scale);
+};
+
+// Convert patterned lines to ordinary visible line/point primitives before upstream batching. The
+// main-thread dxf-viewer currently ignores BatchingKey.lineType, so geometry expansion is the only
+// deterministic path that preserves the existing viewer, layer controls, color modes and lineweight
+// batching without a parallel renderer.
+scenePrototype._ProcessLineSegments = function (
+  this: InternalDxfScene,
+  entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+  blockCtx?: unknown
+) {
+  const pattern = activeLinetypePattern(this, entity.lineType);
+  if (!pattern) return upstreamProcessLineSegments.call(this, entity, blockCtx);
+  if (entity.vertices.length % 2 !== 0) return upstreamProcessLineSegments.call(this, entity, blockCtx);
+
+  const expandedLines: DxfLinetypePoint[] = [];
+  const expandedDots: DxfLinetypePoint[] = [];
+  let primitiveCount = 0;
+  for (let index = 0; index < entity.vertices.length; index += 2) {
+    const used = (this.__dxfLinetypePrimitiveCount ?? 0) + primitiveCount;
+    const expanded = expandDxfSimpleLinetypePath({
+      vertices: [entity.vertices[index], entity.vertices[index + 1]],
+      pattern: pattern.definition.pattern,
+      scale: pattern.scale,
+      maxPrimitives: DXF_LINETYPE_MAX_RENDER_PRIMITIVES - used,
+    });
+    expandedLines.push(...expanded.lineVertices);
+    expandedDots.push(...expanded.dotVertices);
+    primitiveCount += expanded.primitiveCount;
+  }
+  this.__dxfLinetypePrimitiveCount = (this.__dxfLinetypePrimitiveCount ?? 0) + primitiveCount;
+  this.__dxfLinetypePatternedEntityCount = (this.__dxfLinetypePatternedEntityCount ?? 0) + 1;
+  if (expandedLines.length > 0) {
+    upstreamProcessLineSegments.call(this, { ...entity, lineType: 0, vertices: expandedLines }, blockCtx);
+  }
+  if (expandedDots.length > 0) {
+    upstreamProcessPoints.call(this, { ...entity, lineType: null, vertices: expandedDots }, blockCtx);
+  }
+};
+
+scenePrototype._ProcessPolyline = function (
+  this: InternalDxfScene,
+  entity: DxfLineEntity & { vertices: DxfLinetypePoint[] },
+  blockCtx?: unknown
+) {
+  if (renderExpandedPattern(
+    this,
+    entity,
+    entity.vertices,
+    Boolean(entity.shape),
+    blockCtx,
+    upstreamProcessLineSegments,
+    upstreamProcessPoints
+  )) return;
+  return upstreamProcessPolyline.call(this, entity, blockCtx);
+};
+
 // Block flattening replaces the child batch key upstream. Preserve child lineweight semantics and
-// substitute only BYBLOCK with the current INSERT lineweight. Final layer/default resolution is
-// deliberately deferred to the main-thread viewer where the actual instance layer is known.
+// substitute only BYBLOCK with the current INSERT lineweight. Patterned geometry is already split
+// into ordinary line primitives before it reaches a block batch, so no lineType material support is
+// needed during flattening.
 scenePrototype._FlattenBatch = function (
   this: InternalDxfScene,
   blockBatch: InternalBatch,
@@ -228,8 +455,8 @@ scenePrototype._FlattenBatch = function (
   }
 };
 
-// Keep all existing text/dimension fidelity gates, then append lineweight metadata to the serialized
-// scene. Geometry is never deduplicated or rewritten here.
+// Keep all existing text/dimension fidelity gates, then append lineweight and linetype evidence to
+// the serialized scene. Geometry is never deduplicated or rewritten in the source file.
 const upstreamBuild = scenePrototype.Build;
 scenePrototype.Build = async function (
   this: InternalDxfScene,
@@ -239,6 +466,17 @@ scenePrototype.Build = async function (
   const lineweightAudit = dxf.__dxfLineweightSourceAudit ?? auditDxfLineweightSource("");
   this.__dxfLineweightDefault = lineweightAudit.defaultLineweight;
   this.__dxfLineweightLayers = lineweightAudit.layers;
+
+  const linetypeAudit = dxf.__dxfLinetypeSourceAudit ?? auditDxfLinetypeSource("");
+  this.__dxfLinetypeDefinitions = collectDxfSimpleLinetypes(dxf);
+  this.__dxfLinetypeLayers = { ...linetypeAudit.layers };
+  this.__dxfLinetypeGlobalScale = linetypeAudit.globalScale;
+  this.__dxfLinetypePatternIds = new Map();
+  this.__dxfLinetypePatterns = new Map();
+  this.__dxfLinetypeNextId = 1;
+  this.__dxfLinetypePrimitiveCount = 0;
+  this.__dxfLinetypePatternedEntityCount = 0;
+  this.__dxfLinetypeWarnings = [];
 
   const stage2Report = normalizeParsedDxfTextStage2(dxf);
   if (stage2Report.blockingIssues.length > 0) {
@@ -258,6 +496,12 @@ scenePrototype.Build = async function (
     serializedScene.lineweightDefault = lineweightAudit.defaultLineweight;
     serializedScene.lineweightLayers = { ...lineweightAudit.layers };
     serializedScene.lineweightSourceAudit = lineweightAudit;
+    serializedScene.linetypeRenderAudit = {
+      definitions: Object.keys(this.__dxfLinetypeDefinitions ?? {}).sort(),
+      patternedEntityCount: this.__dxfLinetypePatternedEntityCount ?? 0,
+      generatedPrimitiveCount: this.__dxfLinetypePrimitiveCount ?? 0,
+      warnings: [...(this.__dxfLinetypeWarnings ?? [])],
+    };
     for (const layer of serializedScene.layers ?? []) {
       const sourceLineweight = lineweightAudit.layers[layer.name];
       if (sourceLineweight !== undefined) layer.lineweight = sourceLineweight;
@@ -286,8 +530,8 @@ const worker = new DxfWorker(workerScope, true) as InternalDxfWorker;
 const upstreamLoad = worker._Load.bind(worker);
 
 // retainParsedDxf=true normally clones the full parsed file back to the main thread. Keep only the
-// existing compact text evidence after scene preparation; lineweight data already lives in scene
-// metadata, so large engineering drawings do not duplicate parsed state.
+// existing compact text evidence after scene preparation; lineweight/linetype data already lives in
+// scene metadata, so large engineering drawings do not duplicate parsed state.
 worker._Load = async (url, fonts, options, progressCbk) => {
   const result = await upstreamLoad(url, fonts, options, progressCbk);
   if (options.retainParsedDxf === true) {
