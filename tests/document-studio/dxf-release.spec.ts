@@ -289,6 +289,7 @@ async function expectBlockedDxf(page: Page, fixtureName: string, evidenceText: R
   await expect(page.getByText(/fidelity engeli/i)).toBeVisible();
   const panel = page.getByTestId("cad-dxf-diagnostics-panel");
   await expect(panel).toBeVisible();
+  await expect(panel).toHaveAttribute("data-status", "blocked");
   await expect(panel.locator('[data-severity="blocking"]')).not.toHaveCount(0);
   await expect(panel).toContainText(evidenceText);
   const download = page.getByRole("button", { name: "Orijinal dosyayı indir" });
@@ -306,7 +307,7 @@ async function attachEvidence(page: Page, testInfo: TestInfo, name: string) {
 test.describe("DXF Stage 6 release fidelity gate", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "DXF WebGL release gate is deterministic in Chromium; cross-browser UI coverage remains in release.spec.ts.");
 
-  test("clean and warning DXFs reach ready state with actionable diagnostics on desktop and mobile", async ({ page }, testInfo) => {
+  test("clean DXFs stay visually quiet while warnings use a non-disruptive popover", async ({ page }, testInfo) => {
     test.setTimeout(240_000);
     await page.setViewportSize(DESKTOP);
     await login(page);
@@ -314,11 +315,8 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     const cleanId = await uploadDxf(page, "geometry-basic.dxf");
     await openDxf(page, cleanId);
     await expectRenderableCanvas(page);
-    const cleanToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
-    await expect(cleanToggle).toContainText("Denetim temiz");
-    await cleanToggle.click();
-    await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toBeVisible();
-    await expect(page.getByTestId("cad-dxf-diagnostics-panel").locator('[data-severity="blocking"]')).toHaveCount(0);
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
+    await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toHaveCount(0);
     await attachEvidence(page, testInfo, "dxf-clean-desktop.png");
 
     await page.goto("/dokumantasyon");
@@ -337,6 +335,7 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     expect(spanY).toBeGreaterThan(30);
     expect(spanY).toBeLessThan(500);
     expect(largeSnapshot.layers).toContain("0");
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
     await attachEvidence(page, testInfo, "dxf-large-coordinate-bulge.png");
 
     await page.goto("/dokumantasyon");
@@ -364,32 +363,20 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await expectRenderableCanvas(page);
     const colorSnapshot = await getRuntimeSnapshot(page);
     expect(colorSnapshot.layers).toEqual(expect.arrayContaining(["0", "ACI_LAYER", "TRUE_LAYER"]));
-    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText("Denetim temiz");
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
     await attachEvidence(page, testInfo, "dxf-color-hatch.png");
 
     await page.goto("/dokumantasyon");
     const geometryId = await uploadDxf(page, "stage4-geometry-layers.dxf");
     await openDxf(page, geometryId);
     await expectRenderableCanvas(page);
-    const geometryToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
-    await expect(geometryToggle).toContainText("Denetim temiz");
-    await geometryToggle.click();
-    const geometryPanel = page.getByTestId("cad-dxf-diagnostics-panel");
-    await expect(geometryPanel).toBeVisible();
-    await expect(geometryPanel).toContainText("Layer");
-    await expect(geometryPanel).toContainText("Görünüm");
-    await expect(geometryPanel).not.toContainText("Geometri");
-    await expect(geometryPanel.locator('[data-severity="warning"]')).toHaveCount(0);
-    await expect(geometryPanel.locator('[data-severity="blocking"]')).toHaveCount(0);
-    const panelHeight = await geometryPanel.evaluate((element) => element.getBoundingClientRect().height);
-    expect(panelHeight).toBeLessThanOrEqual(DESKTOP.height * 0.38 + 4);
-    await attachEvidence(page, testInfo, "dxf-solved-fidelity-desktop.png");
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
+    await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toHaveCount(0);
 
     await page.setViewportSize(MOBILE);
     await expectNoHorizontalOverflow(page);
-    await expect(geometryPanel).toBeVisible();
-    const mobilePanelHeight = await geometryPanel.evaluate((element) => element.getBoundingClientRect().height);
-    expect(mobilePanelHeight).toBeLessThanOrEqual(MOBILE.height * 0.38 + 4);
+    await expect(page.getByTestId("cad-dxf-color-mode-toggle")).toBeVisible();
+    await expect(page.getByTestId("cad-dxf-lineweight-toggle")).toBeVisible();
     await attachEvidence(page, testInfo, "dxf-solved-fidelity-mobile.png");
 
     await page.setViewportSize(DESKTOP);
@@ -411,11 +398,41 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await expect(textSummary).toContainText("kaynak 3");
     await expect(textSummary).toContainText("parser 3");
     await expect(textSummary).toContainText("font 2/2");
+
+    const canvasHost = page.getByTestId("cad-dxf-canvas");
+    const canvasBefore = await canvasHost.boundingBox();
+    expect(canvasBefore).not.toBeNull();
     const textToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
-    await expect(textToggle).toContainText("uyarı");
+    await expect(textToggle).toHaveAttribute("data-status", "warning");
+    await expect(textToggle).toHaveAttribute("aria-label", /görüntüleme uyarısı/);
+    await expect(textToggle).not.toContainText("Denetim");
     await textToggle.click();
-    await expect(page.getByTestId("cad-dxf-diagnostics-panel")).toContainText("Yazı");
-    await attachEvidence(page, testInfo, "dxf-text-source-parser-font.png");
+
+    const textPanel = page.getByTestId("cad-dxf-diagnostics-panel");
+    await expect(textPanel).toBeVisible();
+    await expect(textPanel).toHaveAttribute("data-status", "warning");
+    await expect(textPanel.getByTestId("cad-dxf-diagnostics-primary")).toContainText("Yazı");
+    await expect(textPanel.getByTestId("cad-dxf-diagnostics-primary").locator('[data-severity="info"]')).toHaveCount(0);
+    await expect(textPanel.getByTestId("cad-dxf-diagnostics-info")).toBeAttached();
+    expect(await textPanel.evaluate((element) => getComputedStyle(element).position)).toBe("fixed");
+
+    const canvasAfter = await canvasHost.boundingBox();
+    expect(canvasAfter).not.toBeNull();
+    expect(canvasAfter?.x).toBeCloseTo(canvasBefore?.x ?? 0, 2);
+    expect(canvasAfter?.y).toBeCloseTo(canvasBefore?.y ?? 0, 2);
+    expect(canvasAfter?.width).toBeCloseTo(canvasBefore?.width ?? 0, 2);
+    expect(canvasAfter?.height).toBeCloseTo(canvasBefore?.height ?? 0, 2);
+    const panelHeight = await textPanel.evaluate((element) => element.getBoundingClientRect().height);
+    expect(panelHeight).toBeLessThanOrEqual(DESKTOP.height * 0.6 + 4);
+    await attachEvidence(page, testInfo, "dxf-warning-popover-desktop.png");
+
+    await page.setViewportSize(MOBILE);
+    await expectNoHorizontalOverflow(page);
+    await expect(textPanel).toBeVisible();
+    const mobilePanel = await textPanel.boundingBox();
+    expect(mobilePanel).not.toBeNull();
+    expect(mobilePanel?.width ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(MOBILE.width - 8);
+    await attachEvidence(page, testInfo, "dxf-warning-popover-mobile.png");
   });
 
   test("unsupported entities, missing blocks and arbitrary OCS fail closed before renderer success", async ({ page }, testInfo) => {
@@ -445,6 +462,7 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await expect(page.getByRole("button", { name: "Orijinal dosyayı indir" })).toBeVisible();
     const dimensionPanel = page.getByTestId("cad-dxf-diagnostics-panel");
     await expect(dimensionPanel).toBeVisible();
+    await expect(dimensionPanel).toHaveAttribute("data-status", "blocked");
     await expect(dimensionPanel.locator('[data-severity="blocking"]')).not.toHaveCount(0);
     await expect(dimensionPanel).toContainText("Ölçü");
     await attachEvidence(page, testInfo, "dxf-blocked-dimension.png");
@@ -454,7 +472,8 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await openDxf(page, riskyGeometryId);
     await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeVisible();
     const riskyToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
-    await expect(riskyToggle).toContainText("engel");
+    await expect(riskyToggle).toHaveAttribute("data-status", "blocked");
+    await expect(riskyToggle).toHaveAttribute("aria-label", /görüntüleme engeli/);
     const riskyPanel = page.getByTestId("cad-dxf-diagnostics-panel");
     await expect(riskyPanel).toBeVisible();
     await expect(riskyPanel).toContainText("SPLINE");
