@@ -32,7 +32,9 @@ type RuntimeSnapshot = {
 
 async function login(page: Page) {
   await page.goto("/dokumantasyon");
-  await page.getByLabel("Kullanıcı Adı").fill("admin");
+  const username = page.getByLabel("Kullanıcı Adı");
+  if (!(await username.isVisible().catch(() => false))) return;
+  await username.fill("admin");
   await page.locator("input#password").fill("admin");
   const responsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/dokumantasyon/giris") && response.request().method() === "POST"
@@ -40,7 +42,7 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "Giriş Yap" }).click();
   const response = await responsePromise;
   expect(response.status(), `admin login failed: ${await response.text()}`).toBe(200);
-  await expect(page.getByLabel("Kullanıcı Adı")).toBeHidden();
+  await expect(username).toBeHidden();
 }
 
 async function uploadFixture(page: Page, fixtureName = "stage4-layer-interaction.dxf"): Promise<string> {

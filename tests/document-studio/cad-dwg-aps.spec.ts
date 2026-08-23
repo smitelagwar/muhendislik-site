@@ -1,11 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function ensureSignedIn(page: Page) {
+  await page.goto("/dokumantasyon");
+  const username = page.locator("input#username");
+  const dashboard = page.getByRole("button", { name: "Yeni Dosya Yükle" });
+  await expect.poll(async () => {
+    if (await username.isVisible()) return "login";
+    if (await dashboard.isVisible()) return "dashboard";
+    return "pending";
+  }, { timeout: 12_000 }).not.toBe("pending");
+
+  if (await username.isVisible()) {
+    await username.fill("admin");
+    await page.locator("input#password").fill("admin");
+    await page.getByRole("button", { name: "Giriş Yap" }).click();
+  }
+  await expect(dashboard).toBeVisible();
+}
 
 test("APS yapılandırılmamışsa DWG kontrollü hata ve indirme eylemi gösterir", async ({ page }) => {
-  await page.goto("/dokumantasyon");
-  await page.locator("input#username").fill("admin");
-  await page.locator("input#password").fill("admin");
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  await expect(page.locator("input#username")).toBeHidden();
+  await ensureSignedIn(page);
 
   const fileId = await page.evaluate(async () => {
     const content = new Uint8Array([0x41, 0x43, 0x31, 0x30, 0x32, 0x37, 0x00, 0x00]);

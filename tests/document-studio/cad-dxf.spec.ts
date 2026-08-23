@@ -22,6 +22,53 @@ function line(x1: number, y1: number, x2: number, y2: number): string {
   return ["0", "LINE", "8", "KALIP", "10", String(x1), "20", String(y1), "11", String(x2), "21", String(y2)].join("\n");
 }
 
+function createPatternedDxf(): string {
+  const ltype = (name: string, pattern: number[]) => [
+    "0", "LTYPE", "2", name, "70", "0", "3", name, "72", "65", "73", String(pattern.length),
+    "40", String(pattern.reduce((sum, value) => sum + Math.abs(value), 0)),
+    ...pattern.flatMap((value) => ["49", String(value), "74", "0"]),
+  ];
+  const layer = (name: string, color: number, lineType: string) => [
+    "0", "LAYER", "2", name, "70", "0", "62", String(color), "6", lineType,
+  ];
+  const patternedLine = (layerName: string, y: number, explicitLineType?: string) => [
+    "0", "LINE", "8", layerName,
+    ...(explicitLineType ? ["6", explicitLineType] : []),
+    "48", "1",
+    "10", "0", "20", String(y), "11", "420", "21", String(y),
+  ];
+
+  return [
+    "0", "SECTION", "2", "HEADER",
+    "9", "$ACADVER", "1", "AC1027",
+    "9", "$LTSCALE", "40", "1.5",
+    "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES",
+    "0", "TABLE", "2", "LTYPE", "70", "4",
+    ...ltype("CONTINUOUS", []),
+    ...ltype("DASHED", [18, -9]),
+    ...ltype("CENTER", [30, -6, 6, -6]),
+    ...ltype("HIDDEN", [12, -6]),
+    "0", "ENDTAB",
+    "0", "TABLE", "2", "LAYER", "70", "4",
+    ...layer("0", 7, "CONTINUOUS"),
+    ...layer("DASH", 1, "DASHED"),
+    ...layer("CENTERLINE", 3, "CENTER"),
+    ...layer("HIDDENLINE", 5, "HIDDEN"),
+    "0", "ENDTAB",
+    "0", "ENDSEC",
+    "0", "SECTION", "2", "ENTITIES",
+    ...patternedLine("DASH", 0),
+    ...patternedLine("CENTERLINE", 80),
+    ...patternedLine("HIDDENLINE", 160),
+    ...patternedLine("0", 240, "DASHED"),
+    "0", "LWPOLYLINE", "8", "CENTERLINE", "90", "3", "70", "0", "48", "0.75",
+    "10", "0", "20", "320", "10", "160", "20", "320", "10", "420", "20", "390",
+    "0", "ARC", "8", "HIDDENLINE", "10", "210", "20", "520", "40", "120", "50", "0", "51", "270",
+    "0", "ENDSEC", "0", "EOF",
+  ].join("\n");
+}
+
 const fixtures: DxfFixture[] = [
   {
     name: "kucuk-cizim.dxf",
@@ -48,10 +95,20 @@ const fixtures: DxfFixture[] = [
 
 async function signIn(page: Page) {
   await page.goto("/dokumantasyon");
-  await page.locator("input#username").fill("admin");
-  await page.locator("input#password").fill("admin");
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  await expect(page.locator("input#username")).toBeHidden();
+  const username = page.locator("input#username");
+  const dashboard = page.getByRole("button", { name: "Yeni Dosya Yükle" });
+  await expect.poll(async () => {
+    if (await username.isVisible()) return "login";
+    if (await dashboard.isVisible()) return "dashboard";
+    return "pending";
+  }, { timeout: 12_000 }).not.toBe("pending");
+
+  if (await username.isVisible()) {
+    await username.fill("admin");
+    await page.locator("input#password").fill("admin");
+    await page.getByRole("button", { name: "Giriş Yap" }).click();
+  }
+  await expect(dashboard).toBeVisible();
 }
 
 async function uploadDxf(page: Page, fixture: DxfFixture): Promise<string> {
@@ -99,6 +156,21 @@ test("DXF viewer küçük, proje-benzeri ve büyük çizimleri worker ile açar;
     await expect(page.getByTestId("cad-dxf-canvas").first().locator("canvas")).toBeVisible();
   }
 
+  expect(pageErrors).toEqual([]);
+});
+
+test("DASHED CENTER HIDDEN linetype kaynakları production worker ile render edilir", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await signIn(page);
+  const fileId = await uploadDxf(page, { name: "linetype-stage2.dxf", content: createPatternedDxf() });
+  await page.goto(`/dokumantasyon/dosya/${fileId}`);
+
+  const viewer = page.getByTestId("cad-dxf-viewer").first();
+  await expect(viewer).toBeVisible();
+  await expect(viewer).toHaveAttribute("data-cad-load-state", "ready", { timeout: 30_000 });
+  await expect(page.getByTestId("cad-dxf-canvas").first().locator("canvas")).toBeVisible();
+  await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
   expect(pageErrors).toEqual([]);
 });
 
