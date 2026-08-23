@@ -69,6 +69,32 @@ export interface DokCadDerivative {
   updated_at: string;
 }
 
+export interface DokDwgDxfDerivative {
+  id: string;
+  file_id: string;
+  source_version_key: string;
+  source_sha256: string;
+  converter_signature: string;
+  dwg_version: string | null;
+  status: "pending" | "converting" | "validating" | "ready" | "failed";
+  validation_decision: "PASS" | "WARN" | "REJECT" | null;
+  dxf_blob_pathname: string | null;
+  dxf_blob_url: string | null;
+  dxf_sha256: string | null;
+  dxf_size_bytes: string | number | null;
+  conversion_ms: number | null;
+  validation_ms: number | null;
+  diagnostics_json: unknown;
+  validation_json: unknown;
+  error_code: string | null;
+  error_message: string | null;
+  lock_expires_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DokShareLink {
   id: string;
   token_hash: string;
