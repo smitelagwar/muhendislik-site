@@ -6,6 +6,8 @@ Branch: `feat/cad-upstream-transplant`
 
 Stage 7 başlangıç baseline head: `ca86b5d27971d97add065c506baea8f3ba62c6c9`
 
+CI notu: Stage 7 cleanup, main'deki idempotent cleanup-sync workflow'u ile uygulanır; partial cleanup durumu fail-closed kabul edilir.
+
 ## Önkoşul: Aşama 6 PASS
 
 Aşama 6 final Chromium run `32668649457`, job `97265957386` başarıyla tamamlandı.
