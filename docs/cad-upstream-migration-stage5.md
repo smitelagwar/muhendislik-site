@@ -57,6 +57,8 @@ Selector senkronizasyonu `e4e1016` bot commit'i ile tek satır olarak uygulandı
 
 Stage 5 lint kapısının yakaladığı React/Next kuralları yalnız lifecycle ve yerel değişken adlandırması düzeyinde düzeltilir; motor sırası, timeout değerleri ve rollback sözleşmesi bu düzeltmelerde değiştirilemez.
 
+Lint-only düzeltmeler `f86d2c9` commit'inde uygulandı; bu kayıt aynı kodu bot commit'i sonrası normal PR CI üzerinde tekrar doğrulatır.
+
 ## Fast tanımı neden cache-only?
 
 Eski `ApsDwgViewer` içinde "fast path" cache kontrolünden sonra browser DWG→DXF worker'ını da otomatik çalıştırıyordu. Bu durumda conversion her cache miss'te hot path oluyordu. Nihai plandaki `Fast → Upstream` ve `conversion hot path olmasın` koşullarını birlikte sağlamak için Fast yalnız hazır cached derivative erişimidir. Cache miss doğrudan Upstream'e geçer.
