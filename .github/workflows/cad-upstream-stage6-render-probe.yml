@@ -98,3 +98,12 @@ jobs:
             stage6-render-probe/node_modules/@mlightcad/cad-simple-viewer-cli/package.json
           if-no-files-found: error
           retention-days: 3
+
+      - name: Upload isolated Playwright headless shell
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-stage6-playwright-headless-shell
+          path: /home/runner/.cache/ms-playwright/chromium_headless_shell-1234/**
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
