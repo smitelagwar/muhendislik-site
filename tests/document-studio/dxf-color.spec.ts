@@ -271,6 +271,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(canvas).toBeVisible();
     await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
     await expect(modeToggle).toContainText("Gerçek Renk");
+    await expect(canvas).toHaveCSS("filter", "none");
 
     const snapshot = await runtimeSnapshot(page);
     const runtimeBefore = await page.getByTestId("cad-dxf-runtime-snapshot").textContent();
@@ -282,10 +283,11 @@ test.describe("DXF Stage 5 color fidelity", () => {
       layerTrueGreen: expectModelRgb(trueColorImage, snapshot, { x: 40, y: 10 }, [0, 255, 0], "layer TrueColor green"),
       entityTrueBlue: expectModelRgb(trueColorImage, snapshot, { x: 70, y: 10 }, [0, 0, 255], "entity TrueColor blue"),
       byBlockMagenta: expectModelRgb(trueColorImage, snapshot, { x: 100, y: 10 }, [255, 0, 255], "BYBLOCK/INSERT magenta"),
-      blackContrast: expectModelRgb(trueColorImage, snapshot, { x: 160, y: 10 }, [255, 255, 255], "black-on-dark contrast inversion", 40),
+      sourceBlack: expectModelRgb(trueColorImage, snapshot, { x: 160, y: 10 }, [0, 0, 0], "source TrueColor black", 12),
     };
 
-    const signatures = Object.values(sampled).map((rgb) => rgb.map((channel) => Math.round(channel / 24)).join(":"));
+    const chromaticSamples = [sampled.byLayerAciRed, sampled.layerTrueGreen, sampled.entityTrueBlue, sampled.byBlockMagenta];
+    const signatures = chromaticSamples.map((rgb) => rgb.map((channel) => Math.round(channel / 24)).join(":"));
     expect(new Set(signatures).size, "independent DXF colors must not collapse to monochrome").toBeGreaterThanOrEqual(4);
     expect(countNearRgb(trueColorImage, [0, 255, 255]), "cyan TEXT pixels").toBeGreaterThan(4);
     expect(countNearRgb(trueColorImage, [255, 255, 0]), "yellow DIMENSION pixels").toBeGreaterThan(4);
@@ -295,7 +297,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await expect(modeToggle).toHaveAttribute("data-mode", "monochrome");
     await expect(modeToggle).toContainText("Siyah-Beyaz");
     await expect(canvas).toHaveAttribute("data-dxf-color-mode", "monochrome");
-    await expect(canvas).toHaveCSS("filter", /grayscale\(1\)/);
+    await expect(canvas).toHaveCSS("filter", "none");
     await page.waitForTimeout(180);
 
     const monochromeImage = decodePng(await compositedSurfaceScreenshot(page, surface));
@@ -317,6 +319,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     expectModelRgb(restoredImage, snapshot, { x: 40, y: 10 }, [0, 255, 0], "restored layer green");
     expectModelRgb(restoredImage, snapshot, { x: 70, y: 10 }, [0, 0, 255], "restored entity blue");
     expectModelRgb(restoredImage, snapshot, { x: 100, y: 10 }, [255, 0, 255], "restored BYBLOCK magenta");
+    expectModelRgb(restoredImage, snapshot, { x: 160, y: 10 }, [0, 0, 0], "restored source black", 12);
     expect(countNearRgb(restoredImage, [0, 255, 255]), "restored cyan TEXT pixels").toBeGreaterThan(4);
     expect(countNearRgb(restoredImage, [255, 255, 0]), "restored yellow DIMENSION pixels").toBeGreaterThan(4);
     expect(await page.getByTestId("cad-dxf-runtime-snapshot").textContent()).toBe(runtimeBefore);
@@ -359,8 +362,10 @@ test.describe("DXF Stage 5 color fidelity", () => {
     await modeToggle.click();
     await expect(modeToggle).toHaveAttribute("data-mode", "monochrome");
     await expect(canvas).toHaveAttribute("data-dxf-color-mode", "monochrome");
+    await expect(canvas).toHaveCSS("filter", "none");
     await modeToggle.click();
     await expect(modeToggle).toHaveAttribute("data-mode", "true-color");
+    await expect(canvas).toHaveCSS("filter", "none");
 
     await attach(page, testInfo, "dxf-stage1-color-mode-mobile.png");
   });
