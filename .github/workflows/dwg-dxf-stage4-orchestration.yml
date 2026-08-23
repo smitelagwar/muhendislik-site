@@ -97,8 +97,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p src/app/__dwg-stage4-worker-test
-          cat > src/app/__dwg-stage4-worker-test/page.tsx <<'TSX'
+          mkdir -p src/app/dwg-stage4-worker-probe
+          cat > src/app/dwg-stage4-worker-probe/page.tsx <<'TSX'
           "use client";
 
           import { useEffect, useState } from "react";
@@ -207,7 +207,7 @@ jobs:
           trap cleanup EXIT
 
           for attempt in $(seq 1 60); do
-            if curl -fsS "http://127.0.0.1:3012/__dwg-stage4-worker-test" >/dev/null 2>&1; then
+            if curl -fsS "http://127.0.0.1:3012/dwg-stage4-worker-probe" >/dev/null 2>&1; then
               break
             fi
             if [ "$attempt" -eq 60 ]; then
@@ -232,7 +232,7 @@ jobs:
             });
             page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
 
-            await page.goto('http://127.0.0.1:3012/__dwg-stage4-worker-test', { waitUntil: 'domcontentloaded' });
+            await page.goto('http://127.0.0.1:3012/dwg-stage4-worker-probe', { waitUntil: 'domcontentloaded' });
             await page.locator('#result').waitFor({ state: 'attached' });
             await page.waitForFunction(() => {
               const node = document.querySelector('#result');
@@ -257,4 +257,4 @@ jobs:
 
       - name: Remove ephemeral Stage 4 probe
         if: always()
-        run: rm -rf public/__dwg-stage4 src/app/__dwg-stage4-worker-test
+        run: rm -rf public/__dwg-stage4 src/app/dwg-stage4-worker-probe
