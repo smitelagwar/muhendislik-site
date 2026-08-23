@@ -43,12 +43,14 @@ const constant = byHandle.get("10");
 assert.ok(constant?.vertices && constant.vertices.length === 2, "constant-width LWPOLYLINE must parse");
 assert.equal(constant.vertices[0].startWidth, 2);
 assert.equal(constant.vertices[0].endWidth, 2);
+assert.equal(typeof constant.color, "number", "constant-width source color must be parsed");
 
 const varying = byHandle.get("11");
 assert.ok(varying?.vertices && varying.vertices.length === 3, "varying-width LWPOLYLINE must parse");
 assert.equal(varying.vertices[0].startWidth, 1);
 assert.equal(varying.vertices[0].endWidth, 3);
 approx(varying.vertices[0].bulge ?? 0, 0.41421356237309503, "bulge");
+assert.equal(typeof varying.color, "number", "varying-width source color must be parsed");
 
 const legacy = byHandle.get("20");
 assert.ok(legacy?.vertices && legacy.vertices.length === 2, "legacy POLYLINE vertices must parse");
@@ -56,6 +58,7 @@ assert.equal(legacy.vertices[0].startWidth, 2, "legacy VERTEX group 40 must be e
 assert.equal(legacy.vertices[0].endWidth, 4, "legacy VERTEX group 41 must be enriched");
 assert.equal(legacy.vertices[1].startWidth, 2, "legacy entity default start width must inherit");
 assert.equal(legacy.vertices[1].endWidth, 2, "legacy entity default end width must inherit");
+assert.equal(typeof legacy.color, "number", "legacy POLYLINE source color must be parsed");
 
 const straight = buildDxfWidePolylineMesh({
   vertices: [
@@ -131,9 +134,9 @@ const generatedSolids = (parsed.entities ?? []).filter((entity) => entity.type =
 assert.equal(generatedSolids.length, renderAudit.generatedSolidCount);
 assert.ok(generatedSolids.every((entity) => entity.points?.length === 3));
 assert.ok(generatedSolids.every((entity) => !("lineweight" in entity)), "physical-width triangle fills must not inherit display lineweight");
-assert.ok(generatedSolids.some((entity) => entity.color === 1), "source entity color must survive triangulation");
-assert.ok(generatedSolids.some((entity) => entity.color === 3), "varying-width source color must survive triangulation");
-assert.ok(generatedSolids.some((entity) => entity.color === 5), "legacy POLYLINE source color must survive triangulation");
+assert.ok(generatedSolids.some((entity) => entity.color === constant.color), "constant-width source color must survive triangulation");
+assert.ok(generatedSolids.some((entity) => entity.color === varying.color), "varying-width source color must survive triangulation");
+assert.ok(generatedSolids.some((entity) => entity.color === legacy.color), "legacy POLYLINE source color must survive triangulation");
 
 const invalidSource = [
   "0", "SECTION", "2", "ENTITIES",
