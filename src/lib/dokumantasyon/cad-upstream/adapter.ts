@@ -11,6 +11,7 @@ export const CAD_UPSTREAM_WORKER_URLS = {
 } as const;
 
 export const CAD_UPSTREAM_SUPPORTED_EXTENSIONS = new Set([".dxf", ".dwg"]);
+const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
 
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
@@ -22,6 +23,7 @@ export type CadUpstreamErrorCode =
   | "source-empty"
   | "open-timeout"
   | "open-failed"
+  | "blank-document"
   | "adapter-destroyed";
 
 export class CadUpstreamAdapterError extends Error {
@@ -210,6 +212,22 @@ export class CadUpstreamAdapter {
       throw new CadUpstreamAdapterError(
         "open-failed",
         `MLightCAD dosyayı açamadı: ${options.displayName}`
+      );
+    }
+
+    // Upstream openDocument() can report success before progressive scene
+    // conversion finishes, so entityCount===0 is NOT immediately a failure.
+    // Only reject the document when the upstream view itself confirms it is
+    // idle and its rendered scene still contains no entities. This prevents a
+    // malformed/unsupported file from becoming a permanent blank "success"
+    // while preserving large progressive drawings that are still converting.
+    const idle = await this.manager.curView.waitUntilIdle(
+      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
+    );
+    if (idle && this.manager.curView.stats.summary.entityCount === 0) {
+      throw new CadUpstreamAdapterError(
+        "blank-document",
+        `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
       );
     }
 
