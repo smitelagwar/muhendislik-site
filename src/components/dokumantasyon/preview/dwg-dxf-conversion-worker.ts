@@ -67,7 +67,7 @@ scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
         decision: validation.decision,
         issues: issueSummary(validation.issues),
         diagnostics: conversion.diagnostics.slice(0, 24),
-        sourceBytes: conversion.inspection.byteLength,
+        sourceBytes: conversion.inspection.sourceBytes,
         dxfBytes: exactBytes.byteLength,
         elapsedMs: Math.round(performance.now() - startedAt),
         dxfBuffer,
