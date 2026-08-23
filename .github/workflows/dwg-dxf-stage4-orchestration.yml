@@ -1,0 +1,190 @@
+name: dwg-dxf-stage4-orchestration
+
+on:
+  push:
+    branches:
+      - feat/dwg-dxf-stage4-orchestration
+    paths:
+      - ".github/workflows/dwg-dxf-stage4-orchestration.yml"
+      - "scripts/check-dwg-dxf-stage4-orchestration.ts"
+      - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+      - "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+      - "src/lib/dokumantasyon/dwg/**"
+  pull_request:
+    paths:
+      - ".github/workflows/dwg-dxf-stage4-orchestration.yml"
+      - "scripts/check-dwg-dxf-stage4-orchestration.ts"
+      - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+      - "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+      - "src/lib/dokumantasyon/dwg/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dwg-dxf-stage4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  orchestration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js matching Vercel production
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies from exact lock
+        run: npm ci
+
+      - name: Targeted lint
+        run: >-
+          npx eslint
+          "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+          "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
+          "src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts"
+          "src/lib/dokumantasyon/dwg/**/*.ts"
+          "scripts/check-dwg-dxf-stage4-orchestration.ts"
+
+      - name: Typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Orchestration contract
+        run: npx tsx scripts/check-dwg-dxf-stage4-orchestration.ts
+
+      - name: Generate positive binary DWG fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/__dwg-stage4
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {
+            ACadVersion,
+            CadDocument,
+            DwgWriter,
+            Line,
+            Point,
+            XYZ,
+          } from '@node-projects/acad-ts';
+
+          const document = new CadDocument();
+          document.header.version = ACadVersion.AC1014;
+          if (!document.entities) throw new Error('Synthetic document entity collection is unavailable.');
+          document.entities.add(new Point(new XYZ(10, 5, 0)));
+          document.entities.add(new Line(new XYZ(0, 0, 0), new XYZ(50, 30, 0)));
+          const buffer = new ArrayBuffer(4 * 1024 * 1024);
+          const writer = new DwgWriter(buffer, document);
+          writer.write();
+          if (!writer.bytesWritten) throw new Error('Synthetic DWG writer produced no bytes.');
+          fs.writeFileSync(
+            'public/__dwg-stage4/simple_AC1014.dwg',
+            new Uint8Array(buffer, 0, writer.bytesWritten)
+          );
+          console.log(`Fixture bytes: ${writer.bytesWritten}`);
+          NODE
+
+      - name: Production build
+        run: npm run build
+
+      - name: Locate emitted DWG worker
+        id: worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKER_FILE="$(grep -RIl --include='*.js' 'WORKER_CLASS_NAME_CONTRACT_FAILED' .next/static | head -n 1 || true)"
+          if [ -z "$WORKER_FILE" ]; then
+            echo "Production DWG conversion worker asset was not emitted."
+            exit 1
+          fi
+          RELATIVE="${WORKER_FILE#.next/static/}"
+          WORKER_URL="/_next/static/${RELATIVE}"
+          echo "file=${WORKER_FILE}" >> "$GITHUB_OUTPUT"
+          echo "url=${WORKER_URL}" >> "$GITHUB_OUTPUT"
+          echo "Worker asset: ${WORKER_FILE}"
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Production worker runtime fidelity check
+        env:
+          DWG_STAGE4_WORKER_URL: ${{ steps.worker.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3012 npm start > /tmp/dwg-stage4-next.log 2>&1 &
+          SERVER_PID=$!
+          cleanup() {
+            kill "$SERVER_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:3012/" >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              cat /tmp/dwg-stage4-next.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { chromium } from '@playwright/test';
+
+          const workerUrl = process.env.DWG_STAGE4_WORKER_URL;
+          assert.ok(workerUrl, 'DWG_STAGE4_WORKER_URL missing');
+          const browser = await chromium.launch({ headless: true });
+          try {
+            const page = await browser.newPage();
+            await page.goto('http://127.0.0.1:3012/', { waitUntil: 'domcontentloaded' });
+            const result = await page.evaluate(async (url) => {
+              const response = await fetch('/__dwg-stage4/simple_AC1014.dwg');
+              if (!response.ok) throw new Error(`Fixture fetch failed: ${response.status}`);
+              const buffer = await response.arrayBuffer();
+              return await new Promise((resolve, reject) => {
+                const worker = new Worker(url, { type: 'module' });
+                const timer = window.setTimeout(() => {
+                  worker.terminate();
+                  reject(new Error('Production DWG worker timed out.'));
+                }, 20_000);
+                worker.onerror = (event) => {
+                  window.clearTimeout(timer);
+                  worker.terminate();
+                  reject(new Error(event.message || 'Production DWG worker crashed.'));
+                };
+                worker.onmessage = (event) => {
+                  window.clearTimeout(timer);
+                  worker.terminate();
+                  resolve(event.data);
+                };
+                worker.postMessage({ requestId: 'stage4-ci', buffer }, [buffer]);
+              });
+            }, workerUrl);
+
+            console.log(result);
+            assert.equal(result.requestId, 'stage4-ci');
+            assert.equal(result.ok, true, `Worker failed: ${result.errorCode || ''} ${result.errorMessage || ''}`);
+            assert.ok(result.decision === 'PASS' || result.decision === 'WARN');
+            assert.ok(result.dxfBuffer instanceof Object || result.dxfBytes > 0);
+            assert.ok(result.dxfBytes > 0);
+            assert.notEqual(result.errorCode, 'WORKER_CLASS_NAME_CONTRACT_FAILED');
+          } finally {
+            await browser.close();
+          }
+          NODE
+
+      - name: Remove ephemeral fixture
+        if: always()
+        run: rm -rf public/__dwg-stage4
