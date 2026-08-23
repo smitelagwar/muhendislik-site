@@ -1,0 +1,105 @@
+name: CAD upstream sandbox PR gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-upstream-sandbox.yml
+      - tests/cad-upstream-sandbox.lock.json
+      - docs/cad-upstream-migration-stage2.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-sandbox-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  upstream-build:
+    name: Build pinned MLightCAD upstream
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout migration PR
+        uses: actions/checkout@v4
+
+      - name: Read pinned upstream metadata
+        id: lock
+        shell: bash
+        run: |
+          node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('tests/cad-upstream-sandbox.lock.json','utf8')); console.log('repo='+x.upstream.repository); console.log('commit='+x.upstream.commit);" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact upstream source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.lock.outputs.repo }}
+          ref: ${{ steps.lock.outputs.commit }}
+          path: cad-upstream-sandbox
+          persist-credentials: false
+
+      - name: Verify upstream commit and dependency contract
+        working-directory: cad-upstream-sandbox
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ steps.lock.outputs.commit }}"
+          node -e "const p=require('./package.json'); if(p.packageManager!=='pnpm@10.33.4') throw new Error('Unexpected packageManager: '+p.packageManager); const d=p.dependencies||{}; const expected={'@mlightcad/cad-simple-viewer':'1.6.0','@mlightcad/data-model':'1.13.0','@mlightcad/libredwg-converter':'^3.13.0'}; for(const [k,v] of Object.entries(expected)){if(d[k]!==v) throw new Error(k+' changed: '+d[k]+' != '+v)}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: cad-upstream-sandbox/pnpm-lock.yaml
+
+      - name: Install exact upstream lockfile
+        working-directory: cad-upstream-sandbox
+        run: pnpm install --frozen-lockfile
+
+      - name: Build upstream unchanged
+        working-directory: cad-upstream-sandbox
+        run: pnpm build
+
+      - name: Verify DWG and MTEXT runtime artifacts
+        working-directory: cad-upstream-sandbox
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/no-plugin.html
+          test -f dist/assets/libredwg-parser-worker.js
+          test -f dist/assets/libredwg-web.wasm
+          test -f dist/assets/mtext-renderer-worker.js
+
+      - name: Smoke serve built sandbox
+        working-directory: cad-upstream-sandbox
+        shell: bash
+        run: |
+          pnpm preview --host 127.0.0.1 --port 4173 > /tmp/cad-upstream-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /tmp/cad-upstream-index.html; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /tmp/cad-upstream-index.html
+          curl --fail --silent http://127.0.0.1:4173/no-plugin.html > /tmp/cad-upstream-no-plugin.html
+          grep -q '<html' /tmp/cad-upstream-index.html
+          grep -q '<html' /tmp/cad-upstream-no-plugin.html
+
+      - name: Upload immutable sandbox build
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-simple-viewer-example-92bf58f8
+          path: cad-upstream-sandbox/dist
+          if-no-files-found: error
+          retention-days: 7
