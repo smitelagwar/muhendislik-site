@@ -232,6 +232,13 @@ export function ApsDwgViewer(props: ApsDwgViewerProps) {
 function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgViewerProps) {
   const [fastPath, setFastPath] = useState<FastPathState>({ kind: "resolving" });
 
+  const handleDxfViewerFailure = useCallback((reason: string) => {
+    const safeReason = reason.replace(/[\r\n]+/gu, " ").slice(0, 180);
+    setFastPath((current) => current.kind === "dxf"
+      ? { kind: "aps", reason: `DXF_RENDER_FAILED:${safeReason}` }
+      : current);
+  }, []);
+
   useEffect(() => {
     const abortController = new AbortController();
     let active = true;
@@ -272,9 +279,6 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
     const run = async () => {
       setFastPath({ kind: "resolving" });
 
-      // Cache lookup is intentionally first. Only Stage 3 PASS/WARN derivatives
-      // can be returned by this endpoint. Cache failure is non-fatal, but a cache
-      // derivative that is too large is routed to APS before allocating it.
       try {
         const cached = await fetchWithDeadline(
           `/api/dokumantasyon/files/${fileId}/dwg-dxf`,
@@ -303,11 +307,8 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
           chooseAps(error.code);
           return;
         }
-        // Cache availability and cache timeouts must never make a locally
-        // convertible DWG fail. Continue to the bounded Worker path.
       }
 
-      // Source byte size remains only a hard safety ceiling, not a complexity score.
       if (!isWithinByteLimit(sizeBytes, DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES)) {
         chooseAps("WORKLOAD_OUTSIDE_BROWSER_BUDGET");
         return;
@@ -417,6 +418,7 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
             fileId={fileId}
             extension=".dxf"
             sizeBytes={fastPath.sizeBytes}
+            onViewerFailure={handleDxfViewerFailure}
           />
         </Suspense>
       </div>

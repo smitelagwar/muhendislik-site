@@ -1,11 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
+const productionServer = process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/document-studio",
   fullyParallel: false,
-  // Tek Next geliştirme sunucusu, paralel SSR derleme yükünde modül fabrikasını
+  // Tek Next sunucusu, paralel SSR derleme yükünde modül fabrikasını
   // kaybedebiliyor; kabul kapısı deterministik olarak tek worker çalışır.
   workers: 1,
   timeout: 45_000,
@@ -40,14 +41,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: productionServer
+      ? `npm start -- --hostname 127.0.0.1 --port ${port}`
+      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}/dokumantasyon`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
       ...process.env,
-      NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || ".next-playwright",
+      NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || (productionServer ? ".next" : ".next-playwright"),
       DOK_ALLOW_LOCAL_STORAGE: "true",
+      DOK_PRODUCTION_RUNTIME_TEST: productionServer ? "true" : "false",
       ADMIN_USERNAME: "admin",
       ADMIN_PASSWORD_HASH: "$2b$10$TxzKJSpWjjhIwB8honXpuOGcE4VQdEEsN2WGFadTRG1GdvqiCrRfO",
       SESSION_SECRET: "playwright_session_secret_at_least_32_bytes",
