@@ -1,5 +1,4 @@
 export * from "./converter";
-export * from "./derivative-cache";
 export * from "./diagnostics";
 export * from "./inspect";
 export * from "./signature";
