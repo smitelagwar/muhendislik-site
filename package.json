@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "node scripts/patch-dxf-viewer-stage1.mjs",
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",
     "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs",
     "check:content-quality": "tsx scripts/audit-content-quality.mjs --scope=all",
@@ -78,6 +79,7 @@
     "check:dokumantasyon:release": "playwright test --config=playwright.config.ts tests/document-studio/release.spec.ts",
     "check:document-studio:share-origin": "tsx scripts/check-dokumantasyon-share-origin.ts",
     "check:document-studio:cad-aps": "tsx scripts/check-cad-aps-adapter.ts",
+    "check:document-studio:cad-render-stage1": "node scripts/patch-dxf-viewer-stage1.mjs && tsx scripts/check-dxf-render-fidelity-stage1.ts",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs"
   },
