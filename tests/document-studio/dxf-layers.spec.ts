@@ -308,7 +308,7 @@ test.describe("DXF interactive layer controls", () => {
     await expect(page.getByTestId("cad-dxf-viewer")).toBeVisible();
     await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
     await expect(page.getByTestId("cad-dxf-runtime-snapshot")).toBeAttached({ timeout: 30_000 });
-    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText("Denetim temiz");
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
     await attach(page, testInfo, "dxf-stage6-entity-coverage-all.png");
 
     await page.getByRole("button", { name: "Katmanlar" }).click();

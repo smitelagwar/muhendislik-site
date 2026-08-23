@@ -260,7 +260,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
 
     await expect(page.getByTestId("cad-dxf-viewer")).toBeVisible();
     await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeHidden();
-    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText(/Denetim temiz|uyarı/);
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
 
     const surface = page.getByTestId("cad-dxf-canvas");
     const canvas = surface.locator("canvas").first();
@@ -341,7 +341,7 @@ test.describe("DXF Stage 5 color fidelity", () => {
     const modeToggle = page.getByTestId("cad-dxf-color-mode-toggle");
     await expect(viewer).toBeVisible();
     await expect(canvas).toBeVisible();
-    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText(/Denetim temiz|uyarı/);
+    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toHaveCount(0);
     await runtimeSnapshot(page);
     await expect(modeToggle).toBeVisible();
 

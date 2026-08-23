@@ -106,9 +106,17 @@ async function main() {
   assert.match(viewerSource, /Orijinal dosyayı indir/);
   assert.match(viewerSource, /cad-dxf-runtime-snapshot/);
   assert.doesNotMatch(viewerSource, /cad-dxf-fidelity-warning/);
+
+  assert.match(panelSource, /const showDiagnostics = report\.status !== "clean"/);
   assert.match(panelSource, /cad-dxf-diagnostics-toggle/);
+  assert.match(panelSource, /data-status=\{report\.status\}/);
   assert.match(panelSource, /cad-dxf-diagnostics-panel/);
-  assert.match(panelSource, /max-h-\[38vh\]/);
+  assert.match(panelSource, /fixed right-2 top-24/);
+  assert.match(panelSource, /max-h-\[60vh\]/);
+  assert.match(panelSource, /item\.severity !== "info"/);
+  assert.match(panelSource, /Teknik bilgiler/);
+  assert.doesNotMatch(panelSource, /Denetim temiz/);
+  assert.doesNotMatch(panelSource, /SummaryCell/);
 
   console.log("DXF Stage 5 structured diagnostics checks passed.");
 }

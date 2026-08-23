@@ -156,7 +156,9 @@ test.describe("DXF Text Stage 3 layout fidelity", () => {
     await expect(page.getByRole("heading", { name: "DXF açılamadı" })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/oblique|generation flag|MTEXT/i).first()).toBeVisible();
     await expect(page.getByTestId("cad-dxf-runtime-snapshot")).toHaveCount(0);
-    await expect(page.getByTestId("cad-dxf-diagnostics-toggle")).toContainText("engel");
+    const diagnosticsToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
+    await expect(diagnosticsToggle).toHaveAttribute("data-status", "blocked");
+    await expect(diagnosticsToggle).toHaveAttribute("aria-label", /görüntüleme engeli/);
     await attachEvidence(page, testInfo, "dxf-text-stage3-fail-closed.png");
   });
 });
