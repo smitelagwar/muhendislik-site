@@ -95,10 +95,20 @@ const fixtures: DxfFixture[] = [
 
 async function signIn(page: Page) {
   await page.goto("/dokumantasyon");
-  await page.locator("input#username").fill("admin");
-  await page.locator("input#password").fill("admin");
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  await expect(page.locator("input#username")).toBeHidden();
+  const username = page.locator("input#username");
+  const dashboard = page.getByRole("button", { name: "Yeni Dosya Yükle" });
+  await expect.poll(async () => {
+    if (await username.isVisible()) return "login";
+    if (await dashboard.isVisible()) return "dashboard";
+    return "pending";
+  }, { timeout: 12_000 }).not.toBe("pending");
+
+  if (await username.isVisible()) {
+    await username.fill("admin");
+    await page.locator("input#password").fill("admin");
+    await page.getByRole("button", { name: "Giriş Yap" }).click();
+  }
+  await expect(dashboard).toBeVisible();
 }
 
 async function uploadDxf(page: Page, fixture: DxfFixture): Promise<string> {
