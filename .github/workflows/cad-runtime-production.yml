@@ -81,7 +81,7 @@ jobs:
         run: npx tsc --noEmit --incremental false
 
       - name: Persistence and production-test isolation
-        run: node scripts/check-dokumantasyon-persistence-rules.mjs
+        run: npx tsx scripts/check-dokumantasyon-persistence-rules.mjs
 
       - name: Production Next build
         run: npm run build
