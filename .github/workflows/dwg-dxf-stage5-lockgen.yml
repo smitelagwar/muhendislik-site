@@ -1,0 +1,53 @@
+name: dwg-dxf-stage5-lockgen
+
+on:
+  push:
+    branches:
+      - feat/dwg-dxf-stage5-hardening
+    paths:
+      - ".github/workflows/dwg-dxf-stage5-lockgen.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lockgen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/dwg-dxf-stage5-hardening
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pin production Worker bundler
+        run: npm install --package-lock-only --save-dev --save-exact esbuild@0.27.4
+
+      - name: Verify exact manifest and lock
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (pkg.devDependencies?.esbuild !== '0.27.4') throw new Error('package.json esbuild pin missing');
+          if (lock.packages?.['']?.devDependencies?.esbuild !== '0.27.4') throw new Error('lock root esbuild pin missing');
+          if (lock.packages?.['node_modules/esbuild']?.version !== '0.27.4') throw new Error('locked esbuild version mismatch');
+          NODE
+
+      - name: Commit generated manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Manifest lock already exact."
+            exit 0
+          fi
+          git commit -m "build(dwg): pin exact Worker bundler"
+          git push origin HEAD:feat/dwg-dxf-stage5-hardening
