@@ -36,6 +36,13 @@ import {
   type DxfLineweightSourceAudit,
 } from "../../../lib/dokumantasyon/dxf-lineweight-source";
 import {
+  auditDxfPolylineWidthSource,
+  enrichParsedDxfPolylineWidths,
+  normalizeParsedDxfWidePolylines,
+  type DxfPolylineWidthParsedDxf,
+  type DxfPolylineWidthRenderAudit,
+} from "../../../lib/dokumantasyon/dxf-polyline-width-rendering";
+import {
   dxfTextStage2ReportKey,
   normalizeParsedDxfTextStage2,
   originalDxfTextType,
@@ -60,7 +67,7 @@ type DxfLineEntity = DxfTextStage2Entity & {
   vertices?: DxfLinetypePoint[];
 };
 type ParsedBlock = { entities?: DxfTextStage2Entity[] };
-type WorkerParsedDxf = DxfTextStage2ParsedDxf & DxfLineweightParsedDxf & DxfLinetypeParsedDxf;
+type WorkerParsedDxf = DxfTextStage2ParsedDxf & DxfLineweightParsedDxf & DxfLinetypeParsedDxf & DxfPolylineWidthParsedDxf;
 type CompactParsedDxf = {
   entities?: DxfTextStage2Entity[];
   blocks?: Record<string, ParsedBlock>;
@@ -116,6 +123,7 @@ type InternalDxfScene = {
       generatedPrimitiveCount: number;
       warnings: string[];
     };
+    polylineWidthRenderAudit?: DxfPolylineWidthRenderAudit;
   };
 };
 type InternalDxfScenePrototype = {
@@ -274,14 +282,16 @@ function renderExpandedPattern(
 }
 
 // Upstream parses entity group 370 but drops group 370 in the LAYER table. It also parses the LTYPE
-// table and entity group 6/48, but drops LAYER group 6. Enrich only the worker-owned representation
-// from exact source text. Uploaded/downloadable bytes remain unchanged.
+// table and entity group 6/48, but drops LAYER group 6 and legacy POLYLINE/VERTEX group 40/41 widths.
+// Enrich only the worker-owned representation from exact source text. Uploaded/downloadable bytes
+// remain unchanged.
 const parserPrototype = (DxfParser as unknown as { prototype: InternalDxfParserPrototype }).prototype;
 const upstreamParseSync = parserPrototype.parseSync;
 parserPrototype.parseSync = function (source: string) {
   const dxf = upstreamParseSync.call(this, source);
   enrichParsedDxfLineweights(dxf, auditDxfLineweightSource(source));
   enrichParsedDxfLinetypes(dxf, auditDxfLinetypeSource(source));
+  enrichParsedDxfPolylineWidths(dxf, auditDxfPolylineWidthSource(source));
   return dxf as WorkerParsedDxf;
 };
 
@@ -455,8 +465,9 @@ scenePrototype._FlattenBatch = function (
   }
 };
 
-// Keep all existing text/dimension fidelity gates, then append lineweight and linetype evidence to
-// the serialized scene. Geometry is never deduplicated or rewritten in the source file.
+// Keep all existing text/dimension fidelity gates, then normalize physical wide-polylines into
+// triangle SOLIDs before upstream scene preparation. The generated fill triangles intentionally do
+// not carry lineweight: physical model-space width and print/display lineweight remain independent.
 const upstreamBuild = scenePrototype.Build;
 scenePrototype.Build = async function (
   this: InternalDxfScene,
@@ -489,6 +500,7 @@ scenePrototype.Build = async function (
   }
 
   normalizeParsedDxfDimensionColors(dxf);
+  const polylineWidthAudit = normalizeParsedDxfWidePolylines(dxf);
   await upstreamBuild.call(this, dxf, fontFetchers);
 
   const serializedScene = this.scene;
@@ -502,6 +514,7 @@ scenePrototype.Build = async function (
       generatedPrimitiveCount: this.__dxfLinetypePrimitiveCount ?? 0,
       warnings: [...(this.__dxfLinetypeWarnings ?? [])],
     };
+    serializedScene.polylineWidthRenderAudit = polylineWidthAudit;
     for (const layer of serializedScene.layers ?? []) {
       const sourceLineweight = lineweightAudit.layers[layer.name];
       if (sourceLineweight !== undefined) layer.lineweight = sourceLineweight;
@@ -530,8 +543,8 @@ const worker = new DxfWorker(workerScope, true) as InternalDxfWorker;
 const upstreamLoad = worker._Load.bind(worker);
 
 // retainParsedDxf=true normally clones the full parsed file back to the main thread. Keep only the
-// existing compact text evidence after scene preparation; lineweight/linetype data already lives in
-// scene metadata, so large engineering drawings do not duplicate parsed state.
+// existing compact text evidence after scene preparation; lineweight/linetype/wide-polyline evidence
+// already lives in scene metadata, so large engineering drawings do not duplicate parsed state.
 worker._Load = async (url, fonts, options, progressCbk) => {
   const result = await upstreamLoad(url, fonts, options, progressCbk);
   if (options.retainParsedDxf === true) {
