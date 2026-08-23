@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, Palette, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+// Installing the lineweight runtime here guarantees the DxfViewer prototype is patched before
+// cad-viewer dynamically constructs the viewer. Stage 2 will expose its UI control.
+import "@/lib/dokumantasyon/dxf-lineweight-runtime";
+import {
+  getDxfRenderStyleViewerForRoot,
+  setDxfColorMode,
+} from "@/lib/dokumantasyon/dxf-render-style-runtime";
 import type {
   DxfDiagnosticCategory,
   DxfDiagnosticItem,
@@ -21,7 +28,6 @@ const CATEGORY_LABELS: Record<DxfDiagnosticCategory, string> = {
   renderer: "Renderer",
 };
 
-const MONOCHROME_FILTER = "grayscale(1) brightness(12) contrast(1.05)";
 type DxfColorMode = "true-color" | "monochrome";
 
 function statusText(report: DxfStage5DiagnosticsReport): string {
@@ -48,13 +54,18 @@ function SeverityIcon({ item }: { item: DxfDiagnosticItem }) {
   return <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />;
 }
 
-function applyDxfColorMode(root: HTMLElement, mode: DxfColorMode) {
+function applyDxfColorMode(root: HTMLElement, mode: DxfColorMode): boolean {
   const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
-  if (!canvas) return;
+  const viewer = getDxfRenderStyleViewerForRoot(root);
+  if (!canvas || !viewer) return false;
 
+  // This is a renderer state change, not a CSS filter. The DXF is not fetched/parsed again and the
+  // camera/layer state is untouched. Material keys retain their source CAD colors for exact restore.
+  setDxfColorMode(viewer, mode === "monochrome" ? "monochrome" : "source");
   canvas.dataset.dxfColorMode = mode;
-  canvas.style.filter = mode === "monochrome" ? MONOCHROME_FILTER : "";
-  canvas.style.transition = "filter 120ms ease-out";
+  canvas.style.filter = "";
+  canvas.style.transition = "";
+  return true;
 }
 
 function DxfColorModeButton() {
@@ -69,16 +80,15 @@ function DxfColorModeButton() {
     const sync = () => applyDxfColorMode(root, mode);
     sync();
 
+    // Normally the button appears only after DXF load/diagnostics complete. Keep the observer so a
+    // retry/recreated canvas receives the same mode without forcing a DXF reload.
     const observer = new MutationObserver(sync);
     observer.observe(root, { childList: true, subtree: true });
 
     return () => {
       observer.disconnect();
       const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
-      if (canvas) {
-        canvas.style.filter = "";
-        delete canvas.dataset.dxfColorMode;
-      }
+      if (canvas) delete canvas.dataset.dxfColorMode;
     };
   }, [mode]);
 
