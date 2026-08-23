@@ -28,7 +28,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Apply exact Stage 3 package contract
+      - name: Apply corpus-validated upstream package contract
         shell: bash
         run: |
           node <<'NODE'
@@ -40,9 +40,9 @@ jobs:
           p.scripts.predev = 'node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs'
           p.scripts.prebuild = 'node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs'
           p.scripts['check:cad-upstream:stage3'] = 'node scripts/check-cad-upstream-stage3.mjs'
-          p.dependencies['@mlightcad/cad-simple-viewer'] = '1.6.0'
-          p.dependencies['@mlightcad/data-model'] = '1.13.0'
-          p.dependencies['@mlightcad/libredwg-converter'] = '3.13.0'
+          p.dependencies['@mlightcad/cad-simple-viewer'] = '1.6.2'
+          p.dependencies['@mlightcad/data-model'] = '1.14.2'
+          p.dependencies['@mlightcad/libredwg-converter'] = '3.14.2'
           fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n')
           NODE
 
@@ -53,11 +53,11 @@ jobs:
         shell: bash
         run: |
           if git diff --quiet -- package.json package-lock.json; then
-            echo "Stage 3 package contract already synchronized"
+            echo "CAD upstream package contract already synchronized"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
-          git commit -m "chore(cad): add pinned MLightCAD Stage 3 dependencies"
+          git commit -m "chore(cad): sync corpus-validated upstream dependencies"
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
