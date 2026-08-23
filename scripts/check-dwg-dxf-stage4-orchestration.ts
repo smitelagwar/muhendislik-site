@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const viewer = fs.readFileSync("src/components/dokumantasyon/preview/aps-dwg-viewer.tsx", "utf8");
+const dxfViewer = fs.readFileSync("src/components/dokumantasyon/preview/cad-viewer.tsx", "utf8");
+const dxfRuntimePolicy = fs.readFileSync("src/lib/dokumantasyon/dxf-runtime-policy.ts", "utf8");
 const worker = fs.readFileSync("src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts", "utf8");
 const route = fs.readFileSync("src/app/api/dokumantasyon/files/[id]/dwg-dxf/route.ts", "utf8");
 const browserIndex = fs.readFileSync("src/lib/dokumantasyon/dwg/index.ts", "utf8");
@@ -19,9 +21,24 @@ assert.match(viewer, /result\.decision === "PASS" \|\| result\.decision === "WAR
 assert.match(viewer, /<ApsFallbackViewer/);
 assert.match(viewer, /extension="\.dxf"/);
 assert.match(viewer, /ResolvedDxfCadViewer/);
+assert.match(viewer, /onViewerFailure=\{handleDxfViewerFailure\}/);
+assert.match(viewer, /DXF_RENDER_FAILED/);
 // Stage 5 centralizes the Stage 4 browser ceiling/watchdog in runtime-policy.
 assert.match(viewer, /DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES/);
 assert.match(viewer, /DWG_BROWSER_WORKER_TIMEOUT_MS/);
+
+// The shared DXF renderer must have terminal deadlines as well. Otherwise a successful
+// DWG conversion can still leave the user on an infinite spinner before APS gets a chance.
+assert.match(dxfViewer, /fetchDxfSourceBytes/);
+assert.match(dxfViewer, /DXF_BROWSER_SOURCE_FETCH_TIMEOUT_MS/);
+assert.match(dxfViewer, /DXF_BROWSER_VIEWER_LOAD_TIMEOUT_MS/);
+assert.match(dxfViewer, /addEventListener\("error"/);
+assert.match(dxfViewer, /addEventListener\("messageerror"/);
+assert.match(dxfViewer, /Promise\.race\(\[viewerLoadPromise, workerFailurePromise, timeoutPromise\]\)/);
+assert.match(dxfViewer, /onViewerFailure\?/);
+assert.match(dxfRuntimePolicy, /DXF_BROWSER_SOURCE_FETCH_TIMEOUT_MS = 45_000/);
+assert.match(dxfRuntimePolicy, /DXF_BROWSER_VIEWER_LOAD_TIMEOUT_MS = 90_000/);
+assert.match(dxfRuntimePolicy, /DXF_BROWSER_SOURCE_HARD_LIMIT_BYTES = 256 \* 1024 \* 1024/);
 
 assert.match(worker, /convertAndValidateDwgToDxf/);
 assert.match(worker, /validation\.decision === "REJECT"/);
