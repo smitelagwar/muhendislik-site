@@ -62,11 +62,11 @@ export function DokCadUpstreamViewer({
     let systemThemeQuery: MediaQueryList | null = null;
     let syncTheme: (() => void) | null = null;
 
-    setState("loading");
-    setMessage("MLightCAD hazırlanıyor");
-
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
+
+      setState("loading");
+      setMessage("MLightCAD hazırlanıyor");
 
       try {
         setMessage("CAD worker dosyaları doğrulanıyor");
