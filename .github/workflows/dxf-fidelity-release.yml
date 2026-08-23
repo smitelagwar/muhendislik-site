@@ -23,6 +23,7 @@ on:
       - "tests/document-studio/dxf-layers.spec.ts"
       - "tests/document-studio/dxf-color.spec.ts"
       - "tests/document-studio/dxf-render-modes-stage2.spec.ts"
+      - "tests/document-studio/dxf-polyline-width-stage3.spec.ts"
   push:
     branches:
       - main
@@ -47,6 +48,7 @@ on:
       - "tests/document-studio/dxf-layers.spec.ts"
       - "tests/document-studio/dxf-color.spec.ts"
       - "tests/document-studio/dxf-render-modes-stage2.spec.ts"
+      - "tests/document-studio/dxf-polyline-width-stage3.spec.ts"
 
 concurrency:
   group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
@@ -87,6 +89,7 @@ jobs:
           "tests/document-studio/dxf-layers.spec.ts"
           "tests/document-studio/dxf-color.spec.ts"
           "tests/document-studio/dxf-render-modes-stage2.spec.ts"
+          "tests/document-studio/dxf-polyline-width-stage3.spec.ts"
 
       - name: Typecheck
         run: npx tsc --noEmit --incremental false
@@ -127,6 +130,9 @@ jobs:
       - name: Extended geometry color and hatch fidelity
         run: npx tsx scripts/check-dxf-stage7-extended-fidelity.ts
 
+      - name: CAD Stage 3 physical polyline width rendering
+        run: npx tsx scripts/check-dxf-polyline-width-rendering.ts
+
       - name: Stage 6 release matrix
         run: npx tsx scripts/check-dxf-stage6-release.ts
 
@@ -143,6 +149,7 @@ jobs:
           tests/document-studio/dxf-layers.spec.ts
           tests/document-studio/dxf-color.spec.ts
           tests/document-studio/dxf-render-modes-stage2.spec.ts
+          tests/document-studio/dxf-polyline-width-stage3.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence
