@@ -1,4 +1,6 @@
 import * as three from "three";
+// @ts-expect-error dxf-viewer internal module intentionally has no public declaration file.
+import { DxfViewer as InternalViewerClass } from "dxf-viewer/src/DxfViewer.js";
 import {
   DXF_LINEWEIGHT_BY_LAYER,
   lineweightHundredthsMmToCssPixels,
@@ -9,11 +11,12 @@ const LINE_SEGMENTS = 1;
 const INDEXED_LINES = 2;
 const BLOCK_INSTANCE = 5;
 const POINT_INSTANCE = 6;
-const PATCH_FLAG = "__muhendislikDxfLineweightPatchV1";
+const PATCH_FLAG = "__muhendislikDxfLineweightPatchV2";
 const LINEWEIGHT_VALUE_KEY = "__dxfLineweightHundredthsMm";
 const LINEWEIGHT_SOURCE_KEY = "__dxfLineweightSourceValue";
 const LINEWEIGHT_UNSUPPORTED_KEY = "__dxfLineweightUnsupported";
 const LINEWEIGHT_OVERLAY_KEY = "__dxfLineweightOverlay";
+export const DXF_LINEWEIGHT_READY_EVENT = "cad-dxf-lineweight-ready";
 
 type SerializedLayer = { name: string; lineweight?: number };
 type SerializedBatchKey = {
@@ -36,14 +39,20 @@ type SerializedScene = {
 };
 
 type InternalDxfViewer = {
+  domContainer: HTMLElement;
   scene: three.Scene;
   GetScene: () => three.Scene;
   GetRenderer?: () => three.WebGLRenderer | null;
   Render: () => void;
+  Load: (params: unknown) => Promise<void>;
+  Destroy: () => void;
 };
 type InternalDxfViewerPrototype = {
   [PATCH_FLAG]?: boolean;
   _LoadBatch: (this: InternalDxfViewer, scene: SerializedScene, batch: SerializedBatch) => void;
+  Load: (this: InternalDxfViewer, params: unknown) => Promise<void>;
+  Destroy: (this: InternalDxfViewer) => void;
+  Render: (this: InternalDxfViewer) => void;
 };
 
 type TaggedLineObject = three.LineSegments & {
@@ -86,6 +95,7 @@ export interface DxfLineweightRuntimeSnapshot {
 }
 
 const runtimeStates = new WeakMap<object, RuntimeState>();
+const viewerRegistry = new WeakMap<HTMLElement, InternalDxfViewer>();
 
 function isLineGeometryType(type: number | null | undefined): boolean {
   return type === LINE_SEGMENTS || type === INDEXED_LINES;
@@ -187,30 +197,6 @@ function tagLoadedLineObjects(
     object.userData[LINEWEIGHT_SOURCE_KEY] = item.source;
     delete object.userData[LINEWEIGHT_UNSUPPORTED_KEY];
   }
-}
-
-/**
- * dxf-viewer serializes batch keys from the worker but does not expose them on the final Three.js
- * objects. Patch only the internal batch-load seam so supported line objects retain the resolved
- * source lineweight as metadata. Geometry and materials are unchanged while LWT is off.
- */
-export async function installDxfLineweightViewerPatch(): Promise<void> {
-  // @ts-expect-error dxf-viewer internal module intentionally has no public declaration file.
-  const internalModule = await import("dxf-viewer/src/DxfViewer.js") as {
-    DxfViewer: { prototype: InternalDxfViewerPrototype };
-  };
-  const prototype = internalModule.DxfViewer.prototype;
-  if (prototype[PATCH_FLAG]) return;
-
-  const upstreamLoadBatch = prototype._LoadBatch;
-  prototype._LoadBatch = function (this: InternalDxfViewer, scene: SerializedScene, batch: SerializedBatch) {
-    const before = this.scene.children.length;
-    upstreamLoadBatch.call(this, scene, batch);
-    const added = this.scene.children.slice(before);
-    if (added.length === 0) return;
-    tagLoadedLineObjects(added, metadataForLoadedBatch(scene, batch));
-  };
-  prototype[PATCH_FLAG] = true;
 }
 
 function taggedLineObjects(viewer: DxfLineweightViewerLike): TaggedLineObject[] {
@@ -466,8 +452,11 @@ export function setDxfLineweightEnabled(
       if (typeof resolved !== "number" || line.userData?.[LINEWEIGHT_UNSUPPORTED_KEY] === true) continue;
       let overlay = state.overlays.get(line);
       if (!overlay) {
-        overlay = createWideOverlay(line, lineweightHundredthsMmToCssPixels(resolved)) ?? undefined;
-        if (overlay) state.overlays.set(line, overlay);
+        const created = createWideOverlay(line, lineweightHundredthsMmToCssPixels(resolved));
+        if (created) {
+          overlay = created;
+          state.overlays.set(line, created);
+        }
       }
       if (overlay) overlay.visible = true;
     }
@@ -492,3 +481,56 @@ export function disposeDxfLineweightRuntime(viewer: DxfLineweightViewerLike): vo
   state.overlays.clear();
   runtimeStates.delete(viewer as object);
 }
+
+export function getDxfLineweightViewerForRoot(root: HTMLElement): DxfLineweightViewerLike | null {
+  const container = root.querySelector<HTMLElement>('[data-testid="cad-dxf-canvas"]');
+  if (!container) return null;
+  return viewerRegistry.get(container) ?? null;
+}
+
+function installPatchSynchronously() {
+  const prototype = (InternalViewerClass as unknown as { prototype: InternalDxfViewerPrototype }).prototype;
+  if (prototype[PATCH_FLAG]) return;
+
+  const upstreamLoadBatch = prototype._LoadBatch;
+  prototype._LoadBatch = function (this: InternalDxfViewer, scene: SerializedScene, batch: SerializedBatch) {
+    const before = this.scene.children.length;
+    upstreamLoadBatch.call(this, scene, batch);
+    const added = this.scene.children.slice(before);
+    if (added.length === 0) return;
+    tagLoadedLineObjects(added, metadataForLoadedBatch(scene, batch));
+  };
+
+  const upstreamLoad = prototype.Load;
+  prototype.Load = async function (this: InternalDxfViewer, params: unknown) {
+    await upstreamLoad.call(this, params);
+    viewerRegistry.set(this.domContainer, this);
+    const initial = initializeDxfLineweightRuntime(this);
+    this.domContainer.dispatchEvent(new CustomEvent(DXF_LINEWEIGHT_READY_EVENT, {
+      bubbles: true,
+      detail: initial,
+    }));
+  };
+
+  const upstreamRender = prototype.Render;
+  prototype.Render = function (this: InternalDxfViewer) {
+    updateDxfLineweightViewport(this);
+    upstreamRender.call(this);
+  };
+
+  const upstreamDestroy = prototype.Destroy;
+  prototype.Destroy = function (this: InternalDxfViewer) {
+    disposeDxfLineweightRuntime(this);
+    viewerRegistry.delete(this.domContainer);
+    upstreamDestroy.call(this);
+  };
+
+  prototype[PATCH_FLAG] = true;
+}
+
+/** Kept as an explicit API for tests/callers; importing this module already installs the patch. */
+export function installDxfLineweightViewerPatch(): void {
+  installPatchSynchronously();
+}
+
+installPatchSynchronously();
