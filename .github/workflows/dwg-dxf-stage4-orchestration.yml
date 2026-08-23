@@ -93,31 +93,109 @@ jobs:
           console.log(`Fixture bytes: ${writer.bytesWritten}`);
           NODE
 
-      - name: Production build
-        run: npm run build
-
-      - name: Locate emitted DWG worker
-        id: worker
+      - name: Generate ephemeral native Worker probe page
         shell: bash
         run: |
           set -euo pipefail
-          WORKER_FILE="$(grep -RIl --include='*.js' 'WORKER_CLASS_NAME_CONTRACT_FAILED' .next/static | head -n 1 || true)"
-          if [ -z "$WORKER_FILE" ]; then
-            echo "Production DWG conversion worker asset was not emitted."
+          mkdir -p src/app/__dwg-stage4-worker-test
+          cat > src/app/__dwg-stage4-worker-test/page.tsx <<'TSX'
+          "use client";
+
+          import { useEffect, useState } from "react";
+
+          interface WorkerResult {
+            requestId?: string;
+            ok?: boolean;
+            decision?: "PASS" | "WARN" | "REJECT";
+            dxfBytes?: number;
+            errorCode?: string;
+            errorMessage?: string;
+          }
+
+          export default function Stage4WorkerProbePage() {
+            const [state, setState] = useState("pending");
+            const [result, setResult] = useState<WorkerResult | null>(null);
+
+            useEffect(() => {
+              let active = true;
+              let worker: Worker | null = null;
+              const timer = window.setTimeout(() => {
+                worker?.terminate();
+                if (active) {
+                  setState("timeout");
+                  setResult({ errorCode: "PROBE_TIMEOUT", errorMessage: "Native production worker timed out." });
+                }
+              }, 20_000);
+
+              const run = async () => {
+                try {
+                  const response = await fetch("/__dwg-stage4/simple_AC1014.dwg", { cache: "no-store" });
+                  if (!response.ok) throw new Error(`Fixture fetch failed: ${response.status}`);
+                  const buffer = await response.arrayBuffer();
+                  if (!active) return;
+
+                  worker = new Worker(
+                    new URL("../../components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts", import.meta.url),
+                    { type: "module" }
+                  );
+                  worker.onerror = (event) => {
+                    window.clearTimeout(timer);
+                    worker?.terminate();
+                    if (!active) return;
+                    setState("worker-error");
+                    setResult({ errorCode: "WORKER_EVENT_ERROR", errorMessage: event.message || "Worker error" });
+                  };
+                  worker.onmessage = (event: MessageEvent<WorkerResult>) => {
+                    window.clearTimeout(timer);
+                    worker?.terminate();
+                    if (!active) return;
+                    setResult(event.data);
+                    setState(event.data.ok ? "success" : "worker-result-error");
+                  };
+                  worker.postMessage({ requestId: "stage4-ci", buffer }, [buffer]);
+                } catch (error) {
+                  window.clearTimeout(timer);
+                  worker?.terminate();
+                  if (!active) return;
+                  setState("exception");
+                  setResult({ errorCode: "PROBE_EXCEPTION", errorMessage: error instanceof Error ? error.message : String(error) });
+                }
+              };
+
+              void run();
+              return () => {
+                active = false;
+                window.clearTimeout(timer);
+                worker?.terminate();
+              };
+            }, []);
+
+            return (
+              <main>
+                <pre id="result" data-state={state}>{JSON.stringify(result)}</pre>
+              </main>
+            );
+          }
+          TSX
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify production worker asset exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          COUNT="$(grep -RIl --include='*.js' 'WORKER_CLASS_NAME_CONTRACT_FAILED' .next/static | wc -l | tr -d ' ')"
+          if [ "$COUNT" -lt 1 ]; then
+            echo "Production DWG conversion worker code was not emitted."
             exit 1
           fi
-          RELATIVE="${WORKER_FILE#.next/static/}"
-          WORKER_URL="/_next/static/${RELATIVE}"
-          echo "file=${WORKER_FILE}" >> "$GITHUB_OUTPUT"
-          echo "url=${WORKER_URL}" >> "$GITHUB_OUTPUT"
-          echo "Worker asset: ${WORKER_FILE}"
+          echo "Worker-related emitted chunks: ${COUNT}"
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Production worker runtime fidelity check
-        env:
-          DWG_STAGE4_WORKER_URL: ${{ steps.worker.outputs.url }}
         shell: bash
         run: |
           set -euo pipefail
@@ -129,7 +207,7 @@ jobs:
           trap cleanup EXIT
 
           for attempt in $(seq 1 60); do
-            if curl -fsS "http://127.0.0.1:3012/" >/dev/null 2>&1; then
+            if curl -fsS "http://127.0.0.1:3012/__dwg-stage4-worker-test" >/dev/null 2>&1; then
               break
             fi
             if [ "$attempt" -eq 60 ]; then
@@ -143,41 +221,33 @@ jobs:
           import assert from 'node:assert/strict';
           import { chromium } from '@playwright/test';
 
-          const workerUrl = process.env.DWG_STAGE4_WORKER_URL;
-          assert.ok(workerUrl, 'DWG_STAGE4_WORKER_URL missing');
           const browser = await chromium.launch({ headless: true });
           try {
             const page = await browser.newPage();
-            await page.goto('http://127.0.0.1:3012/', { waitUntil: 'domcontentloaded' });
-            const result = await page.evaluate(async (url) => {
-              const response = await fetch('/__dwg-stage4/simple_AC1014.dwg');
-              if (!response.ok) throw new Error(`Fixture fetch failed: ${response.status}`);
-              const buffer = await response.arrayBuffer();
-              return await new Promise((resolve, reject) => {
-                const worker = new Worker(url, { type: 'module' });
-                const timer = window.setTimeout(() => {
-                  worker.terminate();
-                  reject(new Error('Production DWG worker timed out.'));
-                }, 20_000);
-                worker.onerror = (event) => {
-                  window.clearTimeout(timer);
-                  worker.terminate();
-                  reject(new Error(event.message || 'Production DWG worker crashed.'));
-                };
-                worker.onmessage = (event) => {
-                  window.clearTimeout(timer);
-                  worker.terminate();
-                  resolve(event.data);
-                };
-                worker.postMessage({ requestId: 'stage4-ci', buffer }, [buffer]);
-              });
-            }, workerUrl);
+            const browserErrors = [];
+            page.on('console', (message) => {
+              if (message.type() === 'error' || message.type() === 'warning') {
+                browserErrors.push(`${message.type()}: ${message.text()}`);
+              }
+            });
+            page.on('pageerror', (error) => browserErrors.push(`pageerror: ${error.message}`));
 
-            console.log(result);
+            await page.goto('http://127.0.0.1:3012/__dwg-stage4-worker-test', { waitUntil: 'domcontentloaded' });
+            await page.locator('#result').waitFor({ state: 'attached' });
+            await page.waitForFunction(() => {
+              const node = document.querySelector('#result');
+              return node && node.getAttribute('data-state') !== 'pending';
+            }, null, { timeout: 25_000 });
+
+            const state = await page.locator('#result').getAttribute('data-state');
+            const text = await page.locator('#result').textContent();
+            const result = text ? JSON.parse(text) : null;
+            console.log({ state, result, browserErrors });
+
+            assert.equal(state, 'success', `Native worker probe failed: ${JSON.stringify({ state, result, browserErrors })}`);
             assert.equal(result.requestId, 'stage4-ci');
             assert.equal(result.ok, true, `Worker failed: ${result.errorCode || ''} ${result.errorMessage || ''}`);
             assert.ok(result.decision === 'PASS' || result.decision === 'WARN');
-            assert.ok(result.dxfBuffer instanceof Object || result.dxfBytes > 0);
             assert.ok(result.dxfBytes > 0);
             assert.notEqual(result.errorCode, 'WORKER_CLASS_NAME_CONTRACT_FAILED');
           } finally {
@@ -185,6 +255,6 @@ jobs:
           }
           NODE
 
-      - name: Remove ephemeral fixture
+      - name: Remove ephemeral Stage 4 probe
         if: always()
-        run: rm -rf public/__dwg-stage4
+        run: rm -rf public/__dwg-stage4 src/app/__dwg-stage4-worker-test
