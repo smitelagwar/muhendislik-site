@@ -13,6 +13,7 @@ export const CAD_UPSTREAM_WORKER_URLS = {
 export const CAD_UPSTREAM_SUPPORTED_EXTENSIONS = new Set([".dxf", ".dwg"]);
 
 export type CadUpstreamTheme = "light" | "dark";
+export type CadUpstreamDisplayMode = "source" | "monochrome";
 
 export type CadUpstreamErrorCode =
   | "unsupported-extension"
@@ -120,6 +121,10 @@ async function fetchCadSource(
 
 export class CadUpstreamAdapter {
   private destroyed = false;
+  private displayMode: CadUpstreamDisplayMode = "source";
+  private displayTheme: CadUpstreamTheme = "dark";
+  private sourceClearAlpha: number | null = null;
+  private sourceCanvasFilter: string | null = null;
 
   private constructor(
     private readonly manager: AcApDocManager,
@@ -163,7 +168,9 @@ export class CadUpstreamAdapter {
       );
     }
 
-    return new CadUpstreamAdapter(manager, Viewer);
+    const adapter = new CadUpstreamAdapter(manager, Viewer);
+    adapter.displayTheme = options.theme ?? "dark";
+    return adapter;
   }
 
   async open(options: CadUpstreamOpenOptions): Promise<void> {
@@ -205,15 +212,71 @@ export class CadUpstreamAdapter {
         `MLightCAD dosyayı açamadı: ${options.displayName}`
       );
     }
+
+    this.applyDisplayMode();
+  }
+
+  private applyDisplayMode(): void {
+    if (this.destroyed) return;
+
+    const view = this.manager.curView;
+    const renderer = view.renderer;
+    const canvas = renderer.domElement;
+
+    if (this.sourceClearAlpha === null) {
+      this.sourceClearAlpha = renderer.clearAlpha;
+    }
+    if (this.sourceCanvasFilter === null) {
+      this.sourceCanvasFilter = canvas.style.filter;
+    }
+
+    if (this.displayMode === "source") {
+      renderer.clearAlpha = this.sourceClearAlpha;
+      canvas.style.filter = this.sourceCanvasFilter;
+    } else {
+      renderer.clearAlpha = 0;
+      canvas.style.filter =
+        this.displayTheme === "dark"
+          ? "grayscale(1) brightness(0) invert(1)"
+          : "grayscale(1) brightness(0)";
+    }
+
+    view.isDirty = true;
+  }
+
+  setDisplayMode(mode: CadUpstreamDisplayMode, theme: CadUpstreamTheme): void {
+    if (this.destroyed) return;
+    this.displayMode = mode;
+    this.displayTheme = theme;
+    this.applyDisplayMode();
+  }
+
+  getLineWeightVisible(): boolean {
+    if (this.destroyed) return false;
+    return Boolean(this.manager.context.doc.database.lwdisplay);
+  }
+
+  async setLineWeightVisible(enabled: boolean): Promise<void> {
+    if (this.destroyed) return;
+    const dataModel = await import("@mlightcad/data-model");
+    dataModel.AcDbSysVarManager.instance().setVar(
+      "LWDISPLAY",
+      enabled ? 1 : 0,
+      this.manager.context.doc.database
+    );
   }
 
   applyTheme(theme: CadUpstreamTheme, host: HTMLElement): void {
     if (this.destroyed) return;
+    this.displayTheme = theme;
     this.Viewer.acedApplyUiTheme(theme, host);
+    this.applyDisplayMode();
   }
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
+    this.displayMode = "source";
+    this.applyDisplayMode();
     this.destroyed = true;
     await this.manager.destroy();
   }
