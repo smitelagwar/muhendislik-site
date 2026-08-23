@@ -95,6 +95,20 @@ jobs:
             cat artifacts/dwg-dxf-phase1/browser-bundle-error.txt
           fi
 
+      - name: Export self-contained local benchmark bundles
+        if: steps.worker-bundle.outputs.supported == 'true'
+        shell: bash
+        run: |
+          cp .poc/dwg-worker.js artifacts/dwg-dxf-phase1/dwg-worker.js
+          npx esbuild scripts/poc-dwg-dxf-runtime-benchmark.mjs \
+            --bundle \
+            --format=esm \
+            --platform=node \
+            --target=node24 \
+            --keep-names \
+            --outfile=artifacts/dwg-dxf-phase1/node-benchmark.bundle.mjs
+          stat -c 'Node benchmark bundle: %s bytes' artifacts/dwg-dxf-phase1/node-benchmark.bundle.mjs
+
       - name: Install Chromium
         if: steps.worker-bundle.outputs.supported == 'true'
         run: npx playwright install --with-deps chromium
