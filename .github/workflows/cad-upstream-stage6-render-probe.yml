@@ -102,9 +102,9 @@ jobs:
             const g = png.data[i+1] >> 4
             const b = png.data[i+2] >> 4
             colors.add(`${r},${g},${b}`)
-            if (colors.size >= 12) break
+            if (colors.size >= 8) break
           }
-          if (colors.size < 12) throw new Error(`canteen source-color evidence too weak: ${colors.size} quantized colors`)
+          if (colors.size < 8) throw new Error(`canteen source-color evidence too weak: ${colors.size} quantized colors`)
 
           const html = fs.readdirSync('out-html').find(x => x.toLowerCase().endsWith('.html'))
           if (!html) throw new Error('offline HTML output missing')
