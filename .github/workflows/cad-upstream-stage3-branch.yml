@@ -58,3 +58,5 @@ jobs:
             src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts \
             src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
             src/lib/dokumantasyon/dwg
+
+# This branch-only gate exists so Stage 3 verification is independent of pull-request queue state.
