@@ -6,6 +6,8 @@ on:
       - feat/dwg-dxf-stage4-orchestration
     paths:
       - ".github/workflows/dwg-dxf-stage4-orchestration.yml"
+      - "package.json"
+      - "scripts/build-dwg-dxf-worker.mjs"
       - "scripts/check-dwg-dxf-stage4-orchestration.ts"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
@@ -14,6 +16,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/dwg-dxf-stage4-orchestration.yml"
+      - "package.json"
+      - "scripts/build-dwg-dxf-worker.mjs"
       - "scripts/check-dwg-dxf-stage4-orchestration.ts"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
@@ -93,7 +97,7 @@ jobs:
           console.log(`Fixture bytes: ${writer.bytesWritten}`);
           NODE
 
-      - name: Generate ephemeral native Worker probe page
+      - name: Generate ephemeral Worker probe page
         shell: bash
         run: |
           set -euo pipefail
@@ -102,6 +106,7 @@ jobs:
           "use client";
 
           import { useEffect, useState } from "react";
+          import { DWG_DXF_WORKER_ASSET_URL } from "@/lib/dokumantasyon/dwg/signature";
 
           interface WorkerResult {
             requestId?: string;
@@ -123,7 +128,7 @@ jobs:
                 worker?.terminate();
                 if (active) {
                   setState("timeout");
-                  setResult({ errorCode: "PROBE_TIMEOUT", errorMessage: "Native production worker timed out." });
+                  setResult({ errorCode: "PROBE_TIMEOUT", errorMessage: "Production DWG worker timed out." });
                 }
               }, 20_000);
 
@@ -134,10 +139,7 @@ jobs:
                   const buffer = await response.arrayBuffer();
                   if (!active) return;
 
-                  worker = new Worker(
-                    new URL("../../components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts", import.meta.url),
-                    { type: "module" }
-                  );
+                  worker = new Worker(DWG_DXF_WORKER_ASSET_URL, { type: "module" });
                   worker.onerror = (event) => {
                     window.clearTimeout(timer);
                     worker?.terminate();
@@ -178,24 +180,27 @@ jobs:
           }
           TSX
 
-      - name: Production build
+      - name: Production build with stable Worker prebuild
         run: npm run build
 
-      - name: Verify production worker asset exists
+      - name: Verify stable production Worker asset
         shell: bash
         run: |
           set -euo pipefail
-          COUNT="$(grep -RIl --include='*.js' 'WORKER_CLASS_NAME_CONTRACT_FAILED' .next/static | wc -l | tr -d ' ')"
-          if [ "$COUNT" -lt 1 ]; then
-            echo "Production DWG conversion worker code was not emitted."
+          WORKER="public/workers/dwg-dxf-conversion-worker.js"
+          test -f "$WORKER"
+          SIZE="$(stat -c '%s' "$WORKER")"
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "Stable DWG Worker is unexpectedly small: ${SIZE} bytes"
             exit 1
           fi
-          echo "Worker-related emitted chunks: ${COUNT}"
+          grep -q 'WORKER_CLASS_NAME_CONTRACT_FAILED' "$WORKER"
+          echo "Stable Worker asset: ${SIZE} bytes"
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Production worker runtime fidelity check
+      - name: Production Worker runtime fidelity check
         shell: bash
         run: |
           set -euo pipefail
@@ -244,7 +249,7 @@ jobs:
             const result = text ? JSON.parse(text) : null;
             console.log({ state, result, browserErrors });
 
-            assert.equal(state, 'success', `Native worker probe failed: ${JSON.stringify({ state, result, browserErrors })}`);
+            assert.equal(state, 'success', `Stable Worker probe failed: ${JSON.stringify({ state, result, browserErrors })}`);
             assert.equal(result.requestId, 'stage4-ci');
             assert.equal(result.ok, true, `Worker failed: ${result.errorCode || ''} ${result.errorMessage || ''}`);
             assert.ok(result.decision === 'PASS' || result.decision === 'WARN');
