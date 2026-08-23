@@ -16,6 +16,7 @@ on:
       - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
       - "tests/fixtures/dxf/**"
+      - "tests/document-studio/cad-dxf.spec.ts"
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
@@ -39,6 +40,7 @@ on:
       - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
       - "tests/fixtures/dxf/**"
+      - "tests/document-studio/cad-dxf.spec.ts"
       - "tests/document-studio/dxf-release.spec.ts"
       - "tests/document-studio/dxf-text-stage2.spec.ts"
       - "tests/document-studio/dxf-text-stage3.spec.ts"
@@ -78,6 +80,7 @@ jobs:
           "src/lib/dokumantasyon/dxf-*.ts"
           "src/lib/dokumantasyon/dxf-*.js"
           "scripts/check-dxf-*"
+          "tests/document-studio/cad-dxf.spec.ts"
           "tests/document-studio/dxf-release.spec.ts"
           "tests/document-studio/dxf-text-stage2.spec.ts"
           "tests/document-studio/dxf-text-stage3.spec.ts"
@@ -133,6 +136,7 @@ jobs:
       - name: DXF browser release gate
         run: >-
           npx playwright test --config=playwright.config.ts
+          tests/document-studio/cad-dxf.spec.ts
           tests/document-studio/dxf-release.spec.ts
           tests/document-studio/dxf-text-stage2.spec.ts
           tests/document-studio/dxf-text-stage3.spec.ts
