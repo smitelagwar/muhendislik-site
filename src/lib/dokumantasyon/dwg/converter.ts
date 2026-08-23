@@ -70,8 +70,9 @@ function countCollection(value: unknown): number {
   if (typeof candidate.length === "number") return candidate.length;
   if (typeof candidate.size === "number") return candidate.size;
   if (typeof candidate.count === "number") return candidate.count;
-  if (typeof candidate[Symbol.iterator] === "function") {
-    const iterator = candidate[Symbol.iterator]();
+  const iteratorFactory = candidate[Symbol.iterator];
+  if (typeof iteratorFactory === "function") {
+    const iterator = iteratorFactory.call(candidate);
     let count = 0;
     while (!iterator.next().done) count += 1;
     return count;
