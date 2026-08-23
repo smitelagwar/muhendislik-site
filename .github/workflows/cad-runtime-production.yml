@@ -11,6 +11,7 @@ on:
       - "scripts/check-dokumantasyon-persistence-rules.mjs"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
@@ -30,6 +31,7 @@ on:
       - "scripts/check-dokumantasyon-persistence-rules.mjs"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+      - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
@@ -70,6 +72,7 @@ jobs:
           npx eslint
           "src/components/dokumantasyon/preview/cad-viewer.tsx"
           "src/components/dokumantasyon/preview/aps-dwg-viewer.tsx"
+          "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
           "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
           "src/lib/dokumantasyon/dxf-runtime-policy.ts"
           "src/lib/dokumantasyon/runtime-mode.ts"
