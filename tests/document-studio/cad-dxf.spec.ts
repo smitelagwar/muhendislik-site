@@ -113,6 +113,42 @@ test("bozuk DXF kontrollü hata ve yeniden deneme eylemi gösterir", async ({ pa
   await expect(page.getByRole("button", { name: "Dosyayı indir" })).toBeVisible();
 });
 
+test("DXF worker runtime hatası sonsuz loading yerine terminal hata üretir", async ({ page }) => {
+  await page.addInitScript(() => {
+    class ForcedFailingWorker extends EventTarget {
+      onerror: ((this: Worker, ev: ErrorEvent) => unknown) | null = null;
+      onmessage: ((this: Worker, ev: MessageEvent) => unknown) | null = null;
+      onmessageerror: ((this: Worker, ev: MessageEvent) => unknown) | null = null;
+
+      constructor() {
+        super();
+        window.setTimeout(() => {
+          const event = new ErrorEvent("error", { message: "forced-dxf-worker-runtime-error" });
+          this.dispatchEvent(event);
+          this.onerror?.call(this as unknown as Worker, event);
+        }, 25);
+      }
+
+      postMessage(): void {}
+      terminate(): void {}
+    }
+
+    Object.defineProperty(window, "Worker", {
+      configurable: true,
+      writable: true,
+      value: ForcedFailingWorker,
+    });
+  });
+
+  await signIn(page);
+  const fileId = await uploadDxf(page, fixtures[0]);
+  await page.goto(`/dokumantasyon/dosya/${fileId}`);
+
+  await expect(page.getByText("DXF açılamadı")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("DXF hazırlanıyor")).toHaveCount(0);
+  await expect(page.getByText(/forced-dxf-worker-runtime-error/)).toBeVisible();
+});
+
 const realProjectDxfPath = process.env.CAD_DXF_PROJECT_FIXTURE;
 
 test("yerel gerçek proje DXF'i açılır", async ({ page }) => {
