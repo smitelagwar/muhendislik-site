@@ -4,15 +4,17 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { DokFile } from "../src/lib/dokumantasyon/types";
 import {
-  claimDwgDxfDerivative,
-  completeDwgDxfDerivative,
   convertAndValidateDwgToDxf,
-  findReadyDwgDxfDerivativeByHash,
-  getDwgDxfConverterSignatureHash,
-  markDwgDxfDerivativeValidating,
   validateDwgToDxfConversion,
   type DwgConversionResult,
 } from "../src/lib/dokumantasyon/dwg";
+import {
+  claimDwgDxfDerivative,
+  completeDwgDxfDerivative,
+  findReadyDwgDxfDerivativeByHash,
+  getDwgDxfConverterSignatureHash,
+  markDwgDxfDerivativeValidating,
+} from "../src/lib/dokumantasyon/dwg/server";
 
 const FIXTURE_DIR = process.env.DWG_STAGE3_FIXTURE_DIR || ".poc/stage3-fixtures";
 const FIXTURES = ["sample_AC1014.dwg", "sample_AC1032.dwg"] as const;
