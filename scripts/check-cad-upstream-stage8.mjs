@@ -28,6 +28,18 @@ for (const [name, version] of Object.entries(exact)) {
   if (deps[name] !== version) fail(`${name} must stay exact at ${version}; got ${deps[name] ?? "missing"}`);
 }
 
+const overrides = pkg.overrides ?? {};
+if (overrides.tar !== "7.5.22") fail(`tar security override must be 7.5.22; got ${overrides.tar ?? "missing"}`);
+if (overrides["lodash-es"] !== "4.18.1") fail(`lodash-es security override must be 4.18.1; got ${overrides["lodash-es"] ?? "missing"}`);
+
+const lock = JSON.parse(read("package-lock.json"));
+if (lock.packages?.["node_modules/tar"]?.version !== "7.5.22") {
+  fail(`lockfile tar must resolve to 7.5.22; got ${lock.packages?.["node_modules/tar"]?.version ?? "missing"}`);
+}
+if (lock.packages?.["node_modules/lodash-es"]?.version !== "4.18.1") {
+  fail(`lockfile lodash-es must resolve to 4.18.1; got ${lock.packages?.["node_modules/lodash-es"]?.version ?? "missing"}`);
+}
+
 mustExist("THIRD_PARTY_NOTICES.md");
 const notices = read("THIRD_PARTY_NOTICES.md");
 for (const token of [
@@ -81,6 +93,7 @@ const stage7 = read("scripts/check-cad-upstream-stage7.mjs");
 mustInclude(stage7, "Stage 7 production orchestrator ownership: PASS", "Stage 7 gate");
 
 console.log("Stage 8 exact upstream pins: PASS");
+console.log("Stage 8 security overrides + lock resolution: PASS");
 console.log("Stage 8 bounded runtime deadlines: PASS");
 console.log("Stage 8 GPL notice/source reference: PASS");
 console.log("Stage 8 production ownership and rollback surface: PASS");
