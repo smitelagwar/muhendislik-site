@@ -30,15 +30,27 @@ export function isVercelDeployment(): boolean {
 /**
  * Yalnızca yerel ortamda açıkça izin verilmişse yerel depolamaya (JSON DB / .data/) izin verir.
  * Vercel üzerinde hiçbir koşulda true dönemez!
+ *
+ * Production browser bundle'ını `next start` ile doğrulayan CI kabul kapısı için dar bir
+ * istisna vardır. Bu istisna yalnız Vercel dışında, CI=true ve ayrı bir test flag'i
+ * açıkken kullanılabilir; gerçek Preview/Production deployment'larında etkinleşemez.
  */
 export function isExplicitLocalDokMode(): boolean {
   if (process.env.VERCEL) {
     return false;
   }
-  return (
+
+  const developmentLocalMode =
     process.env.NODE_ENV !== "production" &&
-    process.env.DOK_ALLOW_LOCAL_STORAGE === "true"
-  );
+    process.env.DOK_ALLOW_LOCAL_STORAGE === "true";
+
+  const productionRuntimeTestMode =
+    process.env.NODE_ENV === "production" &&
+    process.env.CI === "true" &&
+    process.env.DOK_ALLOW_LOCAL_STORAGE === "true" &&
+    process.env.DOK_PRODUCTION_RUNTIME_TEST === "true";
+
+  return developmentLocalMode || productionRuntimeTestMode;
 }
 
 export function getDatabaseUrl(): string | undefined {
