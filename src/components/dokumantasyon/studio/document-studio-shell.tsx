@@ -22,7 +22,7 @@ const DokPdfViewer = dynamic(() => import("../preview/pdf-viewer").then((module)
 const DokImageViewer = dynamic(() => import("../preview/image-viewer").then((module) => module.DokImageViewer), { ssr: false });
 const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((module) => module.DokTextViewer), { ssr: false });
 const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
-const DokCadViewer = dynamic(() => import("../preview/cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
+const DokCadViewer = dynamic(() => import("../preview/cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
 
 interface DocumentStudioShellProps {
   file: {
