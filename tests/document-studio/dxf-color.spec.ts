@@ -23,14 +23,11 @@ type DecodedPng = { width: number; height: number; channels: number; pixels: Buf
 type Rgb = [number, number, number];
 
 async function login(page: Page) {
-  await page.goto("/dokumantasyon");
-  await page.getByLabel("Kullanıcı Adı").fill("admin");
-  await page.locator("input#password").fill("admin");
-  const responsePromise = page.waitForResponse(
-    (response) => response.url().includes("/api/dokumantasyon/giris") && response.request().method() === "POST"
-  );
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  expect((await responsePromise).status()).toBe(200);
+  const response = await page.request.post("/api/dokumantasyon/giris", {
+    data: { username: "admin", password: "admin" },
+  });
+  const payload = await response.json().catch(() => ({}));
+  expect(response.ok(), payload.error || `DXF color login failed (${response.status()})`).toBeTruthy();
 }
 
 async function uploadFixture(page: Page): Promise<string> {

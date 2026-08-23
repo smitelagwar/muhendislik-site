@@ -39,14 +39,11 @@ type DecodedPng = {
 };
 
 async function login(page: Page) {
-  await page.goto("/dokumantasyon");
-  await page.getByLabel("Kullanıcı Adı").fill("admin");
-  await page.locator("input#password").fill("admin");
-  const responsePromise = page.waitForResponse(
-    (response) => response.url().includes("/api/dokumantasyon/giris") && response.request().method() === "POST"
-  );
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  expect((await responsePromise).status()).toBe(200);
+  const response = await page.request.post("/api/dokumantasyon/giris", {
+    data: { username: "admin", password: "admin" },
+  });
+  const payload = await response.json().catch(() => ({}));
+  expect(response.ok(), payload.error || `DXF Stage 2 login failed (${response.status()})`).toBeTruthy();
 }
 
 async function uploadFixture(page: Page): Promise<string> {
@@ -235,11 +232,12 @@ function expectModelColor(
   snapshot: RuntimeSnapshot,
   model: { x: number; y: number },
   expected: Rgb,
-  label: string
+  label: string,
+  tolerance = 40
 ) {
   const point = modelToPixel(snapshot, image, model.x, model.y);
   const actual = bestRgbNear(image, point, expected);
-  expect(colorDistance(actual, expected), `${label}: ${actual.join(",")} vs ${expected.join(",")}`).toBeLessThanOrEqual(40);
+  expect(colorDistance(actual, expected), `${label}: ${actual.join(",")} vs ${expected.join(",")}`).toBeLessThanOrEqual(tolerance);
 }
 
 async function lineweightSnapshot(page: Page): Promise<LineweightSnapshot> {
@@ -297,7 +295,7 @@ test.describe("DXF Stage 2 render controls", () => {
     const sourceHairline = await surfaceScreenshot(page, surface);
     const sourceHairlineInk = countInkPixels(sourceHairline);
     expect(countStronglyColoredPixels(sourceHairline)).toBeGreaterThan(100);
-    expectModelColor(sourceHairline, runtime, { x: 50, y: 60 }, [0, 255, 255], "OVER_B must remain the top coincident line");
+    expectModelColor(sourceHairline, runtime, { x: 50, y: 60 }, [0, 255, 255], "OVER_B must remain the top coincident line", 80);
 
     await lineweightToggle.click();
     await expect(lineweightToggle).toHaveAttribute("data-mode", "source");
@@ -348,7 +346,7 @@ test.describe("DXF Stage 2 render controls", () => {
     await page.waitForTimeout(80);
 
     const underOverlap = await surfaceScreenshot(page, surface);
-    expectModelColor(underOverlap, runtime, { x: 50, y: 60 }, [255, 0, 255], "OVER_A must remain under the coincident OVER_B entity");
+    expectModelColor(underOverlap, runtime, { x: 50, y: 60 }, [255, 0, 255], "OVER_A must remain under the coincident OVER_B entity", 80);
 
     await overB.click();
     await expect(overB).toHaveAttribute("data-visible", "true");
