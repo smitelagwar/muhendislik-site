@@ -8,16 +8,23 @@ on:
     paths:
       - .github/workflows/cad-upstream-stage6-upgrade.yml
       - docs/cad-upstream-migration-stage6.md
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-upstream-stage6-upgrade.yml
+      - docs/cad-upstream-migration-stage6.md
 
 permissions:
   contents: write
 
 concurrency:
-  group: cad-upstream-stage6-upgrade-${{ github.ref }}
+  group: cad-upstream-stage6-upgrade-${{ github.event.pull_request.head.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
   sync-validated-upstream:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
