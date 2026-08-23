@@ -22,10 +22,13 @@ function sha256(value: Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function expectConversionError(fn: () => unknown, code: DwgConversionError["code"]): void {
+async function expectConversionError(
+  fn: () => unknown | Promise<unknown>,
+  code: DwgConversionError["code"]
+): Promise<void> {
   let caught: unknown;
   try {
-    fn();
+    await fn();
   } catch (error) {
     caught = error;
   }
@@ -40,7 +43,7 @@ async function assertEnginePin(): Promise<void> {
   assert.ok(DWG_DXF_CONVERTER_SIGNATURE.includes(`acad-ts:${DWG_DXF_ENGINE_VERSION}`));
 }
 
-function assertPreflight(): void {
+async function assertPreflight(): Promise<void> {
   const empty = inspectDwgBytes(new Uint8Array());
   assert.equal(empty.status, "invalid");
   assert.equal(empty.reasonCode, "EMPTY_INPUT");
@@ -58,7 +61,7 @@ function assertPreflight(): void {
   const unsupported = inspectDwgBytes(r13);
   assert.equal(unsupported.status, "unsupported");
   assert.equal(unsupported.reasonCode, "UNSUPPORTED_VERSION");
-  expectConversionError(() => convertDwgToDxf(r13), "UNSUPPORTED_VERSION");
+  await expectConversionError(() => convertDwgToDxf(r13), "UNSUPPORTED_VERSION");
 
   assert.deepEqual(supportedDwgMagics(), [
     "AC1014",
@@ -74,8 +77,8 @@ function assertPreflight(): void {
 async function assertFixture(fileName: (typeof FIXTURES)[number]) {
   const filePath = path.join(FIXTURE_DIR, fileName);
   const source = new Uint8Array(await fs.readFile(filePath));
-  const first = convertDwgToDxf(source);
-  const second = convertDwgToDxf(source);
+  const first = await convertDwgToDxf(source);
+  const second = await convertDwgToDxf(source);
 
   assert.equal(first.signature, DWG_DXF_CONVERTER_SIGNATURE);
   assert.equal(first.inspection.status, "supported");
@@ -117,7 +120,7 @@ async function assertFixture(fileName: (typeof FIXTURES)[number]) {
 
 async function assertOutputLimit(): Promise<void> {
   const source = new Uint8Array(await fs.readFile(path.join(FIXTURE_DIR, "sample_AC1032.dwg")));
-  expectConversionError(
+  await expectConversionError(
     () => convertDwgToDxf(source, { initialOutputBytes: 1024, maxOutputBytes: 64 * 1024 }),
     "OUTPUT_LIMIT_EXCEEDED"
   );
@@ -125,7 +128,7 @@ async function assertOutputLimit(): Promise<void> {
 
 async function main() {
   await assertEnginePin();
-  assertPreflight();
+  await assertPreflight();
   const results = [];
   for (const fixture of FIXTURES) results.push(await assertFixture(fixture));
   await assertOutputLimit();
