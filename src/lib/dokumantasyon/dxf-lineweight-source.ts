@@ -149,7 +149,7 @@ export function auditDxfLineweightSource(text: string): DxfLineweightSourceAudit
     defaultLineweight,
     layers: layerAudit.layers,
     layerRecordCount: layerAudit.layerRecordCount,
-    layerLineweightCount,
+    layerLineweightCount: layerAudit.layerLineweightCount,
     entityLineweightValueCount,
     invalidLineweightValues,
   };
