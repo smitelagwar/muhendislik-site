@@ -47,6 +47,9 @@ jobs:
       - name: Install exact dependency graph
         run: npm ci
 
+      - name: Verify overridden dependency resolution
+        run: npm ls tar lodash-es --all
+
       - name: Sync upstream Worker/WASM and license notice
         run: node scripts/sync-cad-upstream-assets.mjs
 
@@ -88,8 +91,9 @@ jobs:
           const fs = require('fs')
           const report = JSON.parse(fs.readFileSync('stage8-npm-audit.json','utf8'))
           const counts = report.metadata?.vulnerabilities ?? {}
+          const vulnerabilities = report.vulnerabilities ?? {}
           console.log('production audit counts:', JSON.stringify(counts))
-          const rows = Object.entries(report.vulnerabilities ?? {}).map(([name, item]) => ({
+          const rows = Object.entries(vulnerabilities).map(([name, item]) => ({
             name,
             severity: item.severity,
             direct: item.isDirect,
@@ -102,6 +106,9 @@ jobs:
           console.log('production audit vulnerabilities:', JSON.stringify(rows,null,2))
           if ((counts.critical ?? 0) > 0) {
             throw new Error(`production dependency audit has ${counts.critical} critical vulnerability/vulnerabilities`)
+          }
+          if (vulnerabilities['lodash-es'] || vulnerabilities['@mlightcad/cad-simple-viewer']) {
+            throw new Error('CAD migration dependency advisory remains unresolved')
           }
           NODE
 
