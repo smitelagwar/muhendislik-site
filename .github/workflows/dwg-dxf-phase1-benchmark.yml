@@ -80,6 +80,7 @@ jobs:
             --format=esm \
             --platform=browser \
             --target=es2022 \
+            --keep-names \
             --outfile=.poc/dwg-worker.js \
             --metafile=artifacts/dwg-dxf-phase1/browser-bundle-meta.json \
             2>artifacts/dwg-dxf-phase1/browser-bundle-error.txt
