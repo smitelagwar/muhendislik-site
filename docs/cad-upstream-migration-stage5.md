@@ -53,6 +53,8 @@ Yeni bir "fast DXF parser" yazılmaz.
 
 Production selector değişikliği Stage 5 kabul kapısından önce uygulanmış olmalıdır; selector senkronizasyonu yalnız `file-preview-shell.tsx` içindeki tek dynamic CAD import satırını değiştirebilir.
 
+Selector senkronizasyonu `e4e1016` bot commit'i ile tek satır olarak uygulandı. Bu doküman commit'i, aynı güncel head üzerinde normal PR CI kapılarını yeniden çalıştırmak için selector sonrasında kaydedilmiştir.
+
 ## Fast tanımı neden cache-only?
 
 Eski `ApsDwgViewer` içinde "fast path" cache kontrolünden sonra browser DWG→DXF worker'ını da otomatik çalıştırıyordu. Bu durumda conversion her cache miss'te hot path oluyordu. Nihai plandaki `Fast → Upstream` ve `conversion hot path olmasın` koşullarını birlikte sağlamak için Fast yalnız hazır cached derivative erişimidir. Cache miss doğrudan Upstream'e geçer.
