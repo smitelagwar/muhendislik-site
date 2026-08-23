@@ -15,6 +15,7 @@ on:
       - src/components/dokumantasyon/preview/cad-viewer.tsx
       - src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
       - src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+      - src/components/dokumantasyon/studio/document-studio-shell.tsx
       - src/lib/dokumantasyon/cad-runtime/**
       - src/lib/dokumantasyon/cad-upstream/**
       - src/lib/dokumantasyon/dwg/runtime-policy.ts
@@ -73,6 +74,7 @@ jobs:
           src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
           src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
           src/components/dokumantasyon/preview/file-preview-shell.tsx
+          src/components/dokumantasyon/studio/document-studio-shell.tsx
           tests/document-studio/cad-dxf.spec.ts
           tests/document-studio/cad-dwg-aps.spec.ts
 
