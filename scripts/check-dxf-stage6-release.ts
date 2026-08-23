@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 import { detectDxfEncoding } from "../src/lib/dokumantasyon/dxf-encoding";
 import { auditDxfText, getDxfStage2BlockingIssues } from "../src/lib/dokumantasyon/dxf-fidelity-audit";
 import {
+  auditDxfLinetypeSource,
+  collectDxfSimpleLinetypes,
+  enrichParsedDxfLinetypes,
+  expandDxfSimpleLinetypePath,
+  resolveDxfLinetypeScale,
+  type DxfLinetypeParsedDxf,
+} from "../src/lib/dokumantasyon/dxf-linetype-rendering";
+import {
   auditDxfReleaseHardening,
   getDxfReleaseHardeningBlockingIssues,
 } from "../src/lib/dokumantasyon/dxf-release-hardening";
@@ -39,7 +47,52 @@ const releaseMatrix: MatrixRow[] = [
   { fixture: "stage4-risky-geometry.dxf", expectedStatus: "blocked", requiredCategories: ["geometry", "renderer"] },
 ];
 
+function checkCadStage2LinetypeContract(): void {
+  const source = [
+    "0", "SECTION", "2", "HEADER", "9", "$LTSCALE", "40", "2", "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES", "0", "TABLE", "2", "LAYER", "70", "2",
+    "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "CONTINUOUS",
+    "0", "LAYER", "2", "AKS", "70", "0", "62", "1", "6", "CENTER",
+    "0", "ENDTAB", "0", "ENDSEC", "0", "EOF",
+  ].join("\n");
+  const sourceAudit = auditDxfLinetypeSource(source);
+  assert.equal(sourceAudit.globalScale, 2);
+  assert.equal(sourceAudit.layers.AKS, "CENTER");
+  assert.equal(resolveDxfLinetypeScale(sourceAudit.globalScale, 0.5), 1);
+
+  const parsed: DxfLinetypeParsedDxf = {
+    tables: {
+      layer: { layers: { "0": { name: "0" }, AKS: { name: "AKS" } } },
+      lineType: {
+        lineTypes: {
+          CONTINUOUS: { name: "CONTINUOUS", pattern: [] },
+          DASHED: { name: "DASHED", pattern: [6, -3], patternLength: 9 },
+          CENTER: { name: "CENTER", pattern: [12, -3, 3, -3], patternLength: 21 },
+          HIDDEN: { name: "HIDDEN", pattern: [4, -2], patternLength: 6 },
+        },
+      },
+    },
+  };
+  enrichParsedDxfLinetypes(parsed, sourceAudit);
+  assert.equal(parsed.tables?.layer?.layers?.AKS.lineType, "CENTER");
+  const definitions = collectDxfSimpleLinetypes(parsed);
+  assert.deepEqual(definitions.DASHED.pattern, [6, -3]);
+  assert.deepEqual(definitions.CENTER.pattern, [12, -3, 3, -3]);
+  assert.deepEqual(definitions.HIDDEN.pattern, [4, -2]);
+
+  const expanded = expandDxfSimpleLinetypePath({
+    vertices: [{ x: 0, y: 0 }, { x: 8, y: 0 }, { x: 20, y: 0 }],
+    pattern: [6, -3],
+  });
+  const ranges = [] as Array<[number, number]>;
+  for (let index = 0; index + 1 < expanded.lineVertices.length; index += 2) {
+    ranges.push([expanded.lineVertices[index].x, expanded.lineVertices[index + 1].x]);
+  }
+  assert.deepEqual(ranges, [[0, 6], [9, 15], [18, 20]], "linetype phase must continue across polyline vertices");
+}
+
 async function main() {
+  checkCadStage2LinetypeContract();
   const observed: Array<{ fixture: string; status: ExpectedStatus; warnings: number; blocking: number }> = [];
 
   for (const row of releaseMatrix) {
@@ -110,6 +163,16 @@ async function main() {
   assert.match(browserSpec, /page\.screenshot/);
   assert.match(browserSpec, /foreground/i);
 
+  const workerSource = await readFile(
+    path.join(root, "src", "components", "dokumantasyon", "preview", "dxf-viewer-worker.ts"),
+    "utf8"
+  );
+  assert.match(workerSource, /scenePrototype\._GetLineType = function/);
+  assert.match(workerSource, /scenePrototype\._ProcessLineSegments = function/);
+  assert.match(workerSource, /scenePrototype\._ProcessPolyline = function/);
+  assert.match(workerSource, /expandDxfSimpleLinetypePath/);
+  assert.match(workerSource, /DXF_LINETYPE_MAX_RENDER_PRIMITIVES/);
+
   const playwrightConfig = await readFile(path.join(root, "playwright.config.ts"), "utf8");
   assert.match(playwrightConfig, /DOK_ALLOW_LOCAL_STORAGE:\s*"true"/);
   assert.match(playwrightConfig, /workers:\s*1/);
@@ -119,7 +182,7 @@ async function main() {
   assert.match(stage3Source, /\(\?<\!\\\\\)\\\\S/);
 
   console.table(observed);
-  console.log("DXF Stage 6 release matrix and browser-gate contract checks passed.");
+  console.log("DXF Stage 6 release matrix, CAD Stage 2 linetype contract and browser-gate checks passed.");
 }
 
 main().catch((error) => {
