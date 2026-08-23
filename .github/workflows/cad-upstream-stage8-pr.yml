@@ -1,0 +1,146 @@
+name: CAD upstream Stage 8 release gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - THIRD_PARTY_NOTICES.md
+      - docs/cad-upstream-migration-stage8.md
+      - scripts/check-cad-upstream-stage8.mjs
+      - scripts/sync-cad-upstream-assets.mjs
+      - tests/document-studio/cad-dwg-aps.spec.ts
+      - src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - src/components/dokumantasyon/preview/cad-viewer.tsx
+      - src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
+      - src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+      - src/lib/dokumantasyon/cad-runtime/**
+      - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/dwg/runtime-policy.ts
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-stage8-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify-stage8-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js matching production
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install exact dependency graph
+        run: npm ci
+
+      - name: Sync upstream Worker/WASM and license notice
+        run: node scripts/sync-cad-upstream-assets.mjs
+
+      - name: Re-run Stage 6 fidelity contract
+        run: node scripts/check-cad-upstream-stage6.mjs
+
+      - name: Re-run Stage 7 cleanup contract
+        run: node scripts/check-cad-upstream-stage7.mjs
+
+      - name: Run Stage 8 release contract
+        run: node scripts/check-cad-upstream-stage8.mjs
+
+      - name: Targeted release lint
+        run: >-
+          npx eslint
+          src/lib/dokumantasyon/cad-runtime/io.ts
+          src/lib/dokumantasyon/cad-upstream/adapter.ts
+          src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+          src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+          src/components/dokumantasyon/preview/cad-viewer.tsx
+          src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
+          src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+          src/components/dokumantasyon/preview/file-preview-shell.tsx
+          tests/document-studio/cad-dxf.spec.ts
+          tests/document-studio/cad-dwg-aps.spec.ts
+
+      - name: Full typecheck
+        run: npx tsc --noEmit --incremental false
+
+      - name: Persistence and production-test isolation
+        run: npx tsx scripts/check-dokumantasyon-persistence-rules.mjs
+
+      - name: Production dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm audit --omit=dev --json > stage8-npm-audit.json || true
+          node <<'NODE'
+          const fs = require('fs')
+          const report = JSON.parse(fs.readFileSync('stage8-npm-audit.json','utf8'))
+          const counts = report.metadata?.vulnerabilities ?? {}
+          console.log('production audit counts:', JSON.stringify(counts))
+          const rows = Object.entries(report.vulnerabilities ?? {}).map(([name, item]) => ({
+            name,
+            severity: item.severity,
+            direct: item.isDirect,
+            via: Array.isArray(item.via) ? item.via.map(v => typeof v === 'string' ? v : `${v.source ?? ''}:${v.title ?? ''}`).slice(0,8) : item.via,
+            effects: item.effects,
+            range: item.range,
+            fixAvailable: item.fixAvailable,
+          }))
+          rows.sort((a,b) => ['low','moderate','high','critical'].indexOf(b.severity) - ['low','moderate','high','critical'].indexOf(a.severity))
+          console.log('production audit vulnerabilities:', JSON.stringify(rows,null,2))
+          if ((counts.critical ?? 0) > 0) {
+            throw new Error(`production dependency audit has ${counts.critical} critical vulnerability/vulnerabilities`)
+          }
+          NODE
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify release CAD assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/cad-upstream/libredwg-parser-worker.js
+          test -s public/cad-upstream/libredwg-web.wasm
+          test -s public/cad-upstream/mtext-renderer-worker.js
+          test -s public/cad-upstream/GPL-NOTICE.txt
+          grep -q 'GPL-3.0' public/cad-upstream/GPL-NOTICE.txt
+          grep -q 'e3198a391b5c8599a94f1f1da285426443371451' public/cad-upstream/GPL-NOTICE.txt
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Production CAD browser smoke
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3018"
+        run: >-
+          npx playwright test --config=playwright.config.ts
+          tests/document-studio/cad-dxf.spec.ts
+          tests/document-studio/cad-dwg-aps.spec.ts
+          --project=chromium
+
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-upstream-stage8-release-${{ github.event.pull_request.head.sha }}
+          path: |
+            stage8-npm-audit.json
+            public/cad-upstream/GPL-NOTICE.txt
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
