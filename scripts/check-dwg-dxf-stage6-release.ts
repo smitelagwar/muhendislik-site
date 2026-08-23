@@ -60,7 +60,9 @@ assert.match(workerBuild, /keepNames: true/);
 assert.match(workerBuild, /platform: "browser"/);
 assert.match(workerBuild, /format: "esm"/);
 assert.match(workerBuild, /target: \["es2022"\]/);
-assert.match(workerBuild, /public\/workers\/dwg-dxf-conversion-worker\.js|path\.join\([^\n]*"workers"/s);
+assert.match(workerBuild, /path\.join\(ROOT, "public\/workers"\)/);
+assert.match(workerBuild, /path\.join\(OUTPUT_DIR, "dwg-dxf-conversion-worker\.js"\)/);
+assert.match(workerBuild, /@node-projects\/acad-ts/);
 
 const viewer = read("src/components/dokumantasyon/preview/aps-dwg-viewer.tsx");
 assert.match(viewer, /function DwgToDxfViewer/);
