@@ -33,7 +33,7 @@ const requiredAdapterTokens = [
   "checkWebworkerReadiness",
   "areWorkersReady",
   "openDocument",
-  "manager.destroy()",
+  "this.manager.destroy()",
   "/cad-upstream/libredwg-parser-worker.js",
   "/cad-upstream/mtext-renderer-worker.js",
 ];
