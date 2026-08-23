@@ -3,6 +3,9 @@ export const DXF_POLYLINE_WIDTH_MAX_TRIANGLES = 2_000_000;
 export const DXF_POLYLINE_WIDTH_DEFAULT_ARC_ANGLE = (10 / 180) * Math.PI;
 export const DXF_POLYLINE_WIDTH_MIN_ARC_SUBDIVISIONS = 8;
 const MITER_LIMIT = 4;
+const CONTINUOUS = "CONTINUOUS";
+const BY_LAYER = "BYLAYER";
+const BY_BLOCK = "BYBLOCK";
 
 export interface DxfPolylineWidthVertex {
   x: number;
@@ -17,9 +20,14 @@ export interface DxfPolylineWidthVertex {
 export interface DxfPolylineWidthEntity {
   type?: string;
   handle?: string;
+  layer?: string;
+  lineType?: string | number | null;
+  lineTypeScale?: number | null;
+  lineweight?: number;
   width?: number;
   shape?: boolean;
   vertices?: DxfPolylineWidthVertex[];
+  points?: Array<{ x: number; y: number; z?: number }>;
   isPolyfaceMesh?: boolean;
   is3dPolyline?: boolean;
   is3dPolygonMesh?: boolean;
@@ -28,10 +36,21 @@ export interface DxfPolylineWidthEntity {
   [key: string]: unknown;
 }
 
+export interface DxfPolylineWidthParsedLayer {
+  name?: string;
+  lineType?: string;
+}
+
 export interface DxfPolylineWidthParsedDxf {
   entities?: DxfPolylineWidthEntity[];
   blocks?: Record<string, { entities?: DxfPolylineWidthEntity[] }>;
+  tables?: {
+    layer?: {
+      layers?: Record<string, DxfPolylineWidthParsedLayer>;
+    };
+  };
   __dxfPolylineWidthSourceAudit?: DxfPolylineWidthSourceAudit;
+  __dxfPolylineWidthRenderAudit?: DxfPolylineWidthRenderAudit;
 }
 
 export interface DxfPolylineWidthEntitySource {
@@ -53,6 +72,20 @@ export interface DxfPolylineWidthSourceAudit {
   invalidWidthPolylineCount: number;
   unmatchedSourceCount: number;
   records: DxfPolylineWidthEntitySource[];
+}
+
+export interface DxfPolylineWidthRenderAudit {
+  sourceWidthPolylineCount: number;
+  renderedWidthPolylineCount: number;
+  generatedSolidCount: number;
+  generatedTriangleCount: number;
+  preservedThinSegmentCount: number;
+  unsupportedPatternedPolylineCount: number;
+  unsupportedInheritanceCount: number;
+  unsupported3dPolylineCount: number;
+  invalidWidthPolylineCount: number;
+  unmatchedSourceCount: number;
+  warnings: string[];
 }
 
 export interface DxfWidePolylineMesh {
@@ -146,6 +179,10 @@ function isPositiveWidth(value: unknown): boolean {
 
 function isInvalidWidth(value: unknown): boolean {
   return typeof value === "number" && (!Number.isFinite(value) || value < -EPSILON);
+}
+
+function normalizeName(value: unknown): string {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
 }
 
 function sourceFromLwPolyline(record: RecordData): DxfPolylineWidthEntitySource {
@@ -529,4 +566,193 @@ export function buildDxfWidePolylineMesh({
     miterJoinCount,
     bevelJoinCount: bevelPairs.length,
   };
+}
+
+function effectiveLinetype(
+  entity: DxfPolylineWidthEntity,
+  dxf: DxfPolylineWidthParsedDxf,
+  inBlock: boolean
+): { name: string; inheritanceUnsupported: boolean } {
+  const requested = normalizeName(entity.lineType) || BY_LAYER;
+  if (requested === BY_BLOCK) return { name: BY_BLOCK, inheritanceUnsupported: true };
+  if (requested !== BY_LAYER) return { name: requested, inheritanceUnsupported: false };
+
+  const layerName = entity.layer || "0";
+  if (inBlock && layerName === "0") return { name: BY_LAYER, inheritanceUnsupported: true };
+  const layers = dxf.tables?.layer?.layers ?? {};
+  const exact = Object.values(layers).find((layer) => layer.name === layerName);
+  const caseInsensitive = exact ?? Object.values(layers).find((layer) => normalizeName(layer.name) === normalizeName(layerName));
+  const layerType = normalizeName(caseInsensitive?.lineType) || CONTINUOUS;
+  if (layerType === BY_BLOCK) return { name: BY_BLOCK, inheritanceUnsupported: true };
+  return { name: layerType === BY_LAYER ? CONTINUOUS : layerType, inheritanceUnsupported: false };
+}
+
+function cloneThinSegment(
+  entity: DxfPolylineWidthEntity,
+  start: DxfPolylineWidthVertex,
+  end: DxfPolylineWidthVertex
+): DxfPolylineWidthEntity {
+  const { __dxfPolylineWidthSource: _source, width: _width, handle: _handle, ...common } = entity;
+  return {
+    ...common,
+    type: entity.type,
+    shape: false,
+    vertices: [
+      { ...start, startWidth: 0, endWidth: 0 },
+      { ...end, startWidth: 0, endWidth: 0 },
+    ],
+  };
+}
+
+function triangleSolid(
+  entity: DxfPolylineWidthEntity,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  c: { x: number; y: number }
+): DxfPolylineWidthEntity {
+  const {
+    __dxfPolylineWidthSource: _source,
+    vertices: _vertices,
+    width: _width,
+    shape: _shape,
+    lineType: _lineType,
+    lineTypeScale: _lineTypeScale,
+    lineweight: _lineweight,
+    handle: _handle,
+    ...common
+  } = entity;
+  return {
+    ...common,
+    type: "SOLID",
+    points: [a, b, c],
+  };
+}
+
+function segmentHasPhysicalWidth(start: DxfPolylineWidthVertex): boolean {
+  return hasDxfPolylinePhysicalWidth(start);
+}
+
+function normalizeEntityCollection(
+  entities: DxfPolylineWidthEntity[],
+  dxf: DxfPolylineWidthParsedDxf,
+  inBlock: boolean,
+  audit: DxfPolylineWidthRenderAudit
+): DxfPolylineWidthEntity[] {
+  const output: DxfPolylineWidthEntity[] = [];
+
+  for (const entity of entities) {
+    if ((entity.type !== "LWPOLYLINE" && entity.type !== "POLYLINE") || !entity.__dxfPolylineWidthSource?.hasWidth) {
+      output.push(entity);
+      continue;
+    }
+
+    const source = entity.__dxfPolylineWidthSource;
+    if (source.invalidWidth) {
+      audit.invalidWidthPolylineCount += 1;
+      output.push(entity);
+      continue;
+    }
+    if (entity.isPolyfaceMesh || entity.is3dPolyline || entity.is3dPolygonMesh) {
+      audit.unsupported3dPolylineCount += 1;
+      output.push(entity);
+      continue;
+    }
+
+    const lineType = effectiveLinetype(entity, dxf, inBlock);
+    if (lineType.inheritanceUnsupported) {
+      audit.unsupportedInheritanceCount += 1;
+      output.push(entity);
+      continue;
+    }
+    if (lineType.name && lineType.name !== CONTINUOUS) {
+      audit.unsupportedPatternedPolylineCount += 1;
+      output.push(entity);
+      continue;
+    }
+
+    const vertices = entity.vertices ?? [];
+    if (vertices.length < 2) {
+      output.push(entity);
+      continue;
+    }
+
+    const mesh = buildDxfWidePolylineMesh({ vertices, closed: Boolean(entity.shape) });
+    if (!mesh) {
+      output.push(entity);
+      continue;
+    }
+
+    for (let index = 0; index + 2 < mesh.indices.length; index += 3) {
+      const a = mesh.vertices[mesh.indices[index]];
+      const b = mesh.vertices[mesh.indices[index + 1]];
+      const c = mesh.vertices[mesh.indices[index + 2]];
+      output.push(triangleSolid(entity, a, b, c));
+      audit.generatedSolidCount += 1;
+    }
+    audit.generatedTriangleCount += mesh.triangleCount;
+
+    const segmentCount = entity.shape ? vertices.length : vertices.length - 1;
+    for (let index = 0; index < segmentCount; index += 1) {
+      const start = vertices[index];
+      const end = vertices[(index + 1) % vertices.length];
+      if (segmentHasPhysicalWidth(start)) continue;
+      output.push(cloneThinSegment(entity, start, end));
+      audit.preservedThinSegmentCount += 1;
+    }
+
+    audit.renderedWidthPolylineCount += 1;
+  }
+
+  return output;
+}
+
+export function normalizeParsedDxfWidePolylines(
+  dxf: DxfPolylineWidthParsedDxf
+): DxfPolylineWidthRenderAudit {
+  const sourceAudit = dxf.__dxfPolylineWidthSourceAudit ?? {
+    widthPolylineCount: 0,
+    variableWidthPolylineCount: 0,
+    constantWidthPolylineCount: 0,
+    legacyPolylineCount: 0,
+    invalidWidthPolylineCount: 0,
+    unmatchedSourceCount: 0,
+    records: [],
+  };
+  const audit: DxfPolylineWidthRenderAudit = {
+    sourceWidthPolylineCount: sourceAudit.widthPolylineCount,
+    renderedWidthPolylineCount: 0,
+    generatedSolidCount: 0,
+    generatedTriangleCount: 0,
+    preservedThinSegmentCount: 0,
+    unsupportedPatternedPolylineCount: 0,
+    unsupportedInheritanceCount: 0,
+    unsupported3dPolylineCount: 0,
+    invalidWidthPolylineCount: sourceAudit.invalidWidthPolylineCount,
+    unmatchedSourceCount: sourceAudit.unmatchedSourceCount,
+    warnings: [],
+  };
+
+  if (dxf.entities) dxf.entities = normalizeEntityCollection(dxf.entities, dxf, false, audit);
+  for (const block of Object.values(dxf.blocks ?? {})) {
+    if (block.entities) block.entities = normalizeEntityCollection(block.entities, dxf, true, audit);
+  }
+
+  if (audit.unsupportedPatternedPolylineCount > 0) {
+    audit.warnings.push(`${audit.unsupportedPatternedPolylineCount} genişlikli polyline non-continuous linetype ile birlikte; physical width yerine pattern centerline korunuyor.`);
+  }
+  if (audit.unsupportedInheritanceCount > 0) {
+    audit.warnings.push(`${audit.unsupportedInheritanceCount} genişlikli polyline BYBLOCK veya block layer-0 linetype inheritance gerektiriyor; yanlış mesh üretmek yerine centerline korunuyor.`);
+  }
+  if (audit.unsupported3dPolylineCount > 0) {
+    audit.warnings.push(`${audit.unsupported3dPolylineCount} 3D/mesh polyline physical width dönüşümü dışında bırakıldı.`);
+  }
+  if (audit.invalidWidthPolylineCount > 0) {
+    audit.warnings.push(`${audit.invalidWidthPolylineCount} polyline geçersiz negatif/bozuk width değeri içeriyor.`);
+  }
+  if (audit.unmatchedSourceCount > 0) {
+    audit.warnings.push(`${audit.unmatchedSourceCount} polyline width kaydı parsed entity ile eşleştirilemedi.`);
+  }
+
+  dxf.__dxfPolylineWidthRenderAudit = audit;
+  return audit;
 }
