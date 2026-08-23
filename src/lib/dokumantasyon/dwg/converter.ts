@@ -103,10 +103,15 @@ function createWriterConfiguration(acad: AcadTsEngine) {
 }
 
 function normalizeDocumentForDeterministicDxf(document: CadDocument): void {
+  const header = document.header;
+  if (!header) {
+    throw new DwgConversionError("READ_FAILED", "DWG reader returned a document without a header.");
+  }
+
   const profile = DWG_DXF_PROFILE.normalization;
   if (profile.universalDatesFromSourceDates) {
-    document.header.universalCreateDateTime = new Date(document.header.createDateTime.getTime());
-    document.header.universalUpdateDateTime = new Date(document.header.updateDateTime.getTime());
+    header.universalCreateDateTime = new Date(header.createDateTime.getTime());
+    header.universalUpdateDateTime = new Date(header.updateDateTime.getTime());
   }
 }
 
