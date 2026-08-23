@@ -60,6 +60,7 @@ export function DokCadUpstreamViewer({
     let adapter: CadUpstreamAdapter | null = null;
     let themeObserver: MutationObserver | null = null;
     let systemThemeQuery: MediaQueryList | null = null;
+    let syncTheme: (() => void) | null = null;
 
     setState("loading");
     setMessage("MLightCAD hazırlanıyor");
@@ -67,77 +68,78 @@ export function DokCadUpstreamViewer({
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
 
-      setMessage("CAD worker dosyaları doğrulanıyor");
-      adapter = await CadUpstreamAdapter.create({
-        container: viewport,
-        busyIndicatorHost: viewport,
-        theme: resolveSiteTheme(),
-      });
+      try {
+        setMessage("CAD worker dosyaları doğrulanıyor");
+        adapter = await CadUpstreamAdapter.create({
+          container: viewport,
+          busyIndicatorHost: viewport,
+          theme: resolveSiteTheme(),
+        });
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const syncTheme = () => {
-        if (!adapter || cancelled) return;
-        adapter.applyTheme(resolveSiteTheme(), viewport);
-      };
+        syncTheme = () => {
+          if (!adapter || cancelled) return;
+          adapter.applyTheme(resolveSiteTheme(), viewport);
+        };
 
-      themeObserver = new MutationObserver(syncTheme);
-      themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["class"],
-      });
+        themeObserver = new MutationObserver(syncTheme);
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
 
-      systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
-      systemThemeQuery?.addEventListener?.("change", syncTheme);
+        systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
+        systemThemeQuery?.addEventListener?.("change", syncTheme);
 
-      setMessage(extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor");
-      await adapter.open({
-        accessUrl,
-        displayName,
-        extension,
-        signal: abortController.signal,
-      });
+        setMessage(extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor");
+        await adapter.open({
+          accessUrl,
+          displayName,
+          extension,
+          signal: abortController.signal,
+        });
 
-      if (cancelled) return;
-      setState("ready");
-      setMessage("");
-      onReady?.();
-    });
+        if (cancelled) return;
+        setState("ready");
+        setMessage("");
+        onReady?.();
+      } catch (error) {
+        themeObserver?.disconnect();
+        if (systemThemeQuery && syncTheme) {
+          systemThemeQuery.removeEventListener?.("change", syncTheme);
+        }
 
-    startup.catch(async (error) => {
-      if (cancelled || abortController.signal.aborted) return;
+        if (adapter) {
+          await adapter.destroy().catch(() => {});
+          adapter = null;
+        }
 
-      themeObserver?.disconnect();
-      systemThemeQuery?.removeEventListener?.("change", () => {});
+        if (cancelled || abortController.signal.aborted) return;
 
-      if (adapter) {
-        await adapter.destroy().catch(() => {});
-        adapter = null;
+        const reason = failureReason(error);
+        setState("error");
+        setMessage(reason.split(":").slice(1).join(":") || "CAD görüntüleyici başlatılamadı.");
+        onViewerFailure?.(reason);
       }
-
-      const reason = failureReason(error);
-      setState("error");
-      setMessage(reason.split(":").slice(1).join(":") || "CAD görüntüleyici başlatılamadı.");
-      onViewerFailure?.(reason);
     });
 
     return () => {
       cancelled = true;
       abortController.abort();
       themeObserver?.disconnect();
+      if (systemThemeQuery && syncTheme) {
+        systemThemeQuery.removeEventListener?.("change", syncTheme);
+      }
 
-      const currentQuery = systemThemeQuery;
-      const teardown = startup
+      previousCadUpstreamTeardown = startup
         .catch(() => undefined)
         .then(async () => {
-          currentQuery?.removeEventListener?.("change", () => {});
           if (adapter) {
             await adapter.destroy().catch(() => {});
             adapter = null;
           }
         });
-
-      previousCadUpstreamTeardown = teardown;
     };
   }, [accessUrl, displayName, extension, fileId, retryKey, onReady, onViewerFailure]);
 
