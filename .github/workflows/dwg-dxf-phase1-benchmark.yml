@@ -1,0 +1,154 @@
+name: dwg-dxf-phase1-benchmark
+
+on:
+  push:
+    branches:
+      - feat/dwg-dxf-auto-preview
+    paths:
+      - ".github/workflows/dwg-dxf-phase1-benchmark.yml"
+      - "scripts/poc-dwg-dxf-*.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dwg-dxf-phase1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js matching Vercel production
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install isolated POC dependencies
+        shell: bash
+        run: |
+          npm install --no-save --package-lock=false \
+            @node-projects/acad-ts@2.4.0 \
+            esbuild@0.25.9
+          node -e "const p=require('./node_modules/@node-projects/acad-ts/package.json'); if(p.version!=='2.4.0') process.exit(1); console.log('acad-ts',p.version)"
+
+      - name: Fetch pinned upstream DWG fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .poc/fixtures artifacts/dwg-dxf-phase1
+          BASE="https://raw.githubusercontent.com/node-projects/acad-ts/15b87c1ca2784fca623c44a6836f723e77411fd8/samples"
+          for VERSION in AC1014 AC1015 AC1018 AC1021 AC1024 AC1027 AC1032; do
+            FILE="sample_${VERSION}.dwg"
+            echo "Fetching ${FILE}"
+            curl --fail --location --retry 3 --retry-delay 2 \
+              "${BASE}/${FILE}" \
+              --output ".poc/fixtures/${FILE}"
+          done
+          printf '%s\n' "Fixture inventory:"
+          ls -lh .poc/fixtures
+          sha256sum .poc/fixtures/*.dwg | tee artifacts/dwg-dxf-phase1/fixture-sha256.txt
+
+      - name: Node runtime benchmark
+        id: node-benchmark
+        continue-on-error: true
+        env:
+          DWG_BENCH_REPEATS: "2"
+        run: node --expose-gc scripts/poc-dwg-dxf-runtime-benchmark.mjs
+
+      - name: Bundle browser Web Worker
+        id: worker-bundle
+        shell: bash
+        run: |
+          set +e
+          npx esbuild scripts/poc-dwg-dxf-browser-worker-entry.mjs \
+            --bundle \
+            --format=esm \
+            --platform=browser \
+            --target=es2022 \
+            --outfile=.poc/dwg-worker.js \
+            --metafile=artifacts/dwg-dxf-phase1/browser-bundle-meta.json \
+            2>artifacts/dwg-dxf-phase1/browser-bundle-error.txt
+          STATUS=$?
+          set -e
+          if [ "$STATUS" -eq 0 ]; then
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+            stat -c 'Browser worker bundle: %s bytes' .poc/dwg-worker.js
+          else
+            echo "supported=false" >> "$GITHUB_OUTPUT"
+            echo "Browser bundling failed with exit code $STATUS"
+            cat artifacts/dwg-dxf-phase1/browser-bundle-error.txt
+          fi
+
+      - name: Install Chromium
+        if: steps.worker-bundle.outputs.supported == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Chromium Web Worker benchmark
+        id: browser-benchmark
+        if: steps.worker-bundle.outputs.supported == 'true'
+        continue-on-error: true
+        env:
+          DWG_BENCH_REPEATS: "2"
+        run: node scripts/poc-dwg-dxf-browser-runner.mjs
+
+      - name: Record unsupported browser path
+        if: steps.worker-bundle.outputs.supported != 'true'
+        shell: bash
+        run: |
+          cat > artifacts/dwg-dxf-phase1/browser-results.json <<'JSON'
+          {
+            "schemaVersion": 1,
+            "generatedAt": "not-run",
+            "runtime": { "browser": null, "workerBundleBytes": null, "repeats": 0 },
+            "summary": { "files": 7, "succeeded": 0, "failed": 7, "medianTotalMs": null, "maxMainThreadGapMs": null },
+            "results": []
+          }
+          JSON
+
+      - name: Build benchmark summary
+        if: always()
+        run: node scripts/poc-dwg-dxf-phase1-summarize.mjs
+
+      - name: Publish summary to Actions UI
+        if: always()
+        shell: bash
+        run: cat artifacts/dwg-dxf-phase1/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Phase 1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwg-dxf-phase1-benchmark-${{ github.sha }}
+          path: artifacts/dwg-dxf-phase1/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce POC minimum gate
+        if: always()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'artifacts/dwg-dxf-phase1/node-results.json';
+          if (!fs.existsSync(file)) {
+            console.error('Node benchmark report was not produced.');
+            process.exit(1);
+          }
+          const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+          if (!report.summary || report.summary.succeeded === 0) {
+            console.error('No DWG fixture converted successfully in the Node POC.');
+            process.exit(1);
+          }
+          console.log(`Node POC gate passed: ${report.summary.succeeded}/${report.summary.files} fixtures converted.`);
+          NODE
