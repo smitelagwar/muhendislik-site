@@ -94,7 +94,16 @@ async function main() {
   assert.match(workerSource, /normalizeParsedDxfTextStage2\(dxf\)/);
   assert.match(workerSource, /DxfScene\.js/);
   assert.match(workerSource, /originalDxfTextType/);
-  assert.match(workerSource, /clone-safe text census \+ Stage 2\/3 annotation reports/);
+
+  // Verify behavior-bearing structure rather than an implementation comment. The worker must keep a
+  // clone-safe text census and both Stage 2/3 reports in the retained evidence returned to the main
+  // thread. Comment wording is intentionally not part of the release contract.
+  assert.match(workerSource, /function compactParsedTextEvidence\(/);
+  assert.match(workerSource, /const stage2Report = dxf\[STAGE2_REPORT_KEY\]/);
+  assert.match(workerSource, /const stage3Report = .*\[STAGE3_LAYOUT_REPORT_KEY\]/s);
+  assert.match(workerSource, /__dxfTextStage2:\s*stage2Report/);
+  assert.match(workerSource, /__dxfTextStage3Layout:\s*stage3Report/);
+  assert.match(workerSource, /blocks,\s*\.\.\.\(stage2Report/s);
 
   console.log("DXF Text Stage 2 ATTRIB/ATTDEF rendering checks passed.");
 }

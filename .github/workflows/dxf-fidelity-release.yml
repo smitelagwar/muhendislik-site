@@ -13,6 +13,7 @@ on:
       - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
       - "tests/fixtures/dxf/**"
       - "tests/document-studio/dxf-release.spec.ts"
@@ -20,6 +21,7 @@ on:
       - "tests/document-studio/dxf-text-stage3.spec.ts"
       - "tests/document-studio/dxf-layers.spec.ts"
       - "tests/document-studio/dxf-color.spec.ts"
+      - "tests/document-studio/dxf-render-modes-stage2.spec.ts"
   push:
     branches:
       - main
@@ -34,6 +36,7 @@ on:
       - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
       - "src/lib/dokumantasyon/dxf-*.ts"
+      - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
       - "tests/fixtures/dxf/**"
       - "tests/document-studio/dxf-release.spec.ts"
@@ -41,6 +44,7 @@ on:
       - "tests/document-studio/dxf-text-stage3.spec.ts"
       - "tests/document-studio/dxf-layers.spec.ts"
       - "tests/document-studio/dxf-color.spec.ts"
+      - "tests/document-studio/dxf-render-modes-stage2.spec.ts"
 
 concurrency:
   group: dxf-fidelity-${{ github.workflow }}-${{ github.ref }}
@@ -72,12 +76,14 @@ jobs:
           "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
           "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
           "src/lib/dokumantasyon/dxf-*.ts"
+          "src/lib/dokumantasyon/dxf-*.js"
           "scripts/check-dxf-*"
           "tests/document-studio/dxf-release.spec.ts"
           "tests/document-studio/dxf-text-stage2.spec.ts"
           "tests/document-studio/dxf-text-stage3.spec.ts"
           "tests/document-studio/dxf-layers.spec.ts"
           "tests/document-studio/dxf-color.spec.ts"
+          "tests/document-studio/dxf-render-modes-stage2.spec.ts"
 
       - name: Typecheck
         run: npx tsc --noEmit --incremental false
@@ -132,6 +138,7 @@ jobs:
           tests/document-studio/dxf-text-stage3.spec.ts
           tests/document-studio/dxf-layers.spec.ts
           tests/document-studio/dxf-color.spec.ts
+          tests/document-studio/dxf-render-modes-stage2.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence
