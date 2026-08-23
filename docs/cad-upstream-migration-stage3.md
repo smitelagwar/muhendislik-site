@@ -57,6 +57,10 @@ Artifact:
 - boyut: `4502940` bayt
 - SHA-256: `525e4185400a4d52c6dee5e6735c01a1d4334b7a0c8d3ad4ec8352ad8f057e9c`
 
+## CI paket senkronizasyonu
+
+Stage 3 package sözleşmesi manuel lockfile düzenlemesiyle değil, base branch'teki izole CI bootstrap ile uygulanır. Workflow yalnız bu doküman değiştiğinde migration branch'i checkout eder; hedef üç dependency'yi exact sürüme sabitler, `predev`/`prebuild` asset sync komutlarını ekler, `package-lock.json` dosyasını `npm install --package-lock-only --ignore-scripts` ile yeniden üretir ve yalnız `package.json` + `package-lock.json` değişikliklerini migration branch'e commit eder.
+
 ## Aşama 3 kabul kriterleri
 
 Aşama 3 ancak aşağıdakilerin tamamı sağlanırsa kapatılır:
