@@ -3,6 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DWG_DXF_WORKER_ASSET_URL } from "@/lib/dokumantasyon/dwg/signature";
 import { formatBytes } from "../ui-helpers";
 
 const APS_VIEWER_VERSION = "7.108.0";
@@ -220,7 +221,7 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
         }
 
         const requestId = crypto.randomUUID();
-        worker = new Worker(new URL("./dwg-dxf-conversion-worker.ts", import.meta.url), { type: "module" });
+        worker = new Worker(DWG_DXF_WORKER_ASSET_URL, { type: "module" });
         timeoutId = window.setTimeout(() => {
           chooseAps("WORKER_TIMEOUT");
         }, BROWSER_FAST_PATH_TIMEOUT_MS);
