@@ -16,8 +16,8 @@ import { DwgLegacyConversionFallback } from "./dwg-legacy-conversion-fallback";
 import { ApsOnlyDwgViewer } from "./aps-only-dwg-viewer";
 
 const CurrentCadViewer = lazy(async () => {
-  const module = await import("./cad-viewer");
-  return { default: module.DokCadViewer };
+  const viewerModule = await import("./cad-viewer");
+  return { default: viewerModule.DokCadViewer };
 });
 
 export interface DokCadRuntimeOrchestratorProps {

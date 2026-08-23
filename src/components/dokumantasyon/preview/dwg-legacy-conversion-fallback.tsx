@@ -17,8 +17,8 @@ import {
 import { DWG_DXF_WORKER_ASSET_URL } from "@/lib/dokumantasyon/dwg/signature";
 
 const CurrentCadViewer = lazy(async () => {
-  const module = await import("./cad-viewer");
-  return { default: module.DokCadViewer };
+  const viewerModule = await import("./cad-viewer");
+  return { default: viewerModule.DokCadViewer };
 });
 
 interface DwgLegacyConversionFallbackProps {

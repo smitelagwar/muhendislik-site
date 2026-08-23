@@ -252,7 +252,6 @@ export function ApsOnlyDwgViewer({ fileId, displayName, sizeBytes, accessUrl }: 
     const container = containerRef.current;
     const observer = new ResizeObserver(() => viewer?.resize());
     observer.observe(container);
-    setViewerLoading(true);
 
     const failViewer = (message: string) => {
       if (disposed || terminal) return;
@@ -274,6 +273,7 @@ export function ApsOnlyDwgViewer({ fileId, displayName, sizeBytes, accessUrl }: 
     container.addEventListener("webglcontextlost", onContextLost, true);
 
     const mount = async () => {
+      setViewerLoading(true);
       try {
         await loadApsViewerAssets();
         if (disposed || terminal || !containerRef.current || !window.Autodesk?.Viewing) return;
