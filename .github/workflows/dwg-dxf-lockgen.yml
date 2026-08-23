@@ -1,0 +1,44 @@
+name: dwg-dxf-lockgen
+
+on:
+  push:
+    branches:
+      - feat/dwg-dxf-auto-preview
+    paths:
+      - ".github/workflows/dwg-dxf-lockgen.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Generate exact dependency lock
+        run: npm install --package-lock-only --save-exact @node-projects/acad-ts@2.4.0
+
+      - name: Verify lock
+        shell: bash
+        run: |
+          node -e "const p=require('./package.json'); if(p.dependencies['@node-projects/acad-ts']!=='2.4.0') process.exit(1)"
+          node -e "const p=require('./package-lock.json'); if(p.packages['node_modules/@node-projects/acad-ts']?.version!=='2.4.0') process.exit(1)"
+
+      - name: Upload generated manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: dwg-dxf-lockgen-${{ github.sha }}
+          path: |
+            package.json
+            package-lock.json
+          if-no-files-found: error
+          retention-days: 2
