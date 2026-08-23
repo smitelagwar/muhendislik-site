@@ -71,8 +71,9 @@ function countCollection(value: unknown): number {
   if (typeof candidate.size === "number") return candidate.size;
   if (typeof candidate.count === "number") return candidate.count;
   if (typeof candidate[Symbol.iterator] === "function") {
+    const iterator = candidate[Symbol.iterator]();
     let count = 0;
-    for (const _value of candidate as Iterable<unknown>) count += 1;
+    while (!iterator.next().done) count += 1;
     return count;
   }
   return 0;
@@ -86,14 +87,12 @@ function createReaderConfiguration(): DwgReaderConfiguration {
   configuration.keepUnknownNonGraphicalObjects = profile.keepUnknownNonGraphicalObjects;
   configuration.crcCheck = profile.crcCheck;
   configuration.readSummaryInfo = profile.readSummaryInfo;
-  configuration.ignoreProxyGraphics = profile.ignoreProxyGraphics;
   return configuration;
 }
 
 function createWriterConfiguration(): DxfWriterConfiguration {
   const configuration = new DxfWriterConfiguration();
   const profile = DWG_DXF_PROFILE.writer;
-  configuration.decimalPrecision = profile.decimalPrecision;
   configuration.writeAllHeaderVariables = profile.writeAllHeaderVariables;
   configuration.writeOptionalValues = profile.writeOptionalValues;
   configuration.closeStream = profile.closeStream;
@@ -219,9 +218,9 @@ export function convertDwgToDxf(
       outputBytes: output.bytes.byteLength,
       outputCapacityBytes: output.capacityBytes,
       outputAttempts: output.attempts,
-      entityCount: countCollection(document?.modelSpace?.entities),
-      layerCount: countCollection(document?.layers),
-      blockCount: countCollection(document?.blockRecords ?? document?.blocks),
+      entityCount: countCollection(document.modelSpace?.entities),
+      layerCount: countCollection(document.layers),
+      blockCount: countCollection(document.blockRecords),
     },
   };
 }
