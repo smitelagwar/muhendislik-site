@@ -42,13 +42,20 @@ async function reportFor(name: string) {
 
 async function main() {
   const geometryReport = await reportFor("stage4-geometry-layers.dxf");
-  assert.equal(geometryReport.status, "warning");
+  assert.equal(geometryReport.status, "clean");
   assert.equal(geometryReport.blockingCount, 0);
-  assert.ok(geometryReport.warningCount > 0);
+  assert.equal(geometryReport.warningCount, 0);
   assert.ok(geometryReport.items.some((item) => item.id === "hidden-layers" && item.severity === "info"));
-  assert.ok(geometryReport.items.some((item) => item.id === "linetype-fallback" && item.category === "geometry"));
-  assert.ok(geometryReport.items.some((item) => item.id === "polyline-width"));
+  assert.ok(!geometryReport.items.some((item) => item.id === "linetype-fallback"));
+  assert.ok(!geometryReport.items.some((item) => item.id === "polyline-width"));
   assert.ok(geometryReport.items.some((item) => item.id === "paper-space"));
+
+  const wideReport = await reportFor("stage3-wide-polylines.dxf");
+  assert.equal(wideReport.status, "clean");
+  assert.equal(wideReport.blockingCount, 0);
+  assert.equal(wideReport.warningCount, 0);
+  assert.ok(!wideReport.items.some((item) => item.id === "linetype-fallback" || item.id === "polyline-width"));
+  assert.ok(!wideReport.items.some((item) => item.id === "polyline-width-invalid"));
 
   const riskyReport = await reportFor("stage4-risky-geometry.dxf");
   assert.equal(riskyReport.status, "blocked");
