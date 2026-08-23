@@ -51,6 +51,7 @@ export default defineConfig({
       ...process.env,
       NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || (productionServer ? ".next" : ".next-playwright"),
       DOK_ALLOW_LOCAL_STORAGE: "true",
+      DOK_PRODUCTION_RUNTIME_TEST: productionServer ? "true" : "false",
       ADMIN_USERNAME: "admin",
       ADMIN_PASSWORD_HASH: "$2b$10$TxzKJSpWjjhIwB8honXpuOGcE4VQdEEsN2WGFadTRG1GdvqiCrRfO",
       SESSION_SECRET: "playwright_session_secret_at_least_32_bytes",
