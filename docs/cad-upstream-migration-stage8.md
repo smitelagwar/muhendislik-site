@@ -8,6 +8,8 @@ Durum: **devam ediyor**. Bu belge release kapısını tanımlar; tüm CI, Vercel
 
 CI notu: `CAD upstream Stage 8 release gate` main'de aktiftir ve final release evidence bu branch head üzerinden yeniden üretilir.
 
+Final gate retrigger notu: bot tarafından üretilen lockfile senkronizasyonundan sonra PR workflow'larının kullanıcı-tokenlı branch olayıyla yeniden çalıştırılması için bu kayıt eklendi.
+
 ## Önkoşul
 
 Aşama 7 final cleanup gate:
