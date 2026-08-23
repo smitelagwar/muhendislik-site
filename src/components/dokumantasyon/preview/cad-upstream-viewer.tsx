@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
   CadUpstreamAdapterError,
+  type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
 import { CAD_UPSTREAM_TOTAL_TIMEOUT_MS } from "@/lib/dokumantasyon/dwg/runtime-policy";
@@ -50,9 +51,14 @@ export function DokCadUpstreamViewer({
   onViewerFailure,
 }: DokCadUpstreamViewerProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const adapterRef = useRef<CadUpstreamAdapter | null>(null);
+  const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
+  const lineWeightVisibleRef = useRef(false);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
   const [retryKey, setRetryKey] = useState(0);
+  const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
+  const [lineWeightVisible, setLineWeightVisible] = useState(false);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -81,8 +87,10 @@ export function DokCadUpstreamViewer({
           theme: resolveSiteTheme(),
         });
         adapter = createdAdapter;
+        adapterRef.current = createdAdapter;
 
         if (cancelled || timedOut || abortController.signal.aborted) {
+          adapterRef.current = null;
           await createdAdapter.destroy().catch(() => {});
           adapter = null;
           return;
@@ -109,6 +117,11 @@ export function DokCadUpstreamViewer({
           extension,
           signal: abortController.signal,
         });
+
+        createdAdapter.setDisplayMode(displayModeRef.current, resolveSiteTheme());
+        const initialLineWeight = createdAdapter.getLineWeightVisible();
+        lineWeightVisibleRef.current = initialLineWeight;
+        setLineWeightVisible(initialLineWeight);
       })();
 
       const deadline = new Promise<never>((_, reject) => {
@@ -141,13 +154,11 @@ export function DokCadUpstreamViewer({
         }
 
         if (adapter) {
+          if (adapterRef.current === adapter) adapterRef.current = null;
           await adapter.destroy().catch(() => {});
           adapter = null;
         }
 
-        // The work promise may still be unwinding after a deadline. It self-cleans
-        // if create() resolves after the timeout, and this catch prevents an
-        // unhandled rejection from that late completion.
         void upstreamWork.catch(() => undefined);
 
         if (cancelled || (abortController.signal.aborted && !timedOut)) return;
@@ -168,6 +179,7 @@ export function DokCadUpstreamViewer({
         systemThemeQuery.removeEventListener?.("change", syncTheme);
       }
 
+      if (adapterRef.current === adapter) adapterRef.current = null;
       previousCadUpstreamTeardown = startup
         .catch(() => undefined)
         .then(async () => {
@@ -179,14 +191,72 @@ export function DokCadUpstreamViewer({
     };
   }, [accessUrl, displayName, extension, fileId, retryKey, timeoutMs, onReady, onViewerFailure]);
 
+  const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
+    displayModeRef.current = mode;
+    setDisplayMode(mode);
+    adapterRef.current?.setDisplayMode(mode, resolveSiteTheme());
+  };
+
+  const toggleLineWeight = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    const next = !lineWeightVisibleRef.current;
+    try {
+      await adapter.setLineWeightVisible(next);
+      lineWeightVisibleRef.current = next;
+      setLineWeightVisible(next);
+    } catch (error) {
+      console.warn("MLightCAD lineweight değiştirilemedi", error);
+    }
+  };
+
   return (
     <section
       className="relative flex min-h-[60vh] flex-1 overflow-hidden bg-background"
       data-cad-upstream-host="true"
       data-file-id={fileId}
       data-cad-upstream-state={state}
+      data-cad-color-mode={displayMode}
+      data-cad-lineweight={lineWeightVisible ? "on" : "off"}
     >
       <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
+
+      {state === "ready" ? (
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
+          <Button
+            type="button"
+            size="sm"
+            variant={displayMode === "source" ? "secondary" : "ghost"}
+            className="h-7 px-2 text-[11px]"
+            aria-pressed={displayMode === "source"}
+            onClick={() => selectDisplayMode("source")}
+          >
+            Gerçek Renk
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={displayMode === "monochrome" ? "secondary" : "ghost"}
+            className="h-7 px-2 text-[11px]"
+            aria-pressed={displayMode === "monochrome"}
+            onClick={() => selectDisplayMode("monochrome")}
+          >
+            Siyah-Beyaz
+          </Button>
+          <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+          <Button
+            type="button"
+            size="sm"
+            variant={lineWeightVisible ? "secondary" : "ghost"}
+            className="h-7 px-2 text-[11px]"
+            aria-pressed={lineWeightVisible}
+            title="Çizgi kalınlıklarını göster/gizle"
+            onClick={() => void toggleLineWeight()}
+          >
+            Lineweight
+          </Button>
+        </div>
+      ) : null}
 
       {state === "loading" ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/72 backdrop-blur-[1px]">
