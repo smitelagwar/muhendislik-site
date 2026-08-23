@@ -7,6 +7,10 @@ on:
     paths:
       - ".github/workflows/dwg-dxf-phase1-benchmark.yml"
       - "scripts/poc-dwg-dxf-*.mjs"
+  pull_request:
+    paths:
+      - ".github/workflows/dwg-dxf-phase1-benchmark.yml"
+      - "scripts/poc-dwg-dxf-*.mjs"
   workflow_dispatch:
 
 permissions:
