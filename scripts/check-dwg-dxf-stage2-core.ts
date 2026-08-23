@@ -135,4 +135,7 @@ async function main() {
   console.log(`signature=${DWG_DXF_CONVERTER_SIGNATURE}`);
 }
 
-await main();
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
