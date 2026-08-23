@@ -1,0 +1,98 @@
+name: CAD upstream Stage 6 Chromium render probe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-upstream-stage6-render-probe.yml
+      - docs/cad-upstream-migration-stage6.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-stage6-render-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-public-upstream-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install exact upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .stage6-render-probe
+          cd .stage6-render-probe
+          npm init -y >/dev/null
+          npm install --ignore-scripts --save-exact @mlightcad/cad-simple-viewer-cli@1.6.2
+          node -e 'const p=require("./node_modules/@mlightcad/cad-simple-viewer-cli/package.json"); if(p.version!=="1.6.2") process.exit(1)'
+
+      - name: Install Chromium for upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .stage6-render-probe
+          npx playwright install --with-deps chromium
+
+      - name: Render upstream public DWG fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .stage6-render-probe
+          mkdir -p out-png out-html
+          node_modules/.bin/cad-simple-viewer-cli \
+            -i https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/canteen.dwg \
+            -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-png.scr \
+            -o out-png \
+            --mode read
+          node_modules/.bin/cad-simple-viewer-cli \
+            -i https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/canteen.dwg \
+            -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-html.scr \
+            -o out-html \
+            --mode read
+
+      - name: Verify real rendered outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs')
+          const path = require('path')
+          const pngDir = '.stage6-render-probe/out-png'
+          const htmlDir = '.stage6-render-probe/out-html'
+          const png = fs.readdirSync(pngDir).find(x => x.toLowerCase().endsWith('.png'))
+          const html = fs.readdirSync(htmlDir).find(x => x.toLowerCase().endsWith('.html'))
+          if (!png) throw new Error('PNG render output missing')
+          if (!html) throw new Error('offline HTML output missing')
+          const buf = fs.readFileSync(path.join(pngDir,png))
+          if (buf.length < 10_000) throw new Error(`PNG unexpectedly small: ${buf.length}`)
+          if (buf.subarray(0,8).toString('hex') !== '89504e470d0a1a0a') throw new Error('invalid PNG signature')
+          const width = buf.readUInt32BE(16)
+          const height = buf.readUInt32BE(20)
+          if (width < 500 || height < 300) throw new Error(`render dimensions too small: ${width}x${height}`)
+          const htmlBytes = fs.statSync(path.join(htmlDir,html)).size
+          if (htmlBytes < 100_000) throw new Error(`offline HTML unexpectedly small: ${htmlBytes}`)
+          console.log(`Stage 6 Chromium render: PASS png=${png} ${width}x${height} bytes=${buf.length} htmlBytes=${htmlBytes}`)
+          NODE
+
+      - name: Upload safe public render evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-upstream-stage6-public-render
+          path: |
+            .stage6-render-probe/out-png/*.png
+            .stage6-render-probe/out-html/*.html
+          if-no-files-found: error
+          retention-days: 3
