@@ -12,6 +12,7 @@ import {
 } from "../src/lib/dokumantasyon/dwg";
 
 const FIXTURE_DIR = process.env.DWG_STAGE2_FIXTURE_DIR || ".poc/stage2-fixtures";
+const ARTIFACT_DIR = process.env.DWG_STAGE2_ARTIFACT_DIR || "artifacts/dwg-dxf-stage2-core";
 const FIXTURES = ["sample_AC1014.dwg", "sample_AC1032.dwg"] as const;
 
 function bytes(value: string): Uint8Array {
@@ -20,6 +21,20 @@ function bytes(value: string): Uint8Array {
 
 function sha256(value: Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function firstMismatch(a: Uint8Array, b: Uint8Array): number {
+  const length = Math.min(a.byteLength, b.byteLength);
+  for (let index = 0; index < length; index += 1) {
+    if (a[index] !== b[index]) return index;
+  }
+  return a.byteLength === b.byteLength ? -1 : length;
+}
+
+function asciiWindow(bytesValue: Uint8Array, center: number, radius = 96): string {
+  const start = Math.max(0, center - radius);
+  const end = Math.min(bytesValue.byteLength, center + radius);
+  return new TextDecoder("latin1").decode(bytesValue.subarray(start, end));
 }
 
 async function expectConversionError(
@@ -88,7 +103,32 @@ async function assertFixture(fileName: (typeof FIXTURES)[number]) {
   assert.ok(first.stats.entityCount >= 0);
   assert.equal(first.stats.sourceBytes, source.byteLength);
 
-  assert.equal(Buffer.compare(Buffer.from(first.dxfBytes), Buffer.from(second.dxfBytes)), 0);
+  const mismatch = firstMismatch(first.dxfBytes, second.dxfBytes);
+  if (mismatch !== -1) {
+    await fs.mkdir(ARTIFACT_DIR, { recursive: true });
+    const stem = fileName.replace(/\.dwg$/i, "");
+    await fs.writeFile(path.join(ARTIFACT_DIR, `${stem}-first.dxf`), first.dxfBytes);
+    await fs.writeFile(path.join(ARTIFACT_DIR, `${stem}-second.dxf`), second.dxfBytes);
+    const evidence = {
+      fileName,
+      mismatch,
+      firstBytes: first.dxfBytes.byteLength,
+      secondBytes: second.dxfBytes.byteLength,
+      firstSha256: sha256(first.dxfBytes),
+      secondSha256: sha256(second.dxfBytes),
+      firstWindow: asciiWindow(first.dxfBytes, mismatch),
+      secondWindow: asciiWindow(second.dxfBytes, mismatch),
+    };
+    await fs.writeFile(
+      path.join(ARTIFACT_DIR, `${stem}-determinism-mismatch.json`),
+      `${JSON.stringify(evidence, null, 2)}\n`
+    );
+    assert.fail(
+      `Non-deterministic DXF for ${fileName}: first mismatch at byte ${mismatch}; ` +
+        `${evidence.firstSha256} != ${evidence.secondSha256}`
+    );
+  }
+
   assert.deepEqual(first.diagnostics, second.diagnostics);
   assert.deepEqual(first.dxfEnvelope, second.dxfEnvelope);
   assert.deepEqual(
