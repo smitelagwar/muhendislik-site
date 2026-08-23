@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Gauge, Info, Palette, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CircleAlert, Gauge, Info, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DXF_LINEWEIGHT_READY_EVENT,
@@ -33,22 +33,20 @@ const CATEGORY_LABELS: Record<DxfDiagnosticCategory, string> = {
 
 type DxfColorMode = "true-color" | "monochrome";
 
-function statusText(report: DxfStage5DiagnosticsReport): string {
-  if (report.status === "blocked") return `${report.blockingCount} engel`;
-  if (report.status === "warning") return `${report.warningCount} uyarı`;
-  return "Denetim temiz";
+function statusCount(report: DxfStage5DiagnosticsReport): number {
+  return report.status === "blocked" ? report.blockingCount : report.warningCount;
 }
 
 function statusClasses(report: DxfStage5DiagnosticsReport): string {
-  if (report.status === "blocked") return "border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/15";
-  if (report.status === "warning") return "border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15";
-  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15";
+  if (report.status === "blocked") {
+    return "border-red-500/35 bg-red-500/10 text-red-200 hover:bg-red-500/15";
+  }
+  return "border-amber-400/25 bg-amber-400/[0.06] text-amber-200/90 hover:bg-amber-400/10";
 }
 
 function StatusIcon({ report }: { report: DxfStage5DiagnosticsReport }) {
   if (report.status === "blocked") return <CircleAlert className="h-3.5 w-3.5" />;
-  if (report.status === "warning") return <AlertTriangle className="h-3.5 w-3.5" />;
-  return <ShieldCheck className="h-3.5 w-3.5" />;
+  return <AlertTriangle className="h-3.5 w-3.5" />;
 }
 
 function SeverityIcon({ item }: { item: DxfDiagnosticItem }) {
@@ -218,6 +216,12 @@ export function DxfDiagnosticsButton({
   open: boolean;
   onToggle: () => void;
 }) {
+  const showDiagnostics = report.status !== "clean";
+  const count = statusCount(report);
+  const label = report.status === "blocked"
+    ? `${count} görüntüleme engeli`
+    : `${count} görüntüleme uyarısı`;
+
   return (
     <>
       <style>{`
@@ -231,21 +235,24 @@ export function DxfDiagnosticsButton({
         }
       `}</style>
       <div className="flex items-center gap-1.5">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onToggle}
-          aria-expanded={open}
-          aria-controls="cad-dxf-diagnostics-panel"
-          data-testid="cad-dxf-diagnostics-toggle"
-          className={`h-7 gap-1.5 px-2.5 text-[11px] ${statusClasses(report)}`}
-        >
-          <StatusIcon report={report} />
-          <span className="hidden sm:inline">Denetim:</span>
-          <span>{statusText(report)}</span>
-          {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        </Button>
+        {showDiagnostics && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onToggle}
+            aria-expanded={open}
+            aria-controls="cad-dxf-diagnostics-panel"
+            aria-label={label}
+            title={label}
+            data-testid="cad-dxf-diagnostics-toggle"
+            data-status={report.status}
+            className={`h-7 min-w-8 gap-1 px-2 text-[11px] ${statusClasses(report)}`}
+          >
+            <StatusIcon report={report} />
+            <span aria-hidden="true">{count}</span>
+          </Button>
+        )}
         <DxfRenderModeControls />
       </div>
     </>
@@ -253,66 +260,81 @@ export function DxfDiagnosticsButton({
 }
 
 export function DxfDiagnosticsPanel({ report }: { report: DxfStage5DiagnosticsReport }) {
+  const primaryItems = report.items.filter((item) => item.severity !== "info");
+  const infoItems = report.items.filter((item) => item.severity === "info");
+  const blocked = report.status === "blocked";
+
   return (
     <section
       id="cad-dxf-diagnostics-panel"
       data-testid="cad-dxf-diagnostics-panel"
-      className="max-h-[38vh] shrink-0 overflow-y-auto border-b border-zinc-800 bg-zinc-950/95 px-3 py-3 text-xs"
+      data-status={report.status}
+      role="dialog"
+      aria-label={blocked ? "DXF görüntüleme engelleri" : "DXF görüntüleme uyarıları"}
+      className="fixed right-2 top-24 z-50 max-h-[60vh] w-[calc(100vw-1rem)] max-w-sm overflow-y-auto rounded-xl border border-zinc-700/80 bg-zinc-950/95 p-2.5 text-xs shadow-2xl backdrop-blur-xl sm:top-12"
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <SummaryCell label="Model entity" value={report.modelSpaceGeometryCount} />
-          <SummaryCell label="Aktif layer" value={report.activeLayerCount} />
-          <SummaryCell label="Kapalı / frozen" value={report.offLayerCount + report.frozenLayerCount} />
-          <SummaryCell label="Layout dışarıda" value={report.paperSpaceGeometryCount} />
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-1 pb-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {blocked
+            ? <CircleAlert className="h-4 w-4 shrink-0 text-red-400" />
+            : <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />}
+          <span className="truncate font-semibold text-zinc-100">
+            {blocked ? "Görüntüleme engelleri" : "Görüntüleme uyarıları"}
+          </span>
         </div>
+        <span className={blocked ? "text-[11px] tabular-nums text-red-300" : "text-[11px] tabular-nums text-amber-300"}>
+          {statusCount(report)}
+        </span>
+      </div>
 
-        {report.items.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-emerald-200">
-            <ShieldCheck className="h-4 w-4" />
-            Bu DXF için bilinen fidelity riski bulunmadı.
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {report.items.map((item) => (
-              <article
-                key={item.id}
-                className="flex gap-2 rounded-lg border border-zinc-800 bg-zinc-900/70 px-3 py-2"
-                data-severity={item.severity}
-              >
+      <div className="mt-2 space-y-1.5" data-testid="cad-dxf-diagnostics-primary">
+        {primaryItems.map((item) => (
+          <article
+            key={item.id}
+            className="flex gap-2 rounded-lg border border-zinc-800 bg-zinc-900/70 px-2.5 py-2"
+            data-severity={item.severity}
+          >
+            <SeverityIcon item={item} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="font-semibold text-zinc-100">{item.title}</span>
+                <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
+                  {CATEGORY_LABELS[item.category]}
+                </span>
+              </div>
+              <p className="mt-0.5 leading-relaxed text-zinc-400">{item.detail}</p>
+              {item.evidence && item.evidence.length > 0 && (
+                <p className="mt-1 break-words font-mono text-[10px] text-zinc-500">
+                  {item.evidence.join(" · ")}
+                </p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {infoItems.length > 0 && (
+        <details className="mt-2 rounded-lg border border-zinc-800/80 bg-zinc-900/40" data-testid="cad-dxf-diagnostics-info">
+          <summary className="cursor-pointer select-none px-2.5 py-2 text-[11px] text-zinc-500 hover:text-zinc-300">
+            Teknik bilgiler ({infoItems.length})
+          </summary>
+          <div className="space-y-1.5 border-t border-zinc-800/80 p-2">
+            {infoItems.map((item) => (
+              <article key={item.id} className="flex gap-2 px-1 py-1" data-severity={item.severity}>
                 <SeverityIcon item={item} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-semibold text-zinc-100">{item.title}</span>
-                    <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
-                      {CATEGORY_LABELS[item.category]}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 leading-relaxed text-zinc-400">{item.detail}</p>
-                  {item.evidence && item.evidence.length > 0 && (
-                    <p className="mt-1 break-words font-mono text-[10px] text-zinc-500">
-                      {item.evidence.join(" · ")}
-                    </p>
-                  )}
+                  <div className="font-medium text-zinc-300">{item.title}</div>
+                  <p className="mt-0.5 leading-relaxed text-zinc-500">{item.detail}</p>
                 </div>
               </article>
             ))}
           </div>
-        )}
+        </details>
+      )}
 
-        <p className="text-[10px] leading-relaxed text-zinc-500">
-          Denetim paneli yalnız mevcut DXF’nin görüntüleme güvenilirliğini açıklar. Kaynak dosya değiştirilmez; indirilen dosya orijinal içeriktir.
-        </p>
-      </div>
+      <p className="mt-2 px-1 text-[10px] leading-relaxed text-zinc-600">
+        Kaynak DXF değiştirilmez; indirilen dosya orijinal içeriktir.
+      </p>
     </section>
-  );
-}
-
-function SummaryCell({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 px-2.5 py-2">
-      <div className="text-[10px] uppercase tracking-wide text-zinc-500">{label}</div>
-      <div className="mt-0.5 font-semibold text-zinc-200">{value}</div>
-    </div>
   );
 }
