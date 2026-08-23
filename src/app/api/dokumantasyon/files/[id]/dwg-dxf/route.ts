@@ -3,7 +3,7 @@ import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
 import { getFile } from "@/lib/dokumantasyon/files";
 import {
   findReadyDwgDxfDerivativeForFile,
-  readReadyDwgDxfDerivativeBytes,
+  openReadyDwgDxfDerivativeStream,
 } from "@/lib/dokumantasyon/dwg/server";
 
 export const dynamic = "force-dynamic";
@@ -41,18 +41,24 @@ export async function GET(_request: Request, { params }: RouteParams) {
       });
     }
 
-    const bytes = await readReadyDwgDxfDerivativeBytes(derivative);
-    return new NextResponse(Buffer.from(bytes), {
+    const payload = await openReadyDwgDxfDerivativeStream(derivative);
+    const headers = new Headers({
+      "Content-Type": "application/dxf",
+      "Content-Disposition": `inline; filename="${encodeURIComponent(convertedName(file.display_name))}"`,
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-DWG-DXF-Cache": "HIT",
+      "X-DWG-DXF-Decision": derivative.validation_decision || "PASS",
+      "X-DWG-DXF-Sha256": derivative.dxf_sha256 || "",
+      "X-DWG-DXF-Streaming": "1",
+    });
+    if (payload.sizeBytes !== null) {
+      headers.set("Content-Length", String(payload.sizeBytes));
+    }
+
+    return new Response(payload.stream, {
       status: 200,
-      headers: {
-        "Content-Type": "application/dxf",
-        "Content-Length": String(bytes.byteLength),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(convertedName(file.display_name))}"`,
-        "Cache-Control": "private, no-store",
-        "X-DWG-DXF-Cache": "HIT",
-        "X-DWG-DXF-Decision": derivative.validation_decision || "PASS",
-        "X-DWG-DXF-Sha256": derivative.dxf_sha256 || "",
-      },
+      headers,
     });
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
