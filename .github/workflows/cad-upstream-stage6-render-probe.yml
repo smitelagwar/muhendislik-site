@@ -94,5 +94,7 @@ jobs:
           path: |
             stage6-render-probe/out-png/*.png
             stage6-render-probe/out-html/*.html
+            stage6-render-probe/node_modules/@mlightcad/cad-simple-viewer-cli/dist-runner/**
+            stage6-render-probe/node_modules/@mlightcad/cad-simple-viewer-cli/package.json
           if-no-files-found: error
           retention-days: 3
