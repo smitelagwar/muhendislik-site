@@ -9,9 +9,9 @@ const fail = (message) => {
 
 const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 const expectedDependencies = {
-  "@mlightcad/cad-simple-viewer": "1.6.0",
-  "@mlightcad/data-model": "1.13.0",
-  "@mlightcad/libredwg-converter": "3.13.0",
+  "@mlightcad/cad-simple-viewer": "1.6.2",
+  "@mlightcad/data-model": "1.14.2",
+  "@mlightcad/libredwg-converter": "3.14.2",
 };
 
 for (const [name, version] of Object.entries(expectedDependencies)) {
