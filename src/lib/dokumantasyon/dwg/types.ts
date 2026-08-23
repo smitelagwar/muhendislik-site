@@ -64,12 +64,17 @@ export interface DwgWriterProfile {
   writeShapes: boolean;
 }
 
+export interface DwgNormalizationProfile {
+  universalDatesFromSourceDates: boolean;
+}
+
 export interface DwgConversionProfile {
   id: string;
   engine: "@node-projects/acad-ts";
   engineVersion: string;
   reader: DwgReaderProfile;
   writer: DwgWriterProfile;
+  normalization: DwgNormalizationProfile;
 }
 
 export interface DwgConversionOptions {
