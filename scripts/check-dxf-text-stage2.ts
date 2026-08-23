@@ -100,10 +100,10 @@ async function main() {
   // thread. Comment wording is intentionally not part of the release contract.
   assert.match(workerSource, /function compactParsedTextEvidence\(/);
   assert.match(workerSource, /const stage2Report = dxf\[STAGE2_REPORT_KEY\]/);
-  assert.match(workerSource, /const stage3Report = .*\[STAGE3_LAYOUT_REPORT_KEY\]/s);
+  assert.match(workerSource, /const stage3Report = [\s\S]*\[STAGE3_LAYOUT_REPORT_KEY\]/);
   assert.match(workerSource, /__dxfTextStage2:\s*stage2Report/);
   assert.match(workerSource, /__dxfTextStage3Layout:\s*stage3Report/);
-  assert.match(workerSource, /blocks,\s*\.\.\.\(stage2Report/s);
+  assert.match(workerSource, /blocks,[\s\S]*\.\.\.\(stage2Report/);
 
   console.log("DXF Text Stage 2 ATTRIB/ATTDEF rendering checks passed.");
 }
