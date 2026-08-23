@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, Palette, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Gauge, Info, Palette, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// Installing the lineweight runtime here guarantees the DxfViewer prototype is patched before
-// cad-viewer dynamically constructs the viewer. Stage 2 will expose its UI control.
-import "@/lib/dokumantasyon/dxf-lineweight-runtime";
+import {
+  DXF_LINEWEIGHT_READY_EVENT,
+  getDxfLineweightSnapshot,
+  getDxfLineweightViewerForRoot,
+  setDxfLineweightEnabled,
+} from "@/lib/dokumantasyon/dxf-lineweight-runtime";
 import {
   getDxfRenderStyleViewerForRoot,
   setDxfColorMode,
@@ -54,13 +57,15 @@ function SeverityIcon({ item }: { item: DxfDiagnosticItem }) {
   return <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />;
 }
 
+function getDxfRoot(host: HTMLElement | null): HTMLElement | null {
+  return host?.closest<HTMLElement>('[data-testid="cad-dxf-viewer"]') ?? null;
+}
+
 function applyDxfColorMode(root: HTMLElement, mode: DxfColorMode): boolean {
   const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
   const viewer = getDxfRenderStyleViewerForRoot(root);
   if (!canvas || !viewer) return false;
 
-  // This is a renderer state change, not a CSS filter. The DXF is not fetched/parsed again and the
-  // camera/layer state is untouched. Material keys retain their source CAD colors for exact restore.
   setDxfColorMode(viewer, mode === "monochrome" ? "monochrome" : "source");
   canvas.dataset.dxfColorMode = mode;
   canvas.style.filter = "";
@@ -68,29 +73,86 @@ function applyDxfColorMode(root: HTMLElement, mode: DxfColorMode): boolean {
   return true;
 }
 
-function DxfColorModeButton() {
+function applyDxfLineweightMode(root: HTMLElement, enabled: boolean) {
+  const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
+  const viewer = getDxfLineweightViewerForRoot(root);
+  if (!canvas || !viewer) return null;
+
+  const snapshot = setDxfLineweightEnabled(viewer, enabled);
+  canvas.dataset.dxfLineweightMode = enabled ? "source" : "hairline";
+  return snapshot;
+}
+
+function DxfRenderModeControls() {
   const hostRef = useRef<HTMLSpanElement>(null);
-  const [mode, setMode] = useState<DxfColorMode>("true-color");
-  const monochrome = mode === "monochrome";
+  const [renderReady, setRenderReady] = useState(false);
+  const [colorMode, setColorMode] = useState<DxfColorMode>("true-color");
+  const [lineweightEnabled, setLineweightEnabled] = useState(false);
+  const [lineweightSnapshot, setLineweightSnapshot] = useState<unknown>(null);
+  const monochrome = colorMode === "monochrome";
 
   useEffect(() => {
-    const root = hostRef.current?.closest<HTMLElement>('[data-testid="cad-dxf-viewer"]');
+    const root = getDxfRoot(hostRef.current);
     if (!root) return;
 
-    const sync = () => applyDxfColorMode(root, mode);
-    sync();
+    let retryTimer: number | null = null;
+    const syncInitialState = () => {
+      const colorViewer = getDxfRenderStyleViewerForRoot(root);
+      const lineweightViewer = getDxfLineweightViewerForRoot(root);
+      if (!colorViewer || !lineweightViewer) return false;
 
-    // Normally the button appears only after DXF load/diagnostics complete. Keep the observer so a
-    // retry/recreated canvas receives the same mode without forcing a DXF reload.
-    const observer = new MutationObserver(sync);
-    observer.observe(root, { childList: true, subtree: true });
+      applyDxfColorMode(root, colorMode);
+      const snapshot = applyDxfLineweightMode(root, lineweightEnabled) ?? getDxfLineweightSnapshot(lineweightViewer);
+      setLineweightSnapshot(snapshot);
+      setRenderReady(true);
+      return true;
+    };
+
+    const handleReady = () => {
+      if (syncInitialState()) return;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null;
+        syncInitialState();
+      }, 0);
+    };
+
+    handleReady();
+    root.addEventListener(DXF_LINEWEIGHT_READY_EVENT, handleReady);
 
     return () => {
-      observer.disconnect();
+      root.removeEventListener(DXF_LINEWEIGHT_READY_EVENT, handleReady);
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
       const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="cad-dxf-canvas"] canvas');
-      if (canvas) delete canvas.dataset.dxfColorMode;
+      if (canvas) {
+        delete canvas.dataset.dxfColorMode;
+        delete canvas.dataset.dxfLineweightMode;
+      }
     };
-  }, [mode]);
+    // The controls cannot be changed before renderReady, so the initial source/hairline state is
+    // intentionally captured once for each mounted viewer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleColorMode = () => {
+    if (!renderReady) return;
+    const root = getDxfRoot(hostRef.current);
+    if (!root) return;
+    const next: DxfColorMode = monochrome ? "true-color" : "monochrome";
+    if (!applyDxfColorMode(root, next)) return;
+    setColorMode(next);
+  };
+
+  const toggleLineweight = () => {
+    if (!renderReady) return;
+    const root = getDxfRoot(hostRef.current);
+    if (!root) return;
+    const next = !lineweightEnabled;
+    const snapshot = applyDxfLineweightMode(root, next);
+    if (!snapshot) return;
+    setLineweightEnabled(next);
+    setLineweightSnapshot(snapshot);
+  };
 
   return (
     <span ref={hostRef} className="contents">
@@ -98,12 +160,13 @@ function DxfColorModeButton() {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => setMode(monochrome ? "true-color" : "monochrome")}
+        onClick={toggleColorMode}
+        disabled={!renderReady}
         aria-pressed={monochrome}
         aria-label={monochrome ? "Renk modu: Siyah-Beyaz. Gerçek Renge geç" : "Renk modu: Gerçek Renk. Siyah-Beyaza geç"}
         title={monochrome ? "Siyah-Beyaz görünüm — Gerçek Renk moduna geç" : "Gerçek Renk görünümü — Siyah-Beyaz moduna geç"}
         data-testid="cad-dxf-color-mode-toggle"
-        data-mode={mode}
+        data-mode={colorMode}
         className={monochrome
           ? "h-7 gap-1.5 border-zinc-500/60 bg-zinc-800 px-2.5 text-[11px] text-zinc-100 hover:bg-zinc-700"
           : "h-7 gap-1.5 border-sky-500/30 bg-sky-500/10 px-2.5 text-[11px] text-sky-200 hover:bg-sky-500/15"}
@@ -112,6 +175,36 @@ function DxfColorModeButton() {
         <span className="sm:hidden">{monochrome ? "S/B" : "Gerçek"}</span>
         <span className="hidden sm:inline">{monochrome ? "Siyah-Beyaz" : "Gerçek Renk"}</span>
       </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={toggleLineweight}
+        disabled={!renderReady}
+        aria-pressed={lineweightEnabled}
+        aria-label={lineweightEnabled ? "Lineweight açık. Kaynak çizgi kalınlıklarını kapat" : "Lineweight kapalı. Kaynak çizgi kalınlıklarını aç"}
+        title={lineweightEnabled ? "Lineweight açık — ince çizgi görünümüne geç" : "Kaynak DXF lineweight değerlerini göster"}
+        data-testid="cad-dxf-lineweight-toggle"
+        data-mode={lineweightEnabled ? "source" : "hairline"}
+        className={lineweightEnabled
+          ? "h-7 gap-1.5 border-amber-500/40 bg-amber-500/10 px-2.5 text-[11px] text-amber-200 hover:bg-amber-500/15"
+          : "h-7 gap-1.5 border-zinc-700 bg-zinc-900 px-2.5 text-[11px] text-zinc-300 hover:bg-zinc-800"}
+      >
+        <Gauge className="h-3.5 w-3.5" />
+        <span className="sm:hidden">LW</span>
+        <span className="hidden sm:inline">Lineweight</span>
+      </Button>
+
+      {lineweightSnapshot !== null && (
+        <output
+          className="sr-only"
+          data-testid="cad-dxf-lineweight-snapshot"
+          data-enabled={lineweightEnabled ? "true" : "false"}
+        >
+          {JSON.stringify(lineweightSnapshot)}
+        </output>
+      )}
     </span>
   );
 }
@@ -153,7 +246,7 @@ export function DxfDiagnosticsButton({
           <span>{statusText(report)}</span>
           {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </Button>
-        <DxfColorModeButton />
+        <DxfRenderModeControls />
       </div>
     </>
   );
