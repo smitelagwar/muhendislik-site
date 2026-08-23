@@ -1,0 +1,81 @@
+name: CAD upstream Stage 5 gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/components/dokumantasyon/preview/file-preview-shell.tsx
+      - src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
+      - src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+      - src/lib/dokumantasyon/cad-runtime/**
+      - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/dwg/runtime-policy.ts
+      - scripts/check-cad-upstream-stage5.mjs
+      - docs/cad-upstream-migration-stage5.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-stage5-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify-stage5-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact root lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Sync upstream worker assets
+        run: node scripts/sync-cad-upstream-assets.mjs
+
+      - name: Re-run Stage 3 upstream adapter gate
+        run: node scripts/check-cad-upstream-stage3.mjs
+
+      - name: Run Stage 5 orchestration gate
+        run: node scripts/check-cad-upstream-stage5.mjs
+
+      - name: Targeted lint
+        run: >-
+          npx eslint
+          src/lib/dokumantasyon/cad-runtime/io.ts
+          src/lib/dokumantasyon/cad-upstream/adapter.ts
+          src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+          src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+          src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
+          src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+          src/components/dokumantasyon/preview/file-preview-shell.tsx
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify selector patch is one-line and legacy engines remain rollback-only
+        shell: bash
+        run: |
+          read additions deletions _ < <(git diff --numstat origin/main...HEAD -- src/components/dokumantasyon/preview/file-preview-shell.tsx)
+          test "${additions:-0}" = "1"
+          test "${deletions:-0}" = "1"
+          git diff --exit-code origin/main...HEAD -- \
+            src/components/dokumantasyon/preview/cad-viewer.tsx \
+            src/components/dokumantasyon/preview/aps-dwg-viewer.tsx \
+            src/components/dokumantasyon/preview/dxf-viewer-worker.ts \
+            src/components/dokumantasyon/preview/dwg-dxf-conversion-worker.ts
