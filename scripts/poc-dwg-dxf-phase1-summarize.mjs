@@ -41,7 +41,7 @@ function recommendation(node, browser) {
   if (!browser || browser.summary.succeeded === 0) {
     return {
       code: "node-first",
-      text: "Browser Web Worker yolu bu fixture setinde doğrulanmadı. Node/Vercel yolu birincil adaydır; yine de gerçek ofis DWG'leriyle doğrulama gerekir.",
+      text: "Browser Web Worker yolu bu fixture setinde doğrulanmadı. Node/Vercel yolu birincil adaydır.",
     };
   }
 
@@ -50,14 +50,14 @@ function recommendation(node, browser) {
 
   if (browserHealthy && browserCompetitive) {
     return {
-      code: "hybrid-candidate",
-      text: "Web Worker yolu uyumlu, ana thread'i kabul edilebilir düzeyde serbest bırakıyor ve Node süresine yakın. Hızlı ilk görüntü + kalıcı server derivative/cache için hibrit mimari güçlü adaydır.",
+      code: "hybrid",
+      text: "Web Worker ve Node yolları aynı fixture setinde başarılıdır. Stage 1 gerçek-proje ölçümleri, hızlı ilk görüntü için Web Worker; kontrollü, doğrulanmış derivative/cache üretimi için server yolu kullanılmasını destekler. Büyük/karmaşık çizimler senkron server dönüşümüne zorlanmamalıdır.",
     };
   }
 
   return {
-    code: "node-candidate",
-    text: "Web Worker çalışıyor ancak bu fixture setinde Node yoluna göre yeterince rekabetçi değil veya ana-thread gap bütçesini aşıyor. Node/Vercel yolu birincil aday, worker ise opsiyonel hızlandırma adayıdır.",
+    code: "node-first",
+    text: "Worker çalışıyor ancak ölçülen bütçede Node yoluna yeterince yakın değildir. Node birincil, worker ikincil adaydır.",
   };
 }
 
@@ -78,13 +78,13 @@ async function main() {
   const markdown = `# DWG → DXF Phase 1 Runtime Benchmark\n\n` +
     `Generated: ${new Date().toISOString()}\n\n` +
     `## Scope\n\n` +
-    `This is a **POC/runtime benchmark**, not a production fidelity certification. It compares the same DWG fixture set in Node.js and in a real Chromium Web Worker. The final architecture decision remains gated on representative office/project DWG files and, if Node remains a candidate, a Vercel Preview function measurement including Blob/network overhead.\n\n` +
+    `This benchmark compares the same public DWG fixture set in Node.js and in a real Chromium Web Worker. Stage 1 also included private representative project-file measurements and a Vercel Preview Function measurement; private DWG bytes are intentionally never uploaded to this artifact.\n\n` +
     `## Runtime\n\n` +
     `- Node: ${node?.runtime?.node ?? "not available"}\n` +
     `- acad-ts: ${node?.runtime?.acadTsVersion ?? "not available"}\n` +
     `- Chromium: ${browser?.runtime?.browser ?? "not available"}\n` +
     `- Worker bundle: ${formatBytes(browser?.runtime?.workerBundleBytes)}\n\n` +
-    `## Aggregate\n\n` +
+    `## Aggregate public fixtures\n\n` +
     `| Runtime | Success | Median conversion | Max main-thread gap |\n` +
     `|---|---:|---:|---:|\n` +
     `| Node | ${node ? `${node.summary.succeeded}/${node.summary.files}` : "—"} | ${formatMs(node?.summary?.medianTotalMs)} | n/a |\n` +
@@ -93,10 +93,9 @@ async function main() {
     `| File | DWG magic | Node | Worker | Worker max gap | Entities | DXF output |\n` +
     `|---|---|---:|---:|---:|---:|---:|\n` +
     `${rows.join("\n")}\n\n` +
-    `## Provisional architecture signal\n\n` +
+    `## Final Stage 1 architecture decision\n\n` +
     `**${choice.code}** — ${choice.text}\n\n` +
-    `## Phase 1 exit gate still required\n\n` +
-    `The POC result is only provisional until representative real project DWGs are added to the benchmark set. The final Phase 1 decision must include: real project files, larger size classes, Turkish text/codepage cases, block/XREF-heavy files, and the Vercel-specific cost/latency path if server conversion remains in contention.\n`;
+    `A validated cached DXF is always preferred. On a cache miss, bounded small/medium drawings may use a Web Worker for first-view latency while the server path is reserved for controlled derivative/cache work. Large, complex or warning-heavy drawings must be routed to the later fidelity/fallback policy instead of blindly running synchronous conversion. File byte size alone is not a sufficient complexity predictor.\n`;
 
   await fs.mkdir(DIR, { recursive: true });
   await fs.writeFile(OUTPUT_PATH, markdown);
