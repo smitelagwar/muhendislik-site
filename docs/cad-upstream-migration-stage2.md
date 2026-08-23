@@ -19,7 +19,7 @@ Aşama 1'de tanımlanan 13 gerçek DWG golden corpus + baseline kapısı henüz 
 - Repo: `mlightcad/cad-simple-viewer-example`
 - Commit: `92bf58f8fd77c8b43771cdbea242943e5cd7fa60`
 - Commit tarihi: `2026-08-16T01:45:42Z`
-- Kaynak tree: `6e1341db66ab5f5029eead624c371874cd90c646`
+- Kaynak tree: `6e1341db66ab5f5029eece4f6b68c3910f193daad5`
 
 Sürüm bilgileri `tests/cad-upstream-sandbox.lock.json` dosyasında makine-okunur biçimde tutulur.
 
@@ -41,6 +41,10 @@ Bu yaklaşım fork drift, kopyala-yapıştır sapması ve mevcut site koduyla is
 Upstream'in kendi kodu DWG için `AcDbLibreDwgConverter` kaydeder ve bunu worker modunda çalıştırır. Parser worker URL'si ayrı verilir; Vite build'i `libredwg-parser-worker.js`, `libredwg-web.wasm` ve MTEXT worker'ını `dist/assets/` altına kopyalar.
 
 Aşama 2 sırasında bu zincir değiştirilmez veya monkey-patch edilmez.
+
+## GitHub Actions doğrulama yolu
+
+GitHub `pull_request` workflow tanımını güvenlik nedeniyle base branch üzerinden okur. Bu nedenle yalnız CI doğrulaması için `main` üzerinde `.github/workflows/cad-upstream-sandbox-pr.yml` bootstrap gate'i bulunur. Bu dosya uygulama runtime'ına girmez; yalnız bu migration'ın ilgili lock/workflow/doküman yolları değiştiğinde PR CI çalıştırır. Migration branch içindeki asıl sandbox workflow ve upstream lock sözleşmesi değişmeden kalır.
 
 ## Kabul kriterleri
 
