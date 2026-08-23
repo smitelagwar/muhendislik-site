@@ -26,6 +26,13 @@ import {
   getDxfReleaseHardeningBlockingIssues,
 } from "@/lib/dokumantasyon/dxf-release-hardening";
 import {
+  DXF_BROWSER_SOURCE_FETCH_TIMEOUT_MS,
+  DXF_BROWSER_SOURCE_HARD_LIMIT_BYTES,
+  DXF_BROWSER_VIEWER_LOAD_TIMEOUT_MS,
+  isWithinDxfByteLimit,
+  parseDxfContentLength,
+} from "@/lib/dokumantasyon/dxf-runtime-policy";
+import {
   auditDxfStage3,
   getDxfStage3BlockingIssues,
   getDxfStage3Warnings,
@@ -58,12 +65,13 @@ import { DxfLayerPanel } from "./dxf-layer-panel";
 
 const DXF_FONT_URLS = ["/fonts/Arial-Regular.ttf", "/fonts/Arial-Bold.ttf"];
 
-interface DokCadViewerProps {
+export interface DokCadViewerProps {
   accessUrl: string;
   displayName: string;
   fileId: string;
   extension: string;
   sizeBytes: number;
+  onViewerFailure?: (reason: string) => void;
 }
 
 type DxfViewerMessage = { message?: string; level?: string };
@@ -142,6 +150,88 @@ function uniqueMessages(messages: string[]): string[] {
   return [...new Set(messages.filter(Boolean))];
 }
 
+async function fetchDxfSourceBytes(accessUrl: string, parentSignal: AbortSignal): Promise<ArrayBuffer> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const forwardAbort = () => controller.abort(parentSignal.reason);
+
+  if (parentSignal.aborted) {
+    forwardAbort();
+  } else {
+    parentSignal.addEventListener("abort", forwardAbort, { once: true });
+  }
+
+  const timer = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, DXF_BROWSER_SOURCE_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(accessUrl, { signal: controller.signal, cache: "no-store" });
+    if (!response.ok) {
+      throw new DxfViewerLoadError("fetch", `Dosya indirilemedi (HTTP ${response.status}).`);
+    }
+
+    const declaredLength = parseDxfContentLength(response.headers.get("Content-Length"));
+    if (declaredLength !== null && !isWithinDxfByteLimit(declaredLength)) {
+      throw new DxfViewerLoadError(
+        "fetch",
+        `DXF dosyası browser güvenlik sınırını aşıyor (${declaredLength} > ${DXF_BROWSER_SOURCE_HARD_LIMIT_BYTES} bayt).`
+      );
+    }
+
+    if (!response.body) {
+      const buffer = await response.arrayBuffer();
+      if (!isWithinDxfByteLimit(buffer.byteLength)) {
+        throw new DxfViewerLoadError("fetch", "DXF dosya boyutu browser güvenlik sınırının dışında.");
+      }
+      return buffer;
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value?.byteLength) continue;
+        totalBytes += value.byteLength;
+        if (totalBytes > DXF_BROWSER_SOURCE_HARD_LIMIT_BYTES) {
+          await reader.cancel("DXF_BROWSER_SOURCE_HARD_LIMIT_EXCEEDED");
+          throw new DxfViewerLoadError("fetch", "DXF akışı browser güvenlik sınırını aştı.");
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    if (!isWithinDxfByteLimit(totalBytes)) {
+      throw new DxfViewerLoadError("parse", "DXF dosyası boş veya geçersiz boyutta.");
+    }
+
+    const merged = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return merged.buffer;
+  } catch (error) {
+    if (timedOut) {
+      throw new DxfViewerLoadError(
+        "fetch",
+        `DXF kaynağı ${Math.round(DXF_BROWSER_SOURCE_FETCH_TIMEOUT_MS / 1000)} saniye içinde alınamadı.`
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+    parentSignal.removeEventListener("abort", forwardAbort);
+  }
+}
+
 function captureViewerSnapshot(
   viewer: DxfViewerInstance,
   container: HTMLElement,
@@ -184,7 +274,7 @@ function captureViewerSnapshot(
   };
 }
 
-export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes }: DokCadViewerProps) {
+export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBytes, onViewerFailure }: DokCadViewerProps) {
   const normalizedExtension = normalizeExtension(extension);
 
   if (normalizedExtension === ".dwg") {
@@ -200,12 +290,20 @@ export function DokCadViewer({ accessUrl, displayName, fileId, extension, sizeBy
       key={`${fileId}:${accessUrl}`}
       accessUrl={accessUrl}
       displayName={displayName}
+      fileId={fileId}
       sizeBytes={sizeBytes}
+      onViewerFailure={onViewerFailure}
     />
   );
 }
 
-function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps, "accessUrl" | "displayName" | "sizeBytes">) {
+function DxfViewer({
+  accessUrl,
+  displayName,
+  fileId,
+  sizeBytes,
+  onViewerFailure,
+}: Pick<DokCadViewerProps, "accessUrl" | "displayName" | "fileId" | "sizeBytes" | "onViewerFailure">) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<DxfViewerInstance | null>(null);
   const layerRuntimeRef = useRef<DxfLayerRuntimeItem[]>([]);
@@ -274,20 +372,32 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     const abortController = new AbortController();
     let active = true;
     let viewer: DxfViewerInstance | null = null;
+    let renderWorker: Worker | null = null;
+    let viewerLoadTimeoutId: number | null = null;
     let objectUrl: string | null = null;
     let onViewChanged: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
     let onViewerMessage: ((event: CustomEvent<DxfViewerMessage>) => void) | null = null;
     const capturedViewerWarnings: string[] = [];
     const container = containerRef.current;
+
+    const failViewer = (viewerError: ViewerError) => {
+      if (!active) return;
+      renderWorker?.terminate();
+      renderWorker = null;
+      if (viewerLoadTimeoutId !== null) window.clearTimeout(viewerLoadTimeoutId);
+      viewerLoadTimeoutId = null;
+      viewer?.Destroy();
+      if (viewerRef.current === viewer) viewerRef.current = null;
+      setError(viewerError);
+      setLoadState("error");
+      onViewerFailure?.(`${viewerError.kind}:${viewerError.message}`);
+    };
+
     const onContextLost = (event: Event) => {
       event.preventDefault();
       if (!active) return;
-      active = false;
       abortController.abort();
-      viewer?.Destroy();
-      if (viewerRef.current === viewer) viewerRef.current = null;
-      setError({ kind: "render", message: "WebGL bağlamı kayboldu. Görünümü tekrar deneyin veya dosyayı indirin." });
-      setLoadState("error");
+      failViewer({ kind: "render", message: "WebGL bağlamı kayboldu. Görünümü tekrar deneyin veya dosyayı indirin." });
     };
     container?.addEventListener("webglcontextlost", onContextLost, true);
 
@@ -309,16 +419,10 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       setProgress("Dosya alınıyor");
 
       try {
-        const response = await fetch(accessUrl, { signal: abortController.signal });
-        if (!response.ok) {
-          throw new DxfViewerLoadError("fetch", `Dosya indirilemedi (HTTP ${response.status}).`);
-        }
+        const dxfBuffer = await fetchDxfSourceBytes(accessUrl, abortController.signal);
+        if (!active) return;
 
-        const dxfBuffer = await response.arrayBuffer();
-        if (dxfBuffer.byteLength === 0) {
-          throw new DxfViewerLoadError("parse", "DXF dosyası boş.");
-        }
-
+        setProgress("DXF kaynağı doğrulanıyor");
         const dxfBytes = new Uint8Array(dxfBuffer);
         const encoding = detectDxfEncoding(dxfBytes);
         setEncodingResolution(encoding);
@@ -335,6 +439,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           throw new DxfViewerLoadError("parse", "DXF içeriği seçilen encoding ile çözümlenemedi.");
         }
 
+        setProgress("DXF doğruluk denetimleri çalışıyor");
         const audit = auditDxfText(dxfText);
         const stage3Audit = auditDxfStage3(dxfText);
         const stage4Audit = auditDxfStage4(dxfText);
@@ -397,13 +502,9 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
-        // The stored/downloaded DXF is never mutated. Stage 3 preserves visible MTEXT content,
-        // Stage 4 keeps its source audit, and the final interactive render copy temporarily clears
-        // frozen bits so every supported layer can exist in the scene. Source off/frozen visibility
-        // is restored immediately after Load() and can then be changed by the user.
         objectUrl = URL.createObjectURL(new Blob([interactiveLayerNormalization.text], { type: "application/dxf;charset=utf-8" }));
 
-        setProgress("Görüntüleyici hazırlanıyor");
+        setProgress("Görüntüleyici modülü yükleniyor");
         const dxfModule = await import("dxf-viewer");
         const renderContainer = containerRef.current;
         if (!active || !renderContainer) return;
@@ -447,10 +548,37 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
         viewer.Subscribe("message", onViewerMessage);
         viewerRef.current = viewer;
 
-        await viewer.Load({
+        let rejectWorkerFailure: ((reason: unknown) => void) | null = null;
+        const workerFailurePromise = new Promise<never>((_, reject) => {
+          rejectWorkerFailure = reject;
+        });
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          viewerLoadTimeoutId = window.setTimeout(() => {
+            reject(new DxfViewerLoadError(
+              "render",
+              `DXF worker ${Math.round(DXF_BROWSER_VIEWER_LOAD_TIMEOUT_MS / 1000)} saniye içinde render hazırlığını tamamlayamadı.`
+            ));
+          }, DXF_BROWSER_VIEWER_LOAD_TIMEOUT_MS);
+        });
+
+        setProgress("DXF worker başlatılıyor");
+        const viewerLoadPromise = viewer.Load({
           url: objectUrl,
           fonts: DXF_FONT_URLS,
-          workerFactory: () => new Worker(new URL("./dxf-viewer-worker.ts", import.meta.url), { type: "module" }),
+          workerFactory: () => {
+            const nextWorker = new Worker(new URL("./dxf-viewer-worker.ts", import.meta.url), { type: "module" });
+            renderWorker = nextWorker;
+            nextWorker.addEventListener("error", (event) => {
+              rejectWorkerFailure?.(new DxfViewerLoadError(
+                "render",
+                event.message ? `DXF worker runtime hatası: ${event.message}` : "DXF worker runtime hatası oluştu."
+              ));
+            }, { once: true });
+            nextWorker.addEventListener("messageerror", () => {
+              rejectWorkerFailure?.(new DxfViewerLoadError("render", "DXF worker mesajı çözümlenemedi."));
+            }, { once: true });
+            return nextWorker;
+          },
           progressCbk: (phase) => {
             if (!active) return;
             const phaseLabels = {
@@ -462,6 +590,12 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
             setProgress(phaseLabels[phase]);
           },
         });
+
+        await Promise.race([viewerLoadPromise, workerFailurePromise, timeoutPromise]);
+        if (viewerLoadTimeoutId !== null) window.clearTimeout(viewerLoadTimeoutId);
+        viewerLoadTimeoutId = null;
+        renderWorker?.terminate();
+        renderWorker = null;
 
         if (!active) return;
 
@@ -543,12 +677,13 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
           );
         }
 
+        setProgress("Hazır");
         setLoadState("ready");
       } catch (caughtError: unknown) {
-        if (!active || abortController.signal.aborted) return;
+        if (!active) return;
+        if (abortController.signal.aborted && !(caughtError instanceof DxfViewerLoadError)) return;
         const kind: ViewerErrorKind = viewer ? "parse" : "fetch";
-        setError(errorMessageFor(caughtError, kind));
-        setLoadState("error");
+        failViewer(errorMessageFor(caughtError, kind));
       } finally {
         if (objectUrl) {
           URL.revokeObjectURL(objectUrl);
@@ -562,6 +697,8 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
     return () => {
       active = false;
       abortController.abort();
+      if (viewerLoadTimeoutId !== null) window.clearTimeout(viewerLoadTimeoutId);
+      renderWorker?.terminate();
       container?.removeEventListener("webglcontextlost", onContextLost, true);
       if (viewer && onViewChanged) viewer.Unsubscribe("viewChanged", onViewChanged);
       if (viewer && onViewerMessage) viewer.Unsubscribe("message", onViewerMessage);
@@ -569,7 +706,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
       if (viewerRef.current === viewer) viewerRef.current = null;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [accessUrl, retryKey]);
+  }, [accessUrl, fileId, onViewerFailure, retryKey]);
 
   const handleToggleLayer = useCallback((name: string, visible: boolean) => {
     const viewer = viewerRef.current;
@@ -599,7 +736,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   const allWarnings = [...fidelityWarnings, ...viewerWarnings];
 
   return (
-    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100" data-testid="cad-dxf-viewer">
+    <section className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-zinc-950 text-zinc-100" data-testid="cad-dxf-viewer" data-cad-file-id={fileId} data-cad-load-state={loadState} data-cad-progress={progress}>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-800 bg-zinc-900/90 px-3 py-2 text-xs backdrop-blur-md">
         <div className="flex min-w-0 items-center gap-2">
           <Compass className="h-4 w-4 shrink-0 text-amber-400" />
@@ -758,7 +895,7 @@ function DxfViewer({ accessUrl, displayName, sizeBytes }: Pick<DokCadViewerProps
   );
 }
 
-function DwgDownloadFallback({ accessUrl, displayName, extension, sizeBytes }: Omit<DokCadViewerProps, "fileId">) {
+function DwgDownloadFallback({ accessUrl, displayName, extension, sizeBytes }: Omit<DokCadViewerProps, "fileId" | "onViewerFailure">) {
   const handleDownload = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
 
   return (
