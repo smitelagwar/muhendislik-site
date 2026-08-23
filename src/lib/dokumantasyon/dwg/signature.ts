@@ -2,6 +2,8 @@ import type { DwgConversionProfile } from "./types";
 
 export const DWG_DXF_ENGINE_VERSION = "2.4.0";
 export const DWG_DXF_PROFILE_ID = "dwg-dxf-v1";
+export const DWG_DXF_WORKER_ASSET_VERSION = `acad-ts-${DWG_DXF_ENGINE_VERSION}-${DWG_DXF_PROFILE_ID}`;
+export const DWG_DXF_WORKER_ASSET_URL = `/workers/dwg-dxf-conversion-worker.js?v=${DWG_DXF_WORKER_ASSET_VERSION}`;
 
 export const DWG_DXF_PROFILE: DwgConversionProfile = Object.freeze({
   id: DWG_DXF_PROFILE_ID,

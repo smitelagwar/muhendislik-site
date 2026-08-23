@@ -1,14 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DWG_DXF_WORKER_ASSET_URL } from "@/lib/dokumantasyon/dwg/signature";
 import { formatBytes } from "../ui-helpers";
 
 const APS_VIEWER_VERSION = "7.108.0";
 const APS_VIEWER_BASE_URL = `https://developer.api.autodesk.com/modelderivative/v2/viewers/${APS_VIEWER_VERSION}`;
+const MAX_BROWSER_FAST_PATH_BYTES = 4 * 1024 * 1024;
+const BROWSER_FAST_PATH_TIMEOUT_MS = 25_000;
+
+const ResolvedDxfCadViewer = lazy(async () => {
+  const cadViewerModule = await import("./cad-viewer");
+  return { default: cadViewerModule.DokCadViewer };
+});
 
 type DwgStatus = "pending" | "uploading" | "translating" | "ready" | "failed";
+type FastPathSource = "cache" | "worker";
+type FastPathState =
+  | { kind: "resolving" }
+  | { kind: "dxf"; url: string; sizeBytes: number; source: FastPathSource; decision: "PASS" | "WARN" }
+  | { kind: "aps"; reason: string };
 
 interface DwgApiResponse {
   provider?: "aps";
@@ -19,6 +32,17 @@ interface DwgApiResponse {
   errorCode?: string;
   errorMessage?: string;
   error?: string;
+}
+
+interface DwgWorkerResponse {
+  requestId: string;
+  ok: boolean;
+  fallback?: boolean;
+  decision?: "PASS" | "WARN" | "REJECT";
+  dxfBuffer?: ArrayBuffer;
+  dxfBytes?: number;
+  errorCode?: string;
+  errorMessage?: string;
 }
 
 interface AutodeskDocumentNode {
@@ -56,6 +80,10 @@ interface ApsDwgViewerProps {
   displayName: string;
   sizeBytes: number;
   accessUrl: string;
+}
+
+function convertedDxfName(displayName: string): string {
+  return displayName.replace(/\.dwg$/iu, "") + ".dxf";
 }
 
 function statusText(status: DwgStatus): string {
@@ -101,7 +129,189 @@ function loadApsViewerAssets(): Promise<void> {
   });
 }
 
-export function ApsDwgViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgViewerProps) {
+export function ApsDwgViewer(props: ApsDwgViewerProps) {
+  return <DwgToDxfViewer {...props} />;
+}
+
+function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgViewerProps) {
+  const [fastPath, setFastPath] = useState<FastPathState>({ kind: "resolving" });
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    let active = true;
+    let worker: Worker | null = null;
+    let objectUrl: string | null = null;
+    let timeoutId: number | null = null;
+
+    const chooseAps = (reason: string) => {
+      if (!active) return;
+      worker?.terminate();
+      worker = null;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = null;
+      setFastPath({ kind: "aps", reason });
+    };
+
+    const exposeDxf = (
+      bytes: ArrayBuffer,
+      source: FastPathSource,
+      decision: "PASS" | "WARN"
+    ) => {
+      if (!active) return;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = null;
+      worker?.terminate();
+      worker = null;
+      objectUrl = URL.createObjectURL(new Blob([bytes], { type: "application/dxf" }));
+      setFastPath({
+        kind: "dxf",
+        url: objectUrl,
+        sizeBytes: bytes.byteLength,
+        source,
+        decision,
+      });
+    };
+
+    const run = async () => {
+      setFastPath({ kind: "resolving" });
+
+      // Cache lookup is intentionally first. Only Stage 3 PASS/WARN derivatives
+      // can be returned by this endpoint.
+      try {
+        const cached = await fetch(`/api/dokumantasyon/files/${fileId}/dwg-dxf`, {
+          cache: "no-store",
+          signal: abortController.signal,
+        });
+        if (!active) return;
+        if (cached.ok && cached.status === 200) {
+          const buffer = await cached.arrayBuffer();
+          if (!active) return;
+          if (buffer.byteLength > 0) {
+            const headerDecision = cached.headers.get("X-DWG-DXF-Decision");
+            exposeDxf(buffer, "cache", headerDecision === "WARN" ? "WARN" : "PASS");
+            return;
+          }
+        }
+      } catch {
+        if (!active || abortController.signal.aborted) return;
+        // Cache availability must never make a locally viewable DWG fail.
+      }
+
+      // Byte size is only a hard browser safety ceiling, not a complexity score.
+      // Stage 1 proved similar-sized drawings can have radically different cost.
+      if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_BROWSER_FAST_PATH_BYTES) {
+        chooseAps("WORKLOAD_OUTSIDE_BROWSER_BUDGET");
+        return;
+      }
+
+      try {
+        const sourceResponse = await fetch(accessUrl, {
+          cache: "no-store",
+          signal: abortController.signal,
+        });
+        if (!sourceResponse.ok) {
+          chooseAps(`DWG_FETCH_${sourceResponse.status}`);
+          return;
+        }
+        const sourceBuffer = await sourceResponse.arrayBuffer();
+        if (!active) return;
+        if (sourceBuffer.byteLength === 0 || sourceBuffer.byteLength > MAX_BROWSER_FAST_PATH_BYTES) {
+          chooseAps("SOURCE_BYTES_OUTSIDE_BROWSER_BUDGET");
+          return;
+        }
+
+        const requestId = crypto.randomUUID();
+        worker = new Worker(DWG_DXF_WORKER_ASSET_URL, { type: "module" });
+        timeoutId = window.setTimeout(() => {
+          chooseAps("WORKER_TIMEOUT");
+        }, BROWSER_FAST_PATH_TIMEOUT_MS);
+
+        worker.onerror = () => chooseAps("WORKER_RUNTIME_ERROR");
+        worker.onmessage = (event: MessageEvent<DwgWorkerResponse>) => {
+          if (!active || event.data.requestId !== requestId) return;
+          const result = event.data;
+          if (
+            result.ok &&
+            result.dxfBuffer instanceof ArrayBuffer &&
+            (result.decision === "PASS" || result.decision === "WARN")
+          ) {
+            exposeDxf(result.dxfBuffer, "worker", result.decision);
+            return;
+          }
+          chooseAps(result.errorCode || "FIDELITY_OR_CONVERSION_FALLBACK");
+        };
+
+        worker.postMessage({ requestId, buffer: sourceBuffer }, [sourceBuffer]);
+      } catch (error) {
+        if (!active || abortController.signal.aborted) return;
+        chooseAps(error instanceof Error ? error.message : "FAST_PATH_FAILED");
+      }
+    };
+
+    void run();
+
+    return () => {
+      active = false;
+      abortController.abort();
+      worker?.terminate();
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [accessUrl, fileId, sizeBytes]);
+
+  if (fastPath.kind === "aps") {
+    return (
+      <div className="h-full min-h-0 w-full min-w-0" data-dwg-dxf-fallback={fastPath.reason}>
+        <ApsFallbackViewer
+          fileId={fileId}
+          displayName={displayName}
+          sizeBytes={sizeBytes}
+          accessUrl={accessUrl}
+        />
+      </div>
+    );
+  }
+
+  if (fastPath.kind === "dxf") {
+    return (
+      <div
+        className="h-full min-h-0 w-full min-w-0"
+        data-testid="cad-dwg-dxf-orchestrator"
+        data-dwg-dxf-source={fastPath.source}
+        data-dwg-dxf-decision={fastPath.decision}
+      >
+        <Suspense fallback={<DwgFastPathLoading label="DXF görüntüleyici hazırlanıyor" />}>
+          <ResolvedDxfCadViewer
+            accessUrl={fastPath.url}
+            displayName={convertedDxfName(displayName)}
+            fileId={fileId}
+            extension=".dxf"
+            sizeBytes={fastPath.sizeBytes}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  return <DwgFastPathLoading label="DWG → DXF önizleme hazırlanıyor" />;
+}
+
+function DwgFastPathLoading({ label }: { label: string }) {
+  return (
+    <section
+      className="flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center gap-3 bg-zinc-950 text-center text-zinc-100"
+      data-testid="cad-dwg-dxf-loading"
+    >
+      <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+      <div>
+        <p className="text-sm font-semibold">{label}</p>
+        <p className="mt-1 text-xs text-zinc-400">Doğruluk denetimi başarısız olursa APS otomatik devreye girer.</p>
+      </div>
+    </section>
+  );
+}
+
+function ApsFallbackViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<AutodeskViewerInstance | null>(null);
   const [status, setStatus] = useState<DwgStatus>("pending");
