@@ -46,6 +46,11 @@ async function checkFixture(fileName: (typeof FIXTURES)[number]) {
   const { conversion, validation } = await convertAndValidateDwgToDxf(source);
   const elapsedMs = performance.now() - started;
 
+  if (validation.decision === "REJECT") {
+    console.error(`FIDELITY_REJECT ${fileName}`);
+    console.error(JSON.stringify({ source: validation.source, output: validation.output, issues: validation.issues }, null, 2));
+  }
+
   assert.notEqual(validation.decision, "REJECT", `${fileName} must not fail the fidelity gate`);
   assert.ok(validation.output, `${fileName} output snapshot missing`);
   assert.equal(validation.issues.filter((issue) => issue.severity === "blocking").length, 0);
