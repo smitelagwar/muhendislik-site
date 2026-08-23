@@ -1,6 +1,12 @@
 /// <reference lib="webworker" />
 
-import { convertAndValidateDwgToDxf } from "../../../lib/dokumantasyon/dwg";
+import {
+  convertAndValidateDwgToDxf,
+  DwgConversionError,
+  DWG_BROWSER_DXF_HARD_LIMIT_BYTES,
+  DWG_BROWSER_INITIAL_DXF_BUFFER_BYTES,
+  DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES,
+} from "../../../lib/dokumantasyon/dwg";
 
 const scope = self as DedicatedWorkerGlobalScope;
 
@@ -32,14 +38,31 @@ scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
     scope.postMessage({
       requestId: requestId || "unknown",
       ok: false,
+      fallback: true,
       errorCode: "INVALID_WORKER_REQUEST",
       errorMessage: "DWG worker geçerli bir ArrayBuffer alamadı.",
     });
     return;
   }
 
+  if (buffer.byteLength === 0 || buffer.byteLength > DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES) {
+    scope.postMessage({
+      requestId,
+      ok: false,
+      fallback: true,
+      errorCode: "WORKER_SOURCE_LIMIT_EXCEEDED",
+      errorMessage: "DWG browser güvenlik bütçesinin dışında.",
+      sourceBytes: buffer.byteLength,
+      elapsedMs: Math.round(performance.now() - startedAt),
+    });
+    return;
+  }
+
   try {
-    const { conversion, validation } = await convertAndValidateDwgToDxf(buffer);
+    const { conversion, validation } = await convertAndValidateDwgToDxf(buffer, {
+      initialOutputBytes: DWG_BROWSER_INITIAL_DXF_BUFFER_BYTES,
+      maxOutputBytes: DWG_BROWSER_DXF_HARD_LIMIT_BYTES,
+    });
 
     if (validation.decision === "REJECT") {
       scope.postMessage({
@@ -50,6 +73,19 @@ scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
         errorMessage: "Hızlı DWG→DXF dönüşümü fidelity denetiminden geçmedi.",
         decision: validation.decision,
         issues: issueSummary(validation.issues),
+        elapsedMs: Math.round(performance.now() - startedAt),
+      });
+      return;
+    }
+
+    if (conversion.dxfBytes.byteLength > DWG_BROWSER_DXF_HARD_LIMIT_BYTES) {
+      scope.postMessage({
+        requestId,
+        ok: false,
+        fallback: true,
+        errorCode: "WORKER_DXF_OUTPUT_LIMIT_EXCEEDED",
+        errorMessage: "Üretilen DXF browser güvenlik bütçesini aştı.",
+        dxfBytes: conversion.dxfBytes.byteLength,
         elapsedMs: Math.round(performance.now() - startedAt),
       });
       return;
@@ -76,13 +112,18 @@ scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const errorCode =
+      error instanceof DwgConversionError && error.code === "OUTPUT_LIMIT_EXCEEDED"
+        ? "WORKER_DXF_OUTPUT_LIMIT_EXCEEDED"
+        : /DXF subclass|_Layout|class metadata|Cannot access '.+' before initialization/i.test(message)
+          ? "WORKER_CLASS_NAME_CONTRACT_FAILED"
+          : "WORKER_CONVERSION_FAILED";
+
     scope.postMessage({
       requestId,
       ok: false,
       fallback: true,
-      errorCode: /DXF subclass|_Layout|class metadata/i.test(message)
-        ? "WORKER_CLASS_NAME_CONTRACT_FAILED"
-        : "WORKER_CONVERSION_FAILED",
+      errorCode,
       errorMessage: message,
       elapsedMs: Math.round(performance.now() - startedAt),
     });
