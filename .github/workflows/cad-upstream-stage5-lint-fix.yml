@@ -1,0 +1,88 @@
+name: CAD upstream Stage 5 lint fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docs/cad-upstream-migration-stage5.md
+      - src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+      - src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx
+      - src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+
+permissions:
+  contents: write
+
+jobs:
+  patch-stage5-lint:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Apply exact lint-only patches
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+
+          function replaceExact(path, before, after) {
+            const source = fs.readFileSync(path, 'utf8')
+            const count = source.split(before).length - 1
+            if (count === 0 && source.includes(after)) {
+              console.log(`${path}: already patched`)
+              return
+            }
+            if (count !== 1) throw new Error(`${path}: expected exactly one target, found ${count}`)
+            fs.writeFileSync(path, source.replace(before, after))
+          }
+
+          const lazyBefore = 'const CurrentCadViewer = lazy(async () => {\n  const module = await import("./cad-viewer");\n  return { default: module.DokCadViewer };\n});'
+          const lazyAfter = 'const CurrentCadViewer = lazy(async () => {\n  const viewerModule = await import("./cad-viewer");\n  return { default: viewerModule.DokCadViewer };\n});'
+
+          replaceExact(
+            'src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx',
+            lazyBefore,
+            lazyAfter
+          )
+          replaceExact(
+            'src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx',
+            lazyBefore,
+            lazyAfter
+          )
+
+          replaceExact(
+            'src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx',
+            '    observer.observe(container);\n    setViewerLoading(true);\n\n    const failViewer =',
+            '    observer.observe(container);\n\n    const failViewer ='
+          )
+          replaceExact(
+            'src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx',
+            '    const mount = async () => {\n      try {',
+            '    const mount = async () => {\n      setViewerLoading(true);\n      try {'
+          )
+          NODE
+
+      - name: Commit lint-only fixes
+        shell: bash
+        run: |
+          if git diff --quiet -- \
+            src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx \
+            src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx \
+            src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx; then
+            echo "Stage 5 lint fixes already applied"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx \
+            src/components/dokumantasyon/preview/dwg-legacy-conversion-fallback.tsx \
+            src/components/dokumantasyon/preview/aps-only-dwg-viewer.tsx
+          git commit -m "fix(cad): satisfy Stage 5 React and Next lint rules"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
