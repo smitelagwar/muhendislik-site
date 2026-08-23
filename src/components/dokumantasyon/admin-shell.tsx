@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { FolderArchive, LogOut, User, Loader2, ShieldCheck, ShieldAlert, Laptop } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FolderArchive, User, ShieldCheck, ShieldAlert, Laptop } from "lucide-react";
 import { DokumantasyonFileManager } from "./file-manager";
 import styles from "./dok-workspace.module.css";
 
@@ -13,8 +11,6 @@ interface AdminShellProps {
 }
 
 export function DokumantasyonAdminShell({ username, children }: AdminShellProps) {
-  const router = useRouter();
-  const [loggingOut, setLoggingOut] = useState(false);
   const [readiness, setReadiness] = useState<{
     storageMode?: "durable" | "local_dev" | "blocked";
     ok?: boolean;
@@ -26,20 +22,6 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
       .then((data) => setReadiness(data))
       .catch(() => setReadiness({ storageMode: "blocked", ok: false }));
   }, []);
-
-  const handleLogout = async () => {
-    if (loggingOut) return;
-    setLoggingOut(true);
-
-    try {
-      await fetch("/api/dokumantasyon/cikis", {
-        method: "POST",
-      });
-      router.refresh();
-    } catch {
-      setLoggingOut(false);
-    }
-  };
 
   return (
     <div className="relative min-h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05]">
@@ -89,27 +71,12 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
             </div>
           </div>
 
-          {/* Kullanıcı Rozeti ve Çıkış Yap Butonu */}
+          {/* Kullanıcı Rozeti */}
           <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 sm:justify-end sm:border-t-0 sm:pt-0">
             <div className="flex items-center gap-2 rounded-xl border border-white/60 dark:border-white/10 bg-white/70 dark:bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-md shadow-inner">
               <User className="h-3.5 w-3.5 text-amber-500" />
               <span>{username}</span>
             </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="gap-1.5 rounded-xl border-border/80 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500 shadow-sm"
-            >
-              {loggingOut ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="h-4 w-4" />
-              )}
-              <span>Çıkış Yap</span>
-            </Button>
           </div>
         </div>
 

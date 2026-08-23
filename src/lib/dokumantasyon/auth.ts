@@ -101,8 +101,21 @@ export async function clearSessionCookie(): Promise<void> {
 
 /**
  * Mevcut istekteki admin oturumunu doğrular
+ * NOT: Şifre engeli dökümantasyon işlemlerinde kolaylık sağlamak için devre dışı bırakıldı (bypass).
+ * Sistem altyapısı durmaktadır; istenirse alttaki yorumlu orijinal blok tekrar aktif edilebilir.
  */
 export async function getDokumantasyonSession(): Promise<DokSessionPayload | null> {
+  // --- AUTH BYPASS START (Şifresiz doğrudan erişim) ---
+  return {
+    username: "admin",
+    sessionVersion: 1,
+    jti: "bypass-session",
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 86400 * 365,
+  };
+  // --- AUTH BYPASS END ---
+
+  /*
   const cookieStore = await cookies();
   const token = cookieStore.get(DOKUMANTASYON_CONFIG.SESSION_COOKIE_NAME)?.value;
 
@@ -111,6 +124,7 @@ export async function getDokumantasyonSession(): Promise<DokSessionPayload | nul
   }
 
   return verifyDokumantasyonSessionToken(token);
+  */
 }
 
 /**
