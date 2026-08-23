@@ -82,8 +82,13 @@ if (exists("src/components/dokumantasyon/preview/aps-dwg-viewer.tsx")) {
   fail("retired aps-dwg-viewer.tsx returned after Stage 7");
 }
 
-const shell = read("src/components/dokumantasyon/preview/file-preview-shell.tsx");
-mustInclude(shell, './cad-runtime-orchestrator', "FilePreviewShell");
+const fileShell = read("src/components/dokumantasyon/preview/file-preview-shell.tsx");
+mustInclude(fileShell, './cad-runtime-orchestrator', "FilePreviewShell");
+const studioShell = read("src/components/dokumantasyon/studio/document-studio-shell.tsx");
+mustInclude(studioShell, '../preview/cad-runtime-orchestrator', "DocumentStudioShell");
+if (studioShell.includes('import("../preview/cad-viewer")')) {
+  fail("DocumentStudioShell still bypasses the Stage 8 orchestrator");
+}
 const orchestrator = read("src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx");
 for (const token of ["DokCadUpstreamViewer", "DwgLegacyConversionFallback", "ApsOnlyDwgViewer", '"current-fallback"']) {
   mustInclude(orchestrator, token, "CAD runtime orchestrator");
@@ -96,5 +101,6 @@ console.log("Stage 8 exact upstream pins: PASS");
 console.log("Stage 8 security overrides + lock resolution: PASS");
 console.log("Stage 8 bounded runtime deadlines: PASS");
 console.log("Stage 8 GPL notice/source reference: PASS");
+console.log("Stage 8 both preview shells route CAD through orchestrator: PASS");
 console.log("Stage 8 production ownership and rollback surface: PASS");
 console.log("GATE: PASS — Aşama 8 release contract hazır.");
