@@ -11,6 +11,8 @@ console.log("===================================================================
 function resetEnv() {
   delete process.env.VERCEL;
   delete process.env.DOK_ALLOW_LOCAL_STORAGE;
+  delete process.env.DOK_PRODUCTION_RUNTIME_TEST;
+  delete process.env.CI;
   delete process.env.DATABASE_URL;
   delete process.env.BLOB_READ_WRITE_TOKEN;
   delete process.env.BLOB_STORE_ID;
@@ -47,6 +49,19 @@ async function runTests() {
   }
   assert.strictEqual(test1Threw, true, "Vercel üzerinde readLocalDb çağrısı hata fırlatmalıdır.");
   console.log("  ✓ [BAŞARILI] Vercel ortamında local storage ve /tmp çağrısı güvenle engellendi (LOCAL_STORAGE_FORBIDDEN).");
+
+  // -------------------------------------------------------------------
+  // TEST 1b: CI production-test flag'leri Vercel yasağını ASLA delemez
+  // -------------------------------------------------------------------
+  console.log("\n▶ TEST 1b: Production CI Test Flag'leri Vercel Local-Storage Yasağını Aşamamalıdır");
+  resetEnv();
+  process.env.NODE_ENV = "production";
+  process.env.CI = "true";
+  process.env.VERCEL = "1";
+  process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
+  process.env.DOK_PRODUCTION_RUNTIME_TEST = "true";
+  assert.strictEqual(isExplicitLocalDokMode(), false, "Vercel üzerinde production test flag'leri local mode açmamalıdır.");
+  console.log("  ✓ [BAŞARILI] Production CI test istisnası Vercel'de fail-closed kalıyor.");
 
   // -------------------------------------------------------------------
   // TEST 2: VERCEL=1 iken DATABASE_URL var ama BLOB_STORE_ID yok -> UPLOAD FAIL-CLOSED
@@ -116,6 +131,29 @@ async function runTests() {
   }
   assert.strictEqual(test4Success, true, "Localhost üzerinde açıkça izin verildiğinde yerel DB çalışmalıdır.");
   console.log("  ✓ [BAŞARILI] Localhost ortamında DOK_ALLOW_LOCAL_STORAGE=true ile yerel geliştirme güvenle çalıştı.");
+
+  // -------------------------------------------------------------------
+  // TEST 4b: next start üretim bundle'ı için yalnız izole CI harness local olabilir
+  // -------------------------------------------------------------------
+  console.log("\n▶ TEST 4b: Vercel Dışındaki İzole Production CI Harness Yerel Fixture Kullanabilmelidir");
+  resetEnv();
+  process.env.NODE_ENV = "production";
+  process.env.CI = "true";
+  process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
+  process.env.DOK_PRODUCTION_RUNTIME_TEST = "true";
+  assert.strictEqual(isExplicitLocalDokMode(), true, "İzole production CI harness local mode açabilmelidir.");
+  console.log("  ✓ [BAŞARILI] next start production browser testi fixture depolamasını kontrollü kullanabiliyor.");
+
+  // -------------------------------------------------------------------
+  // TEST 4c: Özel flag tek başına production local mode açamaz
+  // -------------------------------------------------------------------
+  console.log("\n▶ TEST 4c: CI Olmadan Production Test Flag'i Yerel Depolamayı Açamamalıdır");
+  resetEnv();
+  process.env.NODE_ENV = "production";
+  process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
+  process.env.DOK_PRODUCTION_RUNTIME_TEST = "true";
+  assert.strictEqual(isExplicitLocalDokMode(), false, "CI=true olmadan production local mode açılmamalıdır.");
+  console.log("  ✓ [BAŞARILI] Production test istisnası CI dışında kapalı kalıyor.");
 
   // -------------------------------------------------------------------
   // TEST 5: Localhost + DOK_ALLOW_LOCAL_STORAGE=false (veya tanımsız) -> FAIL-CLOSED
