@@ -1,0 +1,58 @@
+name: CAD upstream Stage 5 route sync
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docs/cad-upstream-migration-stage5.md
+      - src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+
+permissions:
+  contents: write
+
+jobs:
+  route-production-cad:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+
+      - name: Patch only the CAD dynamic import
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs')
+          const path = 'src/components/dokumantasyon/preview/file-preview-shell.tsx'
+          const source = fs.readFileSync(path, 'utf8')
+          const before = 'const DokCadViewer = dynamic(() => import("./cad-viewer").then((module) => module.DokCadViewer), { ssr: false });'
+          const after = 'const DokCadViewer = dynamic(() => import("./cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });'
+          const count = source.split(before).length - 1
+          if (count === 0 && source.includes(after)) {
+            console.log('CAD production route already synchronized')
+            process.exit(0)
+          }
+          if (count !== 1) throw new Error(`Expected exactly one legacy CAD import, found ${count}`)
+          const next = source.replace(before, after)
+          const changedLines = next.split('\n').filter((line, index) => line !== source.split('\n')[index])
+          if (changedLines.length !== 1) throw new Error(`Expected a one-line route patch, changed ${changedLines.length} lines`)
+          fs.writeFileSync(path, next)
+          NODE
+
+      - name: Commit one-line production selector change
+        shell: bash
+        run: |
+          if git diff --quiet -- src/components/dokumantasyon/preview/file-preview-shell.tsx; then
+            echo "CAD route already synchronized"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/dokumantasyon/preview/file-preview-shell.tsx
+          git commit -m "feat(cad): route production preview through Stage 5 orchestrator"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
