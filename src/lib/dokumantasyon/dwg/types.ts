@@ -49,12 +49,10 @@ export interface DwgReaderProfile {
   keepUnknownNonGraphicalObjects: boolean;
   crcCheck: boolean;
   readSummaryInfo: boolean;
-  ignoreProxyGraphics: boolean;
 }
 
 export interface DwgWriterProfile {
   binary: false;
-  decimalPrecision: null;
   writeAllHeaderVariables: boolean;
   writeOptionalValues: boolean;
   closeStream: boolean;
