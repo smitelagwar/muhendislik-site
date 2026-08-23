@@ -8,6 +8,7 @@ import {
   CadUpstreamAdapterError,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
+import { CAD_UPSTREAM_TOTAL_TIMEOUT_MS } from "@/lib/dokumantasyon/dwg/runtime-policy";
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -15,6 +16,7 @@ export interface DokCadUpstreamViewerProps {
   fileId: string;
   extension: string;
   sizeBytes: number;
+  timeoutMs?: number;
   onReady?: () => void;
   onViewerFailure?: (reason: string) => void;
 }
@@ -43,6 +45,7 @@ export function DokCadUpstreamViewer({
   displayName,
   fileId,
   extension,
+  timeoutMs = CAD_UPSTREAM_TOTAL_TIMEOUT_MS,
   onReady,
   onViewerFailure,
 }: DokCadUpstreamViewerProps) {
@@ -57,10 +60,12 @@ export function DokCadUpstreamViewer({
 
     const abortController = new AbortController();
     let cancelled = false;
+    let timedOut = false;
     let adapter: CadUpstreamAdapter | null = null;
     let themeObserver: MutationObserver | null = null;
     let systemThemeQuery: MediaQueryList | null = null;
     let syncTheme: (() => void) | null = null;
+    let timeoutId: number | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
@@ -68,15 +73,20 @@ export function DokCadUpstreamViewer({
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
 
-      try {
+      const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
-        adapter = await CadUpstreamAdapter.create({
+        const createdAdapter = await CadUpstreamAdapter.create({
           container: viewport,
           busyIndicatorHost: viewport,
           theme: resolveSiteTheme(),
         });
+        adapter = createdAdapter;
 
-        if (cancelled) return;
+        if (cancelled || timedOut || abortController.signal.aborted) {
+          await createdAdapter.destroy().catch(() => {});
+          adapter = null;
+          return;
+        }
 
         syncTheme = () => {
           if (!adapter || cancelled) return;
@@ -93,18 +103,38 @@ export function DokCadUpstreamViewer({
         systemThemeQuery?.addEventListener?.("change", syncTheme);
 
         setMessage(extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor");
-        await adapter.open({
+        await createdAdapter.open({
           accessUrl,
           displayName,
           extension,
           signal: abortController.signal,
         });
+      })();
 
-        if (cancelled) return;
+      const deadline = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          timedOut = true;
+          abortController.abort("CAD_UPSTREAM_TIMEOUT");
+          reject(
+            new CadUpstreamAdapterError(
+              "open-timeout",
+              `MLightCAD ${Math.round(timeoutMs / 1000)} saniye içinde terminal sonuca ulaşamadı.`
+            )
+          );
+        }, timeoutMs);
+      });
+
+      try {
+        await Promise.race([upstreamWork, deadline]);
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+        timeoutId = null;
+        if (cancelled || timedOut || abortController.signal.aborted) return;
         setState("ready");
         setMessage("");
         onReady?.();
       } catch (error) {
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+        timeoutId = null;
         themeObserver?.disconnect();
         if (systemThemeQuery && syncTheme) {
           systemThemeQuery.removeEventListener?.("change", syncTheme);
@@ -115,7 +145,12 @@ export function DokCadUpstreamViewer({
           adapter = null;
         }
 
-        if (cancelled || abortController.signal.aborted) return;
+        // The work promise may still be unwinding after a deadline. It self-cleans
+        // if create() resolves after the timeout, and this catch prevents an
+        // unhandled rejection from that late completion.
+        void upstreamWork.catch(() => undefined);
+
+        if (cancelled || (abortController.signal.aborted && !timedOut)) return;
 
         const reason = failureReason(error);
         setState("error");
@@ -126,7 +161,8 @@ export function DokCadUpstreamViewer({
 
     return () => {
       cancelled = true;
-      abortController.abort();
+      abortController.abort("CAD_UPSTREAM_UNMOUNT");
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
       themeObserver?.disconnect();
       if (systemThemeQuery && syncTheme) {
         systemThemeQuery.removeEventListener?.("change", syncTheme);
@@ -141,13 +177,14 @@ export function DokCadUpstreamViewer({
           }
         });
     };
-  }, [accessUrl, displayName, extension, fileId, retryKey, onReady, onViewerFailure]);
+  }, [accessUrl, displayName, extension, fileId, retryKey, timeoutMs, onReady, onViewerFailure]);
 
   return (
     <section
       className="relative flex min-h-[60vh] flex-1 overflow-hidden bg-background"
       data-cad-upstream-host="true"
       data-file-id={fileId}
+      data-cad-upstream-state={state}
     >
       <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
 
