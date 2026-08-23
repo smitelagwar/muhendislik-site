@@ -51,6 +51,8 @@ Yeni bir "fast DXF parser" yazılmaz.
 - `cad-viewer.tsx`: mevcut custom DXF viewer/rollback implementation; Stage 5'te yeniden yazılmaz.
 - `file-preview-shell.tsx`: yalnız dynamic CAD import'u orchestrator'a yönlendirilir; download/share/fullscreen/persistence davranışları değişmez.
 
+Production selector değişikliği Stage 5 kabul kapısından önce uygulanmış olmalıdır; selector senkronizasyonu yalnız `file-preview-shell.tsx` içindeki tek dynamic CAD import satırını değiştirebilir.
+
 ## Fast tanımı neden cache-only?
 
 Eski `ApsDwgViewer` içinde "fast path" cache kontrolünden sonra browser DWG→DXF worker'ını da otomatik çalıştırıyordu. Bu durumda conversion her cache miss'te hot path oluyordu. Nihai plandaki `Fast → Upstream` ve `conversion hot path olmasın` koşullarını birlikte sağlamak için Fast yalnız hazır cached derivative erişimidir. Cache miss doğrudan Upstream'e geçer.
