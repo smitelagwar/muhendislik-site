@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { convertAndValidateDwgToDxf } from "@/lib/dokumantasyon/dwg";
+import { convertAndValidateDwgToDxf } from "../../../lib/dokumantasyon/dwg";
 
 const scope = self as DedicatedWorkerGlobalScope;
 
