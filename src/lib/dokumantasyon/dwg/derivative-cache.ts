@@ -267,7 +267,7 @@ async function persistDxf(
   }
 
   assertDurableDokumantasyonRuntime(true);
-  const blob = await put(pathname, dxfBytes, {
+  const blob = await put(pathname, Buffer.from(dxfBytes), {
     access: "private",
     addRandomSuffix: false,
     allowOverwrite: true,
