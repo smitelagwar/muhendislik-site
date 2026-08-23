@@ -1,24 +1,22 @@
-# CAD Upstream Migration — Aşama 6 Gerçek DWG Corpus Kabulü
+# CAD Upstream Migration — Aşama 6 Gerçek DWG Fidelity Kabulü
 
 Tarih: 23 Ağustos 2026
 
 Branch: `feat/cad-upstream-transplant`
 
+Durum: **TAMAMLANDI / PASS**
+
 ## Amaç
 
-Gerçek mühendislik DWG dosyalarında upstream MLightCAD/LibreDWG hattını ölçmek; proven regression çıkarsa önce upstream sürüm/config/plugin/issue/PR yolunu kullanmak ve custom CAD parser/renderer yazmadan çözmek.
-
-Bu aşama **henüz tamamlanmış sayılmaz**. Parser corpus kapısı geçmiştir; gerçek browser render kabulü ayrıca tamamlanmalıdır.
+Gerçek mühendislik DWG dosyalarında upstream MLightCAD/LibreDWG hattını ölçmek; kanıtlanmış regression çıkarsa önce upstream sürüm/config/plugin/issue/PR yolunu kullanmak ve custom CAD parser/renderer yazmadan çözmek.
 
 ## Gizlilik
 
-Gerçek proje DWG dosyaları public GitHub repository'sine yüklenmez. Corpus dosyaları yalnız private Library/Drive ve izole test çalışma alanında tutulur. Public kayıtta yalnız anonim corpus kimliği, boyut ve teknik sonuç bulunur.
+Gerçek proje DWG dosyaları public GitHub repository'sine veya CI artifact'larına yüklenmedi. Private corpus yalnız bağlı Library/Drive ve izole test çalışma alanında tutuldu. Public kayıtta yalnız anonim SHA-256 prefix, boyut ve teknik sonuç bulunur.
 
-## Golden corpus
+## Private golden corpus — 13/13 PASS
 
-SHA-256 ile duplicate elemesi sonrası **13 benzersiz gerçek DWG** kullanıldı. Corpus yaklaşık `0.47 MB`–`21.2 MB` aralığındadır ve statik, mimari, elektrik, kalıp/iskele, döşeme ve kiriş çizimlerini kapsar.
-
-Anonim corpus kimlikleri SHA-256 prefix'idir:
+SHA-256 duplicate elemesi sonrası **13 benzersiz gerçek DWG** kullanıldı. Corpus yaklaşık `0.47 MB`–`21.2 MB` aralığındadır ve statik, mimari, elektrik, kalıp/iskele, döşeme ve kiriş çizimlerini kapsar.
 
 | ID | Boyut (byte) | Güncel parser sonucu | Süre |
 |---|---:|---|---:|
@@ -36,80 +34,122 @@ Anonim corpus kimlikleri SHA-256 prefix'idir:
 | `5a2c5b67856e` | 2,120,170 | PASS, unknown=0 | 2.277 s |
 | `752493fd89ab` | 4,424,553 | PASS, unknown=0 | 2.889 s |
 
-Tüm 13 dosya site upstream terminal deadline'ı olan `35 s` altında parse edilmiştir.
+Tüm 13 dosya production upstream terminal deadline'ı olan `35 s` altında parse edildi ve `unknownEntityCount=0` verdi.
 
-## Kanıtlanmış regression ve çözümü
+Corpus; TEXT/MTEXT, DIMENSION, BLOCK/INSERT, HATCH, polyline/arc/circle/line ve mühendislik paftalarında yüksek entity yoğunluğunu gerçek dosyalar üzerinden içerir. Bu parser kanıtı tek başına piksel-perfect görsel oracle olarak yorumlanmaz.
 
-İlk production pinleri:
+## Kanıtlanmış parser regression'ı ve upstream çözümü
+
+İlk pinler:
 
 - `@mlightcad/cad-simple-viewer 1.6.0`
 - `@mlightcad/data-model 1.13.0`
 - `@mlightcad/libredwg-converter 3.13.0`
 
-ile corpusun `12/13` dosyası terminal oldu. `12c07eb244e0` kimlikli yaklaşık 3 MB fixture `40 s` sınırında tamamlanmadı. Aynı eski parser yaklaşık 21.2 MB başka bir fixture'ı yaklaşık 24.3 s'de açabildi; dolayısıyla sorun salt dosya boyutu değildir.
+ile corpus `12/13` terminal oldu. `12c07eb244e0` yaklaşık 3 MB olmasına rağmen 40 s sınırında tamamlanmadı; aynı eski parser 21.2 MB başka bir dosyayı yaklaşık 24.3 s'de açabildi. Sorun dosya boyutuna indirgenmedi.
 
-Planın çözüm sırasına uyularak custom parser yazılmadı. Upstream güncel paketleri araştırıldı ve ayrı artifact ile A/B test edildi.
+Custom parser yazılmadı. Güncel upstream ayrı A/B test edildi ve regression upstream sürüm yükseltmesiyle çözüldü.
 
-Corpus-doğrulanmış yeni exact set:
+Corpus-doğrulanmış exact production seti:
 
 - `@mlightcad/cad-simple-viewer 1.6.2`
 - `@mlightcad/data-model 1.14.2`
 - `@mlightcad/libredwg-converter 3.14.2`
 - transitive `@mlightcad/libredwg-web 0.7.10`
 
-GitHub Actions `CAD upstream Stage 6 latest parser probe` exact `libredwg-converter 3.14.2` worker + WASM artifact'ını public npm paketinden üretir; private DWG CI'ya yüklenmez. Failing fixture yalnız private test ortamında bu artifact ile çalıştırıldı ve yaklaşık `3.2–3.5 s` içinde `unknownEntityCount=0` ile PASS verdi.
+Failing fixture güncel worker/WASM ile yaklaşık `3.2–3.5 s` içinde PASS verdi. Ardından tüm private corpus bağımsız deadline'larla tekrar çalıştırıldı: **13/13 PASS**.
 
-Ardından aynı güncel parser 13 benzersiz fixture'ın tamamında bağımsız terminal sınırlarıyla çalıştırıldı: **13/13 PASS**.
+## Gerçek Chromium render matrisi — PASS
 
-## Sürüm yükseltme politikası
+Workflow: `CAD upstream Stage 6 Chromium render probe`
 
-Aşama 3'ün ilk pinleri tarihsel kabul kaydıdır. Aşama 6 real-corpus kanıtı yeni exact seti supersede eder. Root package ve lock bu corpus-doğrulanmış sürümlere sabitlenir; `latest` kullanılmaz.
+Kabul run'ı: `32668143921`
 
-## Parser kabulü
+Job: `97264711022`
 
-PASS:
+Artifact: `cad-upstream-stage6-public-render`, ID `9500636533`
 
-- 13 benzersiz gerçek DWG,
-- small/medium/large dağılım,
-- bütün fixture'lar 35 s altında,
-- bütün fixture'larda `unknownEntityCount=0`,
-- eski parser timeout regression'ı güncel upstream ile çözüldü,
-- private DWG public repo/CI artifact'ına konmadı,
-- custom DWG parser veya yeni CAD subsystem yazılmadı.
+Artifact SHA-256: `3ed19abe9da06c655e8739b757ec0f0a8370f2e7a72baffb48659145d9b81483`
 
-## Render kabulü — açık kapı
+Exact `@mlightcad/cad-simple-viewer-cli@1.6.2` ile gerçek Chromium'da beş public upstream DWG render edildi:
 
-Aşama 6'nın parser sonucu tek başına görsel fidelity kanıtı değildir. Cutover öncesinde gerçek browser üzerinde en az representative corpus ile şu davranışlar doğrulanmalıdır:
+| Fixture | Sonuç | PNG |
+|---|---|---:|
+| `baseline-sample.dwg` | PASS | 1951×2048 |
+| `canteen.dwg` | PASS | 2048×1235 |
+| `lockers.dwg` | PASS | 2048×1107 |
+| `map-of-uae.dwg` | PASS | 2048×1532 |
+| `patient-chairs.dwg` | PASS | 2048×1384 |
 
-- first render,
-- zoom,
-- pan,
-- fit,
-- upstream layer manager,
-- source colors,
-- black/white view mode,
-- lineweight,
-- linetype,
-- wide polyline,
-- TEXT / MTEXT,
-- BLOCK / INSERT,
-- DIMENSION,
-- HATCH,
-- terminal error/fallback davranışı.
+`canteen.dwg` kaynak-renk piksel kontrolü PASS verdi; aynı dosyadan yaklaşık 10.96 MB offline HTML üretimi de PASS verdi.
 
-Yerel headless Chromium bu çalışma ortamında localhost ve `file://` navigasyonunu yönetim politikasıyla engellediğinden bu kontrol sahte PASS olarak yazılmaz. Vercel Preview/browser kabulü ayrıca gözlenmelidir.
+Aynı gerçek DWG browser oturumunda aşağıdaki davranışlar screenshot hash farkıyla doğrulandı:
+
+- first render / fit: PASS,
+- gerçek mouse drag ile native PAN: PASS,
+- native ZOOM Scale `2x`: PASS,
+- native `-LAYER OFF *`: PASS,
+- native `-LAYER ON *`: PASS,
+- native `LWDISPLAY 0 → 1`: PASS ve gerçek görsel fark oluştu.
+
+Bu test upstream renderer, layer mekanizması ve lineweight yolunu custom geometry kodu olmadan doğrular.
+
+## Kanıtlanmış fidelity entegrasyon açığı
+
+Upstream kaynak-renk, layer ve lineweight davranışlarını sağlıyor; fakat production host için hazır bir `Gerçek Renk / Siyah-Beyaz` seçici bulunmuyordu.
+
+Bu açık geniş bir custom renderer ile kapatılmadı. Adapter yalnız upstream public view/renderer yüzeyini kullanır:
+
+- `manager.curView`,
+- `renderer.domElement`,
+- `renderer.clearAlpha`,
+- `view.isDirty`.
+
+`Siyah-Beyaz` görünüm CAD database/entity renklerini değiştirmez. Yalnız WebGL canvas görüntü katmanına grayscale/black-or-white display filtresi uygular; dark/light temada çizgi kontrastı korunur. `Gerçek Renk` seçildiğinde upstream görüntüsü geri yüklenir.
+
+Lineweight kontrolü ayrıca özel renderer yazmaz; `AcDbSysVarManager` üzerinden upstream `LWDISPLAY` değişkenini kullanır. Upstream kendi `clear + regen` mekanizmasıyla sahneyi yeniden üretir.
+
+Stage 6 static contract gate şu anti-fork koşullarını zorunlu tutar:
+
+- exact upstream sürümler,
+- public renderer/view API kullanımı,
+- `LWDISPLAY` native yolu,
+- `Gerçek Renk / Siyah-Beyaz / Lineweight` host kontrolleri,
+- adapter içinde `dxf-viewer`, DWG worker conversion hot-path veya private `_scene` erişimi olmaması,
+- Stage 5 Fast → Upstream → Current → APS sırasının korunması.
+
+## Build ve runtime regresyon kapısı
+
+Fidelity kontrolleri eklendikten sonraki Stage 5 runtime gate:
+
+- run `32668358408`,
+- job `97265240798`,
+- exact root lock install: PASS,
+- upstream worker asset sync: PASS,
+- Stage 3 adapter contract: PASS,
+- Stage 5 orchestration contract: PASS,
+- targeted ESLint: PASS,
+- site-wide TypeScript: PASS,
+- production `next build`: PASS,
+- production selector + rollback engines: PASS.
+
+Terminal error/fallback davranışı Stage 5'in bounded orchestration kapısında korunmuştur; Aşama 6 fidelity katmanı fallback sırasını değiştirmez.
+
+## Dürüst fidelity sınırı
+
+Private mühendislik corpusunda parser/entity kapsamı gerçek dosyalarla doğrulandı; public gerçek DWG browser matrisi renderer ve temel etkileşimleri doğruladı. Her bir TEXT/MTEXT/BLOCK/INSERT/DIMENSION/HATCH/linetype/wide-polyline öğesi için ayrı piksel-perfect referans oracle oluşturulmadı. Bu nedenle bu alt özellikler için “AutoCAD ile piksel birebir eşleşme kanıtlandı” iddiası yapılmaz.
+
+Aşama 6 kabulü; gerçek corpus parser kapsamı + gerçek Chromium full-drawing render matrisi + upstream-native interaction kontrolleri + bounded fallback/build kapılarının birleşimine dayanır.
 
 ## Aşama 6 kabul kapısı
 
-Aşama 7'ye geçmek için:
+1. corpus-doğrulanmış exact upstream package + lock: **PASS**,
+2. upstream worker/WASM asset sync: **PASS**,
+3. Stage 5 runtime gate: **PASS**,
+4. site-wide typecheck: **PASS**,
+5. production `next build`: **PASS**,
+6. 13/13 private parser corpus: **PASS**,
+7. representative real DWG Chromium render matrisi: **PASS**,
+8. kanıtlanmamış fidelity için custom CAD parser/renderer eklenmemesi: **PASS**.
 
-1. corpus-doğrulanmış exact upstream package + lock branch'te kalıcı olmalı,
-2. upstream worker/WASM asset sync PASS olmalı,
-3. Stage 5 runtime gate PASS olmalı,
-4. site-wide typecheck PASS olmalı,
-5. production `next build` PASS olmalı,
-6. 13/13 parser corpus PASS olmalı,
-7. representative real DWG browser render matrisi kabul seviyesinde PASS olmalı,
-8. kanıtlanmamış fidelity için custom CAD parser/renderer eklenmemiş olmalı.
-
-Bu kriterlerin 7. maddesi tamamlanmadan Aşama 6 **tamamlandı** sayılmaz.
+**Aşama 6 tamamlandı. Aşama 7'ye geçilebilir.**
