@@ -75,6 +75,8 @@ function compareSnapshots(
 ): DwgFidelityIssue[] {
   const issues: DwgFidelityIssue[] = [];
 
+  // Structural/geometric loss must remain fail-closed. A mismatch in any of these
+  // properties can mean missing, moved, merged, or otherwise altered CAD content.
   addMismatch(issues, "ENTITY_COUNT_MISMATCH", "Toplam entity sayısı dönüşümde değişti.", source.entityCount, output.entityCount);
   addMismatch(issues, "MODELSPACE_COUNT_MISMATCH", "Model space entity sayısı dönüşümde değişti.", source.modelSpaceEntityCount, output.modelSpaceEntityCount);
   addMismatch(issues, "PAPERSPACE_COUNT_MISMATCH", "Paper space entity sayısı dönüşümde değişti.", source.paperSpaceEntityCount, output.paperSpaceEntityCount);
@@ -82,9 +84,35 @@ function compareSnapshots(
   addMismatch(issues, "ENTITY_TYPES_MISMATCH", "Entity tür/sayı dağılımı dönüşümde değişti.", source.entityTypes, output.entityTypes);
   addMismatch(issues, "LAYER_NAMES_MISMATCH", "Layer kümesi dönüşümde değişti.", source.layerNames, output.layerNames);
   addMismatch(issues, "BLOCK_NAMES_MISMATCH", "Block tanımları dönüşümde değişti.", source.blockNames, output.blockNames);
-  addMismatch(issues, "LINE_TYPE_MISMATCH", "Linetype semantiği dönüşümde değişti.", source.lineTypes, output.lineTypes);
-  addMismatch(issues, "LINE_WEIGHT_MISMATCH", "Lineweight semantiği dönüşümde değişti.", source.lineWeights, output.lineWeights);
-  addMismatch(issues, "COLOR_SEMANTICS_MISMATCH", "ACI/TrueColor/BYLAYER/BYBLOCK renk semantiği dönüşümde değişti.", source.colors, output.colors);
+
+  // These three properties affect presentation rather than the existence/location
+  // of geometry. The DXF renderer owns their visual fidelity, so they are warnings
+  // as long as all structural/geometric gates above and the extents gate below pass.
+  addMismatch(
+    issues,
+    "LINE_TYPE_MISMATCH",
+    "Linetype semantiği dönüşümde değişti.",
+    source.lineTypes,
+    output.lineTypes,
+    "warning"
+  );
+  addMismatch(
+    issues,
+    "LINE_WEIGHT_MISMATCH",
+    "Lineweight semantiği dönüşümde değişti.",
+    source.lineWeights,
+    output.lineWeights,
+    "warning"
+  );
+  addMismatch(
+    issues,
+    "COLOR_SEMANTICS_MISMATCH",
+    "ACI/TrueColor/BYLAYER/BYBLOCK renk semantiği dönüşümde değişti.",
+    source.colors,
+    output.colors,
+    "warning"
+  );
+
   addMismatch(issues, "XDATA_COUNT_MISMATCH", "XData taşıyan entity sayısı dönüşümde değişti.", source.xDataEntityCount, output.xDataEntityCount);
   addMismatch(issues, "XREF_COUNT_MISMATCH", "XREF block sayısı dönüşümde değişti.", source.xrefBlockCount, output.xrefBlockCount);
 
