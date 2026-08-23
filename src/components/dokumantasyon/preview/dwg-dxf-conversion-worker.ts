@@ -29,6 +29,22 @@ function issueSummary(issues: WorkerIssue[]): WorkerIssue[] {
   }));
 }
 
+function blockingIssueCodes(issues: WorkerIssue[]): string[] {
+  return [...new Set(
+    issues
+      .filter((issue) => issue.severity === "blocking")
+      .map((issue) => issue.code.replace(/[^A-Z0-9_:-]/giu, "_").slice(0, 80))
+      .filter(Boolean)
+  )].slice(0, 8);
+}
+
+function fidelityRejectCode(issues: WorkerIssue[]): string {
+  const codes = blockingIssueCodes(issues);
+  return codes.length > 0
+    ? `FIDELITY_REJECTED:${codes.join(",")}`
+    : "FIDELITY_REJECTED";
+}
+
 scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
   const requestId = event.data?.requestId;
   const buffer = event.data?.buffer;
@@ -65,12 +81,13 @@ scope.onmessage = async (event: MessageEvent<ConversionRequest>) => {
     });
 
     if (validation.decision === "REJECT") {
+      const exactErrorCode = fidelityRejectCode(validation.issues);
       scope.postMessage({
         requestId,
         ok: false,
         fallback: true,
-        errorCode: "FIDELITY_REJECTED",
-        errorMessage: "Hızlı DWG→DXF dönüşümü fidelity denetiminden geçmedi.",
+        errorCode: exactErrorCode,
+        errorMessage: `Hızlı DWG→DXF dönüşümü fidelity denetiminden geçmedi (${exactErrorCode}).`,
         decision: validation.decision,
         issues: issueSummary(validation.issues),
         elapsedMs: Math.round(performance.now() - startedAt),
