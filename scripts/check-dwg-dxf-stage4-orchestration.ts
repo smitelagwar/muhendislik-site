@@ -19,8 +19,9 @@ assert.match(viewer, /result\.decision === "PASS" \|\| result\.decision === "WAR
 assert.match(viewer, /<ApsFallbackViewer/);
 assert.match(viewer, /extension="\.dxf"/);
 assert.match(viewer, /ResolvedDxfCadViewer/);
-assert.match(viewer, /MAX_BROWSER_FAST_PATH_BYTES/);
-assert.match(viewer, /BROWSER_FAST_PATH_TIMEOUT_MS/);
+// Stage 5 centralizes the Stage 4 browser ceiling/watchdog in runtime-policy.
+assert.match(viewer, /DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES/);
+assert.match(viewer, /DWG_BROWSER_WORKER_TIMEOUT_MS/);
 
 assert.match(worker, /convertAndValidateDwgToDxf/);
 assert.match(worker, /validation\.decision === "REJECT"/);
@@ -45,7 +46,7 @@ assert.match(packageJson, /"predev": "node scripts\/build-dwg-dxf-worker\.mjs"/)
 assert.match(packageJson, /"prebuild": "node scripts\/build-dwg-dxf-worker\.mjs"/);
 
 assert.match(route, /findReadyDwgDxfDerivativeForFile/);
-assert.match(route, /readReadyDwgDxfDerivativeBytes/);
+assert.match(route, /openReadyDwgDxfDerivativeStream/);
 assert.match(route, /status: 204/);
 assert.match(route, /X-DWG-DXF-Cache/);
 assert.match(route, /X-DWG-DXF-Decision/);

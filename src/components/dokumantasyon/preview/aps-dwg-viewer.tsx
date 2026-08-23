@@ -3,13 +3,20 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Download, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DWG_BROWSER_CACHE_FETCH_TIMEOUT_MS,
+  DWG_BROWSER_DXF_HARD_LIMIT_BYTES,
+  DWG_BROWSER_SOURCE_FETCH_TIMEOUT_MS,
+  DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES,
+  DWG_BROWSER_WORKER_TIMEOUT_MS,
+  isWithinByteLimit,
+  parsePositiveContentLength,
+} from "@/lib/dokumantasyon/dwg/runtime-policy";
 import { DWG_DXF_WORKER_ASSET_URL } from "@/lib/dokumantasyon/dwg/signature";
 import { formatBytes } from "../ui-helpers";
 
 const APS_VIEWER_VERSION = "7.108.0";
 const APS_VIEWER_BASE_URL = `https://developer.api.autodesk.com/modelderivative/v2/viewers/${APS_VIEWER_VERSION}`;
-const MAX_BROWSER_FAST_PATH_BYTES = 4 * 1024 * 1024;
-const BROWSER_FAST_PATH_TIMEOUT_MS = 25_000;
 
 const ResolvedDxfCadViewer = lazy(async () => {
   const cadViewerModule = await import("./cad-viewer");
@@ -82,6 +89,13 @@ interface ApsDwgViewerProps {
   accessUrl: string;
 }
 
+class DwgFastPathError extends Error {
+  public constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = "DwgFastPathError";
+  }
+}
+
 function convertedDxfName(displayName: string): string {
   return displayName.replace(/\.dwg$/iu, "") + ".dxf";
 }
@@ -100,6 +114,88 @@ function downloadFile(accessUrl: string, displayName: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+async function fetchWithDeadline(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  parentSignal: AbortSignal,
+  timeoutMs: number,
+  timeoutCode: string
+): Promise<Response> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const forwardAbort = () => controller.abort(parentSignal.reason);
+
+  if (parentSignal.aborted) {
+    forwardAbort();
+  } else {
+    parentSignal.addEventListener("abort", forwardAbort, { once: true });
+  }
+
+  const timer = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (timedOut) {
+      throw new DwgFastPathError(timeoutCode, `İstek ${timeoutMs} ms sınırını aştı.`);
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+    parentSignal.removeEventListener("abort", forwardAbort);
+  }
+}
+
+async function readResponseWithinLimit(
+  response: Response,
+  maxBytes: number,
+  limitCode: string
+): Promise<ArrayBuffer> {
+  const declaredLength = parsePositiveContentLength(response.headers.get("Content-Length"));
+  if (declaredLength !== null && declaredLength > maxBytes) {
+    throw new DwgFastPathError(limitCode, `Yanıt ${declaredLength} bayt ile browser sınırını aşıyor.`);
+  }
+
+  if (declaredLength !== null || !response.body) {
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > maxBytes) {
+      throw new DwgFastPathError(limitCode, `Yanıt ${buffer.byteLength} bayt ile browser sınırını aşıyor.`);
+    }
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel("DWG_BROWSER_BODY_LIMIT_EXCEEDED");
+        throw new DwgFastPathError(limitCode, `Streaming yanıt ${maxBytes} bayt browser sınırını aştı.`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged.buffer;
 }
 
 function loadApsViewerAssets(): Promise<void> {
@@ -162,6 +258,7 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
       timeoutId = null;
       worker?.terminate();
       worker = null;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       objectUrl = URL.createObjectURL(new Blob([bytes], { type: "application/dxf" }));
       setFastPath({
         kind: "dxf",
@@ -176,15 +273,23 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
       setFastPath({ kind: "resolving" });
 
       // Cache lookup is intentionally first. Only Stage 3 PASS/WARN derivatives
-      // can be returned by this endpoint.
+      // can be returned by this endpoint. Cache failure is non-fatal, but a cache
+      // derivative that is too large is routed to APS before allocating it.
       try {
-        const cached = await fetch(`/api/dokumantasyon/files/${fileId}/dwg-dxf`, {
-          cache: "no-store",
-          signal: abortController.signal,
-        });
+        const cached = await fetchWithDeadline(
+          `/api/dokumantasyon/files/${fileId}/dwg-dxf`,
+          { cache: "no-store" },
+          abortController.signal,
+          DWG_BROWSER_CACHE_FETCH_TIMEOUT_MS,
+          "CACHE_FETCH_TIMEOUT"
+        );
         if (!active) return;
         if (cached.ok && cached.status === 200) {
-          const buffer = await cached.arrayBuffer();
+          const buffer = await readResponseWithinLimit(
+            cached,
+            DWG_BROWSER_DXF_HARD_LIMIT_BYTES,
+            "CACHE_DXF_LIMIT_EXCEEDED"
+          );
           if (!active) return;
           if (buffer.byteLength > 0) {
             const headerDecision = cached.headers.get("X-DWG-DXF-Decision");
@@ -192,30 +297,41 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
             return;
           }
         }
-      } catch {
+      } catch (error) {
         if (!active || abortController.signal.aborted) return;
-        // Cache availability must never make a locally viewable DWG fail.
+        if (error instanceof DwgFastPathError && error.code === "CACHE_DXF_LIMIT_EXCEEDED") {
+          chooseAps(error.code);
+          return;
+        }
+        // Cache availability and cache timeouts must never make a locally
+        // convertible DWG fail. Continue to the bounded Worker path.
       }
 
-      // Byte size is only a hard browser safety ceiling, not a complexity score.
-      // Stage 1 proved similar-sized drawings can have radically different cost.
-      if (!Number.isFinite(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_BROWSER_FAST_PATH_BYTES) {
+      // Source byte size remains only a hard safety ceiling, not a complexity score.
+      if (!isWithinByteLimit(sizeBytes, DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES)) {
         chooseAps("WORKLOAD_OUTSIDE_BROWSER_BUDGET");
         return;
       }
 
       try {
-        const sourceResponse = await fetch(accessUrl, {
-          cache: "no-store",
-          signal: abortController.signal,
-        });
+        const sourceResponse = await fetchWithDeadline(
+          accessUrl,
+          { cache: "no-store" },
+          abortController.signal,
+          DWG_BROWSER_SOURCE_FETCH_TIMEOUT_MS,
+          "SOURCE_FETCH_TIMEOUT"
+        );
         if (!sourceResponse.ok) {
           chooseAps(`DWG_FETCH_${sourceResponse.status}`);
           return;
         }
-        const sourceBuffer = await sourceResponse.arrayBuffer();
+        const sourceBuffer = await readResponseWithinLimit(
+          sourceResponse,
+          DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES,
+          "SOURCE_BYTES_OUTSIDE_BROWSER_BUDGET"
+        );
         if (!active) return;
-        if (sourceBuffer.byteLength === 0 || sourceBuffer.byteLength > MAX_BROWSER_FAST_PATH_BYTES) {
+        if (!isWithinByteLimit(sourceBuffer.byteLength, DWG_BROWSER_SOURCE_HARD_LIMIT_BYTES)) {
           chooseAps("SOURCE_BYTES_OUTSIDE_BROWSER_BUDGET");
           return;
         }
@@ -224,17 +340,27 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
         worker = new Worker(DWG_DXF_WORKER_ASSET_URL, { type: "module" });
         timeoutId = window.setTimeout(() => {
           chooseAps("WORKER_TIMEOUT");
-        }, BROWSER_FAST_PATH_TIMEOUT_MS);
+        }, DWG_BROWSER_WORKER_TIMEOUT_MS);
 
         worker.onerror = () => chooseAps("WORKER_RUNTIME_ERROR");
+        worker.onmessageerror = () => chooseAps("WORKER_MESSAGE_ERROR");
         worker.onmessage = (event: MessageEvent<DwgWorkerResponse>) => {
-          if (!active || event.data.requestId !== requestId) return;
+          if (!active) return;
           const result = event.data;
+          if (!result || result.requestId !== requestId) return;
+
           if (
             result.ok &&
             result.dxfBuffer instanceof ArrayBuffer &&
             (result.decision === "PASS" || result.decision === "WARN")
           ) {
+            if (
+              !isWithinByteLimit(result.dxfBuffer.byteLength, DWG_BROWSER_DXF_HARD_LIMIT_BYTES) ||
+              (typeof result.dxfBytes === "number" && result.dxfBytes !== result.dxfBuffer.byteLength)
+            ) {
+              chooseAps("WORKER_DXF_SIZE_MISMATCH");
+              return;
+            }
             exposeDxf(result.dxfBuffer, "worker", result.decision);
             return;
           }
@@ -244,7 +370,11 @@ function DwgToDxfViewer({ fileId, displayName, sizeBytes, accessUrl }: ApsDwgVie
         worker.postMessage({ requestId, buffer: sourceBuffer }, [sourceBuffer]);
       } catch (error) {
         if (!active || abortController.signal.aborted) return;
-        chooseAps(error instanceof Error ? error.message : "FAST_PATH_FAILED");
+        chooseAps(error instanceof DwgFastPathError
+          ? error.code
+          : error instanceof Error
+            ? error.message
+            : "FAST_PATH_FAILED");
       }
     };
 
