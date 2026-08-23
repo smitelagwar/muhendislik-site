@@ -108,7 +108,8 @@ export function createCadStructuralSnapshot(document: CadDocument): DwgStructura
       }
 
       if ((entity.extendedData?.size ?? 0) > 0) xDataEntityCount += 1;
-      if ((entity.proxyGeometries?.length ?? 0) > 0) proxyGeometryEntityCount += 1;
+      const proxyGeometries = (entity as typeof entity & { proxyGeometries?: unknown[] }).proxyGeometries;
+      if ((proxyGeometries?.length ?? 0) > 0) proxyGeometryEntityCount += 1;
 
       if (isModelSpace) {
         try {
