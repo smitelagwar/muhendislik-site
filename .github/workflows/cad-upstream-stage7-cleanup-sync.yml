@@ -1,0 +1,81 @@
+name: CAD upstream Stage 7 cleanup sync
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docs/cad-upstream-migration-stage7.md
+      - scripts/check-cad-upstream-stage7.mjs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cad-upstream-stage7-cleanup-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  remove-dead-legacy-dwg-edge:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout migration head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Remove only proven-dead pre-upstream DWG wrapper
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs')
+          const viewerPath = 'src/components/dokumantasyon/preview/cad-viewer.tsx'
+          const oldApsPath = 'src/components/dokumantasyon/preview/aps-dwg-viewer.tsx'
+          let source = fs.readFileSync(viewerPath, 'utf8')
+
+          const importLine = 'import { ApsDwgViewer } from "./aps-dwg-viewer";\n'
+          const dwgBranch = '  if (normalizedExtension === ".dwg") {\n    return <ApsDwgViewer fileId={fileId} displayName={displayName} sizeBytes={sizeBytes} accessUrl={accessUrl} />;\n  }\n\n'
+
+          const importCount = source.split(importLine).length - 1
+          const branchCount = source.split(dwgBranch).length - 1
+          const oldFileExists = fs.existsSync(oldApsPath)
+
+          const alreadyApplied = importCount === 0 && branchCount === 0 && !oldFileExists
+          if (alreadyApplied) {
+            console.log('Stage 7 cleanup already applied; no changes needed.')
+            process.exit(0)
+          }
+
+          if (importCount !== 1 || branchCount !== 1 || !oldFileExists) {
+            throw new Error(`partial/unexpected cleanup state: import=${importCount} branch=${branchCount} oldFile=${oldFileExists}`)
+          }
+
+          source = source.replace(importLine, '').replace(dwgBranch, '')
+          if (!source.includes('normalizedExtension !== ".dxf"')) throw new Error('DXF fallback branch missing after cleanup')
+          if (!source.includes('DxfViewer')) throw new Error('live DXF viewer missing after cleanup')
+          if (!source.includes('dxf-viewer-worker')) throw new Error('live DXF worker reference missing after cleanup')
+          if (source.includes('ApsDwgViewer') || source.includes('./aps-dwg-viewer')) throw new Error('retired APS reference remains')
+
+          fs.writeFileSync(viewerPath, source)
+          fs.unlinkSync(oldApsPath)
+          console.log('Removed only the unreachable ApsDwgViewer edge and file.')
+          NODE
+
+      - name: Commit cleanup to migration branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No cleanup diff to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/dokumantasyon/preview/cad-viewer.tsx src/components/dokumantasyon/preview/aps-dwg-viewer.tsx
+          git commit -m "refactor(cad): remove dead pre-upstream DWG wrapper"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
