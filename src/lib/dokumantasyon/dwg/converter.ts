@@ -102,6 +102,14 @@ function createWriterConfiguration(acad: AcadTsEngine) {
   return configuration;
 }
 
+function normalizeDocumentForDeterministicDxf(document: CadDocument): void {
+  const profile = DWG_DXF_PROFILE.normalization;
+  if (profile.universalDatesFromSourceDates) {
+    document.header.universalCreateDateTime = new Date(document.header.createDateTime.getTime());
+    document.header.universalUpdateDateTime = new Date(document.header.updateDateTime.getTime());
+  }
+}
+
 function normalizePositiveInteger(value: number | undefined, fallback: number, name: string): number {
   const resolved = value ?? fallback;
   if (!Number.isFinite(resolved) || resolved < MIN_OUTPUT_LIMIT_BYTES) {
@@ -195,6 +203,7 @@ export async function convertDwgToDxf(
     });
   }
 
+  normalizeDocumentForDeterministicDxf(document);
   const output = writeAsciiDxf(acad, document, source.byteLength, writeMessages, options);
   const dxfEnvelope = inspectDxfEnvelope(output.bytes);
   if (!dxfEnvelope.valid) {
