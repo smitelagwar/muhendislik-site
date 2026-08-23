@@ -32,6 +32,7 @@ async function main() {
   assert.deepEqual(geometryAudit.nonContinuousLinetypes, ["DASHED"]);
   assert.equal(geometryAudit.bulgedPolylineCount, 1);
   assert.equal(geometryAudit.widthPolylineCount, 1);
+  assert.equal(geometryAudit.invalidWidthPolylineCount, 0);
   assert.equal(geometryAudit.splineCount, 1);
   assert.equal(geometryAudit.fitPointOnlySplineCount, 0);
   assert.equal(geometryAudit.weightedSplineCount, 0);
@@ -52,9 +53,24 @@ async function main() {
   const geometryWarnings = getDxfStage4Warnings(geometryAudit).join("\n");
   assert.match(geometryWarnings, /OFF_LAYER/);
   assert.match(geometryWarnings, /frozen layer/i);
-  assert.match(geometryWarnings, /DASHED/);
-  assert.match(geometryWarnings, /polyline width/);
+  assert.doesNotMatch(geometryWarnings, /line pattern lookup|continuous çizgi/i);
+  assert.doesNotMatch(geometryWarnings, /shaped polyline|polyline width/i);
   assert.match(geometryWarnings, /paper-space/);
+
+  const wideFixture = await readFixture("stage3-wide-polylines.dxf");
+  const wideAudit = auditDxfStage4(wideFixture);
+  assert.equal(wideAudit.widthPolylineCount, 3, "Stage 3 fixture must count physical-width polylines, not VERTEX records");
+  assert.equal(wideAudit.invalidWidthPolylineCount, 0);
+  assert.doesNotMatch(getDxfStage4Warnings(wideAudit).join("\n"), /polyline width|shaped polyline/i);
+
+  const invalidWidthAudit = auditDxfStage4([
+    "0", "SECTION", "2", "ENTITIES",
+    "0", "LWPOLYLINE", "5", "BAD", "90", "2", "43", "-2",
+    "10", "0", "20", "0", "10", "10", "20", "0",
+    "0", "ENDSEC", "0", "EOF",
+  ].join("\n"));
+  assert.equal(invalidWidthAudit.invalidWidthPolylineCount, 1);
+  assert.match(getDxfStage4Warnings(invalidWidthAudit).join("\n"), /geçersiz.*width/i);
 
   const normalized = normalizeDxfForStage4Rendering(geometryFixture);
   assert.equal(normalized.offLayersFrozenForRendering, 1);
