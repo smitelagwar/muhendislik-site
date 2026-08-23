@@ -235,26 +235,14 @@ export function buildDxfStage5DiagnosticsReport({
     });
   }
 
-  if (stage4.nonContinuousLinetypeEntityCount > 0) {
+  if (stage4.invalidWidthPolylineCount > 0) {
     add(items, {
-      id: "linetype-fallback",
+      id: "polyline-width-invalid",
       severity: "warning",
       category: "geometry",
-      title: `${stage4.nonContinuousLinetypeEntityCount} non-continuous linetype`,
-      detail: "DASHED/CENTER/HIDDEN gibi desenler mevcut engine'de continuous çizgiye düşebilir.",
-      count: stage4.nonContinuousLinetypeEntityCount,
-      evidence: joinEvidence(stage4.nonContinuousLinetypes),
-    });
-  }
-
-  if (stage4.widthPolylineCount > 0) {
-    add(items, {
-      id: "polyline-width",
-      severity: "warning",
-      category: "geometry",
-      title: `${stage4.widthPolylineCount} genişlikli polyline`,
-      detail: "Centerline geometri korunur ancak start/end/constant width mesh'i birebir uygulanmayabilir.",
-      count: stage4.widthPolylineCount,
+      title: `${stage4.invalidWidthPolylineCount} geçersiz polyline width kaydı`,
+      detail: "Negatif veya bozuk width değeri nedeniyle physical width mesh uygulanmadı; kaynak centerline korunur.",
+      count: stage4.invalidWidthPolylineCount,
     });
   }
 

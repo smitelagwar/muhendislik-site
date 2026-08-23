@@ -368,28 +368,29 @@ test.describe("DXF Stage 6 release fidelity gate", () => {
     await attachEvidence(page, testInfo, "dxf-color-hatch.png");
 
     await page.goto("/dokumantasyon");
-    const geometryWarningId = await uploadDxf(page, "stage4-geometry-layers.dxf");
-    await openDxf(page, geometryWarningId);
+    const geometryId = await uploadDxf(page, "stage4-geometry-layers.dxf");
+    await openDxf(page, geometryId);
     await expectRenderableCanvas(page);
-    const warningToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
-    await expect(warningToggle).toContainText("uyarı");
-    await warningToggle.click();
-    const warningPanel = page.getByTestId("cad-dxf-diagnostics-panel");
-    await expect(warningPanel).toBeVisible();
-    await expect(warningPanel).toContainText("Layer");
-    await expect(warningPanel).toContainText("Geometri");
-    await expect(warningPanel).toContainText("Görünüm");
-    await expect(warningPanel.locator('[data-severity="blocking"]')).toHaveCount(0);
-    const panelHeight = await warningPanel.evaluate((element) => element.getBoundingClientRect().height);
+    const geometryToggle = page.getByTestId("cad-dxf-diagnostics-toggle");
+    await expect(geometryToggle).toContainText("Denetim temiz");
+    await geometryToggle.click();
+    const geometryPanel = page.getByTestId("cad-dxf-diagnostics-panel");
+    await expect(geometryPanel).toBeVisible();
+    await expect(geometryPanel).toContainText("Layer");
+    await expect(geometryPanel).toContainText("Görünüm");
+    await expect(geometryPanel).not.toContainText("Geometri");
+    await expect(geometryPanel.locator('[data-severity="warning"]')).toHaveCount(0);
+    await expect(geometryPanel.locator('[data-severity="blocking"]')).toHaveCount(0);
+    const panelHeight = await geometryPanel.evaluate((element) => element.getBoundingClientRect().height);
     expect(panelHeight).toBeLessThanOrEqual(DESKTOP.height * 0.38 + 4);
-    await attachEvidence(page, testInfo, "dxf-warning-desktop.png");
+    await attachEvidence(page, testInfo, "dxf-solved-fidelity-desktop.png");
 
     await page.setViewportSize(MOBILE);
     await expectNoHorizontalOverflow(page);
-    await expect(warningPanel).toBeVisible();
-    const mobilePanelHeight = await warningPanel.evaluate((element) => element.getBoundingClientRect().height);
+    await expect(geometryPanel).toBeVisible();
+    const mobilePanelHeight = await geometryPanel.evaluate((element) => element.getBoundingClientRect().height);
     expect(mobilePanelHeight).toBeLessThanOrEqual(MOBILE.height * 0.38 + 4);
-    await attachEvidence(page, testInfo, "dxf-warning-mobile.png");
+    await attachEvidence(page, testInfo, "dxf-solved-fidelity-mobile.png");
 
     await page.setViewportSize(DESKTOP);
     await page.goto("/dokumantasyon");

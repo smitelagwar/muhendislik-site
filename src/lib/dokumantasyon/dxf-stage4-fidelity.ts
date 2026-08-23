@@ -1,3 +1,5 @@
+import { auditDxfPolylineWidthSource } from "./dxf-polyline-width-rendering";
+
 type Pair = { code: number; value: string };
 type RecordData = { section: string | null; type: string; pairs: Pair[] };
 
@@ -25,6 +27,7 @@ export interface DxfStage4Audit {
   nonContinuousLinetypes: string[];
   bulgedPolylineCount: number;
   widthPolylineCount: number;
+  invalidWidthPolylineCount: number;
   splineCount: number;
   fitPointOnlySplineCount: number;
   weightedSplineCount: number;
@@ -149,16 +152,13 @@ function isPaperSpace(record: Pair[]): boolean {
   return valueForCode(record, 67) === "1";
 }
 
-function hasPolylineWidth(record: Pair[]): boolean {
-  return [40, 41, 43].some((code) => numbersForCode(record, code).some((value) => Math.abs(value) > EPSILON));
-}
-
 function isNonContinuousLinetype(name: string | null): boolean {
   return Boolean(name && !CONTINUOUS_LINETYPES.has(name.trim().toUpperCase()));
 }
 
 export function auditDxfStage4(text: string): DxfStage4Audit {
   const records = parseRecords(text);
+  const widthSourceAudit = auditDxfPolylineWidthSource(text);
   const layers = new Map<string, { off: boolean; frozen: boolean; locked: boolean; linetype: string | null }>();
 
   for (const record of records) {
@@ -183,7 +183,6 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
   let missingLayerReferenceCount = 0;
   let nonContinuousLinetypeEntityCount = 0;
   let bulgedPolylineCount = 0;
-  let widthPolylineCount = 0;
   let splineCount = 0;
   let fitPointOnlySplineCount = 0;
   let weightedSplineCount = 0;
@@ -236,14 +235,12 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
 
     if (record.type === "LWPOLYLINE") {
       if (numbersForCode(record.pairs, 42).some((value) => Math.abs(value) > EPSILON)) bulgedPolylineCount += 1;
-      if (hasPolylineWidth(record.pairs)) widthPolylineCount += 1;
       const vertexCount = Math.trunc(numberForCode(record.pairs, 90, numbersForCode(record.pairs, 10).length));
       if (vertexCount < 2) degenerateCurveCount += 1;
     }
 
     if (record.type === "VERTEX") {
       if (numbersForCode(record.pairs, 42).some((value) => Math.abs(value) > EPSILON)) bulgedPolylineCount += 1;
-      if (hasPolylineWidth(record.pairs)) widthPolylineCount += 1;
     }
 
     if (record.type === "ARC" || record.type === "CIRCLE") {
@@ -301,7 +298,8 @@ export function auditDxfStage4(text: string): DxfStage4Audit {
     nonContinuousLinetypeEntityCount,
     nonContinuousLinetypes: [...nonContinuousLinetypes].sort(),
     bulgedPolylineCount,
-    widthPolylineCount,
+    widthPolylineCount: widthSourceAudit.widthPolylineCount,
+    invalidWidthPolylineCount: widthSourceAudit.invalidWidthPolylineCount,
     splineCount,
     fitPointOnlySplineCount,
     weightedSplineCount,
@@ -325,8 +323,7 @@ export function getDxfStage4Warnings(audit: DxfStage4Audit): string[] {
   if (audit.offLayerCount > 0) warnings.push(`${audit.offLayerCount} kapalı layer render kopyasında gizlenecek: ${audit.offLayers.join(", ")}.`);
   if (audit.frozenLayerCount > 0) warnings.push(`${audit.frozenLayerCount} frozen layer kaynak DXF görünürlük durumuna uygun olarak render edilmeyecek.`);
   if (audit.missingLayerReferenceCount > 0) warnings.push(`${audit.missingLayerReferenceCount} entity tanımsız layer referansına sahip: ${audit.missingLayerReferences.join(", ")}.`);
-  if (audit.nonContinuousLinetypeEntityCount > 0) warnings.push(`${audit.nonContinuousLinetypeEntityCount} entity non-continuous linetype kullanıyor (${audit.nonContinuousLinetypes.join(", ")}); mevcut engine line pattern lookup uygulamadığı için çizgi deseni birebir olmayabilir.`);
-  if (audit.widthPolylineCount > 0) warnings.push(`${audit.widthPolylineCount} polyline width kaydı bulundu; mevcut engine shaped polyline genişliğini uygulamıyor.`);
+  if (audit.invalidWidthPolylineCount > 0) warnings.push(`${audit.invalidWidthPolylineCount} polyline geçersiz negatif/bozuk width değeri içeriyor; physical width mesh uygulanmadı.`);
   if (audit.patternedHatchCount > 0) warnings.push(`${audit.patternedHatchCount} patterned HATCH bulundu; pattern tessellation sonucu kaynak CAD ile görsel olarak doğrulanmalı.`);
   if (audit.paperSpaceGeometryCount > 0) warnings.push(`${audit.paperSpaceGeometryCount} paper-space entity model görünümünden ayrıştırılacak; layout/viewports sonraki aşama kapsamındadır.`);
   if (audit.degenerateCurveCount > 0) warnings.push(`${audit.degenerateCurveCount} degenerate curve/polyline bulundu; kaynak geometri ayrıca kontrol edilmeli.`);
