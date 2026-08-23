@@ -2,6 +2,7 @@ import type { CadDocument } from "@node-projects/acad-ts";
 import { normalizeDiagnostics, notificationMessage } from "./diagnostics";
 import { loadAcadTsEngine, type AcadTsEngine } from "./engine";
 import { assertConvertibleDwg, inspectDwgBytes } from "./inspect";
+import { createCadStructuralSnapshot } from "./snapshot";
 import { DWG_DXF_CONVERTER_SIGNATURE, DWG_DXF_PROFILE } from "./signature";
 import {
   DwgConversionError,
@@ -209,6 +210,7 @@ export async function convertDwgToDxf(
   }
 
   normalizeDocumentForDeterministicDxf(document);
+  const sourceSnapshot = createCadStructuralSnapshot(document);
   const output = writeAsciiDxf(acad, document, source.byteLength, writeMessages, options);
   const dxfEnvelope = inspectDxfEnvelope(output.bytes);
   if (!dxfEnvelope.valid) {
@@ -226,6 +228,7 @@ export async function convertDwgToDxf(
     dxfBytes: output.bytes,
     dxfEnvelope,
     diagnostics: normalizeDiagnostics(readMessages, writeMessages),
+    sourceSnapshot,
     stats: {
       sourceBytes: source.byteLength,
       outputBytes: output.bytes.byteLength,
