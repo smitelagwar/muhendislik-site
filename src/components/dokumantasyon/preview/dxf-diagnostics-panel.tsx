@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, Palette, ShieldCheck } from "lucide-react";
+import { AlignJustify, AlertTriangle, ChevronDown, ChevronUp, CircleAlert, Info, Palette, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DXF_LINEWEIGHT_READY_EVENT,
+  getDxfLineweightViewerForRoot,
+  initializeDxfLineweightRuntime,
+  setDxfLineweightEnabled,
+  type DxfLineweightRuntimeSnapshot,
+} from "@/lib/dokumantasyon/dxf-lineweight-runtime";
 import type {
   DxfDiagnosticCategory,
   DxfDiagnosticItem,
@@ -106,6 +113,85 @@ function DxfColorModeButton() {
   );
 }
 
+function DxfLineweightButton() {
+  const hostRef = useRef<HTMLSpanElement>(null);
+  const [snapshot, setSnapshot] = useState<DxfLineweightRuntimeSnapshot | null>(null);
+  const enabled = snapshot?.enabled === true;
+  const blocked = (snapshot?.unsupportedLineObjectCount ?? 0) > 0;
+  const available = (snapshot?.supportedLineObjectCount ?? 0) > 0 && !blocked;
+
+  useEffect(() => {
+    const root = hostRef.current?.closest<HTMLElement>('[data-testid="cad-dxf-viewer"]');
+    if (!root) return;
+
+    const sync = () => {
+      const viewer = getDxfLineweightViewerForRoot(root);
+      if (viewer) setSnapshot(initializeDxfLineweightRuntime(viewer));
+    };
+    const onReady = (event: Event) => {
+      const detail = (event as CustomEvent<DxfLineweightRuntimeSnapshot>).detail;
+      if (detail) setSnapshot(detail);
+      else sync();
+    };
+
+    root.addEventListener(DXF_LINEWEIGHT_READY_EVENT, onReady);
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      root.removeEventListener(DXF_LINEWEIGHT_READY_EVENT, onReady);
+    };
+  }, []);
+
+  const handleToggle = () => {
+    const root = hostRef.current?.closest<HTMLElement>('[data-testid="cad-dxf-viewer"]');
+    if (!root) return;
+    const viewer = getDxfLineweightViewerForRoot(root);
+    if (!viewer || !available) return;
+    setSnapshot(setDxfLineweightEnabled(viewer, !enabled));
+  };
+
+  const title = blocked
+    ? `${snapshot?.unsupportedLineObjectCount ?? 0} çizgi batch'inde lineweight eşlemesi güvenilir değil; LWT kapalı tutuldu.`
+    : available
+      ? enabled
+        ? "DXF lineweight görünümü açık — standart ince çizgi görünümüne dön"
+        : "Kaynak DXF lineweight değerlerini screen-space kalınlıkla göster"
+      : "Bu DXF'de uygulanabilir lineweight çizgisi bulunamadı";
+
+  return (
+    <span ref={hostRef} className="contents">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleToggle}
+        disabled={!available}
+        aria-pressed={enabled}
+        aria-label={enabled ? "Lineweight açık. Kapat" : "Lineweight kapalı. Aç"}
+        title={title}
+        data-testid="cad-dxf-lineweight-toggle"
+        data-mode={enabled ? "on" : "off"}
+        data-supported={available ? "true" : "false"}
+        className={enabled
+          ? "h-7 gap-1.5 border-violet-500/40 bg-violet-500/15 px-2.5 text-[11px] text-violet-100 hover:bg-violet-500/20"
+          : "h-7 gap-1.5 border-zinc-700 bg-zinc-900 px-2.5 text-[11px] text-zinc-200 hover:bg-zinc-800"}
+      >
+        <AlignJustify className="h-3.5 w-3.5" />
+        <span className="sm:hidden">LWT</span>
+        <span className="hidden sm:inline">Lineweight: {enabled ? "Açık" : "Kapalı"}</span>
+      </Button>
+      {snapshot && (
+        <output className="sr-only" data-testid="cad-dxf-lineweight-snapshot">
+          {JSON.stringify(snapshot)}
+        </output>
+      )}
+    </span>
+  );
+}
+
 export function DxfDiagnosticsButton({
   report,
   open,
@@ -124,6 +210,9 @@ export function DxfDiagnosticsButton({
             max-width: 100%;
             flex-wrap: wrap;
             justify-content: flex-start;
+          }
+          [data-testid="cad-dxf-viewer"] > header > div:last-child > div {
+            flex-wrap: wrap;
           }
         }
       `}</style>
@@ -144,6 +233,7 @@ export function DxfDiagnosticsButton({
           {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </Button>
         <DxfColorModeButton />
+        <DxfLineweightButton />
       </div>
     </>
   );
