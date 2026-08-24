@@ -9,7 +9,7 @@ import {
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
-import { CAD_UPSTREAM_TOTAL_TIMEOUT_MS } from "@/lib/dokumantasyon/dwg/runtime-policy";
+import { resolveCadUpstreamTimeoutMs } from "@/lib/dokumantasyon/dwg/runtime-policy";
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -46,7 +46,8 @@ export function DokCadUpstreamViewer({
   displayName,
   fileId,
   extension,
-  timeoutMs = CAD_UPSTREAM_TOTAL_TIMEOUT_MS,
+  sizeBytes,
+  timeoutMs,
   onReady,
   onViewerFailure,
 }: DokCadUpstreamViewerProps) {
@@ -59,6 +60,7 @@ export function DokCadUpstreamViewer({
   const [retryKey, setRetryKey] = useState(0);
   const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
   const [lineWeightVisible, setLineWeightVisible] = useState(false);
+  const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -131,10 +133,10 @@ export function DokCadUpstreamViewer({
           reject(
             new CadUpstreamAdapterError(
               "open-timeout",
-              `MLightCAD ${Math.round(timeoutMs / 1000)} saniye içinde terminal sonuca ulaşamadı.`
+              `MLightCAD ${Math.round(effectiveTimeoutMs / 1000)} saniye içinde terminal sonuca ulaşamadı.`
             )
           );
-        }, timeoutMs);
+        }, effectiveTimeoutMs);
       });
 
       try {
@@ -189,7 +191,7 @@ export function DokCadUpstreamViewer({
           }
         });
     };
-  }, [accessUrl, displayName, extension, fileId, retryKey, timeoutMs, onReady, onViewerFailure]);
+  }, [accessUrl, displayName, effectiveTimeoutMs, extension, fileId, retryKey, onReady, onViewerFailure]);
 
   const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
     displayModeRef.current = mode;
@@ -218,6 +220,7 @@ export function DokCadUpstreamViewer({
       data-cad-upstream-state={state}
       data-cad-color-mode={displayMode}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
+      data-cad-timeout-ms={effectiveTimeoutMs}
     >
       <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
 
