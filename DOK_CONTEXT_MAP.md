@@ -136,6 +136,8 @@ CAD için ayrıca:
 - CAD Stage 5/6/7/8 workflow'ları
 - DXF fidelity ve gerçek fixture acceptance workflow'ları
 
+PR `#22` final head'i `9f386132eeff18e3264e3bef6a85dc7fdbb47ef7` üzerinde Stage 4/5/6/7/8, `vercel-preflight`, `dxf-fidelity-release`, `cad-runtime-production` ve gerçek DWG/DXF/DWF fixture acceptance kapılarının tamamı PASS olmuştur. Full-height regresyon testi CAD host'un Document Studio içerik alanının en az %98 genişlik ve yüksekliğini doldurmasını ve üç görüntü kontrolünün canvas yerine üst barda görünmesini doğrular.
+
 Stage 8 migration kabul ayrıntıları ve tarihsel run/artifact kimlikleri `docs/cad-upstream-migration-stage8.md` içindedir.
 
 ## Yeni AI oturumu için okuma sırası
