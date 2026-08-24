@@ -53,7 +53,8 @@ if (!legacyFallback.includes("DWG_BROWSER_SOURCE_FETCH_TIMEOUT_MS") || !legacyFa
 }
 
 for (const token of [
-  "CAD_UPSTREAM_TOTAL_TIMEOUT_MS",
+  "resolveCadUpstreamTimeoutMs",
+  "effectiveTimeoutMs",
   '"open-timeout"',
   "Promise.race([upstreamWork, deadline])",
   "adapter.destroy()",
@@ -73,6 +74,9 @@ for (const token of [
 
 for (const token of [
   "CAD_UPSTREAM_TOTAL_TIMEOUT_MS = 35_000",
+  "CAD_UPSTREAM_MEDIUM_TIMEOUT_MS = 120_000",
+  "CAD_UPSTREAM_LARGE_TIMEOUT_MS = 180_000",
+  "resolveCadUpstreamTimeoutMs",
   "DWG_APS_TRANSLATION_TIMEOUT_MS = 180_000",
   "DWG_APS_STATUS_REQUEST_TIMEOUT_MS = 15_000",
   "DWG_APS_VIEWER_LOAD_TIMEOUT_MS = 45_000",
@@ -97,5 +101,5 @@ for (const token of [
 }
 
 if (!process.exitCode) {
-  console.log("GATE: PASS — Stage 5 runtime is bounded Fast → Upstream → Current → APS with legacy rollback preserved.");
+  console.log("GATE: PASS — Stage 5 runtime is bounded Fast → Upstream → Current → APS with adaptive upstream deadlines and legacy rollback preserved.");
 }
