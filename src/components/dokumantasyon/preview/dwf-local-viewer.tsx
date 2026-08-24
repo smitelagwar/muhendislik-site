@@ -104,9 +104,6 @@ export function DwfLocalViewer({ accessUrl, displayName, sizeBytes, onViewerFail
     const observer = new ResizeObserver(() => viewer?.resize());
     observer.observe(container);
 
-    setStatus("loading");
-    setError(null);
-
     const fail = (reason: string) => {
       if (disposed || terminal) return;
       terminal = true;
@@ -179,7 +176,11 @@ export function DwfLocalViewer({ accessUrl, displayName, sizeBytes, onViewerFail
     };
   }, [accessUrl, onViewerFailure, retryKey]);
 
-  const retry = useCallback(() => setRetryKey((value) => value + 1), []);
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setError(null);
+    setRetryKey((value) => value + 1);
+  }, []);
   const download = useCallback(() => downloadFile(accessUrl, displayName), [accessUrl, displayName]);
 
   return (
