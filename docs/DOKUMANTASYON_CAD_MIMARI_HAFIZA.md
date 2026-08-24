@@ -5,6 +5,8 @@ Son bağlam güncellemesi: 24 Ağustos 2026
 Bu dosyanın amacı, yeni bir AI oturumunun `/dokumantasyon` ve CAD görüntüleme sisteminin bugün nasıl çalıştığını hızlıca anlamasını sağlamaktır.
 
 > **Bu belge bir değişmez kurallar listesi değildir.** Aşağıdaki yapı mevcut production mimarisinin fotoğrafıdır. Performans, kalite, bakım maliyeti veya yeni ihtiyaçlar için mimari daha sonra bilinçli biçimde değiştirilebilir. Bir değişiklik yapılırken önce mevcut davranışın neden var olduğu anlaşılmalı, sonra kaynak kod ve testlerle yeni yaklaşım doğrulanmalıdır.
+>
+> **Yaşayan belge kuralı:** Bu mimari anlamlı biçimde değiştirildiğinde, değişiklik hangi bölümü etkiliyorsa bu dosyanın o bölümü de aynı çalışma kapsamında güncellenmelidir. Amaç sistemi dondurmak değil, sonraki AI oturumuna yanlış hafıza bırakmamaktır.
 
 ## 1. Production durumu
 
@@ -232,16 +234,20 @@ Bir Markdown dosyası ile kaynak kod çelişirse kaynak kod ve güncel testler d
 
 ## 14. Bu hafıza ne zaman güncellenmeli?
 
-Aşağıdakilerden biri değişirse bu belgeyi güncellemek faydalıdır:
+Aşağıdakilerden biri değişirse **bu belgenin ilgili bölümü aynı değişiklik kapsamında güncellenmelidir**:
 
 - primary CAD engine
 - fallback sırası
 - worker/WASM dağıtımı
-- CAD package ailesi
-- cache stratejisi
+- CAD package ailesi veya önemli sürüm değişikliği
+- cache/dönüşüm stratejisi
 - Document Studio/preview giriş noktası
-- timeout yaklaşımı
+- timeout/performance yaklaşımı
 - gerçek dosya kabul/test stratejisi
-- production'a geçen önemli mimari değişiklik
+- production'a geçen önemli CAD mimari değişikliği
 
-Küçük UI metni veya stil değişikliğinde bu dosyayı güncellemek gerekmez.
+Örneğin primary engine MLightCAD'den başka bir motora geçerse yalnız kod değiştirilip bu dosyada hâlâ MLightCAD primary yazması kabul edilmez. Aynı şekilde fallback kaldırılırsa, timeout modeli değiştirilirse veya server-side cache eklenirse ilgili açıklama güncellenir.
+
+Küçük UI metni, renk, spacing veya mimariyi etkilemeyen lokal stil değişikliğinde bu dosyayı güncellemek gerekmez.
+
+Bu bakım şartı **mimariyi değiştirmeme zorunluluğu değildir**. Tam tersine, sistem daha iyi bir yaklaşımla değiştirilebilir; yalnızca belge de yeni sistemi doğru anlatacak şekilde birlikte taşınmalıdır.
