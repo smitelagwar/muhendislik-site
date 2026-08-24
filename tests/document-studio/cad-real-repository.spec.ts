@@ -4,11 +4,16 @@ import path from "node:path";
 
 const fixtureDir = process.env.CAD_REAL_REPO_FIXTURE_DIR;
 
+// These are CI acceptance envelopes, not product runtime deadlines. GitHub's
+// shared headless runner can render WebGL/MLightCAD materially slower than a
+// real desktop Chrome session (the same 3.3 MB DWG is Vercel-preview validated
+// as ready). Keep production deadlines in runtime-policy.ts; give this gate
+// enough wall-clock room to distinguish a genuine terminal error from slow CI.
 const fixtures = [
-  { file: "dwg-a.dwg", mime: "application/acad", maxReadyMs: 70_000 },
-  { file: "dwg-b-large.dwg", mime: "application/acad", maxReadyMs: 150_000 },
-  { file: "dwg-c-beams.dwg", mime: "application/acad", maxReadyMs: 70_000 },
-  { file: "dxf-a-large.dxf", mime: "application/dxf", maxReadyMs: 220_000 },
+  { file: "dwg-a.dwg", mime: "application/acad", maxReadyMs: 180_000 },
+  { file: "dwg-b-large.dwg", mime: "application/acad", maxReadyMs: 300_000 },
+  { file: "dwg-c-beams.dwg", mime: "application/acad", maxReadyMs: 180_000 },
+  { file: "dxf-a-large.dxf", mime: "application/dxf", maxReadyMs: 300_000 },
 ] as const;
 
 async function signIn(page: Page) {
@@ -75,7 +80,7 @@ async function visibleCadCanvas(page: Page) {
 }
 
 test("repo gerçek DWG ve DXF dosyaları Dökümantasyon yükle→aç akışında hata ekranına düşmez", async ({ page }) => {
-  test.setTimeout(12 * 60_000);
+  test.setTimeout(24 * 60_000);
   test.skip(!fixtureDir, "CAD_REAL_REPO_FIXTURE_DIR tanımlı değil.");
   await signIn(page);
 
