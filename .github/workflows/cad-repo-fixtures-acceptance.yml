@@ -7,8 +7,10 @@ on:
       - feat/cad-upstream-transplant
     paths:
       - .github/workflows/cad-repo-fixtures-acceptance.yml
+      - tests/document-studio/cad-real-repository.spec.ts
       - src/components/dokumantasyon/preview/**
       - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/dwg/runtime-policy.ts
       - src/lib/dokumantasyon/preview-capabilities.ts
       - package.json
       - package-lock.json
@@ -17,8 +19,10 @@ on:
       - main
     paths:
       - .github/workflows/cad-repo-fixtures-acceptance.yml
+      - tests/document-studio/cad-real-repository.spec.ts
       - src/components/dokumantasyon/preview/**
       - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/dwg/runtime-policy.ts
       - src/lib/dokumantasyon/preview-capabilities.ts
       - package.json
       - package-lock.json
@@ -38,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout migration branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -61,9 +65,10 @@ jobs:
           du -h stage7-real-fixtures/input/*
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
+          cache: npm
 
       - name: Install exact DWG DXF upstream renderer
         shell: bash
@@ -91,12 +96,14 @@ jobs:
             base="$(basename "$fixture")"
             mkdir -p "out/$base"
             echo "RENDER START $base bytes=$(stat -c%s "$fixture")"
+            start=$(date +%s)
             timeout 180s node_modules/.bin/cad-simple-viewer-cli \
               -i "$fixture" \
               -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-png.scr \
               -o "out/$base" \
               --mode read
-            echo "RENDER DONE $base"
+            elapsed=$(( $(date +%s) - start ))
+            echo "RENDER DONE $base elapsed=${elapsed}s"
           done
 
       - name: Validate DWG and DXF render evidence
@@ -142,8 +149,7 @@ jobs:
           console.log('REAL DWG/DXF REPOSITORY FIXTURES: PASS')
           NODE
 
-      - name: Probe real DWF with ready upstream DWF parser
-        if: always()
+      - name: Probe real DWF package structure
         shell: bash
         run: |
           set -euo pipefail
@@ -177,14 +183,35 @@ jobs:
           console.log('REAL DWF REPOSITORY FIXTURE PARSE: PASS')
           NODE
 
+      - name: Install exact site dependencies
+        run: npm ci
+
+      - name: Build production site for real Document Studio probe
+        run: npm run build
+
+      - name: Ensure root Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Upload and open real DWG DXF files through Document Studio
+        env:
+          CAD_REAL_REPO_FIXTURE_DIR: ${{ github.workspace }}/stage7-real-fixtures/input
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3021"
+        run: >-
+          npx playwright test --config=playwright.config.ts
+          tests/document-studio/cad-real-repository.spec.ts
+          --project=chromium
+
       - name: Upload real fixture evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cad-real-repository-fixtures-${{ github.sha }}
           path: |
             stage7-real-fixtures/out/**/*.png
             stage7-real-fixtures/render-matrix.json
             stage7-dwf-probe/dwf-probe.json
+            playwright-report/
+            test-results/
           if-no-files-found: warn
           retention-days: 7
