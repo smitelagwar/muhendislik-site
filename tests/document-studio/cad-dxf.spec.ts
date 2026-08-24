@@ -140,9 +140,9 @@ async function expectUpstreamDxfReady(page: Page) {
 }
 
 test("DXF upstream-primary küçük, proje-benzeri ve büyük çizimleri açar; etkileşim sonrası hazır kalır", async ({ page }) => {
+  await signIn(page);
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await signIn(page);
 
   for (const fixture of fixtures) {
     const fileId = await uploadDxf(page, fixture);
@@ -166,10 +166,10 @@ test("DXF upstream-primary küçük, proje-benzeri ve büyük çizimleri açar; 
 });
 
 test("upstream kullanılamadığında DASHED CENTER HIDDEN legacy DXF fallback worker ile render edilir", async ({ page }) => {
-  const pageErrors: string[] = [];
-  page.on("pageerror", (error) => pageErrors.push(error.message));
   await forceUpstreamUnavailable(page);
   await signIn(page);
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   const fileId = await uploadDxf(page, { name: "linetype-stage2.dxf", content: createPatternedDxf() });
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
