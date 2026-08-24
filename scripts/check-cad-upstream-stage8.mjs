@@ -72,6 +72,11 @@ const boundedTimeouts = [
   "DWG_BROWSER_SOURCE_FETCH_TIMEOUT_MS = 15_000",
   "DWG_BROWSER_WORKER_TIMEOUT_MS = 25_000",
   "CAD_UPSTREAM_TOTAL_TIMEOUT_MS = 35_000",
+  "CAD_UPSTREAM_MEDIUM_TIMEOUT_MS = 120_000",
+  "CAD_UPSTREAM_LARGE_TIMEOUT_MS = 180_000",
+  "CAD_UPSTREAM_MEDIUM_FILE_BYTES = 8 * 1024 * 1024",
+  "CAD_UPSTREAM_LARGE_FILE_BYTES = 32 * 1024 * 1024",
+  "resolveCadUpstreamTimeoutMs",
   "DWG_APS_STATUS_REQUEST_TIMEOUT_MS = 15_000",
   "DWG_APS_TRANSLATION_TIMEOUT_MS = 180_000",
   "DWG_APS_VIEWER_LOAD_TIMEOUT_MS = 45_000",
@@ -94,12 +99,16 @@ for (const token of ["DokCadUpstreamViewer", "DwgLegacyConversionFallback", "Aps
   mustInclude(orchestrator, token, "CAD runtime orchestrator");
 }
 
+const upstreamHost = read("src/components/dokumantasyon/preview/cad-upstream-viewer.tsx");
+mustInclude(upstreamHost, "resolveCadUpstreamTimeoutMs(sizeBytes)", "CAD upstream host");
+mustInclude(upstreamHost, "data-cad-timeout-ms", "CAD upstream host");
+
 const stage7 = read("scripts/check-cad-upstream-stage7.mjs");
 mustInclude(stage7, "Stage 7 production orchestrator ownership: PASS", "Stage 7 gate");
 
 console.log("Stage 8 exact upstream pins: PASS");
 console.log("Stage 8 security overrides + lock resolution: PASS");
-console.log("Stage 8 bounded runtime deadlines: PASS");
+console.log("Stage 8 bounded size-aware runtime deadlines: PASS");
 console.log("Stage 8 GPL notice/source reference: PASS");
 console.log("Stage 8 both preview shells route CAD through orchestrator: PASS");
 console.log("Stage 8 production ownership and rollback surface: PASS");
