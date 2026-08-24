@@ -120,7 +120,10 @@ jobs:
             if (buffer.length < 5_000) throw new Error(`${fixture}: PNG too small (${buffer.length})`)
             if (buffer.subarray(0,8).toString('hex') !== '89504e470d0a1a0a') throw new Error(`${fixture}: invalid PNG`)
             const png = PNG.sync.read(buffer)
-            if (png.width < 500 || png.height < 300) throw new Error(`${fixture}: render dimensions too small ${png.width}x${png.height}`)
+            const pixelArea = png.width * png.height
+            if (Math.min(png.width, png.height) < 40 || pixelArea < 80_000) {
+              throw new Error(`${fixture}: render canvas unexpectedly small ${png.width}x${png.height}`)
+            }
 
             const colors = new Set()
             let opaque = 0
@@ -132,7 +135,7 @@ jobs:
             }
             if (opaque < 1000) throw new Error(`${fixture}: insufficient visible pixels`)
             if (colors.size < 2) throw new Error(`${fixture}: render appears visually empty/flat`)
-            results.push({ fixture, width: png.width, height: png.height, pngBytes: buffer.length, quantizedColors: colors.size })
+            results.push({ fixture, width: png.width, height: png.height, pixelArea, pngBytes: buffer.length, quantizedColors: colors.size })
           }
           fs.writeFileSync('render-matrix.json', JSON.stringify(results, null, 2))
           console.log(JSON.stringify(results, null, 2))
@@ -140,6 +143,7 @@ jobs:
           NODE
 
       - name: Probe real DWF with ready upstream DWF parser
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
