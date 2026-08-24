@@ -62,6 +62,8 @@ Bulk move item bazlı partial-failure sözleşmesini kullanır. Klasör yükleme
 
 Aktif dosya görüntüleme route'u `DocumentStudioShell` kullanır. PDF, image, CAD ve diğer preview bileşenleri `src/components/dokumantasyon/studio/` ve `src/components/dokumantasyon/preview/` altında bulunur.
 
+Document Studio bir full-viewport shell'dir. CAD upstream host'u üst barın altında kalan içerik alanının **tam genişlik ve tam yüksekliğini** kullanır; sabit `vh` minimumlarıyla yarım ekran oluşturulmamalıdır. `Gerçek Renk`, `Siyah-Beyaz` ve `Lineweight` kontrolleri Document Studio üst barındaki `cad-studio-toolbar-slot` içine portal edilir ve çizim canvas'ını kapatmaz. Topbar olmayan CAD yüzeylerinde küçük floating fallback kontrolü kullanılabilir. Bu mevcut UX sözleşmesi ileride değiştirilebilir; değişirse bu bölüm de aynı görevde güncellenir.
+
 ### CAD ownership — güncel production
 
 CAD'nin primary sahibi:
