@@ -14,6 +14,7 @@ import {
 import { DokCadUpstreamViewer } from "./cad-upstream-viewer";
 import { DwgLegacyConversionFallback } from "./dwg-legacy-conversion-fallback";
 import { ApsOnlyDwgViewer } from "./aps-only-dwg-viewer";
+import { DwfLocalViewer } from "./dwf-local-viewer";
 
 const CurrentCadViewer = lazy(async () => {
   const viewerModule = await import("./cad-viewer");
@@ -52,6 +53,17 @@ export function DokCadRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps)
   }
   if (extension === ".dxf") {
     return <DxfRuntimeOrchestrator key={`${props.fileId}:${props.accessUrl}`} {...props} />;
+  }
+  if (extension === ".dwf") {
+    return (
+      <DwfLocalViewer
+        key={`${props.fileId}:${props.accessUrl}`}
+        accessUrl={props.accessUrl}
+        displayName={props.displayName}
+        sizeBytes={props.sizeBytes}
+        onViewerFailure={props.onViewerFailure}
+      />
+    );
   }
 
   return (
