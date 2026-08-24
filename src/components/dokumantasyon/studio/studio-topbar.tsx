@@ -123,7 +123,7 @@ export function StudioTopbar({
       {/* CAD viewer kontrolleri buraya portal edilir. Boşken yer kaplamaz. */}
       <div
         id="cad-studio-toolbar-slot"
-        className="hidden min-w-0 shrink-0 items-center justify-center md:flex empty:hidden"
+        className="flex min-w-0 shrink-0 items-center justify-center empty:hidden max-sm:hidden"
         aria-label="CAD görünüm kontrolleri"
       />
 
