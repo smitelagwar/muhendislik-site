@@ -1,0 +1,186 @@
+name: CAD real repository fixtures acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/cad-upstream-transplant
+    paths:
+      - .github/workflows/cad-repo-fixtures-acceptance.yml
+      - src/components/dokumantasyon/preview/**
+      - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/preview-capabilities.ts
+      - package.json
+      - package-lock.json
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-repo-fixtures-acceptance.yml
+      - src/components/dokumantasyon/preview/**
+      - src/lib/dokumantasyon/cad-upstream/**
+      - src/lib/dokumantasyon/preview-capabilities.ts
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-real-repo-fixtures-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-repository-fixtures:
+    name: Real DWG DXF DWF fixture gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch canonical fixtures from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          mkdir -p stage7-real-fixtures/input
+          git show 'origin/main:eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg' > stage7-real-fixtures/input/dwg-a.dwg
+          git show 'origin/main:eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg' > stage7-real-fixtures/input/dwg-b-large.dwg
+          git show 'origin/main:eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg' > stage7-real-fixtures/input/dwg-c-beams.dwg
+          git show 'origin/main:eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf' > stage7-real-fixtures/input/dxf-a-large.dxf
+          git show 'origin/main:eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwf' > stage7-real-fixtures/input/dwf-a-beams.dwf
+          test -s stage7-real-fixtures/input/dwg-a.dwg
+          test -s stage7-real-fixtures/input/dwg-b-large.dwg
+          test -s stage7-real-fixtures/input/dwg-c-beams.dwg
+          test -s stage7-real-fixtures/input/dxf-a-large.dxf
+          test -s stage7-real-fixtures/input/dwf-a-beams.dwf
+          du -h stage7-real-fixtures/input/*
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install exact DWG DXF upstream renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage7-real-fixtures
+          npm init -y >/dev/null
+          npm install --ignore-scripts --save-exact @mlightcad/cad-simple-viewer-cli@1.6.2 pngjs@7.0.0
+          node -e 'const p=require("./node_modules/@mlightcad/cad-simple-viewer-cli/package.json"); if(p.version!=="1.6.2") process.exit(1)'
+
+      - name: Install Chromium for MLightCAD renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage7-real-fixtures
+          npx playwright install --with-deps chromium
+
+      - name: Render all real DWG and DXF fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage7-real-fixtures
+          mkdir -p out
+          for fixture in input/dwg-a.dwg input/dwg-b-large.dwg input/dwg-c-beams.dwg input/dxf-a-large.dxf; do
+            base="$(basename "$fixture")"
+            mkdir -p "out/$base"
+            echo "RENDER START $base bytes=$(stat -c%s "$fixture")"
+            timeout 180s node_modules/.bin/cad-simple-viewer-cli \
+              -i "$fixture" \
+              -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-png.scr \
+              -o "out/$base" \
+              --mode read
+            echo "RENDER DONE $base"
+          done
+
+      - name: Validate DWG and DXF render evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage7-real-fixtures
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          import { PNG } from 'pngjs'
+
+          const fixtures = ['dwg-a.dwg','dwg-b-large.dwg','dwg-c-beams.dwg','dxf-a-large.dxf']
+          const results = []
+          for (const fixture of fixtures) {
+            const dir = path.join('out', fixture)
+            const pngName = fs.readdirSync(dir).find(name => name.toLowerCase().endsWith('.png'))
+            if (!pngName) throw new Error(`${fixture}: PNG output missing`)
+            const file = path.join(dir, pngName)
+            const buffer = fs.readFileSync(file)
+            if (buffer.length < 5_000) throw new Error(`${fixture}: PNG too small (${buffer.length})`)
+            if (buffer.subarray(0,8).toString('hex') !== '89504e470d0a1a0a') throw new Error(`${fixture}: invalid PNG`)
+            const png = PNG.sync.read(buffer)
+            if (png.width < 500 || png.height < 300) throw new Error(`${fixture}: render dimensions too small ${png.width}x${png.height}`)
+
+            const colors = new Set()
+            let opaque = 0
+            for (let i=0; i<png.data.length; i+=4) {
+              if (png.data[i+3] < 16) continue
+              opaque++
+              colors.add(`${png.data[i]>>4},${png.data[i+1]>>4},${png.data[i+2]>>4}`)
+              if (colors.size >= 4 && opaque > 1000) break
+            }
+            if (opaque < 1000) throw new Error(`${fixture}: insufficient visible pixels`)
+            if (colors.size < 2) throw new Error(`${fixture}: render appears visually empty/flat`)
+            results.push({ fixture, width: png.width, height: png.height, pngBytes: buffer.length, quantizedColors: colors.size })
+          }
+          fs.writeFileSync('render-matrix.json', JSON.stringify(results, null, 2))
+          console.log(JSON.stringify(results, null, 2))
+          console.log('REAL DWG/DXF REPOSITORY FIXTURES: PASS')
+          NODE
+
+      - name: Probe real DWF with ready upstream DWF parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage7-dwf-probe
+          cd stage7-dwf-probe
+          npm init -y >/dev/null
+          npm install --ignore-scripts --save-exact dwf-viewer@0.6.4
+          cp ../stage7-real-fixtures/input/dwf-a-beams.dwf ./fixture.dwf
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import { openDwfDocument } from 'dwf-viewer'
+
+          const source = fs.readFileSync('fixture.dwf')
+          const input = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength)
+          const doc = await openDwfDocument(input, { fileName: 'fixture.dwf' })
+          const pages = Array.isArray(doc.pageData) ? doc.pageData : []
+          if (pages.length < 1) throw new Error('DWF parser returned no pages')
+          const renderable = pages.filter(page => page && typeof page === 'object' && 'kind' in page)
+          if (renderable.length < 1) throw new Error('DWF contains no renderable page kind')
+          const nonInfoDiagnostics = Array.isArray(doc.diagnostics)
+            ? doc.diagnostics.filter(item => item?.severity && item.severity !== 'info')
+            : []
+          const result = {
+            bytes: source.byteLength,
+            pages: pages.length,
+            pageKinds: [...new Set(renderable.map(page => page.kind))],
+            nonInfoDiagnostics: nonInfoDiagnostics.length,
+          }
+          fs.writeFileSync('dwf-probe.json', JSON.stringify(result, null, 2))
+          console.log(JSON.stringify(result, null, 2))
+          console.log('REAL DWF REPOSITORY FIXTURE PARSE: PASS')
+          NODE
+
+      - name: Upload real fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-real-repository-fixtures-${{ github.sha }}
+          path: |
+            stage7-real-fixtures/out/**/*.png
+            stage7-real-fixtures/render-matrix.json
+            stage7-dwf-probe/dwf-probe.json
+          if-no-files-found: warn
+          retention-days: 7
