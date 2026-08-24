@@ -196,14 +196,9 @@ export class CadUpstreamAdapter {
     }
 
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
-    // Keep the open contract aligned with the upstream simple-viewer example.
-    // In particular, do not force progressiveRendering here: real DWG fixtures
-    // showed that this host-level override can leave openDocument() waiting in
-    // "Rendering drawing ..." even though the same file renders promptly in
-    // the upstream CLI/example path.
     const openOptions: AcApOpenDatabaseOptions = {
       minimumChunkSize: 1000,
-      readOnly: true,
+      progressiveRendering: true,
       ...(options.databaseOptions ?? {}),
     };
 
@@ -220,9 +215,12 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Upstream openDocument() can report success before scene conversion fully
-    // settles. Reject only when the upstream view reports idle and still has no
-    // entities; if it is still active, leave the rendered document valid.
+    // Upstream openDocument() can report success before progressive scene
+    // conversion finishes, so entityCount===0 is NOT immediately a failure.
+    // Only reject the document when the upstream view itself confirms it is
+    // idle and its rendered scene still contains no entities. This prevents a
+    // malformed/unsupported file from becoming a permanent blank "success"
+    // while preserving large progressive drawings that are still converting.
     const idle = await this.manager.curView.waitUntilIdle(
       CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
     );
