@@ -19,6 +19,11 @@
 /tests/private-dxf-corpus/*
 !/tests/private-dxf-corpus/README.md
 
+# private DWG golden corpus; real project drawings and local baseline manifest stay local
+/tests/private-dwg-corpus/*
+!/tests/private-dwg-corpus/README.md
+!/tests/private-dwg-corpus/manifest.example.json
+
 # next.js
 /.next/
 /.next-playwright*/
@@ -27,6 +32,7 @@
 # production
 /build
 /public/workers/
+/public/cad-upstream/
 
 
 # misc

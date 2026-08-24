@@ -1,0 +1,94 @@
+name: CAD upstream Stage 6 validated upgrade
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/cad-upstream-transplant
+    paths:
+      - .github/workflows/cad-upstream-stage6-upgrade.yml
+      - docs/cad-upstream-migration-stage6.md
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-upstream-stage6-upgrade.yml
+      - docs/cad-upstream-migration-stage6.md
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cad-upstream-stage6-upgrade-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync-validated-upstream:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/cad-upstream-transplant
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Apply corpus-validated exact versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs')
+          const path = 'package.json'
+          const p = JSON.parse(fs.readFileSync(path, 'utf8'))
+          p.dependencies ??= {}
+          p.dependencies['@mlightcad/cad-simple-viewer'] = '1.6.2'
+          p.dependencies['@mlightcad/data-model'] = '1.14.2'
+          p.dependencies['@mlightcad/libredwg-converter'] = '3.14.2'
+          fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n')
+          NODE
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Verify exact lock contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs')
+          const p = JSON.parse(fs.readFileSync('package.json','utf8'))
+          const lock = JSON.parse(fs.readFileSync('package-lock.json','utf8'))
+          const expected = {
+            '@mlightcad/cad-simple-viewer': '1.6.2',
+            '@mlightcad/data-model': '1.14.2',
+            '@mlightcad/libredwg-converter': '3.14.2',
+          }
+          for (const [name, version] of Object.entries(expected)) {
+            if (p.dependencies?.[name] !== version) throw new Error(`package ${name} != ${version}`)
+            if (lock.packages?.['']?.dependencies?.[name] !== version) throw new Error(`root lock ${name} != ${version}`)
+            if (lock.packages?.[`node_modules/${name}`]?.version !== version) throw new Error(`resolved lock ${name} != ${version}`)
+          }
+          const libre = lock.packages?.['node_modules/@mlightcad/libredwg-web']?.version
+          if (libre !== '0.7.10') throw new Error(`@mlightcad/libredwg-web expected 0.7.10, got ${libre}`)
+          console.log('Stage 6 upstream dependency contract: PASS')
+          NODE
+
+      - name: Commit validated dependency upgrade
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package.json package-lock.json; then
+            echo 'Validated Stage 6 versions already synchronized'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m 'chore(cad): upgrade corpus-validated MLightCAD runtime'
+          git push origin HEAD:feat/cad-upstream-transplant

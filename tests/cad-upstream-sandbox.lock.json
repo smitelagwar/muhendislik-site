@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Aşama 2 bağımsız upstream sandbox için tekrar üretilebilir kaynak kilidi",
+  "upstream": {
+    "repository": "mlightcad/cad-simple-viewer-example",
+    "commit": "92bf58f8fd77c8b43771cdbea242943e5cd7fa60",
+    "tree": "6e1341db66ab5f5029eead624c371874cd90c646",
+    "commitDate": "2026-08-16T01:45:42Z"
+  },
+  "toolchain": {
+    "packageManager": "pnpm@10.33.4",
+    "node": "22"
+  },
+  "declaredDependencies": {
+    "@mlightcad/cad-simple-viewer": "1.6.0",
+    "@mlightcad/data-model": "1.13.0",
+    "@mlightcad/libredwg-converter": "^3.13.0",
+    "@mlightcad/cad-simple-ui-plugin": "1.6.0",
+    "@mlightcad/cad-html-plugin": "1.6.0",
+    "@mlightcad/cad-pdf-plugin": "1.6.0",
+    "@mlightcad/cad-svg-plugin": "1.6.0"
+  },
+  "build": {
+    "install": "pnpm install --frozen-lockfile",
+    "command": "pnpm build",
+    "expectedFiles": [
+      "dist/index.html",
+      "dist/no-plugin.html",
+      "dist/assets/libredwg-parser-worker.js",
+      "dist/assets/libredwg-web.wasm",
+      "dist/assets/mtext-renderer-worker.js"
+    ]
+  },
+  "isolation": {
+    "changesProductionViewer": false,
+    "changesCurrentCadWorkers": false,
+    "changesCurrentDwgPipeline": false
+  }
+}

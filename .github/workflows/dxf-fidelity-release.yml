@@ -8,10 +8,13 @@ on:
       - "package.json"
       - "package-lock.json"
       - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx"
+      - "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/lib/dokumantasyon/cad-upstream/**"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
@@ -33,10 +36,13 @@ on:
       - "package.json"
       - "package-lock.json"
       - "playwright.config.ts"
+      - "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx"
+      - "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
       - "src/components/dokumantasyon/preview/cad-viewer.tsx"
       - "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
       - "src/components/dokumantasyon/preview/dxf-viewer-worker.ts"
+      - "src/lib/dokumantasyon/cad-upstream/**"
       - "src/lib/dokumantasyon/dxf-*.ts"
       - "src/lib/dokumantasyon/dxf-*.js"
       - "scripts/check-dxf-*"
@@ -67,7 +73,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -76,9 +82,12 @@ jobs:
       - name: Targeted DXF lint
         run: >-
           npx eslint
+          "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx"
+          "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
           "src/components/dokumantasyon/preview/cad-viewer.tsx"
           "src/components/dokumantasyon/preview/dxf-diagnostics-panel.tsx"
           "src/components/dokumantasyon/preview/dxf-layer-panel.tsx"
+          "src/lib/dokumantasyon/cad-upstream/adapter.ts"
           "src/lib/dokumantasyon/dxf-*.ts"
           "src/lib/dokumantasyon/dxf-*.js"
           "scripts/check-dxf-*"
@@ -139,17 +148,15 @@ jobs:
       - name: Install Chromium for DXF browser gate
         run: npx playwright install --with-deps chromium
 
-      - name: DXF browser release gate
+      # Production ownership is upstream-first. The historical browser specs below
+      # target internal controls of the rollback-only legacy renderer and are kept
+      # as source/static contract coverage above. Browser release ownership lives
+      # in cad-dxf.spec.ts, which validates upstream-primary plus an explicit
+      # forced-upstream-failure path into the legacy renderer.
+      - name: DXF upstream-primary and legacy fallback browser gate
         run: >-
           npx playwright test --config=playwright.config.ts
           tests/document-studio/cad-dxf.spec.ts
-          tests/document-studio/dxf-release.spec.ts
-          tests/document-studio/dxf-text-stage2.spec.ts
-          tests/document-studio/dxf-text-stage3.spec.ts
-          tests/document-studio/dxf-layers.spec.ts
-          tests/document-studio/dxf-color.spec.ts
-          tests/document-studio/dxf-render-modes-stage2.spec.ts
-          tests/document-studio/dxf-polyline-width-stage3.spec.ts
           --project=chromium
 
       - name: Upload Playwright evidence

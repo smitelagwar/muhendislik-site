@@ -1,0 +1,240 @@
+name: CAD upstream Stage 6 Chromium render probe
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cad-upstream-stage6-render-probe.yml
+      - docs/cad-upstream-migration-stage6.md
+      - scripts/check-cad-upstream-stage6.mjs
+      - src/lib/dokumantasyon/cad-upstream/adapter.ts
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-upstream-stage6-render-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render-public-upstream-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+
+      - name: Run Stage 6 fidelity contract gate
+        run: node scripts/check-cad-upstream-stage6.mjs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install exact upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage6-render-probe
+          cd stage6-render-probe
+          npm init -y >/dev/null
+          npm install --ignore-scripts --save-exact @mlightcad/cad-simple-viewer-cli@1.6.2 pngjs@7.0.0
+          node -e 'const p=require("./node_modules/@mlightcad/cad-simple-viewer-cli/package.json"); if(p.version!=="1.6.2") process.exit(1)'
+
+      - name: Install Chromium for upstream CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage6-render-probe
+          npx playwright install --with-deps chromium
+
+      - name: Render five public real DWG fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage6-render-probe
+          mkdir -p out-png out-html
+          fixtures="baseline-sample canteen lockers map-of-uae patient-chairs"
+          for fixture in $fixtures; do
+            mkdir -p "out-png/$fixture"
+            node_modules/.bin/cad-simple-viewer-cli \
+              -i "https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/$fixture.dwg" \
+              -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-png.scr \
+              -o "out-png/$fixture" \
+              --mode read
+          done
+          node_modules/.bin/cad-simple-viewer-cli \
+            -i https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/canteen.dwg \
+            -s node_modules/@mlightcad/cad-simple-viewer-cli/examples/export-html.scr \
+            -o out-html \
+            --mode read
+
+      - name: Verify render matrix outputs and source color
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage6-render-probe
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          import { PNG } from 'pngjs'
+
+          const fixtures = ['baseline-sample','canteen','lockers','map-of-uae','patient-chairs']
+          for (const fixture of fixtures) {
+            const dir = path.join('out-png', fixture)
+            const name = fs.readdirSync(dir).find(x => x.toLowerCase().endsWith('.png'))
+            if (!name) throw new Error(`${fixture}: PNG render output missing`)
+            const file = path.join(dir, name)
+            const buf = fs.readFileSync(file)
+            if (buf.length < 5_000) throw new Error(`${fixture}: PNG unexpectedly small: ${buf.length}`)
+            if (buf.subarray(0,8).toString('hex') !== '89504e470d0a1a0a') throw new Error(`${fixture}: invalid PNG signature`)
+            const width = buf.readUInt32BE(16)
+            const height = buf.readUInt32BE(20)
+            if (width < 500 || height < 300) throw new Error(`${fixture}: render dimensions too small ${width}x${height}`)
+            console.log(`render PASS ${fixture} ${width}x${height} bytes=${buf.length}`)
+          }
+
+          const canteenDir = path.join('out-png','canteen')
+          const canteenName = fs.readdirSync(canteenDir).find(x => x.toLowerCase().endsWith('.png'))
+          const png = PNG.sync.read(fs.readFileSync(path.join(canteenDir,canteenName)))
+          const colors = new Set()
+          for (let i=0; i<png.data.length; i+=4) {
+            if (png.data[i+3] < 16) continue
+            const r = png.data[i] >> 4
+            const g = png.data[i+1] >> 4
+            const b = png.data[i+2] >> 4
+            colors.add(`${r},${g},${b}`)
+            if (colors.size >= 8) break
+          }
+          if (colors.size < 8) throw new Error(`canteen source-color evidence too weak: ${colors.size} quantized colors`)
+
+          const html = fs.readdirSync('out-html').find(x => x.toLowerCase().endsWith('.html'))
+          if (!html) throw new Error('offline HTML output missing')
+          const htmlBytes = fs.statSync(path.join('out-html',html)).size
+          if (htmlBytes < 100_000) throw new Error(`offline HTML unexpectedly small: ${htmlBytes}`)
+          console.log(`source color PASS colors>=${colors.size}; html PASS bytes=${htmlBytes}`)
+          NODE
+
+      - name: Run interactive Chromium pan zoom layer lineweight matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd stage6-render-probe
+          cat > browser-matrix.mjs <<'NODE'
+          import fs from 'node:fs'
+          import path from 'node:path'
+          import http from 'node:http'
+          import crypto from 'node:crypto'
+          import { chromium } from 'playwright'
+
+          const root = path.resolve('node_modules/@mlightcad/cad-simple-viewer-cli/dist-runner')
+          const evidence = path.resolve('interaction-evidence')
+          fs.mkdirSync(evidence, { recursive: true })
+
+          const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.wasm':'application/wasm', '.json':'application/json' }
+          const server = http.createServer((req,res) => {
+            try {
+              const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://127.0.0.1').pathname)
+              const rel = pathname === '/' ? 'index.html' : pathname.replace(/^\//,'')
+              const file = path.resolve(root, rel)
+              if (!file.startsWith(root) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return }
+              res.setHeader('content-type', mime[path.extname(file)] ?? 'application/octet-stream')
+              res.end(fs.readFileSync(file))
+            } catch (error) { res.writeHead(500); res.end(String(error)) }
+          })
+          await new Promise((resolve,reject) => server.listen(0,'127.0.0.1',error => error ? reject(error) : resolve()))
+          const address = server.address()
+          const url = `http://127.0.0.1:${address.port}`
+
+          const browser = await chromium.launch({ headless: true })
+          const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
+          const hash = buffer => crypto.createHash('sha256').update(buffer).digest('hex')
+          const snap = async name => {
+            const canvas = page.locator('#cad-root canvas').first()
+            await canvas.waitFor({ state:'visible' })
+            const buf = await canvas.screenshot({ path: path.join(evidence, `${name}.png`) })
+            return hash(buf)
+          }
+          const run = async (fileName, bytes, script, mode='write') => {
+            const base64 = bytes ? Buffer.from(bytes).toString('base64') : null
+            return page.evaluate(async ({ fileName, base64, script, mode }) => {
+              let bytes = null
+              if (base64) {
+                const binary = atob(base64)
+                bytes = new Uint8Array(binary.length)
+                for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i)
+              }
+              return window.runCadScript(fileName, bytes, script, { mode, startBlank:false })
+            }, { fileName, base64, script, mode })
+          }
+
+          try {
+            await page.goto(url, { waitUntil:'networkidle' })
+            const response = await fetch('https://cdn.jsdelivr.net/gh/mlightcad/cad-data@main/data/canteen.dwg')
+            if (!response.ok) throw new Error(`canteen fetch failed ${response.status}`)
+            const drawing = Buffer.from(await response.arrayBuffer())
+
+            await run('canteen.dwg', drawing, 'zoom\nextents\n', 'write')
+            const base = await snap('01-fit')
+
+            await run(null, null, 'pan\n', 'write')
+            const canvas = page.locator('#cad-root canvas').first()
+            const box = await canvas.boundingBox()
+            if (!box) throw new Error('canvas bounding box unavailable')
+            await page.mouse.move(box.x + box.width/2, box.y + box.height/2)
+            await page.mouse.down()
+            await page.mouse.move(box.x + box.width/2 + 140, box.y + box.height/2 + 90, { steps:8 })
+            await page.mouse.up()
+            await page.waitForTimeout(300)
+            const pan = await snap('02-pan')
+            if (pan === base) throw new Error('PAN produced no visual change')
+
+            await run(null, null, 'zoom\nextents\n', 'write')
+            const fitAgain = await snap('03-fit-restored')
+            await run(null, null, 'zoom\nscale\n2x\n', 'write')
+            const zoom = await snap('04-zoom-2x')
+            if (zoom === fitAgain) throw new Error('ZOOM 2x produced no visual change')
+
+            await run(null, null, 'zoom\nextents\n-layer\noff\n*\n\nzoom\nextents\n', 'write')
+            const layerOff = await snap('05-layers-off')
+            if (layerOff === fitAgain) throw new Error('native layer OFF produced no visual change')
+            await run(null, null, '-layer\non\n*\n\nzoom\nextents\n', 'write')
+            const layerOn = await snap('06-layers-restored')
+            if (layerOn === layerOff) throw new Error('native layer ON produced no visual change')
+
+            await run(null, null, 'lwdisplay\n0\nregen\n', 'write')
+            const lwOff = await snap('07-lineweight-off')
+            await run(null, null, 'lwdisplay\n1\nregen\n', 'write')
+            const lwOn = await snap('08-lineweight-on')
+            if (lwOff === lwOn) throw new Error('native LWDISPLAY produced no visual change')
+            console.log('lineweight command PASS visualDiff=true')
+
+            const manifest = { base, pan, fitAgain, zoom, layerOff, layerOn, lwOff, lwOn }
+            fs.writeFileSync(path.join(evidence,'matrix.json'), JSON.stringify(manifest,null,2))
+            console.log('Stage 6 browser interaction matrix: PASS')
+          } finally {
+            await page.close().catch(()=>{})
+            await browser.close().catch(()=>{})
+            await new Promise(resolve => server.close(()=>resolve()))
+          }
+          NODE
+          node browser-matrix.mjs
+
+      - name: Upload safe public render evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-upstream-stage6-public-render
+          path: |
+            stage6-render-probe/out-png/**/*.png
+            stage6-render-probe/out-html/*.html
+            stage6-render-probe/interaction-evidence/**
+            stage6-render-probe/node_modules/@mlightcad/cad-simple-viewer-cli/dist-runner/**
+            stage6-render-probe/node_modules/@mlightcad/cad-simple-viewer-cli/package.json
+          if-no-files-found: error
+          retention-days: 3

@@ -145,7 +145,7 @@ export const SUPPORTED_FORMAT_CAPABILITIES: Record<string, FormatCapability> = {
     displayName: "AutoCAD Çizimi",
     defaultMime: "application/acad",
     canPreviewAdmin: true,
-    canPreviewPublic: false, // İlk sürümde DWG public preview kapalı (güvenlik)
+    canPreviewPublic: false, // İlk sürümde CAD public preview kapalı (güvenlik)
     maxPreviewSizeBytes: 100 * 1024 * 1024,
   },
   ".dxf": {
@@ -153,6 +153,15 @@ export const SUPPORTED_FORMAT_CAPABILITIES: Record<string, FormatCapability> = {
     kind: "cad",
     displayName: "DXF CAD Çizimi",
     defaultMime: "application/dxf",
+    canPreviewAdmin: true,
+    canPreviewPublic: false,
+    maxPreviewSizeBytes: 100 * 1024 * 1024,
+  },
+  ".dwf": {
+    extension: ".dwf",
+    kind: "cad",
+    displayName: "Autodesk DWF Çizimi",
+    defaultMime: "model/vnd.dwf",
     canPreviewAdmin: true,
     canPreviewPublic: false,
     maxPreviewSizeBytes: 100 * 1024 * 1024,

@@ -38,7 +38,7 @@ const DokPdfViewer = dynamic(() => import("./pdf-viewer").then((module) => modul
 const DokImageViewer = dynamic(() => import("./image-viewer").then((module) => module.DokImageViewer), { ssr: false });
 const DokTextViewer = dynamic(() => import("./text-viewer").then((module) => module.DokTextViewer), { ssr: false });
 const DokMarkdownViewer = dynamic(() => import("./markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
-const DokCadViewer = dynamic(() => import("./cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
+const DokCadViewer = dynamic(() => import("./cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
 
 interface FilePreviewShellProps {
   file: {

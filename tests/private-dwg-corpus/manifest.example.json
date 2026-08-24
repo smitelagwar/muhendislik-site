@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "file": "kalip-plani-ornek.dwg",
+      "sizeClass": "small",
+      "drawingType": "kalip-plani",
+      "features": ["MTEXT", "BLOCK/INSERT", "DIMENSION", "lineweight", "linetype", "colors"],
+      "baseline": {
+        "opens": true,
+        "durationMs": 1500,
+        "error": null,
+        "infiniteLoading": false,
+        "color": "pass",
+        "linetype": "warning",
+        "lineweight": "pass",
+        "text": "pass",
+        "block": "pass",
+        "hatch": "not-applicable"
+      }
+    }
+  ]
+}
