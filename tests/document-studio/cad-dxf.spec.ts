@@ -134,9 +134,27 @@ async function expectUpstreamDxfReady(page: Page) {
   const host = runtime.locator('[data-cad-upstream-host="true"]').first();
   await expect(runtime).toBeVisible({ timeout: 30_000 });
   await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
-  await expect(host.locator("canvas").first()).toBeVisible();
+  const canvas = host.locator("canvas").first();
+  await expect(canvas).toBeVisible();
   await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
-  return host.locator("canvas").first();
+
+  const studio = page.getByTestId("document-studio-shell");
+  const content = studio.locator("main").first();
+  const [hostBox, contentBox] = await Promise.all([host.boundingBox(), content.boundingBox()]);
+  if (!hostBox || !contentBox) throw new Error("CAD host veya stüdyo içerik alanı ölçülemedi");
+  expect(hostBox.width).toBeGreaterThanOrEqual(contentBox.width * 0.98);
+  expect(hostBox.height).toBeGreaterThanOrEqual(contentBox.height * 0.98);
+
+  const topbarControls = page
+    .getByTestId("document-studio-topbar")
+    .locator('[data-cad-display-controls="true"]');
+  await expect(topbarControls).toBeVisible();
+  await expect(topbarControls.getByRole("button", { name: "Gerçek Renk" })).toBeVisible();
+  await expect(topbarControls.getByRole("button", { name: "Siyah-Beyaz" })).toBeVisible();
+  await expect(topbarControls.getByRole("button", { name: "Lineweight" })).toBeVisible();
+  await expect(host.locator('[data-cad-display-controls="true"]')).toHaveCount(0);
+
+  return canvas;
 }
 
 test("DXF upstream-primary küçük, proje-benzeri ve büyük çizimleri açar; etkileşim sonrası hazır kalır", async ({ page }) => {
