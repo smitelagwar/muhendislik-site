@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,70 @@ function failureReason(error: unknown): string {
     return `${error.code}:${error.message}`;
   }
   return error instanceof Error ? `upstream-error:${error.message}` : "upstream-error:Bilinmeyen CAD hatası";
+}
+
+function CadDisplayControls({
+  displayMode,
+  lineWeightVisible,
+  onSelectDisplayMode,
+  onToggleLineWeight,
+  compact = false,
+}: {
+  displayMode: CadUpstreamDisplayMode;
+  lineWeightVisible: boolean;
+  onSelectDisplayMode: (mode: CadUpstreamDisplayMode) => void;
+  onToggleLineWeight: () => void;
+  compact?: boolean;
+}) {
+  const buttonClass = compact
+    ? "h-6 rounded-md px-2 text-[10px] font-medium"
+    : "h-7 px-2 text-[11px]";
+
+  return (
+    <div
+      className={
+        compact
+          ? "flex items-center gap-0.5 rounded-md border border-border/40 bg-background/30 p-0.5 text-muted-foreground backdrop-blur-sm"
+          : "flex items-center gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur"
+      }
+      data-cad-display-controls="true"
+    >
+      <Button
+        type="button"
+        size="sm"
+        variant={displayMode === "source" ? "secondary" : "ghost"}
+        className={`${buttonClass} ${displayMode === "source" ? "text-foreground" : "text-muted-foreground/70"}`}
+        aria-pressed={displayMode === "source"}
+        title="Gerçek Renk"
+        onClick={() => onSelectDisplayMode("source")}
+      >
+        Gerçek Renk
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant={displayMode === "monochrome" ? "secondary" : "ghost"}
+        className={`${buttonClass} ${displayMode === "monochrome" ? "text-foreground" : "text-muted-foreground/70"}`}
+        aria-pressed={displayMode === "monochrome"}
+        title="Siyah-Beyaz"
+        onClick={() => onSelectDisplayMode("monochrome")}
+      >
+        Siyah-Beyaz
+      </Button>
+      <span className="mx-0.5 h-3.5 w-px bg-border/60" aria-hidden="true" />
+      <Button
+        type="button"
+        size="sm"
+        variant={lineWeightVisible ? "secondary" : "ghost"}
+        className={`${buttonClass} ${lineWeightVisible ? "text-foreground" : "text-muted-foreground/70"}`}
+        aria-pressed={lineWeightVisible}
+        title="Çizgi kalınlıklarını göster/gizle"
+        onClick={onToggleLineWeight}
+      >
+        Lineweight
+      </Button>
+    </div>
+  );
 }
 
 export function DokCadUpstreamViewer({
@@ -212,9 +277,24 @@ export function DokCadUpstreamViewer({
     }
   };
 
+  const toolbarTarget =
+    state === "ready" && typeof document !== "undefined"
+      ? document.getElementById("cad-studio-toolbar-slot")
+      : null;
+
+  const displayControls = state === "ready" ? (
+    <CadDisplayControls
+      displayMode={displayMode}
+      lineWeightVisible={lineWeightVisible}
+      onSelectDisplayMode={selectDisplayMode}
+      onToggleLineWeight={() => void toggleLineWeight()}
+      compact={Boolean(toolbarTarget)}
+    />
+  ) : null;
+
   return (
     <section
-      className="relative flex min-h-[60vh] flex-1 overflow-hidden bg-background"
+      className="relative flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-background"
       data-cad-upstream-host="true"
       data-file-id={fileId}
       data-cad-upstream-state={state}
@@ -224,42 +304,11 @@ export function DokCadUpstreamViewer({
     >
       <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
 
-      {state === "ready" ? (
-        <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur">
-          <Button
-            type="button"
-            size="sm"
-            variant={displayMode === "source" ? "secondary" : "ghost"}
-            className="h-7 px-2 text-[11px]"
-            aria-pressed={displayMode === "source"}
-            onClick={() => selectDisplayMode("source")}
-          >
-            Gerçek Renk
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={displayMode === "monochrome" ? "secondary" : "ghost"}
-            className="h-7 px-2 text-[11px]"
-            aria-pressed={displayMode === "monochrome"}
-            onClick={() => selectDisplayMode("monochrome")}
-          >
-            Siyah-Beyaz
-          </Button>
-          <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
-          <Button
-            type="button"
-            size="sm"
-            variant={lineWeightVisible ? "secondary" : "ghost"}
-            className="h-7 px-2 text-[11px]"
-            aria-pressed={lineWeightVisible}
-            title="Çizgi kalınlıklarını göster/gizle"
-            onClick={() => void toggleLineWeight()}
-          >
-            Lineweight
-          </Button>
-        </div>
-      ) : null}
+      {displayControls && toolbarTarget
+        ? createPortal(displayControls, toolbarTarget)
+        : displayControls
+          ? <div className="absolute left-3 top-3 z-20">{displayControls}</div>
+          : null}
 
       {state === "loading" ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/72 backdrop-blur-[1px]">
