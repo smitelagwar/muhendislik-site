@@ -65,8 +65,8 @@ async function hasTerminalCadError(page: Page): Promise<boolean> {
   );
 }
 
-async function waitForCadIntegration(page: Page): Promise<"upstream" | "legacy"> {
-  return expect.poll(async () => {
+async function waitForCadIntegration(page: Page): Promise<void> {
+  await expect.poll(async () => {
     if (await hasTerminalCadError(page)) return "error";
 
     const upstream = page.locator('[data-cad-upstream-host="true"]').first();
@@ -82,7 +82,7 @@ async function waitForCadIntegration(page: Page): Promise<"upstream" | "legacy">
     }
 
     return "pending";
-  }, { timeout: 60_000, intervals: [250, 500, 1_000, 2_000] }).toMatch(/^(upstream|legacy)$/) as unknown as Promise<"upstream" | "legacy">;
+  }, { timeout: 60_000, intervals: [250, 500, 1_000, 2_000] }).toMatch(/^(upstream|legacy)$/);
 }
 
 async function visibleCadCanvas(page: Page) {
