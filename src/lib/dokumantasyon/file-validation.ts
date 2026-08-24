@@ -144,7 +144,22 @@ export function validateFileContent(
     };
   }
 
-  // 7. ZIP / DOCX / XLSX Doğrulaması (PK 03 04)
+  // 7. Autodesk DWF Doğrulaması ((DWF Vxx.xx) başlığı)
+  if (ext === ".dwf") {
+    if (len >= 6) {
+      const headerStr = Buffer.from(headerBuffer.slice(0, Math.min(len, 32))).toString("ascii");
+      if (headerStr.startsWith("(DWF V")) {
+        return { isValid: true, detectedMime: "model/vnd.dwf" };
+      }
+    }
+    return {
+      isValid: false,
+      detectedMime: "application/octet-stream",
+      errorMessage: "Geçersiz Autodesk DWF dosya yapısı ((DWF V...) başlığı eksik).",
+    };
+  }
+
+  // 8. ZIP / DOCX / XLSX Doğrulaması (PK 03 04)
   if (ext === ".zip" || ext === ".docx" || ext === ".xlsx") {
     if (
       len >= 4 &&
@@ -161,7 +176,7 @@ export function validateFileContent(
     };
   }
 
-  // 8. Düz Metin / Markdown / JSON / CSV / YAML Doğrulaması
+  // 9. Düz Metin / Markdown / JSON / CSV / YAML Doğrulaması
   if (
     ext === ".txt" ||
     ext === ".md" ||
@@ -197,7 +212,7 @@ export function validateFileContent(
     return { isValid: true, detectedMime: getDefaultMimeType(ext) };
   }
 
-  // 9. Diğer Desteklenen Uzantılar İçin Genel Kontrol
+  // 10. Diğer Desteklenen Uzantılar İçin Genel Kontrol
   return {
     isValid: true,
     detectedMime: getDefaultMimeType(ext),
