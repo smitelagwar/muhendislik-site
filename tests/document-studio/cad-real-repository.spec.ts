@@ -44,8 +44,8 @@ async function uploadFixture(page: Page, filePath: string, mime: string): Promis
   return payload.file.id as string;
 }
 
-async function waitForVisibleCad(page: Page, timeout: number): Promise<"upstream" | "legacy"> {
-  return expect.poll(async () => {
+async function waitForVisibleCad(page: Page, timeout: number): Promise<void> {
+  await expect.poll(async () => {
     const terminalError =
       await page.getByText("CAD görünümü açılamadı", { exact: true }).isVisible().catch(() => false) ||
       await page.getByText("DWG açılamadı", { exact: true }).isVisible().catch(() => false) ||
@@ -65,7 +65,13 @@ async function waitForVisibleCad(page: Page, timeout: number): Promise<"upstream
     }
 
     return "pending";
-  }, { timeout, intervals: [250, 500, 1_000, 2_000] }).toMatch(/^(upstream|legacy)$/) as unknown as "upstream" | "legacy";
+  }, { timeout, intervals: [250, 500, 1_000, 2_000] }).toMatch(/^(upstream|legacy)$/);
+}
+
+async function visibleCadCanvas(page: Page) {
+  const upstreamCanvas = page.locator('[data-cad-upstream-host="true"] canvas').first();
+  if (await upstreamCanvas.isVisible().catch(() => false)) return upstreamCanvas;
+  return page.getByTestId("cad-dxf-canvas").first().locator("canvas").first();
 }
 
 test("repo gerçek DWG ve DXF dosyaları Dökümantasyon yükle→aç akışında hata ekranına düşmez", async ({ page }) => {
@@ -90,7 +96,7 @@ test("repo gerçek DWG ve DXF dosyaları Dökümantasyon yükle→aç akışınd
     await expect(page.getByText("DWG açılamadı", { exact: true })).toHaveCount(0);
     await expect(page.getByText("DXF açılamadı", { exact: true })).toHaveCount(0);
 
-    const canvas = page.locator('[data-cad-upstream-host="true"] canvas, [data-testid="cad-dxf-canvas"] canvas').filter({ visible: true }).first();
+    const canvas = await visibleCadCanvas(page);
     await expect(canvas).toBeVisible();
     const box = await canvas.boundingBox();
     if (!box) throw new Error(`${fixture.file}: görünür CAD canvas sınırı alınamadı`);
