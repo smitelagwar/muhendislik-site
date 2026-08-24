@@ -10,6 +10,8 @@ CI notu: `CAD upstream Stage 8 release gate` main'de aktiftir ve final release e
 
 Final gate retrigger notu: bot tarafından üretilen lockfile senkronizasyonundan sonra PR workflow'larının kullanıcı-tokenlı branch olayıyla yeniden çalıştırılması için bu kayıt eklendi.
 
+Exact-preview retrigger kaydı: `0661b83fbc3db89b4d498c623cffa11627ebbf7f` üzerinde Stage 8 release gate ve `cad-runtime-production` Chromium dahil PASS oldu; ancak Vercel branch alias bir önceki `efba7b779007c5fcc2d75fa3dd41a2d293ddcb43` deployment'ında kaldı. Bu doküman commit'i yalnız final Git-integrated Vercel Preview'ı yeni exact head üzerinde yeniden üretmek içindir; runtime kodu veya release kriteri değiştirmez.
+
 ## Önkoşul
 
 Aşama 7 final cleanup gate:
