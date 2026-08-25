@@ -18,6 +18,10 @@ const slugs = [
   "tbdy-deprem-derzi-hesabi",
   "tbdy-bolum-17-basitlestirilmis-tasarim",
   "tbdy-uygulama-esaslari-taslak-statusu",
+  "tbdy-betonarme-ozel-deprem-etriyesi-ciroz",
+  "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri",
+  "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri",
+  "tbdy-betonarme-kolon-boyuna-donati-duzeni",
 ];
 const routes = slugs.map((slug) => `/${slug}`);
 const viewports = [
