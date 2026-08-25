@@ -1,148 +1,38 @@
-name: FAZ 0 Deprem Content Audit
+name: FAZ 0 Deprem Content Snapshot
 
 on:
   push:
     branches:
       - audit/faz0-deprem-inventory-20260825
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  inventory:
+  snapshot:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: audit/faz0-deprem-inventory-20260825
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Generate inventory
+      - name: Generate inventory snapshot
+        run: npx tsx scripts/generate-deprem-content-inventory.ts --out=deprem-content-inventory.json
+      - name: Commit snapshot
         shell: bash
         run: |
-          mkdir -p artifacts
-          set +e
-          npx tsx scripts/generate-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json 2>&1 | tee artifacts/generate-deprem-content-inventory.log
-          code=${PIPESTATUS[0]}
-          echo "generate-deprem-content-inventory=${code}" > artifacts/inventory-status.env
-          exit 0
-      - name: Upload inventory
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: faz0-deprem-content-inventory
-          path: artifacts/
-          if-no-files-found: error
-          retention-days: 7
-
-  static-quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Run static quality baseline
-        shell: bash
-        run: |
-          set -u
-          mkdir -p artifacts
-          : > artifacts/baseline.env
-
-          run_check() {
-            local name="$1"
-            shift
-            echo "===== $name =====" | tee "artifacts/${name}.log"
-            set +e
-            "$@" 2>&1 | tee -a "artifacts/${name}.log"
-            local code=${PIPESTATUS[0]}
-            set -e
-            echo "${name}=${code}" >> artifacts/baseline.env
-            echo "exit_code=${code}" | tee -a "artifacts/${name}.log"
-            return 0
-          }
-
-          run_check check-deprem-content npm run check:deprem-content
-          run_check check-content-quality npm run check:content-quality
-          run_check check-site-quality npm run check:site-quality
-          run_check typecheck npx tsc --noEmit
-          run_check lint npm run lint
-      - name: Upload static baseline
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: faz0-static-quality-baseline
-          path: artifacts/
-          if-no-files-found: error
-          retention-days: 7
-
-  browser-quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - name: Build production app
-        id: build
-        shell: bash
-        run: |
-          mkdir -p artifacts
-          set +e
-          npm run build 2>&1 | tee artifacts/build.log
-          code=${PIPESTATUS[0]}
-          echo "build=${code}" > artifacts/browser-baseline.env
-          echo "code=${code}" >> "$GITHUB_OUTPUT"
-          exit 0
-      - name: Resolve system browser
-        if: steps.build.outputs.code == '0'
-        shell: bash
-        run: |
-          browser="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
-          if [ -z "$browser" ]; then
-            echo "No system Chrome/Chromium found" >&2
-            exit 1
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deprem-content-inventory.json
+          if git diff --cached --quiet; then
+            echo "Inventory snapshot is unchanged."
+            exit 0
           fi
-          echo "PUPPETEER_EXECUTABLE_PATH=$browser" >> "$GITHUB_ENV"
-          echo "Using browser: $browser"
-      - name: Run navigation baseline
-        if: steps.build.outputs.code == '0'
-        shell: bash
-        run: |
-          set +e
-          npm run check:navigation 2>&1 | tee artifacts/check-navigation.log
-          code=${PIPESTATUS[0]}
-          echo "check-navigation=${code}" >> artifacts/browser-baseline.env
-          exit 0
-      - name: Run visual baseline
-        if: steps.build.outputs.code == '0'
-        shell: bash
-        run: |
-          set +e
-          npm run check:visual-system 2>&1 | tee artifacts/check-visual-system.log
-          code=${PIPESTATUS[0]}
-          echo "check-visual-system=${code}" >> artifacts/browser-baseline.env
-          exit 0
-      - name: Record blocked browser checks
-        if: steps.build.outputs.code != '0'
-        shell: bash
-        run: |
-          echo "check-navigation=BLOCKED_BY_BUILD" >> artifacts/browser-baseline.env
-          echo "check-visual-system=BLOCKED_BY_BUILD" >> artifacts/browser-baseline.env
-      - name: Upload browser baseline
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: faz0-browser-quality-baseline
-          path: artifacts/
-          if-no-files-found: error
-          retention-days: 7
+          git commit -m "chore(audit): snapshot FAZ 0 deprem inventory [skip ci]"
+          git push origin HEAD:audit/faz0-deprem-inventory-20260825
