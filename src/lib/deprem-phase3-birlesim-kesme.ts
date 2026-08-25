@@ -1,0 +1,121 @@
+import { PHASE3_UPDATED_AT, phase3Lines, tbdyPhase3References, type DepremPhase3Override } from "./deprem-phase3-shared";
+
+export const DEPREM_PHASE3_BIRLESIM_KESME: DepremPhase3Override = {
+  slug: "tbdy-betonarme-birlesim-kesme-guvenligi",
+  description: "TBDY 2018 Madde 7.5.2'ye göre kolon-kiriş birleşim çekirdeğindeki kesme talebinin Denklem 7.11 ile belirlenmesini, kuşatılmış/kuşatılmamış dayanım sınırlarını ve minimum enine donatıyı açıklar.",
+  seoTitle: "TBDY Kolon-Kiriş Birleşim Kesme Güvenliği | 7.5.2",
+  seoDescription: "Ve=1.25fyk(As1+As2)-Vkol, 1.7/1.0 bjh√fck sınırları ve birleşim çekirdeğindeki %40/%60 enine donatı koşulları.",
+  updatedAt: PHASE3_UPDATED_AT,
+  readTime: "11 dk",
+  sections: [
+    {
+      id: "birlesim-kesmesi-neden-ayri",
+      title: "Kolon ve kiriş yeterli olsa bile birleşim çekirdeği ayrıca kontrol edilir",
+      content: phase3Lines(
+        "TBDY 7.5.2, süneklik düzeyi yüksek çerçevelerde kolon-kiriş birleşim bölgesini ayrı bir kesme güvenliği problemi olarak ele alır. Kiriş boyuna donatılarının akma düzeyine yaklaşan çekme/basınç kuvvetleri birleşim çekirdeğinde yüksek yatay kesme talebi oluşturabilir.",
+        "",
+        "| Kontrol | Yönetmelik hükmü |",
+        "|---|---|",
+        "| Birleşim kesme talebi | Denklem (7.11) |",
+        "| Kuşatılmış birleşim üst sınırı | Denklem (7.12) |",
+        "| Kuşatılmamış birleşim üst sınırı | Denklem (7.13) |",
+        "| Minimum çekirdek enine donatısı | 7.5.2.3 |",
+        "",
+        "> [!engineering] Ayrı zayıf halka",
+        "> Kolon ve kirişlerin eğilme/kesme kontrollerinin geçmesi, birleşim çekirdeğinin 7.5.2'yi otomatik olarak sağladığı anlamına gelmez."
+      ),
+      subsections: [],
+    },
+    {
+      id: "denklem-7-11",
+      title: "Denklem 7.11: Kiriş donatı kuvvetlerinden kolon kesmesini çıkarın",
+      content: phase3Lines(
+        "Gözönüne alınan deprem doğrultusunda birleşim bölgesi kesme kuvveti, kiriş boyuna donatılarının kapasite düzeyindeki kuvvetlerinden kolon kesmesinin çıkarılmasıyla elde edilir.",
+        "",
+        "```formula",
+        "@label: TBDY Denklem (7.11) — kolon-kiriş birleşim kesmesi",
+        "V_e = 1.25 f_yk (A_s1 + A_s2) - V_kol",
+        "@symbol: V_e | Birleşim bölgesi tasarım kesme kuvveti | kN",
+        "@symbol: f_yk | Boyuna donatının karakteristik akma dayanımı | kN/cm²",
+        "@symbol: A_s1 | Birleşimin bir tarafındaki ilgili kiriş çekme donatısı alanı | cm²",
+        "@symbol: A_s2 | Karşı taraftaki ilgili kiriş çekme donatısı alanı | cm²",
+        "@symbol: V_kol | Birleşime komşu kolon kesmelerinden yönetmelik tanımına göre alınan değer | kN",
+        "```",
+        "",
+        "Kiriş kolona yalnız bir taraftan saplanıyor ve diğer tarafta devam etmiyorsa yönetmelik `As2 = 0` alınmasını ister.",
+        "",
+        "> [!warning] Birim sistemi",
+        "> Formülde kullanılan alan ve dayanım birimleri birbiriyle uyumlu seçilmelidir; yazılım raporundaki N–mm veya kN–cm dönüşümleri kontrol edilmeden el hesabıyla karşılaştırma yapılmamalıdır."
+      ),
+      subsections: [],
+    },
+    {
+      id: "dayanim-sinirlari",
+      title: "Denklem 7.12 ve 7.13: Kuşatılma sınıfı dayanım katsayısını doğrudan değiştirir",
+      content: phase3Lines(
+        "Denklem (7.11) ile bulunan `Ve`, birleşim sınıfına bağlı aşağıdaki üst sınırı aşamaz:",
+        "",
+        "| Birleşim sınıfı | Kesme üst sınırı |",
+        "|---|---|",
+        "| Kuşatılmış | `Ve ≤ 1.7 bj h √fck` |",
+        "| Kuşatılmamış | `Ve ≤ 1.0 bj h √fck` |",
+        "",
+        "`bj` birleşim bölgesinin etkin genişliğidir ve Şekil 7.10'daki geometriye göre belirlenir; `h` gözönüne alınan deprem doğrultusundaki kolon enkesit boyutudur.",
+        "",
+        "Bu sınırlar aşılırsa TBDY, kolon ve/veya kiriş kesit boyutlarının büyütülerek deprem hesabının tekrarlanmasını ister. Yalnız birleşim etriyesini artırmak bu üst sınır ihlalini çözmez."
+      ),
+      subsections: [],
+    },
+    {
+      id: "bj-etkin-genislik",
+      title: "bj, kolon alanının tamamı veya keyfi bir kiriş genişliği değildir",
+      content: phase3Lines(
+        "Birleşim kesme dayanımındaki `bj`, kiriş ve kolonun birleşim geometrisine bağlı **etkin birleşim genişliğidir**. TBDY Şekil 7.10, kirişin kolona göre genişlik ve konumuna bağlı olarak `bj`'nin nasıl sınırlandırılacağını gösterir.",
+        "",
+        "Bu nedenle yazılımda birleşim kesme alanını kontrol ederken kullanılan `bj` ve `h` değerleri rapordan okunmalı ve gerçek kesit geometrisiyle karşılaştırılmalıdır.",
+        "",
+        "> [!warning] Otomatik kabul riski",
+        "> Kolonun tam brüt alanını `bj×h` olarak kullanmak veya `bj=bw` diye tek bir genelleme yapmak her birleşim geometrisi için doğru değildir. Şekil 7.10 esas alınmalıdır."
+      ),
+      subsections: [],
+    },
+    {
+      id: "minimum-enine-donati",
+      title: "Birleşim çekirdeği enine donatısı kesme sınırından bağımsız ikinci kapıdır",
+      content: phase3Lines(
+        "7.5.2.3'e göre birleşim çekirdeğinde minimum enine donatı, alttaki kolon sarılma bölgesi için hesaplanan enine donatı miktarına göre belirlenir:",
+        "",
+        "| Birleşim | Minimum miktar | Minimum çap | Maksimum aralık |",
+        "|---|---:|---:|---:|",
+        "| Kuşatılmış | %40 | 8 mm | 150 mm |",
+        "| Kuşatılmamış | %60 | 8 mm | 100 mm |",
+        "",
+        "Dolayısıyla `Ve` dayanım sınırının altında kalsa bile birleşim çekirdeği enine donatısı ayrıca bu minimumları sağlamalıdır.",
+        "",
+        "> [!check] Kolon donatısının devamı",
+        "> Birleşim bölgesindeki etriye/çiroz düzeninin paftada sürekliliği ve kiriş donatılarıyla çakışmadan uygulanabilirliği ayrıca kontrol edilmelidir."
+      ),
+      subsections: [],
+    },
+    {
+      id: "kontrol-listesi",
+      title: "Proje kontrol listesi",
+      content: phase3Lines(
+        "- Birleşim 7.5.1'e göre kuşatılmış/kuşatılmamış doğru sınıflandırılmış mı?",
+        "- Denklem (7.11) her deprem doğrultusu için doğru As1 ve As2 ile kurulmuş mu?",
+        "- Tek taraflı kirişte As2=0 uygulanmış mı?",
+        "- Vkol yönetmelik tanımı ve analiz işaretleriyle doğru seçilmiş mi?",
+        "- Etkin birleşim genişliği bj Şekil 7.10 geometrisine göre doğrulanmış mı?",
+        "- Kuşatılmış birleşimde Ve ≤ 1.7 bj h √fck sağlanıyor mu?",
+        "- Kuşatılmamış birleşimde Ve ≤ 1.0 bj h √fck sağlanıyor mu?",
+        "- Üst sınır aşılırsa kesit büyütülüp deprem hesabı yeniden yapılmış mı?",
+        "- Birleşim çekirdeğinde %40/%60 minimum enine donatı uygulanmış mı?",
+        "- ϕ8 minimum çap ve 150/100 mm maksimum aralık sınırları paftada sağlanıyor mu?"
+      ),
+      subsections: [],
+    },
+  ],
+  references: tbdyPhase3References("Bölüm 7; Madde 7.5.2, Denklem (7.11), (7.12) ve (7.13)"),
+  keywords: ["TBDY 2018", "birleşim kesmesi", "kolon kiriş birleşimi", "Ve", "bj", "As1", "As2", "7.5.2"],
+  tags: ["TBDY 2018", "Betonarme", "Birleşim", "Kesme", "Kapasite Tasarımı"],
+};

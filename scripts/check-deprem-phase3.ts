@@ -45,22 +45,30 @@ const BATCH_5_SLUGS = [
   "tbdy-betonarme-kiris-mesnet-donati-surekliligi",
 ] as const;
 
+const BATCH_6_SLUGS = [
+  "tbdy-betonarme-kiris-sarilma-bolgeleri",
+  "tbdy-betonarme-kiris-kapasite-kesme",
+  "tbdy-betonarme-kusatilmamis-birlesim",
+  "tbdy-betonarme-birlesim-kesme-guvenligi",
+] as const;
+
 const EXPECTED_SLUGS = [
   ...BATCH_1_SLUGS,
   ...BATCH_2_SLUGS,
   ...BATCH_3_SLUGS,
   ...BATCH_4_SLUGS,
   ...BATCH_5_SLUGS,
+  ...BATCH_6_SLUGS,
 ] as const;
 type ExpectedSlug = (typeof EXPECTED_SLUGS)[number];
 
-const BETONARME_SET = new Set<string>([...BATCH_4_SLUGS, ...BATCH_5_SLUGS]);
+const BETONARME_SET = new Set<string>([...BATCH_4_SLUGS, ...BATCH_5_SLUGS, ...BATCH_6_SLUGS]);
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => {
   if (!condition) errors.push(message);
 };
 
-assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk beş batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
+assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk altı batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
 assert(DEPREM_PHASE3_SLUGS.size === EXPECTED_SLUGS.length, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of EXPECTED_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 source-of-truth slug eksik: ${slug}`);
 
@@ -72,7 +80,7 @@ assert(rolloutApplyIndex > phase3ApplyIndex, "Runtime sırası teknik FAZ 3 göv
 assert(assemblerSource.includes("getDepremPhase3ContentSignature()"), "Makale cache signature FAZ 3 içeriğini izlemiyor.");
 
 const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
-for (const batch of [1, 2, 3, 4, 5] as const) {
+for (const batch of [1, 2, 3, 4, 5, 6] as const) {
   assert(phase3AggregatorSource.includes(`DEPREM_PHASE3_BATCH_${batch}_ARTICLES`), `FAZ 3 aggregator batch ${batch}'ü toplamıyor.`);
   assert(fs.existsSync(path.join(ROOT, `src/lib/deprem-phase3-batch${batch}.ts`)), `FAZ 3 batch ${batch} modülü bulunamadı.`);
 }
@@ -102,6 +110,10 @@ const requiredTokens: Record<ExpectedSlug, string[]> = {
   "tbdy-betonarme-kolon-kapasite-kesme": ["Denklem (7.5)", "1.4Mri", "Ve ≤ Vr", "0.85 Aw fck", "Vc = 0", "Nd/(Ac fck) ≤ 0.05", "7.3.8"],
   "tbdy-betonarme-kiris-boyut-eksen-kacikligi": ["250 mm", "3 × döşeme kalınlığı", "3.5 bw", "ℓn/4", "≥ %30", "Nd/(Ac fck) ≤ 0.10", "3/4", "uydurulmamalıdır"],
   "tbdy-betonarme-kiris-mesnet-donati-surekliligi": ["Denklem (7.8)", "12 mm", "≥ %50", "≥ %30", "%2", "1/4", "0.4ℓb", "12ϕ", "50ϕ"],
+  "tbdy-betonarme-kiris-sarilma-bolgeleri": ["7.4.4", "2h", "50 mm", "ϕ8", "d/4", "8ϕl,min", "150 mm", "350 mm", "100 mm"],
+  "tbdy-betonarme-kiris-kapasite-kesme": ["Denklem (7.9)", "1.4Mri", "D ile artırılmış", "Ve ≤ Vr", "0.85 bw d √fck", "Vc = 0", "yarısından büyük", "pilye"],
+  "tbdy-betonarme-kusatilmamis-birlesim": ["7.5.1", "dört taraftan", "3/4", "kuşatılmamış birleşim", "1.7 bj h √fck", "1.0 bj h √fck", "%40", "%60", "100 mm"],
+  "tbdy-betonarme-birlesim-kesme-guvenligi": ["Denklem (7.11)", "As2 = 0", "1.7 bj h √fck", "1.0 bj h √fck", "Şekil 7.10", "%40", "%60", "150 mm", "100 mm"],
 };
 
 const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; symbols: number }>> = {
@@ -113,6 +125,8 @@ const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; sym
   "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri": { label: "7.3.1.2", symbols: 3 },
   "tbdy-betonarme-kolon-kapasite-kesme": { label: "7.5", symbols: 3 },
   "tbdy-betonarme-kiris-mesnet-donati-surekliligi": { label: "7.8", symbols: 3 },
+  "tbdy-betonarme-kiris-kapasite-kesme": { label: "7.9", symbols: 5 },
+  "tbdy-betonarme-birlesim-kesme-guvenligi": { label: "7.11", symbols: 5 },
 };
 
 for (const configured of DEPREM_PHASE3_ARTICLES) {
@@ -194,7 +208,7 @@ for (const configured of DEPREM_PHASE3_ARTICLES) {
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 3 ilk beş batch kontrolü başarısız:\n");
+  console.error("Deprem FAZ 3 ilk altı batch kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -202,13 +216,14 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 3",
-  completedBatches: 5,
+  completedBatches: 6,
   batchSizes: {
     1: BATCH_1_SLUGS.length,
     2: BATCH_2_SLUGS.length,
     3: BATCH_3_SLUGS.length,
     4: BATCH_4_SLUGS.length,
     5: BATCH_5_SLUGS.length,
+    6: BATCH_6_SLUGS.length,
   },
   articles: EXPECTED_SLUGS.length,
   slugs: EXPECTED_SLUGS,
@@ -219,11 +234,12 @@ console.log(JSON.stringify({
     "src/lib/deprem-phase3-batch3.ts",
     "src/lib/deprem-phase3-batch4.ts",
     "src/lib/deprem-phase3-batch5.ts",
+    "src/lib/deprem-phase3-batch6.ts",
   ],
   runtimeOrder: "topic seed -> phase3 technical override -> rollout enhancement -> author normalization",
   c3GenericBodyRemainingInCompletedBatches: 0,
   officialSourceProfile: "AFAD TBDY 2018 Bölüm 3/4/7/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 12, "tbdy-betonarme": 8 },
+  seriesCoverage: { tbdy: 12, "tbdy-betonarme": 12 },
   ts500Touched: false,
 }, null, 2));
