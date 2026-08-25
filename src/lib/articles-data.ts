@@ -5,6 +5,7 @@ import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
 import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
 import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
 import { applyDepremPilotOverride, getDepremPilotContentSignature } from "./deprem-pilot-articles";
+import { applyDepremRolloutEnhancement, getDepremRolloutSignature } from "./deprem-rollout";
 import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
 import { normalizeDepremContentAuthor } from "./content-author";
 
@@ -96,10 +97,11 @@ function parseArticles(fileContent: string) {
             normalizedArticles[article.slug] = article;
         }
 
-        // FAZ 2 pilotları hem topic hem legacy kaynaklardan gelebilir. Bu nedenle pilot
-        // source-of-truth katmanı bütün kaynaklar birleştirildikten sonra kontrollü override edilir.
+        // FAZ 2 pilotları ve kontrollü rollout enhancement katmanı tüm kaynaklar
+        // birleştirildikten sonra uygulanır. Allowlist dışındaki makaleler değişmeden kalır.
         for (const [slug, article] of Object.entries(normalizedArticles)) {
-            normalizedArticles[slug] = applyDepremPilotOverride(article);
+            const pilotArticle = applyDepremPilotOverride(article);
+            normalizedArticles[slug] = applyDepremRolloutEnhancement(pilotArticle);
         }
 
         return Object.fromEntries(
@@ -152,6 +154,7 @@ export function getArticlesCacheSignature(): string {
             .map((article) => `${article.slug}:${article.updatedAt ?? article.date}:${article.title}`)
             .join("|"),
         getDepremPilotContentSignature(),
+        getDepremRolloutSignature(),
     ].filter(Boolean).join("|");
     return `${getArticleCache().signature}:${supplementalSignature}`;
 }
