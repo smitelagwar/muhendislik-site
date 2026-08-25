@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getArticleList, type ArticleData } from "../src/lib/articles-data";
 import { parseBlocks } from "../src/lib/article-blocks";
+import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import { DEPREM_TOPIC_ARTICLES } from "../src/lib/deprem-topic-articles";
 import { DEPREM_SERIES, getDepremSeriesForArticle } from "../src/lib/deprem-series";
 import { SITE_SECTIONS } from "../src/lib/site-sections";
@@ -10,6 +11,7 @@ import { TS500_ARTICLES, TS500_SLUGS } from "../src/lib/ts500-content";
 const ROOT = process.cwd();
 const RUNTIME_ASSEMBLER = "src/lib/articles-data.ts";
 const DATA_PATH = "src/lib/data.json";
+const PILOT_PATH = "src/lib/deprem-pilot-articles.ts";
 const TOPIC_PATH = "src/lib/deprem-topic-articles.ts";
 const NORMALIZER_PATH = "src/lib/deprem-existing-overrides.ts";
 const TS500_DIR = "src/lib/ts500-content";
@@ -67,6 +69,7 @@ const rawArticles = JSON.parse(rawText) as Record<string, ArticleData>;
 const rawDepremArticles = Object.values(rawArticles).filter((article) => article.sectionId === "deprem-yonetmelik");
 const rawDepremBySlug = new Map(rawDepremArticles.map((article) => [article.slug, article]));
 const topicBySlug = new Map(DEPREM_TOPIC_ARTICLES.map((article) => [article.slug, article]));
+const pilotBySlug = new Map(DEPREM_PILOT_ARTICLES.map((article) => [article.slug, article]));
 
 const allArticles = getArticleList();
 const allArticleSlugs = new Set(allArticles.map((article) => article.slug));
@@ -93,13 +96,14 @@ const inventory = depremArticles.map((article) => {
   const series = getDepremSeriesForArticle(article);
   const rawArticle = rawDepremBySlug.get(article.slug);
   const isTs500 = TS500_SLUGS.has(article.slug);
+  const isPilot = DEPREM_PILOT_SLUGS.has(article.slug);
   const isTopic = topicBySlug.has(article.slug);
   const bodyChangedByNormalizer = Boolean(
     rawArticle && JSON.stringify(rawArticle.sections) !== JSON.stringify(article.sections),
   );
 
   let sourceOfTruth: {
-    kind: "ts500-content" | "deprem-topic-articles" | "legacy-normalized" | "unknown";
+    kind: "ts500-content" | "deprem-pilot-articles" | "deprem-topic-articles" | "legacy-normalized" | "unknown";
     runtimeAssembler: string;
     seed: string | null;
     body: string | null;
@@ -114,6 +118,14 @@ const inventory = depremArticles.map((article) => {
       seed: rawArticle ? DATA_PATH : null,
       body: ts500File,
       metadata: ts500File,
+    };
+  } else if (isPilot) {
+    sourceOfTruth = {
+      kind: "deprem-pilot-articles",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: rawArticle ? DATA_PATH : isTopic ? TOPIC_PATH : null,
+      body: PILOT_PATH,
+      metadata: PILOT_PATH,
     };
   } else if (isTopic) {
     sourceOfTruth = {
@@ -217,6 +229,7 @@ const nonTs500 = inventory.filter((item) => item.seriesId !== "ts500");
 const legacyNormalized = inventory.filter((item) => item.sourceOfTruth.kind === "legacy-normalized");
 const legacyBodyRecovered = legacyNormalized.filter((item) => item.sourceOfTruth.body === NORMALIZER_PATH);
 const legacyBodyPreserved = legacyNormalized.filter((item) => item.sourceOfTruth.body === DATA_PATH);
+const pilotInventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-pilot-articles");
 
 const oldRouteSourceHits: Array<{ file: string; line: number; text: string }> = [];
 for (const file of walk("src").filter((item) => /\.(?:ts|tsx|json|md|mdx)$/.test(item))) {
@@ -233,12 +246,13 @@ const bySeries = Object.fromEntries(
 const unknownSourceSlugs = inventory
   .filter((item) => !item.sourceOfTruth.body || !item.sourceOfTruth.metadata)
   .map((item) => item.slug);
+const missingPilotRuntimeSlugs = [...DEPREM_PILOT_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
 
 const report = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
-  scope: "FAZ 0 — Freeze, envanter ve kaynak haritası",
+  scope: "FAZ 0/2 — Envanter, kaynak haritası ve pilot source-of-truth",
   invariants: {
     targetAuthor: TARGET_AUTHOR,
     targetInitials: TARGET_INITIALS,
@@ -250,6 +264,8 @@ const report = {
     nonTs500Target: nonTs500.length,
     rawDataDepremRecords: rawDepremArticles.length,
     depremTopicArticles: DEPREM_TOPIC_ARTICLES.length,
+    depremPilotArticles: DEPREM_PILOT_ARTICLES.length,
+    pilotInventoryArticles: pilotInventory.length,
     ts500RichArticles: TS500_ARTICLES.length,
     legacyNormalizedArticles: legacyNormalized.length,
     legacyBodyRecovered: legacyBodyRecovered.length,
@@ -262,6 +278,13 @@ const report = {
     rawVsTopic: [...topicBySlug.keys()].filter((slug) => rawDepremBySlug.has(slug)),
     rawTs500RecordsShadowedByRichTs500: [...TS500_SLUGS].filter((slug) => rawDepremBySlug.has(slug)),
     topicVsTs500: [...topicBySlug.keys()].filter((slug) => TS500_SLUGS.has(slug)),
+    pilotVsTs500: [...DEPREM_PILOT_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
+  },
+  pilotAudit: {
+    configuredSlugs: [...DEPREM_PILOT_SLUGS],
+    sourceOfTruthSlugs: pilotInventory.map((item) => item.slug),
+    missingRuntimeSlugs: missingPilotRuntimeSlugs,
+    allConfiguredPilotsResolved: missingPilotRuntimeSlugs.length === 0 && pilotInventory.length === DEPREM_PILOT_ARTICLES.length,
   },
   visualAudit: {
     genericOrReusedCoverSlugs: inventory.filter((item) => item.genericOrReusedCover).map((item) => item.slug),
@@ -312,6 +335,7 @@ console.log(JSON.stringify({
   outputPath,
   counts: report.counts,
   sourceAudit: report.sourceAudit,
+  pilotAudit: report.pilotAudit,
   collisionCounts: Object.fromEntries(
     Object.entries(report.collisions).map(([key, value]) => [key, Array.isArray(value) ? value.length : 0]),
   ),
@@ -327,4 +351,4 @@ console.log(JSON.stringify({
   encodingSuspicionCount: report.encodingAudit.suspiciousSlugs.length,
 }, null, 2));
 
-if (!report.sourceAudit.allSourcesResolved) process.exitCode = 2;
+if (!report.sourceAudit.allSourcesResolved || !report.pilotAudit.allConfiguredPilotsResolved) process.exitCode = 2;
