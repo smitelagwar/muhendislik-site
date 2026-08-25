@@ -1,4 +1,4 @@
-import { getDepremRolloutSpec, DEPREM_ROLLOUT_BATCH_1 } from "@/lib/deprem-rollout";
+import { getDepremRolloutSpec, DEPREM_ROLLOUT_ARTICLES } from "@/lib/deprem-rollout";
 import { renderDepremVisualSvg, type DepremVisualAsset } from "@/lib/deprem-visual";
 
 const ASSETS = ["cover.svg", "diagram.svg"] as const;
@@ -6,7 +6,7 @@ const ASSETS = ["cover.svg", "diagram.svg"] as const;
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return DEPREM_ROLLOUT_BATCH_1.flatMap((spec) =>
+  return DEPREM_ROLLOUT_ARTICLES.flatMap((spec) =>
     ASSETS.map((asset) => ({ slug: spec.slug, asset })),
   );
 }
