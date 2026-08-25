@@ -5,6 +5,7 @@ import { JsonLd, generateArticleSchema, generateBreadcrumbSchema } from "@/compo
 import { getAllSlugs, getArticleBySlug, getArticles } from "@/lib/articles-data";
 import { parseBlocks } from "@/lib/article-blocks";
 import { buildArticleNavigation } from "@/lib/content-navigation";
+import { getDepremSeriesForArticle } from "@/lib/deprem-series";
 import { SITE_DESCRIPTION, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
 import { buildArticleMetadata, parseLocalizedDateToIso } from "@/lib/seo";
 
@@ -77,6 +78,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     blocks: parseBlocks(section.content),
   }));
   const navigation = buildArticleNavigation(article);
+  const hideToolPromos =
+    article.sectionId === "deprem-yonetmelik" && !getDepremSeriesForArticle(article).relatedToolHref;
   const publishedTime = parseLocalizedDateToIso(article.date) ?? article.date;
   const modifiedTime = parseLocalizedDateToIso(article.updatedAt ?? article.date) ?? article.updatedAt ?? article.date;
   const articleSchema = generateArticleSchema({
@@ -105,6 +108,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         parsedSections={parsedSections}
         breadcrumbs={navigation.breadcrumbs}
         backLink={navigation.backLink}
+        hideToolPromos={hideToolPromos}
       />
     </>
   );

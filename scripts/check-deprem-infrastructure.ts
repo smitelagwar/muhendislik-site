@@ -72,6 +72,9 @@ assert(articleClientSource.includes("getArticleAuthorPresentation"), "ArticleCli
 assert(!articleClientSource.includes('article.author.split(" ")'), "ArticleClient eski otomatik monogram üretimini hâlâ içeriyor.");
 assert(articleClientSource.includes("FormulaBlock"), "Ortak FormulaBlock renderer yok.");
 assert(articleClientSource.includes("ArticleFigure"), "Ortak ArticleFigure renderer yok.");
+const articlePageSource = fs.readFileSync(path.resolve(process.cwd(), "src/app/[slug]/page.tsx"), "utf8");
+assert(articlePageSource.includes("getDepremSeriesForArticle"), "Makale sayfası deprem seri CTA ilişkisini kullanmıyor.");
+assert(articlePageSource.includes("hideToolPromos={hideToolPromos}"), "İlişkili aracı olmayan deprem serilerinde promosyonlar gizlenmiyor.");
 
 const oldRoute = "/deprem-yonetmelik/araclar/";
 for (const file of ["src/lib/deprem-series.ts", "src/components/deprem/AraclarGrid.tsx"]) {
