@@ -1,4 +1,5 @@
 import type { ArticleData } from "./articles-data";
+import { DEPREM_ROLLOUT_EXTRA_BATCHES } from "./deprem-rollout-extra";
 
 const TBDY_PDF = "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf";
 const TBDY_PAGE = "https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi";
@@ -7,7 +8,7 @@ const UPDATED_AT = "25 Ağustos 2026";
 
 export type DepremRolloutReferenceProfile = "tbdy" | "tbdy-hazard" | "preserve";
 export type DepremVisualLayout = "flow" | "decision" | "comparison" | "classification";
-export type DepremRolloutBatch = 1 | 2 | 3 | 4 | 5;
+export type DepremRolloutBatch = number;
 
 export interface DepremRolloutSpec {
   slug: string;
@@ -106,12 +107,13 @@ export const DEPREM_ROLLOUT_BATCH_5: readonly DepremRolloutSpec[] = [
   makeSpec("su-yalitimi-ts-4749-uygulama-detaylari", 5, "Su Yalıtımı ve Uygulama Detayları", "SU · DETAY · SÜREKLİLİK", ["Su etkisi ve yüzey", "Yalıtım katmanı detayı", "Birleşim ve süreklilik kontrolü"], "preserve", "comparison"),
 ] as const;
 
-export const DEPREM_ROLLOUT_BATCHES: Readonly<Record<DepremRolloutBatch, readonly DepremRolloutSpec[]>> = {
+export const DEPREM_ROLLOUT_BATCHES: Readonly<Record<number, readonly DepremRolloutSpec[]>> = {
   1: DEPREM_ROLLOUT_BATCH_1,
   2: DEPREM_ROLLOUT_BATCH_2,
   3: DEPREM_ROLLOUT_BATCH_3,
   4: DEPREM_ROLLOUT_BATCH_4,
   5: DEPREM_ROLLOUT_BATCH_5,
+  ...DEPREM_ROLLOUT_EXTRA_BATCHES,
 };
 
 export const DEPREM_ROLLOUT_ARTICLES: readonly DepremRolloutSpec[] = Object.values(DEPREM_ROLLOUT_BATCHES).flat();
