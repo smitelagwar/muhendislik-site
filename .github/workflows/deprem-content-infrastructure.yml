@@ -18,6 +18,7 @@ on:
       - src/lib/content-author.ts
       - src/lib/deprem-pilot-articles.ts
       - src/lib/deprem-rollout.ts
+      - src/lib/deprem-rollout-extra.ts
       - src/lib/deprem-series.ts
       - src/lib/deprem-visual.ts
       - scripts/check-deprem-content.ts
@@ -45,7 +46,7 @@ jobs:
         run: npm run check:deprem-infrastructure
       - name: FAZ 2 pilot content contract
         run: npx tsx scripts/check-deprem-pilots.ts
-      - name: Deprem rollout Batch 1/2/3/4/5 contract
+      - name: Deprem rollout contract
         run: npx tsx scripts/check-deprem-rollout.ts
       - name: Deprem rollout source-of-truth inventory
         run: npx tsx scripts/generate-deprem-content-inventory.ts --out=deprem-content-inventory.ci.json
