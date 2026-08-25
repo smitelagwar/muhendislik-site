@@ -4,6 +4,7 @@ import { getArticleList, type ArticleData } from "../src/lib/articles-data";
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleAuthorPresentation } from "../src/lib/content-author";
 import { normalizeExistingDepremArticle } from "../src/lib/deprem-existing-overrides";
+import { DEPREM_PHASE3_ARTICLES, DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";
 import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import {
   DEPREM_ROLLOUT_ARTICLES,
@@ -21,6 +22,7 @@ import { TS500_ARTICLES, TS500_SLUGS } from "../src/lib/ts500-content";
 const ROOT = process.cwd();
 const RUNTIME_ASSEMBLER = "src/lib/articles-data.ts";
 const DATA_PATH = "src/lib/data.json";
+const PHASE3_PATH = "src/lib/deprem-phase3-articles.ts";
 const PILOT_PATH = "src/lib/deprem-pilot-articles.ts";
 const ROLLOUT_PATH = "src/lib/deprem-rollout.ts";
 const TOPIC_PATH = "src/lib/deprem-topic-articles.ts";
@@ -100,6 +102,7 @@ const inventory = depremArticles.map((article) => {
   const rawArticle = rawDepremBySlug.get(article.slug);
   const isTs500 = TS500_SLUGS.has(article.slug);
   const isPilot = DEPREM_PILOT_SLUGS.has(article.slug);
+  const isPhase3 = DEPREM_PHASE3_SLUGS.has(article.slug);
   const rolloutSpec = getDepremRolloutSpec(article.slug);
   const isRollout = DEPREM_ROLLOUT_SLUGS.has(article.slug);
   const isTopic = topicBySlug.has(article.slug);
@@ -108,7 +111,7 @@ const inventory = depremArticles.map((article) => {
   );
 
   let sourceOfTruth: {
-    kind: "ts500-content" | "deprem-pilot-articles" | "deprem-topic-articles" | "legacy-normalized" | "unknown";
+    kind: "ts500-content" | "deprem-pilot-articles" | "deprem-phase3-articles" | "deprem-topic-articles" | "legacy-normalized" | "unknown";
     runtimeAssembler: string;
     seed: string | null;
     body: string | null;
@@ -134,6 +137,15 @@ const inventory = depremArticles.map((article) => {
       body: PILOT_PATH,
       metadata: PILOT_PATH,
       enhancement: null,
+    };
+  } else if (isPhase3) {
+    sourceOfTruth = {
+      kind: "deprem-phase3-articles",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: isTopic ? TOPIC_PATH : rawArticle ? DATA_PATH : null,
+      body: PHASE3_PATH,
+      metadata: PHASE3_PATH,
+      enhancement: isRollout ? ROLLOUT_PATH : null,
     };
   } else if (isTopic) {
     sourceOfTruth = {
@@ -243,6 +255,7 @@ const legacyNormalized = inventory.filter((item) => item.sourceOfTruth.kind === 
 const legacyBodyRecovered = legacyNormalized.filter((item) => item.sourceOfTruth.body === NORMALIZER_PATH);
 const legacyBodyPreserved = legacyNormalized.filter((item) => item.sourceOfTruth.body === DATA_PATH);
 const pilotInventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-pilot-articles");
+const phase3Inventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-phase3-articles");
 const rolloutInventory = inventory.filter((item) => item.rolloutBatch !== null);
 const rolloutBatchIds = Object.keys(DEPREM_ROLLOUT_BATCHES).map(Number) as DepremRolloutBatch[];
 const rolloutBatchAudit = Object.fromEntries(
@@ -275,6 +288,7 @@ const unknownSourceSlugs = inventory
   .filter((item) => !item.sourceOfTruth.body || !item.sourceOfTruth.metadata)
   .map((item) => item.slug);
 const missingPilotRuntimeSlugs = [...DEPREM_PILOT_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
+const missingPhase3RuntimeSlugs = [...DEPREM_PHASE3_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
 const canonicalAuthorPresentation = getArticleAuthorPresentation({
   sectionId: "deprem-yonetmelik",
   author: TARGET_AUTHOR,
@@ -283,12 +297,14 @@ const canonicalAuthorPresentation = getArticleAuthorPresentation({
 const allConfiguredRolloutResolved =
   Object.values(rolloutBatchAudit).every((batch) => batch.missingRuntimeSlugs.length === 0 && batch.configured === batch.enhanced) &&
   rolloutInventory.length === DEPREM_ROLLOUT_ARTICLES.length;
+const allConfiguredPhase3Resolved =
+  missingPhase3RuntimeSlugs.length === 0 && phase3Inventory.length === DEPREM_PHASE3_ARTICLES.length;
 
 const report = {
-  schemaVersion: 8,
+  schemaVersion: 9,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
-  scope: "FAZ 0/2 + rollout — Envanter, kaynak haritası ve kontrollü enhancement",
+  scope: "FAZ 0/2 envanteri + FAZ 3 teknik source-of-truth + rollout enhancement",
   invariants: {
     targetAuthor: TARGET_AUTHOR,
     targetInitials: TARGET_INITIALS,
@@ -303,6 +319,8 @@ const report = {
     depremTopicArticles: DEPREM_TOPIC_ARTICLES.length,
     depremPilotArticles: DEPREM_PILOT_ARTICLES.length,
     pilotInventoryArticles: pilotInventory.length,
+    depremPhase3Articles: DEPREM_PHASE3_ARTICLES.length,
+    phase3InventoryArticles: phase3Inventory.length,
     rolloutArticles: DEPREM_ROLLOUT_ARTICLES.length,
     rolloutInventoryArticles: rolloutInventory.length,
     rolloutBatches: Object.fromEntries(
@@ -324,6 +342,8 @@ const report = {
     rawTs500RecordsShadowedByRichTs500: [...TS500_SLUGS].filter((slug) => rawDepremBySlug.has(slug)),
     topicVsTs500: [...topicBySlug.keys()].filter((slug) => TS500_SLUGS.has(slug)),
     pilotVsTs500: [...DEPREM_PILOT_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
+    phase3VsTs500: [...DEPREM_PHASE3_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
+    phase3VsPilot: [...DEPREM_PHASE3_SLUGS].filter((slug) => DEPREM_PILOT_SLUGS.has(slug)),
     rolloutVsTs500: [...DEPREM_ROLLOUT_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
     rolloutVsPilot: [...DEPREM_ROLLOUT_SLUGS].filter((slug) => DEPREM_PILOT_SLUGS.has(slug)),
   },
@@ -332,6 +352,15 @@ const report = {
     sourceOfTruthSlugs: pilotInventory.map((item) => item.slug),
     missingRuntimeSlugs: missingPilotRuntimeSlugs,
     allConfiguredPilotsResolved: missingPilotRuntimeSlugs.length === 0 && pilotInventory.length === DEPREM_PILOT_ARTICLES.length,
+  },
+  phase3Audit: {
+    configuredSlugs: [...DEPREM_PHASE3_SLUGS],
+    sourceOfTruthSlugs: phase3Inventory.map((item) => item.slug),
+    missingRuntimeSlugs: missingPhase3RuntimeSlugs,
+    expectedBodyPath: PHASE3_PATH,
+    expectedSeedPath: TOPIC_PATH,
+    expectedEnhancementPath: ROLLOUT_PATH,
+    allConfiguredPhase3Resolved,
   },
   rolloutAudit: {
     configuredSlugs: [...DEPREM_ROLLOUT_SLUGS],
@@ -389,6 +418,7 @@ console.log(JSON.stringify({
   counts: report.counts,
   sourceAudit: report.sourceAudit,
   pilotAudit: report.pilotAudit,
+  phase3Audit: report.phase3Audit,
   rolloutAudit: report.rolloutAudit,
   collisionCounts: Object.fromEntries(
     Object.entries(report.collisions).map(([key, value]) => [key, Array.isArray(value) ? value.length : 0]),
@@ -409,5 +439,6 @@ console.log(JSON.stringify({
 if (
   !report.sourceAudit.allSourcesResolved ||
   !report.pilotAudit.allConfiguredPilotsResolved ||
+  !report.phase3Audit.allConfiguredPhase3Resolved ||
   !report.rolloutAudit.allConfiguredRolloutResolved
 ) process.exitCode = 2;
