@@ -307,7 +307,7 @@ export const DEPREM_ROLLOUT_BATCH_8: readonly DepremRolloutSpec[] = [
   {
     slug: "tbdy-deprem-derzi-hesabi",
     batch: 8,
-    headline: "Deprem Derzi Hesabı ve Sürekliliği",
+    headline: "Deprem Derji Hesabı ve Sürekliliği",
     eyebrow: "ÖTELENME · DERZ · ÇARPIŞMA",
     steps: ["Komşu blok ötelenmelerini karşılaştır", "Gerekli derz genişliğini belirle", "Temelden çatıya sürekliliği çöz"],
     referenceProfile: "preserve",
@@ -333,8 +333,40 @@ export const DEPREM_ROLLOUT_BATCH_8: readonly DepremRolloutSpec[] = [
   },
 ] as const;
 
+export const DEPREM_ROLLOUT_BATCH_9: readonly DepremRolloutSpec[] = [
+  { slug: "tbdy-betonarme-ozel-deprem-etriyesi-ciroz", batch: 9, headline: "Özel Deprem Etriyesi ve Çiroz Düzeni", eyebrow: "ETRİYE · ÇİROZ · SARILMA", steps: ["Kanca geometrisini doğrula", "Çirozları şaşırtmalı düzenle", "Boyuna çubukların yanal tutulmasını kontrol et"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri", batch: 9, headline: "Kenetlenme, Bindirme ve Manşon Bölgeleri", eyebrow: "EK · KONUM · BELGE", steps: ["Yasaklı uç bölgeleri işaretle", "Bindirme yığılmasını önle", "Manşon sınıfı ve deney belgesini doğrula"], referenceProfile: "preserve", visualLayout: "decision" },
+  { slug: "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri", batch: 9, headline: "Kolon Kesiti ve Eksenel Yük Sınırı", eyebrow: "KESİT · EKSENEL YÜK · SÜNEKLİK", steps: ["Minimum kesit boyutunu kontrol et", "Eksenel yük oranını hesapla", "Sınır aşımında kesit veya sistemi revize et"], referenceProfile: "preserve", visualLayout: "decision" },
+  { slug: "tbdy-betonarme-kolon-boyuna-donati-duzeni", batch: 9, headline: "Kolon Boyuna Donatı Düzeni", eyebrow: "ORAN · DAĞILIM · SÜREKLİLİK", steps: ["Minimum-maksimum donatı oranı", "Kesit çevresinde dengeli dağılım", "Kat geçişinde kenetlenme ve süreklilik"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "tbdy-betonarme-kolon-sarilma-bolgeleri", batch: 9, headline: "Kolon Sarılma Bölgeleri", eyebrow: "UÇ BÖLGE · ETRİYE · SIKLAŞTIRMA", steps: ["Alt ve üst sarılma boylarını belirle", "İlk etriye ve aralıkları kontrol et", "Temel üstü ve bindirme koşullarını uygula"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "tbdy-betonarme-kolon-kapasite-kesme", batch: 9, headline: "Kolonda Kapasite Tasarımına Göre Kesme", eyebrow: "MOMENT · KESME · KAPASİTE", steps: ["Uç moment kapasitelerini belirle", "Analiz ve kapasite kesmesini karşılaştır", "Enine donatı güvenliğini doğrula"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "tbdy-betonarme-kiris-boyut-eksen-kacikligi", batch: 9, headline: "Kiriş Boyutları ve Eksen Kaçıklığı", eyebrow: "KESİT · EKSEN · BİRLEŞİM", steps: ["Kiriş boyut sınırlarını kontrol et", "Kolon çekirdeğine göre ekseni ölç", "Kaçıklıkta birleşim ve burulmayı çöz"], referenceProfile: "preserve", visualLayout: "comparison" },
+  { slug: "tbdy-betonarme-kiris-mesnet-donati-surekliligi", batch: 9, headline: "Kiriş Mesnet Donatısı Sürekliliği", eyebrow: "MESNET · KENETLENME · DEVAM", steps: ["Pozitif-negatif donatıyı kontrol et", "Birleşimde kenetlenmeyi sağla", "Kesilen çubukların devam boyunu göster"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "tbdy-betonarme-kiris-sarilma-bolgeleri", batch: 9, headline: "Kiriş Sarılma Bölgeleri", eyebrow: "PLASTİKLEŞME · ETRİYE · UÇ BÖLGE", steps: ["İki uçta sarılma bölgesini ölçülendir", "İlk etriye ve aralıkları doğrula", "Bindirmeleri plastikleşme bölgesinden uzaklaştır"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "tbdy-betonarme-kiris-kapasite-kesme", batch: 9, headline: "Kirişte Kapasite Tasarımına Göre Kesme", eyebrow: "UÇ MOMENT · DÜŞEY YÜK · ETRİYE", steps: ["İki yön için uç moment kapasitesi", "Düşey yük ve kapasite kesmesini birleştir", "Etriye hesabını belirleyici kesmeye göre yap"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "tbdy-betonarme-kusatilmamis-birlesim", batch: 9, headline: "Kuşatılmış ve Kuşatılmamış Birleşimler", eyebrow: "KİRİŞ · GEOMETRİ · KUŞATMA", steps: ["Kirişleri iki doğrultuda değerlendir", "Kuşatma geometrisini doğrula", "Kuşatılmamış birleşim kesmesini belirle"], referenceProfile: "preserve", visualLayout: "comparison" },
+  { slug: "tbdy-betonarme-birlesim-kesme-guvenligi", batch: 9, headline: "Kolon-Kiriş Birleşim Kesme Güvenliği", eyebrow: "ÇEKİRDEK · KESME · DONATI", steps: ["Kiriş kuvvetlerinden birleşim kesmesini çıkar", "Birleşim alanı ve sınıfını seç", "Enine donatının çekirdek içi sürekliliğini göster"], referenceProfile: "preserve", visualLayout: "decision" },
+] as const;
+
+export const DEPREM_ROLLOUT_BATCH_10: readonly DepremRolloutSpec[] = [
+  { slug: "tbdy-betonarme-perde-kolon-geometri-ayrimi", batch: 10, headline: "Perde ve Kolon Geometri Ayrımı", eyebrow: "KESİT · ORAN · SİSTEM", steps: ["Kesit boyut oranını kontrol et", "Perde sürekliliği ve doğrultusunu izle", "Gerçek perde katkısını sistemde doğrula"], referenceProfile: "preserve", visualLayout: "comparison" },
+  { slug: "tbdy-betonarme-perde-kritik-yukseklik-uc-bolge", batch: 10, headline: "Perde Kritik Yüksekliği ve Uç Bölgeleri", eyebrow: "KRİTİK YÜKSEKLİK · UÇ BÖLGE · SARILMA", steps: ["Kritik perde yüksekliğini belirle", "Uç bölge gereksinimini kontrol et", "Kat geçişlerinde uç bölge sürekliliğini izle"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "tbdy-betonarme-perde-govde-uc-donati", batch: 10, headline: "Perde Gövde ve Uç Bölgesi Donatısı", eyebrow: "GÖVDE · ÇİFT SIRA · UÇ BÖLGE", steps: ["Yatay-düşey minimum donatıyı kontrol et", "Çift sıra ve bağlantıları göster", "Uç bölgeyi etriye ve çirozla sar"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "tbdy-betonarme-perde-moment-kesme-zarfi", batch: 10, headline: "Perde Moment ve Kesme Zarfları", eyebrow: "MOMENT · KESME · TASARIM ZARFI", steps: ["Moment zarfını kritik yükseklikte düzenle", "Kesme kuvvetini kapasite kurallarıyla kontrol et", "Kabuk sonuçlarını kesit kuvvetlerine dönüştür"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "tbdy-betonarme-perde-bosluklari-modelleme", batch: 10, headline: "Perde Boşluklarının Modellenmesi", eyebrow: "BOŞLUK · AĞ · KUVVET YOLU", steps: ["Sürekli boşlukları modele aktar", "Boşluk köşelerinde ağ ve gerilmeyi incele", "Ara elemanı doğru taşıyıcı türde tanımla"], referenceProfile: "preserve", visualLayout: "decision" },
+  { slug: "tbdy-betonarme-diyafram-toplayici-baslik", batch: 10, headline: "Diyafram, Toplayıcı ve Başlık Donatısı", eyebrow: "DİYAFRAM · TOPLAYICI · BAŞLIK", steps: ["Diyafram kuvvetlerini çıkar", "Toplayıcı bölgeleri tanımla", "Boşluk çevresi başlık donatısını detaylandır"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "mevcut-bina-riskli-yapi-ve-bolum-15-farki", batch: 10, headline: "Riskli Yapı Tespiti ve Bölüm 15 Farkı", eyebrow: "AMAÇ · YÖNTEM · RAPOR", steps: ["Hukuki ve teknik amacı tanımla", "Doğru veri ve hesap yöntemini seç", "Rapor kapsamını açıkça belirt"], referenceProfile: "preserve", visualLayout: "comparison" },
+  { slug: "mevcut-bina-bilgi-duzeyleri", batch: 10, headline: "Mevcut Binalarda Bilgi Düzeyleri", eyebrow: "BELGE · SAHA · KATSAYI", steps: ["Mevcut belgeleri değerlendir", "Geometri ve donatı tespit kapsamını doğrula", "Bilgi düzeyi katsayısını modelde belgele"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "mevcut-bina-tasiyici-rolove-hasar-belgeleme", batch: 10, headline: "Taşıyıcı Rölöve ve Hasar Belgeleme", eyebrow: "ÖLÇÜM · HASAR · İZLENEBİLİRLİK", steps: ["Eleman boyut ve akslarını ölç", "Değişiklik ve boşlukları işaretle", "Hasarı kat-aks-fotoğraf ile ilişkilendir"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "mevcut-bina-karot-beton-dayanimi", batch: 10, headline: "Karot ve Mevcut Beton Dayanımı", eyebrow: "NUMUNE · DENEY · DAYANIM", steps: ["Karot sayısını ve dağılımını belirle", "Güvenli numune yerlerini seç", "Deney sonuçlarını düzeltmelerle değerlendir"], referenceProfile: "preserve", visualLayout: "decision" },
+  { slug: "mevcut-bina-donati-tespiti-korozyon", batch: 10, headline: "Donatı Tespiti ve Korozyon İncelemesi", eyebrow: "TARAMA · SIYIRMA · KOROZYON", steps: ["Tarama-sıyırma noktalarını dağıt", "Boyuna ve enine donatıyı kaydet", "Kesit kaybı ve pas payını belgele"], referenceProfile: "preserve", visualLayout: "classification" },
+  { slug: "mevcut-bina-beklenen-dayanim-bilgi-katsayisi", batch: 10, headline: "Beklenen Dayanım ve Bilgi Katsayısı", eyebrow: "BETON · ÇELİK · KATSAYI", steps: ["Beklenen beton ve çelik dayanımını belirle", "Bilgi katsayısını kapasiteye uygula", "Kabulleri deney raporlarıyla izlenebilir kıl"], referenceProfile: "preserve", visualLayout: "comparison" },
+] as const;
+
 export const DEPREM_ROLLOUT_EXTRA_BATCHES: Readonly<Record<number, readonly DepremRolloutSpec[]>> = {
   6: DEPREM_ROLLOUT_BATCH_6,
   7: DEPREM_ROLLOUT_BATCH_7,
   8: DEPREM_ROLLOUT_BATCH_8,
+  9: DEPREM_ROLLOUT_BATCH_9,
+  10: DEPREM_ROLLOUT_BATCH_10,
 };
