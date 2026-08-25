@@ -25,9 +25,9 @@ jobs:
         run: |
           mkdir -p artifacts
           set +e
-          npx tsx scripts/audit-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json 2>&1 | tee artifacts/audit-deprem-inventory.log
+          npx tsx scripts/generate-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json 2>&1 | tee artifacts/generate-deprem-content-inventory.log
           code=${PIPESTATUS[0]}
-          echo "audit-deprem-inventory=${code}" > artifacts/inventory-status.env
+          echo "generate-deprem-content-inventory=${code}" > artifacts/inventory-status.env
           exit 0
       - name: Upload inventory
         if: always()
