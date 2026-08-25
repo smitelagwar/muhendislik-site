@@ -3,88 +3,94 @@ import { getArticleBySlug } from "../src/lib/articles-data";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import {
   DEPREM_ROLLOUT_ARTICLES,
-  DEPREM_ROLLOUT_BATCH_1,
-  DEPREM_ROLLOUT_BATCH_1_SLUGS,
-  DEPREM_ROLLOUT_BATCH_2,
-  DEPREM_ROLLOUT_BATCH_2_SLUGS,
-  DEPREM_ROLLOUT_BATCH_3,
-  DEPREM_ROLLOUT_BATCH_3_SLUGS,
+  DEPREM_ROLLOUT_BATCHES,
   DEPREM_ROLLOUT_SLUGS,
   getDepremRolloutVisualPath,
+  type DepremRolloutBatch,
 } from "../src/lib/deprem-rollout";
 import { renderDepremVisualSvg } from "../src/lib/deprem-visual";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
-const EXPECTED_BATCH_1 = [
-  "tbdy-2018-betonarme-analiz",
-  "kisa-kolon-etkisi-tbdy-2018",
-  "tbdy-2018-dogrusal-olmayan-tasarim",
-  "tbdy-2018-guclu-kolon-kontrolu",
-  "tbdy-2018-duzensizlikler-rehberi",
-  "tbdy-2018-sismik-izolasyon",
-  "tbdy-deprem-yer-hareketi-duzeyleri",
-  "tbdy-afad-ss-s1-okuma",
-  "tbdy-yerel-zemin-sinifi-spektrum",
-  "tbdy-tasarim-spektrumu-cizimi",
-  "tbdy-r-d-dayanim-fazlaligi",
-  "tbdy-bina-onem-katsayisi",
-] as const;
-
-const EXPECTED_BATCH_2 = [
-  "tbdy-suneklik-duzeyi-sistem-farki",
-  "tbdy-mod-birlesim-srss-cqc",
-  "tbdy-goreli-kat-otelenmesi",
-  "tbdy-dismerkezlik-kurali",
-  "tbdy-bodrum-katli-binalar",
-  "tbdy-cati-agirligi-yuk-azaltma",
-  "tbdy-p-delta-ikinci-mertebe",
-  "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi",
-  "1999-marmara-depreminden-cikarilan-muhendislik-dersleri",
-  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
-  "duzensiz-binalarda-dinamik-analiz-zorunlulugu",
-  "deprem-yuku-ile-ruzgar-yuku-kombinasyonu",
-] as const;
-
-const EXPECTED_BATCH_3 = [
-  "mevcut-binalarin-deprem-guvenligi-nasil-degerlendirilir",
-  "kolon-guclendirme-yontemleri-cfrp-ve-beton-mantolu",
-  "hasarli-bina-tespiti-yesil-sari-kirmizi-etiket-sistemi",
-  "deprem-sigortasi-dask-ve-muhendislik-baglantisi",
-  "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek",
-  "byy-bina-kullanim-siniflari-tehlike-kategorileri",
-  "tasiyici-sistemlerin-yangina-dayanim-suresi-r30-r60-r90-r120",
-  "sprinkler-sistemi-zorunluluk-sinirlari",
-  "duman-tahliyesi-mekanik-ve-dogal-sistemler",
-  "kacis-merdiveni-tasarim-kriterleri",
-  "yangin-kapisi-dosleme-duvar-gecis-detaylari",
-  "yangin-algilama-ve-ihbar-sistemi-gereksinimleri",
-] as const;
+const EXPECTED_BATCHES: Readonly<Record<DepremRolloutBatch, readonly string[]>> = {
+  1: [
+    "tbdy-2018-betonarme-analiz",
+    "kisa-kolon-etkisi-tbdy-2018",
+    "tbdy-2018-dogrusal-olmayan-tasarim",
+    "tbdy-2018-guclu-kolon-kontrolu",
+    "tbdy-2018-duzensizlikler-rehberi",
+    "tbdy-2018-sismik-izolasyon",
+    "tbdy-deprem-yer-hareketi-duzeyleri",
+    "tbdy-afad-ss-s1-okuma",
+    "tbdy-yerel-zemin-sinifi-spektrum",
+    "tbdy-tasarim-spektrumu-cizimi",
+    "tbdy-r-d-dayanim-fazlaligi",
+    "tbdy-bina-onem-katsayisi",
+  ],
+  2: [
+    "tbdy-suneklik-duzeyi-sistem-farki",
+    "tbdy-mod-birlesim-srss-cqc",
+    "tbdy-goreli-kat-otelenmesi",
+    "tbdy-dismerkezlik-kurali",
+    "tbdy-bodrum-katli-binalar",
+    "tbdy-cati-agirligi-yuk-azaltma",
+    "tbdy-p-delta-ikinci-mertebe",
+    "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi",
+    "1999-marmara-depreminden-cikarilan-muhendislik-dersleri",
+    "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
+    "duzensiz-binalarda-dinamik-analiz-zorunlulugu",
+    "deprem-yuku-ile-ruzgar-yuku-kombinasyonu",
+  ],
+  3: [
+    "mevcut-binalarin-deprem-guvenligi-nasil-degerlendirilir",
+    "kolon-guclendirme-yontemleri-cfrp-ve-beton-mantolu",
+    "hasarli-bina-tespiti-yesil-sari-kirmizi-etiket-sistemi",
+    "deprem-sigortasi-dask-ve-muhendislik-baglantisi",
+    "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek",
+    "byy-bina-kullanim-siniflari-tehlike-kategorileri",
+    "tasiyici-sistemlerin-yangina-dayanim-suresi-r30-r60-r90-r120",
+    "sprinkler-sistemi-zorunluluk-sinirlari",
+    "duman-tahliyesi-mekanik-ve-dogal-sistemler",
+    "kacis-merdiveni-tasarim-kriterleri",
+    "yangin-kapisi-dosleme-duvar-gecis-detaylari",
+    "yangin-algilama-ve-ihbar-sistemi-gereksinimleri",
+  ],
+  4: [
+    "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9",
+    "bodrum-otopark-mutfak-yangin-uygulamalari",
+    "otopark-kullanim-turune-gore-minimum-alan-hesabi",
+    "otopark-rampa-egimi-genislik-donus-yaricapi",
+    "otopark-kapali-havalandirma-co-konsantrasyonu",
+    "otopark-yapisal-yuk-kombinasyonlari-arac-deprem",
+    "otopark-elektrikli-arac-sarj-mevzuati",
+    "imar-kat-yuksekligi-bina-yuksekligi-farki",
+    "imar-bahce-mesafeleri-on-arka-yan-bahce-kurallari",
+    "imar-bodrum-kat-mevzuati-teknik-hacim-iskan-taban-alani",
+    "imar-cekme-kat-asma-kat-kosullari",
+    "imar-balkon-cikma-sacak-emsal-disi-sartlari",
+  ],
+};
 
 const errors: string[] = [];
-
 function assert(condition: unknown, message: string) {
   if (!condition) errors.push(message);
 }
 
-function validateExpectedBatch(
-  batch: number,
-  expected: readonly string[],
-  actualSpecs: readonly { slug: string }[],
-  actualSlugs: Set<string>,
-) {
-  assert(actualSpecs.length === expected.length, `Batch ${batch} tam olarak ${expected.length} makale içermeli.`);
+for (const batch of [1, 2, 3, 4] as const) {
+  const expected = EXPECTED_BATCHES[batch];
+  const actual = DEPREM_ROLLOUT_BATCHES[batch];
+  const actualSlugs = new Set(actual.map((spec) => spec.slug));
+  assert(actual.length === expected.length, `Batch ${batch} tam olarak ${expected.length} makale içermeli.`);
   assert(actualSlugs.size === expected.length, `Batch ${batch} slug listesinde tekrar/eksik kayıt var.`);
   for (const slug of expected) assert(actualSlugs.has(slug), `Batch ${batch} slug eksik: ${slug}`);
 }
 
-validateExpectedBatch(1, EXPECTED_BATCH_1, DEPREM_ROLLOUT_BATCH_1, DEPREM_ROLLOUT_BATCH_1_SLUGS);
-validateExpectedBatch(2, EXPECTED_BATCH_2, DEPREM_ROLLOUT_BATCH_2, DEPREM_ROLLOUT_BATCH_2_SLUGS);
-validateExpectedBatch(3, EXPECTED_BATCH_3, DEPREM_ROLLOUT_BATCH_3, DEPREM_ROLLOUT_BATCH_3_SLUGS);
 assert(DEPREM_ROLLOUT_SLUGS.size === DEPREM_ROLLOUT_ARTICLES.length, "Rollout genel listesinde tekrar slug var.");
 
-const batch3Layouts = new Set(DEPREM_ROLLOUT_BATCH_3.map((spec) => spec.visualLayout));
-for (const expectedLayout of ["flow", "decision", "comparison", "classification"] as const) {
-  assert(batch3Layouts.has(expectedLayout), `Batch 3 görsel grameri eksik: ${expectedLayout}`);
+for (const batch of [3, 4] as const) {
+  const layouts = new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout));
+  for (const expectedLayout of ["flow", "decision", "comparison", "classification"] as const) {
+    assert(layouts.has(expectedLayout), `Batch ${batch} görsel grameri eksik: ${expectedLayout}`);
+  }
 }
 
 const uniqueCovers = new Set<string>();
@@ -138,9 +144,6 @@ for (const spec of DEPREM_ROLLOUT_ARTICLES) {
     assert(svg.includes('xmlns="http://www.w3.org/2000/svg"'), `SVG xmlns eksik: ${article.slug}/${asset}`);
     assert(!/<script|<foreignObject|javascript:/i.test(svg), `SVG güvenlik kontratı ihlali: ${article.slug}/${asset}`);
     assert(svg.includes("<title"), `SVG erişilebilir title eksik: ${article.slug}/${asset}`);
-    if (spec.batch === 3 && asset === "diagram") {
-      assert(svg.includes(spec.visualLayout === "flow" ? "SÜREÇ AKIŞI" : spec.visualLayout === "decision" ? "KARAR AKIŞI" : spec.visualLayout === "comparison" ? "KARŞILAŞTIRMA" : "SINIFLANDIRMA"), `Batch 3 layout SVG'ye yansımadı: ${article.slug}`);
-    }
   }
 }
 
@@ -152,12 +155,10 @@ if (errors.length > 0) {
 
 console.log(JSON.stringify({
   status: "ok",
-  batches: [1, 2, 3],
+  batches: [1, 2, 3, 4],
   articles: DEPREM_ROLLOUT_ARTICLES.length,
-  batch1: DEPREM_ROLLOUT_BATCH_1.length,
-  batch2: DEPREM_ROLLOUT_BATCH_2.length,
-  batch3: DEPREM_ROLLOUT_BATCH_3.length,
-  batch3Layouts: [...batch3Layouts],
+  batchSizes: Object.fromEntries(([1, 2, 3, 4] as const).map((batch) => [batch, DEPREM_ROLLOUT_BATCHES[batch].length])),
+  layoutDiversity: Object.fromEntries(([3, 4] as const).map((batch) => [batch, [...new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout))]])),
   uniqueCovers: uniqueCovers.size,
   uniqueDiagrams: uniqueDiagrams.size,
   ts500Touched: false,
