@@ -345,6 +345,7 @@ console.log(JSON.stringify({
   oldRouteSourceHits: report.linkAudit.oldRouteSourceHits.length,
   invalidRelatedSlugArticles: report.linkAudit.invalidRelatedSlugArticles.length,
   suspiciousInternalLinkArticles: report.linkAudit.suspiciousInternalLinkArticles.length,
+  suspiciousInternalLinkDetails: report.linkAudit.suspiciousInternalLinkArticles,
   suspiciousRelatedTools: report.linkAudit.suspiciousRelatedTools.length,
   missingUpdatedAt: report.metadataAudit.missingUpdatedAtSlugs.length,
   missingReferences: report.metadataAudit.missingReferencesSlugs.length,
