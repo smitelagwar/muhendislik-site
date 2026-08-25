@@ -7,7 +7,7 @@ const UPDATED_AT = "25 Ağustos 2026";
 
 export type DepremRolloutReferenceProfile = "tbdy" | "tbdy-hazard" | "preserve";
 export type DepremVisualLayout = "flow" | "decision" | "comparison" | "classification";
-export type DepremRolloutBatch = 1 | 2 | 3 | 4;
+export type DepremRolloutBatch = 1 | 2 | 3 | 4 | 5;
 
 export interface DepremRolloutSpec {
   slug: string;
@@ -91,11 +91,27 @@ export const DEPREM_ROLLOUT_BATCH_4: readonly DepremRolloutSpec[] = [
   makeSpec("imar-balkon-cikma-sacak-emsal-disi-sartlari", 4, "Balkon, Çıkma ve Saçakların Alan Koşulları", "ÇIKMA · EMSAL · SINIR", ["Eleman türünü belirle", "Boyut ve konumu kontrol et", "Alan hesabı kararını ver"], "preserve", "decision"),
 ] as const;
 
+export const DEPREM_ROLLOUT_BATCH_5: readonly DepremRolloutSpec[] = [
+  makeSpec("imar-ruhsat-sureci-basvurudan-iskan-kadar", 5, "Başvurudan İskâna Yapı Ruhsatı Süreci", "BELGE · RUHSAT · İSKÂN", ["Başvuru ve proje belgeleri", "Ruhsat eki proje kontrolü", "İskân ve kapanış"], "preserve", "flow"),
+  makeSpec("imar-parsel-tevhid-ifraz-prosedurleri", 5, "Parsel Tevhit ve İfraz Prosedürleri", "PARSEL · TEVHİT · İFRAZ", ["Mevcut parsel durumu", "Tevhit koşulları", "İfraz koşulları"], "preserve", "comparison"),
+  makeSpec("imar-plan-notu-celiskisi-uygulama-onceligi", 5, "Plan Notu Çelişkilerinde Uygulama Önceliği", "PLAN · NOT · KARAR", ["Plan ve plan notunu belirle", "Çelişen hükmü karşılaştır", "Uygulama kararını belgeye bağla"], "preserve", "decision"),
+  makeSpec("bep-ts-825-yontemi-isi-kaybi-hesabi", 5, "TS 825 Yöntemiyle Isı Kaybı Hesabı", "İKLİM · KABUK · ISI KAYBI", ["İklim ve kullanım girdisi", "Kabuk katmanları ve U değeri", "Isı kaybı sonucu"], "preserve", "flow"),
+  makeSpec("bep-enerji-kimlik-belgesi-a-g-siniflandirma", 5, "Enerji Kimlik Belgesi A–G Sınıflandırması", "PERFORMANS · SINIF · BELGE", ["Enerji performansı girdileri", "A–G sınıflandırması", "Belge sonucu ve kontrol"], "preserve", "classification"),
+  makeSpec("bep-yenilenebilir-enerji-zorunlulugu-1000m2", 5, "Yenilenebilir Enerji Gerekliliği", "ALAN · EŞİK · KARAR", ["Bina alanı ve kullanım", "Uygulanabilir eşik koşulu", "Yenilenebilir enerji kararı"], "preserve", "decision"),
+  makeSpec("bep-yazilimi-hesaplama-akisi", 5, "BEP-TR Yazılımında Hesaplama Akışı", "GİRDİ · HESAP · BELGE", ["Proje ve kabuk girdileri", "Hesap modelini çalıştır", "Sonuç ve belgeyi doğrula"], "preserve", "flow"),
+  makeSpec("bep-isil-kopru-detaylari-ve-cozum-yontemleri", 5, "Isıl Köprü Detayları ve Çözüm Yöntemleri", "DETAY · KAYIP · ÇÖZÜM", ["Isıl köprü bölgesi", "Süreklilik ve kayıp etkisi", "Detay çözümü"], "preserve", "comparison"),
+  makeSpec("zemin-etudu-minimum-sondaj-sayisi-ve-derinligi", 5, "Zemin Etüdünde Sondaj Sayısı ve Derinliği", "ARAZİ · SONDAJ · RAPOR", ["Parsel ve yapı verisi", "Sondaj programı ve derinlik", "Rapor yeterliliği"], "preserve", "decision"),
+  makeSpec("tbdy-bolum-16-zemin-yapi-etkilesimi", 5, "TBDY Bölüm 16: Zemin-Yapı Etkileşimi", "ZEMİN · TEMEL · ÜSTYAPI", ["Zemin ve temel girdileri", "Etkileşim modeli", "Üstyapı sonuçlarıyla doğrulama"], "preserve", "flow"),
+  makeSpec("zemin-sivlasma-riski-degerlendirmesi", 5, "Zemin Sıvılaşma Riskinin Değerlendirilmesi", "VERİ · TETİKLENME · KARAR", ["Zemin ve yeraltı suyu verisi", "Sıvılaşma tetiklenme kontrolü", "Risk ve önlem kararı"], "preserve", "decision"),
+  makeSpec("su-yalitimi-ts-4749-uygulama-detaylari", 5, "Su Yalıtımı ve Uygulama Detayları", "SU · DETAY · SÜREKLİLİK", ["Su etkisi ve yüzey", "Yalıtım katmanı detayı", "Birleşim ve süreklilik kontrolü"], "preserve", "comparison"),
+] as const;
+
 export const DEPREM_ROLLOUT_BATCHES: Readonly<Record<DepremRolloutBatch, readonly DepremRolloutSpec[]>> = {
   1: DEPREM_ROLLOUT_BATCH_1,
   2: DEPREM_ROLLOUT_BATCH_2,
   3: DEPREM_ROLLOUT_BATCH_3,
   4: DEPREM_ROLLOUT_BATCH_4,
+  5: DEPREM_ROLLOUT_BATCH_5,
 };
 
 export const DEPREM_ROLLOUT_ARTICLES: readonly DepremRolloutSpec[] = Object.values(DEPREM_ROLLOUT_BATCHES).flat();
@@ -106,6 +122,7 @@ export const DEPREM_ROLLOUT_BATCH_1_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_1.map((
 export const DEPREM_ROLLOUT_BATCH_2_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_2.map((item) => item.slug));
 export const DEPREM_ROLLOUT_BATCH_3_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_3.map((item) => item.slug));
 export const DEPREM_ROLLOUT_BATCH_4_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_4.map((item) => item.slug));
+export const DEPREM_ROLLOUT_BATCH_5_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_5.map((item) => item.slug));
 export const DEPREM_ROLLOUT_SLUGS = new Set(DEPREM_ROLLOUT_ARTICLES.map((item) => item.slug));
 
 export function getDepremRolloutSpec(slug: string): DepremRolloutSpec | undefined {
