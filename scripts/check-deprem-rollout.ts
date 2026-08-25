@@ -7,6 +7,8 @@ import {
   DEPREM_ROLLOUT_BATCH_1_SLUGS,
   DEPREM_ROLLOUT_BATCH_2,
   DEPREM_ROLLOUT_BATCH_2_SLUGS,
+  DEPREM_ROLLOUT_BATCH_3,
+  DEPREM_ROLLOUT_BATCH_3_SLUGS,
   DEPREM_ROLLOUT_SLUGS,
   getDepremRolloutVisualPath,
 } from "../src/lib/deprem-rollout";
@@ -43,6 +45,21 @@ const EXPECTED_BATCH_2 = [
   "deprem-yuku-ile-ruzgar-yuku-kombinasyonu",
 ] as const;
 
+const EXPECTED_BATCH_3 = [
+  "mevcut-binalarin-deprem-guvenligi-nasil-degerlendirilir",
+  "kolon-guclendirme-yontemleri-cfrp-ve-beton-mantolu",
+  "hasarli-bina-tespiti-yesil-sari-kirmizi-etiket-sistemi",
+  "deprem-sigortasi-dask-ve-muhendislik-baglantisi",
+  "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek",
+  "byy-bina-kullanim-siniflari-tehlike-kategorileri",
+  "tasiyici-sistemlerin-yangina-dayanim-suresi-r30-r60-r90-r120",
+  "sprinkler-sistemi-zorunluluk-sinirlari",
+  "duman-tahliyesi-mekanik-ve-dogal-sistemler",
+  "kacis-merdiveni-tasarim-kriterleri",
+  "yangin-kapisi-dosleme-duvar-gecis-detaylari",
+  "yangin-algilama-ve-ihbar-sistemi-gereksinimleri",
+] as const;
+
 const errors: string[] = [];
 
 function assert(condition: unknown, message: string) {
@@ -62,7 +79,13 @@ function validateExpectedBatch(
 
 validateExpectedBatch(1, EXPECTED_BATCH_1, DEPREM_ROLLOUT_BATCH_1, DEPREM_ROLLOUT_BATCH_1_SLUGS);
 validateExpectedBatch(2, EXPECTED_BATCH_2, DEPREM_ROLLOUT_BATCH_2, DEPREM_ROLLOUT_BATCH_2_SLUGS);
+validateExpectedBatch(3, EXPECTED_BATCH_3, DEPREM_ROLLOUT_BATCH_3, DEPREM_ROLLOUT_BATCH_3_SLUGS);
 assert(DEPREM_ROLLOUT_SLUGS.size === DEPREM_ROLLOUT_ARTICLES.length, "Rollout genel listesinde tekrar slug var.");
+
+const batch3Layouts = new Set(DEPREM_ROLLOUT_BATCH_3.map((spec) => spec.visualLayout));
+for (const expectedLayout of ["flow", "decision", "comparison", "classification"] as const) {
+  assert(batch3Layouts.has(expectedLayout), `Batch 3 görsel grameri eksik: ${expectedLayout}`);
+}
 
 const uniqueCovers = new Set<string>();
 const uniqueDiagrams = new Set<string>();
@@ -105,7 +128,7 @@ for (const spec of DEPREM_ROLLOUT_ARTICLES) {
     assert(figure.figureNumber === "R1", `Figure numarası R1 olmalı: ${article.slug}`);
     assert(Boolean(figure.note), `Figure notu eksik: ${article.slug}`);
     assert(Boolean(figure.sourceNote), `Figure kaynak notu eksik: ${article.slug}`);
-    assert(figure.sourceNote.includes("türetilmiş kontrol şeması"), `Figure provenance açık değil: ${article.slug}`);
+    assert(figure.sourceNote.includes("türetilmiş teknik şema"), `Figure provenance açık değil: ${article.slug}`);
     assert(figure.lightbox, `Figure lightbox açık olmalı: ${article.slug}`);
   }
 
@@ -115,6 +138,9 @@ for (const spec of DEPREM_ROLLOUT_ARTICLES) {
     assert(svg.includes('xmlns="http://www.w3.org/2000/svg"'), `SVG xmlns eksik: ${article.slug}/${asset}`);
     assert(!/<script|<foreignObject|javascript:/i.test(svg), `SVG güvenlik kontratı ihlali: ${article.slug}/${asset}`);
     assert(svg.includes("<title"), `SVG erişilebilir title eksik: ${article.slug}/${asset}`);
+    if (spec.batch === 3 && asset === "diagram") {
+      assert(svg.includes(spec.visualLayout === "flow" ? "SÜREÇ AKIŞI" : spec.visualLayout === "decision" ? "KARAR AKIŞI" : spec.visualLayout === "comparison" ? "KARŞILAŞTIRMA" : "SINIFLANDIRMA"), `Batch 3 layout SVG'ye yansımadı: ${article.slug}`);
+    }
   }
 }
 
@@ -126,10 +152,12 @@ if (errors.length > 0) {
 
 console.log(JSON.stringify({
   status: "ok",
-  batches: [1, 2],
+  batches: [1, 2, 3],
   articles: DEPREM_ROLLOUT_ARTICLES.length,
   batch1: DEPREM_ROLLOUT_BATCH_1.length,
   batch2: DEPREM_ROLLOUT_BATCH_2.length,
+  batch3: DEPREM_ROLLOUT_BATCH_3.length,
+  batch3Layouts: [...batch3Layouts],
   uniqueCovers: uniqueCovers.size,
   uniqueDiagrams: uniqueDiagrams.size,
   ts500Touched: false,
