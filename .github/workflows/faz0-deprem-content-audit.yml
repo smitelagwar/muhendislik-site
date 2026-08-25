@@ -103,10 +103,17 @@ jobs:
           echo "build=${code}" > artifacts/browser-baseline.env
           echo "code=${code}" >> "$GITHUB_OUTPUT"
           exit 0
-      - name: Resolve Puppeteer browser
+      - name: Resolve system browser
         if: steps.build.outputs.code == '0'
         shell: bash
-        run: echo "PUPPETEER_EXECUTABLE_PATH=$(node -e \"console.log(require('puppeteer').executablePath())\")" >> "$GITHUB_ENV"
+        run: |
+          browser="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$browser" ]; then
+            echo "No system Chrome/Chromium found" >&2
+            exit 1
+          fi
+          echo "PUPPETEER_EXECUTABLE_PATH=$browser" >> "$GITHUB_ENV"
+          echo "Using browser: $browser"
       - name: Run navigation baseline
         if: steps.build.outputs.code == '0'
         shell: bash
