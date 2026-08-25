@@ -16,54 +16,53 @@ const BATCH_1_SLUGS = [
   "tbdy-kutle-kaynagi-hareketli-yuk-katilimi",
   "tbdy-rijit-yari-rijit-diyafram",
 ] as const;
-
 const BATCH_2_SLUGS = [
   "tbdy-esdeger-deprem-yuku-uygulanma-sinirlari",
   "tbdy-yeterli-mod-modal-kutle-katilimi",
   "tbdy-modal-taban-kesme-olceklendirme",
   "tbdy-yuzde-100-yuzde-30-birlesimi",
 ] as const;
-
 const BATCH_3_SLUGS = [
   "tbdy-dusey-deprem-etkisi",
   "tbdy-deprem-derzi-hesabi",
   "tbdy-bolum-17-basitlestirilmis-tasarim",
   "tbdy-uygulama-esaslari-taslak-statusu",
 ] as const;
-
 const BATCH_4_SLUGS = [
   "tbdy-betonarme-ozel-deprem-etriyesi-ciroz",
   "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri",
   "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri",
   "tbdy-betonarme-kolon-boyuna-donati-duzeni",
 ] as const;
-
 const BATCH_5_SLUGS = [
   "tbdy-betonarme-kolon-sarilma-bolgeleri",
   "tbdy-betonarme-kolon-kapasite-kesme",
   "tbdy-betonarme-kiris-boyut-eksen-kacikligi",
   "tbdy-betonarme-kiris-mesnet-donati-surekliligi",
 ] as const;
-
 const BATCH_6_SLUGS = [
   "tbdy-betonarme-kiris-sarilma-bolgeleri",
   "tbdy-betonarme-kiris-kapasite-kesme",
   "tbdy-betonarme-kusatilmamis-birlesim",
   "tbdy-betonarme-birlesim-kesme-guvenligi",
 ] as const;
-
 const BATCH_7_SLUGS = [
   "tbdy-betonarme-perde-kolon-geometri-ayrimi",
   "tbdy-betonarme-perde-kritik-yukseklik-uc-bolge",
   "tbdy-betonarme-perde-govde-uc-donati",
   "tbdy-betonarme-perde-moment-kesme-zarfi",
 ] as const;
-
 const BATCH_8_SLUGS = [
   "tbdy-betonarme-perde-bosluklari-modelleme",
   "tbdy-betonarme-diyafram-toplayici-baslik",
   "tbdy-2018-betonarme-analiz",
   "kisa-kolon-etkisi-tbdy-2018",
+] as const;
+const BATCH_9_SLUGS = [
+  "tbdy-2018-dogrusal-olmayan-tasarim",
+  "tbdy-2018-guclu-kolon-kontrolu",
+  "tbdy-2018-duzensizlikler-rehberi",
+  "tbdy-2018-sismik-izolasyon",
 ] as const;
 
 const EXPECTED_SLUGS = [
@@ -75,6 +74,7 @@ const EXPECTED_SLUGS = [
   ...BATCH_6_SLUGS,
   ...BATCH_7_SLUGS,
   ...BATCH_8_SLUGS,
+  ...BATCH_9_SLUGS,
 ] as const;
 type ExpectedSlug = (typeof EXPECTED_SLUGS)[number];
 
@@ -92,7 +92,7 @@ const assert = (condition: unknown, message: string) => {
   if (!condition) errors.push(message);
 };
 
-assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk sekiz batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
+assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk dokuz batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
 assert(DEPREM_PHASE3_SLUGS.size === EXPECTED_SLUGS.length, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of EXPECTED_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 source-of-truth slug eksik: ${slug}`);
 
@@ -104,7 +104,7 @@ assert(rolloutApplyIndex > phase3ApplyIndex, "Runtime sırası teknik FAZ 3 göv
 assert(assemblerSource.includes("getDepremPhase3ContentSignature()"), "Makale cache signature FAZ 3 içeriğini izlemiyor.");
 
 const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
-for (const batch of [1, 2, 3, 4, 5, 6, 7, 8] as const) {
+for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
   assert(phase3AggregatorSource.includes(`DEPREM_PHASE3_BATCH_${batch}_ARTICLES`), `FAZ 3 aggregator batch ${batch}'ü toplamıyor.`);
   assert(fs.existsSync(path.join(ROOT, `src/lib/deprem-phase3-batch${batch}.ts`)), `FAZ 3 batch ${batch} modülü bulunamadı.`);
 }
@@ -146,6 +146,10 @@ const requiredTokens: Record<ExpectedSlug, string[]> = {
   "tbdy-betonarme-diyafram-toplayici-baslik": ["4.5.6.1", "4.5.6.2", "4.5.6.3", "4.5.6.4", "4.5.6.5", "A2/A3", "iki boyutlu sonlu eleman", "ek bağlantı donatıları", "aktarma elemanları", "4.5.7.2", "SOURCE_VALUE"],
   "tbdy-2018-betonarme-analiz": ["4.5.3.7", "4.5.3.8", "1/2", "4.5.6.2", "4.5.8", "Tablo 4.2", "0.35", "0.70", "4.5.9", "Denklem (4.16)", "4.5.10", "SOURCE_VALUE"],
   "kisa-kolon-etkisi-tbdy-2018": ["7.3.8", "Denklem (7.5)", "1.4Mra", "1.4Mrü", "ℓn", "Denklem (7.7)", "Ve ≤ Vr", "0.85 Aw √fck", "tüm serbest yüksekliği", "Vc = 0", "Nd/(Ac fck) ≤ 0.05", "yarısından", "SOURCE_VALUE"],
+  "tbdy-2018-dogrusal-olmayan-tasarim": ["5.1.3", "ŞGDT", "5.2.2.2", "Lp ≈ 0.5h", "BYS ≥ 5", "BYS ≥ 2", "ηbi < 1.4", "0.70", "5.7.2.1", "en az onbir"],
+  "tbdy-2018-guclu-kolon-kontrolu": ["7.3.5.1", "Denklem (7.3)", "1.2", "Nd ≤ 0.10 Ac fck", "7.3.5.3", "αi = Vis / Vik", "αi ≥ 0.70", "1/αi", "7.3.6.3"],
+  "tbdy-2018-duzensizlikler-rehberi": ["Tablo 3.6", "A1", "ηbi > 1.2", "± %5", "A2", "1/3", "A3", "%20", "B1", "ηci < 0.80", "0.60", "1.25", "B2", "ηki > 2.0", "B3", "3.6.2.2"],
+  "tbdy-2018-sismik-izolasyon": ["Bölüm 14", "14.14.1.1", "ZA, ZB, ZC veya ZD", "4.0 saniye", "en fazla 4", "20 metre", "%30", "ηbi < 2.0", "B2", "Tv ≤ 0.1 s", "14.14.1.3", "en az onbir kayıt çifti", "%80", "%90"],
 };
 
 const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; symbols: number }>> = {
@@ -244,7 +248,7 @@ for (const configured of DEPREM_PHASE3_ARTICLES) {
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 3 ilk sekiz batch kontrolü başarısız:\n");
+  console.error("Deprem FAZ 3 ilk dokuz batch kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -252,7 +256,7 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 3",
-  completedBatches: 8,
+  completedBatches: 9,
   batchSizes: {
     1: BATCH_1_SLUGS.length,
     2: BATCH_2_SLUGS.length,
@@ -262,6 +266,7 @@ console.log(JSON.stringify({
     6: BATCH_6_SLUGS.length,
     7: BATCH_7_SLUGS.length,
     8: BATCH_8_SLUGS.length,
+    9: BATCH_9_SLUGS.length,
   },
   articles: EXPECTED_SLUGS.length,
   slugs: EXPECTED_SLUGS,
@@ -275,11 +280,12 @@ console.log(JSON.stringify({
     "src/lib/deprem-phase3-batch6.ts",
     "src/lib/deprem-phase3-batch7.ts",
     "src/lib/deprem-phase3-batch8.ts",
+    "src/lib/deprem-phase3-batch9.ts",
   ],
   runtimeOrder: "topic seed -> phase3 technical override -> rollout enhancement -> author normalization",
   c3GenericBodyRemainingInCompletedBatches: 0,
-  officialSourceProfile: "AFAD TBDY 2018 Bölüm 3/4/7/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
+  officialSourceProfile: "AFAD TBDY 2018 Bölüm 3/4/5/7/14/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 13, "tbdy-betonarme": 19 },
+  seriesCoverage: { tbdy: 17, "tbdy-betonarme": 19 },
   ts500Touched: false,
 }, null, 2));
