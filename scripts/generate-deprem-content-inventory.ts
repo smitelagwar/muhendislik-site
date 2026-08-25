@@ -4,6 +4,7 @@ import { getArticleList, type ArticleData } from "../src/lib/articles-data";
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleAuthorPresentation } from "../src/lib/content-author";
 import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
+import { DEPREM_ROLLOUT_BATCH_1, DEPREM_ROLLOUT_BATCH_1_SLUGS } from "../src/lib/deprem-rollout";
 import { DEPREM_TOPIC_ARTICLES } from "../src/lib/deprem-topic-articles";
 import { DEPREM_SERIES, getDepremSeriesForArticle } from "../src/lib/deprem-series";
 import { SITE_SECTIONS } from "../src/lib/site-sections";
@@ -14,6 +15,7 @@ const ROOT = process.cwd();
 const RUNTIME_ASSEMBLER = "src/lib/articles-data.ts";
 const DATA_PATH = "src/lib/data.json";
 const PILOT_PATH = "src/lib/deprem-pilot-articles.ts";
+const ROLLOUT_PATH = "src/lib/deprem-rollout.ts";
 const TOPIC_PATH = "src/lib/deprem-topic-articles.ts";
 const NORMALIZER_PATH = "src/lib/deprem-existing-overrides.ts";
 const TS500_DIR = "src/lib/ts500-content";
@@ -91,6 +93,7 @@ const inventory = depremArticles.map((article) => {
   const rawArticle = rawDepremBySlug.get(article.slug);
   const isTs500 = TS500_SLUGS.has(article.slug);
   const isPilot = DEPREM_PILOT_SLUGS.has(article.slug);
+  const isRollout = DEPREM_ROLLOUT_BATCH_1_SLUGS.has(article.slug);
   const isTopic = topicBySlug.has(article.slug);
   const bodyChangedByNormalizer = Boolean(
     rawArticle && JSON.stringify(rawArticle.sections) !== JSON.stringify(article.sections),
@@ -102,6 +105,7 @@ const inventory = depremArticles.map((article) => {
     seed: string | null;
     body: string | null;
     metadata: string | null;
+    enhancement: string | null;
   };
 
   if (isTs500) {
@@ -112,6 +116,7 @@ const inventory = depremArticles.map((article) => {
       seed: rawArticle ? DATA_PATH : null,
       body: ts500File,
       metadata: ts500File,
+      enhancement: null,
     };
   } else if (isPilot) {
     sourceOfTruth = {
@@ -120,6 +125,7 @@ const inventory = depremArticles.map((article) => {
       seed: rawArticle ? DATA_PATH : isTopic ? TOPIC_PATH : null,
       body: PILOT_PATH,
       metadata: PILOT_PATH,
+      enhancement: null,
     };
   } else if (isTopic) {
     sourceOfTruth = {
@@ -128,6 +134,7 @@ const inventory = depremArticles.map((article) => {
       seed: null,
       body: TOPIC_PATH,
       metadata: TOPIC_PATH,
+      enhancement: isRollout ? ROLLOUT_PATH : null,
     };
   } else if (rawArticle) {
     sourceOfTruth = {
@@ -136,6 +143,7 @@ const inventory = depremArticles.map((article) => {
       seed: DATA_PATH,
       body: bodyChangedByNormalizer ? NORMALIZER_PATH : DATA_PATH,
       metadata: NORMALIZER_PATH,
+      enhancement: isRollout ? ROLLOUT_PATH : null,
     };
   } else {
     sourceOfTruth = {
@@ -144,6 +152,7 @@ const inventory = depremArticles.map((article) => {
       seed: null,
       body: null,
       metadata: null,
+      enhancement: isRollout ? ROLLOUT_PATH : null,
     };
   }
 
@@ -169,6 +178,7 @@ const inventory = depremArticles.map((article) => {
     title: article.title,
     seriesId: article.seriesId ?? series.id,
     excludedFromRewriteScope: series.id === "ts500",
+    rolloutBatch: isRollout ? 1 : null,
     sourceOfTruth,
     author: article.author ?? null,
     authorTitle: article.authorTitle ?? null,
@@ -225,6 +235,7 @@ const legacyNormalized = inventory.filter((item) => item.sourceOfTruth.kind === 
 const legacyBodyRecovered = legacyNormalized.filter((item) => item.sourceOfTruth.body === NORMALIZER_PATH);
 const legacyBodyPreserved = legacyNormalized.filter((item) => item.sourceOfTruth.body === DATA_PATH);
 const pilotInventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-pilot-articles");
+const rolloutInventory = inventory.filter((item) => item.rolloutBatch === 1);
 
 const oldRouteSourceHits: Array<{ file: string; line: number; text: string }> = [];
 for (const file of walk("src").filter((item) => /\.(?:ts|tsx|json|md|mdx)$/.test(item))) {
@@ -242,6 +253,7 @@ const unknownSourceSlugs = inventory
   .filter((item) => !item.sourceOfTruth.body || !item.sourceOfTruth.metadata)
   .map((item) => item.slug);
 const missingPilotRuntimeSlugs = [...DEPREM_PILOT_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
+const missingRolloutRuntimeSlugs = [...DEPREM_ROLLOUT_BATCH_1_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
 const canonicalAuthorPresentation = getArticleAuthorPresentation({
   sectionId: "deprem-yonetmelik",
   author: TARGET_AUTHOR,
@@ -249,10 +261,10 @@ const canonicalAuthorPresentation = getArticleAuthorPresentation({
 });
 
 const report = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
-  scope: "FAZ 0/2 — Envanter, kaynak haritası ve pilot source-of-truth",
+  scope: "FAZ 0/2 + rollout Batch 1 — Envanter, kaynak haritası ve kontrollü enhancement",
   invariants: {
     targetAuthor: TARGET_AUTHOR,
     targetInitials: TARGET_INITIALS,
@@ -267,6 +279,8 @@ const report = {
     depremTopicArticles: DEPREM_TOPIC_ARTICLES.length,
     depremPilotArticles: DEPREM_PILOT_ARTICLES.length,
     pilotInventoryArticles: pilotInventory.length,
+    rolloutBatch1Articles: DEPREM_ROLLOUT_BATCH_1.length,
+    rolloutInventoryArticles: rolloutInventory.length,
     ts500RichArticles: TS500_ARTICLES.length,
     legacyNormalizedArticles: legacyNormalized.length,
     legacyBodyRecovered: legacyBodyRecovered.length,
@@ -280,12 +294,21 @@ const report = {
     rawTs500RecordsShadowedByRichTs500: [...TS500_SLUGS].filter((slug) => rawDepremBySlug.has(slug)),
     topicVsTs500: [...topicBySlug.keys()].filter((slug) => TS500_SLUGS.has(slug)),
     pilotVsTs500: [...DEPREM_PILOT_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
+    rolloutVsTs500: [...DEPREM_ROLLOUT_BATCH_1_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
+    rolloutVsPilot: [...DEPREM_ROLLOUT_BATCH_1_SLUGS].filter((slug) => DEPREM_PILOT_SLUGS.has(slug)),
   },
   pilotAudit: {
     configuredSlugs: [...DEPREM_PILOT_SLUGS],
     sourceOfTruthSlugs: pilotInventory.map((item) => item.slug),
     missingRuntimeSlugs: missingPilotRuntimeSlugs,
     allConfiguredPilotsResolved: missingPilotRuntimeSlugs.length === 0 && pilotInventory.length === DEPREM_PILOT_ARTICLES.length,
+  },
+  rolloutAudit: {
+    batch: 1,
+    configuredSlugs: [...DEPREM_ROLLOUT_BATCH_1_SLUGS],
+    enhancedSlugs: rolloutInventory.map((item) => item.slug),
+    missingRuntimeSlugs: missingRolloutRuntimeSlugs,
+    allConfiguredRolloutResolved: missingRolloutRuntimeSlugs.length === 0 && rolloutInventory.length === DEPREM_ROLLOUT_BATCH_1.length,
   },
   visualAudit: {
     genericOrReusedCoverSlugs: inventory.filter((item) => item.genericOrReusedCover).map((item) => item.slug),
@@ -337,6 +360,7 @@ console.log(JSON.stringify({
   counts: report.counts,
   sourceAudit: report.sourceAudit,
   pilotAudit: report.pilotAudit,
+  rolloutAudit: report.rolloutAudit,
   collisionCounts: Object.fromEntries(
     Object.entries(report.collisions).map(([key, value]) => [key, Array.isArray(value) ? value.length : 0]),
   ),
@@ -353,4 +377,8 @@ console.log(JSON.stringify({
   encodingSuspicionCount: report.encodingAudit.suspiciousSlugs.length,
 }, null, 2));
 
-if (!report.sourceAudit.allSourcesResolved || !report.pilotAudit.allConfiguredPilotsResolved) process.exitCode = 2;
+if (
+  !report.sourceAudit.allSourcesResolved ||
+  !report.pilotAudit.allConfiguredPilotsResolved ||
+  !report.rolloutAudit.allConfiguredRolloutResolved
+) process.exitCode = 2;
