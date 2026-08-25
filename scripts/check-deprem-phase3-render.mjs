@@ -10,6 +10,10 @@ const slugs = [
   "tbdy-performans-hedefleri-dd-sh-kh-go",
   "tbdy-kutle-kaynagi-hareketli-yuk-katilimi",
   "tbdy-rijit-yari-rijit-diyafram",
+  "tbdy-esdeger-deprem-yuku-uygulanma-sinirlari",
+  "tbdy-yeterli-mod-modal-kutle-katilimi",
+  "tbdy-modal-taban-kesme-olceklendirme",
+  "tbdy-yuzde-100-yuzde-30-birlesimi",
 ];
 const routes = slugs.map((slug) => `/${slug}`);
 const viewports = [
@@ -156,7 +160,7 @@ try {
     status: "ok",
     routes: routes.length,
     checks: completed.length,
-    matrix: "4 routes × 2 themes × 2 viewports",
+    matrix: `${routes.length} routes × 2 themes × 2 viewports`,
     completed,
   }, null, 2));
 } finally {

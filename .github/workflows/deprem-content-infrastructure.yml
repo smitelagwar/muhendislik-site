@@ -17,6 +17,7 @@ on:
       - src/lib/articles-data.ts
       - src/lib/content-author.ts
       - src/lib/deprem-phase3-articles.ts
+      - src/lib/deprem-phase3-*.ts
       - src/lib/deprem-pilot-articles.ts
       - src/lib/deprem-rollout.ts
       - src/lib/deprem-rollout-extra.ts
@@ -38,7 +39,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
