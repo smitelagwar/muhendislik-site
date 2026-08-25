@@ -7,190 +7,286 @@ import { DEPREM_SERIES, getDepremSeriesForArticle } from "../src/lib/deprem-seri
 import { SITE_SECTIONS } from "../src/lib/site-sections";
 import { TS500_ARTICLES, TS500_SLUGS } from "../src/lib/ts500-content";
 
-const root = process.cwd();
-const dataPath = "src/lib/data.json";
-const topicPath = "src/lib/deprem-topic-articles.ts";
-const normalizerPath = "src/lib/deprem-existing-overrides.ts";
-const oldToolPrefix = "/deprem-yonetmelik/araclar/";
-const targetAuthor = "İnşaat Mühendisi Hüseyin GÜNAYDIN";
-const targetInitials = "HG";
-const genericImage = /\/covers\/yonetmelik\.svg$|generic|placeholder|default/i;
+const ROOT = process.cwd();
+const RUNTIME_ASSEMBLER = "src/lib/articles-data.ts";
+const DATA_PATH = "src/lib/data.json";
+const TOPIC_PATH = "src/lib/deprem-topic-articles.ts";
+const NORMALIZER_PATH = "src/lib/deprem-existing-overrides.ts";
+const TS500_DIR = "src/lib/ts500-content";
+const TARGET_AUTHOR = "İnşaat Mühendisi Hüseyin GÜNAYDIN";
+const TARGET_INITIALS = "HG";
+const OLD_TOOL_PREFIX = "/deprem-yonetmelik/araclar/";
+const GENERIC_IMAGE_PATTERN = /\/covers\/yonetmelik\.svg$|generic|placeholder|default/i;
 
-const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
-function walk(rel: string): string[] {
-  const abs = path.join(root, rel);
-  if (!fs.existsSync(abs)) return [];
-  return fs.readdirSync(abs, { withFileTypes: true }).flatMap((entry) => {
-    const child = path.join(rel, entry.name).replaceAll("\\", "/");
+function read(relativePath: string) {
+  return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
+}
+
+function walk(relativePath: string): string[] {
+  const absolutePath = path.join(ROOT, relativePath);
+  if (!fs.existsSync(absolutePath)) return [];
+
+  return fs.readdirSync(absolutePath, { withFileTypes: true }).flatMap((entry) => {
+    const child = path.join(relativePath, entry.name).replaceAll("\\", "/");
     return entry.isDirectory() ? walk(child) : [child];
   });
 }
-function initials(author: string) {
-  return author.split(/\s+/).filter(Boolean).map((part) => part[0] ?? "").join("").slice(0, 2);
+
+function generatedInitials(author: string) {
+  return author
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2);
 }
-function links(text: string) {
-  const found = new Set<string>();
-  for (const rx of [/\]\((\/[^)\s]+)\)/g, /href=["'](\/[^"']+)["']/g]) {
-    for (const match of text.matchAll(rx)) found.add(match[1]);
-  }
-  return [...found];
-}
-function ts500File(slug: string) {
-  const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const rx = new RegExp(`slug\\s*:\\s*["']${escaped}["']`);
-  return walk("src/lib/ts500-content")
+
+function ts500SourceFile(slug: string) {
+  return walk(TS500_DIR)
     .filter((file) => file.endsWith(".ts") && !file.endsWith("/index.ts"))
-    .find((file) => rx.test(read(file))) ?? null;
+    .find((file) => {
+      const source = read(file);
+      return source.includes(`slug: "${slug}"`) || source.includes(`slug: '${slug}'`);
+    }) ?? null;
 }
 
-const rawText = read(dataPath);
-const raw = JSON.parse(rawText) as Record<string, ArticleData>;
-const rawDeprem = Object.values(raw).filter((article) => article.sectionId === "deprem-yonetmelik");
-const rawBySlug = new Map(rawDeprem.map((article) => [article.slug, article]));
+function extractInternalLinks(text: string) {
+  const result = new Set<string>();
+  for (const pattern of [/\]\((\/[^)\s]+)\)/g, /href=["'](\/[^"']+)["']/g]) {
+    for (const match of text.matchAll(pattern)) result.add(match[1]);
+  }
+  return [...result];
+}
+
+function hasEncodingSuspicion(value: unknown) {
+  return typeof value === "string" && (/[�ÃÄÅÂ]/.test(value) || /\p{L}\?\p{L}/u.test(value));
+}
+
+const rawText = read(DATA_PATH);
+const rawArticles = JSON.parse(rawText) as Record<string, ArticleData>;
+const rawDepremArticles = Object.values(rawArticles).filter((article) => article.sectionId === "deprem-yonetmelik");
+const rawDepremBySlug = new Map(rawDepremArticles.map((article) => [article.slug, article]));
 const topicBySlug = new Map(DEPREM_TOPIC_ARTICLES.map((article) => [article.slug, article]));
+
 const allArticles = getArticleList();
-const allSlugs = new Set(allArticles.map((article) => article.slug));
-const articles = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik");
+const allArticleSlugs = new Set(allArticles.map((article) => article.slug));
+const depremArticles = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik");
 
-const routes = new Set(SITE_SECTIONS.map((section) => section.href.replace(/\/$/, "") || "/"));
-for (const file of walk("src/app").filter((file) => file.endsWith("/page.tsx") || file === "src/app/page.tsx")) {
-  const route = file.replace(/^src\/app\/?/, "").replace(/\/page\.tsx$/, "").replace(/^page\.tsx$/, "");
-  if (!route.includes("[")) routes.add(route ? `/${route}` : "/");
+const knownRoutes = new Set(SITE_SECTIONS.map((section) => section.href.replace(/\/$/, "") || "/"));
+for (const pageFile of walk("src/app").filter((file) => file === "src/app/page.tsx" || file.endsWith("/page.tsx"))) {
+  const route = pageFile.replace(/^src\/app\/?/, "").replace(/\/page\.tsx$/, "").replace(/^page\.tsx$/, "");
+  if (!route.includes("[")) knownRoutes.add(route ? `/${route}` : "/");
 }
-const routeExists = (href: string) => {
+
+function routeExists(href: string) {
   const clean = href.split(/[?#]/)[0].replace(/\/$/, "") || "/";
-  return routes.has(clean) || (/^\/[^/]+$/.test(clean) && allSlugs.has(clean.slice(1)));
-};
-
-const coverUse = new Map<string, string[]>();
-for (const article of articles) {
-  const image = article.image ?? "";
-  coverUse.set(image, [...(coverUse.get(image) ?? []), article.slug]);
+  return knownRoutes.has(clean) || (/^\/[^/]+$/.test(clean) && allArticleSlugs.has(clean.slice(1)));
 }
 
-const inventory = articles.map((article) => {
+const coverUsage = new Map<string, string[]>();
+for (const article of depremArticles) {
+  const image = article.image ?? "";
+  coverUsage.set(image, [...(coverUsage.get(image) ?? []), article.slug]);
+}
+
+const inventory = depremArticles.map((article) => {
   const series = getDepremSeriesForArticle(article);
+  const rawArticle = rawDepremBySlug.get(article.slug);
   const isTs500 = TS500_SLUGS.has(article.slug);
   const isTopic = topicBySlug.has(article.slug);
-  const isRaw = rawBySlug.has(article.slug);
-  let sourceOfTruth: { kind: string; seed: string | null; effective: string | null };
+  const bodyChangedByNormalizer = Boolean(
+    rawArticle && JSON.stringify(rawArticle.sections) !== JSON.stringify(article.sections),
+  );
+
+  let sourceOfTruth: {
+    kind: "ts500-content" | "deprem-topic-articles" | "legacy-normalized" | "unknown";
+    runtimeAssembler: string;
+    seed: string | null;
+    body: string | null;
+    metadata: string | null;
+  };
+
   if (isTs500) {
-    sourceOfTruth = { kind: "ts500-content", seed: isRaw ? dataPath : null, effective: ts500File(article.slug) };
+    const ts500File = ts500SourceFile(article.slug);
+    sourceOfTruth = {
+      kind: "ts500-content",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: rawArticle ? DATA_PATH : null,
+      body: ts500File,
+      metadata: ts500File,
+    };
   } else if (isTopic) {
-    sourceOfTruth = { kind: "deprem-topic-articles", seed: null, effective: topicPath };
-  } else if (isRaw) {
-    sourceOfTruth = { kind: "legacy-normalized", seed: dataPath, effective: normalizerPath };
+    sourceOfTruth = {
+      kind: "deprem-topic-articles",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: null,
+      body: TOPIC_PATH,
+      metadata: TOPIC_PATH,
+    };
+  } else if (rawArticle) {
+    sourceOfTruth = {
+      kind: "legacy-normalized",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: DATA_PATH,
+      body: bodyChangedByNormalizer ? NORMALIZER_PATH : DATA_PATH,
+      metadata: NORMALIZER_PATH,
+    };
   } else {
-    sourceOfTruth = { kind: "unknown", seed: null, effective: null };
+    sourceOfTruth = {
+      kind: "unknown",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: null,
+      body: null,
+      metadata: null,
+    };
   }
 
-  const bodyImages = article.sections.flatMap((section) => parseBlocks(section.content).filter((block) => block.type === "image"));
-  const bodySources = [...new Set(bodyImages.map((block) => block.type === "image" ? block.src : "").filter(Boolean))];
+  const bodyImages = article.sections.flatMap((section) =>
+    parseBlocks(section.content).filter((block) => block.type === "image"),
+  );
+  const distinctBodyImages = [...new Set(
+    bodyImages.map((block) => block.type === "image" ? block.src : "").filter(Boolean),
+  )];
   const image = article.image ?? "";
-  const reusedBy = coverUse.get(image) ?? [];
-  const genericOrReusedCover = !image || genericImage.test(image) || reusedBy.length > 1;
-  const meaningfulBodyCount = bodySources.filter((src) => !genericImage.test(src)).length;
-  const realVisualCount = (image && !genericOrReusedCover ? 1 : 0) + meaningfulBodyCount;
+  const coverReuseCount = (coverUsage.get(image) ?? []).length;
+  const genericOrReusedCover = !image || GENERIC_IMAGE_PATTERN.test(image) || coverReuseCount > 1;
+  const meaningfulBodyImageCount = distinctBodyImages.filter((src) => !GENERIC_IMAGE_PATTERN.test(src)).length;
+  const realVisualCount = (image && !genericOrReusedCover ? 1 : 0) + meaningfulBodyImageCount;
+
   const sectionText = article.sections.map((section) => section.content).join("\n");
-  const internalLinks = links(sectionText);
-  const generatedInitials = initials(article.author ?? "");
+  const internalLinks = extractInternalLinks(sectionText);
+  const initials = generatedInitials(article.author ?? "");
 
   return {
     slug: article.slug,
     title: article.title,
     seriesId: article.seriesId ?? series.id,
+    excludedFromRewriteScope: series.id === "ts500",
     sourceOfTruth,
     author: article.author ?? null,
     authorTitle: article.authorTitle ?? null,
-    generatedInitials,
-    targetAuthorMatches: article.author === targetAuthor,
-    targetInitialsMatch: generatedInitials === targetInitials,
+    generatedInitials: initials,
+    targetAuthorMatches: article.author === TARGET_AUTHOR,
+    targetInitialsMatch: initials === TARGET_INITIALS,
     image: image || null,
-    coverReuseCount: reusedBy.length,
-    coverReusedBy: reusedBy.length > 1 ? reusedBy : [],
+    coverReuseCount,
     genericOrReusedCover,
     bodyImageCount: bodyImages.length,
-    distinctBodyImageCount: bodySources.length,
+    distinctBodyImageCount: distinctBodyImages.length,
     realVisualCount,
     belowTwoRealVisuals: series.id !== "ts500" && realVisualCount < 2,
     date: article.date ?? null,
     updatedAt: article.updatedAt ?? null,
     readTime: article.readTime ?? null,
     relatedSlugs: article.relatedSlugs ?? [],
-    invalidRelatedSlugs: (article.relatedSlugs ?? []).filter((slug) => !allSlugs.has(slug)),
+    invalidRelatedSlugs: (article.relatedSlugs ?? []).filter((slug) => !allArticleSlugs.has(slug)),
     references: article.references ?? [],
-    relatedTool: { href: series.relatedToolHref, label: series.label, routeExists: routeExists(series.relatedToolHref) },
+    relatedTool: {
+      label: series.label,
+      href: series.relatedToolHref,
+      routeExists: routeExists(series.relatedToolHref),
+    },
     internalLinks,
     suspiciousInternalLinks: internalLinks.filter((href) => !routeExists(href)),
     oldRouteLinks: [...new Set([
-      ...internalLinks.filter((href) => href.includes(oldToolPrefix)),
-      ...(JSON.stringify(article).includes(oldToolPrefix) ? [oldToolPrefix] : []),
-      ...(series.relatedToolHref.includes(oldToolPrefix) ? [series.relatedToolHref] : []),
+      ...internalLinks.filter((href) => href.includes(OLD_TOOL_PREFIX)),
+      ...(JSON.stringify(article).includes(OLD_TOOL_PREFIX) ? [OLD_TOOL_PREFIX] : []),
+      ...(series.relatedToolHref.includes(OLD_TOOL_PREFIX) ? [series.relatedToolHref] : []),
     ])],
-    encodingSuspicion: [article.title, article.description, article.author, article.authorTitle, ...article.sections.flatMap((s) => [s.title, s.content])]
-      .some((value) => typeof value === "string" && (/[�ÃÄÅÂ]/.test(value) || /\p{L}\?\p{L}/u.test(value))),
+    encodingSuspicion: [
+      article.slug,
+      article.title,
+      article.description,
+      article.author,
+      article.authorTitle,
+      ...article.sections.flatMap((section) => [section.title, section.content]),
+    ].some(hasEncodingSuspicion),
   };
 });
 
-const countMap = (values: string[]) => Object.fromEntries([...new Set(values)].map((value) => [value, values.filter((item) => item === value).length]));
-const rawKeys = [...rawText.matchAll(/^\s{2}"([^"]+)"\s*:\s*\{/gm)].map((match) => match[1]);
-const rawKeyCounts = countMap(rawKeys);
-const duplicateRawJsonKeys = Object.entries(rawKeyCounts).filter(([, count]) => count > 1).map(([slug, count]) => ({ slug, count }));
-const effectiveCounts = countMap(articles.map((article) => article.slug));
-const duplicateEffectiveSlugs = Object.entries(effectiveCounts).filter(([, count]) => count > 1).map(([slug, count]) => ({ slug, count }));
+function duplicateCounts(values: string[]) {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts.entries()].filter(([, count]) => count > 1).map(([slug, count]) => ({ slug, count }));
+}
 
-const oldRouteSourceHits: { file: string; line: number; text: string }[] = [];
-for (const file of walk("src").filter((file) => /\.(?:ts|tsx|json|md|mdx)$/.test(file))) {
+const rawTopLevelKeys = [...rawText.matchAll(/^\s{2}"([^"]+)"\s*:\s*\{/gm)].map((match) => match[1]);
+const duplicateRawJsonKeys = duplicateCounts(rawTopLevelKeys);
+const duplicateEffectiveSlugs = duplicateCounts(depremArticles.map((article) => article.slug));
+const nonTs500 = inventory.filter((item) => item.seriesId !== "ts500");
+const legacyNormalized = inventory.filter((item) => item.sourceOfTruth.kind === "legacy-normalized");
+const legacyBodyRecovered = legacyNormalized.filter((item) => item.sourceOfTruth.body === NORMALIZER_PATH);
+const legacyBodyPreserved = legacyNormalized.filter((item) => item.sourceOfTruth.body === DATA_PATH);
+
+const oldRouteSourceHits: Array<{ file: string; line: number; text: string }> = [];
+for (const file of walk("src").filter((item) => /\.(?:ts|tsx|json|md|mdx)$/.test(item))) {
   read(file).split("\n").forEach((line, index) => {
-    if (line.includes(oldToolPrefix)) oldRouteSourceHits.push({ file, line: index + 1, text: line.trim().slice(0, 240) });
+    if (line.includes(OLD_TOOL_PREFIX)) {
+      oldRouteSourceHits.push({ file, line: index + 1, text: line.trim().slice(0, 240) });
+    }
   });
 }
 
-const bySeries = Object.fromEntries(DEPREM_SERIES.map((series) => [series.id, inventory.filter((item) => item.seriesId === series.id).length]));
-const nonTs500 = inventory.filter((item) => item.seriesId !== "ts500");
-const legacyNormalizedSlugs = inventory.filter((item) => item.sourceOfTruth.kind === "legacy-normalized").map((item) => item.slug);
-const unknownSourceSlugs = inventory.filter((item) => !item.sourceOfTruth.effective).map((item) => item.slug);
+const bySeries = Object.fromEntries(
+  DEPREM_SERIES.map((series) => [series.id, inventory.filter((item) => item.seriesId === series.id).length]),
+);
+const unknownSourceSlugs = inventory
+  .filter((item) => !item.sourceOfTruth.body || !item.sourceOfTruth.metadata)
+  .map((item) => item.slug);
 
 const report = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
   scope: "FAZ 0 — Freeze, envanter ve kaynak haritası",
   invariants: {
-    targetAuthor,
-    targetInitials,
-    currentArticleClientWouldGenerateForTargetAuthor: initials(targetAuthor),
+    targetAuthor: TARGET_AUTHOR,
+    targetInitials: TARGET_INITIALS,
+    currentArticleClientWouldGenerateForTargetAuthor: generatedInitials(TARGET_AUTHOR),
   },
   counts: {
     totalDepremYonetmelik: inventory.length,
     ts500: inventory.filter((item) => item.seriesId === "ts500").length,
     nonTs500Target: nonTs500.length,
-    rawDataDepremRecords: rawDeprem.length,
-    legacyNormalizedArticles: legacyNormalizedSlugs.length,
+    rawDataDepremRecords: rawDepremArticles.length,
     depremTopicArticles: DEPREM_TOPIC_ARTICLES.length,
     ts500RichArticles: TS500_ARTICLES.length,
+    legacyNormalizedArticles: legacyNormalized.length,
+    legacyBodyRecovered: legacyBodyRecovered.length,
+    legacyBodyPreserved: legacyBodyPreserved.length,
     bySeries,
   },
   collisions: {
     duplicateRawJsonKeys,
     duplicateEffectiveSlugs,
-    rawVsTopic: [...topicBySlug.keys()].filter((slug) => rawBySlug.has(slug)),
-    rawTs500RecordsShadowedByRichTs500: [...TS500_SLUGS].filter((slug) => rawBySlug.has(slug)),
+    rawVsTopic: [...topicBySlug.keys()].filter((slug) => rawDepremBySlug.has(slug)),
+    rawTs500RecordsShadowedByRichTs500: [...TS500_SLUGS].filter((slug) => rawDepremBySlug.has(slug)),
     topicVsTs500: [...topicBySlug.keys()].filter((slug) => TS500_SLUGS.has(slug)),
-    legacyNormalizedSlugs,
   },
   visualAudit: {
     genericOrReusedCoverSlugs: inventory.filter((item) => item.genericOrReusedCover).map((item) => item.slug),
     nonTs500BelowTwoRealVisuals: nonTs500.filter((item) => item.belowTwoRealVisuals).map((item) => item.slug),
-    coverReuseGroups: [...coverUse.entries()].filter(([image, slugs]) => image && slugs.length > 1).map(([image, slugs]) => ({ image, slugs })),
+    coverReuseGroups: [...coverUsage.entries()]
+      .filter(([image, slugs]) => Boolean(image) && slugs.length > 1)
+      .map(([image, slugs]) => ({ image, slugs })),
   },
   linkAudit: {
-    oldRoutePattern: oldToolPrefix,
+    oldRoutePattern: OLD_TOOL_PREFIX,
     oldRouteSourceHits,
-    articleOldRouteSlugs: inventory.filter((item) => item.oldRouteLinks.length).map((item) => item.slug),
-    invalidRelatedSlugArticles: inventory.filter((item) => item.invalidRelatedSlugs.length).map((item) => ({ slug: item.slug, invalidRelatedSlugs: item.invalidRelatedSlugs })),
-    suspiciousInternalLinkArticles: inventory.filter((item) => item.suspiciousInternalLinks.length).map((item) => ({ slug: item.slug, links: item.suspiciousInternalLinks })),
-    suspiciousRelatedTools: inventory.filter((item) => !item.relatedTool.routeExists).map((item) => ({ slug: item.slug, seriesId: item.seriesId, href: item.relatedTool.href })),
+    articleOldRouteSlugs: inventory.filter((item) => item.oldRouteLinks.length > 0).map((item) => item.slug),
+    invalidRelatedSlugArticles: inventory
+      .filter((item) => item.invalidRelatedSlugs.length > 0)
+      .map((item) => ({ slug: item.slug, invalidRelatedSlugs: item.invalidRelatedSlugs })),
+    suspiciousInternalLinkArticles: inventory
+      .filter((item) => item.suspiciousInternalLinks.length > 0)
+      .map((item) => ({ slug: item.slug, links: item.suspiciousInternalLinks })),
+    suspiciousRelatedTools: inventory
+      .filter((item) => !item.relatedTool.routeExists)
+      .map((item) => ({ slug: item.slug, seriesId: item.seriesId, href: item.relatedTool.href })),
+  },
+  metadataAudit: {
+    missingUpdatedAtSlugs: inventory.filter((item) => !item.updatedAt).map((item) => item.slug),
+    missingReferencesSlugs: inventory.filter((item) => item.references.length === 0).map((item) => item.slug),
   },
   authorAudit: {
     uniqueAuthors: [...new Set(inventory.map((item) => item.author))],
@@ -198,25 +294,37 @@ const report = {
     targetAuthorMismatchCount: inventory.filter((item) => !item.targetAuthorMatches).length,
     targetInitialsMismatchCount: inventory.filter((item) => !item.targetInitialsMatch).length,
   },
-  encodingAudit: { suspiciousSlugs: inventory.filter((item) => item.encodingSuspicion).map((item) => item.slug) },
-  sourceAudit: { unknownSourceSlugs, allSourcesResolved: unknownSourceSlugs.length === 0 },
+  encodingAudit: {
+    suspiciousSlugs: inventory.filter((item) => item.encodingSuspicion).map((item) => item.slug),
+  },
+  sourceAudit: {
+    unknownSourceSlugs,
+    allSourcesResolved: unknownSourceSlugs.length === 0,
+  },
   inventory,
 };
 
 const outArg = process.argv.find((arg) => arg.startsWith("--out="));
-const out = outArg?.slice(6) || "deprem-content-inventory.json";
-fs.writeFileSync(path.join(root, out), `${JSON.stringify(report, null, 2)}\n`);
+const outputPath = outArg?.slice("--out=".length) || "deprem-content-inventory.json";
+fs.writeFileSync(path.join(ROOT, outputPath), `${JSON.stringify(report, null, 2)}\n`, "utf8");
+
 console.log(JSON.stringify({
+  outputPath,
   counts: report.counts,
   sourceAudit: report.sourceAudit,
-  collisionCounts: Object.fromEntries(Object.entries(report.collisions).map(([key, value]) => [key, Array.isArray(value) ? value.length : 0])),
+  collisionCounts: Object.fromEntries(
+    Object.entries(report.collisions).map(([key, value]) => [key, Array.isArray(value) ? value.length : 0]),
+  ),
   genericOrReusedCovers: report.visualAudit.genericOrReusedCoverSlugs.length,
   nonTs500BelowTwoRealVisuals: report.visualAudit.nonTs500BelowTwoRealVisuals.length,
   oldRouteSourceHits: report.linkAudit.oldRouteSourceHits.length,
   invalidRelatedSlugArticles: report.linkAudit.invalidRelatedSlugArticles.length,
   suspiciousInternalLinkArticles: report.linkAudit.suspiciousInternalLinkArticles.length,
   suspiciousRelatedTools: report.linkAudit.suspiciousRelatedTools.length,
+  missingUpdatedAt: report.metadataAudit.missingUpdatedAtSlugs.length,
+  missingReferences: report.metadataAudit.missingReferencesSlugs.length,
   authorAudit: report.authorAudit,
   encodingSuspicionCount: report.encodingAudit.suspiciousSlugs.length,
 }, null, 2));
+
 if (!report.sourceAudit.allSourcesResolved) process.exitCode = 2;
