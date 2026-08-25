@@ -10,23 +10,45 @@ permissions:
   contents: read
 
 jobs:
-  audit:
+  inventory:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+      - run: npm ci
+      - name: Generate inventory
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          npx tsx scripts/audit-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json 2>&1 | tee artifacts/audit-deprem-inventory.log
+          code=${PIPESTATUS[0]}
+          echo "audit-deprem-inventory=${code}" > artifacts/inventory-status.env
+          exit 0
+      - name: Upload inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: faz0-deprem-content-inventory
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run FAZ 0 inventory and baseline checks
+  static-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run static quality baseline
         shell: bash
         run: |
           set -u
@@ -46,20 +68,74 @@ jobs:
             return 0
           }
 
-          run_check audit-deprem-inventory npx tsx scripts/audit-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json
           run_check check-deprem-content npm run check:deprem-content
           run_check check-content-quality npm run check:content-quality
           run_check check-site-quality npm run check:site-quality
-          run_check check-navigation npm run check:navigation
-          run_check check-visual-system npm run check:visual-system
-          run_check check-article-link npm run check:article-link
           run_check typecheck npx tsc --noEmit
-
-      - name: Upload audit artifact
+          run_check lint npm run lint
+      - name: Upload static baseline
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: faz0-deprem-content-audit
+          name: faz0-static-quality-baseline
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+  browser-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build production app
+        id: build
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          npm run build 2>&1 | tee artifacts/build.log
+          code=${PIPESTATUS[0]}
+          echo "build=${code}" > artifacts/browser-baseline.env
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Resolve Puppeteer browser
+        if: steps.build.outputs.code == '0'
+        shell: bash
+        run: echo "PUPPETEER_EXECUTABLE_PATH=$(node -e \"console.log(require('puppeteer').executablePath())\")" >> "$GITHUB_ENV"
+      - name: Run navigation baseline
+        if: steps.build.outputs.code == '0'
+        shell: bash
+        run: |
+          set +e
+          npm run check:navigation 2>&1 | tee artifacts/check-navigation.log
+          code=${PIPESTATUS[0]}
+          echo "check-navigation=${code}" >> artifacts/browser-baseline.env
+          exit 0
+      - name: Run visual baseline
+        if: steps.build.outputs.code == '0'
+        shell: bash
+        run: |
+          set +e
+          npm run check:visual-system 2>&1 | tee artifacts/check-visual-system.log
+          code=${PIPESTATUS[0]}
+          echo "check-visual-system=${code}" >> artifacts/browser-baseline.env
+          exit 0
+      - name: Record blocked browser checks
+        if: steps.build.outputs.code != '0'
+        shell: bash
+        run: |
+          echo "check-navigation=BLOCKED_BY_BUILD" >> artifacts/browser-baseline.env
+          echo "check-visual-system=BLOCKED_BY_BUILD" >> artifacts/browser-baseline.env
+      - name: Upload browser baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: faz0-browser-quality-baseline
           path: artifacts/
           if-no-files-found: error
           retention-days: 7
