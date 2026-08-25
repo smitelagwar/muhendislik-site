@@ -47,7 +47,7 @@ function ts500SourceFile(slug: string) {
 
 function extractInternalLinks(text: string) {
   const result = new Set<string>();
-  for (const pattern of [/\]\((\/[^)\s]+)\)/g, /href=["'](\/[^"']+)["']/g]) {
+  for (const pattern of [/(?<!!)\[[^\]]+\]\((\/[^)\s]+)\)/g, /href=["'](\/[^"']+)["']/g]) {
     for (const match of text.matchAll(pattern)) result.add(match[1]);
   }
   return [...result];
