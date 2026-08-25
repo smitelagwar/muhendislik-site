@@ -6,224 +6,87 @@ const TDTH_PAGE = "https://www.afad.gov.tr/turkiye-deprem-tehlike-haritasi";
 const UPDATED_AT = "25 Ağustos 2026";
 
 export type DepremRolloutReferenceProfile = "tbdy" | "tbdy-hazard" | "preserve";
+export type DepremVisualLayout = "flow" | "decision" | "comparison" | "classification";
 
 export interface DepremRolloutSpec {
   slug: string;
-  batch: 1 | 2;
+  batch: 1 | 2 | 3;
   headline: string;
   eyebrow: string;
   steps: readonly [string, string, string];
   referenceProfile: DepremRolloutReferenceProfile;
+  visualLayout: DepremVisualLayout;
+}
+
+function makeSpec(
+  slug: string,
+  batch: 1 | 2 | 3,
+  headline: string,
+  eyebrow: string,
+  steps: readonly [string, string, string],
+  referenceProfile: DepremRolloutReferenceProfile,
+  visualLayout: DepremVisualLayout = "flow",
+): DepremRolloutSpec {
+  return { slug, batch, headline, eyebrow, steps, referenceProfile, visualLayout };
 }
 
 export const DEPREM_ROLLOUT_BATCH_1: readonly DepremRolloutSpec[] = [
-  {
-    slug: "tbdy-2018-betonarme-analiz",
-    batch: 1,
-    headline: "TBDY 2018 ile Betonarme Analiz",
-    eyebrow: "MODELLEME · ANALİZ · KONTROL",
-    steps: ["Model kabulleri", "Analiz ve düzensizlik", "Tasarım sonuçları"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "kisa-kolon-etkisi-tbdy-2018",
-    batch: 1,
-    headline: "Kısa Kolon Etkisi",
-    eyebrow: "GEOMETRİ · KESME · DETAY",
-    steps: ["Serbest kolon boyu", "Kesme talebi", "Detay ve önlem"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-2018-dogrusal-olmayan-tasarim",
-    batch: 1,
-    headline: "Doğrusal Olmayan Tasarım",
-    eyebrow: "MODEL · TALEP · PERFORMANS",
-    steps: ["Model ve mafsal", "Deprem talebi", "Performans kontrolü"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-2018-guclu-kolon-kontrolu",
-    batch: 1,
-    headline: "Güçlü Kolon Kontrolü",
-    eyebrow: "KAPASİTE · BİRLEŞİM · SÜNEKLİK",
-    steps: ["Düğüm momentleri", "Kolon-kiriş kapasitesi", "Birleşim kontrolü"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-2018-duzensizlikler-rehberi",
-    batch: 1,
-    headline: "TBDY Düzensizlik Kontrolleri",
-    eyebrow: "PLAN · DÜŞEY · ANALİZ",
-    steps: ["Geometri ve rijitlik", "A/B düzensizlikleri", "Analiz kararı"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-2018-sismik-izolasyon",
-    batch: 1,
-    headline: "Sismik İzolasyon",
-    eyebrow: "SİSTEM · DEPLASMAN · DOĞRULAMA",
-    steps: ["İzolasyon sistemi", "Tasarım deplasmanı", "Üst-alt yapı kontrolü"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-deprem-yer-hareketi-duzeyleri",
-    batch: 1,
-    headline: "Deprem Yer Hareketi Düzeyleri",
-    eyebrow: "DD DÜZEYİ · SPEKTRUM · HEDEF",
-    steps: ["DD düzeyi", "Spektral parametre", "Performans hedefi"],
-    referenceProfile: "tbdy-hazard",
-  },
-  {
-    slug: "tbdy-afad-ss-s1-okuma",
-    batch: 1,
-    headline: "AFAD Ss ve S1 Okuma",
-    eyebrow: "KOORDİNAT · HARİTA · PARAMETRE",
-    steps: ["Proje koordinatı", "Ss ve S1", "Zemin ve spektrum"],
-    referenceProfile: "tbdy-hazard",
-  },
-  {
-    slug: "tbdy-yerel-zemin-sinifi-spektrum",
-    batch: 1,
-    headline: "Yerel Zemin Sınıfı ve Spektrum",
-    eyebrow: "ZEMİN · KATSAYI · SPEKTRUM",
-    steps: ["Yerel zemin sınıfı", "Fs ve F1", "Tasarım spektrumu"],
-    referenceProfile: "tbdy-hazard",
-  },
-  {
-    slug: "tbdy-tasarim-spektrumu-cizimi",
-    batch: 1,
-    headline: "Tasarım Spektrumu Çizimi",
-    eyebrow: "SDS · SD1 · PERİYOT",
-    steps: ["SDS ve SD1", "TA ve TB", "Spektrum ordinatları"],
-    referenceProfile: "tbdy-hazard",
-  },
-  {
-    slug: "tbdy-r-d-dayanim-fazlaligi",
-    batch: 1,
-    headline: "R ve D Katsayıları",
-    eyebrow: "SİSTEM · DAVRANIŞ · TASARIM",
-    steps: ["Taşıyıcı sistem", "R ve D seçimi", "Azaltılmış deprem etkisi"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-bina-onem-katsayisi",
-    batch: 1,
-    headline: "Bina Önem Katsayısı",
-    eyebrow: "KULLANIM · BKS · I KATSAYISI",
-    steps: ["Kullanım amacı", "Bina kullanım sınıfı", "Önem katsayısı"],
-    referenceProfile: "tbdy",
-  },
+  makeSpec("tbdy-2018-betonarme-analiz", 1, "TBDY 2018 ile Betonarme Analiz", "MODELLEME · ANALİZ · KONTROL", ["Model kabulleri", "Analiz ve düzensizlik", "Tasarım sonuçları"], "tbdy"),
+  makeSpec("kisa-kolon-etkisi-tbdy-2018", 1, "Kısa Kolon Etkisi", "GEOMETRİ · KESME · DETAY", ["Serbest kolon boyu", "Kesme talebi", "Detay ve önlem"], "tbdy"),
+  makeSpec("tbdy-2018-dogrusal-olmayan-tasarim", 1, "Doğrusal Olmayan Tasarım", "MODEL · TALEP · PERFORMANS", ["Model ve mafsal", "Deprem talebi", "Performans kontrolü"], "tbdy"),
+  makeSpec("tbdy-2018-guclu-kolon-kontrolu", 1, "Güçlü Kolon Kontrolü", "KAPASİTE · BİRLEŞİM · SÜNEKLİK", ["Düğüm momentleri", "Kolon-kiriş kapasitesi", "Birleşim kontrolü"], "tbdy"),
+  makeSpec("tbdy-2018-duzensizlikler-rehberi", 1, "TBDY Düzensizlik Kontrolleri", "PLAN · DÜŞEY · ANALİZ", ["Geometri ve rijitlik", "A/B düzensizlikleri", "Analiz kararı"], "tbdy"),
+  makeSpec("tbdy-2018-sismik-izolasyon", 1, "Sismik İzolasyon", "SİSTEM · DEPLASMAN · DOĞRULAMA", ["İzolasyon sistemi", "Tasarım deplasmanı", "Üst-alt yapı kontrolü"], "tbdy"),
+  makeSpec("tbdy-deprem-yer-hareketi-duzeyleri", 1, "Deprem Yer Hareketi Düzeyleri", "DD DÜZEYİ · SPEKTRUM · HEDEF", ["DD düzeyi", "Spektral parametre", "Performans hedefi"], "tbdy-hazard"),
+  makeSpec("tbdy-afad-ss-s1-okuma", 1, "AFAD Ss ve S1 Okuma", "KOORDİNAT · HARİTA · PARAMETRE", ["Proje koordinatı", "Ss ve S1", "Zemin ve spektrum"], "tbdy-hazard"),
+  makeSpec("tbdy-yerel-zemin-sinifi-spektrum", 1, "Yerel Zemin Sınıfı ve Spektrum", "ZEMİN · KATSAYI · SPEKTRUM", ["Yerel zemin sınıfı", "Fs ve F1", "Tasarım spektrumu"], "tbdy-hazard"),
+  makeSpec("tbdy-tasarim-spektrumu-cizimi", 1, "Tasarım Spektrumu Çizimi", "SDS · SD1 · PERİYOT", ["SDS ve SD1", "TA ve TB", "Spektrum ordinatları"], "tbdy-hazard"),
+  makeSpec("tbdy-r-d-dayanim-fazlaligi", 1, "R ve D Katsayıları", "SİSTEM · DAVRANIŞ · TASARIM", ["Taşıyıcı sistem", "R ve D seçimi", "Azaltılmış deprem etkisi"], "tbdy"),
+  makeSpec("tbdy-bina-onem-katsayisi", 1, "Bina Önem Katsayısı", "KULLANIM · BKS · I KATSAYISI", ["Kullanım amacı", "Bina kullanım sınıfı", "Önem katsayısı"], "tbdy"),
 ] as const;
 
 export const DEPREM_ROLLOUT_BATCH_2: readonly DepremRolloutSpec[] = [
-  {
-    slug: "tbdy-suneklik-duzeyi-sistem-farki",
-    batch: 2,
-    headline: "Süneklik Düzeyi ve Sistem Farkı",
-    eyebrow: "SİSTEM · SÜNEKLİK · DETAY",
-    steps: ["Taşıyıcı sistem", "Süneklik düzeyi", "Tasarım koşulları"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-mod-birlesim-srss-cqc",
-    batch: 2,
-    headline: "Mod Birleştirme: SRSS ve CQC",
-    eyebrow: "MOD · BİRLEŞTİRME · SONUÇ",
-    steps: ["Modal çözüm", "SRSS/CQC seçimi", "Tepki birleştirme"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-goreli-kat-otelenmesi",
-    batch: 2,
-    headline: "Göreli Kat Ötelenmesi",
-    eyebrow: "DEPLASMAN · KAT · SINIR",
-    steps: ["Kat deplasmanları", "Göreli ötelenme", "Sınır kontrolü"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-dismerkezlik-kurali",
-    batch: 2,
-    headline: "TBDY Dışmerkezlik Kuralı",
-    eyebrow: "KÜTLE · TORSİYON · YÜKLEME",
-    steps: ["Kütle merkezi", "Ek dışmerkezlik", "Torsiyon etkisi"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-bodrum-katli-binalar",
-    batch: 2,
-    headline: "Bodrum Katlı Binalar",
-    eyebrow: "BODRUM · RİJİTLİK · MODEL",
-    steps: ["Bodrum çevresi", "Rijitlik geçişi", "Analiz modeli"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-cati-agirligi-yuk-azaltma",
-    batch: 2,
-    headline: "Çatı Ağırlığı ve Yük Azaltma",
-    eyebrow: "KÜTLE · YÜK · DEPREM",
-    steps: ["Çatı yükleri", "Kütle hesabı", "Deprem etkisi"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "tbdy-p-delta-ikinci-mertebe",
-    batch: 2,
-    headline: "P-Delta ve İkinci Mertebe Etkileri",
-    eyebrow: "EKSENEL · ÖTELENME · İKİNCİ MERTEBE",
-    steps: ["Eksenel yük", "Kat ötelenmesi", "İkinci mertebe kontrolü"],
-    referenceProfile: "tbdy",
-  },
-  {
-    slug: "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi",
-    batch: 2,
-    headline: "Türkiye'de Depremler ve Yönetmelik Evrimi",
-    eyebrow: "DEPREM · DENEYİM · MEVZUAT",
-    steps: ["Tarihsel olaylar", "Mühendislik dersleri", "Mevzuat gelişimi"],
-    referenceProfile: "preserve",
-  },
-  {
-    slug: "1999-marmara-depreminden-cikarilan-muhendislik-dersleri",
-    batch: 2,
-    headline: "1999 Marmara Depremi: Mühendislik Dersleri",
-    eyebrow: "GÖZLEM · HASAR · DERS",
-    steps: ["Hasar gözlemleri", "Yapısal nedenler", "Tasarım dersleri"],
-    referenceProfile: "preserve",
-  },
-  {
-    slug: "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
-    batch: 2,
-    headline: "Betonarme Perde Tasarımı",
-    eyebrow: "GEOMETRİ · DAVRANIŞ · DETAY",
-    steps: ["Perde yerleşimi", "Boyut ve davranış", "Donatı detayları"],
-    referenceProfile: "preserve",
-  },
-  {
-    slug: "duzensiz-binalarda-dinamik-analiz-zorunlulugu",
-    batch: 2,
-    headline: "Düzensiz Binalarda Dinamik Analiz",
-    eyebrow: "DÜZENSİZLİK · MODEL · ANALİZ",
-    steps: ["Düzensizliği tanı", "Modeli doğrula", "Dinamik analizi değerlendir"],
-    referenceProfile: "preserve",
-  },
-  {
-    slug: "deprem-yuku-ile-ruzgar-yuku-kombinasyonu",
-    batch: 2,
-    headline: "Deprem ve Rüzgâr Etkilerinin Ayrımı",
-    eyebrow: "YÜK · KOMBİNASYON · TASARIM",
-    steps: ["Yük durumları", "Kombinasyon mantığı", "Tasarım zarfı"],
-    referenceProfile: "preserve",
-  },
+  makeSpec("tbdy-suneklik-duzeyi-sistem-farki", 2, "Süneklik Düzeyi ve Sistem Farkı", "SİSTEM · SÜNEKLİK · DETAY", ["Taşıyıcı sistem", "Süneklik düzeyi", "Tasarım koşulları"], "tbdy"),
+  makeSpec("tbdy-mod-birlesim-srss-cqc", 2, "Mod Birleştirme: SRSS ve CQC", "MOD · BİRLEŞTİRME · SONUÇ", ["Modal çözüm", "SRSS/CQC seçimi", "Tepki birleştirme"], "tbdy"),
+  makeSpec("tbdy-goreli-kat-otelenmesi", 2, "Göreli Kat Ötelenmesi", "DEPLASMAN · KAT · SINIR", ["Kat deplasmanları", "Göreli ötelenme", "Sınır kontrolü"], "tbdy"),
+  makeSpec("tbdy-dismerkezlik-kurali", 2, "TBDY Dışmerkezlik Kuralı", "KÜTLE · TORSİYON · YÜKLEME", ["Kütle merkezi", "Ek dışmerkezlik", "Torsiyon etkisi"], "tbdy"),
+  makeSpec("tbdy-bodrum-katli-binalar", 2, "Bodrum Katlı Binalar", "BODRUM · RİJİTLİK · MODEL", ["Bodrum çevresi", "Rijitlik geçişi", "Analiz modeli"], "tbdy"),
+  makeSpec("tbdy-cati-agirligi-yuk-azaltma", 2, "Çatı Ağırlığı ve Yük Azaltma", "KÜTLE · YÜK · DEPREM", ["Çatı yükleri", "Kütle hesabı", "Deprem etkisi"], "tbdy"),
+  makeSpec("tbdy-p-delta-ikinci-mertebe", 2, "P-Delta ve İkinci Mertebe Etkileri", "EKSENEL · ÖTELENME · İKİNCİ MERTEBE", ["Eksenel yük", "Kat ötelenmesi", "İkinci mertebe kontrolü"], "tbdy"),
+  makeSpec("turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi", 2, "Türkiye'de Depremler ve Yönetmelik Evrimi", "DEPREM · DENEYİM · MEVZUAT", ["Tarihsel olaylar", "Mühendislik dersleri", "Mevzuat gelişimi"], "preserve"),
+  makeSpec("1999-marmara-depreminden-cikarilan-muhendislik-dersleri", 2, "1999 Marmara Depremi: Mühendislik Dersleri", "GÖZLEM · HASAR · DERS", ["Hasar gözlemleri", "Yapısal nedenler", "Tasarım dersleri"], "preserve"),
+  makeSpec("betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari", 2, "Betonarme Perde Tasarımı", "GEOMETRİ · DAVRANIŞ · DETAY", ["Perde yerleşimi", "Boyut ve davranış", "Donatı detayları"], "preserve"),
+  makeSpec("duzensiz-binalarda-dinamik-analiz-zorunlulugu", 2, "Düzensiz Binalarda Dinamik Analiz", "DÜZENSİZLİK · MODEL · ANALİZ", ["Düzensizliği tanı", "Modeli doğrula", "Dinamik analizi değerlendir"], "preserve"),
+  makeSpec("deprem-yuku-ile-ruzgar-yuku-kombinasyonu", 2, "Deprem ve Rüzgâr Etkilerinin Ayrımı", "YÜK · KOMBİNASYON · TASARIM", ["Yük durumları", "Kombinasyon mantığı", "Tasarım zarfı"], "preserve"),
+] as const;
+
+export const DEPREM_ROLLOUT_BATCH_3: readonly DepremRolloutSpec[] = [
+  makeSpec("mevcut-binalarin-deprem-guvenligi-nasil-degerlendirilir", 3, "Mevcut Binalarda Deprem Güvenliği", "İNCELEME · MODEL · KARAR", ["Ön inceleme ve veri", "Analiz ve performans", "Mühendislik kararı"], "preserve", "decision"),
+  makeSpec("kolon-guclendirme-yontemleri-cfrp-ve-beton-mantolu", 3, "Kolon Güçlendirme: CFRP ve Beton Mantolama", "KAPASİTE · YÖNTEM · DETAY", ["Mevcut kapasite", "Güçlendirme yöntemi", "Detay ve uygulama"], "preserve", "comparison"),
+  makeSpec("hasarli-bina-tespiti-yesil-sari-kirmizi-etiket-sistemi", 3, "Hasarlı Bina Tespiti ve Etiketleme", "GÖZLEM · SINIF · EYLEM", ["Hasar gözlemi", "Sınıflandırma", "Erişim ve işlem kararı"], "preserve", "classification"),
+  makeSpec("deprem-sigortasi-dask-ve-muhendislik-baglantisi", 3, "DASK ve Mühendislik Bağlantısı", "RİSK · BELGE · SÜREÇ", ["Yapı ve risk bilgisi", "Sigorta kapsamı", "Mühendislik belgesi"], "preserve", "flow"),
+  makeSpec("yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek", 3, "Yatay Yük Taşıma Sistemleri", "ÇERÇEVE · PERDE · ÇEKİRDEK", ["Çerçeve davranışı", "Perde davranışı", "Çekirdek ve birleşik sistem"], "preserve", "comparison"),
+  makeSpec("byy-bina-kullanim-siniflari-tehlike-kategorileri", 3, "Bina Kullanım Sınıfları ve Tehlike Kategorileri", "KULLANIM · TEHLİKE · GEREKLİLİK", ["Kullanım amacı", "Tehlike kategorisi", "Koruma gerekliliği"], "preserve", "classification"),
+  makeSpec("tasiyici-sistemlerin-yangina-dayanim-suresi-r30-r60-r90-r120", 3, "Taşıyıcı Sistemlerde Yangına Dayanım Süresi", "R30 · R60 · R90 · R120", ["Yapı ve eleman", "Gerekli dayanım süresi", "Kesit ve koruma"], "preserve", "classification"),
+  makeSpec("sprinkler-sistemi-zorunluluk-sinirlari", 3, "Sprinkler Sistemi Zorunluluk Sınırları", "KULLANIM · SINIR · KARAR", ["Bina kullanımını belirle", "Eşik koşullarını kontrol et", "Sprinkler kararını ver"], "preserve", "decision"),
+  makeSpec("duman-tahliyesi-mekanik-ve-dogal-sistemler", 3, "Duman Tahliyesi: Mekanik ve Doğal Sistemler", "DUMAN · TAHLİYE · SİSTEM", ["Duman oluşumu ve bölge", "Doğal tahliye", "Mekanik tahliye"], "preserve", "comparison"),
+  makeSpec("kacis-merdiveni-tasarim-kriterleri", 3, "Kaçış Merdiveni Tasarım Kriterleri", "KAÇIŞ · MERDİVEN · GÜVENLİ ALAN", ["Kullanıcı ve kaçış yükü", "Merdiven geometrisi", "Güvenli çıkış"], "preserve", "flow"),
+  makeSpec("yangin-kapisi-dosleme-duvar-gecis-detaylari", 3, "Yangın Kapısı ve Geçiş Detayları", "BÖLME · GEÇİŞ · SIZDIRMAZLIK", ["Yangın bölmesi", "Kapı ve tesisat geçişi", "Süreklilik ve sızdırmazlık"], "preserve", "comparison"),
+  makeSpec("yangin-algilama-ve-ihbar-sistemi-gereksinimleri", 3, "Yangın Algılama ve İhbar Sistemi", "ALGILAMA · ZON · İHBAR", ["Algılama ihtiyacı", "Zon ve cihaz yerleşimi", "İhbar ve kontrol"], "preserve", "flow"),
 ] as const;
 
 export const DEPREM_ROLLOUT_ARTICLES: readonly DepremRolloutSpec[] = [
   ...DEPREM_ROLLOUT_BATCH_1,
   ...DEPREM_ROLLOUT_BATCH_2,
+  ...DEPREM_ROLLOUT_BATCH_3,
 ];
 
-const ROLLOUT_BY_SLUG = new Map(DEPREM_ROLLOUT_ARTICLES.map((spec) => [spec.slug, spec] as const));
+const ROLLOUT_BY_SLUG = new Map(DEPREM_ROLLOUT_ARTICLES.map((item) => [item.slug, item] as const));
 
-export const DEPREM_ROLLOUT_BATCH_1_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_1.map((spec) => spec.slug));
-export const DEPREM_ROLLOUT_BATCH_2_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_2.map((spec) => spec.slug));
-export const DEPREM_ROLLOUT_SLUGS = new Set(DEPREM_ROLLOUT_ARTICLES.map((spec) => spec.slug));
+export const DEPREM_ROLLOUT_BATCH_1_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_1.map((item) => item.slug));
+export const DEPREM_ROLLOUT_BATCH_2_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_2.map((item) => item.slug));
+export const DEPREM_ROLLOUT_BATCH_3_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_3.map((item) => item.slug));
+export const DEPREM_ROLLOUT_SLUGS = new Set(DEPREM_ROLLOUT_ARTICLES.map((item) => item.slug));
 
 export function getDepremRolloutSpec(slug: string): DepremRolloutSpec | undefined {
   return ROLLOUT_BY_SLUG.get(slug);
@@ -272,9 +135,9 @@ export function applyDepremRolloutEnhancement(article: ArticleData): ArticleData
 
   const diagramPath = getDepremRolloutVisualPath(article.slug, "diagram");
   const figureMarkup = [
-    `![${spec.headline} için teknik kontrol akışı](${diagramPath})`,
-    `*${spec.steps.join(" → ")} sırasıyla okunacak teknik kontrol hattı.*`,
-    "{figure:R1 | note:Şema makaledeki kontrol sırasını özetler; yönetmelik metninin veya proje hesabının yerine geçmez. | source:Mühendislik Site — makale içeriğinden türetilmiş kontrol şeması | lightbox:true}",
+    `![${spec.headline} için teknik kontrol şeması](${diagramPath})`,
+    `*${spec.steps.join(" → ")} başlıklarını ${spec.visualLayout} düzeninde özetleyen teknik şema.*`,
+    "{figure:R1 | note:Şema makaledeki kontrol başlıklarını özetler; mevzuat metninin, uzman incelemesinin veya proje hesabının yerine geçmez. | source:Mühendislik Site — makale içeriğinden türetilmiş teknik şema | lightbox:true}",
   ].join("\n");
 
   const sections = article.sections.map((section, index) =>
@@ -294,6 +157,6 @@ export function applyDepremRolloutEnhancement(article: ArticleData): ArticleData
 
 export function getDepremRolloutSignature(): string {
   return DEPREM_ROLLOUT_ARTICLES
-    .map((spec) => `${spec.batch}:${spec.slug}:${spec.headline}:${spec.steps.join(">")}:${spec.referenceProfile}:${UPDATED_AT}`)
+    .map((item) => `${item.batch}:${item.slug}:${item.headline}:${item.steps.join(">")}:${item.referenceProfile}:${item.visualLayout}:${UPDATED_AT}`)
     .join("|");
 }
