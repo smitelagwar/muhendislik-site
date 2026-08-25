@@ -86,6 +86,7 @@ const BETONARME_SET = new Set<string>([
   "tbdy-betonarme-perde-bosluklari-modelleme",
   "tbdy-betonarme-diyafram-toplayici-baslik",
   "kisa-kolon-etkisi-tbdy-2018",
+  "tbdy-2018-guclu-kolon-kontrolu",
 ]);
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => {
@@ -286,6 +287,6 @@ console.log(JSON.stringify({
   c3GenericBodyRemainingInCompletedBatches: 0,
   officialSourceProfile: "AFAD TBDY 2018 Bölüm 3/4/5/7/14/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 17, "tbdy-betonarme": 19 },
+  seriesCoverage: { tbdy: 16, "tbdy-betonarme": 20 },
   ts500Touched: false,
 }, null, 2));
