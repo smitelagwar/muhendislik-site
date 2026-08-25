@@ -64,6 +64,12 @@ const BATCH_9_SLUGS = [
   "tbdy-2018-duzensizlikler-rehberi",
   "tbdy-2018-sismik-izolasyon",
 ] as const;
+const BATCH_10_SLUGS = [
+  "tbdy-deprem-yer-hareketi-duzeyleri",
+  "tbdy-afad-ss-s1-okuma",
+  "tbdy-yerel-zemin-sinifi-spektrum",
+  "tbdy-tasarim-spektrumu-cizimi",
+] as const;
 
 const EXPECTED_SLUGS = [
   ...BATCH_1_SLUGS,
@@ -75,6 +81,7 @@ const EXPECTED_SLUGS = [
   ...BATCH_7_SLUGS,
   ...BATCH_8_SLUGS,
   ...BATCH_9_SLUGS,
+  ...BATCH_10_SLUGS,
 ] as const;
 type ExpectedSlug = (typeof EXPECTED_SLUGS)[number];
 
@@ -93,7 +100,7 @@ const assert = (condition: unknown, message: string) => {
   if (!condition) errors.push(message);
 };
 
-assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk dokuz batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
+assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk on batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
 assert(DEPREM_PHASE3_SLUGS.size === EXPECTED_SLUGS.length, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of EXPECTED_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 source-of-truth slug eksik: ${slug}`);
 
@@ -105,7 +112,7 @@ assert(rolloutApplyIndex > phase3ApplyIndex, "Runtime sırası teknik FAZ 3 göv
 assert(assemblerSource.includes("getDepremPhase3ContentSignature()"), "Makale cache signature FAZ 3 içeriğini izlemiyor.");
 
 const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
-for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
+for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const) {
   assert(phase3AggregatorSource.includes(`DEPREM_PHASE3_BATCH_${batch}_ARTICLES`), `FAZ 3 aggregator batch ${batch}'ü toplamıyor.`);
   assert(fs.existsSync(path.join(ROOT, `src/lib/deprem-phase3-batch${batch}.ts`)), `FAZ 3 batch ${batch} modülü bulunamadı.`);
 }
@@ -151,6 +158,10 @@ const requiredTokens: Record<ExpectedSlug, string[]> = {
   "tbdy-2018-guclu-kolon-kontrolu": ["7.3.5.1", "Denklem (7.3)", "1.2", "Nd ≤ 0.10 Ac fck", "7.3.5.3", "αi = Vis / Vik", "αi ≥ 0.70", "1/αi", "7.3.6.3"],
   "tbdy-2018-duzensizlikler-rehberi": ["Tablo 3.6", "A1", "ηbi > 1.2", "± %5", "A2", "1/3", "A3", "%20", "B1", "ηci < 0.80", "0.60", "1.25", "B2", "ηki > 2.0", "B3", "3.6.2.2"],
   "tbdy-2018-sismik-izolasyon": ["Bölüm 14", "14.14.1.1", "ZA, ZB, ZC veya ZD", "4.0 saniye", "en fazla 4", "20 metre", "%30", "ηbi < 2.0", "B2", "Tv ≤ 0.1 s", "14.14.1.3", "en az onbir kayıt çifti", "%80", "%90"],
+  "tbdy-deprem-yer-hareketi-duzeyleri": ["2.1.2", "50 yılda aşılma olasılığı %2", "2475 yıl", "%10", "475 yıl", "%50", "72 yıl", "%68", "43 yıl", "standart tasarım deprem yer hareketi", "servis deprem yer hareketi", "SOURCE_VALUE"],
+  "tbdy-afad-ss-s1-okuma": ["2.1.2", "tdth.afad.gov.tr", "(VS)30 = 760 m/s", "%5 sönüm", "boyutsuz", "Denklem (2.1)", "SDS = Ss FS", "SD1 = S1 F1", "SOURCE_VALUE"],
+  "tbdy-yerel-zemin-sinifi-spektrum": ["Tablo 2.1", "Tablo 2.2", "doğrusal enterpolasyon", "ZF", "Bölüm 16.5", "Sahaya özel zemin davranış analizi", "1.1", "1.9", "SDS = 1.10", "SD1 = 0.76", "SOURCE_VALUE"],
+  "tbdy-tasarim-spektrumu-cizimi": ["Denklem (2.2)", "Denklem (2.3)", "TA = 0.2 SD1 / SDS", "TB = SD1 / SDS", "TL = 6 s", "0 ≤ T ≤ TA", "TA ≤ T ≤ TB", "TB ≤ T ≤ TL", "TL ≤ T", "Sae(T) = SD1 / T", "SOURCE_VALUE"],
 };
 
 const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; symbols: number }>> = {
@@ -168,6 +179,8 @@ const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; sym
   "tbdy-betonarme-perde-moment-kesme-zarfi": { label: "7.16", symbols: 5 },
   "tbdy-betonarme-perde-bosluklari-modelleme": { label: "4.14", symbols: 6 },
   "kisa-kolon-etkisi-tbdy-2018": { label: "7.5", symbols: 4 },
+  "tbdy-afad-ss-s1-okuma": { label: "2.1", symbols: 6 },
+  "tbdy-tasarim-spektrumu-cizimi": { label: "2.3", symbols: 4 },
 };
 
 for (const configured of DEPREM_PHASE3_ARTICLES) {
@@ -249,7 +262,7 @@ for (const configured of DEPREM_PHASE3_ARTICLES) {
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 3 ilk dokuz batch kontrolü başarısız:\n");
+  console.error("Deprem FAZ 3 ilk on batch kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -257,7 +270,7 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 3",
-  completedBatches: 9,
+  completedBatches: 10,
   batchSizes: {
     1: BATCH_1_SLUGS.length,
     2: BATCH_2_SLUGS.length,
@@ -268,6 +281,7 @@ console.log(JSON.stringify({
     7: BATCH_7_SLUGS.length,
     8: BATCH_8_SLUGS.length,
     9: BATCH_9_SLUGS.length,
+    10: BATCH_10_SLUGS.length,
   },
   articles: EXPECTED_SLUGS.length,
   slugs: EXPECTED_SLUGS,
@@ -282,11 +296,12 @@ console.log(JSON.stringify({
     "src/lib/deprem-phase3-batch7.ts",
     "src/lib/deprem-phase3-batch8.ts",
     "src/lib/deprem-phase3-batch9.ts",
+    "src/lib/deprem-phase3-batch10.ts",
   ],
-  runtimeOrder: "topic seed -> phase3 technical override -> rollout enhancement -> author normalization",
+  runtimeOrder: "topic/raw seed -> phase3 technical override -> rollout enhancement -> author normalization",
   c3GenericBodyRemainingInCompletedBatches: 0,
-  officialSourceProfile: "AFAD TBDY 2018 Bölüm 3/4/5/7/14/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
+  officialSourceProfile: "AFAD TBDY 2018 Bölüm 2/3/4/5/7/14/17 + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 16, "tbdy-betonarme": 20 },
+  seriesCoverage: { tbdy: 20, "tbdy-betonarme": 20 },
   ts500Touched: false,
 }, null, 2));
