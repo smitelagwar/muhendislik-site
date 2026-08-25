@@ -5,6 +5,7 @@ import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
 import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
 import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
 import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
+import { normalizeDepremContentAuthor } from "./content-author";
 
 export interface ArticleData {
     slug: string;
@@ -94,7 +95,9 @@ function parseArticles(fileContent: string) {
             normalizedArticles[article.slug] = article;
         }
 
-        return normalizedArticles;
+        return Object.fromEntries(
+            Object.entries(normalizedArticles).map(([slug, article]) => [slug, normalizeDepremContentAuthor(article)]),
+        ) as Record<string, ArticleData>;
     } catch (error) {
         throw new Error(
             `Makale veri dosyası ayrıştırılamadı: ${dataFilePath} (${error instanceof Error ? error.message : "bilinmeyen hata"})`,

@@ -14,7 +14,7 @@ const TOOLS: Tool[] = [
   {
     title: "Eşdeğer Deprem Yükü",
     description: "Toplam taban kesme kuvvetini ve katlara dağılan yatay yükleri adım adım hesaplayın.",
-    href: "/deprem-yonetmelik/araclar/esit-deprem-yuku",
+    href: "/kategori/araclar/taban-kesme-kuvveti",
     label: "Deprem hesabı",
     reference: "TBDY §4.7",
     icon: Calculator,
@@ -22,7 +22,7 @@ const TOOLS: Tool[] = [
   {
     title: "Düzensizlik Kontrolü",
     description: "A1–A3 plan ve B1–B3 düşey düzensizliklerini proje verileri üzerinden kontrol edin.",
-    href: "/deprem-yonetmelik/araclar/duzensizlik-kontrolu",
+    href: "/kategori/araclar/duzensizlik-kontrolu",
     label: "Taşıyıcı sistem",
     reference: "TBDY §3.6",
     icon: CheckSquare2,
@@ -30,7 +30,7 @@ const TOOLS: Tool[] = [
   {
     title: "Yerel Zemin Sınıfı",
     description: "Vs30, SPT-N60 veya cu verileriyle ZA–ZF yerel zemin sınıfını belirleyin.",
-    href: "/deprem-yonetmelik/araclar/zemin-sinifi",
+    href: "/kategori/araclar/zemin-sinifi",
     label: "Geoteknik",
     reference: "TBDY Tablo 16.1",
     icon: Compass,

@@ -5,15 +5,18 @@ on:
   push:
     branches:
       - audit/faz0-deprem-inventory-20260825
+      - internal-*
     paths:
       - .github/workflows/deprem-content-infrastructure.yml
+      - .agents/rules/deprem-icerik-kurallari.md
       - src/components/article-client.tsx
+      - src/components/deprem/AraclarGrid.tsx
       - src/lib/article-blocks.ts
       - src/lib/articles-data.ts
       - src/lib/content-author.ts
+      - src/lib/deprem-series.ts
       - scripts/check-deprem-content.ts
       - scripts/check-deprem-infrastructure.ts
-      - scripts/check-navigation.mjs
       - package.json
 
 permissions:
@@ -29,32 +32,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - name: Upload source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: deprem-infrastructure-source-${{ github.sha }}
-          path: |
-            src/components/article-client.tsx
-            src/lib/article-blocks.ts
-            src/lib/articles-data.ts
-            src/lib/deprem-series.ts
-            scripts/check-deprem-content.ts
-            scripts/check-navigation.mjs
-            package.json
-          retention-days: 3
       - run: npm ci
-      - name: Infrastructure check
-        shell: bash
-        run: |
-          if npm run | grep -q "check:deprem-infrastructure"; then
-            npm run check:deprem-infrastructure
-          else
-            echo "Bootstrap run: check:deprem-infrastructure is not defined yet."
-          fi
+      - name: Deprem infrastructure contract
+        run: npm run check:deprem-infrastructure
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
-      - name: Full deprem quality debt report
+      - name: Strict content debt report
         continue-on-error: true
         run: npm run check:deprem-content
