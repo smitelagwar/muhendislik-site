@@ -1,0 +1,65 @@
+name: FAZ 0 Deprem Content Audit
+
+on:
+  push:
+    branches:
+      - audit/faz0-deprem-inventory-20260825
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run FAZ 0 inventory and baseline checks
+        shell: bash
+        run: |
+          set -u
+          mkdir -p artifacts
+          : > artifacts/baseline.env
+
+          run_check() {
+            local name="$1"
+            shift
+            echo "===== $name =====" | tee "artifacts/${name}.log"
+            set +e
+            "$@" 2>&1 | tee -a "artifacts/${name}.log"
+            local code=${PIPESTATUS[0]}
+            set -e
+            echo "${name}=${code}" >> artifacts/baseline.env
+            echo "exit_code=${code}" | tee -a "artifacts/${name}.log"
+            return 0
+          }
+
+          run_check audit-deprem-inventory npx tsx scripts/audit-deprem-content-inventory.ts --out=artifacts/deprem-content-inventory.json
+          run_check check-deprem-content npm run check:deprem-content
+          run_check check-content-quality npm run check:content-quality
+          run_check check-site-quality npm run check:site-quality
+          run_check check-navigation npm run check:navigation
+          run_check check-visual-system npm run check:visual-system
+          run_check check-article-link npm run check:article-link
+          run_check typecheck npx tsc --noEmit
+
+      - name: Upload audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: faz0-deprem-content-audit
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
