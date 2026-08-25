@@ -14,6 +14,10 @@ const slugs = [
   "tbdy-yeterli-mod-modal-kutle-katilimi",
   "tbdy-modal-taban-kesme-olceklendirme",
   "tbdy-yuzde-100-yuzde-30-birlesimi",
+  "tbdy-dusey-deprem-etkisi",
+  "tbdy-deprem-derzi-hesabi",
+  "tbdy-bolum-17-basitlestirilmis-tasarim",
+  "tbdy-uygulama-esaslari-taslak-statusu",
 ];
 const routes = slugs.map((slug) => `/${slug}`);
 const viewports = [
