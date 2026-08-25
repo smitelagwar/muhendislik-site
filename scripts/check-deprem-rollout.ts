@@ -68,14 +68,30 @@ const EXPECTED_BATCHES: Readonly<Record<DepremRolloutBatch, readonly string[]>> 
     "imar-cekme-kat-asma-kat-kosullari",
     "imar-balkon-cikma-sacak-emsal-disi-sartlari",
   ],
+  5: [
+    "imar-ruhsat-sureci-basvurudan-iskan-kadar",
+    "imar-parsel-tevhid-ifraz-prosedurleri",
+    "imar-plan-notu-celiskisi-uygulama-onceligi",
+    "bep-ts-825-yontemi-isi-kaybi-hesabi",
+    "bep-enerji-kimlik-belgesi-a-g-siniflandirma",
+    "bep-yenilenebilir-enerji-zorunlulugu-1000m2",
+    "bep-yazilimi-hesaplama-akisi",
+    "bep-isil-kopru-detaylari-ve-cozum-yontemleri",
+    "zemin-etudu-minimum-sondaj-sayisi-ve-derinligi",
+    "tbdy-bolum-16-zemin-yapi-etkilesimi",
+    "zemin-sivlasma-riski-degerlendirmesi",
+    "su-yalitimi-ts-4749-uygulama-detaylari",
+  ],
 };
 
+const BATCH_IDS = Object.keys(EXPECTED_BATCHES).map(Number) as DepremRolloutBatch[];
 const errors: string[] = [];
+
 function assert(condition: unknown, message: string) {
   if (!condition) errors.push(message);
 }
 
-for (const batch of [1, 2, 3, 4] as const) {
+for (const batch of BATCH_IDS) {
   const expected = EXPECTED_BATCHES[batch];
   const actual = DEPREM_ROLLOUT_BATCHES[batch];
   const actualSlugs = new Set(actual.map((spec) => spec.slug));
@@ -86,7 +102,7 @@ for (const batch of [1, 2, 3, 4] as const) {
 
 assert(DEPREM_ROLLOUT_SLUGS.size === DEPREM_ROLLOUT_ARTICLES.length, "Rollout genel listesinde tekrar slug var.");
 
-for (const batch of [3, 4] as const) {
+for (const batch of BATCH_IDS.filter((id) => id >= 3)) {
   const layouts = new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout));
   for (const expectedLayout of ["flow", "decision", "comparison", "classification"] as const) {
     assert(layouts.has(expectedLayout), `Batch ${batch} görsel grameri eksik: ${expectedLayout}`);
@@ -155,10 +171,12 @@ if (errors.length > 0) {
 
 console.log(JSON.stringify({
   status: "ok",
-  batches: [1, 2, 3, 4],
+  batches: BATCH_IDS,
   articles: DEPREM_ROLLOUT_ARTICLES.length,
-  batchSizes: Object.fromEntries(([1, 2, 3, 4] as const).map((batch) => [batch, DEPREM_ROLLOUT_BATCHES[batch].length])),
-  layoutDiversity: Object.fromEntries(([3, 4] as const).map((batch) => [batch, [...new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout))]])),
+  batchSizes: Object.fromEntries(BATCH_IDS.map((batch) => [batch, DEPREM_ROLLOUT_BATCHES[batch].length])),
+  layoutDiversity: Object.fromEntries(
+    BATCH_IDS.filter((id) => id >= 3).map((batch) => [batch, [...new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout))]]),
+  ),
   uniqueCovers: uniqueCovers.size,
   uniqueDiagrams: uniqueDiagrams.size,
   ts500Touched: false,
