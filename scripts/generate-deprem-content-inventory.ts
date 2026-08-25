@@ -2,10 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { getArticleList, type ArticleData } from "../src/lib/articles-data";
 import { parseBlocks } from "../src/lib/article-blocks";
+import { getArticleAuthorPresentation } from "../src/lib/content-author";
 import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import { DEPREM_TOPIC_ARTICLES } from "../src/lib/deprem-topic-articles";
 import { DEPREM_SERIES, getDepremSeriesForArticle } from "../src/lib/deprem-series";
 import { SITE_SECTIONS } from "../src/lib/site-sections";
+import { TOOLS } from "../src/lib/tools-data";
 import { TS500_ARTICLES, TS500_SLUGS } from "../src/lib/ts500-content";
 
 const ROOT = process.cwd();
@@ -34,15 +36,6 @@ function walk(relativePath: string): string[] {
   });
 }
 
-function generatedInitials(author: string) {
-  return author
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part[0] ?? "")
-    .join("")
-    .slice(0, 2);
-}
-
 function ts500SourceFile(slug: string) {
   return walk(TS500_DIR)
     .filter((file) => file.endsWith(".ts") && !file.endsWith("/index.ts"))
@@ -69,19 +62,20 @@ const rawArticles = JSON.parse(rawText) as Record<string, ArticleData>;
 const rawDepremArticles = Object.values(rawArticles).filter((article) => article.sectionId === "deprem-yonetmelik");
 const rawDepremBySlug = new Map(rawDepremArticles.map((article) => [article.slug, article]));
 const topicBySlug = new Map(DEPREM_TOPIC_ARTICLES.map((article) => [article.slug, article]));
-const pilotBySlug = new Map(DEPREM_PILOT_ARTICLES.map((article) => [article.slug, article]));
 
 const allArticles = getArticleList();
 const allArticleSlugs = new Set(allArticles.map((article) => article.slug));
 const depremArticles = allArticles.filter((article) => article.sectionId === "deprem-yonetmelik");
 
 const knownRoutes = new Set(SITE_SECTIONS.map((section) => section.href.replace(/\/$/, "") || "/"));
+for (const tool of TOOLS) knownRoutes.add(tool.href.replace(/\/$/, "") || "/");
 for (const pageFile of walk("src/app").filter((file) => file === "src/app/page.tsx" || file.endsWith("/page.tsx"))) {
   const route = pageFile.replace(/^src\/app\/?/, "").replace(/\/page\.tsx$/, "").replace(/^page\.tsx$/, "");
   if (!route.includes("[")) knownRoutes.add(route ? `/${route}` : "/");
 }
 
 function routeExists(href: string) {
+  if (!href.trim()) return true;
   const clean = href.split(/[?#]/)[0].replace(/\/$/, "") || "/";
   return knownRoutes.has(clean) || (/^\/[^/]+$/.test(clean) && allArticleSlugs.has(clean.slice(1)));
 }
@@ -167,7 +161,8 @@ const inventory = depremArticles.map((article) => {
 
   const sectionText = article.sections.map((section) => section.content).join("\n");
   const internalLinks = extractInternalLinks(sectionText);
-  const initials = generatedInitials(article.author ?? "");
+  const authorPresentation = getArticleAuthorPresentation(article);
+  const initials = authorPresentation.monogram;
 
   return {
     slug: article.slug,
@@ -177,7 +172,7 @@ const inventory = depremArticles.map((article) => {
     sourceOfTruth,
     author: article.author ?? null,
     authorTitle: article.authorTitle ?? null,
-    generatedInitials: initials,
+    presentedInitials: initials,
     targetAuthorMatches: article.author === TARGET_AUTHOR,
     targetInitialsMatch: initials === TARGET_INITIALS,
     image: image || null,
@@ -247,16 +242,22 @@ const unknownSourceSlugs = inventory
   .filter((item) => !item.sourceOfTruth.body || !item.sourceOfTruth.metadata)
   .map((item) => item.slug);
 const missingPilotRuntimeSlugs = [...DEPREM_PILOT_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
+const canonicalAuthorPresentation = getArticleAuthorPresentation({
+  sectionId: "deprem-yonetmelik",
+  author: TARGET_AUTHOR,
+  authorTitle: "",
+});
 
 const report = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
   scope: "FAZ 0/2 — Envanter, kaynak haritası ve pilot source-of-truth",
   invariants: {
     targetAuthor: TARGET_AUTHOR,
     targetInitials: TARGET_INITIALS,
-    currentArticleClientWouldGenerateForTargetAuthor: generatedInitials(TARGET_AUTHOR),
+    runtimePresentedInitialsForTargetAuthor: canonicalAuthorPresentation.monogram,
+    registeredToolRouteCount: TOOLS.length,
   },
   counts: {
     totalDepremYonetmelik: inventory.length,
