@@ -42,7 +42,7 @@ jobs:
       - name: FAZ 2 pilot content contract
         run: npx tsx scripts/check-deprem-pilots.ts
       - name: FAZ 0/2 source-of-truth inventory
-        run: npx tsx scripts/generate-deprem-content-inventory.ts --out=/tmp/deprem-content-inventory.json
+        run: npx tsx scripts/generate-deprem-content-inventory.ts --out=deprem-content-inventory.ci.json
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Production build
