@@ -71,6 +71,20 @@ const EXPECTED_BATCHES: Readonly<Record<DepremRolloutBatch, readonly string[]>> 
     "cevre-gurultu-ve-toz-santiye-yukumlulukleri",
     "cevre-yagmur-suyu-kirliligi-ve-santiye-filtrasyonu",
   ],
+  8: [
+    "tbdy-bks-dts-bys-belirleme",
+    "tbdy-performans-hedefleri-dd-sh-kh-go",
+    "tbdy-kutle-kaynagi-hareketli-yuk-katilimi",
+    "tbdy-rijit-yari-rijit-diyafram",
+    "tbdy-esdeger-deprem-yuku-uygulanma-sinirlari",
+    "tbdy-yeterli-mod-modal-kutle-katilimi",
+    "tbdy-modal-taban-kesme-olceklendirme",
+    "tbdy-yuzde-100-yuzde-30-birlesimi",
+    "tbdy-dusey-deprem-etkisi",
+    "tbdy-deprem-derzi-hesabi",
+    "tbdy-bolum-17-basitlestirilmis-tasarim",
+    "tbdy-uygulama-esaslari-taslak-statusu",
+  ],
 };
 
 const BATCH_IDS = Object.keys(EXPECTED_BATCHES).map(Number) as DepremRolloutBatch[];
