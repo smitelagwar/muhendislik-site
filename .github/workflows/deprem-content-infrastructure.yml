@@ -45,7 +45,7 @@ jobs:
         run: npm run check:deprem-infrastructure
       - name: FAZ 2 pilot content contract
         run: npx tsx scripts/check-deprem-pilots.ts
-      - name: Rollout Batch 1 contract
+      - name: Deprem rollout Batch 1/2 contract
         run: npx tsx scripts/check-deprem-rollout.ts
       - name: FAZ 0/2 rollout source-of-truth inventory
         run: npx tsx scripts/generate-deprem-content-inventory.ts --out=deprem-content-inventory.ci.json
