@@ -22,6 +22,10 @@ const slugs = [
   "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri",
   "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri",
   "tbdy-betonarme-kolon-boyuna-donati-duzeni",
+  "tbdy-betonarme-kolon-sarilma-bolgeleri",
+  "tbdy-betonarme-kolon-kapasite-kesme",
+  "tbdy-betonarme-kiris-boyut-eksen-kacikligi",
+  "tbdy-betonarme-kiris-mesnet-donati-surekliligi",
 ];
 const routes = slugs.map((slug) => `/${slug}`);
 const viewports = [
