@@ -7,10 +7,11 @@ const UPDATED_AT = "25 Ağustos 2026";
 
 export type DepremRolloutReferenceProfile = "tbdy" | "tbdy-hazard" | "preserve";
 export type DepremVisualLayout = "flow" | "decision" | "comparison" | "classification";
+export type DepremRolloutBatch = 1 | 2 | 3 | 4;
 
 export interface DepremRolloutSpec {
   slug: string;
-  batch: 1 | 2 | 3;
+  batch: DepremRolloutBatch;
   headline: string;
   eyebrow: string;
   steps: readonly [string, string, string];
@@ -20,7 +21,7 @@ export interface DepremRolloutSpec {
 
 function makeSpec(
   slug: string,
-  batch: 1 | 2 | 3,
+  batch: DepremRolloutBatch,
   headline: string,
   eyebrow: string,
   steps: readonly [string, string, string],
@@ -75,17 +76,36 @@ export const DEPREM_ROLLOUT_BATCH_3: readonly DepremRolloutSpec[] = [
   makeSpec("yangin-algilama-ve-ihbar-sistemi-gereksinimleri", 3, "Yangın Algılama ve İhbar Sistemi", "ALGILAMA · ZON · İHBAR", ["Algılama ihtiyacı", "Zon ve cihaz yerleşimi", "İhbar ve kontrol"], "preserve", "flow"),
 ] as const;
 
-export const DEPREM_ROLLOUT_ARTICLES: readonly DepremRolloutSpec[] = [
-  ...DEPREM_ROLLOUT_BATCH_1,
-  ...DEPREM_ROLLOUT_BATCH_2,
-  ...DEPREM_ROLLOUT_BATCH_3,
-];
+export const DEPREM_ROLLOUT_BATCH_4: readonly DepremRolloutSpec[] = [
+  makeSpec("yuksek-binalarda-ozel-yangin-onlemleri-bolum-9", 4, "Yüksek Binalarda Özel Yangın Önlemleri", "YÜKSEKLİK · KORUMA · TAHLİYE", ["Yüksek bina koşulu", "Aktif ve pasif koruma", "Tahliye ve müdahale"], "preserve", "classification"),
+  makeSpec("bodrum-otopark-mutfak-yangin-uygulamalari", 4, "Bodrum, Otopark ve Mutfakta Yangın Uygulamaları", "BODRUM · OTOPARK · MUTFAK", ["Bodrum hacimleri", "Otopark riskleri", "Mutfak ve özel hacimler"], "preserve", "comparison"),
+  makeSpec("otopark-kullanim-turune-gore-minimum-alan-hesabi", 4, "Otopark Minimum Alan Hesabı", "KULLANIM · ADET · ALAN", ["Kullanım türü", "Gerekli araç adedi", "Toplam otopark alanı"], "preserve", "flow"),
+  makeSpec("otopark-rampa-egimi-genislik-donus-yaricapi", 4, "Otopark Rampası Geometri Kontrolü", "EĞİM · GENİŞLİK · DÖNÜŞ", ["Rampa eğimi", "Net genişlik", "Dönüş yarıçapı"], "preserve", "comparison"),
+  makeSpec("otopark-kapali-havalandirma-co-konsantrasyonu", 4, "Kapalı Otopark Havalandırması ve CO", "HACİM · CO · HAVALANDIRMA", ["Kapalı hacim koşulu", "CO ve hava ihtiyacı", "Havalandırma kararı"], "preserve", "decision"),
+  makeSpec("otopark-yapisal-yuk-kombinasyonlari-arac-deprem", 4, "Otoparkta Yapısal Yük Kombinasyonları", "ARAÇ · YÜK · DEPREM", ["Araç ve sabit yükler", "Yük durumları", "Tasarım kombinasyonları"], "preserve", "flow"),
+  makeSpec("otopark-elektrikli-arac-sarj-mevzuati", 4, "Elektrikli Araç Şarjı ve Otopark Mevzuatı", "ŞARJ · ALTYAPI · GÜVENLİK", ["Şarj ihtiyacı", "Elektrik altyapısı", "Yerleşim ve güvenlik"], "preserve", "decision"),
+  makeSpec("imar-kat-yuksekligi-bina-yuksekligi-farki", 4, "Kat Yüksekliği ve Bina Yüksekliği", "KAT · KOT · YÜKSEKLİK", ["Kat yüksekliği", "Bina yüksekliği", "Kot ve ölçüm farkı"], "preserve", "comparison"),
+  makeSpec("imar-bahce-mesafeleri-on-arka-yan-bahce-kurallari", 4, "Ön, Arka ve Yan Bahçe Mesafeleri", "PARSEL · ÇEKME · YERLEŞİM", ["Ön bahçe", "Yan bahçe", "Arka bahçe"], "preserve", "classification"),
+  makeSpec("imar-bodrum-kat-mevzuati-teknik-hacim-iskan-taban-alani", 4, "Bodrum Kat: Teknik Hacim, İskân ve Taban Alanı", "BODRUM · KULLANIM · EMSAL", ["Bodrum kullanımını belirle", "Teknik/iskân ayrımını kontrol et", "Alan hesabı kararını ver"], "preserve", "decision"),
+  makeSpec("imar-cekme-kat-asma-kat-kosullari", 4, "Çekme Kat ve Asma Kat Koşulları", "KAT TÜRÜ · GEOMETRİ · KOŞUL", ["Kat türünü belirle", "Geometriyi kontrol et", "Uygulanabilirliği değerlendir"], "preserve", "classification"),
+  makeSpec("imar-balkon-cikma-sacak-emsal-disi-sartlari", 4, "Balkon, Çıkma ve Saçakların Alan Koşulları", "ÇIKMA · EMSAL · SINIR", ["Eleman türünü belirle", "Boyut ve konumu kontrol et", "Alan hesabı kararını ver"], "preserve", "decision"),
+] as const;
+
+export const DEPREM_ROLLOUT_BATCHES: Readonly<Record<DepremRolloutBatch, readonly DepremRolloutSpec[]>> = {
+  1: DEPREM_ROLLOUT_BATCH_1,
+  2: DEPREM_ROLLOUT_BATCH_2,
+  3: DEPREM_ROLLOUT_BATCH_3,
+  4: DEPREM_ROLLOUT_BATCH_4,
+};
+
+export const DEPREM_ROLLOUT_ARTICLES: readonly DepremRolloutSpec[] = Object.values(DEPREM_ROLLOUT_BATCHES).flat();
 
 const ROLLOUT_BY_SLUG = new Map(DEPREM_ROLLOUT_ARTICLES.map((item) => [item.slug, item] as const));
 
 export const DEPREM_ROLLOUT_BATCH_1_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_1.map((item) => item.slug));
 export const DEPREM_ROLLOUT_BATCH_2_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_2.map((item) => item.slug));
 export const DEPREM_ROLLOUT_BATCH_3_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_3.map((item) => item.slug));
+export const DEPREM_ROLLOUT_BATCH_4_SLUGS = new Set(DEPREM_ROLLOUT_BATCH_4.map((item) => item.slug));
 export const DEPREM_ROLLOUT_SLUGS = new Set(DEPREM_ROLLOUT_ARTICLES.map((item) => item.slug));
 
 export function getDepremRolloutSpec(slug: string): DepremRolloutSpec | undefined {
@@ -136,7 +156,7 @@ export function applyDepremRolloutEnhancement(article: ArticleData): ArticleData
   const diagramPath = getDepremRolloutVisualPath(article.slug, "diagram");
   const figureMarkup = [
     `![${spec.headline} için teknik kontrol şeması](${diagramPath})`,
-    `*${spec.steps.join(" → ")} başlıklarını ${spec.visualLayout} düzeninde özetleyen teknik şema.*`,
+    `*${spec.steps.join(" → ")} başlıklarını teknik düzende özetleyen şema.*`,
     "{figure:R1 | note:Şema makaledeki kontrol başlıklarını özetler; mevzuat metninin, uzman incelemesinin veya proje hesabının yerine geçmez. | source:Mühendislik Site — makale içeriğinden türetilmiş teknik şema | lightbox:true}",
   ].join("\n");
 
