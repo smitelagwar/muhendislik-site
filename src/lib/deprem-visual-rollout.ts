@@ -149,6 +149,34 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     assets: ["cover.svg", "diagram.svg"],
     designNotes: ["Kapakta üç farklı sistem tipinin teknik karşılaştırması için farklı şemalar yan yanadır", "Şemalar aynı yapının kopyası değildir", "Detay tek birleşik sistem planında çekirdek ile çevre çerçevesinin yatay yük paylaşımını gösterir"],
   },
+  {
+    slug: "tbdy-deprem-yer-hareketi-duzeyleri",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Dört DD düzeyi sayısal olasılık veya dönüş periyodu uydurmadan ayrıştırılır", "Kapak yer hareketi düzeylerini spektrum ailesi ve performans hedefiyle bağlar", "Detay düzey seçimi ile performans hedefi arasındaki karar akışını gösterir"],
+  },
+  {
+    slug: "tbdy-afad-ss-s1-okuma",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Sahte Türkiye haritası veya AFAD arayüzü çizilmez", "Kapak proje koordinatından Ss ve S1 çıktısına veri akışıdır", "Detay yer hareketi düzeyi seçimini ve parametrelerin spektrum girdisindeki rollerini açıklar"],
+  },
+  {
+    slug: "tbdy-yerel-zemin-sinifi-spektrum",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["ZA-ZF sınıfları gerçek zemin tabakaları gibi resmedilmez", "Kapak saha verisi-sınıf-spektrum ilişkisini gösterir", "Detay tehlike parametreleri ile zemin sınıfının tasarım spektrumuna birlikte taşınmasını gösterir"],
+  },
+  {
+    slug: "tbdy-bina-onem-katsayisi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Doğrulanmamış sayısal I eşlemesi görsele gömülmez", "Kullanım amacı, BKS ve I birbirinden ayrı karar adımlarıdır", "Detay seçimin deprem etkisine bağlandığını tek akışta gösterir"],
+  },
 ] as const;
 
 export const DEPREM_TECHNICAL_VISUAL_SLUGS = new Set(
