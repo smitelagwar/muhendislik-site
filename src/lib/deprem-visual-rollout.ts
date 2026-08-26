@@ -121,6 +121,34 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     assets: ["cover.svg", "diagram.svg"],
     designNotes: ["Bina ikonları yerine Ra(T) mühendislik grafiği kullanılır", "D ile R/I aynı katsayı gibi gösterilmez", "Detay kuvvet-deplasman grafiğinde azaltma ve dayanım fazlalığı rollerini ayrıştırır"],
   },
+  {
+    slug: "kisa-kolon-etkisi-tbdy-2018",
+    series: "tbdy-betonarme",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek çerçeve açıklığında kısmi dolgu ve kısalan kolon serbest boyu", "Kesme talebi kısa serbest bölgede oklarla yoğunlaştırılır", "Detay tek kısa kolon serbest cisim ve diyagonal çatlak şemasıdır"],
+  },
+  {
+    slug: "tbdy-2018-guclu-kolon-kontrolu",
+    series: "tbdy-betonarme",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek kiriş-kolon düğümü ve uç momentleri", "Sayısal katsayı vermeden kolon-kiriş kapasite hiyerarşisi anlatılır", "Detay tek çerçevede kiriş uç mafsalları ve kolon sürekliliğini gösterir"],
+  },
+  {
+    slug: "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
+    series: "tbdy-betonarme",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek perde elevasyonu; gövde ve uç bölgeleri ayrıştırılır", "Yatay yük altında eğilme ve kesme davranışı birlikte gösterilir", "Detay ikinci elevasyon yerine tek perde enkesiti ve donatı yerleşimidir"],
+  },
+  {
+    slug: "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek",
+    series: "tbdy-betonarme",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta üç farklı sistem tipinin teknik karşılaştırması için farklı şemalar yan yanadır", "Şemalar aynı yapının kopyası değildir", "Detay tek birleşik sistem planında çekirdek ile çevre çerçevesinin yatay yük paylaşımını gösterir"],
+  },
 ] as const;
 
 export const DEPREM_TECHNICAL_VISUAL_SLUGS = new Set(
