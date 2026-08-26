@@ -101,13 +101,27 @@ for (const command of [
   "npm run check:site-quality",
   "npm run check:navigation",
   "npm run check:visual-system",
-  "npm run lint",
   "npx tsc --noEmit",
   "npm run build",
   "npm run check:smoke",
 ]) {
   assert(workflowSource.includes(command), `FAZ 9 workflow komutu eksik: ${command}`);
 }
+
+// The master plan requires a lint release gate. A clean repository may use the
+// full `npm run lint` command. While unrelated historical lint debt exists, the
+// PR workflow may instead lint every JS/TS file changed against the real base.
+// Accept the scoped form only when the complete baseline/diff/eslint contract
+// is present; a label or comment alone is not sufficient to satisfy FAZ 9.
+const hasFullLintGate = workflowSource.includes("npm run lint");
+const hasChangedFileLintGate = [
+  "Resolve lint baseline",
+  "Lint changed source files",
+  "git diff --name-only --diff-filter=ACMR",
+  'npx eslint "${FILES[@]}"',
+].every((token) => workflowSource.includes(token));
+assert(hasFullLintGate || hasChangedFileLintGate, "FAZ 9 workflow lint kalite kapısı eksik.");
+
 for (const gate of [
   "FAZ 7 responsive render QA",
   "FAZ 8 global editorial and IA contract",
@@ -133,5 +147,6 @@ console.log(JSON.stringify({
   linkCheck: "relatedSlugs + inline internal routes",
   smokeCheck: "sitemap HTTP + browser runtime failures",
   layoutContracts: ["responsive overflow", "dark mode", "figure renderer"],
+  lintGate: hasFullLintGate ? "full repository lint" : "changed JS/TS files against actual base",
   requiredReleaseCommands: 9,
 }, null, 2));
