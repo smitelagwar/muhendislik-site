@@ -10,6 +10,7 @@ on:
       - .github/workflows/deprem-content-infrastructure.yml
       - .agents/rules/deprem-icerik-kurallari.md
       - public/images/deprem-pilots/**
+      - public/images/deprem-phase5/**
       - src/app/deprem-visual/**
       - src/components/article-client.tsx
       - src/components/deprem/AraclarGrid.tsx
@@ -57,6 +58,7 @@ on:
       - scripts/check-deprem-phase5.ts
       - scripts/check-deprem-phase5-batch1-render.mjs
       - scripts/check-deprem-phase5-batch2-render.mjs
+      - scripts/check-deprem-phase5-batch3-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -142,3 +144,5 @@ jobs:
         run: node scripts/check-deprem-phase5-batch1-render.mjs
       - name: FAZ 5 batch 2 responsive render QA
         run: node scripts/check-deprem-phase5-batch2-render.mjs
+      - name: FAZ 5 batch 3 responsive render QA
+        run: node scripts/check-deprem-phase5-batch3-render.mjs

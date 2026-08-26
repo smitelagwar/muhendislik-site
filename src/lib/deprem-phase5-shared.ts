@@ -3,8 +3,13 @@ import type { ArticleData } from "./articles-data";
 export const PHASE5_UPDATED_AT = "26 Ağustos 2026";
 export const FIRE_REGULATION = "https://www.mevzuat.gov.tr/mevzuat?MevzuatNo=200712937&MevzuatTur=21&MevzuatTertip=5";
 export const FIRE_GUIDE_PAGE = "https://meslekihizmetler.csb.gov.tr/haberler/binalarin-yangindan-korunmasi-hakkinda-yonetmelik-kilavuzu-yayimlandi-289797";
-export const FIRE_GUIDE_PDF = "https://webdosya.csb.gov.tr/db/meslekihizmetler/haberler/b-nalarin-yangin-korunmasi-hakkinda-yonetmel-k-28.03.2025-etk-les-m-20250328093036.pdf";
+export const FIRE_GUIDE_PDF = "https://webdosya.csb.gov.tr/v2/meslekihizmetler/2026/05/Binalar-n-Yang-n-Korunmas-Hakk-nda-Y-netmelik-K-lavuzu-20260507112134.pdf";
 export const FIRE_2025_AMENDMENT = "https://www.resmigazete.gov.tr/eskiler/2025/07/20250701-9.pdf";
+
+export const PHASE5_FIRE_ROUTE_VISUALS = {
+  cover: "/images/deprem-phase5/yangin-bolmesi-koridoru-kacis-yolu-cover.svg",
+  diagram: "/images/deprem-phase5/yangin-bolmesi-koridoru-kacis-yolu-diagram.svg",
+} as const;
 
 export function phase5Lines(...parts: string[]) {
   return parts.join("\n");
@@ -12,12 +17,15 @@ export function phase5Lines(...parts: string[]) {
 
 export interface DepremPhase5Override {
   slug: string;
+  title?: string;
   description: string;
   seoTitle: string;
   seoDescription: string;
   updatedAt: string;
   readTime: string;
+  image?: string;
   sections: ArticleData["sections"];
+  relatedSlugs?: string[];
   references: NonNullable<ArticleData["references"]>;
   keywords: string[];
   tags: string[];
@@ -33,7 +41,7 @@ export function firePhase5References(scope: string): NonNullable<ArticleData["re
     {
       label: "ÇŞİDB — Binaların Yangından Korunması Hakkında Yönetmelik Kılavuzu",
       href: FIRE_GUIDE_PDF,
-      note: "Bakanlığın doğrulanabilir resmî uygulama kılavuzu; rehber niteliğindedir. Kılavuz ile yürürlükteki mevzuat çelişirse mevzuat geçerlidir.",
+      note: "Bakanlığın güncel resmî uygulama kılavuzu; rehber niteliğindedir. Kılavuz ile yürürlükteki mevzuat çelişirse mevzuat geçerlidir.",
     },
     {
       label: "ÇŞİDB — Yangın Yönetmeliği Kılavuzu duyurusu",

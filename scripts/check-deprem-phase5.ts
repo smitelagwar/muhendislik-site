@@ -1,9 +1,12 @@
+import fs from "node:fs";
+import path from "node:path";
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleBySlug, getArticleList } from "../src/lib/articles-data";
 import { DEPREM_CONTENT_AUTHOR, getArticleAuthorPresentation } from "../src/lib/content-author";
 import { DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";
 import { DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PHASE5_ARTICLES, DEPREM_PHASE5_SLUGS } from "../src/lib/deprem-phase5-articles";
+import { PHASE5_FIRE_ROUTE_VISUALS } from "../src/lib/deprem-phase5-shared";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import { getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
@@ -21,7 +24,14 @@ const BATCH_2_SLUGS = [
   "yangin-algilama-ve-ihbar-sistemi-gereksinimleri",
 ] as const;
 
-const PHASE5_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS] as const;
+const BATCH_3_SLUGS = [
+  "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma",
+  "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9",
+  "bodrum-otopark-mutfak-yangin-uygulamalari",
+] as const;
+
+const CUSTOM_VISUAL_SLUG = "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma";
+const PHASE5_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS, ...BATCH_3_SLUGS] as const;
 type Phase5Slug = (typeof PHASE5_SLUGS)[number];
 
 const requiredTokens: Record<Phase5Slug, string[]> = {
@@ -32,6 +42,9 @@ const requiredTokens: Record<Phase5Slug, string[]> = {
   "kacis-merdiveni-tasarim-kriterleri": ["Madde 38", "Madde 39", "Madde 40", "Madde 41", "120 dakika", "90 dakika", "10 m", "15 m", "210 cm", "175 mm", "250 mm", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
   "yangin-kapisi-dosleme-duvar-gecis-detaylari": ["Madde 25", "Madde 47", "80 cm", "200 cm", "60 dakika", "90 dakika", "120 dakika", "firestop", "duman sızdırmaz", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
   "yangin-algilama-ve-ihbar-sistemi-gereksinimleri": ["Madde 74", "Madde 75", "Madde 76", "Ek-7", "TS EN 54", "TS EN 54-14", "60 m", "110 cm", "130 cm", "Danıştay", "su akış anahtarı", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
+  "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma": ["Madde 24", "60 dakika", "21,50 m", "30,50 m", "3 kat", "kullanıcı yükü", "daralma", "yangın kompartımanı", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
+  "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9": ["21,50 m", "30,50 m", "51,50 m", "1,8 m²", "6 m²", "10 m²", "120 dakika", "90 dakika", "açık kaçış merdiveni", "acil durum asansörü", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
+  "bodrum-otopark-mutfak-yangin-uygulamalari": ["Madde 57", "Madde 60", "Madde 88", "600 m²", "2.000 m²", "10 hava değişimi", "100", "davlumbaz", "gaz algılama", "otomatik söndürme", "Teknik sorumluluk", "Mühendislik kontrol listesi"],
 };
 
 const depthSignals: Record<Phase5Slug, string[]> = Object.fromEntries(
@@ -41,9 +54,20 @@ const depthSignals: Record<Phase5Slug, string[]> = Object.fromEntries(
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
-assert(DEPREM_PHASE5_ARTICLES.length === 7, `FAZ 5 override sayısı 7 olmalı; bulunan ${DEPREM_PHASE5_ARTICLES.length}.`);
-assert(DEPREM_PHASE5_SLUGS.size === 7, "FAZ 5 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(DEPREM_PHASE5_ARTICLES.length === 10, `FAZ 5 override sayısı 10 olmalı; bulunan ${DEPREM_PHASE5_ARTICLES.length}.`);
+assert(DEPREM_PHASE5_SLUGS.size === 10, "FAZ 5 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of PHASE5_SLUGS) assert(DEPREM_PHASE5_SLUGS.has(slug), `FAZ 5 slug eksik: ${slug}`);
+
+for (const visualPath of Object.values(PHASE5_FIRE_ROUTE_VISUALS)) {
+  const localPath = path.join(process.cwd(), "public", visualPath.replace(/^\//, ""));
+  assert(fs.existsSync(localPath), `Özel FAZ 5 görsel dosyası bulunamadı: ${visualPath}`);
+  if (fs.existsSync(localPath)) {
+    const svg = fs.readFileSync(localPath, "utf8");
+    assert(svg.startsWith("<svg"), `Özel görsel SVG değil: ${visualPath}`);
+    assert(svg.includes("<title"), `Özel görsel erişilebilir title içermiyor: ${visualPath}`);
+    assert(!/<script|<foreignObject|javascript:/i.test(svg), `Özel görsel güvenlik kontratını ihlal ediyor: ${visualPath}`);
+  }
+}
 
 const allArticles = getArticleList();
 const allSlugs = new Set(allArticles.map((article) => article.slug));
@@ -80,12 +104,13 @@ for (const slug of PHASE5_SLUGS) {
 
   const hasRegulation = configured.references.some((ref) => ref.href?.includes("mevzuat.gov.tr"));
   const hasGuideAnnouncement = configured.references.some((ref) => ref.href?.includes("meslekihizmetler.csb.gov.tr/haberler/binalarin-yangindan-korunmasi-hakkinda-yonetmelik-kilavuzu"));
-  const hasVerifiedGuidePdf = configured.references.some((ref) => ref.href?.includes("webdosya.csb.gov.tr") && ref.href.includes("20250328093036.pdf"));
+  const hasCurrentGuidePdf = configured.references.some((ref) => ref.href?.includes("webdosya.csb.gov.tr") && ref.href.includes("20260507112134.pdf"));
   const hasCorrect2025Amendment = configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr") && ref.href.includes("20250701-9.pdf"));
   assert(hasRegulation, `Yangın Yönetmeliği Mevzuat Bilgi Sistemi kaynağı eksik: ${slug}`);
   assert(hasGuideAnnouncement, `Bakanlık yangın kılavuzu duyurusu eksik: ${slug}`);
-  assert(hasVerifiedGuidePdf, `Doğrulanmış Bakanlık yangın kılavuzu PDF kaynağı eksik: ${slug}`);
+  assert(hasCurrentGuidePdf, `Mayıs 2026 güncel Bakanlık yangın kılavuzu PDF kaynağı eksik: ${slug}`);
   assert(hasCorrect2025Amendment, `1 Temmuz 2025 / 32943 / Karar 10026 Resmî Gazete kaynağı eksik: ${slug}`);
+  assert(!configured.references.some((ref) => ref.href?.includes("20250328093036.pdf")), `Eski Mart 2025 kılavuz PDF'si FAZ 5 kaynakçasında kaldı: ${slug}`);
   assert(!configured.references.some((ref) => ref.href?.includes("20250701-1.pdf")), `Yanlış 1 Temmuz 2025 Resmî Gazete dosyası kullanılıyor: ${slug}`);
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
@@ -118,14 +143,14 @@ for (const slug of PHASE5_SLUGS) {
   assert(article.sections[0]?.content.startsWith(configured.sections[0]?.content.trim() ?? ""), `Runtime ilk bölüm FAZ 5 gövdesinden gelmiyor: ${slug}`);
   assert((article.relatedSlugs ?? []).every((relatedSlug) => allSlugs.has(relatedSlug)), `Geçersiz related slug var: ${slug}`);
 
-  const cover = getDepremRolloutVisualPath(slug, "cover");
-  const diagram = getDepremRolloutVisualPath(slug, "diagram");
-  const coverOk = article.image === cover;
-  assert(coverOk, `Mevcut rollout cover korunmadı: ${slug}`);
+  const cover = slug === CUSTOM_VISUAL_SLUG ? PHASE5_FIRE_ROUTE_VISUALS.cover : getDepremRolloutVisualPath(slug, "cover");
+  const diagram = slug === CUSTOM_VISUAL_SLUG ? PHASE5_FIRE_ROUTE_VISUALS.diagram : getDepremRolloutVisualPath(slug, "diagram");
+  const coverOk = article.image === cover && article.image !== "/covers/yonetmelik.svg";
+  assert(coverOk, `Benzersiz cover uygulanmadı: ${slug}`);
   const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
   const figure = blocks.find((block) => block.type === "image" && block.src === diagram);
   const figureOk = Boolean(figure);
-  assert(figureOk, `Mevcut rollout body figure korunmadı: ${slug}`);
+  assert(figureOk, `Bilgi taşıyan body figure bulunamadı: ${slug}`);
   let figureMetadataOk = false;
   if (figure?.type === "image") {
     figureMetadataOk = Boolean(figure.alt.trim()) && Boolean(figure.caption.trim()) && Boolean(figure.sourceNote.trim()) && figure.lightbox;
@@ -134,7 +159,7 @@ for (const slug of PHASE5_SLUGS) {
   assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 5 C3 gövdesinde gereksiz FormulaBlock bulundu: ${slug}`);
 
   const technicalOk = configured.sections.length >= 6 && requiredTokens[slug].every((token) => configuredText.includes(token));
-  const sourcesOk = hasRegulation && hasGuideAnnouncement && hasVerifiedGuidePdf && hasCorrect2025Amendment;
+  const sourcesOk = hasRegulation && hasGuideAnnouncement && hasCurrentGuidePdf && hasCorrect2025Amendment;
   const depthOk = depthSignals[slug].every((signal) => configuredTextLower.includes(signal));
   const visualOk = coverOk && figureOk && figureMetadataOk;
   const tableExampleOk = configuredText.includes("|---") && /\d/.test(configuredText);
@@ -169,19 +194,19 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 5",
-  completedBatches: 2,
+  completedBatches: 3,
   phase5Overrides: DEPREM_PHASE5_ARTICLES.length,
-  completedArticles: 7,
+  completedArticles: 10,
   targetArticles: 19,
-  remaining: 12,
-  batch2Slugs: BATCH_2_SLUGS,
+  remaining: 9,
+  batch3Slugs: BATCH_3_SLUGS,
   classifications: Object.fromEntries(PHASE5_SLUGS.map((slug) => [slug, "C3"])),
   sourceOfTruth: "src/lib/deprem-phase5-articles.ts",
-  officialSourceProfile: "Mevzuat Bilgi Sistemi BYKHY + doğrulanmış ÇŞİDB Yangın Yönetmeliği Kılavuzu + 1 Temmuz 2025 / 32943 / Karar 10026 Resmî Gazete",
-  visualContract: "unique rollout cover + information-bearing body figure preserved",
+  officialSourceProfile: "Mevzuat Bilgi Sistemi BYKHY + ÇŞİDB Mayıs 2026 Yangın Yönetmeliği Kılavuzu + 1 Temmuz 2025 / 32943 / Karar 10026 Resmî Gazete",
+  visualContract: "9 rollout unique cover/body figure + 1 custom deterministic unique cover/body figure; generic cover remaining in completed Yangın set: 0",
   qualityScoreContract: "Master Plan v2: static subtotal >=80/90 + responsive layout QA 10/10 => final quality score >=90/100; hard-fail assertions mandatory",
   qualityScores,
-  seriesCoverage: { yangin: 7, isg: 0, cevre: 0 },
+  seriesCoverage: { yangin: 10, isg: 0, cevre: 0 },
   targetCoverage: { yangin: 10, isg: 5, cevre: 4, total: 19 },
   ts500Touched: false,
 }, null, 2));
