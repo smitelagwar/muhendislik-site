@@ -59,6 +59,30 @@ const requiredTokens: Record<Phase5Slug, string[]> = {
   ],
 };
 
+const depthSignals: Record<Phase5Slug, string[]> = {
+  "byy-bina-kullanim-siniflari-tehlike-kategorileri": [
+    "yangın yükü",
+    "yanlış sınıflandırma",
+    "proje",
+    "sorumluluk",
+    "kontrol listesi",
+  ],
+  "tasiyici-sistemlerin-yangina-dayanim-suresi-r30-r60-r90-r120": [
+    "yangın etkisi",
+    "zayıf halkası",
+    "proje",
+    "sorumluluk",
+    "uygulama",
+  ],
+  "sprinkler-sistemi-zorunluluk-sinirlari": [
+    "tehlike sınıfı",
+    "yanlış",
+    "proje",
+    "sorumluluk",
+    "uygulama",
+  ],
+};
+
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
@@ -67,6 +91,7 @@ assert(DEPREM_PHASE5_SLUGS.size === 3, "FAZ 5 source-of-truth slug kümesinde te
 for (const slug of BATCH_1_SLUGS) assert(DEPREM_PHASE5_SLUGS.has(slug), `FAZ 5 Batch 1 slug eksik: ${slug}`);
 
 const allArticles = getArticleList();
+const allSlugs = new Set(allArticles.map((article) => article.slug));
 const targetCounts = {
   yangin: allArticles.filter((article) => article.seriesId === "yangin").length,
   isg: allArticles.filter((article) => article.seriesId === "isg").length,
@@ -75,6 +100,16 @@ const targetCounts = {
 assert(targetCounts.yangin === 10, `Yangın hedefi 10 olmalı; bulunan ${targetCounts.yangin}.`);
 assert(targetCounts.isg === 5, `İSG hedefi 5 olmalı; bulunan ${targetCounts.isg}.`);
 assert(targetCounts.cevre === 4, `Çevre hedefi 4 olmalı; bulunan ${targetCounts.cevre}.`);
+
+const qualityScores: Record<string, {
+  technicalAccuracyAndCoverage: number;
+  officialSourceAccuracy: number;
+  professionalDepth: number;
+  visualQuality: number;
+  tableExampleQuality: number;
+  linkMetadataAuthorAccessibility: number;
+  staticSubtotal: number;
+}> = {};
 
 for (const slug of BATCH_1_SLUGS) {
   const configured = DEPREM_PHASE5_ARTICLES.find((article) => article.slug === slug);
@@ -87,18 +122,32 @@ for (const slug of BATCH_1_SLUGS) {
   assert(!DEPREM_PHASE4_SLUGS.has(slug), `FAZ 5 FAZ 4 source-of-truth ile çakışıyor: ${slug}`);
   assert(configured.sections.length >= 6, `FAZ 5 profesyonel bölüm sayısı yetersiz: ${slug}`);
   assert(configured.references.length >= 4, `FAZ 5 doğrulanabilir referans sayısı yetersiz: ${slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("mevzuat.gov.tr")), `Yangın Yönetmeliği Mevzuat Bilgi Sistemi kaynağı eksik: ${slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("binalarin-yangindan-korunmasi-hakkinda-yonetmelik-kilavuzu")), `Bakanlık yangın kılavuzu duyurusu eksik: ${slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("Binalar-n-Yang-n-Korunmas-Hakk-nda-Y-netmelik-K-lavuzu")), `Bakanlık yangın kılavuzu PDF kaynağı eksik: ${slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("20250701-1.pdf")), `2025 BYKHY değişiklik kaynağı eksik: ${slug}`);
+
+  const hasRegulation = configured.references.some((ref) => ref.href?.includes("mevzuat.gov.tr"));
+  const hasGuideAnnouncement = configured.references.some((ref) => ref.href?.includes("meslekihizmetler.csb.gov.tr/haberler/binalarin-yangindan-korunmasi-hakkinda-yonetmelik-kilavuzu"));
+  const hasVerifiedGuidePdf = configured.references.some((ref) => ref.href?.includes("webdosya.csb.gov.tr") && ref.href.includes("20250328093036.pdf"));
+  const hasCorrect2025Amendment = configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr") && ref.href.includes("20250701-9.pdf"));
+  assert(hasRegulation, `Yangın Yönetmeliği Mevzuat Bilgi Sistemi kaynağı eksik: ${slug}`);
+  assert(hasGuideAnnouncement, `Bakanlık yangın kılavuzu duyurusu eksik: ${slug}`);
+  assert(hasVerifiedGuidePdf, `Doğrulanmış Bakanlık yangın kılavuzu PDF kaynağı eksik: ${slug}`);
+  assert(hasCorrect2025Amendment, `1 Temmuz 2025 / 32943 / Karar 10026 Resmî Gazete kaynağı eksik: ${slug}`);
+  assert(!configured.references.some((ref) => ref.href?.includes("20250701-1.pdf")), `Yanlış 1 Temmuz 2025 Resmî Gazete dosyası kullanılıyor: ${slug}`);
+  assert(!configured.references.some((ref) => ref.href?.includes("/2026/05/Binalar-n-Yang-n")), `Doğrulanamamış 2026/05 kılavuz URL'si kullanılıyor: ${slug}`);
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
+  const configuredTextLower = configuredText.toLocaleLowerCase("tr-TR");
   assert(!configuredText.includes("Mevzuat kapsamı ve kritik eşikler\n"), `FAZ 5 jenerik normalizer başlığı kaldı: ${slug}`);
   assert(!configuredText.includes("Proje ve saha için minimum kontrol zinciri\n"), `FAZ 5 jenerik normalizer kontrol başlığı kaldı: ${slug}`);
   assert(!configuredText.includes("Sık hata ve teknik sonuç\n"), `FAZ 5 jenerik normalizer hata başlığı kaldı: ${slug}`);
   assert(!/[�ÃÄÅÂ]/.test(configuredText), `Encoding şüphesi: ${slug}`);
   assert(!configuredText.includes("/deprem-yonetmelik/araclar/"), `Eski araç route'u FAZ 5 gövdesinde kaldı: ${slug}`);
   for (const token of requiredTokens[slug]) assert(configuredText.includes(token), `FAZ 5 teknik işareti eksik (${token}): ${slug}`);
+  for (const signal of depthSignals[slug]) assert(configuredTextLower.includes(signal), `FAZ 5 profesyonel derinlik sinyali eksik (${signal}): ${slug}`);
+  assert(configuredText.includes("|---"), `FAZ 5 gerçek teknik tablo bulunamadı: ${slug}`);
+  assert(/\d/.test(configuredText), `FAZ 5 sayısal/ölçülebilir kontrol girdisi bulunamadı: ${slug}`);
+  assert(Boolean(configured.seoTitle.trim()), `SEO title boş: ${slug}`);
+  assert(Boolean(configured.seoDescription.trim()), `SEO description boş: ${slug}`);
+  assert(Boolean(configured.description.trim()), `Makale description boş: ${slug}`);
 
   const article = getArticleBySlug(slug);
   assert(Boolean(article), `FAZ 5 runtime makalesi bulunamadı: ${slug}`);
@@ -112,20 +161,56 @@ for (const slug of BATCH_1_SLUGS) {
   assert(article.updatedAt === "26 Ağustos 2026", `updatedAt beklenenden farklı: ${slug}`);
   assert(article.sections.length === configured.sections.length, `Runtime bölüm sayısı FAZ 5 gövdesiyle uyuşmuyor: ${slug}`);
   assert(article.sections[0]?.content.startsWith(configured.sections[0]?.content.trim() ?? ""), `Runtime ilk bölüm FAZ 5 gövdesinden gelmiyor: ${slug}`);
+  assert((article.relatedSlugs ?? []).every((relatedSlug) => allSlugs.has(relatedSlug)), `Geçersiz related slug var: ${slug}`);
 
   const cover = getDepremRolloutVisualPath(slug, "cover");
   const diagram = getDepremRolloutVisualPath(slug, "diagram");
-  assert(article.image === cover, `Mevcut rollout cover korunmadı: ${slug}`);
+  const coverOk = article.image === cover;
+  assert(coverOk, `Mevcut rollout cover korunmadı: ${slug}`);
   const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
   const figure = blocks.find((block) => block.type === "image" && block.src === diagram);
-  assert(Boolean(figure), `Mevcut rollout body figure korunmadı: ${slug}`);
+  const figureOk = Boolean(figure);
+  assert(figureOk, `Mevcut rollout body figure korunmadı: ${slug}`);
+  let figureMetadataOk = false;
   if (figure?.type === "image") {
+    figureMetadataOk = Boolean(figure.alt.trim()) && Boolean(figure.caption.trim()) && Boolean(figure.sourceNote.trim()) && figure.lightbox;
     assert(Boolean(figure.alt.trim()), `Body figure alt eksik: ${slug}`);
     assert(Boolean(figure.caption.trim()), `Body figure caption eksik: ${slug}`);
     assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${slug}`);
     assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${slug}`);
   }
   assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 5 Batch 1 C3 gövdelerinde gereksiz FormulaBlock bulundu: ${slug}`);
+
+  const technicalOk = configured.sections.length >= 6 && requiredTokens[slug].every((token) => configuredText.includes(token));
+  const sourcesOk = hasRegulation && hasGuideAnnouncement && hasVerifiedGuidePdf && hasCorrect2025Amendment;
+  const depthOk = depthSignals[slug].every((signal) => configuredTextLower.includes(signal));
+  const visualOk = coverOk && figureOk && figureMetadataOk;
+  const tableExampleOk = configuredText.includes("|---") && /\d/.test(configuredText);
+  const metadataOk = Boolean(configured.seoTitle.trim())
+    && Boolean(configured.seoDescription.trim())
+    && article.author === DEPREM_CONTENT_AUTHOR.name
+    && getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram
+    && (article.relatedSlugs ?? []).every((relatedSlug) => allSlugs.has(relatedSlug))
+    && !/[�ÃÄÅÂ]/.test(configuredText)
+    && !configuredText.includes("/deprem-yonetmelik/araclar/");
+
+  const score = {
+    technicalAccuracyAndCoverage: technicalOk ? 25 : 0,
+    officialSourceAccuracy: sourcesOk ? 15 : 0,
+    professionalDepth: depthOk ? 15 : 0,
+    visualQuality: visualOk ? 15 : 0,
+    tableExampleQuality: tableExampleOk ? 10 : 0,
+    linkMetadataAuthorAccessibility: metadataOk ? 10 : 0,
+    staticSubtotal: 0,
+  };
+  score.staticSubtotal = score.technicalAccuracyAndCoverage
+    + score.officialSourceAccuracy
+    + score.professionalDepth
+    + score.visualQuality
+    + score.tableExampleQuality
+    + score.linkMetadataAuthorAccessibility;
+  qualityScores[slug] = score;
+  assert(score.staticSubtotal >= 80, `FAZ 5 statik kalite skoru 80/90 altı; render layout 10 puanıyla toplam 90'a ulaşamaz: ${slug} -> ${score.staticSubtotal}/90`);
 }
 
 if (errors.length > 0) {
@@ -145,8 +230,10 @@ console.log(JSON.stringify({
   batch1Slugs: BATCH_1_SLUGS,
   batch1Classification: Object.fromEntries(BATCH_1_SLUGS.map((slug) => [slug, "C3"])),
   sourceOfTruth: "src/lib/deprem-phase5-articles.ts",
-  officialSourceProfile: "Mevzuat Bilgi Sistemi BYKHY + ÇŞİDB Yangın Yönetmeliği Kılavuzu + 1 Temmuz 2025 Resmî Gazete değişikliği",
-  visualContract: "existing unique rollout cover + body figure preserved",
+  officialSourceProfile: "Mevzuat Bilgi Sistemi BYKHY + doğrulanmış ÇŞİDB Yangın Yönetmeliği Kılavuzu + 1 Temmuz 2025 / 32943 / Karar 10026 Resmî Gazete",
+  visualContract: "existing unique rollout cover + information-bearing body figure preserved",
+  qualityScoreContract: "Master Plan v2: static subtotal >=80/90 + responsive layout QA 10/10 => final quality score >=90/100; hard-fail assertions remain mandatory",
+  qualityScores,
   seriesCoverage: { yangin: 3, isg: 0, cevre: 0 },
   targetCoverage: { yangin: 10, isg: 5, cevre: 4, total: 19 },
   ts500Touched: false,
