@@ -5,7 +5,8 @@ import { DEPREM_PHASE6_BATCH_3_ARTICLES } from "./deprem-phase6-batch3";
 import { DEPREM_PHASE6_BATCH_4_ARTICLES } from "./deprem-phase6-batch4";
 import { DEPREM_PHASE6_BATCH_5_ARTICLES } from "./deprem-phase6-batch5";
 
-// Master-plan source order: İmar -> Otopark -> Asansör -> Engelsiz Tasarım.
+// Master-plan source order is fixed: İmar -> Otopark -> Asansör -> Engelsiz Tasarım.
+// The preserved FAZ 2 C1 İmar pilot remains outside these FAZ 6 C3 overrides.
 export const DEPREM_PHASE6_ARTICLES = [
   ...DEPREM_PHASE6_BATCH_1_ARTICLES,
   ...DEPREM_PHASE6_BATCH_2_ARTICLES,
