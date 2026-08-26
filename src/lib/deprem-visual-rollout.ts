@@ -154,7 +154,7 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     series: "tbdy",
     status: "complete",
     assets: ["cover.svg", "diagram.svg"],
-    designNotes: ["Dört DD düzeyi sayısal olasılık veya dönüş periyodu uydurmadan ayrıştırılır", "Kapak yer hareketi düzeylerini spektrum ailesi ve performans hedefiyle bağlar", "Detay düzey seçimi ile performans hedefi arasındaki karar akışını gösterir"],
+    designNotes: ["Dört DD düzeyi sayısal olasılık veya dönüş periyodu uydurmadan ayrıştırılır", "Kapak yer hareketi düzeylerini spektrum ailesi ve performans hedefiyle bağlar", "Detay düzey seçimi ile performans hedefi arasındaki seçim zincirini gösterir"],
   },
   {
     slug: "tbdy-afad-ss-s1-okuma",
@@ -176,6 +176,34 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     status: "complete",
     assets: ["cover.svg", "diagram.svg"],
     designNotes: ["Doğrulanmamış sayısal I eşlemesi görsele gömülmez", "Kullanım amacı, BKS ve I birbirinden ayrı karar adımlarıdır", "Detay seçimin deprem etkisine bağlandığını tek akışta gösterir"],
+  },
+  {
+    slug: "tbdy-bks-dts-bys-belirleme",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek bina üzerinde BKS, DTS ve BYS farklı fiziksel girdilerle ilişkilendirilir", "Detay kullanım, SDS ve yükseklik girdilerini ayrı satırlarda taşır", "Doğrulanmamış sayısal sınıf eşikleri kullanılmaz"],
+  },
+  {
+    slug: "tbdy-performans-hedefleri-dd-sh-kh-go",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek kapasite eğrisi üzerinde SH, KH ve GÖ bölgeleri gösterilir", "Detay DD ve BKS girdilerini performans hedefine ve kabul sınırına bağlar", "DD düzeyleri ile performans hedefleri arasında doğrulanmamış eşleştirme yapılmaz"],
+  },
+  {
+    slug: "tbdy-etkin-kesit-rijitlikleri",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek çatlamış betonarme eleman ve etkin EI davranışı", "Detay aynı elemanı tekrarlamak yerine tek çatlamış kesiti gösterir", "Doğrulanmamış rijitlik katsayıları görsele yazılmaz"],
+  },
+  {
+    slug: "tbdy-kutle-kaynagi-hareketli-yuk-katilimi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek diyafram üzerinde sabit ve hareketli yük katkıları kütlede birleşir", "Detay tek elevasyonda kat kütlelerinin modal hesaba taşınmasını gösterir", "Hareketli yük katılım katsayısı için doğrulanmamış sayısal değer kullanılmaz"],
   },
 ] as const;
 
