@@ -28,6 +28,13 @@ export const ASANSOR_BAKIM_2019 = "https://www.resmigazete.gov.tr/eskiler/2019/0
 export const ASANSOR_PERIYODIK_2025 = "https://www.resmigazete.gov.tr/eskiler/2025/08/20250805-1.htm";
 export const ASANSOR_KONTROL_2025 = "https://www.sanliurfa.bel.tr/uploads/2025/20250505133528-84464-84507.pdf";
 
+export const PA_IY_CURRENT = "https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=23722&mevzuatTertip=5&mevzuatTur=KurumVeKurulusYonetmeligi";
+export const ERISILEBILIRLIK_FORM = "https://www.aile.gov.tr/media/59960/ek-i-binalar-icin-erisilebilirlik-izleme-ve-denetleme-formu-buyuk-punto.pdf";
+export const ERISILEBILIRLIK_2025_GUIDE = "https://www.aile.gov.tr/media/202721/konutlarda_yaslilar_-icin_erisilebilirlik_ve_guvenlik_rehberi.pdf";
+export const ERISILEBILIRLIK_2026_CIRCULAR = "https://aile.gov.tr/media/278489/2026-yili_erisilebilirlik_izleme_ve_denetleme_plani_hakkinda_genelge.pdf";
+export const ERISILEBILIRLIK_MONITOR_REG = "https://www.mevzuat.gov.tr/File/GeneratePdf?mevzuatNo=18614&mevzuatTertip=5&mevzuatTur=KurumVeKurulusYonetmeligi";
+export const YAPI_DENETIM_4708 = "https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatNo=4708&MevzuatTertip=5&MevzuatTur=1";
+
 export function phase6Lines(...parts: string[]) {
   return parts.join("\n");
 }
@@ -49,80 +56,37 @@ export interface DepremPhase6Override {
 
 export function imarPhase6References(scope: string): NonNullable<ArticleData["references"]> {
   return [
-    {
-      label: `ÇŞİDB — Planlı Alanlar İmar Yönetmeliği temel metni, ${scope}`,
-      href: IMAR_BASE,
-      note: "Temel metin tarihsel derlemedir; proje tarihinde yürürlükteki değişiklik zinciri ayrıca kontrol edilmelidir.",
-    },
-    {
-      label: "Resmî Gazete — 14 Ocak 2026 / 33137 Planlı Alanlar İmar Yönetmeliği değişikliği",
-      href: IMAR_2026_JAN,
-      note: "Asma kat tanımı, yapı aplikasyonu, otopark ve bahçe mesafelerine ilişkin 2026 değişikliklerini içerir.",
-    },
-    {
-      label: "Resmî Gazete — 1 Temmuz 2026 / 33297 Planlı Alanlar İmar Yönetmeliği değişikliği",
-      href: IMAR_2026_JULY,
-      note: "Emsal, TAKS, asansör, yeniden ruhsatlandırma ve mevcut yapılardaki tadilat hükümleri dâhil güncel değişiklik zincirinin son halkalarından biridir.",
-    },
-    {
-      label: "ÇŞİDB — 1 Temmuz 2026 Planlı Alanlar İmar Yönetmeliği değişikliği duyurusu",
-      href: IMAR_2026_ANNOUNCEMENT,
-      note: "Bakanlığın değişiklik kapsamını ve yürürlük bilgisini özetleyen resmî duyurusudur.",
-    },
+    { label: `ÇŞİDB — Planlı Alanlar İmar Yönetmeliği temel metni, ${scope}`, href: IMAR_BASE, note: "Temel metin tarihsel derlemedir; proje tarihinde yürürlükteki değişiklik zinciri ayrıca kontrol edilmelidir." },
+    { label: "Resmî Gazete — 14 Ocak 2026 / 33137 Planlı Alanlar İmar Yönetmeliği değişikliği", href: IMAR_2026_JAN, note: "Asma kat tanımı, yapı aplikasyonu, otopark ve bahçe mesafelerine ilişkin 2026 değişikliklerini içerir." },
+    { label: "Resmî Gazete — 1 Temmuz 2026 / 33297 Planlı Alanlar İmar Yönetmeliği değişikliği", href: IMAR_2026_JULY, note: "Emsal, TAKS, asansör, yeniden ruhsatlandırma ve mevcut yapılardaki tadilat hükümleri dâhil güncel değişiklik zincirinin son halkalarından biridir." },
+    { label: "ÇŞİDB — 1 Temmuz 2026 Planlı Alanlar İmar Yönetmeliği değişikliği duyurusu", href: IMAR_2026_ANNOUNCEMENT, note: "Bakanlığın değişiklik kapsamını ve yürürlük bilgisini özetleyen resmî duyurusudur." },
   ];
 }
 
 export function otoparkPhase6References(scope: string): NonNullable<ArticleData["references"]> {
   return [
-    {
-      label: `Resmî Gazete — 22 Şubat 2018 / 30340 Otopark Yönetmeliği, ${scope}`,
-      href: OTOPARK_2018,
-      note: "Temel Yönetmelik metnidir; sonraki değişikliklerle birlikte okunmalıdır.",
-    },
-    {
-      label: "Resmî Gazete — 25 Mart 2021 / 31434 Otopark Yönetmeliği değişikliği",
-      href: OTOPARK_2021,
-      note: "Rampa ve sirkülasyon ayrıntıları ile elektrikli araç şarj altyapısı dâhil önemli değişiklikleri içerir.",
-    },
-    {
-      label: "Resmî Gazete — 27 Aralık 2025 / 33120 Otopark Yönetmeliği değişikliği",
-      href: OTOPARK_2025,
-      note: "Madde 10 küçük parsel eşiğini 500 m²'ye, Ek-1 hastane hesabını 85 m²'ye günceller.",
-    },
-    {
-      label: "ÇŞİDB — Otopark Yönetmeliği teknik sunumu",
-      href: OTOPARK_CSB_GUIDE,
-      note: "Yönetmelik hükümlerinin proje ve hesap mantığını açıklayan Bakanlık teknik dokümanıdır.",
-    },
+    { label: `Resmî Gazete — 22 Şubat 2018 / 30340 Otopark Yönetmeliği, ${scope}`, href: OTOPARK_2018, note: "Temel Yönetmelik metnidir; sonraki değişikliklerle birlikte okunmalıdır." },
+    { label: "Resmî Gazete — 25 Mart 2021 / 31434 Otopark Yönetmeliği değişikliği", href: OTOPARK_2021, note: "Rampa ve sirkülasyon ayrıntıları ile elektrikli araç şarj altyapısı dâhil önemli değişiklikleri içerir." },
+    { label: "Resmî Gazete — 27 Aralık 2025 / 33120 Otopark Yönetmeliği değişikliği", href: OTOPARK_2025, note: "Madde 10 küçük parsel eşiğini 500 m²'ye, Ek-1 hastane hesabını 85 m²'ye günceller." },
+    { label: "ÇŞİDB — Otopark Yönetmeliği teknik sunumu", href: OTOPARK_CSB_GUIDE, note: "Yönetmelik hükümlerinin proje ve hesap mantığını açıklayan Bakanlık teknik dokümanıdır." },
   ];
 }
 
 export function asansorPhase6References(scope: string): NonNullable<ArticleData["references"]> {
   return [
-    {
-      label: `Resmî Gazete — 29 Haziran 2016 / 29757 Asansör Yönetmeliği (2014/33/AB), ${scope}`,
-      href: ASANSOR_2016,
-      note: "Asansörlerin ve güvenlik aksamlarının temel sağlık-güvenlik gerekleri ile piyasaya arz çerçevesidir.",
-    },
-    {
-      label: "Resmî Gazete — 6 Nisan 2019 / 30737 Asansör İşletme ve Bakım Yönetmeliği",
-      href: ASANSOR_BAKIM_2019,
-      note: "Tescil, işletme, ayda en az bir bakım, yetkili servis ve bina sorumlusu yükümlülüklerini düzenler.",
-    },
-    {
-      label: "Resmî Gazete — 4 Mayıs 2018 / 30411 Asansör Periyodik Kontrol Yönetmeliği",
-      href: ASANSOR_PERIYODIK_2018,
-      note: "Yıllık periyodik kontrol, A tipi muayene kuruluşu ve bilgi etiketi sisteminin temel metnidir.",
-    },
-    {
-      label: "Resmî Gazete — 5 Ağustos 2025 / 32977 Asansör Periyodik Kontrol Yönetmeliği değişikliği",
-      href: ASANSOR_PERIYODIK_2025,
-      note: "Periyodik kontrol mevzuatının güncel değişiklik zincirinin son halkasıdır.",
-    },
-    {
-      label: "Resmî Gazete — 1 Temmuz 2026 / 33297 Planlı Alanlar İmar Yönetmeliği, Madde 34 değişikliği",
-      href: IMAR_2026_JULY,
-      note: "Asansör zorunluluğu, bodrum kat kapsamı ve güncel bina-kat ilişkisini içerir.",
-    },
+    { label: `Resmî Gazete — 29 Haziran 2016 / 29757 Asansör Yönetmeliği (2014/33/AB), ${scope}`, href: ASANSOR_2016, note: "Asansörlerin ve güvenlik aksamlarının temel sağlık-güvenlik gerekleri ile piyasaya arz çerçevesidir." },
+    { label: "Resmî Gazete — 6 Nisan 2019 / 30737 Asansör İşletme ve Bakım Yönetmeliği", href: ASANSOR_BAKIM_2019, note: "Tescil, işletme, ayda en az bir bakım, yetkili servis ve bina sorumlusu yükümlülüklerini düzenler." },
+    { label: "Resmî Gazete — 4 Mayıs 2018 / 30411 Asansör Periyodik Kontrol Yönetmeliği", href: ASANSOR_PERIYODIK_2018, note: "Yıllık periyodik kontrol, A tipi muayene kuruluşu ve bilgi etiketi sisteminin temel metnidir." },
+    { label: "Resmî Gazete — 5 Ağustos 2025 / 32977 Asansör Periyodik Kontrol Yönetmeliği değişikliği", href: ASANSOR_PERIYODIK_2025, note: "Periyodik kontrol mevzuatının güncel değişiklik zincirinin son halkasıdır." },
+    { label: "Resmî Gazete — 1 Temmuz 2026 / 33297 Planlı Alanlar İmar Yönetmeliği, Madde 34 değişikliği", href: IMAR_2026_JULY, note: "Asansör zorunluluğu, bodrum kat kapsamı ve güncel bina-kat ilişkisini içerir." },
+  ];
+}
+
+export function engelsizPhase6References(scope: string): NonNullable<ArticleData["references"]> {
+  return [
+    { label: `Mevzuat Bilgi Sistemi — güncel Planlı Alanlar İmar Yönetmeliği, ${scope}`, href: PA_IY_CURRENT, note: "Madde 5/20 ve 5/22 erişilebilirlik mevzuatı, standartlar ve bina içi erişim ölçülerinin birlikte uygulanmasını düzenler." },
+    { label: "Aile ve Sosyal Hizmetler Bakanlığı — Binalar İçin Erişilebilirlik İzleme ve Denetleme Formu", href: ERISILEBILIRLIK_FORM, note: "TS 9111 ve ilgili standartlara dayalı izleme ölçütlerini; mevcut yapı rampası ile yeni rampa değerlerinin karıştırılmaması gerektiğini açıklar." },
+    { label: "Aile ve Sosyal Hizmetler Bakanlığı — Konutlarda Yaşlılar İçin Erişilebilirlik ve Güvenlik Rehberi (2025)", href: ERISILEBILIRLIK_2025_GUIDE, note: "Yeni rampa eğimleri, manevra alanı, net geçiş, kapı ve asansör gibi uygulama ölçülerini Bakanlık rehberi düzeyinde açıklar; proje tarihindeki standart ayrıca doğrulanmalıdır." },
+    { label: "Aile ve Sosyal Hizmetler Bakanlığı — 2026/1 Erişilebilirlik İzleme ve Denetleme Planı", href: ERISILEBILIRLIK_2026_CIRCULAR, note: "2026 yılı denetim öncelikleri, ERDEM ve Erişilebilirlik Belgesi değerlendirme çerçevesinin güncel idari kaynağıdır." },
   ];
 }
