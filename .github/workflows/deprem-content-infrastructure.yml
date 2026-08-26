@@ -2,6 +2,9 @@ name: Deprem Content Infrastructure
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - audit/faz0-deprem-inventory-20260825
