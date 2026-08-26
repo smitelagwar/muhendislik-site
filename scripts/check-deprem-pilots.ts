@@ -83,7 +83,7 @@ const requiredContent: Record<(typeof EXPECTED_SLUGS)[number], string[]> = {
 for (const slug of EXPECTED_SLUGS) {
   const article = getArticleBySlug(slug);
   if (!article) continue;
-  const text = article.sections.map((section) => section.content).join("\n");
+  const text = article.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
   for (const token of requiredContent[slug]) {
     assert(text.includes(token), `Zorunlu pilot/carry-forward içerik işareti eksik (${token}): ${slug}`);
   }
