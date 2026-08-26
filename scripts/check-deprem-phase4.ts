@@ -52,6 +52,12 @@ const BATCH_8_SLUGS = [
   "yagmur-suyu-drenaji-ve-sizma-tesisi-hesabi",
 ] as const;
 
+const BATCH_9_SLUGS = [
+  "yapi-denetimi-statik-proje-kontrolu",
+  "yapi-denetimi-betonarme-uygulama-cizimleri",
+  "yapi-denetimi-dokum-oncesi-kalip-donati",
+] as const;
+
 const PHASE2_C1_CARRY_FORWARD = [
   { slug: "radye-temel-zemin-yayi-yatak-katsayisi", seriesId: "su-zemin" },
 ] as const;
@@ -65,10 +71,12 @@ const PHASE4_SLUGS = [
   ...BATCH_6_SLUGS,
   ...BATCH_7_SLUGS,
   ...BATCH_8_SLUGS,
+  ...BATCH_9_SLUGS,
 ] as const;
 type Phase4Slug = (typeof PHASE4_SLUGS)[number];
 const SU_ZEMIN_SLUGS = new Set<string>([...BATCH_5_SLUGS, ...BATCH_6_SLUGS, ...BATCH_7_SLUGS, ...BATCH_8_SLUGS]);
-const NON_TBDY_SOURCE_SLUGS = new Set<string>(BATCH_8_SLUGS);
+const YAPI_DENETIM_SLUGS = new Set<string>(BATCH_9_SLUGS);
+const NON_TBDY_SOURCE_SLUGS = new Set<string>([...BATCH_8_SLUGS, ...BATCH_9_SLUGS]);
 
 const requiredTokens: Record<Phase4Slug, string[]> = {
   "mevcut-bina-riskli-yapi-ve-bolum-15-farki": ["6306", "Ek-2", "15.1.6", "15.1.7", "riskli yapı tespiti", "performans", "Mühendislik kontrol listesi"],
@@ -94,14 +102,17 @@ const requiredTokens: Record<Phase4Slug, string[]> = {
   "zemin-sivlasma-riski-degerlendirmesi": ["16.6.1", "DTS=1", "20 m", "PI < %12", "16.6.3", "N1,60 < 30", "DTS=4", "EK 16B", "Rτ / τdeprem ≥ 1.10", "16.5.2.6", "Mühendislik kontrol listesi"],
   "su-yalitimi-ts-4749-uygulama-detaylari": ["TS 4749", "Madde 6", "k ≥ 10^-4 m/s", "k < 10^-4 m/s", "51,50 m", "10.000 m²", "3 m", "Madde 13", "TS 13671", "TS 13766", "Mühendislik kontrol listesi"],
   "yagmur-suyu-drenaji-ve-sizma-tesisi-hesabi": ["TS EN 12056-3", "TS EN 16941-1", "7 m³", "2.000 m²", "1.000 m²", "YR,a = A × ha × e × η", "%6", "sızdırma", "Mühendislik kontrol listesi"],
+  "yapi-denetimi-statik-proje-kontrolu": ["4708", "Madde 5", "Madde 6", "Ek-3", "Form-1", "zemin etüdü", "mimari proje", "hesap", "uygulama paftaları", "Mühendislik kontrol listesi"],
+  "yapi-denetimi-betonarme-uygulama-cizimleri": ["ruhsat eki", "aks", "kot", "çap", "adet", "aralık", "bindirme", "sarılma", "revizyon", "Mühendislik kontrol listesi"],
+  "yapi-denetimi-dokum-oncesi-kalip-donati": ["kalıp ve donatı imalatını teslim alma", "betona nezaret", "aks", "kot", "pas payı", "bindirme", "ankraj", "gömülü", "vibratör", "Mühendislik kontrol listesi"],
 };
 
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
-assert(DEPREM_PHASE4_ARTICLES.length === 23, `FAZ 4 override sayısı 23 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
-assert(DEPREM_PHASE4_SLUGS.size === 23, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
-assert(new Set([...DEPREM_PHASE4_SLUGS, ...PHASE2_C1_CARRY_FORWARD.map((item) => item.slug)]).size === 24, "FAZ 4 tamamlanan kapsam 24 benzersiz makale olmalı.");
+assert(DEPREM_PHASE4_ARTICLES.length === 26, `FAZ 4 override sayısı 26 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
+assert(DEPREM_PHASE4_SLUGS.size === 26, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(new Set([...DEPREM_PHASE4_SLUGS, ...PHASE2_C1_CARRY_FORWARD.map((item) => item.slug)]).size === 27, "FAZ 4 tamamlanan kapsam 27 benzersiz makale olmalı.");
 for (const slug of PHASE4_SLUGS) assert(DEPREM_PHASE4_SLUGS.has(slug), `FAZ 4 slug eksik: ${slug}`);
 for (const item of PHASE2_C1_CARRY_FORWARD) {
   assert(DEPREM_PILOT_SLUGS.has(item.slug), `FAZ 2 C1 carry-forward pilot bulunamadı: ${item.slug}`);
@@ -154,6 +165,17 @@ for (const slug of PHASE4_SLUGS) {
     assert(configured.references.some((ref) => ref.href?.includes("planli-alanlar-imar-yonetmeligi-guncellendi")), "Yağmur suyu makalesinde 2025 Planlı Alanlar resmî kaynağı eksik.");
     assert(configured.references.some((ref) => ref.href?.includes("yagmur-gri-su-klavuz")), "Yağmur suyu makalesinde Bakanlık 2025 uygulama kılavuzu eksik.");
   }
+  if (YAPI_DENETIM_SLUGS.has(slug)) {
+    assert(configured.references.some((ref) => ref.href?.includes("yapi-denetimi-daire-baskanligi-mevzuati")), `Yapı denetimi makalesinde Bakanlık mevzuat merkezi eksik: ${slug}`);
+    assert(configured.references.some((ref) => ref.href?.includes("yapi-denetim-uygulama-yonetmeligi")), `Yapı denetimi makalesinde Uygulama Yönetmeliği kaynağı eksik: ${slug}`);
+  }
+  if (slug === "yapi-denetimi-statik-proje-kontrolu" || slug === "yapi-denetimi-betonarme-uygulama-cizimleri") {
+    assert(configured.references.some((ref) => ref.href?.includes("20181101-7.htm")), `Proje/uygulama çizimi makalesinde Planlı Alanlar resmî kaynağı eksik: ${slug}`);
+  }
+  if (slug === "yapi-denetimi-dokum-oncesi-kalip-donati") {
+    assert(configured.references.some((ref) => ref.href?.includes("yapi-denetim-uygulama-yonetmeliginde-degisiklik")), "Döküm öncesi makalesinde güncel Bakanlık değişiklik duyurusu eksik.");
+    assert(configured.references.some((ref) => ref.href?.includes("c18---betonarme-isler")), "Döküm öncesi makalesinde Betonarme İşleri Genel Teknik Şartnamesi eksik.");
+  }
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
   assert(!configuredText.includes("Kapsam ve karar\n"), `C3 jenerik bölüm başlığı kaldı: ${slug}`);
@@ -166,7 +188,11 @@ for (const slug of PHASE4_SLUGS) {
   assert(Boolean(article), `FAZ 4 runtime makalesi bulunamadı: ${slug}`);
   if (!article) continue;
 
-  const expectedSeries = SU_ZEMIN_SLUGS.has(slug) ? "su-zemin" : "mevcut-guclendirme";
+  const expectedSeries = YAPI_DENETIM_SLUGS.has(slug)
+    ? "yapi-denetimi"
+    : SU_ZEMIN_SLUGS.has(slug)
+      ? "su-zemin"
+      : "mevcut-guclendirme";
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${slug}`);
   assert(article.seriesId === expectedSeries, `FAZ 4 seriesId ${expectedSeries} olmalı: ${slug}`);
   assert(article.author === DEPREM_CONTENT_AUTHOR.name, `Canonical yazar uygulanmadı: ${slug}`);
@@ -211,7 +237,7 @@ for (const item of PHASE2_C1_CARRY_FORWARD) {
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 4 Batch 1-8 kontrolü başarısız:\n");
+  console.error("Deprem FAZ 4 Batch 1-9 kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -219,18 +245,18 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 4",
-  completedBatches: 8,
+  completedBatches: 9,
   phase4Overrides: DEPREM_PHASE4_ARTICLES.length,
   phase2C1CarryForward: PHASE2_C1_CARRY_FORWARD.map((item) => item.slug),
-  completedArticles: 24,
+  completedArticles: 27,
   targetArticles: 32,
-  remaining: 8,
-  batch8Slugs: BATCH_8_SLUGS,
-  batch8Classification: Object.fromEntries(BATCH_8_SLUGS.map((slug) => [slug, "C3"])),
+  remaining: 5,
+  batch9Slugs: BATCH_9_SLUGS,
+  batch9Classification: Object.fromEntries(BATCH_9_SLUGS.map((slug) => [slug, "C3"])),
   sourceOfTruth: "src/lib/deprem-phase4-articles.ts + preserved FAZ 2 C1 radye pilot",
-  officialSourceProfile: "AFAD TBDY 2018 + ÇŞİDB geoteknik mevzuatı + Binalarda Su Yalıtımı Yönetmeliği + Planlı Alanlar 2025 + Bakanlık su yalıtımı/yağmur suyu teknik kaynakları",
+  officialSourceProfile: "AFAD TBDY 2018 + ÇŞİDB geoteknik/su kaynakları + ÇŞİDB Yapı Denetimi mevzuatı + Planlı Alanlar İmar Yönetmeliği + Betonarme İşleri Genel Teknik Şartnamesi",
   visualContract: "existing unique rollout cover + body figure preserved; radye pilot visuals preserved",
-  seriesCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 0 },
+  seriesCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 3 },
   targetCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 8, total: 32 },
   ts500Touched: false,
 }, null, 2));
