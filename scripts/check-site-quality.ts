@@ -21,7 +21,16 @@ const PUBLIC_SHELL_FILES = [
   "src/components/command-palette.tsx",
   "src/components/mobile-menu.tsx",
   "src/components/bottom-nav.tsx",
-  "src/components/home-client.tsx",
+  "src/components/home-closing-section.tsx",
+  "src/components/home-editorial-section.tsx",
+  "src/components/home-hero-section.tsx",
+  "src/components/home-hero-visual.tsx",
+  "src/components/home-project-path.tsx",
+  "src/components/home-resource-card.tsx",
+  "src/components/home-resource-showcase.tsx",
+  "src/components/home-scroll-logo.tsx",
+  "src/components/home-search-trigger.tsx",
+  "src/components/home-workflow-band.tsx",
   "src/components/article-client.tsx",
   "src/lib/route-metadata.ts",
   "src/lib/search-index.ts",
@@ -31,6 +40,7 @@ const PUBLIC_SHELL_FILES = [
   "src/lib/deprem-series.ts",
   "src/lib/tools-data.ts",
   "src/lib/calculation-pages.ts",
+  "src/lib/home-content.ts",
   "src/app/page.tsx",
   "src/app/konu-haritasi/page.tsx",
   "src/app/iletisim/page.tsx",
@@ -119,6 +129,10 @@ function checkRouteExists(href: string, label: string, problems: Problem[]) {
 
 function checkPublicShellFiles(problems: Problem[]) {
   for (const file of PUBLIC_SHELL_FILES) {
+    if (!fileExists(file)) {
+      addProblem(problems, "public-shell", `missing audited shell file: ${file}`);
+      continue;
+    }
     scanText(file, readFile(file), problems);
   }
 }
