@@ -73,6 +73,7 @@ on:
       - scripts/check-deprem-phase7.ts
       - scripts/check-deprem-phase7-render.mjs
       - scripts/check-deprem-phase8.ts
+      - scripts/check-deprem-phase9.ts
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -115,10 +116,22 @@ jobs:
         run: npx tsx scripts/generate-deprem-content-inventory.ts --out=deprem-content-inventory.ci.json
       - name: Strict deprem content gate
         run: npm run check:deprem-content
+      - name: Global content quality
+        run: npm run check:content-quality
+      - name: Site quality
+        run: npm run check:site-quality
+      - name: Navigation consistency
+        run: npm run check:navigation
+      - name: Visual system
+        run: npm run check:visual-system
+      - name: Lint
+        run: npm run lint
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: FAZ 9 release contract
+        run: npm run check:deprem-phase9
       - name: FAZ 3 responsive render QA
         run: node scripts/check-deprem-phase3-render.mjs
       - name: FAZ 3 batch 6 responsive render QA
