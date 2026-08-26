@@ -124,8 +124,6 @@ jobs:
         run: npm run check:content-quality
       - name: Site quality
         run: npm run check:site-quality
-      - name: Navigation consistency
-        run: npm run check:navigation
       - name: Visual system
         run: npm run check:visual-system
       - name: Lint
@@ -134,6 +132,10 @@ jobs:
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      # Browser navigation assertions boot Next in production mode and therefore
+      # must consume the build artifacts created by the preceding step.
+      - name: Navigation consistency
+        run: npm run check:navigation
       - name: Sitemap smoke crawl
         run: npm run check:smoke
       - name: FAZ 9 release contract
