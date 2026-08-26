@@ -92,7 +92,7 @@ export const DEPREM_PHASE4_RADYE_ZEMIN_YAYI: DepremPhase4Override = {
         "",
         "EK **16C.1.2**, yüzeysel temelli bina türü yapılarda (bodrumlu binalar dahil) göreli yumuşak zemindeki dinamik yapı-zemin etkileşiminin genellikle binayı elverişli yönde etkilediğini ve güvenli tarafta kalma tercihiyle ihmal edilebileceğini belirtir. Buna karşılık radye yay modeli temel iç kuvveti, temas ve oturma dağılımını temsil etmek amacıyla kullanılabilir.",
         "",
-        "Hesap raporunda 'zemin yaylı radye modeli kullandım, dolayısıyla yapı-zemin etkileşimi analizi yaptım' şeklinde otomatik bir eşdeğerlik kurulmamaldır."
+        "Hesap raporunda 'zemin yaylı radye modeli kullandım, dolayısıyla yapı-zemin etkileşimi analizi yaptım' şeklinde otomatik bir eşdeğerlik kurulmamalıdır."
       ),
       subsections: [],
     },
