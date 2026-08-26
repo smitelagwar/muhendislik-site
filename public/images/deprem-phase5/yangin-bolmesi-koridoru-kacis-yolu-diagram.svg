@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Yangın bölmesi ve kaçış yolu teknik kontrol şeması</title>
+  <desc id="desc">Kullanıcı yükünden güvenli çıkışa kadar net kaçış güzergâhı, darboğaz ve kompartıman sürekliliği kontrolünü gösterir.</desc>
+  <rect width="1600" height="900" fill="#f8fafc"/>
+  <rect x="55" y="55" width="1490" height="790" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
+  <text x="100" y="135" fill="#0f172a" font-family="Arial, sans-serif" font-size="46" font-weight="700">Kaçış Kapasitesi + Kompartıman Sürekliliği</text>
+  <text x="100" y="185" fill="#475569" font-family="Arial, sans-serif" font-size="24">Plan kontrol akışı — her adım bir sonraki adımın girdisidir</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="100" y="285" width="270" height="160" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="5"/>
+    <text x="135" y="340" fill="#1e3a8a" font-size="27" font-weight="700">1 · KULLANICI YÜKÜ</text>
+    <text x="135" y="385" fill="#334155" font-size="22">Kat bazında kapasite</text>
+    <text x="135" y="418" fill="#334155" font-size="22">girdisini belirle</text>
+
+    <rect x="450" y="285" width="270" height="160" rx="22" fill="#ecfeff" stroke="#0891b2" stroke-width="5"/>
+    <text x="485" y="340" fill="#164e63" font-size="27" font-weight="700">2 · NET GÜZERGÂH</text>
+    <text x="485" y="385" fill="#334155" font-size="22">Kapı + koridor + hol</text>
+    <text x="485" y="418" fill="#334155" font-size="22">net açıklıklarını ölç</text>
+
+    <rect x="800" y="285" width="270" height="160" rx="22" fill="#fff7ed" stroke="#ea580c" stroke-width="5"/>
+    <text x="835" y="340" fill="#7c2d12" font-size="27" font-weight="700">3 · DARBOĞAZ</text>
+    <text x="835" y="385" fill="#334155" font-size="22">En dar seri elemanı</text>
+    <text x="835" y="418" fill="#334155" font-size="22">kapasiteyle karşılaştır</text>
+
+    <rect x="1150" y="285" width="330" height="160" rx="22" fill="#f0fdf4" stroke="#16a34a" stroke-width="5"/>
+    <text x="1185" y="340" fill="#14532d" font-size="27" font-weight="700">4 · GÜVENLİ ÇIKIŞ</text>
+    <text x="1185" y="385" fill="#334155" font-size="22">Merdiven → son çıkış</text>
+    <text x="1185" y="418" fill="#334155" font-size="22">→ güvenli dış alan</text>
+
+    <path d="M380 365 H430" stroke="#64748b" stroke-width="9" stroke-linecap="round"/>
+    <path d="M420 345 L445 365 L420 385" fill="none" stroke="#64748b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M730 365 H780" stroke="#64748b" stroke-width="9" stroke-linecap="round"/>
+    <path d="M770 345 L795 365 L770 385" fill="none" stroke="#64748b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1080 365 H1130" stroke="#64748b" stroke-width="9" stroke-linecap="round"/>
+    <path d="M1120 345 L1145 365 L1120 385" fill="none" stroke="#64748b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="180" y="555" width="1240" height="190" rx="24" fill="#fff7ed" stroke="#fb923c" stroke-width="5"/>
+    <text x="225" y="615" fill="#9a3412" font-size="30" font-weight="700">PARALEL HARD GATE · YANGIN KOMPARTIMANI</text>
+    <text x="225" y="665" fill="#334155" font-size="23">Duvar + döşeme + kapı + şaft + firestop penetrasyonu aynı sınırda süreklilik göstermeli.</text>
+    <text x="225" y="708" fill="#334155" font-size="23">Kaçış yolu yeterli olsa bile kompartıman sınırı süreksizse güvenli tahliye kabulü yapılamaz.</text>
+  </g>
+</svg>
