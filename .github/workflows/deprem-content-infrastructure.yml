@@ -77,6 +77,7 @@ on:
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
+      - scripts/site-smoke-test.mjs
       - package.json
 
 permissions:
@@ -85,7 +86,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -130,6 +131,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Production build
         run: npm run build
+      - name: Sitemap smoke crawl
+        run: npm run check:smoke
       - name: FAZ 9 release contract
         run: npm run check:deprem-phase9
       - name: FAZ 3 responsive render QA
