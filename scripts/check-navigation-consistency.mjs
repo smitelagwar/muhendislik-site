@@ -155,15 +155,12 @@ try {
     page,
     `${baseUrl}/hesaplamalar/tahmini-insaat-alani?arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut&bodrum=0`
   );
-  await page.waitForFunction(() => {
-    const url = new URL(window.location.href);
-    return !url.searchParams.has("profil") && !url.searchParams.has("bodrum");
-  }, { timeout: 10000 });
-  const estimatedUrl = new URL(page.url());
-  assert(estimatedUrl.searchParams.get("arsa") === "1200", "Estimated area URL should keep arsa.");
-  assert(!estimatedUrl.searchParams.has("profil"), "Default profile should not remain in URL.");
-  assert(!estimatedUrl.searchParams.has("bodrum"), "Default bodrum=0 should not remain in URL.");
-  results.push("estimated area url cleanup");
+  await page.waitForFunction(() => new URL(window.location.href).search === "", { timeout: 10000 });
+  assert(
+    new URL(page.url()).search === "",
+    "Estimated area route should clear incoming query parameters while editing."
+  );
+  results.push("estimated area query cleanup");
 
   await goto(page, `${baseUrl}/hesaplamalar/resmi-birim-maliyet-2026`);
   assert(new URL(page.url()).search === "", "Official cost default route should stay query-free.");
@@ -223,6 +220,9 @@ try {
       2
     )
   );
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
 } finally {
   await page.close();
   await browser.close();
