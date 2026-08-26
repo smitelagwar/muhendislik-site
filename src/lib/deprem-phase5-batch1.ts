@@ -207,6 +207,8 @@ export const DEPREM_PHASE5_FIRE_RESISTANCE: DepremPhase5Override = {
       content: phase5Lines(
         "Taşıyıcı kolon R90 hedefini sağlarken ona bağlanan döşeme, kompartıman sınırı, şaft geçişi veya yangın kapısı daha düşük ya da süreksiz performans gösterirse yangın ve duman beklenen sınırı aşabilir. Bu nedenle yangın dayanımı pafta pafta değil **yangın kompartımanı ve yük yolu** boyunca kontrol edilmelidir.",
         "",
+        "**Teknik sorumluluk**, yalnız Ek-3/C'den bir süre seçmekle bitmez; seçilen R/E/I hedefinin hesapta, ürün performans belgesinde, uygulama detayında ve sahadaki gerçek imalatta kesintisiz sağlandığını doğrulamayı da kapsar.",
+        "",
         "Mimari detay, mekanik/elektrik penetrasyonları ve taşıyıcı eleman koruması aynı yangın senaryosunda koordine edilmelidir. Sahada koruyucu kaplamanın kesilmesi, tesisat geçişinin açık bırakılması veya ürün kalınlığının projeden farklı uygulanması tasarımda seçilen R/E/I performansını geçersiz kılabilir.",
         "",
         "Uygulama ve kabul kayıtlarında ürün/çözüm, konum, kalınlık veya detay referansını fotoğraf ve pafta koduyla izlenebilir tutun."
@@ -325,6 +327,8 @@ export const DEPREM_PHASE5_FIRE_SPRINKLER: DepremPhase5Override = {
       title: "Sprinkler kararı mimari, mekanik, elektrik ve statik projeyi birlikte etkiler",
       content: phase5Lines(
         "Sprinkler kararı mekanik proje ile sınırlı değildir. Pompa ve depo için hacim/yük ihtiyacı, şaft ve boru güzergâhları, asma tavan koordinasyonu, yangın zonları, alarm-akış anahtarı bağlantıları, enerji sürekliliği ve boru askılarının taşıyıcı sisteme bağlanması diğer disiplinleri etkiler.",
+        "",
+        "**Teknik sorumluluk**, yalnız sprinkler zorunluluğunu işaretlemek değildir; hidrolik tasarımın, su kaynağı ve pompa kapasitesinin, alarm ve enerji sürekliliğinin, boru/askı detaylarının ve disiplinler arası koordinasyonun proje ile sahada birlikte karşılandığını doğrulamaktır.",
         "",
         "Yanlış veya geç verilen sprinkler kararı; yetersiz yangın deposu, mimari hacim kaybı, tesisat çakışmaları, başlıkların kapatılması, korunmayan kör bölgeler veya yangın dayanımı/kompartıman kararlarının yeniden tasarlanması gibi sonuçlar doğurabilir.",
         "",
