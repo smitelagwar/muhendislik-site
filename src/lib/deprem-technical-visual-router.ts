@@ -1,5 +1,5 @@
 import type { DepremRolloutSpec } from "./deprem-rollout";
-import { DEPREM_TECHNICAL_VISUAL_SLUGS } from "./deprem-visual-rollout";
+import { DEPREM_TECHNICAL_VISUAL_REGISTRY_SLUGS } from "./deprem-visual-rollout-registry";
 import { renderDepremTechnicalVisualSvg as renderGeotechnicalPilot } from "./deprem-technical-visual";
 import { renderTbdyTechnicalVisualSvg, TBDY_TECHNICAL_VISUAL_SLUGS } from "./deprem-technical-visual-tbdy";
 import { renderTbdyTechnicalVisual2Svg, TBDY_TECHNICAL_VISUAL_2_SLUGS } from "./deprem-technical-visual-tbdy-2";
@@ -17,7 +17,7 @@ const GEOTECHNICAL_PILOT_SLUGS = new Set([
 ]);
 
 export function hasDepremTechnicalVisual(slug: string) {
-  return DEPREM_TECHNICAL_VISUAL_SLUGS.has(slug);
+  return DEPREM_TECHNICAL_VISUAL_REGISTRY_SLUGS.has(slug);
 }
 
 export function renderDepremTechnicalVisualSvg(spec: DepremRolloutSpec, asset: DepremTechnicalVisualAsset) {
