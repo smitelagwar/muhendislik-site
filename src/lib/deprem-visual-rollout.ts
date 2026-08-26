@@ -65,6 +65,34 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     assets: ["cover.svg", "diagram.svg"],
     designNotes: ["Kapakta tek izole bina kesiti", "İkinci görsel bina tekrarı yerine tek izolatör yakın detayıdır", "Lacivert-cyan çift renk sistemi korunur"],
   },
+  {
+    slug: "tbdy-tasarim-spektrumu-cizimi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek tasarım spektrumu", "Detayda aynı kavram periyot bölgelerine ayrılarak açıklanır", "Grafik dışında dekoratif mühendislik sembolü kullanılmaz"],
+  },
+  {
+    slug: "tbdy-mod-birlesim-srss-cqc",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Bina kopyaları yerine modal tepki eğrileri kullanılır", "Detayda frekans yakınlığı ve modal korelasyon mantığı anlatılır", "SRSS/CQC yalnız kısa teknik etiket olarak kullanılır"],
+  },
+  {
+    slug: "tbdy-rijit-yari-rijit-diyafram",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Karşılaştırma için iki model temsili teknik olarak gereklidir", "Detay görselinde yalnız tek düzensiz döşeme planı bulunur", "Büyük boşluk ve yerel deformasyon sade biçimde gösterilir"],
+  },
+  {
+    slug: "tbdy-deprem-derzi-hesabi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["İki farklı komşu bina derz konusu gereği birlikte gösterilir", "Binalar aynı yapının kopyası değildir", "Detay görseli plan görünüşünde net derz bölgesini açıklar"],
+  },
 ] as const;
 
 export const DEPREM_TECHNICAL_VISUAL_SLUGS = new Set(

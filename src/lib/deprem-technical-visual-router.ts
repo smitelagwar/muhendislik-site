@@ -2,6 +2,7 @@ import type { DepremRolloutSpec } from "./deprem-rollout";
 import { DEPREM_TECHNICAL_VISUAL_SLUGS } from "./deprem-visual-rollout";
 import { renderDepremTechnicalVisualSvg as renderGeotechnicalPilot } from "./deprem-technical-visual";
 import { renderTbdyTechnicalVisualSvg, TBDY_TECHNICAL_VISUAL_SLUGS } from "./deprem-technical-visual-tbdy";
+import { renderTbdyTechnicalVisual2Svg, TBDY_TECHNICAL_VISUAL_2_SLUGS } from "./deprem-technical-visual-tbdy-2";
 
 export type DepremTechnicalVisualAsset = "cover" | "diagram";
 
@@ -17,5 +18,6 @@ export function hasDepremTechnicalVisual(slug: string) {
 export function renderDepremTechnicalVisualSvg(spec: DepremRolloutSpec, asset: DepremTechnicalVisualAsset) {
   if (GEOTECHNICAL_PILOT_SLUGS.has(spec.slug)) return renderGeotechnicalPilot(spec, asset);
   if (TBDY_TECHNICAL_VISUAL_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisualSvg(spec, asset);
+  if (TBDY_TECHNICAL_VISUAL_2_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisual2Svg(spec, asset);
   throw new Error(`Teknik görsel router eşleşmesi yok: ${spec.slug}`);
 }
