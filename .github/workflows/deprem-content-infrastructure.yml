@@ -99,6 +99,7 @@ jobs:
         run: npx tsx scripts/check-deprem-phase5.ts
       - name: FAZ 6 technical content contract
         run: npx tsx scripts/check-deprem-phase6.ts
+      # Canonical public BEP routes are enriched in place; this gate must run before global QA.
       - name: FAZ 7 technical content contract
         run: npx tsx scripts/check-deprem-phase7.ts
       - name: Deprem infrastructure contract
