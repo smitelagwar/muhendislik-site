@@ -174,6 +174,9 @@ try {
   }
 
   console.log(JSON.stringify({ status: "ok", baseUrl, checks: completed }, null, 2));
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => {
