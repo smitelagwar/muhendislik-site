@@ -30,5 +30,8 @@ jobs:
       - name: Verify phased visual rollout
         run: npx tsx scripts/check-deprem-visual-rollout.ts
 
+      - name: Verify technical SVG quality
+        run: npx tsx scripts/check-deprem-technical-svg.ts
+
       - name: TypeScript
         run: npx tsc --noEmit
