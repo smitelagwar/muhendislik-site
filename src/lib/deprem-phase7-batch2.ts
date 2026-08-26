@@ -15,7 +15,7 @@ const ACOUSTIC: DepremPhase7Override = {
   seoDescription: "Bina akustiğinde Rw, DnT,A/DnT,w, Ln,w, L'nT,w, yanal iletim, akustik proje ve Binaların Gürültüye Karşı Korunması Yönetmeliği Madde 16.",
   updatedAt: PHASE7_UPDATED_AT,
   readTime: "17 dk okuma",
-  relatedSlugs: ["bep-isi-yalitim-katmanlari-u-degeri-hesabi", "duman-tahliyesi-mekanik-ve-dogal-sistemler", "yangin-kapisi-dosleme-duvar-gecis-detaylari"],
+  relatedSlugs: ["bep-isi-yalitim-u-degeri-yogusma-kontrolu", "duman-tahliyesi-mekanik-ve-dogal-sistemler", "yangin-kapisi-dosleme-duvar-gecis-detaylari"],
   sections: [
     section("kapsam", "Akustik hesap, tek bir duvarın laboratuvar Rw değerini okumak değildir", phase7Lines(
       "Binaların Gürültüye Karşı Korunması Hakkında Yönetmelik; dış çevre gürültüsü, komşuluk gürültüsü, darbe sesi, mekanik sistem/servis ekipmanı gürültüsü ve titreşimi birlikte ele alır. Bu nedenle akustik proje yalnız bölme duvar kataloğu seçimi değildir.",
@@ -23,27 +23,27 @@ const ACOUSTIC: DepremPhase7Override = {
       "Yanlış yaklaşım, `Rw=55 dB duvar seçtim, iki oda arasında da 55 dB yalıtım vardır` sonucuna doğrudan atlamaktır."
     )),
     section("gostergeler", "Önce hangi akustik büyüklüğü kontrol ettiğinizi netleştirin", phase7Lines(
-      "`R` ve `Rw` yapı elemanının laboratuvar hava doğuşlu ses azaltım performansını; `Ln,w` laboratuvar darbe sesi düzeyini temsil eder. Bina içinde ise ayırıcı eleman, birleşimler, hacim ve yanal iletim etkileri nedeniyle yerinde göstergeler farklılaşır.",
+      "`R` ve `Rw` yapı elemanının laboratuvar hava doğuşlu ses azaltım performansını; `Ln,w` laboratuvar darbe sesi düzeyini temsil eder. Bina içinde ayırıcı eleman, birleşimler, hacim ve yanal iletim etkileri nedeniyle yerinde göstergeler farklılaşır.",
       "Yönetmelik metni hesaplanan bina performansı için **DnT,A / DnT,50** ve **L'nT,w / L'nT,50** gibi göstergelere dönüşümü tarif eder. Hangi gösterge ve sınırın kullanılacağı bina/mekân sınıfına ve yönetmelik eklerine göre belirlenmelidir.",
       "| Problem | Laboratuvar girdisi | Bina performansı |\n|---|---|---|\n| Hava doğuşlu | R / Rw | DnT türü |\n| Darbe sesi | Ln,w | L'nT,w türü |\n| Tesisat | ses gücü/titreşim | iç mekân gürültü düzeyi |"
     )),
     section("yanal", "Yanal iletim, iyi duvarın performansını düşürebilir", phase7Lines(
-      "Ses yalnız ayırıcı duvar veya döşemeden doğrudan geçmez; birleşen döşeme, yan duvar, cephe ve taşıyıcı elemanlar üzerinden de yayılabilir. TS EN 12354 yaklaşımının proje değerlerinden yerinde performansa geçişte önemli tarafı bu iletim yollarını modellemesidir.",
+      "Ses yalnız ayırıcı duvar veya döşemeden doğrudan geçmez; birleşen döşeme, yan duvar, cephe ve taşıyıcı elemanlar üzerinden de yayılabilir. TS EN 12354 yaklaşımının önemli taraflarından biri bu iletim yollarını modellemektir.",
       "Kirişe, kolona veya sürekli döşemeye rijit bağlanan hafif bölmelerde; çift duvarların yanlış birleşiminde veya şaft çevresinde yanal iletim baskın hale gelebilir.",
-      "Akustik detay çizimi, birleşim ve kenar koşullarını göstermiyorsa yalnız katman listesi yeterli değildir."
+      "Akustik detay çizimi birleşim ve kenar koşullarını göstermiyorsa yalnız katman listesi yeterli değildir."
     )),
     section("hesap-akisi", "Hesap akışı: hedef performans → eleman verisi → birleşimler → oda sonucu", phase7Lines(
       "Önce yönetmelik ve kullanım senaryosundan hedef performans belirlenir. Ardından ayırıcı elemanın laboratuvar verileri, yan elemanlar, birleşim tipleri, alanlar ve hacim bilgileri modele girilir. Son aşamada hesaplanan bina performansı hedefle karşılaştırılır.",
-      "Örnek yalnız kavramsal kontrol içindir: laboratuvar Rw değeri **55 dB** olan bir duvarın yerinde değeri, yanal iletim ve uygulama nedeniyle daha düşük çıkabilir; fark sabit `-5 dB` gibi evrensel bir ceza değildir ve projeye göre hesaplanmalıdır.",
-      "Telifli standardın katsayı tabloları burada yeniden yayımlanmaz; proje hesabında güncel standart ve yetkili yazılım/veri kullanılır."
+      "Örnek yalnız kavramsal kontrol içindir: laboratuvar Rw değeri **55 dB** olan bir duvarın yerinde değeri yanal iletim ve uygulama nedeniyle daha düşük çıkabilir; fark sabit `-5 dB` gibi evrensel bir ceza değildir ve projeye göre hesaplanmalıdır.",
+      "Telifli standardın katsayı tabloları burada yeniden yayımlanmaz; proje hesabında güncel standart ve yetkili veri/yazılım kullanılır."
     )),
-    section("detay", "Kapı, tesisat geçişi ve şaft, zayıf halka etkisi yaratır", phase7Lines(
+    section("detay", "Kapı, tesisat geçişi ve şaft zayıf halka etkisi yaratır", phase7Lines(
       "Yüksek performanslı duvar içinde düşük performanslı kapı, menfez veya elektrik kutusu bulunması toplam ayırıcı performansı önemli ölçüde düşürebilir. Geçişlerin sızdırmazlığı ve karşılıklı priz kutularının yerleşimi detayda gösterilmelidir.",
       "Mekanik şaftta hem hava doğuşlu ses hem yapı kaynaklı titreşim olabilir. Boru/kanal askıları, esnek bağlantılar, cihaz kaideleri ve şaft duvarı birlikte çözülmelidir.",
       "Yangın durdurucu detaylar da akustik sızdırmazlığı bozmayacak şekilde koordine edilmelidir."
     )),
     section("saha", "Akustik performans saha işçiliğine hassastır", phase7Lines(
-      "Duvarın tavana birleşimi, mastik sürekliliği, kapı fitilleri, şap altı darbe yalıtımı ve çevresel kenar bantları kapatılmadan önce kontrol edilmelidir. Birkaç santimetrelik açık derz laboratuvar ürün performansını anlamsızlaştırabilir.",
+      "Duvarın tavana birleşimi, mastik sürekliliği, kapı fitilleri, şap altı darbe yalıtımı ve çevresel kenar bantları kapatılmadan önce kontrol edilmelidir. Küçük açık derzler laboratuvar ürün performansını anlamsızlaştırabilir.",
       "Gerekli projelerde ölçüm ve doğrulama yapılırken ölçüm standardı, oda koşulları ve raporlanan gösterge proje hesabıyla aynı olmalıdır.",
       "Akustik proje, mimari ve mekanik as-built değişikliklerle güncellenmelidir."
     )),
