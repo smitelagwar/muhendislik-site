@@ -1,9 +1,9 @@
 import { getArticleList } from "../src/lib/articles-data";
 import {
   DEPREM_TECHNICAL_VISUAL_MIN_ASSET_COUNT,
-  DEPREM_TECHNICAL_VISUAL_ROLLOUT,
+  DEPREM_TECHNICAL_VISUAL_REGISTRY,
   DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT,
-} from "../src/lib/deprem-visual-rollout";
+} from "../src/lib/deprem-visual-rollout-registry";
 
 const strict = process.argv.includes("--strict");
 const fail = (message: string) => {
@@ -34,7 +34,7 @@ if (allTopicSlugs.length !== uniqueTopicSlugs.size) {
 
 const rolloutSlugs = new Set<string>();
 let completedAssets = 0;
-for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT) {
+for (const item of DEPREM_TECHNICAL_VISUAL_REGISTRY) {
   if (!uniqueTopicSlugs.has(item.slug)) fail(`Rollout manifestinde bilinmeyen slug: ${item.slug}`);
   if (rolloutSlugs.has(item.slug)) fail(`Rollout manifestinde duplicate slug: ${item.slug}`);
   rolloutSlugs.add(item.slug);
@@ -49,7 +49,7 @@ for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT) {
   if (item.status === "complete") completedAssets += item.assets.length;
 }
 
-const completedTopics = DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((item) => item.status === "complete").length;
+const completedTopics = DEPREM_TECHNICAL_VISUAL_REGISTRY.filter((item) => item.status === "complete").length;
 pass(`Yeni teknik tasarım rollout: ${completedTopics}/${DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT} konu, ${completedAssets}/${DEPREM_TECHNICAL_VISUAL_MIN_ASSET_COUNT} minimum asset`);
 
 if (strict) {
