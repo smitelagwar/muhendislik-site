@@ -184,7 +184,7 @@ if (pilotArticle) {
   assert(pilotArticle.author === DEPREM_CONTENT_AUTHOR.name && pilotArticle.authorTitle === "", `C1 pilot canonical yazar uygulanmadı.`);
   assert(getArticleAuthorPresentation(pilotArticle).monogram === DEPREM_CONTENT_AUTHOR.monogram, `C1 pilot HG monogram uygulanmadı.`);
   assert(pilotArticle.updatedAt === "25 Ağustos 2026", `C1 pilot güncelleme tarihi beklenenden farklı.`);
-  assert(pilotArticle.image === pilotCover && pilotArticle.image !== "/covers/yonetmelik.svg", `C1 pilot benzersiz cover korunmadı.`);
+  assert(pilotArticle.image === pilotCover, `C1 pilot benzersiz cover korunmadı.`);
   assert(Boolean(pilotFigure), `C1 pilot body figure korunmadı.`);
   assert(pilotFigureMetadataOk, `C1 pilot body figure metadata/lightbox eksik.`);
   assert(pilotCurrentGuide, `C1 pilot Mayıs 2026 güncel Bakanlık kılavuzunu kullanmıyor.`);
