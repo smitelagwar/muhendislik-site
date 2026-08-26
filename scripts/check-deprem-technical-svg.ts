@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { getDepremRolloutSpec } from "../src/lib/deprem-rollout";
+import { getDepremVisualSpec } from "../src/lib/deprem-visual-spec";
 import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual-router";
 import {
   DEPREM_TECHNICAL_VISUAL_ROLLOUT,
@@ -30,9 +30,9 @@ const hashes = new Map<string, string>();
 let renderedCount = 0;
 
 for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.status === "complete")) {
-  const spec = getDepremRolloutSpec(item.slug);
+  const spec = getDepremVisualSpec(item.slug);
   if (!spec) {
-    fail(`${item.slug}: deprem rollout spec bulunamadı`);
+    fail(`${item.slug}: deprem görsel spec bulunamadı`);
     continue;
   }
 
