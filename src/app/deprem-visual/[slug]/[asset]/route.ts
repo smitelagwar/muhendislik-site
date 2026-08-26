@@ -1,14 +1,14 @@
-import { getDepremRolloutSpec, DEPREM_ROLLOUT_ARTICLES } from "@/lib/deprem-rollout";
 import { renderDepremVisualSvg, type DepremVisualAsset } from "@/lib/deprem-visual";
 import { hasDepremTechnicalVisual, renderDepremTechnicalVisualSvg } from "@/lib/deprem-technical-visual-router";
+import { DEPREM_VISUAL_STATIC_SLUGS, getDepremVisualSpec } from "@/lib/deprem-visual-spec";
 
 const ASSETS = ["cover.svg", "diagram.svg"] as const;
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return DEPREM_ROLLOUT_ARTICLES.flatMap((spec) =>
-    ASSETS.map((asset) => ({ slug: spec.slug, asset })),
+  return DEPREM_VISUAL_STATIC_SLUGS.flatMap((slug) =>
+    ASSETS.map((asset) => ({ slug, asset })),
   );
 }
 
@@ -17,7 +17,7 @@ export async function GET(
   context: { params: Promise<{ slug: string; asset: string }> },
 ) {
   const { slug, asset } = await context.params;
-  const spec = getDepremRolloutSpec(slug);
+  const spec = getDepremVisualSpec(slug);
   const assetType: DepremVisualAsset | null =
     asset === "cover.svg" ? "cover" : asset === "diagram.svg" ? "diagram" : null;
 
