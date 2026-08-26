@@ -2,14 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { getDepremVisualSpec } from "../src/lib/deprem-visual-spec";
 import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual-router";
-import { DEPREM_TECHNICAL_VISUAL_ROLLOUT } from "../src/lib/deprem-visual-rollout";
+import { DEPREM_TECHNICAL_VISUAL_REGISTRY } from "../src/lib/deprem-visual-rollout-registry";
 
 const outputRoot = path.resolve(process.cwd(), "artifacts/deprem-technical-visuals");
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
 
 let count = 0;
-for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.status === "complete")) {
+for (const item of DEPREM_TECHNICAL_VISUAL_REGISTRY.filter((entry) => entry.status === "complete")) {
   const spec = getDepremVisualSpec(item.slug);
   if (!spec) throw new Error(`Görsel spec bulunamadı: ${item.slug}`);
 
