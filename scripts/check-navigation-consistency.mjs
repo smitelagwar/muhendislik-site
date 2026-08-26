@@ -33,14 +33,31 @@ async function waitForProductionBuild(timeoutMs = 60000) {
 }
 
 function getBrowserExecutablePath() {
+  const explicit = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+
+  try {
+    const bundled = puppeteer.executablePath();
+    if (bundled && fs.existsSync(bundled)) {
+      return bundled;
+    }
+  } catch {
+    // Fall through to platform candidates.
+  }
+
   const candidates = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ].filter(Boolean);
+  ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
@@ -63,7 +80,7 @@ async function getHref(page, selector) {
 await waitForProductionBuild();
 
 const executablePath = getBrowserExecutablePath();
-assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
+assert(executablePath, "No Chrome/Chromium/Edge executable was found for Puppeteer.");
 
 const app = next({
   dev: false,
