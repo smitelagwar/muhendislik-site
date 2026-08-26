@@ -4,12 +4,12 @@ import next from "next";
 import puppeteer from "puppeteer";
 
 const targets = [
-  { slug: "bep-isi-yalitim-katmanlari-u-degeri-hesabi", expected: "U = 1 / R_T" },
-  { slug: "bep-isi-koprusu-psi-degeri-ve-lineer-gecis", expected: "0,96 W/K" },
-  { slug: "bep-ts825-iklim-bolgeleri-turkiye-haritasi", expected: "4'ten 6'ya" },
-  { slug: "bep-enerji-kimlik-belgesi-siniflari-asgari", expected: "Düşük Karbonlu Bina Belgesi" },
-  { slug: "bep-yenilenebilir-enerji-zorunlulugu-ve-oranlari", expected: "54.000 kWh/yıl" },
-  { slug: "bep-ilk-yatirim-ve-yasam-dongusu-maliyet-analizi", expected: "10.000 m²" },
+  { slug: "bep-isi-yalitim-u-degeri-yogusma-kontrolu", expected: "U = 1 / R_T" },
+  { slug: "bep-ts-825-yontemi-isi-kaybi-hesabi", expected: "730" },
+  { slug: "bep-enerji-kimlik-belgesi-a-g-siniflandirma", expected: "Düşük Karbonlu Bina Belgesi" },
+  { slug: "bep-yenilenebilir-enerji-zorunlulugu-1000m2", expected: "54.000 kWh/yıl" },
+  { slug: "bep-yazilimi-hesaplama-akisi", expected: "10.000 m²" },
+  { slug: "bep-isil-kopru-detaylari-ve-cozum-yontemleri", expected: "0,96 W/K" },
   { slug: "akustik-ts-en-iso-12354-ile-yalitim-hesabi", expected: "TS EN 12354-1" },
   { slug: "eurocode-ts-en-1990-yuk-kombinasyonlari-ve-guvenlik-katsayilari", expected: "National Annex" },
   { slug: "eurocode-ts-en-1991-1-1-hareketli-yukler-bolume-gore-degerler", expected: "40 kN" },
