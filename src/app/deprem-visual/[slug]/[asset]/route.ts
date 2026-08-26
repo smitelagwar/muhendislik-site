@@ -1,5 +1,6 @@
 import { getDepremRolloutSpec, DEPREM_ROLLOUT_ARTICLES } from "@/lib/deprem-rollout";
 import { renderDepremVisualSvg, type DepremVisualAsset } from "@/lib/deprem-visual";
+import { hasDepremTechnicalVisual, renderDepremTechnicalVisualSvg } from "@/lib/deprem-technical-visual";
 
 const ASSETS = ["cover.svg", "diagram.svg"] as const;
 
@@ -24,7 +25,10 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const svg = renderDepremVisualSvg(spec, assetType);
+  const svg = hasDepremTechnicalVisual(slug)
+    ? renderDepremTechnicalVisualSvg(spec, assetType)
+    : renderDepremVisualSvg(spec, assetType);
+
   return new Response(svg, {
     status: 200,
     headers: {
