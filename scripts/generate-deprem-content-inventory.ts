@@ -8,7 +8,7 @@ import { DEPREM_PHASE3_ARTICLES, DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-p
 import { DEPREM_PHASE4_ARTICLES, DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PHASE5_ARTICLES, DEPREM_PHASE5_SLUGS } from "../src/lib/deprem-phase5-articles";
 import { DEPREM_PHASE6_ARTICLES, DEPREM_PHASE6_SLUGS } from "../src/lib/deprem-phase6-articles";
-import { DEPREM_PHASE7_ARTICLES, DEPREM_PHASE7_SLUGS } from "../src/lib/deprem-phase7-articles";
+import { DEPREM_PHASE7_ARTICLES, DEPREM_PHASE7_SLUGS, PHASE7_C1_VISUAL_CARRY_FORWARD } from "../src/lib/deprem-phase7-articles";
 import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import {
   DEPREM_ROLLOUT_ARTICLES,
@@ -40,6 +40,7 @@ const TARGET_AUTHOR = "İnşaat Mühendisi Hüseyin GÜNAYDIN";
 const TARGET_INITIALS = "HG";
 const OLD_TOOL_PREFIX = "/deprem-yonetmelik/araclar/";
 const GENERIC_IMAGE_PATTERN = /\/covers\/yonetmelik\.svg$|generic|placeholder|default/i;
+const PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS = new Set<string>([PHASE7_C1_VISUAL_CARRY_FORWARD.slug]);
 
 function read(relativePath: string) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
@@ -115,6 +116,7 @@ const inventory = depremArticles.map((article) => {
   const isPhase5 = DEPREM_PHASE5_SLUGS.has(article.slug);
   const isPhase6 = DEPREM_PHASE6_SLUGS.has(article.slug);
   const isPhase7 = DEPREM_PHASE7_SLUGS.has(article.slug);
+  const isPhase7PilotVisualCarryForward = isPilot && isPhase7 && PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.has(article.slug);
   const rolloutSpec = getDepremRolloutSpec(article.slug);
   const isRollout = DEPREM_ROLLOUT_SLUGS.has(article.slug);
   const isTopic = topicBySlug.has(article.slug);
@@ -140,6 +142,15 @@ const inventory = depremArticles.map((article) => {
       body: ts500File,
       metadata: ts500File,
       enhancement: null,
+    };
+  } else if (isPhase7PilotVisualCarryForward) {
+    sourceOfTruth = {
+      kind: "deprem-phase7-articles",
+      runtimeAssembler: RUNTIME_ASSEMBLER,
+      seed: isTopic ? TOPIC_PATH : rawArticle ? DATA_PATH : null,
+      body: PHASE7_PATH,
+      metadata: PHASE7_PATH,
+      enhancement: isRollout ? ROLLOUT_PATH : null,
     };
   } else if (isPilot) {
     sourceOfTruth = {
@@ -302,7 +313,11 @@ const nonTs500 = inventory.filter((item) => item.seriesId !== "ts500");
 const legacyNormalized = inventory.filter((item) => item.sourceOfTruth.kind === "legacy-normalized");
 const legacyBodyRecovered = legacyNormalized.filter((item) => item.sourceOfTruth.body === NORMALIZER_PATH);
 const legacyBodyPreserved = legacyNormalized.filter((item) => item.sourceOfTruth.body === DATA_PATH);
-const pilotInventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-pilot-articles");
+const pilotPrimarySourceInventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-pilot-articles");
+const pilotVisualCarryForwardInventory = inventory.filter((item) => PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.has(item.slug));
+const pilotInventory = inventory.filter((item) =>
+  item.sourceOfTruth.kind === "deprem-pilot-articles" || PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.has(item.slug),
+);
 const phase3Inventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-phase3-articles");
 const phase4Inventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-phase4-articles");
 const phase5Inventory = inventory.filter((item) => item.sourceOfTruth.kind === "deprem-phase5-articles");
@@ -345,6 +360,9 @@ const missingPhase4RuntimeSlugs = [...DEPREM_PHASE4_SLUGS].filter((slug) => !all
 const missingPhase5RuntimeSlugs = [...DEPREM_PHASE5_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
 const missingPhase6RuntimeSlugs = [...DEPREM_PHASE6_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
 const missingPhase7RuntimeSlugs = [...DEPREM_PHASE7_SLUGS].filter((slug) => !allArticleSlugs.has(slug));
+const phase7PilotOverlapSlugs = [...DEPREM_PHASE7_SLUGS].filter((slug) => DEPREM_PILOT_SLUGS.has(slug));
+const phase7AllowedPilotVisualCarryForwardSlugs = phase7PilotOverlapSlugs.filter((slug) => PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.has(slug));
+const phase7UnexpectedPilotCollisionSlugs = phase7PilotOverlapSlugs.filter((slug) => !PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.has(slug));
 const canonicalAuthorPresentation = getArticleAuthorPresentation({
   sectionId: "deprem-yonetmelik",
   author: TARGET_AUTHOR,
@@ -353,6 +371,8 @@ const canonicalAuthorPresentation = getArticleAuthorPresentation({
 const allConfiguredRolloutResolved =
   Object.values(rolloutBatchAudit).every((batch) => batch.missingRuntimeSlugs.length === 0 && batch.configured === batch.enhanced) &&
   rolloutInventory.length === DEPREM_ROLLOUT_ARTICLES.length;
+const allConfiguredPilotsResolved =
+  missingPilotRuntimeSlugs.length === 0 && pilotInventory.length === DEPREM_PILOT_ARTICLES.length;
 const allConfiguredPhase3Resolved =
   missingPhase3RuntimeSlugs.length === 0 && phase3Inventory.length === DEPREM_PHASE3_ARTICLES.length;
 const allConfiguredPhase4Resolved =
@@ -362,10 +382,13 @@ const allConfiguredPhase5Resolved =
 const allConfiguredPhase6Resolved =
   missingPhase6RuntimeSlugs.length === 0 && phase6Inventory.length === DEPREM_PHASE6_ARTICLES.length;
 const allConfiguredPhase7Resolved =
-  missingPhase7RuntimeSlugs.length === 0 && phase7Inventory.length === DEPREM_PHASE7_ARTICLES.length;
+  missingPhase7RuntimeSlugs.length === 0 &&
+  phase7Inventory.length === DEPREM_PHASE7_ARTICLES.length &&
+  phase7UnexpectedPilotCollisionSlugs.length === 0 &&
+  phase7AllowedPilotVisualCarryForwardSlugs.length === PHASE7_PILOT_VISUAL_CARRY_FORWARD_SLUGS.size;
 
 const report = {
-  schemaVersion: 13,
+  schemaVersion: 14,
   generatedAt: new Date().toISOString(),
   repo: "smitelagwar/muhendislik-site",
   scope: "FAZ 0/2 envanteri + FAZ 3/4/5/6/7 teknik source-of-truth + rollout enhancement",
@@ -374,6 +397,7 @@ const report = {
     targetInitials: TARGET_INITIALS,
     runtimePresentedInitialsForTargetAuthor: canonicalAuthorPresentation.monogram,
     registeredToolRouteCount: TOOLS.length,
+    phase7PilotVisualCarryForwardSlug: PHASE7_C1_VISUAL_CARRY_FORWARD.slug,
   },
   counts: {
     totalDepremYonetmelik: inventory.length,
@@ -383,6 +407,8 @@ const report = {
     depremTopicArticles: DEPREM_TOPIC_ARTICLES.length,
     depremPilotArticles: DEPREM_PILOT_ARTICLES.length,
     pilotInventoryArticles: pilotInventory.length,
+    pilotPrimarySourceArticles: pilotPrimarySourceInventory.length,
+    pilotVisualCarryForwardArticles: pilotVisualCarryForwardInventory.length,
     depremPhase3Articles: DEPREM_PHASE3_ARTICLES.length,
     phase3InventoryArticles: phase3Inventory.length,
     depremPhase4Articles: DEPREM_PHASE4_ARTICLES.length,
@@ -429,7 +455,8 @@ const report = {
     phase6VsPhase4: [...DEPREM_PHASE6_SLUGS].filter((slug) => DEPREM_PHASE4_SLUGS.has(slug)),
     phase6VsPhase5: [...DEPREM_PHASE6_SLUGS].filter((slug) => DEPREM_PHASE5_SLUGS.has(slug)),
     phase7VsTs500: [...DEPREM_PHASE7_SLUGS].filter((slug) => TS500_SLUGS.has(slug)),
-    phase7VsPilot: [...DEPREM_PHASE7_SLUGS].filter((slug) => DEPREM_PILOT_SLUGS.has(slug)),
+    phase7VsPilot: phase7UnexpectedPilotCollisionSlugs,
+    phase7VsPilotAllowedVisualCarryForward: phase7AllowedPilotVisualCarryForwardSlugs,
     phase7VsPhase3: [...DEPREM_PHASE7_SLUGS].filter((slug) => DEPREM_PHASE3_SLUGS.has(slug)),
     phase7VsPhase4: [...DEPREM_PHASE7_SLUGS].filter((slug) => DEPREM_PHASE4_SLUGS.has(slug)),
     phase7VsPhase5: [...DEPREM_PHASE7_SLUGS].filter((slug) => DEPREM_PHASE5_SLUGS.has(slug)),
@@ -440,8 +467,11 @@ const report = {
   pilotAudit: {
     configuredSlugs: [...DEPREM_PILOT_SLUGS],
     sourceOfTruthSlugs: pilotInventory.map((item) => item.slug),
+    primarySourceSlugs: pilotPrimarySourceInventory.map((item) => item.slug),
+    phase7VisualCarryForwardSlugs: pilotVisualCarryForwardInventory.map((item) => item.slug),
+    expectedVisualCarryForwardPath: PILOT_PATH,
     missingRuntimeSlugs: missingPilotRuntimeSlugs,
-    allConfiguredPilotsResolved: missingPilotRuntimeSlugs.length === 0 && pilotInventory.length === DEPREM_PILOT_ARTICLES.length,
+    allConfiguredPilotsResolved,
   },
   phase3Audit: {
     configuredSlugs: [...DEPREM_PHASE3_SLUGS],
@@ -486,6 +516,8 @@ const report = {
     expectedBodyPath: PHASE7_PATH,
     expectedSeedPaths: [DATA_PATH, TOPIC_PATH],
     expectedEnhancementPath: ROLLOUT_PATH,
+    allowedPilotVisualCarryForwardSlugs: phase7AllowedPilotVisualCarryForwardSlugs,
+    unexpectedPilotCollisionSlugs: phase7UnexpectedPilotCollisionSlugs,
     allConfiguredPhase7Resolved,
   },
   rolloutAudit: {
