@@ -9,6 +9,7 @@ import { applyDepremPhase3Override, DEPREM_PHASE3_SLUGS, getDepremPhase3ContentS
 import { applyDepremPhase4Override, DEPREM_PHASE4_SLUGS, getDepremPhase4ContentSignature } from "./deprem-phase4-articles";
 import { applyDepremPhase5Override, DEPREM_PHASE5_SLUGS, getDepremPhase5ContentSignature } from "./deprem-phase5-articles";
 import { applyDepremPhase6Override, DEPREM_PHASE6_SLUGS, getDepremPhase6ContentSignature } from "./deprem-phase6-articles";
+import { applyDepremPhase7Override, DEPREM_PHASE7_SLUGS, getDepremPhase7ContentSignature } from "./deprem-phase7-articles";
 import { applyDepremRolloutEnhancement, getDepremRolloutSignature } from "./deprem-rollout";
 import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
 import { normalizeDepremContentAuthor } from "./content-author";
@@ -111,22 +112,27 @@ function parseArticles(fileContent: string) {
             const phase4Article = applyDepremPhase4Override(phase3Article);
             const phase5Article = applyDepremPhase5Override(phase4Article);
             const phase6Article = applyDepremPhase6Override(phase5Article);
+            const phase7Article = applyDepremPhase7Override(phase6Article);
 
-            const rolloutArticle = DEPREM_PHASE6_SLUGS.has(slug)
-                ? applyDepremRolloutEnhancement(phase6Article)
-                : DEPREM_PHASE5_SLUGS.has(slug)
-                  ? applyDepremRolloutEnhancement(phase5Article)
-                  : DEPREM_PHASE4_SLUGS.has(slug)
-                    ? applyDepremRolloutEnhancement(phase4Article)
-                    : applyDepremRolloutEnhancement(phase3Article);
+            const rolloutArticle = DEPREM_PHASE7_SLUGS.has(slug)
+                ? applyDepremRolloutEnhancement(phase7Article)
+                : DEPREM_PHASE6_SLUGS.has(slug)
+                  ? applyDepremRolloutEnhancement(phase6Article)
+                  : DEPREM_PHASE5_SLUGS.has(slug)
+                    ? applyDepremRolloutEnhancement(phase5Article)
+                    : DEPREM_PHASE4_SLUGS.has(slug)
+                      ? applyDepremRolloutEnhancement(phase4Article)
+                      : applyDepremRolloutEnhancement(phase3Article);
 
-            normalizedArticles[slug] = DEPREM_PHASE6_SLUGS.has(slug)
-                ? { ...rolloutArticle, updatedAt: phase6Article.updatedAt }
-                : DEPREM_PHASE5_SLUGS.has(slug)
-                  ? { ...rolloutArticle, updatedAt: phase5Article.updatedAt }
-                  : DEPREM_PHASE4_SLUGS.has(slug)
-                    ? { ...rolloutArticle, updatedAt: phase4Article.updatedAt }
-                    : rolloutArticle;
+            normalizedArticles[slug] = DEPREM_PHASE7_SLUGS.has(slug)
+                ? { ...rolloutArticle, updatedAt: phase7Article.updatedAt }
+                : DEPREM_PHASE6_SLUGS.has(slug)
+                  ? { ...rolloutArticle, updatedAt: phase6Article.updatedAt }
+                  : DEPREM_PHASE5_SLUGS.has(slug)
+                    ? { ...rolloutArticle, updatedAt: phase5Article.updatedAt }
+                    : DEPREM_PHASE4_SLUGS.has(slug)
+                      ? { ...rolloutArticle, updatedAt: phase4Article.updatedAt }
+                      : rolloutArticle;
         }
 
         return Object.fromEntries(
@@ -183,6 +189,7 @@ export function getArticlesCacheSignature(): string {
         getDepremPhase4ContentSignature(),
         getDepremPhase5ContentSignature(),
         getDepremPhase6ContentSignature(),
+        getDepremPhase7ContentSignature(),
         getDepremRolloutSignature(),
     ].filter(Boolean).join("|");
     return `${getArticleCache().signature}:${supplementalSignature}`;

@@ -25,6 +25,8 @@ on:
       - src/lib/deprem-phase5-*.ts
       - src/lib/deprem-phase6-articles.ts
       - src/lib/deprem-phase6-*.ts
+      - src/lib/deprem-phase7-articles.ts
+      - src/lib/deprem-phase7-*.ts
       - src/lib/deprem-pilot-articles.ts
       - src/lib/deprem-rollout.ts
       - src/lib/deprem-rollout-extra.ts
@@ -68,6 +70,8 @@ on:
       - scripts/check-deprem-phase6-batch3-render.mjs
       - scripts/check-deprem-phase6-batch4-render.mjs
       - scripts/check-deprem-phase6-batch5-render.mjs
+      - scripts/check-deprem-phase7.ts
+      - scripts/check-deprem-phase7-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -79,7 +83,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,6 +99,8 @@ jobs:
         run: npx tsx scripts/check-deprem-phase5.ts
       - name: FAZ 6 technical content contract
         run: npx tsx scripts/check-deprem-phase6.ts
+      - name: FAZ 7 technical content contract
+        run: npx tsx scripts/check-deprem-phase7.ts
       - name: Deprem infrastructure contract
         run: npm run check:deprem-infrastructure
       - name: FAZ 2 pilot content contract
@@ -169,3 +175,5 @@ jobs:
         run: node scripts/check-deprem-phase6-batch4-render.mjs
       - name: FAZ 6 batch 5 responsive render QA
         run: node scripts/check-deprem-phase6-batch5-render.mjs
+      - name: FAZ 7 responsive render QA
+        run: node scripts/check-deprem-phase7-render.mjs
