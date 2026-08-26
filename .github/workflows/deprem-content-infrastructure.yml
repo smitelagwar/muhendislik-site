@@ -18,6 +18,8 @@ on:
       - src/lib/content-author.ts
       - src/lib/deprem-phase3-articles.ts
       - src/lib/deprem-phase3-*.ts
+      - src/lib/deprem-phase4-articles.ts
+      - src/lib/deprem-phase4-*.ts
       - src/lib/deprem-pilot-articles.ts
       - src/lib/deprem-rollout.ts
       - src/lib/deprem-rollout-extra.ts
@@ -38,6 +40,8 @@ on:
       - scripts/check-deprem-phase3-batch12-render.mjs
       - scripts/check-deprem-phase3-batch13-render.mjs
       - scripts/check-deprem-phase3-batch14-render.mjs
+      - scripts/check-deprem-phase4.ts
+      - scripts/check-deprem-phase4-batch1-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -59,6 +63,8 @@ jobs:
       - run: npm ci
       - name: FAZ 3 technical content contract
         run: npx tsx scripts/check-deprem-phase3.ts
+      - name: FAZ 4 technical content contract
+        run: npx tsx scripts/check-deprem-phase4.ts
       - name: Deprem infrastructure contract
         run: npm run check:deprem-infrastructure
       - name: FAZ 2 pilot content contract
@@ -93,3 +99,5 @@ jobs:
         run: node scripts/check-deprem-phase3-batch13-render.mjs
       - name: FAZ 3 batch 14 responsive render QA
         run: node scripts/check-deprem-phase3-batch14-render.mjs
+      - name: FAZ 4 batch 1 responsive render QA
+        run: node scripts/check-deprem-phase4-batch1-render.mjs
