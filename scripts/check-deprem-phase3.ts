@@ -82,6 +82,12 @@ const BATCH_12_SLUGS = [
   "tbdy-bodrum-katli-binalar",
   "tbdy-cati-agirligi-yuk-azaltma",
 ] as const;
+const BATCH_13_SLUGS = [
+  "tbdy-p-delta-ikinci-mertebe",
+  "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi",
+  "1999-marmara-depreminden-cikarilan-muhendislik-dersleri",
+  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
+] as const;
 
 const EXPECTED_SLUGS = [
   ...BATCH_1_SLUGS,
@@ -96,6 +102,7 @@ const EXPECTED_SLUGS = [
   ...BATCH_10_SLUGS,
   ...BATCH_11_SLUGS,
   ...BATCH_12_SLUGS,
+  ...BATCH_13_SLUGS,
 ] as const;
 type ExpectedSlug = (typeof EXPECTED_SLUGS)[number];
 
@@ -108,13 +115,14 @@ const BETONARME_SET = new Set<string>([
   "tbdy-betonarme-diyafram-toplayici-baslik",
   "kisa-kolon-etkisi-tbdy-2018",
   "tbdy-2018-guclu-kolon-kontrolu",
+  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
 ]);
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => {
   if (!condition) errors.push(message);
 };
 
-assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk on iki batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
+assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk on üç batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
 assert(DEPREM_PHASE3_SLUGS.size === EXPECTED_SLUGS.length, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of EXPECTED_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 source-of-truth slug eksik: ${slug}`);
 
@@ -126,7 +134,7 @@ assert(rolloutApplyIndex > phase3ApplyIndex, "Runtime sırası teknik FAZ 3 göv
 assert(assemblerSource.includes("getDepremPhase3ContentSignature()"), "Makale cache signature FAZ 3 içeriğini izlemiyor.");
 
 const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
-for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const) {
+for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const) {
   assert(phase3AggregatorSource.includes(`DEPREM_PHASE3_BATCH_${batch}_ARTICLES`), `FAZ 3 aggregator batch ${batch}'ü toplamıyor.`);
   assert(fs.existsSync(path.join(ROOT, `src/lib/deprem-phase3-batch${batch}.ts`)), `FAZ 3 batch ${batch} modülü bulunamadı.`);
 }
@@ -184,6 +192,10 @@ const requiredTokens: Record<ExpectedSlug, string[]> = {
   "tbdy-dismerkezlik-kurali": ["4.5.10.1", "+%5", "-%5", "Denklem (4.17)", "M_ib", "Denklem (4.18)", "Δm_iθ = m_i e²", "4.5.10.4", "zarf", "1.2 < ηbi ≤ 2.0", "Denklem (4.29)", "SOURCE_VALUE"],
   "tbdy-bodrum-katli-binalar": ["3.3.1.1", "en az üç taraftan", "T_p,tüm / T_p,üst ≤ 1.1", "3.3.1.2", "(R/I) = 2.5", "D = 1.5", "4.5.5.2", "kabuk sonlu eleman", "4.5.7.2", "iki boyutlu sonlu eleman", "4.7.5", "4.8.5", "ortak tek taşıyıcı sistem", "4.10.1", "SOURCE_VALUE"],
   "tbdy-cati-agirligi-yuk-azaltma": ["4.5.9.2", "Denklem (4.16)", "Tablo 4.3", "0.80", "0.60", "0.30", "n = 1", "vinç kaldırma yükleri", "kar yüklerinin %30'u", "genel bir çatı hareketli yük indirimi değildir", "SOURCE_VALUE"],
+  "tbdy-p-delta-ikinci-mertebe": ["Denklem (4.35)", "Denklem (4.36)", "0.12 D", "Ch = 0.5", "Ch = 1", "Denklem (4.37)", "0.88", "βII", "üst bölüm", "SOURCE_VALUE"],
+  "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi": ["1947", "1953", "1961", "1968", "1975", "1998", "2007", "2018", "1 Ocak 2019", "30364", "2 Eylül 1997", "6 Mart 2007", "SOURCE_VALUE"],
+  "1999-marmara-depreminden-cikarilan-muhendislik-dersleri": ["17 Ağustos 1999", "03:02", "yumuşak kat", "kısa kolon", "beton", "sargı donatısı", "zemin", "sıvılaşma", "TBDY", "SOURCE_VALUE"],
+  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari": ["7.6.1.1", "ℓw/bw ≥ 6", "0.35 fck", "250 mm", "Denklem (7.15)", "0.20ℓw", "0.0025", "4ϕ14", "0.03", "Denklem (7.16)", "Denklem (7.18)", "SOURCE_VALUE"],
 };
 
 const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; symbols: number }>> = {
@@ -207,6 +219,8 @@ const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; sym
   "tbdy-mod-birlesim-srss-cqc": { label: "4B.4", symbols: 5 },
   "tbdy-goreli-kat-otelenmesi": { label: "4.34", symbols: 4 },
   "tbdy-dismerkezlik-kurali": { label: "4.17", symbols: 3 },
+  "tbdy-p-delta-ikinci-mertebe": { label: "4.35", symbols: 8 },
+  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari": { label: "7.15", symbols: 3 },
 };
 
 for (const configured of DEPREM_PHASE3_ARTICLES) {
@@ -232,6 +246,14 @@ for (const configured of DEPREM_PHASE3_ARTICLES) {
     assert(configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr")), "Taslak statüsü makalesinde Resmî Gazete doğrulama kaynağı eksik.");
     assert(configured.references.some((ref) => ref.href?.includes("imo.org.tr")), "Taslak statüsü makalesinde tarihli İMO kaynağı eksik.");
     assert(configured.references.some((ref) => ref.href?.includes("AFAD-2019-Idare-Faaliyet-Raporu")), "2019 yürürlükteki Tebliğ için AFAD resmî kayıt kaynağı eksik.");
+  }
+  if (slug === "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi") {
+    assert(configured.references.some((ref) => ref.href?.includes("yonetmelik_brosur.pdf")), "Yönetmelik evrimi makalesinde AFAD zaman çizelgesi kaynağı eksik.");
+    assert(configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr")), "Yönetmelik evrimi makalesinde Resmî Gazete yürürlük kaynağı eksik.");
+  }
+  if (slug === "1999-marmara-depreminden-cikarilan-muhendislik-dersleri") {
+    assert(configured.references.some((ref) => ref.href?.includes("istanbul.afad.gov.tr")), "1999 Marmara makalesinde resmî AFAD olay kaynağı eksik.");
+    assert(configured.references.some((ref) => ref.href?.includes("ipkb.gov.tr")), "1999 Marmara makalesinde yapısal risk eğitim kaynağı eksik.");
   }
 
   const article = getArticleBySlug(configured.slug);
@@ -288,7 +310,7 @@ for (const configured of DEPREM_PHASE3_ARTICLES) {
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 3 ilk on iki batch kontrolü başarısız:\n");
+  console.error("Deprem FAZ 3 ilk on üç batch kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -296,7 +318,7 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 3",
-  completedBatches: 12,
+  completedBatches: 13,
   batchSizes: {
     1: BATCH_1_SLUGS.length,
     2: BATCH_2_SLUGS.length,
@@ -310,6 +332,7 @@ console.log(JSON.stringify({
     10: BATCH_10_SLUGS.length,
     11: BATCH_11_SLUGS.length,
     12: BATCH_12_SLUGS.length,
+    13: BATCH_13_SLUGS.length,
   },
   articles: EXPECTED_SLUGS.length,
   slugs: EXPECTED_SLUGS,
@@ -327,11 +350,12 @@ console.log(JSON.stringify({
     "src/lib/deprem-phase3-batch10.ts",
     "src/lib/deprem-phase3-batch11.ts",
     "src/lib/deprem-phase3-batch12.ts",
+    "src/lib/deprem-phase3-batch13.ts",
   ],
   runtimeOrder: "topic/raw seed -> phase3 technical override -> rollout enhancement -> author normalization",
   c3GenericBodyRemainingInCompletedBatches: 0,
-  officialSourceProfile: "AFAD TBDY 2018 Bölüm 2/3/4/5/7/14/17 ve EK 4B + Resmî Gazete/AFAD 2019 Tebliği kaydı + tarihli İMO 2026 taslak statüsü",
+  officialSourceProfile: "AFAD TBDY 2018 + AFAD resmî yönetmelik kronolojisi + Resmî Gazete yürürlük kayıtları + AFAD/İPKB 1999 yapısal risk kaynakları",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 28, "tbdy-betonarme": 20 },
+  seriesCoverage: { tbdy: 31, "tbdy-betonarme": 21 },
   ts500Touched: false,
 }, null, 2));
