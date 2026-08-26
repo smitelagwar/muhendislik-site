@@ -15,15 +15,18 @@ const TEMP_CONTRACT = path.join(ROOT, "scripts/.check-deprem-phase3-first13.runt
 const LEGACY_IMPORT = 'import { DEPREM_PHASE3_ARTICLES, DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";';
 const LEGACY_ALIAS_IMPORT = 'import { DEPREM_PHASE3_ARTICLES as DEPREM_PHASE3_ALL_ARTICLES } from "../src/lib/deprem-phase3-articles";';
 const LEGACY_ANCHOR = 'import { TS500_SLUGS } from "../src/lib/ts500-content";';
+const LEGACY_ROLLOUT_INDEX = 'const rolloutApplyIndex = assemblerSource.indexOf("applyDepremRolloutEnhancement(phase3Article)");';
+const PHASE4_ROLLOUT_INDEX = 'const rolloutApplyIndex = assemblerSource.indexOf("applyDepremRolloutEnhancement(phase4Article)");';
 
 function runFirst13FrozenContract() {
   const source = fs.readFileSync(LEGACY_CONTRACT, "utf8");
-  if (!source.includes(LEGACY_IMPORT) || !source.includes(LEGACY_ANCHOR)) {
-    throw new Error("FAZ 3 ilk 13 batch donmuş kontratı beklenen import yapısında değil.");
+  if (!source.includes(LEGACY_IMPORT) || !source.includes(LEGACY_ANCHOR) || !source.includes(LEGACY_ROLLOUT_INDEX)) {
+    throw new Error("FAZ 3 ilk 13 batch donmuş kontratı beklenen import/runtime yapısında değil.");
   }
 
   const adapted = source
     .replace(LEGACY_IMPORT, LEGACY_ALIAS_IMPORT)
+    .replace(LEGACY_ROLLOUT_INDEX, PHASE4_ROLLOUT_INDEX)
     .replace(
       LEGACY_ANCHOR,
       `${LEGACY_ANCHOR}\n\nconst DEPREM_PHASE3_ARTICLES = DEPREM_PHASE3_ALL_ARTICLES.slice(0, 52);\nconst DEPREM_PHASE3_SLUGS = new Set(DEPREM_PHASE3_ARTICLES.map((article) => article.slug));`,
