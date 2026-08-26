@@ -31,11 +31,19 @@ const OTOPARK_BATCH_3_C3_SLUGS = [
   "otopark-elektrikli-arac-sarj-mevzuati",
 ] as const;
 
+const ASANSOR_BATCH_4_C3_SLUGS = [
+  "asansor-boslugu-boyutlandirma-kapasite-alan-tablosu",
+  "asansor-makine-daireli-ve-dairesiz-sistemler",
+  "asansor-guvenlik-aksesuarlari-ve-periyodik-bakim-zorunlulugu",
+  "asansor-deprem-sirasinda-otomatik-park-ozelligi",
+] as const;
+
 const IMAR_C3_SLUGS = [...IMAR_BATCH_1_C3_SLUGS, ...IMAR_BATCH_2_C3_SLUGS] as const;
-const PHASE6_C3_SLUGS = [...IMAR_C3_SLUGS, ...OTOPARK_BATCH_3_C3_SLUGS] as const;
+const PHASE6_C3_SLUGS = [...IMAR_C3_SLUGS, ...OTOPARK_BATCH_3_C3_SLUGS, ...ASANSOR_BATCH_4_C3_SLUGS] as const;
 type Phase6C3Slug = (typeof PHASE6_C3_SLUGS)[number];
 const IMAR_SET = new Set<string>(IMAR_C3_SLUGS);
 const OTOPARK_SET = new Set<string>(OTOPARK_BATCH_3_C3_SLUGS);
+const ASANSOR_SET = new Set<string>(ASANSOR_BATCH_4_C3_SLUGS);
 const C1_IMAR_PILOT = "imar-taks-kaks-emsal-hesabi" as const;
 
 const requiredTokens: Record<Phase6C3Slug, string[]> = {
@@ -52,6 +60,10 @@ const requiredTokens: Record<Phase6C3Slug, string[]> = {
   "otopark-kapali-havalandirma-co-konsantrasyonu": ["Madde 60", "%5", "600 m²", "2.000 m²", "10 hava değişimi", "CO", "Mühendislik kontrol listesi"],
   "otopark-yapisal-yuk-kombinasyonlari-arac-deprem": ["TS 498", "TBDY 2018", "hareketli yük", "deprem kütlesi", "yük yolu", "Mühendislik kontrol listesi"],
   "otopark-elektrikli-arac-sarj-mevzuati": ["%5", "%10", "20", "30.000 m²", "70.000 m²", "Şarj Hizmeti Yönetmeliği", "23 Mart 2026", "33202", "Mühendislik kontrol listesi"],
+  "asansor-boslugu-boyutlandirma-kapasite-alan-tablosu": ["Madde 34", "1 Temmuz 2026", "kat adedi 3", "4 ve daha fazla", "1,20 m", "1,80 m²", "0,90 m", "2,52 m²", "1,10 m", "Mühendislik kontrol listesi"],
+  "asansor-makine-daireli-ve-dairesiz-sistemler": ["MRL", "MR", "2014/33/AB", "TS EN 81-20", "ayda en az bir", "kuyu", "bakım", "Mühendislik kontrol listesi"],
+  "asansor-guvenlik-aksesuarlari-ve-periyodik-bakim-zorunlulugu": ["ayda en az bir", "yılda en az bir", "yeşil", "mavi", "sarı", "kırmızı", "60 gün", "120 gün", "5 Ağustos 2025", "32977", "Mühendislik kontrol listesi"],
+  "asansor-deprem-sirasinda-otomatik-park-ozelligi": ["TS EN 81-77", "deprem sensörü", "kontrol panosu", "TS EN 81-73", "sismik", "yangın", "yeniden devreye alma", "Mühendislik kontrol listesi"],
 };
 
 const requiredSourceFragments: Record<Phase6C3Slug, string[]> = {
@@ -68,6 +80,10 @@ const requiredSourceFragments: Record<Phase6C3Slug, string[]> = {
   "otopark-kapali-havalandirma-co-konsantrasyonu": ["20180222-7.htm", "20090909-10.htm", "Binalar-n-Yang-n-Korunmas"],
   "otopark-yapisal-yuk-kombinasyonlari-arac-deprem": ["20180222-7.htm", "TBDY_2018.pdf", "turkiye-bina-deprem-yonetmeligi"],
   "otopark-elektrikli-arac-sarj-mevzuati": ["20210325-12.htm", "20220402-2.htm", "20260323-4.htm"],
+  "asansor-boslugu-boyutlandirma-kapasite-alan-tablosu": ["20160629-21.htm", "20260701-7.htm"],
+  "asansor-makine-daireli-ve-dairesiz-sistemler": ["20160629-21.htm", "20190406-1.htm"],
+  "asansor-guvenlik-aksesuarlari-ve-periyodik-bakim-zorunlulugu": ["20190406-1.htm", "20180504-1.htm", "20250805-1.htm"],
+  "asansor-deprem-sirasinda-otomatik-park-ozelligi": ["20160629-21.htm", "20250505133528-84464-84507.pdf", "turkiye-bina-deprem-yonetmeligi"],
 };
 
 const errors: string[] = [];
@@ -77,11 +93,17 @@ const textOf = (sections: { title: string; content: string }[]) => sections.map(
 const hasDepthSignal = (text: string, signal: string) => signal === "yanlış"
   ? text.includes("yanlış") || text.includes("hatal")
   : text.includes(lower(signal));
-const isOfficialSource = (href: string) => ["csb.gov.tr", "resmigazete.gov.tr", "afad.gov.tr"].some((domain) => href.includes(domain));
-const expectedSeries = (slug: string) => IMAR_SET.has(slug) ? "imar" : OTOPARK_SET.has(slug) ? "otopark" : null;
+const isOfficialSource = (href: string) => ["csb.gov.tr", "resmigazete.gov.tr", "afad.gov.tr", ".bel.tr"].some((domain) => href.includes(domain));
+const expectedSeries = (slug: string) => IMAR_SET.has(slug)
+  ? "imar"
+  : OTOPARK_SET.has(slug)
+    ? "otopark"
+    : ASANSOR_SET.has(slug)
+      ? "asansor"
+      : null;
 
-assert(DEPREM_PHASE6_ARTICLES.length === 13, `FAZ 6 C3 override sayısı 13 olmalı; bulunan ${DEPREM_PHASE6_ARTICLES.length}.`);
-assert(DEPREM_PHASE6_SLUGS.size === 13, "FAZ 6 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(DEPREM_PHASE6_ARTICLES.length === 17, `FAZ 6 C3 override sayısı 17 olmalı; bulunan ${DEPREM_PHASE6_ARTICLES.length}.`);
+assert(DEPREM_PHASE6_SLUGS.size === 17, "FAZ 6 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of PHASE6_C3_SLUGS) assert(DEPREM_PHASE6_SLUGS.has(slug), `FAZ 6 C3 slug eksik: ${slug}`);
 assert(DEPREM_PILOT_SLUGS.has(C1_IMAR_PILOT), `FAZ 2 C1 İmar pilotu bulunamadı: ${C1_IMAR_PILOT}`);
 assert(!DEPREM_PHASE6_SLUGS.has(C1_IMAR_PILOT), `C1 İmar pilotu FAZ 6 tarafından tekrar sahiplenilmiş: ${C1_IMAR_PILOT}`);
@@ -119,7 +141,7 @@ for (const slug of PHASE6_C3_SLUGS) {
   const hrefs = configured.references.map((ref) => ref.href ?? "");
   const fragments = requiredSourceFragments[slug];
   for (const fragment of fragments) assert(hrefs.some((href) => href.includes(fragment)), `FAZ 6 resmî kaynak işareti eksik (${fragment}): ${slug}`);
-  assert(hrefs.every(isOfficialSource), `FAZ 6 resmî kaynak profili dışına çıkılmış: ${slug}`);
+  assert(hrefs.every(isOfficialSource), `FAZ 6 resmî/kamu kaynak profili dışına çıkılmış: ${slug}`);
 
   const configuredText = textOf(configured.sections);
   const configuredLower = lower(configuredText);
@@ -225,22 +247,23 @@ if (errors.length) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 6",
-  completedBatches: 3,
+  completedBatches: 4,
   phase6Overrides: DEPREM_PHASE6_ARTICLES.length,
   phase2C1CarryForward: [C1_IMAR_PILOT],
-  completedArticles: 14,
+  completedArticles: 18,
   targetArticles: 22,
-  remaining: 8,
+  remaining: 4,
   batch1C3Slugs: IMAR_BATCH_1_C3_SLUGS,
   batch2C3Slugs: IMAR_BATCH_2_C3_SLUGS,
   batch3C3Slugs: OTOPARK_BATCH_3_C3_SLUGS,
+  batch4C3Slugs: ASANSOR_BATCH_4_C3_SLUGS,
   classifications: { ...Object.fromEntries(PHASE6_C3_SLUGS.map((slug) => [slug, "C3"])), [C1_IMAR_PILOT]: "C1" },
   sourceOfTruth: "src/lib/deprem-phase6-articles.ts + preserved FAZ 2 C1 İmar pilot",
-  officialSourceProfile: "İmar: PAİY + 3194 + Mekânsal Planlar; Otopark: Otopark Yönetmeliği 2018/2021/2025 + BYKHY 2026 kılavuzu + AFAD TBDY + Şarj Hizmeti 2022/2026",
-  visualContract: "13 rollout unique cover/body figure + 1 preserved FAZ 2 pilot unique cover/body figure",
+  officialSourceProfile: "İmar: PAİY + 3194 + Mekânsal Planlar; Otopark: Otopark Yönetmeliği + BYKHY + AFAD + Şarj Hizmeti; Asansör: 2014/33/AB + İşletme/Bakım + Periyodik Kontrol 2018/2025 + PAİY Madde 34 + kamu kontrol raporu",
+  visualContract: "17 rollout unique cover/body figure + 1 preserved FAZ 2 pilot unique cover/body figure",
   qualityScoreContract: "static subtotal >=80/90 + responsive layout QA 10/10 => final >=90/100; hard-fail assertions mandatory",
   qualityScores,
-  seriesCoverage: { imar: 9, otopark: 5, asansor: 0, engelsiz: 0 },
+  seriesCoverage: { imar: 9, otopark: 5, asansor: 4, engelsiz: 0 },
   targetCoverage: { imar: 9, otopark: 5, asansor: 4, engelsiz: 4, total: 22 },
   ts500Touched: false,
 }, null, 2));

@@ -22,6 +22,12 @@ export const SARJ_2026 = "https://www.resmigazete.gov.tr/eskiler/2026/03/2026032
 export const TBDY_PDF = "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf";
 export const TBDY_PAGE = "https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi";
 
+export const ASANSOR_2016 = "https://www.resmigazete.gov.tr/eskiler/2016/06/20160629-21.htm";
+export const ASANSOR_PERIYODIK_2018 = "https://www.resmigazete.gov.tr/eskiler/2018/05/20180504-1.htm";
+export const ASANSOR_BAKIM_2019 = "https://www.resmigazete.gov.tr/eskiler/2019/04/20190406-1.htm";
+export const ASANSOR_PERIYODIK_2025 = "https://www.resmigazete.gov.tr/eskiler/2025/08/20250805-1.htm";
+export const ASANSOR_KONTROL_2025 = "https://www.sanliurfa.bel.tr/uploads/2025/20250505133528-84464-84507.pdf";
+
 export function phase6Lines(...parts: string[]) {
   return parts.join("\n");
 }
@@ -87,6 +93,36 @@ export function otoparkPhase6References(scope: string): NonNullable<ArticleData[
       label: "ÇŞİDB — Otopark Yönetmeliği teknik sunumu",
       href: OTOPARK_CSB_GUIDE,
       note: "Yönetmelik hükümlerinin proje ve hesap mantığını açıklayan Bakanlık teknik dokümanıdır.",
+    },
+  ];
+}
+
+export function asansorPhase6References(scope: string): NonNullable<ArticleData["references"]> {
+  return [
+    {
+      label: `Resmî Gazete — 29 Haziran 2016 / 29757 Asansör Yönetmeliği (2014/33/AB), ${scope}`,
+      href: ASANSOR_2016,
+      note: "Asansörlerin ve güvenlik aksamlarının temel sağlık-güvenlik gerekleri ile piyasaya arz çerçevesidir.",
+    },
+    {
+      label: "Resmî Gazete — 6 Nisan 2019 / 30737 Asansör İşletme ve Bakım Yönetmeliği",
+      href: ASANSOR_BAKIM_2019,
+      note: "Tescil, işletme, ayda en az bir bakım, yetkili servis ve bina sorumlusu yükümlülüklerini düzenler.",
+    },
+    {
+      label: "Resmî Gazete — 4 Mayıs 2018 / 30411 Asansör Periyodik Kontrol Yönetmeliği",
+      href: ASANSOR_PERIYODIK_2018,
+      note: "Yıllık periyodik kontrol, A tipi muayene kuruluşu ve bilgi etiketi sisteminin temel metnidir.",
+    },
+    {
+      label: "Resmî Gazete — 5 Ağustos 2025 / 32977 Asansör Periyodik Kontrol Yönetmeliği değişikliği",
+      href: ASANSOR_PERIYODIK_2025,
+      note: "Periyodik kontrol mevzuatının güncel değişiklik zincirinin son halkasıdır.",
+    },
+    {
+      label: "Resmî Gazete — 1 Temmuz 2026 / 33297 Planlı Alanlar İmar Yönetmeliği, Madde 34 değişikliği",
+      href: IMAR_2026_JULY,
+      note: "Asansör zorunluluğu, bodrum kat kapsamı ve güncel bina-kat ilişkisini içerir.",
     },
   ];
 }
