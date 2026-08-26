@@ -8,6 +8,13 @@ import { TS500_SLUGS } from "../src/lib/ts500-content";
 const EXPECTED_TOTAL = 164;
 const EXPECTED_TARGET = 143;
 const OLD_TOOL_PREFIX = "/deprem-yonetmelik/araclar/";
+const GENERIC_COVER_PATTERNS = [/\/covers\/yonetmelik\.svg$/i, /placeholder/i, /generic/i, /default/i];
+const BANNED_EDITORIAL_PHRASES = [
+  "bu yazımızda",
+  "gelin birlikte inceleyelim",
+  "oldukça önemlidir",
+  "mühendislerin dikkat etmesi gerekir",
+];
 const errors: string[] = [];
 const warnings: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
@@ -93,7 +100,9 @@ for (const article of targetArticles) {
   }
 
   assert(Boolean(article.image.trim()), `Cover eksik: ${article.slug}`);
+  assert(!GENERIC_COVER_PATTERNS.some((pattern) => pattern.test(article.image)), `Generic cover kaldı: ${article.slug} -> ${article.image}`);
   coverOwners.set(article.image, [...(coverOwners.get(article.image) ?? []), article.slug]);
+
   const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
   const bodyImages = blocks.filter((block) => block.type === "image");
   assert(bodyImages.length >= 1, `Teknik body figure eksik: ${article.slug}`);
@@ -102,12 +111,18 @@ for (const article of targetArticles) {
     assert(Boolean(image.src.trim()), `Body figure src eksik: ${article.slug}`);
     assert(Boolean(image.alt.trim()), `Body figure alt eksik: ${article.slug}`);
     assert(Boolean(image.caption.trim()), `Body figure caption eksik: ${article.slug}`);
+    assert(image.src !== article.image, `Cover ile body figure aynı asset'i kullanıyor: ${article.slug}`);
+    assert(normalize(image.caption) !== normalize(article.title), `Figure caption makale başlığını aynen tekrar ediyor: ${article.slug}`);
   }
 
   assert((article.references?.length ?? 0) >= 1, `Kaynakça eksik: ${article.slug}`);
   const referenceHrefs = new Set<string>();
+  const referenceLabels = new Set<string>();
   for (const reference of article.references ?? []) {
-    assert(Boolean(reference.label.trim()), `Kaynak etiketi boş: ${article.slug}`);
+    const normalizedLabel = normalize(reference.label);
+    assert(Boolean(normalizedLabel), `Kaynak etiketi boş: ${article.slug}`);
+    assert(!referenceLabels.has(normalizedLabel), `Aynı kaynak etiketi makalede tekrar ediyor: ${article.slug} -> ${reference.label}`);
+    referenceLabels.add(normalizedLabel);
     if (!reference.href) continue;
     assert(/^https?:\/\//.test(reference.href), `Kaynak URL biçimi geçersiz: ${article.slug} -> ${reference.href}`);
     assert(!referenceHrefs.has(reference.href), `Aynı kaynak URL'si makalede tekrar ediyor: ${article.slug} -> ${reference.href}`);
@@ -115,6 +130,19 @@ for (const article of targetArticles) {
   }
 
   assert(!JSON.stringify(article).includes(OLD_TOOL_PREFIX), `Eski araç route kalıbı makalede kaldı: ${article.slug}`);
+
+  const mergedEditorialText = normalize([
+    article.title,
+    article.description,
+    article.seoDescription ?? "",
+    ...article.sections.map((section) => `${section.title}\n${section.content}`),
+  ].join("\n"));
+  for (const phrase of BANNED_EDITORIAL_PHRASES) {
+    assert(!mergedEditorialText.includes(phrase), `Profesyonel redaksiyon klişesi kaldı (${phrase}): ${article.slug}`);
+  }
+  if (mergedEditorialText.includes("hayati önem taşır")) {
+    warnings.push(`"Hayati önem taşır" ifadesi teknik gerekçe açısından manuel kontrol edilmeli: ${article.slug}`);
+  }
 
   const sectionIds = new Set<string>();
   const sectionTitles = new Set<string>();
@@ -164,7 +192,7 @@ for (const entry of repeatedParagraphs) {
 if (warnings.length > 0) {
   console.warn("FAZ 8 redaksiyon uyarıları:\n");
   for (const warning of warnings.slice(0, 20)) console.warn(`- ${warning}`);
-  if (warnings.length > 20) console.warn(`- ... ${warnings.length - 20} ek tekrar kümesi`);
+  if (warnings.length > 20) console.warn(`- ... ${warnings.length - 20} ek uyarı`);
 }
 
 if (errors.length > 0) {
@@ -183,7 +211,8 @@ console.log(JSON.stringify({
   duplicateTitles: duplicateTitles.length,
   duplicateDescriptions: duplicateDescriptions.length,
   duplicateSeoDescriptions: duplicateSeoDescriptions.length,
-  repeatedParagraphWarnings: warnings.length,
+  repeatedParagraphWarnings: repeatedParagraphs.filter((entry) => entry.slugs.size < 30).length,
+  manualEditorialWarnings: warnings.length,
   author: DEPREM_CONTENT_AUTHOR.name,
   monogram: DEPREM_CONTENT_AUTHOR.monogram,
 }, null, 2));
