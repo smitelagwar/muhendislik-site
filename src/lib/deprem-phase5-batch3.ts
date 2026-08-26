@@ -1,125 +1,9 @@
 import {
   firePhase5References,
   phase5Lines,
-  PHASE5_FIRE_ROUTE_VISUALS,
   PHASE5_UPDATED_AT,
   type DepremPhase5Override,
 } from "./deprem-phase5-shared";
-
-export const DEPREM_PHASE5_FIRE_ROUTE_COMPARTMENT: DepremPhase5Override = {
-  slug: "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma",
-  title: "Yangın Bölmesi, Koridor ve Kaçış Yolu Boyutlandırma",
-  description: "Yangın kompartımanı, koridor, kapı ve kaçış yolunu ayrı elemanlar yerine aynı tahliye ve yangın sınırlama zincirinin parçaları olarak ele alır; kullanıcı yükü, güzergâh sürekliliği, daralma noktaları, kompartıman dayanımı ve disiplinler arası geçiş detaylarını proje kontrol akışına dönüştürür.",
-  seoTitle: "Yangın Bölmesi, Koridor ve Kaçış Yolu Boyutlandırma | BYKHY",
-  seoDescription: "Yangın kompartımanı, kaçış koridoru ve çıkış yolunda kullanıcı yükü, 60 dakika kompartıman, 21,50/30,50 m yüksek bina koşulları, daralma ve süreklilik kontrolleri.",
-  updatedAt: PHASE5_UPDATED_AT,
-  readTime: "16 dk",
-  image: PHASE5_FIRE_ROUTE_VISUALS.cover,
-  relatedSlugs: [
-    "kacis-merdiveni-tasarim-kriterleri",
-    "yangin-kapisi-dosleme-duvar-gecis-detaylari",
-    "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9",
-  ],
-  sections: [
-    {
-      id: "kompartiman-kacis-ayni-zincir",
-      title: "Yangın kompartımanı ve kaçış yolu aynı güvenlik zincirinin iki farklı işlevidir",
-      content: phase5Lines(
-        "**Yangın kompartımanı** yangını, ısıyı ve dumanı belirli bir bölgede sınırlamaya; **kaçış yolu** ise kullanıcıyı bulunduğu noktadan güvenli alana kesintisiz ulaştırmaya çalışır. Birinin başarısı diğerinin hatasını otomatik olarak telafi etmez. Çok iyi ayrılmış bir kompartımanın çıkış koridoru daralıyorsa tahliye aksar; geniş bir koridorun kompartıman duvarı veya tesisat geçişi süreksizse duman ve ısı kaçış yoluna taşınabilir.",
-        "",
-        "Bu nedenle mimari yangın kontrolünde duvar, kapı, koridor, merdiven ve son çıkış tek pafta zinciri üzerinde izlenmelidir. Projede her kaçış güzergâhının başlangıç noktası, kat çıkışı, merdiven bağlantısı ve bina dışındaki güvenli alana ulaşımı kesintisiz okunabilmelidir.",
-        "",
-        `![Yangın bölmesi, koridor ve kaçış yolu teknik kontrol şeması](${PHASE5_FIRE_ROUTE_VISUALS.diagram})`,
-        "*Kompartıman sınırı ile kullanıcı akışını aynı plan üzerinde ilişkilendiren deterministik teknik şema.*",
-        "{figure:F1 | note:Şema, makaledeki kontrol zincirini görselleştirir; projeye özgü kullanıcı yükü hesabı ve yürürlükteki yönetmelik kontrolünün yerine geçmez. | source:Mühendislik Site — makale içeriğinden türetilmiş teknik şema | lightbox:true}"
-      ),
-      subsections: [],
-    },
-    {
-      id: "kompartiman-madde24",
-      title: "Kompartıman sınırında yalnız duvarı değil döşeme, kapı ve bütün geçişleri birlikte doğrulayın",
-      content: phase5Lines(
-        "BYKHY tanımında yangın kompartımanı; tavan ve taban döşemesi dâhil çevresini oluşturan yapı elemanlarıyla yangın, duman ve ısı geçişini sınırlandıran bölgedir. Yönetmelik tanımındaki temel dayanım seviyesi **en az 60 dakika**dır; ancak ilgili kullanım, eleman veya özel hüküm daha yüksek performans gerektirebilir.",
-        "",
-        "BYKHY **Madde 24** kapsamında yüksek katlı kullanımlarda düşey kompartımanlaşma ayrıca önem kazanır. Bina yüksekliği **21,50 m'den fazla konut dışı** binalarda ve bina yüksekliği **30,50 m'den fazla konutlarda**, belirtilen seviyelerin üzerindeki katlarda en çok **3 kat** bir yangın kompartımanı olarak düzenlenir. Proje tarihinde güncel konsolide metin ve ilgili dipnotlar ayrıca doğrulanmalıdır.",
-        "",
-        "| Kompartıman arayüzü | Projede kontrol | Hata sonucu |",
-        "|---|---|---|",
-        "| Duvar / döşeme | Gerekli yangın dayanımı ve süreklilik | Alev ve ısı komşu bölgeye geçebilir |",
-        "| Yangın kapısı | Dayanım, duman kontrolü, kendiliğinden kapanma | Korunan sınır kapı açıklığında kaybolabilir |",
-        "| Tesisat penetrasyonu | Uygun firestop ve servis detayının sürekliliği | Küçük açıklık bütün kompartımanı zayıflatabilir |",
-        "| Cephe / şaft birleşimi | Döşeme kenarı ve düşey boşlukların yalıtımı | Katlar arası gizli yayılım oluşabilir |"
-      ),
-      subsections: [],
-    },
-    {
-      id: "kullanici-yuku-kapasite",
-      title: "Kaçış yolu genişliğini bina toplamından değil ilgili katın kullanıcı yükü ve güzergâhından çözün",
-      content: phase5Lines(
-        "Bakanlık kılavuzu, çok katlı bir binada kaçış yolu genişliklerinin bütün binanın toplam kullanıcı yüküne göre değil, **her kat için o kattaki kullanıcı yüküne göre** hesaplanması gerektiğini açıklar. Zemin seviyesinde güvenli alana açılan ortak koridor, hol veya merdiven ağzı ise kendisine bağlanan katlar içinde en büyük gerekli kapasitenin altında bırakılamaz.",
-        "",
-        "Bu yaklaşım, yalnız net koridor genişliğini ölçmekten daha kapsamlıdır. Kapı kanadı, turnike, dolap, kolon çıkıntısı, tesisat şaftı, yangın dolabı veya mimari niş nedeniyle oluşan **daralma noktaları** gerçek kaçış kapasitesini belirler. Kaçış yolundaki seri elemanlardan en dar olanı sistemin darboğazı hâline gelir.",
-        "",
-        "Asansör normal kaçış yolu olarak kabul edilmez. Kaçış yolu; oda veya bağımsız bölüm çıkışından koridora, kat çıkışına, merdivene, zemin kattaki son çıkışa ve bina dışındaki güvenli alana kadar devam eden bir güzergâh olarak okunmalıdır."
-      ),
-      subsections: [],
-    },
-    {
-      id: "koridor-kapi-daralma",
-      title: "Koridor ve kapı ölçüsünü tek noktada değil bütün rota boyunca net açıklık olarak kontrol edin",
-      content: phase5Lines(
-        "Kaçış rotasında çizimde yazan nominal ölçü ile kullanıcıya gerçekten kalan **net açıklık** aynı olmayabilir. Özellikle kapı kasası, açık kapı kanadı, korkuluk, tesisat kutusu veya dekoratif eleman koridoru daraltıyorsa paftadaki genel genişlik değeri güvenli kapasiteyi temsil etmez.",
-        "",
-        "Yangın kapısında Batch 2'de doğrulanan **80 cm net genişlik / 200 cm net yükseklik** asgari geometrisi yalnız başlangıç kontrolüdür. Kullanıcı yükü daha büyük açıklık gerektiriyorsa hesaplanan değer esas alınır. Kapı açılma yönü ve kapının açık konumda başka bir kaçış kolunu daraltıp daraltmadığı da birlikte kontrol edilir.",
-        "",
-        "Koridor geometrisini kontrol ederken plan üzerinde tek bir ölçü yazmak yerine; güzergâhın en dar üç-beş kesitini ölçülendirip kapı açılımı ve sabit ekipmanlarla birlikte net geçiş zarfını gösterin."
-      ),
-      subsections: [],
-    },
-    {
-      id: "proje-koordinasyonu",
-      title: "Yangın bölmesi mimari çizgide başlayıp mekanik ve elektrik penetrasyonlarında devam eder",
-      content: phase5Lines(
-        "Kompartıman duvarı üzerinden geçen havalandırma kanalı, kablo tavası, boru, busbar veya şaft ağzı proje koordinasyonunun kritik arayüzüdür. Mimari paftada kesintisiz görünen bir yangın bölmesi, mekanik veya elektrik projesindeki kontrolsüz bir geçiş nedeniyle sahada süreksiz hâle gelebilir.",
-        "",
-        "Pafta koordinasyonunda her kompartıman sınırına benzersiz bir kod verin ve bu kodu mimari, mekanik ve elektrik detaylarında kullanın. Kapı, damper, firestop, şaft kapaması ve döşeme kenarı bariyerleri aynı sınır koduna bağlandığında saha kabulü izlenebilir olur.",
-        "",
-        "Kaçış koridoruna açılan tesisat hacimleri ve kapılar da kullanıcı akışını bozmamalı; bakım sırasında açık bırakılan ekipmanların dahi kaçış genişliğini kapatmayacağı bir yerleşim kurulmalıdır."
-      ),
-      subsections: [],
-    },
-    {
-      id: "teknik-sorumluluk-yanlis-uygulama",
-      title: "Teknik sorumluluk hesaplanan kaçış kapasitesinin sahadaki en dar noktaya kadar korunmasını doğrulamaktır",
-      content: phase5Lines(
-        "**Teknik sorumluluk**, kullanıcı yükünden çıkan kaçış kapasitesini mimari plan, yangın kapıları, kompartıman sınırları ve disiplinler arası geçiş detayları boyunca korumak; revizyon sonrasında yeni bir daralma veya süreksizlik oluşmadığını doğrulamaktır.",
-        "",
-        "Yanlış uygulamanın tipik örneği, ruhsat projesinde yeterli görülen koridora sonradan şaft, dolap veya kapı kanadı eklenmesidir. Benzer şekilde yangın duvarındaki küçük bir kablo geçişinin harçla gelişigüzel kapatılması, test edilmiş firestop sisteminin yerini tutmaz.",
-        "",
-        "Saha kabulünde rota boyunca net genişlik ölçümü, kapı fonksiyon testi ve kompartıman penetrasyon fotoğrafları aynı kontrol kaydında tutulmalıdır."
-      ),
-      subsections: [],
-    },
-    {
-      id: "muhendislik-kontrol-listesi",
-      title: "Mühendislik kontrol listesi",
-      content: phase5Lines(
-        "- [ ] Her katın **kullanıcı yükünü** ve buna bağlı kaçış kapasitesini ayrı doğruladım.",
-        "- [ ] Kompartıman sınırında duvar, döşeme, kapı, şaft ve penetrasyon sürekliliğini birlikte kontrol ettim.",
-        "- [ ] **Madde 24** kapsamındaki **21,50 m / 30,50 m / 3 kat** kompartıman koşulunu proje için doğruladım.",
-        "- [ ] Kaçış rotasındaki bütün **daralma** noktalarını net açıklık olarak ölçülendirdim.",
-        "- [ ] Kapı açılımlarının koridor veya merdiven kapasitesini azaltmadığını kontrol ettim.",
-        "- [ ] Asansörü normal kaçış yolu hesabına dâhil etmedim.",
-        "- [ ] Mimari, mekanik ve elektrik penetrasyon detaylarını aynı kompartıman koduyla eşleştirdim.",
-        "- [ ] Saha kabulünde net genişlik, kapı fonksiyonu ve firestop kayıtlarını izlenebilir tuttum."
-      ),
-      subsections: [],
-    },
-  ],
-  references: firePhase5References("Madde 24 ve kaçış yolları/yangın kompartımanı hükümleri"),
-  keywords: ["yangın kompartımanı", "kaçış yolu", "koridor", "kullanıcı yükü", "Madde 24", "60 dakika", "daralma"],
-  tags: ["yangın", "kaçış", "kompartıman", "koridor", "BYKHY"],
-};
 
 export const DEPREM_PHASE5_FIRE_HIGH_RISE: DepremPhase5Override = {
   slug: "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9",
@@ -369,7 +253,6 @@ export const DEPREM_PHASE5_FIRE_SPECIAL_AREAS: DepremPhase5Override = {
 };
 
 export const DEPREM_PHASE5_BATCH_3_ARTICLES = [
-  DEPREM_PHASE5_FIRE_ROUTE_COMPARTMENT,
   DEPREM_PHASE5_FIRE_HIGH_RISE,
   DEPREM_PHASE5_FIRE_SPECIAL_AREAS,
 ] as const;

@@ -6,11 +6,6 @@ export const FIRE_GUIDE_PAGE = "https://meslekihizmetler.csb.gov.tr/haberler/bin
 export const FIRE_GUIDE_PDF = "https://webdosya.csb.gov.tr/v2/meslekihizmetler/2026/05/Binalar-n-Yang-n-Korunmas-Hakk-nda-Y-netmelik-K-lavuzu-20260507112134.pdf";
 export const FIRE_2025_AMENDMENT = "https://www.resmigazete.gov.tr/eskiler/2025/07/20250701-9.pdf";
 
-export const PHASE5_FIRE_ROUTE_VISUALS = {
-  cover: "/images/deprem-phase5/yangin-bolmesi-koridoru-kacis-yolu-cover.svg",
-  diagram: "/images/deprem-phase5/yangin-bolmesi-koridoru-kacis-yolu-diagram.svg",
-} as const;
-
 export function phase5Lines(...parts: string[]) {
   return parts.join("\n");
 }
@@ -23,7 +18,6 @@ export interface DepremPhase5Override {
   seoDescription: string;
   updatedAt: string;
   readTime: string;
-  image?: string;
   sections: ArticleData["sections"];
   relatedSlugs?: string[];
   references: NonNullable<ArticleData["references"]>;

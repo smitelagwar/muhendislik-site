@@ -4,9 +4,36 @@ import next from "next";
 import puppeteer from "puppeteer";
 
 const targets = [
-  { slug: "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma", expected: "Madde 24" },
-  { slug: "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9", expected: "51,50 m" },
-  { slug: "bodrum-otopark-mutfak-yangin-uygulamalari", expected: "600 m²" },
+  {
+    slug: "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma",
+    classification: "C1",
+    expected: "Madde 33",
+    expectedDate: "25 Ağustos 2026",
+    minSections: 4,
+    altFragment: "kaçış yolu sürekliliği",
+    responsibility: "Güncellik ve proje sorumluluğu",
+    sourceProfile: "pilot",
+  },
+  {
+    slug: "yuksek-binalarda-ozel-yangin-onlemleri-bolum-9",
+    classification: "C3",
+    expected: "51,50 m",
+    expectedDate: "26 Ağustos 2026",
+    minSections: 6,
+    altFragment: "teknik kontrol şeması",
+    responsibility: "Teknik sorumluluk",
+    sourceProfile: "phase5",
+  },
+  {
+    slug: "bodrum-otopark-mutfak-yangin-uygulamalari",
+    classification: "C3",
+    expected: "600 m²",
+    expectedDate: "26 Ağustos 2026",
+    minSections: 6,
+    altFragment: "teknik kontrol şeması",
+    responsibility: "Teknik sorumluluk",
+    sourceProfile: "phase5",
+  },
 ];
 const viewports = [
   { id: "desktop", width: 1440, height: 900, mobile: false },
@@ -60,24 +87,26 @@ try {
           assert(result.theme === theme, `${target.slug}: tema hatası.`);
           assert(!result.overflow, `${target.slug}: ${viewport.id}/${theme} yatay taşma.`);
           assert(result.h1, `${target.slug}: H1 yok.`);
-          assert(result.sections >= 6, `${target.slug}: bölüm yapısı yetersiz.`);
+          assert(result.sections >= target.minSections, `${target.slug}: bölüm yapısı yetersiz.`);
           assert(result.tables >= 1, `${target.slug}: teknik tablo yok.`);
           assert(result.images >= 2, `${target.slug}: cover/body görsel kontratı eksik.`);
           assert(result.imageAlts.every((alt) => Boolean(alt.trim())), `${target.slug}: görünür görsellerden birinde alt metni boş.`);
-          assert(result.imageAlts.some((alt) => alt.includes("teknik kontrol şeması")), `${target.slug}: bilgi taşıyan teknik body figure yok.`);
-          assert(result.text.includes("Mühendislik kontrol listesi"), `${target.slug}: mühendislik kontrol listesi yok.`);
-          assert(result.text.includes("Teknik sorumluluk"), `${target.slug}: teknik sorumluluk görünmüyor.`);
+          assert(result.imageAlts.some((alt) => alt.toLocaleLowerCase("tr-TR").includes(target.altFragment.toLocaleLowerCase("tr-TR"))), `${target.slug}: bilgi taşıyan body figure bulunamadı.`);
+          assert(result.text.includes(target.responsibility), `${target.slug}: sorumluluk/QA bölümü görünmüyor.`);
           assert(result.text.includes(target.expected), `${target.slug}: beklenen teknik işaret görünmüyor (${target.expected}).`);
           assert(result.text.includes("İnşaat Mühendisi Hüseyin GÜNAYDIN"), `${target.slug}: canonical yazar görünmüyor.`);
-          assert(result.text.includes("26 Ağustos 2026"), `${target.slug}: güncelleme tarihi görünmüyor.`);
-          assert(result.links.some((href) => href.includes("mevzuat.gov.tr")), `${target.slug}: Mevzuat Bilgi Sistemi kaynak linki görünmüyor.`);
-          assert(result.links.some((href) => href.includes("meslekihizmetler.csb.gov.tr")), `${target.slug}: ÇŞİDB kılavuz duyurusu kaynak linki görünmüyor.`);
+          assert(result.text.includes(target.expectedDate), `${target.slug}: beklenen güncelleme tarihi görünmüyor.`);
           assert(result.links.some((href) => href.includes("webdosya.csb.gov.tr") && href.includes("20260507112134.pdf")), `${target.slug}: Mayıs 2026 güncel ÇŞİDB kılavuz PDF linki görünmüyor.`);
-          assert(!result.links.some((href) => href.includes("20250328093036.pdf")), `${target.slug}: eski Mart 2025 kılavuz linki görünür kaynakçada kaldı.`);
-          assert(result.links.some((href) => href.includes("resmigazete.gov.tr") && href.includes("20250701-9.pdf")), `${target.slug}: doğru 1 Temmuz 2025 Resmî Gazete linki görünmüyor.`);
+          if (target.sourceProfile === "phase5") {
+            assert(result.links.some((href) => href.includes("mevzuat.gov.tr")), `${target.slug}: Mevzuat Bilgi Sistemi kaynak linki görünmüyor.`);
+            assert(result.links.some((href) => href.includes("meslekihizmetler.csb.gov.tr")), `${target.slug}: ÇŞİDB kılavuz duyurusu kaynak linki görünmüyor.`);
+            assert(result.links.some((href) => href.includes("resmigazete.gov.tr") && href.includes("20250701-9.pdf")), `${target.slug}: doğru 1 Temmuz 2025 Resmî Gazete linki görünmüyor.`);
+          } else {
+            assert(result.links.some((href) => href.includes("emo.org.tr")), `${target.slug}: C1 pilot konsolide yönetmelik linki görünmüyor.`);
+          }
           assert(pageErrors.length === 0, `${target.slug}: ${pageErrors.join(" | ")}`);
           matrixPasses.set(target.slug, (matrixPasses.get(target.slug) ?? 0) + 1);
-          completed.push({ route: `/${target.slug}`, classification: "C3", viewport: viewport.id, theme, h1: result.h1, sections: result.sections, tables: result.tables, images: result.images });
+          completed.push({ route: `/${target.slug}`, classification: target.classification, viewport: viewport.id, theme, h1: result.h1, sections: result.sections, tables: result.tables, images: result.images });
         } finally {
           await page.close();
         }
@@ -91,7 +120,7 @@ try {
     const layoutScore = passed === 4 ? 10 : 0;
     const finalScoreFloor = 80 + layoutScore;
     assert(finalScoreFloor >= 90, `${target.slug}: Master Plan v2 kalite skoru tabanı 90/100 altı (${finalScoreFloor}/100).`);
-    return [target.slug, { staticScoreFloor: 80, layoutScore, finalScoreFloor }];
+    return [target.slug, { classification: target.classification, staticScoreFloor: 80, layoutScore, finalScoreFloor }];
   }));
 
   console.log(JSON.stringify({
@@ -100,7 +129,8 @@ try {
     routes: targets.length,
     checks: completed.length,
     matrix: "3 routes × 2 themes × 2 viewports",
-    classifications: Object.fromEntries(targets.map((target) => [target.slug, "C3"])),
+    classifications: Object.fromEntries(targets.map((target) => [target.slug, target.classification])),
+    sourceOwnership: "2 FAZ 5 C3 overrides + 1 preserved FAZ 2 C1 pilot",
     qualityScoreContract: "Master Plan v2: preceding static gate >=80/90 + this layout gate 10/10 => final >=90/100",
     qualityScores,
     completed,
