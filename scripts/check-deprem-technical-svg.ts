@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { getDepremVisualSpec } from "../src/lib/deprem-visual-spec";
 import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual-router";
 import {
-  DEPREM_TECHNICAL_VISUAL_ROLLOUT,
+  DEPREM_TECHNICAL_VISUAL_REGISTRY,
   DEPREM_TECHNICAL_VISUAL_STYLE,
-} from "../src/lib/deprem-visual-rollout";
+} from "../src/lib/deprem-visual-rollout-registry";
 
 const fail = (message: string) => {
   console.error(`FAIL — ${message}`);
@@ -29,7 +29,7 @@ const forbiddenLegacyTokens = [
 const hashes = new Map<string, string>();
 let renderedCount = 0;
 
-for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.status === "complete")) {
+for (const item of DEPREM_TECHNICAL_VISUAL_REGISTRY.filter((entry) => entry.status === "complete")) {
   const spec = getDepremVisualSpec(item.slug);
   if (!spec) {
     fail(`${item.slug}: deprem görsel spec bulunamadı`);
@@ -71,7 +71,7 @@ for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.statu
   }
 }
 
-if (renderedCount !== DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.status === "complete").length * 2) {
+if (renderedCount !== DEPREM_TECHNICAL_VISUAL_REGISTRY.filter((entry) => entry.status === "complete").length * 2) {
   fail("Tamamlanan her konu için tam iki teknik asset üretilemedi");
 } else {
   pass(`${renderedCount} teknik SVG; renk, farklılık ve sadelik kapısından geçti`);
