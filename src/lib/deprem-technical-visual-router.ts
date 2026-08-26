@@ -7,6 +7,7 @@ import { renderTbdyTechnicalVisual3Svg, TBDY_TECHNICAL_VISUAL_3_SLUGS } from "./
 import { renderTbdyTechnicalVisual4Svg, TBDY_TECHNICAL_VISUAL_4_SLUGS } from "./deprem-technical-visual-tbdy-4";
 import { renderTbdyTechnicalVisual5Svg, TBDY_TECHNICAL_VISUAL_5_SLUGS } from "./deprem-technical-visual-tbdy-5";
 import { renderTbdyTechnicalVisual6Svg, TBDY_TECHNICAL_VISUAL_6_SLUGS } from "./deprem-technical-visual-tbdy-6";
+import { renderTbdyTechnicalVisual7Svg, TBDY_TECHNICAL_VISUAL_7_SLUGS } from "./deprem-technical-visual-tbdy-7";
 
 export type DepremTechnicalVisualAsset = "cover" | "diagram";
 
@@ -27,5 +28,6 @@ export function renderDepremTechnicalVisualSvg(spec: DepremRolloutSpec, asset: D
   if (TBDY_TECHNICAL_VISUAL_4_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisual4Svg(spec, asset);
   if (TBDY_TECHNICAL_VISUAL_5_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisual5Svg(spec, asset);
   if (TBDY_TECHNICAL_VISUAL_6_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisual6Svg(spec, asset);
+  if (TBDY_TECHNICAL_VISUAL_7_SLUGS.has(spec.slug)) return renderTbdyTechnicalVisual7Svg(spec, asset);
   throw new Error(`Teknik görsel router eşleşmesi yok: ${spec.slug}`);
 }
