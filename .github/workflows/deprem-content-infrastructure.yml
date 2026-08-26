@@ -72,6 +72,7 @@ on:
       - scripts/check-deprem-phase6-batch5-render.mjs
       - scripts/check-deprem-phase7.ts
       - scripts/check-deprem-phase7-render.mjs
+      - scripts/check-deprem-phase8.ts
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -102,6 +103,8 @@ jobs:
       # Canonical public BEP routes are enriched in place; this gate must run before global QA.
       - name: FAZ 7 technical content contract
         run: npx tsx scripts/check-deprem-phase7.ts
+      - name: FAZ 8 global editorial and IA contract
+        run: npm run check:deprem-phase8
       - name: Deprem infrastructure contract
         run: npm run check:deprem-infrastructure
       - name: FAZ 2 pilot content contract
