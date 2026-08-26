@@ -63,11 +63,12 @@ const METADATA_ROUTE_FILES = [
   "src/app/kullanim-kosullari/page.tsx",
   "src/app/kaydedilenler/page.tsx",
   "src/app/kategori/araclar/page.tsx",
-  "src/app/hesaplamalar/page.tsx",
+  "src/app/hesaplamalar/layout.tsx",
   "src/app/kategori/bina-asamalari/page.tsx",
   "src/app/kategori/deprem-yonetmelik/page.tsx",
 ];
 const kategoriStaticSlugs = new Set<string>(getKategoriStaticParams().map((item) => item.slug));
+const liveToolHrefs = new Set<string>(getLiveTools().map((tool) => tool.href));
 const RESERVED_CONTENT_SLUGS = new Set(["admin"]);
 
 function addProblem(problems: Problem[], scope: string, message: string) {
@@ -112,13 +113,22 @@ function fileExists(relativePath: string) {
 }
 
 function checkRouteExists(href: string, label: string, problems: Problem[]) {
-  const routePath = path.join(process.cwd(), routeFileFromHref(href));
+  const pathname = href.split(/[?#]/)[0];
+  const routePath = path.join(process.cwd(), routeFileFromHref(pathname));
   if (fs.existsSync(routePath)) {
     return;
   }
 
-  if (href.startsWith("/kategori/")) {
-    const slug = href.replace("/kategori/", "");
+  if (
+    pathname.startsWith("/kategori/araclar/") &&
+    liveToolHrefs.has(pathname) &&
+    fs.existsSync(path.join(process.cwd(), "src/app/kategori/araclar/[slug]/page.tsx"))
+  ) {
+    return;
+  }
+
+  if (pathname.startsWith("/kategori/")) {
+    const slug = pathname.replace("/kategori/", "");
     if (kategoriStaticSlugs.has(slug) && fs.existsSync(path.join(process.cwd(), "src/app/kategori/[slug]/page.tsx"))) {
       return;
     }
