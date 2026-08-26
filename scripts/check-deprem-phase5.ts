@@ -26,12 +26,20 @@ const ISG_BATCH_4_SLUGS = [
   "isg-kazi-guvenligi-iksa-tasarimi-ve-kontrol",
   "isg-beton-dokumunde-topraklama-ve-elektrik-guvenligi",
 ] as const;
-const PHASE5_C3_SLUGS = [...FIRE_C3_SLUGS, ...ISG_BATCH_4_SLUGS] as const;
+const CEVRE_BATCH_5_SLUGS = [
+  "cevre-ced-zorunlulugu-proje-buyuklugu-esikleri",
+  "cevre-insaat-atigi-yonetimi-yonetmeligi",
+  "cevre-gurultu-ve-toz-santiye-yukumlulukleri",
+  "cevre-yagmur-suyu-kirliligi-ve-santiye-filtrasyonu",
+] as const;
+const PHASE5_C3_SLUGS = [...FIRE_C3_SLUGS, ...ISG_BATCH_4_SLUGS, ...CEVRE_BATCH_5_SLUGS] as const;
 type Phase5C3Slug = (typeof PHASE5_C3_SLUGS)[number];
 const FIRE_SET = new Set<string>(FIRE_C3_SLUGS);
 const ISG_SET = new Set<string>(ISG_BATCH_4_SLUGS);
+const CEVRE_SET = new Set<string>(CEVRE_BATCH_5_SLUGS);
 const C1_FIRE_PILOT = "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma" as const;
 const EXCAVATION_SLUG = "isg-kazi-guvenligi-iksa-tasarimi-ve-kontrol" as const;
+const CED_SLUG = "cevre-ced-zorunlulugu-proje-buyuklugu-esikleri" as const;
 
 const requiredTokens: Record<Phase5C3Slug, string[]> = {
   "byy-bina-kullanim-siniflari-tehlike-kategorileri": ["Madde 8", "Madde 18", "Madde 19", "Ek-1/A", "Ek-1/B", "Ek-1/C", "30 dakika", "126 m²", "su ve pompa kapasitesi", "Mühendislik kontrol listesi"],
@@ -48,6 +56,10 @@ const requiredTokens: Record<Phase5C3Slug, string[]> = {
   "isg-yuksekte-calisma-ve-iskele-guvenligi": ["seviye farkı", "toplu korunma", "1 metre", "125 kilogram", "15 santimetre", "47 santimetre", "TS EN 12810-1", "25,5 metre", "statik hesap", "Mühendislik kontrol listesi"],
   "isg-kazi-guvenligi-iksa-tasarimi-ve-kontrol": ["zemin", "şev", "statik hesabı", "iksa", "yeraltı hizmetleri", "fazla yük", "su", "titreşim", "deformasyon", "iş durdurma", "Mühendislik kontrol listesi"],
   "isg-beton-dokumunde-topraklama-ve-elektrik-guvenligi": ["300 mA", "30 mA", "topraklama", "etiketleme-kilitleme", "LOTO", "geçici elektrik", "beton pompası", "Mühendislik kontrol listesi"],
+  "cevre-ced-zorunlulugu-proje-buyuklugu-esikleri": ["2026/4", "5 Mart 2026", "33187", "Ek-1", "Ek-2", "ÇED Raporu Hazırlanmalıdır", "ÇED Olumlu", "200 konut", "proje tarihinde", "Mühendislik kontrol listesi"],
+  "cevre-insaat-atigi-yonetimi-yonetmeligi": ["18.03.2004", "25406", "Madde 9", "Madde 23", "2 tondan fazla", "Atık taşıma ve kabul", "ayrı toplamak", "izinli", "taslak", "Mühendislik kontrol listesi"],
+  "cevre-gurultu-ve-toz-santiye-yukumlulukleri": ["30 Kasım 2022", "32029", "100 dBC", "10:00-22:00", "TS ISO 1996-1", "TS ISO 1996-2", "TS 13633", "TS 13883", "yıkım", "toz", "Mühendislik kontrol listesi"],
+  "cevre-yagmur-suyu-kirliligi-ve-santiye-filtrasyonu": ["Su Kirliliği Kontrolü Yönetmeliği", "31.12.2004", "25687", "yağmur suyu hattı", "atıksu", "çöktürme", "sediment", "beton yıkama", "19 Mayıs 2026", "Mogan", "Mühendislik kontrol listesi"],
 };
 
 const isgSourceFragments: Record<(typeof ISG_BATCH_4_SLUGS)[number], string[]> = {
@@ -57,14 +69,20 @@ const isgSourceFragments: Record<(typeof ISG_BATCH_4_SLUGS)[number], string[]> =
   "isg-kazi-guvenligi-iksa-tasarimi-ve-kontrol": ["kazi-isleri", "yapi_i", "6331_isgkanunu"],
   "isg-beton-dokumunde-topraklama-ve-elektrik-guvenligi": ["elektrik-isleri", "is-ekipmanlari", "6331_isgkanunu"],
 };
+const cevreSourceFragments: Record<(typeof CEVRE_BATCH_5_SLUGS)[number], string[]> = {
+  "cevre-ced-zorunlulugu-proje-buyuklugu-esikleri": ["20220729-2.htm", "20260305-3.htm", "ced-yonetmeligi-uygulamalarina-dair-genelge-304302", "moeucc-esmf"],
+  "cevre-insaat-atigi-yonetimi-yonetmeligi": ["yonetmelikler-440", "insaat-ve-yikinti-atiklari-ile-ilgili-mevzuat-ve-uygulamalar", "taslaklar-443"],
+  "cevre-gurultu-ve-toz-santiye-yukumlulukleri": ["20221130-1.htm", "cygm.csb.gov.tr", "20211013-1.htm"],
+  "cevre-yagmur-suyu-kirliligi-ve-santiye-filtrasyonu": ["su-k-rl-l-g--kontrolu-yonetmel-g", "yonetmelikler-440", "mogan-golundeki-kirlilige-ceza"],
+};
 
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 const textOf = (sections: { title: string; content: string }[]) => sections.map((section) => `${section.title}\n${section.content}`).join("\n");
 const lower = (value: string) => value.toLocaleLowerCase("tr-TR");
 
-assert(DEPREM_PHASE5_ARTICLES.length === 14, `FAZ 5 C3 override sayısı 14 olmalı; bulunan ${DEPREM_PHASE5_ARTICLES.length}.`);
-assert(DEPREM_PHASE5_SLUGS.size === 14, "FAZ 5 C3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(DEPREM_PHASE5_ARTICLES.length === 18, `FAZ 5 C3 override sayısı 18 olmalı; bulunan ${DEPREM_PHASE5_ARTICLES.length}.`);
+assert(DEPREM_PHASE5_SLUGS.size === 18, "FAZ 5 C3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of PHASE5_C3_SLUGS) assert(DEPREM_PHASE5_SLUGS.has(slug), `FAZ 5 C3 slug eksik: ${slug}`);
 assert(DEPREM_PILOT_SLUGS.has(C1_FIRE_PILOT), `FAZ 2 C1 Yangın pilotu bulunamadı: ${C1_FIRE_PILOT}`);
 assert(!DEPREM_PHASE5_SLUGS.has(C1_FIRE_PILOT), `C1 pilot FAZ 5 override ile tekrar sahiplenilmiş: ${C1_FIRE_PILOT}`);
@@ -84,29 +102,36 @@ for (const slug of PHASE5_C3_SLUGS) {
   if (!configured) continue;
   const isFire = FIRE_SET.has(slug);
   const isIsg = ISG_SET.has(slug);
-  assert(isFire !== isIsg, `FAZ 5 seri sınıflaması belirsiz: ${slug}`);
+  const isCevre = CEVRE_SET.has(slug);
+  assert(Number(isFire) + Number(isIsg) + Number(isCevre) === 1, `FAZ 5 seri sınıflaması belirsiz: ${slug}`);
   assert(!TS500_SLUGS.has(slug), `FAZ 5 TS500 kapsamına taşmış: ${slug}`);
   assert(!DEPREM_PILOT_SLUGS.has(slug), `FAZ 5 C3 pilot ile çakışıyor: ${slug}`);
   assert(!DEPREM_PHASE3_SLUGS.has(slug) && !DEPREM_PHASE4_SLUGS.has(slug), `FAZ 5 önceki faz source-of-truth ile çakışıyor: ${slug}`);
   assert(configured.sections.length >= 6, `FAZ 5 profesyonel bölüm sayısı yetersiz: ${slug}`);
-  assert(configured.references.length >= (isFire ? 4 : 3), `FAZ 5 doğrulanabilir referans sayısı yetersiz: ${slug}`);
+  const minReferences = isFire || slug === CED_SLUG ? 4 : 3;
+  assert(configured.references.length >= minReferences, `FAZ 5 doğrulanabilir referans sayısı yetersiz: ${slug}`);
 
+  const hrefs = configured.references.map((ref) => ref.href ?? "");
   let sourcesOk = false;
   if (isFire) {
-    const hrefs = configured.references.map((ref) => ref.href ?? "");
     sourcesOk = hrefs.some((href) => href.includes("mevzuat.gov.tr"))
       && hrefs.some((href) => href.includes("meslekihizmetler.csb.gov.tr/haberler/binalarin-yangindan-korunmasi-hakkinda-yonetmelik-kilavuzu"))
       && hrefs.some((href) => href.includes("20260507112134.pdf"))
       && hrefs.some((href) => href.includes("20250701-9.pdf"));
     assert(sourcesOk, `Yangın resmî kaynak profili eksik: ${slug}`);
     assert(!hrefs.some((href) => href.includes("20250328093036.pdf")), `Eski Mart 2025 yangın kılavuzu kaldı: ${slug}`);
-  } else {
-    const hrefs = configured.references.map((ref) => ref.href ?? "");
+  } else if (isIsg) {
     const fragments = isgSourceFragments[slug as (typeof ISG_BATCH_4_SLUGS)[number]];
     sourcesOk = hrefs.every((href) => href.includes("csgb.gov.tr")) && fragments.every((fragment) => hrefs.some((href) => href.includes(fragment)));
     assert(hrefs.every((href) => href.includes("csgb.gov.tr")), `İSG kaynağı resmî ÇSGB alanında değil: ${slug}`);
     for (const fragment of fragments) assert(hrefs.some((href) => href.includes(fragment)), `İSG resmî kaynak işareti eksik (${fragment}): ${slug}`);
     assert(!hrefs.some((href) => href.includes("MevzuatNo=200712937")), `İSG makalesine Yangın kaynak profili taşınmış: ${slug}`);
+  } else {
+    const fragments = cevreSourceFragments[slug as (typeof CEVRE_BATCH_5_SLUGS)[number]];
+    const officialDomainsOk = hrefs.every((href) => href.includes("csb.gov.tr") || href.includes("resmigazete.gov.tr"));
+    sourcesOk = officialDomainsOk && fragments.every((fragment) => hrefs.some((href) => href.includes(fragment)));
+    assert(officialDomainsOk, `Çevre kaynağı resmî ÇŞİDB/Resmî Gazete alanında değil: ${slug}`);
+    for (const fragment of fragments) assert(hrefs.some((href) => href.includes(fragment)), `Çevre resmî kaynak işareti eksik (${fragment}): ${slug}`);
   }
 
   const configuredText = textOf(configured.sections);
@@ -115,7 +140,7 @@ for (const slug of PHASE5_C3_SLUGS) {
   assert(!/[�ÃÄÅÂ]/.test(configuredText), `Encoding şüphesi: ${slug}`);
   assert(!configuredText.includes("/deprem-yonetmelik/araclar/"), `Eski araç route'u FAZ 5 gövdesinde kaldı: ${slug}`);
   assert(!configuredText.includes("Mevzuat kapsamı ve kritik eşikler\n") && !configuredText.includes("Proje ve saha için minimum kontrol zinciri\n"), `Jenerik normalizer başlığı kaldı: ${slug}`);
-  const depthSignals = isFire ? ["proje", "sorumluluk", "yanlış", "kontrol listesi"] : ["risk", "kontrol", "sorumluluk", "kontrol listesi"];
+  const depthSignals = isFire ? ["proje", "sorumluluk", "yanlış", "kontrol listesi"] : isIsg ? ["risk", "kontrol", "sorumluluk", "kontrol listesi"] : ["kontrol", "sorumluluk", "yanlış", "kontrol listesi"];
   for (const signal of depthSignals) assert(configuredLower.includes(signal), `Profesyonel derinlik sinyali eksik (${signal}): ${slug}`);
   assert(configuredText.includes("|---"), `Gerçek teknik tablo bulunamadı: ${slug}`);
   const measurableOk = /\d/.test(configuredText) || (slug === EXCAVATION_SLUG && ["statik hesabı", "deformasyon", "iş durdurma"].every((token) => configuredLower.includes(token)));
@@ -124,12 +149,19 @@ for (const slug of PHASE5_C3_SLUGS) {
   if (slug === "yangin-algilama-ve-ihbar-sistemi-gereksinimleri") {
     assert(configuredText.includes("iptal") && configuredText.includes("eski") && configuredText.includes("güncel konsolide"), "Ek-7 Danıştay iptal/güncel konsolide ayrımı açık değil.");
   }
+  if (slug === "cevre-insaat-atigi-yonetimi-yonetmeligi") {
+    assert(configuredLower.includes("taslak") && configured.references.some((ref) => ref.href?.includes("taslaklar-443")), "Çevre atık makalesinde yürürlük/taslak ayrımı yok.");
+  }
+  if (slug === "cevre-gurultu-ve-toz-santiye-yukumlulukleri") {
+    assert(configuredLower.includes("yıkım") && configuredLower.includes("genel inşaat"), "Gürültü/toz makalesinde yıkım-standart kapsam ayrımı açık değil.");
+  }
 
   const article = getArticleBySlug(slug);
   assert(Boolean(article), `FAZ 5 runtime makalesi bulunamadı: ${slug}`);
   if (!article) continue;
+  const expectedSeries = isFire ? "yangin" : isIsg ? "isg" : "cevre";
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${slug}`);
-  assert(article.seriesId === (isFire ? "yangin" : "isg"), `FAZ 5 C3 slug yanlış seride: ${slug} -> ${article.seriesId ?? "yok"}`);
+  assert(article.seriesId === expectedSeries, `FAZ 5 C3 slug yanlış seride: ${slug} -> ${article.seriesId ?? "yok"}`);
   assert(article.author === DEPREM_CONTENT_AUTHOR.name && article.authorTitle === "", `Canonical yazar uygulanmadı: ${slug}`);
   assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `HG monogram uygulanmadı: ${slug}`);
   assert(article.updatedAt === "26 Ağustos 2026", `updatedAt beklenenden farklı: ${slug}`);
@@ -199,20 +231,20 @@ if (errors.length) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 5",
-  completedBatches: 4,
+  completedBatches: 5,
   phase5Overrides: DEPREM_PHASE5_ARTICLES.length,
   phase2C1CarryForward: [C1_FIRE_PILOT],
-  completedArticles: 15,
+  completedArticles: 19,
   targetArticles: 19,
-  remaining: 4,
-  batch4Slugs: ISG_BATCH_4_SLUGS,
+  remaining: 0,
+  batch5Slugs: CEVRE_BATCH_5_SLUGS,
   classifications: { ...Object.fromEntries(PHASE5_C3_SLUGS.map((slug) => [slug, "C3"])), [C1_FIRE_PILOT]: "C1" },
   sourceOfTruth: "src/lib/deprem-phase5-articles.ts + preserved FAZ 2 C1 Yangın pilot",
-  officialSourceProfile: "Yangın: güncel BYKHY + ÇŞİDB Mayıs 2026 kılavuzu; İSG: ÇSGB/Güvenli İnşaat + 6331 ve konuya özgü güncel Bakanlık rehberleri",
-  visualContract: "14 rollout unique cover/body figure + 1 preserved FAZ 2 pilot unique cover/body figure",
+  officialSourceProfile: "Yangın: güncel BYKHY + ÇŞİDB Mayıs 2026 kılavuzu; İSG: ÇSGB/Güvenli İnşaat + 6331; Çevre: 2026 ÇED zinciri + yürürlükte hafriyat/atık, gürültü/yıkım ve su kirliliği ÇŞİDB/Resmî Gazete kaynakları",
+  visualContract: "18 rollout unique cover/body figure + 1 preserved FAZ 2 pilot unique cover/body figure",
   qualityScoreContract: "static subtotal >=80/90 + responsive layout QA 10/10 => final >=90/100; hard-fail assertions mandatory",
   qualityScores,
-  seriesCoverage: { yangin: 10, isg: 5, cevre: 0 },
+  seriesCoverage: { yangin: 10, isg: 5, cevre: 4 },
   targetCoverage: { yangin: 10, isg: 5, cevre: 4, total: 19 },
   ts500Touched: false,
 }, null, 2));
