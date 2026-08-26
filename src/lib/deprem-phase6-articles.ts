@@ -5,6 +5,7 @@ import { DEPREM_PHASE6_BATCH_3_ARTICLES } from "./deprem-phase6-batch3";
 import { DEPREM_PHASE6_BATCH_4_ARTICLES } from "./deprem-phase6-batch4";
 import { DEPREM_PHASE6_BATCH_5_ARTICLES } from "./deprem-phase6-batch5";
 
+// Master-plan source order: İmar -> Otopark -> Asansör -> Engelsiz Tasarım.
 export const DEPREM_PHASE6_ARTICLES = [
   ...DEPREM_PHASE6_BATCH_1_ARTICLES,
   ...DEPREM_PHASE6_BATCH_2_ARTICLES,
