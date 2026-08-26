@@ -142,7 +142,8 @@ export function getDepremRolloutVisualPath(slug: string, asset: "cover" | "diagr
 function dedupeReferences(references: NonNullable<ArticleData["references"]>) {
   const seen = new Set<string>();
   return references.filter((reference) => {
-    const key = `${reference.href ?? ""}|${reference.label}`;
+    const href = reference.href?.trim();
+    const key = href ? `href:${href}` : `label:${reference.label.trim()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
