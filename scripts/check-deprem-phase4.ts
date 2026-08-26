@@ -14,56 +14,33 @@ const BATCH_1_SLUGS = [
   "mevcut-bina-karot-beton-dayanimi",
 ] as const;
 
-type Batch1Slug = (typeof BATCH_1_SLUGS)[number];
+const BATCH_2_SLUGS = [
+  "mevcut-bina-donati-tespiti-korozyon",
+  "mevcut-bina-beklenen-dayanim-bilgi-katsayisi",
+  "mevcut-bina-sunek-gevrek-hasar-siniflamasi",
+  "mevcut-bina-dogrusal-degerlendirme-sinirlari",
+] as const;
 
-const requiredTokens: Record<Batch1Slug, string[]> = {
-  "mevcut-bina-riskli-yapi-ve-bolum-15-farki": [
-    "6306",
-    "Ek-2",
-    "15.1.6",
-    "15.1.7",
-    "riskli yapı tespiti",
-    "performans",
-    "Mühendislik kontrol listesi",
-  ],
-  "mevcut-bina-bilgi-duzeyleri": [
-    "15.2.2",
-    "BKS=3",
-    "0.75",
-    "1.00",
-    "Tablo 15.1",
-    "15.2.12",
-    "Mühendislik kontrol listesi",
-  ],
-  "mevcut-bina-tasiyici-rolove-hasar-belgeleme": [
-    "15.2.1.2",
-    "inceleme çukuru",
-    "kısa kolon",
-    "derz",
-    "15.1.6",
-    "kat + aks + eleman",
-    "Mühendislik kontrol listesi",
-  ],
-  "mevcut-bina-karot-beton-dayanimi": [
-    "15.2.4.3",
-    "15.2.5.3",
-    "100 mm",
-    "400 m²",
-    "0.85 × ortalama",
-    "%75",
-    "TS EN 12504-1",
-    "Mühendislik kontrol listesi",
-  ],
+const PHASE4_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS] as const;
+type Phase4Slug = (typeof PHASE4_SLUGS)[number];
+
+const requiredTokens: Record<Phase4Slug, string[]> = {
+  "mevcut-bina-riskli-yapi-ve-bolum-15-farki": ["6306", "Ek-2", "15.1.6", "15.1.7", "riskli yapı tespiti", "performans", "Mühendislik kontrol listesi"],
+  "mevcut-bina-bilgi-duzeyleri": ["15.2.2", "BKS=3", "0.75", "1.00", "Tablo 15.1", "15.2.12", "Mühendislik kontrol listesi"],
+  "mevcut-bina-tasiyici-rolove-hasar-belgeleme": ["15.2.1.2", "inceleme çukuru", "kısa kolon", "derz", "15.1.6", "kat + aks + eleman", "Mühendislik kontrol listesi"],
+  "mevcut-bina-karot-beton-dayanimi": ["15.2.4.3", "15.2.5.3", "100 mm", "400 m²", "0.85 × ortalama", "%75", "TS EN 12504-1", "Mühendislik kontrol listesi"],
+  "mevcut-bina-donati-tespiti-korozyon": ["15.2.4.2", "15.2.5.2", "%5", "%20", "%30", "%15", "donatı gerçekleşme katsayısı", "korozyon", "1.00", "Mühendislik kontrol listesi"],
+  "mevcut-bina-beklenen-dayanim-bilgi-katsayisi": ["mevcut malzeme dayanımı", "15.2.3", "15.2.12", "0.75", "1.00", "malzeme katsayıları", "mevcut çelik dayanımı", "Mühendislik kontrol listesi"],
+  "mevcut-bina-sunek-gevrek-hasar-siniflamasi": ["15.5.2.2", "Ve", "gevrek", "Sınırlı Hasar", "Kontrollü Hasar", "Göçme Öncesi Hasar", "15.3.3", "en fazla hasar gören kesit", "Mühendislik kontrol listesi"],
+  "mevcut-bina-dogrusal-degerlendirme-sinirlari": ["15.5.3.1", "BYS < 5", "B3 düzensizliği", "EKO", "3'ten büyük", "5'ten büyük", "Σ(Vi × EKOi) / ΣVi", "15.6", "Mühendislik kontrol listesi"],
 };
 
 const errors: string[] = [];
-const assert = (condition: unknown, message: string) => {
-  if (!condition) errors.push(message);
-};
+const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
-assert(DEPREM_PHASE4_ARTICLES.length === 4, `FAZ 4 Batch 1 override sayısı 4 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
-assert(DEPREM_PHASE4_SLUGS.size === 4, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
-for (const slug of BATCH_1_SLUGS) assert(DEPREM_PHASE4_SLUGS.has(slug), `FAZ 4 Batch 1 slug eksik: ${slug}`);
+assert(DEPREM_PHASE4_ARTICLES.length === 8, `FAZ 4 override sayısı 8 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
+assert(DEPREM_PHASE4_SLUGS.size === 8, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+for (const slug of PHASE4_SLUGS) assert(DEPREM_PHASE4_SLUGS.has(slug), `FAZ 4 slug eksik: ${slug}`);
 
 const allArticles = getArticleList();
 const targetCounts = {
@@ -75,9 +52,9 @@ assert(targetCounts["mevcut-guclendirme"] === 13, `Mevcut bina/güçlendirme hed
 assert(targetCounts["su-zemin"] === 11, `Zemin/temel/su hedefi 11 olmalı; bulunan ${targetCounts["su-zemin"]}.`);
 assert(targetCounts["yapi-denetimi"] === 8, `Yapı denetimi/malzeme hedefi 8 olmalı; bulunan ${targetCounts["yapi-denetimi"]}.`);
 
-for (const slug of BATCH_1_SLUGS) {
+for (const slug of PHASE4_SLUGS) {
   const configured = DEPREM_PHASE4_ARTICLES.find((article) => article.slug === slug);
-  assert(Boolean(configured), `FAZ 4 Batch 1 source-of-truth makalesi bulunamadı: ${slug}`);
+  assert(Boolean(configured), `FAZ 4 source-of-truth makalesi bulunamadı: ${slug}`);
   if (!configured) continue;
 
   assert(!TS500_SLUGS.has(slug), `FAZ 4 TS500 kapsamına taşmış: ${slug}`);
@@ -105,7 +82,7 @@ for (const slug of BATCH_1_SLUGS) {
   if (!article) continue;
 
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${slug}`);
-  assert(article.seriesId === "mevcut-guclendirme", `FAZ 4 Batch 1 seriesId mevcut-guclendirme olmalı: ${slug}`);
+  assert(article.seriesId === "mevcut-guclendirme", `FAZ 4 Batch 1-2 seriesId mevcut-guclendirme olmalı: ${slug}`);
   assert(article.author === DEPREM_CONTENT_AUTHOR.name, `Canonical yazar uygulanmadı: ${slug}`);
   assert(article.authorTitle === "", `Canonical authorTitle boş olmalı: ${slug}`);
   assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `HG monogram uygulanmadı: ${slug}`);
@@ -125,11 +102,11 @@ for (const slug of BATCH_1_SLUGS) {
     assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${slug}`);
     assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${slug}`);
   }
-  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 Batch 1'de gereksiz FormulaBlock bulundu: ${slug}`);
+  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 Batch 1-2'de gereksiz FormulaBlock bulundu: ${slug}`);
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 4 Batch 1 kontrolü başarısız:\n");
+  console.error("Deprem FAZ 4 Batch 1-2 kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -137,16 +114,17 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 4",
-  completedBatches: 1,
+  completedBatches: 2,
   phase4Overrides: DEPREM_PHASE4_ARTICLES.length,
   targetArticles: 32,
-  remaining: 28,
+  remaining: 24,
   batch1Slugs: BATCH_1_SLUGS,
-  classification: Object.fromEntries(BATCH_1_SLUGS.map((slug) => [slug, "C3"])),
+  batch2Slugs: BATCH_2_SLUGS,
+  batch2Classification: Object.fromEntries(BATCH_2_SLUGS.map((slug) => [slug, "C3"])),
   sourceOfTruth: "src/lib/deprem-phase4-articles.ts",
   officialSourceProfile: "AFAD TBDY 2018 Bölüm 15 + Kentsel Dönüşüm Başkanlığı/6306 resmî kaynakları",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { "mevcut-guclendirme": 4, "su-zemin": 0, "yapi-denetimi": 0 },
+  seriesCoverage: { "mevcut-guclendirme": 8, "su-zemin": 0, "yapi-denetimi": 0 },
   targetCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 8, total: 32 },
   ts500Touched: false,
 }, null, 2));
