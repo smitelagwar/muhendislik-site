@@ -3,6 +3,7 @@ import { DEPREM_PHASE7_BATCH_1_ARTICLES } from "./deprem-phase7-batch1";
 import { DEPREM_PHASE7_BATCH_2_ARTICLES } from "./deprem-phase7-batch2";
 import { DEPREM_PHASE7_BATCH_3_ARTICLES } from "./deprem-phase7-batch3";
 
+// FAZ 7 source-of-truth order is fixed: BEP/TS 825 -> Akustik -> Eurocode.
 export const DEPREM_PHASE7_ARTICLES = [
   ...DEPREM_PHASE7_BATCH_1_ARTICLES,
   ...DEPREM_PHASE7_BATCH_2_ARTICLES,
