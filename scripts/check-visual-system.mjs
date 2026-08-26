@@ -95,6 +95,14 @@ async function inspectRoute(browser, baseUrl, route, theme, viewport) {
     await page.waitForSelector("body", { visible: true });
     await page.waitForSelector('[data-testid="theme-toggle"]', { visible: true, timeout: 15000 });
     await page.evaluate(() => document.fonts.ready);
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll("h1, h2")).some((heading) => {
+          const rect = heading.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }),
+      { timeout: 15000 }
+    );
 
     const result = await page.evaluate(() => {
       const toggle = document.querySelector('[data-testid="theme-toggle"]');
