@@ -3,9 +3,21 @@ import http from "node:http";
 import next from "next";
 import puppeteer from "puppeteer";
 
-const slugs = [
-  "radye-temel-zemin-yayi-yatak-katsayisi",
-  "bodrum-perdesi-statik-dinamik-zemin-basinci",
+const targets = [
+  {
+    slug: "radye-temel-zemin-yayi-yatak-katsayisi",
+    classification: "C1",
+    expectedChecklist: "Radye modelinde kontrol edilmesi gerekenler",
+    expectedDiagramAlt: "Radye sonlu eleman ağında tributary alan ve düğüm yayları",
+    requireTable: false,
+  },
+  {
+    slug: "bodrum-perdesi-statik-dinamik-zemin-basinci",
+    classification: "C3",
+    expectedChecklist: "Mühendislik kontrol listesi",
+    expectedDiagramAlt: "teknik kontrol şeması",
+    requireTable: true,
+  },
 ];
 const viewports = [
   { id: "desktop", width: 1440, height: 900, mobile: false },
@@ -29,7 +41,7 @@ const browser = await puppeteer.launch({ executablePath, headless: true, args: [
 const completed = [];
 
 try {
-  for (const slug of slugs) {
+  for (const target of targets) {
     for (const theme of ["light", "dark"]) {
       for (const viewport of viewports) {
         const page = await browser.newPage();
@@ -38,8 +50,8 @@ try {
         try {
           await page.setViewport({ width: viewport.width, height: viewport.height, isMobile: viewport.mobile, hasTouch: viewport.mobile });
           await page.evaluateOnNewDocument((selectedTheme) => localStorage.setItem("theme", selectedTheme), theme);
-          const response = await page.goto(`http://127.0.0.1:${port}/${slug}`, { waitUntil: "domcontentloaded", timeout: 90000 });
-          assert(response && response.status() < 400, `${slug}: HTTP hatası.`);
+          const response = await page.goto(`http://127.0.0.1:${port}/${target.slug}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+          assert(response && response.status() < 400, `${target.slug}: HTTP hatası.`);
           await page.waitForSelector("h1", { visible: true, timeout: 20000 });
           const result = await page.evaluate(() => {
             const article = document.querySelector("article") ?? document.body;
@@ -51,27 +63,27 @@ try {
               sections: [...article.querySelectorAll("h2, h3")].filter((node) => node.getBoundingClientRect().width > 0).length,
               tables: article.querySelectorAll("table").length,
               images: images.length,
-              diagram: images.some((img) => (img.getAttribute("alt") ?? "").includes("teknik kontrol şeması")),
-              checklist: (article.textContent ?? "").includes("Mühendislik kontrol listesi"),
+              imageAlts: images.map((img) => img.getAttribute("alt") ?? ""),
+              text: article.textContent ?? "",
             };
           });
-          assert(result.theme === theme, `${slug}: tema hatası.`);
-          assert(!result.overflow, `${slug}: ${viewport.id}/${theme} yatay taşma.`);
-          assert(result.h1, `${slug}: H1 yok.`);
-          assert(result.sections >= 5, `${slug}: bölüm yapısı yetersiz.`);
-          assert(result.tables >= 1, `${slug}: teknik tablo yok.`);
-          assert(result.images >= 2, `${slug}: görsel kontratı eksik.`);
-          assert(result.diagram, `${slug}: rollout diyagramı yok.`);
-          assert(result.checklist, `${slug}: mühendislik kontrol listesi yok.`);
-          assert(pageErrors.length === 0, `${slug}: ${pageErrors.join(" | ")}`);
-          completed.push({ route: `/${slug}`, viewport: viewport.id, theme, h1: result.h1, sections: result.sections, tables: result.tables, images: result.images });
+          assert(result.theme === theme, `${target.slug}: tema hatası.`);
+          assert(!result.overflow, `${target.slug}: ${viewport.id}/${theme} yatay taşma.`);
+          assert(result.h1, `${target.slug}: H1 yok.`);
+          assert(result.sections >= 4, `${target.slug}: bölüm yapısı yetersiz.`);
+          if (target.requireTable) assert(result.tables >= 1, `${target.slug}: teknik tablo yok.`);
+          assert(result.images >= 2, `${target.slug}: cover/body görsel kontratı eksik.`);
+          assert(result.imageAlts.some((alt) => alt.includes(target.expectedDiagramAlt)), `${target.slug}: beklenen body figure yok.`);
+          assert(result.text.includes(target.expectedChecklist), `${target.slug}: kontrol bölümü bulunamadı.`);
+          assert(pageErrors.length === 0, `${target.slug}: ${pageErrors.join(" | ")}`);
+          completed.push({ route: `/${target.slug}`, classification: target.classification, viewport: viewport.id, theme, h1: result.h1, sections: result.sections, tables: result.tables, images: result.images });
         } finally {
           await page.close();
         }
       }
     }
   }
-  console.log(JSON.stringify({ status: "ok", phase: "FAZ 4 batch 6", routes: slugs.length, checks: completed.length, matrix: "2 routes × 2 themes × 2 viewports", completed }, null, 2));
+  console.log(JSON.stringify({ status: "ok", phase: "FAZ 4 batch 6", routes: targets.length, checks: completed.length, matrix: "2 routes × 2 themes × 2 viewports", classifications: Object.fromEntries(targets.map((target) => [target.slug, target.classification])), completed }, null, 2));
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

@@ -4,7 +4,7 @@ import { DEPREM_CONTENT_AUTHOR, getArticleAuthorPresentation } from "../src/lib/
 import { DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";
 import { DEPREM_PHASE4_ARTICLES, DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
-import { getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
+import { DEPREM_ROLLOUT_SLUGS, getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
 const BATCH_1_SLUGS = [
@@ -40,8 +40,11 @@ const BATCH_5_SLUGS = [
 ] as const;
 
 const BATCH_6_SLUGS = [
-  "radye-temel-zemin-yayi-yatak-katsayisi",
   "bodrum-perdesi-statik-dinamik-zemin-basinci",
+] as const;
+
+const PHASE2_C1_CARRY_FORWARD = [
+  { slug: "radye-temel-zemin-yayi-yatak-katsayisi", seriesId: "su-zemin" },
 ] as const;
 
 const PHASE4_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS, ...BATCH_3_SLUGS, ...BATCH_4_SLUGS, ...BATCH_5_SLUGS, ...BATCH_6_SLUGS] as const;
@@ -66,16 +69,21 @@ const requiredTokens: Record<Phase4Slug, string[]> = {
   "zemin-raporu-verilerinin-yapi-modeline-aktarimi": ["16.2.2.1", "16.2.2.2", "Veri Raporu", "Geoteknik Rapor", "ZA–ZF", "SDS = SS × FS", "SD1 = S1 × F1", "ZF", "16.5", "16.7.3.1", "4.10.3", "Mühendislik kontrol listesi"],
   "temel-tasima-gucu-oturma-kontrolu": ["16.7.1.1", "Et ≤ Rt", "16.8.1.1", "16.8.3.1", "qo ≤ qt", "1.4", "1.1", "oturma", "yerdeğiştirme", "Mühendislik kontrol listesi"],
   "temel-kayma-devrilme-guvenligi": ["16.7.3.2", "16.7.3.3", "%30", "16.8.4.1", "Vth ≤ Rth + 0.3 Rpt", "1.1", "1.4", "temel taban basıncı", "Mühendislik kontrol listesi"],
-  "radye-temel-zemin-yayi-yatak-katsayisi": ["16.8.1", "16.8.3.4", "k_i = k_s × A_i", "kN/m³", "kN/m", "çekme taşımayan", "16C.1.2", "taşıma gücü", "oturma", "Mühendislik kontrol listesi"],
   "bodrum-perdesi-statik-dinamik-zemin-basinci": ["16.11", "Tablo 16.6", "0.2", "0.3", "16.11.2", "Δp = 0.4 SDS γ Hb", "düzgün yayılı", "statik su basıncı", "16.11.3", "16.12", "Mühendislik kontrol listesi"],
 };
 
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
-assert(DEPREM_PHASE4_ARTICLES.length === 19, `FAZ 4 override sayısı 19 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
-assert(DEPREM_PHASE4_SLUGS.size === 19, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(DEPREM_PHASE4_ARTICLES.length === 18, `FAZ 4 override sayısı 18 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
+assert(DEPREM_PHASE4_SLUGS.size === 18, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(new Set([...DEPREM_PHASE4_SLUGS, ...PHASE2_C1_CARRY_FORWARD.map((item) => item.slug)]).size === 19, "FAZ 4 tamamlanan kapsam 19 benzersiz makale olmalı.");
 for (const slug of PHASE4_SLUGS) assert(DEPREM_PHASE4_SLUGS.has(slug), `FAZ 4 slug eksik: ${slug}`);
+for (const item of PHASE2_C1_CARRY_FORWARD) {
+  assert(DEPREM_PILOT_SLUGS.has(item.slug), `FAZ 2 C1 carry-forward pilot bulunamadı: ${item.slug}`);
+  assert(!DEPREM_PHASE4_SLUGS.has(item.slug), `C1 pilot gereksiz yere FAZ 4 source-of-truth'a kopyalanmış: ${item.slug}`);
+  assert(!DEPREM_ROLLOUT_SLUGS.has(item.slug), `C1 pilotun özgün görsel sistemi rollout tarafından eziliyor: ${item.slug}`);
+}
 
 const allArticles = getArticleList();
 const targetCounts = {
@@ -112,9 +120,6 @@ for (const slug of PHASE4_SLUGS) {
     assert(configured.references.some((ref) => ref.href?.includes("zemin-ve-temel-etudu-uygulama-esaslari")), "Etüt kategorileri makalesinde ÇŞİDB resmî Tebliğ sayfası eksik.");
     assert(configured.references.some((ref) => ref.href?.includes("20210217-4.htm")), "Etüt kategorileri makalesinde 2021 Resmî Gazete değişikliği eksik.");
   }
-  if (slug === "radye-temel-zemin-yayi-yatak-katsayisi") {
-    assert(configured.references.some((ref) => ref.href?.includes("zemin-ve-temel-etudu-uygulama-esaslari")), "Radye yay makalesinde Zemin ve Temel Etüdü resmî kaynağı eksik.");
-  }
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
   assert(!configuredText.includes("Kapsam ve karar\n"), `C3 jenerik bölüm başlığı kaldı: ${slug}`);
@@ -149,7 +154,30 @@ for (const slug of PHASE4_SLUGS) {
     assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${slug}`);
     assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${slug}`);
   }
-  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 Batch 1-6'da gereksiz FormulaBlock bulundu: ${slug}`);
+  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 C3 gövdelerinde gereksiz FormulaBlock bulundu: ${slug}`);
+}
+
+for (const item of PHASE2_C1_CARRY_FORWARD) {
+  const article = getArticleBySlug(item.slug);
+  assert(Boolean(article), `C1 carry-forward runtime makalesi bulunamadı: ${item.slug}`);
+  if (!article) continue;
+  assert(article.sectionId === "deprem-yonetmelik", `C1 carry-forward sectionId yanlış: ${item.slug}`);
+  assert(article.seriesId === item.seriesId, `C1 carry-forward seriesId yanlış: ${item.slug}`);
+  assert(article.author === DEPREM_CONTENT_AUTHOR.name, `C1 carry-forward canonical yazar uygulanmadı: ${item.slug}`);
+  assert(article.authorTitle === "", `C1 carry-forward authorTitle boş olmalı: ${item.slug}`);
+  assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `C1 carry-forward HG monogram uygulanmadı: ${item.slug}`);
+  assert(article.updatedAt === "25 Ağustos 2026", `C1 carry-forward updatedAt farklı: ${item.slug}`);
+  assert(article.sections.length >= 4, `C1 pilot teknik gövdesi yetersiz: ${item.slug}`);
+  assert((article.references?.length ?? 0) >= 4, `C1 pilot referansları yetersiz: ${item.slug}`);
+  assert(article.image === "/images/deprem-pilots/radye-temel-zemin-yayi-yatak-katsayisi-cover.svg", `C1 radye pilot cover değişmiş: ${item.slug}`);
+  const text = article.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
+  for (const token of ["K_i = k_s A_i", "tributary", "compression-only", "Evrensel dönüşüm formülü yok", "geoteknik rapor"]) {
+    assert(text.includes(token), `C1 radye teknik işareti eksik (${token}): ${item.slug}`);
+  }
+  const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
+  const pilotFigure = blocks.find((block) => block.type === "image" && block.src === "/images/deprem-pilots/radye-temel-zemin-yayi-yatak-katsayisi-diagram.svg");
+  assert(Boolean(pilotFigure), `C1 radye pilot body figure korunmadı: ${item.slug}`);
+  assert(blocks.some((block) => block.type === "formula"), `C1 radye yararlı formül bloğu korunmadı: ${item.slug}`);
 }
 
 if (errors.length > 0) {
@@ -163,6 +191,8 @@ console.log(JSON.stringify({
   phase: "FAZ 4",
   completedBatches: 6,
   phase4Overrides: DEPREM_PHASE4_ARTICLES.length,
+  phase2C1CarryForward: PHASE2_C1_CARRY_FORWARD.map((item) => item.slug),
+  completedArticles: 19,
   targetArticles: 32,
   remaining: 13,
   batch1Slugs: BATCH_1_SLUGS,
@@ -171,10 +201,10 @@ console.log(JSON.stringify({
   batch4Slugs: BATCH_4_SLUGS,
   batch5Slugs: BATCH_5_SLUGS,
   batch6Slugs: BATCH_6_SLUGS,
-  batch6Classification: Object.fromEntries(BATCH_6_SLUGS.map((slug) => [slug, "C3"])),
-  sourceOfTruth: "src/lib/deprem-phase4-articles.ts",
-  officialSourceProfile: "AFAD TBDY 2018 Bölüm 16.8 / 16.11 / 16.12 / EK 16C + ÇŞİDB Zemin ve Temel Etüdü Tebliği",
-  visualContract: "rollout cover + body figure; missing radye rollout coverage repaired",
+  batch6Classification: { "radye-temel-zemin-yayi-yatak-katsayisi": "C1", "bodrum-perdesi-statik-dinamik-zemin-basinci": "C3" },
+  sourceOfTruth: "src/lib/deprem-phase4-articles.ts + preserved FAZ 2 radye pilot",
+  officialSourceProfile: "AFAD TBDY 2018 Bölüm 16.11 / 16.12 + preserved verified radye pilot sources",
+  visualContract: "C3 rollout cover/body figure + C1 pilot cover/body figure preserved",
   seriesCoverage: { "mevcut-guclendirme": 13, "su-zemin": 6, "yapi-denetimi": 0 },
   targetCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 8, total: 32 },
   ts500Touched: false,
