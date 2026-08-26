@@ -73,7 +73,8 @@ try {
           assert(result.text.includes("26 Ağustos 2026"), `${target.slug}: güncelleme tarihi görünmüyor.`);
           assert(result.links.some((href) => href.includes("mevzuat.gov.tr")), `${target.slug}: Mevzuat Bilgi Sistemi kaynak linki görünmüyor.`);
           assert(result.links.some((href) => href.includes("meslekihizmetler.csb.gov.tr")), `${target.slug}: ÇŞİDB kılavuz duyurusu kaynak linki görünmüyor.`);
-          assert(result.links.some((href) => href.includes("webdosya.csb.gov.tr") && href.includes("20250328093036.pdf")), `${target.slug}: doğrulanmış ÇŞİDB kılavuz PDF linki görünmüyor.`);
+          assert(result.links.some((href) => href.includes("webdosya.csb.gov.tr") && href.includes("20260507112134.pdf")), `${target.slug}: Mayıs 2026 güncel ÇŞİDB kılavuz PDF linki görünmüyor.`);
+          assert(!result.links.some((href) => href.includes("20250328093036.pdf")), `${target.slug}: eski Mart 2025 kılavuz linki görünür kaynakçada kaldı.`);
           assert(result.links.some((href) => href.includes("resmigazete.gov.tr") && href.includes("20250701-9.pdf")), `${target.slug}: doğru 1 Temmuz 2025 Resmî Gazete linki görünmüyor.`);
           assert(pageErrors.length === 0, `${target.slug}: ${pageErrors.join(" | ")}`);
           matrixPasses.set(target.slug, (matrixPasses.get(target.slug) ?? 0) + 1);
