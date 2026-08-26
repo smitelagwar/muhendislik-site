@@ -4,42 +4,15 @@ import next from "next";
 import puppeteer from "puppeteer";
 
 const targets = [
-  {
-    slug: "imar-taks-kaks-emsal-hesabi",
-    classification: "C1",
-    expected: "1.500 m²",
-    expectedDate: "25 Ağustos 2026",
-    minSections: 4,
-    minTables: 0,
-    altContains: "TAKS",
-  },
-  {
-    slug: "imar-kat-yuksekligi-bina-yuksekligi-farki",
-    classification: "C3",
-    expected: "Madde 28",
-    expectedDate: "26 Ağustos 2026",
-    minSections: 7,
-    minTables: 1,
-    altContains: "teknik kontrol şeması",
-  },
-  {
-    slug: "imar-bahce-mesafeleri-on-arka-yan-bahce-kurallari",
-    classification: "C3",
-    expected: "60,50 m",
-    expectedDate: "26 Ağustos 2026",
-    minSections: 7,
-    minTables: 1,
-    altContains: "teknik kontrol şeması",
-  },
-  {
-    slug: "imar-cekme-kat-asma-kat-kosullari",
-    classification: "C3",
-    expected: "2,40 m",
-    expectedDate: "26 Ağustos 2026",
-    minSections: 7,
-    minTables: 1,
-    altContains: "teknik kontrol şeması",
-  },
+  { slug: "imar-taks-kaks-emsal-hesabi", classification: "C1", expected: "1.500 m²", expectedDate: "25 Ağustos 2026", minSections: 4, minTables: 0, altContains: "TAKS" },
+  { slug: "imar-kat-yuksekligi-bina-yuksekligi-farki", classification: "C3", expected: "Madde 28", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-bahce-mesafeleri-on-arka-yan-bahce-kurallari", classification: "C3", expected: "60,50 m", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-cekme-kat-asma-kat-kosullari", classification: "C3", expected: "2,40 m", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-bodrum-kat-mevzuati-teknik-hacim-iskan-taban-alani", classification: "C3", expected: "Madde 22", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-balkon-cikma-sacak-emsal-disi-sartlari", classification: "C3", expected: "1,50 m", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-ruhsat-sureci-basvurudan-iskan-kadar", classification: "C3", expected: "30 gün", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-parsel-tevhid-ifraz-prosedurleri", classification: "C3", expected: "Madde 16", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
+  { slug: "imar-plan-notu-celiskisi-uygulama-onceligi", classification: "C3", expected: "plan paftası", expectedDate: "26 Ağustos 2026", minSections: 7, minTables: 1, altContains: "teknik kontrol şeması" },
 ];
 const viewports = [
   { id: "desktop", width: 1440, height: 900, mobile: false },
@@ -75,17 +48,7 @@ try {
             const article = document.querySelector("article") ?? document.body;
             const images = [...article.querySelectorAll("img")].filter((img) => img.getBoundingClientRect().width > 0 && img.getBoundingClientRect().height > 0);
             const links = [...document.querySelectorAll("a[href]")].map((node) => node.getAttribute("href") ?? "");
-            return {
-              theme: document.documentElement.classList.contains("dark") ? "dark" : "light",
-              overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-              h1: document.querySelector("h1")?.textContent?.trim() ?? "",
-              sections: [...article.querySelectorAll("h2, h3")].filter((node) => node.getBoundingClientRect().width > 0).length,
-              tables: article.querySelectorAll("table").length,
-              images: images.length,
-              imageAlts: images.map((img) => img.getAttribute("alt") ?? ""),
-              links,
-              text: document.body.textContent ?? "",
-            };
+            return { theme: document.documentElement.classList.contains("dark") ? "dark" : "light", overflow: document.documentElement.scrollWidth > window.innerWidth + 1, h1: document.querySelector("h1")?.textContent?.trim() ?? "", sections: [...article.querySelectorAll("h2, h3")].filter((node) => node.getBoundingClientRect().width > 0).length, tables: article.querySelectorAll("table").length, images: images.length, imageAlts: images.map((img) => img.getAttribute("alt") ?? ""), links, text: document.body.textContent ?? "" };
           });
           assert(result.theme === theme, `${target.slug}: tema hatası.`);
           assert(!result.overflow, `${target.slug}: ${viewport.id}/${theme} yatay taşma.`);
@@ -103,9 +66,7 @@ try {
           assert(pageErrors.length === 0, `${target.slug}: ${pageErrors.join(" | ")}`);
           matrixPasses.set(target.slug, (matrixPasses.get(target.slug) ?? 0) + 1);
           completed.push({ route: `/${target.slug}`, classification: target.classification, viewport: viewport.id, theme, h1: result.h1, sections: result.sections, tables: result.tables, images: result.images });
-        } finally {
-          await page.close();
-        }
+        } finally { await page.close(); }
       }
     }
   }
@@ -117,17 +78,7 @@ try {
     assert(finalScoreFloor >= 90, `${target.slug}: kalite skoru tabanı 90/100 altı (${finalScoreFloor}/100).`);
     return [target.slug, { classification: target.classification, staticScoreFloor: 80, layoutScore, finalScoreFloor }];
   }));
-  console.log(JSON.stringify({
-    status: "ok",
-    phase: "FAZ 6 batch 1 — İmar",
-    routes: targets.length,
-    checks: completed.length,
-    matrix: "4 routes × 2 themes × 2 viewports",
-    classifications: Object.fromEntries(targets.map((target) => [target.slug, target.classification])),
-    qualityScoreContract: "preceding static gate >=80/90 + this layout gate 10/10 => final >=90/100",
-    qualityScores,
-    completed,
-  }, null, 2));
+  console.log(JSON.stringify({ status: "ok", phase: "FAZ 6 İmar — batch 1+2", routes: targets.length, checks: completed.length, matrix: "9 routes × 2 themes × 2 viewports", classifications: Object.fromEntries(targets.map((target) => [target.slug, target.classification])), qualityScoreContract: "preceding static gate >=80/90 + this layout gate 10/10 => final >=90/100", qualityScores, completed }, null, 2));
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
