@@ -2,6 +2,7 @@ import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleBySlug } from "../src/lib/articles-data";
 import { DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PHASE5_SLUGS } from "../src/lib/deprem-phase5-articles";
+import { DEPREM_PHASE6_SLUGS } from "../src/lib/deprem-phase6-articles";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import {
   DEPREM_ROLLOUT_ARTICLES,
@@ -60,7 +61,7 @@ for (const spec of DEPREM_ROLLOUT_ARTICLES) {
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${article.slug}`);
   assert(!TS500_SLUGS.has(article.slug), `Rollout TS500'e temas ediyor: ${article.slug}`);
   assert(!DEPREM_PILOT_SLUGS.has(article.slug), `Rollout pilotla çakışıyor: ${article.slug}`);
-  const expectedUpdatedAt = DEPREM_PHASE5_SLUGS.has(article.slug) || DEPREM_PHASE4_SLUGS.has(article.slug)
+  const expectedUpdatedAt = DEPREM_PHASE6_SLUGS.has(article.slug) || DEPREM_PHASE5_SLUGS.has(article.slug) || DEPREM_PHASE4_SLUGS.has(article.slug)
     ? "26 Ağustos 2026"
     : "25 Ağustos 2026";
   assert(article.updatedAt === expectedUpdatedAt, `updatedAt uygulanmadı: ${article.slug}`);
@@ -111,7 +112,7 @@ console.log(JSON.stringify({
   articles: DEPREM_ROLLOUT_ARTICLES.length,
   batchSizes: Object.fromEntries(BATCH_IDS.map((batch) => [batch, DEPREM_ROLLOUT_BATCHES[batch].length])),
   layoutDiversity: Object.fromEntries(BATCH_IDS.filter((id) => id >= 3).map((batch) => [batch, [...new Set(DEPREM_ROLLOUT_BATCHES[batch].map((spec) => spec.visualLayout))]])),
-  updatedAtOwnership: "FAZ 4/5 canonical technical source-of-truth owns 26 Ağustos 2026; older rollout-only records retain 25 Ağustos 2026",
+  updatedAtOwnership: "FAZ 4/5/6 canonical technical source-of-truth owns 26 Ağustos 2026; older rollout-only records retain 25 Ağustos 2026",
   uniqueCovers: uniqueCovers.size,
   uniqueDiagrams: uniqueDiagrams.size,
   ts500Touched: false,
