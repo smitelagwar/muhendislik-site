@@ -16,6 +16,8 @@
     "check:deprem-content": "tsx scripts/check-deprem-content.ts",
     "check:deprem-infrastructure": "tsx scripts/check-deprem-infrastructure.ts",
     "check:deprem-phase8": "tsx scripts/check-deprem-phase8.ts",
+    "check:deprem-phase9": "tsx scripts/check-deprem-phase9.ts",
+    "check:deprem-release": "npm run check:deprem-phase8 && npm run check:deprem-phase9 && npm run check:deprem-content && npm run check:content-quality && npm run check:site-quality && npm run check:navigation && npm run check:visual-system && npm run lint && npx tsc --noEmit && npm run build",
     "check:deprem-period": "tsx scripts/check-seismic-period-calculator.ts",
     "check:site-quality": "npm run check:deprem-infrastructure && npm run check:deprem-content && tsx scripts/check-site-quality.ts",
     "check:navigation": "node scripts/check-navigation-consistency.mjs",
