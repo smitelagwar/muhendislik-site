@@ -11,6 +11,17 @@ export const IMAR_RUHSAT_SURECLERI = "https://webdosya.csb.gov.tr/db/meslekihizm
 export const MEKANSAL_PLANLAMA_PAGE = "https://mpgm.csb.gov.tr/";
 export const MEKANSAL_PLANLAR_2026 = "https://www.resmigazete.gov.tr/eskiler/2026/01/20260122-2.htm";
 
+export const OTOPARK_2018 = "https://www.resmigazete.gov.tr/eskiler/2018/02/20180222-7.htm";
+export const OTOPARK_2021 = "https://www.resmigazete.gov.tr/eskiler/2021/03/20210325-12.htm";
+export const OTOPARK_2025 = "https://www.resmigazete.gov.tr/eskiler/2025/12/20251227-6.htm";
+export const OTOPARK_CSB_GUIDE = "https://webdosya.csb.gov.tr/db/meslekihizmetler/haberler/otopark-20220328101753.pdf";
+export const BYKHY_2009 = "https://www.resmigazete.gov.tr/eskiler/2009/09/20090909-10.htm";
+export const BYKHY_2026_GUIDE = "https://webdosya.csb.gov.tr/v2/meslekihizmetler/2026/05/Binalar-n-Yang-n-Korunmas-Hakk-nda-Y-netmelik-K-lavuzu-20260507112134.pdf";
+export const SARJ_2022 = "https://www.resmigazete.gov.tr/eskiler/2022/04/20220402-2.htm";
+export const SARJ_2026 = "https://www.resmigazete.gov.tr/eskiler/2026/03/20260323-4.htm";
+export const TBDY_PDF = "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf";
+export const TBDY_PAGE = "https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi";
+
 export function phase6Lines(...parts: string[]) {
   return parts.join("\n");
 }
@@ -51,6 +62,31 @@ export function imarPhase6References(scope: string): NonNullable<ArticleData["re
       label: "ÇŞİDB — 1 Temmuz 2026 Planlı Alanlar İmar Yönetmeliği değişikliği duyurusu",
       href: IMAR_2026_ANNOUNCEMENT,
       note: "Bakanlığın değişiklik kapsamını ve yürürlük bilgisini özetleyen resmî duyurusudur.",
+    },
+  ];
+}
+
+export function otoparkPhase6References(scope: string): NonNullable<ArticleData["references"]> {
+  return [
+    {
+      label: `Resmî Gazete — 22 Şubat 2018 / 30340 Otopark Yönetmeliği, ${scope}`,
+      href: OTOPARK_2018,
+      note: "Temel Yönetmelik metnidir; sonraki değişikliklerle birlikte okunmalıdır.",
+    },
+    {
+      label: "Resmî Gazete — 25 Mart 2021 / 31434 Otopark Yönetmeliği değişikliği",
+      href: OTOPARK_2021,
+      note: "Rampa ve sirkülasyon ayrıntıları ile elektrikli araç şarj altyapısı dâhil önemli değişiklikleri içerir.",
+    },
+    {
+      label: "Resmî Gazete — 27 Aralık 2025 / 33120 Otopark Yönetmeliği değişikliği",
+      href: OTOPARK_2025,
+      note: "Madde 10 küçük parsel eşiğini 500 m²'ye, Ek-1 hastane hesabını 85 m²'ye günceller.",
+    },
+    {
+      label: "ÇŞİDB — Otopark Yönetmeliği teknik sunumu",
+      href: OTOPARK_CSB_GUIDE,
+      note: "Yönetmelik hükümlerinin proje ve hesap mantığını açıklayan Bakanlık teknik dokümanıdır.",
     },
   ];
 }

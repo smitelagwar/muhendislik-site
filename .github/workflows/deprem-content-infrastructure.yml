@@ -65,6 +65,7 @@ on:
       - scripts/check-deprem-phase5-batch5-render.mjs
       - scripts/check-deprem-phase6.ts
       - scripts/check-deprem-phase6-batch1-render.mjs
+      - scripts/check-deprem-phase6-batch3-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -160,3 +161,5 @@ jobs:
         run: node scripts/check-deprem-phase5-batch5-render.mjs
       - name: FAZ 6 batch 1 responsive render QA
         run: node scripts/check-deprem-phase6-batch1-render.mjs
+      - name: FAZ 6 batch 3 responsive render QA
+        run: node scripts/check-deprem-phase6-batch3-render.mjs
