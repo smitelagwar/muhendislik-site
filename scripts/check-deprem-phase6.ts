@@ -65,7 +65,7 @@ const requiredTokens: Record<Phase6C3Slug, string[]> = {
   "otopark-yapisal-yuk-kombinasyonlari-arac-deprem": ["TS 498", "TBDY 2018", "hareketli yük", "deprem kütlesi", "yük yolu", "Mühendislik kontrol listesi"],
   "otopark-elektrikli-arac-sarj-mevzuati": ["%5", "%10", "20", "30.000 m²", "70.000 m²", "Şarj Hizmeti Yönetmeliği", "23 Mart 2026", "33202", "Mühendislik kontrol listesi"],
   "asansor-boslugu-boyutlandirma-kapasite-alan-tablosu": ["Madde 34", "1 Temmuz 2026", "kat adedi 3", "4 ve daha fazla", "1,20 m", "1,80 m²", "0,90 m", "2,52 m²", "1,10 m", "Mühendislik kontrol listesi"],
-  "asansor-makine-daireli-ve-dairesiz-sistemler": ["MRL", "MR", "2014/33/AB", "TS EN 81-20", "ayda en az bir", "kuyu", "bakım", "Mühendislik kontrol listesi"],
+  "asansor-makine-daireli-ve-dairesiz-sistemler": ["MRL", "MR", "2014/33/AB", "TS EN 81 serisi", "ayda en az bir", "kuyu", "bakım", "Mühendislik kontrol listesi"],
   "asansor-guvenlik-aksesuarlari-ve-periyodik-bakim-zorunlulugu": ["ayda en az bir", "yılda en az bir", "yeşil", "mavi", "sarı", "kırmızı", "60 gün", "120 gün", "5 Ağustos 2025", "32977", "Mühendislik kontrol listesi"],
   "asansor-deprem-sirasinda-otomatik-park-ozelligi": ["TS EN 81-77", "deprem sensörü", "kontrol panosu", "TS EN 81-73", "sismik", "yangın", "yeniden devreye alma", "Mühendislik kontrol listesi"],
   "engelsiz-tekerlekli-sandalye-manevra-alani-koridor-genislikleri": ["Madde 5", "150 cm × 150 cm", "150 cm", "220 cm", "net", "kesintisiz", "2026", "Mühendislik kontrol listesi"],
