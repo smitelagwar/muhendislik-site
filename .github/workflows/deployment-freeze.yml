@@ -1,0 +1,24 @@
+name: deployment-freeze
+
+on:
+  push:
+    branches:
+      - internal-deprem-visual-refresh-20260826
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify-freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Verify Vercel deployment freeze
+        run: node scripts/check-vercel-deployment-freeze.mjs

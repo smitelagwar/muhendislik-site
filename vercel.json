@@ -4,9 +4,6 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "git": {
-    "deploymentEnabled": {
-      "audit/faz0-deprem-inventory-20260825": false,
-      "internal-*": false
-    }
+    "deploymentEnabled": false
   }
 }
