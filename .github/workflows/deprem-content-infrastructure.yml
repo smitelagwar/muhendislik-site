@@ -46,6 +46,7 @@ on:
       - scripts/check-deprem-phase4-batch3-render.mjs
       - scripts/check-deprem-phase4-batch4-render.mjs
       - scripts/check-deprem-phase4-batch5-render.mjs
+      - scripts/check-deprem-phase4-batch6-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -113,3 +114,5 @@ jobs:
         run: node scripts/check-deprem-phase4-batch4-render.mjs
       - name: FAZ 4 batch 5 responsive render QA
         run: node scripts/check-deprem-phase4-batch5-render.mjs
+      - name: FAZ 4 batch 6 responsive render QA
+        run: node scripts/check-deprem-phase4-batch6-render.mjs
