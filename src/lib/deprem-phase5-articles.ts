@@ -1,8 +1,10 @@
 import type { ArticleData } from "./articles-data";
 import { DEPREM_PHASE5_BATCH_1_ARTICLES } from "./deprem-phase5-batch1";
+import { DEPREM_PHASE5_BATCH_2_ARTICLES } from "./deprem-phase5-batch2";
 
 export const DEPREM_PHASE5_ARTICLES = [
   ...DEPREM_PHASE5_BATCH_1_ARTICLES,
+  ...DEPREM_PHASE5_BATCH_2_ARTICLES,
 ] as const;
 
 const PHASE5_BY_SLUG = new Map(DEPREM_PHASE5_ARTICLES.map((article) => [article.slug, article] as const));
