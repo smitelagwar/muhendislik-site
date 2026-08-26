@@ -11,12 +11,12 @@ import { getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
 const BEP_SLUGS = [
-  "bep-isi-yalitim-katmanlari-u-degeri-hesabi",
-  "bep-isi-koprusu-psi-degeri-ve-lineer-gecis",
-  "bep-ts825-iklim-bolgeleri-turkiye-haritasi",
-  "bep-enerji-kimlik-belgesi-siniflari-asgari",
-  "bep-yenilenebilir-enerji-zorunlulugu-ve-oranlari",
-  "bep-ilk-yatirim-ve-yasam-dongusu-maliyet-analizi",
+  "bep-isi-yalitim-u-degeri-yogusma-kontrolu",
+  "bep-ts-825-yontemi-isi-kaybi-hesabi",
+  "bep-enerji-kimlik-belgesi-a-g-siniflandirma",
+  "bep-yenilenebilir-enerji-zorunlulugu-1000m2",
+  "bep-yazilimi-hesaplama-akisi",
+  "bep-isil-kopru-detaylari-ve-cozum-yontemleri",
 ] as const;
 
 const ACOUSTIC_SLUGS = ["akustik-ts-en-iso-12354-ile-yalitim-hesabi"] as const;
@@ -33,12 +33,12 @@ const PHASE7_SLUGS = [...BEP_SLUGS, ...ACOUSTIC_SLUGS, ...EUROCODE_SLUGS] as con
 type Phase7Slug = (typeof PHASE7_SLUGS)[number];
 
 const requiredTokens: Record<Phase7Slug, string[]> = {
-  "bep-isi-yalitim-katmanlari-u-degeri-hesabi": ["R_i = d_i / λ_i", "U = 1 / R_T", "1 Nisan 2025", "4'ten 6'ya", "Mühendislik kontrol listesi"],
-  "bep-isi-koprusu-psi-degeri-ve-lineer-gecis": ["ψ", "Σ(U_i A_i)", "Σ(ψ_k l_k)", "0,96 W/K", "Mühendislik kontrol listesi"],
-  "bep-ts825-iklim-bolgeleri-turkiye-haritasi": ["4'ten 6'ya", "1 Nisan 2025", "30 Haziran 2025", "730", "Mühendislik kontrol listesi"],
-  "bep-enerji-kimlik-belgesi-siniflari-asgari": ["Enerji Kimlik Belgesi", "BEP-TR", "16 Mayıs 2026", "en az **B**", "en az **C**", "Mühendislik kontrol listesi"],
-  "bep-yenilenebilir-enerji-zorunlulugu-ve-oranlari": ["ruhsat tarihi", "BEP-TR", "40 kWp", "54.000 kWh/yıl", "Mühendislik kontrol listesi"],
-  "bep-ilk-yatirim-ve-yasam-dongusu-maliyet-analizi": ["LCC", "1 Ocak 2027", "10.000 m²", "Bina Yaşam Döngüsü Analizi", "BEP-TR", "Mühendislik kontrol listesi"],
+  "bep-isi-yalitim-u-degeri-yogusma-kontrolu": ["R_i = d_i / λ_i", "U = 1 / R_T", "yoğuşma", "1 Nisan 2025", "Mühendislik kontrol listesi"],
+  "bep-ts-825-yontemi-isi-kaybi-hesabi": ["H_T", "Σ(U_i A_i)", "30 Haziran 2025", "730", "Mühendislik kontrol listesi"],
+  "bep-enerji-kimlik-belgesi-a-g-siniflandirma": ["A–G", "BEP-TR", "16 Mayıs 2026", "en az B", "en az C", "Mühendislik kontrol listesi"],
+  "bep-yenilenebilir-enerji-zorunlulugu-1000m2": ["ruhsat tarihi", "BEP-TR", "1000m2", "54.000 kWh/yıl", "Mühendislik kontrol listesi"],
+  "bep-yazilimi-hesaplama-akisi": ["BEP-TR", "referans bina", "730", "1 Ocak 2027", "10.000 m²", "Mühendislik kontrol listesi"],
+  "bep-isil-kopru-detaylari-ve-cozum-yontemleri": ["ψ", "Σ(ψ_k l_k)", "0,96 W/K", "Mühendislik kontrol listesi"],
   "akustik-ts-en-iso-12354-ile-yalitim-hesabi": ["Madde 16", "TS EN 12354-1", "Rw", "DnT", "L'nT,w", "yanal iletim", "Mühendislik kontrol listesi"],
   "eurocode-ts-en-1990-yuk-kombinasyonlari-ve-guvenlik-katsayilari": ["EN 1990", "ULS", "SLS", "γ", "ψ0", "National Annex", "Mühendislik kontrol listesi"],
   "eurocode-ts-en-1991-1-1-hareketli-yukler-bolume-gore-degerler": ["EN 1991-1-1", "q_k", "Q_k", "40 kN", "Ulusal Ek", "Mühendislik kontrol listesi"],
@@ -50,7 +50,7 @@ const requiredTokens: Record<Phase7Slug, string[]> = {
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 const lower = (value: string) => value.toLocaleLowerCase("tr-TR");
-const textOf = (sections: { title: string; content: string }[]) => sections.map((section) => `${section.title}\n${section.content}`).join("\n");
+const textOf = (sections: { title: string; content: string }[]) => sections.map((item) => `${item.title}\n${item.content}`).join("\n");
 const hasDepthSignal = (text: string, signal: string) => signal === "yanlış" ? text.includes("yanlış") || text.includes("hatal") : text.includes(lower(signal));
 const isOfficialSource = (href: string) => ["mevzuat.gov.tr", "resmigazete.gov.tr", "csb.gov.tr", "europa.eu"].some((domain) => href.includes(domain));
 const expectedSeries = (slug: string) => (BEP_SLUGS as readonly string[]).includes(slug) ? "bep" : (ACOUSTIC_SLUGS as readonly string[]).includes(slug) ? "akustik" : (EUROCODE_SLUGS as readonly string[]).includes(slug) ? "eurocode" : null;
@@ -113,7 +113,7 @@ for (const slug of PHASE7_SLUGS) {
   const cover = getDepremRolloutVisualPath(slug, "cover");
   const diagram = getDepremRolloutVisualPath(slug, "diagram");
   const coverOk = article.image === cover && article.image !== "/covers/yonetmelik.svg";
-  const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
+  const blocks = article.sections.flatMap((item) => parseBlocks(item.content));
   const figure = blocks.find((block) => block.type === "image" && block.src === diagram);
   const figureOk = figure?.type === "image" ? Boolean(figure.alt.trim() && figure.caption.trim() && figure.sourceNote.trim() && figure.lightbox) : false;
   assert(coverOk, `FAZ 7 benzersiz rollout cover uygulanmadı: ${slug}`);
@@ -157,9 +157,6 @@ console.log(JSON.stringify({
   sourceOfTruth: "src/lib/deprem-phase7-articles.ts",
   officialSourceProfile: "BEP/TS825: Mevzuat Bilgi Sistemi + Resmî Gazete + ÇŞİDB; Akustik: Mevzuat Bilgi Sistemi + Resmî Gazete; Eurocode: European Commission JRC",
   visualContract: "12 rollout unique cover/body figure",
-  qualityScoreContract: "static subtotal >=80/90 + responsive layout QA 10/10 => final >=90/100; hard-fail assertions mandatory",
+  qualityScoreContract: "static subtotal >=80/90 + responsive layout QA 10/10 => final >=90/100",
   qualityScores,
-  seriesCoverage: { bep: 6, akustik: 1, eurocode: 5 },
-  targetCoverage: { bep: 6, akustik: 1, eurocode: 5, total: 12 },
-  ts500Touched: false,
 }, null, 2));
