@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleBySlug } from "../src/lib/articles-data";
 import { DEPREM_CONTENT_AUTHOR, getArticleAuthorPresentation } from "../src/lib/content-author";
@@ -9,308 +10,202 @@ import { getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
 const ROOT = process.cwd();
+const LEGACY_CONTRACT = path.join(ROOT, "scripts/check-deprem-phase3-first13.ts");
+const TEMP_CONTRACT = path.join(ROOT, "scripts/.check-deprem-phase3-first13.runtime.ts");
+const LEGACY_IMPORT = 'import { DEPREM_PHASE3_ARTICLES, DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";';
+const LEGACY_ALIAS_IMPORT = 'import { DEPREM_PHASE3_ARTICLES as DEPREM_PHASE3_ALL_ARTICLES } from "../src/lib/deprem-phase3-articles";';
+const LEGACY_ANCHOR = 'import { TS500_SLUGS } from "../src/lib/ts500-content";';
 
-const BATCH_1_SLUGS = [
-  "tbdy-bks-dts-bys-belirleme",
-  "tbdy-performans-hedefleri-dd-sh-kh-go",
-  "tbdy-kutle-kaynagi-hareketli-yuk-katilimi",
-  "tbdy-rijit-yari-rijit-diyafram",
-] as const;
-const BATCH_2_SLUGS = [
-  "tbdy-esdeger-deprem-yuku-uygulanma-sinirlari",
-  "tbdy-yeterli-mod-modal-kutle-katilimi",
-  "tbdy-modal-taban-kesme-olceklendirme",
-  "tbdy-yuzde-100-yuzde-30-birlesimi",
-] as const;
-const BATCH_3_SLUGS = [
-  "tbdy-dusey-deprem-etkisi",
-  "tbdy-deprem-derzi-hesabi",
-  "tbdy-bolum-17-basitlestirilmis-tasarim",
-  "tbdy-uygulama-esaslari-taslak-statusu",
-] as const;
-const BATCH_4_SLUGS = [
-  "tbdy-betonarme-ozel-deprem-etriyesi-ciroz",
-  "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri",
-  "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri",
-  "tbdy-betonarme-kolon-boyuna-donati-duzeni",
-] as const;
-const BATCH_5_SLUGS = [
-  "tbdy-betonarme-kolon-sarilma-bolgeleri",
-  "tbdy-betonarme-kolon-kapasite-kesme",
-  "tbdy-betonarme-kiris-boyut-eksen-kacikligi",
-  "tbdy-betonarme-kiris-mesnet-donati-surekliligi",
-] as const;
-const BATCH_6_SLUGS = [
-  "tbdy-betonarme-kiris-sarilma-bolgeleri",
-  "tbdy-betonarme-kiris-kapasite-kesme",
-  "tbdy-betonarme-kusatilmamis-birlesim",
-  "tbdy-betonarme-birlesim-kesme-guvenligi",
-] as const;
-const BATCH_7_SLUGS = [
-  "tbdy-betonarme-perde-kolon-geometri-ayrimi",
-  "tbdy-betonarme-perde-kritik-yukseklik-uc-bolge",
-  "tbdy-betonarme-perde-govde-uc-donati",
-  "tbdy-betonarme-perde-moment-kesme-zarfi",
-] as const;
-const BATCH_8_SLUGS = [
-  "tbdy-betonarme-perde-bosluklari-modelleme",
-  "tbdy-betonarme-diyafram-toplayici-baslik",
-  "tbdy-2018-betonarme-analiz",
-  "kisa-kolon-etkisi-tbdy-2018",
-] as const;
-const BATCH_9_SLUGS = [
-  "tbdy-2018-dogrusal-olmayan-tasarim",
-  "tbdy-2018-guclu-kolon-kontrolu",
-  "tbdy-2018-duzensizlikler-rehberi",
-  "tbdy-2018-sismik-izolasyon",
-] as const;
-const BATCH_10_SLUGS = [
-  "tbdy-deprem-yer-hareketi-duzeyleri",
-  "tbdy-afad-ss-s1-okuma",
-  "tbdy-yerel-zemin-sinifi-spektrum",
-  "tbdy-tasarim-spektrumu-cizimi",
-] as const;
-const BATCH_11_SLUGS = [
-  "tbdy-r-d-dayanim-fazlaligi",
-  "tbdy-bina-onem-katsayisi",
-  "tbdy-suneklik-duzeyi-sistem-farki",
-  "tbdy-mod-birlesim-srss-cqc",
-] as const;
-const BATCH_12_SLUGS = [
-  "tbdy-goreli-kat-otelenmesi",
-  "tbdy-dismerkezlik-kurali",
-  "tbdy-bodrum-katli-binalar",
-  "tbdy-cati-agirligi-yuk-azaltma",
-] as const;
-const BATCH_13_SLUGS = [
-  "tbdy-p-delta-ikinci-mertebe",
-  "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi",
-  "1999-marmara-depreminden-cikarilan-muhendislik-dersleri",
-  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
+function runFirst13FrozenContract() {
+  const source = fs.readFileSync(LEGACY_CONTRACT, "utf8");
+  if (!source.includes(LEGACY_IMPORT) || !source.includes(LEGACY_ANCHOR)) {
+    throw new Error("FAZ 3 ilk 13 batch donmuş kontratı beklenen import yapısında değil.");
+  }
+
+  const adapted = source
+    .replace(LEGACY_IMPORT, LEGACY_ALIAS_IMPORT)
+    .replace(
+      LEGACY_ANCHOR,
+      `${LEGACY_ANCHOR}\n\nconst DEPREM_PHASE3_ARTICLES = DEPREM_PHASE3_ALL_ARTICLES.slice(0, 52);\nconst DEPREM_PHASE3_SLUGS = new Set(DEPREM_PHASE3_ARTICLES.map((article) => article.slug));`,
+    );
+
+  fs.writeFileSync(TEMP_CONTRACT, adapted, "utf8");
+  try {
+    execFileSync("npx", ["tsx", TEMP_CONTRACT], { cwd: ROOT, stdio: "pipe" });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`FAZ 3 ilk 13 batch donmuş kontratı başarısız: ${detail}`);
+  } finally {
+    fs.rmSync(TEMP_CONTRACT, { force: true });
+  }
+}
+
+runFirst13FrozenContract();
+
+const BATCH_14_SLUGS = [
+  "duzensiz-binalarda-dinamik-analiz-zorunlulugu",
+  "deprem-yuku-ile-ruzgar-yuku-kombinasyonu",
+  "deprem-sigortasi-dask-ve-muhendislik-baglantisi",
+  "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek",
 ] as const;
 
-const EXPECTED_SLUGS = [
-  ...BATCH_1_SLUGS,
-  ...BATCH_2_SLUGS,
-  ...BATCH_3_SLUGS,
-  ...BATCH_4_SLUGS,
-  ...BATCH_5_SLUGS,
-  ...BATCH_6_SLUGS,
-  ...BATCH_7_SLUGS,
-  ...BATCH_8_SLUGS,
-  ...BATCH_9_SLUGS,
-  ...BATCH_10_SLUGS,
-  ...BATCH_11_SLUGS,
-  ...BATCH_12_SLUGS,
-  ...BATCH_13_SLUGS,
-] as const;
-type ExpectedSlug = (typeof EXPECTED_SLUGS)[number];
+type Batch14Slug = (typeof BATCH_14_SLUGS)[number];
 
-const BETONARME_SET = new Set<string>([
-  ...BATCH_4_SLUGS,
-  ...BATCH_5_SLUGS,
-  ...BATCH_6_SLUGS,
-  ...BATCH_7_SLUGS,
-  "tbdy-betonarme-perde-bosluklari-modelleme",
-  "tbdy-betonarme-diyafram-toplayici-baslik",
-  "kisa-kolon-etkisi-tbdy-2018",
-  "tbdy-2018-guclu-kolon-kontrolu",
-  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari",
-]);
+const PHASE2_C1_CARRY_FORWARD = [
+  { slug: "tbdy-etkin-kesit-rijitlikleri", seriesId: "tbdy" },
+  { slug: "tbdy-betonarme-bag-kirisli-perde", seriesId: "tbdy-betonarme" },
+] as const;
+
+const requiredTokens: Record<Batch14Slug, string[]> = {
+  "duzensiz-binalarda-dinamik-analiz-zorunlulugu": [
+    "3.6.2.1",
+    "4.6.2.1",
+    "Tablo 4.4",
+    "ηbi ≤ 2.0",
+    "BYS ≥ 4",
+    "BYS ≥ 5",
+    "BYS ≥ 6",
+    "A2",
+    "A3",
+    "membran",
+    "her bina için zorunlu değildir",
+    "SOURCE_VALUE",
+  ],
+  "deprem-yuku-ile-ruzgar-yuku-kombinasyonu": [
+    "4.4.4",
+    "Denklem (4.11)",
+    "Denklem (4.12)",
+    "yatay zemin itkisi",
+    "rüzgâr",
+    "E + W",
+    "eşzamanlı",
+    "zarf",
+    "SOURCE_VALUE",
+  ],
+  "deprem-sigortasi-dask-ve-muhendislik-baglantisi": [
+    "6305",
+    "Zorunlu Deprem Sigortası",
+    "maddi zarar",
+    "yapısal performans",
+    "yapısal güvenlik belgesi değildir",
+    "TBDY",
+    "mühendislik değerlendirmesi",
+  ],
+  "yatay-yuk-tasima-sistemleri-cerceve-perde-cekirdek": [
+    "Tablo 4.1",
+    "A11",
+    "R = 8",
+    "D = 3",
+    "A12",
+    "A13",
+    "A14",
+    "A15",
+    "Denklem (4.2)",
+    "%40",
+    "%75",
+    "çekirdek",
+    "bağ kirişli",
+    "SOURCE_VALUE",
+  ],
+};
+
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => {
   if (!condition) errors.push(message);
 };
 
-assert(DEPREM_PHASE3_ARTICLES.length === EXPECTED_SLUGS.length, `FAZ 3 ilk on üç batch toplam ${EXPECTED_SLUGS.length} makale içermeli.`);
-assert(DEPREM_PHASE3_SLUGS.size === EXPECTED_SLUGS.length, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
-for (const slug of EXPECTED_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 source-of-truth slug eksik: ${slug}`);
-
-const assemblerSource = fs.readFileSync(path.join(ROOT, "src/lib/articles-data.ts"), "utf8");
-const phase3ApplyIndex = assemblerSource.indexOf("applyDepremPhase3Override(pilotArticle)");
-const rolloutApplyIndex = assemblerSource.indexOf("applyDepremRolloutEnhancement(phase3Article)");
-assert(phase3ApplyIndex >= 0, "Runtime assembler FAZ 3 override katmanını uygulamıyor.");
-assert(rolloutApplyIndex > phase3ApplyIndex, "Runtime sırası teknik FAZ 3 gövdesi -> rollout enhancement olmalı.");
-assert(assemblerSource.includes("getDepremPhase3ContentSignature()"), "Makale cache signature FAZ 3 içeriğini izlemiyor.");
-
-const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
-for (const batch of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const) {
-  assert(phase3AggregatorSource.includes(`DEPREM_PHASE3_BATCH_${batch}_ARTICLES`), `FAZ 3 aggregator batch ${batch}'ü toplamıyor.`);
-  assert(fs.existsSync(path.join(ROOT, `src/lib/deprem-phase3-batch${batch}.ts`)), `FAZ 3 batch ${batch} modülü bulunamadı.`);
+assert(DEPREM_PHASE3_ARTICLES.length === 56, `FAZ 3 override sayısı 56 olmalı; bulunan ${DEPREM_PHASE3_ARTICLES.length}.`);
+assert(DEPREM_PHASE3_SLUGS.size === 56, "FAZ 3 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(new Set([...DEPREM_PHASE3_SLUGS, ...PHASE2_C1_CARRY_FORWARD.map((item) => item.slug)]).size === 58, "FAZ 3 nihai hedef kapsamı 58 benzersiz makale olmalı.");
+for (const slug of BATCH_14_SLUGS) assert(DEPREM_PHASE3_SLUGS.has(slug), `FAZ 3 Batch 14 slug eksik: ${slug}`);
+for (const item of PHASE2_C1_CARRY_FORWARD) {
+  assert(DEPREM_PILOT_SLUGS.has(item.slug), `FAZ 2 C1 carry-forward pilot bulunamadı: ${item.slug}`);
+  assert(!(DEPREM_PHASE3_SLUGS as Set<string>).has(item.slug), `C1 pilot gereksiz yere FAZ 3 source-of-truth'a kopyalanmış: ${item.slug}`);
 }
 
-const inventorySource = fs.readFileSync(path.join(ROOT, "scripts/generate-deprem-content-inventory.ts"), "utf8");
-assert(inventorySource.includes('const PHASE3_PATH = "src/lib/deprem-phase3-articles.ts"'), "Inventory FAZ 3 canonical aggregator yolunu tanımıyor.");
-assert(inventorySource.includes('kind: "deprem-phase3-articles"'), "Inventory FAZ 3 source-of-truth türünü raporlamıyor.");
+const batch14Source = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-batch14.ts"), "utf8");
+assert(batch14Source.includes("DEPREM_PHASE3_BATCH_14_ARTICLES"), "Batch 14 aggregator export'u eksik.");
+const phase3AggregatorSource = fs.readFileSync(path.join(ROOT, "src/lib/deprem-phase3-articles.ts"), "utf8");
+assert(phase3AggregatorSource.includes("DEPREM_PHASE3_BATCH_14_ARTICLES"), "FAZ 3 aggregator Batch 14'ü toplamıyor.");
 
-const requiredTokens: Record<ExpectedSlug, string[]> = {
-  "tbdy-bks-dts-bys-belirleme": ["Tablo 3.1", "Tablo 3.2", "Tablo 3.3", "SDS < 0.33", "BYS = 4", "SOURCE_VALUE"],
-  "tbdy-performans-hedefleri-dd-sh-kh-go": ["Tablo 3.4", "Tablo 3.5", "DD-4 → KK", "DD-1 → GÖ", "DGT", "ŞGDT"],
-  "tbdy-kutle-kaynagi-hareketli-yuk-katilimi": ["Denklem (4.16)", "Tablo 4.3", "0.80", "0.60", "0.30", "876.66"],
-  "tbdy-rijit-yari-rijit-diyafram": ["4.5.6.2", "4.5.6.3", "4.5.7.2", "A2/A3", "2B sonlu eleman", "Geçiş katı"],
-  "tbdy-esdeger-deprem-yuku-uygulanma-sinirlari": ["Tablo 4.4", "ηbi ≤ 2.0", "BYS ≥ 4", "BYS ≥ 5", "BYS ≥ 6", "B2 — Komşu Katlar Arası Rijitlik Düzensizliği"],
-  "tbdy-yeterli-mod-modal-kutle-katilimi": ["Denklem (4.30)", "%95", "%3", "YM = 18", "taban kesme kuvveti modal etkin kütleleri"],
-  "tbdy-modal-taban-kesme-olceklendirme": ["Denklem (4.31)", "γE = 0.90", "γE = 0.80", "βtE ≥ 1", "1.143", "üst bölüm"],
-  "tbdy-yuzde-100-yuzde-30-birlesimi": ["Denklem (4.9)", "+EX + 0.30EY", "+0.30EX + EY", "8 işaret kombinasyonunun", "4.8.3.2(b)", "eşzamanlı"],
-  "tbdy-dusey-deprem-etkisi": ["4.4.3.1", "≥ 20 m", "≥ 5 m", "R/I = 1", "D = 1", "Denklem (4.10)", "0.3Ed(Z)"],
-  "tbdy-deprem-derzi-hesabi": ["α = 0.25 (R/I)", "α = 0.5 (R/I)", "30 mm", "120 mm", "1.5(R/I)", "4.9.3.4"],
-  "tbdy-bolum-17-basitlestirilmis-tasarim": ["BKS = 3", "BYS ≥ 6", "BYS ≥ 7", "≤ 30 m", "3 m ≤ açıklık ≤ 7.5 m", "A2, A3, B1 ve B3", "C25", "C50"],
-  "tbdy-uygulama-esaslari-taslak-statusu": ["17 Temmuz 2019", "30834", "Dair Tebliğ", "İlişkin Tebliğ", "taslak — yürürlükte değil", "DRAFT_VALUE", "25 Ağustos 2026"],
-  "tbdy-betonarme-ozel-deprem-etriyesi-ciroz": ["7.2.8", "135°", "90°", "5ϕ", "6ϕ", "80 mm", "şaşırtmalı"],
-  "tbdy-betonarme-kenetlenme-bindirme-manson-bolgeleri": ["orta üçte", "100 mm", "600 mm", "%0.50", "küt kaynak", "birer donatı atlayarak"],
-  "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri": ["300 mm", "350 mm", "0.40", "2400 kN", "200,000 mm²", "7.7.1"],
-  "tbdy-betonarme-kolon-boyuna-donati-duzeni": ["%1", "%4", "ϕ14", "%6", "1/6", "1.5ℓb", "40ϕ", "12ϕ"],
-  "tbdy-betonarme-kolon-sarilma-bolgeleri": ["7.3.4.1", "ℓn / 6", "1.5 bmax", "500 mm", "bmin/3", "6ϕl,min", "50 mm", "8ϕl,min"],
-  "tbdy-betonarme-kolon-kapasite-kesme": ["Denklem (7.5)", "1.4Mri", "Ve ≤ Vr", "0.85 Aw fck", "Vc = 0", "Nd/(Ac fck) ≤ 0.05", "7.3.8"],
-  "tbdy-betonarme-kiris-boyut-eksen-kacikligi": ["250 mm", "3 × döşeme kalınlığı", "3.5 bw", "ℓn/4", "≥ %30", "Nd/(Ac fck) ≤ 0.10", "3/4", "uydurulmamalıdır"],
-  "tbdy-betonarme-kiris-mesnet-donati-surekliligi": ["Denklem (7.8)", "12 mm", "≥ %50", "≥ %30", "%2", "1/4", "0.4ℓb", "12ϕ", "50ϕ"],
-  "tbdy-betonarme-kiris-sarilma-bolgeleri": ["7.4.4", "2h", "50 mm", "ϕ8", "d/4", "8ϕl,min", "150 mm", "350 mm", "100 mm"],
-  "tbdy-betonarme-kiris-kapasite-kesme": ["Denklem (7.9)", "1.4Mri", "D ile artırılmış", "Ve ≤ Vr", "0.85 bw d √fck", "Vc = 0", "yarısından büyük", "pilye"],
-  "tbdy-betonarme-kusatilmamis-birlesim": ["7.5.1", "dört taraftan", "3/4", "kuşatılmamış birleşim", "1.7 bj h √fck", "1.0 bj h √fck", "%40", "%60", "100 mm"],
-  "tbdy-betonarme-birlesim-kesme-guvenligi": ["Denklem (7.11)", "As2 = 0", "1.7 bj h √fck", "1.0 bj h √fck", "Şekil 7.10", "%40", "%60", "150 mm", "100 mm"],
-  "tbdy-betonarme-perde-kolon-geometri-ayrimi": ["7.6.1.1", "ℓw/bw ≥ 6", "0.35 fck", "1/16", "250 mm", "1/30", "1/20", "200 mm", "Denklem (7.14)", "SOURCE_VALUE"],
-  "tbdy-betonarme-perde-kritik-yukseklik-uc-bolge": ["7.6.2.1", "Denklem (7.15)", "2ℓw", "Hw / 6", "%20", "0.2ℓw", "2bw", "0.1ℓw", "300 mm", "SOURCE_VALUE"],
-  "tbdy-betonarme-perde-govde-uc-donati": ["0.0025", "250 mm", "0.002", "300 mm", "4 adet", "10 adet", "1.5ℓb", "150 mm", "200 mm", "0.001", "4ϕ14", "0.03", "0.06", "50 mm"],
-  "tbdy-betonarme-perde-moment-kesme-zarfi": ["7.6.6.1", "Denklem (7.16)", "βv = 1.5", "βv = 1.0", "1.25", "1.2D", "1.4D", "Hw/ℓw ≤ 2.0", "Denklem (7.3)"],
-  "tbdy-betonarme-perde-bosluklari-modelleme": ["4.5.3.7", "4.5.4.1", "Denklem (4.13)", "Denklem (4.14)", "Ω ≥ 1/3", "Ω ≤ 2/3", "kabuk sonlu eleman", "bağ kirişi", "SOURCE_VALUE"],
-  "tbdy-betonarme-diyafram-toplayici-baslik": ["4.5.6.1", "4.5.6.2", "4.5.6.3", "4.5.6.4", "4.5.6.5", "A2/A3", "iki boyutlu sonlu eleman", "ek bağlantı donatıları", "aktarma elemanları", "4.5.7.2", "SOURCE_VALUE"],
-  "tbdy-2018-betonarme-analiz": ["4.5.3.7", "4.5.3.8", "1/2", "4.5.6.2", "4.5.8", "Tablo 4.2", "0.35", "0.70", "4.5.9", "Denklem (4.16)", "4.5.10", "SOURCE_VALUE"],
-  "kisa-kolon-etkisi-tbdy-2018": ["7.3.8", "Denklem (7.5)", "1.4Mra", "1.4Mrü", "ℓn", "Denklem (7.7)", "Ve ≤ Vr", "0.85 Aw √fck", "tüm serbest yüksekliği", "Vc = 0", "Nd/(Ac fck) ≤ 0.05", "yarısından", "SOURCE_VALUE"],
-  "tbdy-2018-dogrusal-olmayan-tasarim": ["5.1.3", "ŞGDT", "5.2.2.2", "Lp ≈ 0.5h", "BYS ≥ 5", "BYS ≥ 2", "ηbi < 1.4", "0.70", "5.7.2.1", "en az onbir"],
-  "tbdy-2018-guclu-kolon-kontrolu": ["7.3.5.1", "Denklem (7.3)", "1.2", "Nd ≤ 0.10 Ac fck", "7.3.5.3", "αi = Vis / Vik", "αi ≥ 0.70", "1/αi", "7.3.6.3"],
-  "tbdy-2018-duzensizlikler-rehberi": ["Tablo 3.6", "A1", "ηbi > 1.2", "± %5", "A2", "1/3", "A3", "%20", "B1", "ηci < 0.80", "0.60", "1.25", "B2", "ηki > 2.0", "B3", "3.6.2.2"],
-  "tbdy-2018-sismik-izolasyon": ["Bölüm 14", "14.14.1.1", "ZA, ZB, ZC veya ZD", "4.0 saniye", "en fazla 4", "20 metre", "%30", "ηbi < 2.0", "B2", "Tv ≤ 0.1 s", "14.14.1.3", "en az onbir kayıt çifti", "%80", "%90"],
-  "tbdy-deprem-yer-hareketi-duzeyleri": ["2.1.2", "50 yılda aşılma olasılığı %2", "2475 yıl", "%10", "475 yıl", "%50", "72 yıl", "%68", "43 yıl", "standart tasarım deprem yer hareketi", "servis deprem yer hareketi", "SOURCE_VALUE"],
-  "tbdy-afad-ss-s1-okuma": ["2.1.2", "tdth.afad.gov.tr", "(VS)30 = 760 m/s", "%5 sönüm", "boyutsuz", "Denklem (2.1)", "SDS = Ss FS", "SD1 = S1 F1", "SOURCE_VALUE"],
-  "tbdy-yerel-zemin-sinifi-spektrum": ["Tablo 2.1", "Tablo 2.2", "doğrusal enterpolasyon", "ZF", "Bölüm 16.5", "Sahaya özel zemin davranış analizi", "1.1", "1.9", "SDS = 1.10", "SD1 = 0.76", "SOURCE_VALUE"],
-  "tbdy-tasarim-spektrumu-cizimi": ["Denklem (2.2)", "Denklem (2.3)", "TA = 0.2 SD1 / SDS", "TB = SD1 / SDS", "TL = 6 s", "0 ≤ T ≤ TA", "TA ≤ T ≤ TB", "TB ≤ T ≤ TL", "TL ≤ T", "Sae(T) = SD1 / T", "SOURCE_VALUE"],
-  "tbdy-r-d-dayanim-fazlaligi": ["Denklem (4.1)", "Tablo 4.1", "R_a(T)", "A11", "A31", "D = 1", "D > 1", "(R/I) = 2.5", "D = 1.5", "(4/5)R", "SOURCE_VALUE"],
-  "tbdy-bina-onem-katsayisi": ["Tablo 3.1", "BKS = 1", "1.5", "BKS = 2", "1.2", "BKS = 3", "1.0", "Tablo 3.2", "DTS = 1a", "I = 1", "SOURCE_VALUE"],
-  "tbdy-suneklik-duzeyi-sistem-farki": ["4.3.3", "DTS = 1a", "BYS ≤ 6", "DTS = 3", "DTS = 4", "Tablo 4.1", "0.40Mo", "0.75Mo", "ΣMDEV ≥ 0.75Mo", "SOURCE_VALUE"],
-  "tbdy-mod-birlesim-srss-cqc": ["4B.2.4", "Denklem (4B.4)", "Denklem (4B.5", "βmn = Tm/Tn", "βmn < 0.8", "Denklem (4B.6)", "TKB", "KTKK", "CQC", "SRSS"],
-  "tbdy-goreli-kat-otelenmesi": ["Denklem (4.32)", "Denklem (4.33)", "Denklem (4.34a)", "0.008", "Denklem (4.34b)", "0.016", "λ", "κ = 1", "κ = 0.5", "%50", "SOURCE_VALUE"],
-  "tbdy-dismerkezlik-kurali": ["4.5.10.1", "+%5", "-%5", "Denklem (4.17)", "M_ib", "Denklem (4.18)", "Δm_iθ = m_i e²", "4.5.10.4", "zarf", "1.2 < ηbi ≤ 2.0", "Denklem (4.29)", "SOURCE_VALUE"],
-  "tbdy-bodrum-katli-binalar": ["3.3.1.1", "en az üç taraftan", "T_p,tüm / T_p,üst ≤ 1.1", "3.3.1.2", "(R/I) = 2.5", "D = 1.5", "4.5.5.2", "kabuk sonlu eleman", "4.5.7.2", "iki boyutlu sonlu eleman", "4.7.5", "4.8.5", "ortak tek taşıyıcı sistem", "4.10.1", "SOURCE_VALUE"],
-  "tbdy-cati-agirligi-yuk-azaltma": ["4.5.9.2", "Denklem (4.16)", "Tablo 4.3", "0.80", "0.60", "0.30", "n = 1", "vinç kaldırma yükleri", "kar yüklerinin %30'u", "genel bir çatı hareketli yük indirimi değildir", "SOURCE_VALUE"],
-  "tbdy-p-delta-ikinci-mertebe": ["Denklem (4.35)", "Denklem (4.36)", "0.12 D", "Ch = 0.5", "Ch = 1", "Denklem (4.37)", "0.88", "βII", "üst bölüm", "SOURCE_VALUE"],
-  "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi": ["1947", "1953", "1961", "1968", "1975", "1998", "2007", "2018", "1 Ocak 2019", "30364", "2 Eylül 1997", "6 Mart 2007", "SOURCE_VALUE"],
-  "1999-marmara-depreminden-cikarilan-muhendislik-dersleri": ["17 Ağustos 1999", "03:02", "yumuşak kat", "kısa kolon", "beton", "sargı donatısı", "zemin", "sıvılaşma", "TBDY", "SOURCE_VALUE"],
-  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari": ["7.6.1.1", "ℓw/bw ≥ 6", "0.35 fck", "250 mm", "Denklem (7.15)", "0.20ℓw", "0.0025", "4ϕ14", "0.03", "Denklem (7.16)", "Denklem (7.18)", "SOURCE_VALUE"],
-};
+for (const slug of BATCH_14_SLUGS) {
+  const configured = DEPREM_PHASE3_ARTICLES.find((article) => article.slug === slug);
+  assert(Boolean(configured), `Batch 14 source-of-truth makalesi bulunamadı: ${slug}`);
+  if (!configured) continue;
 
-const expectedFormulaContract: Partial<Record<ExpectedSlug, { label: string; symbols: number }>> = {
-  "tbdy-kutle-kaynagi-hareketli-yuk-katilimi": { label: "4.16", symbols: 6 },
-  "tbdy-yeterli-mod-modal-kutle-katilimi": { label: "4.30", symbols: 4 },
-  "tbdy-modal-taban-kesme-olceklendirme": { label: "4.31", symbols: 4 },
-  "tbdy-yuzde-100-yuzde-30-birlesimi": { label: "4.9", symbols: 3 },
-  "tbdy-dusey-deprem-etkisi": { label: "4.10", symbols: 3 },
-  "tbdy-betonarme-kolon-kesit-eksenel-yuk-siniri": { label: "7.3.1.2", symbols: 3 },
-  "tbdy-betonarme-kolon-kapasite-kesme": { label: "7.5", symbols: 3 },
-  "tbdy-betonarme-kiris-mesnet-donati-surekliligi": { label: "7.8", symbols: 3 },
-  "tbdy-betonarme-kiris-kapasite-kesme": { label: "7.9", symbols: 5 },
-  "tbdy-betonarme-birlesim-kesme-guvenligi": { label: "7.11", symbols: 5 },
-  "tbdy-betonarme-perde-kritik-yukseklik-uc-bolge": { label: "7.15", symbols: 3 },
-  "tbdy-betonarme-perde-moment-kesme-zarfi": { label: "7.16", symbols: 5 },
-  "tbdy-betonarme-perde-bosluklari-modelleme": { label: "4.14", symbols: 6 },
-  "kisa-kolon-etkisi-tbdy-2018": { label: "7.5", symbols: 4 },
-  "tbdy-afad-ss-s1-okuma": { label: "2.1", symbols: 6 },
-  "tbdy-tasarim-spektrumu-cizimi": { label: "2.3", symbols: 4 },
-  "tbdy-r-d-dayanim-fazlaligi": { label: "4.1", symbols: 6 },
-  "tbdy-mod-birlesim-srss-cqc": { label: "4B.4", symbols: 5 },
-  "tbdy-goreli-kat-otelenmesi": { label: "4.34", symbols: 4 },
-  "tbdy-dismerkezlik-kurali": { label: "4.17", symbols: 3 },
-  "tbdy-p-delta-ikinci-mertebe": { label: "4.35", symbols: 8 },
-  "betonarme-perde-tasarimi-depremde-tip-ve-boyutlandirma-kurallari": { label: "7.15", symbols: 3 },
-};
+  assert(!TS500_SLUGS.has(slug), `Batch 14 TS500 kapsamına taşmış: ${slug}`);
+  assert(!DEPREM_PILOT_SLUGS.has(slug), `Batch 14 pilot ile çakışıyor: ${slug}`);
+  assert(configured.sections.length >= 6, `Batch 14 profesyonel bölüm sayısı yetersiz: ${slug}`);
+  assert(configured.references.length >= 2, `Batch 14 doğrulanabilir referans sayısı yetersiz: ${slug}`);
+  assert(configured.references.some((ref) => ref.href?.includes("TBDY_2018.pdf")), `AFAD TBDY PDF referansı eksik: ${slug}`);
+  assert(configured.references.some((ref) => ref.href?.includes("turkiye-bina-deprem-yonetmeligi")), `AFAD TBDY resmî sayfa referansı eksik: ${slug}`);
 
-for (const configured of DEPREM_PHASE3_ARTICLES) {
-  const slug = configured.slug as ExpectedSlug;
-  assert(!TS500_SLUGS.has(configured.slug), `FAZ 3 override TS500 kapsamına taşmış: ${configured.slug}`);
-  assert(!DEPREM_PILOT_SLUGS.has(configured.slug), `FAZ 3 source-of-truth pilot ile çakışıyor: ${configured.slug}`);
-  assert(configured.sections.length >= 6, `Profesyonel teknik gövde için bölüm sayısı yetersiz: ${configured.slug}`);
-  assert(configured.references.length >= 2, `En az iki doğrulanabilir referans bekleniyor: ${configured.slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("TBDY_2018.pdf")), `AFAD TBDY PDF referansı eksik: ${configured.slug}`);
-  assert(configured.references.some((ref) => ref.href?.includes("turkiye-bina-deprem-yonetmeligi")), `AFAD TBDY resmî sayfa referansı eksik: ${configured.slug}`);
+  if (slug === "deprem-sigortasi-dask-ve-muhendislik-baglantisi") {
+    assert(configured.references.some((ref) => ref.href?.includes("dask.gov.tr/tr/teminat-ve-kapsami")), "DASK teminat/kapsam resmî kaynağı eksik.");
+    assert(configured.references.some((ref) => ref.href?.includes("dask.gov.tr/tr/kanun")), "6305 sayılı Kanun için DASK resmî kaynağı eksik.");
+  }
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
-  assert(!configuredText.includes("Kapsam ve karar\n"), `C3 jenerik bölüm başlığı kaldı: ${configured.slug}`);
-  assert(!configuredText.includes("Proje kontrol sırası\n"), `C3 jenerik bölüm başlığı kaldı: ${configured.slug}`);
-  assert(!/[�ÃÄÅÂ]/.test(configuredText), `Encoding şüphesi: ${configured.slug}`);
-  assert(!configuredText.includes("/deprem-yonetmelik/araclar/"), `Eski araç route'u FAZ 3 gövdesinde kaldı: ${configured.slug}`);
+  assert(!configuredText.includes("Kapsam ve karar\n"), `C3 jenerik bölüm başlığı kaldı: ${slug}`);
+  assert(!configuredText.includes("Proje kontrol sırası\n"), `C3 jenerik bölüm başlığı kaldı: ${slug}`);
+  assert(!/[�ÃÄÅÂ]/.test(configuredText), `Encoding şüphesi: ${slug}`);
+  assert(!configuredText.includes("/deprem-yonetmelik/araclar/"), `Eski araç route'u Batch 14 gövdesinde kaldı: ${slug}`);
+  for (const token of requiredTokens[slug]) assert(configuredText.includes(token), `Batch 14 teknik işareti eksik (${token}): ${slug}`);
 
-  for (const token of requiredTokens[slug] ?? []) {
-    assert(configuredText.includes(token), `Zorunlu teknik içerik işareti eksik (${token}): ${configured.slug}`);
-  }
-
-  if (slug === "tbdy-uygulama-esaslari-taslak-statusu") {
-    assert(configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr")), "Taslak statüsü makalesinde Resmî Gazete doğrulama kaynağı eksik.");
-    assert(configured.references.some((ref) => ref.href?.includes("imo.org.tr")), "Taslak statüsü makalesinde tarihli İMO kaynağı eksik.");
-    assert(configured.references.some((ref) => ref.href?.includes("AFAD-2019-Idare-Faaliyet-Raporu")), "2019 yürürlükteki Tebliğ için AFAD resmî kayıt kaynağı eksik.");
-  }
-  if (slug === "turkiyede-tarihsel-depremler-ve-yonetmelik-evrimi") {
-    assert(configured.references.some((ref) => ref.href?.includes("yonetmelik_brosur.pdf")), "Yönetmelik evrimi makalesinde AFAD zaman çizelgesi kaynağı eksik.");
-    assert(configured.references.some((ref) => ref.href?.includes("resmigazete.gov.tr")), "Yönetmelik evrimi makalesinde Resmî Gazete yürürlük kaynağı eksik.");
-  }
-  if (slug === "1999-marmara-depreminden-cikarilan-muhendislik-dersleri") {
-    assert(configured.references.some((ref) => ref.href?.includes("istanbul.afad.gov.tr")), "1999 Marmara makalesinde resmî AFAD olay kaynağı eksik.");
-    assert(configured.references.some((ref) => ref.href?.includes("ipkb.gov.tr")), "1999 Marmara makalesinde yapısal risk eğitim kaynağı eksik.");
-  }
-
-  const article = getArticleBySlug(configured.slug);
-  assert(Boolean(article), `Runtime makalesi bulunamadı: ${configured.slug}`);
+  const article = getArticleBySlug(slug);
+  assert(Boolean(article), `Batch 14 runtime makalesi bulunamadı: ${slug}`);
   if (!article) continue;
+  assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${slug}`);
+  assert(article.seriesId === "tbdy", `Batch 14 seriesId tbdy olmalı: ${slug}`);
+  assert(article.author === DEPREM_CONTENT_AUTHOR.name, `Canonical yazar uygulanmadı: ${slug}`);
+  assert(article.authorTitle === "", `Canonical authorTitle boş olmalı: ${slug}`);
+  assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `HG monogram uygulanmadı: ${slug}`);
+  assert(article.updatedAt === "25 Ağustos 2026", `updatedAt beklenenden farklı: ${slug}`);
+  assert(article.sections.length === configured.sections.length, `Runtime bölüm sayısı Batch 14 gövdesiyle uyuşmuyor: ${slug}`);
+  assert(article.sections[0]?.content.startsWith(configured.sections[0]?.content.trim() ?? ""), `Runtime ilk bölüm Batch 14 gövdesinden gelmiyor: ${slug}`);
 
-  assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${article.slug}`);
-  const expectedSeries = BETONARME_SET.has(slug) ? "tbdy-betonarme" : "tbdy";
-  assert(article.seriesId === expectedSeries, `Yanlış FAZ 3 seriesId (${expectedSeries} bekleniyor): ${article.slug}`);
-  assert(article.author === DEPREM_CONTENT_AUTHOR.name, `Canonical yazar uygulanmadı: ${article.slug}`);
-  assert(article.authorTitle === "", `Canonical authorTitle boş olmalı: ${article.slug}`);
-  assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `HG monogram uygulanmadı: ${article.slug}`);
-  assert(article.updatedAt === "25 Ağustos 2026", `updatedAt beklenenden farklı: ${article.slug}`);
-  assert(article.sections.length === configured.sections.length, `Runtime bölüm sayısı FAZ 3 gövdesiyle uyuşmuyor: ${article.slug}`);
-  assert(article.sections[0]?.content.startsWith(configured.sections[0]?.content.trim() ?? ""), `Runtime ilk bölüm FAZ 3 gövdesinden gelmiyor: ${article.slug}`);
-
-  if (slug === "tbdy-uygulama-esaslari-taslak-statusu") {
-    assert(article.regulationStatus === "draft", "2026 yeni Tebliğ metninin regulationStatus değeri draft kalmalı.");
-    assert(article.badgeLabel?.includes("Taslak"), "2026 yeni Tebliğ metninin badge'i taslak statüsünü göstermeli.");
-  }
-
-  for (let index = 0; index < configured.sections.length; index += 1) {
-    assert(article.sections[index]?.id === configured.sections[index]?.id, `Runtime section id override edilmedi (${index}): ${article.slug}`);
-    assert(article.sections[index]?.title === configured.sections[index]?.title, `Runtime section title override edilmedi (${index}): ${article.slug}`);
-  }
-
-  const cover = getDepremRolloutVisualPath(article.slug, "cover");
-  const diagram = getDepremRolloutVisualPath(article.slug, "diagram");
-  assert(article.image === cover, `Mevcut rollout cover korunmadı: ${article.slug}`);
-
+  const cover = getDepremRolloutVisualPath(slug, "cover");
+  const diagram = getDepremRolloutVisualPath(slug, "diagram");
+  assert(article.image === cover, `Mevcut rollout cover korunmadı: ${slug}`);
   const blocks = article.sections.flatMap((section) => parseBlocks(section.content));
   const figure = blocks.find((block) => block.type === "image" && block.src === diagram);
-  assert(Boolean(figure), `Mevcut rollout body figure korunmadı: ${article.slug}`);
+  assert(Boolean(figure), `Mevcut rollout body figure korunmadı: ${slug}`);
   if (figure?.type === "image") {
-    assert(Boolean(figure.alt.trim()), `Body figure alt eksik: ${article.slug}`);
-    assert(Boolean(figure.caption.trim()), `Body figure caption eksik: ${article.slug}`);
-    assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${article.slug}`);
-    assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${article.slug}`);
+    assert(Boolean(figure.alt.trim()), `Body figure alt eksik: ${slug}`);
+    assert(Boolean(figure.caption.trim()), `Body figure caption eksik: ${slug}`);
+    assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${slug}`);
+    assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${slug}`);
   }
-
-  const formulaBlocks = blocks.filter((block) => block.type === "formula");
-  const formulaContract = expectedFormulaContract[slug];
-  if (formulaContract) {
-    assert(formulaBlocks.length === 1, `Tek semantik FormulaBlock bekleniyor: ${article.slug}`);
-    const formula = formulaBlocks[0];
-    if (formula?.type === "formula") {
-      assert(formula.label.includes(formulaContract.label), `Denklem etiketi ${formulaContract.label}'i göstermiyor: ${article.slug}`);
-      assert(formula.symbols.length === formulaContract.symbols, `Denklem sembol/birim tanımları eksik: ${article.slug}`);
-      assert(formula.symbols.every((symbol) => symbol.symbol && symbol.description && symbol.unit), `Denklem sembol/birim semantiği eksik: ${article.slug}`);
-    }
-  } else {
-    assert(formulaBlocks.length === 0, `Değer katmayan formül bloğu eklenmiş: ${article.slug}`);
-  }
+  assert(blocks.filter((block) => block.type === "formula").length === 0, `Batch 14'te gereksiz FormulaBlock bulundu: ${slug}`);
 }
 
+for (const item of PHASE2_C1_CARRY_FORWARD) {
+  const article = getArticleBySlug(item.slug);
+  assert(Boolean(article), `C1 carry-forward runtime makalesi bulunamadı: ${item.slug}`);
+  if (!article) continue;
+  assert(article.seriesId === item.seriesId, `C1 carry-forward seriesId yanlış: ${item.slug}`);
+  assert(article.author === DEPREM_CONTENT_AUTHOR.name, `C1 carry-forward canonical yazar uygulanmadı: ${item.slug}`);
+  assert(article.authorTitle === "", `C1 carry-forward authorTitle boş olmalı: ${item.slug}`);
+  assert(getArticleAuthorPresentation(article).monogram === DEPREM_CONTENT_AUTHOR.monogram, `C1 carry-forward HG monogram uygulanmadı: ${item.slug}`);
+  assert(article.updatedAt === "25 Ağustos 2026", `C1 carry-forward updatedAt farklı: ${item.slug}`);
+  assert(article.sections.length >= 4, `C1 pilot teknik gövdesi yetersiz: ${item.slug}`);
+  assert((article.references?.length ?? 0) >= 2, `C1 pilot referansları yetersiz: ${item.slug}`);
+}
+
+const phase3SeriesCoverage = DEPREM_PHASE3_ARTICLES.reduce(
+  (acc, configured) => {
+    const article = getArticleBySlug(configured.slug);
+    if (article?.seriesId === "tbdy") acc.tbdy += 1;
+    if (article?.seriesId === "tbdy-betonarme") acc["tbdy-betonarme"] += 1;
+    return acc;
+  },
+  { tbdy: 0, "tbdy-betonarme": 0 },
+);
+assert(phase3SeriesCoverage.tbdy === 35, `FAZ 3 tbdy override sayısı 35 olmalı; bulunan ${phase3SeriesCoverage.tbdy}.`);
+assert(phase3SeriesCoverage["tbdy-betonarme"] === 21, `FAZ 3 tbdy-betonarme override sayısı 21 olmalı; bulunan ${phase3SeriesCoverage["tbdy-betonarme"]}.`);
+
 if (errors.length > 0) {
-  console.error("Deprem FAZ 3 ilk on üç batch kontrolü başarısız:\n");
+  console.error("Deprem FAZ 3 nihai 58/58 kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -318,44 +213,18 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 3",
-  completedBatches: 13,
-  batchSizes: {
-    1: BATCH_1_SLUGS.length,
-    2: BATCH_2_SLUGS.length,
-    3: BATCH_3_SLUGS.length,
-    4: BATCH_4_SLUGS.length,
-    5: BATCH_5_SLUGS.length,
-    6: BATCH_6_SLUGS.length,
-    7: BATCH_7_SLUGS.length,
-    8: BATCH_8_SLUGS.length,
-    9: BATCH_9_SLUGS.length,
-    10: BATCH_10_SLUGS.length,
-    11: BATCH_11_SLUGS.length,
-    12: BATCH_12_SLUGS.length,
-    13: BATCH_13_SLUGS.length,
-  },
-  articles: EXPECTED_SLUGS.length,
-  slugs: EXPECTED_SLUGS,
-  sourceOfTruth: "src/lib/deprem-phase3-articles.ts",
-  sourceModules: [
-    "src/lib/deprem-phase3-batch1.ts",
-    "src/lib/deprem-phase3-batch2.ts",
-    "src/lib/deprem-phase3-batch3.ts",
-    "src/lib/deprem-phase3-batch4.ts",
-    "src/lib/deprem-phase3-batch5.ts",
-    "src/lib/deprem-phase3-batch6.ts",
-    "src/lib/deprem-phase3-batch7.ts",
-    "src/lib/deprem-phase3-batch8.ts",
-    "src/lib/deprem-phase3-batch9.ts",
-    "src/lib/deprem-phase3-batch10.ts",
-    "src/lib/deprem-phase3-batch11.ts",
-    "src/lib/deprem-phase3-batch12.ts",
-    "src/lib/deprem-phase3-batch13.ts",
-  ],
-  runtimeOrder: "topic/raw seed -> phase3 technical override -> rollout enhancement -> author normalization",
+  completedBatches: 14,
+  phase3Overrides: 56,
+  phase2C1CarryForward: PHASE2_C1_CARRY_FORWARD.map((item) => item.slug),
+  targetArticles: 58,
+  remaining: 0,
+  batch14Slugs: BATCH_14_SLUGS,
+  sourceOfTruth: "src/lib/deprem-phase3-articles.ts + two preserved FAZ 2 C1 pilots",
   c3GenericBodyRemainingInCompletedBatches: 0,
-  officialSourceProfile: "AFAD TBDY 2018 + AFAD resmî yönetmelik kronolojisi + Resmî Gazete yürürlük kayıtları + AFAD/İPKB 1999 yapısal risk kaynakları",
+  pilotCollisionCount: 0,
+  officialSourceProfile: "AFAD TBDY 2018 + AFAD/Resmî Gazete tarihsel kaynakları + AFAD/İPKB 1999 kaynakları + DASK/6305 resmî kaynakları",
   visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { tbdy: 31, "tbdy-betonarme": 21 },
+  seriesCoverage: phase3SeriesCoverage,
+  targetCoverage: { tbdy: 36, "tbdy-betonarme": 22, total: 58 },
   ts500Touched: false,
 }, null, 2));

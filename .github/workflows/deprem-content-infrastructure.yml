@@ -27,6 +27,7 @@ on:
       - scripts/check-deprem-content.ts
       - scripts/check-deprem-infrastructure.ts
       - scripts/check-deprem-phase3.ts
+      - scripts/check-deprem-phase3-first13.ts
       - scripts/check-deprem-phase3-render.mjs
       - scripts/check-deprem-phase3-batch6-render.mjs
       - scripts/check-deprem-phase3-batch7-render.mjs
@@ -36,6 +37,7 @@ on:
       - scripts/check-deprem-phase3-batch11-render.mjs
       - scripts/check-deprem-phase3-batch12-render.mjs
       - scripts/check-deprem-phase3-batch13-render.mjs
+      - scripts/check-deprem-phase3-batch14-render.mjs
       - scripts/check-deprem-pilots.ts
       - scripts/check-deprem-rollout.ts
       - scripts/generate-deprem-content-inventory.ts
@@ -89,3 +91,5 @@ jobs:
         run: node scripts/check-deprem-phase3-batch12-render.mjs
       - name: FAZ 3 batch 13 responsive render QA
         run: node scripts/check-deprem-phase3-batch13-render.mjs
+      - name: FAZ 3 batch 14 responsive render QA
+        run: node scripts/check-deprem-phase3-batch14-render.mjs

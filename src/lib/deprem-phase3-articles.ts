@@ -12,6 +12,7 @@ import { DEPREM_PHASE3_BATCH_10_ARTICLES } from "./deprem-phase3-batch10";
 import { DEPREM_PHASE3_BATCH_11_ARTICLES } from "./deprem-phase3-batch11";
 import { DEPREM_PHASE3_BATCH_12_ARTICLES } from "./deprem-phase3-batch12";
 import { DEPREM_PHASE3_BATCH_13_ARTICLES } from "./deprem-phase3-batch13";
+import { DEPREM_PHASE3_BATCH_14_ARTICLES } from "./deprem-phase3-batch14";
 
 export const DEPREM_PHASE3_ARTICLES = [
   ...DEPREM_PHASE3_BATCH_1_ARTICLES,
@@ -27,6 +28,7 @@ export const DEPREM_PHASE3_ARTICLES = [
   ...DEPREM_PHASE3_BATCH_11_ARTICLES,
   ...DEPREM_PHASE3_BATCH_12_ARTICLES,
   ...DEPREM_PHASE3_BATCH_13_ARTICLES,
+  ...DEPREM_PHASE3_BATCH_14_ARTICLES,
 ] as const;
 
 const PHASE3_BY_SLUG = new Map(DEPREM_PHASE3_ARTICLES.map((article) => [article.slug, article] as const));
