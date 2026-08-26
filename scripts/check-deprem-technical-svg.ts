@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { getDepremRolloutSpec } from "../src/lib/deprem-rollout";
-import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual";
+import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual-router";
 import {
   DEPREM_TECHNICAL_VISUAL_ROLLOUT,
   DEPREM_TECHNICAL_VISUAL_STYLE,
@@ -72,7 +72,7 @@ for (const item of DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.statu
 }
 
 if (renderedCount !== DEPREM_TECHNICAL_VISUAL_ROLLOUT.filter((entry) => entry.status === "complete").length * 2) {
-  fail("Tamamlanan her konu için tam iki pilot asset üretilemedi");
+  fail("Tamamlanan her konu için tam iki teknik asset üretilemedi");
 } else {
   pass(`${renderedCount} teknik SVG; renk, farklılık ve sadelik kapısından geçti`);
 }

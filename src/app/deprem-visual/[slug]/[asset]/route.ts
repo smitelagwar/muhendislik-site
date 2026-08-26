@@ -1,6 +1,6 @@
 import { getDepremRolloutSpec, DEPREM_ROLLOUT_ARTICLES } from "@/lib/deprem-rollout";
 import { renderDepremVisualSvg, type DepremVisualAsset } from "@/lib/deprem-visual";
-import { hasDepremTechnicalVisual, renderDepremTechnicalVisualSvg } from "@/lib/deprem-technical-visual";
+import { hasDepremTechnicalVisual, renderDepremTechnicalVisualSvg } from "@/lib/deprem-technical-visual-router";
 
 const ASSETS = ["cover.svg", "diagram.svg"] as const;
 

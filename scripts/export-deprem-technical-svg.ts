@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getDepremRolloutSpec } from "../src/lib/deprem-rollout";
-import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual";
+import { renderDepremTechnicalVisualSvg } from "../src/lib/deprem-technical-visual-router";
 import { DEPREM_TECHNICAL_VISUAL_ROLLOUT } from "../src/lib/deprem-visual-rollout";
 
 const outputRoot = path.resolve(process.cwd(), "artifacts/deprem-technical-visuals");
