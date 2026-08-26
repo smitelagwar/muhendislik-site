@@ -93,6 +93,34 @@ export const DEPREM_TECHNICAL_VISUAL_ROLLOUT: readonly DepremTechnicalVisualRoll
     assets: ["cover.svg", "diagram.svg"],
     designNotes: ["İki farklı komşu bina derz konusu gereği birlikte gösterilir", "Binalar aynı yapının kopyası değildir", "Detay görseli plan görünüşünde net derz bölgesini açıklar"],
   },
+  {
+    slug: "tbdy-bodrum-katli-binalar",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek ortak üst yapı-bodrum kesiti", "Çevre perdeleri ve geçiş döşemesi fiziksel yük yolu olarak gösterilir", "Detay görseli bina tekrarı yerine geçiş döşemesi planında kuvvet aktarımını açıklar"],
+  },
+  {
+    slug: "tbdy-cati-agirligi-yuk-azaltma",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek yapı ve çatı kütle bileşenleri", "%30 yalnız kar yükü katkısı olarak etiketlenir", "Detay görseli bina tekrarı yerine G, nQ ve 0.30S bileşenlerini ayrıştırır"],
+  },
+  {
+    slug: "tbdy-dusey-deprem-etkisi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Kapakta tek düşey titreşime duyarlı uzun açıklıklı eleman", "Yerel düşey mod ve Ed(Z) aynı eleman üzerinde okunur", "Detay tek serbest cisim ve moment/reaksiyon zarfıdır"],
+  },
+  {
+    slug: "tbdy-r-d-dayanim-fazlaligi",
+    series: "tbdy",
+    status: "complete",
+    assets: ["cover.svg", "diagram.svg"],
+    designNotes: ["Bina ikonları yerine Ra(T) mühendislik grafiği kullanılır", "D ile R/I aynı katsayı gibi gösterilmez", "Detay kuvvet-deplasman grafiğinde azaltma ve dayanım fazlalığı rollerini ayrıştırır"],
+  },
 ] as const;
 
 export const DEPREM_TECHNICAL_VISUAL_SLUGS = new Set(
