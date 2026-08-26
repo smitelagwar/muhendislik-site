@@ -1,5 +1,6 @@
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleBySlug } from "../src/lib/articles-data";
+import { DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import {
   DEPREM_ROLLOUT_ARTICLES,
@@ -58,7 +59,8 @@ for (const spec of DEPREM_ROLLOUT_ARTICLES) {
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${article.slug}`);
   assert(!TS500_SLUGS.has(article.slug), `Rollout TS500'e temas ediyor: ${article.slug}`);
   assert(!DEPREM_PILOT_SLUGS.has(article.slug), `Rollout pilotla çakışıyor: ${article.slug}`);
-  assert(article.updatedAt === "25 Ağustos 2026", `updatedAt uygulanmadı: ${article.slug}`);
+  const expectedUpdatedAt = DEPREM_PHASE4_SLUGS.has(article.slug) ? "26 Ağustos 2026" : "25 Ağustos 2026";
+  assert(article.updatedAt === expectedUpdatedAt, `updatedAt uygulanmadı: ${article.slug}`);
   if (spec.referenceProfile === "preserve") {
     assert((article.references?.length ?? 0) >= 1, `Korunacak mevcut kaynakça bulunamadı: ${article.slug}`);
   } else {
