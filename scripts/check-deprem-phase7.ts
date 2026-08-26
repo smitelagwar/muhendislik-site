@@ -5,7 +5,7 @@ import { DEPREM_PHASE3_SLUGS } from "../src/lib/deprem-phase3-articles";
 import { DEPREM_PHASE4_SLUGS } from "../src/lib/deprem-phase4-articles";
 import { DEPREM_PHASE5_SLUGS } from "../src/lib/deprem-phase5-articles";
 import { DEPREM_PHASE6_SLUGS } from "../src/lib/deprem-phase6-articles";
-import { DEPREM_PHASE7_ARTICLES, DEPREM_PHASE7_SLUGS } from "../src/lib/deprem-phase7-articles";
+import { DEPREM_PHASE7_ARTICLES, DEPREM_PHASE7_SLUGS, PHASE7_C1_VISUAL_CARRY_FORWARD } from "../src/lib/deprem-phase7-articles";
 import { DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import { getDepremRolloutVisualPath } from "../src/lib/deprem-rollout";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
@@ -82,8 +82,9 @@ for (const slug of PHASE7_SLUGS) {
   assert(Boolean(configured), `FAZ 7 source-of-truth makalesi bulunamadı: ${slug}`);
   if (!configured) continue;
 
+  const isC1VisualCarryForward = slug === PHASE7_C1_VISUAL_CARRY_FORWARD.slug;
   assert(!TS500_SLUGS.has(slug), `FAZ 7 TS500 kapsamına taşmış: ${slug}`);
-  assert(!DEPREM_PILOT_SLUGS.has(slug), `FAZ 7 pilot ile çakışıyor: ${slug}`);
+  assert(!DEPREM_PILOT_SLUGS.has(slug) || isC1VisualCarryForward, `FAZ 7 pilot ile çakışıyor: ${slug}`);
   assert(!DEPREM_PHASE3_SLUGS.has(slug) && !DEPREM_PHASE4_SLUGS.has(slug) && !DEPREM_PHASE5_SLUGS.has(slug) && !DEPREM_PHASE6_SLUGS.has(slug), `FAZ 7 önceki faz source-of-truth ile çakışıyor: ${slug}`);
   assert(configured.sections.length >= 7, `FAZ 7 profesyonel bölüm sayısı yetersiz: ${slug}`);
   assert(configured.references.length >= 2, `FAZ 7 referans sayısı yetersiz: ${slug}`);
@@ -110,14 +111,14 @@ for (const slug of PHASE7_SLUGS) {
   assert(article.sections.length === configured.sections.length, `Runtime bölüm sayısı source-of-truth ile uyuşmuyor: ${slug}`);
   assert((article.relatedSlugs ?? []).every((relatedSlug) => allSlugs.has(relatedSlug)), `Geçersiz related slug var: ${slug}`);
 
-  const cover = getDepremRolloutVisualPath(slug, "cover");
-  const diagram = getDepremRolloutVisualPath(slug, "diagram");
+  const cover = isC1VisualCarryForward ? PHASE7_C1_VISUAL_CARRY_FORWARD.cover : getDepremRolloutVisualPath(slug, "cover");
+  const diagram = isC1VisualCarryForward ? PHASE7_C1_VISUAL_CARRY_FORWARD.diagram : getDepremRolloutVisualPath(slug, "diagram");
   const coverOk = article.image === cover && article.image !== "/covers/yonetmelik.svg";
   const blocks = article.sections.flatMap((item) => parseBlocks(item.content));
   const figure = blocks.find((block) => block.type === "image" && block.src === diagram);
   const figureOk = figure?.type === "image" ? Boolean(figure.alt.trim() && figure.caption.trim() && figure.sourceNote.trim() && figure.lightbox) : false;
-  assert(coverOk, `FAZ 7 benzersiz rollout cover uygulanmadı: ${slug}`);
-  assert(Boolean(figure) && figureOk, `FAZ 7 rollout body figure/metadata bulunamadı: ${slug}`);
+  assert(coverOk, `FAZ 7 benzersiz cover uygulanmadı: ${slug}`);
+  assert(Boolean(figure) && figureOk, `FAZ 7 body figure/metadata bulunamadı: ${slug}`);
 
   const technicalOk = requiredTokens[slug].every((token) => textLower.includes(lower(token)));
   const sourcesOk = hrefs.length >= 2 && hrefs.every(isOfficialSource);
@@ -154,9 +155,10 @@ console.log(JSON.stringify({
   completedArticles: 12,
   targetArticles: 12,
   remaining: 0,
+  phase2C1VisualCarryForward: PHASE7_C1_VISUAL_CARRY_FORWARD.slug,
   sourceOfTruth: "src/lib/deprem-phase7-articles.ts",
   officialSourceProfile: "BEP/TS825: Mevzuat Bilgi Sistemi + Resmî Gazete + ÇŞİDB; Akustik: Mevzuat Bilgi Sistemi + Resmî Gazete; Eurocode: European Commission JRC",
-  visualContract: "12 rollout unique cover/body figure",
+  visualContract: "11 rollout unique cover/body figure + 1 preserved FAZ 2 pilot cover/body figure",
   qualityScoreContract: "static subtotal >=80/90 + responsive layout QA 10/10 => final >=90/100",
   qualityScores,
 }, null, 2));

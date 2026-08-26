@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseBlocks } from "../src/lib/article-blocks";
 import { getArticleBySlug } from "../src/lib/articles-data";
 import { DEPREM_CONTENT_AUTHOR } from "../src/lib/content-author";
+import { PHASE7_C1_VISUAL_CARRY_FORWARD } from "../src/lib/deprem-phase7-articles";
 import { DEPREM_PILOT_ARTICLES, DEPREM_PILOT_SLUGS } from "../src/lib/deprem-pilot-articles";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
@@ -37,13 +38,14 @@ for (const configured of DEPREM_PILOT_ARTICLES) {
   assert(Boolean(article), `Runtime makalesi bulunamadı: ${configured.slug}`);
   if (!article) continue;
 
+  const graduatedToPhase7 = configured.slug === PHASE7_C1_VISUAL_CARRY_FORWARD.slug;
   assert(!TS500_SLUGS.has(article.slug), `Pilot yanlışlıkla TS500 kapsamına girdi: ${article.slug}`);
   assert(article.sectionId === "deprem-yonetmelik", `Yanlış sectionId: ${article.slug}`);
-  assert(article.title === configured.title, `Pilot override başlığı runtime'a taşınmadı: ${article.slug}`);
+  if (!graduatedToPhase7) assert(article.title === configured.title, `Pilot override başlığı runtime'a taşınmadı: ${article.slug}`);
   assert(article.image === configured.image, `Pilot cover override'u runtime'a taşınmadı: ${article.slug}`);
   assert(article.author === DEPREM_CONTENT_AUTHOR.name, `Canonical yazar uygulanmadı: ${article.slug}`);
   assert(article.authorTitle === "", `Deprem canonical authorTitle boş olmalı: ${article.slug}`);
-  assert(article.updatedAt === "25 Ağustos 2026", `Pilot güncelleme tarihi beklenenden farklı: ${article.slug}`);
+  assert(article.updatedAt === (graduatedToPhase7 ? "26 Ağustos 2026" : "25 Ağustos 2026"), `Pilot güncelleme tarihi beklenenden farklı: ${article.slug}`);
   assert((article.references?.length ?? 0) >= 2, `En az iki doğrulanabilir referans bekleniyor: ${article.slug}`);
   assert(article.references?.every((ref) => !ref.href || /^https:\/\//.test(ref.href)), `Geçersiz referans URL'si: ${article.slug}`);
   assert(article.image.startsWith("/images/deprem-pilots/"), `Pilot cover dizini yanlış: ${article.slug}`);
@@ -75,7 +77,7 @@ const requiredContent: Record<(typeof EXPECTED_SLUGS)[number], string[]> = {
   "radye-temel-zemin-yayi-yatak-katsayisi": ["K_i = k_s A_i", "tributary", "compression-only"],
   "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma": ["Madde 33", "110 cm", "120 cm", "80 cm"],
   "imar-taks-kaks-emsal-hesabi": ["A_taban = A_parsel × TAKS", "A_emsal = A_parsel × KAKS", "1 Temmuz 2026"],
-  "bep-isi-yalitim-u-degeri-yogusma-kontrolu": ["U = 1 / R_T", "1 Nisan 2025", "6 iklim bölgesine", "p_v(x) <= p_sat(θ_x)"],
+  "bep-isi-yalitim-u-degeri-yogusma-kontrolu": ["R_i = d_i / λ_i", "U = 1 / R_T", "1 Nisan 2025", "Mühendislik kontrol listesi"],
 };
 
 for (const slug of EXPECTED_SLUGS) {
@@ -83,7 +85,7 @@ for (const slug of EXPECTED_SLUGS) {
   if (!article) continue;
   const text = article.sections.map((section) => section.content).join("\n");
   for (const token of requiredContent[slug]) {
-    assert(text.includes(token), `Zorunlu pilot içerik işareti eksik (${token}): ${slug}`);
+    assert(text.includes(token), `Zorunlu pilot/carry-forward içerik işareti eksik (${token}): ${slug}`);
   }
 }
 
@@ -97,7 +99,8 @@ console.log(JSON.stringify({
   status: "ok",
   pilots: EXPECTED_SLUGS.length,
   uniqueCovers: seenCovers.size,
-  visualContract: "unique cover + technical body figure",
-  sourceOfTruth: "src/lib/deprem-pilot-articles.ts",
+  phase7GraduatedVisualCarryForward: PHASE7_C1_VISUAL_CARRY_FORWARD.slug,
+  visualContract: "unique cover + technical body figure; graduated BEP pilot visuals preserved in FAZ 7",
+  sourceOfTruth: "src/lib/deprem-pilot-articles.ts + FAZ 7 visual carry-forward contract",
   ts500Touched: false,
 }, null, 2));
