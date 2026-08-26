@@ -17,7 +17,7 @@ export const DEPREM_PHASE4_YAPI_DOKUM_ONCESI: DepremPhase4Override = {
       id: "dokum-oncesi-hold-point",
       title: "Döküm öncesi kontrol, betondan sonra erişilemeyecek imalatlar için geri dönüş kapısıdır",
       content: phase4Lines(
-        "Beton dökümü öncesi kontrolün mühendislik değeri, beton sertleştikten sonra doğrudan görülemeyecek kalıp geometrisi, donatı yerleşimi, birleşimler ve gömülü elemanları son kez doğrulamasıdır. Bu nedenle kontrol bir formalite değil, açık bir **hold-point / döküm serbest bırakma** kararıdır.",
+        "Beton dökümü öncesi kontrolün mühendislik değeri, beton sertleştikten sonra doğrudan görülemeyecek kalıp geometrisi, **pas payı**, donatı yerleşimi, birleşimler ve gömülü elemanları son kez doğrulamasıdır. Bu nedenle kontrol bir formalite değil, açık bir **hold-point / döküm serbest bırakma** kararıdır.",
         "",
         "2025 tarihli resmî Bakanlık duyurusunda yapı denetim kuruluşlarının **'kalıp ve donatı imalatını teslim alma'** ve **'betona nezaret'** gibi mevzuatla verilen denetim görevlerini yerine getirmemesinin sözleşme feshi süreçleri bakımından önem taşıdığı açıkça vurgulanmıştır.",
         "",
