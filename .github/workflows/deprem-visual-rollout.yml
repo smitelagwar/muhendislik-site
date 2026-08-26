@@ -35,3 +35,14 @@ jobs:
 
       - name: TypeScript
         run: npx tsc --noEmit
+
+      - name: Export technical SVG review pack
+        run: npx tsx scripts/export-deprem-technical-svg.ts
+
+      - name: Upload technical SVG review pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: deprem-technical-visuals-${{ github.sha }}
+          path: artifacts/deprem-technical-visuals
+          if-no-files-found: error
+          retention-days: 7
