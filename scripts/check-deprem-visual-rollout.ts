@@ -1,5 +1,4 @@
-import { DEPREM_ROLLOUT_ARTICLES } from "../src/lib/deprem-rollout";
-import { TS500_ARTICLES } from "../src/lib/ts500-content";
+import { getArticleList } from "../src/lib/articles-data";
 import {
   DEPREM_TECHNICAL_VISUAL_MIN_ASSET_COUNT,
   DEPREM_TECHNICAL_VISUAL_ROLLOUT,
@@ -13,20 +12,22 @@ const fail = (message: string) => {
 };
 const pass = (message: string) => console.log(`PASS — ${message}`);
 
-const allTopicSlugs = [
-  ...DEPREM_ROLLOUT_ARTICLES.map((item) => item.slug),
-  ...TS500_ARTICLES.map((item) => item.slug),
-];
+// Canonical source-of-truth is the same effective article set used by the site
+// and the existing deprem content quality gate. The historic rollout list does
+// not contain every deprem-yonetmelik article, so it must not be used as an
+// inventory proxy for this 164-topic visual migration.
+const depremArticles = getArticleList().filter((article) => article.sectionId === "deprem-yonetmelik");
+const allTopicSlugs = depremArticles.map((article) => article.slug);
 const uniqueTopicSlugs = new Set(allTopicSlugs);
 
-if (uniqueTopicSlugs.size !== DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT) {
-  fail(`Konu envanteri ${DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT} yerine ${uniqueTopicSlugs.size}`);
+if (depremArticles.length !== DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT) {
+  fail(`Konu envanteri ${DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT} yerine ${depremArticles.length}`);
 } else {
-  pass(`Konu envanteri: ${uniqueTopicSlugs.size}/${DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT}`);
+  pass(`Konu envanteri: ${depremArticles.length}/${DEPREM_TECHNICAL_VISUAL_TARGET_TOPIC_COUNT}`);
 }
 
 if (allTopicSlugs.length !== uniqueTopicSlugs.size) {
-  fail("Rollout + TS500 birleşiminde duplicate slug bulundu");
+  fail("Etkin deprem-yonetmelik envanterinde duplicate slug bulundu");
 } else {
   pass("Konu slug'ları benzersiz");
 }
