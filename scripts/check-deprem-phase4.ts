@@ -39,9 +39,14 @@ const BATCH_5_SLUGS = [
   "temel-kayma-devrilme-guvenligi",
 ] as const;
 
-const PHASE4_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS, ...BATCH_3_SLUGS, ...BATCH_4_SLUGS, ...BATCH_5_SLUGS] as const;
+const BATCH_6_SLUGS = [
+  "radye-temel-zemin-yayi-yatak-katsayisi",
+  "bodrum-perdesi-statik-dinamik-zemin-basinci",
+] as const;
+
+const PHASE4_SLUGS = [...BATCH_1_SLUGS, ...BATCH_2_SLUGS, ...BATCH_3_SLUGS, ...BATCH_4_SLUGS, ...BATCH_5_SLUGS, ...BATCH_6_SLUGS] as const;
 type Phase4Slug = (typeof PHASE4_SLUGS)[number];
-const SU_ZEMIN_SLUGS = new Set<string>(BATCH_5_SLUGS);
+const SU_ZEMIN_SLUGS = new Set<string>([...BATCH_5_SLUGS, ...BATCH_6_SLUGS]);
 
 const requiredTokens: Record<Phase4Slug, string[]> = {
   "mevcut-bina-riskli-yapi-ve-bolum-15-farki": ["6306", "Ek-2", "15.1.6", "15.1.7", "riskli yapı tespiti", "performans", "Mühendislik kontrol listesi"],
@@ -61,13 +66,15 @@ const requiredTokens: Record<Phase4Slug, string[]> = {
   "zemin-raporu-verilerinin-yapi-modeline-aktarimi": ["16.2.2.1", "16.2.2.2", "Veri Raporu", "Geoteknik Rapor", "ZA–ZF", "SDS = SS × FS", "SD1 = S1 × F1", "ZF", "16.5", "16.7.3.1", "4.10.3", "Mühendislik kontrol listesi"],
   "temel-tasima-gucu-oturma-kontrolu": ["16.7.1.1", "Et ≤ Rt", "16.8.1.1", "16.8.3.1", "qo ≤ qt", "1.4", "1.1", "oturma", "yerdeğiştirme", "Mühendislik kontrol listesi"],
   "temel-kayma-devrilme-guvenligi": ["16.7.3.2", "16.7.3.3", "%30", "16.8.4.1", "Vth ≤ Rth + 0.3 Rpt", "1.1", "1.4", "temel taban basıncı", "Mühendislik kontrol listesi"],
+  "radye-temel-zemin-yayi-yatak-katsayisi": ["16.8.1", "16.8.3.4", "k_i = k_s × A_i", "kN/m³", "kN/m", "çekme taşımayan", "16C.1.2", "taşıma gücü", "oturma", "Mühendislik kontrol listesi"],
+  "bodrum-perdesi-statik-dinamik-zemin-basinci": ["16.11", "Tablo 16.6", "0.2", "0.3", "16.11.2", "Δp = 0.4 SDS γ Hb", "düzgün yayılı", "statik su basıncı", "16.11.3", "16.12", "Mühendislik kontrol listesi"],
 };
 
 const errors: string[] = [];
 const assert = (condition: unknown, message: string) => { if (!condition) errors.push(message); };
 
-assert(DEPREM_PHASE4_ARTICLES.length === 17, `FAZ 4 override sayısı 17 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
-assert(DEPREM_PHASE4_SLUGS.size === 17, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
+assert(DEPREM_PHASE4_ARTICLES.length === 19, `FAZ 4 override sayısı 19 olmalı; bulunan ${DEPREM_PHASE4_ARTICLES.length}.`);
+assert(DEPREM_PHASE4_SLUGS.size === 19, "FAZ 4 source-of-truth slug kümesinde tekrar/eksik kayıt var.");
 for (const slug of PHASE4_SLUGS) assert(DEPREM_PHASE4_SLUGS.has(slug), `FAZ 4 slug eksik: ${slug}`);
 
 const allArticles = getArticleList();
@@ -105,6 +112,9 @@ for (const slug of PHASE4_SLUGS) {
     assert(configured.references.some((ref) => ref.href?.includes("zemin-ve-temel-etudu-uygulama-esaslari")), "Etüt kategorileri makalesinde ÇŞİDB resmî Tebliğ sayfası eksik.");
     assert(configured.references.some((ref) => ref.href?.includes("20210217-4.htm")), "Etüt kategorileri makalesinde 2021 Resmî Gazete değişikliği eksik.");
   }
+  if (slug === "radye-temel-zemin-yayi-yatak-katsayisi") {
+    assert(configured.references.some((ref) => ref.href?.includes("zemin-ve-temel-etudu-uygulama-esaslari")), "Radye yay makalesinde Zemin ve Temel Etüdü resmî kaynağı eksik.");
+  }
 
   const configuredText = configured.sections.map((section) => `${section.title}\n${section.content}`).join("\n");
   assert(!configuredText.includes("Kapsam ve karar\n"), `C3 jenerik bölüm başlığı kaldı: ${slug}`);
@@ -139,11 +149,11 @@ for (const slug of PHASE4_SLUGS) {
     assert(Boolean(figure.sourceNote.trim()), `Body figure source note eksik: ${slug}`);
     assert(figure.lightbox, `Body figure lightbox kontratı bozuldu: ${slug}`);
   }
-  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 Batch 1-5'te gereksiz FormulaBlock bulundu: ${slug}`);
+  assert(blocks.filter((block) => block.type === "formula").length === 0, `FAZ 4 Batch 1-6'da gereksiz FormulaBlock bulundu: ${slug}`);
 }
 
 if (errors.length > 0) {
-  console.error("Deprem FAZ 4 Batch 1-5 kontrolü başarısız:\n");
+  console.error("Deprem FAZ 4 Batch 1-6 kontrolü başarısız:\n");
   for (const error of [...new Set(errors)]) console.error(`- ${error}`);
   process.exit(1);
 }
@@ -151,20 +161,21 @@ if (errors.length > 0) {
 console.log(JSON.stringify({
   status: "ok",
   phase: "FAZ 4",
-  completedBatches: 5,
+  completedBatches: 6,
   phase4Overrides: DEPREM_PHASE4_ARTICLES.length,
   targetArticles: 32,
-  remaining: 15,
+  remaining: 13,
   batch1Slugs: BATCH_1_SLUGS,
   batch2Slugs: BATCH_2_SLUGS,
   batch3Slugs: BATCH_3_SLUGS,
   batch4Slugs: BATCH_4_SLUGS,
   batch5Slugs: BATCH_5_SLUGS,
-  batch5Classification: Object.fromEntries(BATCH_5_SLUGS.map((slug) => [slug, "C3"])),
+  batch6Slugs: BATCH_6_SLUGS,
+  batch6Classification: Object.fromEntries(BATCH_6_SLUGS.map((slug) => [slug, "C3"])),
   sourceOfTruth: "src/lib/deprem-phase4-articles.ts",
-  officialSourceProfile: "AFAD TBDY 2018 Bölüm 2/16 + ÇŞİDB Zemin ve Temel Etüdü Tebliği + 17.02.2021 Resmî Gazete değişikliği",
-  visualContract: "existing unique rollout cover + body figure preserved",
-  seriesCoverage: { "mevcut-guclendirme": 13, "su-zemin": 4, "yapi-denetimi": 0 },
+  officialSourceProfile: "AFAD TBDY 2018 Bölüm 16.8 / 16.11 / 16.12 / EK 16C + ÇŞİDB Zemin ve Temel Etüdü Tebliği",
+  visualContract: "rollout cover + body figure; missing radye rollout coverage repaired",
+  seriesCoverage: { "mevcut-guclendirme": 13, "su-zemin": 6, "yapi-denetimi": 0 },
   targetCoverage: { "mevcut-guclendirme": 13, "su-zemin": 11, "yapi-denetimi": 8, total: 32 },
   ts500Touched: false,
 }, null, 2));
