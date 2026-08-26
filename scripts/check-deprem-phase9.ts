@@ -90,6 +90,10 @@ assert(articleClientSource.includes('className="overflow-x-auto"'), "Tablo/form�
 assert(articleClientSource.includes("dark:"), "Makale renderer dark-mode sınıfları içermiyor.");
 assert(articleClientSource.includes("ArticleFigure"), "Makale görsel renderer bulunamadı.");
 
+const smokeSource = read("scripts/site-smoke-test.mjs");
+assert(smokeSource.includes("process.exit(1)"), "Sitemap smoke testi hata halinde non-zero çıkmıyor.");
+assert(smokeSource.includes("failedStatuses") && smokeSource.includes("pagesWithErrors"), "Sitemap smoke testi HTTP/runtime hata kümelerini denetlemiyor.");
+
 const workflowSource = read(".github/workflows/deprem-content-infrastructure.yml");
 for (const command of [
   "npm run check:deprem-content",
@@ -100,6 +104,7 @@ for (const command of [
   "npm run lint",
   "npx tsc --noEmit",
   "npm run build",
+  "npm run check:smoke",
 ]) {
   assert(workflowSource.includes(command), `FAZ 9 workflow komutu eksik: ${command}`);
 }
@@ -107,9 +112,11 @@ for (const gate of [
   "FAZ 7 responsive render QA",
   "FAZ 8 global editorial and IA contract",
   "FAZ 9 release contract",
+  "Sitemap smoke crawl",
 ]) {
   assert(workflowSource.includes(gate), `FAZ 9 workflow kalite kapısı eksik: ${gate}`);
 }
+assert(/timeout-minutes:\s*(?:6[0-9]|[7-9][0-9]|[1-9][0-9]{2,})/.test(workflowSource), "Release workflow timeout en az 60 dakika olmalı.");
 
 if (errors.length > 0) {
   console.error("FAZ 9 release kalite kapısı başarısız:\n");
@@ -124,6 +131,7 @@ console.log(JSON.stringify({
   targetArticles: targets.length,
   assetCheck: "cover + body figures",
   linkCheck: "relatedSlugs + inline internal routes",
+  smokeCheck: "sitemap HTTP + browser runtime failures",
   layoutContracts: ["responsive overflow", "dark mode", "figure renderer"],
-  requiredReleaseCommands: 8,
+  requiredReleaseCommands: 9,
 }, null, 2));
