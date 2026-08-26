@@ -1,0 +1,136 @@
+import { phase3Lines, tbdyPhase3References, PHASE3_UPDATED_AT, type DepremPhase3Override } from "./deprem-phase3-shared";
+
+export const DEPREM_PHASE3_R_D: DepremPhase3Override = {
+  slug: "tbdy-r-d-dayanim-fazlaligi",
+  description: "TBDY 2018'de Taşıyıcı Sistem Davranış Katsayısı R ile Dayanım Fazlalığı Katsayısı D'nin aynı şey olmadığını; R_a(T), Tablo 4.1 ve kapasite tasarımı ilişkisini proje kontrolü açısından açıklar.",
+  seoTitle: "TBDY 2018 R ve D Katsayıları | Denklem 4.1 ve Tablo 4.1",
+  seoDescription: "R, D, bina önem katsayısı I, R_a(T), Tablo 4.1, sünek ve sünek olmayan iç kuvvetler ile TBDY 2018 proje kontrolü.",
+  updatedAt: PHASE3_UPDATED_AT,
+  readTime: "13 dk",
+  sections: [
+    {
+      id: "r-d-ayrimi",
+      title: "R ve D aynı azaltma katsayısının iki adı değildir",
+      content: phase3Lines(
+        "TBDY 4.3.2.1'e göre `R`, **Taşıyıcı Sistem Davranış Katsayısı**; `D` ise **Dayanım Fazlalığı Katsayısı**dır ve ikisi de seçilen taşıyıcı sistem ile süneklik düzeyine bağlı olarak Tablo 4.1'den alınır. `R`, doğrusal elastik deprem etkilerinin sünek davranış varsayımıyla azaltılmasında; `D` ise özellikle sünek olmayan davranışa karşı gelen azaltılmış iç kuvvetlerin büyütülmesinde görev alır.",
+        "",
+        "Bu nedenle yalnız taşıyıcı sistem adını seçip yüksek bir R değeri girmek yeterli değildir. Tablo 4.1 satırı; **sistem türü + süneklik düzeyi + R + D + izin verilen BYS** paketidir.",
+        "",
+        "> [!warning] R büyükse her şey daha güvenli değildir",
+        "> Büyük R daha fazla azaltma anlamına gelebilir; bunun karşılığında yönetmeliğin öngördüğü süneklik, detaylandırma, kapasite tasarımı ve sistem sınırlamalarının gerçekten sağlanması gerekir."
+      ),
+      subsections: [],
+    },
+    {
+      id: "denklem-4-1",
+      title: "Denklem 4.1: Deprem Yükü Azaltma Katsayısı R_a(T) periyoda göre değişir",
+      content: phase3Lines(
+        "TBDY 4.2.1.2'de doğrusal elastik deprem yüklerinin azaltılmasında kullanılan `R_a(T)` iki periyot bölgesi için tanımlanır. Uzun periyot tarafında doğrudan `R/I`; kısa periyot tarafında ise `D` ile `R/I` arasında periyoda bağlı geçiş vardır:",
+        "",
+        "```formula",
+        "@label: TBDY Denklem (4.1) — Deprem Yükü Azaltma Katsayısı",
+        "R_a(T) = R / I,  T > T_B",
+        "R_a(T) = D + (R / I - D)(T / T_B),  T <= T_B",
+        "@symbol: R_a(T) | Deprem Yükü Azaltma Katsayısı | -",
+        "@symbol: R | Taşıyıcı Sistem Davranış Katsayısı | -",
+        "@symbol: D | Dayanım Fazlalığı Katsayısı | -",
+        "@symbol: I | Bina Önem Katsayısı | -",
+        "@symbol: T | Doğal titreşim periyodu | s",
+        "@symbol: T_B | Yatay elastik tasarım spektrumu köşe periyodu | s",
+        "```",
+        "",
+        "Denklem (4.1), `R` değerinin her periyotta tek başına bölme katsayısı olarak kullanılmadığını açıkça gösterir. Bina önem katsayısı `I` de bu ilişkinin içindedir.",
+        "",
+        "> [!check] Yazılım girdisi",
+        "> Programda R, D ve I ayrı girdiler olarak tanımlanıyorsa birbirlerinin yerine yazılmadığını; spektrum indirgeme fonksiyonunun Denklem (4.1) mantığıyla uyumlu olduğunu kontrol edin."
+      ),
+      subsections: [],
+    },
+    {
+      id: "tablo-4-1-betonarme",
+      title: "Tablo 4.1: Yerinde dökme betonarmede R, D ve BYS birlikte seçilir",
+      content: phase3Lines(
+        "Yerinde dökme betonarme için Tablo 4.1'in bazı temel satırları aşağıdaki karar farkını gösterir. Bu tablo bir 'R listesi' değil, taşıyıcı sistem sınıflandırmasıdır.",
+        "",
+        "| Sistem | Süneklik düzeyi | R | D | İzin verilen BYS |",
+        "|---|---|---:|---:|---|",
+        "| A11 — moment aktaran betonarme çerçeve | Yüksek | 8 | 3 | BYS ≥ 3 |",
+        "| A12 — bağ kirişli betonarme perde | Yüksek | 7 | 2.5 | BYS ≥ 2 |",
+        "| A13 — boşluksuz betonarme perde | Yüksek | 6 | 2.5 | BYS ≥ 2 |",
+        "| A21 — sınırlı çerçeve + yüksek sünek bağ kirişli perde | Karma | 6 | 2.5 | BYS ≥ 4 |",
+        "| A22 — sınırlı çerçeve + yüksek sünek boşluksuz perde | Karma | 5 | 2.5 | BYS ≥ 4 |",
+        "| A31 — moment aktaran betonarme çerçeve | Sınırlı | 4 | 2.5 | BYS ≥ 7 |",
+        "| A32 — boşluksuz betonarme perde | Sınırlı | 4 | 2 | BYS ≥ 6 |",
+        "| A33 — sınırlı çerçeve + sınırlı boşluksuz perde | Sınırlı | 4 | 2 | BYS ≥ 6 |",
+        "",
+        "> [!engineering] Tablo satırı proje varsayımıdır",
+        "> R ve D'yi ayrı ayrı 'uygun görünen' sayılardan seçmeyin. Projedeki gerçek taşıyıcı sistemin Tablo 4.1 tanımı hangi satıra karşılık geliyorsa o satırın tüm koşulları birlikte doğrulanmalıdır."
+      ),
+      subsections: [],
+    },
+    {
+      id: "d-uygulamasi",
+      title: "4.3.5: D, sünek ve sünek olmayan iç kuvvetlerde farklı uygulanır",
+      content: phase3Lines(
+        "TBDY 4.3.5.1, D'yi akma dayanımının tasarım dayanımına oranla fazlalığını ifade eden katsayı olarak tanımlar. Ancak uygulanma biçimi iç kuvvetin davranış türüne göre ayrılır.",
+        "",
+        "| Davranış / kuvvet türü | TBDY uygulaması |",
+        "|---|---|",
+        "| Yüksek veya sınırlı sünek davranışa karşı gelen eğilme, çekme vb. azaltılmış iç kuvvetler | `D = 1`; Dayanım Fazlalığı Katsayısı kullanılmaz |",
+        "| Sünek olmayan davranışa karşı gelen betonarme kesme, çelik birleşim kuvvetleri vb. | `D > 1`; ilgili D çarpan olarak uygulanır |",
+        "| Döşemelerde düzlem içi azaltılmış iç kuvvetler | İlgili sistemin Tablo 4.1 D katsayısı uygulanır |",
+        "",
+        "Yüksek sünek sistemlerde D ile büyütülen sünek olmayan iç kuvvetler, kapasite tasarımı gereği izin verilen kesitlerdeki akma ile uyumlu iç kuvvetlerden daha büyük alınmak zorunda değildir.",
+        "",
+        "> [!warning] Her deprem iç kuvvetini D ile çarpmayın",
+        "> Yönetmelik D'nin kullanımını davranış türüne bağlar. Eğilme tasarımı ile kesme/bağlantı güvenliğini aynı büyütme kuralına sokmak hatalıdır."
+      ),
+      subsections: [],
+    },
+    {
+      id: "ozel-r-d-kurallari",
+      title: "R ve D için özel sistem kuralları Tablo 4.1 seçimini değiştirebilir",
+      content: phase3Lines(
+        "Tablo 4.1 satırını seçtikten sonra Bölüm 4'teki özel hükümler ayrıca denetlenir. Örneğin 4.3.2.3'e göre dıştan rijit perdelerle çevrelenen bodrumların alt bölümünde `(R/I) = 2.5` ve `D = 1.5` alınır.",
+        "",
+        "DTS = 1, 1a, 2, 2a olan betonarme perdeli ve/veya çelik çaprazlı çerçeveli bazı binalarda 4.3.2.4'teki devrilme momenti dağılım koşullarından biri sağlanmazsa ilgili doğrultuda `R` yerine `(4/5)R` kullanılır; **D değiştirilmez**.",
+        "",
+        "> [!engineering] İki yatay doğrultuyu ayrı kontrol edin",
+        "> R ve D seçimleri taşıyıcı sistemin her deprem doğrultusundaki gerçek davranışına göre izlenmelidir. Süneklik düzeyi iki doğrultuda aynı olmak zorunda olsa da 4.3.4.2 farklı R ve karşılık gelen D değerlerine izin verir."
+      ),
+      subsections: [],
+    },
+    {
+      id: "sik-hatalar",
+      title: "Sık hatalar: R'yi yük azaltma düğmesi, D'yi ikinci bir R gibi görmek",
+      content: phase3Lines(
+        "Sık hata zinciri; önce yazılımda en yüksek R'yi seçmek, sonra D'nin nerede kullanıldığını kontrol etmemek ve en son BYS/DTS koşullarını geriye dönük uydurmaktır. Doğru sıra tersidir: **BKS/DTS/BYS → sistem ve süneklik düzeyi → Tablo 4.1 satırı → R/D → özel koşullar → eleman bazlı kapasite tasarımı**.",
+        "",
+        "Ayrıca `R`, `D` ve `I` değerlerini raporda yalnız sayı olarak değil, hangi tablo satırından ve hangi doğrultu için alındığıyla birlikte kaydedin.",
+        "",
+        "> [!warning] SOURCE_VALUE kontrolü",
+        "> R ve D proje kararının SOURCE_VALUE girdileridir; bu değerler yazılım varsayılanı olarak bırakılmamalı, rapordaki taşıyıcı sistem tanımıyla birebir eşleşmelidir."
+      ),
+      subsections: [],
+    },
+    {
+      id: "kontrol-listesi",
+      title: "Proje kontrol listesi",
+      content: phase3Lines(
+        "- Taşıyıcı sistem ve süneklik düzeyi Tablo 4.1'de doğru satıra mı karşılık geliyor?",
+        "- R, D ve izin verilen BYS aynı Tablo 4.1 satırından mı alındı?",
+        "- Denklem (4.1) için R, D, I, T ve TB girdileri doğru mu?",
+        "- `T > TB` ve `T ≤ TB` bölgelerinde R_a(T) doğru tanımlandı mı?",
+        "- Sünek iç kuvvetlerde D'nin kullanılmadığı (`D = 1`) kontrol edildi mi?",
+        "- Sünek olmayan kesme/bağlantı kuvvetlerinde ilgili `D > 1` kuralı uygulandı mı?",
+        "- Rijit bodrum alt bölümü varsa `(R/I) = 2.5` ve `D = 1.5` özel hükmü değerlendirildi mi?",
+        "- 4.3.2.4 koşulları gerekiyorsa `(4/5)R` kontrolü yapıldı mı?",
+        "- R/D seçimi iki yatay doğrultu için ayrı doğrulandı mı?"
+      ),
+      subsections: [],
+    },
+  ],
+  references: tbdyPhase3References("Bölüm 4; Madde 4.2.1, 4.3.1–4.3.5, Denklem (4.1) ve Tablo 4.1"),
+  keywords: ["R katsayısı", "D katsayısı", "Dayanım Fazlalığı", "R_a(T)", "Tablo 4.1", "TBDY 2018"],
+  tags: ["TBDY 2018", "R Katsayısı", "D Katsayısı", "Kapasite Tasarımı"],
+};

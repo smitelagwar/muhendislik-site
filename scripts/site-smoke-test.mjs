@@ -1,4 +1,5 @@
-import http from "http";
+import fs from "node:fs";
+import http from "node:http";
 import next from "next";
 import puppeteer from "puppeteer";
 
@@ -21,6 +22,11 @@ function isHtmlLikeRoute(url) {
 function unique(list) {
   return [...new Set(list)];
 }
+
+const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || ["/usr/bin/google-chrome", "/usr/bin/chromium"].find((candidate) => fs.existsSync(candidate));
+const launchOptions = executablePath
+  ? { headless: true, executablePath, args: ["--no-sandbox"] }
+  : { headless: true };
 
 const app = next({
   dev: false,
@@ -51,91 +57,96 @@ const urls = unique(
     .filter((url) => isHtmlLikeRoute(url)),
 );
 
-const browser = await puppeteer.launch({ headless: true });
-const results = [];
-
-for (const url of urls) {
-  const page = await browser.newPage();
-  const consoleErrors = [];
-  const requestFailures = [];
-  const pageErrors = [];
-
-  page.on("console", (message) => {
-    if (message.type() === "error") {
-      consoleErrors.push(message.text());
-    }
-  });
-
-  page.on("requestfailed", (request) => {
-    requestFailures.push({
-      url: request.url(),
-      error: request.failure()?.errorText ?? "unknown",
-    });
-  });
-
-  page.on("pageerror", (error) => {
-    pageErrors.push(error.message);
-  });
-
-  try {
-    const response = await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 30000,
-    });
-
-    const metrics = await page.evaluate(() => {
-      const navEntry = performance.getEntriesByType("navigation")[0];
-      const fcpEntry = performance.getEntriesByName("first-contentful-paint")[0];
-      const lcpEntry = performance.getEntriesByType("largest-contentful-paint").at(-1);
-
-      return {
-        domContentLoaded: navEntry ? Math.round(navEntry.domContentLoadedEventEnd) : null,
-        load: navEntry ? Math.round(navEntry.loadEventEnd) : null,
-        firstContentfulPaint: fcpEntry ? Math.round(fcpEntry.startTime) : null,
-        largestContentfulPaint: lcpEntry ? Math.round(lcpEntry.startTime) : null,
-      };
-    });
-
-    results.push({
-      url,
-      finalUrl: page.url(),
-      status: response?.status() ?? null,
-      consoleErrors,
-      requestFailures,
-      pageErrors,
-      metrics,
-    });
-  } catch (error) {
-    results.push({
-      url,
-      finalUrl: url,
-      status: null,
-      consoleErrors,
-      requestFailures,
-      pageErrors: [...pageErrors, error instanceof Error ? error.message : String(error)],
-      metrics: {
-        domContentLoaded: null,
-        load: null,
-        firstContentfulPaint: null,
-        largestContentfulPaint: null,
-      },
-    });
-  } finally {
-    await page.close();
-  }
+if (urls.length === 0) {
+  throw new Error("Sitemap contains no HTML routes to smoke-test.");
 }
 
-await browser.close();
-await new Promise((resolve, reject) => {
-  server.close((error) => {
-    if (error) {
-      reject(error);
-      return;
-    }
+const browser = await puppeteer.launch(launchOptions);
+const results = [];
 
-    resolve();
+try {
+  for (const url of urls) {
+    const page = await browser.newPage();
+    const consoleErrors = [];
+    const requestFailures = [];
+    const pageErrors = [];
+
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        consoleErrors.push(message.text());
+      }
+    });
+
+    page.on("requestfailed", (request) => {
+      requestFailures.push({
+        url: request.url(),
+        error: request.failure()?.errorText ?? "unknown",
+      });
+    });
+
+    page.on("pageerror", (error) => {
+      pageErrors.push(error.message);
+    });
+
+    try {
+      const response = await page.goto(url, {
+        waitUntil: "networkidle2",
+        timeout: 30000,
+      });
+
+      const metrics = await page.evaluate(() => {
+        const navEntry = performance.getEntriesByType("navigation")[0];
+        const fcpEntry = performance.getEntriesByName("first-contentful-paint")[0];
+        const lcpEntry = performance.getEntriesByType("largest-contentful-paint").at(-1);
+
+        return {
+          domContentLoaded: navEntry ? Math.round(navEntry.domContentLoadedEventEnd) : null,
+          load: navEntry ? Math.round(navEntry.loadEventEnd) : null,
+          firstContentfulPaint: fcpEntry ? Math.round(fcpEntry.startTime) : null,
+          largestContentfulPaint: lcpEntry ? Math.round(lcpEntry.startTime) : null,
+        };
+      });
+
+      results.push({
+        url,
+        finalUrl: page.url(),
+        status: response?.status() ?? null,
+        consoleErrors,
+        requestFailures,
+        pageErrors,
+        metrics,
+      });
+    } catch (error) {
+      results.push({
+        url,
+        finalUrl: url,
+        status: null,
+        consoleErrors,
+        requestFailures,
+        pageErrors: [...pageErrors, error instanceof Error ? error.message : String(error)],
+        metrics: {
+          domContentLoaded: null,
+          load: null,
+          firstContentfulPaint: null,
+          largestContentfulPaint: null,
+        },
+      });
+    } finally {
+      await page.close();
+    }
+  }
+} finally {
+  await browser.close();
+  await new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
   });
-});
+}
 
 const failedStatuses = results.filter((result) => result.status !== 200);
 const pagesWithErrors = results.filter(
@@ -156,7 +167,9 @@ const slowestPages = [...results]
 console.log(
   JSON.stringify(
     {
+      status: failedStatuses.length === 0 && pagesWithErrors.length === 0 ? "ok" : "failed",
       baseUrl,
+      browser: executablePath ?? "puppeteer-managed",
       pagesCrawled: results.length,
       failedStatuses,
       pagesWithErrors,
@@ -166,3 +179,7 @@ console.log(
     2,
   ),
 );
+
+if (failedStatuses.length > 0 || pagesWithErrors.length > 0) {
+  process.exit(1);
+}

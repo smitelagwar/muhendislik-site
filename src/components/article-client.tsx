@@ -27,7 +27,8 @@ import { PageContextNavigation } from "@/components/page-context-navigation";
 import { PortalOverlay } from "@/components/portal-overlay";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { type ArticleData } from "@/lib/articles-data";
-import { type ParsedBlock } from "@/lib/article-blocks";
+import { type CalloutTone, type ParsedBlock } from "@/lib/article-blocks";
+import { getArticleAuthorPresentation } from "@/lib/content-author";
 import { getDepremSeriesForArticle } from "@/lib/deprem-series";
 import { getSiteSectionForArticle, getSiteSectionHrefForArticle } from "@/lib/site-sections";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
@@ -96,27 +97,168 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
   );
 }
 
-function CalloutBox({ content, tone }: { content: string; tone: string }) {
-  const isWarning = /(uyari|warning|important)/i.test(tone);
-  const isTip = /(ipucu|tip)/i.test(tone);
-  const icon = isWarning ? (
-    <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-  ) : isTip ? (
-    <Lightbulb className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-300" />
-  ) : (
-    <Info className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-300" />
-  );
-  const classes = isWarning
-    ? "border-amber-500 bg-amber-50/75 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100"
-    : isTip
-      ? "border-blue-500 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100"
-      : "border-blue-600 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100";
+const CALLOUT_PRESENTATION: Record<CalloutTone, { label: string; classes: string; icon: "warning" | "tip" | "regulation" | "engineering" | "field" | "info" }> = {
+  info: {
+    label: "Bilgi",
+    classes: "border-blue-600 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100",
+    icon: "info",
+  },
+  warning: {
+    label: "Uyarı",
+    classes: "border-amber-500 bg-amber-50/75 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100",
+    icon: "warning",
+  },
+  tip: {
+    label: "İpucu",
+    classes: "border-blue-500 bg-blue-50/75 text-blue-950 dark:bg-blue-950/20 dark:text-blue-100",
+    icon: "tip",
+  },
+  regulation: {
+    label: "Yönetmelik",
+    classes: "border-violet-500 bg-violet-50/75 text-violet-950 dark:bg-violet-950/20 dark:text-violet-100",
+    icon: "regulation",
+  },
+  engineering: {
+    label: "Mühendislik Notu",
+    classes: "border-emerald-600 bg-emerald-50/75 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100",
+    icon: "engineering",
+  },
+  field: {
+    label: "Saha Notu",
+    classes: "border-orange-600 bg-orange-50/75 text-orange-950 dark:bg-orange-950/20 dark:text-orange-100",
+    icon: "field",
+  },
+  check: {
+    label: "Kontrol",
+    classes: "border-cyan-600 bg-cyan-50/75 text-cyan-950 dark:bg-cyan-950/20 dark:text-cyan-100",
+    icon: "field",
+  },
+};
+
+function CalloutBox({ content, tone, title }: { content: string; tone: CalloutTone; title: string }) {
+  const presentation = CALLOUT_PRESENTATION[tone];
+  const icon =
+    presentation.icon === "warning" ? (
+      <AlertCircle className="h-5 w-5 flex-shrink-0" />
+    ) : presentation.icon === "tip" ? (
+      <Lightbulb className="h-5 w-5 flex-shrink-0" />
+    ) : presentation.icon === "regulation" ? (
+      <BookOpen className="h-5 w-5 flex-shrink-0" />
+    ) : presentation.icon === "engineering" ? (
+      <Calculator className="h-5 w-5 flex-shrink-0" />
+    ) : presentation.icon === "field" ? (
+      <Check className="h-5 w-5 flex-shrink-0" />
+    ) : (
+      <Info className="h-5 w-5 flex-shrink-0" />
+    );
 
   return (
-    <div className={`not-prose my-8 flex gap-4 rounded-r-2xl border-l-4 p-6 shadow-sm ${classes}`}>
-      <div className="mt-0.5">{icon}</div>
-      <div className="text-sm font-medium leading-7 md:text-base" dangerouslySetInnerHTML={renderInlineMarkdown(content)} />
-    </div>
+    <aside className={`not-prose my-8 rounded-r-2xl border-l-4 p-6 shadow-sm ${presentation.classes}`} aria-label={title || presentation.label}>
+      <div className="flex items-start gap-4">
+        <div className="mt-0.5">{icon}</div>
+        <div className="min-w-0 flex-1">
+          <p className="mb-2 text-xs font-black uppercase tracking-[0.16em]">{title || presentation.label}</p>
+          <div className="text-sm font-medium leading-7 md:text-base" dangerouslySetInnerHTML={renderInlineMarkdown(content)} />
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function FormulaBlock({ block }: { block: Extract<ParsedBlock, { type: "formula" }> }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(block.expression);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <figure className="not-prose my-10 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+        <figcaption className="text-xs font-black uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-300">{block.label || "Denklem"}</figcaption>
+        <Button type="button" variant="ghost" size="sm" onClick={copy} className="h-8 text-xs font-bold">
+          {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+          {copied ? "Kopyalandı" : "Kopyala"}
+        </Button>
+      </div>
+      <div className="overflow-x-auto px-5 py-6" tabIndex={0} aria-label={`${block.label || "Denklem"} ifadesi`}>
+        <pre className="m-0 min-w-max bg-transparent p-0 font-mono text-base font-bold leading-8 text-zinc-950 dark:text-zinc-100 md:text-lg"><code>{block.expression}</code></pre>
+      </div>
+      {block.symbols.length > 0 ? (
+        <dl className="grid gap-px border-t border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800 sm:grid-cols-2">
+          {block.symbols.map((item) => (
+            <div key={`${item.symbol}-${item.description}`} className="bg-white px-5 py-4 dark:bg-zinc-950">
+              <dt className="font-mono text-sm font-black text-zinc-950 dark:text-zinc-100">{item.symbol}</dt>
+              <dd className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                {item.description}
+                <span className="ml-2 whitespace-nowrap font-mono text-xs font-bold text-zinc-500">[{item.unit}]</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </figure>
+  );
+}
+
+function ArticleFigure({
+  block,
+  articleTitle,
+  figureNumber,
+}: {
+  block: Extract<ParsedBlock, { type: "image" }>;
+  articleTitle: string;
+  figureNumber: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const isSvg = block.src.toLowerCase().includes(".svg");
+  const label = `Şekil ${figureNumber}`;
+
+  const image = (
+    <Image
+      src={block.src}
+      alt={block.alt || articleTitle}
+      fill
+      unoptimized={isSvg}
+      className="object-contain"
+      sizes="(max-width: 1024px) 100vw, 900px"
+    />
+  );
+
+  return (
+    <>
+      <figure className="not-prose site-panel my-10 overflow-hidden rounded-xl">
+        <div className="relative aspect-[16/9] bg-zinc-950/5 dark:bg-zinc-900/40">
+          {block.lightbox ? (
+            <button type="button" onClick={() => setOpen(true)} className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-inset" aria-label={`${label} görselini büyüt`}>
+              {image}
+            </button>
+          ) : (
+            image
+          )}
+        </div>
+        <figcaption className="border-t border-zinc-200 px-5 py-4 text-sm leading-6 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+          <p>
+            <strong className="text-zinc-900 dark:text-zinc-100">{label}.</strong>{block.caption ? ` ${block.caption}` : ""}
+          </p>
+          {block.note ? <p className="mt-2 text-xs"><strong>Not:</strong> {block.note}</p> : null}
+          {block.sourceNote ? <p className="mt-1 text-xs"><strong>Kaynak:</strong> {block.sourceNote}</p> : null}
+        </figcaption>
+      </figure>
+
+      <PortalOverlay isOpen={open} onClose={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/85 p-4" role="dialog" aria-modal="true" aria-label={`${label} büyütülmüş görünüm`} onClick={() => setOpen(false)}>
+          <div className="relative h-[min(82vh,900px)] w-[min(94vw,1400px)]" onClick={(event) => event.stopPropagation()}>
+            <Image src={block.src} alt={block.alt || articleTitle} fill unoptimized={isSvg} className="object-contain" sizes="94vw" priority />
+            <Button type="button" variant="secondary" size="icon" onClick={() => setOpen(false)} className="absolute right-3 top-3 rounded-full" aria-label="Büyütülmüş görseli kapat">
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </PortalOverlay>
+    </>
   );
 }
 
@@ -216,6 +358,11 @@ function InFlowToolCta({ articleSlug }: { articleSlug: string }) {
 function DepremSeriesToolCta({ article }: { article: ArticleData }) {
   const series = getDepremSeriesForArticle(article);
   const href = series.relatedToolHref;
+
+  if (!href) {
+    return null;
+  }
+
   const label =
     href === TOOLS_HUB_HREF
       ? "Araç merkezini aç"
@@ -285,6 +432,8 @@ interface ArticleBodyProps {
 
 const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsedSections, hideToolPromos, suggestedTool }: ArticleBodyProps) {
   const firstRelatedArticle = relatedArticles[0];
+  const authorPresentation = getArticleAuthorPresentation(article);
+  let figureIndex = 0;
 
   return (
     <>
@@ -296,7 +445,8 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
             </h2>
             {sectionItem.blocks.map((block, blockIndex) => {
               if (block.type === "code") return <CodeBlock key={`${sectionItem.id}-${blockIndex}`} code={block.content} lang={block.lang} />;
-              if (block.type === "callout") return <CalloutBox key={`${sectionItem.id}-${blockIndex}`} content={block.content} tone={block.tone} />;
+              if (block.type === "formula") return <FormulaBlock key={`${sectionItem.id}-${blockIndex}`} block={block} />;
+              if (block.type === "callout") return <CalloutBox key={`${sectionItem.id}-${blockIndex}`} content={block.content} tone={block.tone} title={block.title} />;
               if (block.type === "table") return <TableViewer key={`${sectionItem.id}-${blockIndex}`} content={block.content} />;
               if (block.type === "list") {
                 const items = block.content.split("\n").filter(Boolean);
@@ -315,14 +465,14 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
                 return <HeadingTag key={`${sectionItem.id}-${blockIndex}`}>{block.content}</HeadingTag>;
               }
               if (block.type === "image") {
-                const isSvg = block.src.toLowerCase().includes(".svg");
+                figureIndex += 1;
                 return (
-                  <figure key={`${sectionItem.id}-${blockIndex}`} className="not-prose site-panel my-10 overflow-hidden rounded-xl">
-                    <div className="relative aspect-[16/9] bg-zinc-950/5 dark:bg-zinc-900/40">
-                      <Image src={block.src} alt={block.alt || article.title} fill unoptimized={isSvg} className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
-                    </div>
-                    {block.caption ? <figcaption className="border-t border-zinc-200 px-5 py-4 text-sm leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">{block.caption}</figcaption> : null}
-                  </figure>
+                  <ArticleFigure
+                    key={`${sectionItem.id}-${blockIndex}`}
+                    block={block}
+                    articleTitle={article.title}
+                    figureNumber={block.figureNumber || String(figureIndex)}
+                  />
                 );
               }
               if (block.type === "quote") {
@@ -377,11 +527,11 @@ const ArticleBody = memo(function ArticleBody({ article, relatedArticles, parsed
 
           <div className="not-prose site-panel mb-20 flex flex-col items-start gap-6 rounded-xl p-8 sm:flex-row">
           <div className="flex h-20 w-20 items-center justify-center rounded-md border border-amber-500/35 bg-amber-500/12 text-amber-800 dark:text-amber-300">
-            <span className="text-2xl font-black">{article.author.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
+            <span className="text-2xl font-black">{authorPresentation.monogram}</span>
           </div>
           <div className="flex-1">
-            <h3 className="mb-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{article.author}</h3>
-            <p className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{article.authorTitle}</p>
+            <h3 className="mb-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{authorPresentation.name}</h3>
+            {authorPresentation.title ? <p className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{authorPresentation.title}</p> : null}
             {article.sectionId !== "deprem-yonetmelik" ? (
               <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu içerik, saha pratiği ile teknik referansları birlikte düşünen hızlı okuma düzeniyle sunuldu.</p>
             ) : null}
@@ -464,6 +614,7 @@ export default function ArticleClient({
   const [activeId, setActiveId] = useState(parsedSections[0]?.id || "");
   const section = getSiteSectionForArticle(article);
   const sectionHref = getSiteSectionHrefForArticle(article);
+  const authorPresentation = getArticleAuthorPresentation(article);
 
   useEffect(() => {
     const sectionElements = parsedSections
@@ -542,11 +693,11 @@ export default function ArticleClient({
             <div className="flex flex-col justify-between gap-6 border-y border-zinc-100 py-6 dark:border-zinc-800 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-md border border-amber-500/35 bg-amber-500/12 text-amber-800 dark:text-amber-300">
-                  <span className="text-lg font-black">{article.author.split(" ").map((part) => part[0]).join("").slice(0, 2)}</span>
+                  <span className="text-lg font-black">{authorPresentation.monogram}</span>
                 </div>
                 <div>
-                  <p className="text-sm font-black text-zinc-950 dark:text-zinc-100">{article.author}</p>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{article.authorTitle}</p>
+                  <p className="text-sm font-black text-zinc-950 dark:text-zinc-100">{authorPresentation.name}</p>
+                  {authorPresentation.title ? <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{authorPresentation.title}</p> : null}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-zinc-500 dark:text-zinc-400">

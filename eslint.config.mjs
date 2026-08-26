@@ -11,6 +11,15 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  {
+    files: ["src/components/article-client.tsx"],
+    rules: {
+      // figureIndex is a render-local, deterministic counter used only while
+      // synchronously mapping article image blocks. It is reset on every render
+      // and never escapes ArticleBody, so this mutation is intentional.
+      "react-hooks/immutability": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

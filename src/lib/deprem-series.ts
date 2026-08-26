@@ -1,7 +1,6 @@
 import type { ArticleData } from "./articles-data";
 import type { DepremSeriesId, RegulationStatusItem } from "./deprem-content-types";
 import { normalizeSearchValue } from "./search-utils";
-import { TOOLS_HUB_HREF } from "./tools-data";
 
 export type { DepremSeriesId } from "./deprem-content-types";
 
@@ -44,7 +43,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["tbdy", "deprem", "spektrum", "düzensizlik", "analiz", "dts", "bys"],
     priority: 10,
     accentClass: "text-red-600 dark:text-red-400",
-    relatedToolHref: "/deprem-yonetmelik/araclar/esit-deprem-yuku",
+    relatedToolHref: "/kategori/araclar/taban-kesme-kuvveti",
     slugPrefixes: ["tbdy-"],
   },
   {
@@ -77,7 +76,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["mevcut bina", "güçlendirme", "karot", "performans", "riskli yapı"],
     priority: 40,
     accentClass: "text-fuchsia-600 dark:text-fuchsia-400",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["mevcut-bina-", "guclendirme-", "riskli-yapi-"],
   },
   {
@@ -88,7 +87,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["4708", "yapı denetimi", "beton", "ebis", "karot", "ts 708"],
     priority: 50,
     accentClass: "text-amber-700 dark:text-amber-400",
-    relatedToolHref: "/kategori/araclar",
+    relatedToolHref: "",
     slugPrefixes: ["yapi-denetimi-"],
   },
   {
@@ -99,7 +98,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["yangın", "byy", "kaçış", "sprinkler", "duman", "r60", "r120"],
     priority: 60,
     accentClass: "text-orange-600 dark:text-orange-400",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["byy-", "yangin-", "sprinkler-", "duman-", "kacis-", "yuksek-binalarda-", "bodrum-otopark-mutfak-", "tasiyici-sistemlerin-yangina-"],
   },
   {
@@ -110,7 +109,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["otopark", "rampa", "havalandırma", "araç", "şarj"],
     priority: 70,
     accentClass: "text-slate-600 dark:text-slate-300",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["otopark-"],
   },
   {
@@ -143,7 +142,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["zemin", "temel", "sıvılaşma", "etüt", "drenaj", "yalıtım"],
     priority: 100,
     accentClass: "text-cyan-600 dark:text-cyan-400",
-    relatedToolHref: "/kategori/geoteknik",
+    relatedToolHref: "/kategori/araclar/zemin-sinifi",
     slugPrefixes: ["zemin-", "temel-", "su-yalitimi-", "yagmur-suyu-", "tbdy-bolum-16-"],
   },
   {
@@ -154,7 +153,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["engelsiz", "ts 9111", "erişilebilirlik", "rampa", "koridor"],
     priority: 110,
     accentClass: "text-violet-600 dark:text-violet-400",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["engelsiz-"],
   },
   {
@@ -165,7 +164,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["eurocode", "ts en 1990", "ts en 1991", "ts en 1992"],
     priority: 120,
     accentClass: "text-indigo-600 dark:text-indigo-400",
-    relatedToolHref: "/kategori/araclar/taban-kesme-kuvveti",
+    relatedToolHref: "",
     slugPrefixes: ["eurocode-"],
   },
   {
@@ -176,7 +175,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["akustik", "gürültü", "yalıtım", "ts en iso 12354"],
     priority: 130,
     accentClass: "text-zinc-600 dark:text-zinc-300",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["akustik-"],
   },
   {
@@ -187,7 +186,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["asansör", "kuyu", "bakım", "deprem", "güvenlik"],
     priority: 140,
     accentClass: "text-teal-700 dark:text-teal-300",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["asansor-"],
   },
   {
@@ -198,7 +197,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["isg", "şantiye", "iskele", "kazı", "elektrik"],
     priority: 150,
     accentClass: "text-amber-600 dark:text-amber-400",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["isg-"],
   },
   {
@@ -209,7 +208,7 @@ export const DEPREM_SERIES: readonly DepremSeriesDefinition[] = [
     keywords: ["çevre", "çed", "atık", "gürültü", "toz"],
     priority: 160,
     accentClass: "text-green-600 dark:text-green-400",
-    relatedToolHref: TOOLS_HUB_HREF,
+    relatedToolHref: "",
     slugPrefixes: ["cevre-"],
   },
 ] as const;

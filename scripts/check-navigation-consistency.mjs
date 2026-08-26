@@ -33,14 +33,31 @@ async function waitForProductionBuild(timeoutMs = 60000) {
 }
 
 function getBrowserExecutablePath() {
+  const explicit = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+
+  try {
+    const bundled = puppeteer.executablePath();
+    if (bundled && fs.existsSync(bundled)) {
+      return bundled;
+    }
+  } catch {
+    // Fall through to platform candidates.
+  }
+
   const candidates = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ].filter(Boolean);
+  ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
@@ -63,7 +80,7 @@ async function getHref(page, selector) {
 await waitForProductionBuild();
 
 const executablePath = getBrowserExecutablePath();
-assert(executablePath, "No local Chrome/Edge executable was found for Puppeteer.");
+assert(executablePath, "No Chrome/Chromium/Edge executable was found for Puppeteer.");
 
 const app = next({
   dev: false,
@@ -138,15 +155,12 @@ try {
     page,
     `${baseUrl}/hesaplamalar/tahmini-insaat-alani?arsa=1200&taks=0.35&kaks=1.2&kat=5&profil=konut&bodrum=0`
   );
-  await page.waitForFunction(() => {
-    const url = new URL(window.location.href);
-    return !url.searchParams.has("profil") && !url.searchParams.has("bodrum");
-  }, { timeout: 10000 });
-  const estimatedUrl = new URL(page.url());
-  assert(estimatedUrl.searchParams.get("arsa") === "1200", "Estimated area URL should keep arsa.");
-  assert(!estimatedUrl.searchParams.has("profil"), "Default profile should not remain in URL.");
-  assert(!estimatedUrl.searchParams.has("bodrum"), "Default bodrum=0 should not remain in URL.");
-  results.push("estimated area url cleanup");
+  await page.waitForFunction(() => new URL(window.location.href).search === "", { timeout: 10000 });
+  assert(
+    new URL(page.url()).search === "",
+    "Estimated area route should clear incoming query parameters while editing."
+  );
+  results.push("estimated area query cleanup");
 
   await goto(page, `${baseUrl}/hesaplamalar/resmi-birim-maliyet-2026`);
   assert(new URL(page.url()).search === "", "Official cost default route should stay query-free.");
@@ -206,6 +220,9 @@ try {
       2
     )
   );
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
 } finally {
   await page.close();
   await browser.close();

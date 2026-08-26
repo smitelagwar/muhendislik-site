@@ -38,14 +38,31 @@ function assert(condition, message) {
 }
 
 function getBrowserExecutablePath() {
+  const explicit = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+
+  try {
+    const bundled = puppeteer.executablePath();
+    if (bundled && fs.existsSync(bundled)) {
+      return bundled;
+    }
+  } catch {
+    // Fall through to platform candidates.
+  }
+
   const candidates = [
-    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
     "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Users\\hsyn\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe",
     "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
     "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  ].filter(Boolean);
+  ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));
 }
@@ -78,6 +95,14 @@ async function inspectRoute(browser, baseUrl, route, theme, viewport) {
     await page.waitForSelector("body", { visible: true });
     await page.waitForSelector('[data-testid="theme-toggle"]', { visible: true, timeout: 15000 });
     await page.evaluate(() => document.fonts.ready);
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll("h1, h2")).some((heading) => {
+          const rect = heading.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }),
+      { timeout: 15000 }
+    );
 
     const result = await page.evaluate(() => {
       const toggle = document.querySelector('[data-testid="theme-toggle"]');
@@ -114,7 +139,7 @@ async function inspectRoute(browser, baseUrl, route, theme, viewport) {
 }
 
 const executablePath = getBrowserExecutablePath();
-assert(executablePath, "Puppeteer için yerel Chrome veya Edge bulunamadı.");
+assert(executablePath, "Puppeteer için Chrome/Chromium/Edge bulunamadı.");
 
 const app = next({
   dev: false,
@@ -157,6 +182,9 @@ try {
   }
 
   console.log(JSON.stringify({ status: "ok", baseUrl, checks: completed }, null, 2));
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => {
