@@ -43,26 +43,25 @@ function shell(title: string, desc: string, body: string) {
 function basementCover(spec: DepremRolloutSpec) {
   const floors = [155, 235, 315, 395];
   const body = `
-  <!-- one continuous structural section: upper structure + rigid basement -->
   <rect x="80" y="420" width="1040" height="175" fill="url(#soil)"/>
   <line x1="390" y1="120" x2="390" y2="570" stroke="${NAVY}" stroke-width="6"/>
   <line x1="810" y1="120" x2="810" y2="570" stroke="${NAVY}" stroke-width="6"/>
   ${floors.map((y) => `<line x1="390" y1="${y}" x2="810" y2="${y}" stroke="${NAVY}" stroke-width="5"/>`).join("")}
   <rect x="315" y="395" width="570" height="175" fill="${WHITE}" stroke="${NAVY}" stroke-width="6"/>
   <line x1="315" y1="430" x2="885" y2="430" stroke="${CYAN}" stroke-width="7"/>
-  <line x1="350" y1="365" x2="350" y2="425" stroke="${CYAN}" stroke-width="5"/><path d="M350 425l-10 -18h20z" fill="${CYAN}"/>
-  <line x1="850" y1="365" x2="850" y2="425" stroke="${CYAN}" stroke-width="5"/><path d="M850 425l-10 -18h20z" fill="${CYAN}"/>
+  <line x1="510" y1="375" x2="850" y2="375" stroke="${CYAN}" stroke-width="5"/><path d="M850 375l-18 -10v20z" fill="${CYAN}"/>
+  <line x1="850" y1="375" x2="850" y2="425" stroke="${CYAN}" stroke-width="4"/><path d="M850 425l-9 -17h18z" fill="${CYAN}"/>
   <text x="470" y="95" class="label">Üst Yapı</text>
   <text x="470" y="465" class="accent">Rijit Bodrum</text>
   <text x="900" y="435" class="small">Geçiş Döşemesi</text>
   <text x="905" y="565" class="small">Çevre Perdesi</text>
+  <text x="575" y="350" class="accent">Yatay Kuvvet</text>
   `;
-  return shell(spec.headline, "Tek yapı kesitinde üst yapı, çevre perdeli rijit bodrum ve yatay kuvvet aktarımını sağlayan geçiş döşemesini gösteren teknik şema.", body);
+  return shell(spec.headline, "Tek yapı kesitinde üst yapıdan gelen yatay deprem kuvvetinin geçiş döşemesi üzerinden çevre bodrum perdesine aktarımını gösteren teknik şema.", body);
 }
 
 function basementDiagram(spec: DepremRolloutSpec) {
   const body = `
-  <!-- transition slab plan: force path to perimeter basement walls, no second building -->
   <rect x="210" y="145" width="780" height="385" fill="${WHITE}" stroke="${NAVY}" stroke-width="9"/>
   <rect x="275" y="205" width="650" height="265" fill="${PAPER}" stroke="${NEUTRAL}" stroke-width="2"/>
   <line x1="600" y1="245" x2="600" y2="435" stroke="${CYAN}" stroke-width="5"/>
@@ -80,7 +79,6 @@ function basementDiagram(spec: DepremRolloutSpec) {
 
 function roofMassCover(spec: DepremRolloutSpec) {
   const body = `
-  <!-- one building; roof mass source components are shown directly at roof -->
   <line x1="410" y1="175" x2="410" y2="535" stroke="${NAVY}" stroke-width="6"/>
   <line x1="790" y1="175" x2="790" y2="535" stroke="${NAVY}" stroke-width="6"/>
   ${[235,315,395,475,535].map((y) => `<line x1="410" y1="${y}" x2="790" y2="${y}" stroke="${NAVY}" stroke-width="5"/>`).join("")}
@@ -99,24 +97,22 @@ function roofMassCover(spec: DepremRolloutSpec) {
 
 function roofMassDiagram(spec: DepremRolloutSpec) {
   const body = `
-  <!-- load-source decomposition, not a second building -->
-  <line x1="180" y1="500" x2="1020" y2="500" stroke="${NAVY}" stroke-width="3"/>
-  <rect x="240" y="255" width="120" height="245" fill="${NAVY}" fill-opacity="0.12" stroke="${NAVY}" stroke-width="3"/>
-  <rect x="490" y="335" width="120" height="165" fill="${CYAN}" fill-opacity="0.18" stroke="${CYAN}" stroke-width="3"/>
-  <rect x="740" y="405" width="120" height="95" fill="${CYAN}" fill-opacity="0.10" stroke="${NAVY}" stroke-width="3"/>
-  <path d="M360 375H465M610 415H715" stroke="${CYAN}" stroke-width="4" stroke-dasharray="8 7"/>
-  <text x="282" y="535" class="label">G</text>
-  <text x="525" y="535" class="accent">nQ</text>
-  <text x="755" y="535" class="accent">0.30 S</text>
-  <text x="365" y="165" class="label">Deprem Ağırlığı = G + nQ + 0.30 S</text>
-  <text x="385" y="205" class="small">%30 yalnız çatı kar yükü hükmüdür</text>
+  <line x1="210" y1="475" x2="990" y2="475" stroke="${NAVY}" stroke-width="5"/>
+  <circle cx="600" cy="475" r="26" fill="${WHITE}" stroke="${NAVY}" stroke-width="5"/>
+  <line x1="340" y1="175" x2="340" y2="435" stroke="${NAVY}" stroke-width="5"/><path d="M340 435l-10 -18h20z" fill="${NAVY}"/>
+  <line x1="600" y1="175" x2="600" y2="435" stroke="${CYAN}" stroke-width="5"/><path d="M600 435l-10 -18h20z" fill="${CYAN}"/>
+  <line x1="860" y1="175" x2="860" y2="435" stroke="${CYAN}" stroke-width="5"/><path d="M860 435l-10 -18h20z" fill="${CYAN}"/>
+  <text x="320" y="145" class="label">G</text>
+  <text x="575" y="145" class="accent">nQ</text>
+  <text x="815" y="145" class="accent">0.30 S</text>
+  <text x="425" y="555" class="label">Deprem Ağırlığı: G + nQ + 0.30 S</text>
+  <text x="405" y="600" class="small">%30 yalnız çatı kar yükü hükmüdür</text>
   `;
-  return shell(spec.headline, "Çatı deprem ağırlığına katılan yük bileşenlerini ayrı sütunlarla gösteren; yüzde 30 kar hükmünü genel hareketli yük indirimiyle karıştırmayan teknik şema.", body);
+  return shell(spec.headline, "Çatı deprem ağırlığına katılan G, nQ ve yüzde 30 kar yükü bileşenlerini aynı kütle hattına etkiyen ayrı yük kaynakları olarak gösteren teknik şema.", body);
 }
 
 function verticalCover(spec: DepremRolloutSpec) {
   const body = `
-  <!-- one vertically sensitive long-span element with local vertical mode -->
   <path d="M185 470L230 420L275 470Z" fill="${WHITE}" stroke="${NAVY}" stroke-width="4"/>
   <circle cx="930" cy="450" r="20" fill="${WHITE}" stroke="${NAVY}" stroke-width="4"/><line x1="895" y1="475" x2="965" y2="475" stroke="${NAVY}" stroke-width="4"/>
   <line x1="230" y1="420" x2="930" y2="420" stroke="${NAVY}" stroke-width="7"/>
@@ -133,7 +129,6 @@ function verticalCover(spec: DepremRolloutSpec) {
 
 function verticalDiagram(spec: DepremRolloutSpec) {
   const body = `
-  <!-- one member free-body and response envelope -->
   <path d="M250 235L295 185L340 235Z" fill="${WHITE}" stroke="${NAVY}" stroke-width="4"/>
   <line x1="295" y1="185" x2="900" y2="185" stroke="${NAVY}" stroke-width="7"/>
   ${[390,510,630,750,870].map((x) => `<line x1="${x}" y1="85" x2="${x}" y2="155" stroke="${NAVY}" stroke-width="3"/><path d="M${x} 155l-8 -15h16z" fill="${NAVY}"/>`).join("")}
@@ -149,7 +144,6 @@ function verticalDiagram(spec: DepremRolloutSpec) {
 
 function rdCover(spec: DepremRolloutSpec) {
   const body = `
-  <!-- Ra(T) engineering graph: D and R/I have different roles -->
   <line x1="180" y1="525" x2="1020" y2="525" stroke="${NAVY}" stroke-width="3"/>
   <line x1="180" y1="525" x2="180" y2="110" stroke="${NAVY}" stroke-width="3"/>
   <path d="M180 420L560 210H980" fill="none" stroke="${CYAN}" stroke-width="7" stroke-linejoin="round"/>
@@ -166,7 +160,6 @@ function rdCover(spec: DepremRolloutSpec) {
 
 function rdDiagram(spec: DepremRolloutSpec) {
   const body = `
-  <!-- force-displacement interpretation: reduction and overstrength are not identical -->
   <line x1="185" y1="525" x2="1020" y2="525" stroke="${NAVY}" stroke-width="3"/>
   <line x1="185" y1="525" x2="185" y2="105" stroke="${NAVY}" stroke-width="3"/>
   <line x1="185" y1="525" x2="545" y2="155" stroke="${NAVY}" stroke-width="5" stroke-dasharray="10 8"/>
