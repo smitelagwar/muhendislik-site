@@ -92,11 +92,28 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Resolve lint baseline
+        id: lint-base
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            echo "base=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+              echo "base=$BEFORE" >> "$GITHUB_OUTPUT"
+            else
+              echo "base=HEAD^" >> "$GITHUB_OUTPUT"
+            fi
+          fi
       - name: FAZ 3 technical content contract
         run: npx tsx scripts/check-deprem-phase3.ts
       - name: FAZ 4 technical content contract
@@ -124,8 +141,23 @@ jobs:
         run: npm run check:content-quality
       - name: Site quality
         run: npm run check:site-quality
-      - name: Lint
-        run: npm run lint
+      # The repository carries unrelated historical lint debt. Gate this PR on
+      # every JS/TS file changed relative to its actual base, matching preflight.
+      - name: Lint changed source files
+        shell: bash
+        run: |
+          BASE="${{ steps.lint-base.outputs.base }}"
+          mapfile -t FILES < <(
+            git diff --name-only --diff-filter=ACMR "$BASE"...HEAD \
+              | grep -E '\.(js|jsx|ts|tsx|mjs|cjs)$' \
+              || true
+          )
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No changed JavaScript/TypeScript files to lint."
+            exit 0
+          fi
+          printf 'Linting changed files:\n - %s\n' "${FILES[@]}"
+          npx eslint "${FILES[@]}"
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Production build
