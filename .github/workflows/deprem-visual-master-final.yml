@@ -37,14 +37,14 @@ jobs:
         run: npm run check:content-quality
       - name: Site quality
         run: npm run check:site-quality
-      - name: Navigation
-        run: npm run check:navigation
-      - name: Visual system
-        run: npm run check:visual-system
       - name: TypeScript
         run: npx tsc --noEmit --incremental false
       - name: Production build
         run: npm run build
+      - name: Navigation
+        run: npm run check:navigation
+      - name: Visual system
+        run: npm run check:visual-system
       - name: Smoke test
         run: npm run check:smoke
       - name: Deprem phase 9
