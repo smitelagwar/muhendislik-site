@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prebuild production artifacts
+        run: npm run build
+
       - name: Deprem content gate
         id: content
         continue-on-error: true
