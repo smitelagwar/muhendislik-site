@@ -13,7 +13,7 @@ permissions:
 jobs:
   master-visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,3 +28,5 @@ jobs:
         run: npx tsc --noEmit --incremental false
       - name: Production build
         run: npm run build
+      - name: Full deprem release gate
+        run: npm run check:deprem-release
