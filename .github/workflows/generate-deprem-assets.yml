@@ -1,4 +1,4 @@
-name: Generate deprem visual assets
+name: Deprem visual final QA
 
 on:
   push:
@@ -6,82 +6,56 @@ on:
       - deprem-assets-generate
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  generate-assets:
+  final-qa:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - name: Checkout generator branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
-      - name: Preserve generator
-        shell: bash
-        run: |
-          cp scripts/generate-deprem-visual-assets.py /tmp/generate-deprem-visual-assets.py
-          sed -i 's/len(targets) != 137/len(targets) != 143/' /tmp/generate-deprem-visual-assets.py
-          sed -i 's/Expected 137 current non-TS500 rollout topics/Expected 143 non-TS500 rollout topics/' /tmp/generate-deprem-visual-assets.py
-          sed -i 's/expected = 137 \* 2/expected = 143 * 2/' /tmp/generate-deprem-visual-assets.py
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-      - name: Complete rollout and assets on main
-        id: generate
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deprem content gate
+        id: content
         continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          {
-            set -euo pipefail
-            git fetch origin main
-            git checkout -B main origin/main
+          npm run check:deprem-content 2>&1 | tee /tmp/deprem-content.log
 
-            python - <<'PY'
-          from pathlib import Path
+      - name: Full deprem release gate
+        id: release
+        if: steps.content.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run check:deprem-release 2>&1 | tee /tmp/deprem-release.log
 
-          path = Path('src/lib/deprem-rollout-extra.ts')
-          text = path.read_text(encoding='utf-8')
-          if 'DEPREM_ROLLOUT_BATCH_13' not in text:
-              batch = '''
-          export const DEPREM_ROLLOUT_BATCH_13: readonly DepremRolloutSpec[] = [
-            { slug: "tbdy-etkin-kesit-rijitlikleri", batch: 13, headline: "Kiriş, Kolon, Perde ve Döşemelerde Etkin Kesit Rijitlikleri", eyebrow: "BRÜT · ETKİN · MODEL", steps: ["Brüt rijitlik", "Etkin rijitlik", "Analiz modeli"], referenceProfile: "preserve", visualLayout: "comparison" },
-            { slug: "tbdy-betonarme-bag-kirisli-perde", batch: 13, headline: "Bağ Kirişli Perdeler ve Çapraz Donatılı Bağ Kirişleri", eyebrow: "BAĞ KİRİŞİ · KESME · ÇAPRAZ DONATI", steps: ["Bağ kirişi", "Kesme davranışı", "Çapraz donatı"], referenceProfile: "preserve", visualLayout: "flow" },
-            { slug: "radye-temel-zemin-yayi-yatak-katsayisi", batch: 13, headline: "Radye Temellerde Zemin Yayı ve Yatak Katsayısı Seçimi", eyebrow: "Kₛ · ALAN · ZEMİN YAYI", steps: ["Yatak katsayısı", "Tributary alan", "Zemin yayı"], referenceProfile: "preserve", visualLayout: "flow" },
-            { slug: "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma", batch: 13, headline: "Yangın Bölmesi, Koridor ve Kaçış Yolu Boyutlandırması", eyebrow: "BÖLME · KORİDOR · ÇIKIŞ", steps: ["Kaçış yolu", "Koridor", "Son çıkış"], referenceProfile: "preserve", visualLayout: "flow" },
-            { slug: "imar-taks-kaks-emsal-hesabi", batch: 13, headline: "TAKS, KAKS ve Emsal Hesabı", eyebrow: "PARSEL · TAKS · KAKS", steps: ["Parsel", "TAKS", "KAKS/Emsal"], referenceProfile: "preserve", visualLayout: "flow" },
-            { slug: "bep-isi-yalitim-u-degeri-yogusma-kontrolu", batch: 13, headline: "Isı Yalıtımında U Değeri ve Yoğuşma Kontrolü", eyebrow: "KATMAN · U DEĞERİ · ISI AKIŞI", steps: ["Katmanlar", "U değeri", "Isı akışı"], referenceProfile: "preserve", visualLayout: "flow" },
-          ] as const;
-
-          '''
-              marker = 'export const DEPREM_ROLLOUT_EXTRA_BATCHES: Readonly<Record<number, readonly DepremRolloutSpec[]>> = {'
-              text = text.replace(marker, batch + marker)
-              text = text.replace('  12: DEPREM_ROLLOUT_BATCH_12,\n};', '  12: DEPREM_ROLLOUT_BATCH_12,\n  13: DEPREM_ROLLOUT_BATCH_13,\n};')
-              path.write_text(text, encoding='utf-8')
-          PY
-
-            python /tmp/generate-deprem-visual-assets.py "$PWD"
-            git add src/lib/deprem-rollout-extra.ts public/deprem-visual
-
-            TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
-            echo "Repository SVG count after generation: $TARGET_COUNT"
-            test "$TARGET_COUNT" -eq 286
-
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "feat(deprem-visual): complete non-TS500 visual rollout"
-            git push origin main
-          } 2>&1 | tee /tmp/generator-run.log
-
-      - name: Upload diagnostics
+      - name: Upload QA logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: generator-diagnostics
-          path: /tmp/generator-run.log
-          if-no-files-found: error
+          name: deprem-final-qa-logs
+          path: |
+            /tmp/deprem-content.log
+            /tmp/deprem-release.log
+          if-no-files-found: warn
           retention-days: 1
 
-      - name: Fail workflow when generation failed
-        if: steps.generate.outcome == 'failure'
-        shell: bash
+      - name: Enforce QA result
+        if: steps.content.outcome == 'failure' || steps.release.outcome == 'failure'
         run: exit 1
