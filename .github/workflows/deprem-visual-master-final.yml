@@ -1,4 +1,5 @@
 name: Deprem Visual Master Final
+
 on:
   push:
     branches: [main]
@@ -8,15 +9,19 @@ on:
       - "src/lib/ts500-visual-rollout.ts"
       - "scripts/check-deprem-visual-master-final.ts"
       - ".github/workflows/deprem-visual-master-final.yml"
+
 permissions:
   contents: read
+
 jobs:
   master-visual-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -24,9 +29,23 @@ jobs:
         run: npm ci
       - name: Master 164 topic / 328 asset QA
         run: npx tsx scripts/check-deprem-visual-master-final.ts
+      - name: Deprem phase 8
+        run: npm run check:deprem-phase8
+      - name: Deprem content
+        run: npm run check:deprem-content
+      - name: Content quality
+        run: npm run check:content-quality
+      - name: Site quality
+        run: npm run check:site-quality
+      - name: Navigation
+        run: npm run check:navigation
+      - name: Visual system
+        run: npm run check:visual-system
       - name: TypeScript
         run: npx tsc --noEmit --incremental false
       - name: Production build
         run: npm run build
-      - name: Full deprem release gate
-        run: npm run check:deprem-release
+      - name: Smoke test
+        run: npm run check:smoke
+      - name: Deprem phase 9
+        run: npm run check:deprem-phase9
