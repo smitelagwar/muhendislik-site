@@ -24,10 +24,25 @@ jobs:
       - name: Generate and commit assets on main
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           git fetch origin main
           git checkout -B main origin/main
-          python /tmp/generate-deprem-visual-assets.py "$PWD"
+          python /tmp/generate-deprem-visual-assets.py "$PWD" > /tmp/generator.log 2>&1
+          STATUS=$?
+          cat /tmp/generator.log
+          if [ "$STATUS" -ne 0 ]; then
+            git fetch origin deprem-assets-generate
+            git checkout -B deprem-assets-generate origin/deprem-assets-generate
+            mkdir -p .tmp
+            cp /tmp/generator.log .tmp/generator-error.log
+            git add .tmp/generator-error.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(deprem-visual): record generator failure"
+            git push origin HEAD:deprem-assets-generate
+            exit "$STATUS"
+          fi
+          set -e
           git add public/deprem-visual
           TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
           test "$TARGET_COUNT" -ge 286
