@@ -1,0 +1,42 @@
+name: Import deprem visual assets
+
+on:
+  push:
+    branches:
+      - deprem-assets-import
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout import branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract prepared assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/deprem-assets
+          mkdir -p /tmp/deprem-assets
+          tar -xzf .tmp/deprem-assets-304.tgz -C /tmp/deprem-assets
+          test "$(find /tmp/deprem-assets/public/deprem-visual -type f -name '*.svg' | wc -l)" -eq 304
+
+      - name: Commit assets to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p public/deprem-visual
+          cp -R /tmp/deprem-assets/public/deprem-visual/. public/deprem-visual/
+          git add public/deprem-visual
+          test "$(git diff --cached --name-only | grep '^public/deprem-visual/.*\.svg$' | wc -l)" -eq 304
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(deprem-visual): add remaining 304 visual assets"
+          git push origin main
