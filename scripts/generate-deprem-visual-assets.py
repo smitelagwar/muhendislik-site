@@ -24,7 +24,6 @@ def unescape_ts(value: str) -> str:
 def parse_specs() -> list[tuple[str, str, list[str]]]:
     main_text = MAIN.read_text(encoding="utf-8")
     extra_text = EXTRA.read_text(encoding="utf-8")
-
     specs: list[tuple[str, str, list[str]]] = []
 
     main_pat = re.compile(
@@ -54,8 +53,8 @@ def parse_specs() -> list[tuple[str, str, list[str]]]:
         unique.setdefault(spec[0], spec)
 
     targets = [spec for spec in unique.values() if not spec[0].startswith("ts500-")]
-    if len(targets) != 143:
-        raise RuntimeError(f"Expected 143 non-TS500 rollout topics, parsed {len(targets)}")
+    if len(targets) != 137:
+        raise RuntimeError(f"Expected 137 current non-TS500 rollout topics, parsed {len(targets)}")
     return targets
 
 
@@ -113,19 +112,16 @@ def motif(slug: str) -> str:
 
 def cover_svg(slug: str, headline: str, steps: list[str]) -> str:
     title = esc(headline)
-    tag1 = esc(steps[0])
-    tag2 = esc(steps[1])
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img">
-<title>{title}</title>{defs()}<rect width="1600" height="900" fill="#fff"/><rect x="45" y="45" width="1510" height="810" rx="30" class="p"/><text x="105" y="125" class="t">{title}</text>{motif(slug)}<rect x="920" y="300" width="500" height="125" rx="22" fill="#EEF4F7" stroke="{NAVY}" stroke-width="3"/><text x="955" y="370" class="s">{tag1}</text><rect x="920" y="485" width="500" height="125" rx="22" fill="#E8F8FB" stroke="{CYAN}" stroke-width="3"/><text x="955" y="555" class="s">{tag2}</text></svg>'''
+<title>{title}</title>{defs()}<rect width="1600" height="900" fill="#fff"/><rect x="45" y="45" width="1510" height="810" rx="30" class="p"/><text x="105" y="125" class="t">{title}</text>{motif(slug)}<rect x="920" y="300" width="500" height="125" rx="22" fill="#EEF4F7" stroke="{NAVY}" stroke-width="3"/><text x="955" y="370" class="s">{esc(steps[0])}</text><rect x="920" y="485" width="500" height="125" rx="22" fill="#E8F8FB" stroke="{CYAN}" stroke-width="3"/><text x="955" y="555" class="s">{esc(steps[1])}</text></svg>'''
 
 
 def diagram_svg(headline: str, steps: list[str]) -> str:
-    title = esc(headline + " teknik akış şeması")
     s1, s2, s3 = [esc(x) for x in steps]
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img">
-<title>{title}</title>{defs()}<rect width="1600" height="900" fill="#fff"/><text x="120" y="130" class="t">{esc(headline)}</text><rect x="105" y="315" width="350" height="190" rx="24" class="p"/><text x="140" y="390" class="s">{s1}</text><rect x="625" y="315" width="350" height="190" rx="24" class="p"/><text x="660" y="390" class="s">{s2}</text><rect x="1145" y="315" width="350" height="190" rx="24" class="p"/><text x="1180" y="390" class="s">{s3}</text><line x1="455" y1="410" x2="615" y2="410" class="c" marker-end="url(#a)"/><line x1="975" y1="410" x2="1135" y2="410" class="c" marker-end="url(#a)"/></svg>'''
+<title>{esc(headline + " teknik akış şeması")}</title>{defs()}<rect width="1600" height="900" fill="#fff"/><text x="120" y="130" class="t">{esc(headline)}</text><rect x="105" y="315" width="350" height="190" rx="24" class="p"/><text x="140" y="390" class="s">{s1}</text><rect x="625" y="315" width="350" height="190" rx="24" class="p"/><text x="660" y="390" class="s">{s2}</text><rect x="1145" y="315" width="350" height="190" rx="24" class="p"/><text x="1180" y="390" class="s">{s3}</text><line x1="455" y1="410" x2="615" y2="410" class="c" marker-end="url(#a)"/><line x1="975" y1="410" x2="1135" y2="410" class="c" marker-end="url(#a)"/></svg>'''
 
 
 def main() -> None:
@@ -144,14 +140,14 @@ def main() -> None:
             diagram.write_text(diagram_svg(headline, steps), encoding="utf-8")
             created += 1
 
-    expected = 143 * 2
+    expected = 137 * 2
     actual = sum((OUT / slug / name).is_file() for slug, _, _ in targets for name in ("cover.svg", "diagram.svg"))
     if actual != expected:
-        raise RuntimeError(f"Expected {expected} target SVG files, found {actual}")
+        raise RuntimeError(f"Expected {expected} current rollout SVG files, found {actual}")
 
-    print(f"Non-TS500 target topics: {len(targets)}")
+    print(f"Current non-TS500 rollout topics: {len(targets)}")
     print(f"Created SVG files: {created}")
-    print(f"Total target SVG files: {actual}")
+    print(f"Total current rollout SVG files: {actual}")
 
 
 if __name__ == "__main__":
