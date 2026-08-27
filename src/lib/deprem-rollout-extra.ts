@@ -98,6 +98,16 @@ export const DEPREM_ROLLOUT_BATCH_12: readonly DepremRolloutSpec[] = [
   { slug: "yapi-denetimi-en13670-yerlestirme-kur-tolerans", batch: 12, headline: "TS EN 13670 Yerleştirme, Kür ve Tolerans", eyebrow: "YERLEŞTİRME · KÜR · TOLERANS", steps: ["Döküm ve vibrasyon planını uygula", "Hava koşuluna göre kür ve korumayı belirle", "Kesit-düşeylik-kot toleranslarını ölç"], referenceProfile: "preserve", visualLayout: "flow" },
 ] as const;
 
+
+export const DEPREM_ROLLOUT_BATCH_13: readonly DepremRolloutSpec[] = [
+  { slug: "tbdy-etkin-kesit-rijitlikleri", batch: 13, headline: "Kiriş, Kolon, Perde ve Döşemelerde Etkin Kesit Rijitlikleri", eyebrow: "BRÜT · ETKİN · MODEL", steps: ["Brüt rijitlik", "Etkin rijitlik", "Analiz modeli"], referenceProfile: "preserve", visualLayout: "comparison" },
+  { slug: "tbdy-betonarme-bag-kirisli-perde", batch: 13, headline: "Bağ Kirişli Perdeler ve Çapraz Donatılı Bağ Kirişleri", eyebrow: "BAĞ KİRİŞİ · KESME · ÇAPRAZ DONATI", steps: ["Bağ kirişi", "Kesme davranışı", "Çapraz donatı"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "radye-temel-zemin-yayi-yatak-katsayisi", batch: 13, headline: "Radye Temellerde Zemin Yayı ve Yatak Katsayısı Seçimi", eyebrow: "Kₛ · ALAN · ZEMİN YAYI", steps: ["Yatak katsayısı", "Tributary alan", "Zemin yayı"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "yangin-bolmesi-koridoru-kacis-yolu-boyutlandirma", batch: 13, headline: "Yangın Bölmesi, Koridor ve Kaçış Yolu Boyutlandırması", eyebrow: "BÖLME · KORİDOR · ÇIKIŞ", steps: ["Kaçış yolu", "Koridor", "Son çıkış"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "imar-taks-kaks-emsal-hesabi", batch: 13, headline: "TAKS, KAKS ve Emsal Hesabı", eyebrow: "PARSEL · TAKS · KAKS", steps: ["Parsel", "TAKS", "KAKS/Emsal"], referenceProfile: "preserve", visualLayout: "flow" },
+  { slug: "bep-isi-yalitim-u-degeri-yogusma-kontrolu", batch: 13, headline: "Isı Yalıtımında U Değeri ve Yoğuşma Kontrolü", eyebrow: "KATMAN · U DEĞERİ · ISI AKIŞI", steps: ["Katmanlar", "U değeri", "Isı akışı"], referenceProfile: "preserve", visualLayout: "flow" },
+] as const;
+
 export const DEPREM_ROLLOUT_EXTRA_BATCHES: Readonly<Record<number, readonly DepremRolloutSpec[]>> = {
   6: DEPREM_ROLLOUT_BATCH_6,
   7: DEPREM_ROLLOUT_BATCH_7,
@@ -106,4 +116,5 @@ export const DEPREM_ROLLOUT_EXTRA_BATCHES: Readonly<Record<number, readonly Depr
   10: DEPREM_ROLLOUT_BATCH_10,
   11: DEPREM_ROLLOUT_BATCH_11,
   12: DEPREM_ROLLOUT_BATCH_12,
+  13: DEPREM_ROLLOUT_BATCH_13,
 };
