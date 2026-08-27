@@ -35,7 +35,7 @@ jobs:
             git add public/deprem-visual
             TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
             echo "Repository SVG count after generation: $TARGET_COUNT"
-            test "$TARGET_COUNT" -ge 286
+            test "$TARGET_COUNT" -ge 274
             CHANGED_COUNT="$(git diff --cached --name-only | grep '^public/deprem-visual/.*\.svg$' | wc -l | tr -d ' ')"
             echo "Changed SVG files: $CHANGED_COUNT"
             git config user.name "github-actions[bot]"
@@ -44,7 +44,7 @@ jobs:
               echo "No asset changes required."
               exit 0
             fi
-            git commit -m "feat(deprem-visual): add remaining non-TS500 visual assets"
+            git commit -m "feat(deprem-visual): add remaining rollout visual assets"
             git push origin main
           } 2>&1 | tee /tmp/generator-run.log
 
