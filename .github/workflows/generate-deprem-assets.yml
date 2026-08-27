@@ -22,37 +22,42 @@ jobs:
         run: cp scripts/generate-deprem-visual-assets.py /tmp/generate-deprem-visual-assets.py
 
       - name: Generate and commit assets on main
+        id: generate
+        continue-on-error: true
         shell: bash
         run: |
-          set -u
-          git fetch origin main
-          git checkout -B main origin/main
-          python /tmp/generate-deprem-visual-assets.py "$PWD" > /tmp/generator.log 2>&1
-          STATUS=$?
-          cat /tmp/generator.log
-          if [ "$STATUS" -ne 0 ]; then
-            git fetch origin deprem-assets-generate
-            git checkout -B deprem-assets-generate origin/deprem-assets-generate
-            mkdir -p .tmp
-            cp /tmp/generator.log .tmp/generator-error.log
-            git add .tmp/generator-error.log
+          set -o pipefail
+          {
+            set -euo pipefail
+            git fetch origin main
+            git checkout -B main origin/main
+            python /tmp/generate-deprem-visual-assets.py "$PWD"
+            git add public/deprem-visual
+            TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
+            echo "Repository SVG count after generation: $TARGET_COUNT"
+            test "$TARGET_COUNT" -ge 286
+            CHANGED_COUNT="$(git diff --cached --name-only | grep '^public/deprem-visual/.*\.svg$' | wc -l | tr -d ' ')"
+            echo "Changed SVG files: $CHANGED_COUNT"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore(deprem-visual): record generator failure"
-            git push origin HEAD:deprem-assets-generate
-            exit "$STATUS"
-          fi
-          set -e
-          git add public/deprem-visual
-          TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
-          test "$TARGET_COUNT" -ge 286
-          CHANGED_COUNT="$(git diff --cached --name-only | grep '^public/deprem-visual/.*\.svg$' | wc -l | tr -d ' ')"
-          echo "Changed SVG files: $CHANGED_COUNT"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --cached --quiet; then
-            echo "No asset changes required."
-            exit 0
-          fi
-          git commit -m "feat(deprem-visual): add remaining non-TS500 visual assets"
-          git push origin main
+            if git diff --cached --quiet; then
+              echo "No asset changes required."
+              exit 0
+            fi
+            git commit -m "feat(deprem-visual): add remaining non-TS500 visual assets"
+            git push origin main
+          } 2>&1 | tee /tmp/generator-run.log
+
+      - name: Upload generator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generator-diagnostics
+          path: /tmp/generator-run.log
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Fail workflow when generation failed
+        if: steps.generate.outcome == 'failure'
+        shell: bash
+        run: exit 1
