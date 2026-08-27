@@ -1,0 +1,43 @@
+name: Generate deprem visual assets
+
+on:
+  push:
+    branches:
+      - deprem-assets-generate
+
+permissions:
+  contents: write
+
+jobs:
+  generate-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout generator branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preserve generator
+        shell: bash
+        run: cp scripts/generate-deprem-visual-assets.py /tmp/generate-deprem-visual-assets.py
+
+      - name: Generate and commit assets on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          python /tmp/generate-deprem-visual-assets.py "$PWD"
+          git add public/deprem-visual
+          TARGET_COUNT="$(find public/deprem-visual -type f -name '*.svg' | wc -l | tr -d ' ')"
+          test "$TARGET_COUNT" -ge 286
+          CHANGED_COUNT="$(git diff --cached --name-only | grep '^public/deprem-visual/.*\.svg$' | wc -l | tr -d ' ')"
+          echo "Changed SVG files: $CHANGED_COUNT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "No asset changes required."
+            exit 0
+          fi
+          git commit -m "feat(deprem-visual): add remaining non-TS500 visual assets"
+          git push origin main
