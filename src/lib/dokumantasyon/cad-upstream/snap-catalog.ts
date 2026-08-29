@@ -93,7 +93,7 @@ function uniqueEntityId(entity: EntityLike, fallback: string, usedIds: Set<strin
 
 function entityType(entity: EntityLike): string {
   const ctorName = (entity as { constructor?: { name?: string } }).constructor?.name;
-  for (const raw of [entity.dxfTypeName, entity.typeName, ctorName, entity.type]) {
+  for (const raw of [entity.dxfTypeName, entity.typeName, entity.type, ctorName]) {
     if (typeof raw === "string" && raw.trim()) return raw.trim().toUpperCase();
   }
   return entity.type === undefined || entity.type === null
