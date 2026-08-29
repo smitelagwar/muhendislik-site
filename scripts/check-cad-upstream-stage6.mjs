@@ -19,15 +19,18 @@ assert(pkg.dependencies?.["@mlightcad/cad-simple-viewer"] === "1.6.2", "cad-simp
 assert(pkg.dependencies?.["@mlightcad/data-model"] === "1.14.2", "data-model exact pin 1.14.2 olmalı");
 assert(pkg.dependencies?.["@mlightcad/libredwg-converter"] === "3.14.2", "libredwg-converter exact pin 3.14.2 olmalı");
 
+// The Stage 6 gate originally asserted the first monochrome CSS prototype
+// (`grayscale(1) brightness(0)`). Main later intentionally replaced it with
+// contrast-preserving source/monochrome rendering. Guard the current public
+// adapter contract rather than pinning an obsolete visual implementation.
 for (const token of [
   'CadUpstreamDisplayMode = "source" | "monochrome"',
-  'grayscale(1) brightness(0)',
-  'grayscale(1) brightness(0) invert(1)',
+  'grayscale(100%) invert(100%) contrast(150%) brightness(1.2)',
+  'grayscale(100%) contrast(150%)',
+  'this.sourceCanvasFilter',
   'this.manager.curView',
-  'renderer.domElement',
-  'renderer.clearAlpha',
-  '"LWDISPLAY"',
-  'AcDbSysVarManager.instance().setVar',
+  'db.lwdisplay = visible',
+  'refreshEntitiesForLineWeightChange',
 ]) {
   assert(adapter.includes(token), `Stage 6 adapter contract eksik: ${token}`);
 }
@@ -59,7 +62,7 @@ for (const engine of engineOrder) {
 }
 
 console.log("Stage 6 exact upstream pins: PASS");
-console.log("Stage 6 minimal fidelity controls: PASS");
+console.log("Stage 6 current fidelity controls: PASS");
 console.log("Stage 6 anti-fork / ownership contract: PASS");
 console.log("Stage 6 runtime order preservation: PASS");
-console.log("GATE: PASS — Aşama 6 fidelity contract hazır.");
+console.log("GATE: PASS — Aşama 6 fidelity contract güncel runtime ile uyumlu.");
