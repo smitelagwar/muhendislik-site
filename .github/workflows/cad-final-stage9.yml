@@ -9,6 +9,7 @@ on:
       - ".github/workflows/cad-final-stage9.yml"
       - "scripts/check-cad-final-stage9.ts"
       - "scripts/repair-cad-stage9-merge.mjs"
+      - "scripts/repair-cad-stage9-mouse-bindings.mjs"
       - "src/components/dokumantasyon/preview/cad-*.tsx"
       - "src/lib/dokumantasyon/cad-upstream/**"
       - "tests/document-studio/cad-*.spec.ts"
@@ -59,6 +60,7 @@ jobs:
           DID_MERGE: ${{ steps.merge_main.outputs.did_merge }}
         run: |
           node scripts/repair-cad-stage9-merge.mjs
+          node scripts/repair-cad-stage9-mouse-bindings.mjs
           git add -A
           if ! git diff --cached --quiet; then
             if [ "$DID_MERGE" = "true" ]; then
@@ -103,6 +105,7 @@ jobs:
           npx eslint
           "scripts/check-cad-final-stage9.ts"
           "scripts/repair-cad-stage9-merge.mjs"
+          "scripts/repair-cad-stage9-mouse-bindings.mjs"
           "playwright.config.ts"
           "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
           "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
