@@ -6,7 +6,10 @@ import type {
   CadDistanceMeasurementResult,
   CadDistanceMeasurementSnapshot,
 } from "@/lib/dokumantasyon/cad-upstream/distance-measurement";
-import type { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import type {
+  CadSnapPoint,
+  CadSnapPrimitive,
+} from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 import { CadPrecisionOverlay } from "./cad-precision-overlay";
 
 export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementResult {
@@ -20,6 +23,7 @@ type CadRendererCanvasBridge = {
       canvas2d?: HTMLCanvasElement;
     };
   };
+  snapCatalog?: CadSnapPrimitive[];
 };
 
 type CadRendererHost = HTMLElement & {
@@ -58,11 +62,15 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
   }
 }
 
-function resolveLiveCadCanvas(host: HTMLElement): HTMLCanvasElement | null {
+function resolveCadAdapter(host: HTMLElement): CadRendererCanvasBridge | null {
   const directAdapter = (host as CadRendererHost).__cadAdapter;
   const nestedAdapter = (host.querySelector("[aria-label$='CAD görünümü']") as CadRendererHost | null)
     ?.__cadAdapter;
-  const adapter = directAdapter ?? nestedAdapter;
+  return directAdapter ?? nestedAdapter ?? null;
+}
+
+function resolveLiveCadCanvas(host: HTMLElement): HTMLCanvasElement | null {
+  const adapter = resolveCadAdapter(host);
   const liveCanvas = adapter?.manager?.curView?.canvas ?? adapter?.manager?.curView?.canvas2d;
 
   if (
@@ -126,6 +134,16 @@ export function CadDistanceOverlay({
   const getSourceCanvas = (): HTMLCanvasElement | null => {
     const host = anchorRef.current?.parentElement;
     return host ? resolveLiveCadCanvas(host) : null;
+  };
+
+  const getSnapPrimitives = (primitiveIds: readonly string[]): CadSnapPrimitive[] => {
+    if (primitiveIds.length === 0) return [];
+    const host = anchorRef.current?.parentElement;
+    if (!host) return [];
+    const catalog = resolveCadAdapter(host)?.snapCatalog;
+    if (!Array.isArray(catalog) || catalog.length === 0) return [];
+    const wanted = new Set(primitiveIds);
+    return catalog.filter((primitive) => wanted.has(primitive.id)).slice(0, 8);
   };
 
   return (
@@ -215,6 +233,7 @@ export function CadDistanceOverlay({
         snapshot={snapshot}
         projectPoint={projectPoint}
         getSourceCanvas={getSourceCanvas}
+        getSnapPrimitives={getSnapPrimitives}
       />
 
       {message ? (
