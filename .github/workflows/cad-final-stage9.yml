@@ -1,0 +1,145 @@
+name: CAD final Stage 9 gate
+
+on:
+  push:
+    branches:
+      - internal-cad-final-stage9
+  pull_request:
+    paths:
+      - ".github/workflows/cad-final-stage9.yml"
+      - "scripts/check-cad-final-stage9.ts"
+      - "src/components/dokumantasyon/preview/cad-*.tsx"
+      - "src/lib/dokumantasyon/cad-upstream/**"
+      - "tests/document-studio/cad-*.spec.ts"
+      - "playwright.config.ts"
+      - "vercel.json"
+      - ".vercelignore"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cad-final-stage9-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  final-quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Merge current main in CI
+        id: merge_main
+        shell: bash
+        run: |
+          git fetch origin main --no-tags
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "did_merge=false" >> "$GITHUB_OUTPUT"
+            echo "Current main is already integrated."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git merge --no-ff -X ours origin/main -m "merge(main): integrate final CAD plan"
+            echo "did_merge=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install exact lockfile
+        run: npm ci
+
+      - name: Run Stage 9 coexistence contract
+        run: npx tsx scripts/check-cad-final-stage9.ts
+
+      - name: Re-run Stage 8 contract and performance gate
+        run: npx tsx scripts/check-cad-mobile-stage8.ts
+
+      - name: Re-run runtime snap guard
+        run: npx tsx scripts/check-cad-snap-runtime-stage8.ts
+
+      - name: Re-run Stage 7 precision regression gate
+        run: npx tsx scripts/check-cad-precision-stage7.ts
+
+      - name: Re-run Stage 6 distance regression gate
+        run: npx tsx scripts/check-cad-distance-stage6.ts
+
+      - name: Re-run Stage 5 snap settings regression gate
+        run: npx tsx scripts/check-cad-snap-settings-stage5.ts
+
+      - name: Re-run Stage 4 snap regression gate
+        run: npx tsx scripts/check-cad-snap-stage4.ts
+
+      - name: Re-run Stage 3 gesture regression gate
+        run: npx tsx scripts/check-cad-mobile-gesture-stage3.ts
+
+      - name: Targeted final lint
+        run: >-
+          npx eslint
+          "scripts/check-cad-final-stage9.ts"
+          "playwright.config.ts"
+          "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
+          "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+          "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+          "src/components/dokumantasyon/preview/cad-snap-settings-panel.tsx"
+          "src/lib/dokumantasyon/cad-upstream/adapter.ts"
+          "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+          "src/lib/dokumantasyon/cad-upstream/mobile-gesture-guard.ts"
+          "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+          "src/lib/dokumantasyon/cad-upstream/snap-catalog.ts"
+          "src/lib/dokumantasyon/cad-upstream/snap-engine.ts"
+          "src/lib/dokumantasyon/cad-upstream/snap-settings.ts"
+          "tests/document-studio/cad-mobile-stage8-acceptance.spec.ts"
+          "tests/document-studio/cad-mobile-stage8-intersection.spec.ts"
+
+      - name: Full TypeScript
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production-equivalent Next build
+        run: npm run build
+
+      - name: Install final acceptance browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Pixel 7 and iPhone 13 final mobile CAD acceptance
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3029"
+        run: |
+          npx playwright test \
+            tests/document-studio/cad-mobile-stage8-intersection.spec.ts \
+            --project=mobile-chromium \
+            --project=mobile-webkit
+          npx playwright test \
+            tests/document-studio/cad-mobile-stage8-acceptance.spec.ts \
+            --project=mobile-chromium \
+            --project=mobile-webkit \
+            --grep "ikinci parmak pending|trusted iki-parmak pinch"
+
+      - name: Main CAD readonly/background regression
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3030"
+        run: npx playwright test tests/document-studio/cad-readonly-contract.spec.ts --project=chromium
+
+      - name: Push tested main integration commit
+        if: steps.merge_main.outputs.did_merge == 'true' && github.event_name == 'push'
+        run: git push origin HEAD:internal-cad-final-stage9
+
+      - name: Upload final browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-final-stage9-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
