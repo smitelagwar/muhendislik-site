@@ -1,0 +1,67 @@
+name: CAD precision Stage 7 gate
+
+on:
+  push:
+    branches:
+      - internal-cad-precision-stage7
+    paths:
+      - ".github/workflows/cad-precision-stage7.yml"
+      - "scripts/check-cad-precision-stage7.ts"
+      - "scripts/check-cad-distance-stage6.ts"
+      - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+      - "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+      - "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+      - "vercel.json"
+  pull_request:
+    paths:
+      - ".github/workflows/cad-precision-stage7.yml"
+      - "scripts/check-cad-precision-stage7.ts"
+      - "scripts/check-cad-distance-stage6.ts"
+      - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+      - "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+      - "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+      - "vercel.json"
+
+concurrency:
+  group: cad-precision-stage7-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-precision-ux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install exact lockfile
+        run: npm ci
+
+      - name: Run Stage 7 precision contract gate
+        run: npx tsx scripts/check-cad-precision-stage7.ts
+
+      - name: Re-run Stage 6 measurement regression gate
+        run: npx tsx scripts/check-cad-distance-stage6.ts
+
+      - name: Targeted Stage 7 lint
+        run: >-
+          npx eslint
+          "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+          "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+          "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+          "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+          "scripts/check-cad-precision-stage7.ts"
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production-equivalent Next build
+        run: npm run build

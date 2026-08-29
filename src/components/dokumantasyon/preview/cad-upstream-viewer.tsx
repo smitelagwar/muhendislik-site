@@ -7,6 +7,7 @@ import {
   Eye,
   Layers,
   Loader2,
+  Magnet,
   Maximize,
   RotateCcw,
   Ruler,
@@ -19,12 +20,27 @@ import {
   CadUpstreamAdapterError,
   CAD_BACKGROUND_COLORS,
   type CadBackgroundColorOption,
+  type CadDistanceMeasurementSnapshot,
   type CadLayerItem,
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
+import {
+  CAD_SNAP_MODES,
+  createDefaultCadSnapSettings,
+  getEnabledCadSnapModes,
+  loadCadSnapSettings,
+  saveCadSnapSettings,
+  type CadSnapSettings,
+  type CadSnapSettingsStorage,
+} from "@/lib/dokumantasyon/cad-upstream/snap-settings";
 import { resolveCadUpstreamTimeoutMs } from "@/lib/dokumantasyon/dwg/runtime-policy";
+import {
+  CadDistanceOverlay,
+  type CadDistanceOverlayMeasurement,
+} from "./cad-distance-overlay";
 import { CadLayerPanel } from "./cad-layer-panel";
+import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -50,11 +66,22 @@ function resolveSiteTheme(): CadUpstreamTheme {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function resolveSnapStorage(): CadSnapSettingsStorage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 function failureReason(error: unknown): string {
   if (error instanceof CadUpstreamAdapterError) {
     return `${error.code}:${error.message}`;
   }
-  return error instanceof Error ? `upstream-error:${error.message}` : "upstream-error:Bilinmeyen CAD hatası";
+  return error instanceof Error
+    ? `upstream-error:${error.message}`
+    : "upstream-error:Bilinmeyen CAD hatası";
 }
 
 function CadDisplayControls({
@@ -91,7 +118,9 @@ function CadDisplayControls({
         type="button"
         size="sm"
         variant={displayMode === "source" ? "secondary" : "ghost"}
-        className={`${buttonClass} ${displayMode === "source" ? "text-foreground" : "text-muted-foreground/70"}`}
+        className={`${buttonClass} ${
+          displayMode === "source" ? "text-foreground" : "text-muted-foreground/70"
+        }`}
         aria-pressed={displayMode === "source"}
         title="Gerçek Renk"
         onClick={() => onSelectDisplayMode("source")}
@@ -103,7 +132,9 @@ function CadDisplayControls({
         type="button"
         size="sm"
         variant={displayMode === "monochrome" ? "secondary" : "ghost"}
-        className={`${buttonClass} ${displayMode === "monochrome" ? "text-foreground" : "text-muted-foreground/70"}`}
+        className={`${buttonClass} ${
+          displayMode === "monochrome" ? "text-foreground" : "text-muted-foreground/70"
+        }`}
         aria-pressed={displayMode === "monochrome"}
         title="Siyah-Beyaz"
         onClick={() => onSelectDisplayMode("monochrome")}
@@ -115,7 +146,9 @@ function CadDisplayControls({
         type="button"
         size="sm"
         variant={lineWeightVisible ? "secondary" : "ghost"}
-        className={`${buttonClass} ${lineWeightVisible ? "text-foreground" : "text-muted-foreground/70"}`}
+        className={`${buttonClass} ${
+          lineWeightVisible ? "text-foreground" : "text-muted-foreground/70"
+        }`}
         aria-pressed={lineWeightVisible}
         title="Çizgi kalınlıklarını göster/gizle"
         onClick={onToggleLineWeight}
@@ -183,6 +216,7 @@ export function DokCadUpstreamViewer({
   const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
   const lineWeightVisibleRef = useRef(false);
   const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
+  const distanceMeasurementIdRef = useRef(0);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
   const [retryKey, setRetryKey] = useState(0);
@@ -193,8 +227,22 @@ export function DokCadUpstreamViewer({
   const [layers, setLayers] = useState<CadLayerItem[]>([]);
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
   const [layerQuery, setLayerQuery] = useState("");
+  const [snapPanelOpen, setSnapPanelOpen] = useState(false);
+  const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
+    createDefaultCadSnapSettings()
+  );
+  const [distanceSnapshot, setDistanceSnapshot] =
+    useState<CadDistanceMeasurementSnapshot | null>(null);
+  const [distanceMeasurements, setDistanceMeasurements] = useState<
+    CadDistanceOverlayMeasurement[]
+  >([]);
+  const [, setViewRevision] = useState(0);
 
   const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
+
+  useEffect(() => {
+    setSnapSettings(loadCadSnapSettings(resolveSnapStorage()));
+  }, []);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -208,6 +256,7 @@ export function DokCadUpstreamViewer({
     let systemThemeQuery: MediaQueryList | null = null;
     let syncTheme: (() => void) | null = null;
     let unsubscribeLayers: (() => void) | null = null;
+    let unsubscribeViewChanged: (() => void) | null = null;
     let timeoutId: number | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
@@ -216,6 +265,10 @@ export function DokCadUpstreamViewer({
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
+      setSnapPanelOpen(false);
+      setActiveTool(null);
+      setDistanceSnapshot(null);
+      setDistanceMeasurements([]);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -248,7 +301,9 @@ export function DokCadUpstreamViewer({
         systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
         systemThemeQuery?.addEventListener?.("change", syncTheme);
 
-        setMessage(extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor");
+        setMessage(
+          extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor"
+        );
         await createdAdapter.open({
           accessUrl,
           displayName,
@@ -262,12 +317,14 @@ export function DokCadUpstreamViewer({
         lineWeightVisibleRef.current = initialLineWeight;
         setLineWeightVisible(initialLineWeight);
 
-        // Load layers and subscribe to layer changes
         setLayers(createdAdapter.getLayers());
         unsubscribeLayers = createdAdapter.subscribeLayersChanged(() => {
           if (!cancelled && adapterRef.current) {
             setLayers(adapterRef.current.getLayers());
           }
+        });
+        unsubscribeViewChanged = createdAdapter.subscribeViewChanged(() => {
+          if (!cancelled) setViewRevision((value) => value + 1);
         });
       })();
 
@@ -278,7 +335,9 @@ export function DokCadUpstreamViewer({
           reject(
             new CadUpstreamAdapterError(
               "open-timeout",
-              `MLightCAD ${Math.round(effectiveTimeoutMs / 1000)} saniye içinde terminal sonuca ulaşamadı.`
+              `MLightCAD ${Math.round(
+                effectiveTimeoutMs / 1000
+              )} saniye içinde terminal sonuca ulaşamadı.`
             )
           );
         }, effectiveTimeoutMs);
@@ -303,6 +362,10 @@ export function DokCadUpstreamViewer({
           unsubscribeLayers();
           unsubscribeLayers = null;
         }
+        if (unsubscribeViewChanged) {
+          unsubscribeViewChanged();
+          unsubscribeViewChanged = null;
+        }
 
         if (adapter) {
           if (adapterRef.current === adapter) adapterRef.current = null;
@@ -316,7 +379,9 @@ export function DokCadUpstreamViewer({
 
         const reason = failureReason(error);
         setState("error");
-        setMessage(reason.split(":").slice(1).join(":") || "CAD görüntüleyici başlatılamadı.");
+        setMessage(
+          reason.split(":").slice(1).join(":") || "CAD görüntüleyici başlatılamadı."
+        );
         onViewerFailure?.(reason);
       }
     });
@@ -333,6 +398,10 @@ export function DokCadUpstreamViewer({
         unsubscribeLayers();
         unsubscribeLayers = null;
       }
+      if (unsubscribeViewChanged) {
+        unsubscribeViewChanged();
+        unsubscribeViewChanged = null;
+      }
 
       if (adapterRef.current === adapter) adapterRef.current = null;
       previousCadUpstreamTeardown = startup
@@ -344,22 +413,29 @@ export function DokCadUpstreamViewer({
           }
         });
     };
-  }, [accessUrl, displayName, effectiveTimeoutMs, extension, fileId, retryKey, onReady, onViewerFailure]);
+  }, [
+    accessUrl,
+    displayName,
+    effectiveTimeoutMs,
+    extension,
+    fileId,
+    retryKey,
+    onReady,
+    onViewerFailure,
+  ]);
 
-  // Global Escape key handler to cancel active measurement/command or close layer panel
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (layerPanelOpen) {
-          setLayerPanelOpen(false);
-        }
-        setActiveTool(null);
-        void adapterRef.current?.cancelActiveCommand();
-      }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setLayerPanelOpen(false);
+      setSnapPanelOpen(false);
+      setActiveTool(null);
+      setDistanceSnapshot(null);
+      void adapterRef.current?.cancelActiveCommand();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [layerPanelOpen]);
+  }, []);
 
   const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
     displayModeRef.current = mode;
@@ -380,33 +456,70 @@ export function DokCadUpstreamViewer({
     }
   };
 
+  const selectBackgroundColor = (color: CadBackgroundColorOption) => {
+    backgroundColorRef.current = color;
+    setBackgroundColor(color);
+    adapterRef.current?.setBackgroundColor(color);
+  };
+
+  const handleSnapSettingsChange = (next: CadSnapSettings) => {
+    setSnapSettings(next);
+    saveCadSnapSettings(resolveSnapStorage(), next);
+    adapterRef.current?.updateDistanceMeasurementSnapModes(
+      getEnabledCadSnapModes(next)
+    );
+  };
+
   const handleZoomToFit = () => {
     adapterRef.current?.zoomToFit();
   };
 
   const handleStartDistance = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
     if (activeTool === "distance") {
-      setActiveTool(null);
-      await adapterRef.current?.cancelActiveCommand();
+      await adapter.cancelActiveCommand();
       return;
     }
-    setActiveTool("distance");
-    try {
-      await adapterRef.current?.measureDistance();
-    } finally {
-      setActiveTool(null);
-    }
+
+    const started = await adapter.startDistanceMeasurement(
+      getEnabledCadSnapModes(snapSettings),
+      {
+        onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
+        onComplete: (measurement) => {
+          distanceMeasurementIdRef.current += 1;
+          setDistanceMeasurements((current) => [
+            ...current,
+            {
+              ...measurement,
+              id: `distance-${distanceMeasurementIdRef.current}`,
+            },
+          ]);
+          setDistanceSnapshot(null);
+          setActiveTool((current) => (current === "distance" ? null : current));
+        },
+        onCancel: () => {
+          setDistanceSnapshot(null);
+          setActiveTool((current) => (current === "distance" ? null : current));
+        },
+      }
+    );
+    setActiveTool(started ? "distance" : null);
   };
 
   const handleStartArea = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
     if (activeTool === "area") {
       setActiveTool(null);
-      await adapterRef.current?.cancelActiveCommand();
+      await adapter.cancelActiveCommand();
       return;
     }
+    await adapter.cancelActiveCommand();
+    setDistanceSnapshot(null);
     setActiveTool("area");
     try {
-      await adapterRef.current?.measureArea();
+      await adapter.measureArea();
     } finally {
       setActiveTool(null);
     }
@@ -414,6 +527,9 @@ export function DokCadUpstreamViewer({
 
   const handleClearMeasurements = async () => {
     setActiveTool(null);
+    setDistanceSnapshot(null);
+    setDistanceMeasurements([]);
+    distanceMeasurementIdRef.current = 0;
     await adapterRef.current?.clearMeasurements();
   };
 
@@ -437,10 +553,20 @@ export function DokCadUpstreamViewer({
     adapterRef.current?.resetLayersToSource();
   };
 
-  const selectBackgroundColor = (color: CadBackgroundColorOption) => {
-    backgroundColorRef.current = color;
-    setBackgroundColor(color);
-    adapterRef.current?.setBackgroundColor(color);
+  const handleToggleLayerPanel = () => {
+    setLayerPanelOpen((open) => {
+      const next = !open;
+      if (next) setSnapPanelOpen(false);
+      return next;
+    });
+  };
+
+  const handleToggleSnapPanel = () => {
+    setSnapPanelOpen((open) => {
+      const next = !open;
+      if (next) setLayerPanelOpen(false);
+      return next;
+    });
   };
 
   const toolbarTarget =
@@ -448,17 +574,20 @@ export function DokCadUpstreamViewer({
       ? document.getElementById("cad-studio-toolbar-slot")
       : null;
 
-  const displayControls = state === "ready" ? (
-    <CadDisplayControls
-      displayMode={displayMode}
-      lineWeightVisible={lineWeightVisible}
-      backgroundColor={backgroundColor}
-      onSelectDisplayMode={selectDisplayMode}
-      onToggleLineWeight={() => void toggleLineWeight()}
-      onSelectBackgroundColor={selectBackgroundColor}
-      compact={Boolean(toolbarTarget)}
-    />
-  ) : null;
+  const displayControls =
+    state === "ready" ? (
+      <CadDisplayControls
+        displayMode={displayMode}
+        lineWeightVisible={lineWeightVisible}
+        backgroundColor={backgroundColor}
+        onSelectDisplayMode={selectDisplayMode}
+        onToggleLineWeight={() => void toggleLineWeight()}
+        onSelectBackgroundColor={selectBackgroundColor}
+        compact={Boolean(toolbarTarget)}
+      />
+    ) : null;
+
+  const selectedSnapModes = CAD_SNAP_MODES.filter((mode) => snapSettings.modes[mode]).join(",");
 
   return (
     <section
@@ -471,19 +600,34 @@ export function DokCadUpstreamViewer({
       data-cad-background-color={backgroundColor}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
+      data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
+      data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
+      data-cad-snap-enabled={snapSettings.enabled ? "true" : "false"}
+      data-cad-snap-modes={snapSettings.enabled ? selectedSnapModes : ""}
+      data-cad-snap-selected-modes={selectedSnapModes}
       data-cad-timeout-ms={effectiveTimeoutMs}
     >
-      <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
+      <div
+        ref={viewportRef}
+        className="absolute inset-0"
+        aria-label={`${displayName} CAD görünümü`}
+      />
 
-      {/* Top Bar / Slot Controls */}
+      {state === "ready" ? (
+        <CadDistanceOverlay
+          snapshot={distanceSnapshot}
+          measurements={distanceMeasurements}
+          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+        />
+      ) : null}
+
       {displayControls && toolbarTarget
         ? createPortal(displayControls, toolbarTarget)
         : displayControls
           ? <div className="absolute left-3 top-3 z-20">{displayControls}</div>
           : null}
 
-      {/* Left Quick Access Rail: Core CAD Tools */}
       {state === "ready" ? (
         <div
           className="absolute left-3 top-14 z-20 flex flex-col gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur"
@@ -511,7 +655,7 @@ export function DokCadUpstreamViewer({
             size="sm"
             variant={activeTool === "distance" ? "default" : "ghost"}
             className="h-8 w-8 p-0"
-            title="Mesafe Ölç (İki nokta seçin)"
+            title="Mesafe Ölç (Nokta için basılı tutup bırakın)"
             onClick={() => void handleStartDistance()}
             data-testid="cad-tool-distance"
             aria-label="Mesafe ölç"
@@ -552,10 +696,24 @@ export function DokCadUpstreamViewer({
           <Button
             type="button"
             size="sm"
+            variant={snapPanelOpen ? "secondary" : "ghost"}
+            className={`h-8 w-8 p-0 ${snapSettings.enabled ? "" : "text-muted-foreground/45"}`}
+            title="Nesne Yakalama Ayarları"
+            onClick={handleToggleSnapPanel}
+            data-testid="cad-tool-snap-settings"
+            aria-label="Nesne yakalama ayarları"
+            aria-pressed={snapPanelOpen}
+          >
+            <Magnet className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
             variant={layerPanelOpen ? "secondary" : "ghost"}
             className="h-8 w-8 p-0"
             title="Katmanlar"
-            onClick={() => setLayerPanelOpen((open) => !open)}
+            onClick={handleToggleLayerPanel}
             data-testid="cad-tool-layers"
             aria-label="Katmanlar"
             aria-pressed={layerPanelOpen}
@@ -565,7 +723,14 @@ export function DokCadUpstreamViewer({
         </div>
       ) : null}
 
-      {/* Unified Layer Panel */}
+      {state === "ready" && snapPanelOpen ? (
+        <CadSnapSettingsPanel
+          settings={snapSettings}
+          onChange={handleSnapSettingsChange}
+          onClose={() => setSnapPanelOpen(false)}
+        />
+      ) : null}
+
       {state === "ready" && layerPanelOpen ? (
         <CadLayerPanel
           layers={layers}
@@ -580,7 +745,6 @@ export function DokCadUpstreamViewer({
         />
       ) : null}
 
-      {/* Loading Overlay */}
       {state === "loading" ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/72 backdrop-blur-[1px]">
           <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
@@ -590,7 +754,6 @@ export function DokCadUpstreamViewer({
         </div>
       ) : null}
 
-      {/* Error Retry Overlay */}
       {state === "error" ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background p-4">
           <div className="flex max-w-md flex-col items-center gap-3 text-center">
