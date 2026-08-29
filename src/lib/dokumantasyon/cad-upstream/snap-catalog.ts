@@ -61,6 +61,23 @@ function entityId(entity: EntityLike, fallback: string): string {
   return fallback;
 }
 
+function uniqueEntityId(entity: EntityLike, fallback: string, usedIds: Set<string>): string {
+  const base = entityId(entity, fallback);
+  if (!usedIds.has(base)) {
+    usedIds.add(base);
+    return base;
+  }
+
+  let suffix = 2;
+  let candidate = `${base}#${suffix}`;
+  while (usedIds.has(candidate)) {
+    suffix += 1;
+    candidate = `${base}#${suffix}`;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
 function entityType(entity: EntityLike): string {
   const ctorName = (entity as { constructor?: { name?: string } }).constructor?.name;
   return String(entity.type ?? ctorName ?? "").toUpperCase();
@@ -154,13 +171,15 @@ function visitBlock(
   matrix: number[],
   out: CadSnapPrimitive[],
   path: string,
-  seen: Set<BlockLike>
+  seen: Set<BlockLike>,
+  usedIds: Set<string>
 ): void {
   if (!block?.newIterator || seen.has(block)) return;
   seen.add(block);
   let index = 0;
   for (const entity of block.newIterator()) {
-    const id = entityId(entity, `${path}:${index++}`);
+    const fallback = `${path}:${index++}`;
+    const id = uniqueEntityId(entity, fallback, usedIds);
     const type = entityType(entity);
     const layer = typeof entity.layer === "string" ? entity.layer : undefined;
     const start = point(entity.startPoint);
@@ -188,7 +207,15 @@ function visitBlock(
     if (referenced && typeof transform === "function") {
       try {
         const childMatrix = matrixElements(transform.call(entity) as MatrixLike);
-        visitBlock(referenced, db, multiply(matrix, childMatrix), out, `${path}/${id}`, new Set(seen));
+        visitBlock(
+          referenced,
+          db,
+          multiply(matrix, childMatrix),
+          out,
+          `${path}/${id}`,
+          new Set(seen),
+          usedIds
+        );
       } catch {}
     }
   }
@@ -199,6 +226,6 @@ export function buildCadSnapPrimitives(database: unknown): CadSnapPrimitive[] {
   const modelSpace = db.tables?.blockTable?.modelSpace;
   if (!modelSpace) return [];
   const out: CadSnapPrimitive[] = [];
-  visitBlock(modelSpace, db, [...IDENTITY], out, "model", new Set());
+  visitBlock(modelSpace, db, [...IDENTITY], out, "model", new Set(), new Set());
   return out;
 }
