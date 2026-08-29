@@ -6,7 +6,26 @@ import type {
   AcApLayerStore,
 } from "@mlightcad/cad-simple-viewer";
 
+import {
+  CAD_DISTANCE_SNAP_TOLERANCE_PX,
+  CadPressHoldDistanceController,
+  type CadDistanceMeasurementCallbacks,
+  type CadDistanceResolvedPoint,
+} from "./distance-measurement";
 import { CadMobileGestureGuard } from "./mobile-gesture-guard";
+import { buildCadSnapPrimitives } from "./snap-catalog";
+import {
+  CadSnapEngine,
+  type CadSnapMode,
+  type CadSnapPoint,
+  type CadSnapPrimitive,
+} from "./snap-engine";
+
+export type {
+  CadDistanceMeasurementCallbacks,
+  CadDistanceMeasurementResult,
+  CadDistanceMeasurementSnapshot,
+} from "./distance-measurement";
 
 export const CAD_UPSTREAM_WORKER_URLS = {
   mtextRender: "/cad-upstream/mtext-renderer-worker.js",
@@ -18,6 +37,22 @@ const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
 const CAD_MOBILE_PINCH_ZOOM_SPEED = 1;
 
 type CadMeasurementCommand = "distance" | "area";
+
+type CadLayoutViewLike = {
+  enabled: boolean;
+  screenToWorld: (point: CadSnapPoint) => { x: number; y: number };
+  worldToScreen: (point: CadSnapPoint) => { x: number; y: number };
+  _cameraControls?: {
+    zoomSpeed: number;
+    zoomToCursor: boolean;
+  };
+  events?: {
+    viewChanged?: {
+      addEventListener: (listener: () => void) => void;
+      removeEventListener: (listener: () => void) => void;
+    };
+  };
+};
 
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
@@ -150,6 +185,10 @@ export class CadUpstreamAdapter {
   private lineWeightVisible = false;
   private activeMeasurementCommand: CadMeasurementCommand | null = null;
   private mobileGestureGuard: CadMobileGestureGuard | null = null;
+  private distanceMeasurementController: CadPressHoldDistanceController | null = null;
+  private snapLayerUnsubscribe: (() => void) | null = null;
+  private snapCatalog: CadSnapPrimitive[] = [];
+  private readonly snapEngine = new CadSnapEngine();
   private readonly initialLayerSnapshot = new Map<
     string,
     { isOn: boolean; isFrozen: boolean }
@@ -175,7 +214,6 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Enforce read-only site policy for preview: hide command line, ribbon, toolbar
     Viewer.AcApSettingManager.instance.isShowCommandLine = false;
     Viewer.AcApSettingManager.instance.isShowRibbon = false;
     Viewer.AcApSettingManager.instance.isShowToolbar = false;
@@ -258,10 +296,6 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Upstream openDocument() can report success before progressive scene
-    // conversion finishes, so entityCount===0 is NOT immediately a failure.
-    // Only reject the document when the upstream view itself confirms it is
-    // idle and its rendered scene still contains no entities.
     const idle = await this.manager.curView.waitUntilIdle(
       CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
     );
@@ -272,7 +306,6 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Capture initial layer states via public layerStore
     this.initialLayerSnapshot.clear();
     const store = this.getLayerStore();
     if (store) {
@@ -284,38 +317,121 @@ export class CadUpstreamAdapter {
       }
     }
 
-    // Enforce read-only PAN view mode and clear selection set
     this.restorePanMode();
-
     this.configureMobilePinchZoom();
+    this.configureSnapRuntime();
     this.configureMobileGestureGuard();
     this.applyDisplayMode();
   }
 
+  private getActiveLayoutView(): CadLayoutViewLike | null {
+    const curView = this.manager.curView as unknown as
+      | { activeLayoutView?: CadLayoutViewLike }
+      | undefined;
+    return curView?.activeLayoutView ?? null;
+  }
+
   private configureMobilePinchZoom(): void {
     if (!hasCoarseTouchPointer()) return;
-
-    const activeLayoutView = (
-      this.manager.curView as unknown as
-        | {
-            activeLayoutView?: {
-              _cameraControls?: {
-                zoomSpeed: number;
-                zoomToCursor: boolean;
-              };
-            };
-          }
-        | undefined
-    )?.activeLayoutView;
-    const controls = activeLayoutView?._cameraControls;
+    const controls = this.getActiveLayoutView()?._cameraControls;
     if (!controls) return;
-
-    // Upstream OrbitControls uses zoomSpeed=5. Touch pinch applies this as an
-    // exponent to the incremental finger-distance ratio, making small mobile
-    // movements jump several zoom levels. A natural 1:1 ratio keeps pinch
-    // controlled while preserving the upstream midpoint/cursor anchoring.
     controls.zoomSpeed = CAD_MOBILE_PINCH_ZOOM_SPEED;
     controls.zoomToCursor = true;
+  }
+
+  private configureSnapRuntime(): void {
+    this.distanceMeasurementController?.destroy();
+    this.distanceMeasurementController = null;
+    this.snapLayerUnsubscribe?.();
+    this.snapLayerUnsubscribe = null;
+
+    const database = this.manager.curDocument?.database;
+    this.snapCatalog = buildCadSnapPrimitives(database);
+    this.rebuildVisibleSnapIndex();
+
+    this.distanceMeasurementController = new CadPressHoldDistanceController(
+      this.interactionHost,
+      {
+        resolvePoint: (screenPoint, snapModes) =>
+          this.resolveDistancePoint(screenPoint, snapModes),
+        setCameraInteractionEnabled: (enabled) =>
+          this.setCameraInteractionEnabled(enabled),
+      }
+    );
+
+    const store = this.getLayerStore();
+    if (store) {
+      const handleLayersChanged = () => this.rebuildVisibleSnapIndex();
+      store.events.changed.addEventListener(handleLayersChanged);
+      this.snapLayerUnsubscribe = () => {
+        store.events.changed.removeEventListener(handleLayersChanged);
+      };
+    }
+  }
+
+  private rebuildVisibleSnapIndex(): void {
+    if (this.snapCatalog.length === 0) {
+      this.snapEngine.clear();
+      return;
+    }
+    const layers = this.getLayers();
+    if (layers.length === 0) {
+      this.snapEngine.rebuild(this.snapCatalog);
+      return;
+    }
+    const visibleLayers = new Set(
+      layers.filter((layer) => layer.visible).map((layer) => layer.name)
+    );
+    this.snapEngine.rebuild(
+      this.snapCatalog.filter(
+        (primitive) => !primitive.layer || visibleLayers.has(primitive.layer)
+      )
+    );
+  }
+
+  private resolveDistancePoint(
+    screenPoint: CadSnapPoint,
+    snapModes: ReadonlySet<CadSnapMode>
+  ): CadDistanceResolvedPoint | null {
+    const view = this.getActiveLayoutView();
+    if (!view) return null;
+    const raw = view.screenToWorld(screenPoint);
+    const worldPoint = { x: Number(raw.x), y: Number(raw.y) };
+    if (!Number.isFinite(worldPoint.x) || !Number.isFinite(worldPoint.y)) return null;
+
+    const worldUnitsPerPixel = this.getWorldUnitsPerPixel(view, screenPoint);
+    const snap =
+      snapModes.size > 0 && worldUnitsPerPixel > 0
+        ? this.snapEngine.query({
+            point: worldPoint,
+            tolerancePx: CAD_DISTANCE_SNAP_TOLERANCE_PX,
+            worldUnitsPerPixel,
+            modes: snapModes,
+          })
+        : null;
+
+    return {
+      point: snap?.point ?? worldPoint,
+      snap,
+    };
+  }
+
+  private getWorldUnitsPerPixel(
+    view: CadLayoutViewLike,
+    screenPoint: CadSnapPoint
+  ): number {
+    const origin = view.screenToWorld(screenPoint);
+    const stepX = view.screenToWorld({ x: screenPoint.x + 1, y: screenPoint.y });
+    const xScale = Math.hypot(stepX.x - origin.x, stepX.y - origin.y);
+    if (Number.isFinite(xScale) && xScale > 0) return xScale;
+    const stepY = view.screenToWorld({ x: screenPoint.x, y: screenPoint.y + 1 });
+    const yScale = Math.hypot(stepY.x - origin.x, stepY.y - origin.y);
+    return Number.isFinite(yScale) && yScale > 0 ? yScale : 0;
+  }
+
+  private setCameraInteractionEnabled(enabled: boolean): void {
+    const view = this.getActiveLayoutView();
+    if (view) view.enabled = enabled;
   }
 
   private configureMobileGestureGuard(): void {
@@ -332,9 +448,12 @@ export class CadUpstreamAdapter {
   private abortMeasurementForMultiTouch(): void {
     if (this.destroyed || !this.activeMeasurementCommand) return;
 
-    // Switch synchronously before the second pointer reaches downstream CAD
-    // listeners. The event itself keeps propagating so OrbitControls still
-    // receives both touches and can perform its normal pinch + two-finger pan.
+    if (this.activeMeasurementCommand === "distance") {
+      this.distanceMeasurementController?.handleMultiTouchStart();
+      this.restorePanMode();
+      return;
+    }
+
     this.activeMeasurementCommand = null;
     this.restorePanMode();
     void this.manager.commandManager.cancelActive().catch(() => {});
@@ -353,6 +472,25 @@ export class CadUpstreamAdapter {
   zoomToFit(): void {
     if (this.destroyed) return;
     this.manager.curView?.zoomToFitDrawing?.();
+  }
+
+  projectWorldPoint(point: CadSnapPoint): CadSnapPoint | null {
+    if (this.destroyed) return null;
+    const view = this.getActiveLayoutView();
+    if (!view) return null;
+    const screen = view.worldToScreen(point);
+    const projected = { x: Number(screen.x), y: Number(screen.y) };
+    return Number.isFinite(projected.x) && Number.isFinite(projected.y)
+      ? projected
+      : null;
+  }
+
+  subscribeViewChanged(callback: () => void): () => void {
+    const event = this.getActiveLayoutView()?.events?.viewChanged;
+    if (!event) return () => {};
+    const handler = () => callback();
+    event.addEventListener(handler);
+    return () => event.removeEventListener(handler);
   }
 
   getDisplayMode(): CadUpstreamDisplayMode {
@@ -420,8 +558,6 @@ export class CadUpstreamAdapter {
       await curView.refreshEntitiesForLineWeightChange();
     }
   }
-
-  // --- Public Layer Store Integration ---
 
   getLayerStore(): AcApLayerStore | null {
     if (this.destroyed) return null;
@@ -499,27 +635,48 @@ export class CadUpstreamAdapter {
     };
   }
 
-  // --- Native Measurement & Command Execution ---
+  async startDistanceMeasurement(
+    snapModes: ReadonlySet<CadSnapMode>,
+    callbacks: CadDistanceMeasurementCallbacks = {}
+  ): Promise<boolean> {
+    if (this.destroyed || !this.distanceMeasurementController) return false;
+    await this.cancelActiveCommand();
+    if (this.destroyed || !this.distanceMeasurementController) return false;
+
+    this.activeMeasurementCommand = "distance";
+    this.distanceMeasurementController.start(snapModes, {
+      onSnapshot: callbacks.onSnapshot,
+      onComplete: (result) => {
+        if (this.activeMeasurementCommand === "distance") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onComplete?.(result);
+      },
+      onCancel: () => {
+        if (this.activeMeasurementCommand === "distance") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onCancel?.();
+      },
+    });
+    return true;
+  }
+
+  updateDistanceMeasurementSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
+    this.distanceMeasurementController?.updateSnapModes(snapModes);
+  }
 
   async cancelActiveCommand(): Promise<void> {
     if (this.destroyed) return;
+    const active = this.activeMeasurementCommand;
     this.activeMeasurementCommand = null;
+    if (active === "distance") {
+      this.distanceMeasurementController?.cancel(true);
+    }
     await this.manager.commandManager.cancelActive().catch(() => {});
     this.restorePanMode();
-  }
-
-  async measureDistance(): Promise<void> {
-    if (this.destroyed) return;
-    await this.cancelActiveCommand();
-    this.activeMeasurementCommand = "distance";
-    try {
-      await this.manager.executeCommandString("measuredistance");
-    } finally {
-      if (this.activeMeasurementCommand === "distance") {
-        this.activeMeasurementCommand = null;
-      }
-      this.restorePanMode();
-    }
   }
 
   async measureArea(): Promise<void> {
@@ -550,6 +707,12 @@ export class CadUpstreamAdapter {
     await this.cancelActiveCommand();
     this.mobileGestureGuard?.destroy();
     this.mobileGestureGuard = null;
+    this.distanceMeasurementController?.destroy();
+    this.distanceMeasurementController = null;
+    this.snapLayerUnsubscribe?.();
+    this.snapLayerUnsubscribe = null;
+    this.snapCatalog = [];
+    this.snapEngine.clear();
     this.initialLayerSnapshot.clear();
     this.displayMode = "source";
     this.applyDisplayMode();
