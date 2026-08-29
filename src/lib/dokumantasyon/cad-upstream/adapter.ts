@@ -17,6 +17,17 @@ const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
 
+export type CadBackgroundColorOption = "autocad" | "black" | "white";
+
+export const CAD_BACKGROUND_COLORS: Record<
+  CadBackgroundColorOption,
+  { hex: string; numeric: number; label: string }
+> = {
+  autocad: { hex: "#212830", numeric: 0x212830, label: "AutoCAD" },
+  black: { hex: "#000000", numeric: 0x000000, label: "Siyah" },
+  white: { hex: "#ffffff", numeric: 0xffffff, label: "Beyaz" },
+};
+
 export interface CadLayerItem {
   name: string;
   color: string;
@@ -67,6 +78,110 @@ type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
 
 let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
+let engineEnhancementsInitialized = false;
+
+async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {
+  if (engineEnhancementsInitialized) return;
+  engineEnhancementsInitialized = true;
+
+  // 1. Ölçü birimini ("m", "mm") kaldırma: AutoCAD gibi doğrudan sayı gösterimi
+  if (Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS) {
+    Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS.showUnits = false;
+    Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS.showApproximate = false;
+  }
+
+  try {
+    const [dataModel, mtextRenderer, threeRenderer] = await Promise.all([
+      import("@mlightcad/data-model"),
+      import("@mlightcad/mtext-renderer"),
+      import("@mlightcad/three-renderer"),
+    ]);
+
+    // AcDbFormatter formatLength hook: showUnits = false garantisi
+    if (dataModel.AcDbFormatter?.prototype?.formatLength) {
+      const originalFormatLength = dataModel.AcDbFormatter.prototype.formatLength;
+      dataModel.AcDbFormatter.prototype.formatLength = function (value: number, options?: unknown) {
+        return originalFormatLength.call(this, value, {
+          ...(typeof options === "object" && options ? options : {}),
+          showUnits: false,
+        });
+      };
+    }
+
+    // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı
+    const fontManager = mtextRenderer.FontManager.instance;
+    fontManager.baseUrl = "/cad-upstream/fonts/";
+    fontManager.setDefaultFonts(["arial"]);
+    fontManager.awaitFontsBeforeDraw = true;
+    fontManager.lazyFontLoading = true;
+
+    // Tüm standart ve yaygın CAD fontlarını dolu gövdeli yerel Arial fontuna haritalama
+    fontManager.setFontMapping({
+      standard: "arial",
+      txt: "arial",
+      "txt.shx": "arial",
+      romans: "arial",
+      "romans.shx": "arial",
+      simplex: "arial",
+      "simplex.shx": "arial",
+      isocpeur: "arial",
+      "isocpeur.ttf": "arial",
+      times: "arial",
+      "times new roman": "arial",
+      calibri: "arial",
+      arial: "arial",
+      "arial.ttf": "arial",
+    });
+
+    // Arial TrueType fontunu belleğe yükleyip önbelleğe alma (tel kafes fallback'i engeller)
+    if (typeof window !== "undefined" && !fontManager.isDefaultFontLoaded()) {
+      fetch("/cad-upstream/fonts/Arial-Regular.ttf")
+        .then((res) => (res.ok ? res.arrayBuffer() : null))
+        .then((buffer) => {
+          if (buffer) {
+            fontManager
+              .cacheFont(buffer, "Arial-Regular.ttf", [
+                "arial",
+                "standard",
+                "txt",
+                "romans",
+                "simplex",
+                "isocpeur",
+              ])
+              .catch((err) => console.warn("[cad-upstream] Font önbelleğe alınamadı:", err));
+          }
+        })
+        .catch((err) => console.warn("[cad-upstream] Font yüklenemedi:", err));
+    }
+
+    // 3. Perde Taramalarının Opaklığı (Hatch Opacity)
+    // Sert kör edici beyazlık yerine AutoCAD'deki gibi zarif ve yumuşatılmış opaklık (0.70 alpha)
+    if (threeRenderer.AcTrStyleManager?.prototype?.getFillMaterial) {
+      const origGetFillMaterial = threeRenderer.AcTrStyleManager.prototype.getFillMaterial;
+      threeRenderer.AcTrStyleManager.prototype.getFillMaterial = function (
+        traits: unknown,
+        rebaseOffset?: unknown,
+        gradientBounds?: unknown
+      ) {
+        const mat = origGetFillMaterial.call(this, traits as never, rebaseOffset as never, gradientBounds as never);
+        if (
+          mat &&
+          (mat as { fragmentShader?: string }).fragmentShader &&
+          (mat as { fragmentShader: string }).fragmentShader.includes("gl_FragColor = vec4(u_color * total, 1.0);")
+        ) {
+          mat.transparent = true;
+          (mat as { fragmentShader: string }).fragmentShader = (mat as { fragmentShader: string }).fragmentShader.replace(
+            "gl_FragColor = vec4(u_color * total, 1.0);",
+            "gl_FragColor = vec4(u_color, total * 0.70);"
+          );
+        }
+        return mat;
+      };
+    }
+  } catch (error) {
+    console.warn("[cad-upstream] Engine enhancements could not be fully applied:", error);
+  }
+}
 
 function normalizeExtension(extension: string): string {
   const normalized = extension.trim().toLowerCase();
@@ -76,10 +191,15 @@ function normalizeExtension(extension: string): string {
 
 async function loadViewerModule(): Promise<CadSimpleViewerModule> {
   if (!viewerModulePromise) {
-    viewerModulePromise = import("@mlightcad/cad-simple-viewer").catch((error) => {
-      viewerModulePromise = null;
-      throw error;
-    });
+    viewerModulePromise = import("@mlightcad/cad-simple-viewer")
+      .then(async (Viewer) => {
+        await initializeCadEngineEnhancements(Viewer);
+        return Viewer;
+      })
+      .catch((error) => {
+        viewerModulePromise = null;
+        throw error;
+      });
   }
   return viewerModulePromise;
 }
@@ -136,8 +256,10 @@ export class CadUpstreamAdapter {
   private destroyed = false;
   private displayMode: CadUpstreamDisplayMode = "source";
   private displayTheme: CadUpstreamTheme = "dark";
+  private backgroundColorOption: CadBackgroundColorOption = "autocad";
   private sourceCanvasFilter: string | null = null;
   private lineWeightVisible = false;
+  private container: HTMLElement | null = null;
   private readonly initialLayerSnapshot = new Map<string, { isOn: boolean; isFrozen: boolean }>();
 
   private constructor(
@@ -189,6 +311,12 @@ export class CadUpstreamAdapter {
 
     const adapter = new CadUpstreamAdapter(manager, Viewer);
     adapter.displayTheme = options.theme ?? "dark";
+    adapter.container = options.container;
+    options.container.style.backgroundColor = CAD_BACKGROUND_COLORS.autocad.hex;
+    (options.container as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter = adapter;
+    if (options.container.parentElement) {
+      (options.container.parentElement as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter = adapter;
+    }
     return adapter;
   }
 
@@ -263,6 +391,8 @@ export class CadUpstreamAdapter {
     if (this.manager.curView) {
       this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
       this.manager.curView.selectionSet?.clear();
+      this.enforceCadMouseBindings();
+      this.setBackgroundColor(this.backgroundColorOption);
     }
 
     this.applyDisplayMode();
@@ -275,6 +405,34 @@ export class CadUpstreamAdapter {
   zoomToFit(): void {
     if (this.destroyed) return;
     this.manager.curView?.zoomToFitDrawing?.();
+  }
+
+  getBackgroundColor(): CadBackgroundColorOption {
+    return this.backgroundColorOption;
+  }
+
+  setBackgroundColor(option: CadBackgroundColorOption): void {
+    if (this.destroyed) return;
+    this.backgroundColorOption = option;
+    const config = CAD_BACKGROUND_COLORS[option] ?? CAD_BACKGROUND_COLORS.autocad;
+
+    if (this.container) {
+      this.container.style.backgroundColor = config.hex;
+    }
+
+    const curView = this.manager.curView as unknown as {
+      applyCanvasBackground?: (color: number) => void;
+      isDirty?: boolean;
+    } | undefined;
+
+    if (curView && typeof curView.applyCanvasBackground === "function") {
+      curView.applyCanvasBackground(config.numeric);
+      curView.isDirty = true;
+    }
+  }
+
+  isMeasurementUnitsEnabled(): boolean {
+    return Boolean(this.Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS?.showUnits);
   }
 
   getDisplayMode(): CadUpstreamDisplayMode {
@@ -293,6 +451,7 @@ export class CadUpstreamAdapter {
       this.Viewer.acedApplyUiTheme(theme, hostElement);
     }
     this.applyDisplayMode();
+    this.setBackgroundColor(this.backgroundColorOption);
   }
 
   private applyDisplayMode(): void {
@@ -418,12 +577,97 @@ export class CadUpstreamAdapter {
 
   // --- Native Measurement & Command Execution ---
 
+  /**
+   * Enforces canonical CAD navigation bindings:
+   * - Middle mouse button (wheel press & drag): PAN
+   * - Left mouse button (drag): NO PAN (does not drag drawing)
+   * - Mouse wheel scroll: ZOOM (handled natively by OrbitControls)
+   * - Touch gestures: ONE=PAN, TWO=DOLLY_PAN (preserved)
+   */
+  enforceCadMouseBindings(): void {
+    if (this.destroyed) return;
+    const curView = this.manager.curView as unknown as {
+      activeLayoutView?: {
+        _cameraControls?: {
+          mouseButtons?: Record<string, number>;
+          update?: () => void;
+        };
+      };
+      _layoutViewManager?: {
+        _layoutViews?: Map<string, {
+          _cameraControls?: {
+            mouseButtons?: Record<string, number>;
+            update?: () => void;
+          };
+        }>;
+      };
+    } | undefined;
+
+    if (!curView) return;
+
+    const patchControls = (controls?: { mouseButtons?: Record<string, number>; update?: () => void }) => {
+      if (controls && controls.mouseButtons) {
+        controls.mouseButtons = {
+          MIDDLE: 2, // THREE.MOUSE.PAN
+        };
+        controls.update?.();
+      }
+    };
+
+    const activeLayoutView = curView.activeLayoutView;
+    if (activeLayoutView) {
+      const proto = Object.getPrototypeOf(activeLayoutView) as {
+        __cadPanFixed?: boolean;
+      };
+      if (proto && !proto.__cadPanFixed) {
+        proto.__cadPanFixed = true;
+        const desc = Object.getOwnPropertyDescriptor(proto, "mode");
+        if (desc?.set) {
+          const originalSet = desc.set;
+          Object.defineProperty(proto, "mode", {
+            get: desc.get,
+            set: function (
+              this: { _cameraControls?: { mouseButtons?: Record<string, number>; update?: () => void } },
+              value: number
+            ) {
+              originalSet.call(this, value);
+              if (this._cameraControls) {
+                this._cameraControls.mouseButtons = {
+                  MIDDLE: 2,
+                };
+                this._cameraControls.update?.();
+              }
+            },
+            enumerable: desc.enumerable,
+            configurable: desc.configurable,
+          });
+        }
+      }
+    }
+
+    patchControls(activeLayoutView?._cameraControls);
+
+    if (curView._layoutViewManager?._layoutViews) {
+      for (const layoutView of curView._layoutViewManager._layoutViews.values()) {
+        patchControls(layoutView._cameraControls);
+      }
+    }
+  }
+
+  getCameraCenter(): { x: number; y: number } | null {
+    if (this.destroyed || !this.manager.curView) return null;
+    const center = this.manager.curView.center as { x: number; y: number } | undefined;
+    if (!center || typeof center.x !== "number" || typeof center.y !== "number") return null;
+    return { x: center.x, y: center.y };
+  }
+
   async cancelActiveCommand(): Promise<void> {
     if (this.destroyed) return;
     await this.manager.commandManager.cancelActive().catch(() => {});
     if (this.manager.curView) {
       this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
       this.manager.curView.selectionSet?.clear();
+      this.enforceCadMouseBindings();
     }
   }
 
@@ -436,6 +680,7 @@ export class CadUpstreamAdapter {
       if (this.manager.curView) {
         this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
         this.manager.curView.selectionSet?.clear();
+        this.enforceCadMouseBindings();
       }
     }
   }
@@ -449,6 +694,7 @@ export class CadUpstreamAdapter {
       if (this.manager.curView) {
         this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
         this.manager.curView.selectionSet?.clear();
+        this.enforceCadMouseBindings();
       }
     }
   }
@@ -460,6 +706,7 @@ export class CadUpstreamAdapter {
     if (this.manager.curView) {
       this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
       this.manager.curView.selectionSet?.clear();
+      this.enforceCadMouseBindings();
     }
   }
 
@@ -469,6 +716,10 @@ export class CadUpstreamAdapter {
     this.initialLayerSnapshot.clear();
     this.displayMode = "source";
     this.applyDisplayMode();
+    if (this.container) {
+      delete (this.container as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter;
+      this.container = null;
+    }
     this.destroyed = true;
     await this.manager.destroy();
   }

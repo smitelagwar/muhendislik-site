@@ -594,6 +594,21 @@ function DxfViewer({
 
         if (!active) return;
 
+        // Enforce canonical CAD navigation bindings:
+        // Middle mouse wheel drag = PAN, left mouse drag does not pan
+        const controls = (viewer as unknown as {
+          controls?: {
+            mouseButtons?: Record<string, number>;
+            update?: () => void;
+          };
+        }).controls;
+        if (controls?.mouseButtons) {
+          controls.mouseButtons = {
+            MIDDLE: 2, // THREE.MOUSE.PAN
+          };
+          controls.update?.();
+        }
+
         const parsedDxf = viewer.GetDxf?.() ?? viewer.parsedDxf;
         const parsedTextAudit = auditParsedDxfText(parsedDxf);
         const textEvidence = evaluateDxfTextRenderEvidence({

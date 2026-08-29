@@ -62,6 +62,68 @@ for (const asset of assets) {
   );
 }
 
+const fontsOutputDir = join(outputDir, "fonts");
+await mkdir(fontsOutputDir, { recursive: true });
+
+const fontAssets = [
+  {
+    source: join(root, "public", "fonts", "Arial-Regular.ttf"),
+    target: join(fontsOutputDir, "Arial-Regular.ttf"),
+  },
+  {
+    source: join(root, "public", "fonts", "Arial-Bold.ttf"),
+    target: join(fontsOutputDir, "Arial-Bold.ttf"),
+  },
+];
+
+for (const fontAsset of fontAssets) {
+  const sourceStat = await stat(fontAsset.source).catch(() => null);
+  if (!sourceStat?.isFile() || sourceStat.size <= 0) {
+    throw new Error(`Required font asset is missing: ${fontAsset.source}`);
+  }
+  await copyFile(fontAsset.source, fontAsset.target);
+  const targetStat = await stat(fontAsset.target);
+  if (targetStat.size !== sourceStat.size) {
+    throw new Error(`Font asset copy size mismatch: ${fontAsset.target}`);
+  }
+  console.log(
+    `[cad-upstream] synced font ${fontAsset.target.slice(root.length + 1)} (${targetStat.size} bytes)`
+  );
+}
+
+const fontsManifest = [
+  {
+    file: "Arial-Regular.ttf",
+    name: [
+      "arial",
+      "arial-regular",
+      "arial.ttf",
+      "standard",
+      "txt",
+      "txt.shx",
+      "romans",
+      "romans.shx",
+      "simplex",
+      "simplex.shx",
+      "isocpeur",
+      "isocpeur.ttf",
+      "times",
+      "times new roman",
+      "calibri",
+    ],
+    type: "mesh",
+  },
+  {
+    file: "Arial-Bold.ttf",
+    name: ["arial-bold", "arial-bold.ttf", "arialb.ttf"],
+    type: "mesh",
+  },
+];
+
+const fontsManifestPath = join(fontsOutputDir, "fonts.json");
+await writeFile(fontsManifestPath, JSON.stringify(fontsManifest, null, 2), "utf8");
+console.log(`[cad-upstream] wrote ${fontsManifestPath.slice(root.length + 1)}`);
+
 const gplNotice = `MLightCAD LibreDWG browser component\n\n@mlightcad/libredwg-converter ${LIBREDWG_CONVERTER_VERSION} — GPL-3.0\n@mlightcad/libredwg-web ${LIBREDWG_WEB_VERSION}\n\nCorresponding upstream source snapshot:\nhttps://github.com/mlightcad/realdwg-web/tree/${LIBREDWG_SOURCE_COMMIT}\n\nGPL-3.0 license text:\nhttps://www.gnu.org/licenses/gpl-3.0.html\n\nDistributed assets:\n- libredwg-parser-worker.js\n- libredwg-web.wasm\n\nRepository notice: THIRD_PARTY_NOTICES.md\n`;
 
 const noticePath = join(outputDir, "GPL-NOTICE.txt");

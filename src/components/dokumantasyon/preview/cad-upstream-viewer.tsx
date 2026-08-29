@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
   CadUpstreamAdapterError,
+  CAD_BACKGROUND_COLORS,
+  type CadBackgroundColorOption,
   type CadLayerItem,
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
@@ -58,14 +60,18 @@ function failureReason(error: unknown): string {
 function CadDisplayControls({
   displayMode,
   lineWeightVisible,
+  backgroundColor,
   onSelectDisplayMode,
   onToggleLineWeight,
+  onSelectBackgroundColor,
   compact = false,
 }: {
   displayMode: CadUpstreamDisplayMode;
   lineWeightVisible: boolean;
+  backgroundColor: CadBackgroundColorOption;
   onSelectDisplayMode: (mode: CadUpstreamDisplayMode) => void;
   onToggleLineWeight: () => void;
+  onSelectBackgroundColor: (color: CadBackgroundColorOption) => void;
   compact?: boolean;
 }) {
   const buttonClass = compact
@@ -116,6 +122,48 @@ function CadDisplayControls({
       >
         Lineweight
       </Button>
+      <span className="mx-0.5 h-3.5 w-px bg-border/60" aria-hidden="true" />
+      <div className="flex items-center gap-0.5" role="group" aria-label="Arka plan rengi">
+        <Button
+          type="button"
+          size="sm"
+          variant={backgroundColor === "autocad" ? "secondary" : "ghost"}
+          className={`${buttonClass} ${backgroundColor === "autocad" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
+          aria-pressed={backgroundColor === "autocad"}
+          title="AutoCAD Koyu Gri Arka Plan (#212830)"
+          onClick={() => onSelectBackgroundColor("autocad")}
+          data-testid="cad-bg-autocad"
+        >
+          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-white/20 bg-[#212830]" aria-hidden="true" />
+          AutoCAD
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={backgroundColor === "black" ? "secondary" : "ghost"}
+          className={`${buttonClass} ${backgroundColor === "black" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
+          aria-pressed={backgroundColor === "black"}
+          title="Siyah Arka Plan (#000000)"
+          onClick={() => onSelectBackgroundColor("black")}
+          data-testid="cad-bg-black"
+        >
+          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-white/20 bg-black" aria-hidden="true" />
+          Siyah
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={backgroundColor === "white" ? "secondary" : "ghost"}
+          className={`${buttonClass} ${backgroundColor === "white" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
+          aria-pressed={backgroundColor === "white"}
+          title="Beyaz Arka Plan (#ffffff)"
+          onClick={() => onSelectBackgroundColor("white")}
+          data-testid="cad-bg-white"
+        >
+          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-black/20 bg-white" aria-hidden="true" />
+          Beyaz
+        </Button>
+      </div>
     </div>
   );
 }
@@ -134,11 +182,13 @@ export function DokCadUpstreamViewer({
   const adapterRef = useRef<CadUpstreamAdapter | null>(null);
   const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
   const lineWeightVisibleRef = useRef(false);
+  const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
   const [retryKey, setRetryKey] = useState(0);
   const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
   const [lineWeightVisible, setLineWeightVisible] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState<CadBackgroundColorOption>("autocad");
   const [activeTool, setActiveTool] = useState<ActiveTool>(null);
   const [layers, setLayers] = useState<CadLayerItem[]>([]);
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
@@ -207,6 +257,7 @@ export function DokCadUpstreamViewer({
         });
 
         createdAdapter.setDisplayMode(displayModeRef.current, resolveSiteTheme());
+        createdAdapter.setBackgroundColor(backgroundColorRef.current);
         const initialLineWeight = createdAdapter.getLineWeightVisible();
         lineWeightVisibleRef.current = initialLineWeight;
         setLineWeightVisible(initialLineWeight);
@@ -386,6 +437,12 @@ export function DokCadUpstreamViewer({
     adapterRef.current?.resetLayersToSource();
   };
 
+  const selectBackgroundColor = (color: CadBackgroundColorOption) => {
+    backgroundColorRef.current = color;
+    setBackgroundColor(color);
+    adapterRef.current?.setBackgroundColor(color);
+  };
+
   const toolbarTarget =
     state === "ready" && typeof document !== "undefined"
       ? document.getElementById("cad-studio-toolbar-slot")
@@ -395,8 +452,10 @@ export function DokCadUpstreamViewer({
     <CadDisplayControls
       displayMode={displayMode}
       lineWeightVisible={lineWeightVisible}
+      backgroundColor={backgroundColor}
       onSelectDisplayMode={selectDisplayMode}
       onToggleLineWeight={() => void toggleLineWeight()}
+      onSelectBackgroundColor={selectBackgroundColor}
       compact={Boolean(toolbarTarget)}
     />
   ) : null;
@@ -404,10 +463,12 @@ export function DokCadUpstreamViewer({
   return (
     <section
       className="relative flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-background"
+      style={{ backgroundColor: CAD_BACKGROUND_COLORS[backgroundColor].hex }}
       data-cad-upstream-host="true"
       data-file-id={fileId}
       data-cad-upstream-state={state}
       data-cad-color-mode={displayMode}
+      data-cad-background-color={backgroundColor}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
