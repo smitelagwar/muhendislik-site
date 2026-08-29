@@ -143,7 +143,10 @@ function nearestOnLine(point: CadSnapPoint, line: CadSnapLinePrimitive): CadSnap
   return { x: line.a.x + dx * t, y: line.a.y + dy * t };
 }
 
-function nearestOnCircle(point: CadSnapPoint, circle: CadSnapCirclePrimitive): CadSnapPoint {
+function nearestOnCircle(
+  point: CadSnapPoint,
+  circle: CadSnapCirclePrimitive | CadSnapArcPrimitive
+): CadSnapPoint {
   const dx = point.x - circle.center.x;
   const dy = point.y - circle.center.y;
   const len = Math.hypot(dx, dy);
@@ -230,7 +233,8 @@ function intersections(a: CadSnapPrimitive, b: CadSnapPrimitive): CadSnapPoint[]
   if (a.kind === "line" && b.kind === "line") return lineLineIntersections(a, b);
   if (a.kind === "line" && b.kind !== "line") return lineCircleIntersections(a, b);
   if (a.kind !== "line" && b.kind === "line") return lineCircleIntersections(b, a);
-  return circleCircleIntersections(a, b);
+  if (a.kind !== "line" && b.kind !== "line") return circleCircleIntersections(a, b);
+  return [];
 }
 
 export class CadSnapEngine {
