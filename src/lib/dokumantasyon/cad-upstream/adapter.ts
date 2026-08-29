@@ -13,6 +13,7 @@ export const CAD_UPSTREAM_WORKER_URLS = {
 
 export const CAD_UPSTREAM_SUPPORTED_EXTENSIONS = new Set([".dxf", ".dwg"]);
 const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
+const CAD_MOBILE_PINCH_ZOOM_SPEED = 1;
 
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
@@ -72,6 +73,11 @@ function normalizeExtension(extension: string): string {
   const normalized = extension.trim().toLowerCase();
   if (!normalized) return "";
   return normalized.startsWith(".") ? normalized : `.${normalized}`;
+}
+
+function hasCoarseTouchPointer(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  return navigator.maxTouchPoints > 0 && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
 async function loadViewerModule(): Promise<CadSimpleViewerModule> {
@@ -265,7 +271,30 @@ export class CadUpstreamAdapter {
       this.manager.curView.selectionSet?.clear();
     }
 
+    this.configureMobilePinchZoom();
     this.applyDisplayMode();
+  }
+
+  private configureMobilePinchZoom(): void {
+    if (!hasCoarseTouchPointer()) return;
+
+    const activeLayoutView = (this.manager.curView as unknown as {
+      activeLayoutView?: {
+        _cameraControls?: {
+          zoomSpeed: number;
+          zoomToCursor: boolean;
+        };
+      };
+    } | undefined)?.activeLayoutView;
+    const controls = activeLayoutView?._cameraControls;
+    if (!controls) return;
+
+    // Upstream OrbitControls uses zoomSpeed=5. Touch pinch applies this as an
+    // exponent to the incremental finger-distance ratio, making small mobile
+    // movements jump several zoom levels. A natural 1:1 ratio keeps pinch
+    // controlled while preserving the upstream midpoint/cursor anchoring.
+    controls.zoomSpeed = CAD_MOBILE_PINCH_ZOOM_SPEED;
+    controls.zoomToCursor = true;
   }
 
   isReady(): boolean {
