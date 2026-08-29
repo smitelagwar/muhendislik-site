@@ -11,6 +11,7 @@ import {
   DWG_BROWSER_CACHE_FETCH_TIMEOUT_MS,
   DWG_BROWSER_DXF_HARD_LIMIT_BYTES,
 } from "@/lib/dokumantasyon/dwg/runtime-policy";
+import { resolveCadPreviewCapabilities } from "@/lib/dokumantasyon/cad-runtime/capabilities";
 import { DokCadUpstreamViewer } from "./cad-upstream-viewer";
 import { DwgLegacyConversionFallback } from "./dwg-legacy-conversion-fallback";
 import { ApsOnlyDwgViewer } from "./aps-only-dwg-viewer";
@@ -30,7 +31,7 @@ export interface DokCadRuntimeOrchestratorProps {
   onViewerFailure?: (reason: string) => void;
 }
 
-type DwgEngine = "fast-resolving" | "fast-current" | "upstream" | "current-fallback" | "aps";
+type DwgEngine = "fast-resolving" | "fast-upstream" | "upstream" | "current-fallback" | "aps";
 type DxfEngine = "upstream" | "current";
 
 type CachedDxf = {
@@ -67,7 +68,7 @@ export function DokCadRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps)
   }
 
   return (
-    <Suspense fallback={<CadRuntimeLoading engine="current" label="CAD fallback hazırlanıyor" />}>
+    <Suspense fallback={<CadRuntimeLoading engine="legacy" label="CAD fallback hazırlanıyor" />}>
       <CurrentCadViewer {...props} />
     </Suspense>
   );
@@ -84,7 +85,14 @@ function DxfRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
 
   if (engine === "upstream") {
     return (
-      <div className="h-full min-h-0 w-full min-w-0" data-cad-runtime="orchestrator" data-cad-engine="upstream" data-fast-path="not-applicable-dxf">
+      <div
+        className="h-full min-h-0 w-full min-w-0"
+        data-cad-runtime="orchestrator"
+        data-cad-engine="upstream"
+        data-cad-source="original-dxf"
+        data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("upstream"))}
+        data-fast-path="not-applicable-dxf"
+      >
         <DokCadUpstreamViewer
           {...props}
           onViewerFailure={useCurrent}
@@ -94,8 +102,15 @@ function DxfRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
   }
 
   return (
-    <div className="h-full min-h-0 w-full min-w-0" data-cad-runtime="orchestrator" data-cad-engine="current" data-upstream-failure={upstreamFailure ?? "unknown"}>
-      <Suspense fallback={<CadRuntimeLoading engine="current" label="Mevcut DXF viewer hazırlanıyor" />}>
+    <div
+      className="h-full min-h-0 w-full min-w-0"
+      data-cad-runtime="orchestrator"
+      data-cad-engine="legacy"
+      data-cad-source="original-dxf"
+      data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("legacy"))}
+      data-upstream-failure={upstreamFailure ?? "unknown"}
+    >
+      <Suspense fallback={<CadRuntimeLoading engine="legacy" label="Mevcut DXF viewer hazırlanıyor" />}>
         <CurrentCadViewer
           {...props}
           onViewerFailure={(reason) => props.onViewerFailure?.(`CURRENT_DXF_FAILED:${reason}`)}
@@ -156,7 +171,7 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
           decision: response.headers.get("X-DWG-DXF-Decision") === "WARN" ? "WARN" : "PASS",
         });
         setTransitionReason("FAST_CACHE_HIT");
-        setEngine("fast-current");
+        setEngine("fast-upstream");
       } catch (error) {
         if (!active || controller.signal.aborted) return;
         setTransitionReason(error instanceof Error ? `FAST_CACHE_FAILED:${error.message}` : "FAST_CACHE_FAILED");
@@ -193,32 +208,39 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
     return <CadRuntimeLoading engine="fast" label="Hızlı DWG cache kontrol ediliyor" reason={transitionReason} />;
   }
 
-  if (engine === "fast-current" && cachedDxf) {
+  if (engine === "fast-upstream" && cachedDxf) {
     return (
       <div
         className="h-full min-h-0 w-full min-w-0"
         data-cad-runtime="orchestrator"
-        data-cad-engine="fast"
+        data-cad-engine="upstream"
+        data-cad-source="cached-dxf"
+        data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("upstream"))}
         data-fast-source="cached-dxf"
         data-fast-decision={cachedDxf.decision}
       >
-        <Suspense fallback={<CadRuntimeLoading engine="fast" label="Cached DXF görüntüleniyor" />}>
-          <CurrentCadViewer
-            accessUrl={cachedDxf.url}
-            displayName={convertedDxfDisplayName(displayName)}
-            fileId={fileId}
-            extension=".dxf"
-            sizeBytes={cachedDxf.sizeBytes}
-            onViewerFailure={advanceFromFastRender}
-          />
-        </Suspense>
+        <DokCadUpstreamViewer
+          accessUrl={cachedDxf.url}
+          displayName={convertedDxfDisplayName(displayName)}
+          fileId={fileId}
+          extension=".dxf"
+          sizeBytes={cachedDxf.sizeBytes}
+          onViewerFailure={advanceFromFastRender}
+        />
       </div>
     );
   }
 
   if (engine === "upstream") {
     return (
-      <div className="h-full min-h-0 w-full min-w-0" data-cad-runtime="orchestrator" data-cad-engine="upstream" data-transition-reason={transitionReason}>
+      <div
+        className="h-full min-h-0 w-full min-w-0"
+        data-cad-runtime="orchestrator"
+        data-cad-engine="upstream"
+        data-cad-source="original-dwg"
+        data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("upstream"))}
+        data-transition-reason={transitionReason}
+      >
         <DokCadUpstreamViewer
           {...props}
           extension=".dwg"
@@ -230,7 +252,14 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
 
   if (engine === "current-fallback") {
     return (
-      <div className="h-full min-h-0 w-full min-w-0" data-cad-runtime="orchestrator" data-cad-engine="current-fallback" data-transition-reason={transitionReason}>
+      <div
+        className="h-full min-h-0 w-full min-w-0"
+        data-cad-runtime="orchestrator"
+        data-cad-engine="legacy"
+        data-cad-source="original-dwg"
+        data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("legacy"))}
+        data-transition-reason={transitionReason}
+      >
         <DwgLegacyConversionFallback
           accessUrl={accessUrl}
           displayName={displayName}
@@ -243,7 +272,14 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
   }
 
   return (
-    <div className="h-full min-h-0 w-full min-w-0" data-cad-runtime="orchestrator" data-cad-engine="aps" data-transition-reason={transitionReason}>
+    <div
+      className="h-full min-h-0 w-full min-w-0"
+      data-cad-runtime="orchestrator"
+      data-cad-engine="aps"
+      data-cad-source="original-dwg"
+      data-cad-capabilities={JSON.stringify(resolveCadPreviewCapabilities("aps"))}
+      data-transition-reason={transitionReason}
+    >
       <ApsOnlyDwgViewer
         fileId={fileId}
         displayName={displayName}

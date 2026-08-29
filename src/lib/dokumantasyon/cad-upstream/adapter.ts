@@ -3,6 +3,7 @@
 import type {
   AcApDocManager,
   AcApOpenDatabaseOptions,
+  AcApLayerStore,
 } from "@mlightcad/cad-simple-viewer";
 
 export const CAD_UPSTREAM_WORKER_URLS = {
@@ -15,6 +16,16 @@ const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
 
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
+
+export interface CadLayerItem {
+  name: string;
+  color: string;
+  isOn: boolean;
+  isFrozen: boolean;
+  isLocked: boolean;
+  isCurrent: boolean;
+  visible: boolean;
+}
 
 export type CadUpstreamErrorCode =
   | "unsupported-extension"
@@ -49,7 +60,7 @@ export interface CadUpstreamOpenOptions {
   displayName: string;
   extension: string;
   signal?: AbortSignal;
-  databaseOptions?: AcApOpenDatabaseOptions;
+  databaseOptions?: Omit<AcApOpenDatabaseOptions, "mode">;
 }
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
@@ -125,8 +136,9 @@ export class CadUpstreamAdapter {
   private destroyed = false;
   private displayMode: CadUpstreamDisplayMode = "source";
   private displayTheme: CadUpstreamTheme = "dark";
-  private sourceClearAlpha: number | null = null;
   private sourceCanvasFilter: string | null = null;
+  private lineWeightVisible = false;
+  private readonly initialLayerSnapshot = new Map<string, { isOn: boolean; isFrozen: boolean }>();
 
   private constructor(
     private readonly manager: AcApDocManager,
@@ -146,6 +158,11 @@ export class CadUpstreamAdapter {
         "MLightCAD DWG/MTEXT worker dosyalarına erişilemiyor."
       );
     }
+
+    // Enforce read-only site policy for preview: hide command line, ribbon, toolbar
+    Viewer.AcApSettingManager.instance.isShowCommandLine = false;
+    Viewer.AcApSettingManager.instance.isShowRibbon = false;
+    Viewer.AcApSettingManager.instance.isShowToolbar = false;
 
     Viewer.acedApplyUiTheme(options.theme ?? "dark", options.busyIndicatorHost ?? options.container);
 
@@ -200,6 +217,7 @@ export class CadUpstreamAdapter {
       minimumChunkSize: 1000,
       progressiveRendering: true,
       ...(options.databaseOptions ?? {}),
+      mode: this.Viewer.AcEdOpenMode.Read,
     };
 
     const success = await this.manager.openDocument(
@@ -218,9 +236,7 @@ export class CadUpstreamAdapter {
     // Upstream openDocument() can report success before progressive scene
     // conversion finishes, so entityCount===0 is NOT immediately a failure.
     // Only reject the document when the upstream view itself confirms it is
-    // idle and its rendered scene still contains no entities. This prevents a
-    // malformed/unsupported file from becoming a permanent blank "success"
-    // while preserving large progressive drawings that are still converting.
+    // idle and its rendered scene still contains no entities.
     const idle = await this.manager.curView.waitUntilIdle(
       CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
     );
@@ -231,68 +247,226 @@ export class CadUpstreamAdapter {
       );
     }
 
+    // Capture initial layer states via public layerStore
+    this.initialLayerSnapshot.clear();
+    const store = this.getLayerStore();
+    if (store) {
+      for (const layer of store.getLayers()) {
+        this.initialLayerSnapshot.set(layer.name, {
+          isOn: layer.isOn,
+          isFrozen: layer.isFrozen,
+        });
+      }
+    }
+
+    // Enforce read-only PAN view mode and clear selection set
+    if (this.manager.curView) {
+      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+      this.manager.curView.selectionSet?.clear();
+    }
+
     this.applyDisplayMode();
   }
 
-  private applyDisplayMode(): void {
-    if (this.destroyed) return;
-
-    const view = this.manager.curView;
-    const renderer = view.renderer;
-    const canvas = renderer.domElement;
-
-    if (this.sourceClearAlpha === null) {
-      this.sourceClearAlpha = renderer.clearAlpha;
-    }
-    if (this.sourceCanvasFilter === null) {
-      this.sourceCanvasFilter = canvas.style.filter;
-    }
-
-    if (this.displayMode === "source") {
-      renderer.clearAlpha = this.sourceClearAlpha;
-      canvas.style.filter = this.sourceCanvasFilter;
-    } else {
-      renderer.clearAlpha = 0;
-      canvas.style.filter =
-        this.displayTheme === "dark"
-          ? "grayscale(1) brightness(0) invert(1)"
-          : "grayscale(1) brightness(0)";
-    }
-
-    view.isDirty = true;
+  isReady(): boolean {
+    return !this.destroyed && Boolean(this.manager.curDocument);
   }
 
-  setDisplayMode(mode: CadUpstreamDisplayMode, theme: CadUpstreamTheme): void {
+  zoomToFit(): void {
     if (this.destroyed) return;
+    this.manager.curView?.zoomToFitDrawing?.();
+  }
+
+  getDisplayMode(): CadUpstreamDisplayMode {
+    return this.displayMode;
+  }
+
+  setDisplayMode(mode: CadUpstreamDisplayMode, theme: CadUpstreamTheme = this.displayTheme): void {
     this.displayMode = mode;
     this.displayTheme = theme;
     this.applyDisplayMode();
   }
 
-  getLineWeightVisible(): boolean {
-    if (this.destroyed) return false;
-    return Boolean(this.manager.context.doc.database.lwdisplay);
-  }
-
-  async setLineWeightVisible(enabled: boolean): Promise<void> {
-    if (this.destroyed) return;
-    const dataModel = await import("@mlightcad/data-model");
-    dataModel.AcDbSysVarManager.instance().setVar(
-      "LWDISPLAY",
-      enabled ? 1 : 0,
-      this.manager.context.doc.database
-    );
-  }
-
-  applyTheme(theme: CadUpstreamTheme, host: HTMLElement): void {
-    if (this.destroyed) return;
+  applyTheme(theme: CadUpstreamTheme, hostElement?: HTMLElement): void {
     this.displayTheme = theme;
-    this.Viewer.acedApplyUiTheme(theme, host);
+    if (hostElement) {
+      this.Viewer.acedApplyUiTheme(theme, hostElement);
+    }
     this.applyDisplayMode();
+  }
+
+  private applyDisplayMode(): void {
+    if (this.destroyed) return;
+    const view = this.manager.curView as unknown as {
+      canvas?: HTMLCanvasElement;
+      canvas2d?: HTMLCanvasElement;
+    } | undefined;
+
+    const canvas = view?.canvas ?? view?.canvas2d;
+    if (!canvas) return;
+
+    if (this.sourceCanvasFilter === null) {
+      this.sourceCanvasFilter = canvas.style.filter || "";
+    }
+
+    if (this.displayMode === "monochrome") {
+      const isDark = this.displayTheme === "dark";
+      canvas.style.filter = isDark
+        ? "grayscale(100%) invert(100%) contrast(150%) brightness(1.2)"
+        : "grayscale(100%) contrast(150%)";
+    } else {
+      canvas.style.filter = this.sourceCanvasFilter;
+    }
+  }
+
+  getLineWeightVisible(): boolean {
+    return this.lineWeightVisible;
+  }
+
+  async setLineWeightVisible(visible: boolean): Promise<void> {
+    if (this.destroyed) return;
+    this.lineWeightVisible = visible;
+    const db = this.manager.curDocument?.database;
+    if (db) {
+      db.lwdisplay = visible;
+    }
+    const curView = this.manager.curView as unknown as {
+      refreshEntitiesForLineWeightChange?: () => Promise<void>;
+    };
+    if (typeof curView?.refreshEntitiesForLineWeightChange === "function") {
+      await curView.refreshEntitiesForLineWeightChange();
+    }
+  }
+
+  // --- Public Layer Store Integration ---
+
+  getLayerStore(): AcApLayerStore | null {
+    if (this.destroyed) return null;
+    return this.manager.curDocument?.layerStore ?? null;
+  }
+
+  getLayers(): CadLayerItem[] {
+    const store = this.getLayerStore();
+    if (!store) return [];
+    const currentLayer = store.getCurrentLayerName();
+    return store.getLayers().map((layer) => ({
+      name: layer.name,
+      color: layer.color || "#888888",
+      isOn: layer.isOn,
+      isFrozen: layer.isFrozen,
+      isLocked: layer.isLocked,
+      isCurrent: layer.name === currentLayer,
+      visible: Boolean(layer.isOn && !layer.isFrozen),
+    }));
+  }
+
+  setLayerVisible(layerName: string, visible: boolean): boolean {
+    const store = this.getLayerStore();
+    if (!store) return false;
+    if (visible) {
+      store.setLayerOn(layerName, true);
+      store.setLayerFrozen(layerName, false);
+    } else {
+      store.setLayerOn(layerName, false);
+    }
+    return true;
+  }
+
+  showAllLayers(): boolean {
+    const store = this.getLayerStore();
+    if (!store) return false;
+    store.setAllLayersOn();
+    for (const layer of store.getLayers()) {
+      if (layer.isFrozen) {
+        store.setLayerFrozen(layer.name, false);
+      }
+    }
+    return true;
+  }
+
+  hideAllLayers(): boolean {
+    const store = this.getLayerStore();
+    if (!store) return false;
+    return store.setAllLayersOffExceptCurrent();
+  }
+
+  isolateLayer(layerName: string): boolean {
+    const store = this.getLayerStore();
+    if (!store) return false;
+    return store.isolateSingleLayer(layerName);
+  }
+
+  resetLayersToSource(): boolean {
+    const store = this.getLayerStore();
+    if (!store) return false;
+    for (const [name, snap] of this.initialLayerSnapshot.entries()) {
+      store.setLayerOn(name, snap.isOn);
+      store.setLayerFrozen(name, snap.isFrozen);
+    }
+    return true;
+  }
+
+  subscribeLayersChanged(callback: () => void): () => void {
+    const store = this.getLayerStore();
+    if (!store) return () => {};
+    const handler = () => callback();
+    store.events.changed.addEventListener(handler);
+    return () => {
+      store.events.changed.removeEventListener(handler);
+    };
+  }
+
+  // --- Native Measurement & Command Execution ---
+
+  async cancelActiveCommand(): Promise<void> {
+    if (this.destroyed) return;
+    await this.manager.commandManager.cancelActive().catch(() => {});
+    if (this.manager.curView) {
+      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+      this.manager.curView.selectionSet?.clear();
+    }
+  }
+
+  async measureDistance(): Promise<void> {
+    if (this.destroyed) return;
+    await this.cancelActiveCommand();
+    try {
+      await this.manager.executeCommandString("measuredistance");
+    } finally {
+      if (this.manager.curView) {
+        this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+        this.manager.curView.selectionSet?.clear();
+      }
+    }
+  }
+
+  async measureArea(): Promise<void> {
+    if (this.destroyed) return;
+    await this.cancelActiveCommand();
+    try {
+      await this.manager.executeCommandString("measurearea");
+    } finally {
+      if (this.manager.curView) {
+        this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+        this.manager.curView.selectionSet?.clear();
+      }
+    }
+  }
+
+  async clearMeasurements(): Promise<void> {
+    if (this.destroyed) return;
+    await this.cancelActiveCommand();
+    await this.manager.executeCommandString("clearmeasurements").catch(() => {});
+    if (this.manager.curView) {
+      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+      this.manager.curView.selectionSet?.clear();
+    }
   }
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
+    await this.cancelActiveCommand();
+    this.initialLayerSnapshot.clear();
     this.displayMode = "source";
     this.applyDisplayMode();
     this.destroyed = true;

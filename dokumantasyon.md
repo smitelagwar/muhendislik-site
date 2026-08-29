@@ -744,8 +744,18 @@ Dökümantasyon Modülü Document Studio mimarisi, 8 aşamalı mükemmelleştiri
 - **Görsel Matris:** Desktop Light, Desktop Dark, Mobile Light ve Mobile Dark ekran görüntüleri tarayıcı alt ajanı ile alınıp arşivlendi.
 - **Kapanış:** `Dokumantasyon_Warm_Glass_UI_6_UI-Faz_Gemini_3_7_Flash_NIHAI.md` teknik şartnamesi kapsamındaki tüm 6 UI-Fazı %100 başarıyla tamamlanarak teslim edilmiştir.
 
+---
 
+## 42. CAD Önizleme V2 — MLightCAD Upstream, Katman, Ölçüm ve Kalite Kapısı Mimarisi (29.08.2026 — RELEASE READY)
 
+- **CAD Upstream Motoru:** `@mlightcad/cad-simple-viewer` (v1.6.2), `@mlightcad/data-model` (v1.14.2) ve `@mlightcad/libredwg-converter` (v3.14.2) ile DXF ve DWG çizimleri sıfır ücretli servis (APS bağımsız) olarak yerel WebGL/WebAssembly üzerinde güvenle render edilir.
+- **Birleşik Araç Yüzeyi & Router:** DWG Cache HIT (`cached-dxf`), DWG Cache MISS (`original-dwg`) ve doğrudan DXF (`original-dxf`) yollarının tamamı aynı `DokCadUpstreamViewer` yüzeyinde ve `AcEdOpenMode.Read` / `AcEdViewMode.PAN` modunda açılır; entity seçimi ve alt komut satırı tamamen gizlenmiştir.
+- **Native Mesafe ve Alan Ölçümü:** Özel yaklaşık geometri motoru yerine MLightCAD native `measuredistance` ve `measurearea` komut köprüleri sol hızlı erişim araç rayına (`cad-left-quick-rail`) bağlanmıştır. `Escape` tuşu ile aktif komutlar anında iptal edilir.
+- **Public LayerStore ve Ortak Katman Paneli:** Database internalleri bypass edilerek `curDocument.layerStore` üzerinden hem masaüstünde sürüklenebilir (draggable) hem mobilde alt çekmece (bottom sheet) uyumlu tekil `CadLayerPanel` entegre edilmiştir. "Tümünü Aç", "Tümünü Kapat (Aktif Hariç)", "İzole Et" ve "Kaynağa Dön" işlemleri store üzerinden senkronize çalışır.
+- **Metin Yönü & Unicode Doğruluğu:** DXF Group 50, yön vektörleri ve hiyerarşik blok transformları (INSERT+ATTRIB) generic matematiksel matrisle çözümlenir; KZ49/KZ50 dikey kolon/kiriş etiketleri AutoCAD referansıyla birebir 90° dikey, yatay kontrol grubu 0° yatay render edilir. Türkçe karakterler (`ç, ğ, ı, ö, ş, ü, Ç, Ğ, İ, Ö, Ş, Ü`) glif kaybı olmadan gösterilir.
+- **Sıfır Persist ve Ağ Güvenliği:** Çizim inceleme, renk modu, lineweight ve pan sırasında sunucuya sıfır mutasyon (`0 POST/PUT/PATCH/DELETE`) üretilir; kaynak dosya byte ve SHA-256 hash'i tam korunur.
+- **Resmi Kalite Kapısı:** `npm run check:cad-preview-v2` (31 Playwright testi) ve Next.js production build (`npm run build`) %100 yeşil olarak doğrulanmıştır.
+- **Nihai Durum:** **RELEASE READY** (8/8 aşamanın tamamı başarıyla tamamlanmıştır. Detaylı kanıtlar `docs/cad-preview-v2/10-release-evidence.md` dokümanındadır).
 
 
 

@@ -191,7 +191,7 @@ test("upstream kullanılamadığında DASHED CENTER HIDDEN legacy DXF fallback w
   const fileId = await uploadDxf(page, { name: "linetype-stage2.dxf", content: createPatternedDxf() });
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
-  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="current"]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="legacy"]').first()).toBeVisible({ timeout: 30_000 });
   const viewer = page.getByTestId("cad-dxf-viewer").first();
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-cad-load-state", "ready", { timeout: 30_000 });
@@ -243,7 +243,7 @@ test("legacy DXF worker runtime hatası sonsuz loading yerine terminal hata üre
   const fileId = await uploadDxf(page, fixtures[0]);
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
-  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="current"]').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="legacy"]').first()).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("DXF açılamadı")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("DXF hazırlanıyor")).toHaveCount(0);
   await expect(page.getByText(/forced-dxf-worker-runtime-error/)).toBeVisible();

@@ -60,7 +60,7 @@ import {
 import { formatBytes } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import { DxfDiagnosticsButton, DxfDiagnosticsPanel } from "./dxf-diagnostics-panel";
-import { DxfLayerPanel } from "./dxf-layer-panel";
+import { CadLayerPanel } from "./cad-layer-panel";
 
 const DXF_FONT_URLS = ["/fonts/Arial-Regular.ttf", "/fonts/Arial-Bold.ttf"];
 
@@ -827,11 +827,24 @@ function DxfViewer({
         <div ref={containerRef} className="h-full min-h-0 w-full min-w-0 overflow-hidden" data-testid="cad-dxf-canvas" />
 
         {layerPanelOpen && loadState === "ready" && layerRuntime.length > 0 && (
-          <DxfLayerPanel
-            layers={layerRuntime}
+          <CadLayerPanel
+            layers={layerRuntime.map((l) => ({
+              name: l.name,
+              color: `#${(l.color & 0xffffff).toString(16).padStart(6, "0")}`,
+              isOn: l.visible,
+              isFrozen: false,
+              isLocked: false,
+              isCurrent: false,
+              visible: l.visible,
+            }))}
             query={layerQuery}
             onQueryChange={setLayerQuery}
             onToggleLayer={handleToggleLayer}
+            onIsolateLayer={(name) => {
+              for (const l of layerRuntime) {
+                handleToggleLayer(l.name, l.name === name);
+              }
+            }}
             onShowAll={handleShowAllLayers}
             onHideAll={handleHideAllLayers}
             onResetSource={handleResetLayers}

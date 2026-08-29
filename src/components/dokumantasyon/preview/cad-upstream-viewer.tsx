@@ -2,15 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
+import {
+  AlertCircle,
+  Eye,
+  Layers,
+  Loader2,
+  Maximize,
+  RotateCcw,
+  Ruler,
+  Square,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
   CadUpstreamAdapterError,
+  type CadLayerItem,
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
 import { resolveCadUpstreamTimeoutMs } from "@/lib/dokumantasyon/dwg/runtime-policy";
+import { CadLayerPanel } from "./cad-layer-panel";
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -24,6 +36,7 @@ export interface DokCadUpstreamViewerProps {
 }
 
 type HostState = "loading" | "ready" | "error";
+type ActiveTool = "distance" | "area" | null;
 
 let previousCadUpstreamTeardown: Promise<void> = Promise.resolve();
 
@@ -77,6 +90,7 @@ function CadDisplayControls({
         title="Gerçek Renk"
         onClick={() => onSelectDisplayMode("source")}
       >
+        <Eye className="mr-1 h-3 w-3" />
         Gerçek Renk
       </Button>
       <Button
@@ -125,6 +139,11 @@ export function DokCadUpstreamViewer({
   const [retryKey, setRetryKey] = useState(0);
   const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
   const [lineWeightVisible, setLineWeightVisible] = useState(false);
+  const [activeTool, setActiveTool] = useState<ActiveTool>(null);
+  const [layers, setLayers] = useState<CadLayerItem[]>([]);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [layerQuery, setLayerQuery] = useState("");
+
   const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
 
   useEffect(() => {
@@ -138,6 +157,7 @@ export function DokCadUpstreamViewer({
     let themeObserver: MutationObserver | null = null;
     let systemThemeQuery: MediaQueryList | null = null;
     let syncTheme: (() => void) | null = null;
+    let unsubscribeLayers: (() => void) | null = null;
     let timeoutId: number | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
@@ -145,6 +165,7 @@ export function DokCadUpstreamViewer({
 
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
+      setLayerPanelOpen(false);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -189,6 +210,14 @@ export function DokCadUpstreamViewer({
         const initialLineWeight = createdAdapter.getLineWeightVisible();
         lineWeightVisibleRef.current = initialLineWeight;
         setLineWeightVisible(initialLineWeight);
+
+        // Load layers and subscribe to layer changes
+        setLayers(createdAdapter.getLayers());
+        unsubscribeLayers = createdAdapter.subscribeLayersChanged(() => {
+          if (!cancelled && adapterRef.current) {
+            setLayers(adapterRef.current.getLayers());
+          }
+        });
       })();
 
       const deadline = new Promise<never>((_, reject) => {
@@ -219,6 +248,10 @@ export function DokCadUpstreamViewer({
         if (systemThemeQuery && syncTheme) {
           systemThemeQuery.removeEventListener?.("change", syncTheme);
         }
+        if (unsubscribeLayers) {
+          unsubscribeLayers();
+          unsubscribeLayers = null;
+        }
 
         if (adapter) {
           if (adapterRef.current === adapter) adapterRef.current = null;
@@ -245,6 +278,10 @@ export function DokCadUpstreamViewer({
       if (systemThemeQuery && syncTheme) {
         systemThemeQuery.removeEventListener?.("change", syncTheme);
       }
+      if (unsubscribeLayers) {
+        unsubscribeLayers();
+        unsubscribeLayers = null;
+      }
 
       if (adapterRef.current === adapter) adapterRef.current = null;
       previousCadUpstreamTeardown = startup
@@ -257,6 +294,21 @@ export function DokCadUpstreamViewer({
         });
     };
   }, [accessUrl, displayName, effectiveTimeoutMs, extension, fileId, retryKey, onReady, onViewerFailure]);
+
+  // Global Escape key handler to cancel active measurement/command or close layer panel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (layerPanelOpen) {
+          setLayerPanelOpen(false);
+        }
+        setActiveTool(null);
+        void adapterRef.current?.cancelActiveCommand();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [layerPanelOpen]);
 
   const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
     displayModeRef.current = mode;
@@ -275,6 +327,63 @@ export function DokCadUpstreamViewer({
     } catch (error) {
       console.warn("MLightCAD lineweight değiştirilemedi", error);
     }
+  };
+
+  const handleZoomToFit = () => {
+    adapterRef.current?.zoomToFit();
+  };
+
+  const handleStartDistance = async () => {
+    if (activeTool === "distance") {
+      setActiveTool(null);
+      await adapterRef.current?.cancelActiveCommand();
+      return;
+    }
+    setActiveTool("distance");
+    try {
+      await adapterRef.current?.measureDistance();
+    } finally {
+      setActiveTool(null);
+    }
+  };
+
+  const handleStartArea = async () => {
+    if (activeTool === "area") {
+      setActiveTool(null);
+      await adapterRef.current?.cancelActiveCommand();
+      return;
+    }
+    setActiveTool("area");
+    try {
+      await adapterRef.current?.measureArea();
+    } finally {
+      setActiveTool(null);
+    }
+  };
+
+  const handleClearMeasurements = async () => {
+    setActiveTool(null);
+    await adapterRef.current?.clearMeasurements();
+  };
+
+  const handleToggleLayer = (name: string, visible: boolean) => {
+    adapterRef.current?.setLayerVisible(name, visible);
+  };
+
+  const handleIsolateLayer = (name: string) => {
+    adapterRef.current?.isolateLayer(name);
+  };
+
+  const handleShowAllLayers = () => {
+    adapterRef.current?.showAllLayers();
+  };
+
+  const handleHideAllLayers = () => {
+    adapterRef.current?.hideAllLayers();
+  };
+
+  const handleResetLayers = () => {
+    adapterRef.current?.resetLayersToSource();
   };
 
   const toolbarTarget =
@@ -300,16 +409,117 @@ export function DokCadUpstreamViewer({
       data-cad-upstream-state={state}
       data-cad-color-mode={displayMode}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
+      data-cad-active-tool={activeTool ?? "none"}
+      data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-timeout-ms={effectiveTimeoutMs}
     >
       <div ref={viewportRef} className="absolute inset-0" aria-label={`${displayName} CAD görünümü`} />
 
+      {/* Top Bar / Slot Controls */}
       {displayControls && toolbarTarget
         ? createPortal(displayControls, toolbarTarget)
         : displayControls
           ? <div className="absolute left-3 top-3 z-20">{displayControls}</div>
           : null}
 
+      {/* Left Quick Access Rail: Core CAD Tools */}
+      {state === "ready" ? (
+        <div
+          className="absolute left-3 top-14 z-20 flex flex-col gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur"
+          data-testid="cad-left-quick-rail"
+          role="toolbar"
+          aria-label="CAD hızlı erişim araçları"
+        >
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            title="Çizimi ekrana sığdır"
+            onClick={handleZoomToFit}
+            data-testid="cad-tool-fit"
+            aria-label="Görünüme sığdır"
+          >
+            <Maximize className="h-4 w-4" />
+          </Button>
+
+          <span className="my-0.5 h-px w-full bg-border" aria-hidden="true" />
+
+          <Button
+            type="button"
+            size="sm"
+            variant={activeTool === "distance" ? "default" : "ghost"}
+            className="h-8 w-8 p-0"
+            title="Mesafe Ölç (İki nokta seçin)"
+            onClick={() => void handleStartDistance()}
+            data-testid="cad-tool-distance"
+            aria-label="Mesafe ölç"
+            aria-pressed={activeTool === "distance"}
+          >
+            <Ruler className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant={activeTool === "area" ? "default" : "ghost"}
+            className="h-8 w-8 p-0"
+            title="Alan Ölç (Çokgen noktalarını seçin)"
+            onClick={() => void handleStartArea()}
+            data-testid="cad-tool-area"
+            aria-label="Alan ölç"
+            aria-pressed={activeTool === "area"}
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 hover:text-destructive"
+            title="Ölçümleri Temizle"
+            onClick={() => void handleClearMeasurements()}
+            data-testid="cad-tool-clear"
+            aria-label="Ölçümleri temizle"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+
+          <span className="my-0.5 h-px w-full bg-border" aria-hidden="true" />
+
+          <Button
+            type="button"
+            size="sm"
+            variant={layerPanelOpen ? "secondary" : "ghost"}
+            className="h-8 w-8 p-0"
+            title="Katmanlar"
+            onClick={() => setLayerPanelOpen((open) => !open)}
+            data-testid="cad-tool-layers"
+            aria-label="Katmanlar"
+            aria-pressed={layerPanelOpen}
+          >
+            <Layers className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
+
+      {/* Unified Layer Panel */}
+      {state === "ready" && layerPanelOpen ? (
+        <CadLayerPanel
+          layers={layers}
+          query={layerQuery}
+          onQueryChange={setLayerQuery}
+          onToggleLayer={handleToggleLayer}
+          onIsolateLayer={handleIsolateLayer}
+          onShowAll={handleShowAllLayers}
+          onHideAll={handleHideAllLayers}
+          onResetSource={handleResetLayers}
+          onClose={() => setLayerPanelOpen(false)}
+        />
+      ) : null}
+
+      {/* Loading Overlay */}
       {state === "loading" ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/72 backdrop-blur-[1px]">
           <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
@@ -319,6 +529,7 @@ export function DokCadUpstreamViewer({
         </div>
       ) : null}
 
+      {/* Error Retry Overlay */}
       {state === "error" ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background p-4">
           <div className="flex max-w-md flex-col items-center gap-3 text-center">
