@@ -11,9 +11,9 @@ import {
   resolveCadPrecisionLensPlacement,
 } from "../src/lib/dokumantasyon/cad-upstream/precision-ux";
 
-assert.equal(CAD_PRECISION_MAGNIFIER_DIAMETER_PX, 116);
+assert.equal(CAD_PRECISION_MAGNIFIER_DIAMETER_PX, 152);
 assert.equal(CAD_PRECISION_MAGNIFIER_ZOOM, 2.75);
-assert.equal(CAD_PRECISION_EDGE_MARGIN_PX, 10);
+assert.equal(CAD_PRECISION_EDGE_MARGIN_PX, 12);
 assert.deepEqual(CAD_SNAP_MODE_LABELS, {
   endpoint: "Endpoint",
   midpoint: "Midpoint",
@@ -26,28 +26,26 @@ const centered = resolveCadPrecisionLensPlacement(
   { x: 200, y: 250 },
   { width: 400, height: 500 }
 );
-assert.equal(centered.side, "above");
-assert.equal(centered.left, 142);
-assert.equal(centered.top, 106);
+assert.equal(centered.side, "fixed-top-right");
+assert.equal(centered.left, 236);
+assert.equal(centered.top, 12);
 
-const nearTop = resolveCadPrecisionLensPlacement(
-  { x: 200, y: 35 },
+const movedPointer = resolveCadPrecisionLensPlacement(
+  { x: 20, y: 470 },
   { width: 400, height: 500 }
 );
-assert.equal(nearTop.side, "below", "Üst kenarda büyüteç parmağın altına geçmeli.");
-assert.equal(nearTop.top, 63);
-
-const nearLeft = resolveCadPrecisionLensPlacement(
-  { x: 3, y: 250 },
-  { width: 400, height: 500 }
+assert.deepEqual(
+  movedPointer,
+  centered,
+  "Büyüteç parmakla dolaşmamalı; sağ üstte sabit kalmalı."
 );
-assert.equal(nearLeft.left, 10, "Büyüteç sol kenardan taşmamalı.");
 
-const nearRight = resolveCadPrecisionLensPlacement(
-  { x: 398, y: 250 },
-  { width: 400, height: 500 }
+const narrowViewport = resolveCadPrecisionLensPlacement(
+  { x: 10, y: 10 },
+  { width: 140, height: 300 }
 );
-assert.equal(nearRight.left, 274, "Büyüteç sağ kenardan taşmamalı.");
+assert.equal(narrowViewport.left, 12, "Dar viewport'ta panel sol kenardan taşmamalı.");
+assert.equal(narrowViewport.top, 12);
 
 const crop = resolveCadMagnifierCrop(
   { x: 200, y: 100 },
@@ -55,9 +53,9 @@ const crop = resolveCadMagnifierCrop(
   { width: 800, height: 400 }
 );
 assert.ok(crop, "Geçerli canvas boyutlarında crop üretilmeli.");
-assert.ok(Math.abs(crop.targetX - 58) < 1e-9);
-assert.ok(Math.abs(crop.targetY - 58) < 1e-9);
-assert.ok(crop.sw > 84 && crop.sw < 85, "CSS/backing scale crop'a uygulanmalı.");
+assert.ok(Math.abs(crop.targetX - 76) < 1e-9);
+assert.ok(Math.abs(crop.targetY - 76) < 1e-9);
+assert.ok(crop.sw > 110 && crop.sw < 111, "CSS/backing scale crop'a uygulanmalı.");
 
 const edgeCrop = resolveCadMagnifierCrop(
   { x: 0, y: 0 },
@@ -94,12 +92,16 @@ for (const token of [
   "data-cad-touch-anchor",
   "data-cad-precision-lens",
   "context.drawImage",
+  "fixed-top-right",
+  "Yakınlaştırma",
   "CAD_SNAP_MODE_LABELS",
   "SnapGlyph",
   "Crosshair",
 ]) {
   assert.ok(precisionSource.includes(token), `Precision overlay tokenı eksik: ${token}`);
 }
+
+assert.ok(!precisionSource.includes("rounded-full border-2"), "Eski gezen yuvarlak lens UI geri gelmemeli.");
 
 for (const token of [
   "CadPrecisionOverlay",
@@ -124,9 +126,9 @@ const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8")) as {
 assert.equal(
   vercelConfig.git?.deploymentEnabled,
   false,
-  "Stage 7 push/PR Vercel deployment tetiklememeli."
+  "Stage 1 magnifier değişikliği Vercel deployment tetiklememeli."
 );
 
 console.log(
-  "GATE: PASS — Stage 7 precision UX opens an offset magnifier only while tracking, clamps it to the viewport and exposes distinct snap markers/labels for all five snap modes."
+  "GATE: PASS — precision magnifier stays fixed at the viewer top-right, uses a 152 px live CAD crop and keeps snap markers/crosshair visible while tracking."
 );
