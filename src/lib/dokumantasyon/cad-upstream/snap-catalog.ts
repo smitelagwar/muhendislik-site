@@ -8,7 +8,12 @@ type DatabaseLike = { tables?: { blockTable?: { modelSpace?: BlockLike; getAt?: 
 const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] as const;
 
 function matrixElements(matrix?: MatrixLike | null): number[] {
-  const source = matrix && "elements" in Object(matrix) ? (matrix as { elements?: ArrayLike<number> }).elements : matrix;
+  let source: ArrayLike<number> | undefined;
+  if (matrix && typeof matrix === "object" && "elements" in matrix) {
+    source = (matrix as { elements?: ArrayLike<number> }).elements;
+  } else {
+    source = matrix as ArrayLike<number> | undefined;
+  }
   if (!source || source.length !== 16) return [...IDENTITY];
   return Array.from(source, Number);
 }
@@ -57,7 +62,8 @@ function entityId(entity: EntityLike, fallback: string): string {
 }
 
 function entityType(entity: EntityLike): string {
-  return String(entity.type ?? entity.constructor?.name ?? "").toUpperCase();
+  const ctorName = (entity as { constructor?: { name?: string } }).constructor?.name;
+  return String(entity.type ?? ctorName ?? "").toUpperCase();
 }
 
 function readVertices(entity: EntityLike): CadSnapPoint[] {
