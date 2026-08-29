@@ -12,17 +12,7 @@ import {
 } from "@/lib/dokumantasyon/cad-upstream/precision-ux";
 import type { CadSnapMode, CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 
-function SnapGlyph({
-  mode,
-  x,
-  y,
-  size = 8,
-}: {
-  mode: CadSnapMode;
-  x: number;
-  y: number;
-  size?: number;
-}) {
+function SnapGlyph({ mode, x, y, size = 8 }: { mode: CadSnapMode; x: number; y: number; size?: number }) {
   const half = size / 2;
   const common = {
     fill: "var(--background)",
@@ -35,12 +25,7 @@ function SnapGlyph({
     case "endpoint":
       return <rect x={x - half} y={y - half} width={size} height={size} rx="1" {...common} />;
     case "midpoint":
-      return (
-        <path
-          d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y + half} L ${x - half - 0.8} ${y + half} Z`}
-          {...common}
-        />
-      );
+      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y + half} L ${x - half - 0.8} ${y + half} Z`} {...common} />;
     case "intersection":
       return (
         <g stroke="var(--primary)" strokeWidth="2" vectorEffect="non-scaling-stroke">
@@ -57,23 +42,13 @@ function SnapGlyph({
         </g>
       );
     case "nearest":
-      return (
-        <path
-          d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y} L ${x} ${y + half + 0.8} L ${x - half - 0.8} ${y} Z`}
-          {...common}
-        />
-      );
+      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y} L ${x} ${y + half + 0.8} L ${x - half - 0.8} ${y} Z`} {...common} />;
   }
 }
 
 function Crosshair({ x, y, size = 11 }: { x: number; y: number; size?: number }) {
   return (
-    <g
-      stroke="var(--primary)"
-      strokeWidth="1.4"
-      vectorEffect="non-scaling-stroke"
-      opacity="0.95"
-    >
+    <g stroke="var(--primary)" strokeWidth="1.4" vectorEffect="non-scaling-stroke" opacity="0.95">
       <path d={`M ${x - size} ${y} L ${x - 3} ${y}`} />
       <path d={`M ${x + 3} ${y} L ${x + size} ${y}`} />
       <path d={`M ${x} ${y - size} L ${x} ${y - 3}`} />
@@ -92,8 +67,7 @@ export function CadPrecisionOverlay({
   getSourceCanvas: () => HTMLCanvasElement | null;
 }) {
   const lensCanvasRef = useRef<HTMLCanvasElement>(null);
-  const tracking =
-    snapshot?.phase === "tracking-first" || snapshot?.phase === "tracking-second";
+  const tracking = snapshot?.phase === "tracking-first" || snapshot?.phase === "tracking-second";
   const pointer = tracking ? snapshot.pointerScreenPoint : null;
   const target = tracking && snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
   const snap = tracking ? snapshot?.previewSnap ?? null : null;
@@ -105,18 +79,11 @@ export function CadPrecisionOverlay({
     ? resolveCadPrecisionLensPlacement(pointer, viewport)
     : null;
   const crop = target && sourceCanvas
-    ? resolveCadMagnifierCrop(
-        target,
-        viewport,
-        { width: sourceCanvas.width, height: sourceCanvas.height }
-      )
+    ? resolveCadMagnifierCrop(target, viewport, { width: sourceCanvas.width, height: sourceCanvas.height })
     : null;
   const lensTarget = crop
     ? { x: crop.targetX, y: crop.targetY }
-    : {
-        x: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2,
-        y: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2,
-      };
+    : { x: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2, y: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2 };
 
   useLayoutEffect(() => {
     const lens = lensCanvasRef.current;
@@ -129,23 +96,22 @@ export function CadPrecisionOverlay({
     if (lens.height !== height) lens.height = height;
     lens.style.filter = sourceCanvas.style.filter || "";
 
-    const context = lens.getContext("2d");
+    const context = lens.getContext("2d", { alpha: false });
     if (!context) return;
-    context.clearRect(0, 0, width, height);
+
+    context.save();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.fillStyle = "#18232d";
+    context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
     try {
-      context.drawImage(
-        sourceCanvas,
-        crop.sx,
-        crop.sy,
-        crop.sw,
-        crop.sh,
-        0,
-        0,
-        width,
-        height
-      );
+      context.drawImage(sourceCanvas, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
     } catch {
-      context.clearRect(0, 0, width, height);
+      context.fillStyle = "#18232d";
+      context.fillRect(0, 0, width, height);
+    } finally {
+      context.restore();
     }
   }, [crop, sourceCanvas, tracking]);
 
@@ -206,18 +172,25 @@ export function CadPrecisionOverlay({
 
       {placement ? (
         <div
-          className="absolute"
+          className="absolute overflow-hidden rounded-xl border border-border/80 bg-background/95 shadow-2xl ring-1 ring-black/20 backdrop-blur-sm"
           style={{
             left: placement.left,
             top: placement.top,
             width: CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
-            height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
+            height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX + 24,
           }}
           data-testid="cad-precision-magnifier"
           data-cad-precision-magnifier="true"
+          data-cad-magnifier-fixed="top-right"
           data-cad-magnifier-side={placement.side}
         >
-          <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-primary/70 bg-background/95 shadow-xl ring-1 ring-background/70">
+          <div className="flex h-6 items-center border-b border-border/70 bg-background/92 px-2 text-[9px] font-semibold text-foreground/85">
+            Yakınlaştırma
+          </div>
+          <div
+            className="relative overflow-hidden bg-[#18232d]"
+            style={{ width: CAD_PRECISION_MAGNIFIER_DIAMETER_PX, height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX }}
+          >
             <canvas
               ref={lensCanvasRef}
               className="absolute inset-0 h-full w-full"
@@ -225,14 +198,7 @@ export function CadPrecisionOverlay({
             />
             <svg className="absolute inset-0 h-full w-full">
               <Crosshair x={lensTarget.x} y={lensTarget.y} size={14} />
-              {snap ? (
-                <SnapGlyph
-                  mode={snap.mode}
-                  x={lensTarget.x}
-                  y={lensTarget.y}
-                  size={12}
-                />
-              ) : null}
+              {snap ? <SnapGlyph mode={snap.mode} x={lensTarget.x} y={lensTarget.y} size={12} /> : null}
             </svg>
             {label ? (
               <div

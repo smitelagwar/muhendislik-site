@@ -1,9 +1,9 @@
 import type { CadSnapMode, CadSnapPoint } from "./snap-engine";
 
-export const CAD_PRECISION_MAGNIFIER_DIAMETER_PX = 116;
+export const CAD_PRECISION_MAGNIFIER_DIAMETER_PX = 152;
 export const CAD_PRECISION_MAGNIFIER_ZOOM = 2.75;
 export const CAD_PRECISION_MAGNIFIER_GAP_PX = 28;
-export const CAD_PRECISION_EDGE_MARGIN_PX = 10;
+export const CAD_PRECISION_EDGE_MARGIN_PX = 12;
 
 export const CAD_SNAP_MODE_LABELS: Record<CadSnapMode, string> = {
   endpoint: "Endpoint",
@@ -21,7 +21,7 @@ export interface CadPrecisionViewportSize {
 export interface CadPrecisionLensPlacement {
   left: number;
   top: number;
-  side: "above" | "below";
+  side: "fixed-top-right";
 }
 
 export interface CadMagnifierCrop {
@@ -39,33 +39,15 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function resolveCadPrecisionLensPlacement(
-  pointer: CadSnapPoint,
+  _pointer: CadSnapPoint,
   viewport: CadPrecisionViewportSize,
   diameter = CAD_PRECISION_MAGNIFIER_DIAMETER_PX
 ): CadPrecisionLensPlacement {
   const margin = CAD_PRECISION_EDGE_MARGIN_PX;
-  const gap = CAD_PRECISION_MAGNIFIER_GAP_PX;
-  const maxLeft = Math.max(margin, viewport.width - diameter - margin);
-  const maxTop = Math.max(margin, viewport.height - diameter - margin);
-  const left = clamp(pointer.x - diameter / 2, margin, maxLeft);
-
-  const aboveTop = pointer.y - gap - diameter;
-  const belowTop = pointer.y + gap;
-  const fitsAbove = aboveTop >= margin;
-  const fitsBelow = belowTop + diameter <= viewport.height - margin;
-
-  if (fitsAbove || !fitsBelow) {
-    return {
-      left,
-      top: clamp(aboveTop, margin, maxTop),
-      side: "above",
-    };
-  }
-
   return {
-    left,
-    top: clamp(belowTop, margin, maxTop),
-    side: "below",
+    left: Math.max(margin, viewport.width - diameter - margin),
+    top: margin,
+    side: "fixed-top-right",
   };
 }
 
