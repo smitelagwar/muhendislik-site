@@ -5,12 +5,17 @@ import { useLayoutEffect, useRef } from "react";
 import type { CadDistanceMeasurementSnapshot } from "@/lib/dokumantasyon/cad-upstream/distance-measurement";
 import {
   CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
+  CAD_PRECISION_MAGNIFIER_ZOOM,
   CAD_SNAP_MODE_LABELS,
   cadPrecisionOffsetDistance,
   resolveCadMagnifierCrop,
   resolveCadPrecisionLensPlacement,
 } from "@/lib/dokumantasyon/cad-upstream/precision-ux";
-import type { CadSnapMode, CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import type {
+  CadSnapMode,
+  CadSnapPoint,
+  CadSnapPrimitive,
+} from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 
 function SnapGlyph({ mode, x, y, size = 8 }: { mode: CadSnapMode; x: number; y: number; size?: number }) {
   const half = size / 2;
@@ -57,14 +62,91 @@ function Crosshair({ x, y, size = 11 }: { x: number; y: number; size?: number })
   );
 }
 
+function MagnifiedGeometry({
+  primitives,
+  target,
+  lensTarget,
+  projectPoint,
+}: {
+  primitives: readonly CadSnapPrimitive[];
+  target: CadSnapPoint;
+  lensTarget: CadSnapPoint;
+  projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
+}) {
+  const magnify = (point: CadSnapPoint): CadSnapPoint | null => {
+    const projected = projectPoint(point);
+    if (!projected) return null;
+    return {
+      x: lensTarget.x + (projected.x - target.x) * CAD_PRECISION_MAGNIFIER_ZOOM,
+      y: lensTarget.y + (projected.y - target.y) * CAD_PRECISION_MAGNIFIER_ZOOM,
+    };
+  };
+
+  return (
+    <g
+      fill="none"
+      stroke="rgba(245,245,245,0.96)"
+      strokeWidth="1.25"
+      vectorEffect="non-scaling-stroke"
+      data-cad-magnifier-vector-fallback="true"
+    >
+      {primitives.map((primitive) => {
+        if (primitive.kind === "line") {
+          const a = magnify(primitive.a);
+          const b = magnify(primitive.b);
+          if (!a || !b) return null;
+          return <line key={primitive.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+        }
+
+        const center = magnify(primitive.center);
+        const radiusPoint = magnify({
+          x: primitive.center.x + primitive.radius,
+          y: primitive.center.y,
+        });
+        if (!center || !radiusPoint) return null;
+        const radius = Math.hypot(radiusPoint.x - center.x, radiusPoint.y - center.y);
+        if (!(radius > 0) || !Number.isFinite(radius)) return null;
+
+        if (primitive.kind === "circle") {
+          return <circle key={primitive.id} cx={center.x} cy={center.y} r={radius} />;
+        }
+
+        const start = magnify({
+          x: primitive.center.x + Math.cos(primitive.startAngle) * primitive.radius,
+          y: primitive.center.y + Math.sin(primitive.startAngle) * primitive.radius,
+        });
+        const end = magnify({
+          x: primitive.center.x + Math.cos(primitive.endAngle) * primitive.radius,
+          y: primitive.center.y + Math.sin(primitive.endAngle) * primitive.radius,
+        });
+        if (!start || !end) return null;
+        const rawSpan = primitive.clockwise
+          ? primitive.startAngle - primitive.endAngle
+          : primitive.endAngle - primitive.startAngle;
+        const normalizedSpan = ((rawSpan % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const largeArc = normalizedSpan > Math.PI ? 1 : 0;
+        const sweep = primitive.clockwise ? 0 : 1;
+        return (
+          <path
+            key={primitive.id}
+            d={`M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 export function CadPrecisionOverlay({
   snapshot,
   projectPoint,
   getSourceCanvas,
+  getSnapPrimitives,
 }: {
   snapshot: CadDistanceMeasurementSnapshot | null;
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
   getSourceCanvas: () => HTMLCanvasElement | null;
+  getSnapPrimitives: (primitiveIds: readonly string[]) => CadSnapPrimitive[];
 }) {
   const lensCanvasRef = useRef<HTMLCanvasElement>(null);
   const tracking = snapshot?.phase === "tracking-first" || snapshot?.phase === "tracking-second";
@@ -84,6 +166,7 @@ export function CadPrecisionOverlay({
   const lensTarget = crop
     ? { x: crop.targetX, y: crop.targetY }
     : { x: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2, y: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2 };
+  const primitives = snap ? getSnapPrimitives(snap.primitiveIds) : [];
 
   useLayoutEffect(() => {
     const lens = lensCanvasRef.current;
@@ -196,7 +279,15 @@ export function CadPrecisionOverlay({
               className="absolute inset-0 h-full w-full"
               data-cad-precision-lens="true"
             />
-            <svg className="absolute inset-0 h-full w-full">
+            <svg className="absolute inset-0 h-full w-full overflow-hidden">
+              {primitives.length > 0 ? (
+                <MagnifiedGeometry
+                  primitives={primitives}
+                  target={target}
+                  lensTarget={lensTarget}
+                  projectPoint={projectPoint}
+                />
+              ) : null}
               <Crosshair x={lensTarget.x} y={lensTarget.y} size={14} />
               {snap ? <SnapGlyph mode={snap.mode} x={lensTarget.x} y={lensTarget.y} size={12} /> : null}
             </svg>
