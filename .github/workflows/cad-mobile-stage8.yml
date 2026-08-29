@@ -8,6 +8,7 @@ on:
       - ".github/workflows/cad-mobile-stage8.yml"
       - "playwright.config.ts"
       - "scripts/check-cad-mobile-stage8.ts"
+      - "scripts/check-cad-snap-runtime-stage8.ts"
       - "tests/document-studio/cad-mobile-stage8.spec.ts"
       - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
       - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
@@ -23,6 +24,7 @@ on:
       - ".github/workflows/cad-mobile-stage8.yml"
       - "playwright.config.ts"
       - "scripts/check-cad-mobile-stage8.ts"
+      - "scripts/check-cad-snap-runtime-stage8.ts"
       - "tests/document-studio/cad-mobile-stage8.spec.ts"
       - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
       - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
@@ -58,6 +60,12 @@ jobs:
       - name: Run Stage 8 contract and performance gate
         run: npx tsx scripts/check-cad-mobile-stage8.ts
 
+      - name: Guard duplicate runtime snap ids
+        run: npx tsx scripts/check-cad-snap-runtime-stage8.ts
+
+      - name: Re-run Stage 4 snap regression gate
+        run: npx tsx scripts/check-cad-snap-stage4.ts
+
       - name: Re-run Stage 7 precision regression gate
         run: npx tsx scripts/check-cad-precision-stage7.ts
 
@@ -72,6 +80,7 @@ jobs:
           npx eslint
           "playwright.config.ts"
           "scripts/check-cad-mobile-stage8.ts"
+          "scripts/check-cad-snap-runtime-stage8.ts"
           "tests/document-studio/cad-mobile-stage8.spec.ts"
           "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
           "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
