@@ -96,12 +96,14 @@ for (const token of [
 
 for (const token of [
   "cad-snap-master-toggle",
-  "cad-snap-mode-endpoint",
-  "cad-snap-mode-midpoint",
-  "cad-snap-mode-intersection",
-  "cad-snap-mode-center",
-  "cad-snap-mode-nearest",
+  "cad-snap-mode-${mode}",
+  "CAD_SNAP_MODES.map",
   "Nesne Yakalama",
+  "Uç Nokta",
+  "Orta Nokta",
+  "Kesişim",
+  "Merkez",
+  "En Yakın",
 ]) {
   assert.ok(panelSource.includes(token), `Snap panel tokenı eksik: ${token}`);
 }
