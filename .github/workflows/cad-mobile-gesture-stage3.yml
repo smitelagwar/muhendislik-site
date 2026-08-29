@@ -1,0 +1,45 @@
+name: CAD mobile gesture Stage 3 gate
+
+on:
+  push:
+    branches:
+      - internal-cad-gesture-stage3
+    paths:
+      - src/lib/dokumantasyon/cad-upstream/**
+      - scripts/check-cad-mobile-gesture-stage3.ts
+      - .github/workflows/cad-mobile-gesture-stage3.yml
+  pull_request:
+    paths:
+      - src/lib/dokumantasyon/cad-upstream/**
+      - scripts/check-cad-mobile-gesture-stage3.ts
+      - .github/workflows/cad-mobile-gesture-stage3.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-mobile-gesture-stage3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-mobile-gesture-separation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Run gesture contract gate
+        run: npx tsx scripts/check-cad-mobile-gesture-stage3.ts
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
