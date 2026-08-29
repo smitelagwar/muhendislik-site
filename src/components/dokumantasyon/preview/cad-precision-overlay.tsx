@@ -217,7 +217,11 @@ export function CadPrecisionOverlay({
           data-cad-magnifier-side={placement.side}
         >
           <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-primary/70 bg-background/95 shadow-xl ring-1 ring-background/70">
-            <canvas ref={lensCanvasRef} className="absolute inset-0 h-full w-full" />
+            <canvas
+              ref={lensCanvasRef}
+              className="absolute inset-0 h-full w-full"
+              data-cad-precision-lens="true"
+            />
             <svg className="absolute inset-0 h-full w-full">
               <Crosshair x={lensTarget.x} y={lensTarget.y} size={14} />
               {snap ? (
