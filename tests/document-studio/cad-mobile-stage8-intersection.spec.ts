@@ -10,41 +10,51 @@ const SNAP_MODES = [
 type SnapMode = (typeof SNAP_MODES)[number];
 type Point = { x: number; y: number };
 
-function createPolylineFixture(): string {
-  const polyline = (
-    handle: string,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number
-  ) => [
-    "0", "LWPOLYLINE",
+function createGeometryFixture(): string {
+  const circle = (handle: string, x: number, y: number, radius: number) => [
+    "0", "CIRCLE",
     "5", handle,
-    "100", "AcDbEntity",
     "8", "0",
-    "100", "AcDbPolyline",
-    "90", "2",
-    "70", "0",
-    "10", String(x1), "20", String(y1),
-    "10", String(x2), "20", String(y2),
+    "10", String(x), "20", String(y), "30", "0",
+    "40", String(radius),
+  ];
+  const arc = (
+    handle: string,
+    x: number,
+    y: number,
+    radius: number,
+    startAngle: number,
+    endAngle: number
+  ) => [
+    "0", "ARC",
+    "5", handle,
+    "8", "0",
+    "10", String(x), "20", String(y), "30", "0",
+    "40", String(radius),
+    "50", String(startAngle),
+    "51", String(endAngle),
   ];
 
   return [
     "0", "SECTION", "2", "HEADER",
-    "9", "$ACADVER", "1", "AC1015",
-    "9", "$EXTMIN", "10", "-500", "20", "-500", "30", "0",
-    "9", "$EXTMAX", "10", "500", "20", "500", "30", "0",
+    "9", "$ACADVER", "1", "AC1009",
+    "9", "$EXTMIN", "10", "-250", "20", "-250", "30", "0",
+    "9", "$EXTMAX", "10", "250", "20", "250", "30", "0",
     "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES",
+    "0", "TABLE", "2", "LAYER", "70", "1",
+    "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "CONTINUOUS",
+    "0", "ENDTAB", "0", "ENDSEC",
     "0", "SECTION", "2", "ENTITIES",
-    ...polyline("10", -500, 0, 500, 0),
-    ...polyline("11", 0, -500, 0, 500),
-    ...polyline("12", 0, 0, 300, 300),
-    "0", "CIRCLE",
-    "5", "13",
-    "100", "AcDbEntity",
-    "8", "0",
-    "100", "AcDbCircle",
-    "10", "0", "20", "0", "30", "0", "40", "100",
+    // Symmetric outer circle keeps zoom-to-fit centered exactly at world origin.
+    ...circle("10", 0, 0, 250),
+    // Two tangent circles create a real circle-circle Intersection at world origin.
+    ...circle("11", -100, 0, 100),
+    ...circle("12", 100, 0, 100),
+    // Endpoint at world origin (start angle 0°).
+    ...arc("13", -100, 0, 100, 0, 45),
+    // Midpoint at world origin: 270° -> 90° CCW has midpoint angle 0°.
+    ...arc("14", -100, 0, 100, 270, 90),
     "0", "ENDSEC", "0", "EOF",
   ].join("\n");
 }
@@ -80,23 +90,23 @@ async function openViewer(page: Page): Promise<{
   center: Point;
 }> {
   await ensureAdminSession(page);
-  const fixture = createPolylineFixture();
+  const fixture = createGeometryFixture();
   const fileId = await page.evaluate(async ({ content }) => {
     const formData = new FormData();
     formData.append(
       "file",
-      new File([content], "stage8-mobile-polylines.dxf", {
+      new File([content], "stage8-mobile-geometry.dxf", {
         type: "application/dxf",
       })
     );
-    formData.append("pathname", `cad-stage8-polylines-${crypto.randomUUID()}.dxf`);
+    formData.append("pathname", `cad-stage8-geometry-${crypto.randomUUID()}.dxf`);
     const response = await fetch("/api/dokumantasyon/upload/local", {
       method: "POST",
       body: formData,
     });
     const payload = await response.json();
     if (!response.ok || !payload.file?.id) {
-      throw new Error(payload.error || "Stage 8 LWPOLYLINE DXF fixture yüklenemedi");
+      throw new Error(payload.error || "Stage 8 ARC/CIRCLE DXF fixture yüklenemedi");
     }
     return payload.file.id as string;
   }, { content: fixture });
@@ -210,7 +220,7 @@ async function longPress(
   await expect(page.getByTestId("cad-precision-magnifier")).toBeVisible();
 }
 
-test("Stage 8 polyline: beş snap modu gerçek CAD runtime üzerinde çözülür ve kalıcıdır", async ({ page }) => {
+test("Stage 8 geometry: beş snap modu gerçek CAD runtime üzerinde çözülür ve kalıcıdır", async ({ page }) => {
   const { host, viewport, center } = await openViewer(page);
   let pointerId = 101;
 
@@ -240,7 +250,7 @@ test("Stage 8 polyline: beş snap modu gerçek CAD runtime üzerinde çözülür
   await expect(reloadedHost).toHaveAttribute("data-cad-snap-modes", "nearest");
 });
 
-test("Stage 8 polyline: intersection long-press precision UX ve iki nokta commit birlikte çalışır", async ({ page }) => {
+test("Stage 8 geometry: intersection long-press precision UX ve iki nokta commit birlikte çalışır", async ({ page }) => {
   const { host, viewport, center } = await openViewer(page);
   await setOnlySnapMode(page, "intersection");
   await startDistance(page, host);
