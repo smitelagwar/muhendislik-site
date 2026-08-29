@@ -43,21 +43,22 @@ function createPrecisionFixture(): string {
 
 async function signIn(page: Page): Promise<void> {
   await page.goto("/dokumantasyon");
-  const username = page.locator("input#username");
-  const dashboard = page.getByRole("button", { name: "Yeni Dosya Yükle" });
+  const username = page.getByLabel("Kullanıcı Adı");
+  await expect(username).toBeVisible({ timeout: 20_000 });
+  await username.pressSequentially("admin");
+  await page.locator("input#password").fill("admin");
 
-  await expect.poll(async () => {
-    if (await username.isVisible()) return "login";
-    if (await dashboard.isVisible()) return "dashboard";
-    return "pending";
-  }, { timeout: 12_000 }).not.toBe("pending");
-
-  if (await username.isVisible()) {
-    await username.fill("admin");
-    await page.locator("input#password").fill("admin");
-    await page.getByRole("button", { name: "Giriş Yap" }).click();
+  const loginResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/dokumantasyon/giris") &&
+      response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: "Giriş Yap" }).click();
+  const response = await loginResponse;
+  if (!response.ok()) {
+    throw new Error(`Stage 8 admin login failed: ${response.status()} ${await response.text()}`);
   }
-  await expect(dashboard).toBeVisible();
+  await expect(username).toBeHidden({ timeout: 12_000 });
 }
 
 async function uploadFixture(page: Page): Promise<string> {
