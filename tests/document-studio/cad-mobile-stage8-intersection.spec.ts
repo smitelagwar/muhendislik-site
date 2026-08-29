@@ -11,20 +11,16 @@ type SnapMode = (typeof SNAP_MODES)[number];
 type Point = { x: number; y: number };
 
 function createGeometryFixture(): string {
+  let handle = 0x20;
+  const nextHandle = () => (handle++).toString(16).toUpperCase();
   const line = (x1: number, y1: number, x2: number, y2: number) => [
-    "0", "LINE", "8", "KALIP",
-    "10", String(x1), "20", String(y1),
-    "11", String(x2), "21", String(y2),
+    "0", "LINE", "5", nextHandle(),
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbLine",
+    "10", String(x1), "20", String(y1), "30", "0",
+    "11", String(x2), "21", String(y2), "31", "0",
   ];
 
-  // Aynı minimal AC1027/LAYER sözleşmesi cad-dxf.spec.ts production browser
-  // gate'inde upstream MLightCAD ile doğrulanıyor. Simetrik dış çerçeve zoom-to-fit
-  // sonrasında world origin'i viewport merkezinde tutar. Merkezde:
-  // - diagonal başlangıcı = Endpoint
-  // - yatay çizgi ortası = Midpoint
-  // - yatay/dikey/diagonal kesişimi = Intersection
-  // - circle merkezi = Center
-  // - çizgilerin üzeri = Nearest
   return [
     "0", "SECTION", "2", "HEADER",
     "9", "$ACADVER", "1", "AC1027",
@@ -42,7 +38,10 @@ function createGeometryFixture(): string {
     ...line(-300, 0, 300, 0),
     ...line(0, -300, 0, 300),
     ...line(0, 0, 260, 260),
-    "0", "CIRCLE", "8", "KALIP", "10", "0", "20", "0", "40", "100",
+    "0", "CIRCLE", "5", nextHandle(),
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbCircle",
+    "10", "0", "20", "0", "30", "0", "40", "100",
     "0", "ENDSEC", "0", "EOF",
   ].join("\n");
 }
@@ -94,7 +93,7 @@ async function openViewer(page: Page): Promise<{
     });
     const payload = await response.json();
     if (!response.ok || !payload.file?.id) {
-      throw new Error(payload.error || "Stage 8 LINE/CIRCLE DXF fixture yüklenemedi");
+      throw new Error(payload.error || "Stage 8 AC1027 DXF fixture yüklenemedi");
     }
     return payload.file.id as string;
   }, { content: fixture });
