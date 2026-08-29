@@ -11,50 +11,38 @@ type SnapMode = (typeof SNAP_MODES)[number];
 type Point = { x: number; y: number };
 
 function createGeometryFixture(): string {
-  const circle = (handle: string, x: number, y: number, radius: number) => [
-    "0", "CIRCLE",
-    "5", handle,
-    "8", "0",
-    "10", String(x), "20", String(y), "30", "0",
-    "40", String(radius),
-  ];
-  const arc = (
-    handle: string,
-    x: number,
-    y: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number
-  ) => [
-    "0", "ARC",
-    "5", handle,
-    "8", "0",
-    "10", String(x), "20", String(y), "30", "0",
-    "40", String(radius),
-    "50", String(startAngle),
-    "51", String(endAngle),
+  const line = (x1: number, y1: number, x2: number, y2: number) => [
+    "0", "LINE", "8", "KALIP",
+    "10", String(x1), "20", String(y1),
+    "11", String(x2), "21", String(y2),
   ];
 
+  // Aynı minimal AC1027/LAYER sözleşmesi cad-dxf.spec.ts production browser
+  // gate'inde upstream MLightCAD ile doğrulanıyor. Simetrik dış çerçeve zoom-to-fit
+  // sonrasında world origin'i viewport merkezinde tutar. Merkezde:
+  // - diagonal başlangıcı = Endpoint
+  // - yatay çizgi ortası = Midpoint
+  // - yatay/dikey/diagonal kesişimi = Intersection
+  // - circle merkezi = Center
+  // - çizgilerin üzeri = Nearest
   return [
     "0", "SECTION", "2", "HEADER",
-    "9", "$ACADVER", "1", "AC1009",
-    "9", "$EXTMIN", "10", "-250", "20", "-250", "30", "0",
-    "9", "$EXTMAX", "10", "250", "20", "250", "30", "0",
+    "9", "$ACADVER", "1", "AC1027",
     "0", "ENDSEC",
     "0", "SECTION", "2", "TABLES",
-    "0", "TABLE", "2", "LAYER", "70", "1",
+    "0", "TABLE", "2", "LAYER", "70", "2",
     "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "CONTINUOUS",
+    "0", "LAYER", "2", "KALIP", "70", "0", "62", "2", "6", "CONTINUOUS",
     "0", "ENDTAB", "0", "ENDSEC",
     "0", "SECTION", "2", "ENTITIES",
-    // Symmetric outer circle keeps zoom-to-fit centered exactly at world origin.
-    ...circle("10", 0, 0, 250),
-    // Two tangent circles create a real circle-circle Intersection at world origin.
-    ...circle("11", -100, 0, 100),
-    ...circle("12", 100, 0, 100),
-    // Endpoint at world origin (start angle 0°).
-    ...arc("13", -100, 0, 100, 0, 45),
-    // Midpoint at world origin: 270° -> 90° CCW has midpoint angle 0°.
-    ...arc("14", -100, 0, 100, 270, 90),
+    ...line(-500, -500, 500, -500),
+    ...line(500, -500, 500, 500),
+    ...line(500, 500, -500, 500),
+    ...line(-500, 500, -500, -500),
+    ...line(-300, 0, 300, 0),
+    ...line(0, -300, 0, 300),
+    ...line(0, 0, 260, 260),
+    "0", "CIRCLE", "8", "KALIP", "10", "0", "20", "0", "40", "100",
     "0", "ENDSEC", "0", "EOF",
   ].join("\n");
 }
@@ -106,7 +94,7 @@ async function openViewer(page: Page): Promise<{
     });
     const payload = await response.json();
     if (!response.ok || !payload.file?.id) {
-      throw new Error(payload.error || "Stage 8 ARC/CIRCLE DXF fixture yüklenemedi");
+      throw new Error(payload.error || "Stage 8 LINE/CIRCLE DXF fixture yüklenemedi");
     }
     return payload.file.id as string;
   }, { content: fixture });
