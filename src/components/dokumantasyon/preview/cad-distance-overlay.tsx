@@ -13,6 +13,19 @@ export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementRes
   id: string;
 }
 
+type CadRendererCanvasBridge = {
+  manager?: {
+    curView?: {
+      canvas?: HTMLCanvasElement;
+      canvas2d?: HTMLCanvasElement;
+    };
+  };
+};
+
+type CadRendererHost = HTMLElement & {
+  __cadAdapter?: CadRendererCanvasBridge;
+};
+
 function formatDistance(value: number): string {
   return new Intl.NumberFormat("tr-TR", {
     maximumFractionDigits: 3,
@@ -45,6 +58,49 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
   }
 }
 
+function resolveLiveCadCanvas(host: HTMLElement): HTMLCanvasElement | null {
+  const directAdapter = (host as CadRendererHost).__cadAdapter;
+  const nestedAdapter = (host.querySelector("[aria-label$='CAD görünümü']") as CadRendererHost | null)
+    ?.__cadAdapter;
+  const adapter = directAdapter ?? nestedAdapter;
+  const liveCanvas = adapter?.manager?.curView?.canvas ?? adapter?.manager?.curView?.canvas2d;
+
+  if (
+    liveCanvas instanceof HTMLCanvasElement &&
+    liveCanvas.width > 0 &&
+    liveCanvas.height > 0
+  ) {
+    return liveCanvas;
+  }
+
+  const hostRect = host.getBoundingClientRect();
+  const canvases = Array.from(host.querySelectorAll("canvas")).filter((canvas) => {
+    if (canvas.hasAttribute("data-cad-precision-lens")) return false;
+    const style = window.getComputedStyle(canvas);
+    const rect = canvas.getBoundingClientRect();
+    return (
+      canvas.width > 0 &&
+      canvas.height > 0 &&
+      rect.width > 0 &&
+      rect.height > 0 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      Number(style.opacity || "1") > 0
+    );
+  });
+
+  return (
+    canvases.sort((a, b) => {
+      const aRect = a.getBoundingClientRect();
+      const bRect = b.getBoundingClientRect();
+      const aViewportDelta = Math.abs(aRect.width - hostRect.width) + Math.abs(aRect.height - hostRect.height);
+      const bViewportDelta = Math.abs(bRect.width - hostRect.width) + Math.abs(bRect.height - hostRect.height);
+      if (aViewportDelta !== bViewportDelta) return aViewportDelta - bViewportDelta;
+      return b.width * b.height - a.width * a.height;
+    })[0] ?? null
+  );
+}
+
 export function CadDistanceOverlay({
   snapshot,
   measurements,
@@ -69,15 +125,7 @@ export function CadDistanceOverlay({
 
   const getSourceCanvas = (): HTMLCanvasElement | null => {
     const host = anchorRef.current?.parentElement;
-    if (!host) return null;
-    const canvases = Array.from(host.querySelectorAll("canvas")).filter(
-      (canvas) => !canvas.hasAttribute("data-cad-precision-lens")
-    );
-    return (
-      canvases.sort(
-        (a, b) => b.width * b.height - a.width * a.height
-      )[0] ?? null
-    );
+    return host ? resolveLiveCadCanvas(host) : null;
   };
 
   return (
