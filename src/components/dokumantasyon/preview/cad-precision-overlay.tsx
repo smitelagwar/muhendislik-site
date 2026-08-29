@@ -101,12 +101,15 @@ export function CadPrecisionOverlay({
 
     context.save();
     context.setTransform(1, 0, 0, 1, 0, 0);
-    context.fillStyle = getComputedStyle(sourceCanvas).backgroundColor || "#111827";
+    context.fillStyle = "#18232d";
     context.fillRect(0, 0, width, height);
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
     try {
       context.drawImage(sourceCanvas, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+    } catch {
+      context.fillStyle = "#18232d";
+      context.fillRect(0, 0, width, height);
     } finally {
       context.restore();
     }
@@ -178,6 +181,7 @@ export function CadPrecisionOverlay({
           }}
           data-testid="cad-precision-magnifier"
           data-cad-precision-magnifier="true"
+          data-cad-magnifier-fixed="top-right"
           data-cad-magnifier-side={placement.side}
         >
           <div className="flex h-6 items-center border-b border-border/70 bg-background/92 px-2 text-[9px] font-semibold text-foreground/85">
