@@ -1,0 +1,127 @@
+name: CAD mobile Stage 8 acceptance
+
+on:
+  push:
+    branches:
+      - internal-cad-mobile-acceptance-stage8
+    paths:
+      - ".github/workflows/cad-mobile-stage8.yml"
+      - "playwright.config.ts"
+      - "scripts/check-cad-mobile-stage8.ts"
+      - "scripts/check-cad-snap-runtime-stage8.ts"
+      - "tests/document-studio/cad-mobile-stage8-acceptance.spec.ts"
+      - "tests/document-studio/cad-mobile-stage8-intersection.spec.ts"
+      - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
+      - "src/lib/dokumantasyon/cad-upstream/adapter.ts"
+      - "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+      - "src/lib/dokumantasyon/cad-upstream/mobile-gesture-guard.ts"
+      - "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+      - "src/lib/dokumantasyon/cad-upstream/snap-*.ts"
+      - "vercel.json"
+  pull_request:
+    paths:
+      - ".github/workflows/cad-mobile-stage8.yml"
+      - "playwright.config.ts"
+      - "scripts/check-cad-mobile-stage8.ts"
+      - "scripts/check-cad-snap-runtime-stage8.ts"
+      - "tests/document-studio/cad-mobile-stage8-acceptance.spec.ts"
+      - "tests/document-studio/cad-mobile-stage8-intersection.spec.ts"
+      - "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+      - "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
+      - "src/lib/dokumantasyon/cad-upstream/adapter.ts"
+      - "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts"
+      - "src/lib/dokumantasyon/cad-upstream/mobile-gesture-guard.ts"
+      - "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+      - "src/lib/dokumantasyon/cad-upstream/snap-*.ts"
+      - "vercel.json"
+
+concurrency:
+  group: cad-mobile-stage8-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-mobile-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install exact lockfile
+        run: npm ci
+
+      - name: Run Stage 8 contract and performance gate
+        run: npx tsx scripts/check-cad-mobile-stage8.ts
+
+      - name: Guard real MLightCAD snap runtime
+        run: npx tsx scripts/check-cad-snap-runtime-stage8.ts
+
+      - name: Re-run Stage 4 snap regression gate
+        run: npx tsx scripts/check-cad-snap-stage4.ts
+
+      - name: Re-run Stage 7 precision regression gate
+        run: npx tsx scripts/check-cad-precision-stage7.ts
+
+      - name: Re-run Stage 6 distance regression gate
+        run: npx tsx scripts/check-cad-distance-stage6.ts
+
+      - name: Re-run Stage 3 gesture regression gate
+        run: npx tsx scripts/check-cad-mobile-gesture-stage3.ts
+
+      - name: Targeted Stage 8 lint
+        run: >-
+          npx eslint
+          "playwright.config.ts"
+          "scripts/check-cad-mobile-stage8.ts"
+          "scripts/check-cad-snap-runtime-stage8.ts"
+          "tests/document-studio/cad-mobile-stage8-acceptance.spec.ts"
+          "tests/document-studio/cad-mobile-stage8-intersection.spec.ts"
+          "src/lib/dokumantasyon/cad-upstream/snap-catalog.ts"
+          "src/lib/dokumantasyon/cad-upstream/precision-ux.ts"
+          "src/components/dokumantasyon/preview/cad-precision-overlay.tsx"
+          "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
+          "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production-equivalent Next build
+        run: npm run build
+
+      - name: Install mobile acceptance browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Pixel 7 and iPhone 13 mobile CAD acceptance
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3028"
+        run: |
+          npx playwright test \
+            tests/document-studio/cad-mobile-stage8-intersection.spec.ts \
+            --project=mobile-chromium \
+            --project=mobile-webkit
+          npx playwright test \
+            tests/document-studio/cad-mobile-stage8-acceptance.spec.ts \
+            --project=mobile-chromium \
+            --project=mobile-webkit \
+            --grep "ikinci parmak pending|trusted iki-parmak pinch"
+
+      - name: Upload Stage 8 browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cad-mobile-stage8-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

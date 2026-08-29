@@ -1,9 +1,22 @@
 import type { CadSnapPrimitive, CadSnapPoint } from "./snap-engine";
 
 type MatrixLike = { elements?: ArrayLike<number> } | ArrayLike<number>;
-type EntityLike = Record<string, unknown> & { type?: string; layer?: string; objectId?: unknown };
+type EntityLike = Record<string, unknown> & {
+  type?: unknown;
+  typeName?: unknown;
+  dxfTypeName?: unknown;
+  layer?: string;
+  objectId?: unknown;
+};
 type BlockLike = { newIterator?: () => Iterable<EntityLike> };
-type DatabaseLike = { tables?: { blockTable?: { modelSpace?: BlockLike; getAt?: (name: string) => BlockLike | undefined } } };
+type DatabaseLike = {
+  tables?: {
+    blockTable?: {
+      modelSpace?: BlockLike;
+      getAt?: (name: string) => BlockLike | undefined;
+    };
+  };
+};
 
 const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] as const;
 
@@ -61,14 +74,37 @@ function entityId(entity: EntityLike, fallback: string): string {
   return fallback;
 }
 
+function uniqueEntityId(entity: EntityLike, fallback: string, usedIds: Set<string>): string {
+  const base = entityId(entity, fallback);
+  if (!usedIds.has(base)) {
+    usedIds.add(base);
+    return base;
+  }
+
+  let suffix = 2;
+  let candidate = `${base}#${suffix}`;
+  while (usedIds.has(candidate)) {
+    suffix += 1;
+    candidate = `${base}#${suffix}`;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
 function entityType(entity: EntityLike): string {
   const ctorName = (entity as { constructor?: { name?: string } }).constructor?.name;
-  return String(entity.type ?? ctorName ?? "").toUpperCase();
+  for (const raw of [entity.dxfTypeName, entity.typeName, entity.type, ctorName]) {
+    if (typeof raw === "string" && raw.trim()) return raw.trim().toUpperCase();
+  }
+  return entity.type === undefined || entity.type === null
+    ? ""
+    : String(entity.type).toUpperCase();
 }
 
 function readVertices(entity: EntityLike): CadSnapPoint[] {
   const raw = entity.vertices;
   if (Array.isArray(raw)) return raw.map(point).filter((p): p is CadSnapPoint => Boolean(p));
+
   const getter = entity.getVertices;
   if (typeof getter === "function") {
     try {
@@ -76,6 +112,28 @@ function readVertices(entity: EntityLike): CadSnapPoint[] {
       if (Array.isArray(result)) return result.map(point).filter((p): p is CadSnapPoint => Boolean(p));
     } catch {}
   }
+
+  const countRaw = entity.numberOfVertices;
+  const count = typeof countRaw === "number" && Number.isFinite(countRaw)
+    ? Math.max(0, Math.floor(countRaw))
+    : 0;
+  const pointGetter =
+    typeof entity.getPoint3dAt === "function"
+      ? entity.getPoint3dAt
+      : typeof entity.getPoint2dAt === "function"
+        ? entity.getPoint2dAt
+        : null;
+  if (count > 0 && pointGetter) {
+    const vertices: CadSnapPoint[] = [];
+    for (let index = 0; index < count; index += 1) {
+      try {
+        const vertex = point(pointGetter.call(entity, index));
+        if (vertex) vertices.push(vertex);
+      } catch {}
+    }
+    return vertices;
+  }
+
   return [];
 }
 
@@ -154,13 +212,15 @@ function visitBlock(
   matrix: number[],
   out: CadSnapPrimitive[],
   path: string,
-  seen: Set<BlockLike>
+  seen: Set<BlockLike>,
+  usedIds: Set<string>
 ): void {
   if (!block?.newIterator || seen.has(block)) return;
   seen.add(block);
   let index = 0;
   for (const entity of block.newIterator()) {
-    const id = entityId(entity, `${path}:${index++}`);
+    const fallback = `${path}:${index++}`;
+    const id = uniqueEntityId(entity, fallback, usedIds);
     const type = entityType(entity);
     const layer = typeof entity.layer === "string" ? entity.layer : undefined;
     const start = point(entity.startPoint);
@@ -178,7 +238,13 @@ function visitBlock(
       pushCircleOrArc(out, entity, matrix, id, layer, true);
       continue;
     }
-    if (type.includes("POLYLINE") || Array.isArray(entity.vertices)) {
+    if (
+      type.includes("POLYLINE") ||
+      Array.isArray(entity.vertices) ||
+      typeof entity.getVertices === "function" ||
+      (typeof entity.numberOfVertices === "number" &&
+        (typeof entity.getPoint3dAt === "function" || typeof entity.getPoint2dAt === "function"))
+    ) {
       pushPolyline(out, entity, matrix, id, layer);
       continue;
     }
@@ -188,7 +254,15 @@ function visitBlock(
     if (referenced && typeof transform === "function") {
       try {
         const childMatrix = matrixElements(transform.call(entity) as MatrixLike);
-        visitBlock(referenced, db, multiply(matrix, childMatrix), out, `${path}/${id}`, new Set(seen));
+        visitBlock(
+          referenced,
+          db,
+          multiply(matrix, childMatrix),
+          out,
+          `${path}/${id}`,
+          new Set(seen),
+          usedIds
+        );
       } catch {}
     }
   }
@@ -199,6 +273,6 @@ export function buildCadSnapPrimitives(database: unknown): CadSnapPrimitive[] {
   const modelSpace = db.tables?.blockTable?.modelSpace;
   if (!modelSpace) return [];
   const out: CadSnapPrimitive[] = [];
-  visitBlock(modelSpace, db, [...IDENTITY], out, "model", new Set());
+  visitBlock(modelSpace, db, [...IDENTITY], out, "model", new Set(), new Set());
   return out;
 }
