@@ -44,9 +44,17 @@ for (const token of [
   "MEASUREMENT_LENGTH_FORMAT_OPTIONS",
   "FontManager",
   "getFillMaterial",
+  "enforceCadMouseBindings(): void",
 ]) {
   assert.ok(adapter.includes(token), `main CAD iyileştirmesi final birleşimde eksik: ${token}`);
 }
+
+assert.ok(
+  adapter.includes(
+    "this.manager.curView.selectionSet?.clear();\n    // PAN mode changes upstream OrbitControls mouse mappings. Restore the\n    // desktop read-only contract afterwards without touching touch gestures.\n    this.enforceCadMouseBindings();"
+  ),
+  "restorePanMode sonrası masaüstü mouse binding sözleşmesi yeniden uygulanmalı."
+);
 
 for (const token of [
   "cad-bg-autocad",
@@ -65,5 +73,5 @@ assert.equal(
 );
 
 console.log(
-  "GATE: PASS — Stage 9 final integration preserves Stage 2–8 mobile CAD behavior, main CAD enhancements and the Vercel Git deploy lock."
+  "GATE: PASS — Stage 9 final integration preserves Stage 2–8 mobile CAD behavior, desktop read-only mouse bindings, main CAD enhancements and the Vercel Git deploy lock."
 );
