@@ -43,6 +43,13 @@ function createPrecisionFixture(): string {
 
 async function signIn(page: Page): Promise<void> {
   await page.goto("/dokumantasyon");
+
+  const authProbe = await page.request.get("/api/dokumantasyon/items");
+  if (authProbe.ok()) return;
+  if (authProbe.status() !== 401) {
+    throw new Error(`Stage 8 auth probe failed: ${authProbe.status()} ${await authProbe.text()}`);
+  }
+
   const username = page.getByLabel("Kullanıcı Adı");
   await expect(username).toBeVisible({ timeout: 20_000 });
   await username.pressSequentially("admin");
