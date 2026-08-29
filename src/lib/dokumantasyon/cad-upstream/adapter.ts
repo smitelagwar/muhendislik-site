@@ -6,6 +6,8 @@ import type {
   AcApLayerStore,
 } from "@mlightcad/cad-simple-viewer";
 
+import { CadMobileGestureGuard } from "./mobile-gesture-guard";
+
 export const CAD_UPSTREAM_WORKER_URLS = {
   mtextRender: "/cad-upstream/mtext-renderer-worker.js",
   dwgParser: "/cad-upstream/libredwg-parser-worker.js",
@@ -14,6 +16,8 @@ export const CAD_UPSTREAM_WORKER_URLS = {
 export const CAD_UPSTREAM_SUPPORTED_EXTENSIONS = new Set([".dxf", ".dwg"]);
 const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
 const CAD_MOBILE_PINCH_ZOOM_SPEED = 1;
+
+type CadMeasurementCommand = "distance" | "area";
 
 export type CadUpstreamTheme = "light" | "dark";
 export type CadUpstreamDisplayMode = "source" | "monochrome";
@@ -144,11 +148,17 @@ export class CadUpstreamAdapter {
   private displayTheme: CadUpstreamTheme = "dark";
   private sourceCanvasFilter: string | null = null;
   private lineWeightVisible = false;
-  private readonly initialLayerSnapshot = new Map<string, { isOn: boolean; isFrozen: boolean }>();
+  private activeMeasurementCommand: CadMeasurementCommand | null = null;
+  private mobileGestureGuard: CadMobileGestureGuard | null = null;
+  private readonly initialLayerSnapshot = new Map<
+    string,
+    { isOn: boolean; isFrozen: boolean }
+  >();
 
   private constructor(
     private readonly manager: AcApDocManager,
-    private readonly Viewer: CadSimpleViewerModule
+    private readonly Viewer: CadSimpleViewerModule,
+    private readonly interactionHost: HTMLElement
   ) {}
 
   static async create(options: CadUpstreamCreateOptions): Promise<CadUpstreamAdapter> {
@@ -170,7 +180,10 @@ export class CadUpstreamAdapter {
     Viewer.AcApSettingManager.instance.isShowRibbon = false;
     Viewer.AcApSettingManager.instance.isShowToolbar = false;
 
-    Viewer.acedApplyUiTheme(options.theme ?? "dark", options.busyIndicatorHost ?? options.container);
+    Viewer.acedApplyUiTheme(
+      options.theme ?? "dark",
+      options.busyIndicatorHost ?? options.container
+    );
 
     const manager = Viewer.AcApDocManager.createInstance({
       container: options.container,
@@ -182,7 +195,10 @@ export class CadUpstreamAdapter {
     });
 
     if (!manager) {
-      throw new CadUpstreamAdapterError("open-failed", "MLightCAD document manager başlatılamadı.");
+      throw new CadUpstreamAdapterError(
+        "open-failed",
+        "MLightCAD document manager başlatılamadı."
+      );
     }
 
     if (!(await manager.areWorkersReady())) {
@@ -193,14 +209,17 @@ export class CadUpstreamAdapter {
       );
     }
 
-    const adapter = new CadUpstreamAdapter(manager, Viewer);
+    const adapter = new CadUpstreamAdapter(manager, Viewer, options.container);
     adapter.displayTheme = options.theme ?? "dark";
     return adapter;
   }
 
   async open(options: CadUpstreamOpenOptions): Promise<void> {
     if (this.destroyed) {
-      throw new CadUpstreamAdapterError("adapter-destroyed", "CAD adapter kapatıldı.");
+      throw new CadUpstreamAdapterError(
+        "adapter-destroyed",
+        "CAD adapter kapatıldı."
+      );
     }
 
     const extension = normalizeExtension(options.extension);
@@ -266,26 +285,28 @@ export class CadUpstreamAdapter {
     }
 
     // Enforce read-only PAN view mode and clear selection set
-    if (this.manager.curView) {
-      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
-      this.manager.curView.selectionSet?.clear();
-    }
+    this.restorePanMode();
 
     this.configureMobilePinchZoom();
+    this.configureMobileGestureGuard();
     this.applyDisplayMode();
   }
 
   private configureMobilePinchZoom(): void {
     if (!hasCoarseTouchPointer()) return;
 
-    const activeLayoutView = (this.manager.curView as unknown as {
-      activeLayoutView?: {
-        _cameraControls?: {
-          zoomSpeed: number;
-          zoomToCursor: boolean;
-        };
-      };
-    } | undefined)?.activeLayoutView;
+    const activeLayoutView = (
+      this.manager.curView as unknown as
+        | {
+            activeLayoutView?: {
+              _cameraControls?: {
+                zoomSpeed: number;
+                zoomToCursor: boolean;
+              };
+            };
+          }
+        | undefined
+    )?.activeLayoutView;
     const controls = activeLayoutView?._cameraControls;
     if (!controls) return;
 
@@ -295,6 +316,34 @@ export class CadUpstreamAdapter {
     // controlled while preserving the upstream midpoint/cursor anchoring.
     controls.zoomSpeed = CAD_MOBILE_PINCH_ZOOM_SPEED;
     controls.zoomToCursor = true;
+  }
+
+  private configureMobileGestureGuard(): void {
+    this.mobileGestureGuard?.destroy();
+    this.mobileGestureGuard = null;
+
+    if (!hasCoarseTouchPointer()) return;
+
+    this.mobileGestureGuard = new CadMobileGestureGuard(this.interactionHost, {
+      onMultiTouchStart: () => this.abortMeasurementForMultiTouch(),
+    });
+  }
+
+  private abortMeasurementForMultiTouch(): void {
+    if (this.destroyed || !this.activeMeasurementCommand) return;
+
+    // Switch synchronously before the second pointer reaches downstream CAD
+    // listeners. The event itself keeps propagating so OrbitControls still
+    // receives both touches and can perform its normal pinch + two-finger pan.
+    this.activeMeasurementCommand = null;
+    this.restorePanMode();
+    void this.manager.commandManager.cancelActive().catch(() => {});
+  }
+
+  private restorePanMode(): void {
+    if (!this.manager.curView) return;
+    this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
+    this.manager.curView.selectionSet?.clear();
   }
 
   isReady(): boolean {
@@ -310,7 +359,10 @@ export class CadUpstreamAdapter {
     return this.displayMode;
   }
 
-  setDisplayMode(mode: CadUpstreamDisplayMode, theme: CadUpstreamTheme = this.displayTheme): void {
+  setDisplayMode(
+    mode: CadUpstreamDisplayMode,
+    theme: CadUpstreamTheme = this.displayTheme
+  ): void {
     this.displayMode = mode;
     this.displayTheme = theme;
     this.applyDisplayMode();
@@ -326,10 +378,12 @@ export class CadUpstreamAdapter {
 
   private applyDisplayMode(): void {
     if (this.destroyed) return;
-    const view = this.manager.curView as unknown as {
-      canvas?: HTMLCanvasElement;
-      canvas2d?: HTMLCanvasElement;
-    } | undefined;
+    const view = this.manager.curView as unknown as
+      | {
+          canvas?: HTMLCanvasElement;
+          canvas2d?: HTMLCanvasElement;
+        }
+      | undefined;
 
     const canvas = view?.canvas ?? view?.canvas2d;
     if (!canvas) return;
@@ -449,52 +503,53 @@ export class CadUpstreamAdapter {
 
   async cancelActiveCommand(): Promise<void> {
     if (this.destroyed) return;
+    this.activeMeasurementCommand = null;
     await this.manager.commandManager.cancelActive().catch(() => {});
-    if (this.manager.curView) {
-      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
-      this.manager.curView.selectionSet?.clear();
-    }
+    this.restorePanMode();
   }
 
   async measureDistance(): Promise<void> {
     if (this.destroyed) return;
     await this.cancelActiveCommand();
+    this.activeMeasurementCommand = "distance";
     try {
       await this.manager.executeCommandString("measuredistance");
     } finally {
-      if (this.manager.curView) {
-        this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
-        this.manager.curView.selectionSet?.clear();
+      if (this.activeMeasurementCommand === "distance") {
+        this.activeMeasurementCommand = null;
       }
+      this.restorePanMode();
     }
   }
 
   async measureArea(): Promise<void> {
     if (this.destroyed) return;
     await this.cancelActiveCommand();
+    this.activeMeasurementCommand = "area";
     try {
       await this.manager.executeCommandString("measurearea");
     } finally {
-      if (this.manager.curView) {
-        this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
-        this.manager.curView.selectionSet?.clear();
+      if (this.activeMeasurementCommand === "area") {
+        this.activeMeasurementCommand = null;
       }
+      this.restorePanMode();
     }
   }
 
   async clearMeasurements(): Promise<void> {
     if (this.destroyed) return;
     await this.cancelActiveCommand();
-    await this.manager.executeCommandString("clearmeasurements").catch(() => {});
-    if (this.manager.curView) {
-      this.manager.curView.mode = this.Viewer.AcEdViewMode.PAN;
-      this.manager.curView.selectionSet?.clear();
-    }
+    await this.manager
+      .executeCommandString("clearmeasurements")
+      .catch(() => {});
+    this.restorePanMode();
   }
 
   async destroy(): Promise<void> {
     if (this.destroyed) return;
     await this.cancelActiveCommand();
+    this.mobileGestureGuard?.destroy();
+    this.mobileGestureGuard = null;
     this.initialLayerSnapshot.clear();
     this.displayMode = "source";
     this.applyDisplayMode();
