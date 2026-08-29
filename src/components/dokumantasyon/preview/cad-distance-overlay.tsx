@@ -1,10 +1,13 @@
 "use client";
 
+import { useRef } from "react";
+
 import type {
   CadDistanceMeasurementResult,
   CadDistanceMeasurementSnapshot,
 } from "@/lib/dokumantasyon/cad-upstream/distance-measurement";
 import type { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import { CadPrecisionOverlay } from "./cad-precision-overlay";
 
 export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementResult {
   id: string;
@@ -51,6 +54,7 @@ export function CadDistanceOverlay({
   measurements: readonly CadDistanceOverlayMeasurement[];
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
 }) {
+  const anchorRef = useRef<HTMLSpanElement>(null);
   const completed = measurements
     .map((measurement) => {
       const start = projectPoint(measurement.start);
@@ -63,8 +67,23 @@ export function CadDistanceOverlay({
   const preview = snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
   const message = phaseMessage(snapshot);
 
+  const getSourceCanvas = (): HTMLCanvasElement | null => {
+    const host = anchorRef.current?.parentElement;
+    if (!host) return null;
+    const canvases = Array.from(host.querySelectorAll("canvas")).filter(
+      (canvas) => !canvas.hasAttribute("data-cad-precision-lens")
+    );
+    return (
+      canvases.sort(
+        (a, b) => b.width * b.height - a.width * a.height
+      )[0] ?? null
+    );
+  };
+
   return (
     <>
+      <span ref={anchorRef} className="hidden" data-cad-distance-overlay-anchor="true" />
+
       <svg
         className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
         aria-hidden="true"
@@ -138,10 +157,17 @@ export function CadDistanceOverlay({
             r={snapshot?.previewSnap ? 4.5 : 3.5}
             className={snapshot?.previewSnap ? "fill-primary" : "fill-background stroke-primary"}
             strokeWidth="1.5"
+            opacity={snapshot?.previewSnap ? 0.35 : 0.7}
             data-cad-distance-preview="true"
           />
         ) : null}
       </svg>
+
+      <CadPrecisionOverlay
+        snapshot={snapshot}
+        projectPoint={projectPoint}
+        getSourceCanvas={getSourceCanvas}
+      />
 
       {message ? (
         <div
