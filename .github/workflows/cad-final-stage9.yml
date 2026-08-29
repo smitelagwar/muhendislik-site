@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/cad-final-stage9.yml"
       - "scripts/check-cad-final-stage9.ts"
+      - "scripts/repair-cad-stage9-merge.mjs"
       - "src/components/dokumantasyon/preview/cad-*.tsx"
       - "src/lib/dokumantasyon/cad-upstream/**"
       - "tests/document-studio/cad-*.spec.ts"
@@ -53,6 +54,23 @@ jobs:
             echo "did_merge=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Repair known final integration hunks
+        env:
+          DID_MERGE: ${{ steps.merge_main.outputs.did_merge }}
+        run: |
+          node scripts/repair-cad-stage9-merge.mjs
+          git add -A
+          if ! git diff --cached --quiet; then
+            if [ "$DID_MERGE" = "true" ]; then
+              git commit --amend --no-edit
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git commit -m "fix(cad): repair final integration hunks"
+            fi
+          fi
+          git status --short
+
       - name: Install exact lockfile
         run: npm ci
 
@@ -84,6 +102,7 @@ jobs:
         run: >-
           npx eslint
           "scripts/check-cad-final-stage9.ts"
+          "scripts/repair-cad-stage9-merge.mjs"
           "playwright.config.ts"
           "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx"
           "src/components/dokumantasyon/preview/cad-distance-overlay.tsx"
