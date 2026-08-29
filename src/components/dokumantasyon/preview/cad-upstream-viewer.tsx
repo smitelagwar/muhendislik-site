@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
   CadUpstreamAdapterError,
+  type CadDistanceMeasurementSnapshot,
   type CadLayerItem,
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
@@ -25,12 +26,17 @@ import {
 import {
   CAD_SNAP_MODES,
   createDefaultCadSnapSettings,
+  getEnabledCadSnapModes,
   loadCadSnapSettings,
   saveCadSnapSettings,
   type CadSnapSettings,
   type CadSnapSettingsStorage,
 } from "@/lib/dokumantasyon/cad-upstream/snap-settings";
 import { resolveCadUpstreamTimeoutMs } from "@/lib/dokumantasyon/dwg/runtime-policy";
+import {
+  CadDistanceOverlay,
+  type CadDistanceOverlayMeasurement,
+} from "./cad-distance-overlay";
 import { CadLayerPanel } from "./cad-layer-panel";
 import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
 
@@ -161,6 +167,7 @@ export function DokCadUpstreamViewer({
   const adapterRef = useRef<CadUpstreamAdapter | null>(null);
   const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
   const lineWeightVisibleRef = useRef(false);
+  const distanceMeasurementIdRef = useRef(0);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
   const [retryKey, setRetryKey] = useState(0);
@@ -174,6 +181,12 @@ export function DokCadUpstreamViewer({
   const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
     createDefaultCadSnapSettings()
   );
+  const [distanceSnapshot, setDistanceSnapshot] =
+    useState<CadDistanceMeasurementSnapshot | null>(null);
+  const [distanceMeasurements, setDistanceMeasurements] = useState<
+    CadDistanceOverlayMeasurement[]
+  >([]);
+  const [, setViewRevision] = useState(0);
 
   const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
 
@@ -193,6 +206,7 @@ export function DokCadUpstreamViewer({
     let systemThemeQuery: MediaQueryList | null = null;
     let syncTheme: (() => void) | null = null;
     let unsubscribeLayers: (() => void) | null = null;
+    let unsubscribeViewChanged: (() => void) | null = null;
     let timeoutId: number | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
@@ -202,6 +216,9 @@ export function DokCadUpstreamViewer({
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
       setSnapPanelOpen(false);
+      setActiveTool(null);
+      setDistanceSnapshot(null);
+      setDistanceMeasurements([]);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -255,6 +272,9 @@ export function DokCadUpstreamViewer({
             setLayers(adapterRef.current.getLayers());
           }
         });
+        unsubscribeViewChanged = createdAdapter.subscribeViewChanged(() => {
+          if (!cancelled) setViewRevision((value) => value + 1);
+        });
       })();
 
       const deadline = new Promise<never>((_, reject) => {
@@ -291,6 +311,10 @@ export function DokCadUpstreamViewer({
           unsubscribeLayers();
           unsubscribeLayers = null;
         }
+        if (unsubscribeViewChanged) {
+          unsubscribeViewChanged();
+          unsubscribeViewChanged = null;
+        }
 
         if (adapter) {
           if (adapterRef.current === adapter) adapterRef.current = null;
@@ -323,6 +347,10 @@ export function DokCadUpstreamViewer({
         unsubscribeLayers();
         unsubscribeLayers = null;
       }
+      if (unsubscribeViewChanged) {
+        unsubscribeViewChanged();
+        unsubscribeViewChanged = null;
+      }
 
       if (adapterRef.current === adapter) adapterRef.current = null;
       previousCadUpstreamTeardown = startup
@@ -351,6 +379,7 @@ export function DokCadUpstreamViewer({
       setLayerPanelOpen(false);
       setSnapPanelOpen(false);
       setActiveTool(null);
+      setDistanceSnapshot(null);
       void adapterRef.current?.cancelActiveCommand();
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -379,6 +408,9 @@ export function DokCadUpstreamViewer({
   const handleSnapSettingsChange = (next: CadSnapSettings) => {
     setSnapSettings(next);
     saveCadSnapSettings(resolveSnapStorage(), next);
+    adapterRef.current?.updateDistanceMeasurementSnapModes(
+      getEnabledCadSnapModes(next)
+    );
   };
 
   const handleZoomToFit = () => {
@@ -386,28 +418,51 @@ export function DokCadUpstreamViewer({
   };
 
   const handleStartDistance = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
     if (activeTool === "distance") {
-      setActiveTool(null);
-      await adapterRef.current?.cancelActiveCommand();
+      await adapter.cancelActiveCommand();
       return;
     }
-    setActiveTool("distance");
-    try {
-      await adapterRef.current?.measureDistance();
-    } finally {
-      setActiveTool(null);
-    }
+
+    const started = await adapter.startDistanceMeasurement(
+      getEnabledCadSnapModes(snapSettings),
+      {
+        onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
+        onComplete: (measurement) => {
+          distanceMeasurementIdRef.current += 1;
+          setDistanceMeasurements((current) => [
+            ...current,
+            {
+              ...measurement,
+              id: `distance-${distanceMeasurementIdRef.current}`,
+            },
+          ]);
+          setDistanceSnapshot(null);
+          setActiveTool((current) => (current === "distance" ? null : current));
+        },
+        onCancel: () => {
+          setDistanceSnapshot(null);
+          setActiveTool((current) => (current === "distance" ? null : current));
+        },
+      }
+    );
+    setActiveTool(started ? "distance" : null);
   };
 
   const handleStartArea = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
     if (activeTool === "area") {
       setActiveTool(null);
-      await adapterRef.current?.cancelActiveCommand();
+      await adapter.cancelActiveCommand();
       return;
     }
+    await adapter.cancelActiveCommand();
+    setDistanceSnapshot(null);
     setActiveTool("area");
     try {
-      await adapterRef.current?.measureArea();
+      await adapter.measureArea();
     } finally {
       setActiveTool(null);
     }
@@ -415,6 +470,9 @@ export function DokCadUpstreamViewer({
 
   const handleClearMeasurements = async () => {
     setActiveTool(null);
+    setDistanceSnapshot(null);
+    setDistanceMeasurements([]);
+    distanceMeasurementIdRef.current = 0;
     await adapterRef.current?.clearMeasurements();
   };
 
@@ -481,6 +539,7 @@ export function DokCadUpstreamViewer({
       data-cad-color-mode={displayMode}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
+      data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
       data-cad-snap-enabled={snapSettings.enabled ? "true" : "false"}
@@ -493,6 +552,14 @@ export function DokCadUpstreamViewer({
         className="absolute inset-0"
         aria-label={`${displayName} CAD görünümü`}
       />
+
+      {state === "ready" ? (
+        <CadDistanceOverlay
+          snapshot={distanceSnapshot}
+          measurements={distanceMeasurements}
+          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+        />
+      ) : null}
 
       {displayControls && toolbarTarget
         ? createPortal(displayControls, toolbarTarget)
@@ -527,7 +594,7 @@ export function DokCadUpstreamViewer({
             size="sm"
             variant={activeTool === "distance" ? "default" : "ghost"}
             className="h-8 w-8 p-0"
-            title="Mesafe Ölç (İki nokta seçin)"
+            title="Mesafe Ölç (Nokta için basılı tutup bırakın)"
             onClick={() => void handleStartDistance()}
             data-testid="cad-tool-distance"
             aria-label="Mesafe ölç"
