@@ -336,7 +336,7 @@ export class CadSnapEngine {
 
     candidates.sort(
       (a, b) =>
-        a.distancePx - b.distancePx || MODE_PRIORITY[a.mode] - MODE_PRIORITY[b.mode]
+        MODE_PRIORITY[a.mode] - MODE_PRIORITY[b.mode] || a.distancePx - b.distancePx
     );
     return candidates[0] ?? null;
   }
