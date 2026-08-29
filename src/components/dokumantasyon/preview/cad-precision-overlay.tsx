@@ -214,6 +214,7 @@ export function CadPrecisionOverlay({
             height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
           }}
           data-testid="cad-precision-magnifier"
+          data-cad-precision-magnifier="true"
           data-cad-magnifier-side={placement.side}
         >
           <div className="relative h-full w-full overflow-hidden rounded-full border-2 border-primary/70 bg-background/95 shadow-xl ring-1 ring-background/70">
