@@ -30,6 +30,7 @@ export default defineConfig({
         "**/phase1.spec.ts",
         "**/release.spec.ts",
         "**/cad-mobile-stage8.spec.ts",
+        "**/cad-mobile-stage8-final.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },
@@ -40,7 +41,11 @@ export default defineConfig({
     },
     {
       name: "mobile-webkit",
-      testMatch: ["**/release.spec.ts", "**/cad-mobile-stage8.spec.ts"],
+      testMatch: [
+        "**/release.spec.ts",
+        "**/cad-mobile-stage8.spec.ts",
+        "**/cad-mobile-stage8-final.spec.ts",
+      ],
       use: { ...devices["iPhone 13"], baseURL: `http://localhost:${port}` },
     },
   ],
