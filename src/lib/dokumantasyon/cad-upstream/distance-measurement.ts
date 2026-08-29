@@ -19,6 +19,7 @@ export interface CadDistanceMeasurementSnapshot {
   firstPoint: CadSnapPoint | null;
   previewPoint: CadSnapPoint | null;
   previewSnap: CadSnapCandidate | null;
+  pointerScreenPoint: CadSnapPoint | null;
   distance: number | null;
 }
 
@@ -203,6 +204,7 @@ export class CadPressHoldDistanceMachine {
       firstPoint,
       previewPoint,
       previewSnap: this.previewSnapValue,
+      pointerScreenPoint: null,
       distance:
         firstPoint && previewPoint ? pointDistance(firstPoint, previewPoint) : null,
     };
@@ -378,7 +380,10 @@ export class CadPressHoldDistanceController {
   }
 
   private emit(snapshot: CadDistanceMeasurementSnapshot): void {
-    this.callbacks.onSnapshot?.(snapshot);
+    this.callbacks.onSnapshot?.({
+      ...snapshot,
+      pointerScreenPoint: clonePoint(this.lastScreenPoint),
+    });
   }
 
   private clearHoldTimer(): void {
