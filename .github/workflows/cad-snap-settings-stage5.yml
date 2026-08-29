@@ -1,0 +1,54 @@
+name: CAD snap settings Stage 5 gate
+
+on:
+  push:
+    branches:
+      - internal-cad-snap-settings-stage5
+    paths:
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - src/components/dokumantasyon/preview/cad-snap-settings-panel.tsx
+      - src/lib/dokumantasyon/cad-upstream/snap-settings.ts
+      - scripts/check-cad-snap-settings-stage5.ts
+      - vercel.json
+      - .github/workflows/cad-snap-settings-stage5.yml
+  pull_request:
+    paths:
+      - src/components/dokumantasyon/preview/cad-upstream-viewer.tsx
+      - src/components/dokumantasyon/preview/cad-snap-settings-panel.tsx
+      - src/lib/dokumantasyon/cad-upstream/snap-settings.ts
+      - scripts/check-cad-snap-settings-stage5.ts
+      - vercel.json
+      - .github/workflows/cad-snap-settings-stage5.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-snap-settings-stage5-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-snap-settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact lockfile
+        run: npm ci
+
+      - name: Run Stage 5 settings contract gate
+        run: npx tsx scripts/check-cad-snap-settings-stage5.ts
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
+
+      - name: Production-equivalent Next build
+        run: npm run build
