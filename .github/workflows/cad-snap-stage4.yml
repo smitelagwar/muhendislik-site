@@ -1,0 +1,45 @@
+name: CAD snap Stage 4 gate
+
+on:
+  push:
+    branches:
+      - internal-cad-snap-stage4
+    paths:
+      - src/lib/dokumantasyon/cad-upstream/snap-*.ts
+      - scripts/check-cad-snap-stage4.ts
+      - .github/workflows/cad-snap-stage4.yml
+  pull_request:
+    paths:
+      - src/lib/dokumantasyon/cad-upstream/snap-*.ts
+      - scripts/check-cad-snap-stage4.ts
+      - .github/workflows/cad-snap-stage4.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cad-snap-stage4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-cad-snap-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install exact lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Run snap contract gate
+        run: npx tsx scripts/check-cad-snap-stage4.ts
+
+      - name: Typecheck site
+        run: npx tsc --noEmit --incremental false
