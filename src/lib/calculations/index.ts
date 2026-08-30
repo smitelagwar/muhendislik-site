@@ -12,3 +12,4 @@ export * from "./official-unit-costs";
 export * from "./modules/hizli-metraj";
 export * from "./modules/tahmini-insaat-alani/engine";
 export * from "./modules/tahmini-insaat-alani/types";
+export * from "./modules/yapi-denetim-ucreti";

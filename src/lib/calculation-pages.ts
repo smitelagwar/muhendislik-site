@@ -70,6 +70,26 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
     order: 4,
     keywords: ["çevre şehircilik", "tebliğ", "resmî maliyet", "birim maliyet", "2026"],
   },
+  {
+    id: "yapi-denetim-ucreti",
+    href: "/hesaplamalar/yapi-denetim-ucreti",
+    title: "Tahmini Yapı Denetim Ücreti",
+    navLabel: "Yapı Denetim Ücreti",
+    description:
+      "2026 yapı denetim birim maliyetleri ve hizmet oranlarıyla standart yeni yapı için tahmini hizmet bedelini anında hesaplayın.",
+    badge: "2026",
+    iconKey: "file",
+    order: 5,
+    keywords: [
+      "yapı denetim",
+      "yapı denetim ücreti",
+      "4708",
+      "2026",
+      "hizmet bedeli",
+      "denetim bedeli",
+      "hizmet bedeli oranları",
+    ],
+  },
 ];
 
 export function getCalculationPages(): CalculationPageDefinition[] {

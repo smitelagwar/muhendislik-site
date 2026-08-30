@@ -11,6 +11,16 @@ export function formatTL(tutar: number): string {
   return `${Math.round(tutar).toLocaleString("tr-TR")} TL`;
 }
 
+export function formatCurrencyTL2(deger: number): string {
+  if (!Number.isFinite(deger)) {
+    return "0,00 TL";
+  }
+  return `${deger.toLocaleString("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} TL`;
+}
+
 export function formatSayi(deger: number, digits = 0): string {
   return deger.toLocaleString("tr-TR", {
     minimumFractionDigits: digits,
