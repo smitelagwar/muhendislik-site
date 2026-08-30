@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { Mail, MapPin, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SitePageHeader, SitePageShell } from "@/components/site-page";
 import { buildSeoMetadata } from "@/lib/seo";
@@ -29,29 +29,19 @@ export default function Iletisim() {
               </div>
               <div>
                 <h4 className="font-bold">E-posta</h4>
-                <a href="mailto:info@insablog.com" className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-300">
-                  info@insablog.com
+                <a href="mailto:hsyn188@gmail.com" className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-300">
+                  hsyn188@gmail.com
                 </a>
               </div>
             </div>
-            <div className="site-panel flex items-center gap-4 rounded-xl p-5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                <Phone className="h-6 w-6" />
-              </div>
-              <div>
-                <h4 className="font-bold">Telefon</h4>
-                <a href="tel:+902125550000" className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-300">
-                  +90 (212) 555 00 00
-                </a>
-              </div>
-            </div>
+
             <div className="site-panel flex items-center gap-4 rounded-xl p-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-md bg-secondary text-muted-foreground">
                 <MapPin className="h-6 w-6" />
               </div>
               <div>
                 <h4 className="font-bold">Ofis</h4>
-                <p className="text-zinc-500 dark:text-zinc-400">Teknopark İstanbul, Pendik / İstanbul</p>
+                <p className="text-zinc-500 dark:text-zinc-400">Yozgat / Akdağmadeni</p>
               </div>
             </div>
           </div>
@@ -64,7 +54,7 @@ export default function Iletisim() {
           </p>
           <div className="mt-8 space-y-4">
             <Button asChild size="lg" className="w-full gap-2 text-base">
-              <a href="mailto:info@insablog.com?subject=%C4%B0n%C5%9Fa%20Blog%20%C4%B0leti%C5%9Fim">
+              <a href="mailto:hsyn188@gmail.com?subject=%C4%B0n%C5%9Fa%20Blog%20%C4%B0leti%C5%9Fim">
                 <Send className="h-4 w-4" />
                 E-posta taslağını aç
               </a>

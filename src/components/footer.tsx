@@ -72,15 +72,11 @@ export function Footer() {
             <ul className="mt-5 space-y-4">
               <li className="flex items-start gap-3">
                 <MapPin className="mt-1 h-4 w-4 shrink-0 text-amber-300" />
-                <span>Teknopark İstanbul, No: 1, Pendik / İstanbul</span>
+                <span>Yozgat / Akdağmadeni</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-4 w-4 shrink-0 text-amber-300" />
-                <a href="mailto:info@insablog.com" className="transition-colors hover:text-white">info@insablog.com</a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="h-4 w-4 shrink-0 text-amber-300" />
-                <a href="tel:+902125550000" className="transition-colors hover:text-white">+90 (212) 555 00 00</a>
+                <a href="mailto:hsyn188@gmail.com" className="transition-colors hover:text-white">hsyn188@gmail.com</a>
               </li>
             </ul>
           </div>
