@@ -14,7 +14,8 @@
 | **Framework** | Next.js 16 App Router, React 19, TypeScript |
 | **Stil** | Tailwind CSS 4 |
 | **Görselleştirme** | D3.js |
-| **Deployment** | Vercel (main push → otomatik deploy) |
+| **Deployment** | Vercel; Git auto-deploy kapalı, doğrulama sonrası manuel production deploy |
+| **Production build** | `npm run build` → `next build --webpack`; CAD worker/WASM/font senkronu `prebuild` ile çalışır |
 | **Hedef kitle** | Türk inşaat / yapı mühendisleri |
 
 ---

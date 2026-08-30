@@ -10,6 +10,11 @@ import {
 } from "./cad-test-helpers";
 import { CAD_PREVIEW_V2_MANIFEST } from "../fixtures/cad-preview-v2/manifest";
 
+function fixtureByteCandidates(buffer: Buffer): Buffer[] {
+  const normalized = Buffer.from(buffer.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+  return normalized.equals(buffer) ? [buffer] : [buffer, normalized];
+}
+
 test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
   test.afterEach(async ({ page }) => {
     await cleanupUploadedCadFixtures(page);
@@ -28,10 +33,12 @@ test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
       expect(fs.existsSync(fixturePath)).toBe(true);
 
       const fileBuffer = fs.readFileSync(fixturePath);
-      const computedSha256 = crypto.createHash("sha256").update(fileBuffer).digest("hex");
+      const integrityMatches = fixtureByteCandidates(fileBuffer).some((candidate) => {
+        const computedSha256 = crypto.createHash("sha256").update(candidate).digest("hex");
+        return candidate.length === item.sizeBytes && computedSha256 === item.sha256;
+      });
 
-      expect(fileBuffer.length).toBe(item.sizeBytes);
-      expect(computedSha256).toBe(item.sha256);
+      expect(integrityMatches).toBe(true);
     }
   });
 

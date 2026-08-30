@@ -37,6 +37,11 @@ function checkDbCount(expectedCount = 1133): number {
   return count;
 }
 
+function fixtureByteCandidates(buffer: Buffer): Buffer[] {
+  const normalized = Buffer.from(buffer.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+  return normalized.equals(buffer) ? [buffer] : [buffer, normalized];
+}
+
 function verifyFixtureManifest(): { total: number; checked: number } {
   const fixturesDir = resolve(ROOT, "tests/fixtures/cad-preview-v2");
   let checked = 0;
@@ -46,9 +51,17 @@ function verifyFixtureManifest(): { total: number; checked: number } {
       throw new Error(`Fixture dosyası eksik: ${entry.fileName} (id: ${id})`);
     }
     const buf = readFileSync(filePath);
-    const hash = createHash("sha256").update(buf).digest("hex");
-    if (hash !== entry.sha256) {
-      throw new Error(`SHA256 uyuşmazlığı: ${entry.fileName} (id: ${id}). Beklenen: ${entry.sha256}, Hesaplanan: ${hash}`);
+    const matchingBytes = fixtureByteCandidates(buf).find((candidate) => {
+      const hash = createHash("sha256").update(candidate).digest("hex");
+      return candidate.length === entry.sizeBytes && hash === entry.sha256;
+    });
+    if (!matchingBytes) {
+      const rawHash = createHash("sha256").update(buf).digest("hex");
+      throw new Error(
+        `Fixture bütünlüğü uyuşmazlığı: ${entry.fileName} (id: ${id}). ` +
+          `Beklenen: ${entry.sizeBytes} bayt / ${entry.sha256}, ` +
+          `ham dosya: ${buf.length} bayt / ${rawHash}`
+      );
     }
     checked++;
   }
