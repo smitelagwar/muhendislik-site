@@ -87,7 +87,7 @@
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs",
     "check:cad-upstream:stage3": "node scripts/check-cad-upstream-stage3.mjs",
-    "check:cad-preview-v2": "playwright test --config=playwright.config.ts tests/document-studio/cad-preview-v2-contract.spec.ts tests/document-studio/cad-readonly-contract.spec.ts tests/document-studio/cad-cache-and-routing.spec.ts tests/document-studio/cad-native-measurements.spec.ts tests/document-studio/cad-public-layer-store.spec.ts tests/document-studio/cad-text-orientation-v2.spec.ts tests/document-studio/cad-robustness-security.spec.ts tests/document-studio/cad-dxf.spec.ts tests/document-studio/cad-stage3-view-navigation.spec.ts tests/document-studio/cad-stage4-loading-error.spec.ts tests/document-studio/cad-stage5-distance-measurement.spec.ts --project=chromium"
+    "check:cad-preview-v2": "playwright test --config=playwright.config.ts tests/document-studio/cad-preview-v2-contract.spec.ts tests/document-studio/cad-readonly-contract.spec.ts tests/document-studio/cad-cache-and-routing.spec.ts tests/document-studio/cad-native-measurements.spec.ts tests/document-studio/cad-public-layer-store.spec.ts tests/document-studio/cad-text-orientation-v2.spec.ts tests/document-studio/cad-robustness-security.spec.ts tests/document-studio/cad-dxf.spec.ts tests/document-studio/cad-stage3-view-navigation.spec.ts tests/document-studio/cad-stage4-loading-error.spec.ts tests/document-studio/cad-stage5-distance-measurement.spec.ts tests/document-studio/cad-stage6-area-measurement.spec.ts --project=chromium"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -24,6 +24,7 @@ import {
   CAD_BACKGROUND_COLORS,
   type CadBackgroundColorOption,
   type CadDistanceMeasurementSnapshot,
+  type CadAreaMeasurementSnapshot,
   type CadLayerItem,
   type CadLoadingPhase,
   type CadUpstreamDisplayMode,
@@ -31,7 +32,6 @@ import {
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
 import {
   CAD_SNAP_MODES,
-  createDefaultCadSnapSettings,
   getEnabledCadSnapModes,
   loadCadSnapSettings,
   saveCadSnapSettings,
@@ -43,6 +43,10 @@ import {
   CadDistanceOverlay,
   type CadDistanceOverlayMeasurement,
 } from "./cad-distance-overlay";
+import {
+  CadAreaOverlay,
+  type CompletedAreaMeasurement,
+} from "./cad-area-overlay";
 import { CadLayerPanel } from "./cad-layer-panel";
 import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
 import { CadViewSettingsPanel } from "./cad-view-settings-panel";
@@ -222,6 +226,7 @@ export function DokCadUpstreamViewer({
   const lineWeightVisibleRef = useRef(false);
   const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
   const distanceMeasurementIdRef = useRef(0);
+  const areaMeasurementIdRef = useRef(0);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
   const [loadingPhase, setLoadingPhase] = useState<CadLoadingPhase>("init");
@@ -238,30 +243,31 @@ export function DokCadUpstreamViewer({
   const [snapPanelOpen, setSnapPanelOpen] = useState(false);
   const [viewPanelOpen, setViewPanelOpen] = useState(false);
   const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
-    createDefaultCadSnapSettings()
+    loadCadSnapSettings(resolveSnapStorage())
   );
   const [distanceSnapshot, setDistanceSnapshot] =
     useState<CadDistanceMeasurementSnapshot | null>(null);
   const [distanceMeasurements, setDistanceMeasurements] = useState<
     CadDistanceOverlayMeasurement[]
   >([]);
+  const [areaSnapshot, setAreaSnapshot] =
+    useState<CadAreaMeasurementSnapshot | null>(null);
+  const [areaMeasurements, setAreaMeasurements] = useState<
+    CompletedAreaMeasurement[]
+  >([]);
   const [, setViewRevision] = useState(0);
 
   const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
 
   useEffect(() => {
-    setSnapSettings(loadCadSnapSettings(resolveSnapStorage()));
-  }, []);
-
-  useEffect(() => {
-    if (state !== "loading") {
-      setElapsedSeconds(0);
-      return;
-    }
+    if (state !== "loading") return;
     const interval = window.setInterval(() => {
       setElapsedSeconds((sec) => sec + 1);
     }, 1000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      setElapsedSeconds(0);
+    };
   }, [state]);
 
   useEffect(() => {
@@ -291,6 +297,8 @@ export function DokCadUpstreamViewer({
       setActiveTool(null);
       setDistanceSnapshot(null);
       setDistanceMeasurements([]);
+      setAreaSnapshot(null);
+      setAreaMeasurements([]);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -453,6 +461,7 @@ export function DokCadUpstreamViewer({
   ]);
 
   const handleStartDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const handleStartAreaRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -472,6 +481,7 @@ export function DokCadUpstreamViewer({
         setViewPanelOpen(false);
         setActiveTool(null);
         setDistanceSnapshot(null);
+        setAreaSnapshot(null);
         void adapterRef.current?.cancelActiveCommand();
         return;
       }
@@ -489,6 +499,18 @@ export function DokCadUpstreamViewer({
       }
 
       if (
+        (event.key === "a" || event.key === "A" || event.code === "KeyA") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          void handleStartAreaRef.current?.();
+        }
+      }
+
+      if (
         (event.key === "p" || event.key === "P" || event.code === "KeyP") &&
         !event.ctrlKey &&
         !event.metaKey &&
@@ -498,6 +520,7 @@ export function DokCadUpstreamViewer({
           event.preventDefault();
           setActiveTool(null);
           setDistanceSnapshot(null);
+          setAreaSnapshot(null);
           void adapterRef.current?.cancelActiveCommand();
         }
       }
@@ -587,7 +610,6 @@ export function DokCadUpstreamViewer({
     );
     setActiveTool(started ? "distance" : null);
   };
-  handleStartDistanceRef.current = handleStartDistance;
 
   const handleStartArea = async () => {
     const adapter = adapterRef.current;
@@ -599,19 +621,46 @@ export function DokCadUpstreamViewer({
     }
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
-    setActiveTool("area");
-    try {
-      await adapter.measureArea();
-    } finally {
-      setActiveTool(null);
-    }
+    setAreaSnapshot(null);
+
+    const started = await adapter.startAreaMeasurement(
+      getEnabledCadSnapModes(snapSettings),
+      {
+        onSnapshot: (snapshot) => setAreaSnapshot(snapshot),
+        onComplete: (measurement) => {
+          areaMeasurementIdRef.current += 1;
+          setAreaMeasurements((current) => [
+            ...current,
+            {
+              ...measurement,
+              id: `area-${areaMeasurementIdRef.current}`,
+            },
+          ]);
+          setAreaSnapshot(null);
+          setActiveTool((current) => (current === "area" ? null : current));
+        },
+        onCancel: () => {
+          setAreaSnapshot(null);
+          setActiveTool((current) => (current === "area" ? null : current));
+        },
+      }
+    );
+    setActiveTool(started ? "area" : null);
   };
+
+  useEffect(() => {
+    handleStartDistanceRef.current = handleStartDistance;
+    handleStartAreaRef.current = handleStartArea;
+  });
 
   const handleClearMeasurements = async () => {
     setActiveTool(null);
     setDistanceSnapshot(null);
     setDistanceMeasurements([]);
     distanceMeasurementIdRef.current = 0;
+    setAreaSnapshot(null);
+    setAreaMeasurements([]);
+    areaMeasurementIdRef.current = 0;
     await adapterRef.current?.clearMeasurements();
   };
 
@@ -702,6 +751,7 @@ export function DokCadUpstreamViewer({
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
       data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
+      data-cad-area-phase={areaSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
       data-cad-view-panel-open={viewPanelOpen ? "true" : "false"}
@@ -721,6 +771,15 @@ export function DokCadUpstreamViewer({
           snapshot={distanceSnapshot}
           measurements={distanceMeasurements}
           projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+        />
+      ) : null}
+
+      {state === "ready" ? (
+        <CadAreaOverlay
+          snapshot={areaSnapshot}
+          measurements={areaMeasurements}
+          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+          onFinish={() => adapterRef.current?.finishAreaMeasurement()}
         />
       ) : null}
 
@@ -748,6 +807,7 @@ export function DokCadUpstreamViewer({
                 await adapterRef.current?.cancelActiveCommand();
                 setActiveTool(null);
                 setDistanceSnapshot(null);
+                setAreaSnapshot(null);
               }
             }}
             data-testid="cad-tool-pan"
@@ -791,7 +851,7 @@ export function DokCadUpstreamViewer({
             size="sm"
             variant={activeTool === "area" ? "default" : "ghost"}
             className="h-8 w-8 p-0"
-            title="Alan Ölç (Çokgen noktalarını seçin)"
+            title="Alan Ölç [A] (Çokgen noktalarını seçin | Enter: Bitir | Esc: İptal)"
             onClick={() => void handleStartArea()}
             data-testid="cad-tool-area"
             aria-label="Alan ölç"

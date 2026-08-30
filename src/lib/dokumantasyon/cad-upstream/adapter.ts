@@ -26,6 +26,15 @@ export type {
   CadDistanceMeasurementResult,
   CadDistanceMeasurementSnapshot,
 } from "./distance-measurement";
+import {
+  CadAreaMeasurementController,
+  type CadAreaMeasurementCallbacks,
+} from "./area-measurement";
+export type {
+  CadAreaMeasurementCallbacks,
+  CadAreaMeasurementResult,
+  CadAreaMeasurementSnapshot,
+} from "./area-measurement";
 
 export const CAD_UPSTREAM_WORKER_URLS = {
   mtextRender: "/cad-upstream/mtext-renderer-worker.js",
@@ -332,6 +341,7 @@ export class CadUpstreamAdapter {
   private activeMeasurementCommand: CadMeasurementCommand | null = null;
   private mobileGestureGuard: CadMobileGestureGuard | null = null;
   private distanceMeasurementController: CadPressHoldDistanceController | null = null;
+  private areaMeasurementController: CadAreaMeasurementController | null = null;
   private snapLayerUnsubscribe: (() => void) | null = null;
   private snapCatalog: CadSnapPrimitive[] = [];
   private readonly snapEngine = new CadSnapEngine();
@@ -515,6 +525,8 @@ export class CadUpstreamAdapter {
   private configureSnapRuntime(): void {
     this.distanceMeasurementController?.destroy();
     this.distanceMeasurementController = null;
+    this.areaMeasurementController?.destroy();
+    this.areaMeasurementController = null;
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
 
@@ -527,6 +539,17 @@ export class CadUpstreamAdapter {
       {
         resolvePoint: (screenPoint, snapModes) =>
           this.resolveDistancePoint(screenPoint, snapModes),
+        setCameraInteractionEnabled: (enabled) =>
+          this.setCameraInteractionEnabled(enabled),
+      }
+    );
+
+    this.areaMeasurementController = new CadAreaMeasurementController(
+      this.interactionHost,
+      {
+        resolvePoint: (screenPoint, snapModes) =>
+          this.resolveDistancePoint(screenPoint, snapModes),
+        projectWorldPoint: (point) => this.projectWorldPoint(point),
         setCameraInteractionEnabled: (enabled) =>
           this.setCameraInteractionEnabled(enabled),
       }
@@ -888,6 +911,47 @@ export class CadUpstreamAdapter {
     this.distanceMeasurementController?.updateSnapModes(snapModes);
   }
 
+  async startAreaMeasurement(
+    snapModes: ReadonlySet<CadSnapMode>,
+    callbacks: CadAreaMeasurementCallbacks = {}
+  ): Promise<boolean> {
+    if (this.destroyed || !this.areaMeasurementController) return false;
+    await this.cancelActiveCommand();
+    if (this.destroyed || !this.areaMeasurementController) return false;
+
+    this.activeMeasurementCommand = "area";
+    this.areaMeasurementController.start(snapModes, {
+      onSnapshot: callbacks.onSnapshot,
+      onComplete: (result) => {
+        if (this.activeMeasurementCommand === "area") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onComplete?.(result);
+      },
+      onCancel: () => {
+        if (this.activeMeasurementCommand === "area") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onCancel?.();
+      },
+    });
+    return true;
+  }
+
+  finishAreaMeasurement(): boolean {
+    return this.areaMeasurementController?.finish() ?? false;
+  }
+
+  popAreaMeasurementPoint(): boolean {
+    return this.areaMeasurementController?.popPoint() ?? false;
+  }
+
+  updateAreaMeasurementSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
+    this.areaMeasurementController?.updateSnapModes(snapModes);
+  }
+
   /**
    * Enforces CAD navigation bindings:
    * - Left mouse button (drag): PAN (standard web/touchpad expectation)
@@ -981,12 +1045,19 @@ export class CadUpstreamAdapter {
     if (active === "distance") {
       this.distanceMeasurementController?.cancel(true);
     }
+    if (active === "area") {
+      this.areaMeasurementController?.cancel(true);
+    }
     await this.manager.commandManager.cancelActive().catch(() => {});
     this.restorePanMode();
   }
 
-  async measureArea(): Promise<void> {
+  async measureArea(callbacks?: CadAreaMeasurementCallbacks): Promise<void> {
     if (this.destroyed) return;
+    if (this.areaMeasurementController) {
+      await this.startAreaMeasurement(new Set(["endpoint", "midpoint", "intersection"]), callbacks);
+      return;
+    }
     await this.cancelActiveCommand();
     this.activeMeasurementCommand = "area";
     try {
@@ -1015,6 +1086,8 @@ export class CadUpstreamAdapter {
     this.mobileGestureGuard = null;
     this.distanceMeasurementController?.destroy();
     this.distanceMeasurementController = null;
+    this.areaMeasurementController?.destroy();
+    this.areaMeasurementController = null;
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
     this.snapCatalog = [];
