@@ -5,10 +5,12 @@ import { createPortal } from "react-dom";
 import {
   AlertCircle,
   Eye,
+  Hand,
   Layers,
   Loader2,
   Magnet,
   Maximize,
+  Palette,
   RotateCcw,
   Ruler,
   Square,
@@ -41,6 +43,7 @@ import {
 } from "./cad-distance-overlay";
 import { CadLayerPanel } from "./cad-layer-panel";
 import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
+import { CadViewSettingsPanel } from "./cad-view-settings-panel";
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -228,6 +231,7 @@ export function DokCadUpstreamViewer({
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
   const [layerQuery, setLayerQuery] = useState("");
   const [snapPanelOpen, setSnapPanelOpen] = useState(false);
+  const [viewPanelOpen, setViewPanelOpen] = useState(false);
   const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
     createDefaultCadSnapSettings()
   );
@@ -266,6 +270,7 @@ export function DokCadUpstreamViewer({
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
       setSnapPanelOpen(false);
+      setViewPanelOpen(false);
       setActiveTool(null);
       setDistanceSnapshot(null);
       setDistanceMeasurements([]);
@@ -441,6 +446,7 @@ export function DokCadUpstreamViewer({
       if (event.key === "Escape") {
         setLayerPanelOpen(false);
         setSnapPanelOpen(false);
+        setViewPanelOpen(false);
         setActiveTool(null);
         setDistanceSnapshot(null);
         void adapterRef.current?.cancelActiveCommand();
@@ -456,6 +462,32 @@ export function DokCadUpstreamViewer({
         if (state === "ready") {
           event.preventDefault();
           void handleStartDistanceRef.current?.();
+        }
+      }
+
+      if (
+        (event.key === "p" || event.key === "P" || event.code === "KeyP") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          setActiveTool(null);
+          setDistanceSnapshot(null);
+          void adapterRef.current?.cancelActiveCommand();
+        }
+      }
+
+      if (
+        (event.key === "f" || event.key === "F" || event.code === "KeyF") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          adapterRef.current?.zoomToFit();
         }
       }
     };
@@ -583,7 +615,10 @@ export function DokCadUpstreamViewer({
   const handleToggleLayerPanel = () => {
     setLayerPanelOpen((open) => {
       const next = !open;
-      if (next) setSnapPanelOpen(false);
+      if (next) {
+        setSnapPanelOpen(false);
+        setViewPanelOpen(false);
+      }
       return next;
     });
   };
@@ -591,7 +626,21 @@ export function DokCadUpstreamViewer({
   const handleToggleSnapPanel = () => {
     setSnapPanelOpen((open) => {
       const next = !open;
-      if (next) setLayerPanelOpen(false);
+      if (next) {
+        setLayerPanelOpen(false);
+        setViewPanelOpen(false);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleViewPanel = () => {
+    setViewPanelOpen((open) => {
+      const next = !open;
+      if (next) {
+        setLayerPanelOpen(false);
+        setSnapPanelOpen(false);
+      }
       return next;
     });
   };
@@ -630,6 +679,7 @@ export function DokCadUpstreamViewer({
       data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
+      data-cad-view-panel-open={viewPanelOpen ? "true" : "false"}
       data-cad-snap-enabled={snapSettings.enabled ? "true" : "false"}
       data-cad-snap-modes={snapSettings.enabled ? selectedSnapModes : ""}
       data-cad-snap-selected-modes={selectedSnapModes}
@@ -665,9 +715,29 @@ export function DokCadUpstreamViewer({
           <Button
             type="button"
             size="sm"
+            variant={activeTool === null ? "secondary" : "ghost"}
+            className="h-8 w-8 p-0"
+            title="Kaydır (Pan) [P] — Sol veya orta tuşla çizimi kaydırın"
+            onClick={async () => {
+              if (activeTool) {
+                await adapterRef.current?.cancelActiveCommand();
+                setActiveTool(null);
+                setDistanceSnapshot(null);
+              }
+            }}
+            data-testid="cad-tool-pan"
+            aria-label="Kaydır (Pan)"
+            aria-pressed={activeTool === null}
+          >
+            <Hand className="h-4 w-4" />
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
             variant="ghost"
             className="h-8 w-8 p-0"
-            title="Çizimi ekrana sığdır"
+            title="Çizimi ekrana sığdır [F]"
             onClick={handleZoomToFit}
             data-testid="cad-tool-fit"
             aria-label="Görünüme sığdır"
@@ -747,6 +817,20 @@ export function DokCadUpstreamViewer({
           >
             <Layers className="h-4 w-4" />
           </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant={viewPanelOpen ? "secondary" : "ghost"}
+            className="h-8 w-8 p-0"
+            title="Görünüm Ayarları (Renk, Lineweight, Arka Plan)"
+            onClick={handleToggleViewPanel}
+            data-testid="cad-tool-view-settings"
+            aria-label="Görünüm ayarları"
+            aria-pressed={viewPanelOpen}
+          >
+            <Palette className="h-4 w-4" />
+          </Button>
         </div>
       ) : null}
 
@@ -769,6 +853,18 @@ export function DokCadUpstreamViewer({
           onHideAll={handleHideAllLayers}
           onResetSource={handleResetLayers}
           onClose={() => setLayerPanelOpen(false)}
+        />
+      ) : null}
+
+      {state === "ready" && viewPanelOpen ? (
+        <CadViewSettingsPanel
+          displayMode={displayMode}
+          lineWeightVisible={lineWeightVisible}
+          backgroundColor={backgroundColor}
+          onSelectDisplayMode={selectDisplayMode}
+          onToggleLineWeight={() => void toggleLineWeight()}
+          onSelectBackgroundColor={selectBackgroundColor}
+          onClose={() => setViewPanelOpen(false)}
         />
       ) : null}
 

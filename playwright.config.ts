@@ -36,6 +36,7 @@ export default defineConfig({
         "**/cad-mobile-stage8-acceptance.spec.ts",
         "**/cad-mobile-stage8-intersection.spec.ts",
         "**/cad-preview-v2-contract.spec.ts",
+        "**/cad-stage3-view-navigation.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },

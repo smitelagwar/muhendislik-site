@@ -32,7 +32,7 @@ test.describe("CAD Preview V2 — Read-Only Contract & View Mode Suite", () => {
     const selectionGrips = page.locator(".aced-grip, .ml-grip, [data-grip]");
     expect(await selectionGrips.count()).toBe(0);
 
-    // 3. Mouse button bindings: Left drag does NOT pan, middle wheel drag DOES pan
+    // 3. Mouse button bindings: Left drag AND middle wheel drag both perform PAN
     const centerInitial = await page.evaluate(() => {
       const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
@@ -40,7 +40,7 @@ test.describe("CAD Preview V2 — Read-Only Contract & View Mode Suite", () => {
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
     });
 
-    // 3a. Left drag: no selection rectangle and no pan movement
+    // 3a. Left drag: performs PAN (camera moves) and creates no selection rectangle
     await page.mouse.move(centerX, centerY);
     await page.mouse.down({ button: "left" });
     await page.mouse.move(centerX + 100, centerY + 100, { steps: 5 });
@@ -58,11 +58,13 @@ test.describe("CAD Preview V2 — Read-Only Contract & View Mode Suite", () => {
     });
 
     if (centerInitial && centerAfterLeft) {
-      expect(centerAfterLeft.x).toBeCloseTo(centerInitial.x, 1);
-      expect(centerAfterLeft.y).toBeCloseTo(centerInitial.y, 1);
+      const leftMoved =
+        Math.abs(centerAfterLeft.x - centerInitial.x) > 0.01 ||
+        Math.abs(centerAfterLeft.y - centerInitial.y) > 0.01;
+      expect(leftMoved).toBe(true);
     }
 
-    // 3b. Middle mouse button (wheel drag) performs PAN: camera moves
+    // 3b. Middle mouse button (wheel drag) ALSO performs PAN: camera moves
     await page.mouse.move(centerX, centerY);
     await page.mouse.down({ button: "middle" });
     await page.mouse.move(centerX + 120, centerY + 80, { steps: 5 });
@@ -77,10 +79,10 @@ test.describe("CAD Preview V2 — Read-Only Contract & View Mode Suite", () => {
     });
 
     if (centerAfterLeft && centerAfterMiddle) {
-      const moved =
+      const middleMoved =
         Math.abs(centerAfterMiddle.x - centerAfterLeft.x) > 0.01 ||
         Math.abs(centerAfterMiddle.y - centerAfterLeft.y) > 0.01;
-      expect(moved).toBe(true);
+      expect(middleMoved).toBe(true);
     }
 
     // 4. Delete / Backspace key presses do not alter entities or break viewer

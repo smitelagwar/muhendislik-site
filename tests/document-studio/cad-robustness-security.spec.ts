@@ -39,16 +39,42 @@ test.describe("CAD Preview V2 — Robustness, Security, Lifecycle & A11y Suite",
     // 3. Zoom to fit
     const fitBtn = page.locator('[data-testid="cad-tool-fit"]').first();
     await fitBtn.click();
+    await page.waitForTimeout(300);
 
-    // 4. Pan gesture on canvas
+    // 4. Pan gesture on canvas: verifies camera moves AND zero mutations occur
     const canvas = host.locator("canvas").first();
     const box = await canvas.boundingBox();
+    let panMoved = false;
     if (box) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 + 50);
-      await page.mouse.up();
+      const centerX = box.x + box.width / 2;
+      const centerY = box.y + box.height / 2;
+      const centerBefore = await page.evaluate(() => {
+        const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+          __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
+        };
+        return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
+      });
+
+      await page.mouse.move(centerX, centerY);
+      await page.mouse.down({ button: "left" });
+      await page.mouse.move(centerX + 80, centerY + 60, { steps: 5 });
+      await page.mouse.up({ button: "left" });
+      await page.waitForTimeout(200);
+
+      const centerAfter = await page.evaluate(() => {
+        const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+          __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
+        };
+        return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
+      });
+
+      if (centerBefore && centerAfter) {
+        panMoved =
+          Math.abs(centerAfter.x - centerBefore.x) > 0.01 ||
+          Math.abs(centerAfter.y - centerBefore.y) > 0.01;
+      }
     }
+    expect(panMoved).toBe(true);
 
     // Verify ZERO mutation requests were made during all interactions
     expect(mutationRequests).toEqual([]);

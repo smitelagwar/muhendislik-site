@@ -845,9 +845,9 @@ export class CadUpstreamAdapter {
   }
 
   /**
-   * Enforces canonical CAD navigation bindings:
+   * Enforces CAD navigation bindings:
+   * - Left mouse button (drag): PAN (standard web/touchpad expectation)
    * - Middle mouse button (wheel press & drag): PAN
-   * - Left mouse button (drag): NO PAN (does not drag drawing)
    * - Mouse wheel scroll: ZOOM (handled natively by OrbitControls)
    * - Touch gestures: ONE=PAN, TWO=DOLLY_PAN (preserved)
    */
@@ -875,6 +875,7 @@ export class CadUpstreamAdapter {
     const patchControls = (controls?: { mouseButtons?: Record<string, number>; update?: () => void }) => {
       if (controls && controls.mouseButtons) {
         controls.mouseButtons = {
+          LEFT: 2, // THREE.MOUSE.PAN
           MIDDLE: 2, // THREE.MOUSE.PAN
         };
         controls.update?.();
@@ -900,6 +901,7 @@ export class CadUpstreamAdapter {
               originalSet.call(this, value);
               if (this._cameraControls) {
                 this._cameraControls.mouseButtons = {
+                  LEFT: 2,
                   MIDDLE: 2,
                 };
                 this._cameraControls.update?.();
