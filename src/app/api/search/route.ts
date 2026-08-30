@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSearchIndex } from "@/lib/search-index";
 
 export const runtime = "nodejs";
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 const SEARCH_CACHE_CONTROL = "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400";
 
