@@ -59,6 +59,17 @@ const smallScopeHtml = renderToString(React.createElement(YapiDenetimResultRepor
 assert(smallScopeHtml.includes("Kapsamı Doğrulayın"), "≤200 m² kapsam inceleme uyarısı görünmeli");
 console.log("✔ YapiDenetimResultReport ≤200 m² kapsam inceleme uyarısı doğrulandı.");
 
+// Ödeme Modeli ve Hakediş Tablosu Render Testi
+assert(r1Html.includes("Ödeme Esasları"), "Ödeme esasları başlığı raporda yer almalı");
+assert(r1Html.includes("Defaten"), "900 m² için defaten rozeti raporda yer almalı");
+assert(r1Html.includes("Emanet Hesabı"), "Emanet hesabı uyarısı raporda yer almalı");
+assert(r1Html.includes("Etap"), "Hakediş etap satırı raporda yer almalı");
+
+const over3000Result = calculateYapiDenetimFee({ area: 3500, classBand: "III", durationYears: 1, region: "normal" });
+const over3000Html = renderToString(React.createElement(YapiDenetimResultReport, { result: over3000Result }));
+assert(over3000Html.includes("Taksitli"), "3.500 m² için taksitli rozeti raporda yer almalı");
+console.log("✔ YapiDenetimResultReport ödeme modeli ve hakediş tablosu doğrulandı.");
+
 // 4. YapiDenetimTablesContent Render Testi
 const tablesHtml = renderToString(React.createElement(YapiDenetimTablesContent));
 assert(tablesHtml.includes("2026 Yapı Denetimi Tabloları"), "Dialog başlığı render edilmeli");

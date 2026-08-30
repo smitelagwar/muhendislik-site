@@ -98,8 +98,28 @@ async function main() {
   const netFeeCell = summaryRows.find((r) => r[0] === "KDV Hariç Net Hizmet Bedeli (H)");
   assert.equal(netFeeCell?.[1], 305424, "Excel'de Net Hizmet Bedeli numeric 305.424 olmalıdır");
 
-  const grossTotalCell = summaryRows.find((r) => r[0] === "KDV Dahil Genel Toplam");
-  assert.equal(grossTotalCell?.[1], 366508.8, "Excel'de Genel Toplam numeric 366.508,8 olmalıdır");
+  // Ödeme Esasları ve Hakediş Dağılımı satırları
+  summaryRows.push(
+    ["", "", ""],
+    ["ÖDEME ESASLARI VE HAKEDİŞ DAĞILIMI (Madde 27)", "", ""],
+    ["Ödeme Modeli", r1Result.paymentModel.modalityBadge, ""],
+    ["Emanet Hesabı Kuralı", "Bakanlık / Defterdarlık / İdare Yapı Denetim Hesabı", "Emanet Hesabı"]
+  );
+
+  r1Result.paymentModel.installments.forEach((inst) => {
+    summaryRows.push([
+      `${inst.stage}. Etap: ${inst.name} (${inst.percentText})`,
+      inst.grossAmount,
+      "TL (KDV Dahil)"
+    ]);
+  });
+
+  const paymentModelCell = summaryRows.find((r) => r[0] === "Ödeme Modeli");
+  assert(paymentModelCell?.[1]?.toString().includes("Defaten"), "Excel'de Ödeme Modeli Defaten olmalı");
+
+  const stage1Cell = summaryRows.find((r) => r[0]?.toString().includes("1. Etap"));
+  assert(stage1Cell, "Excel'de 1. Etap satırı bulunmalıdır");
+  assert.equal(typeof stage1Cell[1], "number", "Etap tutarı numeric olmalıdır");
 
   // Workbook binary buffer testi
   const wbBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });

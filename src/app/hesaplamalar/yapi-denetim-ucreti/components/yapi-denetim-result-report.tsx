@@ -12,6 +12,7 @@ import {
   Info,
   Layers,
   MapPin,
+  Receipt,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
@@ -42,6 +43,7 @@ export const YapiDenetimResultReport = forwardRef<HTMLDivElement, YapiDenetimRes
       grossTotal,
       smallBuilding,
       flags,
+      paymentModel,
     } = result;
 
     const hasDiscount = discountRate > 0;
@@ -175,6 +177,94 @@ export const YapiDenetimResultReport = forwardRef<HTMLDivElement, YapiDenetimRes
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Ödeme Esasları ve Hakediş Dağılımı (Yönetmelik Madde 27) */}
+        <div
+          data-testid="payment-model-section"
+          className="mt-6 rounded-2xl border border-border/80 bg-muted/20 p-5 dark:border-white/10 dark:bg-[#111422]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-foreground dark:text-white">
+                Ödeme Esasları & Hakediş Dağılımı (Madde 27)
+              </span>
+            </div>
+            <span
+              data-testid="payment-modality-badge"
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                paymentModel.isUpfrontMandatory
+                  ? "border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                  : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              }`}
+            >
+              {paymentModel.modalityBadge}
+            </span>
+          </div>
+
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground dark:text-slate-300">
+            {paymentModel.summary}
+          </p>
+
+          {/* Emanet Hesabı Özel Bilgi Notu */}
+          <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
+            <Building2 className="h-4 w-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span className="leading-relaxed">
+              <strong>Emanet Hesabı Kuralı:</strong> Yapı denetim ücreti asla yapı denetim şirketine elden veya doğrudan şirket hesabına ödenmez.
+              Yapı sahibince Çevre, Şehircilik ve İklim Değişikliği Bakanlığı / Defterdarlık / İlgili İdare adına açılan resmî{" "}
+              <strong>Yapı Denetim Emanet Hesabı</strong>&apos;na yatırılır. İdare, inşaatın ilerleme seviyesini onayladıkça bedeli etap etap kuruluşa aktarır.
+            </span>
+          </div>
+
+          {/* 6 Etaplık Hakediş/Taksit Tablosu */}
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border/70 dark:border-white/10">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/70 bg-muted/60 dark:border-white/10 dark:bg-white/5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-slate-300">
+                  <th className="p-2.5">Etap</th>
+                  <th className="p-2.5">İnşaat İlerleme Aşaması</th>
+                  <th className="p-2.5 text-center">Pay</th>
+                  <th className="p-2.5 text-right">KDV Hariç</th>
+                  <th className="p-2.5 text-right">KDV Dahil Tutar</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60 dark:divide-white/5 font-mono">
+                {paymentModel.installments.map((inst) => (
+                  <tr key={inst.stage} className="hover:bg-muted/30 dark:hover:bg-white/[0.02]">
+                    <td className="p-2.5 font-bold text-muted-foreground">{inst.stage}. Etap</td>
+                    <td className="p-2.5 font-sans">
+                      <div className="font-bold text-foreground dark:text-white">{inst.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{inst.description}</div>
+                    </td>
+                    <td className="p-2.5 text-center font-bold text-amber-700 dark:text-amber-400">
+                      {inst.percentText}
+                    </td>
+                    <td className="p-2.5 text-right text-foreground dark:text-slate-200">
+                      {formatCurrencyTL2(inst.netAmount)}
+                    </td>
+                    <td className="p-2.5 text-right font-bold text-foreground dark:text-white">
+                      {formatCurrencyTL2(inst.grossAmount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border/80 bg-muted/50 dark:border-white/10 dark:bg-white/5 font-mono font-bold text-xs">
+                  <td colSpan={2} className="p-2.5 font-sans text-foreground dark:text-white">
+                    Toplam Hizmet Bedeli ({paymentModel.isUpfrontMandatory ? "Defaten Yatırılacak" : "Taksitler Toplamı"})
+                  </td>
+                  <td className="p-2.5 text-center text-amber-700 dark:text-amber-400">%100</td>
+                  <td className="p-2.5 text-right text-foreground dark:text-slate-200">
+                    {formatCurrencyTL2(netServiceFee)}
+                  </td>
+                  <td className="p-2.5 text-right text-amber-700 dark:text-amber-400">
+                    {formatCurrencyTL2(grossTotal)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
 

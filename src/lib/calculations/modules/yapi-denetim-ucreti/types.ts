@@ -85,6 +85,28 @@ export interface YapiDenetimSemanticFlags {
   hasSmallBuildingProvision: boolean;
 }
 
+export interface YapiDenetimInstallmentBreakdown {
+  stage: number;
+  name: string;
+  description: string;
+  percentage: number;
+  percentText: string;
+  netAmount: number;
+  vatAmount: number;
+  grossAmount: number;
+}
+
+export interface YapiDenetimPaymentModel {
+  isUpfrontMandatory: boolean;
+  thresholdArea: number;
+  modalityBadge: string;
+  title: string;
+  summary: string;
+  accountNotice: string;
+  legalBasis: string;
+  installments: YapiDenetimInstallmentBreakdown[];
+}
+
 export interface YapiDenetimCalculationResult {
   input: YapiDenetimInput;
   effectiveYear: number;
@@ -103,5 +125,6 @@ export interface YapiDenetimCalculationResult {
   grossTotal: number;
   smallBuilding: YapiDenetimSmallBuildingResult;
   flags: YapiDenetimSemanticFlags;
+  paymentModel: YapiDenetimPaymentModel;
   calculatedAt: string;
 }

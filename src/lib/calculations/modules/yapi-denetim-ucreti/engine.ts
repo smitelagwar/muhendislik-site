@@ -1,4 +1,6 @@
 import {
+  INSTALLMENT_AREA_THRESHOLD,
+  INSTALLMENT_STAGES,
   REGIONAL_DISCOUNT_OPTIONS,
   SCOPE_REVIEW_AREA_THRESHOLD,
   SMALL_BUILDING_AREA_THRESHOLD,
@@ -18,11 +20,17 @@ import type {
   RegionalDiscountType,
   YapiDenetimCalculationResult,
   YapiDenetimInput,
+  YapiDenetimInstallmentBreakdown,
+  YapiDenetimPaymentModel,
   YapiDenetimSemanticFlags,
   YapiDenetimSmallBuildingResult,
 } from "./types";
 
 export const MAX_SAFE_CONSTRUCTION_AREA = 10_000_000; // 10 milyon m² teknik üst sınır
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
 
 export interface YapiDenetimValidationSuccess {
   readonly isValid: true;
@@ -196,8 +204,67 @@ export function calculateYapiDenetimFee(input: YapiDenetimInput): YapiDenetimCal
   const flags: YapiDenetimSemanticFlags = {
     isMultiYear: durationYears > 1,
     possibleScopeReview: area <= SCOPE_REVIEW_AREA_THRESHOLD,
-    isOver3000: area > 3000,
+    isOver3000: area > INSTALLMENT_AREA_THRESHOLD,
     hasSmallBuildingProvision: isSmallBuilding,
+  };
+
+  // 13. Ödeme Modeli ve 6 Etaplık Hakediş/Taksit Dağılımı (Yönetmelik Madde 27)
+  const isUpfrontMandatory = area <= INSTALLMENT_AREA_THRESHOLD;
+
+  let accumulatedNet = 0;
+  let accumulatedVat = 0;
+  let accumulatedGross = 0;
+
+  const installments: YapiDenetimInstallmentBreakdown[] = INSTALLMENT_STAGES.map(
+    (stageItem, index) => {
+      const isLast = index === INSTALLMENT_STAGES.length - 1;
+      let stageNet: number;
+      let stageVat: number;
+      let stageGross: number;
+
+      if (!isLast) {
+        stageNet = Number(round2(netServiceFee * stageItem.percentage).toFixed(2));
+        stageVat = Number(round2(stageNet * vatRate).toFixed(2));
+        stageGross = Number(round2(stageNet + stageVat).toFixed(2));
+        accumulatedNet += stageNet;
+        accumulatedVat += stageVat;
+        accumulatedGross += stageGross;
+      } else {
+        // Son etapta kuruş yuvarlama farkını denkleştir
+        stageNet = Number(round2(netServiceFee - accumulatedNet).toFixed(2));
+        stageVat = Number(round2(vatAmount - accumulatedVat).toFixed(2));
+        stageGross = Number(round2(grossTotal - accumulatedGross).toFixed(2));
+      }
+
+      return {
+        stage: stageItem.stage,
+        name: stageItem.name,
+        description: stageItem.description,
+        percentage: stageItem.percentage,
+        percentText: stageItem.percentText,
+        netAmount: stageNet,
+        vatAmount: stageVat,
+        grossAmount: stageGross,
+      };
+    }
+  );
+
+  const paymentModel: YapiDenetimPaymentModel = {
+    isUpfrontMandatory,
+    thresholdArea: INSTALLMENT_AREA_THRESHOLD,
+    modalityBadge: isUpfrontMandatory
+      ? "Defaten (Tek Seferde) Yatırma Esastır"
+      : "Taksitli (6 Etap) veya Defaten Yatırılabilir",
+    title: isUpfrontMandatory
+      ? "3.000 m² ve Altı: Hizmet Bedelinin Tamamı Ruhsat Öncesinde Emanet Hesabına Yatırılır"
+      : "3.000 m² Üzeri: İnşaat Seviyesine Göre 6 Taksitte veya Defaten Yatırılabilir",
+    summary: isUpfrontMandatory
+      ? "Toplam yapı inşaat alanı 3.000 m²'yi geçmediği için, yapı denetim hizmet bedelinin tamamının yapı sahibi tarafından ilgili idare adına açılan resmi yapı denetim hesabına (emanet hesabı) defaten (tek seferde) yatırılması esastır. İdare, yapı denetim kuruluşuna ödemeleri yapının fiziki gerçekleşme seviyesine göre 6 etapta hakediş olarak aktarır."
+      : "Toplam yapı inşaat alanı 3.000 m²'nin üzerinde olduğu için, yapı sahibi hizmet bedelini defaten yatırabileceği gibi inşaatın fiziki gerçekleşme seviyesine göre 6 etapta taksitler halinde de emanet hesabına yatırabilir. Bir sonraki yapı bölümünün imalatına izin verilmesi için ilgili etaba ait taksitin hesaba yatırılmış olması şarttır.",
+    accountNotice:
+      "Önemli Kural: Yapı denetim bedeli doğrudan yapı denetim kuruluşuna elden veya şirket hesabına ödenmez; Bakanlık/Defterdarlık/İlgili İdare bünyesindeki resmî 'Yapı Denetim Hesabı'na (emanet hesabı) yatırılır.",
+    legalBasis: "4708 s. Kanun Madde 5 & Yapı Denetimi Uygulama Yönetmeliği Madde 27",
+    installments,
   };
 
   return {
@@ -218,6 +285,7 @@ export function calculateYapiDenetimFee(input: YapiDenetimInput): YapiDenetimCal
     grossTotal,
     smallBuilding,
     flags,
+    paymentModel,
     calculatedAt: new Date().toISOString(),
   };
 }

@@ -229,7 +229,45 @@ export function createYapiDenetimPdfDocument(
 
   y += tableData.length * 6 + 6;
 
-  // 6. Koşullu Not Kutuları (500 m², Çok Yıllı, Kapsam)
+  // 6. Ödeme Modeli ve Hakediş Dağılımı Kutusu (Madde 27)
+  pdf.setFillColor(241, 245, 249); // slate-100
+  pdf.setDrawColor(203, 213, 225); // slate-300
+  pdf.roundedRect(margin, y, contentWidth, 21, 2, 2, "FD");
+
+  pdf.setFont(FONT_FAMILY, "bold");
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(
+    `ÖDEME MODELİ (Madde 27): ${result.paymentModel.modalityBadge}`,
+    margin + 3,
+    y + 4.5
+  );
+
+  pdf.setFont(FONT_FAMILY, "normal");
+  pdf.setFontSize(6.8);
+  pdf.setTextColor(71, 85, 105);
+  const paymentRuleSummary = result.paymentModel.isUpfrontMandatory
+    ? "A <= 3.000 m2: Hizmet bedelinin tamami ruhsat oncesinde resmi Yapi Denetim Emanet Hesabina defaten (tek seferde) yatirilir. Kurulusa 6 etapta hakedis olarak odenir."
+    : "A > 3.000 m2: Hizmet bedeli defaten veya insaat fiziki ilerlemesine gore 6 etapta taksitler halinde emanet hesabina yatirilabilir. Sonraki etaba gecilmeden taksit yatirilmis olmalidir.";
+  pdf.text(normalizeText(paymentRuleSummary), margin + 3, y + 9);
+
+  // 6 etap hakediş tutarları tek satır
+  const stagesSummary = result.paymentModel.installments
+    .map((inst) => `${inst.stage}.E (%${Math.round(inst.percentage * 100)}): ${formatSayi(Math.round(inst.grossAmount))} TL`)
+    .join("  |  ");
+  pdf.setFont(FONT_FAMILY, "bold");
+  pdf.setFontSize(6.5);
+  pdf.setTextColor(180, 83, 9);
+  pdf.text(`6 Etap Hakedis Dagilimi (KDV Dahil): ${normalizeText(stagesSummary)}`, margin + 3, y + 14);
+
+  pdf.setFont(FONT_FAMILY, "normal");
+  pdf.setFontSize(6.2);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(normalizeText("Not: Odemeler dogrudan kurulus hesabina degil, Bakanlik/Defterdarlik/Idare resmi Yapi Denetim Emanet Hesabina yatirilir."), margin + 3, y + 18.5);
+
+  y += 24;
+
+  // 7. Koşullu Not Kutuları (500 m², Çok Yıllı, Kapsam)
   if (result.smallBuilding.applies) {
     pdf.setFillColor(239, 246, 255); // blue-50
     pdf.setDrawColor(191, 219, 254); // blue-200
@@ -418,6 +456,23 @@ export async function exportYapiDenetimExcel(
       ["Azami Genel Toplam", result.smallBuilding.maxGrossTotal, "TL"]
     );
   }
+
+  // Ödeme Esasları ve 6 Etaplık Hakediş/Taksit Dağılımı
+  summaryRows.push(
+    ["", "", ""],
+    ["ÖDEME ESASLARI VE HAKEDİŞ DAĞILIMI (Madde 27)", "", ""],
+    ["Ödeme Modeli", result.paymentModel.modalityBadge, ""],
+    ["Emanet Hesabı Kuralı", "Bakanlık / Defterdarlık / İdare Yapı Denetim Hesabı", "Emanet Hesabı"],
+    ["", "", ""]
+  );
+
+  result.paymentModel.installments.forEach((inst) => {
+    summaryRows.push([
+      `${inst.stage}. Etap: ${inst.name} (${inst.percentText})`,
+      inst.grossAmount,
+      "TL (KDV Dahil)"
+    ]);
+  });
 
   // Sheet 2: 2026 Referans Tabloları
   const referenceRows: (string | number)[][] = [

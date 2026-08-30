@@ -283,7 +283,29 @@ for (const invalid of invalidInputs) {
   const valRes = validateYapiDenetimInput(invalid);
   assert.equal(valRes.isValid, false);
 }
-console.log("✔ Tüm geçersiz girdiler (sıfır, negatif, NaN, Infinity, geçersiz sınıf/bölge/süre) güvenle reddedildi.");
+// [10] Ödeme Modeli ve 6 Etaplık Hakediş Dağılımı Testleri (Madde 27)
+console.log("\n[10] Ödeme Modeli ve Hakediş Dağılımı Kontrolü (Madde 27):");
+// 900 m² (<= 3000): Defaten ödeme
+assert.equal(r1Result.paymentModel.isUpfrontMandatory, true, "900 m² için defaten zorunlu olmalıdır");
+assert(r1Result.paymentModel.modalityBadge.includes("Defaten"), "Defaten badge içermelidir");
+assert.equal(r1Result.paymentModel.installments.length, 6, "6 etap bulunmalıdır");
+
+const sumPercentages = r1Result.paymentModel.installments.reduce((sum, inst) => sum + inst.percentage, 0);
+assertClose(sumPercentages, 1.0, "Etap yüzdeleri toplamı %100 olmalıdır");
+
+const sumGross = r1Result.paymentModel.installments.reduce((sum, inst) => sum + inst.grossAmount, 0);
+assertClose(sumGross, r1Result.grossTotal, "Etap genel toplamları genel toplama eşit olmalıdır");
+
+const sumNet = r1Result.paymentModel.installments.reduce((sum, inst) => sum + inst.netAmount, 0);
+assertClose(sumNet, r1Result.netServiceFee, "Etap net toplamları net hizmet bedeline eşit olmalıdır");
+
+// 10.000 m² (> 3000): Taksitli ödeme seçeneği
+assert.equal(r3Result.paymentModel.isUpfrontMandatory, false, "10.000 m² için taksitli seçenek olmalıdır");
+assert(r3Result.paymentModel.modalityBadge.includes("Taksitli"), "Taksitli badge içermelidir");
+
+const r3SumGross = r3Result.paymentModel.installments.reduce((sum, inst) => sum + inst.grossAmount, 0);
+assertClose(r3SumGross, r3Result.grossTotal, "R3 etap genel toplamları tam denkleşmelidir");
+console.log("✔ 3.000 m² altı (defaten) ve üstü (taksitli) ödeme modelleri ve 6 etaplık kuruş denkliği doğrulandı.");
 
 console.log("\n============================================================");
 console.log("AŞAMA 2 TÜM KABUL KRİTERLERİ BAŞARIYLA GEÇTİ (PASS)");
