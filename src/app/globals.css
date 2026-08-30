@@ -1,12 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 
-@source not "../../.next/**";
-@source not "../../.next-playwright/**";
-@source not "../../.next-playwright-*/**";
-@source not "../../test-results/**";
+@source "../";
 
 @custom-variant dark (&:is(.dark *));
 
