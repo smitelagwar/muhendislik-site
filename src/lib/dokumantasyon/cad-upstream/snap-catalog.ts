@@ -276,3 +276,77 @@ export function buildCadSnapPrimitives(database: unknown): CadSnapPrimitive[] {
   visitBlock(modelSpace, db, [...IDENTITY], out, "model", new Set(), new Set());
   return out;
 }
+
+export function buildCadTextSearchCatalog(database: unknown): import("./text-search").CadTextEntityInfo[] {
+  const db = database as DatabaseLike;
+  const modelSpace = db.tables?.blockTable?.modelSpace;
+  if (!modelSpace) return [];
+  const out: import("./text-search").CadTextEntityInfo[] = [];
+
+  function visitTextBlock(
+    block: BlockLike | undefined,
+    matrix: number[],
+    seen: Set<BlockLike>,
+    layoutName: string
+  ): void {
+    if (!block?.newIterator || seen.has(block)) return;
+    seen.add(block);
+
+    for (const entity of block.newIterator()) {
+      const type = entityType(entity);
+      const isText = type.includes("TEXT") || type.includes("ATTRIB");
+
+      if (isText) {
+        let rawText = "";
+        if (typeof entity.text === "string") rawText = entity.text;
+        else if (typeof entity.textString === "string") rawText = entity.textString;
+        else if (typeof entity.string === "string") rawText = entity.string;
+        else if (typeof entity.contents === "string") rawText = entity.contents;
+
+        if (rawText.trim()) {
+          const typeName: "TEXT" | "MTEXT" | "ATTRIB" = type.includes("MTEXT")
+            ? "MTEXT"
+            : type.includes("ATTRIB")
+              ? "ATTRIB"
+              : "TEXT";
+
+          const clean = typeName === "MTEXT" ? rawText.replace(/\\P/gi, " ") : rawText;
+          const p = point(entity.position) ?? point(entity.startPoint) ?? { x: 0, y: 0 };
+          const transformedAnchor = transformPoint(matrix, p);
+
+          const rot = typeof entity.rotation === "number" ? entity.rotation : 0;
+          const height = typeof entity.height === "number" && entity.height > 0 ? entity.height : 10;
+          const width = height * Math.max(1, clean.length * 0.6);
+
+          out.push({
+            id: entityId(entity, `txt:${out.length}`),
+            handle: entityId(entity, `h:${out.length}`),
+            type: typeName,
+            text: clean,
+            normalizedText: clean.toLowerCase(),
+            layer: typeof entity.layer === "string" ? entity.layer : "0",
+            layout: layoutName,
+            anchor: transformedAnchor,
+            bounds: {
+              min: { x: transformedAnchor.x, y: transformedAnchor.y },
+              max: { x: transformedAnchor.x + width, y: transformedAnchor.y + height },
+            },
+            rotationDeg: (rot * 180) / Math.PI,
+          });
+        }
+      }
+
+      const transform = entity.getFullInsertionTransform;
+      const referenced = resolveReferencedBlock(entity, db);
+      if (referenced && typeof transform === "function") {
+        try {
+          const childMatrix = matrixElements(transform.call(entity) as MatrixLike);
+          visitTextBlock(referenced, multiply(matrix, childMatrix), new Set(seen), layoutName);
+        } catch {}
+      }
+    }
+  }
+
+  visitTextBlock(modelSpace, [...IDENTITY], new Set(), "Model");
+  return out;
+}

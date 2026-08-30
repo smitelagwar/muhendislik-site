@@ -73,12 +73,14 @@ test.describe("CAD Preview V2 — Stage 5/8 Mesafe Ölçümü: Hassas, Doğrulan
     await expect(status).toContainText("2. noktayı seçin");
 
     // Hover near second point shows rubber band
+    await page.mouse.move(p2ScreenX - 5, p2ScreenY - 5);
     await page.mouse.move(p2ScreenX, p2ScreenY, { steps: 5 });
     const rubberBand = page.locator('[data-cad-distance-rubber-band="true"]').first();
     await expect(rubberBand).toBeVisible({ timeout: 15_000 });
 
     // Second click: commits point 2 (3000, 4000) and completes measurement
     await page.mouse.click(p2ScreenX, p2ScreenY);
+
 
     // Completed measurement overlay appears
     const completedOverlay = page.locator('[data-cad-distance-complete="true"]').first();

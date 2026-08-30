@@ -13,13 +13,25 @@ import {
   type CadDistanceResolvedPoint,
 } from "./distance-measurement";
 import { CadMobileGestureGuard } from "./mobile-gesture-guard";
-import { buildCadSnapPrimitives } from "./snap-catalog";
+import { buildCadSnapPrimitives, buildCadTextSearchCatalog } from "./snap-catalog";
+import {
+  CadTextSearchIndex,
+  type CadTextEntityInfo,
+  type CadTextSearchQuery,
+  type CadTextSearchResult,
+} from "./text-search";
+export type {
+  CadTextEntityInfo,
+  CadTextSearchQuery,
+  CadTextSearchResult,
+};
 import {
   CadSnapEngine,
   type CadSnapMode,
   type CadSnapPoint,
   type CadSnapPrimitive,
 } from "./snap-engine";
+
 
 export type {
   CadDistanceMeasurementCallbacks,
@@ -35,17 +47,31 @@ export type {
   CadAreaMeasurementResult,
   CadAreaMeasurementSnapshot,
 } from "./area-measurement";
+import {
+  CadChainDistanceController,
+  type CadChainDistanceCallbacks,
+} from "./chain-distance";
+export type {
+  CadChainDistanceCallbacks,
+  CadChainDistanceResult,
+  CadChainDistanceSnapshot,
+} from "./chain-distance";
+import type { CadRenderReadinessSnapshot } from "./readiness";
+export type { CadRenderReadinessSnapshot, CadResilienceState } from "./readiness";
 
 export const CAD_UPSTREAM_WORKER_URLS = {
+
   mtextRender: "/cad-upstream/mtext-renderer-worker.js",
   dwgParser: "/cad-upstream/libredwg-parser-worker.js",
 } as const;
 
 export const CAD_UPSTREAM_SUPPORTED_EXTENSIONS = new Set([".dxf", ".dwg"]);
 const CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS = 2_500;
+
 const CAD_MOBILE_PINCH_ZOOM_SPEED = 1;
 
-type CadMeasurementCommand = "distance" | "area";
+type CadMeasurementCommand = "distance" | "chain_distance" | "area";
+
 
 type CadLayoutViewLike = {
   enabled: boolean;
@@ -169,6 +195,70 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
         });
       };
     }
+
+    // DXF R12 / Flat DXF desteği: 100 AcDbEntity alt sınıf etiketi olmayan DXF'lerde
+    // entity-özel grup kodlarının (10, 20, 1, 40 vb.) yutulmasını önleme hook'u
+    if (dataModel.AcDbEntity?.prototype?.dxfInFields) {
+      const origEntityDxfIn = dataModel.AcDbEntity.prototype.dxfInFields;
+      const COMMON_ENTITY_CODES = new Set([8, 6, 48, 60, 62, 420, 370, 440, 67]);
+
+      dataModel.AcDbEntity.prototype.dxfInFields = function (filer: unknown) {
+        const f = filer as {
+          atSubclassData: (name: string) => boolean;
+          atEndOfObject: boolean;
+          atEof: boolean;
+          atExtendedData: boolean;
+          readItem: () => { code: number; value: unknown } | undefined;
+          peekItem: () => { code: number; value: unknown } | undefined;
+          pushBackItem: (item: unknown) => void;
+        };
+
+        if (typeof f?.atSubclassData !== "function") {
+          return origEntityDxfIn.call(this, filer as never);
+        }
+
+        const hasAcDbEntity = f.atSubclassData("AcDbEntity");
+        if (hasAcDbEntity) {
+          return origEntityDxfIn.call(this, filer as never);
+        }
+
+        // 100 AcDbEntity etiketi yok: Yalnız ortak entity kodlarını tüket,
+        // entity'ye özel kodlarda (10, 20, 1 vb.) durarak alt sınıfa bırak.
+        const self = this as unknown as {
+          layer?: string;
+          lineType?: string;
+          linetypeScale?: number;
+          visibility?: boolean;
+          color?: { colorIndex?: number; setRGBValue?: (rgb: number) => void };
+          lineWeight?: number;
+          transparency?: unknown;
+          _dxfPaperSpace?: boolean;
+        };
+
+
+        while (!f.atEndOfObject && !f.atEof && !f.atExtendedData) {
+          const item = f.peekItem();
+          if (!item) break;
+          const code = Number(item.code);
+          if (code === 100 || !COMMON_ENTITY_CODES.has(code)) {
+            break;
+          }
+          f.readItem();
+          switch (code) {
+            case 8: self.layer = String(item.value); break;
+            case 6: self.lineType = String(item.value); break;
+            case 48: self.linetypeScale = Number(item.value); break;
+            case 60: self.visibility = Number(item.value) === 0; break;
+            case 62: if (self.color) self.color.colorIndex = Number(item.value); break;
+            case 420: self.color?.setRGBValue?.(Number(item.value)); break;
+            case 370: self.lineWeight = Number(item.value); break;
+            case 67: self._dxfPaperSpace = Number(item.value) !== 0; break;
+          }
+        }
+        return this;
+      };
+    }
+
 
     // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı
     const fontManager = mtextRenderer.FontManager.instance;
@@ -341,14 +431,18 @@ export class CadUpstreamAdapter {
   private activeMeasurementCommand: CadMeasurementCommand | null = null;
   private mobileGestureGuard: CadMobileGestureGuard | null = null;
   private distanceMeasurementController: CadPressHoldDistanceController | null = null;
+  private chainDistanceMeasurementController: CadChainDistanceController | null = null;
   private areaMeasurementController: CadAreaMeasurementController | null = null;
   private snapLayerUnsubscribe: (() => void) | null = null;
+
   private snapCatalog: CadSnapPrimitive[] = [];
   private readonly snapEngine = new CadSnapEngine();
+  private textSearchIndex: CadTextSearchIndex | null = null;
   private readonly initialLayerSnapshot = new Map<
     string,
     { isOn: boolean; isFrozen: boolean }
   >();
+
 
   private constructor(
     private readonly manager: AcApDocManager,
@@ -526,6 +620,8 @@ export class CadUpstreamAdapter {
   private configureSnapRuntime(): void {
     this.distanceMeasurementController?.destroy();
     this.distanceMeasurementController = null;
+    this.chainDistanceMeasurementController?.destroy();
+    this.chainDistanceMeasurementController = null;
     this.areaMeasurementController?.destroy();
     this.areaMeasurementController = null;
     this.snapLayerUnsubscribe?.();
@@ -535,11 +631,30 @@ export class CadUpstreamAdapter {
     this.snapCatalog = buildCadSnapPrimitives(database);
     this.rebuildVisibleSnapIndex();
 
+    try {
+      const textEntities = buildCadTextSearchCatalog(database);
+      this.textSearchIndex = new CadTextSearchIndex(textEntities);
+    } catch {
+      this.textSearchIndex = new CadTextSearchIndex([]);
+    }
+
+
     this.distanceMeasurementController = new CadPressHoldDistanceController(
       this.interactionHost,
       {
         resolvePoint: (screenPoint, snapModes) =>
           this.resolveDistancePoint(screenPoint, snapModes),
+        setCameraInteractionEnabled: (enabled) =>
+          this.setCameraInteractionEnabled(enabled),
+      }
+    );
+
+    this.chainDistanceMeasurementController = new CadChainDistanceController(
+      this.interactionHost,
+      {
+        resolvePoint: (screenPoint, snapModes) =>
+          this.resolveDistancePoint(screenPoint, snapModes),
+        projectWorldPoint: (point) => this.projectWorldPoint(point),
         setCameraInteractionEnabled: (enabled) =>
           this.setCameraInteractionEnabled(enabled),
       }
@@ -565,6 +680,7 @@ export class CadUpstreamAdapter {
       };
     }
   }
+
 
   private rebuildVisibleSnapIndex(): void {
     if (this.snapCatalog.length === 0) {
@@ -941,9 +1057,98 @@ export class CadUpstreamAdapter {
     return true;
   }
 
+  async startChainDistanceMeasurement(
+    snapModes: ReadonlySet<CadSnapMode>,
+    callbacks: CadChainDistanceCallbacks = {}
+  ): Promise<boolean> {
+    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+    await this.cancelActiveCommand();
+    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+
+    this.activeMeasurementCommand = "chain_distance";
+    this.chainDistanceMeasurementController.start(snapModes, {
+      onSnapshot: callbacks.onSnapshot,
+      onComplete: (result) => {
+        if (this.activeMeasurementCommand === "chain_distance") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onComplete?.(result);
+      },
+      onCancel: () => {
+        if (this.activeMeasurementCommand === "chain_distance") {
+          this.activeMeasurementCommand = null;
+        }
+        this.restorePanMode();
+        callbacks.onCancel?.();
+      },
+    });
+    return true;
+  }
+
+  finishChainDistanceMeasurement(): boolean {
+    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+    this.chainDistanceMeasurementController.finish();
+    return true;
+  }
+
   finishAreaMeasurement(): boolean {
     return this.areaMeasurementController?.finish() ?? false;
   }
+
+  searchCadText(options: CadTextSearchQuery): CadTextSearchResult[] {
+    if (this.destroyed || !this.textSearchIndex) return [];
+    return this.textSearchIndex.search(options);
+  }
+
+  getTextSearchIndex(): CadTextSearchIndex | null {
+    return this.textSearchIndex;
+  }
+
+  async zoomToBounds(
+    bounds: { min: { x: number; y: number }; max: { x: number; y: number } },
+    margin = 0.2
+  ): Promise<void> {
+    if (this.destroyed) return;
+    const view = this.getActiveLayoutView() as unknown as {
+      zoomTo?: (box: unknown, scale?: number) => void;
+      flyTo?: (center: { x: number; y: number }, scale: number) => void;
+      zoomToExtent?: () => void;
+    };
+
+    if (view && typeof view.zoomTo === "function") {
+      const minX = bounds.min.x;
+      const minY = bounds.min.y;
+      const maxX = bounds.max.x;
+      const maxY = bounds.max.y;
+      const width = Math.max(maxX - minX, 1);
+      const height = Math.max(maxY - minY, 1);
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+
+      const boxAdapter = {
+        getSize: (target: { x: number; y: number }) => {
+          target.x = width;
+          target.y = height;
+          return target;
+        },
+        getCenter: (target: { x: number; y: number }) => {
+          target.x = centerX;
+          target.y = centerY;
+          return target;
+        },
+      };
+
+      try {
+        view.zoomTo(boxAdapter, 1 + margin);
+      } catch {
+        // Fallback if view.zoomTo has different signature
+      }
+    }
+  }
+
+
+
 
   popAreaMeasurementPoint(): boolean {
     return this.areaMeasurementController?.popPoint() ?? false;
@@ -1046,9 +1251,13 @@ export class CadUpstreamAdapter {
     if (active === "distance") {
       this.distanceMeasurementController?.cancel(true);
     }
+    if (active === "chain_distance") {
+      this.chainDistanceMeasurementController?.cancel(true);
+    }
     if (active === "area") {
       this.areaMeasurementController?.cancel(true);
     }
+
     await this.manager.commandManager.cancelActive().catch(() => {});
     this.restorePanMode();
   }
@@ -1080,27 +1289,148 @@ export class CadUpstreamAdapter {
     this.restorePanMode();
   }
 
+  getRenderReadinessSnapshot(): CadRenderReadinessSnapshot | null {
+    if (this.destroyed || !this.manager.curView) return null;
+
+    const curView = this.manager.curView as unknown as {
+      activeLayout?: { id?: string; name?: string };
+      activeLayoutView?: { bounds?: { min?: { x: number; y: number }; max?: { x: number; y: number } } };
+      bounds?: { min?: { x: number; y: number }; max?: { x: number; y: number } };
+      stats?: { summary?: { entityCount?: number } };
+      isIdle?: () => boolean;
+    } | undefined;
+    const canvas = this.container?.querySelector("canvas") as HTMLCanvasElement | null;
+    const activeLayout = curView?.activeLayout;
+    const activeLayoutId = activeLayout?.id ?? activeLayout?.name ?? null;
+    const entityCount = curView?.stats?.summary?.entityCount ?? 0;
+
+
+    let bounds: CadRenderReadinessSnapshot["bounds"] = null;
+    let hasFiniteBounds = false;
+
+    const rawBounds = curView?.bounds ?? curView?.activeLayoutView?.bounds;
+    const rawMin = rawBounds?.min;
+    const rawMax = rawBounds?.max;
+    if (
+      rawMin &&
+      rawMax &&
+      Number.isFinite(rawMin.x) &&
+      Number.isFinite(rawMin.y) &&
+      Number.isFinite(rawMax.x) &&
+      Number.isFinite(rawMax.y)
+    ) {
+      bounds = {
+        min: { x: Number(rawMin.x), y: Number(rawMin.y) },
+        max: { x: Number(rawMax.x), y: Number(rawMax.y) },
+      };
+      hasFiniteBounds = bounds.max.x >= bounds.min.x && bounds.max.y >= bounds.min.y;
+    } else if (this.snapCatalog && this.snapCatalog.length > 0) {
+
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      for (const prim of this.snapCatalog) {
+        if (prim.kind === "line") {
+          minX = Math.min(minX, prim.a.x, prim.b.x);
+          minY = Math.min(minY, prim.a.y, prim.b.y);
+          maxX = Math.max(maxX, prim.a.x, prim.b.x);
+          maxY = Math.max(maxY, prim.a.y, prim.b.y);
+        } else if (prim.kind === "circle" || prim.kind === "arc") {
+          minX = Math.min(minX, prim.center.x - prim.radius);
+          minY = Math.min(minY, prim.center.y - prim.radius);
+          maxX = Math.max(maxX, prim.center.x + prim.radius);
+          maxY = Math.max(maxY, prim.center.y + prim.radius);
+        }
+      }
+
+      if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
+        bounds = {
+          min: { x: minX, y: minY },
+          max: { x: maxX, y: maxY },
+        };
+        hasFiniteBounds = bounds.max.x >= bounds.min.x && bounds.max.y >= bounds.min.y;
+      }
+    }
+
+
+
+    const viewport = {
+      width: canvas?.width ?? 0,
+      height: canvas?.height ?? 0,
+      clientWidth: canvas?.clientWidth ?? this.container?.clientWidth ?? 0,
+      clientHeight: canvas?.clientHeight ?? this.container?.clientHeight ?? 0,
+    };
+
+    const center = this.getCameraCenter();
+    const cameraValid = Boolean(center && Number.isFinite(center.x) && Number.isFinite(center.y));
+
+    let webglContextLost = false;
+    if (canvas) {
+      const gl = (canvas.getContext("webgl2") || canvas.getContext("webgl")) as WebGLRenderingContext | null;
+      if (gl && gl.isContextLost && gl.isContextLost()) {
+        webglContextLost = true;
+      }
+    }
+
+    return {
+      timestamp: new Date().toISOString(),
+      isReady: Boolean(this.manager.curDocument && !this.destroyed),
+      isIdle: Boolean(curView?.isIdle?.() ?? true),
+      activeLayoutId,
+      entityCount,
+      hasFiniteBounds,
+      bounds,
+      viewport,
+      cameraValid,
+      webglContextLost,
+    };
+  }
+
   async destroy(): Promise<void> {
     if (this.destroyed) return;
-    await this.cancelActiveCommand();
+    this.destroyed = true;
+
+    try {
+      await Promise.race([
+        this.cancelActiveCommand(),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]);
+    } catch {
+      // Bounded cancel fallback
+    }
+
     this.mobileGestureGuard?.destroy();
     this.mobileGestureGuard = null;
     this.distanceMeasurementController?.destroy();
     this.distanceMeasurementController = null;
+    this.chainDistanceMeasurementController?.destroy();
+    this.chainDistanceMeasurementController = null;
     this.areaMeasurementController?.destroy();
     this.areaMeasurementController = null;
+
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
     this.snapCatalog = [];
     this.snapEngine.clear();
+    this.textSearchIndex = null;
     this.initialLayerSnapshot.clear();
+
     this.displayMode = "source";
     this.applyDisplayMode();
     if (this.container) {
       delete (this.container as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter;
       this.container = null;
     }
-    this.destroyed = true;
-    await this.manager.destroy();
+
+    try {
+      await Promise.race([
+        this.manager.destroy(),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+    } catch {
+      // Bounded manager destroy fallback
+    }
   }
 }

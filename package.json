@@ -48,8 +48,8 @@
     "check:tools-browser-smoke": "node scripts/check-tools-browser-smoke.mjs",
     "check:tools": "npm run check:tools-inventory && npm run check:tools-baseline && npm run check:tools-registry && npm run check:tools-existing && npm run check:tools-concrete-phase4 && npm run check:tools-earthquake-geotech-phase5 && npm run check:tools-steel-timber-phase6 && npm run check:tools-quantity-phase7-8 && npm run check:tools-adversarial && npm run check:tools-browser-smoke",
     "check:visual-system": "node scripts/check-visual-system.mjs",
-    "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
+
     "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",
     "check:yapi-denetim-data": "tsx scripts/check-yapi-denetim-data-layer.ts",
     "check:yapi-denetim-engine": "tsx scripts/check-yapi-denetim-engine.ts",
@@ -115,9 +115,10 @@
     "check:document-studio:cad-aps": "tsx scripts/check-cad-aps-adapter.ts",
     "reconcile:dokumantasyon": "tsx scripts/reconcile-dokumantasyon-storage.mjs",
     "backup:dokumantasyon": "node scripts/backup-dokumantasyon.mjs",
-    "check:cad-upstream:stage3": "node scripts/check-cad-upstream-stage3.mjs",
     "check:cad-preview-v2": "playwright test --config=playwright.config.ts tests/document-studio/cad-preview-v2-contract.spec.ts tests/document-studio/cad-readonly-contract.spec.ts tests/document-studio/cad-cache-and-routing.spec.ts tests/document-studio/cad-native-measurements.spec.ts tests/document-studio/cad-public-layer-store.spec.ts tests/document-studio/cad-text-orientation-v2.spec.ts tests/document-studio/cad-robustness-security.spec.ts tests/document-studio/cad-dxf.spec.ts tests/document-studio/cad-stage3-view-navigation.spec.ts tests/document-studio/cad-stage4-loading-error.spec.ts tests/document-studio/cad-stage5-distance-measurement.spec.ts tests/document-studio/cad-stage6-area-measurement.spec.ts tests/document-studio/cad-stage7-layer-mobile-ux.spec.ts --project=chromium",
-    "check:cad-real-user-release": "tsx scripts/check-cad-real-user-release.ts"
+    "check:cad-real-user-release": "tsx scripts/check-cad-real-user-release.ts",
+    "check:cad-review:release": "tsx scripts/check-cad-review-release.ts"
+
   },
   "dependencies": {
     "@mlightcad/cad-simple-viewer": "1.6.2",

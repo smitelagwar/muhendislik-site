@@ -77,9 +77,13 @@ test.describe("CAD Preview V2 — Stage 6/8 Alan Ölçümü: Türkçe Komut Akı
 
     const clickPoint = async (x: number, y: number) => {
       await page.mouse.move(x, y);
-      await page.waitForTimeout(50);
-      await page.mouse.click(x, y);
+      await page.waitForTimeout(80);
+      await page.mouse.down();
+      await page.waitForTimeout(40);
+      await page.mouse.up();
+      await page.waitForTimeout(80);
     };
+
 
     // Point 1 click
     await clickPoint(p1Screen.x, p1Screen.y);
@@ -248,16 +252,21 @@ test.describe("CAD Preview V2 — Stage 6/8 Alan Ölçümü: Türkçe Komut Akı
 
     // Tap the 4 vertices
     await tapPoint(p1Screen.x, p1Screen.y);
+    await page.waitForTimeout(80);
     await expect(host).toHaveAttribute("data-cad-area-phase", "awaiting-next");
 
     await tapPoint(p2Screen.x, p2Screen.y);
+    await page.waitForTimeout(80);
     await tapPoint(p3Screen.x, p3Screen.y);
+    await page.waitForTimeout(80);
     await tapPoint(p4Screen.x, p4Screen.y);
+    await page.waitForTimeout(80);
 
     // Tap "Bitir" button in the status banner
     const finishBtn = page.locator('[data-testid="cad-area-finish-btn"]').first();
     await expect(finishBtn).toBeVisible();
     await finishBtn.click();
+
 
     // Completed overlay appears and tool resets to none
     await expect(host).toHaveAttribute("data-cad-active-tool", "none");

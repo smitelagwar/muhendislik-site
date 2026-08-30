@@ -96,6 +96,18 @@ export interface DokDwgDxfDerivative {
   updated_at: string;
 }
 
+export interface DokCadReview {
+  id: string;
+  file_id: string;
+  source_version_key: string;
+  source_sha256: string;
+  revision: number;
+  data_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
+
 export interface DokShareLink {
   id: string;
   token_hash: string;

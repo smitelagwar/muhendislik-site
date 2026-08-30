@@ -9,7 +9,7 @@ export { getDatabaseUrl };
 let cachedSql: NeonQueryFunction<false, false> | null = null;
 let schemaEnsured: boolean = false;
 
-export const LATEST_REQUIRED_SCHEMA_VERSION = "007";
+export const LATEST_REQUIRED_SCHEMA_VERSION = "008";
 
 export async function getLatestSchemaVersion(sql: NeonQueryFunction<false, false>): Promise<string> {
   try {
@@ -270,10 +270,27 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
       WHERE status = 'ready' AND validation_decision IN ('PASS', 'WARN');
     `;
 
+    // 8. Migration 008: CAD Review Workspace V1 kalıcı inceleme ve işaretleme katmanı
+    await sql`
+      CREATE TABLE IF NOT EXISTS dok_cad_reviews (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        file_id UUID NOT NULL REFERENCES dok_files(id) ON DELETE CASCADE,
+        source_version_key VARCHAR(1200) NOT NULL,
+        source_sha256 VARCHAR(64) NOT NULL,
+        revision INT NOT NULL DEFAULT 0,
+        data_json JSONB NOT NULL DEFAULT '{"items":[]}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        CONSTRAINT uq_dok_cad_reviews_source UNIQUE (file_id, source_version_key)
+      );
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_reviews_file_id ON dok_cad_reviews(file_id);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_dok_cad_reviews_hash ON dok_cad_reviews(source_sha256);`;
+
     // Sürümleri kaydet
     await sql`
       INSERT INTO dok_schema_migrations (version, applied_at)
-      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW()), ('005', NOW()), ('006', NOW()), ('007', NOW())
+      VALUES ('001', NOW()), ('002', NOW()), ('003', NOW()), ('004', NOW()), ('005', NOW()), ('006', NOW()), ('007', NOW()), ('008', NOW())
       ON CONFLICT (version) DO NOTHING;
     `;
 
@@ -282,6 +299,7 @@ export async function ensureDatabaseTables(sql: NeonQueryFunction<false, false>)
     console.warn("Otomatik veritabanı şema doğrulama uyarısı:", err);
   }
 }
+
 
 export function getDb(): NeonQueryFunction<false, false> {
   if (cachedSql) {

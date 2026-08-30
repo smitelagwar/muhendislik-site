@@ -5,7 +5,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { DokActivityEvent, DokCadDerivative, DokDwgDxfDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion } from "./types";
+import { DokActivityEvent, DokCadDerivative, DokDwgDxfDerivative, DokFile, DokFolder, DokShareItem, DokShareLink, DokFileVersion, DokCadReview } from "./types";
 
 import { isExplicitLocalDokMode, DokRuntimeConfigError } from "./runtime-mode";
 
@@ -15,10 +15,12 @@ interface LocalDatabaseState {
   file_versions?: DokFileVersion[];
   cad_derivatives?: DokCadDerivative[];
   dwg_dxf_derivatives?: DokDwgDxfDerivative[];
+  cad_reviews?: DokCadReview[];
   shares: DokShareLink[];
   share_items: DokShareItem[];
   activity_log?: DokActivityEvent[];
 }
+
 
 function resolveSafeTestDataDir(rawDir: string): string {
   const resolved = path.isAbsolute(rawDir)
