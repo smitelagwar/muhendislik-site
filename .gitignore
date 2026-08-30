@@ -74,6 +74,7 @@ test_scrollytelling.js
 *.log
 scratch/
 .data/
+.test-data/
 
 .vercel
 .env*

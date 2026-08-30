@@ -1,12 +1,20 @@
 import { expect, test } from "@playwright/test";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import {
   signInAdmin,
   uploadCadPreviewV2Fixture,
   forceUpstreamUnavailable,
+  cleanupUploadedCadFixtures,
 } from "./cad-test-helpers";
 import { CAD_PREVIEW_V2_MANIFEST } from "../fixtures/cad-preview-v2/manifest";
 
 test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
+  test.afterEach(async ({ page }) => {
+    await cleanupUploadedCadFixtures(page);
+  });
+
   test("Manifest bütünlüğü ve SHA-256 doğruluk denetimi", async () => {
     const keys = Object.keys(CAD_PREVIEW_V2_MANIFEST);
     expect(keys.length).toBeGreaterThanOrEqual(7);
@@ -14,9 +22,16 @@ test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
     for (const key of keys) {
       const item = CAD_PREVIEW_V2_MANIFEST[key];
       expect(item.id).toBe(key);
-      expect(item.sha256).toMatch(/^[0-9a-f]{64}$/);
-      expect(item.sizeBytes).toBeGreaterThan(0);
       expect(item.expectedEngine).toBe("upstream");
+
+      const fixturePath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2", item.fileName);
+      expect(fs.existsSync(fixturePath)).toBe(true);
+
+      const fileBuffer = fs.readFileSync(fixturePath);
+      const computedSha256 = crypto.createHash("sha256").update(fileBuffer).digest("hex");
+
+      expect(fileBuffer.length).toBe(item.sizeBytes);
+      expect(computedSha256).toBe(item.sha256);
     }
   });
 
@@ -30,6 +45,36 @@ test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
 
     await expect(runtime).toBeVisible({ timeout: 30_000 });
     await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+
+    const canvas = host.locator("canvas").first();
+    await expect(canvas).toBeVisible({ timeout: 15_000 });
+
+    const canvasState = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const gl = (el.getContext("webgl2") || el.getContext("webgl")) as WebGLRenderingContext | null;
+      let hasDrawnPixels = false;
+      if (gl) {
+        const pixels = new Uint8Array(Math.min(gl.drawingBufferWidth, 256) * Math.min(gl.drawingBufferHeight, 256) * 4);
+        gl.readPixels(0, 0, Math.min(gl.drawingBufferWidth, 256), Math.min(gl.drawingBufferHeight, 256), gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3]! > 0 || pixels[i]! > 0 || pixels[i + 1]! > 0 || pixels[i + 2]! > 0) {
+            hasDrawnPixels = true;
+            break;
+          }
+        }
+      }
+      return {
+        width: el.width,
+        height: el.height,
+        clientWidth: el.clientWidth,
+        clientHeight: el.clientHeight,
+        hasDrawnPixels,
+      };
+    });
+
+    expect(canvasState.width).toBeGreaterThan(0);
+    expect(canvasState.height).toBeGreaterThan(0);
+    expect(canvasState.clientWidth).toBeGreaterThan(100);
+    expect(canvasState.clientHeight).toBeGreaterThan(100);
 
     // Mathematical verification of measurement oracle definitions
     const distanceMeasure = manifest.measurements?.find((m) => m.type === "distance");

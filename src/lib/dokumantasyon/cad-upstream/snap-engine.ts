@@ -345,6 +345,40 @@ export class CadSnapEngine {
     return candidates[0] ?? null;
   }
 
+  queryNearbyPrimitives(
+    point: CadSnapPoint,
+    worldRadius: number,
+    limit = 64
+  ): CadSnapPrimitive[] {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || !(worldRadius > 0)) {
+      return [];
+    }
+    const bounds: Bounds = {
+      minX: point.x - worldRadius,
+      minY: point.y - worldRadius,
+      maxX: point.x + worldRadius,
+      maxY: point.y + worldRadius,
+    };
+    const nearby = this.queryPrimitives(bounds);
+    if (nearby.length <= limit) return nearby;
+
+    return nearby
+      .map((primitive) => {
+        let distSq = Infinity;
+        if (primitive.kind === "line") {
+          const mx = (primitive.a.x + primitive.b.x) / 2;
+          const my = (primitive.a.y + primitive.b.y) / 2;
+          distSq = (mx - point.x) ** 2 + (my - point.y) ** 2;
+        } else {
+          distSq = (primitive.center.x - point.x) ** 2 + (primitive.center.y - point.y) ** 2;
+        }
+        return { primitive, distSq };
+      })
+      .sort((a, b) => a.distSq - b.distSq)
+      .slice(0, limit)
+      .map((item) => item.primitive);
+  }
+
   private queryPrimitives(bounds: Bounds): CadSnapPrimitive[] {
     const ids = new Set<string>();
     for (const key of this.keysForBounds(bounds)) {

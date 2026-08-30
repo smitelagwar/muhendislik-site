@@ -65,6 +65,7 @@
     ".next-playwright-3121/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "scratch"
   ]
 }

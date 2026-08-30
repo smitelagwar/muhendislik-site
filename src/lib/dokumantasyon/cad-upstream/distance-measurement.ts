@@ -178,6 +178,64 @@ export class CadPressHoldDistanceMachine {
     return null;
   }
 
+  updateHoverPreview(
+    resolved: CadDistanceResolvedPoint
+  ): CadDistanceMeasurementSnapshot | null {
+    if (this.phaseValue !== "awaiting-first" && this.phaseValue !== "awaiting-second") {
+      return null;
+    }
+    this.previewPointValue = clonePoint(resolved.point);
+    this.previewSnapValue = resolved.snap;
+    return this.snapshot();
+  }
+
+  clearHoverPreview(): CadDistanceMeasurementSnapshot {
+    if (this.phaseValue === "awaiting-first" || this.phaseValue === "awaiting-second") {
+      this.previewPointValue = null;
+      this.previewSnapValue = null;
+    }
+    return this.snapshot();
+  }
+
+  commitPoint(
+    resolved: CadDistanceResolvedPoint
+  ): { snapshot: CadDistanceMeasurementSnapshot; result: CadDistanceMeasurementResult | null } {
+    const committed = clonePoint(resolved.point);
+    if (!committed) {
+      return { snapshot: this.snapshot(), result: null };
+    }
+
+    if (
+      this.phaseValue === "awaiting-first" ||
+      this.phaseValue === "pressing-first" ||
+      this.phaseValue === "tracking-first"
+    ) {
+      this.firstPointValue = committed;
+      this.pointerId = null;
+      this.previewPointValue = null;
+      this.previewSnapValue = null;
+      this.phaseValue = "awaiting-second";
+      return { snapshot: this.snapshot(), result: null };
+    }
+
+    if (
+      (this.phaseValue === "awaiting-second" ||
+        this.phaseValue === "pressing-second" ||
+        this.phaseValue === "tracking-second") &&
+      this.firstPointValue
+    ) {
+      const start = clonePoint(this.firstPointValue)!;
+      const end = committed;
+      const result = { start, end, distance: pointDistance(start, end) };
+      this.pointerId = null;
+      this.previewPointValue = end;
+      this.phaseValue = "complete";
+      return { snapshot: this.snapshot(), result };
+    }
+
+    return { snapshot: this.snapshot(), result: null };
+  }
+
   cancelPointer(pointerId: number): CadDistanceMeasurementSnapshot {
     if (this.pointerId !== pointerId) return this.snapshot();
     this.pointerId = null;
@@ -218,6 +276,7 @@ export class CadPressHoldDistanceController {
   private holdTimer: number | null = null;
   private pointerStart: CadSnapPoint | null = null;
   private lastScreenPoint: CadSnapPoint | null = null;
+  private isMouseDown = false;
   private destroyed = false;
 
   constructor(
@@ -230,6 +289,7 @@ export class CadPressHoldDistanceController {
     host.addEventListener("pointercancel", this.handlePointerCancel, true);
     host.addEventListener("lostpointercapture", this.handlePointerCancel, true);
     host.addEventListener("contextmenu", this.handleContextMenu, true);
+    host.addEventListener("pointerleave", this.handlePointerLeave, true);
   }
 
   get phase(): CadDistanceMeasurementPhase {
@@ -250,11 +310,16 @@ export class CadPressHoldDistanceController {
 
   updateSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
     this.snapModes = new Set(snapModes);
-    if (!this.machine.isTracking || !this.lastScreenPoint) return;
+    if (!this.lastScreenPoint) return;
     const resolved = this.runtime.resolvePoint(this.lastScreenPoint, this.snapModes);
-    if (!resolved || this.machine.activePointerId === null) return;
-    const snapshot = this.machine.move(this.machine.activePointerId, resolved);
-    if (snapshot) this.emit(snapshot);
+    if (!resolved) return;
+    if (this.machine.isTracking && this.machine.activePointerId !== null) {
+      const snapshot = this.machine.move(this.machine.activePointerId, resolved);
+      if (snapshot) this.emit(snapshot);
+    } else if (this.machine.isActive) {
+      this.machine.updateHoverPreview(resolved);
+      this.emit(this.machine.snapshot());
+    }
   }
 
   handleMultiTouchStart(): void {
@@ -273,6 +338,7 @@ export class CadPressHoldDistanceController {
     this.clearHoldTimer();
     this.pointerStart = null;
     this.lastScreenPoint = null;
+    this.isMouseDown = false;
     this.runtime.setCameraInteractionEnabled(true);
     this.emit(this.machine.cancelMeasurement());
     if (notify && wasActive) this.callbacks.onCancel?.();
@@ -289,70 +355,113 @@ export class CadPressHoldDistanceController {
     this.host.removeEventListener("pointercancel", this.handlePointerCancel, true);
     this.host.removeEventListener("lostpointercapture", this.handlePointerCancel, true);
     this.host.removeEventListener("contextmenu", this.handleContextMenu, true);
+    this.host.removeEventListener("pointerleave", this.handlePointerLeave, true);
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (!this.machine.isActive || event.button > 0 || !event.isPrimary) return;
-    if (!this.machine.pointerDown(event.pointerId)) return;
 
     const screenPoint = this.eventScreenPoint(event);
     this.pointerStart = screenPoint;
     this.lastScreenPoint = screenPoint;
-    this.emit(this.machine.snapshot());
-    this.clearHoldTimer();
-    this.holdTimer = window.setTimeout(() => {
-      this.holdTimer = null;
-      const current = this.lastScreenPoint;
-      if (!current || this.machine.activePointerId !== event.pointerId) return;
-      const resolved = this.runtime.resolvePoint(current, this.snapModes);
-      if (!resolved) {
-        this.emit(this.machine.cancelPointer(event.pointerId));
-        return;
-      }
-      const snapshot = this.machine.activateHold(event.pointerId, resolved);
-      if (!snapshot) return;
-      this.runtime.setCameraInteractionEnabled(false);
-      this.emit(snapshot);
-    }, CAD_DISTANCE_LONG_PRESS_MS);
+
+    if (event.pointerType === "touch") {
+      if (!this.machine.pointerDown(event.pointerId)) return;
+      this.emit(this.machine.snapshot());
+      this.clearHoldTimer();
+      this.holdTimer = window.setTimeout(() => {
+        this.holdTimer = null;
+        const current = this.lastScreenPoint;
+        if (!current || this.machine.activePointerId !== event.pointerId) return;
+        const resolved = this.runtime.resolvePoint(current, this.snapModes);
+        if (!resolved) {
+          this.emit(this.machine.cancelPointer(event.pointerId));
+          return;
+        }
+        const snapshot = this.machine.activateHold(event.pointerId, resolved);
+        if (!snapshot) return;
+        this.runtime.setCameraInteractionEnabled(false);
+        this.emit(snapshot);
+      }, CAD_DISTANCE_LONG_PRESS_MS);
+      return;
+    }
+
+    // Non-touch (desktop mouse):
+    this.isMouseDown = true;
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
-    if (!this.machine.isActive || this.machine.activePointerId !== event.pointerId) return;
     const screenPoint = this.eventScreenPoint(event);
-    this.lastScreenPoint = screenPoint;
 
-    if (!this.machine.isTracking) {
-      if (
-        this.pointerStart &&
-        pointDistance(this.pointerStart, screenPoint) > CAD_DISTANCE_ARM_SLOP_PX
-      ) {
-        this.clearHoldTimer();
-        this.pointerStart = null;
-        this.emit(this.machine.cancelPointer(event.pointerId));
+    if (event.pointerType === "touch") {
+      if (!this.machine.isActive || this.machine.activePointerId !== event.pointerId) return;
+      this.lastScreenPoint = screenPoint;
+
+      if (!this.machine.isTracking) {
+        if (
+          this.pointerStart &&
+          pointDistance(this.pointerStart, screenPoint) > CAD_DISTANCE_ARM_SLOP_PX
+        ) {
+          this.clearHoldTimer();
+          this.pointerStart = null;
+          this.emit(this.machine.cancelPointer(event.pointerId));
+        }
+        return;
+      }
+
+      event.preventDefault();
+      const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+      if (!resolved) return;
+      const snapshot = this.machine.move(event.pointerId, resolved);
+      if (snapshot) this.emit(snapshot);
+      return;
+    }
+
+    // Non-touch (desktop mouse):
+    if (!this.machine.isActive) return;
+    this.lastScreenPoint = screenPoint;
+    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    if (!resolved) return;
+
+    this.machine.updateHoverPreview(resolved);
+    this.emit(this.machine.snapshot());
+  };
+
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (!this.machine.isActive) return;
+
+    if (event.pointerType === "touch") {
+      if (this.machine.activePointerId !== event.pointerId) return;
+      this.clearHoldTimer();
+      const screenPoint = this.eventScreenPoint(event);
+      this.lastScreenPoint = screenPoint;
+      const resolved = this.machine.isTracking
+        ? this.runtime.resolvePoint(screenPoint, this.snapModes)
+        : null;
+      const transition = this.machine.pointerUp(event.pointerId, resolved);
+      this.pointerStart = null;
+      this.lastScreenPoint = null;
+      this.runtime.setCameraInteractionEnabled(true);
+      if (!transition) return;
+      this.emit(transition.snapshot);
+      if (transition.result) {
+        const onComplete = this.callbacks.onComplete;
+        this.callbacks = {};
+        onComplete?.(transition.result);
       }
       return;
     }
 
-    event.preventDefault();
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
-    if (!resolved) return;
-    const snapshot = this.machine.move(event.pointerId, resolved);
-    if (snapshot) this.emit(snapshot);
-  };
-
-  private readonly handlePointerUp = (event: PointerEvent): void => {
-    if (!this.machine.isActive || this.machine.activePointerId !== event.pointerId) return;
-    this.clearHoldTimer();
+    // Non-touch (desktop mouse):
+    if (!this.isMouseDown) return;
+    this.isMouseDown = false;
     const screenPoint = this.eventScreenPoint(event);
     this.lastScreenPoint = screenPoint;
-    const resolved = this.machine.isTracking
-      ? this.runtime.resolvePoint(screenPoint, this.snapModes)
-      : null;
-    const transition = this.machine.pointerUp(event.pointerId, resolved);
+    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    if (!resolved) return;
+
+    const transition = this.machine.commitPoint(resolved);
     this.pointerStart = null;
-    this.lastScreenPoint = null;
-    this.runtime.setCameraInteractionEnabled(true);
-    if (!transition) return;
     this.emit(transition.snapshot);
     if (transition.result) {
       const onComplete = this.callbacks.onComplete;
@@ -362,12 +471,23 @@ export class CadPressHoldDistanceController {
   };
 
   private readonly handlePointerCancel = (event: PointerEvent): void => {
-    if (!this.machine.isActive || this.machine.activePointerId !== event.pointerId) return;
+    if (!this.machine.isActive) return;
+    if (event.pointerType === "touch" && this.machine.activePointerId !== event.pointerId) return;
     this.clearHoldTimer();
     this.pointerStart = null;
     this.lastScreenPoint = null;
+    this.isMouseDown = false;
     this.runtime.setCameraInteractionEnabled(true);
     this.emit(this.machine.cancelPointer(event.pointerId));
+  };
+
+  private readonly handlePointerLeave = (event: PointerEvent): void => {
+    if (event.pointerType !== "touch" && this.machine.isActive) {
+      this.isMouseDown = false;
+      this.machine.clearHoverPreview();
+      this.lastScreenPoint = null;
+      this.emit(this.machine.snapshot());
+    }
   };
 
   private readonly handleContextMenu = (event: MouseEvent): void => {

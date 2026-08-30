@@ -3,22 +3,58 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { CAD_PREVIEW_V2_MANIFEST, type CadPreviewV2FixtureManifest } from "../fixtures/cad-preview-v2/manifest";
 
+const trackedFixtureFileIds = new Set<string>();
+
+export function getTrackedFixtureFileIds(): string[] {
+  return Array.from(trackedFixtureFileIds);
+}
+
+export function clearTrackedFixtureFileIds(): void {
+  trackedFixtureFileIds.clear();
+}
+
+export async function cleanupUploadedCadFixtures(page?: Page): Promise<void> {
+  const ids = Array.from(trackedFixtureFileIds);
+  if (ids.length === 0) return;
+
+  for (const fileId of ids) {
+    try {
+      if (page && !page.isClosed()) {
+        await page.evaluate(async (id) => {
+          try {
+            await fetch(`/api/dokumantasyon/files/${id}`, { method: "DELETE" });
+            await fetch(`/api/dokumantasyon/trash/files/${id}`, { method: "DELETE" });
+          } catch {
+            // ignore network errors during teardown
+          }
+        }, fileId);
+      }
+    } catch {
+      // ignore page closed or evaluation error
+    }
+  }
+  trackedFixtureFileIds.clear();
+}
+
 export async function signInAdmin(page: Page) {
   await page.goto("/dokumantasyon");
   const username = page.locator("input#username");
-  const dashboard = page.getByRole("button", { name: "Yeni Dosya Yükle" });
+  const workspaceTitle = page.locator("h1:has-text('Dökümantasyon Modülü')");
+
   await expect.poll(async () => {
     if (await username.isVisible()) return "login";
-    if (await dashboard.isVisible()) return "dashboard";
+    if (await workspaceTitle.isVisible()) return "workspace";
     return "pending";
-  }, { timeout: 12_000 }).not.toBe("pending");
+  }, { timeout: 15_000 }).not.toBe("pending");
 
   if (await username.isVisible()) {
     await username.fill("admin");
     await page.locator("input#password").fill("admin");
     await page.getByRole("button", { name: "Giriş Yap" }).click();
+    await expect(username).toBeHidden({ timeout: 12_000 });
   }
-  await expect(dashboard).toBeVisible();
+
+  await expect(workspaceTitle).toBeVisible({ timeout: 12_000 });
 }
 
 export async function uploadCadPreviewV2Fixture(page: Page, fixtureId: string): Promise<{ fileId: string; manifest: CadPreviewV2FixtureManifest }> {
@@ -38,11 +74,12 @@ export async function uploadCadPreviewV2Fixture(page: Page, fixtureId: string): 
     return payload.file.id as string;
   }, { content, name: manifest.fileName });
 
+  trackedFixtureFileIds.add(fileId);
   return { fileId, manifest };
 }
 
 export async function uploadCustomDwgFixture(page: Page, fileName = "test-drawing.dwg"): Promise<string> {
-  return await page.evaluate(async ({ name }) => {
+  const fileId = await page.evaluate(async ({ name }) => {
     // Minimal mock DWG header bytes for local upload testing
     const sampleDwgBytes = new Uint8Array([0x41, 0x43, 0x31, 0x30, 0x33, 0x32, 0x00, 0x00]);
     const blob = new Blob([sampleDwgBytes], { type: "application/acad" });
@@ -54,6 +91,9 @@ export async function uploadCustomDwgFixture(page: Page, fileName = "test-drawin
     if (!response.ok || !payload.file?.id) throw new Error(payload.error || "DWG Fixture yüklenemedi");
     return payload.file.id as string;
   }, { name: fileName });
+
+  trackedFixtureFileIds.add(fileId);
+  return fileId;
 }
 
 export async function forceUpstreamUnavailable(page: Page): Promise<void> {

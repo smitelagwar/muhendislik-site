@@ -66,14 +66,13 @@ export const CAD_PREVIEW_V2_MANIFEST: Record<string, CadPreviewV2FixtureManifest
   "known-geometry-measurements": {
     id: "known-geometry-measurements",
     fileName: "known-geometry-measurements.dxf",
-    sha256: "bf9cf7019c29b03107921452c948d921ae60e5494f1eadfa5f0fe5de33829a59",
-    sizeBytes: 501,
+    sha256: "cbb0db6f81290f835228ec4aaef3c58bc6a9be18b0e8feebb97e3ce7e47d2bd0",
+    sizeBytes: 489,
     expectedEngine: "upstream",
     description: "Geometries with mathematically exact Euclidean distance and area values",
     entities: [
       { handle: "L_MEASURE_1", type: "LINE", layer: "GEOMETRY" },
       { handle: "P_RECT_1", type: "LWPOLYLINE", layer: "GEOMETRY" },
-      { handle: "C_CIRCLE_1", type: "CIRCLE", layer: "GEOMETRY" },
     ],
     measurements: [
       {

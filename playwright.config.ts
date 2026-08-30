@@ -5,6 +5,8 @@ const productionServer = process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/document-studio",
+  globalSetup: "./tests/document-studio/cad-test-env-setup.ts",
+  globalTeardown: "./tests/document-studio/cad-test-env-teardown.ts",
   fullyParallel: false,
   // Tek Next sunucusu, paralel SSR derleme yükünde modül fabrikasını
   // kaybedebiliyor; kabul kapısı deterministik olarak tek worker çalışır.
@@ -33,6 +35,7 @@ export default defineConfig({
         "**/cad-mobile-stage8-final.spec.ts",
         "**/cad-mobile-stage8-acceptance.spec.ts",
         "**/cad-mobile-stage8-intersection.spec.ts",
+        "**/cad-preview-v2-contract.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },
@@ -70,6 +73,7 @@ export default defineConfig({
       SESSION_SECRET: "playwright_session_secret_at_least_32_bytes",
       ADMIN_SESSION_VERSION: "1",
       RATE_LIMIT_SALT: "playwright_rate_limit_salt_at_least_32_bytes",
+      DOK_LOCAL_DATA_DIR: process.env.DOK_LOCAL_DATA_DIR || "",
     },
   },
 });

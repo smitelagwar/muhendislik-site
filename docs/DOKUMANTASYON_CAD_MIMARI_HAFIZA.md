@@ -205,6 +205,7 @@ CAD migration sırasında gerçek DWG/DXF dosyalarıyla acceptance oluşturuldu.
 - DXF fidelity workflow'u
 
 Stage 8 kabulünde gerçek DWG/DXF render, Chromium, production build, Worker/WASM readiness ve fallback davranışları PASS olmuştur. Ayrıntılı run/artifact kimlikleri `docs/cad-upstream-migration-stage8.md` içindedir.
+30 Ağustos 2026'da test veri düzlemi izole edilmiş (`DOK_LOCAL_DATA_DIR`, Playwright worker run-level isolation), test fixture yüklemelerinin kullanıcı `.data/dok_db.json` deposuna yazması ve kalıcı kayıt bırakması engellenmiştir.
 
 ## 12. Hızlandırma veya yeniden tasarım yapılacaksa
 
