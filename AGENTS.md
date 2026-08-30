@@ -144,6 +144,8 @@ Her remote write öncesi şu sorular cevaplanmalıdır:
 - [ ] Aynı değişiklik başka bekleyen değişikliklerle tek committe birleştirilebilir mi?
 - [ ] Bu commit yalnız anlamlı bir checkpoint mi, yoksa geçici deneme mi?
 - [ ] İlgili testler push öncesinde mümkün olduğunca çalıştırıldı mı?
+- [ ] Production build/typecheck bağımlılıkları `.vercelignore` ile dışlanan bir dosyayı import ediyor mu?
+- [ ] Build sistemi değiştiyse Vercel Linux Preview aynı commit için `READY` oldu mu ve Production aynı doğrulanmış artifact promote edilerek mi yapılacak?
 - [ ] Geçici workflow/script/debug dosyaları final checkpoint'e sızıyor mu?
 
 Bu sorulardan biri olumsuzsa remote write ertelenir ve çalışma önce toparlanır.
