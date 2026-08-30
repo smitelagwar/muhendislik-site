@@ -146,7 +146,7 @@ export function calculateColumnSteelArea(barDiameterMm: number, quantity: number
 
   const oneBarAreaMm2 = Math.PI * Math.pow(barDiameterMm / 2, 2);
   const totalAreaMm2 = oneBarAreaMm2 * quantity;
-  const weightPerMeterKg = (totalAreaMm2 / 1_000_000) * 7850 * 1000;
+  const weightPerMeterKg = (totalAreaMm2 / 1_000_000) * 7850;
 
   return {
     oneBarAreaMm2,

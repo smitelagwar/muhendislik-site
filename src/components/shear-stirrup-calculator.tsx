@@ -24,6 +24,8 @@ const REBAR_GRADES = [
   { name: "B500C", fywd: 435 },
 ];
 
+import { calculateBeamShear } from "@/lib/concrete-tools/shear-stirrup";
+
 export function ShearStirrupCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
   const [rebarIndex, setRebarIndex] = useState(0); // B420C
@@ -38,45 +40,25 @@ export function ShearStirrupCalculator() {
   const selectedConcrete = CONCRETE_GRADES[concreteIndex];
   const selectedRebar = REBAR_GRADES[rebarIndex];
 
-  const dCm = hCm - coverMm / 10;
-  const dMm = dCm * 10;
-  const bwMm = bwCm * 10;
+  const calc = calculateBeamShear({
+    fckMpa: selectedConcrete.fcd * 1.5,
+    fctdMpa: selectedConcrete.fctd,
+    fcdMpa: selectedConcrete.fcd,
+    fywdMpa: selectedRebar.fywd,
+    beamWidthCm: bwCm,
+    beamHeightCm: hCm,
+    coverMm,
+    designShearKn: vdKn,
+    stirrupDiameterMm: phiMm,
+    stirrupLegCount: legs,
+  });
 
-  // Beton kesme dayanımı V_c = 0.8 * fctd * bw * d
-  const vcN = 0.8 * selectedConcrete.fctd * bwMm * dMm;
-  const vcKn = vcN / 1000;
-
-  // Maksimum Kesme Kuvveti Üst Sınırı V_max = 0.22 * fcd * bw * d (TS 500)
-  const vmaxN = 0.22 * selectedConcrete.fcd * bwMm * dMm;
-  const vmaxKn = vmaxN / 1000;
-
-  // Etriye tek kol alanı ve toplam Asw
-  const asw1Mm2 = (Math.PI * phiMm * phiMm) / 4;
-  const aswTotalMm2 = asw1Mm2 * legs;
-
-  // Gerekli V_w = V_d - V_c
-  const vdN = vdKn * 1000;
-  const vwNeededN = Math.max(0, vdN - vcN);
-
-  // Gerekli etriye aralığı s = Asw * fywd * d / Vw
-  let sMaxCalcCm = 0;
-  if (vwNeededN > 0) {
-    const sMm = (aswTotalMm2 * selectedRebar.fywd * dMm) / vwNeededN;
-    sMaxCalcCm = Math.floor((sMm / 10) * 10) / 10;
-  } else {
-    sMaxCalcCm = 20; // Minimum etriye
-  }
-
-  // TS 500 Yönetmelik Sınırları:
-  // Sarılma Bölgesi: s <= h/4, 10 cm, 6 * long_phi (yaklaşık 10 cm)
-  // Orta Bölge: s <= d/2, 20 cm
-  const sSarilmaLimitCm = Math.min(Math.floor(hCm / 4), 10);
-  const sOrtaLimitCm = Math.min(Math.floor(dCm / 2), 20);
-
-  const recommendedSarilma = Math.min(sMaxCalcCm, sSarilmaLimitCm);
-  const recommendedOrta = Math.min(sMaxCalcCm, sOrtaLimitCm);
-
-  const isVmaxSafe = vdKn <= vmaxKn;
+  const dCm = calc?.effectiveDepthCm ?? (hCm - coverMm / 10);
+  const vcKn = calc?.concreteShearResistanceKn ?? 0;
+  const vmaxKn = calc?.maxShearLimitKn ?? 0;
+  const recommendedSarilma = calc?.recommendedConfinedSpacingCm ?? 10;
+  const recommendedOrta = calc?.recommendedSpanSpacingCm ?? 20;
+  const isVmaxSafe = calc?.isVmaxSafe ?? true;
 
   const handleCopyReport = () => {
     const text = `TS 500 KİRİŞ KESME VE ETRİYE HESABI RAPORU
@@ -325,7 +307,7 @@ Orta Bölge: Ø${phiMm}/${Math.max(5, Math.floor(recommendedOrta))} cm
               <div className="flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-white/5">
                 <span className="text-slate-600 dark:text-zinc-400">Etriyenin Karşılaması Gereken (V_w):</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">
-                  {(vwNeededN / 1000).toFixed(1)} kN
+                  {(calc?.stirrupShearDemandKn ?? 0).toFixed(1)} kN
                 </span>
               </div>
               <div className="flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-white/5">

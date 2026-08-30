@@ -32,13 +32,17 @@ const BOND_CONDITIONS = [
 
 const BAR_DIAMETERS = [8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32];
 
-type SpliceType = "duz" | "kancali" | "manson";
+import {
+  calculateSpliceLength,
+  type BondCondition,
+  type SpliceType,
+} from "@/lib/concrete-tools/splice";
 
 export function SpliceCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
   const [rebarIndex, setRebarIndex] = useState(0); // B420C
   const [barDiameterMm, setBarDiameterMm] = useState(16);
-  const [bondConditionId, setBondConditionId] = useState("good");
+  const [bondConditionId, setBondConditionId] = useState<BondCondition>("good");
   const [spliceType, setSpliceType] = useState<SpliceType>("duz");
   const [isCompression, setIsCompression] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -47,33 +51,24 @@ export function SpliceCalculator() {
   const selectedRebar = REBAR_GRADES[rebarIndex];
   const selectedBond = BOND_CONDITIONS.find((b) => b.id === bondConditionId) || BOND_CONDITIONS[0];
 
-  // TS 500 Kenetlenme Hesabı
-  // fctd = fctk0.05 / 1.5
-  const fctd = selectedConcrete.fctk005 / 1.5;
+  const calc = calculateSpliceLength({
+    fckMpa: selectedConcrete.fck,
+    fctdMpa: selectedConcrete.fctk005 / 1.5,
+    fydMpa: selectedRebar.fyd,
+    barDiameterMm,
+    bondCondition: bondConditionId,
+    spliceType,
+    isCompression,
+  });
+
+  const fctd = calc?.fctdMpa ?? (selectedConcrete.fctk005 / 1.5);
   const fyd = selectedRebar.fyd;
   const phi = barDiameterMm;
 
-  // Temel kenetlenme boyu: lb = (phi/4) * (fyd / fctd) (basitleştirilmiş TS 500 form.)
-  // Tam form: lb = (phi/4) * (sigma_s / (4 * fctd * eta1)) ≈ phi*fyd/(16*fctd) for full TS 500
-  const lbMm = (phi * fyd) / (16 * fctd * selectedBond.eta1);
-
-  // Design anchorage length lbd = alpha * lb (alpha: düz=1.0, kancalı=0.7, manşonlu=0.5)
-  const alphaMap: Record<SpliceType, number> = { duz: 1.0, kancali: 0.7, manson: 0.5 };
-  const alpha = alphaMap[spliceType];
-  const lbdMm = lbMm * alpha;
-
-  // Compression splice: lbd_min = 0.3 lb but >= 15*phi or 200mm
-  const lbdMinMm = Math.max(0.3 * lbMm, 15 * phi, 200);
-
-  // Tension splice (bindirmeli ek) - Class A (50% veya daha az bindirme)
-  // ls = 1.3 * lbd >= 15*phi, 200mm
-  const lsTensionMm = Math.max(1.3 * lbdMm, 15 * phi, 200);
-  const lsCompressionMm = Math.max(lbdMinMm, 15 * phi, 200);
-
-  const finalLbd = isCompression ? lsCompressionMm : lsTensionMm;
-
-  const lbdCm = Math.ceil(lbdMm / 10);
-  const finalLbdCm = Math.ceil(finalLbd / 10);
+  const lbMm = calc?.basicAnchorageLengthLbMm ?? 0;
+  const lbdMm = calc?.designAnchorageLengthLbdMm ?? 0;
+  const lbdCm = calc?.designAnchorageLengthLbdCm ?? 0;
+  const finalLbdCm = calc?.recommendedLapSpliceLengthCm ?? 0;
 
   const handleCopyReport = () => {
     const text = `TS 500 DONATISI KENETLENme & EK BOYU RAPORU
@@ -193,7 +188,7 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
                         name="bond"
                         value={bc.id}
                         checked={bondConditionId === bc.id}
-                        onChange={() => setBondConditionId(bc.id)}
+                        onChange={() => setBondConditionId(bc.id as BondCondition)}
                         className="accent-teal-500"
                       />
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">{bc.label}</span>
@@ -272,7 +267,7 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
                 <span className="font-mono font-bold text-slate-900 dark:text-white">{Math.ceil(lbMm / 10)} cm</span>
               </div>
               <div className="flex justify-between rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-                <span className="text-slate-600 dark:text-zinc-400">Tasarım Kenetlenme Boyu (l_bd) [α={alpha}]:</span>
+                <span className="text-slate-600 dark:text-zinc-400">Tasarım Kenetlenme Boyu (l_bd) [α={calc?.alphaFactor ?? 1.0}]:</span>
                 <span className="font-mono font-bold text-slate-900 dark:text-white">{lbdCm} cm</span>
               </div>
               <div className="flex justify-between rounded-xl bg-teal-50 p-3 dark:bg-teal-900/20">

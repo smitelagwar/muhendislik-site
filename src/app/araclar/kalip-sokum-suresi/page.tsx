@@ -10,66 +10,34 @@ import { PageContextNavigation } from "@/components/page-context-navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const CEMENT_FACTORS = {
-  cem1r: { label: "CEM I 42.5 R (Hızlı)", multiplier: 1.0 },
-  cem2: { label: "CEM II 32.5 (Normal)", multiplier: 1.35 },
-  cem3: { label: "CEM III (Yavaş)", multiplier: 1.9 },
-} as const;
-
-const ELEMENTS = {
-  kolon: { label: "Kolon / Perde yan kalıbı", baseDays: 2, ratio: 0.35 },
-  dosemeKucuk: { label: "Döşeme ≤ 4 m", baseDays: 7, ratio: 0.7 },
-  dosemeOrta: { label: "Döşeme 4 - 6 m", baseDays: 10, ratio: 0.7 },
-  dosemeBuyuk: { label: "Döşeme ≥ 6 m", baseDays: 14, ratio: 0.75 },
-  kiris: { label: "Kiriş alt kalıbı", baseDays: 10, ratio: 0.75 },
-  konsol: { label: "Konsol", baseDays: 14, ratio: 0.8 },
-} as const;
-
-function getTemperatureFactor(temperature: number) {
-  if (temperature < 5) return 999;
-  if (temperature < 10) return 1.5;
-  if (temperature < 15) return 1.25;
-  if (temperature <= 25) return 1;
-  return 0.85;
-}
+import {
+  CEMENT_FACTORS,
+  STRUCTURAL_ELEMENTS,
+  calculateFormworkStripping,
+  type CementType,
+  type StructuralElementType,
+} from "@/lib/concrete-tools/stripping";
 
 export default function KalipSokumHesapPage() {
   const [betonSinifi, setBetonSinifi] = useState("25");
-  const [cimentoTipi, setCimentoTipi] = useState<keyof typeof CEMENT_FACTORS>("cem1r");
+  const [cimentoTipi, setCimentoTipi] = useState<CementType>("cem1r");
   const [sicaklik, setSicaklik] = useState("20");
-  const [elemanTipi, setElemanTipi] = useState<keyof typeof ELEMENTS>("dosemeKucuk");
+  const [elemanTipi, setElemanTipi] = useState<StructuralElementType>("dosemeKucuk");
 
   const result = useMemo(() => {
     const fck = Number(betonSinifi);
     const temperature = Number(sicaklik);
-    const cement = CEMENT_FACTORS[cimentoTipi];
-    const element = ELEMENTS[elemanTipi];
 
     if (![fck, temperature].every((value) => Number.isFinite(value))) {
       return null;
     }
 
-    const temperatureFactor = getTemperatureFactor(temperature);
-    const critical = temperatureFactor >= 999;
-    const minimumDays = critical ? null : Math.ceil(element.baseDays * cement.multiplier * temperatureFactor);
-    const safeDays = critical ? null : Math.ceil((minimumDays ?? 0) * 1.25);
-    const targetStrength = fck * element.ratio;
-
-    const notes = [
-      "Kesin karar için 7 günlük küp numune veya karot sonucu esas alınmalıdır.",
-      elemanTipi === "konsol" ? "Konsollarda erken söküm yerine %80 dayanım ve kademeli söküm tercih edilmelidir." : "Yatay elemanlarda askı payandası bırakmak riski düşürür.",
-      cimentoTipi === "cem3" ? "CEM III ile erken söküm ciddi risk taşır; programı daha korumacı kurun." : "Çimento tipi hızlandıkça bekleme süresi kısalabilir, ancak saha kürü ihmal edilmemelidir.",
-      temperature < 10 ? "Soğuk havada kalıp sökümünü takvimle değil dayanım doğrulamasıyla yönetin." : "Sıcak havada dayanım erken gelse bile rötre ve çatlak riskine karşı kürlemeyi sürdürün.",
-    ];
-
-    return {
-      critical,
-      minimumDays,
-      safeDays,
-      targetStrength,
-      notes,
-      ratioLabel: `%${Math.round(element.ratio * 100)}`,
-    };
+    return calculateFormworkStripping({
+      concreteClassMpa: fck,
+      cementType: cimentoTipi,
+      elementType: elemanTipi,
+      temperatureC: temperature,
+    });
   }, [betonSinifi, cimentoTipi, elemanTipi, sicaklik]);
 
   return (
@@ -150,12 +118,12 @@ export default function KalipSokumHesapPage() {
 
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">Yapı Elemanı</label>
-                <Select value={elemanTipi} onValueChange={(value) => setElemanTipi(value as keyof typeof ELEMENTS)}>
+                <Select value={elemanTipi} onValueChange={(value) => setElemanTipi(value as StructuralElementType)}>
                   <SelectTrigger className="tool-input h-12 text-foreground dark:text-white font-bold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card dark:bg-[#16132e] border-border dark:border-white/15 text-foreground dark:text-white">
-                    {Object.entries(ELEMENTS).map(([key, element]) => (
+                    {Object.entries(STRUCTURAL_ELEMENTS).map(([key, element]) => (
                       <SelectItem key={key} value={key}>
                         {element.label}
                       </SelectItem>
@@ -218,7 +186,7 @@ export default function KalipSokumHesapPage() {
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="tool-panel rounded-2xl p-5">
                 <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground dark:text-zinc-400">Hedef Dayanım</p>
-                <p className="mt-2 text-2xl font-black text-foreground dark:text-white font-mono">{result ? result.targetStrength.toFixed(1) : "-"}</p>
+                <p className="mt-2 text-2xl font-black text-foreground dark:text-white font-mono">{result ? result.targetStrengthMpa.toFixed(1) : "-"}</p>
                 <p className="mt-0.5 text-xs text-purple-400 font-bold">MPa</p>
               </div>
               <div className="tool-panel rounded-2xl p-5">

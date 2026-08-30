@@ -14,17 +14,14 @@ Sistem, kullanıcıların resmi mühendislik evraklarını tarayıcı üzerinden
 ```
 ┌────────────────────────────────────────────────────────┐
 │                   /belgeler Sayfası                    │
-│   (Kategori Filtreleme + Arama + Belge Kartları + Hızlı Önizleme)
+│   (Kategori Filtreleme + Arama + Belge Kartları)       │
 └───────────────────────────┬────────────────────────────┘
                             │
-            ┌───────────────┴───────────────┐
-            ▼                               ▼
-┌───────────────────────────────┐ ┌───────────────────────────────┐
-│ /belgeler/[belge-adi] Sayfası │ │  BelgelerHub Modal Önizleme   │
-│   (Müstakil Tam Ekran Studio) │ │    (isModal=true Studio)      │
-└───────────────┬───────────────┘ └───────────────┬───────────────┘
-                │                                 │
-                └────────────────┬────────────────┘
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             /belgeler/[belge-adi] Sayfası              │
+│               (Müstakil Tam Ekran Studio)              │
+└───────────────────────────┬────────────────────────────┘
                                  ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        [Belge]Studio Bileşeni                          │

@@ -26,6 +26,12 @@ const IPE_PROFILES = [
   { name: "IPE 600", h: 600, b: 220, tf: 19.0, tw: 12.0, A: 156, Iy: 92080, Iz: 3390, iy: 24.3, iz: 4.66, Wy: 3070 },
 ];
 
+import {
+  calculateSteelProfile,
+  STEEL_PROFILES_DATABASE,
+  type SteelSectionData,
+} from "@/lib/engineering/steel/profile-selection";
+
 const STEEL_GRADES = [
   { name: "S235", fy: 235, fu: 360 },
   { name: "S275", fy: 275, fu: 430 },
@@ -34,7 +40,7 @@ const STEEL_GRADES = [
 
 export function SteelProfileCalculator() {
   const [steelIdx, setSteelIdx] = useState(2); // S355
-  const [profileIdx, setProfileIdx] = useState(9); // IPE 270
+  const [profileIdx, setProfileIdx] = useState(6); // IPE 270
   const [bucklingLengthM, setBucklingLengthM] = useState(5.0);
   const [ndKn, setNdKn] = useState(0);
   const [mdKnm, setMdKnm] = useState(60);
@@ -42,62 +48,56 @@ export function SteelProfileCalculator() {
   const [copied, setCopied] = useState(false);
 
   const steel = STEEL_GRADES[steelIdx];
-  const profile = IPE_PROFILES[profileIdx];
+  const profile = STEEL_PROFILES_DATABASE[profileIdx] ?? STEEL_PROFILES_DATABASE[0];
 
   const results = useMemo(() => {
-    const fy = steel.fy; // MPa
-    const gammaM0 = 1.0; // ÇYTHYE resistance factor
-    const fyd = fy / gammaM0;
-    const A = profile.A * 100; // mm² (A in cm² → mm²)
-    const Wy = profile.Wy * 1000; // mm³
-    const iz = profile.iz * 10; // mm
+    const calc = calculateSteelProfile({
+      profileName: profile.name,
+      steelYieldFyMpa: steel.fy,
+      bucklingLengthM,
+      axialCompressionNdKn: ndKn,
+      bendingMomentMdKnm: mdKnm,
+      shearForceVdKn: vdKn,
+    });
 
-    // Buckling slenderness ratio λ = Lk / iz
-    const Lk = bucklingLengthM * 1000; // mm
-    const lambda = Lk / iz;
-    const lambdaLimit = 150; // ÇYTHYE limit for compression members
-    const isSlendernessSafe = lambda <= lambdaLimit;
-
-    // Euler buckling force
-    const E = 210000; // MPa
-    const Ncr = (Math.PI * Math.PI * E * profile.Iz * 10000) / (Lk * Lk); // N
-
-    // Buckling reduction factor χ (simplified — column curve b for IPE)
-    const lambda1 = 93.9; // For S355
-    const lambdaRel = lambda / lambda1;
-    const alpha = 0.34; // Imperfection factor for curve b
-    const phi = 0.5 * (1 + alpha * (lambdaRel - 0.2) + lambdaRel * lambdaRel);
-    const chi = Math.min(1.0, 1 / (phi + Math.sqrt(phi * phi - lambdaRel * lambdaRel)));
-
-    const NbRdKn = (chi * A * fyd) / 1000; // kN
-    const MRdKnm = (Wy * fyd) / 1e6; // kNm
-    const VRdKn = (A * fyd) / (Math.sqrt(3) * 1000); // kN (gross shear area approx)
-
-    const utilN = ndKn > 0 ? ndKn / NbRdKn : 0;
-    const utilM = mdKnm / MRdKnm;
-    const utilV = vdKn / VRdKn;
-    const utilCombined = utilN + utilM;
-
-    const isNSafe = ndKn === 0 || utilN <= 1.0;
-    const isMSafe = utilM <= 1.0;
-    const isVSafe = utilV <= 1.0;
-    const isCombinedSafe = utilCombined <= 1.0;
+    if (!calc) {
+      return {
+        lambda: "0.0",
+        isSlendernessSafe: true,
+        lambdaLimit: 150,
+        NbRdKn: "0.0",
+        MRdKnm: "0.0",
+        VRdKn: "0.0",
+        chi: "1.000",
+        utilN: "0.0",
+        utilM: "0.0",
+        utilV: "0.0",
+        utilCombined: "0.0",
+        isNSafe: true,
+        isMSafe: true,
+        isVSafe: true,
+        isCombinedSafe: true,
+      };
+    }
 
     return {
-      lambda: lambda.toFixed(1),
-      isSlendernessSafe,
-      lambdaLimit,
-      NbRdKn: NbRdKn.toFixed(1),
-      MRdKnm: MRdKnm.toFixed(1),
-      VRdKn: VRdKn.toFixed(1),
-      chi: chi.toFixed(3),
-      utilN: (utilN * 100).toFixed(1),
-      utilM: (utilM * 100).toFixed(1),
-      utilV: (utilV * 100).toFixed(1),
-      utilCombined: (utilCombined * 100).toFixed(1),
-      isNSafe, isMSafe, isVSafe, isCombinedSafe,
+      lambda: calc.slendernessLambda.toFixed(1),
+      isSlendernessSafe: calc.isSlendernessSafe,
+      lambdaLimit: 150,
+      NbRdKn: calc.compressionCapacityNbRdKn.toFixed(1),
+      MRdKnm: calc.bendingCapacityMcRdKnm.toFixed(1),
+      VRdKn: calc.shearCapacityVcRdKn.toFixed(1),
+      chi: calc.bucklingReductionFactorChi.toFixed(3),
+      utilN: (calc.utilizationCompression * 100).toFixed(1),
+      utilM: (calc.utilizationBending * 100).toFixed(1),
+      utilV: (calc.utilizationShear * 100).toFixed(1),
+      utilCombined: (calc.utilizationCombined * 100).toFixed(1),
+      isNSafe: calc.utilizationCompression <= 1.0,
+      isMSafe: calc.utilizationBending <= 1.0,
+      isVSafe: calc.utilizationShear <= 1.0,
+      isCombinedSafe: calc.isOverallSafe,
     };
-  }, [steelIdx, profileIdx, bucklingLengthM, ndKn, mdKnm, vdKn]);
+  }, [steel, profile, bucklingLengthM, ndKn, mdKnm, vdKn]);
 
   const handleCopy = () => {
     const text = `ÇELİK PROFİL SEÇİMİ & NARİNLİK KONTROLÜ — ÇYTHYE 2018
@@ -228,7 +228,7 @@ TAHKİK:
 
             {/* Profile details */}
             <div className="mt-4 grid grid-cols-4 gap-2 text-xs">
-              {[["h", `${profile.h} mm`], ["b", `${profile.b} mm`], ["A", `${profile.A} cm²`], ["Iy", `${profile.Iy} cm⁴`], ["iy", `${profile.iy} cm`], ["iz", `${profile.iz} cm`], ["Wy", `${profile.Wy} cm³`], ["χ", results.chi]].map(([k, v]) => (
+              {[["h", `${profile.hMm} mm`], ["b", `${profile.bMm} mm`], ["A", `${profile.areaCm2} cm²`], ["iy", `${profile.iyCm} cm`], ["iz", `${profile.izCm} cm`], ["Wy", `${profile.welYCm3} cm³`], ["χ", results.chi]].map(([k, v]) => (
                 <div key={k} className="rounded-lg bg-slate-50 p-2 dark:bg-white/5 text-center">
                   <div className="text-slate-400 dark:text-zinc-500">{k}</div>
                   <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">{v}</div>

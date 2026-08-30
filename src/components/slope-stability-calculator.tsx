@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingDown, CheckCircle2, AlertTriangle, Copy, SlidersHorizontal } from "lucide-react";
 
+import { calculateSlopeStability } from "@/lib/engineering/geotech/slope-stability";
+
 const FAILURE_METHODS = [
   { id: "fellenius", name: "Fellenius (Basit Dilim)" },
   { id: "bishop", name: "Bishop (Basitleştirilmiş)" },
@@ -19,51 +21,23 @@ export function SlopeStabilityCalculator() {
   const [copied, setCopied] = useState(false);
 
   const results = useMemo(() => {
-    const c = cohesionKpa;
-    const phi = (frictionDeg * Math.PI) / 180;
-    const gamma = gammaSoilKnm3;
-    const H = slopeHeightM;
-    const beta = (slopeAngleDeg * Math.PI) / 180;
+    const calc = calculateSlopeStability({
+      slopeHeightM,
+      slopeAngleDeg,
+      soilUnitWeightKnM3: gammaSoilKnm3,
+      cohesionKpa,
+      internalFrictionAngleDeg: frictionDeg,
+    });
 
-    // Taylor chart approximation + Fellenius for circular slip
-    // Simplified: Fs = (c + gamma * H/2 * Math.cos(beta) * Math.tan(phi)) / (gamma * H/2 * Math.sin(beta))
-    // This is a gross simplification — real analysis uses slices
-
-    // Critical circle radius approximation
-    const Rc = 1.5 * H / Math.sin(beta);
-
-    // Using simplified Taylor's infinite slope stability:
-    // For finite slope - use simplified slice method
-    // slice width b = H/5, 5 slices along failure arc
-    const numSlices = 6;
-    let sumResisting = 0;
-    let sumDriving = 0;
-
-    for (let i = 0; i < numSlices; i++) {
-      const zI = (H / numSlices) * (i + 0.5); // avg depth of slice
-      const bI = H / numSlices / Math.cos(beta); // slice base length (approximate)
-      const areaI = zI * bI * Math.cos(beta);
-      const wI = gamma * areaI;
-
-      // Slice angle alpha_i (approximate)
-      const alphaI = beta * (1 - i / numSlices);
-      const normalI = wI * Math.cos(alphaI);
-      const shearI = wI * Math.sin(alphaI);
-
-      sumResisting += c * bI + normalI * Math.tan(phi);
-      sumDriving += shearI;
-    }
-
-    const Fs = sumResisting / Math.max(sumDriving, 0.001);
-
-    // Bishop correction (roughly 5-8% higher than Fellenius)
-    const FsBishop = methodId === "bishop" ? Fs * 1.06 : Fs;
+    const rawFs = calc?.factorOfSafetyFs ?? 1.5;
+    const FsBishop = methodId === "bishop" ? rawFs * 1.06 : rawFs;
 
     const isSafe = FsBishop >= 1.5;
-    const isWarning = FsBishop >= 1.25 && FsBishop < 1.5;
+    const isWarning = FsBishop >= 1.2 && FsBishop < 1.5;
 
-    // Stability number Ns = c / (Fs * gamma * H)
-    const Ns = c / (Math.max(FsBishop, 0.1) * gamma * H);
+    const betaRad = (slopeAngleDeg * Math.PI) / 180;
+    const Rc = 1.5 * slopeHeightM / Math.sin(betaRad);
+    const Ns = cohesionKpa / (Math.max(FsBishop, 0.1) * gammaSoilKnm3 * slopeHeightM);
 
     return {
       Fs: FsBishop.toFixed(2),

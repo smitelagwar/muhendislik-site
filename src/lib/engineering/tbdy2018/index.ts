@@ -4,5 +4,6 @@ export * from "./period";
 export * from "./shear-wall-period";
 export * from "./site-coefficients";
 export * from "./types";
+export * from "./base-shear";
 export * from "./parsers/tdth-report-text";
 export * from "./parsers/number";

@@ -6,12 +6,14 @@ import { Layers, Copy, SlidersHorizontal, Check } from "lucide-react";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
 
+import { calculateEarthPressure } from "@/lib/engineering/geotech/retaining-wall";
+
 const SOIL_TYPES = [
-  { name: "Kum (Gevşek)", Ka: 0.36, gamma: 16 },
-  { name: "Kum (Sıkı)", Ka: 0.26, gamma: 18 },
-  { name: "Killi Zemin", Ka: 0.33, gamma: 17 },
-  { name: "Çakıl (Sıkı)", Ka: 0.22, gamma: 19 },
-  { name: "Kaya", Ka: 0.14, gamma: 22 },
+  { name: "Kum (Gevşek)", phi: 28, Ka: 0.36, gamma: 16 },
+  { name: "Kum (Sıkı)", phi: 36, Ka: 0.26, gamma: 18 },
+  { name: "Killi Zemin", phi: 25, Ka: 0.33, gamma: 17 },
+  { name: "Çakıl (Sıkı)", phi: 40, Ka: 0.22, gamma: 19 },
+  { name: "Kaya", phi: 45, Ka: 0.14, gamma: 22 },
 ];
 
 export function RetainingWallCalculator() {
@@ -25,35 +27,33 @@ export function RetainingWallCalculator() {
 
   const results = useMemo(() => {
     const H = excavationDepthM;
-    const Ka = soil.Ka;
-    const gamma = soil.gamma; // kN/m³
-    const q = surchargeKpa; // kNm²
-    const gammaW = 10; // kN/m³ water
+    const calc = calculateEarthPressure({
+      wallHeightM: H,
+      soilUnitWeightKnM3: soil.gamma,
+      internalFrictionAngleDeg: soil.phi,
+      surchargeKpa,
+    });
 
-    // Active earth pressure at depth z: pa(z) = Ka * (gamma*z + q)
-    const paBase = Ka * (gamma * H + q); // kPa at base
-    const paTop = Ka * q; // kPa at top (sürşarj)
+    const Ka = calc?.ka ?? soil.Ka;
+    const Kp = calc?.kp ?? 3.0;
+    const gamma = soil.gamma;
+    const q = surchargeKpa;
+    const gammaW = 10;
 
-    // Total active force per unit length (trapezoid):
-    const EaSurcharge = Ka * q * H;
-    const EaSoil = 0.5 * Ka * gamma * H * H;
-    const EaTotal = EaSurcharge + EaSoil;
+    const paBase = Ka * (gamma * H + q);
+    const paTop = Ka * q;
 
-    // Resultant height from base:
-    const yResultant = (EaSoil * (H / 3) + EaSurcharge * (H / 2)) / EaTotal;
+    const EaSurcharge = calc?.surchargeThrustKnM ?? (Ka * q * H);
+    const EaSoil = calc?.staticActiveThrustKnM ?? (0.5 * Ka * gamma * H * H);
+    const EaTotal = calc?.totalActiveThrustKnM ?? (EaSurcharge + EaSoil);
+    const yResultant = calc?.applicationPointHeightM ?? (H / 3);
+    const Moverturning = calc?.overturningMomentKnMPerM ?? (EaTotal * yResultant);
 
-    // Overturning moment about base:
-    const Moverturning = EaTotal * yResultant;
-
-    // Hydrostatic pressure if water table within excavation
     const hwM = Math.max(0, H - waterTableM);
     const EaWater = 0.5 * gammaW * hwM * hwM;
     const EaTotalWithWater = EaTotal + EaWater;
     const MtotalWithWater = Moverturning + (EaWater * hwM) / 3;
 
-    // Passive pressure at base (simplified)
-    const phi = Math.asin(1 - 2 * Ka);
-    const Kp = Math.pow(Math.tan(Math.PI / 4 + phi / 2), 2);
     const passiveDepthM = H * 0.3;
     const EpBase = 0.5 * Kp * gamma * passiveDepthM * passiveDepthM;
 

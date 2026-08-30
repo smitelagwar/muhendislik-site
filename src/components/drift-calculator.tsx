@@ -6,6 +6,8 @@ import { MoveHorizontal, CheckCircle2, AlertTriangle, Copy, SlidersHorizontal, C
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
 
+import { calculateStoryDrift, type InfillJointType } from "@/lib/engineering/tbdy2018/drift";
+
 export function DriftCalculator() {
   const [numFloors, setNumFloors] = useState(5);
   const [floorHeightM, setFloorHeightM] = useState(3.0);
@@ -23,16 +25,34 @@ export function DriftCalculator() {
   const driftLimit = ductilityClass === "YDKT" ? 0.016 : 0.008;
 
   const results = useMemo(() => {
-    const floors = Array.from({ length: numFloors }, (_, i) => {
-      const hi = floorHeightM * 1000; // mm
+    let cumulativeDisp = 0;
+    const floorInputs = Array.from({ length: numFloors }, (_, i) => {
       const deltaImm = floorDeltas[i] ?? 10;
-      const ratio = (lambda * deltaImm) / hi;
-      const pct = (ratio * 100).toFixed(3);
-      const isSafe = ratio <= driftLimit;
-      return { floorNum: i + 1, hi: hi / 1000, deltaImm, ratio: ratio.toFixed(5), pct, isSafe };
+      cumulativeDisp += deltaImm;
+      return {
+        floorNumber: i + 1,
+        floorHeightM,
+        displacementMm: cumulativeDisp,
+      };
     });
-    return floors;
-  }, [numFloors, floorHeightM, floorDeltas, lambda, driftLimit]);
+
+    const calc = calculateStoryDrift({
+      infillJointType: ductilityClass === "YDKT" ? "flexible" : "brittle",
+      lambdaFactor: lambda,
+      floors: floorInputs,
+    });
+
+    if (!calc) return [];
+
+    return calc.stories.map((s) => ({
+      floorNum: s.floorNumber,
+      hi: s.floorHeightM,
+      deltaImm: s.interstoryDriftMm,
+      ratio: s.driftRatio.toFixed(5),
+      pct: s.driftPercent.toFixed(3),
+      isSafe: s.isSafe,
+    }));
+  }, [numFloors, floorHeightM, floorDeltas, lambda, ductilityClass]);
 
   const setDelta = (idx: number, val: number) => {
     setFloorDeltas((prev) => {

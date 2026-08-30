@@ -32,41 +32,45 @@ const COLUMN_LOCATIONS = [
   { id: "corner", label: "Köşe Kolon (İki Tarafı Açık)", gamma: 1.4 },
 ];
 
+import {
+  calculatePunchingShear,
+  PUNCHING_LOCATION_FACTORS,
+  type ColumnPunchingLocation,
+} from "@/lib/concrete-tools/punching";
+
 export function PunchingCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
   const [slabThicknessCm, setSlabThicknessCm] = useState(25);
   const [coverMm, setCoverMm] = useState(30);
   const [colBxCm, setColBxCm] = useState(40);
   const [colByCm, setColByCm] = useState(40);
-  const [colLocationId, setColLocationId] = useState("inner");
+  const [colLocationId, setColLocationId] = useState<ColumnPunchingLocation>("inner");
   const [vpdKn, setVpdKn] = useState(480);
   const [copied, setCopied] = useState(false);
 
   const selectedConcrete = CONCRETE_GRADES[concreteIndex];
   const selectedLocation = COLUMN_LOCATIONS.find((l) => l.id === colLocationId) || COLUMN_LOCATIONS[0];
 
-  // Calculations
-  const dCm = Math.max(5, slabThicknessCm - coverMm / 10 - 1.0); // Faydalı derinlik
-  const dMm = dCm * 10;
-  const bxMm = colBxCm * 10;
-  const byMm = colByCm * 10;
+  const calc = useMemo(() => {
+    return calculatePunchingShear({
+      fckMpa: selectedConcrete.fck,
+      fctdMpa: selectedConcrete.fctd,
+      slabThicknessCm,
+      coverMm,
+      columnBxCm: colBxCm,
+      columnByCm: colByCm,
+      location: colLocationId,
+      axialPunchingLoadKn: vpdKn,
+    });
+  }, [selectedConcrete, slabThicknessCm, coverMm, colBxCm, colByCm, colLocationId, vpdKn]);
 
-  // TS 500 Zımbalama Çevresi: u_p = 2 * (bx + by + 2d)
-  const upMm = 2 * (bxMm + byMm + 2 * dMm);
-  const upCm = upMm / 10;
-
-  // Tesir Zımbalama Gerilmesi: v_pd = gamma * V_pd / (u_p * d)
-  const vpdN = vpdKn * 1000;
-  const areaMm2 = upMm * dMm;
-  const vpdMpa = (selectedLocation.gamma * vpdN) / areaMm2; // MPa = N/mm²
-
-  const fctd = selectedConcrete.fctd; // MPa
-  const ratio = vpdMpa / fctd;
-  const isSafe = ratio <= 1.0;
-
-  // Zımbalama Donatısı (Gerekliyse)
-  const maxVprMpa = 1.5 * fctd; // TS 500 maks zımbalama sınırı (1.5 fctd)
-  const isExceededMax = vpdMpa > maxVprMpa;
+  const dCm = calc?.effectiveDepthCm ?? Math.max(5, slabThicknessCm - coverMm / 10 - 1.0);
+  const upCm = calc?.punchingPerimeterCm ?? 0;
+  const vpdMpa = calc?.punchingStressMpa ?? 0;
+  const fctd = calc?.concreteTensileStrengthFctd ?? selectedConcrete.fctd;
+  const ratio = calc?.utilizationRatio ?? 0;
+  const isSafe = calc ? calc.status === "safe" : true;
+  const isExceededMax = calc ? calc.status === "exceeded_capacity" : false;
 
   const handleCopyReport = () => {
     const text = `TS 500 DÖŞEME ZIMBALAMA KONTROLÜ RAPORU
@@ -163,7 +167,7 @@ DURUM: ${isSafe ? "GÜVENLİ (Donatısız Kurtarıyor)" : isExceededMax ? "TEHL�
                 </label>
                 <select
                   value={colLocationId}
-                  onChange={(e) => setColLocationId(e.target.value)}
+                  onChange={(e) => setColLocationId(e.target.value as ColumnPunchingLocation)}
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white"
                 >
                   {COLUMN_LOCATIONS.map((loc) => (

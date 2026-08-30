@@ -6,13 +6,15 @@ import { ArrowLeft, Activity, Copy, SlidersHorizontal, Info, Check } from "lucid
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
 
-const SOIL_CLASSES = [
-  { name: "ZA (Sağlam Kayalık)", fs_low: 0.8, fs_high: 0.8, f1_low: 0.8, f1_high: 0.8 },
-  { name: "ZB (Kayalık)", fs_low: 0.9, fs_high: 0.9, f1_low: 0.9, f1_high: 0.9 },
-  { name: "ZC (Çok Sıkı Kum/Kil)", fs_low: 1.3, fs_high: 1.6, f1_low: 1.5, f1_high: 1.7 },
-  { name: "ZD (Orta Sıkı Kum/Kil)", fs_low: 1.4, fs_high: 2.4, f1_low: 1.6, f1_high: 2.4 },
-  { name: "ZE (Yumuşak Kil)", fs_low: 0.9, fs_high: 3.5, f1_low: 0.9, f1_high: 4.0 },
-  { name: "ZF (Özel)", fs_low: 1.0, fs_high: 1.0, f1_low: 1.0, f1_high: 1.0 },
+import { calculateEquivalentBaseShear, type SoilClass } from "@/lib/engineering/tbdy2018";
+
+const SOIL_CLASSES: { id: SoilClass; name: string }[] = [
+  { id: "ZA", name: "ZA (Sağlam Kayalık)" },
+  { id: "ZB", name: "ZB (Kayalık)" },
+  { id: "ZC", name: "ZC (Çok Sıkı Kum/Kil)" },
+  { id: "ZD", name: "ZD (Orta Sıkı Kum/Kil)" },
+  { id: "ZE", name: "ZE (Yumuşak Kil)" },
+  { id: "ZF", name: "ZF (Özel)" },
 ];
 
 const IMPORTANCE_FACTORS = [
@@ -45,66 +47,61 @@ export function SeismicBaseShearCalculator() {
   const R = BUILDING_SYSTEMS[systemIdx].r;
 
   const results = useMemo(() => {
-    const Fs = (selectedSoil.fs_low + selectedSoil.fs_high) / 2;
-    const F1 = (selectedSoil.f1_low + selectedSoil.f1_high) / 2;
-
-    const SDs = Fs * ss;
-    const SD1 = F1 * s1;
-
-    const TA = (0.2 * SD1) / SDs;
-    const TB = SD1 / SDs;
-    const TL = 6.0;
-
-    const Ct = 0.07;
     const HN = numFloors * floorHeightM;
-    const T1emp = Ct * Math.pow(HN, 0.75);
+    const calc = calculateEquivalentBaseShear({
+      ss,
+      s1,
+      soilClass: selectedSoil.id,
+      importanceFactorI: importance,
+      behaviorFactorR: R,
+      totalWeightKn,
+      numFloors,
+      buildingHeightM: HN,
+    });
 
-    let SaT1: number;
-    if (T1emp <= TA) {
-      SaT1 = (0.4 + (0.6 * T1emp) / TA) * SDs;
-    } else if (T1emp <= TB) {
-      SaT1 = SDs;
-    } else if (T1emp <= TL) {
-      SaT1 = SD1 / T1emp;
-    } else {
-      SaT1 = (SD1 * TL) / (T1emp * T1emp);
+    if (!calc) {
+      return {
+        SDs: "0.000",
+        SD1: "0.000",
+        TA: "0.000",
+        TB: "0.000",
+        T1emp: "0.000",
+        HN: HN.toFixed(1),
+        SaT1: "0.000",
+        Sar: "0.000",
+        Vt: "0.0",
+        VtMin: "0.0",
+        VtFinal: "0.0",
+        floorForces: [],
+        Fs: "0.00",
+        F1: "0.00",
+      };
     }
 
-    const Sar = (SaT1 * importance) / R;
-    const Vt = totalWeightKn * Sar;
-    const VtMin = 0.04 * importance * SDs * totalWeightKn;
-    const VtFinal = Math.max(Vt, VtMin);
-
-    const floors = Array.from({ length: numFloors }, (_, i) => {
-      const floorNum = i + 1;
-      const hi = floorNum * floorHeightM;
-      return { floorNum, hi };
-    });
-
-    const sumWiHi = floors.reduce((s, f) => s + (totalWeightKn / numFloors) * f.hi, 0);
-    const floorForces = floors.map((f) => {
-      const wi = totalWeightKn / numFloors;
-      const Fi = (VtFinal * wi * f.hi) / sumWiHi;
-      return { ...f, Fi: Fi.toFixed(1), wi };
-    });
+    const floorForcesFormatted = calc.floorForces.map((f) => ({
+      floorNum: f.floorNumber,
+      hi: f.floorHeightM,
+      wi: f.floorWeightKn,
+      Fi: f.lateralForceKn.toFixed(1),
+    }));
 
     return {
-      SDs: SDs.toFixed(3),
-      SD1: SD1.toFixed(3),
-      TA: TA.toFixed(3),
-      TB: TB.toFixed(3),
-      T1emp: T1emp.toFixed(3),
+      SDs: calc.sds.toFixed(3),
+      SD1: calc.sd1.toFixed(3),
+      TA: calc.ta.toFixed(3),
+      TB: calc.tb.toFixed(3),
+      T1emp: calc.empiricalPeriodTp.toFixed(3),
       HN: HN.toFixed(1),
-      SaT1: SaT1.toFixed(3),
-      Sar: Sar.toFixed(4),
-      Vt: Vt.toFixed(1),
-      VtMin: VtMin.toFixed(1),
-      VtFinal: VtFinal.toFixed(1),
-      floorForces,
-      Fs: Fs.toFixed(2),
-      F1: F1.toFixed(2),
+      SaT1: calc.elasticSpectralAccelerationSae.toFixed(3),
+      Sar: calc.reducedDesignSpectralAccelerationSar.toFixed(4),
+      Vt: calc.calculatedBaseShearKn.toFixed(1),
+      VtMin: calc.minimumBaseShearKn.toFixed(1),
+      VtFinal: calc.designBaseShearKn.toFixed(1),
+      floorForces: floorForcesFormatted,
+      Fs: calc.fs.toFixed(2),
+      F1: calc.f1.toFixed(2),
     };
-  }, [ss, s1, soilClassIdx, importanceIdx, systemIdx, totalWeightKn, numFloors, floorHeightM, selectedSoil]);
+  }, [ss, s1, soilClassIdx, importanceIdx, systemIdx, totalWeightKn, numFloors, floorHeightM, selectedSoil, importance, R]);
 
   const handleCopyReport = () => {
     const text = `TBDY 2018 EŞDEĞER DEPREM YÜK YÖNTEMİ — TABAN KESME KUVVETİ
