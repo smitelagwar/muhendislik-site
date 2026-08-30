@@ -15,7 +15,7 @@
 | **Stil** | Tailwind CSS 4 |
 | **Görselleştirme** | D3.js |
 | **Deployment** | Vercel; Git auto-deploy kapalı, doğrulama sonrası manuel production deploy |
-| **Production build** | `npm run build` → `next build --webpack`; CAD worker/WASM/font senkronu `prebuild` ile çalışır |
+| **Production build** | `npm run build` → `next build --webpack`; CAD worker/WASM/font senkronu `prebuild` ile çalışır. Tailwind ara optimizasyonu Vercel Linux'taki generated-CSS parse hatası nedeniyle kapalıdır; nihai CSS minifikasyonunu Next.js yapar. |
 | **Hedef kitle** | Türk inşaat / yapı mühendisleri |
 
 ---
