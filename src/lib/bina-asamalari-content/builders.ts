@@ -9,6 +9,7 @@ import {
   getSiblingBinaNodes,
   type IndexedBinaNode,
 } from "../bina-asamalari";
+import { getBinaVisual } from "../bina-asamalari-visuals";
 import type {
   BinaGuideData,
   BinaGuideEquipment,
@@ -198,6 +199,14 @@ const TOPIC_CUSTOM_IMAGES: Record<string, { hero: string; diagram: string }> = {
 };
 
 export function getTopicVisual(node: IndexedBinaNode): { hero: string; diagram: string } {
+  const visual = getBinaVisual(node.slugPath) || getBinaVisual(node.id);
+  if (visual) {
+    return {
+      hero: visual.hero || visual.card,
+      diagram: visual.diagram || visual.card,
+    };
+  }
+
   const topicKey = node.slugPath.split("/").pop() || node.id;
   const branchMeta = getBranchMeta(node.branchId);
 

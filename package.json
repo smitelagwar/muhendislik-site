@@ -9,6 +9,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "check:bina-visuals": "tsx scripts/check-bina-visuals.ts",
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",
     "check:bina-first-wave": "tsx scripts/check-bina-first-wave.mjs",
     "check:content-quality": "tsx scripts/audit-content-quality.mjs --scope=all",

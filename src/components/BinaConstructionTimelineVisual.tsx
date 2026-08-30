@@ -24,6 +24,7 @@ import {
   BINA_MINDMAP_DATA,
   type BinaMindMapNode,
 } from "@/lib/bina-asamalari";
+import { getBinaVisual } from "@/lib/bina-asamalari-visuals";
 
 const TOPIC_IMAGE_MAP: Record<string, string> = {
   "mimari-proje": "/bina-asamalari/images/mimari-proje-hero.jpg",
@@ -73,6 +74,10 @@ interface FlatTopic {
 }
 
 function getTopicImageUrl(nodeId: string): string {
+  const visual = getBinaVisual(nodeId);
+  if (visual?.card) {
+    return visual.card;
+  }
   return (
     TOPIC_IMAGE_MAP[nodeId] || `/bina-asamalari/topics/${nodeId}.svg`
   );
@@ -166,6 +171,15 @@ function TopicCard({
     setImageSrc(initialImage);
   }, [initialImage]);
 
+  const visual = getBinaVisual(node.id);
+  const badgeLabel =
+    visual?.mode === "technical-cutaway"
+      ? "Teknik Kesit"
+      : visual?.mode === "installed-component"
+      ? "Detay Görsel"
+      : "Uygulama Görseli";
+  const altText = visual?.altTr || label;
+
   return (
     <article className={`group/card col-span-12 min-w-0 flex flex-col ${className}`}>
       <Link
@@ -175,9 +189,8 @@ function TopicCard({
         <div className="relative aspect-[16/9] overflow-hidden bg-slate-950">
           <Image
             src={imageSrc}
-            alt={label}
+            alt={altText}
             fill
-            unoptimized
             sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 34vw"
             className="object-cover transition-transform duration-700 ease-out group-hover/card:scale-[1.045]"
             onError={() => {
@@ -193,7 +206,7 @@ function TopicCard({
             className="absolute bottom-3 right-3 rounded-lg border border-white/15 px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white shadow-lg backdrop-blur-md"
             style={{ backgroundColor: `${color}d8` }}
           >
-            Teknik Görsel
+            {badgeLabel}
           </span>
         </div>
 
