@@ -25,16 +25,17 @@ export function DriftCalculator() {
   const driftLimit = ductilityClass === "YDKT" ? 0.016 : 0.008;
 
   const results = useMemo(() => {
+    const floorInputs: Array<{ floorNumber: number; floorHeightM: number; displacementMm: number }> = [];
     let cumulativeDisp = 0;
-    const floorInputs = Array.from({ length: numFloors }, (_, i) => {
+    for (let i = 0; i < numFloors; i++) {
       const deltaImm = floorDeltas[i] ?? 10;
       cumulativeDisp += deltaImm;
-      return {
+      floorInputs.push({
         floorNumber: i + 1,
         floorHeightM,
         displacementMm: cumulativeDisp,
-      };
-    });
+      });
+    }
 
     const calc = calculateStoryDrift({
       infillJointType: ductilityClass === "YDKT" ? "flexible" : "brittle",
@@ -47,7 +48,7 @@ export function DriftCalculator() {
     return calc.stories.map((s) => ({
       floorNum: s.floorNumber,
       hi: s.floorHeightM,
-      deltaImm: s.interstoryDriftMm,
+      deltaImm: s.interstoryDriftDeltaMm,
       ratio: s.driftRatio.toFixed(5),
       pct: s.driftPercent.toFixed(3),
       isSafe: s.isSafe,

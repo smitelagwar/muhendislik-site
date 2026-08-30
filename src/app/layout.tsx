@@ -92,8 +92,16 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <ToastProvider>
             <div className="flex min-h-screen flex-col">
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:font-bold focus:text-black focus:shadow-lg"
+              >
+                Ana içeriğe atla
+              </a>
               <Navbar />
-              <div className="flex-grow">{children}</div>
+              <main id="main-content" tabIndex={-1} className="flex-grow focus:outline-none">
+                {children}
+              </main>
               <Footer />
             </div>
             <GlobalOverlays />

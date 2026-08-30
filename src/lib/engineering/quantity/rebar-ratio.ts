@@ -1,3 +1,5 @@
+// Pratik Donatı Metrajı ve İstatistiksel Pursantaj Hesap Motoru
+
 export type BuildingTypology =
   | "residential_standard"
   | "residential_highrise"
@@ -5,11 +7,16 @@ export type BuildingTypology =
   | "shear_wall_heavy"
   | "industrial_hall";
 
+export type RebarEstimationMethod = "area_based" | "concrete_volume_based";
+
 export interface RebarRatioData {
   name: string;
   defaultKgPerM2: number;
   minKgPerM2: number;
   maxKgPerM2: number;
+  defaultKgPerM3: number;
+  minKgPerM3: number;
+  maxKgPerM3: number;
   description: string;
 }
 
@@ -19,6 +26,9 @@ export const BUILDING_TYPOLOGIES: Record<BuildingTypology, RebarRatioData> = {
     defaultKgPerM2: 32.0,
     minKgPerM2: 28.0,
     maxKgPerM2: 36.0,
+    defaultKgPerM3: 100.0,
+    minKgPerM3: 85.0,
+    maxKgPerM3: 115.0,
     description: "Geleneksel çerçeveli betonarme konut yapıları.",
   },
   residential_highrise: {
@@ -26,6 +36,9 @@ export const BUILDING_TYPOLOGIES: Record<BuildingTypology, RebarRatioData> = {
     defaultKgPerM2: 40.0,
     minKgPerM2: 35.0,
     maxKgPerM2: 46.0,
+    defaultKgPerM3: 125.0,
+    minKgPerM3: 110.0,
+    maxKgPerM3: 140.0,
     description: "Deprem perdeleri yoğun yüksek katlı konut binaları.",
   },
   commercial_office: {
@@ -33,6 +46,9 @@ export const BUILDING_TYPOLOGIES: Record<BuildingTypology, RebarRatioData> = {
     defaultKgPerM2: 38.0,
     minKgPerM2: 33.0,
     maxKgPerM2: 45.0,
+    defaultKgPerM3: 120.0,
+    minKgPerM3: 105.0,
+    maxKgPerM3: 135.0,
     description: "Geniş açıklıklı döşeme ve ağır kullanım yükü olan yapılar.",
   },
   shear_wall_heavy: {
@@ -40,6 +56,9 @@ export const BUILDING_TYPOLOGIES: Record<BuildingTypology, RebarRatioData> = {
     defaultKgPerM2: 48.0,
     minKgPerM2: 42.0,
     maxKgPerM2: 55.0,
+    defaultKgPerM3: 115.0,
+    minKgPerM3: 100.0,
+    maxKgPerM3: 130.0,
     description: "Tüm taşıyıcı sistemi perdelerden oluşan rijit yapılar.",
   },
   industrial_hall: {
@@ -47,23 +66,32 @@ export const BUILDING_TYPOLOGIES: Record<BuildingTypology, RebarRatioData> = {
     defaultKgPerM2: 24.0,
     minKgPerM2: 18.0,
     maxKgPerM2: 30.0,
+    defaultKgPerM3: 80.0,
+    minKgPerM3: 65.0,
+    maxKgPerM3: 95.0,
     description: "Prefabrik veya geniş kolon aralıklı tek katlı yapılar.",
   },
 };
 
 export interface RebarQuantityInput {
-  totalConstructionAreaM2: number;
+  estimationMethod?: RebarEstimationMethod;
+  totalConstructionAreaM2?: number; // Metod area_based ise
+  totalConcreteVolumeM3?: number; // Metod concrete_volume_based ise
   typology: BuildingTypology;
-  customKgPerM2?: number;
+  customUnitRate?: number; // kg/m2 veya kg/m3
   wastePercentage?: number; // Fire payı (varsayılan %5)
 }
 
 export interface RebarQuantityResult {
+  estimationMethod: RebarEstimationMethod;
   typologyName: string;
-  unitWeightKgPerM2: number;
+  unitWeightKg: number;
+  unitLabel: string;
   netWeightTon: number;
   wasteWeightTon: number;
   grossWeightTon: number;
+  minEstimatedTon: number;
+  maxEstimatedTon: number;
   thinRebarTon: number; // Ø8 - Ø12 (%30)
   mediumRebarTon: number; // Ø14 - Ø18 (%45)
   thickRebarTon: number; // Ø20 - Ø26 (%25)
@@ -73,49 +101,79 @@ export interface RebarQuantityResult {
 
 export function calculateRebarQuantity(input: RebarQuantityInput): RebarQuantityResult | null {
   const {
-    totalConstructionAreaM2: areaM2,
+    estimationMethod = "area_based",
+    totalConstructionAreaM2,
+    totalConcreteVolumeM3,
     typology,
-    customKgPerM2,
+    customUnitRate,
     wastePercentage = 5.0,
   } = input;
 
-  if (areaM2 <= 0 || !BUILDING_TYPOLOGIES[typology]) return null;
-
+  if (!BUILDING_TYPOLOGIES[typology]) return null;
   const data = BUILDING_TYPOLOGIES[typology];
-  const unitWeightKgPerM2 = customKgPerM2 && customKgPerM2 > 0 ? customKgPerM2 : data.defaultKgPerM2;
 
-  const netWeightKg = areaM2 * unitWeightKgPerM2;
+  let quantity = 0;
+  let defaultRate = 0;
+  let minRate = 0;
+  let maxRate = 0;
+  let unitLabel = "";
+
+  if (estimationMethod === "area_based") {
+    if (!totalConstructionAreaM2 || totalConstructionAreaM2 <= 0) return null;
+    quantity = totalConstructionAreaM2;
+    defaultRate = data.defaultKgPerM2;
+    minRate = data.minKgPerM2;
+    maxRate = data.maxKgPerM2;
+    unitLabel = "kg/m² inşaat alanı";
+  } else {
+    if (!totalConcreteVolumeM3 || totalConcreteVolumeM3 <= 0) return null;
+    quantity = totalConcreteVolumeM3;
+    defaultRate = data.defaultKgPerM3;
+    minRate = data.minKgPerM3;
+    maxRate = data.maxKgPerM3;
+    unitLabel = "kg/m³ beton hacmi";
+  }
+
+  const unitWeightKg = customUnitRate && customUnitRate > 0 ? customUnitRate : defaultRate;
+  const netWeightKg = quantity * unitWeightKg;
   const netWeightTon = netWeightKg / 1000;
 
   const wasteRate = Math.max(0, wastePercentage) / 100;
   const wasteWeightTon = netWeightTon * wasteRate;
   const grossWeightTon = netWeightTon + wasteWeightTon;
 
+  const minEstimatedTon = ((quantity * minRate) / 1000) * (1 + wasteRate);
+  const maxEstimatedTon = ((quantity * maxRate) / 1000) * (1 + wasteRate);
+
   // Çap Dağılım Tahmini (Deneyimsel Oranlar)
-  const thinRebarTon = grossWeightTon * 0.30; // Etriye, çiroz, döşeme hasırları
-  const mediumRebarTon = grossWeightTon * 0.45; // Kolon/kiriş boyuna donatıları
-  const thickRebarTon = grossWeightTon * 0.25; // Radye ve perde gövde donatıları
+  const thinRebarTon = grossWeightTon * 0.30;
+  const mediumRebarTon = grossWeightTon * 0.45;
+  const thickRebarTon = grossWeightTon * 0.25;
 
   // Bağ teli: ton başına ~12 kg
   const bindingWireKg = grossWeightTon * 12.0;
 
-  const notes = [
-    `Toplam İnşaat Alanı: ${areaM2} m², Birim Donatı Yoğunluğu: ${unitWeightKgPerM2} kg/m².`,
-    `Net İnşaat Demiri: ${netWeightTon.toFixed(2)} Ton (%${wastePercentage} fire ile Brüt: ${grossWeightTon.toFixed(2)} Ton).`,
-    `Yaklaşık Çap Dağılımı: İnce (Ø8-Ø12): ${thinRebarTon.toFixed(1)} Ton | Orta (Ø14-Ø18): ${mediumRebarTon.toFixed(1)} Ton | Kalın (Ø20+): ${thickRebarTon.toFixed(1)} Ton.`,
-    `Tahmini Bağ Teli İhtiyacı: ~${bindingWireKg.toFixed(0)} kg.`,
+  const notes: string[] = [
+    `Hesap Yöntemi: ${estimationMethod === "area_based" ? "Toplam İnşaat Alanına Göre" : "Beton Hacmine Göre"} Pratik Pursantaj.`,
+    `Birim Donatı Oranı: ${unitWeightKg.toFixed(1)} ${unitLabel}.`,
+    `İstatistiki Aralık: ${minEstimatedTon.toFixed(1)} ton – ${maxEstimatedTon.toFixed(1)} ton (%${wastePercentage} fire dahil).`,
+    "BİLGİLENDİRME: Bu hesaplama şantiye istatistiki pursantajlarına dayanan bir yaklaşık ön metrajdır; statik projedeki kesin metrajın yerini tutmaz.",
   ];
 
   return {
+    estimationMethod,
     typologyName: data.name,
-    unitWeightKgPerM2,
-    netWeightTon,
-    wasteWeightTon,
-    grossWeightTon,
-    thinRebarTon,
-    mediumRebarTon,
-    thickRebarTon,
-    bindingWireKg,
+    unitWeightKg,
+    unitLabel,
+    netWeightTon: Number(netWeightTon.toFixed(2)),
+    wasteWeightTon: Number(wasteWeightTon.toFixed(2)),
+    grossWeightTon: Number(grossWeightTon.toFixed(2)),
+    minEstimatedTon: Number(minEstimatedTon.toFixed(2)),
+    maxEstimatedTon: Number(maxEstimatedTon.toFixed(2)),
+    thinRebarTon: Number(thinRebarTon.toFixed(2)),
+    mediumRebarTon: Number(mediumRebarTon.toFixed(2)),
+    thickRebarTon: Number(thickRebarTon.toFixed(2)),
+    bindingWireKg: Number(bindingWireKg.toFixed(1)),
     notes,
   };
 }

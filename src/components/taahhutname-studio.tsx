@@ -823,7 +823,7 @@ export function TaahhutnameStudio({
               ) : (
                 <FileDown className="h-4 w-4" />
               )}
-              <span>Doldurulmuş PDF'i İndir</span>
+              <span>Doldurulmuş PDF&apos;i İndir</span>
             </Button>
           </div>
         </div>

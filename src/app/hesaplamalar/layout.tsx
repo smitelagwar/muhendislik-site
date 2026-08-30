@@ -33,6 +33,7 @@ export default function HesaplamalarLayout({
           <div className="flex items-center gap-2.5">
             <Link
               href="/"
+              aria-label="Ana Sayfa"
               className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card/80 px-3.5 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-blue-500/40 hover:bg-card hover:text-foreground dark:border-white/10 dark:bg-[#0c1029]/80 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-[#12173b] dark:hover:text-white"
             >
               <Home className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
@@ -43,6 +44,7 @@ export default function HesaplamalarLayout({
 
             <Link
               href="/kategori/araclar"
+              aria-label="Mühendislik Araçları"
               className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-card/80 px-3.5 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:border-purple-500/40 hover:bg-card hover:text-foreground dark:border-white/10 dark:bg-[#0c1029]/80 dark:text-slate-300 dark:hover:border-purple-500/40 dark:hover:bg-[#12173b] dark:hover:text-white"
             >
               <Calculator className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />

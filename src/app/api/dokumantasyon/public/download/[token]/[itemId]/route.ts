@@ -155,7 +155,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     responseHeaders.set("Referrer-Policy", "no-referrer");
     responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-    return new NextResponse(fileBuffer as any, {
+    return new NextResponse(fileBuffer as unknown as BodyInit, {
       status: 200,
       headers: responseHeaders,
     });

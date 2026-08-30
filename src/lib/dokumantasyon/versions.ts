@@ -9,7 +9,7 @@ import { put } from "@vercel/blob";
 import { getDb, ensureDatabaseTables } from "./db";
 import { DokRuntimeConfigError, getBlobCommandOptions, hasBlobAccessConfiguration, isExplicitLocalDokMode } from "./runtime-mode";
 import { readLocalDb, writeLocalDb, getLocalStorageDir } from "./local-store";
-import { DokFile, DokFileVersion } from "./types";
+import { DokFileVersion } from "./types";
 import { releaseCadDerivatives } from "./cad-aps";
 
 /**
@@ -82,33 +82,33 @@ export async function getFileVersions(fileId: string): Promise<DokFileVersion[]>
     const freshRows = await sql`
       SELECT * FROM dok_file_versions WHERE file_id = ${fileId} ORDER BY version_number DESC;
     `;
-    return freshRows.map((r: any) => ({
-      id: r.id,
-      file_id: r.file_id,
+    return freshRows.map((r: Record<string, unknown>) => ({
+      id: String(r.id),
+      file_id: String(r.file_id),
       version_number: Number(r.version_number),
-      blob_pathname: r.blob_pathname,
-      blob_url: r.blob_url,
+      blob_pathname: String(r.blob_pathname),
+      blob_url: String(r.blob_url),
       size_bytes: Number(r.size_bytes),
-      mime_type: r.mime_type,
-      sha256_hash: r.sha256_hash || null,
-      comment: r.comment || null,
-      created_by: r.created_by,
-      created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+      mime_type: String(r.mime_type),
+      sha256_hash: r.sha256_hash ? String(r.sha256_hash) : null,
+      comment: r.comment ? String(r.comment) : null,
+      created_by: String(r.created_by),
+      created_at: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
     }));
   }
 
-  return versionRows.map((r: any) => ({
-    id: r.id,
-    file_id: r.file_id,
+  return versionRows.map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    file_id: String(r.file_id),
     version_number: Number(r.version_number),
-    blob_pathname: r.blob_pathname,
-    blob_url: r.blob_url,
+    blob_pathname: String(r.blob_pathname),
+    blob_url: String(r.blob_url),
     size_bytes: Number(r.size_bytes),
-    mime_type: r.mime_type,
-    sha256_hash: r.sha256_hash || null,
-    comment: r.comment || null,
-    created_by: r.created_by,
-    created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+    mime_type: String(r.mime_type),
+    sha256_hash: r.sha256_hash ? String(r.sha256_hash) : null,
+    comment: r.comment ? String(r.comment) : null,
+    created_by: String(r.created_by),
+    created_at: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
   }));
 }
 
@@ -227,7 +227,7 @@ export async function createNewFileVersion(params: {
     `;
     nextVersionNumber = 2;
   } else {
-    nextVersionNumber = Math.max(...versionRows.map((r: any) => Number(r.version_number))) + 1;
+    nextVersionNumber = Math.max(...versionRows.map((r: Record<string, unknown>) => Number(r.version_number))) + 1;
   }
 
   let blob_pathname = `dokumantasyon/${file.id}_v${nextVersionNumber}${file.extension}`;

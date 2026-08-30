@@ -3,8 +3,8 @@
 // ============================================================================
 
 import { getDb } from "./db";
-import { DokShareLink, DokShareItem, DokFile } from "./types";
-import { hashShareToken, verifyPassword } from "./security";
+import { DokShareLink, DokShareItem } from "./types";
+import { hashShareToken } from "./security";
 import { SignJWT, jwtVerify } from "jose";
 import { readLocalDb, writeLocalDb } from "./local-store";
 import { hasDatabaseUrl } from "./runtime-mode";

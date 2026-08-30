@@ -86,9 +86,9 @@ const spliceRes = calculateSpliceLength({
   isCompression: false,
 });
 assert.ok(spliceRes);
-approxEqual(spliceRes.basicAnchorageLengthLbMm, 270.37, 0.1, "lb");
-assert.equal(spliceRes.basicAnchorageLengthLbCm, 28);
-assert.equal(spliceRes.recommendedLapSpliceLengthCm, 36); // 1.3 * 27.03 = 35.14 -> 36 cm
+approxEqual(spliceRes.basicAnchorageLengthLbMm, 540.74, 0.5, "lb");
+assert.equal(spliceRes.basicAnchorageLengthLbCm, 55);
+assert.equal(spliceRes.recommendedLapSpliceLengthCm, 71); // 1.3 * 54.07 = 70.3 -> 71 cm
 
 // Kancalı ek
 const hookSpliceRes = calculateSpliceLength({
@@ -101,7 +101,7 @@ const hookSpliceRes = calculateSpliceLength({
   isCompression: false,
 });
 assert.ok(hookSpliceRes);
-assert.equal(hookSpliceRes.designAnchorageLengthLbdCm, 19); // 0.7 * 27.03 = 18.9 -> 19 cm
+assert.equal(hookSpliceRes.designAnchorageLengthLbdCm, 38); // 0.7 * 54.07 = 37.85 -> 38 cm
 
 console.log("  ✓ Donatı Kenetlenme ve Ek Boyu motoru GEÇTİ.");
 

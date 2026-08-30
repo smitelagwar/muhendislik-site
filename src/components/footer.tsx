@@ -29,6 +29,7 @@ export function Footer() {
                 alt="İnşa Blog"
                 width={216}
                 height={72}
+                unoptimized
                 className="h-10 w-auto"
               />
             </Link>
@@ -46,7 +47,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Hızlı bağlantılar</h5>
+            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Hızlı bağlantılar</h5>
             <ul className="mt-5 space-y-3">
               <li><Link href="/kategori/araclar" className="transition-colors hover:text-white">Tüm araçlar</Link></li>
               <li><Link href="/hesaplamalar" className="transition-colors hover:text-white">Hesaplamalar</Link></li>
@@ -58,7 +59,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Kurumsal</h5>
+            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Kurumsal</h5>
             <ul className="mt-5 space-y-3">
               <li><Link href="/hakkimizda" className="transition-colors hover:text-white">Hakkımızda</Link></li>
               <li><Link href="/iletisim" className="transition-colors hover:text-white">İletişim</Link></li>
@@ -68,7 +69,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">İletişim</h5>
+            <h5 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">İletişim</h5>
             <ul className="mt-5 space-y-4">
               <li className="flex items-start gap-3">
                 <MapPin className="mt-1 h-4 w-4 shrink-0 text-amber-300" />

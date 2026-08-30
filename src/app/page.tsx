@@ -30,7 +30,7 @@ export default function Home() {
   return (
     <>
       <HomeScrollLogo />
-      <main className="home-page overflow-hidden">
+      <div className="home-page overflow-hidden">
         <JsonLd schema={schema} />
         <HomeHeroSection counts={model.counts} />
         <HomeResourceShowcase
@@ -42,7 +42,7 @@ export default function Home() {
         <HomeWorkflowBand steps={model.workflow} />
         <HomeProjectPath phases={model.phases} />
         <HomeClosingSection counts={model.counts} />
-      </main>
+      </div>
     </>
   );
 }

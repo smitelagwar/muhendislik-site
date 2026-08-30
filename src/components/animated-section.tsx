@@ -41,15 +41,15 @@ export function AnimatedSection({
   threshold = 0.15,
 }: AnimatedSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof navigator !== "undefined" && /HeadlessChrome/i.test(navigator.userAgent)) {
+      return true;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    // Headless tarayıcı (crawler/screenshot robotları) tespiti ve SEO/test kararlılığı
-    const isHeadless = typeof navigator !== "undefined" && /HeadlessChrome/i.test(navigator.userAgent);
-    if (isHeadless) {
-      setIsVisible(true);
-      return;
-    }
+    if (isVisible) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {

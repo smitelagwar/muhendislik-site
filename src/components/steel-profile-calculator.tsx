@@ -81,13 +81,13 @@ export function SteelProfileCalculator() {
     }
 
     return {
-      lambda: calc.slendernessLambda.toFixed(1),
+      lambda: calc.governingSlenderness.toFixed(1),
       isSlendernessSafe: calc.isSlendernessSafe,
-      lambdaLimit: 150,
+      lambdaLimit: 200,
       NbRdKn: calc.compressionCapacityNbRdKn.toFixed(1),
       MRdKnm: calc.bendingCapacityMcRdKnm.toFixed(1),
       VRdKn: calc.shearCapacityVcRdKn.toFixed(1),
-      chi: calc.bucklingReductionFactorChi.toFixed(3),
+      chi: calc.governingChi.toFixed(3),
       utilN: (calc.utilizationCompression * 100).toFixed(1),
       utilM: (calc.utilizationBending * 100).toFixed(1),
       utilV: (calc.utilizationShear * 100).toFixed(1),

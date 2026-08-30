@@ -1,3 +1,5 @@
+// ÇYTHYE 2018 / TS EN 1993-1-8 Çelik Cıvatalı ve Kaynaklı Birleşim Hesap Motoru
+
 export type BoltGrade = "8.8" | "10.9";
 export type BoltDiameter = 16 | 20 | 24 | 27 | 30;
 
@@ -22,6 +24,10 @@ export interface BoltedConnectionInput {
   shearPlanesCount: number; // 1: tek tesirli, 2: çift tesirli
   plateThicknessMm: number;
   steelUltimateStrengthFuMpa?: number; // Levha çeliği fu (S275=430, S355=510)
+  edgeDistanceE1Mm?: number; // Yük yönündeki kenar mesafesi e1
+  edgeDistanceE2Mm?: number; // Yüke dik kenar mesafesi e2
+  spacingP1Mm?: number; // Yük yönündeki delik aralığı p1
+  spacingP2Mm?: number; // Yüke dik delik aralığı p2
   designShearForceVdKn: number;
   designTensionForceNdKn?: number;
 }
@@ -30,6 +36,9 @@ export interface BoltedConnectionResult {
   singleBoltShearCapacityFvRdKn: number;
   singleBoltBearingCapacityFbRdKn: number;
   singleBoltTensionCapacityFtRdKn: number;
+  alphaBFactor: number;
+  k1Factor: number;
+  governingBoltShearBearingCapacityKn: number;
   totalConnectionShearCapacityKn: number;
   totalConnectionBearingCapacityKn: number;
   totalConnectionTensionCapacityKn: number;
@@ -37,6 +46,7 @@ export interface BoltedConnectionResult {
   tensionUtilization: number;
   combinedUtilization: number;
   isSafe: boolean;
+  status: "safe" | "exceeded";
   notes: string[];
 }
 
@@ -48,6 +58,10 @@ export function calculateBoltedConnection(input: BoltedConnectionInput): BoltedC
     shearPlanesCount,
     plateThicknessMm,
     steelUltimateStrengthFuMpa: fuPlate = 510, // S355 varsayılan
+    edgeDistanceE1Mm,
+    edgeDistanceE2Mm,
+    spacingP1Mm,
+    spacingP2Mm,
     designShearForceVdKn,
     designTensionForceNdKn = 0,
   } = input;
@@ -64,16 +78,29 @@ export function calculateBoltedConnection(input: BoltedConnectionInput): BoltedC
   const bolt = BOLT_DATA[boltDiameterMm];
   const fub = boltGrade === "8.8" ? 800 : 1000;
   const gammaM2 = 1.25;
+  const d0 = bolt.holeDiameterD0Mm;
 
   // 1. Cıvata Makaslama Dayanımı (ÇYTHYE 2018 Denklem 13.1): Fv,Rd = (alpha_v * fub * As) / gammaM2
-  const alphaV = 0.6;
+  const alphaV = boltGrade === "8.8" ? 0.6 : 0.5;
   const singleBoltShearCapacityFvRdKn =
     (alphaV * fub * bolt.stressAreaAsMm2 * shearPlanesCount) / (gammaM2 * 1000);
 
   // 2. Levha Ezilme Dayanımı (ÇYTHYE 2018 Denklem 13.2): Fb,Rd = (k1 * alpha_b * fu * d * t) / gammaM2
-  // Standart kenar mesafeleri için k1=2.5, alpha_b=1.0 kabulü
+  const e1 = edgeDistanceE1Mm ?? 1.5 * d0;
+  const e2 = edgeDistanceE2Mm ?? 1.5 * d0;
+  const p1 = spacingP1Mm ?? 3.0 * d0;
+
+  // alpha_b = min(e1 / (3*d0), p1 / (3*d0) - 1/4, fub / fu, 1.0)
+  const alphaB1 = e1 / (3 * d0);
+  const alphaB2 = p1 / (3 * d0) - 0.25;
+  const alphaB3 = fub / fuPlate;
+  const alphaB = Math.max(0.1, Math.min(alphaB1, alphaB2, alphaB3, 1.0));
+
+  // k1 = min(2.8 * (e2 / d0) - 1.7, 2.5)
+  const k1 = Math.max(0.5, Math.min(2.8 * (e2 / d0) - 1.7, 2.5));
+
   const singleBoltBearingCapacityFbRdKn =
-    (2.5 * 1.0 * fuPlate * bolt.diameterMm * plateThicknessMm) / (gammaM2 * 1000);
+    (k1 * alphaB * fuPlate * bolt.diameterMm * plateThicknessMm) / (gammaM2 * 1000);
 
   // 3. Cıvata Çekme Dayanımı: Ft,Rd = (0.9 * fub * As) / gammaM2
   const singleBoltTensionCapacityFtRdKn =
@@ -83,90 +110,97 @@ export function calculateBoltedConnection(input: BoltedConnectionInput): BoltedC
   const totalConnectionBearingCapacityKn = singleBoltBearingCapacityFbRdKn * boltCount;
   const totalConnectionTensionCapacityKn = singleBoltTensionCapacityFtRdKn * boltCount;
 
-  const effectiveShearCapacityKn = Math.min(
-    totalConnectionShearCapacityKn,
-    totalConnectionBearingCapacityKn
+  const governingSingleShearBearingKn = Math.min(
+    singleBoltShearCapacityFvRdKn,
+    singleBoltBearingCapacityFbRdKn
   );
+  const totalEffectiveShearKn = governingSingleShearBearingKn * boltCount;
 
-  const shearUtilization = designShearForceVdKn / effectiveShearCapacityKn;
+  const shearUtilization = designShearForceVdKn / totalEffectiveShearKn;
   const tensionUtilization =
     designTensionForceNdKn > 0 ? designTensionForceNdKn / totalConnectionTensionCapacityKn : 0;
 
   // ÇYTHYE 2018 Madde 13.3.4 Bileşik Makaslama ve Çekme: (Vd / Fv,Rd) + (Nd / (1.4 * Ft,Rd)) <= 1.0
   const combinedUtilization = shearUtilization + tensionUtilization / 1.4;
-  const isSafe = combinedUtilization <= 1.0 && shearUtilization <= 1.0;
+  const isSafe = combinedUtilization <= 1.0 && shearUtilization <= 1.0 && tensionUtilization <= 1.0;
+  const status: "safe" | "exceeded" = isSafe ? "safe" : "exceeded";
 
   const notes: string[] = [
-    `Cıvata: ${boltCount} adet M${bolt.diameterMm} (${boltGrade} kalite, As = ${bolt.stressAreaAsMm2} mm²).`,
-    `Tek cıvata makaslama kapasitesi: Fv,Rd = ${singleBoltShearCapacityFvRdKn.toFixed(1)} kN (${shearPlanesCount === 2 ? "Çift" : "Tek"} tesirli).`,
-    `Levha ezilme kapasitesi (t = ${plateThicknessMm} mm): Fb,Rd = ${singleBoltBearingCapacityFbRdKn.toFixed(1)} kN/cıvata.`,
-    isSafe
-      ? `Birleşim güvenli (Kapasite kullanım oranı: %${(combinedUtilization * 100).toFixed(1)}).`
-      : `UYARI: Birleşim kapasitesi aşıldı (%${(combinedUtilization * 100).toFixed(1)})! Cıvata adedi veya çapı artırılmalıdır.`,
+    `Cıvata Grubu: ${boltCount} adet M${bolt.diameterMm} (Kalite: ${boltGrade}, As = ${bolt.stressAreaAsMm2} mm², Delik d0 = ${d0} mm).`,
+    `Tek Cıvata Kapasiteleri: Makaslama Fv,Rd = ${singleBoltShearCapacityFvRdKn.toFixed(1)} kN, Levha Ezilme Fb,Rd = ${singleBoltBearingCapacityFbRdKn.toFixed(1)} kN (αb = ${alphaB.toFixed(2)}, k1 = ${k1.toFixed(2)}), Çekme Ft,Rd = ${singleBoltTensionCapacityFtRdKn.toFixed(1)} kN.`,
+    `Toplam Birleşim Kesme Kapasitesi: ${totalEffectiveShearKn.toFixed(1)} kN (Kullanım: %${(shearUtilization * 100).toFixed(1)}).`,
   ];
 
+  if (designTensionForceNdKn > 0) {
+    notes.push(`Eksenel Çekme Kullanımı: %${(tensionUtilization * 100).toFixed(1)}, Bileşik Etkileşim: %${(combinedUtilization * 100).toFixed(1)}.`);
+  }
+
   return {
-    singleBoltShearCapacityFvRdKn,
-    singleBoltBearingCapacityFbRdKn,
-    singleBoltTensionCapacityFtRdKn,
-    totalConnectionShearCapacityKn,
-    totalConnectionBearingCapacityKn,
-    totalConnectionTensionCapacityKn,
-    shearUtilization,
-    tensionUtilization,
-    combinedUtilization,
+    singleBoltShearCapacityFvRdKn: Number(singleBoltShearCapacityFvRdKn.toFixed(1)),
+    singleBoltBearingCapacityFbRdKn: Number(singleBoltBearingCapacityFbRdKn.toFixed(1)),
+    singleBoltTensionCapacityFtRdKn: Number(singleBoltTensionCapacityFtRdKn.toFixed(1)),
+    alphaBFactor: Number(alphaB.toFixed(3)),
+    k1Factor: Number(k1.toFixed(3)),
+    governingBoltShearBearingCapacityKn: Number(governingSingleShearBearingKn.toFixed(1)),
+    totalConnectionShearCapacityKn: Number(totalConnectionShearCapacityKn.toFixed(1)),
+    totalConnectionBearingCapacityKn: Number(totalConnectionBearingCapacityKn.toFixed(1)),
+    totalConnectionTensionCapacityKn: Number(totalConnectionTensionCapacityKn.toFixed(1)),
+    shearUtilization: Number(shearUtilization.toFixed(3)),
+    tensionUtilization: Number(tensionUtilization.toFixed(3)),
+    combinedUtilization: Number(combinedUtilization.toFixed(3)),
     isSafe,
+    status,
     notes,
   };
 }
 
 export interface WeldedConnectionInput {
-  throatThicknessAMm: number; // Kaynak boğaz kalınlığı a (mm)
-  weldLengthMm: number; // Etkili kaynak boyu Lw (mm)
-  steelUltimateStrengthFuMpa: number; // S235=360, S355=510
+  weldThicknessMm: number; // a: Kaynak boğaz kalınlığı (mm)
+  weldLengthMm: number; // L: Kaynak uzunluğu (mm)
+  steelGrade: "S235" | "S275" | "S355";
   designShearForceVdKn: number;
 }
 
 export interface WeldedConnectionResult {
-  designWeldStrengthFvwDMpa: number;
-  totalWeldCapacityFwRdKn: number;
+  throatThicknessMm: number;
+  weldLengthMm: number;
+  weldStrengthFvwDMpa: number;
+  weldShearCapacityKn: number;
   utilization: number;
   isSafe: boolean;
+  status: "safe" | "exceeded";
   notes: string[];
 }
 
 export function calculateWeldedConnection(input: WeldedConnectionInput): WeldedConnectionResult | null {
-  const {
-    throatThicknessAMm: a,
-    weldLengthMm: Lw,
-    steelUltimateStrengthFuMpa: fu,
-    designShearForceVdKn: VdKn,
-  } = input;
+  const { weldThicknessMm: a, weldLengthMm: L, steelGrade, designShearForceVdKn: Vd } = input;
 
-  if (a <= 0 || Lw <= 0 || fu <= 0 || VdKn <= 0) return null;
+  if (a <= 0 || L <= 0 || Vd <= 0) return null;
 
-  const betaW = fu >= 510 ? 0.9 : 0.8; // S355 için 0.9, S235 için 0.8
+  const fuMap = { S235: 360, S275: 430, S355: 510 };
+  const betaWMap = { S235: 0.8, S275: 0.85, S355: 0.9 };
+  const fu = fuMap[steelGrade] ?? 510;
+  const betaW = betaWMap[steelGrade] ?? 0.9;
   const gammaM2 = 1.25;
 
-  // ÇYTHYE 2018 Denklem 13.17: fvw,d = fu / (sqrt(3) * beta_w * gamma_M2)
-  const designWeldStrengthFvwDMpa = fu / (Math.sqrt(3) * betaW * gammaM2);
-
-  // Fw,Rd = a * Lw * fvw,d
-  const totalWeldCapacityFwRdKn = (a * Lw * designWeldStrengthFvwDMpa) / 1000;
-  const utilization = VdKn / totalWeldCapacityFwRdKn;
+  // ÇYTHYE 2018 / EC3 Köşe Kaynak Dayanımı fvw,d = fu / (sqrt(3) * beta_w * gamma_M2)
+  const fvwDMpa = fu / (Math.sqrt(3) * betaW * gammaM2);
+  const weldAreaMm2 = a * L;
+  const weldShearCapacityKn = (weldAreaMm2 * fvwDMpa) / 1000;
+  const utilization = Vd / weldShearCapacityKn;
   const isSafe = utilization <= 1.0;
 
-  const notes = [
-    `Köşe kaynak boğaz kalınlığı: a = ${a} mm, etkili boy: Lw = ${Lw} mm.`,
-    `Tasarım kaynak kayma dayanımı: fvw,d = ${designWeldStrengthFvwDMpa.toFixed(1)} MPa.`,
-    `Toplam kaynak kapasitesi: Fw,Rd = ${totalWeldCapacityFwRdKn.toFixed(1)} kN (Talep: ${VdKn} kN - %${(utilization * 100).toFixed(1)}).`,
-  ];
-
   return {
-    designWeldStrengthFvwDMpa,
-    totalWeldCapacityFwRdKn,
-    utilization,
+    throatThicknessMm: a,
+    weldLengthMm: L,
+    weldStrengthFvwDMpa: Number(fvwDMpa.toFixed(1)),
+    weldShearCapacityKn: Number(weldShearCapacityKn.toFixed(1)),
+    utilization: Number(utilization.toFixed(3)),
     isSafe,
-    notes,
+    status: isSafe ? "safe" : "exceeded",
+    notes: [
+      `Köşe Kaynak: a = ${a} mm, L = ${L} mm (${steelGrade} çeliği, fu = ${fu} MPa, βw = ${betaW}).`,
+      `Tasarım Kaynak Dayanımı: fvw,d = ${fvwDMpa.toFixed(1)} MPa, Kapasite = ${weldShearCapacityKn.toFixed(1)} kN (Kullanım: %${(utilization * 100).toFixed(1)}).`,
+    ],
   };
 }

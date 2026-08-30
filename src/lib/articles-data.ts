@@ -5,7 +5,7 @@ import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
 import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
 import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
 import { applyDepremPilotOverride, getDepremPilotContentSignature } from "./deprem-pilot-articles";
-import { applyDepremPhase3Override, DEPREM_PHASE3_SLUGS, getDepremPhase3ContentSignature } from "./deprem-phase3-articles";
+import { applyDepremPhase3Override, getDepremPhase3ContentSignature } from "./deprem-phase3-articles";
 import { applyDepremPhase4Override, DEPREM_PHASE4_SLUGS, getDepremPhase4ContentSignature } from "./deprem-phase4-articles";
 import { applyDepremPhase5Override, DEPREM_PHASE5_SLUGS, getDepremPhase5ContentSignature } from "./deprem-phase5-articles";
 import { applyDepremPhase6Override, DEPREM_PHASE6_SLUGS, getDepremPhase6ContentSignature } from "./deprem-phase6-articles";

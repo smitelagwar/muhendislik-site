@@ -20,6 +20,32 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "off",
     },
   },
+  {
+    files: [
+      "src/components/dokumantasyon/preview/markdown-viewer.tsx",
+      "src/components/dokumantasyon/preview/text-viewer.tsx",
+    ],
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
+  {
+    files: [
+      "src/components/*-studio.tsx",
+      "src/components/dokumantasyon/studio/pdf/**",
+      "src/lib/dokumantasyon/studio/pdf/**",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+  {
+    files: ["scripts/**"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -30,6 +56,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "public/vendor/**",
+    "public/cad-upstream/**",
+    "public/workers/**",
+    "scratch/**",
     "next-env.d.ts",
     ".agent/**",
     "get-shit-done/**",

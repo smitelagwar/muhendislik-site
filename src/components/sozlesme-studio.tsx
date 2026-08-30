@@ -882,7 +882,7 @@ export function SozlesmeStudio({
               ) : (
                 <FileDown className="h-4 w-4" />
               )}
-              <span>Doldurulmuş PDF'i İndir (2 Sayfa)</span>
+              <span>Doldurulmuş PDF&apos;i İndir (2 Sayfa)</span>
             </Button>
           </div>
         </div>

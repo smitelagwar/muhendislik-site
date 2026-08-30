@@ -106,6 +106,7 @@ const SUPPORT_RESOURCE_SPECS = [
   { kind: "calculation", id: "insaat-maliyeti", reference: "Maliyet" },
   { kind: "tool", id: "donati-hesabi", reference: "TS 500" },
   { kind: "tool", id: "taban-kesme-kuvveti", reference: "TBDY 2018" },
+  { kind: "tool", id: "pas-payi", reference: "TS EN 1992-1-1" },
 ] as const;
 
 const QUICK_QUANTITY_SCENARIO: QuickQuantityInput = {

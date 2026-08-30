@@ -556,7 +556,7 @@ export default function HesaplamalarPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-500 dark:text-blue-400">
                   <item.icon className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:text-slate-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:text-slate-400">
                   {item.category}
                 </span>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Scale, TableProperties } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,9 +42,10 @@ export function RebarReferenceDialog({
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
 
   // Sync tab when defaultTab prop changes on open
-  useMemo(() => {
+  useEffect(() => {
     if (open && defaultTab) {
-      setActiveTab(defaultTab);
+      const timer = setTimeout(() => setActiveTab(defaultTab), 0);
+      return () => clearTimeout(timer);
     }
   }, [open, defaultTab]);
 

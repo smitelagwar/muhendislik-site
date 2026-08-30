@@ -69,26 +69,26 @@ export function ColumnPreliminarySizingCalculator() {
           <div className="mt-5 space-y-4">
             <div>
               <ConcreteFieldLabel label="Kat sayısı" />
-              <Input value={floorCount} onChange={(event) => setFloorCount(event.target.value)} inputMode="decimal" className={triggerClassName} />
+              <Input aria-label="Kat sayısı" name="floorCount" value={floorCount} onChange={(event) => setFloorCount(event.target.value)} inputMode="decimal" className={triggerClassName} />
             </div>
             <div>
               <ConcreteFieldLabel label="Kolon etki alanı" unit="m²" />
-              <Input value={tributaryAreaM2} onChange={(event) => setTributaryAreaM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
+              <Input aria-label="Kolon etki alanı (m²)" name="tributaryAreaM2" value={tributaryAreaM2} onChange={(event) => setTributaryAreaM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <ConcreteFieldLabel label="Sabit yük G" unit="kN/m²" />
-                <Input value={deadLoadKnM2} onChange={(event) => setDeadLoadKnM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
+                <Input aria-label="Sabit yük G (kN/m²)" name="deadLoadKnM2" value={deadLoadKnM2} onChange={(event) => setDeadLoadKnM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
               </div>
               <div>
                 <ConcreteFieldLabel label="Hareketli yük Q" unit="kN/m²" />
-                <Input value={liveLoadKnM2} onChange={(event) => setLiveLoadKnM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
+                <Input aria-label="Hareketli yük Q (kN/m²)" name="liveLoadKnM2" value={liveLoadKnM2} onChange={(event) => setLiveLoadKnM2(event.target.value)} inputMode="decimal" className={triggerClassName} />
               </div>
             </div>
             <div>
               <ConcreteFieldLabel label="Beton sınıfı" />
               <Select value={concreteStrengthMpa} onValueChange={setConcreteStrengthMpa}>
-                <SelectTrigger className={triggerClassName}>
+                <SelectTrigger aria-label="Beton sınıfı seçimi" className={triggerClassName}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

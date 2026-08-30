@@ -30,6 +30,7 @@ export function SiteLogo({
         width={width}
         height={height}
         priority={priority}
+        unoptimized
         className={cn("h-auto w-auto dark:hidden", lightClassName)}
       />
       <Image
@@ -38,6 +39,7 @@ export function SiteLogo({
         width={width}
         height={height}
         priority={priority}
+        unoptimized
         className={cn("hidden h-auto w-auto dark:block", darkClassName)}
       />
     </>

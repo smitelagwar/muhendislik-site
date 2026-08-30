@@ -68,7 +68,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         },
       });
 
-      return new NextResponse(webStream as any, {
+      return new NextResponse(webStream as unknown as BodyInit, {
         status: 206,
         headers: {
           "Content-Range": `bytes ${start}-${end}/${fileSize}`,

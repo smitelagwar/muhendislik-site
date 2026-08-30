@@ -54,12 +54,12 @@ export function SteelConnectionCalculator() {
 
   const weldedRes = useMemo(() => {
     return calculateWeldedConnection({
-      throatThicknessAMm: throatAMm,
+      weldThicknessMm: throatAMm,
       weldLengthMm,
-      steelUltimateStrengthFuMpa: steelFuMpa,
+      steelGrade: "S355",
       designShearForceVdKn: weldVdKn,
     });
-  }, [throatAMm, weldLengthMm, steelFuMpa, weldVdKn]);
+  }, [throatAMm, weldLengthMm, weldVdKn]);
 
   const handleCopyReport = () => {
     let text = "";
@@ -80,11 +80,11 @@ DURUM: ${boltedRes?.isSafe ? "GÜVENLİ" : "KAPASİTE AŞILDI"}
     } else {
       text = `ÇYTHYE 2018 KAYNAKLI BİRLEŞİM HESAP RAPORU
 -------------------------------------------
-Köşe Kaynak: a = ${throatAMm} mm | Lw = ${weldLengthMm} mm (fu = ${steelFuMpa} MPa)
+Köşe Kaynak: a = ${throatAMm} mm | Lw = ${weldLengthMm} mm (S355)
 Tasarım Kesme Kuvveti: Vd = ${weldVdKn} kN
 
 KAPASİTE:
-Toplam Kaynak Kapasitesi (Fw,Rd): ${weldedRes?.totalWeldCapacityFwRdKn.toFixed(1)} kN
+Toplam Kaynak Kapasitesi (Fw,Rd): ${weldedRes?.weldShearCapacityKn.toFixed(1)} kN
 Kapasite Kullanım Oranı: %${((weldedRes?.utilization ?? 0) * 100).toFixed(1)}
 DURUM: ${weldedRes?.isSafe ? "GÜVENLİ" : "KAPASİTE AŞILDI"}
 `;
@@ -447,7 +447,7 @@ DURUM: ${weldedRes?.isSafe ? "GÜVENLİ" : "KAPASİTE AŞILDI"}
                       Toplam Kaynak Kapasitesi (Fw,Rd)
                     </span>
                     <p className="mt-1 text-3xl font-black font-mono">
-                      {weldedRes.totalWeldCapacityFwRdKn.toFixed(1)} <span className="text-xs text-zinc-400">kN</span>
+                      {weldedRes.weldShearCapacityKn.toFixed(1)} <span className="text-xs text-zinc-400">kN</span>
                     </p>
                     <div className="mt-2 flex justify-between text-xs text-zinc-300">
                       <span>Kullanım Oranı:</span>

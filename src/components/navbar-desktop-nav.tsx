@@ -11,7 +11,7 @@ export function NavbarDesktopNav() {
   );
 
   return (
-    <nav className="hidden items-center gap-1 xl:flex">
+    <nav className="hidden items-center gap-0.5 2xl:gap-1 xl:flex">
       {links.map((link) => {
         const isActive = isNavigationItemActive(pathname, link);
 
@@ -19,7 +19,7 @@ export function NavbarDesktopNav() {
           <Link
             key={link.id}
             href={link.href}
-            className={`rounded-md px-3 py-2 text-sm font-semibold tracking-wide transition-colors duration-200 ${
+            className={`rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-colors duration-200 2xl:px-3 2xl:py-2 2xl:text-sm ${
               isActive
                 ? "border border-amber-500/35 bg-amber-500/10 text-foreground"
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"

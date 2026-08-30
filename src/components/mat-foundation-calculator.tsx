@@ -74,7 +74,7 @@ HESAP SONUÇLARI:
 1. Zemin Gerilmesi: ${results.actualSoilStressKpa.toFixed(1)} kPa / ${soilStressKpa} kPa (${results.isSoilStressSafe ? "GÜVENLİ" : "AŞIM VAR!"})
 2. Zımbalama Gerilmesi: ${results.punchingStressMpa.toFixed(2)} MPa / ${results.fctdMpa.toFixed(2)} MPa (${results.isPunchingSafe ? "GÜVENLİ (Donatısız Kurtarıyor)" : "ZIMBALAMA DONATISI GEREKLİ"})
 3. Önerilen Hasır Donatı: ${results.recommendedRebarBottom} (Alt ve Üst Çift Sıra)
-4. Minimum Kalınlık Şartı: h = ${matThicknessCm} cm >= ${results.minThicknessLimitCm} cm (${results.isThicknessAdequate ? "UYGUN" : "YETERSİZ"})
+4. Minimum Kalınlık Şartı: h = ${matThicknessCm} cm >= ${results.minThicknessRecommendationCm} cm (${results.isThicknessAdequate ? "UYGUN" : "YETERSİZ"})
 `;
     navigator.clipboard.writeText(text);
     setCopied(true);

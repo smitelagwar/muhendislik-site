@@ -68,7 +68,7 @@ const rebarRes = calculateRebarQuantity({
   wastePercentage: 5,
 });
 assert.ok(rebarRes);
-approxEqual(rebarRes.unitWeightKgPerM2, 32.0, 0.1, "Birim demir kg/m2");
+approxEqual(rebarRes.unitWeightKg, 32.0, 0.1, "Birim demir kg/m2");
 approxEqual(rebarRes.netWeightTon, 32.0, 0.1, "Net donatı ton");
 approxEqual(rebarRes.grossWeightTon, 33.6, 0.1, "Brüt donatı ton");
 console.log("  ✓ Pratik Donatı motoru GEÇTİ.");

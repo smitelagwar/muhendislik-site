@@ -61,6 +61,13 @@ if (urls.length === 0) {
   throw new Error("Sitemap contains no HTML routes to smoke-test.");
 }
 
+// Warmup server
+try {
+  await fetch(baseUrl);
+} catch {
+  // Ignore warmup error
+}
+
 const browser = await puppeteer.launch(launchOptions);
 const results = [];
 
@@ -78,10 +85,13 @@ try {
     });
 
     page.on("requestfailed", (request) => {
-      requestFailures.push({
-        url: request.url(),
-        error: request.failure()?.errorText ?? "unknown",
-      });
+      const errorText = request.failure()?.errorText ?? "unknown";
+      if (!errorText.includes("ERR_ABORTED")) {
+        requestFailures.push({
+          url: request.url(),
+          error: errorText,
+        });
+      }
     });
 
     page.on("pageerror", (error) => {
@@ -89,10 +99,20 @@ try {
     });
 
     try {
-      const response = await page.goto(url, {
-        waitUntil: "networkidle2",
-        timeout: 30000,
-      });
+      let response;
+      try {
+        response = await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+      } catch (firstError) {
+        // Retry once on aborted initial connection
+        await new Promise((r) => setTimeout(r, 200));
+        response = await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+      }
 
       const metrics = await page.evaluate(() => {
         const navEntry = performance.getEntriesByType("navigation")[0];

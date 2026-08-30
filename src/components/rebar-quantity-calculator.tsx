@@ -36,7 +36,7 @@ export function RebarQuantityCalculator() {
 ------------------------------------------------
 YAPI BİLGİSİ:
 - Toplam İnşaat Alanı: ${areaM2} m²
-- Yapı Tipolojisi: ${result?.typologyName} (${result?.unitWeightKgPerM2} kg/m²)
+- Yapı Tipolojisi: ${result?.typologyName} (${result?.unitWeightKg} ${result?.unitLabel})
 
 TONAJ TAHKİKİ:
 - Net Donatı Miktarı: ${result?.netWeightTon.toFixed(2)} Ton

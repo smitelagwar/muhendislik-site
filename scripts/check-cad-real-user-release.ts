@@ -14,7 +14,11 @@ function run(cmd: string, description: string): { ok: boolean; duration: string 
   log("RUN", `${description} (${cmd})`);
   const start = Date.now();
   try {
-    execSync(cmd, { stdio: "inherit", cwd: ROOT });
+    execSync(cmd, {
+      stdio: "inherit",
+      cwd: ROOT,
+      env: { ...process.env, PLAYWRIGHT_PORT: process.env.PLAYWRIGHT_PORT || "3005" },
+    });
     const duration = ((Date.now() - start) / 1000).toFixed(1);
     log("PASS", `${description} tamamlandı (${duration}s)`);
     return { ok: true, duration };

@@ -67,7 +67,7 @@ export function SharePasswordScreen({
 
         <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm leading-relaxed">
           {title ? (
-            <span className="font-bold text-foreground">"{title}"</span>
+            <span className="font-bold text-foreground">&ldquo;{title}&rdquo;</span>
           ) : (
             "Bu dosya paketi"
           )}{" "}

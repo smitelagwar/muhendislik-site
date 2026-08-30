@@ -32,6 +32,9 @@ assert.ok(steelRes);
 assert.equal(steelRes.isSlendernessSafe, true);
 assert.ok(steelRes.compressionCapacityNbRdKn > 300, "Nb,Rd makul olmalı");
 assert.ok(steelRes.bendingCapacityMcRdKnm > 100, "Mc,Rd makul olmalı");
+
+// Bilinmeyen profil testi (null dönmeli)
+assert.equal(calculateSteelProfile({ profileName: "UNKNOWN_999", steelYieldFyMpa: 235, bucklingLengthM: 3 }), null);
 console.log("  ✓ Çelik Profil motoru GEÇTİ.");
 
 // 2. Çelik Birleşimleri (Bulonlu ve Kaynaklı - ÇYTHYE 2018 Bölüm 13)
@@ -50,14 +53,14 @@ assert.ok(boltRes.totalConnectionShearCapacityKn > 300);
 assert.equal(boltRes.isSafe, true);
 
 const weldRes = calculateWeldedConnection({
-  throatThicknessAMm: 5,
+  weldThicknessMm: 5,
   weldLengthMm: 150,
-  steelUltimateStrengthFuMpa: 510,
+  steelGrade: "S355",
   designShearForceVdKn: 140,
 });
 assert.ok(weldRes);
-approxEqual(weldRes.designWeldStrengthFvwDMpa, 261.7, 2.0, "Kaynak fvw,d");
-assert.ok(weldRes.totalWeldCapacityFwRdKn > 180);
+approxEqual(weldRes.weldStrengthFvwDMpa, 261.7, 2.0, "Kaynak fvw,d");
+assert.ok(weldRes.weldShearCapacityKn > 180);
 assert.equal(weldRes.isSafe, true);
 console.log("  ✓ Çelik Birleşimleri motoru GEÇTİ.");
 
@@ -76,6 +79,19 @@ approxEqual(timberRes.designBendingMomentMedKnm, 3.06, 0.1, "Eğilme momenti Med
 approxEqual(timberRes.sectionModulusWcm3, 666.67, 1.0, "Kesit mukavemet momenti W");
 approxEqual(timberRes.fmdMpa, 14.77, 0.5, "Tasarım eğilme dayanımı fmd");
 assert.equal(timberRes.isOverallSafe, true);
+
+// Ahşap dikme/burkulma testi
+const postRes = calculateTimberMember({
+  grade: "C24",
+  durationClass: "permanent",
+  memberType: "post",
+  widthMm: 120,
+  heightMm: 120,
+  lengthM: 3.0,
+  axialLoadKn: 40,
+});
+assert.ok(postRes);
+assert.ok(postRes.axialCompressionCapacityNcRdKn > 30, "Dikme taşıma kapasitesi makul olmalı");
 console.log("  ✓ Ahşap Eleman motoru GEÇTİ.");
 
 console.log("\n==================================================================");

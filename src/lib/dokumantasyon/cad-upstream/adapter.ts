@@ -505,6 +505,7 @@ export class CadUpstreamAdapter {
     this.configureMobileGestureGuard();
     this.setBackgroundColor(this.backgroundColorOption);
     this.applyDisplayMode();
+    this.zoomToFit();
   }
 
   private getActiveLayoutView(): CadLayoutViewLike | null {
