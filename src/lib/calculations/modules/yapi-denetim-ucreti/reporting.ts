@@ -612,15 +612,12 @@ export async function generateYapiDenetimCardPng(
 
   ctx.scale(scale, scale);
 
-  // 1. Koyu Arka Plan
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, logicalHeight);
-  bgGrad.addColorStop(0, "#0b0f19");
-  bgGrad.addColorStop(1, "#080b12");
-  ctx.fillStyle = bgGrad;
+  // 1. Temiz Beyaz Arka Plan
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
   // Dış Çerçeve
-  ctx.strokeStyle = "#1e293b";
+  ctx.strokeStyle = "#e2e8f0";
   ctx.lineWidth = 1.5;
   ctx.strokeRect(0, 0, logicalWidth, logicalHeight);
 
@@ -628,37 +625,37 @@ export async function generateYapiDenetimCardPng(
   const contentWidth = logicalWidth - margin * 2; // 744px
   let y = 28;
 
-  // 2. Üst Header Kartı
-  drawRoundedRect(ctx, margin, y, contentWidth, 72, 14, "#131b2e", "#1e293b");
+  // 2. Üst Header Kartı (Slate-900 Kurumsal Antet)
+  drawRoundedRect(ctx, margin, y, contentWidth, 76, 12, "#0f172a", "#1e293b");
 
   ctx.fillStyle = "#f59e0b"; // Gold
   ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText("MÜHENDİS MİMAR PORTALI", margin + 20, y + 28);
+  ctx.fillText("MÜHENDİS MİMAR PORTALI", margin + 20, y + 30);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  ctx.fillText(`${result.effectiveYear} TAHMİNİ YAPI DENETİM HİZMET BEDELİ`, margin + 20, y + 52);
+  ctx.fillText(`${result.effectiveYear} TAHMİNİ YAPI DENETİM HİZMET BEDELİ`, margin + 20, y + 54);
 
   // Yıl rozeti (sağda)
   drawRoundedRect(
     ctx,
     margin + contentWidth - 116,
-    y + 20,
+    y + 22,
     96,
     32,
     16,
-    "rgba(245, 158, 11, 0.15)",
-    "rgba(245, 158, 11, 0.4)"
+    "rgba(245, 158, 11, 0.2)",
+    "rgba(245, 158, 11, 0.5)"
   );
   ctx.fillStyle = "#fbbf24";
   ctx.font = "bold 12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`${result.effectiveYear} Fiyatı`, margin + contentWidth - 68, y + 40);
+  ctx.fillText(`${result.effectiveYear} Fiyatı`, margin + contentWidth - 68, y + 42);
   ctx.textAlign = "left";
 
-  y += 86;
+  y += 90;
 
-  // 3. Proje Bilgileri Mini Kartları (4 Sütun)
+  // 3. Proje Bilgileri Mini Kartları (4 Sütun, Beyaz zemin üzerinde açık gri kartlar)
   const colWidth = (contentWidth - 24) / 4;
   const inputCards = [
     { label: "İnşaat Alanı", val: `${formatSayi(result.input.area)} m²` },
@@ -672,50 +669,47 @@ export async function generateYapiDenetimCardPng(
 
   inputCards.forEach((c, i) => {
     const cardX = margin + i * (colWidth + 8);
-    drawRoundedRect(ctx, cardX, y, colWidth, 54, 10, "#111827", "#1e293b");
-    ctx.fillStyle = "#94a3b8";
+    drawRoundedRect(ctx, cardX, y, colWidth, 56, 10, "#f8fafc", "#e2e8f0");
+    ctx.fillStyle = "#64748b";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    ctx.fillText(c.label, cardX + 12, y + 22);
+    ctx.fillText(c.label, cardX + 12, y + 23);
 
-    ctx.fillStyle = "#f8fafc";
+    ctx.fillStyle = "#0f172a";
     ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-    ctx.fillText(c.val, cardX + 12, y + 42);
+    ctx.fillText(c.val, cardX + 12, y + 43);
   });
 
-  y += 68;
+  y += 70;
 
-  // 4. Hero Result Kutusu (Fiyat Kartı)
-  const heroGrad = ctx.createLinearGradient(margin, y, margin + contentWidth, y + 126);
-  heroGrad.addColorStop(0, "rgba(245, 158, 11, 0.12)");
-  heroGrad.addColorStop(1, "rgba(245, 158, 11, 0.03)");
-  drawRoundedRect(ctx, margin, y, contentWidth, 126, 14, heroGrad, "rgba(245, 158, 11, 0.35)");
+  // 4. Hero Result Kutusu (Fiyat Kartı - Sıcak Kehribar/Altın Vurgulu)
+  drawRoundedRect(ctx, margin, y, contentWidth, 126, 12, "#fef3c7", "#f59e0b", 1.5);
 
-  ctx.fillStyle = "#f59e0b";
+  ctx.fillStyle = "#b45309"; // amber-700
   ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText("KDV HARİÇ TAHMİNİ HİZMET BEDELİ", margin + 22, y + 32);
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#0f172a"; // slate-900
   ctx.font = "900 36px monospace, -apple-system, sans-serif";
   ctx.fillText(formatCurrencyTL2(result.netServiceFee), margin + 22, y + 74);
 
   // KDV & KDV Dahil alt çubuk
   const subBoxY = y + 88;
-  ctx.strokeStyle = "rgba(245, 158, 11, 0.2)";
+  ctx.strokeStyle = "#fde68a"; // amber-200
   ctx.beginPath();
   ctx.moveTo(margin + 20, subBoxY);
   ctx.lineTo(margin + contentWidth - 20, subBoxY);
   ctx.stroke();
 
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = "#475569";
   ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText(`KDV (%${Math.round(result.vatRate * 100)}):`, margin + 22, subBoxY + 24);
 
-  ctx.fillStyle = "#f1f5f9";
+  ctx.fillStyle = "#0f172a";
   ctx.font = "bold 13px monospace";
   ctx.fillText(formatCurrencyTL2(result.vatAmount), margin + 85, subBoxY + 24);
 
-  ctx.fillStyle = "#f59e0b";
-  ctx.font = "bold 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  ctx.fillStyle = "#b45309";
+  ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "right";
   ctx.fillText(`KDV Dahil Toplam:  ${formatCurrencyTL2(result.grossTotal)}`, margin + contentWidth - 22, subBoxY + 24);
   ctx.textAlign = "left";
@@ -723,10 +717,10 @@ export async function generateYapiDenetimCardPng(
   y += 140;
 
   // 5. Ödeme Modeli ve 6 Etaplık Hakediş Tablosu (Madde 27)
-  drawRoundedRect(ctx, margin, y, contentWidth, 316, 12, "#111827", "#1e293b");
+  drawRoundedRect(ctx, margin, y, contentWidth, 316, 12, "#ffffff", "#e2e8f0");
 
   // Tablo başlık çubuğu
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#0f172a";
   ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText("ÖDEME ESASLARI VE 6 ETAPLIK HAKEDİŞ DAĞILIMI (Madde 27)", margin + 18, y + 26);
 
@@ -741,17 +735,17 @@ export async function generateYapiDenetimCardPng(
     badgeW,
     26,
     13,
-    isUpfront ? "rgba(59, 130, 246, 0.15)" : "rgba(16, 185, 129, 0.15)",
-    isUpfront ? "rgba(59, 130, 246, 0.4)" : "rgba(16, 185, 129, 0.4)"
+    isUpfront ? "#eff6ff" : "#ecfdf5",
+    isUpfront ? "#bfdbfe" : "#a7f3d0"
   );
-  ctx.fillStyle = isUpfront ? "#60a5fa" : "#34d399";
+  ctx.fillStyle = isUpfront ? "#1d4ed8" : "#047857";
   ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(badgeText, margin + contentWidth - badgeW / 2 - 16, y + 28);
   ctx.textAlign = "left";
 
   // Bilgilendirme Notu
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = "#475569";
   ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   const noteText = isUpfront
     ? "İnşaat alanı ≤ 3.000 m²: Bedelin tamamı ruhsat öncesinde resmi Yapı Denetim Emanet Hesabına defaten yatırılır."
@@ -760,8 +754,8 @@ export async function generateYapiDenetimCardPng(
 
   // Tablo Sütun Başlıkları
   const thY = y + 64;
-  drawRoundedRect(ctx, margin + 12, thY, contentWidth - 24, 26, 6, "#1e293b");
-  ctx.fillStyle = "#94a3b8";
+  drawRoundedRect(ctx, margin + 12, thY, contentWidth - 24, 26, 6, "#f1f5f9", "#e2e8f0");
+  ctx.fillStyle = "#475569";
   ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.fillText("Etap", margin + 24, thY + 17);
   ctx.fillText("İlerleme Aşaması", margin + 80, thY + 17);
@@ -776,22 +770,22 @@ export async function generateYapiDenetimCardPng(
   const stages = result.paymentModel.installments;
   stages.forEach((st, idx) => {
     if (idx % 2 === 1) {
-      drawRoundedRect(ctx, margin + 12, rowY, contentWidth - 24, 34, 4, "rgba(255, 255, 255, 0.02)");
+      drawRoundedRect(ctx, margin + 12, rowY, contentWidth - 24, 34, 4, "#f8fafc");
     }
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#64748b";
     ctx.font = "bold 11px monospace";
     ctx.fillText(`${st.stage}. Etap`, margin + 24, rowY + 21);
 
-    ctx.fillStyle = "#f1f5f9";
+    ctx.fillStyle = "#1e293b";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(st.name, margin + 80, rowY + 21);
 
-    ctx.fillStyle = "#f59e0b";
+    ctx.fillStyle = "#b45309";
     ctx.font = "bold 11px monospace";
     ctx.textAlign = "center";
     ctx.fillText(st.percentText, margin + 490, rowY + 21);
 
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "right";
     ctx.fillText(formatCurrencyTL2(st.grossAmount), margin + contentWidth - 28, rowY + 21);
@@ -819,13 +813,13 @@ export async function generateYapiDenetimCardPng(
   paramBoxes.forEach((p, i) => {
     const px = margin + (i % 2) * (paramW + 12);
     const py = y + Math.floor(i / 2) * 44;
-    drawRoundedRect(ctx, px, py, paramW, 36, 8, "#111827", "#1e293b");
+    drawRoundedRect(ctx, px, py, paramW, 36, 8, "#f8fafc", "#e2e8f0");
 
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#64748b";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(p.label, px + 12, py + 22);
 
-    ctx.fillStyle = "#f8fafc";
+    ctx.fillStyle = "#0f172a";
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "right";
     ctx.fillText(p.val, px + paramW - 12, py + 22);
@@ -836,12 +830,12 @@ export async function generateYapiDenetimCardPng(
 
   // 7. Koşullu Not Kutuları (eğer varsa)
   if (result.smallBuilding.applies) {
-    drawRoundedRect(ctx, margin, y, contentWidth, 54, 10, "rgba(59, 130, 246, 0.08)", "rgba(59, 130, 246, 0.3)");
-    ctx.fillStyle = "#60a5fa";
+    drawRoundedRect(ctx, margin, y, contentWidth, 54, 10, "#eff6ff", "#bfdbfe");
+    ctx.fillStyle = "#1d4ed8";
     ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText("500 m² ve Altı Yapılarda Özel Hüküm (Madde 26/4):", margin + 16, y + 20);
 
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#1e3a8a";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(
       `Sözleşmeyle oran azami %3,50'ye çıkarılabilir. Azami Net: ${formatCurrencyTL2(result.smallBuilding.maxNetServiceFee)} | Azami KDV Dahil: ${formatCurrencyTL2(result.smallBuilding.maxGrossTotal)}`,
@@ -852,12 +846,12 @@ export async function generateYapiDenetimCardPng(
   }
 
   if (result.flags.isMultiYear) {
-    drawRoundedRect(ctx, margin, y, contentWidth, 48, 10, "rgba(245, 158, 11, 0.08)", "rgba(245, 158, 11, 0.3)");
-    ctx.fillStyle = "#fbbf24";
+    drawRoundedRect(ctx, margin, y, contentWidth, 48, 10, "#fef3c7", "#fde68a");
+    ctx.fillStyle = "#b45309";
     ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(`2026 Fiyat Seviyesinde Tahmin (${result.input.durationYears} Yıllık Proje):`, margin + 16, y + 20);
 
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#92400e";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(
       "Sonraki takvim yıllarına devreden iş kısmı, ilgili yılın resmî birim maliyetine tabidir (Yönetmelik Madde 26/6).",
@@ -868,12 +862,12 @@ export async function generateYapiDenetimCardPng(
   }
 
   if (result.flags.possibleScopeReview) {
-    drawRoundedRect(ctx, margin, y, contentWidth, 48, 10, "rgba(168, 85, 247, 0.08)", "rgba(168, 85, 247, 0.3)");
-    ctx.fillStyle = "#c084fc";
+    drawRoundedRect(ctx, margin, y, contentWidth, 48, 10, "#faf5ff", "#e9d5ff");
+    ctx.fillStyle = "#7e22ce";
     ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText("Kapsam İnceleme Notu (≤ 200 m² Bağımsız Yapı):", margin + 16, y + 20);
 
-    ctx.fillStyle = "#94a3b8";
+    ctx.fillStyle = "#581c87";
     ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(
       "200 m² ve altındaki bazı yapılar fenni mesuliyet kapsamına girebilir. 4708 denetime tabi olduğu varsayılmıştır.",
@@ -885,7 +879,7 @@ export async function generateYapiDenetimCardPng(
 
   // 8. Alt Footer
   y += 6;
-  ctx.strokeStyle = "#1e293b";
+  ctx.strokeStyle = "#e2e8f0";
   ctx.beginPath();
   ctx.moveTo(margin, y);
   ctx.lineTo(margin + contentWidth, y);
