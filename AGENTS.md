@@ -32,49 +32,36 @@ Bir görev 5 dosya değiştiriyorsa mümkün olduğunda bu 5 dosya **tek tree/te
 
 ## 3. Vercel deployment politikası
 
-### 3.1 Varsayılan: geliştirme sırasında deployment YOK
+### 3.1 İki Farklı Çalışma Modeli ve Deployment Kuralları
 
-Vercel normal geliştirme/test runner'ı olarak kullanılmaz.
+Bu projede iki ayrı çalışma modu bulunur ve kuralları kesin olarak ayrılmıştır:
 
-Aşağıdaki kontroller önce local veya GitHub Actions/CI ortamında yapılır:
+#### A) Antigravity / Yerel IDE Çalışma Modu (Kullanıcı Tarafı)
+- IDE ortamında geliştirme yapılırken tüm TypeScript kontrolleri (`npx tsc --noEmit`), kalite kapıları (`npm run check:tools`), tarayıcı duman testleri ve production derlemesi (`npm run build`) **yerel bilgisayarda** çalıştırılır.
+- Geliştirme tamamen bittiğinde ve testler geçtiğinde, **tek bir anlamlı atomik checkpoint commit ile `main` branch'ine push yapılır**.
+- Bu durumda **Vercel'in otomatik olarak Production Deploy alması tamamen normaldir, hedeflenendir ve engellenmez**.
 
-- TypeScript: `npx tsc --noEmit`
-- ilgili kalite scriptleri
-- unit/integration testleri
-- `npm run build`
-- Playwright/Puppeteer/browser smoke testleri
-- statik route/link/content denetimleri
+#### B) ChatGPT / Uzaktan Sohbet & API Modu (Uzak AI Tarafı)
+- ChatGPT veya uzaktan AI ajanları GitHub üzerinden dosya dosya ara düzeltme yaparken her commit için Vercel'in derleme başlatması ve kotayı tüketmesi **KESİNLİKLE YASAKTIR**.
+- ChatGPT veya uzaktan AI oturumları:
+  1. **Doğrudan `main` branch'ine parça parça commit yazamaz.**
+  2. Mutlaka `internal-*` veya `chatgpt-*` çalışma branch'i açmalıdır.
+  3. Ara commit atılacaksa commit mesajlarının sonuna mutlaka **`[skip ci]`** veya **`[skip vercel]`** eklenmelidir.
+- ChatGPT ile hazırlanan işler kullanıcı tarafından IDE'ye çekilip yerel testleri doğrulandıktan sonra tek seferde `main`'e taşınır.
 
-Vercel Preview yalnız şu durumlardan en az biri varsa oluşturulur:
+### 3.2 Production ve Branch Ayrımı
 
-1. Kullanıcı açıkça Preview/deploy ister.
-2. Çalışma release-candidate seviyesine gelmiştir ve gerçek Vercel ortamında doğrulama teknik olarak gereklidir.
-3. Sorun yalnız Vercel runtime/environment/edge/deployment davranışında yeniden üretilebiliyordur.
+`main` branch doğrudan canlı üretime (Production) bağlıdır. Bu nedenle:
+- `main` branch asla AI deneme tahtası veya ara dosya kayıt alanı olarak kullanılamaz.
+- `noop`, `probe`, `retry`, geçici log veya tek dosyalık ara düzeltmeler `main` branch'ine doğrudan pushlanamaz.
+- `main` branch'ine yapılan her push, yerel testleri bitmiş doğrulanmış bir release'i temsil eder ve otomatik Production deployment üretir.
 
-Sadece "bir bakalım çalışıyor mu" amacıyla Vercel deployment oluşturulmaz.
+### 3.3 Uzaktan Çalışma İçin Koruma Kuralları
 
-### 3.2 Production daha katıdır
-
-`main` branch production'a bağlıdır. Bu nedenle:
-
-- `main` scratch/test branch olarak kullanılmaz.
-- `noop`, `probe`, `retry`, geçici debug veya yalnız deployment tetiklemek için commit atılmaz.
-- Production deploy, kullanıcı açıkça isterse veya önceden tanımlanmış release adımının doğal sonucuysa yapılır.
-- Uzun bir geliştirme sırasında her ara düzeltme `main`e gönderilmez.
-
-### 3.3 Deployment kapalı çalışma branch'leri
-
-Uzun süreli AI/GitHub işleri için tercihen `internal-*` branch adı kullanılır.
-
-`vercel.json` içindeki `git.deploymentEnabled` koruması ile `internal-*` branch'leri deployment üretmemelidir. Mevcut özel audit/work branch'i için de deployment kapatma kuralı varsa korunur.
-
-Bu koruma kullanıcı açıkça istemeden kaldırılmaz veya gevşetilmez.
-
-Yeni bir uzun çalışma branch'i açılacaksa, ilk sorulardan biri şudur:
-
-> "Bu branch'e yapılan push Vercel deployment tetikler mi?"
-
-Cevap belirsizse art arda push yapılmaz.
+ChatGPT veya uzak AI ajanları ile çalışırken:
+1. `internal-*` branch adı tercih edilir.
+2. Commit mesajı formatı: `feat(scope): aciklama [skip ci]` veya `fix(scope): aciklama [skip vercel]` şeklinde olmalıdır.
+3. Böylece uzaktan 20 dosya değiştirilse bile Vercel 0 adet gereksiz build kuyruğu oluşturur.
 
 ## 4. GitHub yazma standardı
 
@@ -181,29 +168,9 @@ Repo içindeki çalışma kuralları açısından:
 4. `PROJECT.md` ve diğer yaşayan bağlam belgeleri
 5. Tarihsel plan/stage/release belgeleri
 
-Göreve özel eski bir kural "her seferinde Preview oluştur" gibi bu dosyayla çelişiyorsa, kullanıcı açıkça aksini istemedikçe **bu dosyadaki deployment-minimizasyon kuralı geçerlidir**.
-
-## 10. 25 Ağustos 2026 olay kaydı
-
-`audit/faz0-deprem-inventory-20260825` branch'inde FAZ 0 denetimi yapılırken çok sayıda küçük GitHub commit'i ayrı ayrı push edildi. GitHub-Vercel entegrasyonu her push için Preview deployment başlattı. Sonuç:
-
-- kısa sürede çok sayıda gereksiz Preview deployment oluştu,
-- Vercel build/deployment kotası ve rate-limit riski arttı,
-- aynı testler için tekrar tekrar bekleme süresi oluştu,
-- çalışma süresi gereksiz uzadı.
-
-Uygulanan çözüm:
-
-- audit branch için Vercel deployment kapatıldı,
-- `internal-*` çalışma branch'leri için Vercel deployment koruması eklendi,
-- geçici self-committing audit workflow kaldırıldı,
-- dosya başına commit yerine toplu tree/atomic commit yaklaşımı benimsendi,
-- local/CI testleri Vercel Preview'dan önce konumlandırıldı.
-
-Bu olay bu dosyanın oluşturulma nedenidir. Aynı çalışma paterni tekrar edilmemelidir.
-
 ---
 
 ## Kısa kural
 
-**AI ile GitHub'da çalışırken: önce oku, sonra toplu çalış, local/CI'da test et, az commit/push yap, Vercel'i yalnız gerçekten gerektiğinde kullan.**
+**IDE'de çalışırken: yerelde test et, az commit at, son aşamada main'e pushla (Production deploy normaldir).**  
+**ChatGPT / Uzaktan çalışırken: main'e yazma, internal-* branch aç veya [skip ci] kullan, Vercel build kotasını koru.**

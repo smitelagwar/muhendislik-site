@@ -14,7 +14,7 @@
 | **Framework** | Next.js 16 App Router, React 19, TypeScript |
 | **Stil** | Tailwind CSS 4 |
 | **Görselleştirme** | D3.js |
-| **Deployment** | Vercel; Git auto-deploy kapalı, doğrulama sonrası manuel production deploy |
+| **Deployment** | Vercel; main branch doğrulanmış tek atomic push ile otomatik production deploy, uzaktan/ChatGPT çalışmaları branch/[skip ci] korumalı |
 | **Production build** | `npm run build` → `next build --webpack`; CAD worker/WASM/font senkronu `prebuild` ile çalışır. Tailwind utility taraması `src/` ile, Next production typecheck'i `tsconfig.next.json` üzerinden runtime kaynaklarıyla sınırlıdır; genel `tsconfig.json` script/test kalite kapılarını kapsamaya devam eder. |
 | **Hedef kitle** | Türk inşaat / yapı mühendisleri |
 
