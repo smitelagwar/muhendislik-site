@@ -57,6 +57,24 @@ async function main() {
   assert.equal(multiYearPdfDoc.getNumberOfPages(), 1);
   console.log("✔ Çok yıllı (%35 OSB indirimli) PDF dökümanı başarıyla üretildi.");
 
+  // 4b. Uç Sınır: Tüm 3 koşullu bloğun (≤500m², ≤200m², >1 yıl) aktif olduğu durum
+  const extremeResult = calculateYapiDenetimFee({
+    area: 150,
+    classBand: "I_II",
+    durationYears: 5,
+    region: "normal",
+  });
+  const extremePdfDoc = createYapiDenetimPdfDocument(extremeResult);
+  assert.equal(extremePdfDoc.getNumberOfPages(), 1, "Tüm koşullar aktifken de PDF kesinlikle 1 sayfa olmalıdır");
+  console.log("✔ Tüm koşullu bloklar aktifken (150 m² / 5 yıl) PDF nizami tek sayfa olarak doğrulandı.");
+
+  // 4c. Canvas 2D PNG Üretici Fonksiyon Varlık Testi
+  const { generateYapiDenetimCardPng } = await import(
+    "../src/lib/calculations/modules/yapi-denetim-ucreti"
+  );
+  assert.equal(typeof generateYapiDenetimCardPng, "function", "generateYapiDenetimCardPng fonksiyonu export edilmeli");
+  console.log("✔ generateYapiDenetimCardPng modülü başarıyla doğrulandı.");
+
   // 5. Excel (.xlsx) Üretim ve Hücre Doğrulama Testi
   const XLSX = await import("xlsx");
 

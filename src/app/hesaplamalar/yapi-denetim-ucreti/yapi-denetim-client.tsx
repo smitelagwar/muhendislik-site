@@ -154,15 +154,15 @@ export function YapiDenetimClient() {
   };
 
   const handlePngCapture = async () => {
-    if (!result || activeAction || !reportRef.current) return;
+    if (!result || activeAction) return;
     setActiveAction("png");
     setExportError(null);
 
     try {
-      const { captureYapiDenetimPng } = await import(
+      const { generateYapiDenetimCardPng } = await import(
         "@/lib/calculations/modules/yapi-denetim-ucreti/reporting"
       );
-      const blob = await captureYapiDenetimPng(reportRef.current);
+      const blob = await generateYapiDenetimCardPng(result);
       if (pngPreviewUrl) {
         URL.revokeObjectURL(pngPreviewUrl);
       }
@@ -170,17 +170,20 @@ export function YapiDenetimClient() {
       setPngPreviewUrl(url);
     } catch (err) {
       console.error("PNG Capture Error:", err);
-      setExportError("Görsel oluşturulamadı.");
+      setExportError("Görsel oluşturulamadı. Lütfen tekrar deneyin.");
     } finally {
       setActiveAction(null);
     }
   };
 
-  const handlePngDownload = () => {
+  const handlePngDownload = async () => {
     if (!pngPreviewUrl) return;
+    const { getYapiDenetimExportFilename } = await import(
+      "@/lib/calculations/modules/yapi-denetim-ucreti/reporting"
+    );
     const a = document.createElement("a");
     a.href = pngPreviewUrl;
-    a.download = `yapi-denetim-ucreti-2026-${new Date().toISOString().slice(0, 10)}.png`;
+    a.download = getYapiDenetimExportFilename("png");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -581,31 +584,71 @@ export function YapiDenetimClient() {
 
         {/* PDF Gerçek Önizleme Modalı */}
         <Dialog open={!!pdfPreviewUrl} onOpenChange={(open) => !open && closePdfPreview()}>
-          <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 overflow-hidden bg-card dark:bg-[#0b0f26]">
+          <DialogContent className="max-w-5xl w-[95vw] h-[88vh] flex flex-col p-0 overflow-hidden bg-card dark:bg-[#0b0f26]">
             <DialogHeader className="p-4 border-b border-border/60 dark:border-white/10 shrink-0 flex flex-row items-center justify-between">
               <div>
                 <DialogTitle className="text-base font-bold text-foreground dark:text-white">
                   PDF Rapor Önizleme
                 </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Resmî 2026 Yapı Denetimi Hizmet Bedeli Hesap Cetveli (A4)
+                </p>
               </div>
               <div className="flex items-center gap-2 pr-6">
                 <button
                   type="button"
+                  onClick={() => pdfPreviewUrl && window.open(pdfPreviewUrl, "_blank")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-accent dark:border-white/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-accent dark:border-white/10"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Yazdır</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handlePdfDownload}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-amber-600"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600"
                 >
                   <Download className="h-3.5 w-3.5" />
                   İndir
                 </button>
               </div>
             </DialogHeader>
-            <div className="flex-1 w-full h-full bg-muted/30 p-2">
+            <div className="flex-1 w-full h-full bg-muted/20 p-2 sm:p-4">
               {pdfPreviewUrl && (
-                <iframe
-                  src={pdfPreviewUrl}
-                  title="PDF Önizleme"
+                <object
+                  data={pdfPreviewUrl}
+                  type="application/pdf"
                   className="w-full h-full rounded-xl border border-border/40"
-                />
+                >
+                  <iframe
+                    src={pdfPreviewUrl}
+                    title="PDF Önizleme"
+                    className="w-full h-full rounded-xl border border-border/40"
+                  >
+                    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Tarayıcınız PDF önizlemeyi doğrudan pencere içinde desteklemiyor olabilir.
+                      </p>
+                      <a
+                        href={pdfPreviewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        PDF&apos;i Yeni Sekmede Görüntüle
+                      </a>
+                    </div>
+                  </iframe>
+                </object>
               )}
             </div>
           </DialogContent>
@@ -613,31 +656,42 @@ export function YapiDenetimClient() {
 
         {/* PNG Görsel Önizleme Modalı */}
         <Dialog open={!!pngPreviewUrl} onOpenChange={(open) => !open && closePngPreview()}>
-          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-card dark:bg-[#0b0f26]">
+          <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden bg-card dark:bg-[#0b0f26]">
             <DialogHeader className="p-4 border-b border-border/60 dark:border-white/10 shrink-0 flex flex-row items-center justify-between">
               <div>
                 <DialogTitle className="text-base font-bold text-foreground dark:text-white">
                   Hesaplama Kartı Görseli (PNG)
                 </DialogTitle>
+                <p className="text-xs text-muted-foreground">
+                  Yüksek Çözünürlüklü Retina (2x) Paylaşım Kartı
+                </p>
               </div>
               <div className="flex items-center gap-2 pr-6">
                 <button
                   type="button"
+                  onClick={() => pngPreviewUrl && window.open(pngPreviewUrl, "_blank")}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:bg-accent dark:border-white/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handlePngDownload}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-amber-600"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600"
                 >
                   <Download className="h-3.5 w-3.5" />
                   PNG İndir
                 </button>
               </div>
             </DialogHeader>
-            <div className="flex-1 w-full overflow-auto p-4 flex items-center justify-center bg-black/40">
+            <div className="flex-1 w-full overflow-auto p-4 sm:p-6 flex items-center justify-center bg-black/60">
               {pngPreviewUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={pngPreviewUrl}
                   alt="Yapı Denetim Hesap Kartı"
-                  className="max-w-full rounded-2xl shadow-2xl border border-white/10"
+                  className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl border border-white/10"
                 />
               )}
             </div>
