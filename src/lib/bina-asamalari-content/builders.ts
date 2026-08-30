@@ -202,29 +202,15 @@ export function getTopicVisual(node: IndexedBinaNode): { hero: string; diagram: 
   const visual = getBinaVisual(node.slugPath) || getBinaVisual(node.id);
   if (visual) {
     return {
-      hero: visual.hero || visual.card,
-      diagram: visual.diagram || visual.card,
+      hero: visual.primary?.src || visual.hero || visual.card,
+      diagram: visual.secondary?.src || visual.diagram || visual.card,
     };
   }
 
   const topicKey = node.slugPath.split("/").pop() || node.id;
-  const branchMeta = getBranchMeta(node.branchId);
-
-  if (TOPIC_CUSTOM_IMAGES[topicKey]) {
-    return TOPIC_CUSTOM_IMAGES[topicKey];
-  }
-
-  if (KNOWN_TOPIC_SVGS.has(topicKey)) {
-    const customSvg = `/bina-asamalari/topics/${topicKey}.svg`;
-    return {
-      hero: customSvg,
-      diagram: customSvg,
-    };
-  }
-
   return {
-    hero: branchMeta.hero,
-    diagram: branchMeta.diagram,
+    hero: `/bina-asamalari/topics/${topicKey}.webp`,
+    diagram: `/bina-asamalari/details/${topicKey}.webp`,
   };
 }
 
@@ -402,8 +388,6 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       content: [
         `${node.plainLabel}, ${node.summary.toLocaleLowerCase("tr-TR")} için ilk referans katmanıdır.`,
         ...spec.intro,
-        `![${node.plainLabel} teknik uygulama şeması](${visual.hero})`,
-        `*Bu teknik görsel, ${node.plainLabel.toLocaleLowerCase("tr-TR")} kapsamındaki kararların ve imalat paketlerinin sahaya aktarım sırasını gösterir.*`,
         `> [!TIP]\n> ${spec.tip}`,
       ].join("\n\n"),
     },
@@ -442,6 +426,8 @@ function buildBranchSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bi
       subsections: [],
       content: [
         "Bu ana dal altındaki başlıklar birbirinden bağımsız okunmaz; biri eksik bırakıldığında sonraki ekip revizyon veya imalat tekrarı üretir.",
+        `![${node.plainLabel} disiplin koordinasyon ve teknik detay şeması](${visual.diagram})`,
+        `*Bu teknik detay şeması, ${node.plainLabel.toLocaleLowerCase("tr-TR")} ana dalı kapsamındaki alt paketlerin birbiriyle koordinasyonunu ve teknik detay ilişkilerini gösterir.*`,
         renderChildMatrix(children),
       ].join("\n\n"),
     },
@@ -528,8 +514,6 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
       content: [
         `${node.plainLabel}, ${branchNode.plainLabel.toLocaleLowerCase("tr-TR")} içinde ${node.summary.toLocaleLowerCase("tr-TR")} başlığıyla okunur.`,
         ...spec.intro,
-        `![${node.plainLabel} teknik uygulama şeması](${visual.diagram})`,
-        `*Bu teknik şema, ${node.plainLabel.toLocaleLowerCase("tr-TR")} için sahada uygulanacak standart detayları, geometrik toleransları ve kritik kontrol adımlarını özetler.*`,
         `> [!TIP]\n> ${spec.tip}`,
       ].join("\n\n"),
     },
@@ -554,6 +538,8 @@ function buildTopicSections(spec: BinaGuidePageSpec, node: IndexedBinaNode): Bin
       subsections: [],
       content: [
         "Bu başlıkta amaç, sahadaki karar sırasını belirsiz bırakmadan ilerlemektir. Her adım bir sonraki kontrolü hazırlamalıdır.",
+        `![${node.plainLabel} teknik uygulama detayı](${visual.diagram})`,
+        `*Bu teknik detay görseli, ${node.plainLabel.toLocaleLowerCase("tr-TR")} için sahada uygulanacak standart montaj ilişkilerini, katmanları ve tolerans eşiklerini gösterir.*`,
         ordered(spec.designOrApplicationSteps),
       ].join("\n\n"),
     },

@@ -30,8 +30,13 @@ export function TrashModal({
       setConfirmEmpty(false);
       setError(null);
       fetchTrashItems();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   const fetchTrashItems = async () => {
     setLoading(true);

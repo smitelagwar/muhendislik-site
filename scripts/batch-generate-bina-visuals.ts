@@ -2,18 +2,34 @@ import fs from "fs";
 import path from "path";
 import { processVisualToWebp } from "./process-visual";
 
-interface InventoryItem {
+interface InventoryItemV2 {
   id: string;
   slugPath: string;
   label: string;
   summary: string;
   phaseId: string;
   depth: number;
-  promptTr: string;
+
+  primaryTargetWebp: string;
+  secondaryTargetWebp: string;
+
+  primaryMode: string;
+  primaryVisualPurpose: string;
+  primaryMustShow: string[];
+  primaryMustNotShow: string[];
+  primaryPromptTr: string;
+  primaryAltTr: string;
+
+  secondaryMode: string;
+  secondaryPlacement: string;
+  secondaryVisualPurpose: string;
+  secondaryMustShow: string[];
+  secondaryMustNotShow: string[];
+  secondaryPromptTr: string;
+  secondaryAltTr: string;
+  secondaryDifference: string;
+
   negativePromptTr: string;
-  altTr: string;
-  visualPurpose: string;
-  mode: string;
   status: string;
 }
 
@@ -73,12 +89,13 @@ async function callImagenApi(prompt: string, negativePrompt: string, apiKey: str
 
 async function main() {
   const inventoryPath = path.resolve(process.cwd(), "bina-gorsel-envanteri.json");
-  const inventory: InventoryItem[] = JSON.parse(fs.readFileSync(inventoryPath, "utf-8"));
+  const inventory: InventoryItemV2[] = JSON.parse(fs.readFileSync(inventoryPath, "utf-8"));
 
   const args = process.argv.slice(2);
   const isDryRun = args.includes("--dry-run");
   const phaseArg = args.find((a) => a.startsWith("--phase="))?.split("=")[1];
   const idArg = args.find((a) => a.startsWith("--id="))?.split("=")[1];
+  const targetArg = args.find((a) => a.startsWith("--target="))?.split("=")[1] || "all"; // 'primary', 'secondary', 'all'
 
   let targets = inventory;
   if (idArg) {
@@ -87,30 +104,74 @@ async function main() {
     targets = targets.filter((t) => t.phaseId === phaseArg);
   }
 
-  console.log("=== BİNA AŞAMALARI TOPLU GÖRSEL YÖNETİCİSİ ===");
-  console.log(`Hedef Düğüm Sayısı: ${targets.length}`);
-
+  const knownKeepPrimary = ["ince-isler", "siva", "alcipan"];
   const publicTopicsDir = path.resolve(process.cwd(), "public/bina-asamalari/topics");
-  const completed = targets.filter((t) => fs.existsSync(path.join(publicTopicsDir, `${t.id}.webp`)));
-  const pending = targets.filter((t) => !fs.existsSync(path.join(publicTopicsDir, `${t.id}.webp`)));
+  const publicDetailsDir = path.resolve(process.cwd(), "public/bina-asamalari/details");
 
-  console.log(`Tamamlanmış (WebP mevcut): ${completed.length}`);
-  console.log(`Üretim Bekleyen: ${pending.length}`);
+  // Tasks to perform
+  interface Task {
+    type: "primary" | "secondary";
+    item: InventoryItemV2;
+    prompt: string;
+    targetSubdir: "topics" | "details";
+    targetFile: string;
+  }
+
+  const tasks: Task[] = [];
+
+  for (const item of targets) {
+    // Primary task
+    if (targetArg === "all" || targetArg === "primary") {
+      const isKeep = knownKeepPrimary.includes(item.id) && (item.slugPath === "ince-isler" || item.slugPath === "ince-isler/siva" || item.slugPath === "ince-isler/alcipan");
+      const primaryExists = fs.existsSync(path.join(publicTopicsDir, `${item.id}.webp`));
+      if (!isKeep && !primaryExists) {
+        tasks.push({
+          type: "primary",
+          item,
+          prompt: item.primaryPromptTr,
+          targetSubdir: "topics",
+          targetFile: `${item.id}.webp`,
+        });
+      }
+    }
+
+    // Secondary task
+    if (targetArg === "all" || targetArg === "secondary") {
+      const secondaryExists = fs.existsSync(path.join(publicDetailsDir, `${item.id}.webp`));
+      if (!secondaryExists) {
+        tasks.push({
+          type: "secondary",
+          item,
+          prompt: item.secondaryPromptTr,
+          targetSubdir: "details",
+          targetFile: `${item.id}.webp`,
+        });
+      }
+    }
+  }
+
+  console.log("=== BİNA AŞAMALARI TOPLU GÖRSEL YÖNETİCİSİ V2 ===");
+  console.log(`Hedef Düğüm Sayısı: ${targets.length}`);
+  console.log(`Hedef Kapsam: ${targetArg.toUpperCase()}`);
+  console.log(`Toplam Bekleyen Görev: ${tasks.length}`);
+  console.log(`- Bekleyen PRIMARY: ${tasks.filter((t) => t.type === "primary").length}`);
+  console.log(`- Bekleyen SECONDARY: ${tasks.filter((t) => t.type === "secondary").length}`);
 
   if (isDryRun) {
-    console.log("\n[DRY RUN] Bekleyen Düğümler:");
-    for (const item of pending) {
-      console.log(`- [${item.phaseId}] ${item.id} (${item.label}) -> ${item.visualPurpose}`);
+    console.log("\n[DRY RUN] Bekleyen Görev Listesi:");
+    for (const t of tasks) {
+      console.log(`- [${t.type.toUpperCase()}] [${t.item.phaseId}] ${t.item.id} -> public/bina-asamalari/${t.targetSubdir}/${t.targetFile}`);
     }
     return;
   }
 
   const apiKey = loadEnvKey();
   if (!apiKey || apiKey.startsWith("CHANGE_ME")) {
-    console.log("\n[BİLGİ] GEMINI_API_KEY veya GOOGLE_API_KEY bulunamadı.");
-    console.log("Harici API ile toplu üretim yapmak için .env.local içine GEMINI_API_KEY ekleyebilirsiniz.");
-    console.log("Alternatif olarak IDE görsel üretim kotası resetlendiğinde yerel üretim devam ettirilebilir.");
-    return;
+    console.error("\n[BLOCKED] GEMINI_API_KEY veya GOOGLE_API_KEY bulunamadı.");
+    console.error("Görsel üretimi için `.env.local` içine geçerli bir `GEMINI_API_KEY=<key>` ekleyiniz.");
+    console.error("Veya IDE kotası resetlendiğinde (23:11 UTC) yerel üretim moduna geçebilirsiniz.");
+    console.error(`Kalan iş: ${tasks.length} adet görsel (${tasks.filter((t) => t.type === "primary").length} PRIMARY + ${tasks.filter((t) => t.type === "secondary").length} SECONDARY)`);
+    process.exit(1);
   }
 
   const rawOutDir = path.resolve(process.cwd(), ".gorsel-cikti-ham");
@@ -118,23 +179,27 @@ async function main() {
     fs.mkdirSync(rawOutDir, { recursive: true });
   }
 
-  for (let i = 0; i < pending.length; i++) {
-    const item = pending[i];
-    console.log(`\n[${i + 1}/${pending.length}] Üretiliyor: ${item.id} (${item.label})...`);
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    console.log(`\n[${i + 1}/${tasks.length}] Üretiliyor [${task.type}]: ${task.item.id} (${task.item.label})...`);
 
     try {
-      const imageBuffer = await callImagenApi(item.promptTr, item.negativePromptTr, apiKey);
-      const rawFilePath = path.join(rawOutDir, `${item.id}.jpg`);
+      const imageBuffer = await callImagenApi(task.prompt, task.item.negativePromptTr, apiKey);
+      const rawSubDir = path.join(rawOutDir, task.targetSubdir);
+      if (!fs.existsSync(rawSubDir)) fs.mkdirSync(rawSubDir, { recursive: true });
+
+      const rawFilePath = path.join(rawSubDir, `${task.item.id}.jpg`);
       fs.writeFileSync(rawFilePath, imageBuffer);
 
       const processed = await processVisualToWebp({
         inputPath: rawFilePath,
-        targetId: item.id,
+        targetId: task.item.id,
+        subDir: task.targetSubdir,
       });
 
       console.log(`✓ Başarılı: ${processed.outputPath} (${Math.round(processed.sizeBytes / 1024)} KB)`);
     } catch (err: any) {
-      console.error(`✗ Hata (${item.id}):`, err.message);
+      console.error(`✗ Hata (${task.type} - ${task.item.id}):`, err.message);
     }
   }
 

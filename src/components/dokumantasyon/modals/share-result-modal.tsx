@@ -37,6 +37,15 @@ export function ShareResultModal({
   const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (result?.shareUrl) {
       QRCode.toDataURL(result.shareUrl, {
         width: 256,

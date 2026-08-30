@@ -138,8 +138,9 @@ try {
     assert(result.supportingArticleCount === 2, `${scenario.name}: iki destekleyici içerik bulunmalı.`);
     assert(result.workflowCount === 4, `${scenario.name}: dört fizibilite adımı bulunmalı.`);
     assert(result.phaseCount === 6, `${scenario.name}: altı bina fazı bulunmalı.`);
-    assert(result.closingLinkCount === 2, `${scenario.name}: iki kapanış yolu bulunmalı.`);
+    assert(result.closingLinkCount === 0, `${scenario.name}: kapanış yolu kaldırılmış olmalı.`);
     assert(result.floatingLogoCount === 1, `${scenario.name}: kayan logo bileşeni bulunamadı.`);
+
     assert(result.navbarLogoOpacity > 0.9, `${scenario.name}: navbar logosu görünür değil.`);
     if (scenario.width < 1720) {
       assert(result.floatingLogoDisplay === "none", `${scenario.name}: kayan logo dar ekranda alan kaplıyor.`);

@@ -26,12 +26,6 @@ import {
 } from "@/lib/bina-asamalari";
 import { getBinaVisual } from "@/lib/bina-asamalari-visuals";
 
-const TOPIC_IMAGE_MAP: Record<string, string> = {
-  "mimari-proje": "/bina-asamalari/images/mimari-proje-hero.jpg",
-  siva: "/bina-asamalari/topics/siva-isleri.svg",
-  "siva-isleri": "/bina-asamalari/topics/siva-isleri.svg",
-  alcipan: "/bina-asamalari/topics/alcipan.svg",
-};
 
 const PHASE_META: Record<
   string,
@@ -75,12 +69,7 @@ interface FlatTopic {
 
 function getTopicImageUrl(nodeId: string): string {
   const visual = getBinaVisual(nodeId);
-  if (visual?.card) {
-    return visual.card;
-  }
-  return (
-    TOPIC_IMAGE_MAP[nodeId] || `/bina-asamalari/topics/${nodeId}.svg`
-  );
+  return visual?.primary?.src || visual?.card || `/bina-asamalari/topics/${nodeId}.webp`;
 }
 
 function flattenTree(root: BinaMindMapNode): FlatTopic[] {
@@ -153,12 +142,10 @@ function cardSpanClass(count: number, index: number): string {
 function TopicCard({
   node,
   color,
-  phaseImage,
   className,
 }: {
   node: BinaMindMapNode;
   color: string;
-  phaseImage: string;
   className: string;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -178,7 +165,7 @@ function TopicCard({
       : visual?.mode === "installed-component"
       ? "Detay Görsel"
       : "Uygulama Görseli";
-  const altText = visual?.altTr || label;
+  const altText = visual?.primary?.altTr || visual?.altTr || label;
 
   return (
     <article className={`group/card col-span-12 min-w-0 flex flex-col ${className}`}>
@@ -193,9 +180,6 @@ function TopicCard({
             fill
             sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 34vw"
             className="object-cover transition-transform duration-700 ease-out group-hover/card:scale-[1.045]"
-            onError={() => {
-              if (imageSrc !== phaseImage) setImageSrc(phaseImage);
-            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/72 via-slate-950/5 to-transparent" />
           <div
@@ -409,7 +393,6 @@ function PhaseSection({
             key={topic.id}
             node={topic}
             color={color}
-            phaseImage={phaseImage}
             className={cardSpanClass(topics.length, topicIndex)}
           />
         ))}

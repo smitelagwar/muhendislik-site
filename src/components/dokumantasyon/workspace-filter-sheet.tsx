@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +28,15 @@ const emptyFilters: WorkspaceFilters = {
 };
 
 export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose }: WorkspaceFilterSheetProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const update = <K extends keyof WorkspaceFilters>(key: K, value: WorkspaceFilters[K]) => {

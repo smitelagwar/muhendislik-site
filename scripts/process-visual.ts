@@ -5,17 +5,18 @@ import sharp from "sharp";
 interface ProcessOptions {
   inputPath: string;
   targetId: string;
+  subDir?: "topics" | "details";
   quality?: number;
 }
 
 export async function processVisualToWebp(options: ProcessOptions): Promise<{ outputPath: string; sizeBytes: number; width: number; height: number }> {
-  const { inputPath, targetId, quality = 85 } = options;
+  const { inputPath, targetId, subDir = "topics", quality = 85 } = options;
 
   if (!fs.existsSync(inputPath)) {
     throw new Error(`Girdi dosyası bulunamadı: ${inputPath}`);
   }
 
-  const outputDir = path.resolve(process.cwd(), "public/bina-asamalari/topics");
+  const outputDir = path.resolve(process.cwd(), `public/bina-asamalari/${subDir}`);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -23,7 +24,6 @@ export async function processVisualToWebp(options: ProcessOptions): Promise<{ ou
   const outputPath = path.join(outputDir, `${targetId}.webp`);
 
   const image = sharp(inputPath);
-  const metadata = await image.metadata();
 
   // 1920x1080 hedefli resize (16:9)
   const processed = await image
@@ -45,11 +45,12 @@ export async function processVisualToWebp(options: ProcessOptions): Promise<{ ou
   };
 }
 
-// CLI desteği: npx tsx scripts/process-visual.ts <inputPath> <targetId>
+// CLI desteği: npx tsx scripts/process-visual.ts <inputPath> <targetId> [subDir]
 if (process.argv[2] && process.argv[3]) {
   const input = process.argv[2];
   const id = process.argv[3];
-  processVisualToWebp({ inputPath: input, targetId: id })
+  const subDir = (process.argv[4] === "details" ? "details" : "topics") as "topics" | "details";
+  processVisualToWebp({ inputPath: input, targetId: id, subDir })
     .then((res) => {
       console.log(`Başarıyla işlendi: ${res.outputPath} (${Math.round(res.sizeBytes / 1024)} KB, ${res.width}x${res.height})`);
     })

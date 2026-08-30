@@ -197,13 +197,11 @@ function resolveRelatedPaths(node: IndexedBinaNode): string[] {
   );
 }
 
-function buildIntro(node: IndexedBinaNode, branchLabel: string, summary: string, image: string) {
+function buildIntro(node: IndexedBinaNode, branchLabel: string, summary: string) {
   return [
     `${node.plainLabel}, ${branchLabel.toLocaleLowerCase("tr-TR")} fazı içinde ${summary.toLocaleLowerCase("tr-TR")} başlığıyla okunur.`,
     `${node.plainLabel} için doğru karar, yalnız işi başlatmak değil; bir sonraki ekibe ölçülü, test edilmiş ve kayıtlı teslim bırakmaktır. Bu nedenle bu rehber, konuya giriş özeti değil, sahada kullanılabilir bir yol haritası olarak düşünülmelidir.`,
     `Bu içerik tasarım ofisi, saha mühendisliği ve teknik ofis arasında ortak dil kurmak için hazırlandı. Özellikle kısa sürede karar verilmesi gereken şantiye anlarında hangi veriye bakılacağı, hangi testin önce geleceği ve hangi kontrolün atlanmaması gerektiği burada toplanır.`,
-    `![${node.plainLabel} görseli](${image})`,
-    `*Görsel, ${node.plainLabel.toLocaleLowerCase("tr-TR")} konusunun uygulama zincirindeki yerini sembolik olarak temsil eder.*`,
   ].join("\n\n");
 }
 
@@ -323,13 +321,14 @@ function createSections(node: IndexedBinaNode): BinaGuideSection[] {
   const parentLabel = node.parentSlugPath ? getIndexedBinaNodeBySlugPath(node.parentSlugPath)?.plainLabel : undefined;
   const sources = resolveSources(node.branchId);
   const relatedPaths = resolveRelatedPaths(node);
+  const visual = getTopicVisual(node);
 
   return [
     {
       id: "giriş-kapsam",
       title: "1. Giriş ve Kapsam",
       subsections: [],
-      content: buildIntro(node, branchLabel, node.summary, branchMeta.image),
+      content: buildIntro(node, branchLabel, node.summary),
     },
     {
       id: "teorik-temel",
@@ -353,6 +352,8 @@ function createSections(node: IndexedBinaNode): BinaGuideSection[] {
       subsections: [],
       content: [
         `Aşağıdaki akış, ${node.plainLabel.toLocaleLowerCase("tr-TR")} işini sahada yönetirken sıralamanın neden kritik olduğunu gösterir.`,
+        `![${node.plainLabel} teknik uygulama detayı](${visual.diagram})`,
+        `*Bu teknik detay görseli, ${node.plainLabel.toLocaleLowerCase("tr-TR")} için sahada uygulanacak standart montaj ilişkilerini, katmanları ve tolerans eşiklerini gösterir.*`,
         buildSteps(node),
         "Bu akışın dışına çıkıldığında iş geri sarar; özellikle kapatma, test ve teslim adımlarının yer değiştirmesi sonraki ekiplerde zincirleme revizyon üretir.",
       ].join("\n\n"),

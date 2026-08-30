@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { HomeClosingSection } from "@/components/home-closing-section";
 import { HomeEditorialSection } from "@/components/home-editorial-section";
 import { HomeHeroSection } from "@/components/home-hero-section";
 import { HomeProjectPath } from "@/components/home-project-path";
@@ -41,8 +40,8 @@ export default function Home() {
         <HomeEditorialSection articles={model.articles} />
         <HomeWorkflowBand steps={model.workflow} />
         <HomeProjectPath phases={model.phases} />
-        <HomeClosingSection counts={model.counts} />
       </div>
     </>
   );
 }
+

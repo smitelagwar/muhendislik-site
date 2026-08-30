@@ -1,0 +1,1787 @@
+[
+  {
+    "nodeId": "proje-hazirlik",
+    "slugPath": "proje-hazirlik",
+    "label": "Proje & İzinler",
+    "phaseId": "proje-hazirlik",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/proje-hazirlik",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/proje-hazirlik.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/proje-hazirlik.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "mimari-proje",
+    "slugPath": "proje-hazirlik/mimari-proje",
+    "label": "Mimari Proje",
+    "phaseId": "proje-hazirlik",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/proje-hazirlik/mimari-proje",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/mimari-proje.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/mimari-proje.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "statik-proje",
+    "slugPath": "proje-hazirlik/statik-proje",
+    "label": "Statik Proje",
+    "phaseId": "proje-hazirlik",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/proje-hazirlik/statik-proje",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/statik-proje.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/statik-proje.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "tesisat-projesi",
+    "slugPath": "proje-hazirlik/tesisat-projesi",
+    "label": "Tesisat Projesi",
+    "phaseId": "proje-hazirlik",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/proje-hazirlik/tesisat-projesi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/tesisat-projesi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/tesisat-projesi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "elektrik-projesi",
+    "slugPath": "proje-hazirlik/elektrik-projesi",
+    "label": "Elektrik Projesi",
+    "phaseId": "proje-hazirlik",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/proje-hazirlik/elektrik-projesi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/elektrik-projesi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/elektrik-projesi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "yapi-ruhsati",
+    "slugPath": "proje-hazirlik/yapi-ruhsati",
+    "label": "Yapı Ruhsatı",
+    "phaseId": "proje-hazirlik",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/proje-hazirlik/yapi-ruhsati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/yapi-ruhsati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/yapi-ruhsati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kazi-temel",
+    "slugPath": "kazi-temel",
+    "label": "Kazı & Temel",
+    "phaseId": "kazi-temel",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/kazi-temel",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kazi-temel.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kazi-temel.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "zemin-etudu",
+    "slugPath": "kazi-temel/zemin-etudu",
+    "label": "Zemin Etüdü",
+    "phaseId": "kazi-temel",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kazi-temel/zemin-etudu",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/zemin-etudu.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/zemin-etudu.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "hafriyat",
+    "slugPath": "kazi-temel/hafriyat",
+    "label": "Hafriyat",
+    "phaseId": "kazi-temel",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kazi-temel/hafriyat",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/hafriyat.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/hafriyat.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "iksa-sistemi",
+    "slugPath": "kazi-temel/iksa-sistemi",
+    "label": "İksa Sistemi",
+    "phaseId": "kazi-temel",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/iksa-sistemi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/iksa-sistemi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "fore-kazik",
+    "slugPath": "kazi-temel/iksa-sistemi/fore-kazik",
+    "label": "Fore Kazık",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/fore-kazik",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/fore-kazik.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/fore-kazik.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ankrajli-iksa",
+    "slugPath": "kazi-temel/iksa-sistemi/ankrajli-iksa",
+    "label": "Ankrajlı İksa",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/ankrajli-iksa",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/ankrajli-iksa.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ankrajli-iksa.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "palplans",
+    "slugPath": "kazi-temel/iksa-sistemi/palplans",
+    "label": "Palplanş",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/palplans",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/palplans.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/palplans.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "temel-turleri",
+    "slugPath": "kazi-temel/temel-turleri",
+    "label": "Temel Türleri",
+    "phaseId": "kazi-temel",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/temel-turleri.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/temel-turleri.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "radye-temel",
+    "slugPath": "kazi-temel/temel-turleri/radye-temel",
+    "label": "Radye Temel",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri/radye-temel",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/radye-temel.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/radye-temel.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "grobeton",
+    "slugPath": "kazi-temel/temel-turleri/grobeton",
+    "label": "Grobeton",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri/grobeton",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/grobeton.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/grobeton.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "temel-donati",
+    "slugPath": "kazi-temel/temel-turleri/temel-donati",
+    "label": "Temel Donatısı",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri/temel-donati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/temel-donati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/temel-donati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "temel-betonlama",
+    "slugPath": "kazi-temel/temel-turleri/temel-betonlama",
+    "label": "Temel Betonlama",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri/temel-betonlama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/temel-betonlama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/temel-betonlama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "temel-su-yalitimi",
+    "slugPath": "kazi-temel/temel-turleri/temel-su-yalitimi",
+    "label": "Temel Su Yalıtımı",
+    "phaseId": "kazi-temel",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kazi-temel/temel-turleri/temel-su-yalitimi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/temel-su-yalitimi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/temel-su-yalitimi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kaba-insaat",
+    "slugPath": "kaba-insaat",
+    "label": "Kaba İnşaat",
+    "phaseId": "kaba-insaat",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/kaba-insaat",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kaba-insaat.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kaba-insaat.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kalip-isleri",
+    "slugPath": "kaba-insaat/kalip-isleri",
+    "label": "Kalıp İşleri",
+    "phaseId": "kaba-insaat",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kaba-insaat/kalip-isleri",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kalip-isleri.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kalip-isleri.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kolon-kalibi",
+    "slugPath": "kaba-insaat/kalip-isleri/kolon-kalibi",
+    "label": "Kolon Kalıbı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/kalip-isleri/kolon-kalibi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kolon-kalibi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kolon-kalibi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kiris-kalibi",
+    "slugPath": "kaba-insaat/kalip-isleri/kiris-kalibi",
+    "label": "Kiriş Kalıbı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/kalip-isleri/kiris-kalibi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kiris-kalibi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kiris-kalibi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "doseme-kalibi",
+    "slugPath": "kaba-insaat/kalip-isleri/doseme-kalibi",
+    "label": "Döşeme Kalıbı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/kalip-isleri/doseme-kalibi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/doseme-kalibi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/doseme-kalibi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kalip-sokumu",
+    "slugPath": "kaba-insaat/kalip-isleri/kalip-sokumu",
+    "label": "Kalıp Sökümü",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/kalip-isleri/kalip-sokumu",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kalip-sokumu.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kalip-sokumu.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "donati-isleri",
+    "slugPath": "kaba-insaat/donati-isleri",
+    "label": "Donatı İşleri",
+    "phaseId": "kaba-insaat",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/donati-isleri.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/donati-isleri.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kolon-donati",
+    "slugPath": "kaba-insaat/donati-isleri/kolon-donati",
+    "label": "Kolon Donatısı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/kolon-donati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kolon-donati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kolon-donati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kiris-donati",
+    "slugPath": "kaba-insaat/donati-isleri/kiris-donati",
+    "label": "Kiriş Donatısı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/kiris-donati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kiris-donati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kiris-donati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "doseme-donati",
+    "slugPath": "kaba-insaat/donati-isleri/doseme-donati",
+    "label": "Döşeme Donatısı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/doseme-donati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/doseme-donati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/doseme-donati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "pas-payi",
+    "slugPath": "kaba-insaat/donati-isleri/pas-payi",
+    "label": "Pas Payı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/pas-payi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/pas-payi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/pas-payi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "beton-isleri",
+    "slugPath": "kaba-insaat/beton-isleri",
+    "label": "Beton İşleri",
+    "phaseId": "kaba-insaat",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/beton-isleri.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/beton-isleri.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "beton-sinifi",
+    "slugPath": "kaba-insaat/beton-isleri/beton-sinifi",
+    "label": "Beton Sınıfı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/beton-sinifi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/beton-sinifi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/beton-sinifi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "beton-dokumu",
+    "slugPath": "kaba-insaat/beton-isleri/beton-dokumu",
+    "label": "Beton Dökümü",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/beton-dokumu",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/beton-dokumu.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/beton-dokumu.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "vibrasyon",
+    "slugPath": "kaba-insaat/beton-isleri/vibrasyon",
+    "label": "Vibrasyon",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/vibrasyon",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/vibrasyon.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/vibrasyon.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kur-islemi",
+    "slugPath": "kaba-insaat/beton-isleri/kur-islemi",
+    "label": "Kür İşlemi",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/kur-islemi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kur-islemi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kur-islemi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "beton-testi",
+    "slugPath": "kaba-insaat/beton-isleri/beton-testi",
+    "label": "Beton Testleri",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/beton-testi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/beton-testi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/beton-testi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "duvar-orme",
+    "slugPath": "kaba-insaat/duvar-orme",
+    "label": "Duvar Örme",
+    "phaseId": "kaba-insaat",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kaba-insaat/duvar-orme",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/duvar-orme.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/duvar-orme.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "tugla-duvar",
+    "slugPath": "kaba-insaat/duvar-orme/tugla-duvar",
+    "label": "Tuğla Duvar",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/duvar-orme/tugla-duvar",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/tugla-duvar.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/tugla-duvar.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ytong-gazbeton",
+    "slugPath": "kaba-insaat/duvar-orme/ytong-gazbeton",
+    "label": "Ytong / Gazbeton",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/duvar-orme/ytong-gazbeton",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/ytong-gazbeton.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ytong-gazbeton.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "briket",
+    "slugPath": "kaba-insaat/duvar-orme/briket",
+    "label": "Briket / Bims",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/duvar-orme/briket",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/briket.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/briket.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "cati-iskeleti",
+    "slugPath": "kaba-insaat/cati-iskeleti",
+    "label": "Çatı İskeleti",
+    "phaseId": "kaba-insaat",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/cati-iskeleti.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/cati-iskeleti.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ahsap-cati",
+    "slugPath": "kaba-insaat/cati-iskeleti/ahsap-cati",
+    "label": "Ahşap Çatı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/ahsap-cati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/ahsap-cati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ahsap-cati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "celik-cati",
+    "slugPath": "kaba-insaat/cati-iskeleti/celik-cati",
+    "label": "Çelik Çatı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/celik-cati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/celik-cati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/celik-cati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "teras-cati",
+    "slugPath": "kaba-insaat/cati-iskeleti/teras-cati",
+    "label": "Teras Çatı",
+    "phaseId": "kaba-insaat",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/teras-cati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/teras-cati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/teras-cati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ince-isler",
+    "slugPath": "ince-isler",
+    "label": "İnce İşler",
+    "phaseId": "ince-isler",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/ince-isler",
+    "primary": {
+      "status": "keep-existing",
+      "src": "/bina-asamalari/topics/ince-isler.webp",
+      "qcScore": 92
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ince-isler.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "siva",
+    "slugPath": "ince-isler/siva",
+    "label": "Sıva",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/siva",
+    "primary": {
+      "status": "keep-existing",
+      "src": "/bina-asamalari/topics/siva.webp",
+      "qcScore": 92
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/siva.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ic-siva",
+    "slugPath": "ince-isler/siva/ic-siva",
+    "label": "İç Sıva",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/siva/ic-siva",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/ic-siva.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ic-siva.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "dis-siva",
+    "slugPath": "ince-isler/siva/dis-siva",
+    "label": "Dış Sıva",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/siva/dis-siva",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/dis-siva.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/dis-siva.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "alci-siva",
+    "slugPath": "ince-isler/siva/alci-siva",
+    "label": "Alçı Sıva",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/siva/alci-siva",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/alci-siva.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/alci-siva.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "alcipan",
+    "slugPath": "ince-isler/alcipan",
+    "label": "Alçıpan & Asma Tavan",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/alcipan",
+    "primary": {
+      "status": "keep-existing",
+      "src": "/bina-asamalari/topics/alcipan.webp",
+      "qcScore": 92
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/alcipan.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "bolme-duvar",
+    "slugPath": "ince-isler/alcipan/bolme-duvar",
+    "label": "Bölme Duvar",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/alcipan/bolme-duvar",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/bolme-duvar.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/bolme-duvar.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "asma-tavan",
+    "slugPath": "ince-isler/alcipan/asma-tavan",
+    "label": "Asma Tavan",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/alcipan/asma-tavan",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/asma-tavan.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/asma-tavan.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "zemin-kaplamalari",
+    "slugPath": "ince-isler/zemin-kaplamalari",
+    "label": "Zemin Kaplamaları",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/zemin-kaplamalari.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/zemin-kaplamalari.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "seramik-kaplama",
+    "slugPath": "ince-isler/zemin-kaplamalari/seramik-kaplama",
+    "label": "Seramik",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari/seramik-kaplama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/seramik-kaplama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/seramik-kaplama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "parke-kaplama",
+    "slugPath": "ince-isler/zemin-kaplamalari/parke-kaplama",
+    "label": "Parke",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari/parke-kaplama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/parke-kaplama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/parke-kaplama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "mermer-kaplama",
+    "slugPath": "ince-isler/zemin-kaplamalari/mermer-kaplama",
+    "label": "Mermer / Granit",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari/mermer-kaplama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/mermer-kaplama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/mermer-kaplama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "epoksi-kaplama",
+    "slugPath": "ince-isler/zemin-kaplamalari/epoksi-kaplama",
+    "label": "Epoksi",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari/epoksi-kaplama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/epoksi-kaplama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/epoksi-kaplama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "duvar-kaplamalari",
+    "slugPath": "ince-isler/duvar-kaplamalari",
+    "label": "Duvar Kaplamaları",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/duvar-kaplamalari.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/duvar-kaplamalari.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "fayans",
+    "slugPath": "ince-isler/duvar-kaplamalari/fayans",
+    "label": "Fayans",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari/fayans",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/fayans.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/fayans.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "boya",
+    "slugPath": "ince-isler/duvar-kaplamalari/boya",
+    "label": "Boya",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari/boya",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/boya.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/boya.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "duvar-kagidi",
+    "slugPath": "ince-isler/duvar-kaplamalari/duvar-kagidi",
+    "label": "Duvar Kağıdı",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari/duvar-kagidi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/duvar-kagidi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/duvar-kagidi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kapi-pencere",
+    "slugPath": "ince-isler/kapi-pencere",
+    "label": "Kapı & Pencere",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/kapi-pencere",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kapi-pencere.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kapi-pencere.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "dis-kapi",
+    "slugPath": "ince-isler/kapi-pencere/dis-kapi",
+    "label": "Dış Kapı",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/kapi-pencere/dis-kapi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/dis-kapi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/dis-kapi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "ic-kapi",
+    "slugPath": "ince-isler/kapi-pencere/ic-kapi",
+    "label": "İç Kapı",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/kapi-pencere/ic-kapi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/ic-kapi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/ic-kapi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "pencere",
+    "slugPath": "ince-isler/kapi-pencere/pencere",
+    "label": "Pencere",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/kapi-pencere/pencere",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/pencere.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/pencere.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "cati-kaplamasi",
+    "slugPath": "ince-isler/cati-kaplamasi",
+    "label": "Çatı Kaplaması",
+    "phaseId": "ince-isler",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/ince-isler/cati-kaplamasi",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/cati-kaplamasi.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/cati-kaplamasi.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kiremit",
+    "slugPath": "ince-isler/cati-kaplamasi/kiremit",
+    "label": "Kiremit",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/cati-kaplamasi/kiremit",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kiremit.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kiremit.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "membran-cati",
+    "slugPath": "ince-isler/cati-kaplamasi/membran-cati",
+    "label": "Membran",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/cati-kaplamasi/membran-cati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/membran-cati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/membran-cati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "metal-cati",
+    "slugPath": "ince-isler/cati-kaplamasi/metal-cati",
+    "label": "Metal Çatı",
+    "phaseId": "ince-isler",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/ince-isler/cati-kaplamasi/metal-cati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/metal-cati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/metal-cati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "tesisat-isleri",
+    "slugPath": "tesisat-isleri",
+    "label": "Tesisat İşleri",
+    "phaseId": "tesisat-isleri",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/tesisat-isleri",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/tesisat-isleri.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/tesisat-isleri.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "sihhi-tesisat",
+    "slugPath": "tesisat-isleri/sihhi-tesisat",
+    "label": "Sıhhi Tesisat",
+    "phaseId": "tesisat-isleri",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/sihhi-tesisat",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/sihhi-tesisat.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/sihhi-tesisat.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "temiz-su",
+    "slugPath": "tesisat-isleri/sihhi-tesisat/temiz-su",
+    "label": "Temiz Su",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/sihhi-tesisat/temiz-su",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/temiz-su.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/temiz-su.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "pis-su",
+    "slugPath": "tesisat-isleri/sihhi-tesisat/pis-su",
+    "label": "Pis Su",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/sihhi-tesisat/pis-su",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/pis-su.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/pis-su.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "elektrik-tesisati",
+    "slugPath": "tesisat-isleri/elektrik-tesisati",
+    "label": "Elektrik Tesisatı",
+    "phaseId": "tesisat-isleri",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/elektrik-tesisati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/elektrik-tesisati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/elektrik-tesisati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "kablolama",
+    "slugPath": "tesisat-isleri/elektrik-tesisati/kablolama",
+    "label": "Kablolama",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/elektrik-tesisati/kablolama",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/kablolama.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/kablolama.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "pano-montaj",
+    "slugPath": "tesisat-isleri/elektrik-tesisati/pano-montaj",
+    "label": "Pano Montajı",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/elektrik-tesisati/pano-montaj",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/pano-montaj.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/pano-montaj.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "isitma-sogutma",
+    "slugPath": "tesisat-isleri/isitma-sogutma",
+    "label": "Isıtma & Soğutma",
+    "phaseId": "tesisat-isleri",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/isitma-sogutma.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/isitma-sogutma.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "yerden-isitma",
+    "slugPath": "tesisat-isleri/isitma-sogutma/yerden-isitma",
+    "label": "Yerden Isıtma",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma/yerden-isitma",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/yerden-isitma.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/yerden-isitma.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "klima-tesisat",
+    "slugPath": "tesisat-isleri/isitma-sogutma/klima-tesisat",
+    "label": "Klima Tesisatı",
+    "phaseId": "tesisat-isleri",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma/klima-tesisat",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/klima-tesisat.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/klima-tesisat.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "yangin-tesisati",
+    "slugPath": "tesisat-isleri/yangin-tesisati",
+    "label": "Yangın Tesisatı",
+    "phaseId": "tesisat-isleri",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/tesisat-isleri/yangin-tesisati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/yangin-tesisati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/yangin-tesisati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "peyzaj-teslim",
+    "slugPath": "peyzaj-teslim",
+    "label": "Peyzaj & Teslim",
+    "phaseId": "peyzaj-teslim",
+    "depth": 1,
+    "route": "/kategori/bina-asamalari/peyzaj-teslim",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/peyzaj-teslim.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/peyzaj-teslim.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "peyzaj-ve-cevre-duzenleme",
+    "slugPath": "peyzaj-teslim/peyzaj-ve-cevre-duzenleme",
+    "label": "Peyzaj & Çevre Düzenleme",
+    "phaseId": "peyzaj-teslim",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/peyzaj-ve-cevre-duzenleme.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "sert-zemin",
+    "slugPath": "peyzaj-teslim/peyzaj-ve-cevre-duzenleme/sert-zemin",
+    "label": "Sert Zemin",
+    "phaseId": "peyzaj-teslim",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme/sert-zemin",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/sert-zemin.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/sert-zemin.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "bitkisel-peyzaj",
+    "slugPath": "peyzaj-teslim/peyzaj-ve-cevre-duzenleme/bitkisel-peyzaj",
+    "label": "Bitkisel Peyzaj",
+    "phaseId": "peyzaj-teslim",
+    "depth": 3,
+    "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme/bitkisel-peyzaj",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/bitkisel-peyzaj.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/bitkisel-peyzaj.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  },
+  {
+    "nodeId": "iskan-ruhsati",
+    "slugPath": "peyzaj-teslim/iskan-ruhsati",
+    "label": "İskan Ruhsatı",
+    "phaseId": "peyzaj-teslim",
+    "depth": 2,
+    "route": "/kategori/bina-asamalari/peyzaj-teslim/iskan-ruhsati",
+    "primary": {
+      "status": "pending",
+      "src": "/bina-asamalari/topics/iskan-ruhsati.webp",
+      "qcScore": null
+    },
+    "secondary": {
+      "status": "pending",
+      "src": "/bina-asamalari/details/iskan-ruhsati.webp",
+      "qcScore": null
+    },
+    "page": {
+      "twoDistinctVisuals": false
+    }
+  }
+]

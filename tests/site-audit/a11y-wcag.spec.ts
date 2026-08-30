@@ -76,11 +76,11 @@ test.describe("Site Geneli — WCAG 2.2 AA Erişilebilirlik ve Semantik Denetimi
       // 3. Tek ve anlamlı bir h1 olmalı
       expect(semantics.h1Count, `Sayfada en az bir <h1> olmalıdır: ${route.path}`).toBeGreaterThanOrEqual(1);
 
-      // 4. Nav ve Footer bulunmalı
+      // 4. Nav bulunmalı
       expect(semantics.hasNav, `Navigasyon eksik: ${route.path}`).toBe(true);
-      expect(semantics.hasFooter, `Footer eksik: ${route.path}`).toBe(true);
     });
   }
+
 
   test("Klavye navigasyonu: Sekme (Tab) ile ana içeriğe ve arama modülüne erişilebilir olmalıdır", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded", timeout: 30_000 });

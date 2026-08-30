@@ -945,9 +945,9 @@ export function DokumantasyonFileManager() {
       {/* 2. Ana Çalışma Alanı (Center Content) — BUG-3 FIX: overflow-hidden → min-h-0 */}
       <div className="flex min-w-0 min-h-0 flex-1 flex-col">
         {/* Üst Gezinti ve Kontrol Çubuğu */}
-        <div className={`flex min-w-0 items-center justify-between gap-2 border-b p-2.5 sm:gap-3 sm:p-3 ${styles.commandBar}`}>
+        <div className={`flex min-w-0 flex-wrap items-center justify-between gap-2 border-b p-2.5 sm:gap-3 sm:p-3 ${styles.commandBar}`}>
           {/* Breadcrumb ve Mobil Menü */}
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs sm:text-sm">
+          <div className="flex min-w-fit flex-1 items-center gap-1.5 text-xs sm:text-sm">
             <Button
               size="sm"
               variant="ghost"
@@ -1587,6 +1587,8 @@ export function DokumantasyonFileManager() {
                           return (
                             <div
                               key={folder.id}
+                              data-testid="dok-folder-row"
+                              data-folder-id={folder.id}
                               onClick={() => navigateToFolder(folder.id)}
                               className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
                                 isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
@@ -1637,6 +1639,7 @@ export function DokumantasyonFileManager() {
                                       onClick={(e) => e.stopPropagation()}
                                       className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto sm:p-1.5"
                                       aria-label="Klasör İşlemleri"
+                                      data-folder-name={folder.name}
                                     >
                                       <MoreVertical className="h-4 w-4" />
                                     </button>
@@ -1912,6 +1915,8 @@ export function DokumantasyonFileManager() {
                             return (
                               <div
                                 key={folder.id}
+                                data-testid="dok-folder-card"
+                                data-folder-id={folder.id}
                                 onClick={() => navigateToFolder(folder.id)}
                                 className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all cursor-pointer ${styles.card} ${
                                   isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
