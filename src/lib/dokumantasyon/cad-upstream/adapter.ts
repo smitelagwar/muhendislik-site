@@ -78,6 +78,16 @@ export interface CadLayerItem {
   visible: boolean;
 }
 
+export type CadLoadingPhase =
+  | "init"
+  | "verify-workers"
+  | "fetch-source"
+  | "parse-convert"
+  | "build-scene"
+  | "render-ready"
+  | "ready"
+  | "error";
+
 export type CadUpstreamErrorCode =
   | "unsupported-extension"
   | "worker-unavailable"
@@ -86,7 +96,9 @@ export type CadUpstreamErrorCode =
   | "open-timeout"
   | "open-failed"
   | "blank-document"
-  | "adapter-destroyed";
+  | "adapter-destroyed"
+  | "corrupt-truncated"
+  | "network-error";
 
 export class CadUpstreamAdapterError extends Error {
   constructor(
@@ -112,6 +124,7 @@ export interface CadUpstreamOpenOptions {
   extension: string;
   signal?: AbortSignal;
   databaseOptions?: Omit<AcApOpenDatabaseOptions, "mode">;
+  onPhase?: (phase: CadLoadingPhase, phaseText: string) => void;
 }
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
@@ -278,23 +291,34 @@ async function fetchCadSource(
   accessUrl: string,
   signal?: AbortSignal
 ): Promise<ArrayBuffer> {
-  const response = await fetch(accessUrl, {
-    signal,
-    cache: "no-store",
-  });
+  try {
+    const response = await fetch(accessUrl, {
+      signal,
+      cache: "no-store",
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      throw new CadUpstreamAdapterError(
+        "source-fetch-failed",
+        `CAD kaynağı alınamadı (HTTP ${response.status}).`
+      );
+    }
+
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength === 0) {
+      throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
+    }
+    return bytes;
+  } catch (error) {
+    if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
+      throw error;
+    }
+    if (error instanceof CadUpstreamAdapterError) throw error;
     throw new CadUpstreamAdapterError(
-      "source-fetch-failed",
-      `CAD kaynağı alınamadı (HTTP ${response.status}).`
+      "network-error",
+      error instanceof Error ? error.message : "Ağ bağlantı hatası."
     );
   }
-
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength === 0) {
-    throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
-  }
-  return bytes;
 }
 
 export class CadUpstreamAdapter {
@@ -396,6 +420,7 @@ export class CadUpstreamAdapter {
       );
     }
 
+    options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
     if (!(await this.manager.areWorkersReady())) {
       throw new CadUpstreamAdapterError(
         "worker-unavailable",
@@ -403,7 +428,17 @@ export class CadUpstreamAdapter {
       );
     }
 
+    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
+
+    const isDwg = extension.includes("dwg");
+    options.onPhase?.(
+      "parse-convert",
+      isDwg
+        ? "DWG geometrisi LibreDWG ile çözümleniyor"
+        : "DXF içeriği çözümleniyor"
+    );
+
     const openOptions: AcApOpenDatabaseOptions = {
       minimumChunkSize: 1000,
       progressiveRendering: true,
@@ -418,12 +453,19 @@ export class CadUpstreamAdapter {
     );
 
     if (!success) {
+      if (bytes.byteLength < 64) {
+        throw new CadUpstreamAdapterError(
+          "corrupt-truncated",
+          `Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`
+        );
+      }
       throw new CadUpstreamAdapterError(
         "open-failed",
         `MLightCAD dosyayı açamadı: ${options.displayName}`
       );
     }
 
+    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
     const idle = await this.manager.curView.waitUntilIdle(
       CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
     );
@@ -433,6 +475,8 @@ export class CadUpstreamAdapter {
         `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
       );
     }
+
+    options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
 
     this.initialLayerSnapshot.clear();
     const store = this.getLayerStore();

@@ -79,6 +79,9 @@ function DxfRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
   const [upstreamFailure, setUpstreamFailure] = useState<string | null>(null);
 
   const useCurrent = useCallback((reason: string) => {
+    if (reason.includes("USER_CANCELLED") || reason.includes("AbortError")) {
+      return;
+    }
     setUpstreamFailure(reason);
     setEngine("current");
   }, []);
@@ -195,6 +198,9 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
   }, [revokeCachedUrl]);
 
   const advanceFromUpstream = useCallback((reason: string) => {
+    if (reason.includes("USER_CANCELLED") || reason.includes("AbortError")) {
+      return;
+    }
     setTransitionReason(`UPSTREAM_FAILED:${reason}`);
     setEngine("current-fallback");
   }, []);

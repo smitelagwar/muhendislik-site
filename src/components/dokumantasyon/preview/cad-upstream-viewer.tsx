@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
+  Download,
   Eye,
   Hand,
   Layers,
@@ -24,6 +25,7 @@ import {
   type CadBackgroundColorOption,
   type CadDistanceMeasurementSnapshot,
   type CadLayerItem,
+  type CadLoadingPhase,
   type CadUpstreamDisplayMode,
   type CadUpstreamTheme,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
@@ -222,6 +224,9 @@ export function DokCadUpstreamViewer({
   const distanceMeasurementIdRef = useRef(0);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
+  const [loadingPhase, setLoadingPhase] = useState<CadLoadingPhase>("init");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
   const [lineWeightVisible, setLineWeightVisible] = useState(false);
@@ -249,10 +254,22 @@ export function DokCadUpstreamViewer({
   }, []);
 
   useEffect(() => {
+    if (state !== "loading") {
+      setElapsedSeconds(0);
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((sec) => sec + 1);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [state]);
+
+  useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
 
     const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     let cancelled = false;
     let timedOut = false;
     let adapter: CadUpstreamAdapter | null = null;
@@ -314,6 +331,12 @@ export function DokCadUpstreamViewer({
           displayName,
           extension,
           signal: abortController.signal,
+          onPhase: (phase, phaseText) => {
+            if (!cancelled) {
+              setLoadingPhase(phase);
+              setMessage(phaseText);
+            }
+          },
         });
 
         createdAdapter.setDisplayMode(displayModeRef.current, resolveSiteTheme());
@@ -672,6 +695,8 @@ export function DokCadUpstreamViewer({
       data-cad-upstream-host="true"
       data-file-id={fileId}
       data-cad-upstream-state={state}
+      data-cad-loading-phase={state === "loading" ? loadingPhase : state}
+      data-cad-elapsed-seconds={elapsedSeconds}
       data-cad-color-mode={displayMode}
       data-cad-background-color={backgroundColor}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
@@ -869,32 +894,94 @@ export function DokCadUpstreamViewer({
       ) : null}
 
       {state === "loading" ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/72 backdrop-blur-[1px]">
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{message}</span>
-          </div>
-        </div>
-      ) : null}
-
-      {state === "error" ? (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background p-4">
-          <div className="flex max-w-md flex-col items-center gap-3 text-center">
-            <AlertCircle className="h-7 w-7 text-destructive" />
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/75 backdrop-blur-[2px]"
+          data-testid="cad-loading-overlay"
+        >
+          <div className="pointer-events-auto flex max-w-xs flex-col items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 p-4 text-center shadow-lg backdrop-blur-md">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <div>
-              <p className="text-sm font-semibold text-foreground">CAD görünümü açılamadı</p>
-              <p className="mt-1 text-xs text-muted-foreground">{message}</p>
+              <p
+                className="text-xs font-semibold text-foreground"
+                data-testid="cad-loading-phase-text"
+              >
+                {message}
+              </p>
+              <p
+                className="mt-0.5 text-[11px] text-muted-foreground"
+                data-testid="cad-loading-elapsed"
+              >
+                {elapsedSeconds > 0 ? `${elapsedSeconds} saniye geçti` : "Yükleniyor..."}
+              </p>
             </div>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="gap-2"
-              onClick={() => setRetryKey((value) => value + 1)}
+              className="mt-1 h-7 text-[11px]"
+              onClick={() => {
+                abortControllerRef.current?.abort("USER_CANCELLED");
+                setState("error");
+                setMessage("Yükleme kullanıcı tarafından iptal edildi.");
+              }}
+              data-testid="cad-loading-cancel"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Tekrar dene
+              İptal Et
             </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {state === "error" ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-background p-4"
+          data-testid="cad-error-card"
+        >
+          <div className="flex max-w-md flex-col items-center gap-3 text-center">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">CAD görünümü açılamadı</p>
+              <p className="mt-1 text-xs text-muted-foreground" data-testid="cad-error-message">
+                {message}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  setState("loading");
+                  setMessage("Yeniden başlatılıyor...");
+                  setRetryKey((value) => value + 1);
+                }}
+                data-testid="cad-error-retry"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Tekrar dene
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const link = document.createElement("a");
+                    link.href = accessUrl;
+                    link.download = displayName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }}
+                data-testid="cad-error-download"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Dosyayı indir
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
