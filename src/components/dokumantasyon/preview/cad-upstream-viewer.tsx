@@ -240,6 +240,7 @@ export function DokCadUpstreamViewer({
   const [layers, setLayers] = useState<CadLayerItem[]>([]);
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
   const [layerQuery, setLayerQuery] = useState("");
+  const layerButtonRef = useRef<HTMLButtonElement>(null);
   const [snapPanelOpen, setSnapPanelOpen] = useState(false);
   const [viewPanelOpen, setViewPanelOpen] = useState(false);
   const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
@@ -762,8 +763,9 @@ export function DokCadUpstreamViewer({
     >
       <div
         ref={viewportRef}
-        className="absolute inset-0"
+        className={`absolute inset-0 ${layerPanelOpen ? "pointer-events-none sm:pointer-events-auto" : ""}`}
         aria-label={`${displayName} CAD görünümü`}
+        aria-hidden={layerPanelOpen ? "true" : undefined}
       />
 
       {state === "ready" ? (
@@ -800,7 +802,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant={activeTool === null ? "secondary" : "ghost"}
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Kaydır (Pan) [P] — Sol veya orta tuşla çizimi kaydırın"
             onClick={async () => {
               if (activeTool) {
@@ -821,7 +823,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Çizimi ekrana sığdır [F]"
             onClick={handleZoomToFit}
             data-testid="cad-tool-fit"
@@ -836,7 +838,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant={activeTool === "distance" ? "default" : "ghost"}
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Mesafe Ölç [T] (Nokta için tıklayın veya basılı tutun)"
             onClick={() => void handleStartDistance()}
             data-testid="cad-tool-distance"
@@ -850,7 +852,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant={activeTool === "area" ? "default" : "ghost"}
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Alan Ölç [A] (Çokgen noktalarını seçin | Enter: Bitir | Esc: İptal)"
             onClick={() => void handleStartArea()}
             data-testid="cad-tool-area"
@@ -864,7 +866,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 hover:text-destructive"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center hover:text-destructive"
             title="Ölçümleri Temizle"
             onClick={() => void handleClearMeasurements()}
             data-testid="cad-tool-clear"
@@ -879,7 +881,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant={snapPanelOpen ? "secondary" : "ghost"}
-            className={`h-8 w-8 p-0 ${snapSettings.enabled ? "" : "text-muted-foreground/45"}`}
+            className={`h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center ${snapSettings.enabled ? "" : "text-muted-foreground/45"}`}
             title="Nesne Yakalama Ayarları"
             onClick={handleToggleSnapPanel}
             data-testid="cad-tool-snap-settings"
@@ -890,10 +892,11 @@ export function DokCadUpstreamViewer({
           </Button>
 
           <Button
+            ref={layerButtonRef}
             type="button"
             size="sm"
             variant={layerPanelOpen ? "secondary" : "ghost"}
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Katmanlar"
             onClick={handleToggleLayerPanel}
             data-testid="cad-tool-layers"
@@ -907,7 +910,7 @@ export function DokCadUpstreamViewer({
             type="button"
             size="sm"
             variant={viewPanelOpen ? "secondary" : "ghost"}
-            className="h-8 w-8 p-0"
+            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
             title="Görünüm Ayarları (Renk, Lineweight, Arka Plan)"
             onClick={handleToggleViewPanel}
             data-testid="cad-tool-view-settings"
@@ -938,6 +941,7 @@ export function DokCadUpstreamViewer({
           onHideAll={handleHideAllLayers}
           onResetSource={handleResetLayers}
           onClose={() => setLayerPanelOpen(false)}
+          triggerRef={layerButtonRef}
         />
       ) : null}
 

@@ -159,6 +159,7 @@ export function DokumantasyonFileManager() {
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileSidebarRef = useRef<HTMLDivElement>(null);
   const [supportsFolderUpload, setSupportsFolderUpload] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState<number>(100);
 
   // URL & Tarayıcı Geçmişi ile Klasör Konumu Senkronizasyonu
   const navigateToFolder = useCallback((folderId: string | null) => {
@@ -305,6 +306,10 @@ export function DokumantasyonFileManager() {
   useEffect(() => {
     if (starMigrationVersion > 0) void fetchItems();
   }, [fetchItems, starMigrationVersion]);
+
+  useEffect(() => {
+    setDisplayLimit(100);
+  }, [currentFolderId, activeFilter, workspaceFilters]);
 
   const toggleStar = async (
     type: "file" | "folder",
@@ -1691,13 +1696,16 @@ export function DokumantasyonFileManager() {
                           );
                         })}
 
-                        {bucket.files.map((file) => {
+                        {bucket.files.slice(0, displayLimit).map((file) => {
                           const isSelected = selectedIds.has(file.id);
                           const isStarred = Boolean(file.starred_at);
 
                           return (
                             <div
                               key={file.id}
+                              data-testid="dok-file-row"
+                              data-file-id={file.id}
+                              data-extension={file.extension}
                               className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
                                 isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
                               }`}
@@ -1729,6 +1737,7 @@ export function DokumantasyonFileManager() {
                                 <div className="min-w-0">
                                   <Link
                                     href={`/dokumantasyon/dosya/${file.id}`}
+                                    data-testid="dok-file-link"
                                     className="block truncate font-medium text-foreground transition-colors hover:text-amber-500 hover:underline"
                                   >
                                     {file.display_name}
@@ -1847,6 +1856,20 @@ export function DokumantasyonFileManager() {
                           );
                         })}
                       </div>
+                      {bucket.files.length > displayLimit && (
+                        <div className="flex justify-center p-3 border-t border-border/40">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDisplayLimit((prev) => prev + 100)}
+                            data-testid="dok-load-more-btn"
+                            className="text-xs rounded-xl"
+                          >
+                            Daha Fazla Göster ({Math.min(displayLimit, bucket.files.length)} / {bucket.files.length})
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -2001,13 +2024,16 @@ export function DokumantasyonFileManager() {
                           </h3>
                         )}
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(190px,1fr))]">
-                          {bucket.files.map((file) => {
+                          {bucket.files.slice(0, displayLimit).map((file) => {
                             const isSelected = selectedIds.has(file.id);
                             const isStarred = Boolean(file.starred_at);
 
                             return (
                               <div
                                 key={file.id}
+                                data-testid="dok-file-card"
+                                data-file-id={file.id}
+                                data-extension={file.extension}
                                 className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all ${styles.card} ${
                                   isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
                                 }`}
@@ -2028,6 +2054,7 @@ export function DokumantasyonFileManager() {
                                     </button>
                                     <Link
                                       href={`/dokumantasyon/dosya/${file.id}`}
+                                      data-testid="dok-file-link"
                                       className="shrink-0"
                                     >
                                       {getFileIcon(file.extension)}
@@ -2142,6 +2169,7 @@ export function DokumantasyonFileManager() {
                                 <div className="mt-3 min-w-0 space-y-1">
                                   <Link
                                     href={`/dokumantasyon/dosya/${file.id}`}
+                                    data-testid="dok-file-link"
                                     className="block line-clamp-2 text-xs font-bold text-foreground hover:text-amber-500 hover:underline"
                                   >
                                     {file.display_name}
@@ -2154,6 +2182,20 @@ export function DokumantasyonFileManager() {
                             );
                           })}
                         </div>
+                        {bucket.files.length > displayLimit && (
+                          <div className="flex justify-center p-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDisplayLimit((prev) => prev + 100)}
+                              data-testid="dok-load-more-grid-btn"
+                              className="text-xs rounded-xl"
+                            >
+                              Daha Fazla Göster ({Math.min(displayLimit, bucket.files.length)} / {bucket.files.length})
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

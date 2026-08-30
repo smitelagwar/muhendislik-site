@@ -40,6 +40,7 @@ export default defineConfig({
         "**/cad-stage4-loading-error.spec.ts",
         "**/cad-stage5-distance-measurement.spec.ts",
         "**/cad-stage6-area-measurement.spec.ts",
+        "**/cad-stage7-layer-mobile-ux.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },
