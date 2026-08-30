@@ -595,7 +595,7 @@ export async function generateYapiDenetimCardPng(
   const canvas = document.createElement("canvas");
   const scale = 2; // Retina sharpness
   const logicalWidth = 800; // Genişlik px
-  
+
   // Dinamik yükseklik: koşullu bloklara göre hesaplanır
   let logicalHeight = 1040;
   if (result.smallBuilding.applies) logicalHeight += 70;
