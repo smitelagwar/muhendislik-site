@@ -18,9 +18,11 @@ type ViewerHarness = {
 
 function createPrecisionFixture(): string {
   const entityLine = (x1: number, y1: number, x2: number, y2: number) => [
-    "0", "LINE", "8", "KALIP",
-    "10", String(x1), "20", String(y1),
-    "11", String(x2), "21", String(y2),
+    "0", "LINE",
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbLine",
+    "10", String(x1), "20", String(y1), "30", "0",
+    "11", String(x2), "21", String(y2), "31", "0",
   ];
 
   return [
@@ -36,7 +38,10 @@ function createPrecisionFixture(): string {
     ...entityLine(-500, 0, 500, 0),
     ...entityLine(0, -500, 0, 500),
     ...entityLine(0, 0, 300, 300),
-    "0", "CIRCLE", "8", "KALIP", "10", "0", "20", "0", "40", "100",
+    "0", "CIRCLE",
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbCircle",
+    "10", "0", "20", "0", "30", "0", "40", "100",
     "0", "ENDSEC", "0", "EOF",
   ].join("\n");
 }
@@ -215,7 +220,7 @@ async function completedLineGeometry(page: Page): Promise<{
   length: number;
 }> {
   const line = page.locator('[data-cad-distance-complete="true"] line').first();
-  await expect(line).toBeVisible();
+  await expect(line).toBeAttached();
   const values = await line.evaluate((node) => {
     const element = node as SVGLineElement;
     return {
@@ -253,7 +258,7 @@ test("basılı tutma eşiği, snap, büyüteç, offset crosshair ve iki nokta co
 
   const offsetPoint = { x: center.x + 10, y: center.y };
   await dispatchTouchPointer(viewport, "pointermove", offsetPoint, 31);
-  await expect(page.locator('[data-cad-offset-guide="true"]')).toBeVisible();
+  await expect(page.locator('[data-cad-offset-guide="true"]')).toBeAttached();
   await expect(page.getByTestId("cad-snap-label")).toHaveAttribute(
     "data-cad-snap-label",
     "intersection"

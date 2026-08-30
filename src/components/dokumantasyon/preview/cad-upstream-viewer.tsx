@@ -424,18 +424,44 @@ export function DokCadUpstreamViewer({
     onViewerFailure,
   ]);
 
+  const handleStartDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setLayerPanelOpen(false);
-      setSnapPanelOpen(false);
-      setActiveTool(null);
-      setDistanceSnapshot(null);
-      void adapterRef.current?.cancelActiveCommand();
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setLayerPanelOpen(false);
+        setSnapPanelOpen(false);
+        setActiveTool(null);
+        setDistanceSnapshot(null);
+        void adapterRef.current?.cancelActiveCommand();
+        return;
+      }
+
+      if (
+        (event.key === "t" || event.key === "T" || event.code === "KeyT") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          void handleStartDistanceRef.current?.();
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [state]);
 
   const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
     displayModeRef.current = mode;
@@ -506,6 +532,7 @@ export function DokCadUpstreamViewer({
     );
     setActiveTool(started ? "distance" : null);
   };
+  handleStartDistanceRef.current = handleStartDistance;
 
   const handleStartArea = async () => {
     const adapter = adapterRef.current;
@@ -655,7 +682,7 @@ export function DokCadUpstreamViewer({
             size="sm"
             variant={activeTool === "distance" ? "default" : "ghost"}
             className="h-8 w-8 p-0"
-            title="Mesafe Ölç (Nokta için basılı tutup bırakın)"
+            title="Mesafe Ölç [T] (Nokta için tıklayın veya basılı tutun)"
             onClick={() => void handleStartDistance()}
             data-testid="cad-tool-distance"
             aria-label="Mesafe ölç"

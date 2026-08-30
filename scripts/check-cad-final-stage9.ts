@@ -4,11 +4,11 @@ import { existsSync, readFileSync } from "node:fs";
 const adapter = readFileSync(
   "src/lib/dokumantasyon/cad-upstream/adapter.ts",
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 const viewer = readFileSync(
   "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
   "utf8"
-);
+).replace(/\r\n/g, "\n");
 const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
   git?: { deploymentEnabled?: unknown };
 };

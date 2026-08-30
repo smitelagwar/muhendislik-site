@@ -18,9 +18,11 @@ type ViewerHarness = {
 
 function createPrecisionFixture(): string {
   const line = (x1: number, y1: number, x2: number, y2: number) => [
-    "0", "LINE", "8", "KALIP",
-    "10", String(x1), "20", String(y1),
-    "11", String(x2), "21", String(y2),
+    "0", "LINE",
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbLine",
+    "10", String(x1), "20", String(y1), "30", "0",
+    "11", String(x2), "21", String(y2), "31", "0",
   ];
 
   return [
@@ -36,7 +38,10 @@ function createPrecisionFixture(): string {
     ...line(-500, 0, 500, 0),
     ...line(0, -500, 0, 500),
     ...line(0, 0, 300, 300),
-    "0", "CIRCLE", "8", "KALIP", "10", "0", "20", "0", "40", "100",
+    "0", "CIRCLE",
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbCircle",
+    "10", "0", "20", "0", "30", "0", "40", "100",
     "0", "ENDSEC", "0", "EOF",
   ].join("\n");
 }

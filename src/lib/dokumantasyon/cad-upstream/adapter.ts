@@ -645,6 +645,21 @@ export class CadUpstreamAdapter {
       : null;
   }
 
+  getNearbyPrimitives(
+    worldPoint: CadSnapPoint,
+    radiusPx = 60,
+    limit = 64
+  ): CadSnapPrimitive[] {
+    if (this.destroyed) return [];
+    const view = this.getActiveLayoutView();
+    if (!view) return [];
+    const screen = view.worldToScreen(worldPoint);
+    const worldUnitsPerPixel = this.getWorldUnitsPerPixel(view, screen);
+    const worldRadius = (worldUnitsPerPixel > 0 ? worldUnitsPerPixel : 1) * radiusPx;
+    return this.snapEngine.queryNearbyPrimitives(worldPoint, worldRadius, limit);
+  }
+
+
   subscribeViewChanged(callback: () => void): () => void {
     const event = this.getActiveLayoutView()?.events?.viewChanged;
     if (!event) return () => {};

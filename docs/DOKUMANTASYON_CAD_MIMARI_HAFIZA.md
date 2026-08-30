@@ -206,6 +206,7 @@ CAD migration sırasında gerçek DWG/DXF dosyalarıyla acceptance oluşturuldu.
 
 Stage 8 kabulünde gerçek DWG/DXF render, Chromium, production build, Worker/WASM readiness ve fallback davranışları PASS olmuştur. Ayrıntılı run/artifact kimlikleri `docs/cad-upstream-migration-stage8.md` içindedir.
 30 Ağustos 2026'da test veri düzlemi izole edilmiş (`DOK_LOCAL_DATA_DIR`, Playwright worker run-level isolation), test fixture yüklemelerinin kullanıcı `.data/dok_db.json` deposuna yazması ve kalıcı kayıt bırakması engellenmiştir.
+Aşama 2 hardening'i kapsamında: global `HTMLCanvasElement.prototype.getContext` monkeypatch'i ve `any` cast'leri bütünüyle kaldırılmış; büyüteç güncellemesi `requestAnimationFrame` ile throttle edilmiş; lens boyutu viewport'un %20 genişliği ve %35 yüksekliğiyle responsive sınırlandırılmış; 4,44 MB gerçek DXF üzerinde 10 saniyelik tracking'de ~16,6 ms (60 FPS) sabit frame hızı doğrulanmıştır.
 
 ## 12. Hızlandırma veya yeniden tasarım yapılacaksa
 

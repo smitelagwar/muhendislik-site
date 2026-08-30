@@ -4,11 +4,11 @@ import { useLayoutEffect, useRef } from "react";
 
 import type { CadDistanceMeasurementSnapshot } from "@/lib/dokumantasyon/cad-upstream/distance-measurement";
 import {
-  CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
   CAD_PRECISION_MAGNIFIER_ZOOM,
   CAD_SNAP_MODE_LABELS,
   cadPrecisionOffsetDistance,
   resolveCadMagnifierCrop,
+  resolveCadMagnifierDiameter,
   resolveCadPrecisionLensPlacement,
 } from "@/lib/dokumantasyon/cad-upstream/precision-ux";
 import type {
@@ -67,12 +67,15 @@ function MagnifiedGeometry({
   target,
   lensTarget,
   projectPoint,
+  snappedIds = [],
 }: {
   primitives: readonly CadSnapPrimitive[];
   target: CadSnapPoint;
   lensTarget: CadSnapPoint;
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
+  snappedIds?: readonly string[];
 }) {
+  const snappedSet = new Set(snappedIds);
   const magnify = (point: CadSnapPoint): CadSnapPoint | null => {
     const projected = projectPoint(point);
     if (!projected) return null;
@@ -85,17 +88,31 @@ function MagnifiedGeometry({
   return (
     <g
       fill="none"
-      stroke="rgba(245,245,245,0.96)"
+      stroke="rgba(245,245,245,0.92)"
       strokeWidth="1.25"
       vectorEffect="non-scaling-stroke"
       data-cad-magnifier-vector-fallback="true"
     >
       {primitives.map((primitive) => {
+        const isSnapped = snappedSet.has(primitive.id);
+        const strokeColor = isSnapped ? "var(--primary, #f59e0b)" : "rgba(245,245,245,0.92)";
+        const width = isSnapped ? "2" : "1.25";
+
         if (primitive.kind === "line") {
           const a = magnify(primitive.a);
           const b = magnify(primitive.b);
           if (!a || !b) return null;
-          return <line key={primitive.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+          return (
+            <line
+              key={primitive.id}
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              stroke={strokeColor}
+              strokeWidth={width}
+            />
+          );
         }
 
         const center = magnify(primitive.center);
@@ -108,7 +125,16 @@ function MagnifiedGeometry({
         if (!(radius > 0) || !Number.isFinite(radius)) return null;
 
         if (primitive.kind === "circle") {
-          return <circle key={primitive.id} cx={center.x} cy={center.y} r={radius} />;
+          return (
+            <circle
+              key={primitive.id}
+              cx={center.x}
+              cy={center.y}
+              r={radius}
+              stroke={strokeColor}
+              strokeWidth={width}
+            />
+          );
         }
 
         const start = magnify({
@@ -130,6 +156,8 @@ function MagnifiedGeometry({
           <path
             key={primitive.id}
             d={`M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`}
+            stroke={strokeColor}
+            strokeWidth={width}
           />
         );
       })}
@@ -146,57 +174,94 @@ export function CadPrecisionOverlay({
   snapshot: CadDistanceMeasurementSnapshot | null;
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
   getSourceCanvas: () => HTMLCanvasElement | null;
-  getSnapPrimitives: (primitiveIds: readonly string[]) => CadSnapPrimitive[];
+  getSnapPrimitives: (
+    primitiveIds: readonly string[],
+    worldPoint?: CadSnapPoint | null
+  ) => CadSnapPrimitive[];
 }) {
   const lensCanvasRef = useRef<HTMLCanvasElement>(null);
-  const tracking = snapshot?.phase === "tracking-first" || snapshot?.phase === "tracking-second";
-  const pointer = tracking ? snapshot.pointerScreenPoint : null;
+  const rafIdRef = useRef<number | null>(null);
+  const tracking =
+    snapshot?.phase === "tracking-first" ||
+    snapshot?.phase === "tracking-second" ||
+    Boolean(
+      snapshot?.previewPoint &&
+      (snapshot?.phase === "awaiting-first" || snapshot?.phase === "awaiting-second")
+    );
   const target = tracking && snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
+  const pointer = tracking ? (snapshot?.pointerScreenPoint ?? target) : null;
   const snap = tracking ? snapshot?.previewSnap ?? null : null;
   const sourceCanvas = tracking ? getSourceCanvas() : null;
   const sourceWidth = sourceCanvas?.clientWidth || sourceCanvas?.getBoundingClientRect().width || 0;
   const sourceHeight = sourceCanvas?.clientHeight || sourceCanvas?.getBoundingClientRect().height || 0;
   const viewport = { width: sourceWidth, height: sourceHeight };
+  const diameter = resolveCadMagnifierDiameter(viewport);
+
   const placement = pointer && sourceWidth > 0 && sourceHeight > 0
-    ? resolveCadPrecisionLensPlacement(pointer, viewport)
+    ? resolveCadPrecisionLensPlacement(pointer, viewport, diameter)
     : null;
   const crop = target && sourceCanvas
-    ? resolveCadMagnifierCrop(target, viewport, { width: sourceCanvas.width, height: sourceCanvas.height })
+    ? resolveCadMagnifierCrop(
+        target,
+        viewport,
+        { width: sourceCanvas.width, height: sourceCanvas.height },
+        diameter
+      )
     : null;
   const lensTarget = crop
     ? { x: crop.targetX, y: crop.targetY }
-    : { x: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2, y: CAD_PRECISION_MAGNIFIER_DIAMETER_PX / 2 };
-  const primitives = snap ? getSnapPrimitives(snap.primitiveIds) : [];
+    : { x: diameter / 2, y: diameter / 2 };
+  const primitives = tracking && snapshot?.previewPoint
+    ? getSnapPrimitives(snap?.primitiveIds ?? [], snapshot.previewPoint)
+    : snap
+      ? getSnapPrimitives(snap.primitiveIds)
+      : [];
 
   useLayoutEffect(() => {
     const lens = lensCanvasRef.current;
     if (!tracking || !lens || !sourceCanvas || !crop) return;
 
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const width = Math.round(CAD_PRECISION_MAGNIFIER_DIAMETER_PX * dpr);
-    const height = Math.round(CAD_PRECISION_MAGNIFIER_DIAMETER_PX * dpr);
-    if (lens.width !== width) lens.width = width;
-    if (lens.height !== height) lens.height = height;
-    lens.style.filter = sourceCanvas.style.filter || "";
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
 
-    const context = lens.getContext("2d", { alpha: false });
-    if (!context) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      if (!lensCanvasRef.current || !sourceCanvas) return;
+      const lensEl = lensCanvasRef.current;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const width = Math.round(diameter * dpr);
+      const height = Math.round(diameter * dpr);
+      if (lensEl.width !== width) lensEl.width = width;
+      if (lensEl.height !== height) lensEl.height = height;
+      lensEl.style.filter = sourceCanvas.style.filter || "";
 
-    context.save();
-    context.setTransform(1, 0, 0, 1, 0, 0);
-    context.fillStyle = "#18232d";
-    context.fillRect(0, 0, width, height);
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-    try {
-      context.drawImage(sourceCanvas, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
-    } catch {
+      const context = lensEl.getContext("2d", { alpha: false });
+      if (!context) return;
+
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
       context.fillStyle = "#18232d";
       context.fillRect(0, 0, width, height);
-    } finally {
-      context.restore();
-    }
-  }, [crop, sourceCanvas, tracking]);
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      try {
+        context.drawImage(sourceCanvas, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, width, height);
+      } catch {
+        context.fillStyle = "#18232d";
+        context.fillRect(0, 0, width, height);
+      } finally {
+        context.restore();
+      }
+    });
+
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+  }, [crop, diameter, sourceCanvas, tracking]);
 
   if (!tracking || !pointer || !target) return null;
 
@@ -259,20 +324,21 @@ export function CadPrecisionOverlay({
           style={{
             left: placement.left,
             top: placement.top,
-            width: CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
-            height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX + 24,
+            width: diameter,
+            height: diameter + 24,
           }}
           data-testid="cad-precision-magnifier"
           data-cad-precision-magnifier="true"
-          data-cad-magnifier-fixed="top-right"
+          data-cad-magnifier-fixed={placement.side === "fixed-top-left" ? "top-left" : "top-right"}
           data-cad-magnifier-side={placement.side}
         >
-          <div className="flex h-6 items-center border-b border-border/70 bg-background/92 px-2 text-[9px] font-semibold text-foreground/85">
-            Yakınlaştırma
+          <div className="flex h-6 items-center justify-between border-b border-border/70 bg-background/92 px-2.5 text-[9px] font-semibold text-foreground/85">
+            <span>Yakınlaştırma</span>
+            <span className="font-mono text-[9px] text-muted-foreground">2.75x</span>
           </div>
           <div
             className="relative overflow-hidden bg-[#18232d]"
-            style={{ width: CAD_PRECISION_MAGNIFIER_DIAMETER_PX, height: CAD_PRECISION_MAGNIFIER_DIAMETER_PX }}
+            style={{ width: diameter, height: diameter }}
           >
             <canvas
               ref={lensCanvasRef}
@@ -286,6 +352,7 @@ export function CadPrecisionOverlay({
                   target={target}
                   lensTarget={lensTarget}
                   projectPoint={projectPoint}
+                  snappedIds={snap?.primitiveIds}
                 />
               ) : null}
               <Crosshair x={lensTarget.x} y={lensTarget.y} size={14} />

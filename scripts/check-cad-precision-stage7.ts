@@ -3,17 +3,32 @@ import { readFileSync } from "node:fs";
 
 import {
   CAD_PRECISION_EDGE_MARGIN_PX,
+  CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX,
   CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
   CAD_PRECISION_MAGNIFIER_ZOOM,
   CAD_SNAP_MODE_LABELS,
   cadPrecisionOffsetDistance,
   resolveCadMagnifierCrop,
+  resolveCadMagnifierDiameter,
   resolveCadPrecisionLensPlacement,
 } from "../src/lib/dokumantasyon/cad-upstream/precision-ux";
 
 assert.equal(CAD_PRECISION_MAGNIFIER_DIAMETER_PX, 152);
+assert.equal(CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX, 240);
 assert.equal(CAD_PRECISION_MAGNIFIER_ZOOM, 2.75);
 assert.equal(CAD_PRECISION_EDGE_MARGIN_PX, 12);
+
+// Responsive diameter runtime assertions
+const desktopViewport = { width: 1440, height: 900 };
+const desktopDiameter = resolveCadMagnifierDiameter(desktopViewport);
+assert.ok(desktopDiameter <= desktopViewport.width * 0.20 + 1, "Desktop lens <= %20 genişlik");
+assert.ok(desktopDiameter <= desktopViewport.height * 0.35 + 1, "Desktop lens <= %35 yükseklik");
+assert.ok(desktopDiameter <= 240, "Desktop lens <= 240 px");
+
+const mobileViewport = { width: 375, height: 667 };
+const mobileDiameter = resolveCadMagnifierDiameter(mobileViewport);
+assert.ok(mobileDiameter <= mobileViewport.width * 0.45, "Mobil lens taşamaz");
+
 assert.deepEqual(CAD_SNAP_MODE_LABELS, {
   endpoint: "Endpoint",
   midpoint: "Midpoint",

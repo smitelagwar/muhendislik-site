@@ -24,6 +24,11 @@ type CadRendererCanvasBridge = {
     };
   };
   snapCatalog?: CadSnapPrimitive[];
+  getNearbyPrimitives?: (
+    worldPoint: CadSnapPoint,
+    radiusPx?: number,
+    limit?: number
+  ) => CadSnapPrimitive[];
 };
 
 type CadRendererHost = HTMLElement & {
@@ -41,16 +46,18 @@ function midpoint(a: CadSnapPoint, b: CadSnapPoint): CadSnapPoint {
 }
 
 function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string | null {
-  if (!snapshot || snapshot.phase === "inactive" || snapshot.phase === "complete") return null;
+  if (!snapshot) return null;
   switch (snapshot.phase) {
     case "awaiting-first":
-      return "1. nokta için basılı tutun";
+      return "1. noktayı seçin";
     case "pressing-first":
       return "Basılı tutmaya devam edin";
     case "tracking-first":
-      return "Bırakın: 1. noktayı sabitle";
+      return "Bırakın: 1. noktayı ayarla";
     case "awaiting-second":
-      return "2. nokta için basılı tutun";
+      return snapshot.distance === null
+        ? "2. noktayı seçin"
+        : `Mesafe: ${formatDistance(snapshot.distance)} (2. noktayı seçin)`;
     case "pressing-second":
       return "Basılı tutmaya devam edin";
     case "tracking-second":
@@ -62,11 +69,21 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
   }
 }
 
-function resolveCadAdapter(host: HTMLElement): CadRendererCanvasBridge | null {
-  const directAdapter = (host as CadRendererHost).__cadAdapter;
-  const nestedAdapter = (host.querySelector("[aria-label$='CAD görünümü']") as CadRendererHost | null)
-    ?.__cadAdapter;
-  return directAdapter ?? nestedAdapter ?? null;
+function resolveCadAdapter(host?: HTMLElement | null): CadRendererCanvasBridge | null {
+  if (host) {
+    const directAdapter = (host as CadRendererHost).__cadAdapter;
+    if (directAdapter) return directAdapter;
+    const nestedAdapter = (host.querySelector("[aria-label$='CAD görünümü']") as CadRendererHost | null)
+      ?.__cadAdapter;
+    if (nestedAdapter) return nestedAdapter;
+  }
+  if (typeof document !== "undefined") {
+    const defaultHost = document.querySelector("[data-cad-upstream-host='true']") as CadRendererHost | null;
+    if (defaultHost?.__cadAdapter) return defaultHost.__cadAdapter;
+    const canvasHost = document.querySelector("[aria-label$='CAD görünümü']") as CadRendererHost | null;
+    if (canvasHost?.__cadAdapter) return canvasHost.__cadAdapter;
+  }
+  return null;
 }
 
 function resolveLiveCadCanvas(host: HTMLElement): HTMLCanvasElement | null {
@@ -136,14 +153,41 @@ export function CadDistanceOverlay({
     return host ? resolveLiveCadCanvas(host) : null;
   };
 
-  const getSnapPrimitives = (primitiveIds: readonly string[]): CadSnapPrimitive[] => {
-    if (primitiveIds.length === 0) return [];
+  const getSnapPrimitives = (
+    primitiveIds: readonly string[],
+    worldPoint?: CadSnapPoint | null
+  ): CadSnapPrimitive[] => {
     const host = anchorRef.current?.parentElement;
-    if (!host) return [];
-    const catalog = resolveCadAdapter(host)?.snapCatalog;
-    if (!Array.isArray(catalog) || catalog.length === 0) return [];
+    const adapter = resolveCadAdapter(host);
+    if (!adapter) return [];
+
     const wanted = new Set(primitiveIds);
-    return catalog.filter((primitive) => wanted.has(primitive.id)).slice(0, 8);
+    const catalog = adapter.snapCatalog;
+    const snapped = Array.isArray(catalog) && wanted.size > 0
+      ? catalog.filter((primitive) => wanted.has(primitive.id)).slice(0, 8)
+      : [];
+
+const CAD_NEARBY_SNAP_RADIUS_PX = 55;
+const CAD_NEARBY_SNAP_LIMIT = 36;
+
+    let nearby: CadSnapPrimitive[] = [];
+    if (worldPoint && typeof adapter.getNearbyPrimitives === "function") {
+      nearby = adapter.getNearbyPrimitives(worldPoint, CAD_NEARBY_SNAP_RADIUS_PX, CAD_NEARBY_SNAP_LIMIT);
+    } else if (Array.isArray(catalog) && catalog.length > 0 && worldPoint) {
+      // Proximity-filtered fallback: do not blindly slice arbitrary catalog entries
+      nearby = catalog
+        .filter((p) => {
+          const px = p.kind === "line" ? (p.a.x + p.b.x) / 2 : p.center.x;
+          const py = p.kind === "line" ? (p.a.y + p.b.y) / 2 : p.center.y;
+          return Math.abs(px - worldPoint.x) < 1000 && Math.abs(py - worldPoint.y) < 1000;
+        })
+        .slice(0, CAD_NEARBY_SNAP_LIMIT);
+    }
+
+    if (snapped.length === 0) return nearby.slice(0, 36);
+    const snappedIds = new Set(snapped.map((p) => p.id));
+    const merged = [...snapped, ...nearby.filter((p) => !snappedIds.has(p.id))];
+    return merged.slice(0, 36);
   };
 
   return (
