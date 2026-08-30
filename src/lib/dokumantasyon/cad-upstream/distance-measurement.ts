@@ -435,10 +435,24 @@ export class CadPressHoldDistanceController {
       this.clearHoldTimer();
       const screenPoint = this.eventScreenPoint(event);
       this.lastScreenPoint = screenPoint;
-      const resolved = this.machine.isTracking
-        ? this.runtime.resolvePoint(screenPoint, this.snapModes)
-        : null;
-      const transition = this.machine.pointerUp(event.pointerId, resolved);
+      const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+
+      if (!this.machine.isTracking && resolved) {
+        const transition = this.machine.commitPoint(resolved);
+        this.pointerStart = null;
+        this.lastScreenPoint = null;
+        this.runtime.setCameraInteractionEnabled(true);
+        this.emit(transition.snapshot);
+        if (transition.result) {
+          const onComplete = this.callbacks.onComplete;
+          this.callbacks = {};
+          onComplete?.(transition.result);
+        }
+        return;
+      }
+
+      const trackingResolved = this.machine.isTracking ? resolved : null;
+      const transition = this.machine.pointerUp(event.pointerId, trackingResolved);
       this.pointerStart = null;
       this.lastScreenPoint = null;
       this.runtime.setCameraInteractionEnabled(true);

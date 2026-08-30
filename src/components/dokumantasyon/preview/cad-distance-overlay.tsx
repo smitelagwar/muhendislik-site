@@ -49,17 +49,17 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
   if (!snapshot) return null;
   switch (snapshot.phase) {
     case "awaiting-first":
-      return "1. noktayı seçin";
+      return "1. noktayı seçin (Hassas seçim için basılı tutun | Esc: İptal)";
     case "pressing-first":
-      return "Basılı tutmaya devam edin";
+      return "Basılı tutmaya devam edin...";
     case "tracking-first":
       return "Bırakın: 1. noktayı ayarla";
     case "awaiting-second":
       return snapshot.distance === null
-        ? "2. noktayı seçin"
-        : `Mesafe: ${formatDistance(snapshot.distance)} (2. noktayı seçin)`;
+        ? "2. noktayı seçin (Esc: İptal)"
+        : `Mesafe: ${formatDistance(snapshot.distance)} (2. noktayı seçin | Esc: İptal)`;
     case "pressing-second":
-      return "Basılı tutmaya devam edin";
+      return "Basılı tutmaya devam edin...";
     case "tracking-second":
       return snapshot.distance === null
         ? "Bırakın: ölçümü tamamla"

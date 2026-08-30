@@ -196,9 +196,16 @@ export function CadPrecisionOverlay({
   const sourceHeight = sourceCanvas?.clientHeight || sourceCanvas?.getBoundingClientRect().height || 0;
   const viewport = { width: sourceWidth, height: sourceHeight };
   const diameter = resolveCadMagnifierDiameter(viewport);
+  const avoidRight =
+    typeof document !== "undefined" &&
+    Boolean(
+      document.querySelector('[data-cad-layer-panel-open="true"]') ||
+        document.querySelector('[data-cad-snap-panel-open="true"]') ||
+        document.querySelector('[data-cad-view-panel-open="true"]')
+    );
 
   const placement = pointer && sourceWidth > 0 && sourceHeight > 0
-    ? resolveCadPrecisionLensPlacement(pointer, viewport, diameter)
+    ? resolveCadPrecisionLensPlacement(pointer, viewport, diameter, avoidRight)
     : null;
   const crop = target && sourceCanvas
     ? resolveCadMagnifierCrop(

@@ -27,7 +27,7 @@ test.describe("CAD Preview V2 — Native Measurements & Left Quick Access Rail S
     await expect(layerBtn).toBeEnabled(); // Enabled in Stage 5
   });
 
-  test("Mesafe ölçümü: Native 'measuredistance' komutu tetiklenir, Escape ile temiz biçimde iptal edilir", async ({ page }) => {
+  test("Mesafe ölçümü: Precision distance controller tetiklenir, Escape ile temiz biçimde iptal edilir", async ({ page }) => {
     await signInAdmin(page);
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
 

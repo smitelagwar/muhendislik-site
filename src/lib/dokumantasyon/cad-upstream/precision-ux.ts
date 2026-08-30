@@ -61,13 +61,15 @@ export function resolveCadMagnifierDiameter(viewport: CadPrecisionViewportSize):
 export function resolveCadPrecisionLensPlacement(
   pointer: CadSnapPoint,
   viewport: CadPrecisionViewportSize,
-  diameter = CAD_PRECISION_MAGNIFIER_DIAMETER_PX
+  diameter = CAD_PRECISION_MAGNIFIER_DIAMETER_PX,
+  avoidRight = false
 ): CadPrecisionLensPlacement {
   const margin = CAD_PRECISION_EDGE_MARGIN_PX;
-  // Pointer sağ üstte büyütecin altındaysa hedefi kapatmamak için sol üste geçer
+  // Pointer sağ üstte büyütecin altındaysa veya sağ panel açıksa sol üste geçer
   const isUnderTopRight =
-    pointer.x >= viewport.width - diameter - margin * 2 &&
-    pointer.y <= diameter + margin * 2;
+    avoidRight ||
+    (pointer.x >= viewport.width - diameter - margin * 2 &&
+      pointer.y <= diameter + margin * 2);
 
   if (isUnderTopRight) {
     return {
