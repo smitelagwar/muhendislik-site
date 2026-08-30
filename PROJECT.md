@@ -128,6 +128,20 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - Uygulama durumu: `docs/ruhsat-on-fizibilite/IMPLEMENTATION_STATE.md`
 - Release denetimi: `docs/ruhsat-on-fizibilite/RELEASE_AUDIT.md`
 
+### 5. Dokümantasyon & CAD Preview V2 Modülü
+- Rotalar: `/dokumantasyon`, `/dokumantasyon/dosya/[fileId]`, `/p/[token]`
+- Mimari: MLightCAD doğrudan upstream motoru, LibreDWG WebWorker, akıllı fast-cache ve çok katmanlı fallback zinciri; full-viewport Document Studio entegrasyonu.
+- CAD Preview V2 Hardening (Aşama 1–8 Tamamlandı — RELEASE READY):
+  - **Aşama 1**: Test veri izolasyonu (`.data/dok_db.json` 1133 dosya sabit), SHA-256 fixture manifest doğrulaması.
+  - **Aşama 2**: 60 FPS RAF throttle responsive büyüteç; global canvas monkeypatch kaldırıldı.
+  - **Aşama 3**: Pan/zoom/fit salt-okunur UX sözleşmesi, `CadViewSettingsPanel` (renk modu, lineweight, arka plan) ve sıfır mutasyon.
+  - **Aşama 4**: Telemetry loading fazları, saniye sayacı, güvenli iptal butonu, bozuk dosya sınıflandırması ve fast-cache.
+  - **Aşama 5**: Hassas mesafe ölçümü (`CadPressHoldDistanceController`), 3-4-5 geometrisinde 5.000 fiziksel DOM oracle'ı, mobil tap/long-press.
+  - **Aşama 6**: Türkçe Gauss çokgen alan ölçümü (`CadAreaMeasurementController`), 12.000.000,00 oracle'ı, SVG kılavuz ve mobil "Bitir" butonu.
+  - **Aşama 7**: Mobil alt sheet katman çekmecesi, safe-area, 44×44 px touch target standardı, klavye focus trap & restore, screen reader etiketleri, bounded DOM (100'lük bloklar) ve CAD liste gezintisi.
+  - **Aşama 8**: Birleşik gerçek release kapısı (`npm run check:cad-real-user-release`), browser matrisi doğrulaması ve yaşayan mimari hafıza.
+- Release Kapısı: `npm run check:cad-real-user-release`
+
 ---
 
 ## Mühendislik Standartları (Domain)

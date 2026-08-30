@@ -1,6 +1,6 @@
 # Dokümantasyon bağlam haritası
 
-Son güncelleme: 24 Ağustos 2026
+Son güncelleme: 30 Ağustos 2026 (CAD Preview V2 Hardening — Aşama 1–8)
 
 Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrıntılı CAD geçmişi için `docs/cad-upstream-migration-stage*.md`, **güncel CAD çalışma mimarisi** için `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md` okunur.
 
@@ -18,7 +18,7 @@ Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrı
 Ana bileşenler `src/components/dokumantasyon/` ağacındadır. Özellikle:
 
 - `admin-shell.tsx`
-- `file-manager.tsx`
+- `file-manager.tsx` — Bounded DOM (100'lük bloklar + Daha Fazla Göster), CAD filtresi, arama ve geri dönüş bağlamı
 - `drive-sidebar.tsx`
 - `drive-details-drawer.tsx`
 - `studio/document-studio-shell.tsx`
@@ -43,7 +43,7 @@ DB/veri helper'ları ağırlıklı olarak `src/lib/dokumantasyon/` altındadır:
 
 Kalıcı storage yaşam döngüsü için `DOK_STORAGE_CONTRACT.md`, operasyonel notlar için `docs/DOKUMANTASYON_RUNBOOK.md` kullanılır.
 
-Upload intent/finalize akışı idempotent olacak şekilde tasarlanmıştır. Silme sırasında Blob/disk tarafı başarısızsa metadata kaybını önleyen korumalar vardır. Reconciliation için `scripts/reconcile-dokumantasyon-storage.mjs` bulunur.
+Upload intent/finalize akışı idempotent olacak şekilde tasarlanmıştır. Silme sırasında Blob/disk tarafı başarısızsa metadata kaybını önleyen korumalar vardır. Reconciliation için `scripts/reconcile-dokumantasyon-storage.mjs` bulunur. Test veri izolasyonu `DOK_LOCAL_DATA_DIR` ve run-level Playwright izolasyonu ile korunur (kullanıcı `.data/dok_db.json` deposu 1133 dosyada sabittir).
 
 ## Metadata / collection davranışı
 
@@ -96,12 +96,18 @@ DWF ayrı `preview/dwf-local-viewer.tsx` yolundadır.
 
 - `preview/cad-runtime-orchestrator.tsx`
 - `preview/cad-upstream-viewer.tsx`
+- `preview/cad-distance-overlay.tsx` — Mesafe ölçümü SVG overlay ve dinamik rozet
+- `preview/cad-area-overlay.tsx` — Çokgen alan ölçümü SVG overlay, kılavuz ve 'Bitir' butonu
+- `preview/cad-layer-panel.tsx` — Mobil alt sheet, safe area, focus trap & restore, 44x44 touch target
+- `preview/cad-view-settings-panel.tsx` — Renk modu, lineweight ve 3 arka plan rengi
+- `src/lib/dokumantasyon/cad-upstream/adapter.ts` — Upstream adapter köprüsü
+- `src/lib/dokumantasyon/cad-upstream/distance-measurement.ts` — Mesafe ölçüm state machine & controller
+- `src/lib/dokumantasyon/cad-upstream/area-measurement.ts` — Gauss alan, çevre, centroid & controller
 - `preview/cad-viewer.tsx` — primary değil, halen kullanılan fallback/cached-DXF viewer
 - `preview/dwg-legacy-conversion-fallback.tsx`
 - `preview/dwg-dxf-conversion-worker.ts`
 - `preview/dxf-viewer-worker.ts`
 - `preview/aps-only-dwg-viewer.tsx`
-- `src/lib/dokumantasyon/cad-upstream/adapter.ts`
 
 Eski `aps-dwg-viewer.tsx` migration sırasında kaldırılmıştır.
 
@@ -109,7 +115,7 @@ Ayrıntılı güncel mimari: `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md`.
 
 ## CAD upstream snapshot
 
-24 Ağustos 2026 production snapshot'ında doğrudan paketler:
+30 Ağustos 2026 production snapshot'ında doğrudan paketler:
 
 - `@mlightcad/cad-simple-viewer` `1.6.2`
 - `@mlightcad/data-model` `1.14.2`
