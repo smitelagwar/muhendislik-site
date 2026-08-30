@@ -82,16 +82,6 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 pt-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p>© 2026 İnşa Blog. Tüm hakları saklıdır.</p>
-            <p className="mt-1 text-slate-400">Tasarım ve içerik, mühendislik ekiplerinin hızlı ve kontrollü karar alması için optimize edilmiştir.</p>
-          </div>
-
-          <div className="max-w-xl rounded-md border border-white/10 bg-white/5 p-3 text-[11px] leading-relaxed text-slate-400">
-            <span className="font-semibold text-slate-200">Uyarı:</span> Buradaki araçlar ve içerikler ön boyutlandırma ve referans amaçlıdır. Nihai mühendislik kararı, projeyi yürüten uzman ekip tarafından verilmelidir.
-          </div>
-        </div>
       </div>
     </footer>
   );
