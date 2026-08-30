@@ -12,7 +12,9 @@ test.describe("CAD Preview V2 — Stage 5/8 Mesafe Ölçümü: Hassas, Doğrulan
 
   test("Desktop: İki tıklama ile mesafe ölçümü tamamlanır, 3-4-5 fixture sonucu UI overlay'inde 5.000 / 5000 olarak doğrulanır", async ({
     page,
+    isMobile,
   }) => {
+    test.skip(Boolean(isMobile), "Masaüstü fare ve hover testi yalnızca masaüstü tarayıcılarda çalışır");
     await signInAdmin(page);
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
 

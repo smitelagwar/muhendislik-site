@@ -163,11 +163,11 @@ export function CadReviewToolbar({
     );
   }
 
-  // Desktop Floating Toolbar (Left Rail)
+  // Desktop Floating Toolbar (Right Rail — avoids conflict with cad-left-quick-rail)
   return (
     <nav
       aria-label="CAD İnceleme Araç Çubuğu"
-      className="absolute left-3 top-3 z-30 flex flex-col gap-2 rounded-xl border border-border/80 bg-background/90 p-1.5 shadow-xl backdrop-blur"
+      className="absolute right-3 top-3 z-30 flex flex-col gap-2 rounded-xl border border-border/80 bg-background/90 p-1.5 shadow-xl backdrop-blur"
       data-cad-desktop-rail="true"
     >
       {/* Group 1: Navigation & View */}

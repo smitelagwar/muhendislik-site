@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
@@ -50,6 +50,17 @@ import {
 import { CadLayerPanel } from "./cad-layer-panel";
 import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
 import { CadViewSettingsPanel } from "./cad-view-settings-panel";
+
+// ── CAD Review V1 ──────────────────────────────────────────────────────────────
+import { CadReviewToolbar } from "./cad-review-toolbar";
+import { CadReviewSidePanel, type CadSidePanelTab } from "./cad-review-side-panel";
+import { CadReviewOverlay } from "./cad-review-overlay";
+import { CadExportDialog } from "./cad-export-dialog";
+import { CadReviewStore, type CadReviewTool } from "@/lib/dokumantasyon/cad-review/store";
+import { attachCadReviewKeyboardShortcuts } from "./cad-review-shortcuts";
+import type { CadReviewDocument, CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
+import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
+// ──────────────────────────────────────────────────────────────────────────────
 
 export interface DokCadUpstreamViewerProps {
   accessUrl: string;
@@ -258,7 +269,23 @@ export function DokCadUpstreamViewer({
   >([]);
   const [, setViewRevision] = useState(0);
 
+  // ── CAD Review V1 State ────────────────────────────────────────────────────
+  const reviewEnabled = isCadReviewEnabled();
+  const reviewStoreRef = useRef<CadReviewStore | null>(null);
+  const [reviewItems, setReviewItems] = useState<readonly CadReviewItem[]>([]);
+  const [reviewTool, setReviewTool] = useState<CadReviewTool>("select");
+  const [reviewCanUndo, setReviewCanUndo] = useState(false);
+  const [reviewCanRedo, setReviewCanRedo] = useState(false);
+  const [activePanelTab, setActivePanelTab] = useState<CadSidePanelTab | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("");
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [reviewDocument, setReviewDocument] = useState<import("@/lib/dokumantasyon/cad-review/schema").CadReviewDocument | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
+
 
   useEffect(() => {
     if (state !== "loading") return;
@@ -270,6 +297,104 @@ export function DokCadUpstreamViewer({
       setElapsedSeconds(0);
     };
   }, [state]);
+
+  // ── CAD Review V1: Store initialization when viewer becomes ready ──────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready") return;
+    if (reviewStoreRef.current) return; // already initialized
+
+    const emptyDoc: CadReviewDocument = {
+      schemaVersion: 1,
+      fileId,
+      sourceVersionKey: `${fileId}:${accessUrl}`,
+      sourceSha256: "0".repeat(64),
+      revision: 0,
+      items: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const store = new CadReviewStore(emptyDoc);
+    reviewStoreRef.current = store;
+
+    // Try to load persisted review from API
+    fetch(`/api/dokumantasyon/files/${fileId}/review`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.items?.length && reviewStoreRef.current === store) {
+          // Re-initialize with loaded data
+          const loadedDoc: CadReviewDocument = {
+            ...emptyDoc,
+            items: data.items as CadReviewDocument["items"],
+            revision: data.revision ?? 0,
+          };
+          reviewStoreRef.current = new CadReviewStore(loadedDoc);
+          setReviewItems(reviewStoreRef.current.getItems());
+          setReviewCanUndo(reviewStoreRef.current.canUndo());
+          setReviewCanRedo(reviewStoreRef.current.canRedo());
+        }
+      })
+      .catch(() => {/* silently ignore – server may not have a review yet */});
+
+    const unsubscribe = store.subscribe(() => {
+      if (reviewStoreRef.current) {
+        setReviewItems([...reviewStoreRef.current.getItems()]);
+        setReviewCanUndo(reviewStoreRef.current.canUndo());
+        setReviewCanRedo(reviewStoreRef.current.canRedo());
+        setReviewDocument({ ...reviewStoreRef.current.getDocument() });
+      }
+    });
+    return () => unsubscribe();
+  }, [reviewEnabled, state, fileId, accessUrl]);
+
+  // ── CAD Review V1: Keyboard shortcuts ──────────────────────────────────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready") return;
+    const detach = attachCadReviewKeyboardShortcuts({
+      onEscape: () => {
+        setActivePanelTab(null);
+        setReviewTool("select");
+        reviewStoreRef.current?.setActiveTool("select");
+        // Also forward Escape to the native CAD adapter so active
+        // distance/area measurements still cancel cleanly (non-blocking).
+        void adapterRef.current?.cancelActiveCommand().catch(() => {});
+        setActiveTool(null);
+        setDistanceSnapshot(null);
+        setAreaSnapshot(null);
+      },
+      onUndo: () => reviewStoreRef.current?.undo(),
+      onRedo: () => reviewStoreRef.current?.redo(),
+      onSearch: () => setActivePanelTab((prev) => (prev === "search" ? null : "search")),
+      onDelete: () => {
+        const store = reviewStoreRef.current;
+        if (!store) return;
+        const selected = [...store.getSession().selectedItemIds];
+        selected.forEach((id) => store.removeItem(id));
+      },
+    });
+    return detach;
+  }, [reviewEnabled, state]);
+
+
+  // ── CAD Review V1: Container resize observer for SVG overlay sizing ─────────
+  useEffect(() => {
+    if (!reviewEnabled) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [reviewEnabled]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -718,6 +843,25 @@ export function DokCadUpstreamViewer({
     });
   };
 
+  // ── CAD Review V1 Handlers ─────────────────────────────────────────────────
+  const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
+    setReviewTool(tool);
+    reviewStoreRef.current?.setActiveTool(tool);
+    // Cancel any active MLightCAD distance/area command when switching
+    if (tool !== "distance" && tool !== "area") {
+      void adapterRef.current?.cancelActiveCommand();
+      setActiveTool(null);
+    }
+  }, []);
+
+  const handleReviewUndo = useCallback(() => reviewStoreRef.current?.undo(), []);
+  const handleReviewRedo = useCallback(() => reviewStoreRef.current?.redo(), []);
+
+  const handleTogglePanelTab = useCallback((tab: CadSidePanelTab) => {
+    setActivePanelTab((prev) => (prev === tab ? null : tab));
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const toolbarTarget =
     state === "ready" && typeof document !== "undefined"
       ? document.getElementById("cad-studio-toolbar-slot")
@@ -740,6 +884,7 @@ export function DokCadUpstreamViewer({
 
   return (
     <section
+      ref={sectionRef}
       className="relative flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-background"
       style={{ backgroundColor: CAD_BACKGROUND_COLORS[backgroundColor].hex }}
       data-cad-upstream-host="true"
@@ -752,6 +897,7 @@ export function DokCadUpstreamViewer({
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
       data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
+
       data-cad-area-phase={areaSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
@@ -784,6 +930,87 @@ export function DokCadUpstreamViewer({
           onFinish={() => adapterRef.current?.finishAreaMeasurement()}
         />
       ) : null}
+
+      {/* ── CAD Review V1: SVG Item Overlay ─────────────────────────────── */}
+      {reviewEnabled && state === "ready" && reviewItems.length > 0 ? (
+        <CadReviewOverlay
+          items={reviewItems}
+          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+          containerWidth={containerSize.width}
+          containerHeight={containerSize.height}
+          onClickItem={(id) => reviewStoreRef.current?.setSelectedItems([id])}
+        />
+      ) : null}
+
+      {/* ── CAD Review V1: Unified Toolbar (replaces left quick-rail when review enabled) */}
+      {reviewEnabled && state === "ready" ? (
+        <CadReviewToolbar
+          activeTool={reviewTool}
+          onSelectTool={handleSelectReviewTool}
+          activePanelTab={activePanelTab}
+          onTogglePanelTab={handleTogglePanelTab}
+          canUndo={reviewCanUndo}
+          canRedo={reviewCanRedo}
+          onUndo={handleReviewUndo}
+          onRedo={handleReviewRedo}
+          onFitView={() => adapterRef.current?.zoomToFit()}
+          displayMode={displayMode}
+          onToggleDisplayMode={() => {
+            const next = displayMode === "source" ? "monochrome" : "source";
+            selectDisplayMode(next);
+          }}
+        />
+      ) : null}
+
+      {/* ── CAD Review V1: Right Side Panel ─────────────────────────────── */}
+      {reviewEnabled && state === "ready" && activePanelTab ? (
+        <CadReviewSidePanel
+          activeTab={activePanelTab}
+          onSelectTab={(tab) => setActivePanelTab(tab)}
+          onClose={() => setActivePanelTab(null)}
+          searchQuery={reviewSearchQuery}
+          onSearchQueryChange={setReviewSearchQuery}
+          measurements={reviewItems
+            .filter((item) => item.type === "distance" || item.type === "area" || item.type === "chain_distance")
+            .map((item) => ({
+              id: item.id,
+              type: item.type,
+              title: item.type === "distance" ? "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
+              formattedValue:
+                item.type === "distance"
+                  ? `${(item as { measuredLength: number }).measuredLength.toFixed(2)}`
+                  : item.type === "area"
+                  ? `${(item as { measuredArea: number }).measuredArea.toFixed(2)}`
+                  : `${(item as { totalDistance: number }).totalDistance.toFixed(2)}`,
+            }))}
+          onDeleteMeasurement={(id) => reviewStoreRef.current?.removeItem(id)}
+          comments={reviewItems.filter(
+            (item) => item.type === "comment_pin" || item.type === "text" || item.type === "callout"
+          ) as CadReviewItem[]}
+          onStatusChange={(id, status) => reviewStoreRef.current?.updateItem(id, { status })}
+          onDeleteComment={(id) => reviewStoreRef.current?.removeItem(id)}
+          layers={layers.map((l) => ({ name: l.name, isVisible: l.visible }))}
+          onToggleLayer={(name) => adapterRef.current?.setLayerVisible(name, !layers.find((l) => l.name === name)?.visible)}
+        />
+      ) : null}
+
+      {/* ── CAD Review V1: Export Dialog ─────────────────────────────────── */}
+      {reviewEnabled && exportDialogOpen && reviewDocument ? (
+        <CadExportDialog
+          open={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          document={reviewDocument}
+          sourceFileName={displayName}
+          originalFileUrl={accessUrl}
+          getCanvasElement={() => {
+            const vp = viewportRef.current;
+            if (!vp) return null;
+            return vp.querySelector("canvas") ?? null;
+          }}
+        />
+      ) : null}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+
 
       {displayControls && toolbarTarget
         ? createPortal(displayControls, toolbarTarget)
