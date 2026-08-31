@@ -138,7 +138,7 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
   },
   "beton-metraj-hesabi": {
     standardNorm: "Şantiye Metrajı",
-    calcType: "Zayiatlı Harç Hacmi",
+    calcType: "Hacim & Mikser Seferi",
     accentColor: "#a855f7",
   },
   "hafriyat-metraj-hesabi": {

@@ -289,9 +289,9 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "beton-metraj-hesabi",
-    name: "Şantiye Beton & Harç Metrajı",
+    name: "Beton Metrajı & Mikser Seferi",
     href: "/kategori/araclar/beton-metraj-hesabi",
-    description: "Eleman geometrisi ve zayiat katsayısından pompalı hazır beton metrajını çıkarın.",
+    description: "Temel, kolon, kiriş ve döşeme elemanlarından hazır beton hacmini ve transmikser sefer sayısını hesaplayın.",
     iconKey: "quantity",
     discipline: "Şantiye",
     featured: false,
