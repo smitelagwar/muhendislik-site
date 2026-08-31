@@ -41,16 +41,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import type {
-  CadActiveMarkupStyle,
-  CadMeasurementUnitSettings,
-  CadReviewTool,
+import type { CadReviewItemStyle } from "@/lib/dokumantasyon/cad-review/schema";
+import {
+  isCadMarkupReviewItem,
+  type CadActiveMarkupStyle,
+  type CadMeasurementUnitSettings,
+  type CadReviewTool,
 } from "@/lib/dokumantasyon/cad-review/store";
+import { getCurrentCadReviewStore } from "@/lib/dokumantasyon/cad-review/active-store";
 import type {
   CadBackgroundColorOption,
   CadUpstreamDisplayMode,
 } from "@/lib/dokumantasyon/cad-upstream/adapter";
 import type { CadSidePanelTab } from "./cad-review-side-panel";
+import { CadInlineReviewEditorHost } from "./cad-inline-review-editor-bridge";
 import {
   CadAreaIcon,
   CadColorControl,
@@ -125,6 +129,30 @@ function BackgroundSwatch({ value }: { value: CadBackgroundColorOption }) {
   return <span className="size-3 rounded-full border border-foreground/20" style={{ backgroundColor: color }} />;
 }
 
+function persistableStylePatch(patch: Partial<CadActiveMarkupStyle>): Partial<CadReviewItemStyle> {
+  const style: Partial<CadReviewItemStyle> = {};
+  if (patch.color !== undefined) style.color = patch.color;
+  if (patch.strokeWidth !== undefined) style.strokeWidth = patch.strokeWidth;
+  if (patch.lineDash !== undefined) style.lineDash = patch.lineDash;
+  if (patch.fillColor !== undefined) style.fillColor = patch.fillColor;
+  if (patch.fillOpacity !== undefined) style.fillOpacity = patch.fillOpacity;
+  if (patch.opacity !== undefined) style.opacity = patch.opacity;
+  if (patch.fontSize !== undefined) style.fontSize = patch.fontSize;
+  return style;
+}
+
+function hasPersistableStylePatch(patch: Partial<CadReviewItemStyle>): boolean {
+  return Object.keys(patch).length > 0;
+}
+
+function hasSessionOnlyPatch(patch: Partial<CadActiveMarkupStyle>): boolean {
+  return (
+    patch.eraserRadiusPx !== undefined ||
+    patch.calloutLeaderDirection !== undefined ||
+    patch.textRotationDeg !== undefined
+  );
+}
+
 export function CadStudioRibbon({
   activeTool,
   onSelectTool,
@@ -185,17 +213,64 @@ export function CadStudioRibbon({
   >("shape_rect");
   const [clearMarkupConfirmOpen, setClearMarkupConfirmOpen] = useState(false);
 
+  const storeAtRender = getCurrentCadReviewStore();
+  const selectedMarkupItems =
+    storeAtRender?.getSelectedItems().filter(isCadMarkupReviewItem) ?? [];
+  const selectedMarkupItem = selectedMarkupItems[0];
+  const effectiveMarkupStyle: CadActiveMarkupStyle = selectedMarkupItem
+    ? {
+        ...markupStyle,
+        ...selectedMarkupItem.style,
+        textRotationDeg:
+          selectedMarkupItem.type === "text"
+            ? selectedMarkupItem.rotationDeg
+            : markupStyle.textRotationDeg,
+      }
+    : markupStyle;
+  const selectionMode = isEditingSelection || selectedMarkupItems.length > 0;
+
   const isShapeActive =
     activeTool === "shape_rect" || activeTool === "shape_circle" || activeTool === "shape_cloud";
-  const updateMarkup = (patch: Partial<CadActiveMarkupStyle>) => onUpdateMarkupStyle?.(patch);
+
+  const updateMarkup = (patch: Partial<CadActiveMarkupStyle>) => {
+    const liveStore = getCurrentCadReviewStore();
+    const liveSelection = liveStore?.getSelectedItems().filter(isCadMarkupReviewItem) ?? [];
+    const stylePatch = persistableStylePatch(patch);
+
+    if (liveStore && liveSelection.length > 0 && hasPersistableStylePatch(stylePatch)) {
+      liveStore.updateItemsStyle(liveSelection.map((item) => item.id), stylePatch);
+    }
+
+    if (liveStore && liveSelection.length > 0 && patch.textRotationDeg !== undefined) {
+      for (const item of liveSelection) {
+        if (item.type === "text") {
+          liveStore.updateItem(item.id, { rotationDeg: patch.textRotationDeg } as never);
+        }
+      }
+    }
+
+    if (liveSelection.length === 0 || hasSessionOnlyPatch(patch)) {
+      onUpdateMarkupStyle?.(patch);
+    }
+  };
+
   const updateMeasurement = (patch: Partial<CadMeasurementUnitSettings>) =>
     onUpdateMeasurementUnitSettings?.(patch);
+
+  const clearAllMarkup = () => {
+    if (onClearAllMarkup) {
+      onClearAllMarkup();
+      return;
+    }
+    getCurrentCadReviewStore()?.clearMarkupItems();
+  };
 
   return (
     <>
       <div
         data-testid="cad-studio-ribbon"
         data-cad-studio-ribbon="true"
+        data-cad-selection-style-mode={selectionMode ? "true" : "false"}
         className="relative z-20 flex h-14 w-full shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-border/80 bg-card/95 px-2 text-foreground shadow-sm backdrop-blur-xl scrollbar-none sm:px-3"
       >
         <div className="flex min-w-max items-center gap-1.5" data-testid="cad-left-quick-rail">
@@ -209,9 +284,7 @@ export function CadStudioRibbon({
             <CadRibbonButton icon={<Eye />} label="Gerçek" active={displayMode === "source"} onClick={() => onSelectDisplayMode("source")} tooltip="Gerçek Renkler" data-testid="cad-display-source" />
             <CadRibbonButton label="S/B" active={displayMode === "monochrome"} onClick={() => onSelectDisplayMode("monochrome")} tooltip="Siyah-Beyaz Modu" data-testid="cad-display-monochrome" />
             <CadRibbonButton icon={<CadLineWeightIcon />} iconOnly active={lineWeightVisible} onClick={onToggleLineWeight} tooltip="Kaynak Çizgi Kalınlıkları" data-testid="cad-display-lineweight" />
-            <CadToolPopover
-              trigger={<CadRibbonButton icon={<BackgroundSwatch value={backgroundColor} />} iconOnly tooltip="Arka Plan Rengi" data-testid="cad-tool-view-settings" />}
-            >
+            <CadToolPopover trigger={<CadRibbonButton icon={<BackgroundSwatch value={backgroundColor} />} iconOnly tooltip="Arka Plan Rengi" data-testid="cad-tool-view-settings" />}>
               <DropdownMenuLabel className="text-xs text-muted-foreground">Arka Plan Rengi</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => onSelectBackgroundColor("autocad")} data-testid="cad-bg-autocad"><BackgroundSwatch value="autocad" /> AutoCAD Koyu</DropdownMenuItem>
@@ -224,10 +297,7 @@ export function CadStudioRibbon({
             <CadRibbonButton icon={<Ruler />} label="Mesafe" active={activeTool === "distance"} onClick={onStartDistance} tooltip="Mesafe" shortcut="İki nokta arası ölç · T" indicatorColor={measurementUnitSettings.color} data-testid="cad-tool-distance" />
             {onStartChainDistance ? <CadRibbonButton icon={<Split />} iconOnly active={activeTool === "chain_distance"} onClick={onStartChainDistance} tooltip="Zincir Mesafe" indicatorColor={measurementUnitSettings.color} data-testid="cad-tool-chain-distance" /> : null}
             <CadRibbonButton icon={<CadAreaIcon />} label="Alan" active={activeTool === "area"} onClick={onStartArea} tooltip="Alan" shortcut="Çokgen alanı ölç · A" indicatorColor={measurementUnitSettings.color} data-testid="cad-tool-area" />
-            <CadToolPopover
-              className="w-64"
-              trigger={<CadRibbonButton label={`${measurementUnitSettings.unit} ${measurementUnitSettings.precision === 0 ? "0" : `0.${"0".repeat(measurementUnitSettings.precision)}`}`} tooltip="Ölçüm Birimi ve Hassasiyet" indicatorColor={measurementUnitSettings.color} data-testid="cad-tool-measure-settings" />}
-            >
+            <CadToolPopover className="w-64" trigger={<CadRibbonButton label={`${measurementUnitSettings.unit} ${measurementUnitSettings.precision === 0 ? "0" : `0.${"0".repeat(measurementUnitSettings.precision)}`}`} tooltip="Ölçüm Birimi ve Hassasiyet" indicatorColor={measurementUnitSettings.color} data-testid="cad-tool-measure-settings" />}>
               <CadUnitControl
                 lengthUnit={measurementUnitSettings.unit}
                 precision={measurementUnitSettings.precision}
@@ -245,22 +315,20 @@ export function CadStudioRibbon({
           </CadRibbonGroup>
 
           <CadRibbonGroup label="İşaretleme">
-            <CadSplitToolButton label="Pin" icon={<Pin />} active={activeTool === "comment_pin"} onActivate={() => onSelectTool("comment_pin")} menu={<CadPinStyleMenu style={markupStyle} onChange={updateMarkup} selectionMode={isEditingSelection} />} tooltip="Yorum Pini" indicatorColor={markupStyle.color} testId="cad-tool-pin" menuTestId="cad-tool-pin-style-trigger" />
-            <CadSplitToolButton label="Kalem" icon={<Pencil />} active={activeTool === "stroke"} onActivate={() => onSelectTool("stroke")} menu={<CadMarkupStyleMenu style={markupStyle} onChange={updateMarkup} selectionMode={isEditingSelection} testIdPrefix="cad-pencil" />} tooltip="Kalem" shortcut="Serbest işaretleme · P" indicatorColor={markupStyle.color} testId="cad-tool-stroke" menuTestId="cad-tool-stroke-style-trigger" />
+            <CadSplitToolButton label="Pin" icon={<Pin />} active={activeTool === "comment_pin"} onActivate={() => onSelectTool("comment_pin")} menu={<CadPinStyleMenu style={effectiveMarkupStyle} onChange={updateMarkup} selectionMode={selectionMode} />} tooltip="Yorum Pini" indicatorColor={effectiveMarkupStyle.color} testId="cad-tool-pin" menuTestId="cad-tool-pin-style-trigger" />
+            <CadSplitToolButton label="Kalem" icon={<Pencil />} active={activeTool === "stroke"} onActivate={() => onSelectTool("stroke")} menu={<CadMarkupStyleMenu style={effectiveMarkupStyle} onChange={updateMarkup} selectionMode={selectionMode} testIdPrefix="cad-pencil" />} tooltip="Kalem" shortcut="Serbest işaretleme · P" indicatorColor={effectiveMarkupStyle.color} testId="cad-tool-stroke" menuTestId="cad-tool-stroke-style-trigger" />
             <CadSplitToolButton
               label="Şekil"
               icon={<ShapeIcon kind={selectedShapeKind} />}
               active={isShapeActive}
               onActivate={() => onSelectTool(selectedShapeKind)}
-              indicatorColor={markupStyle.color}
+              indicatorColor={effectiveMarkupStyle.color}
               testId="cad-tool-shapes"
               menuTestId="cad-tool-shapes-dropdown"
               menu={
                 <div className="w-64 space-y-3">
                   <div className="grid grid-cols-3 gap-1">
-                    {([[
-                      "shape_rect", "Dikdörtgen", <Square key="rect" />,
-                    ], ["shape_circle", "Daire", <Circle key="circle" />], ["shape_cloud", "Bulut", <Cloud key="cloud" />]] as const).map(([kind, label, icon]) => (
+                    {([["shape_rect", "Dikdörtgen", <Square key="rect" />], ["shape_circle", "Daire", <Circle key="circle" />], ["shape_cloud", "Bulut", <Cloud key="cloud" />]] as const).map(([kind, label, icon]) => (
                       <button
                         key={kind}
                         type="button"
@@ -272,18 +340,18 @@ export function CadStudioRibbon({
                     ))}
                   </div>
                   <DropdownMenuSeparator />
-                  <CadShapeStyleMenu style={markupStyle} onChange={updateMarkup} selectionMode={isEditingSelection} />
+                  <CadShapeStyleMenu style={effectiveMarkupStyle} onChange={updateMarkup} selectionMode={selectionMode} />
                 </div>
               }
             />
-            <CadSplitToolButton label="Callout" icon={<MessageSquare />} active={activeTool === "callout"} onActivate={() => onSelectTool("callout")} menu={<CadCalloutStyleMenu style={markupStyle} onChange={updateMarkup} selectionMode={isEditingSelection} />} indicatorColor={markupStyle.color} testId="cad-tool-callout" menuTestId="cad-tool-callout-style-trigger" />
-            <CadSplitToolButton label="Metin" icon={<Type />} active={activeTool === "text"} onActivate={() => onSelectTool("text")} menu={<CadTextStyleMenu style={markupStyle} onChange={updateMarkup} selectionMode={isEditingSelection} />} indicatorColor={markupStyle.color} testId="cad-tool-text" menuTestId="cad-tool-text-style-trigger" />
+            <CadSplitToolButton label="Callout" icon={<MessageSquare />} active={activeTool === "callout"} onActivate={() => onSelectTool("callout")} menu={<CadCalloutStyleMenu style={effectiveMarkupStyle} onChange={updateMarkup} selectionMode={selectionMode} />} indicatorColor={effectiveMarkupStyle.color} testId="cad-tool-callout" menuTestId="cad-tool-callout-style-trigger" />
+            <CadSplitToolButton label="Metin" icon={<Type />} active={activeTool === "text"} onActivate={() => onSelectTool("text")} menu={<CadTextStyleMenu style={effectiveMarkupStyle} onChange={updateMarkup} selectionMode={selectionMode} />} indicatorColor={effectiveMarkupStyle.color} testId="cad-tool-text" menuTestId="cad-tool-text-style-trigger" />
             <CadSplitToolButton
               label="Silgi"
               icon={<Eraser />}
               active={activeTool === "eraser"}
               onActivate={() => onSelectTool("eraser")}
-              menu={<CadEraserMenu radius={markupStyle.eraserRadiusPx ?? 16} onRadiusChange={(eraserRadiusPx) => updateMarkup({ eraserRadiusPx })} canUndo={canUndo} onUndo={onUndo} onRequestClear={onClearAllMarkup ? () => setClearMarkupConfirmOpen(true) : undefined} />}
+              menu={<CadEraserMenu radius={effectiveMarkupStyle.eraserRadiusPx ?? 16} onRadiusChange={(eraserRadiusPx) => updateMarkup({ eraserRadiusPx })} canUndo={canUndo} onUndo={onUndo} onRequestClear={() => setClearMarkupConfirmOpen(true)} />}
               tooltip="İşaret Silgisi"
               testId="cad-tool-eraser"
               menuTestId="cad-tool-eraser-style-trigger"
@@ -317,6 +385,8 @@ export function CadStudioRibbon({
         </div>
       </div>
 
+      <CadInlineReviewEditorHost style={effectiveMarkupStyle} onStyleChange={updateMarkup} />
+
       <Dialog open={clearMarkupConfirmOpen} onOpenChange={setClearMarkupConfirmOpen}>
         <DialogContent className="max-w-md" data-testid="cad-clear-markup-dialog">
           <DialogHeader>
@@ -331,7 +401,7 @@ export function CadStudioRibbon({
               type="button"
               variant="destructive"
               data-testid="cad-clear-markup-confirm"
-              onClick={() => { onClearAllMarkup?.(); setClearMarkupConfirmOpen(false); }}
+              onClick={() => { clearAllMarkup(); setClearMarkupConfirmOpen(false); }}
             >
               İşaretlemeleri Temizle
             </Button>

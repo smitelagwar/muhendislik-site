@@ -6,25 +6,13 @@ import type {
 } from "./store";
 import type { CadMarkupFacade } from "./markup-facade";
 import { findHitReviewItem } from "./hit-test";
-
-export type CadInlineTextKind = "text" | "callout";
+import { clearCurrentCadReviewStore, setCurrentCadReviewStore } from "./active-store";
+import { requestCadInlineReviewEditor } from "@/components/dokumantasyon/preview/cad-inline-review-editor-bridge";
 
 export interface CadMarkupRuntime {
   screenToWorld: (screenPoint: { x: number; y: number }) => CadPoint2d | null;
   worldToScreen: (worldPoint: CadPoint2d) => { x: number; y: number } | null;
   setCameraInteractionEnabled?: (enabled: boolean) => void;
-  requestCommentInput?: (
-    worldPoint: CadPoint2d
-  ) => Promise<{
-    title?: string;
-    comment: string;
-    author?: string;
-    status?: CadReviewItemStatus;
-  } | null>;
-  requestTextInput?: (
-    worldPoint: CadPoint2d,
-    context: { kind: CadInlineTextKind }
-  ) => Promise<{ text: string; rotationDeg?: number } | null>;
 }
 
 function constrainCalloutAnchor(
@@ -68,6 +56,7 @@ export class CadMarkupController {
     private readonly facade: CadMarkupFacade,
     private readonly runtime: CadMarkupRuntime
   ) {
+    setCurrentCadReviewStore(store);
     this.attach();
   }
 
@@ -88,6 +77,7 @@ export class CadMarkupController {
     if (this.destroyed) return;
     this.cancel();
     this.destroyed = true;
+    clearCurrentCadReviewStore(this.store);
     this.detach();
   }
 
@@ -109,6 +99,24 @@ export class CadMarkupController {
       fillOpacity: this.currentStyle.fillOpacity,
       fontSize: this.currentStyle.fontSize,
     };
+  }
+
+  private async requestEditor(
+    kind: "text" | "callout" | "comment_pin",
+    worldPoint: CadPoint2d
+  ) {
+    const projected = this.runtime.worldToScreen(worldPoint);
+    if (!projected) return null;
+    const rect = this.host.getBoundingClientRect();
+    this.runtime.setCameraInteractionEnabled?.(false);
+    try {
+      return await requestCadInlineReviewEditor(kind, {
+        x: rect.left + projected.x,
+        y: rect.top + projected.y,
+      });
+    } finally {
+      this.runtime.setCameraInteractionEnabled?.(true);
+    }
   }
 
   private readonly handlePointerDown = async (e: PointerEvent): Promise<void> => {
@@ -254,70 +262,42 @@ export class CadMarkupController {
     const style = this.itemStyle();
 
     if (tool === "comment_pin") {
-      if (this.runtime.requestCommentInput) {
-        const input = await this.runtime.requestCommentInput(startWorld);
-        if (input && input.comment.trim()) {
-          this.facade.addCommentPin({
-            position: startWorld,
-            comment: input.comment,
-            title: input.title,
-            author: input.author,
-            status: input.status,
-            style,
-          });
-        }
+      const input = await this.requestEditor("comment_pin", startWorld);
+      if (input?.kind === "comment_pin" && input.comment.trim()) {
+        this.facade.addCommentPin({
+          position: startWorld,
+          comment: input.comment,
+          title: input.title,
+          status: input.status as CadReviewItemStatus,
+          style,
+        });
       }
     } else if (tool === "shape_rect" && isDrag) {
-      this.facade.addShape({
-        shapeKind: "rect",
-        p1: startWorld,
-        p2: endWorldPt,
-        style,
-      });
+      this.facade.addShape({ shapeKind: "rect", p1: startWorld, p2: endWorldPt, style });
     } else if (tool === "shape_circle" && isDrag) {
       const radius = Math.hypot(endWorldPt.x - startWorld.x, endWorldPt.y - startWorld.y);
-      this.facade.addShape({
-        shapeKind: "circle",
-        p1: startWorld,
-        p2: endWorldPt,
-        radius,
-        style,
-      });
+      this.facade.addShape({ shapeKind: "circle", p1: startWorld, p2: endWorldPt, radius, style });
     } else if (tool === "shape_cloud" && isDrag) {
-      this.facade.addShape({
-        shapeKind: "cloud",
-        p1: startWorld,
-        p2: endWorldPt,
-        style,
-      });
+      this.facade.addShape({ shapeKind: "cloud", p1: startWorld, p2: endWorldPt, style });
     } else if (tool === "callout" && isDrag) {
       const anchor = constrainCalloutAnchor(
         startWorld,
         endWorldPt,
         this.currentStyle.calloutLeaderDirection
       );
-      if (this.runtime.requestTextInput) {
-        const input = await this.runtime.requestTextInput(anchor, { kind: "callout" });
-        if (input && input.text.trim()) {
-          this.facade.addCallout({
-            tip: startWorld,
-            anchor,
-            text: input.text,
-            style,
-          });
-        }
+      const input = await this.requestEditor("callout", anchor);
+      if (input?.kind === "callout" && input.text.trim()) {
+        this.facade.addCallout({ tip: startWorld, anchor, text: input.text, style });
       }
     } else if (tool === "text") {
-      if (this.runtime.requestTextInput) {
-        const input = await this.runtime.requestTextInput(startWorld, { kind: "text" });
-        if (input && input.text.trim()) {
-          this.facade.addText({
-            position: startWorld,
-            text: input.text,
-            rotationDeg: input.rotationDeg ?? this.currentStyle.textRotationDeg ?? 0,
-            style,
-          });
-        }
+      const input = await this.requestEditor("text", startWorld);
+      if (input?.kind === "text" && input.text.trim()) {
+        this.facade.addText({
+          position: startWorld,
+          text: input.text,
+          rotationDeg: input.rotationDeg ?? this.currentStyle.textRotationDeg ?? 0,
+          style,
+        });
       }
     }
   };
