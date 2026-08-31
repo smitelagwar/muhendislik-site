@@ -1,12 +1,20 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   cleanupUploadedCadFixtures,
   signInAdmin,
   uploadCadPreviewV2Fixture,
 } from "./cad-test-helpers";
 
+function upstreamRuntime(page: Page): Locator {
+  return page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="upstream"]').first();
+}
+
+function upstreamHost(page: Page): Locator {
+  return upstreamRuntime(page).locator('[data-cad-upstream-host="true"]').first();
+}
+
 async function entityCount(page: Page): Promise<number> {
-  return page.locator('[data-cad-upstream-host="true"]').first().evaluate((el: HTMLElement) => {
+  return upstreamHost(page).evaluate((el: HTMLElement) => {
     const adapter = (el as unknown as {
       __cadAdapter?: {
         manager?: {
@@ -26,7 +34,7 @@ async function entityCount(page: Page): Promise<number> {
 }
 
 async function project(page: Page, points: Array<{ x: number; y: number }>) {
-  return page.locator('[data-cad-upstream-host="true"]').first().evaluate((el: HTMLElement, input) => {
+  return upstreamHost(page).evaluate((el: HTMLElement, input) => {
     const viewport = el.querySelector<HTMLElement>('[aria-label$="CAD görünümü"]');
     const adapter = (el as unknown as {
       __cadAdapter?: {
@@ -42,7 +50,7 @@ async function project(page: Page, points: Array<{ x: number; y: number }>) {
 }
 
 async function clickWorldPoints(page: Page, points: Array<{ x: number; y: number }>) {
-  const host = page.locator('[data-cad-upstream-host="true"]').first();
+  const host = upstreamHost(page);
   const canvas = host.locator("canvas").first();
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
@@ -57,8 +65,11 @@ async function clickWorldPoints(page: Page, points: Array<{ x: number; y: number
 async function openFixture(page: Page, fixtureId: string) {
   const { fileId } = await uploadCadPreviewV2Fixture(page, fixtureId);
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
-  const host = page.locator('[data-cad-upstream-host="true"]').first();
+  const runtime = upstreamRuntime(page);
+  const host = upstreamHost(page);
+  await expect(runtime).toBeVisible({ timeout: 35_000 });
   await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+  await expect(host.locator("canvas").first()).toBeVisible();
   return { fileId, host };
 }
 
@@ -120,7 +131,8 @@ test.describe("CAD Stage 9 — final release blockers", () => {
 
     await expect(page.locator('[data-testid="cad-save-status"]')).toContainText("Kaydedildi", { timeout: 12_000 });
     await page.reload();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+    await expect(upstreamRuntime(page)).toBeVisible({ timeout: 35_000 });
+    await expect(upstreamHost(page)).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
     await expect(page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]')).toHaveCount(1);
     expect(await entityCount(page)).toBe(sourceCount);
   });
