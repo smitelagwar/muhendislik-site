@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
@@ -916,27 +917,44 @@ export function DokCadUpstreamViewer({
 
   const handleDownloadOriginal = useCallback(() => {
     if (typeof window === "undefined") return;
-    const link = document.createElement("a");
-    link.href = accessUrl;
-    link.download = displayName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      toast.info("Orijinal çizim dosyası indiriliyor...");
+      const link = document.createElement("a");
+      link.href = accessUrl;
+      link.download = displayName;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      toast.error("Orijinal dosya indirilemedi.");
+    }
   }, [accessUrl, displayName]);
 
   const handleDownloadDxfRevision = useCallback(() => {
-    if (!reviewDocument || typeof window === "undefined") return;
-    const dxfString = exportReviewToDxf(reviewDocument);
-    const blob = new Blob([dxfString], { type: "application/dxf" });
-    const url = URL.createObjectURL(blob);
-    const baseName = displayName.replace(/\.[^/.]+$/, "");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${baseName}_revizyon.dxf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    if (typeof window === "undefined") return;
+    const doc = reviewStoreRef.current?.getDocument() || reviewDocument;
+    if (!doc) {
+      toast.error("İndirilecek revizyon verisi bulunamadı.");
+      return;
+    }
+    try {
+      const dxfString = exportReviewToDxf(doc);
+      const blob = new Blob([dxfString], { type: "application/dxf;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const baseName = displayName.replace(/\.[^/.]+$/, "");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${baseName}_revizyon.dxf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`${baseName}_revizyon.dxf başarıyla indirildi (${doc.items.length} çizim/ölçüm öğesi).`);
+    } catch {
+      toast.error("DXF dosyası oluşturulurken bir hata meydana geldi.");
+    }
   }, [reviewDocument, displayName]);
   // ──────────────────────────────────────────────────────────────────────────
 
