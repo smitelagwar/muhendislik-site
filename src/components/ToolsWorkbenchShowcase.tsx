@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -10,6 +10,7 @@ import {
   Sparkles,
   SlidersHorizontal,
   Compass,
+  Clock,
 } from "lucide-react";
 import { ToolIcon } from "@/components/tool-icon";
 import { ToolWatermarkIllustration } from "@/components/tool-watermarks";
@@ -234,6 +235,32 @@ export default function ToolsWorkbenchShowcase({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTier, setSelectedTier] = useState<string>("all");
+  const [recentToolIds, setRecentToolIds] = useState<string[]>([]);
+
+  // LocalStorage'dan son kullanılan 5 aracı yükle
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("muhendis_recent_tools");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentToolIds(parsed.slice(0, 5));
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleToolClick = (id: string) => {
+    try {
+      const next = [id, ...recentToolIds.filter((item) => item !== id)].slice(0, 5);
+      setRecentToolIds(next);
+      localStorage.setItem("muhendis_recent_tools", JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
 
   // Filtrelenmiş araç listesi
   const filteredTools = useMemo(() => {
@@ -451,6 +478,31 @@ export default function ToolsWorkbenchShowcase({
             );
           })}
         </div>
+
+        {/* Son Kullanılan Araçlar Hızlı Erişim (F8-04) */}
+        {recentToolIds.length > 0 && !searchQuery.trim() && selectedCategory === "all" && selectedTier === "all" && (
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1.5 px-3 rounded-xl border border-purple-500/20 bg-purple-500/5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300 shrink-0 mr-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Son Kullanılanlar:</span>
+            </div>
+            {recentToolIds.map((id) => {
+              const rTool = tools.find((t) => t.id === id);
+              if (!rTool) return null;
+              return (
+                <Link
+                  key={id}
+                  href={rTool.href}
+                  onClick={() => handleToolClick(id)}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-200 hover:bg-purple-500/20 hover:text-white transition-all"
+                >
+                  <ToolIcon iconKey={rTool.iconKey} className="h-3.5 w-3.5" />
+                  <span>{rTool.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── 4. İNTERAKTİF ARAÇ KARTLARI GRID'İ (Vortasky AI Dark Cards) ── */}
@@ -486,6 +538,7 @@ export default function ToolsWorkbenchShowcase({
               <Link
                 key={tool.id}
                 href={tool.href}
+                onClick={() => handleToolClick(tool.id)}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 shadow-sm backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-purple-400/60 dark:hover:border-purple-400/60 hover:shadow-[0_0_35px_rgba(139,92,246,0.25)]"
               >
                 {/* Üst accent çizgi */}

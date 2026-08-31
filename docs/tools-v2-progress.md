@@ -65,7 +65,7 @@
 | F8-01 | Katalog V2 Filtreler | DONE | feat(catalog): add Evidence Tier filters (Tier A, B, C) and discipline grouping | npm run check:tools-metadata, tsc | Disiplin tab'larının yanı sıra kanıt seviyesi (Tier A/B/C) filtreleme butonları eklendi |
 | F8-02 | Katalog V2 Kart Güven Bilgisi | DONE | feat(catalog): display evidence tier badges and normative references on cards | npm run check:tools-metadata, tsc | 30 aracın her kartında Tier seviyesi ve normatif referans rozetleri eklendi |
 | F8-03 | Katalog V2 Arama | DONE | feat(catalog): enhance search with normative references and calculation types | npm run check:tools-metadata, tsc | Standart norm, formül tipi, tier ve başlık bazlı çok parametreli canlı arama geliştirildi |
-| F8-04 | Katalog V2 Son Kullanılanlar | TODO | | | |
+| F8-04 | Katalog V2 Son Kullanılanlar | DONE | feat(catalog): add recent tools localStorage tracking and quick bar | npm run check:tools-metadata, tsc | LocalStorage ile son tıklanan 5 aracı hatırlama ve hızlı erişim barı eklendi |
 | F9-01 | Raporlama ve Paylaşım Altyapısı | TODO | | | |
 | F10-01 | Normative Extensions (A3/B1/B3/Ahşap Dikme vb.) | TODO | | | |
 | RELEASE | Full Release Gate & Rapor | TODO | | | |
