@@ -117,8 +117,8 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
     accentColor: "#475569",
   },
   "ahsap-eleman-hesabi": {
-    standardNorm: "TS 647 & Eurocode 5",
-    calcType: "Emniyet Gerilmesi & Narinlik",
+    standardNorm: "TS EN 1995-1-1",
+    calcType: "Kiriş Eğilme & Sehim",
     accentColor: "#b45309",
   },
   "kalip-sokum-suresi": {

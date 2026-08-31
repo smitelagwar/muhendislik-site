@@ -92,7 +92,7 @@ DURUM: ${result?.isOverallSafe ? "GÜVENLİ VE UYGUN" : "KAPASİTE/SEHİM AŞILD
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
-              Ahşap Kiriş & Dikme Hesabı
+              Ahşap Kiriş Taşıma Gücü & Sehim Hesabı
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
