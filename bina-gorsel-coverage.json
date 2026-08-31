@@ -847,17 +847,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/cati-iskeleti.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/cati-iskeleti.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -868,17 +868,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/ahsap-cati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/ahsap-cati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/ahsap-cati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -889,17 +889,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/celik-cati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/celik-cati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/celik-cati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -910,17 +910,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/cati-iskeleti/teras-cati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/teras-cati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/teras-cati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
