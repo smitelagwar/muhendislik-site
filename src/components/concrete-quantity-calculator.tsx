@@ -13,6 +13,12 @@ import {
   Layers,
 } from "lucide-react";
 import { calculateConcreteQuantity } from "@/lib/engineering/quantity/concrete-volume";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function ConcreteQuantityCalculator() {
   const [columnsCount, setColumnsCount] = useState(16);
@@ -112,16 +118,12 @@ MİKSER SEFER SAYISI (${mixerCap} m³/araç): ~${result.mixerTruckCount} Mikser
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Truck className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Kaba Yapı Metrajı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Saha Pratiği", "ÇŞB Standartları"]} tier="C" />
             </div>
 
-            <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
-              Beton Metrajı & Mikser Seferi Hesabı
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
+              Beton Metrajı & Mikser Seferi
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
@@ -352,8 +354,38 @@ MİKSER SEFER SAYISI (${mixerCap} m³/araç): ~${result.mixerTruckCount} Mikser
                   </div>
                 ))}
               </div>
+
+              {/* Governing Check / Sipariş Denge Kartı */}
+              <div className="pt-2">
+                <GoverningCheckCard
+                  label="Brüt Sipariş & Mikser Kapasitesi Dengesi"
+                  demand={Number(result.totalGrossVolumeM3.toFixed(1))}
+                  capacity={Number((result.mixerTruckCount * mixerCap).toFixed(1))}
+                  unit="m³"
+                  status="ok"
+                  explanation={`Net hacim: ${result.totalNetVolumeM3.toFixed(1)} m³, fire payı (%${wastePct}): +${result.wasteVolumeM3.toFixed(1)} m³. Toplam ${result.totalGrossVolumeM3.toFixed(1)} m³ beton için ${mixerCap} m³ kapasiteli ~${result.mixerTruckCount} mikser seferi planlandı.`}
+                />
+              </div>
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Temel, kolon, kiriş ve döşeme net beton hacimlerinin geometrik toplanması",
+              "Şantiye döküm firesi (%3 - %10) ile brüt sipariş hacmi hesabı",
+              "Transmikser kapasitesine (8, 9, 10, 12 m³) göre tahmini araç sefer sayısı planlaması"
+            ]}
+            limitations={[
+              "Yaklaşık ön keşif sipariş tahminidir; pompa boru kaybı ve kalıp esnemeleri şantiye ölçümüyle teyit edilmelidir",
+              "Harç (kaba harç) veya şap karışım metrajını kapsamaz",
+              "Statik hesap ve taşıyıcı eleman boyutlandırması yerine geçmez"
+            ]}
+            inputProvenance="Şantiye İmalat Pratiği ve Çevre, Şehircilik ve İklim Değişikliği Bakanlığı Rayiç Standartları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
