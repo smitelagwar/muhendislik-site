@@ -16,6 +16,12 @@ import {
   BUILDING_TYPOLOGIES,
   type BuildingTypology,
 } from "@/lib/engineering/quantity/rebar-ratio";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function RebarQuantityCalculator() {
   const [areaM2, setAreaM2] = useState(1200);
@@ -80,12 +86,8 @@ TONAJ TAHKİKİ:
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Layers className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Kaba Yapı Metrajı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif Oranları
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Saha Pursantaj İstatistikleri", "ÇŞB Standartları"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -214,10 +216,39 @@ TONAJ TAHKİKİ:
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Pratik Donatı Oranı ve Tonaj Tahkiki"
+                      demand={Number(result.grossWeightTon.toFixed(2))}
+                      capacity={Number(result.netWeightTon.toFixed(2))}
+                      unit="Ton"
+                      status="ok"
+                      explanation={`${result.typologyName} için birim sarfiyat ${result.unitWeightKg} kg/m². ${areaM2} m² inşaat alanında net ${result.netWeightTon.toFixed(2)} Ton, %${wastePct} fire dahil brüt ${result.grossWeightTon.toFixed(2)} Ton donatı ve ~${result.bindingWireKg.toFixed(0)} kg bağ teli gereklidir.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Yapı tipolojisi (konut, villa, ticari, endüstriyel) ve toplam inşaat alanına göre istatistiki donatı pursantajı (kg/m²) hesabı",
+              "Çap gruplarına göre (ince, orta, kalın) tahmini sipariş tonajı dağılımı",
+              "Bağ teli ihtiyacı (~12-15 kg/ton) ve fire payı hesabı"
+            ]}
+            limitations={[
+              "Yaklaşık ön keşif ve bütçeleme amaçlıdır; uygulama öncesi onaylı betonarme statik donatı metraj cetveli (demir listesi) esastır",
+              "Perde oranı yüksek binalarda ve yüksek sismik ivmeli bölgelerde pursantaj %15-25 artabilir",
+              "Nervürlü/asmolen döşeme ve kaset döşemelerde hasır çelik miktarları haricen hesaplanmalıdır"
+            ]}
+            inputProvenance="Türkiye Bina Deprem İstatistikleri, Yapı Yaklaşık Birim Maliyetleri ve Saha Şantiye Pratiği"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
