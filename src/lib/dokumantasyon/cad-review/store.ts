@@ -1,6 +1,7 @@
 import type {
   CadReviewDocument,
   CadReviewItem,
+  CadReviewItemStyle,
   CadReviewLineDash,
 } from "./schema";
 
@@ -18,13 +19,26 @@ export type CadReviewTool =
   | "stroke"
   | "eraser";
 
+export type CadEraserRadiusPx = 8 | 16 | 28;
+export type CadCalloutLeaderDirection = "free" | "right" | "left" | "up" | "down";
+
+/**
+ * Aktif review tool stilini ve yalnız oturumda yaşayan küçük tool tercihlerini
+ * aynı contract altında tutar. Persist edilen review item style alanları
+ * CadReviewItemStyle ile birebir uyumludur; eraser/rotation/leader alanları ise
+ * item'a yazılmaz, yalnız sonraki gesture'ın davranışını belirler.
+ */
 export interface CadActiveMarkupStyle {
   color: string;
   strokeWidth: number;
   lineDash: CadReviewLineDash;
   fillColor?: string;
+  fillOpacity?: number;
   opacity: number;
   fontSize?: number;
+  textRotationDeg?: number;
+  calloutLeaderDirection?: CadCalloutLeaderDirection;
+  eraserRadiusPx?: CadEraserRadiusPx;
 }
 
 export type CadMeasurementLengthUnit = "m" | "cm" | "mm";
@@ -59,6 +73,18 @@ export const CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS: CadResolvedMeasurementUnitSe
   color: "#3b82f6",
 };
 
+export const CAD_DEFAULT_MARKUP_STYLE: CadActiveMarkupStyle = {
+  color: "#ff3b30",
+  strokeWidth: 2,
+  lineDash: "continuous",
+  fillOpacity: 0,
+  opacity: 1,
+  fontSize: 16,
+  textRotationDeg: 0,
+  calloutLeaderDirection: "free",
+  eraserRadiusPx: 16,
+};
+
 let currentMeasurementUnitSettings: CadResolvedMeasurementUnitSettings = {
   ...CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS,
 };
@@ -89,15 +115,18 @@ export function resolveCadMeasurementUnitSettings(
 /**
  * Overlay components are siblings of the Ribbon and historically received no
  * measurement settings props. This read-only snapshot keeps those renderers on
- * the same session contract until the Stage 2 Ribbon component refactor can pass
- * the settings explicitly without duplicating state.
+ * the same session contract.
  */
 export function getCurrentCadMeasurementUnitSettings(): CadResolvedMeasurementUnitSettings {
   return { ...currentMeasurementUnitSettings };
 }
 
-function isMeasurementItem(item: CadReviewItem): boolean {
+export function isCadMeasurementReviewItem(item: CadReviewItem): boolean {
   return item.type === "distance" || item.type === "chain_distance" || item.type === "area";
+}
+
+export function isCadMarkupReviewItem(item: CadReviewItem): boolean {
+  return !isCadMeasurementReviewItem(item);
 }
 
 export interface CadReviewSessionState {
@@ -135,13 +164,7 @@ export class CadReviewStore {
     hoveredItemId: null,
     statusFilter: "all",
     activeLayoutId: null,
-    activeMarkupStyle: {
-      color: "#ff3b30",
-      strokeWidth: 2,
-      lineDash: "continuous",
-      opacity: 1,
-      fontSize: 16,
-    },
+    activeMarkupStyle: { ...CAD_DEFAULT_MARKUP_STYLE },
     measurementUnitSettings: {
       ...CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS,
     },
@@ -179,6 +202,11 @@ export class CadReviewStore {
 
   getItems(): readonly CadReviewItem[] {
     return this.document.items;
+  }
+
+  getSelectedItems(): readonly CadReviewItem[] {
+    if (this.session.selectedItemIds.size === 0) return [];
+    return this.document.items.filter((item) => this.session.selectedItemIds.has(item.id));
   }
 
   getSession(): Readonly<CadReviewSessionState> {
@@ -265,7 +293,7 @@ export class CadReviewStore {
     if (settings.color && settings.color !== previousColor) {
       let changedDocument = false;
       for (const item of this.document.items) {
-        if (!isMeasurementItem(item)) continue;
+        if (!isCadMeasurementReviewItem(item)) continue;
         item.style = { ...item.style, color: settings.color };
         changedDocument = true;
       }
@@ -337,7 +365,7 @@ export class CadReviewStore {
   // --- High-Level Document Actions (via Commands) ---
 
   addItem(item: CadReviewItem): void {
-    const itemToAdd = isMeasurementItem(item)
+    const itemToAdd = isCadMeasurementReviewItem(item)
       ? ({
           ...item,
           style: {
@@ -390,7 +418,10 @@ export class CadReviewStore {
   updateItem(itemId: string, patch: Partial<CadReviewItem>): void {
     const existing = this.document.items.find((i) => i.id === itemId);
     if (!existing) return;
-    const previousSnapshot = { ...existing } as CadReviewItem;
+    const previousSnapshot = {
+      ...existing,
+      style: { ...existing.style },
+    } as CadReviewItem;
 
     const command: CadReviewCommand = {
       name: `Update Item (${existing.type})`,
@@ -403,11 +434,89 @@ export class CadReviewStore {
       undo: () => {
         const target = this.document.items.find((i) => i.id === itemId);
         if (target) {
-          Object.assign(target, previousSnapshot);
+          Object.assign(target, previousSnapshot, { style: { ...previousSnapshot.style } });
         }
       },
     };
     this.executeCommand(command);
+  }
+
+  /**
+   * Bir veya birden fazla seçili review nesnesinin stilini tek Undo adımında
+   * değiştirir. Source DXF entity'leri bu store'da bulunmadığı için bu işlem
+   * yalnız review overlay verisini etkiler.
+   */
+  updateItemsStyle(itemIds: Iterable<string>, style: Partial<CadReviewItemStyle>): number {
+    const ids = new Set(itemIds);
+    const targets = this.document.items.filter((item) => ids.has(item.id));
+    if (targets.length === 0) return 0;
+
+    const previousStyles = new Map(
+      targets.map((item) => [item.id, { ...item.style }] as const)
+    );
+
+    const command: CadReviewCommand = {
+      name: `Update Styles (${targets.length})`,
+      execute: () => {
+        const now = new Date().toISOString();
+        for (const item of this.document.items) {
+          if (!ids.has(item.id)) continue;
+          item.style = { ...item.style, ...style };
+          item.updatedAt = now;
+        }
+        this.document.updatedAt = now;
+      },
+      undo: () => {
+        const now = new Date().toISOString();
+        for (const item of this.document.items) {
+          const previous = previousStyles.get(item.id);
+          if (!previous) continue;
+          item.style = { ...previous };
+          item.updatedAt = now;
+        }
+        this.document.updatedAt = now;
+      },
+    };
+
+    this.executeCommand(command);
+    return targets.length;
+  }
+
+  /**
+   * Tüm review markup öğelerini tek destructive fakat undoable komutla temizler.
+   * Distance/Area/Chain ölçümleri ve taban DXF entity'leri korunur.
+   */
+  clearMarkupItems(): number {
+    const removed = this.document.items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => isCadMarkupReviewItem(item));
+    if (removed.length === 0) return 0;
+
+    const previousSelection = new Set(this.session.selectedItemIds);
+    const removedIds = new Set(removed.map(({ item }) => item.id));
+
+    const command: CadReviewCommand = {
+      name: `Clear Markup (${removed.length})`,
+      execute: () => {
+        this.document.items = this.document.items.filter((item) => !removedIds.has(item.id));
+        this.session.selectedItemIds = new Set(
+          [...this.session.selectedItemIds].filter((id) => !removedIds.has(id))
+        );
+        this.document.updatedAt = new Date().toISOString();
+      },
+      undo: () => {
+        const restored = [...this.document.items];
+        for (const entry of [...removed].sort((a, b) => a.index - b.index)) {
+          restored.splice(Math.min(entry.index, restored.length), 0, entry.item);
+        }
+        this.document.items = restored;
+        this.session.selectedItemIds = new Set(previousSelection);
+        this.document.updatedAt = new Date().toISOString();
+      },
+    };
+
+    this.executeCommand(command);
+    return removed.length;
   }
 
   // Mark clean after successful save/sync with server

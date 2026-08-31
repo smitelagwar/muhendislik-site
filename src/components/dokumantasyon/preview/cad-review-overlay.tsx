@@ -37,6 +37,11 @@ function projectOrNull(
   }
 }
 
+function clampOpacity(value: number | undefined, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(1, value!));
+}
+
 export function CadReviewOverlay({
   items,
   draft = null,
@@ -71,7 +76,7 @@ export function CadReviewOverlay({
         />
       ))}
       {draft?.draftItem && (
-        <g opacity={0.75} strokeDasharray="4 4">
+        <g opacity={0.75}>
           <ReviewItemRenderer
             item={{
               id: "draft-item",
@@ -82,8 +87,11 @@ export function CadReviewOverlay({
               style: {
                 color: draft.draftItem.style?.color ?? "#007aff",
                 strokeWidth: draft.draftItem.style?.strokeWidth ?? 2,
-                opacity: 0.8,
+                lineDash: draft.draftItem.style?.lineDash ?? "continuous",
+                opacity: draft.draftItem.style?.opacity ?? 1,
+                fontSize: draft.draftItem.style?.fontSize,
                 fillColor: draft.draftItem.style?.fillColor,
+                fillOpacity: draft.draftItem.style?.fillOpacity,
               },
             } as CadReviewItem}
             isSelected={false}
@@ -111,7 +119,7 @@ function ReviewItemRenderer({
 }) {
   const color = item.style.color;
   const strokeWidth = Math.max(1, item.style.strokeWidth ?? 2);
-  const opacity = item.style.opacity ?? 1;
+  const opacity = clampOpacity(item.style.opacity, 1);
   const highlight = isSelected ? 2.5 : isHovered ? 1.5 : 1;
   const sw = strokeWidth * highlight;
   const dashArray =
@@ -120,13 +128,14 @@ function ReviewItemRenderer({
       : item.style.lineDash === "dotted"
       ? "3 4"
       : undefined;
-  const effectiveFill = item.style.fillColor || color;
-  const effectiveFillOpacity = item.style.fillColor ? 0.22 : 0.08;
+  const fillOpacity = clampOpacity(item.style.fillOpacity, 0);
+  const effectiveFill = fillOpacity > 0 ? item.style.fillColor || color : "none";
 
   const commonProps: React.SVGProps<SVGGElement> = {
     opacity,
     style: { pointerEvents: onClick ? "auto" : "none", cursor: onClick ? "pointer" : "default" },
     onClick: onClick ? () => onClick(item.id) : undefined,
+    "data-review-selected": isSelected ? "true" : "false",
   };
 
   if (item.type === "distance") {
@@ -139,7 +148,6 @@ function ReviewItemRenderer({
     return (
       <g {...commonProps} data-review-type="distance" data-review-id={item.id}>
         <line x1={s.x} y1={s.y} x2={e.x} y2={e.y} stroke={color} strokeWidth={sw} />
-        {/* endpoint dots */}
         <circle cx={s.x} cy={s.y} r={3.5} fill={color} />
         <circle cx={e.x} cy={e.y} r={3.5} fill={color} />
         <rect
@@ -258,8 +266,12 @@ function ReviewItemRenderer({
         : color;
 
     return (
-      <g {...commonProps} data-review-type="comment_pin" data-review-id={item.id}>
-        {/* pin teardrop shape */}
+      <g
+        {...commonProps}
+        data-review-type="comment_pin"
+        data-review-id={item.id}
+        data-review-status={item.status}
+      >
         <path
           d={`M ${p.x} ${p.y} C ${p.x - 10} ${p.y - 10}, ${p.x - 12} ${p.y - 24}, ${p.x} ${p.y - 26} C ${p.x + 12} ${p.y - 24}, ${p.x + 10} ${p.y - 10}, ${p.x} ${p.y}`}
           fill={statusBg}
@@ -286,7 +298,8 @@ function ReviewItemRenderer({
     const p = project(item.position);
     if (!p) return null;
     const fs = item.style.fontSize ?? 16;
-    const hasBg = Boolean(item.style.fillColor);
+    const textBgOpacity = clampOpacity(item.style.fillOpacity, item.style.fillColor ? 0.9 : 0);
+    const hasBg = Boolean(item.style.fillColor) && textBgOpacity > 0;
     const textWidth = Math.max(30, item.text.length * (fs * 0.62));
     const textHeight = fs * 1.3;
 
@@ -296,6 +309,7 @@ function ReviewItemRenderer({
         transform={`rotate(${item.rotationDeg ?? 0}, ${p.x}, ${p.y})`}
         data-review-type="text"
         data-review-id={item.id}
+        data-review-rotation={item.rotationDeg ?? 0}
       >
         {hasBg && (
           <rect
@@ -305,9 +319,10 @@ function ReviewItemRenderer({
             height={textHeight + 4}
             rx={4}
             fill={item.style.fillColor}
-            fillOpacity={0.9}
+            fillOpacity={textBgOpacity}
             stroke={color}
             strokeWidth={1}
+            data-review-text-background="true"
           />
         )}
         <text
@@ -334,12 +349,20 @@ function ReviewItemRenderer({
     const fs = item.style.fontSize ?? 12;
     const bubbleW = Math.max(60, item.text.length * (fs * 0.65) + 16);
     const bubbleH = fs + 12;
+    const bubbleOpacity = clampOpacity(item.style.fillOpacity, 0.92);
 
     return (
       <g {...commonProps} data-review-type="callout" data-review-id={item.id}>
-        <line x1={tip.x} y1={tip.y} x2={anchor.x} y2={anchor.y} stroke={color} strokeWidth={sw} />
+        <line
+          x1={tip.x}
+          y1={tip.y}
+          x2={anchor.x}
+          y2={anchor.y}
+          stroke={color}
+          strokeWidth={sw}
+          strokeDasharray={dashArray}
+        />
         <circle cx={tip.x} cy={tip.y} r={4} fill={color} />
-        {/* bubble */}
         <rect
           x={anchor.x - 2}
           y={anchor.y - bubbleH + 6}
@@ -347,9 +370,10 @@ function ReviewItemRenderer({
           height={bubbleH}
           rx={6}
           fill={item.style.fillColor || color}
-          fillOpacity={0.92}
+          fillOpacity={bubbleOpacity}
           stroke={color}
           strokeWidth={1}
+          data-review-callout-background="true"
         />
         <text
           x={anchor.x + bubbleW / 2 - 2}
@@ -384,7 +408,7 @@ function ReviewItemRenderer({
             width={w}
             height={h}
             fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
+            fillOpacity={fillOpacity}
             stroke={color}
             strokeWidth={sw}
             strokeDasharray={dashArray}
@@ -403,7 +427,7 @@ function ReviewItemRenderer({
             cy={cy}
             r={r}
             fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
+            fillOpacity={fillOpacity}
             stroke={color}
             strokeWidth={sw}
             strokeDasharray={dashArray}
@@ -412,32 +436,27 @@ function ReviewItemRenderer({
       );
     }
     if (item.shapeKind === "cloud") {
-      // Simplified cloud: rect with arc bumps
       const bumpR = 8;
       const bumpsH = Math.max(1, Math.floor(w / (bumpR * 2)));
       const bumpsV = Math.max(1, Math.floor(h / (bumpR * 2)));
       const bumpW = w / bumpsH;
       const bumpH = h / bumpsV;
       let d = "";
-      // Top edge
       for (let i = 0; i < bumpsH; i++) {
         const x1 = minX + i * bumpW;
         const x2 = minX + (i + 1) * bumpW;
         d += `M ${x1} ${minY} A ${bumpW / 2} ${bumpR} 0 0 1 ${x2} ${minY} `;
       }
-      // Bottom edge
       for (let i = 0; i < bumpsH; i++) {
         const x1 = minX + (bumpsH - i) * bumpW;
         const x2 = minX + (bumpsH - i - 1) * bumpW;
         d += `M ${x1} ${minY + h} A ${bumpW / 2} ${bumpR} 0 0 0 ${x2} ${minY + h} `;
       }
-      // Left edge
       for (let i = 0; i < bumpsV; i++) {
         const y1 = minY + i * bumpH;
         const y2 = minY + (i + 1) * bumpH;
         d += `M ${minX} ${y1} A ${bumpR} ${bumpH / 2} 0 0 0 ${minX} ${y2} `;
       }
-      // Right edge
       for (let i = 0; i < bumpsV; i++) {
         const y1 = minY + (bumpsV - i) * bumpH;
         const y2 = minY + (bumpsV - i - 1) * bumpH;
@@ -451,7 +470,7 @@ function ReviewItemRenderer({
             width={w}
             height={h}
             fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
+            fillOpacity={fillOpacity}
             stroke="none"
           />
           <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={dashArray} />

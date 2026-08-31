@@ -26,8 +26,17 @@ export type CadReviewCalloutItem = z.infer<typeof cadReviewCalloutItemSchema>;
 export type CadReviewTextItem = z.infer<typeof cadReviewTextItemSchema>;
 export type CadReviewStrokeItem = z.infer<typeof cadReviewStrokeItemSchema>;
 
-export class CadMarkupFacade {
+function isMarkupItem(item: CadReviewItem): boolean {
+  return (
+    item.type === "comment_pin" ||
+    item.type === "text" ||
+    item.type === "callout" ||
+    item.type === "shape" ||
+    item.type === "stroke"
+  );
+}
 
+export class CadMarkupFacade {
   constructor(private readonly store: CadReviewStore) {}
 
   getNextPinIndex(): number {
@@ -73,9 +82,11 @@ export class CadMarkupFacade {
       style: {
         color: params.style?.color ?? "#ff3b30",
         strokeWidth: params.style?.strokeWidth ?? 2,
+        lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fontSize: params.style?.fontSize,
         fillColor: params.style?.fillColor,
+        fillOpacity: params.style?.fillOpacity,
       },
     };
 
@@ -116,6 +127,7 @@ export class CadMarkupFacade {
         lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fillColor: params.style?.fillColor,
+        fillOpacity: params.style?.fillOpacity ?? 0,
       },
     };
 
@@ -156,9 +168,11 @@ export class CadMarkupFacade {
       style: {
         color: params.style?.color ?? "#ff9500",
         strokeWidth: params.style?.strokeWidth ?? 2,
+        lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fontSize: params.style?.fontSize ?? 14,
         fillColor: params.style?.fillColor,
+        fillOpacity: params.style?.fillOpacity,
       },
     };
 
@@ -199,9 +213,11 @@ export class CadMarkupFacade {
       style: {
         color: params.style?.color ?? "#34c759",
         strokeWidth: params.style?.strokeWidth ?? 2,
+        lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fontSize: params.style?.fontSize ?? 16,
         fillColor: params.style?.fillColor,
+        fillOpacity: params.style?.fillOpacity,
       },
     };
 
@@ -277,6 +293,7 @@ export class CadMarkupFacade {
         lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fillColor: params.style?.fillColor,
+        fillOpacity: params.style?.fillOpacity,
       },
     };
 
@@ -286,10 +303,14 @@ export class CadMarkupFacade {
 
   eraseItemAtPoint(
     screenPoint: { x: number; y: number },
-    projectWorldToScreen: (p: CadPoint2d) => { x: number; y: number } | null
+    projectWorldToScreen: (p: CadPoint2d) => { x: number; y: number } | null,
+    tolerancePx = 16
   ): boolean {
-    const hit = findHitReviewItem(this.store.getItems(), screenPoint, {
-      tolerancePx: 16,
+    // Silgi yalnız review markup katmanını hedefler; measurement öğeleri ve
+    // source DXF entity'leri hiçbir zaman bu listeye girmez.
+    const markupItems = this.store.getItems().filter(isMarkupItem);
+    const hit = findHitReviewItem(markupItems, screenPoint, {
+      tolerancePx,
       projectWorldToScreen,
     });
 
@@ -298,6 +319,10 @@ export class CadMarkupFacade {
       return true;
     }
     return false;
+  }
+
+  clearAllMarkup(): number {
+    return this.store.clearMarkupItems();
   }
 
   deleteItem(id: string): boolean {

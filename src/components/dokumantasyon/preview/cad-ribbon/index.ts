@@ -5,6 +5,8 @@ export * from "./cad-tool-popover";
 export * from "./cad-color-control";
 export * from "./cad-line-width-control";
 export * from "./cad-line-style-control";
+export * from "./cad-opacity-control";
+export * from "./cad-fill-control";
 export * from "./cad-unit-control";
 export * from "./cad-ribbon-overflow";
 export * from "./icons/line-weight-icon";

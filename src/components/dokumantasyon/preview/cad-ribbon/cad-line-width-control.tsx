@@ -15,11 +15,13 @@ export function CadLineWidthControl({
   onChange,
   options,
   label = "İşaretleme Kalınlığı",
+  testIdPrefix = "cad-line-width",
 }: {
   value: number;
   onChange: (width: number) => void;
   options: readonly CadLineWidthOption[];
   label?: string;
+  testIdPrefix?: string;
 }) {
   return (
     <fieldset className="space-y-1.5" data-cad-line-width-control="true">
@@ -35,8 +37,13 @@ export function CadLineWidthControl({
               "flex h-8 w-full items-center gap-2 rounded-md border border-transparent px-2 text-xs outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
               value === option.value && "border-primary/30 bg-primary/10 text-foreground"
             )}
+            data-testid={`${testIdPrefix}-${option.value}`}
           >
-            <span className="w-20 shrink-0 rounded-full bg-current" style={{ height: Math.max(1, Math.min(option.value, 8)) }} />
+            <span
+              className="w-20 shrink-0 rounded-full bg-current"
+              style={{ height: Math.max(1, Math.min(option.value, 8)) }}
+              data-cad-line-width-preview={option.value}
+            />
             <span className="font-medium">{option.label}</span>
             {option.desc ? <span className="ml-auto text-[10px] text-muted-foreground">{option.desc}</span> : null}
           </button>

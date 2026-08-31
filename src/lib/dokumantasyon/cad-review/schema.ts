@@ -33,6 +33,7 @@ export const cadReviewItemStyleSchema = z.object({
   lineDash: cadReviewLineDashSchema.optional(),
   fontSize: z.number().min(6).max(200).optional(),
   fillColor: z.string().max(32).optional(),
+  fillOpacity: z.number().min(0).max(1).optional(),
   opacity: z.number().min(0).max(1).default(1),
 });
 

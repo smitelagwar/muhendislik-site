@@ -21,11 +21,13 @@ export function CadLineStyleControl({
   onChange,
   options,
   label = "Çizgi Tipi",
+  testIdPrefix = "cad-line-style",
 }: {
   value: CadReviewLineDash;
   onChange: (style: CadReviewLineDash) => void;
   options: readonly CadLineStyleOption[];
   label?: string;
+  testIdPrefix?: string;
 }) {
   return (
     <fieldset className="space-y-1.5" data-cad-line-style-control="true">
@@ -41,8 +43,9 @@ export function CadLineStyleControl({
               "flex h-8 w-full items-center gap-2 rounded-md border border-transparent px-2 text-xs outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
               value === option.value && "border-primary/30 bg-primary/10 text-foreground"
             )}
+            data-testid={`${testIdPrefix}-${option.value}`}
           >
-            <svg viewBox="0 0 72 8" className="h-3 w-20" aria-hidden="true">
+            <svg viewBox="0 0 72 8" className="h-3 w-20" aria-hidden="true" data-cad-line-style-preview={option.value}>
               <line x1="2" y1="4" x2="70" y2="4" stroke="currentColor" strokeWidth="2" strokeDasharray={dashArray(option.value)} />
             </svg>
             <span className="font-medium">{option.label}</span>

@@ -1,5 +1,5 @@
-import type { CadPoint2d, CadReviewItemStyle } from "./schema";
-import type { CadReviewStore } from "./store";
+import type { CadPoint2d } from "./schema";
+import type { CadActiveMarkupStyle, CadReviewStore } from "./store";
 import type { CadMarkupFacade } from "./markup-facade";
 import { filterClosePoints, simplifyPointsRdp } from "./stroke-simplifier";
 
@@ -13,10 +13,12 @@ export class CadFreehandController {
   private destroyed = false;
   private isDrawing = false;
   private rawPoints: CadPoint2d[] = [];
-  private currentStyle: Partial<CadReviewItemStyle> = {
+  private currentStyle: Partial<CadActiveMarkupStyle> = {
     color: "#ff3b30",
     strokeWidth: 2,
+    lineDash: "continuous",
     opacity: 1,
+    eraserRadiusPx: 16,
   };
   private readonly maxPoints = 5000;
   private readonly simplificationEpsilon = 1.5;
@@ -30,7 +32,7 @@ export class CadFreehandController {
     this.attach();
   }
 
-  setStyle(style: Partial<CadReviewItemStyle>): void {
+  setStyle(style: Partial<CadActiveMarkupStyle>): void {
     this.currentStyle = { ...this.currentStyle, ...style };
   }
 
@@ -57,14 +59,24 @@ export class CadFreehandController {
     };
   }
 
+  private eraseAt(screenPoint: { x: number; y: number }): void {
+    this.facade.eraseItemAtPoint(
+      screenPoint,
+      this.runtime.worldToScreen,
+      this.currentStyle.eraserRadiusPx ?? 16
+    );
+  }
+
   private readonly handlePointerDown = (e: PointerEvent): void => {
     if (this.destroyed || e.button > 0) return;
     const tool = this.store.getSession().activeTool;
     const screenPt = this.getScreenPoint(e);
 
     if (tool === "eraser") {
+      e.preventDefault();
       this.isDrawing = true;
-      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
+      this.runtime.setCameraInteractionEnabled?.(false);
+      this.eraseAt(screenPt);
       return;
     }
 
@@ -88,6 +100,7 @@ export class CadFreehandController {
         lineDash: this.currentStyle.lineDash ?? "continuous",
         opacity: this.currentStyle.opacity ?? 1,
         fillColor: this.currentStyle.fillColor,
+        fillOpacity: this.currentStyle.fillOpacity,
       },
     });
   };
@@ -98,13 +111,12 @@ export class CadFreehandController {
     const screenPt = this.getScreenPoint(e);
 
     if (tool === "eraser") {
-      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
+      this.eraseAt(screenPt);
       return;
     }
 
     if (tool !== "stroke") return;
 
-    // Coalesced pointer events for high-precision stylus/trackpad/touch hardware
     const coalesced: PointerEvent[] =
       typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
 
@@ -122,7 +134,6 @@ export class CadFreehandController {
       } else {
         const dx = subWorldPt.x - lastPoint.x;
         const dy = subWorldPt.y - lastPoint.y;
-        // Jitter filter (min 1 unit distance)
         if (dx * dx + dy * dy >= 1.0) {
           this.rawPoints.push(subWorldPt);
           lastPoint = subWorldPt;
@@ -130,7 +141,6 @@ export class CadFreehandController {
       }
     }
 
-    // Update real-time draft preview
     this.store.setDraft("stroke", {
       type: "stroke",
       points: [...this.rawPoints],
@@ -141,6 +151,7 @@ export class CadFreehandController {
         lineDash: this.currentStyle.lineDash ?? "continuous",
         opacity: this.currentStyle.opacity ?? 1,
         fillColor: this.currentStyle.fillColor,
+        fillOpacity: this.currentStyle.fillOpacity,
       },
     });
   };
@@ -154,7 +165,7 @@ export class CadFreehandController {
     this.runtime.setCameraInteractionEnabled?.(true);
 
     if (tool === "eraser") {
-      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
+      this.eraseAt(screenPt);
       return;
     }
 
@@ -180,7 +191,12 @@ export class CadFreehandController {
         this.facade.addStroke({
           points: simplified,
           smooth: true,
-          style: this.currentStyle,
+          style: {
+            color: this.currentStyle.color,
+            strokeWidth: this.currentStyle.strokeWidth,
+            lineDash: this.currentStyle.lineDash,
+            opacity: this.currentStyle.opacity,
+          },
         });
       }
     }
