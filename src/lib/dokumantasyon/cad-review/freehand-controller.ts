@@ -13,6 +13,7 @@ export class CadFreehandController {
   private destroyed = false;
   private isDrawing = false;
   private rawPoints: CadPoint2d[] = [];
+  private draftFrameId: number | null = null;
   private currentStyle: Partial<CadActiveMarkupStyle> = {
     color: "#ff3b30",
     strokeWidth: 2,
@@ -38,6 +39,7 @@ export class CadFreehandController {
 
   cancel(): void {
     if (this.destroyed) return;
+    this.cancelDraftFrame();
     this.isDrawing = false;
     this.rawPoints = [];
     this.store.clearDraft();
@@ -57,6 +59,37 @@ export class CadFreehandController {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     };
+  }
+
+  private strokeDraft(points: readonly CadPoint2d[]) {
+    return {
+      type: "stroke" as const,
+      points: [...points],
+      smooth: true,
+      style: {
+        color: this.currentStyle.color ?? "#ff3b30",
+        strokeWidth: this.currentStyle.strokeWidth ?? 2,
+        lineDash: this.currentStyle.lineDash ?? "continuous",
+        opacity: this.currentStyle.opacity ?? 1,
+        fillColor: this.currentStyle.fillColor,
+        fillOpacity: this.currentStyle.fillOpacity,
+      },
+    };
+  }
+
+  private cancelDraftFrame(): void {
+    if (this.draftFrameId === null) return;
+    window.cancelAnimationFrame(this.draftFrameId);
+    this.draftFrameId = null;
+  }
+
+  private scheduleDraftRefresh(): void {
+    if (this.destroyed || this.draftFrameId !== null) return;
+    this.draftFrameId = window.requestAnimationFrame(() => {
+      this.draftFrameId = null;
+      if (this.destroyed || !this.isDrawing || this.store.getSession().activeTool !== "stroke") return;
+      this.store.setDraft("stroke", this.strokeDraft(this.rawPoints));
+    });
   }
 
   private eraseAt(screenPoint: { x: number; y: number }): void {
@@ -86,23 +119,11 @@ export class CadFreehandController {
     if (!worldPt) return;
 
     e.preventDefault();
+    this.cancelDraftFrame();
     this.isDrawing = true;
     this.rawPoints = [worldPt];
     this.runtime.setCameraInteractionEnabled?.(false);
-
-    this.store.setDraft("stroke", {
-      type: "stroke",
-      points: [worldPt],
-      smooth: true,
-      style: {
-        color: this.currentStyle.color ?? "#ff3b30",
-        strokeWidth: this.currentStyle.strokeWidth ?? 2,
-        lineDash: this.currentStyle.lineDash ?? "continuous",
-        opacity: this.currentStyle.opacity ?? 1,
-        fillColor: this.currentStyle.fillColor,
-        fillOpacity: this.currentStyle.fillOpacity,
-      },
-    });
+    this.store.setDraft("stroke", this.strokeDraft(this.rawPoints));
   };
 
   private readonly handlePointerMove = (e: PointerEvent): void => {
@@ -141,19 +162,10 @@ export class CadFreehandController {
       }
     }
 
-    this.store.setDraft("stroke", {
-      type: "stroke",
-      points: [...this.rawPoints],
-      smooth: true,
-      style: {
-        color: this.currentStyle.color ?? "#ff3b30",
-        strokeWidth: this.currentStyle.strokeWidth ?? 2,
-        lineDash: this.currentStyle.lineDash ?? "continuous",
-        opacity: this.currentStyle.opacity ?? 1,
-        fillColor: this.currentStyle.fillColor,
-        fillOpacity: this.currentStyle.fillOpacity,
-      },
-    });
+    // Draft SVG updates are capped to the display refresh rate. Coalesced
+    // pointer samples are still collected, but React/store work is not done
+    // for every hardware pointer event on large drawings.
+    this.scheduleDraftRefresh();
   };
 
   private readonly handlePointerUp = (e: PointerEvent): void => {
@@ -162,6 +174,7 @@ export class CadFreehandController {
     const screenPt = this.getScreenPoint(e);
 
     this.isDrawing = false;
+    this.cancelDraftFrame();
     this.runtime.setCameraInteractionEnabled?.(true);
 
     if (tool === "eraser") {
@@ -176,7 +189,7 @@ export class CadFreehandController {
       const last = this.rawPoints[this.rawPoints.length - 1]!;
       const dx = finalWorldPt.x - last.x;
       const dy = finalWorldPt.y - last.y;
-      if (dx * dx + dy * dy >= 0.5) {
+      if (dx * dx + dy * dy >= 0.5 && this.rawPoints.length < this.maxPoints) {
         this.rawPoints.push(finalWorldPt);
       }
     }

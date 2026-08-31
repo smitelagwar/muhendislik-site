@@ -94,25 +94,26 @@ export function CadColorControl({
   return (
     <fieldset className="space-y-2" data-cad-color-control="true">
       <legend className="text-[11px] font-semibold text-muted-foreground">{label}</legend>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label={`${label} seçenekleri`}>
         {colors.map((color) => {
           const selected = color.hex.toLowerCase() === value.toLowerCase();
           return (
             <button
               key={color.hex}
               type="button"
+              role="radio"
               className={cn(
                 "relative flex size-8 items-center justify-center rounded-md border border-border/80 outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring",
                 selected && "ring-2 ring-primary/70"
               )}
               style={{ backgroundColor: color.hex }}
               onClick={() => commitColor(color.hex)}
-              aria-label={`${color.name} seç`}
-              aria-pressed={selected}
+              aria-label={`${color.name} (${color.hex})`}
+              aria-checked={selected}
               data-cad-color={color.hex}
               data-testid={`${testIdPrefix}-preset-${color.hex.slice(1).toLowerCase()}`}
             >
-              {selected ? <Check className="size-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" /> : null}
+              {selected ? <Check className="size-4 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]" aria-hidden="true" /> : null}
             </button>
           );
         })}
@@ -121,7 +122,7 @@ export function CadColorControl({
       {showRecent && recentColors.length > 0 ? (
         <div className="space-y-1.5" data-testid={`${testIdPrefix}-recent`}>
           <div className="text-[10px] font-medium text-muted-foreground">Son kullanılanlar</div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Son kullanılan renkler">
             {recentColors.map((color) => (
               <button
                 key={color}
@@ -129,7 +130,7 @@ export function CadColorControl({
                 className="size-7 rounded-md border border-border/80 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{ backgroundColor: color }}
                 onClick={() => commitColor(color)}
-                aria-label={`Son kullanılan ${color}`}
+                aria-label={`Son kullanılan renk ${color}`}
                 data-testid={`${testIdPrefix}-recent-${color.slice(1).toLowerCase()}`}
               />
             ))}
@@ -139,7 +140,7 @@ export function CadColorControl({
 
       {showCustom ? (
         <div className="space-y-1.5">
-          <div className="text-[10px] font-medium text-muted-foreground">Custom HEX</div>
+          <div className="text-[10px] font-medium text-muted-foreground">Özel HEX</div>
           <div className="flex items-center gap-1.5">
             <label
               className="relative size-8 shrink-0 overflow-hidden rounded-md border border-border/80"
@@ -170,7 +171,7 @@ export function CadColorControl({
               }}
               spellCheck={false}
               inputMode="text"
-              aria-label="Custom HEX renk"
+              aria-label="Özel HEX renk"
               className={cn(
                 "h-8 min-w-0 flex-1 rounded-md border bg-background px-2 font-mono text-xs uppercase outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 normalizeCadHexColor(customHex) ? "border-border" : "border-destructive/60"
@@ -183,10 +184,10 @@ export function CadColorControl({
               className="flex size-8 items-center justify-center rounded-md border border-border bg-background outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => commitColor(customHex)}
               disabled={!normalizeCadHexColor(customHex)}
-              aria-label="Custom HEX uygula"
+              aria-label="Özel HEX rengini uygula"
               data-testid={`${testIdPrefix}-apply`}
             >
-              <Plus className="size-3.5" />
+              <Plus className="size-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>

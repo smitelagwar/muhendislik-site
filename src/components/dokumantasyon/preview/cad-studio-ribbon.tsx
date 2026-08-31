@@ -5,6 +5,7 @@ import {
   type CadStudioRibbonProps,
 } from "./cad-studio-ribbon-desktop";
 import { CadResponsiveRibbon } from "./cad-responsive-ribbon";
+import { CadBlankCanvasRecovery } from "./cad-blank-canvas-recovery";
 
 export type { CadStudioRibbonProps } from "./cad-studio-ribbon-desktop";
 export { CAD_MARKUP_COLORS, CAD_TEXT_SIZES } from "./cad-studio-ribbon-desktop";
@@ -20,6 +21,7 @@ export function CadStudioRibbon(props: CadStudioRibbonProps) {
         <CadDesktopStudioRibbon {...props} />
       </div>
       <CadResponsiveRibbon {...props} />
+      <CadBlankCanvasRecovery onFitView={props.onFitView} />
     </>
   );
 }

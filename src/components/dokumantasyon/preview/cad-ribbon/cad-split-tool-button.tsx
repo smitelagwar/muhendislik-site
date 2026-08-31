@@ -4,7 +4,7 @@ import * as React from "react";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { CadRibbonButton, CAD_RIBBON_BUTTON_ACTIVE, CAD_RIBBON_BUTTON_BASE } from "./cad-ribbon-button";
+import { CadRibbonButton } from "./cad-ribbon-button";
 import { CadToolPopover } from "./cad-tool-popover";
 
 export interface CadSplitToolButtonProps {
@@ -42,6 +42,8 @@ export function CadSplitToolButton({
       )}
       data-cad-split-tool="true"
       data-cad-active={active ? "true" : "false"}
+      role="group"
+      aria-label={`${label} aracı`}
     >
       <CadRibbonButton
         icon={icon}
@@ -58,19 +60,16 @@ export function CadSplitToolButton({
       <CadToolPopover
         testId={menuTestId ? `${menuTestId}-content` : undefined}
         trigger={
-          <button
-            type="button"
+          <CadRibbonButton
+            icon={<ChevronDown aria-hidden="true" />}
+            iconOnly
+            active={active}
             aria-label={`${label} ayarlarını aç`}
+            tooltip={`${label} ayarları`}
             data-testid={menuTestId ?? (testId ? `${testId}-caret` : undefined)}
             data-cad-split-caret="true"
-            className={cn(
-              CAD_RIBBON_BUTTON_BASE,
-              "min-w-6 w-6 rounded-l-none border-l-0 px-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:min-w-11",
-              active && CAD_RIBBON_BUTTON_ACTIVE
-            )}
-          >
-            <ChevronDown className="size-3.5" aria-hidden="true" />
-          </button>
+            className="w-6 min-w-6 rounded-l-none border-l-0 px-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:min-w-11"
+          />
         }
       >
         {menu}

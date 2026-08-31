@@ -22,6 +22,34 @@ export interface CadRibbonButtonProps
   children?: React.ReactNode;
 }
 
+function handleCadToolbarNavigation(event: React.KeyboardEvent<HTMLButtonElement>) {
+  const key = event.key;
+  if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"].includes(key)) {
+    return;
+  }
+
+  const toolbar = event.currentTarget.closest<HTMLElement>('[role="toolbar"]');
+  if (!toolbar) return;
+
+  const buttons = Array.from(
+    toolbar.querySelectorAll<HTMLButtonElement>('[data-cad-ribbon-button="true"]:not([disabled])')
+  ).filter((button) => button.offsetParent !== null && button.getAttribute("aria-hidden") !== "true");
+
+  if (buttons.length === 0) return;
+  const currentIndex = buttons.indexOf(event.currentTarget);
+  if (currentIndex < 0) return;
+
+  let nextIndex = currentIndex;
+  if (key === "Home") nextIndex = 0;
+  else if (key === "End") nextIndex = buttons.length - 1;
+  else if (key === "ArrowRight" || key === "ArrowDown") nextIndex = (currentIndex + 1) % buttons.length;
+  else if (key === "ArrowLeft" || key === "ArrowUp") nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+
+  if (nextIndex === currentIndex && buttons.length === 1) return;
+  event.preventDefault();
+  buttons[nextIndex]?.focus();
+}
+
 export const CadRibbonButton = React.forwardRef<HTMLButtonElement, CadRibbonButtonProps>(
   function CadRibbonButton(
     {
@@ -35,6 +63,7 @@ export const CadRibbonButton = React.forwardRef<HTMLButtonElement, CadRibbonButt
       className,
       children,
       type = "button",
+      onKeyDown,
       "aria-label": ariaLabel,
       "aria-pressed": ariaPressed,
       ...props
@@ -59,6 +88,10 @@ export const CadRibbonButton = React.forwardRef<HTMLButtonElement, CadRibbonButt
           active && CAD_RIBBON_BUTTON_ACTIVE,
           className
         )}
+        onKeyDown={(event) => {
+          onKeyDown?.(event);
+          if (!event.defaultPrevented) handleCadToolbarNavigation(event);
+        }}
         {...props}
       >
         {icon ? <span className="relative flex size-4 items-center justify-center [&_svg]:size-4">{icon}</span> : null}
