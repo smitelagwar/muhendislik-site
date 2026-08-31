@@ -974,7 +974,9 @@
     "secondaryAltTr": "Kaba İnşaat (Teknik Detay) — Tipik kat betonarme çerçevesi: kolon, kiriş, döşeme ve perde birleşim donatı kesiti",
     "secondaryDifference": "Primary yükselen şantiyenin genel görünümünü sunarken, secondary karkasın içindeki donatı-kalıp-beton anatomisini kesit olarak öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kalip-isleri",
@@ -1025,7 +1027,9 @@
     "secondaryAltTr": "Kalıp İşleri (Teknik Detay) — Kalıp paneli arkasındaki tie-rod (tayrot) mili, koni ve boru koruma kesiti",
     "secondaryDifference": "Primary sahadaki kalıp kurulumunu gösterirken, secondary kalıbı tutan tie-rod ve su geçirimsizlik konisi detayını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kolon-kalibi",
@@ -1070,7 +1074,9 @@
     "secondaryAltTr": "Kolon Kalıbı (Teknik Detay) — Kolon kalıbının çift yönde şakül ve şakül ipi / lazer ile düşeylik kontrolü",
     "secondaryDifference": "Primary kalıbın montajını gösterirken, secondary kalıbın düşey eksenden sapmaması için yapılan hassas şakül ölçümünü öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kiris-kalibi",
@@ -1115,7 +1121,9 @@
     "secondaryAltTr": "Kiriş Kalıbı (Teknik Detay) — Kiriş kanadı açılma önleyici payandası ve taban ahşap H20 desteği kesiti",
     "secondaryDifference": "Primary kiriş kalıbının iskele kurgusunu gösterirken, secondary yan basıncı karşılayan payanda ve ters sehim detayını kesit olarak öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "doseme-kalibi",
