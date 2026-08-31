@@ -47,6 +47,7 @@ import {
 import type {
   CadReviewTool,
   CadActiveMarkupStyle,
+  CadMeasurementUnitSettings,
 } from "@/lib/dokumantasyon/cad-review/store";
 import type { CadSidePanelTab } from "./cad-review-side-panel";
 import type {
@@ -116,6 +117,10 @@ export interface CadStudioRibbonProps {
   markupStyle?: CadActiveMarkupStyle;
   onUpdateMarkupStyle?: (style: Partial<CadActiveMarkupStyle>) => void;
 
+  // Measurement Unit & Precision Settings (Aşama 4)
+  measurementUnitSettings?: CadMeasurementUnitSettings;
+  onUpdateMeasurementUnitSettings?: (settings: Partial<CadMeasurementUnitSettings>) => void;
+
   // Measure
   onStartDistance: () => void;
   onStartChainDistance?: () => void;
@@ -166,6 +171,12 @@ export function CadStudioRibbon({
     fontSize: 16,
   },
   onUpdateMarkupStyle,
+  measurementUnitSettings = {
+    unit: "m",
+    precision: 2,
+    color: "#3b82f6",
+  },
+  onUpdateMeasurementUnitSettings,
   onStartDistance,
   onStartChainDistance,
   onStartArea,
@@ -432,6 +443,96 @@ export function CadStudioRibbon({
             <Square className="h-4.5 w-4.5" />
             <span className="hidden md:inline text-xs">Alan</span>
           </Button>
+
+          {/* Ölçüm Birimi ve Hassasiyet Ayarları Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(btnBase, "px-2 text-muted-foreground hover:text-foreground hover:bg-background/80")}
+                title="Ölçüm Birimi ve Hassasiyet Ayarları"
+                data-testid="cad-tool-measure-settings"
+              >
+                <span className="text-[11px] font-mono font-bold text-blue-400">
+                  {measurementUnitSettings.unit} ({measurementUnitSettings.precision === 0 ? "0" : `0.${"0".repeat(measurementUnitSettings.precision)}`})
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl p-2.5">
+              <span className="text-[11px] text-muted-foreground font-semibold">Ölçüm Birimi</span>
+              <div className="grid grid-cols-3 gap-1 mt-1.5">
+                {(["m", "cm", "mm"] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => onUpdateMeasurementUnitSettings?.({ unit: u })}
+                    className={cn(
+                      "h-7 rounded-lg text-xs font-mono font-bold border border-border/70 bg-muted/60 transition-all hover:bg-background",
+                      measurementUnitSettings.unit === u && "bg-blue-600 text-white font-extrabold shadow-sm"
+                    )}
+                  >
+                    {u}
+                  </button>
+                ))}
+              </div>
+
+              <DropdownMenuSeparator className="my-2" />
+
+              <span className="text-[11px] text-muted-foreground font-semibold">Ondalık Hassasiyet</span>
+              <div className="grid grid-cols-4 gap-1 mt-1.5">
+                {[0, 1, 2, 3].map((prec) => (
+                  <button
+                    key={prec}
+                    type="button"
+                    onClick={() => onUpdateMeasurementUnitSettings?.({ precision: prec })}
+                    className={cn(
+                      "h-7 rounded-lg text-[11px] font-mono font-bold border border-border/70 bg-muted/60 transition-all hover:bg-background",
+                      measurementUnitSettings.precision === prec && "bg-blue-600 text-white font-extrabold shadow-sm"
+                    )}
+                  >
+                    {prec === 0 ? "0" : `0.${"0".repeat(prec)}`}
+                  </button>
+                ))}
+              </div>
+
+              <DropdownMenuSeparator className="my-2" />
+
+              <span className="text-[11px] text-muted-foreground font-semibold">Ölçüm Çizgisi Rengi</span>
+              <div className="grid grid-cols-5 gap-1.5 mt-1.5">
+                {[
+                  { name: "Mavi", hex: "#3b82f6" },
+                  { name: "Amber", hex: "#f59e0b" },
+                  { name: "Yeşil", hex: "#10b981" },
+                  { name: "Kırmızı", hex: "#ef4444" },
+                  { name: "Beyaz", hex: "#ffffff" },
+                ].map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => onUpdateMeasurementUnitSettings?.({ color: c.hex })}
+                    className={cn(
+                      "h-6 rounded-lg flex items-center justify-center transition-transform hover:scale-105 border border-white/20 shadow-sm",
+                      measurementUnitSettings.color === c.hex && "ring-2 ring-blue-400 scale-105"
+                    )}
+                    style={{ backgroundColor: c.hex }}
+                    title={c.name}
+                  >
+                    {measurementUnitSettings.color === c.hex && (
+                      <Check
+                        className={cn(
+                          "h-3 w-3",
+                          c.hex === "#ffffff" ? "text-black" : "text-white"
+                        )}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             type="button"

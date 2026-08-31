@@ -27,6 +27,12 @@ export interface CadActiveMarkupStyle {
   fontSize?: number;
 }
 
+export interface CadMeasurementUnitSettings {
+  unit: "m" | "cm" | "mm";
+  precision: number;
+  color: string;
+}
+
 export interface CadReviewSessionState {
   activeTool: CadReviewTool;
   selectedItemIds: Set<string>;
@@ -34,6 +40,7 @@ export interface CadReviewSessionState {
   statusFilter: "all" | "open" | "question" | "answered" | "closed";
   activeLayoutId: string | null;
   activeMarkupStyle: CadActiveMarkupStyle;
+  measurementUnitSettings: CadMeasurementUnitSettings;
 }
 
 export interface CadReviewDraftState {
@@ -67,6 +74,11 @@ export class CadReviewStore {
       lineDash: "continuous",
       opacity: 1,
       fontSize: 16,
+    },
+    measurementUnitSettings: {
+      unit: "m",
+      precision: 2,
+      color: "#3b82f6",
     },
   };
 
@@ -162,6 +174,18 @@ export class CadReviewStore {
     this.session.activeMarkupStyle = {
       ...this.session.activeMarkupStyle,
       ...style,
+    };
+    this.notify();
+  }
+
+  getMeasurementUnitSettings(): Readonly<CadMeasurementUnitSettings> {
+    return this.session.measurementUnitSettings;
+  }
+
+  setMeasurementUnitSettings(settings: Partial<CadMeasurementUnitSettings>): void {
+    this.session.measurementUnitSettings = {
+      ...this.session.measurementUnitSettings,
+      ...settings,
     };
     this.notify();
   }

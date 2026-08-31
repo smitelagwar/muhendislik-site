@@ -47,6 +47,7 @@ import {
   type CadReviewTool,
   type CadReviewDraftState,
   type CadActiveMarkupStyle,
+  type CadMeasurementUnitSettings,
 } from "@/lib/dokumantasyon/cad-review/store";
 import { CadMarkupFacade } from "@/lib/dokumantasyon/cad-review/markup-facade";
 import { CadMarkupController } from "@/lib/dokumantasyon/cad-review/markup-controller";
@@ -169,6 +170,11 @@ export function DokCadUpstreamViewer({
     opacity: 1,
     fontSize: 16,
   });
+  const [measurementUnitSettings, setMeasurementUnitSettings] = useState<CadMeasurementUnitSettings>({
+    unit: "m",
+    precision: 2,
+    color: "#3b82f6",
+  });
   const sectionRef = useRef<HTMLElement>(null);
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -178,6 +184,14 @@ export function DokCadUpstreamViewer({
       reviewStoreRef.current?.setActiveMarkupStyle(next);
       markupControllerRef.current?.setStyle(next);
       freehandControllerRef.current?.setStyle(next);
+      return next;
+    });
+  }, []);
+
+  const handleUpdateMeasurementUnitSettings = useCallback((patch: Partial<CadMeasurementUnitSettings>) => {
+    setMeasurementUnitSettings((prev) => {
+      const next = { ...prev, ...patch };
+      reviewStoreRef.current?.setMeasurementUnitSettings(next);
       return next;
     });
   }, []);
@@ -982,6 +996,8 @@ export function DokCadUpstreamViewer({
           onSelectBackgroundColor={selectBackgroundColor}
           markupStyle={markupStyle}
           onUpdateMarkupStyle={handleUpdateMarkupStyle}
+          measurementUnitSettings={measurementUnitSettings}
+          onUpdateMeasurementUnitSettings={handleUpdateMeasurementUnitSettings}
           onStartDistance={() => void handleStartDistance()}
           onStartChainDistance={() => void handleStartChainDistance()}
           onStartArea={() => void handleStartArea()}
