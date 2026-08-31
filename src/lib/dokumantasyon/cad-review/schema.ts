@@ -43,6 +43,7 @@ export type CadReviewItemStyle = z.infer<typeof cadReviewItemStyleSchema>;
 const cadReviewItemBaseSchema = z.object({
   id: z.string().uuid(),
   layoutId: z.string().max(128).optional(),
+  label: z.string().max(128).optional(),
   author: z.string().min(1).max(MAX_AUTHOR_LENGTH).default("Admin"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -63,7 +64,6 @@ export const cadReviewDistanceItemSchema = cadReviewItemBaseSchema.extend({
   measuredLength: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
     message: "Ölçüm mesafesi pozitif ve sonlu olmalıdır.",
   }),
-  label: z.string().max(128).optional(),
 });
 
 // 2. Chain Distance Measurement item
