@@ -553,17 +553,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/kolon-donati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/kolon-donati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/kolon-donati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -574,17 +574,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/kiris-donati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/kiris-donati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/kiris-donati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -595,17 +595,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/doseme-donati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/doseme-donati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/doseme-donati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -616,17 +616,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/donati-isleri/pas-payi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/pas-payi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/pas-payi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
