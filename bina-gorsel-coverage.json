@@ -196,17 +196,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/iksa-sistemi.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/iksa-sistemi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -217,17 +217,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/fore-kazik",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/fore-kazik.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/fore-kazik.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -238,17 +238,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/ankrajli-iksa",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/ankrajli-iksa.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/ankrajli-iksa.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -259,17 +259,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kazi-temel/iksa-sistemi/palplans",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/palplans.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/palplans.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {

@@ -486,7 +486,9 @@
     "secondaryAltTr": "İksa Sistemi (Teknik Detay) — İksa perdesinin arkasındaki zemin basıncı prizması ve yatay kuşak kirişi birleşimi",
     "secondaryDifference": "Primary iksa perdesinin genel zemin ilişkisini sunarken, secondary yatay kuşak kirişinin perdeye aktardığı yük düğümünü öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 93,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "fore-kazik",
@@ -532,7 +534,9 @@
     "secondaryAltTr": "Fore Kazık (Teknik Detay) — Tremie borusu ile kuyu tabanından yukarıya doğru su altı beton döküm kesiti",
     "secondaryDifference": "Primary makinenin donatıyı kuyuya indirmesini gösterirken, secondary kuyu içinde tremie borusuyla betonlama dinamiğini kesit olarak öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 93,
+    "status": "published"
   },
   {
     "id": "ankrajli-iksa",
@@ -577,7 +581,9 @@
     "secondaryAltTr": "Ankrajlı İksa (Teknik Detay) — Hidrolik kriko ile öngermeli zemin ankrajı halatlarının gerilmesi ve kilitlenmesi",
     "secondaryDifference": "Primary ankrajın zemin içindeki kesit geometrisini gösterirken, secondary sahada hidrolik krikoyla yapılan halat gerdirme operasyonunu öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "palplans",
@@ -622,7 +628,9 @@
     "secondaryAltTr": "Palplanş (Teknik Detay) — Çelik palplanş kilit birleşim kesiti (Larssen interlock) ve su geçirimsizlik dolgusu",
     "secondaryDifference": "Primary sahada palplanş çakımını gösterirken, secondary çelik kilitlerin mikro düzeydeki birbirine geçiş ve sızdırmazlık kesitini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "temel-turleri",
