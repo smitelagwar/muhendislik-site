@@ -91,6 +91,39 @@ export const CAD_PREVIEW_V2_MANIFEST: Record<string, CadPreviewV2FixtureManifest
       },
     ],
   },
+  "stage9-area-20m2": {
+    id: "stage9-area-20m2",
+    fileName: "stage9-area-20m2.dxf",
+    sha256: "da5cf68697432e27b3b98b18567fdcac044f54d2999202674b6a5b9585bb247a",
+    sizeBytes: 489,
+    expectedEngine: "upstream",
+    description: "Stage 9 construction oracle: 5000 mm x 4000 mm rectangle = 20.00 m2",
+    entities: [
+      { handle: "L_MEASURE_1", type: "LINE", layer: "GEOMETRY" },
+      { handle: "P_RECT_1", type: "LWPOLYLINE", layer: "GEOMETRY" },
+    ],
+    measurements: [
+      {
+        type: "area",
+        points: [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }],
+        expectedValue: 20000000.0,
+        tolerance: 1e-2,
+        unitLabel: "mm²",
+      },
+    ],
+  },
+  "stage9-unitless-calibration": {
+    id: "stage9-unitless-calibration",
+    fileName: "stage9-unitless-calibration.dxf",
+    sha256: "7e8c06f3068b5f3bf5e6d0f4b3ef7998ce086314c394acfb2d3b6c6d5eb2f076",
+    sizeBytes: 481,
+    expectedEngine: "upstream",
+    description: "Stage 9 unitless calibration oracle: 100 world units = 50 cm and 400x600 world rectangle",
+    entities: [
+      { handle: "L_MEASURE_1", type: "LINE", layer: "GEOMETRY" },
+      { handle: "P_RECT_1", type: "LWPOLYLINE", layer: "GEOMETRY" },
+    ],
+  },
   "layers-frozen-locked-zero": {
     id: "layers-frozen-locked-zero",
     fileName: "layers-frozen-locked-zero.dxf",
