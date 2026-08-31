@@ -21,12 +21,20 @@ export async function cleanupUploadedCadFixtures(page?: Page): Promise<void> {
     try {
       if (page && !page.isClosed()) {
         await page.evaluate(async (id) => {
-          try {
-            await fetch(`/api/dokumantasyon/files/${id}`, { method: "DELETE" });
-            await fetch(`/api/dokumantasyon/trash/files/${id}`, { method: "DELETE" });
-          } catch {
-            // ignore network errors during teardown
-          }
+          const boundedDelete = async (url: string) => {
+            const controller = new AbortController();
+            const timer = window.setTimeout(() => controller.abort("CAD_TEST_CLEANUP_TIMEOUT"), 1_500);
+            try {
+              await fetch(url, { method: "DELETE", signal: controller.signal });
+            } catch {
+              // ignore network/abort errors during teardown
+            } finally {
+              window.clearTimeout(timer);
+            }
+          };
+
+          await boundedDelete(`/api/dokumantasyon/files/${id}`);
+          await boundedDelete(`/api/dokumantasyon/trash/files/${id}`);
         }, fileId);
       }
     } catch {
