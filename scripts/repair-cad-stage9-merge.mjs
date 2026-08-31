@@ -1,13 +1,145 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 const adapterPath = "src/lib/dokumantasyon/cad-upstream/adapter.ts";
 const viewerPath = "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx";
+const fixtureRoot = "tests/fixtures/cad-preview-v2";
+const fixtureManifestPath = `${fixtureRoot}/manifest.ts`;
 
 function replaceRequired(source, needle, replacement, label) {
   if (!source.includes(needle)) {
     throw new Error(`Stage 9 repair anchor missing: ${label}`);
   }
   return source.replace(needle, replacement);
+}
+
+function buildValidAc1027Fixture({ insunits, lineEnd, rect }) {
+  const lines = [];
+  const pair = (code, value) => {
+    lines.push(String(code), String(value));
+  };
+
+  pair(0, "SECTION");
+  pair(2, "HEADER");
+  pair(9, "$ACADVER");
+  pair(1, "AC1027");
+  pair(9, "$INSUNITS");
+  pair(70, insunits);
+  pair(0, "ENDSEC");
+
+  pair(0, "SECTION");
+  pair(2, "TABLES");
+  pair(0, "TABLE");
+  pair(2, "LAYER");
+  pair(5, "2");
+  pair(330, "0");
+  pair(100, "AcDbSymbolTable");
+  pair(70, 2);
+
+  for (const [handle, name, color] of [
+    ["10", "0", 7],
+    ["11", "GEOMETRY", 1],
+  ]) {
+    pair(0, "LAYER");
+    pair(5, handle);
+    pair(330, "2");
+    pair(100, "AcDbSymbolTableRecord");
+    pair(100, "AcDbLayerTableRecord");
+    pair(2, name);
+    pair(70, 0);
+    pair(62, color);
+    pair(6, "CONTINUOUS");
+    pair(290, 1);
+    pair(370, -3);
+  }
+
+  pair(0, "ENDTAB");
+  pair(0, "ENDSEC");
+
+  pair(0, "SECTION");
+  pair(2, "BLOCKS");
+  pair(0, "ENDSEC");
+
+  pair(0, "SECTION");
+  pair(2, "ENTITIES");
+
+  pair(0, "LINE");
+  pair(5, "20");
+  pair(100, "AcDbEntity");
+  pair(8, "GEOMETRY");
+  pair(100, "AcDbLine");
+  pair(10, 0);
+  pair(20, 0);
+  pair(30, 0);
+  pair(11, lineEnd[0]);
+  pair(21, lineEnd[1]);
+  pair(31, 0);
+
+  pair(0, "LWPOLYLINE");
+  pair(5, "21");
+  pair(100, "AcDbEntity");
+  pair(8, "GEOMETRY");
+  pair(100, "AcDbPolyline");
+  pair(90, rect.length);
+  pair(70, 1);
+  for (const [x, y] of rect) {
+    pair(10, x);
+    pair(20, y);
+  }
+
+  pair(0, "ENDSEC");
+  pair(0, "EOF");
+  return lines.join("\n");
+}
+
+function normalizeStage9ReleaseFixtures() {
+  const fixtures = [
+    {
+      fileName: "known-geometry-measurements.dxf",
+      content: buildValidAc1027Fixture({
+        insunits: 4,
+        lineEnd: [3000, 4000],
+        rect: [[0, 0], [3000, 0], [3000, 4000], [0, 4000]],
+      }),
+    },
+    {
+      fileName: "stage9-area-20m2.dxf",
+      content: buildValidAc1027Fixture({
+        insunits: 4,
+        lineEnd: [5000, 4000],
+        rect: [[0, 0], [5000, 0], [5000, 4000], [0, 4000]],
+      }),
+    },
+    {
+      fileName: "stage9-unitless-calibration.dxf",
+      content: buildValidAc1027Fixture({
+        insunits: 0,
+        lineEnd: [100, 0],
+        rect: [[0, 0], [400, 0], [400, 600], [0, 600]],
+      }),
+    },
+  ];
+
+  let manifest = readFileSync(fixtureManifestPath, "utf8");
+  for (const fixture of fixtures) {
+    writeFileSync(`${fixtureRoot}/${fixture.fileName}`, fixture.content, "utf8");
+    const sha256 = createHash("sha256").update(fixture.content, "utf8").digest("hex");
+    const sizeBytes = Buffer.byteLength(fixture.content, "utf8");
+    const escapedName = fixture.fileName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const metadataPattern = new RegExp(
+      `(fileName: "${escapedName}",\\n\\s+sha256: ")[^"]+("[,]?\\n\\s+sizeBytes: )\\d+`
+    );
+    if (!metadataPattern.test(manifest)) {
+      throw new Error(`Stage 9 fixture manifest anchor missing: ${fixture.fileName}`);
+    }
+    manifest = manifest.replace(metadataPattern, `$1${sha256}$2${sizeBytes}`);
+  }
+
+  manifest = manifest
+    .replaceAll('{ handle: "L_MEASURE_1", type: "LINE", layer: "GEOMETRY" }', '{ handle: "20", type: "LINE", layer: "GEOMETRY" }')
+    .replaceAll('{ handle: "P_RECT_1", type: "LWPOLYLINE", layer: "GEOMETRY" }', '{ handle: "21", type: "LWPOLYLINE", layer: "GEOMETRY" }');
+
+  writeFileSync(fixtureManifestPath, manifest, "utf8");
 }
 
 let adapter = readFileSync(adapterPath, "utf8");
@@ -194,4 +326,5 @@ if (!viewer.includes("backgroundColor={backgroundColor}")) {
 }
 
 writeFileSync(viewerPath, viewer, "utf8");
-console.log("Stage 9 merge repair applied/idempotent.");
+normalizeStage9ReleaseFixtures();
+console.log("Stage 9 merge repair applied/idempotent; release fixtures normalized.");
