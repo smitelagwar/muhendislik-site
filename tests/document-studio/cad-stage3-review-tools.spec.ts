@@ -5,6 +5,7 @@ import { cadReviewDocumentSchema } from "../../src/lib/dokumantasyon/cad-review/
 import { exportReviewToJson } from "../../src/lib/dokumantasyon/cad-review/export-json";
 import { CadMarkupFacade } from "../../src/lib/dokumantasyon/cad-review/markup-facade";
 import { CadReviewStore } from "../../src/lib/dokumantasyon/cad-review/store";
+import { getCurrentCadReviewStore } from "../../src/lib/dokumantasyon/cad-review/active-store";
 
 function doc(): CadReviewDocument {
   const now = new Date().toISOString();
@@ -144,5 +145,20 @@ test.describe("CAD Stage 3 — review tool data/undo contract", () => {
     expect(store.undo()).toBe(true);
     expect(store.getItems()).toHaveLength(4);
     expect(store.getItems().filter((item) => item.type !== "area")).toHaveLength(3);
+  });
+
+  test("aktif store bridge ilk subscribe ve sonraki tool/selection etkileşimlerinde stale kalmaz", () => {
+    const first = new CadReviewStore(doc());
+    const unsubscribe = first.subscribe(() => {});
+    expect(getCurrentCadReviewStore()).toBe(first);
+    unsubscribe();
+
+    const second = new CadReviewStore(doc());
+    second.setActiveTool("stroke");
+    expect(getCurrentCadReviewStore()).toBe(second);
+
+    const third = new CadReviewStore(doc());
+    third.setSelectedItems([]);
+    expect(getCurrentCadReviewStore()).toBe(third);
   });
 });
