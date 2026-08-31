@@ -2760,7 +2760,7 @@
     "secondaryMustShow": [
       "yüzeyi pürüzlendirilmiş zemin betonu",
       "derin nüfuz eden astar tabakası",
-      "kendiliğinden yayılan 2mm gövde",
+      "kendiliğinden yayılan epoksi gövde katmanı",
       "son kat aşınma tabakası"
     ],
     "secondaryMustNotShow": [
@@ -2768,11 +2768,13 @@
       "mikron rakamları",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Epoksi\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Helikopterli beton zemin üzerine self-leveling epoksi kaplamanın çekçek ve kirpi rulo ile yayılması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Epoksi zemin katmanları: bilyalanmış beton, epoksi astar, ara katman ve son kat poliüretan koruma kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: yüzeyi pürüzlendirilmiş zemin betonu, derin nüfuz eden astar tabakası, kendiliğinden yayılan 2mm gövde, son kat aşınma tabakası.\nPRIMARY'DEN FARK: Primary sahadaki parlak sıvı reçine serimini gösterirken, secondary beton yüzey hazırlığından son kata epoksi katman mimarisini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, mikron rakamları, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
+    "secondaryPromptTr": "KONU: Epoksi\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Çivili ayakkabılı ustaların çekçek ve kirpi rulo ile self-leveling epoksi yaydığı endüstriyel saha\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Pürüzlendirilmiş beton, nüfuz eden astar, epoksi gövde ve ince koruyucu son katın fiziksel sürekliliğini göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi endüstriyel zemin kenarı; küçük bir kademeli inceleme kesiti bitmiş yüzeye uzanır.\nMUTLAKA GÖRÜNSÜN: agregası görünen pürüzlendirilmiş beton, gözenekleri ıslatan astar, düzgün epoksi gövde katmanı ve ince saten aşınma katı.\nPRIMARY'DEN FARK: Primary sıvı reçinenin saha uygulamasını, secondary beton yüzeyden bitmiş zemine katman mimarisini gösterir.\nKESİNLİKLE OLMASIN: yazı, rakam, oklar, logo, filigran, UI, HUD, kolaj veya havada yüzen katman.",
     "secondaryAltTr": "Epoksi (Teknik Detay) — Epoksi zemin katmanları: bilyalanmış beton, epoksi astar, ara katman ve son kat poliüretan koruma kesiti",
     "secondaryDifference": "Primary sahadaki parlak sıvı reçine serimini gösterirken, secondary beton yüzey hazırlığından son kata epoksi katman mimarisini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 93,
+    "status": "published"
   },
   {
     "id": "duvar-kaplamalari",
@@ -2791,10 +2793,10 @@
     "secondaryTargetWebp": "/bina-asamalari/details/duvar-kaplamalari.webp",
     "legacySvgCard": "/bina-asamalari/topics/duvar-kaplamalari.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında i̇ç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında modern iç mekân duvarına akustik keçe taşıyıcılı dikey ahşap çıta panellerin montajını net olarak anlamalı.",
     "primaryMustShow": [
-      "duvar kaplama panelleri",
-      "alt karkas veya yapıştırıcı",
+      "dikey ahşap çıtalı akustik duvar panelleri",
+      "açık bölümde ahşap alt karkas ve mineral yün",
       "hizalama terazisi",
       "modern iç mekan"
     ],
@@ -2803,26 +2805,29 @@
       "katalog kolajı",
       "marka"
     ],
-    "primaryPromptTr": "KONU: Duvar Kaplamaları\nİÇERİK: Mekanların temizlenebilirlik, görsellik ve dayanıklılık hedeflerine göre uygulanan son kat duvar çözümleri.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında i̇ç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: duvar kaplama panelleri, alt karkas veya yapıştırıcı, hizalama terazisi, modern iç mekan.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, katalog kolajı, marka, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Duvar Kaplamaları — İç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı",
+    "primaryPromptTr": "KONU: Duvar Kaplamaları\nİÇERİK: Mekânların akustik, görsel ve dayanıklılık hedeflerine göre uygulanan son kat duvar çözümleri.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Modern iç mekân duvarına dikey ahşap çıtalı akustik panellerin gerçek montajını göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay geniş oda; usta su terazisiyle tam boy paneli hizalıyor, bitişik açık bölümde ahşap karkas ve koyu mineral yün görülüyor.\nMUTLAKA GÖRÜNSÜN: eşit aralıklı dikey ahşap çıtalar, siyah akustik keçe, ahşap alt karkas, mineral yün ve hizalama terazisi.\nFİZİKSEL DOĞRULUK: Panel karkasa tam otursun; çıtalar düşey ve düzenli olsun.\nKESİNLİKLE OLMASIN: karışık kaplama sistemi, katalog kolajı, yazı, logo, marka, filigran, UI veya HUD.",
+    "primaryAltTr": "Duvar Kaplamaları — Ahşap karkas ve mineral yün önünde hizalanan dikey çıtalı akustik panel montajı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: akustik ahşap duvar panelinin gizli klips ve taşyünü yalıtım karkasına geçiş kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: akustik ahşap panelin duvar altlığı, ahşap karkas, mineral yün, siyah akustik keçe ve temiz kenar bitişi",
     "secondaryMustShow": [
-      "delikli/oluklu ahşap akustik panel",
-      "arkasında siyah akustik tül ve taşyünü",
-      "gizli vidalı alüminyum montaj klipsi"
+      "dikey çıtalı ahşap akustik panel",
+      "arkasında siyah akustik keçe ve mineral yün",
+      "duvara sabitlenmiş ahşap karkas ve gizli siyah vidalar",
+      "temiz düşey kenar veya köşe bitişi"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Duvar Kaplamaları\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: İç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Akustik ahşap duvar panelinin gizli klips ve taşyünü yalıtım karkasına geçiş kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: delikli/oluklu ahşap akustik panel, arkasında siyah akustik tül ve taşyünü, gizli vidalı alüminyum montaj klipsi.\nPRIMARY'DEN FARK: Primary genel duvar kaplama uygulamasını gösterirken, secondary arkasındaki akustik yalıtım ve gizli klipsli taşıyıcı kesiti öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Duvar Kaplamaları (Teknik Detay) — Akustik ahşap duvar panelinin gizli klips ve taşyünü yalıtım karkasına geçiş kesiti",
-    "secondaryDifference": "Primary genel duvar kaplama uygulamasını gösterirken, secondary arkasındaki akustik yalıtım ve gizli klipsli taşıyıcı kesiti öğretir.",
+    "secondaryPromptTr": "KONU: Duvar Kaplamaları\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın tam boy akustik ahşap paneli geniş iç mekânda hizaladığı montaj süreci\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Panel arkasındaki karkas, yalıtım, akustik keçe, gizli sabitleme ve kenar bitişini yakın planda göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi açık kenarlı duvar kaplaması detayı.\nMUTLAKA GÖRÜNSÜN: duvar altlığı, sabit ahşap karkas, arada mineral yün, siyah keçe, dikey ahşap çıta paneli, gizli siyah vidalar ve temiz kenar bitişi.\nPRIMARY'DEN FARK: Primary geniş saha montajını, secondary panelin arkasındaki akustik ve taşıyıcı katmanları gösterir.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, HUD, kolaj veya havada yüzen çıta.",
+    "secondaryAltTr": "Duvar Kaplamaları (Teknik Detay) — Ahşap karkas, mineral yün, siyah keçe, gizli sabitleme ve çıtalı panel kenarı",
+    "secondaryDifference": "Primary ustanın geniş duvarda panel hizalamasını gösterirken, secondary taşıyıcı karkas, akustik dolgu ve panel kenar bitişini yakın planda öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "fayans",
@@ -2853,22 +2858,25 @@
     "primaryAltTr": "Fayans — Banyo veya ıslak hacim duvarında su yalıtımı üstüne parlak seramik fayans döşeme",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: islak hacim köşe birleşiminde pah bandı (su yalıtım elastik bandı) ve silikon derz kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: ıslak hacim duvar altlığı, sürekli su yalıtımı, köşe bandı, yapıştırıcı, karo ve derz katmanları",
     "secondaryMustShow": [
-      "iki duvarın birleştiği 90 derece köşe",
-      "su yalıtımı altına gömülü su sızdırmaz elastik pah bandı",
-      "fayans köşesinde antibakteriyel silikon"
+      "çimento esaslı duvar altlığı ve sürekli su yalıtım membranı",
+      "iç köşede membrana gömülü elastik yalıtım bandı",
+      "taraklı çimento esaslı yapıştırıcı ve tam destekli karolar",
+      "dar derzler ile yön değişiminde esnek mastik"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Fayans\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Banyo veya ıslak hacim duvarında su yalıtımı üstüne parlak seramik fayans döşeme\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Islak hacim köşe birleşiminde pah bandı (su yalıtım elastik bandı) ve silikon derz kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: iki duvarın birleştiği 90 derece köşe, su yalıtımı altına gömülü su sızdırmaz elastik pah bandı, fayans köşesinde antibakteriyel silikon.\nPRIMARY'DEN FARK: Primary duvara fayans döşeme işçiliğini gösterirken, secondary su sızıntılarını önleyen köşe yalıtım pah bandı ve silikon kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Fayans (Teknik Detay) — Islak hacim köşe birleşiminde pah bandı (su yalıtım elastik bandı) ve silikon derz kesiti",
-    "secondaryDifference": "Primary duvara fayans döşeme işçiliğini gösterirken, secondary su sızıntılarını önleyen köşe yalıtım pah bandı ve silikon kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Fayans\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın su yalıtımlı ıslak hacim duvarına tesviye klipsleriyle fayans döşediği saha uygulaması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Duvar altlığından bitmiş karoya su yalıtımı, köşe bandı, yapıştırıcı ve derz sürekliliğini göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi duş iç köşesi; bir kenarda katmanlar açık, bitmiş fayans yüzeyi devam ediyor.\nMUTLAKA GÖRÜNSÜN: çimento esaslı altlık, köşeden kesintisiz dönen mavi-gri membran, gömülü elastik bant, taraklı yapıştırıcı, tam destekli karolar, dar derz ve köşede esnek mastik.\nPRIMARY'DEN FARK: Primary gerçek fayans montajını, secondary su geçirmez katman dizisini ve köşe sürekliliğini gösterir.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, HUD, kolaj veya havada yüzen katman.",
+    "secondaryAltTr": "Fayans (Teknik Detay) — Duvar altlığı, sürekli su yalıtımı, köşe bandı, taraklı yapıştırıcı, karo ve derz kesiti",
+    "secondaryDifference": "Primary ustanın ıslak hacim duvarında fayans montajını gösterirken, secondary su yalıtımından derze uzanan katman sırasını ve köşe sürekliliğini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "boya",

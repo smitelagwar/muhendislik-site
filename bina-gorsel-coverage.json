@@ -1183,17 +1183,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/ince-isler/zemin-kaplamalari/epoksi-kaplama",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/epoksi-kaplama.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/epoksi-kaplama.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1204,17 +1204,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/duvar-kaplamalari.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/duvar-kaplamalari.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1225,17 +1225,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/ince-isler/duvar-kaplamalari/fayans",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/fayans.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/fayans.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
