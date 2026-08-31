@@ -57,7 +57,7 @@
 | F7-01 | Beton Metrajı V2 (23) | DONE | feat(concrete-qty): add volume and mixer truck governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (brüt sipariş ve mikser seferi dengesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F7-02 | Hafriyat & Kamyon Sefer (24) | DONE | feat(excavation): add solid volume and truck trips governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (hafriyat ve damperli kamyon nakliye dengesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F7-03 | Pratik Donatı Metrajı (25) | DONE | feat(rebar-qty): add typology tonnage governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (pratik donatı oranı ve sipariş tonajı tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F7-04 | Pratik Kalıp Metrajı (26) | TODO | | | |
+| F7-04 | Pratik Kalıp Metrajı (26) | DONE | feat(formwork-qty): add formwork area and plywood count governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (kalıp açınımı ve plywood plaka tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F7-05 | Duvar & Tuğla Metrajı (27) | TODO | | | |
 | F7-06 | Sıva & Boya Metrajı (28) | TODO | | | |
 | F7-07 | Çatı & Ahşap Metrajı (29) | TODO | | | |

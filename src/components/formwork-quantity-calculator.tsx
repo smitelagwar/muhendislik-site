@@ -12,6 +12,12 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { calculateFormworkQuantity } from "@/lib/engineering/quantity/formwork-ratio";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function FormworkQuantityCalculator() {
   const [floorArea, setFloorArea] = useState(300);
@@ -74,12 +80,8 @@ METRAJ VE EKİPMAN İHTİYACI:
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Layers className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Kalıp & İskele
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Kalıp Açınım Standartları", "ÇŞB Pozları"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -227,10 +229,39 @@ METRAJ VE EKİPMAN İHTİYACI:
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Kalıp Açınımı ve Plywood Plaka Tahkiki"
+                      demand={Number(result.singleStoryFormworkAreaM2.toFixed(1))}
+                      capacity={Number((result.plywoodSheetsCount * 3.125).toFixed(1))}
+                      unit="m²"
+                      status="ok"
+                      explanation={`Kat döşeme alanı ${floorArea} m² için açınım katsayısı ${ratio} ile tek kat kalıp alanı = ${result.singleStoryFormworkAreaM2.toFixed(1)} m². Tek takım için 250x125 cm ebatlarında ~${result.plywoodSheetsCount} plaka plywood ve döşeme altı için ~${result.telescopicPropsCount} adet dikme gereklidir.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Kat döşeme alanı ve mimari/statik açınım katsayısı (2.0 - 3.5) ile tek kat ve toplam kalıp yüzey alanı hesabı",
+              "Standart plywood plaka ebadına (250x125 cm = 3.125 m²) göre tek takım plaka ihtiyacı",
+              "Kat yüksekliği ve hacmine göre döşeme altı iskele (m³) ve teleskopik dikme adedi hesabı"
+            ]}
+            limitations={[
+              "Kalıp sirkülasyon devir sayısı (tek takım veya çift takım çalışma) şantiye iş programına göre haricen belirlenir",
+              "Kaset, asmolen veya nervürlü döşemelerde kalıp açınım katsayısı düz plak döşemelere göre daha yüksek seçilmelidir",
+              "Kalıp iskelesi taşıma kapasitesi ve rüzgar devrilme tahkikleri TS EN 12812 standardına göre harici statik hesaba tabidir"
+            ]}
+            inputProvenance="Kalıp İskelesi ve Açınım Şantiye Pratik Katsayıları, ÇŞB Kaba İnşaat Rayiçleri"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
