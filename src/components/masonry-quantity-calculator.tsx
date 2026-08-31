@@ -16,6 +16,12 @@ import {
   MASONRY_MATERIALS,
   type MasonryMaterialType,
 } from "@/lib/engineering/quantity/masonry";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function MasonryQuantityCalculator() {
   const [wallLength, setWallLength] = useState(25);
@@ -87,12 +93,8 @@ ${
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Grid className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                İnce Yapı Metrajı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Birim Sarfiyat Standartları", "ÇŞB Pozları"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -266,10 +268,39 @@ ${
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Duvar Alanı ve Blok/Tuğla İhtiyacı Tahkiki"
+                      demand={Number(result.totalPiecesCount)}
+                      capacity={Number(result.netAreaM2.toFixed(1))}
+                      unit="Adet"
+                      status="ok"
+                      explanation={`${result.materialName} ile ${result.netAreaM2.toFixed(1)} m² net duvar alanı için %${wastePct} fire dahil ${result.totalPiecesCount} adet blok gereklidir (${result.adhesiveBagsCount ? `~${result.adhesiveBagsCount} torba yapıştırıcı` : `~${result.mortarVolumeM3.toFixed(2)} m³ harç`}).`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Brüt duvar alanı ve kapı/pencere boşlukları düşülerek net duvar örme alanı (m²) hesabı",
+              "Tuğla, gazbeton ve bims blok birim ebatlarına göre adet ve % fireli sipariş miktarı hesabı",
+              "Gazbeton yapıştırıcısı torba adedi veya çimento harcı hacmi (m³) tahmini"
+            ]}
+            limitations={[
+              "Lento, hatıl ve kolon bağlantı ankraj demirleri harici betonarme hesabına tabidir",
+              "Farklı derz kalınlıkları (10-15 mm kaba harç veya 2-3 mm ince yapıştırıcı) sarfiyatı etkileyebilir",
+              "Kırık ve köşe kesim zayiatları karmaşık mimari planlarda fire yüzdesini artırabilir"
+            ]}
+            inputProvenance="Tuğla, Gazbeton ve Bims İmalatçı Birim Sarfiyat Standartları, ÇŞB İnce İnşaat Rayiçleri"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
