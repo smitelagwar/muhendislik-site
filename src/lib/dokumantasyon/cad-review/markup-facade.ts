@@ -201,6 +201,7 @@ export class CadMarkupFacade {
         strokeWidth: params.style?.strokeWidth ?? 2,
         opacity: params.style?.opacity ?? 1,
         fontSize: params.style?.fontSize ?? 16,
+        fillColor: params.style?.fillColor,
       },
     };
 

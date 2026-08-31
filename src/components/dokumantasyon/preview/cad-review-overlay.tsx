@@ -225,14 +225,23 @@ function ReviewItemRenderer({
   if (item.type === "comment_pin") {
     const p = project(item.position);
     if (!p) return null;
+    const statusBg =
+      item.status === "closed"
+        ? "#10b981"
+        : item.status === "answered"
+        ? "#3b82f6"
+        : item.status === "question"
+        ? "#f59e0b"
+        : color;
+
     return (
       <g {...commonProps} data-review-type="comment_pin" data-review-id={item.id}>
         {/* pin teardrop shape */}
         <path
           d={`M ${p.x} ${p.y} C ${p.x - 10} ${p.y - 10}, ${p.x - 12} ${p.y - 24}, ${p.x} ${p.y - 26} C ${p.x + 12} ${p.y - 24}, ${p.x + 10} ${p.y - 10}, ${p.x} ${p.y}`}
-          fill={color}
+          fill={statusBg}
           stroke="white"
-          strokeWidth={1}
+          strokeWidth={1.5}
         />
         <text
           x={p.x}
@@ -241,7 +250,7 @@ function ReviewItemRenderer({
           dominantBaseline="middle"
           fontSize={9}
           fontWeight="bold"
-          fontFamily="system-ui, sans-serif"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fill="white"
         >
           {item.pinIndex}
@@ -253,6 +262,11 @@ function ReviewItemRenderer({
   if (item.type === "text") {
     const p = project(item.position);
     if (!p) return null;
+    const fs = item.style.fontSize ?? 16;
+    const hasBg = Boolean(item.style.fillColor);
+    const textWidth = Math.max(30, item.text.length * (fs * 0.62));
+    const textHeight = fs * 1.3;
+
     return (
       <g
         {...commonProps}
@@ -260,14 +274,28 @@ function ReviewItemRenderer({
         data-review-type="text"
         data-review-id={item.id}
       >
+        {hasBg && (
+          <rect
+            x={p.x - 4}
+            y={p.y - textHeight + 3}
+            width={textWidth + 8}
+            height={textHeight + 4}
+            rx={4}
+            fill={item.style.fillColor}
+            fillOpacity={0.9}
+            stroke={color}
+            strokeWidth={1}
+          />
+        )}
         <text
           x={p.x}
           y={p.y}
-          fontSize={14}
-          fontFamily="system-ui, sans-serif"
+          fontSize={fs}
+          fontWeight="bold"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fill={color}
-          stroke="black"
-          strokeWidth={2}
+          stroke={hasBg ? "none" : "black"}
+          strokeWidth={hasBg ? 0 : 2}
           paintOrder="stroke"
         >
           {item.text}
@@ -280,6 +308,10 @@ function ReviewItemRenderer({
     const tip = project(item.tip);
     const anchor = project(item.anchor);
     if (!tip || !anchor) return null;
+    const fs = item.style.fontSize ?? 12;
+    const bubbleW = Math.max(60, item.text.length * (fs * 0.65) + 16);
+    const bubbleH = fs + 12;
+
     return (
       <g {...commonProps} data-review-type="callout" data-review-id={item.id}>
         <line x1={tip.x} y1={tip.y} x2={anchor.x} y2={anchor.y} stroke={color} strokeWidth={sw} />
@@ -287,19 +319,22 @@ function ReviewItemRenderer({
         {/* bubble */}
         <rect
           x={anchor.x - 2}
-          y={anchor.y - 14}
-          width={Math.max(50, item.text.length * 7)}
-          height={20}
-          rx={4}
-          fill={color}
-          fillOpacity={0.85}
+          y={anchor.y - bubbleH + 6}
+          width={bubbleW}
+          height={bubbleH}
+          rx={6}
+          fill={item.style.fillColor || color}
+          fillOpacity={0.92}
+          stroke={color}
+          strokeWidth={1}
         />
         <text
-          x={anchor.x + Math.max(50, item.text.length * 7) / 2 - 2}
+          x={anchor.x + bubbleW / 2 - 2}
           y={anchor.y - 2}
           textAnchor="middle"
-          fontSize={11}
-          fontFamily="system-ui, sans-serif"
+          fontSize={fs}
+          fontWeight="bold"
+          fontFamily="system-ui, -apple-system, sans-serif"
           fill="white"
         >
           {item.text}
