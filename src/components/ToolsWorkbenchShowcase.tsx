@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -235,24 +235,19 @@ export default function ToolsWorkbenchShowcase({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTier, setSelectedTier] = useState<string>("all");
-  const [recentToolIds, setRecentToolIds] = useState<string[]>([]);
-
-  // LocalStorage'dan son kullanılan 5 aracı yükle
-  useEffect(() => {
+  const [recentToolIds, setRecentToolIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
     try {
       const stored = localStorage.getItem("muhendis_recent_tools");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          queueMicrotask(() => {
-            setRecentToolIds(parsed.slice(0, 5));
-          });
-        }
+        if (Array.isArray(parsed)) return parsed.slice(0, 5);
       }
     } catch {
       // ignore
     }
-  }, []);
+    return [];
+  });
 
   const handleToolClick = (id: string) => {
     try {

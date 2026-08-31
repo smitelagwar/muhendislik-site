@@ -5,6 +5,7 @@ import { NavbarActions } from "@/components/navbar-actions";
 import { NavbarChrome } from "@/components/navbar-chrome";
 import { NavbarDesktopNav } from "@/components/navbar-desktop-nav";
 import { NavbarLeading } from "@/components/navbar-leading";
+import { NavbarRibbon } from "@/components/navbar-ribbon";
 import { NavbarRouteTracker } from "@/components/navbar-route-tracker";
 
 export function Navbar() {
@@ -22,7 +23,7 @@ export function Navbar() {
         <div className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-blue-500" />
 
         <div className="mx-auto max-w-screen-2xl px-2 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
-          <div className="flex items-center justify-between py-5 transition-all duration-500 group-data-[scrolled=true]/navbar:py-3">
+          <div className="flex items-center justify-between py-3 transition-all duration-500 group-data-[scrolled=true]/navbar:py-2">
             <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 xl:gap-6 2xl:gap-8">
               <NavbarLeading />
               <NavbarDesktopNav />
@@ -31,6 +32,9 @@ export function Navbar() {
             <NavbarActions />
           </div>
         </div>
+
+        {/* Ribbon toolbar — sits below the primary navbar */}
+        <NavbarRibbon />
       </NavbarChrome>
     </>
   );
