@@ -9,6 +9,12 @@ import {
   STEEL_PROFILES_DATABASE,
   type SteelSectionData,
 } from "@/lib/engineering/steel/profile-selection";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const STEEL_GRADES = [
   { name: "S235", fy: 235, fu: 360 },
@@ -109,6 +115,10 @@ TAHKİK:
       </div>
 
       <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <ToolScopeBadge kind="check" />
+          <ToolSourceStamp sources={["ÇYTHYE 2018", "AISC 360-16"]} tier="A" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-500/15 text-slate-600 dark:text-slate-400">
             <Wrench className="h-6 w-6" />
@@ -220,13 +230,47 @@ TAHKİK:
               ))}
             </div>
 
+            {/* Governing Check Card */}
             <div className="mt-4">
-              <button onClick={handleCopy} className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-700 py-3 text-xs font-bold text-white hover:bg-slate-600 transition-colors">
+              <GoverningCheckCard
+                label={`ÇYTHYE 2018 Profil Kapasite Tahkiki (${profile.name})`}
+                demand={Number(results.utilCombined)}
+                capacity={100}
+                unit="%"
+                status={results.isCombinedSafe && results.isSlendernessSafe ? "ok" : "fail"}
+                explanation={
+                  results.isCombinedSafe && results.isSlendernessSafe
+                    ? `${profile.name} profili (${steel.name}) eğilme, kesme ve burkulma tahkiklerini sağlamaktadır. Narinlik lambda = ${results.lambda} <= ${results.lambdaLimit}, birleşik kullanım: %${results.utilCombined}.`
+                    : `Kapasite veya narinlik sınırı aşılmıştır! Profil kesitini büyütün veya burkulma boyunu azaltın.`
+                }
+              />
+            </div>
+
+            <div className="mt-4">
+              <button onClick={handleCopy} className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-slate-700 py-3 text-xs font-bold text-white hover:bg-slate-600 transition-colors">
                 <Copy className="h-4 w-4" />{copied ? "Kopyalandı!" : "Hesap Raporunu Kopyala"}
               </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "ÇYTHYE 2018 ve AISC 360-16 uyarınca IPE, HEA, HEB sıcak haddelenmiş çelik profillerin kesit kapasite tahkiki",
+            "Euler burkulması narinlik hesabı (lambda = Lk / i_min) ve burkulma eğrileri (chi katsayısı) ile eksenel basınç dayanımı (Nb,Rd)",
+            "Eğilme (MRd), kayma (VRd) ve N+M birleşik etkileşim oranı kontrolü"
+          ]}
+          limitations={[
+            "Yanal burulmalı burkulma (LTB) katsayısı Cb ve tutulmamış boy Lb harici stabilite kontrolü gerektirir",
+            "Yerel burkulma sınıfı (Sınıf 1, 2, 3, 4 kesit sınıflandırması) ince cidarlı elemanlarda harici tahkik edilmelidir",
+            "Birleşim bölgesi levha, kaynak ve cıvata gerilme kontrolleri harici birleşim aracında yapılmalıdır"
+          ]}
+          inputProvenance="ÇYTHYE 2018 Çelik Yapıların Tasarım, Hesap ve Yapım Esasları ve AISC 360-16"
+          defaultOpen={false}
+        />
       </div>
     </div>
   );

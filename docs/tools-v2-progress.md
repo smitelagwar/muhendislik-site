@@ -48,7 +48,7 @@
 | F4-06 | Radye Temel (14) | DONE | feat(mat): add soil bearing and punching governing checks and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (zemin taşıma emniyeti ve TS 500 zımbalama tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-07 | İksa Toprak Basıncı (15) | DONE | feat(retaining): add earth thrust and overturning governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (itki ve devrilme momenti tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-08 | Şev Stabilitesi (16) | DONE | feat(slope): add factor of safety governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (şev stabilitesi güvenlik katsayısı), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F5-01 | Çelik Profil Seçimi (17) | TODO | | | |
+| F5-01 | Çelik Profil Seçimi (17) | DONE | feat(steel): add profile capacity governing check and limitations | npm run check:tools-steel-timber-phase6, npm run check:tools-adversarial, tsc | GoverningCheckCard (profil kapasite ve burkulma tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F5-02 | Çelik Cıvata & Kaynak (18) | TODO | | | |
 | F5-03 | Ahşap Eleman (19) | TODO | | | |
 | F6-01 | Kalıp Söküm Süresi (20) | TODO | | | |
