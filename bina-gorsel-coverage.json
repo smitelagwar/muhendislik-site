@@ -936,12 +936,12 @@
       "qcScore": 92
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/ince-isler.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -957,12 +957,12 @@
       "qcScore": 92
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/siva.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -973,17 +973,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/ince-isler/siva/ic-siva",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/ic-siva.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/ic-siva.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -994,17 +994,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/ince-isler/siva/dis-siva",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/dis-siva.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/dis-siva.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {

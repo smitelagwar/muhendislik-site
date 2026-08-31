@@ -97,7 +97,7 @@ muhendislik-site/
 - Tıklanabilir node'lar, zoom/pan
 - Mobil uyumlu (touch event'leri dahil)
 - Veri akışı: Temel → Kaba İnşaat → İnce İşler → Tesisat → Dış Cephe → Teslim
-- Görsel Yenileme V3 Aşama 01–13: İlk 44 canonical konu için 88 adet 3840×2160 WebP PRIMARY/SECONDARY asseti QC 93–95 ile publish edildi; kalan aşamalar progressive legacy görünümle devam eder.
+- Görsel Yenileme V3 Aşama 01–14: İlk 48 canonical konu için 96 WebP PRIMARY/SECONDARY asseti publish edildi; bunların 94 adedi 3840×2160, planda korunması istenen 2 PRIMARY ise 1920×1080 çözünürlüktedir; QC aralığı 92–95'tir ve kalan aşamalar progressive legacy görünümle devam eder.
 
 ### 2. Hesap Araçları (Mevcut — Dokunmadan Güncelle)
 Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
