@@ -247,8 +247,8 @@ export function SlabThicknessCalculator() {
                 <div className="mt-4">
                   <GoverningCheckCard
                     label="TS 500 Sehim & Kalınlık Tahkiki"
-                    demand={Number(formatMillimetersAsCentimeters(thicknessResult.minimumThicknessMm))}
-                    capacity={Number(formatMillimetersAsCentimeters(thicknessResult.recommendedThicknessMm))}
+                    demand={Number((thicknessResult.minimumThicknessMm / 10).toFixed(1))}
+                    capacity={Number((thicknessResult.recommendedThicknessMm / 10).toFixed(1))}
                     unit="cm"
                     status={thicknessResult.status.tone === "ok" ? "ok" : "warn"}
                     explanation={`TS 500 Madde 11.2 uyarınca teorik minimum kalınlık ${formatMillimetersAsCentimeters(thicknessResult.minimumThicknessMm)} cm, önerilen uygulama kalınlığı ${formatMillimetersAsCentimeters(thicknessResult.recommendedThicknessMm)} cm (Açıklık oranı Ly/Lx = ${formatConcreteNumber(thicknessResult.aspectRatio)}).`}
