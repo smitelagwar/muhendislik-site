@@ -44,6 +44,29 @@ export interface CadChainDistanceRuntime {
   readonly setCameraInteractionEnabled?: (enabled: boolean) => void;
 }
 
+export const CAD_CHAIN_DISTANCE_SNAPSHOT_EVENT = "cad:chain-distance-snapshot";
+export const CAD_CHAIN_DISTANCE_ACTION_EVENT = "cad:chain-distance-action";
+
+export type CadChainDistanceAction = "finish" | "undo-last" | "cancel";
+
+function dispatchChainSnapshot(snapshot: CadChainDistanceSnapshot): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<CadChainDistanceSnapshot>(CAD_CHAIN_DISTANCE_SNAPSHOT_EVENT, {
+      detail: snapshot,
+    })
+  );
+}
+
+export function dispatchCadChainDistanceAction(action: CadChainDistanceAction): void {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<CadChainDistanceAction>(CAD_CHAIN_DISTANCE_ACTION_EVENT, {
+      detail: action,
+    })
+  );
+}
+
 export class CadChainDistanceMachine {
   private phaseValue: CadChainDistancePhase = "inactive";
   private pointsValue: CadSnapPoint[] = [];
@@ -55,7 +78,7 @@ export class CadChainDistanceMachine {
   }
 
   get isActive(): boolean {
-    return this.phaseValue !== "inactive";
+    return this.phaseValue !== "inactive" && this.phaseValue !== "complete";
   }
 
   get points(): readonly CadSnapPoint[] {
@@ -71,9 +94,9 @@ export class CadChainDistanceMachine {
   }
 
   addPoint(point: CadSnapPoint): CadChainDistanceSnapshot {
-    if (this.phaseValue === "inactive") return this.snapshot();
+    if (!this.isActive) return this.snapshot();
 
-    // Epsilon check: avoid duplicate consecutive points (< 1e-4 distance)
+    // Consecutive zero-length segments never enter the committed chain.
     const last = this.pointsValue[this.pointsValue.length - 1];
     if (last && pointDistance(last, point) < 1e-4) {
       return this.snapshot();
@@ -87,21 +110,23 @@ export class CadChainDistanceMachine {
   }
 
   removeLastPoint(): CadChainDistanceSnapshot {
+    if (!this.isActive) return this.snapshot();
     if (this.pointsValue.length <= 1) {
       this.pointsValue = [];
       this.phaseValue = "awaiting-first";
     } else {
       this.pointsValue.pop();
+      this.phaseValue = "awaiting-next";
     }
+    this.previewPointValue = null;
+    this.previewSnapValue = null;
     return this.snapshot();
   }
 
   updatePreview(
     preview: { point: CadSnapPoint; snap: CadSnapCandidate | null } | null
   ): CadChainDistanceSnapshot {
-    if (this.phaseValue === "inactive" || this.phaseValue === "complete") {
-      return this.snapshot();
-    }
+    if (!this.isActive) return this.snapshot();
     this.previewPointValue = preview ? { x: preview.point.x, y: preview.point.y } : null;
     this.previewSnapValue = preview?.snap ?? null;
     return this.snapshot();
@@ -194,18 +219,20 @@ export class CadChainDistanceController {
     this.runtime.setCameraInteractionEnabled?.(true);
     const snap = this.machine.cancel();
     this.emit(snap);
-    if (notify && wasActive) {
-      this.callbacks.onCancel?.();
-    }
+    if (notify && wasActive) this.callbacks.onCancel?.();
   }
 
   finish(): void {
-    if (this.destroyed) return;
+    if (this.destroyed || !this.machine.isActive) return;
     const { snapshot, result } = this.machine.complete();
     this.runtime.setCameraInteractionEnabled?.(true);
     this.emit(snapshot);
     if (result) {
       this.callbacks.onComplete?.(result);
+    } else {
+      // Finishing with fewer than two points is a cancel, otherwise adapter
+      // activeMeasurementCommand would remain stuck in chain_distance.
+      this.callbacks.onCancel?.();
     }
   }
 
@@ -224,6 +251,7 @@ export class CadChainDistanceController {
 
   private emit(snapshot: CadChainDistanceSnapshot): void {
     this.callbacks.onSnapshot?.(snapshot);
+    dispatchChainSnapshot(snapshot);
   }
 
   private eventScreenPoint(event: PointerEvent): CadSnapPoint {
@@ -255,6 +283,14 @@ export class CadChainDistanceController {
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     if (this.destroyed || !this.machine.isActive) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+    ) {
+      return;
+    }
+
     if (event.key === "Enter") {
       event.preventDefault();
       this.finish();
@@ -273,17 +309,31 @@ export class CadChainDistanceController {
     this.finish();
   };
 
+  private readonly handleAction = (event: Event): void => {
+    if (this.destroyed || !this.machine.isActive) return;
+    const action = (event as CustomEvent<CadChainDistanceAction>).detail;
+    if (action === "finish") this.finish();
+    if (action === "undo-last") this.removeLastPoint();
+    if (action === "cancel") this.cancel(true);
+  };
+
   private attach(): void {
     this.host.addEventListener("pointerdown", this.handlePointerDown, { passive: false });
     this.host.addEventListener("pointermove", this.handlePointerMove, { passive: true });
     this.host.addEventListener("dblclick", this.handleDblClick, { passive: false });
-    window.addEventListener("keydown", this.handleKeyDown);
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", this.handleKeyDown);
+      window.addEventListener(CAD_CHAIN_DISTANCE_ACTION_EVENT, this.handleAction);
+    }
   }
 
   private detach(): void {
     this.host.removeEventListener("pointerdown", this.handlePointerDown);
     this.host.removeEventListener("pointermove", this.handlePointerMove);
     this.host.removeEventListener("dblclick", this.handleDblClick);
-    window.removeEventListener("keydown", this.handleKeyDown);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleKeyDown);
+      window.removeEventListener(CAD_CHAIN_DISTANCE_ACTION_EVENT, this.handleAction);
+    }
   }
 }
