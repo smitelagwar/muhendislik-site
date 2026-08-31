@@ -9,6 +9,7 @@ export const CAD_SNAP_MODES = [
   "midpoint",
   "intersection",
   "center",
+  "perpendicular",
   "nearest",
 ] as const satisfies readonly CadSnapMode[];
 
@@ -30,6 +31,7 @@ export function createDefaultCadSnapSettings(): CadSnapSettings {
       midpoint: true,
       intersection: true,
       center: true,
+      perpendicular: false,
       nearest: true,
     },
   };

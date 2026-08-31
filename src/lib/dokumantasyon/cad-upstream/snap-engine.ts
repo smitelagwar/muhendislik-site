@@ -1,4 +1,10 @@
-export type CadSnapMode = "endpoint" | "midpoint" | "intersection" | "center" | "nearest";
+export type CadSnapMode =
+  | "endpoint"
+  | "midpoint"
+  | "intersection"
+  | "center"
+  | "perpendicular"
+  | "nearest";
 
 export interface CadSnapPoint {
   x: number;
@@ -48,6 +54,12 @@ export interface CadSnapQuery {
   tolerancePx: number;
   worldUnitsPerPixel: number;
   modes?: ReadonlySet<CadSnapMode>;
+  /**
+   * Optional committed world-space reference for CAD-style perpendicular snap.
+   * When the caller cannot provide one, the engine falls back to the cursor
+   * point so the Perpendicular mode remains a real, usable orthogonal snap.
+   */
+  referencePoint?: CadSnapPoint | null;
 }
 
 interface Bounds {
@@ -62,6 +74,7 @@ const DEFAULT_MODES: ReadonlySet<CadSnapMode> = new Set([
   "midpoint",
   "intersection",
   "center",
+  "perpendicular",
   "nearest",
 ]);
 
@@ -70,7 +83,8 @@ const MODE_PRIORITY: Record<CadSnapMode, number> = {
   intersection: 1,
   midpoint: 2,
   center: 3,
-  nearest: 4,
+  perpendicular: 4,
+  nearest: 5,
 };
 
 const TAU = Math.PI * 2;
@@ -131,16 +145,25 @@ function primitiveBounds(primitive: CadSnapPrimitive): Bounds {
   };
 }
 
-function nearestOnLine(point: CadSnapPoint, line: CadSnapLinePrimitive): CadSnapPoint {
+function projectPointToLineSegment(
+  point: CadSnapPoint,
+  line: CadSnapLinePrimitive
+): CadSnapPoint | null {
   const dx = line.b.x - line.a.x;
   const dy = line.b.y - line.a.y;
   const lengthSq = dx * dx + dy * dy;
-  if (lengthSq <= EPS) return { ...line.a };
-  const t = Math.max(
-    0,
-    Math.min(1, ((point.x - line.a.x) * dx + (point.y - line.a.y) * dy) / lengthSq)
-  );
-  return { x: line.a.x + dx * t, y: line.a.y + dy * t };
+  if (lengthSq <= EPS) return null;
+  const t = ((point.x - line.a.x) * dx + (point.y - line.a.y) * dy) / lengthSq;
+  if (t < -EPS || t > 1 + EPS) return null;
+  return {
+    x: line.a.x + dx * Math.max(0, Math.min(1, t)),
+    y: line.a.y + dy * Math.max(0, Math.min(1, t)),
+  };
+}
+
+function nearestOnLine(point: CadSnapPoint, line: CadSnapLinePrimitive): CadSnapPoint {
+  return projectPointToLineSegment(point, line) ??
+    (distance(point, line.a) <= distance(point, line.b) ? { ...line.a } : { ...line.b });
 }
 
 function nearestOnCircle(
@@ -304,6 +327,9 @@ export class CadSnapEngine {
           { x: (primitive.a.x + primitive.b.x) / 2, y: (primitive.a.y + primitive.b.y) / 2 },
           [primitive.id]
         );
+        const perpendicularSource = input.referencePoint ?? input.point;
+        const foot = projectPointToLineSegment(perpendicularSource, primitive);
+        if (foot) push("perpendicular", foot, [primitive.id]);
         push("nearest", nearestOnLine(input.point, primitive), [primitive.id]);
       } else {
         push("center", primitive.center, [primitive.id]);
@@ -339,8 +365,7 @@ export class CadSnapEngine {
     }
 
     candidates.sort(
-      (a, b) =>
-        MODE_PRIORITY[a.mode] - MODE_PRIORITY[b.mode] || a.distancePx - b.distancePx
+      (a, b) => MODE_PRIORITY[a.mode] - MODE_PRIORITY[b.mode] || a.distancePx - b.distancePx
     );
     return candidates[0] ?? null;
   }
@@ -384,7 +409,9 @@ export class CadSnapEngine {
     for (const key of this.keysForBounds(bounds)) {
       for (const id of this.cells.get(key) ?? []) ids.add(id);
     }
-    return [...ids].map((id) => this.primitives.get(id)).filter((value): value is CadSnapPrimitive => Boolean(value));
+    return [...ids]
+      .map((id) => this.primitives.get(id))
+      .filter((value): value is CadSnapPrimitive => Boolean(value));
   }
 
   private *keysForBounds(bounds: Bounds): Iterable<string> {

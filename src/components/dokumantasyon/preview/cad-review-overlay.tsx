@@ -7,12 +7,13 @@
  */
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
 import { formatCadDistance, formatCadArea } from "@/lib/dokumantasyon/cad-review/units";
 import { getCurrentCadReviewStore } from "@/lib/dokumantasyon/cad-review/active-store";
 import { isCadNativeMeasurementRendered } from "@/lib/dokumantasyon/cad-review/measurement-render-registry";
 import { isCadMeasurementReviewItem, type CadReviewDraftState } from "@/lib/dokumantasyon/cad-review/store";
+import { observeCadViewportRoot } from "@/lib/dokumantasyon/cad-upstream/viewport-coordination";
 
 export type ProjectPointFn = (point: { x: number; y: number }) => { x: number; y: number } | null;
 
@@ -53,13 +54,24 @@ export function CadReviewOverlay({
   containerHeight,
   onClickItem,
 }: CadReviewOverlayProps) {
+  const overlayRef = useRef<SVGSVGElement>(null);
   const [, setStoreRevision] = useState(0);
+  const [viewportSize, setViewportSize] = useState({
+    width: containerWidth,
+    height: containerHeight,
+  });
   const activeStore = getCurrentCadReviewStore();
 
   useEffect(() => {
     if (!activeStore) return;
     return activeStore.subscribe(() => setStoreRevision((value) => value + 1));
   }, [activeStore]);
+
+  useEffect(() => {
+    const root = overlayRef.current?.parentElement;
+    if (!root) return;
+    return observeCadViewportRoot(root, (size) => setViewportSize(size));
+  }, []);
 
   const effectiveItems = activeStore?.getItems() ?? items;
   const effectiveSelection = selectedItemIds ?? activeStore?.getSession().selectedItemIds ?? new Set<string>();
@@ -77,11 +89,13 @@ export function CadReviewOverlay({
 
   return (
     <svg
+      ref={overlayRef}
       className="pointer-events-none absolute inset-0 z-10 overflow-visible"
-      width={containerWidth}
-      height={containerHeight}
+      width={viewportSize.width || containerWidth}
+      height={viewportSize.height || containerHeight}
       aria-hidden="true"
       data-cad-review-overlay="true"
+      data-cad-coordinate-root="viewport"
     >
       {visibleItems.map((item) => (
         <ReviewItemRenderer
@@ -194,17 +208,17 @@ function ReviewItemRenderer({
   }
 
   if (item.type === "chain_distance") {
-    const projected = item.points.map((p) => project(p));
-    if (projected.some((p) => !p)) return null;
+    const projected = item.points.map((point) => project(point));
+    if (projected.some((point) => !point)) return null;
     const pts = projected as { x: number; y: number }[];
-    const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+    const d = pts.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
     const value = formatCadDistance(item.totalDistance, "m", 2);
     const label = item.comment.trim() ? `${item.comment.trim()}: ${value}` : value;
     return (
       <g {...commonProps} data-review-type="chain_distance" data-review-id={item.id}>
         <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" />
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={isSelected ? 5 : 3.5} fill={color} />
+        {pts.map((point, index) => (
+          <circle key={index} cx={point.x} cy={point.y} r={isSelected ? 5 : 3.5} fill={color} />
         ))}
         {pts.slice(0, -1).map((point, index) => {
           const next = pts[index + 1]!;
@@ -253,13 +267,12 @@ function ReviewItemRenderer({
   }
 
   if (item.type === "area") {
-    const projected = item.points.map((p) => project(p));
-    if (projected.some((p) => !p)) return null;
+    const projected = item.points.map((point) => project(point));
+    if (projected.some((point) => !point)) return null;
     const pts = projected as { x: number; y: number }[];
-    const d =
-      pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
-    const cx = pts.reduce((sum, p) => sum + p.x, 0) / pts.length;
-    const cy = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
+    const d = pts.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ") + " Z";
+    const cx = pts.reduce((sum, point) => sum + point.x, 0) / pts.length;
+    const cy = pts.reduce((sum, point) => sum + point.y, 0) / pts.length;
     const value = formatCadArea(item.measuredArea, "m", 2);
     const label = item.comment.trim() ? `${item.comment.trim()}: ${value}` : value;
     return (
@@ -297,8 +310,8 @@ function ReviewItemRenderer({
   }
 
   if (item.type === "comment_pin") {
-    const p = project(item.position);
-    if (!p) return null;
+    const point = project(item.position);
+    if (!point) return null;
     const statusBg =
       item.status === "closed"
         ? "#10b981"
@@ -316,14 +329,14 @@ function ReviewItemRenderer({
         data-review-status={item.status}
       >
         <path
-          d={`M ${p.x} ${p.y} C ${p.x - 10} ${p.y - 10}, ${p.x - 12} ${p.y - 24}, ${p.x} ${p.y - 26} C ${p.x + 12} ${p.y - 24}, ${p.x + 10} ${p.y - 10}, ${p.x} ${p.y}`}
+          d={`M ${point.x} ${point.y} C ${point.x - 10} ${point.y - 10}, ${point.x - 12} ${point.y - 24}, ${point.x} ${point.y - 26} C ${point.x + 12} ${point.y - 24}, ${point.x + 10} ${point.y - 10}, ${point.x} ${point.y}`}
           fill={statusBg}
           stroke="white"
           strokeWidth={1.5}
         />
         <text
-          x={p.x}
-          y={p.y - 15}
+          x={point.x}
+          y={point.y - 15}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={9}
@@ -338,8 +351,8 @@ function ReviewItemRenderer({
   }
 
   if (item.type === "text") {
-    const p = project(item.position);
-    if (!p) return null;
+    const point = project(item.position);
+    if (!point) return null;
     const fs = item.style.fontSize ?? 16;
     const textBgOpacity = clampOpacity(item.style.fillOpacity, item.style.fillColor ? 0.9 : 0);
     const hasBg = Boolean(item.style.fillColor) && textBgOpacity > 0;
@@ -349,15 +362,15 @@ function ReviewItemRenderer({
     return (
       <g
         {...commonProps}
-        transform={`rotate(${item.rotationDeg ?? 0}, ${p.x}, ${p.y})`}
+        transform={`rotate(${item.rotationDeg ?? 0}, ${point.x}, ${point.y})`}
         data-review-type="text"
         data-review-id={item.id}
         data-review-rotation={item.rotationDeg ?? 0}
       >
         {hasBg && (
           <rect
-            x={p.x - 4}
-            y={p.y - textHeight + 3}
+            x={point.x - 4}
+            y={point.y - textHeight + 3}
             width={textWidth + 8}
             height={textHeight + 4}
             rx={4}
@@ -369,8 +382,8 @@ function ReviewItemRenderer({
           />
         )}
         <text
-          x={p.x}
-          y={p.y}
+          x={point.x}
+          y={point.y}
           fontSize={fs}
           fontWeight="bold"
           fontFamily="system-ui, -apple-system, sans-serif"
@@ -462,13 +475,13 @@ function ReviewItemRenderer({
     if (item.shapeKind === "circle") {
       const cx = (p1.x + p2.x) / 2;
       const cy = (p1.y + p2.y) / 2;
-      const r = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y)) / 2;
+      const radius = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y)) / 2;
       return (
         <g {...commonProps} data-review-type="shape_circle" data-review-id={item.id}>
           <circle
             cx={cx}
             cy={cy}
-            r={r}
+            r={radius}
             fill={effectiveFill}
             fillOpacity={fillOpacity}
             stroke={color}
@@ -523,10 +536,10 @@ function ReviewItemRenderer({
   }
 
   if (item.type === "stroke") {
-    const projected = item.points.map((p) => project(p));
-    if (projected.some((p) => !p)) return null;
+    const projected = item.points.map((point) => project(point));
+    if (projected.some((point) => !point)) return null;
     const pts = projected as { x: number; y: number }[];
-    const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+    const d = pts.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
     return (
       <g {...commonProps} data-review-type="stroke" data-review-id={item.id}>
         <path

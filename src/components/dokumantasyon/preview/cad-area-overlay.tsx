@@ -4,6 +4,7 @@ import type {
   CadAreaMeasurementSnapshot,
 } from "@/lib/dokumantasyon/cad-upstream/area-measurement";
 import type { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import { CAD_VIEWPORT_ROOT_RESIZED_EVENT } from "@/lib/dokumantasyon/cad-upstream/viewport-coordination";
 import { getCurrentCadMeasurementUnitSettings } from "@/lib/dokumantasyon/cad-review/store";
 import {
   createCadReviewItemId,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/dokumantasyon/cad-review/units";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { CadSnapGlyph } from "./cad-precision-overlay";
 
 export interface CompletedAreaMeasurement extends CadAreaMeasurementResult {
   readonly id: string;
@@ -37,8 +39,8 @@ interface CadAreaOverlayProps {
 
 function pointsToString(points: readonly (CadSnapPoint | null)[]): string {
   return points
-    .filter((p): p is CadSnapPoint => p !== null)
-    .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .filter((point): point is CadSnapPoint => point !== null)
+    .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
     .join(" ");
 }
 
@@ -55,9 +57,11 @@ export function CadAreaOverlay({
   useEffect(() => {
     const handleViewChange = () => setRenderTick((tick) => (tick + 1) % 10000);
     window.addEventListener("resize", handleViewChange);
+    window.addEventListener(CAD_VIEWPORT_ROOT_RESIZED_EVENT, handleViewChange);
     window.addEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, handleViewChange);
     return () => {
       window.removeEventListener("resize", handleViewChange);
+      window.removeEventListener(CAD_VIEWPORT_ROOT_RESIZED_EVENT, handleViewChange);
       window.removeEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, handleViewChange);
     };
   }, []);
@@ -131,28 +135,31 @@ export function CadAreaOverlay({
         data-cad-area-overlay="true"
         data-cad-area-unit={measurementSettings.areaUnit}
         data-cad-source-unit={sourceUnitContext.sourceUnit}
+        data-cad-coordinate-root="viewport"
       >
-        {measurements.map((m) => {
-          const reviewId = getCadNativeMeasurementReviewId("area", m.id);
+        {measurements.map((measurement) => {
+          const reviewId = getCadNativeMeasurementReviewId("area", measurement.id);
           const reviewItem = reviewId
             ? reviewItems.find((item) => item.id === reviewId && item.type === "area")
             : undefined;
           if (reviewId && !reviewItem) return null;
           if (reviewItem && (reviewItem.style.opacity ?? 1) <= 0) return null;
 
-          const projectedPoints = m.points.map(projectPoint).filter((p): p is CadSnapPoint => p !== null);
+          const projectedPoints = measurement.points
+            .map(projectPoint)
+            .filter((point): point is CadSnapPoint => point !== null);
           if (projectedPoints.length < 3) return null;
           const selected = Boolean(reviewId && selectedIds.has(reviewId));
           const polyStr = pointsToString(projectedPoints);
-          const centroidProjected = projectPoint(m.centroid);
-          const displayAreaUnit = areaUnitOverrides[m.id] ?? measurementSettings.areaUnit;
-          const areaLabel = formatAreaValue(m.area, displayAreaUnit);
-          const perimeterLabel = formatPerimeterValue(m.perimeter);
+          const centroidProjected = projectPoint(measurement.centroid);
+          const displayAreaUnit = areaUnitOverrides[measurement.id] ?? measurementSettings.areaUnit;
+          const areaLabel = formatAreaValue(measurement.area, displayAreaUnit);
+          const perimeterLabel = formatPerimeterValue(measurement.perimeter);
           const title = reviewItem?.comment.trim();
 
           return (
             <g
-              key={m.id}
+              key={measurement.id}
               data-cad-area-complete="true"
               data-cad-measurement-selected={selected ? "true" : "false"}
             >
@@ -166,11 +173,11 @@ export function CadAreaOverlay({
                 data-cad-area-polygon="true"
               />
 
-              {projectedPoints.map((p, idx) => (
+              {projectedPoints.map((point, index) => (
                 <circle
-                  key={idx}
-                  cx={p.x}
-                  cy={p.y}
+                  key={index}
+                  cx={point.x}
+                  cy={point.y}
                   r={selected ? "5" : "3.5"}
                   fill={measurementColor}
                   stroke="#ffffff"
@@ -184,10 +191,10 @@ export function CadAreaOverlay({
                   data-cad-area-badge="true"
                   data-cad-area-display-unit={displayAreaUnit}
                   style={{ pointerEvents: "auto", cursor: "pointer" }}
-                  onClick={() => setUnitMenu({ id: m.id, x: centroidProjected.x, y: centroidProjected.y })}
+                  onClick={() => setUnitMenu({ id: measurement.id, x: centroidProjected.x, y: centroidProjected.y })}
                   onContextMenu={(event) => {
                     event.preventDefault();
-                    setUnitMenu({ id: m.id, x: centroidProjected.x, y: centroidProjected.y });
+                    setUnitMenu({ id: measurement.id, x: centroidProjected.x, y: centroidProjected.y });
                   }}
                 >
                   <title>Alan gösterim birimini değiştir</title>
@@ -287,29 +294,27 @@ export function CadAreaOverlay({
               />
             ) : null}
 
-            {activeConfirmed.map((p, idx) =>
-              p ? (
+            {activeConfirmed.map((point, index) =>
+              point ? (
                 <circle
-                  key={idx}
-                  cx={p.x}
-                  cy={p.y}
+                  key={index}
+                  cx={point.x}
+                  cy={point.y}
                   r="4"
                   fill={measurementColor}
                   stroke="#ffffff"
                   strokeWidth="1.5"
-                  data-cad-area-vertex={idx}
+                  data-cad-area-vertex={index}
                 />
               ) : null
             )}
 
             {activePreview && snapshot.previewSnap ? (
-              <circle
-                cx={activePreview.x}
-                cy={activePreview.y}
-                r="7"
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2"
+              <CadSnapGlyph
+                mode={snapshot.previewSnap.mode}
+                x={activePreview.x}
+                y={activePreview.y}
+                size={11}
               />
             ) : null}
           </g>

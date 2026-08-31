@@ -17,7 +17,17 @@ import type {
   CadSnapPrimitive,
 } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 
-function SnapGlyph({ mode, x, y, size = 8 }: { mode: CadSnapMode; x: number; y: number; size?: number }) {
+export function CadSnapGlyph({
+  mode,
+  x,
+  y,
+  size = 8,
+}: {
+  mode: CadSnapMode;
+  x: number;
+  y: number;
+  size?: number;
+}) {
   const half = size / 2;
   const common = {
     fill: "var(--background)",
@@ -28,26 +38,41 @@ function SnapGlyph({ mode, x, y, size = 8 }: { mode: CadSnapMode; x: number; y: 
 
   switch (mode) {
     case "endpoint":
-      return <rect x={x - half} y={y - half} width={size} height={size} rx="1" {...common} />;
+      return <rect x={x - half} y={y - half} width={size} height={size} rx="1" {...common} data-cad-snap-glyph="endpoint" />;
     case "midpoint":
-      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y + half} L ${x - half - 0.8} ${y + half} Z`} {...common} />;
+      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y + half} L ${x - half - 0.8} ${y + half} Z`} {...common} data-cad-snap-glyph="midpoint" />;
     case "intersection":
       return (
-        <g stroke="var(--primary)" strokeWidth="2" vectorEffect="non-scaling-stroke">
+        <g stroke="var(--primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" data-cad-snap-glyph="intersection">
           <path d={`M ${x - half} ${y - half} L ${x + half} ${y + half}`} />
           <path d={`M ${x + half} ${y - half} L ${x - half} ${y + half}`} />
         </g>
       );
     case "center":
       return (
-        <g fill="var(--background)" stroke="var(--primary)" strokeWidth="1.7" vectorEffect="non-scaling-stroke">
+        <g fill="var(--background)" stroke="var(--primary)" strokeWidth="1.7" vectorEffect="non-scaling-stroke" data-cad-snap-glyph="center">
           <circle cx={x} cy={y} r={half + 0.5} />
           <path d={`M ${x - half - 2} ${y} L ${x + half + 2} ${y}`} />
           <path d={`M ${x} ${y - half - 2} L ${x} ${y + half + 2}`} />
         </g>
       );
+    case "perpendicular":
+      return (
+        <g
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="2"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+          vectorEffect="non-scaling-stroke"
+          data-cad-snap-glyph="perpendicular"
+        >
+          <path d={`M ${x - half} ${y + half} L ${x - half} ${y - half} L ${x + half} ${y - half}`} />
+          <path d={`M ${x - half + 2.5} ${y - half + 2.5} L ${x - half + 2.5} ${y - half + 5.5} L ${x - half + 5.5} ${y - half + 5.5}`} />
+        </g>
+      );
     case "nearest":
-      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y} L ${x} ${y + half + 0.8} L ${x - half - 0.8} ${y} Z`} {...common} />;
+      return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y} L ${x} ${y + half + 0.8} L ${x - half - 0.8} ${y} Z`} {...common} data-cad-snap-glyph="nearest" />;
   }
 }
 
@@ -228,9 +253,7 @@ export function CadPrecisionOverlay({
     const lens = lensCanvasRef.current;
     if (!tracking || !lens || !sourceCanvas || !crop) return;
 
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-    }
+    if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
 
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
@@ -311,7 +334,7 @@ export function CadPrecisionOverlay({
           data-cad-touch-anchor="true"
         />
         <Crosshair x={target.x} y={target.y} />
-        {snap ? <SnapGlyph mode={snap.mode} x={target.x} y={target.y} size={10} /> : null}
+        {snap ? <CadSnapGlyph mode={snap.mode} x={target.x} y={target.y} size={10} /> : null}
       </svg>
 
       {label ? (
@@ -363,7 +386,7 @@ export function CadPrecisionOverlay({
                 />
               ) : null}
               <Crosshair x={lensTarget.x} y={lensTarget.y} size={14} />
-              {snap ? <SnapGlyph mode={snap.mode} x={lensTarget.x} y={lensTarget.y} size={12} /> : null}
+              {snap ? <CadSnapGlyph mode={snap.mode} x={lensTarget.x} y={lensTarget.y} size={12} /> : null}
             </svg>
             {label ? (
               <div

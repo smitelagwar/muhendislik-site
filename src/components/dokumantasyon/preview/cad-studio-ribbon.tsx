@@ -367,7 +367,7 @@ export function CadStudioRibbon({
 
           <CadRibbonGroup label="Çalışma Alanı">
             <CadRibbonButton icon={<Layers />} label={layersCount > 0 ? `Katmanlar ${layersCount}` : "Katmanlar"} active={layerPanelOpen} onClick={onToggleLayerPanel} tooltip="Katmanlar" data-testid="cad-tool-layers" />
-            <CadRibbonButton icon={<Magnet />} label="Osnap" active={snapPanelOpen} disabled={!snapEnabled} onClick={onToggleSnapPanel} tooltip="Nesne Yakalama" data-testid="cad-tool-snap-settings" />
+            <CadRibbonButton icon={<Magnet />} label={snapEnabled ? "Osnap" : "Osnap Kapalı"} active={snapPanelOpen} onClick={onToggleSnapPanel} tooltip={snapEnabled ? "Nesne Yakalama" : "Osnap kapalı — ayarları aç"} data-testid="cad-tool-snap-settings" />
             <CadRibbonButton icon={<Search />} iconOnly active={activePanelTab === "search"} onClick={() => onTogglePanelTab("search")} tooltip="Çizim İçi Metin Ara" shortcut="Arama · /" data-testid="cad-tool-search-panel" />
             <CadRibbonButton icon={<MessageSquare />} label={commentsCount > 0 ? `Yorumlar ${commentsCount}` : "Yorumlar"} active={activePanelTab === "comments"} onClick={() => onTogglePanelTab("comments")} tooltip="Yorumlar ve Notlar" data-testid="cad-tool-comments-panel" />
           </CadRibbonGroup>

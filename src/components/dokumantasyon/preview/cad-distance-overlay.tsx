@@ -15,6 +15,7 @@ import {
   dispatchCadChainDistanceAction,
   type CadChainDistanceSnapshot,
 } from "@/lib/dokumantasyon/cad-upstream/chain-distance";
+import { observeCadViewportRoot } from "@/lib/dokumantasyon/cad-upstream/viewport-coordination";
 import { getCurrentCadMeasurementUnitSettings } from "@/lib/dokumantasyon/cad-review/store";
 import {
   createCadReviewItemId,
@@ -34,7 +35,7 @@ import {
   saveCadCalibration,
   type CadLengthUnit,
 } from "@/lib/dokumantasyon/cad-review/units";
-import { CadPrecisionOverlay } from "./cad-precision-overlay";
+import { CadPrecisionOverlay, CadSnapGlyph } from "./cad-precision-overlay";
 
 export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementResult {
   id: string;
@@ -170,6 +171,14 @@ export function CadDistanceOverlay({
   }, []);
 
   useEffect(() => {
+    const root = anchorRef.current?.parentElement;
+    if (!root) return;
+    return observeCadViewportRoot(root, () => {
+      setMeasurementContextRevision((value) => value + 1);
+    });
+  }, []);
+
+  useEffect(() => {
     const handleChainSnapshot = (event: Event) => {
       const next = (event as CustomEvent<CadChainDistanceSnapshot>).detail;
       setChainSnapshot(next.phase === "inactive" || next.phase === "complete" ? null : next);
@@ -293,17 +302,17 @@ export function CadDistanceOverlay({
       nearby = adapter.getNearbyPrimitives(worldPoint, CAD_NEARBY_SNAP_RADIUS_PX, CAD_NEARBY_SNAP_LIMIT);
     } else if (Array.isArray(catalog) && catalog.length > 0 && worldPoint) {
       nearby = catalog
-        .filter((p) => {
-          const px = p.kind === "line" ? (p.a.x + p.b.x) / 2 : p.center.x;
-          const py = p.kind === "line" ? (p.a.y + p.b.y) / 2 : p.center.y;
+        .filter((primitive) => {
+          const px = primitive.kind === "line" ? (primitive.a.x + primitive.b.x) / 2 : primitive.center.x;
+          const py = primitive.kind === "line" ? (primitive.a.y + primitive.b.y) / 2 : primitive.center.y;
           return Math.abs(px - worldPoint.x) < 1000 && Math.abs(py - worldPoint.y) < 1000;
         })
         .slice(0, CAD_NEARBY_SNAP_LIMIT);
     }
 
     if (snapped.length === 0) return nearby.slice(0, 36);
-    const snappedIds = new Set(snapped.map((p) => p.id));
-    const merged = [...snapped, ...nearby.filter((p) => !snappedIds.has(p.id))];
+    const snappedIds = new Set(snapped.map((primitive) => primitive.id));
+    const merged = [...snapped, ...nearby.filter((primitive) => !snappedIds.has(primitive.id))];
     return merged.slice(0, 36);
   };
 
@@ -340,7 +349,12 @@ export function CadDistanceOverlay({
 
   return (
     <>
-      <span ref={anchorRef} className="hidden" data-cad-distance-overlay-anchor="true" />
+      <span
+        ref={anchorRef}
+        className="hidden"
+        data-cad-distance-overlay-anchor="true"
+        data-cad-coordinate-root="viewport"
+      />
 
       <svg
         className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
@@ -349,6 +363,7 @@ export function CadDistanceOverlay({
         data-cad-measurement-unit={measurementSettings.unit}
         data-cad-source-unit={sourceUnitContext.sourceUnit}
         data-cad-source-unit-source={sourceUnitContext.source}
+        data-cad-coordinate-root="viewport"
       >
         {completed.map(({ measurement, start, end, reviewItem, selected }) => {
           const labelPoint = midpoint(start, end);
@@ -441,11 +456,18 @@ export function CadDistanceOverlay({
                 data-cad-chain-preview="true"
               />
             ) : null}
-            {chainPreview ? (
+            {chainPreview && chainSnapshot.previewSnap ? (
+              <CadSnapGlyph
+                mode={chainSnapshot.previewSnap.mode}
+                x={chainPreview.x}
+                y={chainPreview.y}
+                size={11}
+              />
+            ) : chainPreview ? (
               <circle
                 cx={chainPreview.x}
                 cy={chainPreview.y}
-                r={chainSnapshot.previewSnap ? 6 : 4}
+                r="4"
                 fill="none"
                 stroke={measurementSettings.color}
                 strokeWidth="2"
@@ -584,6 +606,7 @@ export function CadDistanceOverlay({
                 placeholder="50"
                 aria-label="Gerçek referans uzunluğu"
                 data-testid="cad-calibration-value"
+                data-cad-calibration-reference="snapped-measurement"
               />
               <select
                 value={calibrationUnit}
