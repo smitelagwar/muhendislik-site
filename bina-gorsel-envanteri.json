@@ -1169,7 +1169,9 @@
     "secondaryAltTr": "Döşeme Kalıbı (Teknik Detay) — Döşeme kalıbı dört yollu başlık, ana taşıyıcı ve tali taşıyıcı ızgara kesit detayı",
     "secondaryDifference": "Primary geniş kalıp platformunu gösterirken, secondary dikme başlığı ile ahşap kirişlerin kesiştiği yük aktarma düğümünü öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kalip-sokumu",
@@ -1214,7 +1216,9 @@
     "secondaryAltTr": "Kalıp Sökümü (Teknik Detay) — Döşeme kalıbı sökümünde güvenlik dikmelerinin (re-shore) yerinde bırakılması",
     "secondaryDifference": "Primary panellerin sökülme anını gösterirken, secondary betonun yükünü taşımak için tavanda bırakılan güvenlik dikmelerini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "donati-isleri",
@@ -1249,22 +1253,24 @@
     "primaryAltTr": "Donatı İşleri — Nervürlü inşaat demirlerinin sahada bağlanması ve donatı hazırlığı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: nervürlü donatının kanca büküm yarıçapı ve standart büküm mandrel detayı",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: bağ teli düğümü, pas payı takozu ve doğru donatı yerleşimi",
     "secondaryMustShow": [
-      "90 ve 135 derece bükülmüş nervürlü çelik çubuk",
-      "iç büküm kavisi",
-      "çeliğin çatlamamış dış yüzeyi"
+      "nervürlü donatı kesişiminde bağ teli düğümü",
+      "beton pas payı takozu",
+      "kalıp yüzeyinde plastik tekerlek spacer"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "çap rakamları",
       "açı derecesi metni"
     ],
-    "secondaryPromptTr": "KONU: Donatı İşleri\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Nervürlü inşaat demirlerinin sahada bağlanması ve donatı hazırlığı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Nervürlü donatının kanca büküm yarıçapı ve standart büküm mandrel detayı\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: 90 ve 135 derece bükülmüş nervürlü çelik çubuk, iç büküm kavisi, çeliğin çatlamamış dış yüzeyi.\nPRIMARY'DEN FARK: Primary sahadaki donatı bağlama sürecini gösterirken, secondary donatının doğru çapta mandrelle bükülme standardını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, çap rakamları, açı derecesi metni, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Donatı İşleri (Teknik Detay) — Nervürlü donatının kanca büküm yarıçapı ve standart büküm mandrel detayı",
-    "secondaryDifference": "Primary sahadaki donatı bağlama sürecini gösterirken, secondary donatının doğru çapta mandrelle bükülme standardını öğretir.",
+    "secondaryPromptTr": "KONU: Donatı İşleri\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Nervürlü inşaat demirlerinin sahada bağlanması ve donatı hazırlığı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Bağ teli düğümü, beton pas payı takozu ve doğru donatı yerleşimini yakın planda göstermek\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: nervürlü donatı kesişiminde bağ teli düğümü, beton pas payı takozu, kalıp yüzeyinde plastik tekerlek spacer.\nPRIMARY'DEN FARK: Primary sahadaki genel donatı hazırlığını gösterirken, secondary bağlama ve doğru beton örtüsü detayını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, çap rakamları, açı derecesi metni, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
+    "secondaryAltTr": "Donatı İşleri (Teknik Detay) — Bağ teli düğümü, pas payı takozu ve doğru donatı yerleşimi",
+    "secondaryDifference": "Primary sahadaki genel donatı hazırlığını gösterirken, secondary bağlama ve doğru beton örtüsü detayını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kolon-donati",
