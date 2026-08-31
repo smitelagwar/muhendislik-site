@@ -3,7 +3,7 @@
 import * as React from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 
-import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import type { CadReviewItemStatus } from "@/lib/dokumantasyon/cad-review/schema";
 import type {
   CadActiveMarkupStyle,
@@ -276,7 +276,7 @@ export function CadCalloutStyleMenu({
       <CadFillControl
         label="Metin Balonu"
         fillColor={style.fillColor}
-        fillOpacity={style.fillOpacity ?? 0.92}
+        fillOpacity={(style.fillOpacity ?? 0) > 0 ? style.fillOpacity : 0.92}
         fallbackColor={style.color}
         colors={CAD_MARKUP_COLORS}
         onChange={onChange}
@@ -396,16 +396,15 @@ export function CadEraserMenu({
         <RotateCcw className="size-3.5" />
         Son İşaretlemeyi Geri Al
       </button>
-      <button
-        type="button"
-        onClick={onRequestClear}
+      <DropdownMenuItem
+        onSelect={onRequestClear}
         disabled={!onRequestClear}
-        className="flex h-9 w-full items-center gap-2 rounded-md px-2 text-xs text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+        className="h-9 cursor-pointer gap-2 text-xs text-destructive focus:bg-destructive/10 focus:text-destructive"
         data-testid="cad-eraser-clear-all"
       >
         <Trash2 className="size-3.5" />
         Tüm İşaretlemeleri Temizle...
-      </button>
+      </DropdownMenuItem>
     </div>
   );
 }

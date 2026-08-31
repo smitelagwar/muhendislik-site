@@ -101,6 +101,16 @@ export class CadMarkupController {
     };
   }
 
+  private calloutStyle() {
+    const style = this.itemStyle();
+    if (style.fillColor) return style;
+    return {
+      ...style,
+      fillColor: style.color,
+      fillOpacity: 0.92,
+    };
+  }
+
   private async requestEditor(
     kind: "text" | "callout" | "comment_pin",
     worldPoint: CadPoint2d
@@ -156,7 +166,9 @@ export class CadMarkupController {
       tool === "shape_rect" ||
       tool === "shape_circle" ||
       tool === "shape_cloud" ||
-      tool === "callout"
+      tool === "callout" ||
+      tool === "comment_pin" ||
+      tool === "text"
     ) {
       e.preventDefault();
       this.runtime.setCameraInteractionEnabled?.(false);
@@ -190,15 +202,13 @@ export class CadMarkupController {
     const currentWorldPt = this.runtime.screenToWorld(screenPt);
     if (!currentWorldPt) return;
 
-    const style = this.itemStyle();
-
     if (tool === "shape_rect") {
       this.store.setDraft(tool, {
         type: "shape",
         shapeKind: "rect",
         p1: this.startWorldPoint,
         p2: currentWorldPt,
-        style,
+        style: this.itemStyle(),
       });
     } else if (tool === "shape_circle") {
       const radius = Math.hypot(
@@ -211,7 +221,7 @@ export class CadMarkupController {
         p1: this.startWorldPoint,
         p2: currentWorldPt,
         radius,
-        style,
+        style: this.itemStyle(),
       });
     } else if (tool === "shape_cloud") {
       this.store.setDraft(tool, {
@@ -219,7 +229,7 @@ export class CadMarkupController {
         shapeKind: "cloud",
         p1: this.startWorldPoint,
         p2: currentWorldPt,
-        style,
+        style: this.itemStyle(),
       });
     } else if (tool === "callout") {
       const anchor = constrainCalloutAnchor(
@@ -232,7 +242,7 @@ export class CadMarkupController {
         tip: this.startWorldPoint,
         anchor,
         text: "...",
-        style,
+        style: this.calloutStyle(),
       });
     }
   };
@@ -259,7 +269,6 @@ export class CadMarkupController {
     const screenDx = Math.abs(screenPt.x - startScreen.x);
     const screenDy = Math.abs(screenPt.y - startScreen.y);
     const isDrag = screenDx > 5 || screenDy > 5;
-    const style = this.itemStyle();
 
     if (tool === "comment_pin") {
       const input = await this.requestEditor("comment_pin", startWorld);
@@ -269,16 +278,16 @@ export class CadMarkupController {
           comment: input.comment,
           title: input.title,
           status: input.status as CadReviewItemStatus,
-          style,
+          style: this.itemStyle(),
         });
       }
     } else if (tool === "shape_rect" && isDrag) {
-      this.facade.addShape({ shapeKind: "rect", p1: startWorld, p2: endWorldPt, style });
+      this.facade.addShape({ shapeKind: "rect", p1: startWorld, p2: endWorldPt, style: this.itemStyle() });
     } else if (tool === "shape_circle" && isDrag) {
       const radius = Math.hypot(endWorldPt.x - startWorld.x, endWorldPt.y - startWorld.y);
-      this.facade.addShape({ shapeKind: "circle", p1: startWorld, p2: endWorldPt, radius, style });
+      this.facade.addShape({ shapeKind: "circle", p1: startWorld, p2: endWorldPt, radius, style: this.itemStyle() });
     } else if (tool === "shape_cloud" && isDrag) {
-      this.facade.addShape({ shapeKind: "cloud", p1: startWorld, p2: endWorldPt, style });
+      this.facade.addShape({ shapeKind: "cloud", p1: startWorld, p2: endWorldPt, style: this.itemStyle() });
     } else if (tool === "callout" && isDrag) {
       const anchor = constrainCalloutAnchor(
         startWorld,
@@ -287,7 +296,7 @@ export class CadMarkupController {
       );
       const input = await this.requestEditor("callout", anchor);
       if (input?.kind === "callout" && input.text.trim()) {
-        this.facade.addCallout({ tip: startWorld, anchor, text: input.text, style });
+        this.facade.addCallout({ tip: startWorld, anchor, text: input.text, style: this.calloutStyle() });
       }
     } else if (tool === "text") {
       const input = await this.requestEditor("text", startWorld);
@@ -296,7 +305,7 @@ export class CadMarkupController {
           position: startWorld,
           text: input.text,
           rotationDeg: input.rotationDeg ?? this.currentStyle.textRotationDeg ?? 0,
-          style,
+          style: this.itemStyle(),
         });
       }
     }

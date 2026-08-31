@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   cleanupUploadedCadFixtures,
@@ -48,14 +48,14 @@ async function reviewDoc(page: Page, fileId: string): Promise<ReviewDoc | null> 
   }, fileId);
 }
 
-async function canvasBox(page: Page, canvas: ReturnType<Page["locator"]>) {
+async function canvasBox(canvas: Locator) {
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   return box!;
 }
 
-async function drawStroke(page: Page, canvas: ReturnType<Page["locator"]>) {
-  const box = await canvasBox(page, canvas);
+async function drawStroke(page: Page, canvas: Locator) {
+  const box = await canvasBox(canvas);
   await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.4);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.42, box.y + box.height * 0.48, { steps: 8 });
@@ -65,25 +65,32 @@ async function drawStroke(page: Page, canvas: ReturnType<Page["locator"]>) {
 
 async function dragShape(
   page: Page,
-  canvas: ReturnType<Page["locator"]>,
+  canvas: Locator,
   start: [number, number],
   end: [number, number]
 ) {
-  const box = await canvasBox(page, canvas);
+  const box = await canvasBox(canvas);
   await page.mouse.move(box.x + box.width * start[0], box.y + box.height * start[1]);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * end[0], box.y + box.height * end[1], { steps: 8 });
   await page.mouse.up();
 }
 
-async function clickCanvas(
-  page: Page,
-  canvas: ReturnType<Page["locator"]>,
-  xRatio: number,
-  yRatio: number
-) {
-  const box = await canvasBox(page, canvas);
+async function clickCanvas(page: Page, canvas: Locator, xRatio: number, yRatio: number) {
+  const box = await canvasBox(canvas);
   await page.mouse.click(box.x + box.width * xRatio, box.y + box.height * yRatio);
+}
+
+async function setRange(page: Page, testId: string, value: number) {
+  const range = page.getByTestId(testId);
+  await range.evaluate((element, next) => {
+    const input = element as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    setter?.call(input, String(next));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+  await expect(range).toHaveValue(String(value));
 }
 
 test.describe("CAD Stage 3 — review tools browser acceptance", () => {
@@ -102,12 +109,11 @@ test.describe("CAD Stage 3 — review tools browser acceptance", () => {
     await expect(page.getByTestId("cad-tool-stroke-style-trigger-content")).toBeVisible();
     await expect(main).toHaveAttribute("data-cad-active", "false");
 
-    const hex = page.getByTestId("cad-pencil-color-hex");
-    await hex.fill("#12AB34");
+    await page.getByTestId("cad-pencil-color-hex").fill("#12AB34");
     await page.getByTestId("cad-pencil-color-apply").click();
     await page.getByTestId("cad-pencil-width-5").click();
     await page.getByTestId("cad-pencil-line-dashed").click();
-    await page.getByTestId("cad-pencil-opacity").fill("80");
+    await setRange(page, "cad-pencil-opacity", 80);
 
     await expect(page.locator('[data-cad-line-width-preview="5"]')).toHaveCSS("height", "5px");
     await expect(page.locator('[data-cad-line-style-preview="dashed"] line')).toHaveAttribute("stroke-dasharray", "9 5");
@@ -211,6 +217,10 @@ test.describe("CAD Stage 3 — review tools browser acceptance", () => {
     await page.getByTestId("cad-inline-editor-save").click();
     await expect.poll(async () => (await reviewDoc(page, fileId))?.items.filter((item) => item.type === "callout").length).toBe(1);
 
+    document = await reviewDoc(page, fileId);
+    const callout = document!.items.find((item) => item.type === "callout")!;
+    expect((callout.style.fillOpacity ?? 0)).toBeGreaterThan(0.8);
+
     await page.getByTestId("cad-tool-pin").click();
     await clickCanvas(page, canvas, 0.72, 0.68);
     await expect(page.getByTestId("cad-inline-review-editor")).toBeVisible();
@@ -254,6 +264,7 @@ test.describe("CAD Stage 3 — review tools browser acceptance", () => {
 
     await page.getByTestId("cad-tool-eraser-style-trigger").click();
     await page.getByTestId("cad-eraser-clear-all").click();
+    await expect(page.getByTestId("cad-tool-eraser-style-trigger-content")).toBeHidden();
     await expect(page.getByTestId("cad-clear-markup-dialog")).toBeVisible();
     await page.getByTestId("cad-clear-markup-confirm").click();
     await expect.poll(async () => (await reviewDoc(page, fileId))?.items.length).toBe(0);
