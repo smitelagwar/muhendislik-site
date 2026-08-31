@@ -83,8 +83,8 @@ TONAJ TAHKİKİ:
               <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
                 Kaba Yapı Metrajı
               </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                TS 500 & TBDY 2018 Normatif Oranlar
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                Yaklaşık Ön Keşif Oranları
               </span>
             </div>
 
@@ -93,8 +93,15 @@ TONAJ TAHKİKİ:
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
-              Yapı tipolojisi ve toplam inşaat alanına göre normatif kg/m² donatı sarfiyatını, toplam tonajı ve çap gruplarına göre tahmini demir sipariş dağılımını hesaplayın.
+              Yapı tipolojisi ve toplam inşaat alanına göre ampirik kg/m² donatı sarfiyatını, toplam tonajı ve çap gruplarına göre tahmini demir sipariş dağılımını hesaplayın.
             </p>
+
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-300/90">
+              <Info className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Yaklaşık Metraj:</strong> Bu araç ön maliyet ve sipariş planlaması içindir; normatif statik proje yerine geçmez. Kesin pursantaj donatı çizimleri ile doğrulanmalıdır.
+              </span>
+            </div>
           </div>
         </section>
 

@@ -84,8 +84,8 @@ ${result?.skirtingTilesCount ? `- Süpürgelik Fayansı (${skirtLength} m): ~${r
               <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
                 İnce Yapı Metrajı
               </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                Kutu, Yapıştırıcı & Derz
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                Yaklaşık Ön Keşif
               </span>
             </div>
 
@@ -94,8 +94,15 @@ ${result?.skirtingTilesCount ? `- Süpürgelik Fayansı (${skirtLength} m): ~${r
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
-              Zemin ve ıslak hacim duvar alanlarına göre seramik paket/kutu sayısını, 25 kg yapıştırıcı torba miktarını ve derz dolgusu sarfiyatını hesaplayın.
+              Zemin ve ıslak hacim duvar alanlarına göre seramik paket/kutu sayısını, 25 kg yapıştırıcı torba miktarını ve derz dolgusu sarfiyatını yaklaşık olarak hesaplayın.
             </p>
+
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-300/90">
+              <Info className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Yaklaşık Metraj:</strong> Kutu içi m² miktarı üretici serisine göre değişebilir; kesim zayiatı için %5-%10 arası yedek sipariş tavsiye edilir.
+              </span>
+            </div>
           </div>
         </section>
 

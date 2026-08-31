@@ -81,8 +81,8 @@ ${result?.ridgeTilesCount ? `- Mahya Kiremidi (${ridgeLength} m): ~${result.ridg
               <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
                 Çatı & İzolasyon
               </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                Eğim & Açınım Analizi
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                Yaklaşık Ön Keşif
               </span>
             </div>
 
@@ -91,8 +91,15 @@ ${result?.ridgeTilesCount ? `- Mahya Kiremidi (${ridgeLength} m): ~${result.ridg
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
-              Yatay izdüşüm alanını çatı eğim açısıyla çarparak gerçek eğimli kaplama alanını, kiremit/panel adetlerini, mahya ve su yalıtım membranı sarfiyatlarını hesaplayın.
+              Yatay izdüşüm alanını çatı eğim açısıyla çarparak gerçek eğimli kaplama alanını, kiremit/panel adetlerini, mahya ve su yalıtım membranı sarfiyatlarını yaklaşık olarak hesaplayın.
             </p>
+
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-300/90">
+              <Info className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Yaklaşık Metraj:</strong> Saçak payı, dere detayları ve kırık çatı bindirme paylarına göre metraj artabilir; sipariş öncesi mimari çatı planı esas alınmalıdır.
+              </span>
+            </div>
           </div>
         </section>
 

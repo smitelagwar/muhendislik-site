@@ -115,8 +115,8 @@ MİKSER SEFER SAYISI (${mixerCap} m³/araç): ~${result.mixerTruckCount} Mikser
               <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
                 Kaba Yapı Metrajı
               </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                TS EN 206 / TS 500
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                Yaklaşık Ön Keşif
               </span>
             </div>
 
@@ -125,8 +125,15 @@ MİKSER SEFER SAYISI (${mixerCap} m³/araç): ~${result.mixerTruckCount} Mikser
             </h1>
 
             <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-muted-foreground dark:text-zinc-300">
-              Temel, kolon, kiriş ve döşeme elemanlarının net hacimlerini toplayın; fire katsayısı ve transmikser kapasitesine göre sipariş metrajını belirleyin.
+              Temel, kolon, kiriş ve döşeme elemanlarının net hacimlerini toplayın; fire katsayısı ve transmikser kapasitesine göre sipariş metrajını yaklaşık olarak belirleyin.
             </p>
+
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-300/90">
+              <Info className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Yaklaşık Metraj:</strong> Pompa hortumunda kalan beton, kalıp esnemesi ve döküm firelerine göre sipariş hacmi değişebilir; sahadaki son dökümde kısmi mikser planlanmalıdır.
+              </span>
+            </div>
           </div>
         </section>
 
