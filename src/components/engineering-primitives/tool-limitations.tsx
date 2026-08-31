@@ -25,7 +25,7 @@ export function ToolLimitations({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 text-left font-bold text-xs uppercase tracking-wider text-muted-foreground dark:text-zinc-300 hover:bg-muted/30 transition-colors"
+        className="w-full min-h-[44px] flex items-center justify-between p-4 text-left font-bold text-xs uppercase tracking-wider text-muted-foreground dark:text-zinc-300 hover:bg-muted/30 transition-colors"
       >
         <span className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4 text-purple-400" />
