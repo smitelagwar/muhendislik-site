@@ -27,10 +27,77 @@ export interface CadActiveMarkupStyle {
   fontSize?: number;
 }
 
+export type CadMeasurementLengthUnit = "m" | "cm" | "mm";
+export type CadMeasurementAreaUnit = "m2" | "cm2" | "mm2";
+
+/**
+ * Backwards-compatible measurement settings contract.
+ * `unit` and `precision` remain the public Ribbon fields while area settings are
+ * explicit so area math never accidentally reuses a linear scale.
+ */
 export interface CadMeasurementUnitSettings {
-  unit: "m" | "cm" | "mm";
+  unit: CadMeasurementLengthUnit;
   precision: number;
+  areaUnit?: CadMeasurementAreaUnit;
+  areaPrecision?: number;
   color: string;
+}
+
+export interface CadResolvedMeasurementUnitSettings {
+  unit: CadMeasurementLengthUnit;
+  precision: number;
+  areaUnit: CadMeasurementAreaUnit;
+  areaPrecision: number;
+  color: string;
+}
+
+export const CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS: CadResolvedMeasurementUnitSettings = {
+  unit: "m",
+  precision: 2,
+  areaUnit: "m2",
+  areaPrecision: 2,
+  color: "#3b82f6",
+};
+
+let currentMeasurementUnitSettings: CadResolvedMeasurementUnitSettings = {
+  ...CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS,
+};
+
+function normalizePrecision(value: number | undefined, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.min(6, Math.trunc(value!)));
+}
+
+export function resolveCadMeasurementUnitSettings(
+  settings?: CadMeasurementUnitSettings | null
+): CadResolvedMeasurementUnitSettings {
+  return {
+    unit: settings?.unit ?? CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.unit,
+    precision: normalizePrecision(
+      settings?.precision,
+      CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.precision
+    ),
+    areaUnit: settings?.areaUnit ?? CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.areaUnit,
+    areaPrecision: normalizePrecision(
+      settings?.areaPrecision,
+      CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.areaPrecision
+    ),
+    color: settings?.color || CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.color,
+  };
+}
+
+/**
+ * Overlay components are siblings of the Ribbon and historically received no
+ * measurement settings props. This read-only snapshot keeps those renderers on
+ * the same session contract until the Stage 2 Ribbon component refactor can pass
+ * the settings explicitly without duplicating state.
+ */
+export function getCurrentCadMeasurementUnitSettings(): CadResolvedMeasurementUnitSettings {
+  return { ...currentMeasurementUnitSettings };
+}
+
+function isMeasurementItem(item: CadReviewItem): boolean {
+  return item.type === "distance" || item.type === "chain_distance" || item.type === "area";
 }
 
 export interface CadReviewSessionState {
@@ -76,9 +143,7 @@ export class CadReviewStore {
       fontSize: 16,
     },
     measurementUnitSettings: {
-      unit: "m",
-      precision: 2,
-      color: "#3b82f6",
+      ...CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS,
     },
   };
 
@@ -101,6 +166,9 @@ export class CadReviewStore {
       ...initialDocument,
       items: [...initialDocument.items],
     };
+    currentMeasurementUnitSettings = resolveCadMeasurementUnitSettings(
+      this.session.measurementUnitSettings
+    );
   }
 
   // --- State Getters ---
@@ -183,10 +251,30 @@ export class CadReviewStore {
   }
 
   setMeasurementUnitSettings(settings: Partial<CadMeasurementUnitSettings>): void {
+    const previousColor = this.session.measurementUnitSettings.color;
     this.session.measurementUnitSettings = {
       ...this.session.measurementUnitSettings,
       ...settings,
     };
+    currentMeasurementUnitSettings = resolveCadMeasurementUnitSettings(
+      this.session.measurementUnitSettings
+    );
+
+    // Measurement color is one shared contract: existing review-based chain
+    // measurements follow the same color as native distance/area overlays.
+    if (settings.color && settings.color !== previousColor) {
+      let changedDocument = false;
+      for (const item of this.document.items) {
+        if (!isMeasurementItem(item)) continue;
+        item.style = { ...item.style, color: settings.color };
+        changedDocument = true;
+      }
+      if (changedDocument) {
+        this.document.updatedAt = new Date().toISOString();
+        this.isDirty = true;
+      }
+    }
+
     this.notify();
   }
 
@@ -249,14 +337,24 @@ export class CadReviewStore {
   // --- High-Level Document Actions (via Commands) ---
 
   addItem(item: CadReviewItem): void {
+    const itemToAdd = isMeasurementItem(item)
+      ? ({
+          ...item,
+          style: {
+            ...item.style,
+            color: currentMeasurementUnitSettings.color,
+          },
+        } as CadReviewItem)
+      : item;
+
     const command: CadReviewCommand = {
-      name: `Add Item (${item.type})`,
+      name: `Add Item (${itemToAdd.type})`,
       execute: () => {
-        this.document.items.push(item);
+        this.document.items.push(itemToAdd);
         this.document.updatedAt = new Date().toISOString();
       },
       undo: () => {
-        const idx = this.document.items.findIndex((i) => i.id === item.id);
+        const idx = this.document.items.findIndex((i) => i.id === itemToAdd.id);
         if (idx !== -1) {
           this.document.items.splice(idx, 1);
           this.document.updatedAt = new Date().toISOString();
@@ -311,7 +409,6 @@ export class CadReviewStore {
     };
     this.executeCommand(command);
   }
-
 
   // Mark clean after successful save/sync with server
   markClean(revision: number): void {
