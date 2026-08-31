@@ -244,7 +244,9 @@ export default function ToolsWorkbenchShowcase({
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setRecentToolIds(parsed.slice(0, 5));
+          queueMicrotask(() => {
+            setRecentToolIds(parsed.slice(0, 5));
+          });
         }
       }
     } catch {
