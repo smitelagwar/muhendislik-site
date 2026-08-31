@@ -1,223 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { signInAdmin } from "./cad-test-helpers";
-
-const MM_RECT_DXF = `0
-SECTION
-2
-HEADER
-9
-$ACADVER
-1
-AC1027
-9
-$INSUNITS
-70
-4
-0
-ENDSEC
-0
-SECTION
-2
-TABLES
-0
-TABLE
-2
-LAYER
-70
-2
-0
-LAYER
-2
-0
-70
-0
-62
-7
-6
-CONTINUOUS
-0
-LAYER
-2
-GEOMETRY
-70
-0
-62
-1
-6
-CONTINUOUS
-0
-ENDTAB
-0
-ENDSEC
-0
-SECTION
-2
-ENTITIES
-0
-LWPOLYLINE
-5
-P_RECT_STAGE9
-100
-AcDbEntity
-8
-GEOMETRY
-100
-AcDbPolyline
-90
-4
-70
-1
-10
-0.0
-20
-0.0
-10
-5000.0
-20
-0.0
-10
-5000.0
-20
-4000.0
-10
-0.0
-20
-4000.0
-0
-ENDSEC
-0
-EOF
-`;
-
-const UNITLESS_CALIBRATION_DXF = `0
-SECTION
-2
-HEADER
-9
-$ACADVER
-1
-AC1027
-9
-$INSUNITS
-70
-0
-0
-ENDSEC
-0
-SECTION
-2
-TABLES
-0
-TABLE
-2
-LAYER
-70
-2
-0
-LAYER
-2
-0
-70
-0
-62
-7
-6
-CONTINUOUS
-0
-LAYER
-2
-CALIBRATION
-70
-0
-62
-3
-6
-CONTINUOUS
-0
-ENDTAB
-0
-ENDSEC
-0
-SECTION
-2
-ENTITIES
-0
-LWPOLYLINE
-5
-P_CAL_STAGE9
-100
-AcDbEntity
-8
-CALIBRATION
-100
-AcDbPolyline
-90
-4
-70
-1
-10
-0.0
-20
-0.0
-10
-400.0
-20
-0.0
-10
-400.0
-20
-600.0
-10
-0.0
-20
-600.0
-0
-LINE
-5
-L_CAL_STAGE9
-100
-AcDbEntity
-8
-CALIBRATION
-100
-AcDbLine
-10
-0.0
-20
-0.0
-30
-0.0
-11
-100.0
-21
-0.0
-31
-0.0
-0
-ENDSEC
-0
-EOF
-`;
-
-async function uploadInlineDxf(page: Page, content: string, name: string): Promise<string> {
-  return page.evaluate(async ({ source, fileName }) => {
-    const formData = new FormData();
-    formData.append("file", new File([source], fileName, { type: "application/dxf" }));
-    formData.append("pathname", `cad-stage9-${crypto.randomUUID()}.dxf`);
-    const response = await fetch("/api/dokumantasyon/upload/local", { method: "POST", body: formData });
-    const payload = await response.json();
-    if (!response.ok || !payload.file?.id) throw new Error(payload.error || "Stage 9 fixture yüklenemedi");
-    return payload.file.id as string;
-  }, { source: content, fileName: name });
-}
-
-async function cleanupInlineDxf(page: Page, fileId: string | null) {
-  if (!fileId || page.isClosed()) return;
-  await page.evaluate(async (id) => {
-    await fetch(`/api/dokumantasyon/files/${id}`, { method: "DELETE" }).catch(() => undefined);
-    await fetch(`/api/dokumantasyon/trash/files/${id}`, { method: "DELETE" }).catch(() => undefined);
-  }, fileId).catch(() => undefined);
-}
+import {
+  cleanupUploadedCadFixtures,
+  signInAdmin,
+  uploadCadPreviewV2Fixture,
+} from "./cad-test-helpers";
 
 async function entityCount(page: Page): Promise<number> {
   return page.locator('[data-cad-upstream-host="true"]').first().evaluate((el: HTMLElement) => {
@@ -242,8 +28,15 @@ async function entityCount(page: Page): Promise<number> {
 async function project(page: Page, points: Array<{ x: number; y: number }>) {
   return page.locator('[data-cad-upstream-host="true"]').first().evaluate((el: HTMLElement, input) => {
     const viewport = el.querySelector<HTMLElement>('[aria-label$="CAD görünümü"]');
-    const adapter = (el as unknown as { __cadAdapter?: { projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null } }).__cadAdapter
-      ?? (viewport as unknown as { __cadAdapter?: { projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null } } | null)?.__cadAdapter;
+    const adapter = (el as unknown as {
+      __cadAdapter?: {
+        projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null;
+      };
+    }).__cadAdapter ?? (viewport as unknown as {
+      __cadAdapter?: {
+        projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null;
+      };
+    } | null)?.__cadAdapter;
     return input.map((point) => adapter?.projectWorldPoint?.(point) ?? null);
   }, points);
 }
@@ -261,132 +54,135 @@ async function clickWorldPoints(page: Page, points: Array<{ x: number; y: number
   }
 }
 
+async function openFixture(page: Page, fixtureId: string) {
+  const { fileId } = await uploadCadPreviewV2Fixture(page, fixtureId);
+  await page.goto(`/dokumantasyon/dosya/${fileId}`);
+  const host = page.locator('[data-cad-upstream-host="true"]').first();
+  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+  return { fileId, host };
+}
+
 test.describe("CAD Stage 9 — final release blockers", () => {
+  test.setTimeout(90_000);
+
+  test.afterEach(async ({ page }) => {
+    await cleanupUploadedCadFixtures(page);
+  });
+
   test("Kalem Golden Path: stil, source immutability, silgi, undo/redo ve reload persistence", async ({ page, isMobile }) => {
     test.skip(Boolean(isMobile), "Final pen Golden Path masaüstü ribbon ile doğrulanır");
     await signInAdmin(page);
-    let fileId: string | null = null;
-    try {
-      fileId = await uploadInlineDxf(page, MM_RECT_DXF, "stage9-pen.dxf");
-      await page.goto(`/dokumantasyon/dosya/${fileId}`);
-      const host = page.locator('[data-cad-upstream-host="true"]').first();
-      await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
-      const sourceCount = await entityCount(page);
+    const { host } = await openFixture(page, "known-geometry-measurements");
+    const sourceCount = await entityCount(page);
 
-      await page.locator('[data-testid="cad-tool-stroke-style-trigger"]').click();
-      await page.locator('[data-testid="cad-pencil-color-preset-ef4444"]').click();
-      await page.locator('[data-testid="cad-pencil-width-5"]').click();
-      await page.locator('[data-testid="cad-pencil-line-dashed"]').click();
-      await page.keyboard.press("Escape");
-      await expect(page.locator('[data-testid="cad-tool-stroke-style-trigger-content"]')).toBeHidden();
+    await page.locator('[data-testid="cad-tool-stroke-style-trigger"]').click();
+    await page.locator('[data-testid="cad-pencil-color-preset-ef4444"]').click();
+    await page.locator('[data-testid="cad-pencil-width-5"]').click();
+    await page.locator('[data-testid="cad-pencil-line-dashed"]').click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator('[data-testid="cad-tool-stroke-style-trigger-content"]')).toBeHidden();
 
-      await page.locator('[data-testid="cad-tool-stroke"]').click();
-      const canvas = host.locator("canvas").first();
-      const box = await canvas.boundingBox();
-      expect(box).not.toBeNull();
-      await page.mouse.move(box!.x + 120, box!.y + 150);
-      await page.mouse.down();
-      await page.mouse.move(box!.x + 260, box!.y + 180, { steps: 10 });
-      await page.mouse.up();
+    await page.locator('[data-testid="cad-tool-stroke"]').click();
+    const canvas = host.locator("canvas").first();
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.move(box!.x + 120, box!.y + 150);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + 260, box!.y + 180, { steps: 10 });
+    await page.mouse.up();
 
-      const strokes = page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]');
-      await expect(strokes).toHaveCount(1);
-      const firstPath = strokes.first().locator("path");
-      await expect(firstPath).toHaveAttribute("stroke", "#ef4444");
-      await expect(firstPath).toHaveAttribute("stroke-width", "5");
-      await expect(firstPath).toHaveAttribute("stroke-dasharray", "8 5");
+    const strokes = page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]');
+    await expect(strokes).toHaveCount(1);
+    const firstPath = strokes.first().locator("path");
+    await expect(firstPath).toHaveAttribute("stroke", "#ef4444");
+    await expect(firstPath).toHaveAttribute("stroke-width", "5");
+    await expect(firstPath).toHaveAttribute("stroke-dasharray", "8 5");
 
-      await page.locator('[data-testid="cad-tool-stroke-style-trigger"]').click();
-      await page.locator('[data-testid="cad-pencil-color-preset-3b82f6"]').click();
-      await page.keyboard.press("Escape");
-      await page.mouse.move(box!.x + 120, box!.y + 260);
-      await page.mouse.down();
-      await page.mouse.move(box!.x + 260, box!.y + 290, { steps: 10 });
-      await page.mouse.up();
-      await expect(strokes).toHaveCount(2);
-      await expect(strokes.nth(0).locator("path")).toHaveAttribute("stroke", "#ef4444");
-      await expect(strokes.nth(1).locator("path")).toHaveAttribute("stroke", "#3b82f6");
-      expect(await entityCount(page)).toBe(sourceCount);
+    await page.locator('[data-testid="cad-tool-stroke-style-trigger"]').click();
+    await page.locator('[data-testid="cad-pencil-color-preset-3b82f6"]').click();
+    await page.keyboard.press("Escape");
+    await page.mouse.move(box!.x + 120, box!.y + 260);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + 260, box!.y + 290, { steps: 10 });
+    await page.mouse.up();
+    await expect(strokes).toHaveCount(2);
+    await expect(strokes.nth(0).locator("path")).toHaveAttribute("stroke", "#ef4444");
+    await expect(strokes.nth(1).locator("path")).toHaveAttribute("stroke", "#3b82f6");
+    expect(await entityCount(page)).toBe(sourceCount);
 
-      await page.locator('[data-testid="cad-tool-eraser"]').click();
-      await page.mouse.click(box!.x + 190, box!.y + 275);
-      await expect(strokes).toHaveCount(1);
-      await page.locator('[data-testid="cad-tool-undo"]').click();
-      await expect(strokes).toHaveCount(2);
-      await page.locator('[data-testid="cad-tool-redo"]').click();
-      await expect(strokes).toHaveCount(1);
+    await page.locator('[data-testid="cad-tool-eraser"]').click();
+    await page.mouse.click(box!.x + 190, box!.y + 275);
+    await expect(strokes).toHaveCount(1);
+    await page.locator('[data-testid="cad-tool-undo"]').click();
+    await expect(strokes).toHaveCount(2);
+    await page.locator('[data-testid="cad-tool-redo"]').click();
+    await expect(strokes).toHaveCount(1);
 
-      await expect(page.locator('[data-testid="cad-save-status"]')).toContainText("Kaydedildi", { timeout: 12_000 });
-      await page.reload();
-      await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
-      await expect(page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]')).toHaveCount(1);
-      expect(await entityCount(page)).toBe(sourceCount);
-    } finally {
-      await cleanupInlineDxf(page, fileId);
-    }
+    await expect(page.locator('[data-testid="cad-save-status"]')).toContainText("Kaydedildi", { timeout: 12_000 });
+    await page.reload();
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+    await expect(page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]')).toHaveCount(1);
+    expect(await entityCount(page)).toBe(sourceCount);
   });
 
   test("Alan Golden Path: 5 m × 4 m = 20,00 m² ve cm² dönüşümü", async ({ page, isMobile }) => {
     test.skip(Boolean(isMobile), "Final numeric oracle masaüstünde doğrulanır");
     await signInAdmin(page);
-    let fileId: string | null = null;
-    try {
-      fileId = await uploadInlineDxf(page, MM_RECT_DXF, "stage9-area-20m2.dxf");
-      await page.goto(`/dokumantasyon/dosya/${fileId}`);
-      const host = page.locator('[data-cad-upstream-host="true"]').first();
-      await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await openFixture(page, "stage9-area-20m2");
 
-      await page.locator('[data-testid="cad-tool-area"]').click();
-      await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 5000, y: 0 }, { x: 5000, y: 4000 }, { x: 0, y: 4000 }]);
-      await page.keyboard.press("Enter");
-      const overlay = page.locator('[data-cad-area-complete="true"]').first();
-      await expect(overlay).toBeVisible();
-      await expect(overlay.locator("text")).toContainText("20,00 m²");
+    await page.locator('[data-testid="cad-tool-area"]').click();
+    await clickWorldPoints(page, [
+      { x: 0, y: 0 },
+      { x: 5000, y: 0 },
+      { x: 5000, y: 4000 },
+      { x: 0, y: 4000 },
+    ]);
+    await page.keyboard.press("Enter");
+    const overlay = page.locator('[data-cad-area-complete="true"]').first();
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator("text")).toContainText("20,00 m²");
 
-      await page.locator('[data-testid="cad-tool-measure-settings"]').click();
-      await page.getByRole("radio", { name: "cm²" }).click();
-      await page.keyboard.press("Escape");
-      await expect(overlay.locator("text")).toContainText("200.000,00 cm²");
-    } finally {
-      await cleanupInlineDxf(page, fileId);
-    }
+    await page.locator('[data-testid="cad-tool-measure-settings"]').click();
+    await page.getByRole("radio", { name: "cm²" }).click();
+    await page.keyboard.press("Escape");
+    await expect(overlay.locator("text")).toContainText("200.000,00 cm²");
   });
 
   test("Kalibrasyon Golden Path: 50 cm referans → 2,00 m mesafe ve 6,00 m² alan", async ({ page, isMobile }) => {
     test.skip(Boolean(isMobile), "Final calibration oracle masaüstünde doğrulanır");
     await signInAdmin(page);
-    let fileId: string | null = null;
-    try {
-      fileId = await uploadInlineDxf(page, UNITLESS_CALIBRATION_DXF, "stage9-unitless-calibration.dxf");
-      await page.goto(`/dokumantasyon/dosya/${fileId}`);
-      const host = page.locator('[data-cad-upstream-host="true"]').first();
-      await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    const { fileId } = await openFixture(page, "stage9-unitless-calibration");
 
-      await page.locator('[data-testid="cad-tool-measure-settings"]').click();
-      await page.locator('[data-testid="cad-calibration-start"]').click();
-      await expect(page.locator('[data-testid="cad-calibration-overlay"]')).toHaveAttribute("data-cad-calibration-phase", "first");
-      await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 100, y: 0 }]);
-      await expect(page.locator('[data-testid="cad-calibration-distance-form"]')).toBeVisible();
-      await page.locator('[data-testid="cad-calibration-distance"]').fill("50");
-      await page.locator('[data-testid="cad-calibration-unit"]').selectOption("cm");
-      await page.locator('[data-testid="cad-calibration-apply"]').click();
-      await expect(page.locator('[data-testid="cad-calibration-saved"]')).toBeVisible();
+    await page.locator('[data-testid="cad-tool-measure-settings"]').click();
+    await page.locator('[data-testid="cad-calibration-start"]').click();
+    await expect(page.locator('[data-testid="cad-calibration-overlay"]')).toHaveAttribute("data-cad-calibration-phase", "first");
+    await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 100, y: 0 }]);
+    await expect(page.locator('[data-testid="cad-calibration-distance-form"]')).toBeVisible();
+    await page.locator('[data-testid="cad-calibration-distance"]').fill("50");
+    await page.locator('[data-testid="cad-calibration-unit"]').selectOption("cm");
+    await page.locator('[data-testid="cad-calibration-apply"]').click();
+    await expect(page.locator('[data-testid="cad-calibration-saved"]')).toBeVisible();
 
-      const calibration = await page.evaluate((id) => JSON.parse(localStorage.getItem(`cad-calibration:${id}`) ?? "null"), fileId);
-      expect(calibration?.mmPerWorldUnit).toBe(5);
+    const calibration = await page.evaluate(
+      (id) => JSON.parse(localStorage.getItem(`cad-calibration:${id}`) ?? "null"),
+      fileId
+    );
+    expect(calibration?.mmPerWorldUnit).toBe(5);
 
-      await page.locator('[data-testid="cad-tool-distance"]').click();
-      await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 400, y: 0 }]);
-      const distance = page.locator('[data-cad-distance-complete="true"]').first();
-      await expect(distance.locator("text")).toContainText("2,00 m");
+    await page.locator('[data-testid="cad-tool-distance"]').click();
+    await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 400, y: 0 }]);
+    const distance = page.locator('[data-cad-distance-complete="true"]').first();
+    await expect(distance.locator("text")).toContainText("2,00 m");
 
-      await page.locator('[data-testid="cad-tool-area"]').click();
-      await clickWorldPoints(page, [{ x: 0, y: 0 }, { x: 400, y: 0 }, { x: 400, y: 600 }, { x: 0, y: 600 }]);
-      await page.keyboard.press("Enter");
-      const area = page.locator('[data-cad-area-complete="true"]').last();
-      await expect(area.locator("text")).toContainText("6,00 m²");
-    } finally {
-      await cleanupInlineDxf(page, fileId);
-    }
+    await page.locator('[data-testid="cad-tool-area"]').click();
+    await clickWorldPoints(page, [
+      { x: 0, y: 0 },
+      { x: 400, y: 0 },
+      { x: 400, y: 600 },
+      { x: 0, y: 600 },
+    ]);
+    await page.keyboard.press("Enter");
+    const area = page.locator('[data-cad-area-complete="true"]').last();
+    await expect(area.locator("text")).toContainText("6,00 m²");
   });
 });
