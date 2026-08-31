@@ -1830,22 +1830,24 @@
     "primaryAltTr": "Tuğla Duvar — Düşey delikli kırmızı pişmiş kil tuğlalar ile harçlı duvar imalatı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: tuğla duvar kapı-pencere üstü prefabrik veya yerinde döküm betonarme lento kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: tuğla duvarın betonarme kolona galvaniz ankrajlarla bağlanması ve açıklık üzerindeki beton lento uygulaması",
     "secondaryMustShow": [
-      "açıklık üstündeki betonarme lento",
-      "lento donatısı",
-      "tuğla duvarın lentoya oturma mesafesi"
+      "betonarme kolona sabitlenmiş delikli galvaniz ankrajlar",
+      "ankrajların yatay harç derzlerine girmesi",
+      "açıklık üstünde yeterli mesnetli beton lento"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü çizgisi",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Tuğla Duvar\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Düşey delikli kırmızı pişmiş kil tuğlalar ile harçlı duvar imalatı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Tuğla duvar kapı-pencere üstü prefabrik veya yerinde döküm betonarme lento kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: açıklık üstündeki betonarme lento, lento donatısı, tuğla duvarın lentoya oturma mesafesi.\nPRIMARY'DEN FARK: Primary tuğla duvar örgüsünü sunarken, secondary duvar boşluğu üstündeki taşıyıcı lento detayını kesit olarak öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Tuğla Duvar (Teknik Detay) — Tuğla duvar kapı-pencere üstü prefabrik veya yerinde döküm betonarme lento kesiti",
-    "secondaryDifference": "Primary tuğla duvar örgüsünü sunarken, secondary duvar boşluğu üstündeki taşıyıcı lento detayını kesit olarak öğretir.",
+    "secondaryPromptTr": "KONU: Tuğla Duvar\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın kırmızı düşey delikli kil blokları harçla şaşırtmalı örmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Tuğla dolgu duvarın betonarme kolona galvaniz ankrajlarla bağlanması ve açıklık üzerindeki beton lento uygulaması\nMOD: technical-detail\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi şantiye yakın planı.\nMUTLAKA GÖRÜNSÜN: betonarme kolona sabitlenmiş delikli galvaniz ankrajlar, ankrajların yatay harç derzlerine girmesi, açıklık üstünde yeterli mesnetli beton lento.\nPRIMARY'DEN FARK: Primary duvar örme işçiliğini, secondary kolon bağlantısı ve lento geometrisini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi malzeme, derz ve birleşim ilişkileri.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, etiket, logo, marka, filigran, UI, HUD, kolaj veya havada yüzen obje.",
+    "secondaryAltTr": "Tuğla Duvar (Teknik Detay) — Betonarme kolona galvaniz ankrajlı bağlantı ve açıklık üstü beton lento",
+    "secondaryDifference": "Primary ustanın harçlı tuğla örgüsünü gösterirken, secondary kolon ankrajları ile açıklık üstü lento birleşimini işçisiz yakın planda öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "ytong-gazbeton",
@@ -1873,24 +1875,26 @@
     ],
     "primaryPromptTr": "KONU: Ytong / Gazbeton\nİÇERİK: Hafif bloklar ile hızlı imalat, iyi ısı performansı ve kontrollü yapıştırıcı uygulaması sunan çözüm.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında hafif beyaz gazbeton blokların dişli mala ve özel yapıştırıcı ile örülmesi durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: beyaz gazbeton bloklar, dişli mala ile sürülen ince yapıştırıcı harç, lastik tokmak ile terazi ayarı.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: marka yazısı (Ytong), yazı, rakam, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
     "primaryAltTr": "Ytong / Gazbeton — Hafif beyaz gazbeton blokların dişli mala ve özel yapıştırıcı ile örülmesi",
-    "secondaryMode": "site-process",
-    "secondaryPlacement": "application",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: gazbeton blokların el testeresi ile hassas kesimi ve kanal açma hazırlığı",
+    "secondaryMode": "technical-detail",
+    "secondaryPlacement": "technical-detail",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: gazbeton duvarın ince derzleri, şakül kontrolü, köşe örgüsü ve betonarme kolon bağlantısı",
     "secondaryMustShow": [
-      "geniş dişli gazbeton testeresi",
-      "düzgün kesilen beyaz blok",
-      "tesisat için açılan düzgün kanal"
+      "betonarme kolona sabitlenmiş galvaniz duvar bağları",
+      "ince yapıştırıcı derzleri",
+      "düşey terazi kontrolü ve bağlı köşe"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Ytong / Gazbeton\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Hafif beyaz gazbeton blokların dişli mala ve özel yapıştırıcı ile örülmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Gazbeton blokların el testeresi ile hassas kesimi ve kanal açma hazırlığı\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: site-process\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: geniş dişli gazbeton testeresi, düzgün kesilen beyaz blok, tesisat için açılan düzgün kanal.\nPRIMARY'DEN FARK: Primary ince harçlı blok örgüsünü gösterirken, secondary blokların testere ile özel boyutlandırılma ve işlenme kolaylığını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Ytong / Gazbeton (Teknik Detay) — Gazbeton blokların el testeresi ile hassas kesimi ve kanal açma hazırlığı",
-    "secondaryDifference": "Primary ince harçlı blok örgüsünü gösterirken, secondary blokların testere ile özel boyutlandırılma ve işlenme kolaylığını öğretir.",
+    "secondaryPromptTr": "KONU: Ytong / Gazbeton\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın beyaz gazbeton blokları dişli mala ile ince yatak harcı üzerinde örmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Gazbeton duvarın ince derz, düşey doğrultu, köşe örgüsü ve betonarme kolon bağlantısını öğretmek\nMOD: technical-detail\nSAHNE: 16:9 yatay foto-gerçekçi şantiye yakın planı.\nMUTLAKA GÖRÜNSÜN: betonarme kolona sabitlenmiş galvaniz duvar bağları, ince yapıştırıcı derzleri, düşey terazi kontrolü ve bağlı köşe.\nPRIMARY'DEN FARK: Primary blok yerleştirme sürecini, secondary tamamlanmış duvarın doğrultu ve taşıyıcı sistem bağlantısını gösterir.\nFİZİKSEL DOĞRULUK: Beyaz gözenekli blok dokusu, ince yatak derzleri ve gerçekçi bağlantı geometrisi.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, marka, filigran, UI, HUD, kolaj veya havada yüzen obje.",
+    "secondaryAltTr": "Ytong / Gazbeton (Teknik Detay) — İnce derzli gazbeton duvarda terazi kontrolü ve betonarme kolon bağlantısı",
+    "secondaryDifference": "Primary gazbeton blok yerleştirme işçiliğini gösterirken, secondary ince derzli tamamlanmış duvarın şakül, köşe ve kolon bağlantısını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "briket",
@@ -1920,22 +1924,24 @@
     "primaryAltTr": "Briket / Bims — Gri beton briket veya bims bloklarla çevre veya bölme duvar örgüsü",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: briket duvar içinde düşey donatı çubuğu ve harç doldurulan boşluk kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: bims duvarın betonarme kolona ankrajlı bağlantısı ve açıklık üstü beton lento uygulaması",
     "secondaryMustShow": [
-      "briket dikey boşluğundan geçen nervürlü demir",
-      "harç ile doldurulmuş çekirdek",
-      "donatılı kargir kesiti"
+      "betonarme kolona sabitlenmiş delikli galvaniz ankrajlar",
+      "kalın harç derzlerine giren bağlantılar",
+      "açıklık üstünde yeterli mesnetli beton lento"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "rakam",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Briket / Bims\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Gri beton briket veya bims bloklarla çevre veya bölme duvar örgüsü\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Briket duvar içinde düşey donatı çubuğu ve harç doldurulan boşluk kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: briket dikey boşluğundan geçen nervürlü demir, harç ile doldurulmuş çekirdek, donatılı kargir kesiti.\nPRIMARY'DEN FARK: Primary kaba briket örgüsünü gösterirken, secondary briket boşluklarına düşey donatı atılarak yapılan güçlendirme kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, rakam, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Briket / Bims (Teknik Detay) — Briket duvar içinde düşey donatı çubuğu ve harç doldurulan boşluk kesiti",
-    "secondaryDifference": "Primary kaba briket örgüsünü gösterirken, secondary briket boşluklarına düşey donatı atılarak yapılan güçlendirme kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Briket / Bims\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın boşluklu, kaba dokulu gri bims blokları kalın harçla örmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Bims duvarın betonarme kolona ankrajlı bağlantısı ve açıklık üstü beton lento uygulamasını öğretmek\nMOD: technical-detail\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi şantiye yakın planı.\nMUTLAKA GÖRÜNSÜN: betonarme kolona sabitlenmiş delikli galvaniz ankrajlar, kalın harç derzlerine giren bağlantılar, açıklık üstünde yeterli mesnetli beton lento.\nPRIMARY'DEN FARK: Primary bims blok yerleştirme sürecini, secondary kolon bağlantısı ve açıklık üstü lento geometrisini gösterir.\nFİZİKSEL DOĞRULUK: Kaba gri pomza dokusu, boşluklu bloklar, kalın derzler ve gerçekçi bağlantılar.\nKESİNLİKLE OLMASIN: yazı, rakam, oklar, logo, marka, filigran, UI, HUD, kolaj veya havada yüzen obje.",
+    "secondaryAltTr": "Briket / Bims (Teknik Detay) — Gri bims duvarda betonarme kolon ankrajları ve açıklık üstü beton lento",
+    "secondaryDifference": "Primary ustanın bims blok örgüsünü gösterirken, secondary işçisiz yakın planda kolon ankrajları ile açıklık üstü lento birleşimini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "cati-iskeleti",
