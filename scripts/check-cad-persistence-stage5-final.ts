@@ -70,10 +70,11 @@ function finalSourceContractGate() {
   assert.ok(persistence.includes("this.hydrated = false"));
   assert.ok(persistence.includes("this.changeVersion === saveStartVersion"));
   assert.ok(persistence.includes("private revisionBlocked = false"));
-  assert.ok(saveUi.includes("setCadReviewSaveRetryAction"));
-  assert.ok(saveUi.includes("data-cad-save-retry"));
-  assert.ok(saveUi.includes('event.key === "Enter" || event.key === " "'));
-  assert.ok(activeStore.includes("setCadReviewSaveRetryAction(() => retryCurrentCadReviewSave())"));
+  assert.ok(saveUi.includes('CAD_REVIEW_SAVE_RETRY_EVENT = "cad:review-save-retry"'));
+  assert.ok(saveUi.includes('indicator.dataset.cadSaveRetry = "true"'));
+  assert.ok(saveUi.includes('event.key !== "Enter" && event.key !== " "'));
+  assert.ok(activeStore.includes("window.addEventListener(CAD_REVIEW_SAVE_RETRY_EVENT, retryCurrentCadReviewSave)"));
+  assert.ok(activeStore.includes("export function retryCurrentCadReviewSave"));
 }
 
 await offlineHydrateRetryGate();
