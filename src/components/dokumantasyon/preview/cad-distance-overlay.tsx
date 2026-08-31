@@ -11,8 +11,20 @@ import type {
   CadSnapPrimitive,
 } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 import {
-  getCurrentCadMeasurementUnitSettings,
-} from "@/lib/dokumantasyon/cad-review/store";
+  CAD_CHAIN_DISTANCE_SNAPSHOT_EVENT,
+  dispatchCadChainDistanceAction,
+  type CadChainDistanceSnapshot,
+} from "@/lib/dokumantasyon/cad-upstream/chain-distance";
+import { getCurrentCadMeasurementUnitSettings } from "@/lib/dokumantasyon/cad-review/store";
+import {
+  createCadReviewItemId,
+  getCurrentCadReviewStore,
+} from "@/lib/dokumantasyon/cad-review/active-store";
+import {
+  getCadNativeMeasurementReviewId,
+  pruneCadNativeMeasurementRegistrations,
+  registerCadNativeMeasurement,
+} from "@/lib/dokumantasyon/cad-review/measurement-render-registry";
 import {
   CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT,
   calculateCalibrationFromWorldDistance,
@@ -149,12 +161,30 @@ export function CadDistanceOverlay({
   const [calibrationValue, setCalibrationValue] = useState("");
   const [calibrationUnit, setCalibrationUnit] = useState<CadLengthUnit>("cm");
   const [calibrationError, setCalibrationError] = useState<string | null>(null);
+  const [chainSnapshot, setChainSnapshot] = useState<CadChainDistanceSnapshot | null>(null);
 
   useEffect(() => {
     const refresh = () => setMeasurementContextRevision((value) => value + 1);
     window.addEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
     return () => window.removeEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
   }, []);
+
+  useEffect(() => {
+    const handleChainSnapshot = (event: Event) => {
+      const next = (event as CustomEvent<CadChainDistanceSnapshot>).detail;
+      setChainSnapshot(next.phase === "inactive" || next.phase === "complete" ? null : next);
+    };
+    window.addEventListener(CAD_CHAIN_DISTANCE_SNAPSHOT_EVENT, handleChainSnapshot);
+    return () => window.removeEventListener(CAD_CHAIN_DISTANCE_SNAPSHOT_EVENT, handleChainSnapshot);
+  }, []);
+
+  const activeReviewStore = getCurrentCadReviewStore();
+  useEffect(() => {
+    if (!activeReviewStore) return;
+    return activeReviewStore.subscribe(() => {
+      setMeasurementContextRevision((value) => value + 1);
+    });
+  }, [activeReviewStore]);
 
   const measurementSettings = getCurrentCadMeasurementUnitSettings();
   const sourceUnitContext = resolveCadSourceUnitContext(anchorRef.current);
@@ -166,11 +196,62 @@ export function CadDistanceOverlay({
       measurementSettings.precision
     );
 
+  useEffect(() => {
+    const store = getCurrentCadReviewStore();
+    if (!store) return;
+
+    const activeNativeIds = new Set(measurements.map((measurement) => measurement.id));
+    pruneCadNativeMeasurementRegistrations("distance", activeNativeIds);
+
+    for (const measurement of measurements) {
+      if (getCadNativeMeasurementReviewId("distance", measurement.id)) continue;
+      const reviewId = createCadReviewItemId();
+      registerCadNativeMeasurement("distance", measurement.id, reviewId);
+      const now = new Date().toISOString();
+      store.addItem({
+        id: reviewId,
+        type: "distance",
+        start: { x: measurement.start.x, y: measurement.start.y },
+        end: { x: measurement.end.x, y: measurement.end.y },
+        measuredLength: measurement.distance,
+        author: "Admin",
+        comment: "",
+        status: "open",
+        style: {
+          color: measurementSettings.color,
+          strokeWidth: 2,
+          opacity: 1,
+        },
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }, [measurements, measurementSettings.color]);
+
+  const reviewStore = getCurrentCadReviewStore();
+  const reviewItems = reviewStore?.getItems() ?? [];
+  const selectedIds = reviewStore?.getSession().selectedItemIds ?? new Set<string>();
+
   const completed = measurements
     .map((measurement) => {
+      const reviewId = getCadNativeMeasurementReviewId("distance", measurement.id);
+      const reviewItem = reviewId
+        ? reviewItems.find((item) => item.id === reviewId && item.type === "distance")
+        : undefined;
+      if (reviewId && !reviewItem) return null;
+      if (reviewItem && (reviewItem.style.opacity ?? 1) <= 0) return null;
+
       const start = projectPoint(measurement.start);
       const end = projectPoint(measurement.end);
-      return start && end ? { measurement, start, end } : null;
+      return start && end
+        ? {
+            measurement,
+            start,
+            end,
+            reviewItem,
+            selected: Boolean(reviewId && selectedIds.has(reviewId)),
+          }
+        : null;
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
@@ -179,6 +260,11 @@ export function CadDistanceOverlay({
   const message = phaseMessage(snapshot, formatValue);
   const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
   const sourceUnitUnknown = sourceUnitContext.mmPerWorldUnit === null;
+
+  const chainProjectedPoints = chainSnapshot?.points.map((point) => projectPoint(point)) ?? [];
+  const chainCanRender = chainProjectedPoints.every((point) => point !== null);
+  const chainPoints = chainCanRender ? (chainProjectedPoints as CadSnapPoint[]) : [];
+  const chainPreview = chainSnapshot?.previewPoint ? projectPoint(chainSnapshot.previewPoint) : null;
 
   const getSourceCanvas = (): HTMLCanvasElement | null => {
     const host = anchorRef.current?.parentElement;
@@ -264,35 +350,110 @@ export function CadDistanceOverlay({
         data-cad-source-unit={sourceUnitContext.sourceUnit}
         data-cad-source-unit-source={sourceUnitContext.source}
       >
-        {completed.map(({ measurement, start, end }) => {
-          const label = midpoint(start, end);
+        {completed.map(({ measurement, start, end, reviewItem, selected }) => {
+          const labelPoint = midpoint(start, end);
+          const value = formatValue(measurement.distance);
+          const displayLabel = reviewItem?.label ? `${reviewItem.label}: ${value}` : value;
           return (
-            <g key={measurement.id} data-cad-distance-complete="true">
+            <g
+              key={measurement.id}
+              data-cad-distance-complete="true"
+              data-cad-measurement-selected={selected ? "true" : "false"}
+            >
               <line
                 x1={start.x}
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
                 stroke={measurementSettings.color}
-                strokeWidth="1.5"
+                strokeWidth={selected ? "3" : "1.5"}
                 vectorEffect="non-scaling-stroke"
               />
-              <circle cx={start.x} cy={start.y} r="3" fill={measurementSettings.color} />
-              <circle cx={end.x} cy={end.y} r="3" fill={measurementSettings.color} />
+              <circle cx={start.x} cy={start.y} r={selected ? 4.5 : 3} fill={measurementSettings.color} />
+              <circle cx={end.x} cy={end.y} r={selected ? 4.5 : 3} fill={measurementSettings.color} />
               <text
-                x={label.x}
-                y={label.y - 7}
+                x={labelPoint.x}
+                y={labelPoint.y - 7}
                 textAnchor="middle"
                 className="fill-foreground text-[11px] font-semibold"
                 stroke="var(--background)"
                 strokeWidth="3"
                 paintOrder="stroke"
               >
-                {formatValue(measurement.distance)}
+                {displayLabel}
               </text>
             </g>
           );
         })}
+
+        {chainSnapshot && chainCanRender ? (
+          <g data-cad-chain-live="true">
+            {chainPoints.slice(0, -1).map((point, index) => {
+              const next = chainPoints[index + 1]!;
+              const rawDistance = chainSnapshot.segmentDistances[index] ?? 0;
+              const labelPoint = midpoint(point, next);
+              return (
+                <g key={`chain-segment-${index}`} data-cad-chain-segment={index + 1}>
+                  <line
+                    x1={point.x}
+                    y1={point.y}
+                    x2={next.x}
+                    y2={next.y}
+                    stroke={measurementSettings.color}
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    x={labelPoint.x}
+                    y={labelPoint.y - 7}
+                    textAnchor="middle"
+                    className="fill-foreground text-[11px] font-semibold"
+                    stroke="var(--background)"
+                    strokeWidth="3"
+                    paintOrder="stroke"
+                  >
+                    {formatValue(rawDistance)}
+                  </text>
+                </g>
+              );
+            })}
+            {chainPoints.map((point, index) => (
+              <circle
+                key={`chain-point-${index}`}
+                cx={point.x}
+                cy={point.y}
+                r="4"
+                fill={measurementSettings.color}
+                stroke="var(--background)"
+                strokeWidth="1.5"
+              />
+            ))}
+            {chainPoints.length > 0 && chainPreview ? (
+              <line
+                x1={chainPoints[chainPoints.length - 1]!.x}
+                y1={chainPoints[chainPoints.length - 1]!.y}
+                x2={chainPreview.x}
+                y2={chainPreview.y}
+                stroke={measurementSettings.color}
+                strokeWidth="2"
+                strokeDasharray="6 4"
+                vectorEffect="non-scaling-stroke"
+                data-cad-chain-preview="true"
+              />
+            ) : null}
+            {chainPreview ? (
+              <circle
+                cx={chainPreview.x}
+                cy={chainPreview.y}
+                r={chainSnapshot.previewSnap ? 6 : 4}
+                fill="none"
+                stroke={measurementSettings.color}
+                strokeWidth="2"
+                data-cad-chain-preview-point="true"
+              />
+            ) : null}
+          </g>
+        ) : null}
 
         {first ? <circle cx={first.x} cy={first.y} r="3.5" fill={measurementSettings.color} /> : null}
 
@@ -345,6 +506,46 @@ export function CadDistanceOverlay({
         getSourceCanvas={getSourceCanvas}
         getSnapPrimitives={getSnapPrimitives}
       />
+
+      {chainSnapshot ? (
+        <div
+          className="pointer-events-none absolute left-1/2 top-3 z-30 w-[min(94vw,560px)] -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+          data-testid="cad-chain-distance-status"
+          data-cad-chain-points={chainSnapshot.points.length}
+          data-cad-chain-segments={chainSnapshot.segmentDistances.length}
+        >
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-background/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+            <div className="min-w-0">
+              <div className="font-semibold text-foreground">Sürekli Mesafe</div>
+              <div className="truncate text-muted-foreground">
+                {chainSnapshot.points.length} nokta · {chainSnapshot.segmentDistances.length} segment · Toplam {formatValue(chainSnapshot.totalDistance)}
+              </div>
+            </div>
+            <div className="pointer-events-auto flex shrink-0 gap-2">
+              <button
+                type="button"
+                className="min-h-11 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-8"
+                disabled={chainSnapshot.points.length === 0}
+                onClick={() => dispatchCadChainDistanceAction("undo-last")}
+                data-testid="cad-chain-undo-last"
+              >
+                ↶ Son Nokta
+              </button>
+              <button
+                type="button"
+                className="min-h-11 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-8"
+                disabled={chainSnapshot.points.length < 2}
+                onClick={() => dispatchCadChainDistanceAction("finish")}
+                data-testid="cad-chain-finish"
+              >
+                ✓ Bitir
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {message ? (
         <div

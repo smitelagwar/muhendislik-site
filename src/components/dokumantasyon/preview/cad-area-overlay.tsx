@@ -4,9 +4,16 @@ import type {
   CadAreaMeasurementSnapshot,
 } from "@/lib/dokumantasyon/cad-upstream/area-measurement";
 import type { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import { getCurrentCadMeasurementUnitSettings } from "@/lib/dokumantasyon/cad-review/store";
 import {
-  getCurrentCadMeasurementUnitSettings,
-} from "@/lib/dokumantasyon/cad-review/store";
+  createCadReviewItemId,
+  getCurrentCadReviewStore,
+} from "@/lib/dokumantasyon/cad-review/active-store";
+import {
+  getCadNativeMeasurementReviewId,
+  pruneCadNativeMeasurementRegistrations,
+  registerCadNativeMeasurement,
+} from "@/lib/dokumantasyon/cad-review/measurement-render-registry";
 import {
   CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT,
   formatArea,
@@ -55,9 +62,47 @@ export function CadAreaOverlay({
     };
   }, []);
 
+  const activeReviewStore = getCurrentCadReviewStore();
+  useEffect(() => {
+    if (!activeReviewStore) return;
+    return activeReviewStore.subscribe(() => setRenderTick((tick) => (tick + 1) % 10000));
+  }, [activeReviewStore]);
+
   const measurementSettings = getCurrentCadMeasurementUnitSettings();
   const sourceUnitContext = resolveCadSourceUnitContext();
   const measurementColor = measurementSettings.color;
+
+  useEffect(() => {
+    const store = getCurrentCadReviewStore();
+    if (!store) return;
+
+    const activeNativeIds = new Set(measurements.map((measurement) => measurement.id));
+    pruneCadNativeMeasurementRegistrations("area", activeNativeIds);
+
+    for (const measurement of measurements) {
+      if (getCadNativeMeasurementReviewId("area", measurement.id)) continue;
+      const reviewId = createCadReviewItemId();
+      registerCadNativeMeasurement("area", measurement.id, reviewId);
+      const now = new Date().toISOString();
+      store.addItem({
+        id: reviewId,
+        type: "area",
+        points: measurement.points.map((point) => ({ x: point.x, y: point.y })),
+        measuredArea: measurement.area,
+        measuredPerimeter: measurement.perimeter,
+        author: "Admin",
+        comment: "",
+        status: "open",
+        style: {
+          color: measurementColor,
+          strokeWidth: 2,
+          opacity: 1,
+        },
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }, [measurements, measurementColor]);
 
   const formatAreaValue = (value: number, unit: CadAreaUnit = measurementSettings.areaUnit) =>
     formatArea(value, sourceUnitContext, unit, measurementSettings.areaPrecision);
@@ -69,15 +114,14 @@ export function CadAreaOverlay({
   );
   const hasCompleted = measurements.length > 0;
 
-  if (!hasActive && !hasCompleted) {
-    return null;
-  }
+  if (!hasActive && !hasCompleted) return null;
 
+  const reviewStore = getCurrentCadReviewStore();
+  const reviewItems = reviewStore?.getItems() ?? [];
+  const selectedIds = reviewStore?.getSession().selectedItemIds ?? new Set<string>();
   const activeConfirmed = snapshot?.points.map(projectPoint) ?? [];
   const activePreview = snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
-  const livePolyPoints = activePreview
-    ? [...activeConfirmed, activePreview]
-    : activeConfirmed;
+  const livePolyPoints = activePreview ? [...activeConfirmed, activePreview] : activeConfirmed;
 
   return (
     <>
@@ -89,22 +133,35 @@ export function CadAreaOverlay({
         data-cad-source-unit={sourceUnitContext.sourceUnit}
       >
         {measurements.map((m) => {
+          const reviewId = getCadNativeMeasurementReviewId("area", m.id);
+          const reviewItem = reviewId
+            ? reviewItems.find((item) => item.id === reviewId && item.type === "area")
+            : undefined;
+          if (reviewId && !reviewItem) return null;
+          if (reviewItem && (reviewItem.style.opacity ?? 1) <= 0) return null;
+
           const projectedPoints = m.points.map(projectPoint).filter((p): p is CadSnapPoint => p !== null);
           if (projectedPoints.length < 3) return null;
+          const selected = Boolean(reviewId && selectedIds.has(reviewId));
           const polyStr = pointsToString(projectedPoints);
           const centroidProjected = projectPoint(m.centroid);
           const displayAreaUnit = areaUnitOverrides[m.id] ?? measurementSettings.areaUnit;
           const areaLabel = formatAreaValue(m.area, displayAreaUnit);
           const perimeterLabel = formatPerimeterValue(m.perimeter);
+          const title = reviewItem?.comment.trim();
 
           return (
-            <g key={m.id} data-cad-area-complete="true">
+            <g
+              key={m.id}
+              data-cad-area-complete="true"
+              data-cad-measurement-selected={selected ? "true" : "false"}
+            >
               <polygon
                 points={polyStr}
                 fill={measurementColor}
-                fillOpacity="0.16"
+                fillOpacity={selected ? "0.24" : "0.16"}
                 stroke={measurementColor}
-                strokeWidth="2"
+                strokeWidth={selected ? "3.5" : "2"}
                 strokeDasharray="6 4"
                 data-cad-area-polygon="true"
               />
@@ -114,7 +171,7 @@ export function CadAreaOverlay({
                   key={idx}
                   cx={p.x}
                   cy={p.y}
-                  r="3.5"
+                  r={selected ? "5" : "3.5"}
                   fill={measurementColor}
                   stroke="#ffffff"
                   strokeWidth="1.5"
@@ -136,17 +193,29 @@ export function CadAreaOverlay({
                   <title>Alan gösterim birimini değiştir</title>
                   <rect
                     x="-108"
-                    y="-22"
+                    y={title ? "-30" : "-22"}
                     width="216"
-                    height="44"
+                    height={title ? "52" : "44"}
                     rx="7"
                     fill="rgba(15, 23, 42, 0.94)"
                     stroke={measurementColor}
-                    strokeWidth="1.2"
+                    strokeWidth={selected ? "2" : "1.2"}
                   />
+                  {title ? (
+                    <text
+                      textAnchor="middle"
+                      y="-14"
+                      fill="#93c5fd"
+                      fontSize="9.5"
+                      fontWeight="700"
+                      fontFamily="system-ui, sans-serif"
+                    >
+                      {title}
+                    </text>
+                  ) : null}
                   <text
                     textAnchor="middle"
-                    y="-2"
+                    y={title ? "2" : "-2"}
                     fill="#f8fafc"
                     fontSize="12"
                     fontWeight="700"

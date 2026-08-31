@@ -7,13 +7,14 @@
  */
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import type { CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
 import { formatCadDistance, formatCadArea } from "@/lib/dokumantasyon/cad-review/units";
+import { getCurrentCadReviewStore } from "@/lib/dokumantasyon/cad-review/active-store";
+import { isCadNativeMeasurementRendered } from "@/lib/dokumantasyon/cad-review/measurement-render-registry";
+import { isCadMeasurementReviewItem, type CadReviewDraftState } from "@/lib/dokumantasyon/cad-review/store";
 
 export type ProjectPointFn = (point: { x: number; y: number }) => { x: number; y: number } | null;
-
-import type { CadReviewDraftState } from "@/lib/dokumantasyon/cad-review/store";
 
 export interface CadReviewOverlayProps {
   items: readonly CadReviewItem[];
@@ -45,13 +46,30 @@ function clampOpacity(value: number | undefined, fallback: number): number {
 export function CadReviewOverlay({
   items,
   draft = null,
-  selectedItemIds = new Set(),
-  hoveredItemId = null,
+  selectedItemIds,
+  hoveredItemId,
   projectPoint,
   containerWidth,
   containerHeight,
   onClickItem,
 }: CadReviewOverlayProps) {
+  const [, setStoreRevision] = useState(0);
+  const activeStore = getCurrentCadReviewStore();
+
+  useEffect(() => {
+    if (!activeStore) return;
+    return activeStore.subscribe(() => setStoreRevision((value) => value + 1));
+  }, [activeStore]);
+
+  const effectiveItems = activeStore?.getItems() ?? items;
+  const effectiveSelection = selectedItemIds ?? activeStore?.getSession().selectedItemIds ?? new Set<string>();
+  const effectiveHovered = hoveredItemId ?? activeStore?.getSession().hoveredItemId ?? null;
+  const visibleItems = effectiveItems.filter((item) => {
+    if (isCadMeasurementReviewItem(item) && (item.style.opacity ?? 1) <= 0) return false;
+    if (isCadNativeMeasurementRendered(item.id)) return false;
+    return true;
+  });
+
   const project = useCallback(
     (pt: { x: number; y: number }) => projectOrNull(pt, projectPoint),
     [projectPoint]
@@ -65,12 +83,12 @@ export function CadReviewOverlay({
       aria-hidden="true"
       data-cad-review-overlay="true"
     >
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <ReviewItemRenderer
           key={item.id}
           item={item}
-          isSelected={selectedItemIds.has(item.id)}
-          isHovered={hoveredItemId === item.id}
+          isSelected={effectiveSelection.has(item.id)}
+          isHovered={effectiveHovered === item.id}
           project={project}
           onClick={onClickItem}
         />
@@ -144,12 +162,13 @@ function ReviewItemRenderer({
     if (!s || !e) return null;
     const mx = (s.x + e.x) / 2;
     const my = (s.y + e.y) / 2;
-    const label = item.label ?? formatCadDistance(item.measuredLength, "m", 2);
+    const value = formatCadDistance(item.measuredLength, "m", 2);
+    const label = item.label ? `${item.label}: ${value}` : value;
     return (
       <g {...commonProps} data-review-type="distance" data-review-id={item.id}>
         <line x1={s.x} y1={s.y} x2={e.x} y2={e.y} stroke={color} strokeWidth={sw} />
-        <circle cx={s.x} cy={s.y} r={3.5} fill={color} />
-        <circle cx={e.x} cy={e.y} r={3.5} fill={color} />
+        <circle cx={s.x} cy={s.y} r={isSelected ? 5 : 3.5} fill={color} />
+        <circle cx={e.x} cy={e.y} r={isSelected ? 5 : 3.5} fill={color} />
         <rect
           x={mx - label.length * 4 - 4}
           y={my - 18}
@@ -179,13 +198,36 @@ function ReviewItemRenderer({
     if (projected.some((p) => !p)) return null;
     const pts = projected as { x: number; y: number }[];
     const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const label = formatCadDistance(item.totalDistance, "m", 2);
+    const value = formatCadDistance(item.totalDistance, "m", 2);
+    const label = item.comment.trim() ? `${item.comment.trim()}: ${value}` : value;
     return (
       <g {...commonProps} data-review-type="chain_distance" data-review-id={item.id}>
         <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" />
         {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3.5} fill={color} />
+          <circle key={i} cx={p.x} cy={p.y} r={isSelected ? 5 : 3.5} fill={color} />
         ))}
+        {pts.slice(0, -1).map((point, index) => {
+          const next = pts[index + 1]!;
+          const segmentValue = formatCadDistance(item.segmentDistances[index] ?? 0, "m", 2);
+          return (
+            <text
+              key={`segment-${index}`}
+              x={(point.x + next.x) / 2}
+              y={(point.y + next.y) / 2 - 7}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight="600"
+              fontFamily="system-ui, -apple-system, sans-serif"
+              fill={color}
+              stroke="black"
+              strokeWidth={2.5}
+              paintOrder="stroke"
+              data-review-chain-segment-label={index + 1}
+            >
+              {segmentValue}
+            </text>
+          );
+        })}
         <rect
           x={pts[0]!.x - label.length * 4 - 4}
           y={pts[0]!.y - 22}
@@ -218,7 +260,8 @@ function ReviewItemRenderer({
       pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
     const cx = pts.reduce((sum, p) => sum + p.x, 0) / pts.length;
     const cy = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
-    const label = formatCadArea(item.measuredArea, "m", 2);
+    const value = formatCadArea(item.measuredArea, "m", 2);
+    const label = item.comment.trim() ? `${item.comment.trim()}: ${value}` : value;
     return (
       <g {...commonProps} data-review-type="area" data-review-id={item.id}>
         <path
