@@ -44,7 +44,7 @@
 | F4-02 | Düzensizlik Kontrolleri V2 (10) | DONE | feat(irregularity): add A1, A2 and B2 governing checks and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (A1 burulma, B2 yumuşak kat, A2 döşeme süreksizliği), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-03 | Yerel Zemin Sınıfı (11) | DONE | feat(soil): add TBDY 2018 soil class governing match and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (zemin sınıfı eşleşmesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-04 | Ampirik Periyot & Spektrum (12) | DONE | feat(period): add TBDY period upper bound governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (ampirik periyot üst sınırı), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F4-05 | Göreli Kat Ötelemesi (13) | TODO | | | |
+| F4-05 | Göreli Kat Ötelemesi (13) | DONE | feat(drift): add interstory drift governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (kritik kat drift tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-06 | Radye Temel (14) | TODO | | | |
 | F4-07 | İksa Toprak Basıncı (15) | TODO | | | |
 | F4-08 | Şev Stabilitesi (16) | TODO | | | |

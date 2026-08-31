@@ -7,6 +7,12 @@ import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
 
 import { calculateStoryDrift, type InfillJointType } from "@/lib/engineering/tbdy2018/drift";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function DriftCalculator() {
   const [numFloors, setNumFloors] = useState(5);
@@ -97,9 +103,9 @@ export function DriftCalculator() {
         <section className="relative overflow-hidden rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-                <span>TBDY 2018 Tablo 4.3</span>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ToolScopeBadge kind="check" />
+                <ToolSourceStamp sources={["TBDY 2018 Tablo 4.3", "TBDY 2018 Madde 4.9.1"]} tier="A" />
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
                 Göreli Kat Ötelemesi{" "}
@@ -332,11 +338,32 @@ export function DriftCalculator() {
                 </div>
               </div>
 
+              {/* Governing Check Card for governing story */}
+              {results.length > 0 && (() => {
+                const maxDrift = results.reduce((prev, curr) => Number(curr.ratio) > Number(prev.ratio) ? curr : prev, results[0]);
+                return (
+                  <div className="mt-5">
+                    <GoverningCheckCard
+                      label={`TBDY 2018 Göreli Kat Ötelemesi (${maxDrift.floorNum}. Kat Kritik)`}
+                      demand={Number(maxDrift.ratio)}
+                      capacity={driftLimit}
+                      utilization={driftLimit > 0 ? Number(maxDrift.ratio) / driftLimit : undefined}
+                      status={allSafe ? "ok" : "fail"}
+                      explanation={
+                        allSafe
+                          ? `Tüm katlar TBDY Tablo 4.3 sınırını (lambda*Delta_i/hi <= ${driftLimit}) sağlamaktadır. Maksimum öteleme oranı ${maxDrift.floorNum}. katta (%${maxDrift.pct}) gerçekleşmiştir.`
+                          : `Kritik katta (${maxDrift.floorNum}. kat) öteleme oranı %${maxDrift.pct} olup izin verilen %${(driftLimit * 100).toFixed(1)} sınırını aşmaktadır!`
+                      }
+                    />
+                  </div>
+                );
+              })()}
+
               <div className="mt-5">
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -344,6 +371,24 @@ export function DriftCalculator() {
               </div>
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Tablo 4.3 uyarınca göreli kat ötelemelerinin (lambda * Delta_i / hi) sınır değerlerle tahkiki",
+              "Esnek derzli bağlantılar (YDKT <= 0.016) ve gevrek dolgu duvarlı (KDKT <= 0.008) durumlar",
+              "Mod birleştirme katsayısı (lambda) ile tasarım göreli kat ötelemelerinin değerlendirilmesi"
+            ]}
+            limitations={[
+              "Kat ötelemeleri 3 boyutlu dinamik analiz programı çıktılarından alınmalıdır",
+              "İkinci mertebe etkileri (theta_II gösterge katsayısı) harici olarak TBDY Madde 4.9.2 uyarınca tahkik edilmelidir",
+              "Bodrum kat çevre perdelerinin rijit diyafram kabulü haricen incelenmelidir"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Tablo 4.3 ve Madde 4.9.1"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
