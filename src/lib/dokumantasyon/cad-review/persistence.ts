@@ -17,6 +17,7 @@ export interface CadReviewPersistenceHost {
   fileId: string;
   getDocument: () => CadReviewDocument;
   applyServerDocument: (document: CadReviewDocument, serverRevisionId: string) => void;
+  /** Must acknowledge server metadata without replacing newer unsaved item data. */
   acknowledgeServerSave: (document: CadReviewDocument, serverRevisionId: string) => void;
   saveLocal: (document: CadReviewDocument) => void;
   fetchImpl?: typeof fetch;
@@ -168,6 +169,11 @@ export class CadReviewPersistenceCoordinator {
       return;
     }
     this.setState({ status: "dirty" });
+    if (!this.serverRevisionId) {
+      this.hydrated = false;
+      void this.hydrate();
+      return;
+    }
     void this.flushNow();
   }
 
@@ -183,7 +189,8 @@ export class CadReviewPersistenceCoordinator {
     }
     if (!this.latestSnapshot) this.latestSnapshot = this.clone(this.host.getDocument());
     if (!this.serverRevisionId) {
-      if (!this.hydrated) await this.hydrate();
+      this.hydrated = false;
+      await this.hydrate();
       if (!this.serverRevisionId || this.revisionBlocked) return;
     }
 
@@ -215,10 +222,12 @@ export class CadReviewPersistenceCoordinator {
       }
 
       const saved = this.clone(body.document as CadReviewDocument);
-      this.serverRevisionId = body.serverRevisionId || this.serverRevisionId;
+      const committedServerRevisionId = String(body.serverRevisionId || this.serverRevisionId || "");
+      if (!committedServerRevisionId) throw new Error("Sunucu revizyon kimliği kayıp.");
+      this.serverRevisionId = committedServerRevisionId;
       this.expectedRevision = body.revision ?? saved.revision;
-      (saved as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId = this.serverRevisionId;
-      this.host.acknowledgeServerSave(saved, this.serverRevisionId!);
+      (saved as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId = committedServerRevisionId;
+      this.host.acknowledgeServerSave(saved, committedServerRevisionId);
       this.host.saveLocal(
         this.changeVersion === saveStartVersion ? saved : this.clone(this.host.getDocument())
       );

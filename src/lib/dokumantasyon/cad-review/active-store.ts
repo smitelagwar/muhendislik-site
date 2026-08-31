@@ -1,7 +1,10 @@
 import { CadReviewStore, isCadMeasurementReviewItem } from "./store";
 import { saveLocalCadReview, type CadReviewDocument } from "./schema";
 import { CadReviewPersistenceCoordinator, type SaveState } from "./persistence";
-import { applyCadReviewSaveStateToRibbon } from "./save-state-ui";
+import {
+  applyCadReviewSaveStateToRibbon,
+  CAD_REVIEW_SAVE_RETRY_EVENT,
+} from "./save-state-ui";
 import { installCadStudioUiPreferencesBridge } from "./ui-preferences";
 
 let currentCadReviewStore: CadReviewStore | null = null;
@@ -78,6 +81,8 @@ function acknowledgeStoreSave(
   document: CadReviewDocument,
   serverRevisionId: string
 ): void {
+  // Only server metadata is acknowledged here. Newer local items that may have
+  // arrived while the request was in flight stay untouched and remain queued.
   const target = baseGetDocument.call(store) as CadReviewDocument & { serverRevisionId?: string };
   target.revision = document.revision;
   target.updatedAt = document.updatedAt;
@@ -121,6 +126,10 @@ function installActiveStoreBridge(): void {
   bridgeInstalled = true;
   installCadStudioUiPreferencesBridge();
   applyCadReviewSaveStateToRibbon(currentSaveState);
+
+  if (typeof window !== "undefined") {
+    window.addEventListener(CAD_REVIEW_SAVE_RETRY_EVENT, retryCurrentCadReviewSave);
+  }
 
   CadReviewStore.prototype.getDocument = function (this: CadReviewStore) {
     currentCadReviewStore = this;
