@@ -15,6 +15,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import { calculateMatFoundation, type MatFoundationInput } from "@/lib/concrete-tools/mat-foundation";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const CONCRETE_GRADES = [
   { name: "C25/30", fck: 25 },
@@ -107,12 +113,8 @@ HESAP SONUÇLARI:
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Layers className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Geoteknik & Betonarme
-              </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                TS 500 & TBDY 2018 Bölüm 16
-              </span>
+              <ToolScopeBadge kind="check" />
+              <ToolSourceStamp sources={["TBDY 2018 Bölüm 16", "TS 500"]} tier="A" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -372,6 +374,32 @@ HESAP SONUÇLARI:
                   </p>
                 </div>
 
+                {/* Governing Checks */}
+                <div className="space-y-3 pt-2">
+                  <GoverningCheckCard
+                    label="Zemin Taşıma Emniyeti (q_ort vs q_safe)"
+                    demand={Number(results.actualSoilStressKpa.toFixed(1))}
+                    capacity={soilStressKpa}
+                    utilization={results.soilStressUtilization}
+                    unit="kPa"
+                    status={results.isSoilStressSafe ? "ok" : "fail"}
+                    explanation={`Gerçek zemin taban basıncı q = ${results.actualSoilStressKpa.toFixed(1)} kPa (öz ağırlık dahil), emniyet sınırı q_safe = ${soilStressKpa} kPa.`}
+                  />
+
+                  <GoverningCheckCard
+                    label="TS 500 Radye Zımbalama Emniyeti (v_pd vs f_ctd)"
+                    demand={Number(results.punchingStressMpa.toFixed(2))}
+                    capacity={Number(results.fctdMpa.toFixed(2))}
+                    unit="MPa"
+                    status={results.isPunchingSafe ? "ok" : "warn"}
+                    explanation={
+                      results.isPunchingSafe
+                        ? `Kritik kolon altında zımbalama gerilmesi v_pd = ${results.punchingStressMpa.toFixed(2)} MPa <= f_ctd = ${results.fctdMpa.toFixed(2)} MPa. Donatısız zımbalama güvenli.`
+                        : `Zımbalama gerilmesi v_pd = ${results.punchingStressMpa.toFixed(2)} MPa > f_ctd = ${results.fctdMpa.toFixed(2)} MPa. Zımbalama donatısı (sehpa, etriye veya stud) gereklidir.`
+                    }
+                  />
+                </div>
+
                 {/* Notes */}
                 <div className="space-y-1.5 text-xs text-zinc-300">
                   {results.notes.map((note, i) => (
@@ -384,6 +412,24 @@ HESAP SONUÇLARI:
               </section>
             )}
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Bölüm 16 uyarınca radye temel ortalama zemin gerilmesi (q_ort) ve emniyet tahkiki",
+              "TS 500 Madde 8.3 uyarınca tekil kritik kolon altında zımbalama gerilmesi (vpd) hesabı",
+              "Radye plak kalınlık ön boyutlandırması (h >= L/10) ve çift yönlü eğilme donatısı (As,min) hesabı"
+            ]}
+            limitations={[
+              "Sonlu elemanlar plak ve elastik zemin katsayısı (ks) moment dağılımı analizi harici statik programda yapılmalıdır",
+              "Deprem momenti (M_devrilme) etkisindeki q_max ve kenar gerilme yığılmaları harici analiz gerektirir",
+              "Farklı oturma ve temel dönme tahkikleri zemin mekaniği raporuyla değerlendirilmelidir"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Bölüm 16 ve TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
