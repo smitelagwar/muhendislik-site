@@ -27,7 +27,7 @@ export default function HesaplamalarLayout({
       </div>
 
       {/* NeuroBank Top Sticky Nav Bar */}
-      <header className="sticky top-[7.5rem] z-30 border-b border-border/80 bg-background/85 backdrop-blur-2xl transition-all dark:border-blue-500/15 dark:bg-[#050816]/85 xl:top-[7.5rem]">
+      <header className="sticky top-14 z-30 border-b border-border/80 bg-background/85 backdrop-blur-2xl transition-all dark:border-blue-500/15 dark:bg-[#050816]/85">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8 lg:px-12">
           {/* Quick Hub Navigation */}
           <div className="flex items-center gap-2.5">

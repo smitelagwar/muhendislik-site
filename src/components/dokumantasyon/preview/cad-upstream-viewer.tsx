@@ -1,22 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import {
-  AlertCircle,
-  Download,
-  Eye,
-  Hand,
-  Layers,
-  Loader2,
-  Magnet,
-  Maximize,
-  Palette,
-  RotateCcw,
-  Ruler,
-  Square,
-  Trash2,
-} from "lucide-react";
+import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   CadUpstreamAdapter,
@@ -50,9 +35,9 @@ import {
 import { CadLayerPanel } from "./cad-layer-panel";
 import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
 import { CadViewSettingsPanel } from "./cad-view-settings-panel";
+import { CadStudioRibbon } from "./cad-studio-ribbon";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
-import { CadReviewToolbar } from "./cad-review-toolbar";
 import { CadReviewSidePanel, type CadSidePanelTab, type CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
 import { CadExportDialog } from "./cad-export-dialog";
@@ -109,123 +94,6 @@ function failureReason(error: unknown): string {
   return error instanceof Error
     ? `upstream-error:${error.message}`
     : "upstream-error:Bilinmeyen CAD hatası";
-}
-
-function CadDisplayControls({
-  displayMode,
-  lineWeightVisible,
-  backgroundColor,
-  onSelectDisplayMode,
-  onToggleLineWeight,
-  onSelectBackgroundColor,
-  compact = false,
-}: {
-  displayMode: CadUpstreamDisplayMode;
-  lineWeightVisible: boolean;
-  backgroundColor: CadBackgroundColorOption;
-  onSelectDisplayMode: (mode: CadUpstreamDisplayMode) => void;
-  onToggleLineWeight: () => void;
-  onSelectBackgroundColor: (color: CadBackgroundColorOption) => void;
-  compact?: boolean;
-}) {
-  const buttonClass = compact
-    ? "h-6 rounded-md px-2 text-[10px] font-medium"
-    : "h-7 px-2 text-[11px]";
-
-  return (
-    <div
-      className={
-        compact
-          ? "flex items-center gap-0.5 rounded-md border border-border/40 bg-background/30 p-0.5 text-muted-foreground backdrop-blur-sm"
-          : "flex items-center gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur"
-      }
-      data-cad-display-controls="true"
-    >
-      <Button
-        type="button"
-        size="sm"
-        variant={displayMode === "source" ? "secondary" : "ghost"}
-        className={`${buttonClass} ${
-          displayMode === "source" ? "text-foreground" : "text-muted-foreground/70"
-        }`}
-        aria-pressed={displayMode === "source"}
-        title="Gerçek Renk"
-        onClick={() => onSelectDisplayMode("source")}
-      >
-        <Eye className="mr-1 h-3 w-3" />
-        Gerçek Renk
-      </Button>
-      <Button
-        type="button"
-        size="sm"
-        variant={displayMode === "monochrome" ? "secondary" : "ghost"}
-        className={`${buttonClass} ${
-          displayMode === "monochrome" ? "text-foreground" : "text-muted-foreground/70"
-        }`}
-        aria-pressed={displayMode === "monochrome"}
-        title="Siyah-Beyaz"
-        onClick={() => onSelectDisplayMode("monochrome")}
-      >
-        Siyah-Beyaz
-      </Button>
-      <span className="mx-0.5 h-3.5 w-px bg-border/60" aria-hidden="true" />
-      <Button
-        type="button"
-        size="sm"
-        variant={lineWeightVisible ? "secondary" : "ghost"}
-        className={`${buttonClass} ${
-          lineWeightVisible ? "text-foreground" : "text-muted-foreground/70"
-        }`}
-        aria-pressed={lineWeightVisible}
-        title="Çizgi kalınlıklarını göster/gizle"
-        onClick={onToggleLineWeight}
-      >
-        Lineweight
-      </Button>
-      <span className="mx-0.5 h-3.5 w-px bg-border/60" aria-hidden="true" />
-      <div className="flex items-center gap-0.5" role="group" aria-label="Arka plan rengi">
-        <Button
-          type="button"
-          size="sm"
-          variant={backgroundColor === "autocad" ? "secondary" : "ghost"}
-          className={`${buttonClass} ${backgroundColor === "autocad" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
-          aria-pressed={backgroundColor === "autocad"}
-          title="AutoCAD Koyu Gri Arka Plan (#212830)"
-          onClick={() => onSelectBackgroundColor("autocad")}
-          data-testid="cad-bg-autocad"
-        >
-          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-white/20 bg-[#212830]" aria-hidden="true" />
-          AutoCAD
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={backgroundColor === "black" ? "secondary" : "ghost"}
-          className={`${buttonClass} ${backgroundColor === "black" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
-          aria-pressed={backgroundColor === "black"}
-          title="Siyah Arka Plan (#000000)"
-          onClick={() => onSelectBackgroundColor("black")}
-          data-testid="cad-bg-black"
-        >
-          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-white/20 bg-black" aria-hidden="true" />
-          Siyah
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={backgroundColor === "white" ? "secondary" : "ghost"}
-          className={`${buttonClass} ${backgroundColor === "white" ? "text-foreground font-medium" : "text-muted-foreground/70"}`}
-          aria-pressed={backgroundColor === "white"}
-          title="Beyaz Arka Plan (#ffffff)"
-          onClick={() => onSelectBackgroundColor("white")}
-          data-testid="cad-bg-white"
-        >
-          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border border-black/20 bg-white" aria-hidden="true" />
-          Beyaz
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export function DokCadUpstreamViewer({
@@ -1011,30 +879,12 @@ export function DokCadUpstreamViewer({
   }, []);
   // ──────────────────────────────────────────────────────────────────────────
 
-  const toolbarTarget =
-    state === "ready" && typeof document !== "undefined"
-      ? document.getElementById("cad-studio-toolbar-slot")
-      : null;
-
-  const displayControls =
-    state === "ready" ? (
-      <CadDisplayControls
-        displayMode={displayMode}
-        lineWeightVisible={lineWeightVisible}
-        backgroundColor={backgroundColor}
-        onSelectDisplayMode={selectDisplayMode}
-        onToggleLineWeight={() => void toggleLineWeight()}
-        onSelectBackgroundColor={selectBackgroundColor}
-        compact={Boolean(toolbarTarget)}
-      />
-    ) : null;
-
   const selectedSnapModes = CAD_SNAP_MODES.filter((mode) => snapSettings.modes[mode]).join(",");
 
   return (
     <section
       ref={sectionRef}
-      className="relative flex h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-background"
+      className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background"
       style={{ backgroundColor: CAD_BACKGROUND_COLORS[backgroundColor].hex }}
       data-cad-upstream-host="true"
       data-file-id={fileId}
@@ -1046,7 +896,6 @@ export function DokCadUpstreamViewer({
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}
       data-cad-active-tool={activeTool ?? "none"}
       data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
-
       data-cad-area-phase={areaSnapshot?.phase ?? "inactive"}
       data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
       data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
@@ -1056,106 +905,142 @@ export function DokCadUpstreamViewer({
       data-cad-snap-selected-modes={selectedSnapModes}
       data-cad-timeout-ms={effectiveTimeoutMs}
     >
-      <div
-        ref={viewportRef}
-        className={`absolute inset-0 ${layerPanelOpen ? "pointer-events-none sm:pointer-events-auto" : ""}`}
-        aria-label={`${displayName} CAD görünümü`}
-        aria-hidden={layerPanelOpen ? "true" : undefined}
-      />
-
+      {/* ── TOP RIBBON TOOLBAR ── */}
       {state === "ready" ? (
-        <CadDistanceOverlay
-          snapshot={distanceSnapshot}
-          measurements={distanceMeasurements}
-          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-        />
-      ) : null}
-
-      {state === "ready" ? (
-        <CadAreaOverlay
-          snapshot={areaSnapshot}
-          measurements={areaMeasurements}
-          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-          onFinish={() => adapterRef.current?.finishAreaMeasurement()}
-        />
-      ) : null}
-
-      {/* ── CAD Review V1: SVG Item Overlay ─────────────────────────────── */}
-      {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
-        <CadReviewOverlay
-          items={reviewItems}
-          draft={reviewDraft}
-          projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-          containerWidth={containerSize.width}
-          containerHeight={containerSize.height}
-          onClickItem={(id) => reviewStoreRef.current?.setSelectedItems([id])}
-        />
-      ) : null}
-
-      {/* ── CAD Review V1: Unified Toolbar (replaces left quick-rail when review enabled) */}
-      {reviewEnabled && state === "ready" ? (
-        <CadReviewToolbar
-          activeTool={reviewTool}
+        <CadStudioRibbon
+          activeTool={
+            activeTool === "distance"
+              ? "distance"
+              : activeTool === "area"
+              ? "area"
+              : reviewTool
+          }
           onSelectTool={handleSelectReviewTool}
+          onPan={async () => {
+            if (activeTool) {
+              await adapterRef.current?.cancelActiveCommand();
+              setActiveTool(null);
+              setDistanceSnapshot(null);
+              setAreaSnapshot(null);
+            }
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          }}
+          onFitView={handleZoomToFit}
+          displayMode={displayMode}
+          onSelectDisplayMode={selectDisplayMode}
+          lineWeightVisible={lineWeightVisible}
+          onToggleLineWeight={() => void toggleLineWeight()}
+          backgroundColor={backgroundColor}
+          onSelectBackgroundColor={selectBackgroundColor}
+          onStartDistance={() => void handleStartDistance()}
+          onStartChainDistance={() => void handleStartChainDistance()}
+          onStartArea={() => void handleStartArea()}
+          onClearMeasurements={() => void handleClearMeasurements()}
           activePanelTab={activePanelTab}
           onTogglePanelTab={handleTogglePanelTab}
+          layerPanelOpen={layerPanelOpen}
+          onToggleLayerPanel={handleToggleLayerPanel}
+          snapPanelOpen={snapPanelOpen}
+          onToggleSnapPanel={handleToggleSnapPanel}
+          snapEnabled={snapSettings.enabled}
+          layersCount={layers.length}
+          commentsCount={
+            reviewItems.filter(
+              (i) => i.type === "comment_pin" || i.type === "callout" || i.type === "text"
+            ).length
+          }
           canUndo={reviewCanUndo}
           canRedo={reviewCanRedo}
           onUndo={handleReviewUndo}
           onRedo={handleReviewRedo}
-          onFitView={() => adapterRef.current?.zoomToFit()}
-          displayMode={displayMode}
-          onToggleDisplayMode={() => {
-            const next = displayMode === "source" ? "monochrome" : "source";
-            selectDisplayMode(next);
-          }}
+          saveStatus="clean"
         />
       ) : null}
 
-      {/* ── CAD Review V1: Right Side Panel ─────────────────────────────── */}
-      {reviewEnabled && state === "ready" && activePanelTab ? (
-        <CadReviewSidePanel
-          activeTab={activePanelTab}
-          onSelectTab={(tab) => setActivePanelTab(tab)}
-          onClose={() => setActivePanelTab(null)}
-          searchQuery={reviewSearchQuery}
-          onSearchQueryChange={handleSearchQueryChange}
-          searchResults={searchResults}
-          onSelectSearchResult={(result) => {
-            if (result.bounds) {
-              void adapterRef.current?.zoomToBounds(result.bounds);
-            }
-          }}
-          measurements={reviewItems
-            .filter((item) => item.type === "distance" || item.type === "area" || item.type === "chain_distance")
-            .map((item) => ({
-              id: item.id,
-              type: item.type,
-              title: item.type === "distance" ? "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
-              formattedValue:
-                item.type === "distance"
-                  ? `${(item as { measuredLength: number }).measuredLength.toFixed(2)}`
-                  : item.type === "area"
-                  ? `${(item as { measuredArea: number }).measuredArea.toFixed(2)}`
-                  : `${(item as { totalDistance: number }).totalDistance.toFixed(2)}`,
-            }))}
-          onDeleteMeasurement={(id) => reviewStoreRef.current?.removeItem(id)}
-          comments={reviewItems.filter(
-            (item) => item.type === "comment_pin" || item.type === "text" || item.type === "callout"
-          ) as CadReviewItem[]}
-          onStatusChange={(id, status) => reviewStoreRef.current?.updateItem(id, { status })}
-          onDeleteComment={(id) => reviewStoreRef.current?.removeItem(id)}
-          layers={layers.map((l) => ({ name: l.name, isVisible: l.visible }))}
-          onToggleLayer={(name) => {
-            const current = layers.find((l) => l.name === name);
-            if (current) {
-              handleToggleLayer(name, !current.visible);
-            }
-          }}
+      {/* ── CANVAS & VIEWPORT CONTAINER ── */}
+      <div className="relative flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div
+          ref={viewportRef}
+          className={`absolute inset-0 ${layerPanelOpen ? "pointer-events-none sm:pointer-events-auto" : ""}`}
+          aria-label={`${displayName} CAD görünümü`}
+          aria-hidden={layerPanelOpen ? "true" : undefined}
         />
-      ) : null}
 
-      {/* ── CAD Review V1: Export Dialog ─────────────────────────────────── */}
+        {state === "ready" ? (
+          <CadDistanceOverlay
+            snapshot={distanceSnapshot}
+            measurements={distanceMeasurements}
+            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+          />
+        ) : null}
+
+        {state === "ready" ? (
+          <CadAreaOverlay
+            snapshot={areaSnapshot}
+            measurements={areaMeasurements}
+            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            onFinish={() => adapterRef.current?.finishAreaMeasurement()}
+          />
+        ) : null}
+
+        {/* ── CAD Review V1: SVG Item Overlay ── */}
+        {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
+          <CadReviewOverlay
+            items={reviewItems}
+            draft={reviewDraft}
+            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            containerWidth={containerSize.width}
+            containerHeight={containerSize.height}
+            onClickItem={(id) => reviewStoreRef.current?.setSelectedItems([id])}
+          />
+        ) : null}
+
+        {/* ── CAD Review V1: Right Side Panel ── */}
+        {reviewEnabled && state === "ready" && activePanelTab ? (
+          <CadReviewSidePanel
+            activeTab={activePanelTab}
+            onSelectTab={(tab) => setActivePanelTab(tab)}
+            onClose={() => setActivePanelTab(null)}
+            searchQuery={reviewSearchQuery}
+            onSearchQueryChange={handleSearchQueryChange}
+            searchResults={searchResults}
+            onSelectSearchResult={(result) => {
+              if (result.bounds) {
+                void adapterRef.current?.zoomToBounds(result.bounds);
+              }
+            }}
+            measurements={reviewItems
+              .filter((item) => item.type === "distance" || item.type === "area" || item.type === "chain_distance")
+              .map((item) => ({
+                id: item.id,
+                type: item.type,
+                title: item.type === "distance" ? "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
+                formattedValue:
+                  item.type === "distance"
+                    ? `${(item as { measuredLength: number }).measuredLength.toFixed(2)}`
+                    : item.type === "area"
+                    ? `${(item as { measuredArea: number }).measuredArea.toFixed(2)}`
+                    : `${(item as { totalDistance: number }).totalDistance.toFixed(2)}`,
+              }))}
+            onDeleteMeasurement={(id) => reviewStoreRef.current?.removeItem(id)}
+            comments={reviewItems.filter(
+              (item) => item.type === "comment_pin" || item.type === "text" || item.type === "callout"
+            ) as CadReviewItem[]}
+            onStatusChange={(id, status) => reviewStoreRef.current?.updateItem(id, { status })}
+            onDeleteComment={(id) => reviewStoreRef.current?.removeItem(id)}
+            layers={layers.map((l) => ({ name: l.name, isVisible: l.visible }))}
+            onToggleLayer={(name) => {
+              const current = layers.find((l) => l.name === name);
+              if (current) {
+                handleToggleLayer(name, !current.visible);
+              }
+            }}
+          />
+        ) : null}
+      </div>
+
+      {/* ── CAD Review V1: Export Dialog ── */}
       {reviewEnabled && exportDialogOpen && reviewDocument ? (
         <CadExportDialog
           open={exportDialogOpen}
@@ -1169,145 +1054,6 @@ export function DokCadUpstreamViewer({
             return vp.querySelector("canvas") ?? null;
           }}
         />
-      ) : null}
-      {/* ─────────────────────────────────────────────────────────────────── */}
-
-
-      {displayControls && toolbarTarget
-        ? createPortal(displayControls, toolbarTarget)
-        : displayControls
-          ? <div className="absolute left-3 top-3 z-20">{displayControls}</div>
-          : null}
-
-      {state === "ready" ? (
-        <div
-          className="absolute left-3 top-14 z-20 flex flex-col gap-1 rounded-lg border border-border/70 bg-background/90 p-1 shadow-sm backdrop-blur"
-          data-testid="cad-left-quick-rail"
-          role="toolbar"
-          aria-label="CAD hızlı erişim araçları"
-        >
-          <Button
-            type="button"
-            size="sm"
-            variant={activeTool === null ? "secondary" : "ghost"}
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Kaydır (Pan) [P] — Sol veya orta tuşla çizimi kaydırın"
-            onClick={async () => {
-              if (activeTool) {
-                await adapterRef.current?.cancelActiveCommand();
-                setActiveTool(null);
-                setDistanceSnapshot(null);
-                setAreaSnapshot(null);
-              }
-            }}
-            data-testid="cad-tool-pan"
-            aria-label="Kaydır (Pan)"
-            aria-pressed={activeTool === null}
-          >
-            <Hand className="h-4 w-4" />
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Çizimi ekrana sığdır [F]"
-            onClick={handleZoomToFit}
-            data-testid="cad-tool-fit"
-            aria-label="Görünüme sığdır"
-          >
-            <Maximize className="h-4 w-4" />
-          </Button>
-
-          <span className="my-0.5 h-px w-full bg-border" aria-hidden="true" />
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeTool === "distance" ? "default" : "ghost"}
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Mesafe Ölç [T] (Nokta için tıklayın veya basılı tutun)"
-            onClick={() => void handleStartDistance()}
-            data-testid="cad-tool-distance"
-            aria-label="Mesafe ölç"
-            aria-pressed={activeTool === "distance"}
-          >
-            <Ruler className="h-4 w-4" />
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeTool === "area" ? "default" : "ghost"}
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Alan Ölç [A] (Çokgen noktalarını seçin | Enter: Bitir | Esc: İptal)"
-            onClick={() => void handleStartArea()}
-            data-testid="cad-tool-area"
-            aria-label="Alan ölç"
-            aria-pressed={activeTool === "area"}
-          >
-            <Square className="h-4 w-4" />
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center hover:text-destructive"
-            title="Ölçümleri Temizle"
-            onClick={() => void handleClearMeasurements()}
-            data-testid="cad-tool-clear"
-            aria-label="Ölçümleri temizle"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-
-          <span className="my-0.5 h-px w-full bg-border" aria-hidden="true" />
-
-          <Button
-            type="button"
-            size="sm"
-            variant={snapPanelOpen ? "secondary" : "ghost"}
-            className={`h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center ${snapSettings.enabled ? "" : "text-muted-foreground/45"}`}
-            title="Nesne Yakalama Ayarları"
-            onClick={handleToggleSnapPanel}
-            data-testid="cad-tool-snap-settings"
-            aria-label="Nesne yakalama ayarları"
-            aria-pressed={snapPanelOpen}
-          >
-            <Magnet className="h-4 w-4" />
-          </Button>
-
-          <Button
-            ref={layerButtonRef}
-            type="button"
-            size="sm"
-            variant={layerPanelOpen ? "secondary" : "ghost"}
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Katmanlar"
-            onClick={handleToggleLayerPanel}
-            data-testid="cad-tool-layers"
-            aria-label="Katmanlar"
-            aria-pressed={layerPanelOpen}
-          >
-            <Layers className="h-4 w-4" />
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={viewPanelOpen ? "secondary" : "ghost"}
-            className="h-11 w-11 sm:h-8 sm:w-8 p-0 flex items-center justify-center"
-            title="Görünüm Ayarları (Renk, Lineweight, Arka Plan)"
-            onClick={handleToggleViewPanel}
-            data-testid="cad-tool-view-settings"
-            aria-label="Görünüm ayarları"
-            aria-pressed={viewPanelOpen}
-          >
-            <Palette className="h-4 w-4" />
-          </Button>
-        </div>
       ) : null}
 
       {state === "ready" && snapPanelOpen ? (
