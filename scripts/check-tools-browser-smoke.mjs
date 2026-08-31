@@ -131,9 +131,20 @@ async function inspectToolPage(browser, baseUrl, toolId) {
 
     assert(response && response.status() < 400, `${route} ${response?.status()} durum kodu döndürdü.`);
     await page.waitForSelector("body", { visible: true });
+    await page.waitForFunction(
+      () => {
+        const text = document.body?.innerText || "";
+        return (
+          !text.includes("Sayfa yükleniyor") &&
+          (document.querySelectorAll("input, select, button").length > 0 ||
+            document.querySelectorAll("h1").length > 0)
+        );
+      },
+      { timeout: 15000 },
+    );
 
     // Sayfa içeriği kontrolleri
-    const pageData = await page.evaluate(() => {
+    const pageData = await page.evaluate((id) => {
       const bodyText = document.body.innerText;
       const hasPlaceholder =
         bodyText.includes("Hesaplama Modülü Yapılandırılıyor") ||
@@ -143,14 +154,36 @@ async function inspectToolPage(browser, baseUrl, toolId) {
       const hasInputs = document.querySelectorAll("input, select, button").length > 0;
       const h1 = document.querySelector("h1")?.innerText || "";
 
+      // 4 Pilot Araç Özel Güven Primitive Kontrolleri
+      const isPilot = ["donati-hesabi", "kiris-kesiti", "taban-kesme-kuvveti", "beton-metraj-hesabi"].includes(id);
+      const lowerBody = bodyText.toLocaleLowerCase("tr");
+      const hasScopeOrStamp =
+        lowerBody.includes("mühendislik tahkiki") ||
+        lowerBody.includes("ön boyutlandırma") ||
+        lowerBody.includes("ön keşif") ||
+        lowerBody.includes("yaklaşık ön keşif");
+      const allButtonsText = Array.from(document.querySelectorAll("button"))
+        .map((b) => b.innerText.toLocaleLowerCase("tr"))
+        .join(" ");
+      const hasLimitations =
+        lowerBody.includes("kapsam") ||
+        lowerBody.includes("doğrulama şartları") ||
+        allButtonsText.includes("kapsam") ||
+        allButtonsText.includes("şartları");
+      const hasDiagram = document.querySelectorAll("figure svg, svg").length > 0;
+
       return {
         hasPlaceholder,
         hasNaN,
         hasInfinity,
         hasInputs,
         h1,
+        isPilot,
+        hasScopeOrStamp,
+        hasLimitations,
+        hasDiagram,
       };
-    });
+    }, toolId);
 
     assert(!pageData.hasPlaceholder, `${route}: Sayfada placeholder metni tespit edildi!`);
     assert(!pageData.hasNaN, `${route}: Sayfada NaN değeri tespit edildi!`);
@@ -158,6 +191,14 @@ async function inspectToolPage(browser, baseUrl, toolId) {
     assert(pageData.hasInputs, `${route}: Sayfada etkileşimli input/kontrol bulunamadı!`);
     assert(pageData.h1.length > 0, `${route}: H1 başlığı bulunamadı!`);
     assert(pageErrors.length === 0, `${route}: Runtime hatası: ${pageErrors.join("; ")}`);
+
+    if (pageData.isPilot) {
+      assert(pageData.hasScopeOrStamp, `${route}: Pilot araçta ToolScopeBadge veya ToolSourceStamp bulunamadı!`);
+      assert(pageData.hasLimitations, `${route}: Pilot araçta ToolLimitations paneli bulunamadı!`);
+      if (["donati-hesabi", "taban-kesme-kuvveti"].includes(toolId)) {
+        assert(pageData.hasDiagram, `${route}: Pilot araçta SVG mühendislik diyagramı bulunamadı!`);
+      }
+    }
 
     return {
       toolId,

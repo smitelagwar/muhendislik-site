@@ -32,6 +32,7 @@
 | F2-02 | Kiriş Kesiti açıklanabilir sonuç pilot | DONE | feat(beam): add governing checks and explainable telemetry | npm run check:tools-existing, npm run check:tools-adversarial, tsc | GoverningCheckCard (eğilme ve kesme için), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F2-03 | Eşdeğer Deprem Yükü bina/kat görsel pilot | DONE | feat(seismic): add story force distribution diagram and limit checks | npm run check:tools-existing, npm run check:tools-adversarial, tsc | SVG bina kat kuvvetleri şeması, TBDY 2018 Vt,min GoverningCheckCard ve ToolLimitations eklendi |
 | F2-04 | Beton Metrajı Tier C workflow pilot | DONE | feat(quantity): add procurement telemetry and limit notes | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (brüt sipariş/mikser dengesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
+| F2-05 | 4 Pilot araç browser smoke genişletmesi | DONE | test(smoke): assert scope, limitations and diagram in pilot tools | npm run check:tools-browser-smoke, npm run check:tools | check-tools-browser-smoke.mjs 4 pilot için ScopeBadge, Limitations, Diagram kontrolleriyle genişletildi ve 30/30 PASS |
 | F3-01 | Kolon Ön Boyutlandırma (02) | TODO | | | |
 | F3-02 | Kiriş Kesiti V2 (03) | TODO | | | |
 | F3-03 | Döşeme Kalınlığı (04) | TODO | | | |
