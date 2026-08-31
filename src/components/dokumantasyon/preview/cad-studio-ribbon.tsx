@@ -287,6 +287,8 @@ export function CadStudioRibbon({
     onClearMeasurements();
   };
 
+  const reviewDxfAction = onOpenExportDialog ?? onDownloadDxf;
+
   return (
     <>
       <div
@@ -381,12 +383,39 @@ export function CadStudioRibbon({
               <span className={`size-2 rounded-full ${saveStatus === "saving" ? "animate-pulse bg-amber-500" : saveStatus === "dirty" ? "bg-amber-500" : "bg-emerald-500"}`} />
               <span>{saveStatus === "saving" ? "Kaydediliyor" : saveStatus === "dirty" ? "Kaydedilmedi" : "Kaydedildi"}</span>
             </div>
-            <CadToolPopover align="end" className="w-64" trigger={<CadRibbonButton icon={<Download />} label="İndir" tooltip="İndirme ve Dışa Aktarma" data-testid="cad-tool-download-dropdown" />}>
+            <CadToolPopover align="end" className="w-72" trigger={<CadRibbonButton icon={<Download />} label="İndir" tooltip="İndirme ve Dışa Aktarma" data-testid="cad-tool-download-dropdown" />}>
               <DropdownMenuLabel className="text-xs text-muted-foreground">Dosya İşlemleri</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {onDownloadDxf ? <DropdownMenuItem onSelect={onDownloadDxf} data-testid="cad-download-dxf-rev"><FileCode /><div className="flex flex-col"><span>Revizyonlu DXF İndir</span><span className="text-[10px] text-muted-foreground">Çizim ve review öğeleri</span></div></DropdownMenuItem> : null}
-              {onDownloadOriginal ? <DropdownMenuItem onSelect={onDownloadOriginal} data-testid="cad-download-original"><Download /><div className="flex flex-col"><span>Orijinal Çizimi İndir</span><span className="text-[10px] text-muted-foreground">Kaynak DWG/DXF</span></div></DropdownMenuItem> : null}
-              {onOpenExportDialog ? <><DropdownMenuSeparator /><DropdownMenuItem onSelect={onOpenExportDialog} data-testid="cad-open-export-dialog"><Share2 /> Dışa Aktarma Merkezi (PNG/PDF)</DropdownMenuItem></> : null}
+              {reviewDxfAction ? (
+                <DropdownMenuItem onSelect={reviewDxfAction} data-testid="cad-download-dxf-rev">
+                  <FileCode />
+                  <div className="flex flex-col">
+                    <span>İşaretlemeleri DXF Olarak İndir</span>
+                    <span className="text-[10px] text-muted-foreground">Ölçüm, yorum, şekil ve eskiz katmanları</span>
+                  </div>
+                </DropdownMenuItem>
+              ) : null}
+              {onDownloadOriginal ? (
+                <DropdownMenuItem onSelect={onDownloadOriginal} data-testid="cad-download-original">
+                  <Download />
+                  <div className="flex flex-col">
+                    <span>Orijinal CAD Dosyasını İndir</span>
+                    <span className="text-[10px] text-muted-foreground">Kaynak DXF/DWG aynen</span>
+                  </div>
+                </DropdownMenuItem>
+              ) : null}
+              {onOpenExportDialog ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={onOpenExportDialog} data-testid="cad-open-export-dialog">
+                    <Share2 />
+                    <div className="flex flex-col">
+                      <span>Dışa Aktarma Merkezi</span>
+                      <span className="text-[10px] text-muted-foreground">PNG · PDF · DXF Review Layer · JSON</span>
+                    </div>
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </CadToolPopover>
           </CadRibbonGroup>
         </div>
