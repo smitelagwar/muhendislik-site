@@ -27,7 +27,7 @@ export interface ToolMeta {
 
 const TOOL_EXTRA_META: Record<string, ToolMeta> = {
   "donati-hesabi": {
-    standardNorm: "TS 500 & TS EN 1992",
+    standardNorm: "TS 500 & TS 708",
     calcType: "Donatı Eşdeğerliği",
     accentColor: "#a855f7",
   },
@@ -52,17 +52,17 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
     accentColor: "#8b5cf6",
   },
   "zimbalama-kontrolu": {
-    standardNorm: "TS 500 & Eurocode 2",
+    standardNorm: "TS 500 & TBDY 2018",
     calcType: "Kolon Çevresi Kayma",
     accentColor: "#c084fc",
   },
   "kiris-kesme-etriye": {
-    standardNorm: "TS 500 (Bölüm 8)",
+    standardNorm: "TS 500 & TBDY 2018",
     calcType: "Vc + Vw Etriye Aralığı",
     accentColor: "#a855f7",
   },
   "kenetlenme-boyu": {
-    standardNorm: "TS 500 (Bölüm 9)",
+    standardNorm: "TS 500 (Madde 9)",
     calcType: "lb & lbd Bindirme Ek Boyu",
     accentColor: "#6366f1",
   },
@@ -97,18 +97,18 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
     accentColor: "#0d9488",
   },
   "iksa-toprak-basinci": {
-    standardNorm: "Rankine & Coulomb",
+    standardNorm: "Rankine Teorisi (TS 7994)",
     calcType: "Ka & Kp İtkisi",
     accentColor: "#a855f7",
   },
   "sev-stabilitesi": {
-    standardNorm: "Fellenius / Bishop",
+    standardNorm: "Fellenius Yöntemi",
     calcType: "Fs Güvenlik Katsayısı",
     accentColor: "#65a30d",
   },
   "celik-profil-secimi": {
-    standardNorm: "ÇYTHYE 2018 / AISC",
-    calcType: "IPE/HEA Narinlik & Burkulma",
+    standardNorm: "ÇYTHYE 2018 / AISC 360",
+    calcType: "Profil Narinlik & Kapasite",
     accentColor: "#64748b",
   },
   "celik-birlestesi-hesabi": {

@@ -20,7 +20,7 @@
 | F0-04 | Çelik profil veri kaynağını tekilleştir | DONE | fix(steel): use one canonical profile database | check:tools-steel-timber-phase6, check:tools-adversarial, tsc | Yerel IPE_PROFILES kaldırıldı, canonical STEEL_PROFILES_DATABASE bağlandı |
 | F0-05 | Beton metraj katalog kapsamı | DONE | fix(quantity): align concrete quantity scope with engine | check:tools-inventory, check:tools-registry, check:tools-adversarial | Katalog ve vitrinde harç ifadesi kaldırıldı, Beton Metrajı & Mikser Seferi yapıldı |
 | F0-06 | Ahşap kapsam + normatif audit | DONE | docs(timber): audit current normative and scope coverage | check:tools-steel-timber-phase6, check:tools-adversarial, tsc | docs/tools/timber-normative-audit-2026.md oluşturuldu, UI başlığı Ahşap Kiriş Taşıma Gücü & Sehim olarak netleştirildi |
-| F0-07 | Kaynak label drift hotfix | TODO | | | |
+| F0-07 | Kaynak label drift hotfix | DONE | fix(tools): align public source labels with evidence | check:tools-inventory, check:tools-registry, check:tools-adversarial, tsc | Showcase kartlarındaki kaynak etiketleri engine verileriyle senkronize edildi |
 | F1-01 | Public metadata contract | TODO | | | |
 | F1-02 | Metadata cross-check CI | TODO | | | |
 | F1-03 | ToolScopeBadge primitive | TODO | | | |
