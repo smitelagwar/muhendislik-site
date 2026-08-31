@@ -53,10 +53,17 @@ import { CadViewSettingsPanel } from "./cad-view-settings-panel";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
 import { CadReviewToolbar } from "./cad-review-toolbar";
-import { CadReviewSidePanel, type CadSidePanelTab } from "./cad-review-side-panel";
+import { CadReviewSidePanel, type CadSidePanelTab, type CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
 import { CadExportDialog } from "./cad-export-dialog";
-import { CadReviewStore, type CadReviewTool } from "@/lib/dokumantasyon/cad-review/store";
+import {
+  CadReviewStore,
+  type CadReviewTool,
+  type CadReviewDraftState,
+} from "@/lib/dokumantasyon/cad-review/store";
+import { CadMarkupFacade } from "@/lib/dokumantasyon/cad-review/markup-facade";
+import { CadMarkupController } from "@/lib/dokumantasyon/cad-review/markup-controller";
+import { CadFreehandController } from "@/lib/dokumantasyon/cad-review/freehand-controller";
 import { attachCadReviewKeyboardShortcuts } from "./cad-review-shortcuts";
 import type { CadReviewDocument, CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
 import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
@@ -272,20 +279,46 @@ export function DokCadUpstreamViewer({
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
   const reviewStoreRef = useRef<CadReviewStore | null>(null);
+  const markupControllerRef = useRef<CadMarkupController | null>(null);
+  const freehandControllerRef = useRef<CadFreehandController | null>(null);
   const [reviewItems, setReviewItems] = useState<readonly CadReviewItem[]>([]);
+  const [reviewDraft, setReviewDraft] = useState<CadReviewDraftState | null>(null);
   const [reviewTool, setReviewTool] = useState<CadReviewTool>("select");
   const [reviewCanUndo, setReviewCanUndo] = useState(false);
   const [reviewCanRedo, setReviewCanRedo] = useState(false);
   const [activePanelTab, setActivePanelTab] = useState<CadSidePanelTab | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [reviewSearchQuery, setReviewSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CadTextSearchResultItem[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [reviewDocument, setReviewDocument] = useState<import("@/lib/dokumantasyon/cad-review/schema").CadReviewDocument | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   // ──────────────────────────────────────────────────────────────────────────
 
-  const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
+  const handleSearchQueryChange = (query: string) => {
+    setReviewSearchQuery(query);
+    const q = query.trim();
+    if (!q || !adapterRef.current) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const results = adapterRef.current.searchCadText({ query: q });
+      setSearchResults(
+        results.map((r, index) => ({
+          id: `search-res-${index}`,
+          text: r.item.text,
+          layer: r.item.layer,
+          layoutName: r.item.layout,
+          bounds: r.item.bounds,
+        }))
+      );
+    } catch {
+      setSearchResults([]);
+    }
+  };
 
+  const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
 
   useEffect(() => {
     if (state !== "loading") return;
@@ -342,10 +375,70 @@ export function DokCadUpstreamViewer({
         setReviewCanUndo(reviewStoreRef.current.canUndo());
         setReviewCanRedo(reviewStoreRef.current.canRedo());
         setReviewDocument({ ...reviewStoreRef.current.getDocument() });
+        setReviewDraft({ ...reviewStoreRef.current.getDraft() });
       }
     });
     return () => unsubscribe();
   }, [reviewEnabled, state, fileId, accessUrl]);
+
+  // ── CAD Review V1: Controllers (Markup & Freehand) Initialization ──────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready" || !viewportRef.current || !reviewStoreRef.current) {
+      return;
+    }
+
+    const host = viewportRef.current;
+    const store = reviewStoreRef.current;
+    const facade = new CadMarkupFacade(store);
+
+    const markupRuntime = {
+      screenToWorld: (screenPoint: { x: number; y: number }) => {
+        return adapterRef.current?.screenToWorldPoint(screenPoint) ?? null;
+      },
+      worldToScreen: (worldPoint: { x: number; y: number }) => {
+        return adapterRef.current?.projectWorldPoint(worldPoint) ?? null;
+      },
+      setCameraInteractionEnabled: (enabled: boolean) => {
+        adapterRef.current?.setCameraInteractionEnabled(enabled);
+      },
+      requestCommentInput: async () => {
+        const comment = window.prompt("Yorum notunuzu girin:")?.trim();
+        if (!comment) return null;
+        return { comment, title: "Yorum" };
+      },
+      requestTextInput: async () => {
+        const text = window.prompt("Metin notunu girin:")?.trim();
+        if (!text) return null;
+        return { text };
+      },
+    };
+
+    const freehandRuntime = {
+      screenToWorld: (screenPoint: { x: number; y: number }) => {
+        return adapterRef.current?.screenToWorldPoint(screenPoint) ?? null;
+      },
+      worldToScreen: (worldPoint: { x: number; y: number }) => {
+        return adapterRef.current?.projectWorldPoint(worldPoint) ?? null;
+      },
+      setCameraInteractionEnabled: (enabled: boolean) => {
+        adapterRef.current?.setCameraInteractionEnabled(enabled);
+      },
+    };
+
+    const markupController = new CadMarkupController(host, store, facade, markupRuntime);
+    const freehandController = new CadFreehandController(host, store, facade, freehandRuntime);
+
+    markupControllerRef.current = markupController;
+    freehandControllerRef.current = freehandController;
+
+    return () => {
+      markupController.destroy();
+      freehandController.destroy();
+      markupControllerRef.current = null;
+      freehandControllerRef.current = null;
+    };
+  }, [reviewEnabled, state]);
+
 
   // ── CAD Review V1: Keyboard shortcuts ──────────────────────────────────────
   useEffect(() => {
@@ -588,6 +681,7 @@ export function DokCadUpstreamViewer({
 
   const handleStartDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
   const handleStartAreaRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const handleStartChainDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -774,9 +868,51 @@ export function DokCadUpstreamViewer({
     setActiveTool(started ? "area" : null);
   };
 
+  const handleStartChainDistance = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    await adapter.cancelActiveCommand();
+    setDistanceSnapshot(null);
+    setAreaSnapshot(null);
+
+    const started = await adapter.startChainDistanceMeasurement(
+      getEnabledCadSnapModes(snapSettings),
+      {
+        onSnapshot: () => {},
+        onComplete: (measurement) => {
+          if (reviewStoreRef.current) {
+            reviewStoreRef.current.addItem({
+              id: `chain-${Date.now()}`,
+              type: "chain_distance",
+              points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
+              segmentDistances: [...measurement.segmentDistances],
+              totalDistance: measurement.totalDistance,
+              author: "Admin",
+              comment: "",
+              status: "open",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
+            });
+          }
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
+        },
+        onCancel: () => {
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
+        },
+      }
+    );
+    if (started) {
+      setActiveTool(null);
+    }
+  };
+
   useEffect(() => {
     handleStartDistanceRef.current = handleStartDistance;
     handleStartAreaRef.current = handleStartArea;
+    handleStartChainDistanceRef.current = handleStartChainDistance;
   });
 
   const handleClearMeasurements = async () => {
@@ -821,6 +957,7 @@ export function DokCadUpstreamViewer({
     });
   };
 
+
   const handleToggleSnapPanel = () => {
     setSnapPanelOpen((open) => {
       const next = !open;
@@ -847,11 +984,23 @@ export function DokCadUpstreamViewer({
   const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
     setReviewTool(tool);
     reviewStoreRef.current?.setActiveTool(tool);
-    // Cancel any active MLightCAD distance/area command when switching
-    if (tool !== "distance" && tool !== "area") {
-      void adapterRef.current?.cancelActiveCommand();
-      setActiveTool(null);
+
+    if (tool === "distance") {
+      void handleStartDistanceRef.current?.();
+      return;
     }
+    if (tool === "area") {
+      void handleStartAreaRef.current?.();
+      return;
+    }
+    if (tool === "chain_distance") {
+      void handleStartChainDistanceRef.current?.();
+      return;
+    }
+
+    // Cancel any active MLightCAD distance/area command when switching
+    void adapterRef.current?.cancelActiveCommand();
+    setActiveTool(null);
   }, []);
 
   const handleReviewUndo = useCallback(() => reviewStoreRef.current?.undo(), []);
@@ -932,9 +1081,10 @@ export function DokCadUpstreamViewer({
       ) : null}
 
       {/* ── CAD Review V1: SVG Item Overlay ─────────────────────────────── */}
-      {reviewEnabled && state === "ready" && reviewItems.length > 0 ? (
+      {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
         <CadReviewOverlay
           items={reviewItems}
+          draft={reviewDraft}
           projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
           containerWidth={containerSize.width}
           containerHeight={containerSize.height}
@@ -969,7 +1119,13 @@ export function DokCadUpstreamViewer({
           onSelectTab={(tab) => setActivePanelTab(tab)}
           onClose={() => setActivePanelTab(null)}
           searchQuery={reviewSearchQuery}
-          onSearchQueryChange={setReviewSearchQuery}
+          onSearchQueryChange={handleSearchQueryChange}
+          searchResults={searchResults}
+          onSelectSearchResult={(result) => {
+            if (result.bounds) {
+              void adapterRef.current?.zoomToBounds(result.bounds);
+            }
+          }}
           measurements={reviewItems
             .filter((item) => item.type === "distance" || item.type === "area" || item.type === "chain_distance")
             .map((item) => ({
@@ -990,7 +1146,12 @@ export function DokCadUpstreamViewer({
           onStatusChange={(id, status) => reviewStoreRef.current?.updateItem(id, { status })}
           onDeleteComment={(id) => reviewStoreRef.current?.removeItem(id)}
           layers={layers.map((l) => ({ name: l.name, isVisible: l.visible }))}
-          onToggleLayer={(name) => adapterRef.current?.setLayerVisible(name, !layers.find((l) => l.name === name)?.visible)}
+          onToggleLayer={(name) => {
+            const current = layers.find((l) => l.name === name);
+            if (current) {
+              handleToggleLayer(name, !current.visible);
+            }
+          }}
         />
       ) : null}
 

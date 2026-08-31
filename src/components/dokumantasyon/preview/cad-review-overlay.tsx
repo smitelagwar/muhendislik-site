@@ -12,8 +12,11 @@ import type { CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
 
 export type ProjectPointFn = (point: { x: number; y: number }) => { x: number; y: number } | null;
 
+import type { CadReviewDraftState } from "@/lib/dokumantasyon/cad-review/store";
+
 export interface CadReviewOverlayProps {
   items: readonly CadReviewItem[];
+  draft?: CadReviewDraftState | null;
   selectedItemIds?: Set<string>;
   hoveredItemId?: string | null;
   projectPoint: ProjectPointFn;
@@ -35,6 +38,7 @@ function projectOrNull(
 
 export function CadReviewOverlay({
   items,
+  draft = null,
   selectedItemIds = new Set(),
   hoveredItemId = null,
   projectPoint,
@@ -65,6 +69,28 @@ export function CadReviewOverlay({
           onClick={onClickItem}
         />
       ))}
+      {draft?.draftItem && (
+        <g opacity={0.75} strokeDasharray="4 4">
+          <ReviewItemRenderer
+            item={{
+              id: "draft-item",
+              status: "open",
+              createdAt: "",
+              updatedAt: "",
+              ...draft.draftItem,
+              style: {
+                color: draft.draftItem.style?.color ?? "#007aff",
+                strokeWidth: draft.draftItem.style?.strokeWidth ?? 2,
+                opacity: 0.8,
+                fillColor: draft.draftItem.style?.fillColor,
+              },
+            } as CadReviewItem}
+            isSelected={false}
+            isHovered={false}
+            project={project}
+          />
+        </g>
+      )}
     </svg>
   );
 }

@@ -742,11 +742,6 @@ export class CadUpstreamAdapter {
     return Number.isFinite(yScale) && yScale > 0 ? yScale : 0;
   }
 
-  private setCameraInteractionEnabled(enabled: boolean): void {
-    const view = this.getActiveLayoutView();
-    if (view) view.enabled = enabled;
-  }
-
   private configureMobileGestureGuard(): void {
     this.mobileGestureGuard?.destroy();
     this.mobileGestureGuard = null;
@@ -827,6 +822,20 @@ export class CadUpstreamAdapter {
     return Number.isFinite(projected.x) && Number.isFinite(projected.y)
       ? projected
       : null;
+  }
+
+  screenToWorldPoint(screenPoint: CadSnapPoint): CadSnapPoint | null {
+    if (this.destroyed) return null;
+    const view = this.getActiveLayoutView();
+    if (!view) return null;
+    const raw = view.screenToWorld(screenPoint);
+    const world = { x: Number(raw.x), y: Number(raw.y) };
+    return Number.isFinite(world.x) && Number.isFinite(world.y) ? world : null;
+  }
+
+  setCameraInteractionEnabled(enabled: boolean): void {
+    const view = this.getActiveLayoutView();
+    if (view) view.enabled = enabled;
   }
 
   getNearbyPrimitives(

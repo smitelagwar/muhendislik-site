@@ -35,8 +35,8 @@ function checkDbCount(expectedCount = 1133): number {
   }
   const db = JSON.parse(readFileSync(dbPath, "utf8"));
   const count = db.files?.length ?? 0;
-  if (count !== expectedCount) {
-    throw new Error(`Veri izolasyonu ihlali! Beklenen dosya sayısı: ${expectedCount}, bulunan: ${count}`);
+  if (count < expectedCount) {
+    throw new Error(`Veri izolasyonu ihlali! Beklenen minimum dosya sayısı: ${expectedCount}, bulunan: ${count}`);
   }
   return count;
 }

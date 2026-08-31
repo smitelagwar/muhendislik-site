@@ -1,4 +1,10 @@
-import { randomUUID } from "node:crypto";
+function generateReviewId(): string {
+  if (typeof globalThis !== "undefined" && globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return "rev-" + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+}
+
 import type {
   CadPoint2d,
   CadReviewItem,
@@ -50,7 +56,7 @@ export class CadMarkupFacade {
 
     const now = new Date().toISOString();
     const pinIndex = this.getNextPinIndex();
-    const id = randomUUID();
+    const id = generateReviewId();
 
     const item: CadReviewPinItem = {
       id,
@@ -89,7 +95,7 @@ export class CadMarkupFacade {
     layoutId?: string;
   }): CadReviewShapeItem {
     const now = new Date().toISOString();
-    const id = randomUUID();
+    const id = generateReviewId();
 
     const item: CadReviewShapeItem = {
       id,
@@ -132,7 +138,7 @@ export class CadMarkupFacade {
     }
 
     const now = new Date().toISOString();
-    const id = randomUUID();
+    const id = generateReviewId();
 
     const item: CadReviewCalloutItem = {
       id,
@@ -175,7 +181,7 @@ export class CadMarkupFacade {
     }
 
     const now = new Date().toISOString();
-    const id = randomUUID();
+    const id = generateReviewId();
 
     const item: CadReviewTextItem = {
       id,
@@ -250,7 +256,7 @@ export class CadMarkupFacade {
     }
 
     const now = new Date().toISOString();
-    const id = randomUUID();
+    const id = generateReviewId();
 
     const item: CadReviewStrokeItem = {
       id,

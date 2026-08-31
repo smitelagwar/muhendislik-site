@@ -216,7 +216,7 @@ export function CadReviewToolbar({
 
       <div className="h-px bg-border/60" aria-hidden="true" />
 
-      {/* Group 2: Search */}
+      {/* Group 2: Panels (Search, Comments, Layers) */}
       <div className="flex flex-col gap-1">
         <Button
           type="button"
@@ -229,6 +229,30 @@ export function CadReviewToolbar({
           aria-pressed={activePanelTab === "search"}
         >
           <Search className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant={activePanelTab === "comments" ? "secondary" : "ghost"}
+          size="icon"
+          className={desktopBtnClass}
+          onClick={() => onTogglePanelTab("comments")}
+          title="Yorum ve İşaretleme Listesi"
+          aria-label="Yorum Listesi"
+          aria-pressed={activePanelTab === "comments"}
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant={activePanelTab === "layers" ? "secondary" : "ghost"}
+          size="icon"
+          className={desktopBtnClass}
+          onClick={() => onTogglePanelTab("layers")}
+          title="Katmanlar (Layers)"
+          aria-label="Katman Paneli"
+          aria-pressed={activePanelTab === "layers"}
+        >
+          <Layers className="h-4 w-4" />
         </Button>
       </div>
 

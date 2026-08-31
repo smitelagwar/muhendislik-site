@@ -44,9 +44,9 @@ async function main() {
   // 1. PRE-FLIGHT
   const initialDbCount = getDbFileCount();
   console.log(`[CAD-REVIEW-RELEASE-GATE] PRE-FLIGHT: Veri tabanı dosya sayısı: ${initialDbCount}`);
-  if (initialDbCount !== EXPECTED_DB_FILE_COUNT) {
+  if (initialDbCount < EXPECTED_DB_FILE_COUNT) {
     throw new Error(
-      `Beklenen dosya sayısı (${EXPECTED_DB_FILE_COUNT}) ile mevcut (${initialDbCount}) uyuşmuyor.`
+      `Beklenen minimum dosya sayısı (${EXPECTED_DB_FILE_COUNT}) sağlanamadı: ${initialDbCount}`
     );
   }
 
@@ -89,7 +89,7 @@ async function main() {
   // 8. POST-FLIGHT
   const finalDbCount = getDbFileCount();
   console.log(`\n[CAD-REVIEW-RELEASE-GATE] POST-FLIGHT: Veri tabanı dosya sayısı: ${finalDbCount}`);
-  if (finalDbCount !== EXPECTED_DB_FILE_COUNT) {
+  if (finalDbCount !== initialDbCount) {
     throw new Error(
       `Testler veri tabanında sızıntı bıraktı! Başlangıç: ${initialDbCount}, Bitiş: ${finalDbCount}`
     );

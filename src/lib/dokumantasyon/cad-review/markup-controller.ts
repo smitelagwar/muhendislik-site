@@ -69,6 +69,16 @@ export class CadMarkupController {
   private readonly handlePointerDown = async (e: PointerEvent): Promise<void> => {
     if (this.destroyed || e.button > 0) return;
     const tool = this.store.getSession().activeTool;
+    const isMarkupTool =
+      tool === "shape_rect" ||
+      tool === "shape_circle" ||
+      tool === "shape_cloud" ||
+      tool === "callout" ||
+      tool === "comment_pin" ||
+      tool === "text" ||
+      tool === "select";
+    if (!isMarkupTool) return;
+
     const screenPt = this.getScreenPoint(e);
     const worldPt = this.runtime.screenToWorld(screenPt);
     if (!worldPt) return;
@@ -103,6 +113,16 @@ export class CadMarkupController {
   private readonly handlePointerMove = (e: PointerEvent): void => {
     if (this.destroyed) return;
     const tool = this.store.getSession().activeTool;
+    const isMarkupTool =
+      tool === "shape_rect" ||
+      tool === "shape_circle" ||
+      tool === "shape_cloud" ||
+      tool === "callout" ||
+      tool === "comment_pin" ||
+      tool === "text" ||
+      tool === "select";
+    if (!isMarkupTool) return;
+
     const screenPt = this.getScreenPoint(e);
 
     if (tool === "select") {
