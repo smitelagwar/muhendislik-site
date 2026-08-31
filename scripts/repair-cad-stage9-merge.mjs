@@ -12,6 +12,26 @@ function replaceRequired(source, needle, replacement, label) {
 
 let adapter = readFileSync(adapterPath, "utf8");
 
+// AcDbDxfFiler.atSubclassData(...) is cursor-moving, not a pure predicate.
+// Probing it and then calling the native dxfInFields a second time consumes the
+// AcDbEntity subclass marker twice and can leave modern AC1027 DXF parsing
+// blocked inside openDocument(). Detect a standard subclass marker with the
+// non-consuming peekItem() path instead. Flat/R12 DXF keeps the legacy fallback.
+if (adapter.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity");')) {
+  adapter = replaceRequired(
+    adapter,
+    '        const hasAcDbEntity = f.atSubclassData("AcDbEntity");\n' +
+      '        if (hasAcDbEntity) {\n' +
+      '          return origEntityDxfIn.call(this, filer as never);\n' +
+      '        }\n',
+    '        const nextItem = f.peekItem?.();\n' +
+      '        if (Number(nextItem?.code) === 100) {\n' +
+      '          return origEntityDxfIn.call(this, filer as never);\n' +
+      '        }\n',
+    "non-consuming AcDbEntity subclass detection"
+  );
+}
+
 if (!adapter.includes('export type CadBackgroundColorOption = "autocad" | "black" | "white";')) {
   adapter = replaceRequired(
     adapter,
