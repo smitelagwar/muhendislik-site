@@ -39,7 +39,7 @@
 | F3-04 | Pas Payı (05) | DONE | feat(cover): add durability governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (nominal beton örtüsü tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-05 | Zımbalama Kontrolü (06) | DONE | feat(punching): add punching safety governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (vpd vs fctd), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-06 | Kiriş Kesme & Etriye (07) | DONE | feat(shear): add Vmax crushing governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (kesme ezilme limiti Vd vs Vmax), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F3-07 | Kenetlenme & Ek Boyu (08) | TODO | | | |
+| F3-07 | Kenetlenme & Ek Boyu (08) | DONE | feat(splice): add bond and lap splice governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (donatı ek & kenetlenme tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-01 | Eşdeğer Deprem Yükü V2 (09) | TODO | | | |
 | F4-02 | Düzensizlik Kontrolleri V2 (10) | TODO | | | |
 | F4-03 | Yerel Zemin Sınıfı (11) | TODO | | | |

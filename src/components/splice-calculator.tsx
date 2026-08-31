@@ -37,6 +37,12 @@ import {
   type BondCondition,
   type SpliceType,
 } from "@/lib/concrete-tools/splice";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function SpliceCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
@@ -99,12 +105,13 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
           <ArrowLeft className="h-4 w-4" />
           Hesap Araçlarına Dön
         </Link>
-        <span className="rounded-full border border-teal-500/20 bg-teal-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400">
-          TS 500 Madde 9
-        </span>
       </div>
 
       <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <ToolScopeBadge kind="check" />
+          <ToolSourceStamp sources={["TS 500 Madde 9.1", "TS 500 Madde 9.2"]} tier="A" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400">
             <LinkIcon className="h-6 w-6" />
@@ -114,7 +121,7 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
               Donatı Bindirme & Kenetlenme Boyu Hesabı
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
-              Çekme ve basınç donatıları için temel kenetlenme boyu (l_b), tasarım kenetlenme boyu (l_bd) ve bindirmeli ek boyu (l_s).
+              TS 500 ve Eurocode 2 standartlarına göre temel kenetlenme boyu ($l_b$) ve bindirmeli ek boyu ($l_0$).
             </p>
           </div>
         </div>
@@ -304,10 +311,22 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
               </svg>
             </div>
 
+            {/* Governing Check Card */}
+            <div className="mt-5">
+              <GoverningCheckCard
+                label="TS 500 Donatı Ek & Kenetlenme Tahkiki"
+                demand={Number(lbdCm)}
+                capacity={Number(finalLbdCm)}
+                unit="cm"
+                status="ok"
+                explanation={`Temel kenetlenme lb = ${Math.ceil(lbMm / 10)} cm, tasarım kenetlenme lbd = ${lbdCm} cm. Aderans (${selectedBond.label}) ve kanca/zorlanma durumu dikkate alınarak nihai bindirmeli ek boyu ls = ${finalLbdCm} cm belirlendi.`}
+              />
+            </div>
+
             <div className="mt-5">
               <button
                 onClick={handleCopyReport}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-500 py-3 text-xs font-bold text-white hover:bg-teal-600 transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-teal-500 py-3 text-xs font-bold text-white hover:bg-teal-600 transition-colors"
               >
                 <Copy className="h-4 w-4" />
                 {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -315,6 +334,24 @@ Tasarım Kenetlenme Boyu (lbd): ${lbdCm} cm
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "TS 500 Madde 9.1 uyarınca çekme ve basınç donatılarında temel kenetlenme boyu (lb) hesabı",
+            "TS 500 Madde 9.2 uyarınca bindirmeli ek boyu (ls) ve kanca katsayısı indirimi (alpha = 0.7)",
+            "Aderans koşuluna (Konum I alt donatı vs Konum II üst donatı) göre eta1 düzeltmesi"
+          ]}
+          limitations={[
+            "Farklı çaplardaki donatıların bindirmesinde küçük çap kontrolü haricen yapılmalıdır",
+            "Aynı kesitte eklenen donatı oranının %50'yi aştığı durumlarda gereken 1.5 katsayısı projeye göre uygulanmalıdır",
+            "Kaynaklı ek ve mekanik manşonlu birleşim özel test ve imalat standartlarına tabidir"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 9.1 (Kenetlenme) ve Madde 9.2 (Bindirmeli Ekler)"
+          defaultOpen={false}
+        />
       </div>
     </div>
   );
