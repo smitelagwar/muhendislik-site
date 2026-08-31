@@ -25,6 +25,12 @@ const REBAR_GRADES = [
 ];
 
 import { calculateBeamShear } from "@/lib/concrete-tools/shear-stirrup";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function ShearStirrupCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
@@ -91,12 +97,13 @@ Orta Bölge: Ø${phiMm}/${Math.max(5, Math.floor(recommendedOrta))} cm
           <ArrowLeft className="h-4 w-4" />
           Hesap Araçlarına Dön
         </Link>
-        <span className="rounded-full border border-orange-500/20 bg-orange-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-orange-600 dark:text-orange-400">
-          TS 500 Madde 8.1
-        </span>
       </div>
 
       <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <ToolScopeBadge kind="check" />
+          <ToolSourceStamp sources={["TS 500 Madde 8.1", "TBDY 2018 7.4"]} tier="A" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-600 dark:text-orange-400">
             <Scissors className="h-6 w-6" />
@@ -106,7 +113,7 @@ Orta Bölge: Ø${phiMm}/${Math.max(5, Math.floor(recommendedOrta))} cm
               Kiriş Kesme & Etriye Hesabı
             </h1>
             <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
-              Kiriş kesme kuvveti $V_d$, beton katkısı $V_c$ ve etriye aralığı ($s$) tahkiki.
+              TS 500 ve TBDY 2018 kapsamında kiriş kesme kuvveti tahkiki, minimum etriye ve sarılma bölgesi aralıkları.
             </p>
           </div>
         </div>
@@ -318,11 +325,24 @@ Orta Bölge: Ø${phiMm}/${Math.max(5, Math.floor(recommendedOrta))} cm
               </div>
             </div>
 
+            {/* Governing Check Card */}
+            <div className="mt-6">
+              <GoverningCheckCard
+                label="TS 500 Kesme Ezilme Limiti (Vd vs Vmax)"
+                demand={Number(vdKn)}
+                capacity={Number(vmaxKn.toFixed(1))}
+                utilization={vmaxKn > 0 ? Number(vdKn) / vmaxKn : undefined}
+                unit="kN"
+                status={isVmaxSafe ? "ok" : "fail"}
+                explanation={`Tasarım kesme kuvveti Vd = ${vdKn} kN, beton basınç kırılması üst sınırı Vmax = 0.22*fcd*bw*d = ${vmaxKn.toFixed(1)} kN. Beton katkısı Vc = ${vcKn.toFixed(1)} kN, etriyelerin taşıması gereken Vw = ${(calc?.stirrupShearDemandKn ?? 0).toFixed(1)} kN.`}
+              />
+            </div>
+
             {/* Action */}
             <div className="mt-6">
               <button
                 onClick={handleCopyReport}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
               >
                 <Copy className="h-4 w-4" />
                 {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -330,6 +350,24 @@ Orta Bölge: Ø${phiMm}/${Math.max(5, Math.floor(recommendedOrta))} cm
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "TS 500 Madde 8.1 uyarınca kiriş kesme tasarımı ve beton kesme dayanımı (Vc) hesabı",
+            "Vmax = 0.22*fcd*bw*d beton basınç diyagonali ezilme üst sınırı kontrolü",
+            "TBDY 2018 Madde 7.4 uyarınca sarılma bölgesi (s <= d/4, s <= 100 mm) ve orta bölge etriye aralığı tayini"
+          ]}
+          limitations={[
+            "Burulma momenti (Md,t) ile birleşik kesme etkisini içermez; saf kesme kuvveti içindir",
+            "Gövde donatısı gereksinimi (h > 60 cm durumunda) harici kontrol edilmelidir",
+            "Etriye açılımı, kanca büküm boyları ve çiroz yerleşimi harici detay çiziminde incelenmelidir"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 8.1 ve TBDY 2018 Madde 7.4"
+          defaultOpen={false}
+        />
       </div>
     </div>
   );
