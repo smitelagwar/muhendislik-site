@@ -183,8 +183,41 @@
 }
 
 .viewport {
-  /* BUG-7 FIX: both-edges layout shift yaratıyordu — stable yeterli */
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.4) transparent;
+}
+
+.viewport::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.viewport::-webkit-scrollbar-thumb {
+  background-color: rgba(245, 158, 11, 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.viewport::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(245, 158, 11, 0.6);
+}
+
+:global(.dark) .viewport {
+  scrollbar-color: rgba(245, 158, 11, 0.35) transparent;
+}
+
+:global(.dark) .viewport::-webkit-scrollbar-thumb {
+  background-color: rgba(245, 158, 11, 0.35);
+}
+
+:global(.dark) .viewport::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(245, 158, 11, 0.6);
 }
 
 /* Floating Action Bars & Sheets */

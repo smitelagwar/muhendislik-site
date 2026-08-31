@@ -527,7 +527,6 @@ export function DokumantasyonFileManager() {
   const handleToggleSelect = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     toggleSelectedId(id);
-    if (!isDetailsOpen) setIsDetailsOpen(true);
   };
 
   const allItemIds = useMemo(() => [

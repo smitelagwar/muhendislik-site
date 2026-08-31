@@ -24,6 +24,9 @@ export function MobileDetailsSheet({ selectedItem, onClose, onShare, onRename, o
 
   useEffect(() => {
     if (!selectedItem) return;
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+    if (!isMobile) return;
+
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     // BUG-5 FIX: previousOverflow'u ref'te sakla — unexpected unmount'ta da temizlenir
     const previousOverflow = document.body.style.overflow;

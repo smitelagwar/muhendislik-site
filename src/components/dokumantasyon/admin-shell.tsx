@@ -24,12 +24,13 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   }, []);
 
   return (
-    <div className="relative min-h-[calc(100vh-4.5rem)] w-full overflow-hidden bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05]">
-      {/* Ambiyans Warm Glass Işık Küreleri (Luminous Background Glow) */}
-      {/* BUG-2 FIX: fixed → absolute, overflow-hidden wrapper küreler sayfaya sızmasın */}
-      <div className="pointer-events-none absolute -top-32 -left-32 h-[32rem] w-[32rem] rounded-full bg-amber-500/20 blur-[130px] dark:bg-amber-500/15" />
-      <div className="pointer-events-none absolute top-1/4 -right-32 h-[36rem] w-[36rem] rounded-full bg-orange-500/15 blur-[150px] dark:bg-orange-600/12" />
-      <div className="pointer-events-none absolute -bottom-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-400/20 blur-[140px] dark:bg-amber-600/10" />
+    <div className="relative min-h-[calc(100vh-4.5rem)] w-full bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05]">
+      {/* Ambiyans Warm Glass Işık Küreleri (Luminous Background Glow) — Yalnızca küreler için overflow-hidden */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-32 -left-32 h-[32rem] w-[32rem] rounded-full bg-amber-500/20 blur-[130px] dark:bg-amber-500/15" />
+        <div className="absolute top-1/4 -right-32 h-[36rem] w-[36rem] rounded-full bg-orange-500/15 blur-[150px] dark:bg-orange-600/12" />
+        <div className="absolute -bottom-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-400/20 blur-[140px] dark:bg-amber-600/10" />
+      </div>
 
       <div className="relative mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8 z-10">
         {/* Üst Bar / Header */}
