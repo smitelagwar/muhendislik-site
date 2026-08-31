@@ -21,6 +21,19 @@ const mmSource: CadSourceUnitContext = {
   source: "dxf-insunits",
 };
 
+function emptyReviewDocument(suffix: string): CadReviewDocument {
+  return {
+    schemaVersion: 1,
+    fileId: "12345678-1234-4234-8234-1234567890ab",
+    sourceVersionKey: `${suffix}.dxf`,
+    sourceSha256: "a".repeat(64),
+    revision: 0,
+    items: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
   test("2 m aynı geometride m/cm/mm olarak gerçek matematiksel dönüşür", () => {
     const worldDistance = 2000;
@@ -34,6 +47,13 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
     expect(formatDistance(worldDistance, mmSource, "mm", 0)).toBe("2.000 mm");
   });
 
+  test("precision gerçek label çıktısını değiştirir", () => {
+    expect(formatDistance(1234, mmSource, "m", 1)).toBe("1,2 m");
+    expect(formatDistance(1234, mmSource, "m", 3)).toBe("1,234 m");
+    expect(formatArea(2_000_000, mmSource, "m2", 0)).toBe("2 m²");
+    expect(formatArea(2_000_000, mmSource, "m2", 3)).toBe("2,000 m²");
+  });
+
   test("alan dönüşümü lineer değil scale² kullanır ve default m²'dir", () => {
     const worldArea = 2_000_000;
 
@@ -43,28 +63,25 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
 
     expect(formatArea(worldArea, mmSource, "m2", 2)).toBe("2,00 m²");
     expect(formatArea(worldArea, mmSource, "cm2", 2)).toBe("20.000,00 cm²");
+    expect(formatArea(worldArea, mmSource, "mm2", 0)).toBe("2.000.000 mm²");
     expect(CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.areaUnit).toBe("m2");
   });
 
   test("cm çalışma birimi alan sonucunun default m² sözleşmesini değiştirmez", () => {
-    const initialDoc: CadReviewDocument = {
-      schemaVersion: 1,
-      fileId: "12345678-1234-4234-8234-1234567890ab",
-      sourceVersionKey: "units.dxf",
-      sourceSha256: "a".repeat(64),
-      revision: 0,
-      items: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const store = new CadReviewStore(initialDoc);
+    const store = new CadReviewStore(emptyReviewDocument("units"));
     store.setMeasurementUnitSettings({ unit: "cm" });
 
     const settings = getCurrentCadMeasurementUnitSettings();
     expect(settings.unit).toBe("cm");
     expect(settings.areaUnit).toBe("m2");
     expect(formatArea(2_000_000, mmSource, settings.areaUnit, settings.areaPrecision)).toBe("2,00 m²");
+  });
+
+  test("area result gösterimi m² → cm² → mm² doğru dönüşür", () => {
+    const worldArea = 2_000_000;
+    expect(formatArea(worldArea, mmSource, "m2", 2)).toBe("2,00 m²");
+    expect(formatArea(worldArea, mmSource, "cm2", 2)).toBe("20.000,00 cm²");
+    expect(formatArea(worldArea, mmSource, "mm2", 0)).toBe("2.000.000 mm²");
   });
 
   test("unitless kalibrasyon distance ve area için aynı fiziksel ölçeği kullanır", () => {
@@ -96,31 +113,21 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
     expect(formatArea(100, unknown, "m2", 2)).toBe("100,00 çizim birimi²");
   });
 
-  test("measurement color Distance/Area/Chain review item sözleşmesine yayılır", () => {
-    const initialDoc: CadReviewDocument = {
-      schemaVersion: 1,
-      fileId: "12345678-1234-4234-8234-1234567890ab",
-      sourceVersionKey: "color.dxf",
-      sourceSha256: "b".repeat(64),
-      revision: 0,
-      items: [
-        {
-          id: "12345678-1234-4234-8234-1234567890ac",
-          type: "chain_distance",
-          points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }],
-          segmentDistances: [1000],
-          totalDistance: 1000,
-          author: "Admin",
-          comment: "",
-          status: "open",
-          style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
+  test("measurement color mevcut Distance/Area/Chain review item sözleşmesine yayılır", () => {
+    const initialDoc = emptyReviewDocument("color-existing");
+    initialDoc.items.push({
+      id: "12345678-1234-4234-8234-1234567890ac",
+      type: "chain_distance",
+      points: [{ x: 0, y: 0 }, { x: 1000, y: 0 }],
+      segmentDistances: [1000],
+      totalDistance: 1000,
+      author: "Admin",
+      comment: "",
+      status: "open",
+      style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    });
 
     const store = new CadReviewStore(initialDoc);
     store.setMeasurementUnitSettings({ color: "#ef4444" });
@@ -128,5 +135,27 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
     const chain = store.getItems()[0];
     expect(chain?.style.color).toBe("#ef4444");
     expect(getCurrentCadMeasurementUnitSettings().color).toBe("#ef4444");
+  });
+
+  test("yeni Chain ölçümü hard-coded renge dönmez, aktif measurement color'ı devralır", () => {
+    const store = new CadReviewStore(emptyReviewDocument("color-new"));
+    store.setMeasurementUnitSettings({ color: "#10b981" });
+
+    store.addItem({
+      id: "12345678-1234-4234-8234-1234567890ad",
+      type: "chain_distance",
+      points: [{ x: 0, y: 0 }, { x: 2000, y: 0 }],
+      segmentDistances: [2000],
+      totalDistance: 2000,
+      author: "Admin",
+      comment: "",
+      status: "open",
+      style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const chain = store.getItems()[0];
+    expect(chain?.style.color).toBe("#10b981");
   });
 });
