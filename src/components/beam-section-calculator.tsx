@@ -12,6 +12,12 @@ import type { ConcreteStatusTone } from "@/lib/concrete-tools/types";
 import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/fonts";
 import { cn } from "@/lib/utils";
 import { BeamSectionSketch } from "@/components/section-sketch";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 function getStatusLabel(tone: ConcreteStatusTone) {
   switch (tone) {
@@ -98,6 +104,11 @@ export function BeamSectionCalculator() {
       title="Kiriş kesiti"
       description="Kaynak dashboard formülleri korunarak tek donatılı eğilme ve kesme kontrolü aynı araç altında toplandı. Girdiler değiştikçe sonuç paneli anlık güncellenir."
     >
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <ToolScopeBadge kind="check" />
+        <ToolSourceStamp sources={["TS 500 Madde 7.1", "TS 500 Madde 8.1"]} tier="A" />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
         <section className="space-y-6">
           <div className="tool-panel rounded-[28px] p-6">
@@ -296,6 +307,16 @@ export function BeamSectionCalculator() {
                   <ConcreteResultRow label="Minimum As" value={`${formatConcreteNumber(flexure.minimumSteelAreaMm2)} mm²`} />
                   <ConcreteResultRow label="Tasarım As" value={`${formatConcreteNumber(flexure.designSteelAreaMm2)} mm²`} tone="ok" />
                 </div>
+
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="TS 500 Eğilme Kapasitesi"
+                    demand={Number(designMomentKnM)}
+                    unit="kNm"
+                    status={flexure.status.tone === "ok" ? "ok" : flexure.status.tone === "warn" ? "warn" : "fail"}
+                    explanation={`K katsayısı ${formatConcreteNumber(flexure.kFactorMpa)} MPa (Referans K sınır: ~${formatConcreteNumber(flexure.referenceKLimitMpa)} MPa). As,tasarım = ${formatConcreteNumber(flexure.designSteelAreaMm2)} mm².`}
+                  />
+                </div>
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
@@ -333,6 +354,18 @@ export function BeamSectionCalculator() {
                   <ConcreteResultRow label="Sınır gerilme τ,lim" value={`${formatConcreteNumber(shear.shearStressLimitMpa)} MPa`} />
                   <ConcreteResultRow label="Etriye kapasitesi Vr" value={`${formatConcreteNumber(shear.stirrupCapacityKn)} kN`} tone={shear.status.tone === "ok" ? "ok" : "warn"} />
                 </div>
+
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="Kesme Emniyeti (Vd vs Vr)"
+                    demand={Number(designShearKn)}
+                    capacity={Number(shear.stirrupCapacityKn.toFixed(1))}
+                    utilization={shear.stirrupCapacityKn > 0 ? Number(designShearKn) / shear.stirrupCapacityKn : undefined}
+                    unit="kN"
+                    status={shear.status.tone === "ok" ? "ok" : shear.status.tone === "warn" ? "warn" : "fail"}
+                    explanation={`Kesme gerilmesi tau = ${formatConcreteNumber(shear.shearStressMpa)} MPa (Limit: ${formatConcreteNumber(shear.shearStressLimitMpa)} MPa). Etriye kapasitesi Vr = ${formatConcreteNumber(shear.stirrupCapacityKn)} kN.`}
+                  />
+                </div>
               </>
             ) : (
               <p className="text-sm leading-6 text-muted-foreground">Kesme paneli, tüm alanlara geçerli değer girildiğinde otomatik olarak hesaplanır.</p>
@@ -365,6 +398,24 @@ export function BeamSectionCalculator() {
             />
           </div>
         </section>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "Tek donatılı dikdörtgen kiriş kesitlerinde eğilme donatısı (As,req ve As,tasarım) hesabı",
+            "TS 500 Madde 7.1 minimum donatı (As,min) kontrolü ve K moment katsayısı karşılaştırması",
+            "Kiriş kesme kuvveti, kayma gerilmesi (tau) ve etriye taşıma gücü (Vr) tahkiki"
+          ]}
+          limitations={[
+            "Çift donatılı kesitleri, basınç donatısı katkısını veya flanşlı (tablalı) kiriş etkisini içermez",
+            "TBDY 2018 kiriş sarılma bölgeleri özel etriye sıklaştırması ve gövde donatısı kuralları haricen uygulanmalıdır",
+            "Sehim integrali ve çatlak genişliği (wk) tahkiklerini kapsamaz"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 7.1 (Eğilme) ve Madde 8.1 (Kesme)"
+          defaultOpen={false}
+        />
       </div>
     </ConcreteToolShell>
   );

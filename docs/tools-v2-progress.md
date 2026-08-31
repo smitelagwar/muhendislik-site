@@ -29,7 +29,7 @@
 | F1-06 | EngineeringDiagramFrame primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/engineering-diagram-frame.tsx |
 | F1-07 | GoverningCheckCard primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/governing-check-card.tsx |
 | F2-01 | Donatı Hesabı constructability pilot | DONE | feat(rebar): add constructability check and engineering diagram | npm run check:donati-hesabi, npm run check:tools-metadata, tsc | Kiriş genişliği parametresi, net aralık ön tahkiki, SVG kiriş kesiti ve ToolLimitations eklendi |
-| F2-02 | Kiriş Kesiti açıklanabilir sonuç pilot | TODO | | | |
+| F2-02 | Kiriş Kesiti açıklanabilir sonuç pilot | DONE | feat(beam): add governing checks and explainable telemetry | npm run check:tools-existing, npm run check:tools-adversarial, tsc | GoverningCheckCard (eğilme ve kesme için), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F2-03 | Eşdeğer Deprem Yükü bina/kat görsel pilot | TODO | | | |
 | F2-04 | Beton Metrajı Tier C workflow pilot | TODO | | | |
 | F3-01 | Kolon Ön Boyutlandırma (02) | TODO | | | |
