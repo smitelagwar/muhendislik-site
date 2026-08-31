@@ -37,6 +37,12 @@ import {
   PUNCHING_LOCATION_FACTORS,
   type ColumnPunchingLocation,
 } from "@/lib/concrete-tools/punching";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function PunchingCalculator() {
   const [concreteIndex, setConcreteIndex] = useState(2); // C30/37
@@ -110,6 +116,10 @@ DURUM: ${isSafe ? "GÜVENLİ (Donatısız Kurtarıyor)" : isExceededMax ? "TEHL�
 
       {/* Main Header */}
       <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <ToolScopeBadge kind="check" />
+          <ToolSourceStamp sources={["TS 500 Madde 8.3", "TBDY 2018"]} tier="A" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-500/15 text-pink-600 dark:text-pink-400">
             <Target className="h-6 w-6" />
@@ -384,11 +394,24 @@ DURUM: ${isSafe ? "GÜVENLİ (Donatısız Kurtarıyor)" : isExceededMax ? "TEHL�
               </svg>
             </div>
 
+            {/* Governing Check Card */}
+            <div className="mt-6">
+              <GoverningCheckCard
+                label="TS 500 Zımbalama Emniyeti (vpd vs fctd)"
+                demand={Number(vpdMpa.toFixed(2))}
+                capacity={Number(fctd.toFixed(2))}
+                utilization={ratio}
+                unit="MPa"
+                status={isSafe ? "ok" : isExceededMax ? "fail" : "warn"}
+                explanation={`Zımbalama gerilmesi vpd = ${vpdMpa.toFixed(2)} MPa, beton eksenel çekme dayanımı fctd = ${fctd.toFixed(2)} MPa. Faydalı derinlik d = ${dCm.toFixed(1)} cm, kritik çevre up = ${upCm.toFixed(1)} cm.`}
+              />
+            </div>
+
             {/* Export & Actions */}
             <div className="mt-6 flex gap-3">
               <button
                 onClick={handleCopyReport}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-pink-500 py-3 text-xs font-bold text-white hover:bg-pink-600 transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-pink-500 py-3 text-xs font-bold text-white hover:bg-pink-600 transition-colors min-h-[44px]"
               >
                 <Copy className="h-4 w-4" />
                 {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -396,6 +419,24 @@ DURUM: ${isSafe ? "GÜVENLİ (Donatısız Kurtarıyor)" : isExceededMax ? "TEHL�
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "Mantar veya kirişsiz plak döşemelerde TS 500 Madde 8.3 zımbalama gerilmesi (vpd) ve kritik çevre (up) hesabı",
+            "İç, kenar ve köşe kolon konumlarına göre gamma eksantrisite katsayısı düzeltmesi",
+            "Beton çekme dayanımı (fctd) ile donatısız zımbalama kapasitesi tahkiki"
+          ]}
+          limitations={[
+            "Zımbalama donatısı (çiroz, kayma kamaları veya zımbalama kafesi) hesabını ve yerleşimini içermez",
+            "Kolon başlığı (drop panel) veya guse geometrilerini kapsamaz",
+            "Kritik zımbalama çevresi içinde boşluk veya şaft bulunması durumu harici analiz gerektirir"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 8.3 ve TBDY 2018 Bölüm 7"
+          defaultOpen={false}
+        />
       </div>
     </div>
   );
