@@ -14,6 +14,14 @@ import {
 import { ToolIcon } from "@/components/tool-icon";
 import { ToolWatermarkIllustration } from "@/components/tool-watermarks";
 import { type ToolDefinition } from "@/lib/tools-data";
+import { TOOL_REGISTRY } from "@/lib/tool-registry";
+
+export const TIER_CATEGORIES = [
+  { id: "all", label: "Tüm Seviyeler" },
+  { id: "A", label: "Tier A (Normatif)" },
+  { id: "B", label: "Tier B (Standart)" },
+  { id: "C", label: "Tier C (Pratik / Saha)" },
+] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Disiplin / Kategori Verileri                                      */
@@ -225,6 +233,7 @@ export default function ToolsWorkbenchShowcase({
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedTier, setSelectedTier] = useState<string>("all");
 
   // Filtrelenmiş araç listesi
   const filteredTools = useMemo(() => {
@@ -235,20 +244,31 @@ export default function ToolsWorkbenchShowcase({
         if (group !== selectedCategory) return false;
       }
 
+      // Tier filtresi
+      if (selectedTier !== "all") {
+        const reg = TOOL_REGISTRY[tool.id];
+        const toolTier = reg?.tier || "B";
+        if (toolTier !== selectedTier) return false;
+      }
+
       // Arama sorgusu filtresi
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const meta = TOOL_EXTRA_META[tool.id];
+        const reg = TOOL_REGISTRY[tool.id];
         const matchName = tool.name.toLowerCase().includes(q);
         const matchDesc = tool.description.toLowerCase().includes(q);
         const matchDisc = tool.discipline.toLowerCase().includes(q);
         const matchNorm = meta?.standardNorm.toLowerCase().includes(q);
-        return matchName || matchDesc || matchDisc || matchNorm;
+        const matchRegNorm = reg?.normativeReference?.toLowerCase().includes(q);
+        const matchCalcType = meta?.calcType.toLowerCase().includes(q);
+        const matchTier = reg?.tier ? `tier ${reg.tier}`.toLowerCase().includes(q) : false;
+        return matchName || matchDesc || matchDisc || matchNorm || matchRegNorm || matchCalcType || matchTier;
       }
 
       return true;
     });
-  }, [tools, selectedCategory, searchQuery]);
+  }, [tools, selectedCategory, selectedTier, searchQuery]);
 
   const featuredMeta = featuredTool ? TOOL_EXTRA_META[featuredTool.id] : null;
 
@@ -407,6 +427,30 @@ export default function ToolsWorkbenchShowcase({
             );
           })}
         </div>
+
+        {/* Tier (Kanıt Seviyesi) Filtre Tab'ları */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-400 shrink-0 mr-1">
+            Kanıt Seviyesi:
+          </span>
+          {TIER_CATEGORIES.map((t) => {
+            const isActive = selectedTier === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelectedTier(t.id)}
+                className={`shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all duration-150 active:scale-95 ${
+                  isActive
+                    ? "bg-purple-500/25 border border-purple-400 text-purple-200 shadow-sm"
+                    : "border border-border/80 dark:border-white/10 bg-card/60 dark:bg-[#120f28]/60 text-muted-foreground dark:text-zinc-400 hover:border-purple-500/30 hover:text-zinc-200"
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── 4. İNTERAKTİF ARAÇ KARTLARI GRID'İ (Vortasky AI Dark Cards) ── */}
@@ -415,13 +459,14 @@ export default function ToolsWorkbenchShowcase({
           <Compass className="mx-auto h-10 w-10 text-muted-foreground dark:text-purple-400" />
           <h3 className="mt-4 text-lg font-bold text-foreground dark:text-white">Aranan kriterlere uygun araç bulunamadı</h3>
           <p className="mt-2 text-sm text-muted-foreground dark:text-zinc-300">
-            Farklı bir arama terimi deneyebilir veya kategori filtresini değiştirebilirsiniz.
+            Farklı bir arama terimi deneyebilir veya kategori ve kanıt seviyesi filtrelerini değiştirebilirsiniz.
           </p>
           <button
             type="button"
             onClick={() => {
               setSearchQuery("");
               setSelectedCategory("all");
+              setSelectedTier("all");
             }}
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-2.5 text-xs font-bold uppercase text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:scale-[1.02] transition-transform"
           >
@@ -432,7 +477,10 @@ export default function ToolsWorkbenchShowcase({
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTools.map((tool) => {
             const meta = TOOL_EXTRA_META[tool.id];
+            const reg = TOOL_REGISTRY[tool.id];
+            const tier = reg?.tier || "B";
             const color = meta?.accentColor || "#a855f7";
+            const normativeRef = reg?.normativeReference || meta?.standardNorm || tool.discipline;
 
             return (
               <Link
@@ -457,9 +505,20 @@ export default function ToolsWorkbenchShowcase({
                       <ToolIcon iconKey={tool.iconKey} className="h-5 w-5" />
                     </div>
 
-                    <span className="rounded-full border border-border/80 dark:border-white/15 bg-muted/60 dark:bg-[#1e193d] px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200">
-                      {meta?.standardNorm || tool.discipline}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider border ${
+                        tier === "A"
+                          ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                          : tier === "B"
+                          ? "border-purple-500/40 bg-purple-500/15 text-purple-300"
+                          : "border-amber-500/40 bg-amber-500/15 text-amber-300"
+                      }`}>
+                        Tier {tier}
+                      </span>
+                      <span className="rounded-full border border-border/80 dark:border-white/15 bg-muted/60 dark:bg-[#1e193d] px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-200">
+                        {normativeRef}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Başlık ve Açıklama */}
