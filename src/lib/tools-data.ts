@@ -146,9 +146,9 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     id: "duzensizlik-kontrolu",
-    name: "Düzensizlik Kontrolü",
+    name: "Bina Düzensizlik Kontrolleri",
     href: "/kategori/araclar/duzensizlik-kontrolu",
-    description: "TBDY 2018'e göre A1–A3 plan ve B1–B3 düşey düzensizliklerini kontrol edin.",
+    description: "TBDY 2018 Bölüm 3.6'ya göre A1 (burulma), A2 (döşeme süreksizliği) ve B2 (yumuşak kat) düzensizlik kontrollerini yapın.",
     iconKey: "check",
     discipline: "Deprem Mühendisliği",
     featured: false,

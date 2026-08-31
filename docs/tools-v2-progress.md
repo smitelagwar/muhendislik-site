@@ -15,7 +15,7 @@
 | ID | Görev | Durum | Commit | Test | Not |
 |---|---|---|---|---|---|
 | F0-01 | Catalog/evidence audit | DONE | docs(tools): audit catalog registry and evidence drift | check:tools-inventory, check:tools-registry | 30 araç metadata audit tamamlandı (P0-P2 sınıflandı) |
-| F0-02 | Düzensizlik overclaim hotfix | TODO | | | |
+| F0-02 | Düzensizlik overclaim hotfix | DONE | fix(tools): align irregularity scope with implemented checks | check:tools-adversarial, check:tools-earthquake-geotech-phase5 | Katalog ve vitrinde yalnız çalışan A1/A2/B2 belirtildi |
 | F0-03 | Tier C güven dili temizliği | TODO | | | |
 | F0-04 | Çelik profil veri kaynağını tekilleştir | TODO | | | |
 | F0-05 | Beton metraj katalog kapsamı | TODO | | | |

@@ -73,7 +73,7 @@ const TOOL_EXTRA_META: Record<string, ToolMeta> = {
   },
   "duzensizlik-kontrolu": {
     standardNorm: "TBDY 2018",
-    calcType: "A1-A3 & B1-B3 Kontrolü",
+    calcType: "A1, A2 & B2 Kontrolleri",
     accentColor: "#d97706",
   },
   "zemin-sinifi": {
