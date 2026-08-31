@@ -1684,22 +1684,24 @@
     "primaryAltTr": "Kür İşlemi — Sertleşen taze beton yüzeyine su püskürtme veya kimyasal kür membranı uygulaması",
     "secondaryMode": "site-process",
     "secondaryPlacement": "application",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: güneş ve rüzgardan korumak için beton üzerine ıslak jüt (çuval) örtü veya jeotekstil serimi",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: beton yüzeyinde bindirmeli ıslak kür örtüsüyle nem tutma ve örtüyü döşeme kenarında rüzgâra karşı güvenli sabitleme",
     "secondaryMustShow": [
-      "döşeme betonu üzerine serilmiş ıslak jüt kumaşı",
-      "nemli örtü yüzeyi",
-      "buharlaşmayı önleyen tam kaplama"
+      "döşeme betonu üzerine bindirmeli serilmiş ıslak geotekstil örtü",
+      "sulanarak nemli tutulan örtü yüzeyi",
+      "döşeme kenarını saran ve ahşap baskılarla sabitlenen örtü"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "marka",
       "tabela"
     ],
-    "secondaryPromptTr": "KONU: Kür İşlemi\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Sertleşen taze beton yüzeyine su püskürtme veya kimyasal kür membranı uygulaması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Güneş ve rüzgardan korumak için beton üzerine ıslak jüt (çuval) örtü veya jeotekstil serimi\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: site-process\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: döşeme betonu üzerine serilmiş ıslak jüt kumaşı, nemli örtü yüzeyi, buharlaşmayı önleyen tam kaplama.\nPRIMARY'DEN FARK: Primary su ile doğrudan kürlemeyi gösterirken, secondary döşemede ıslak örtü (jüt) ile nem kaybını önleme tekniğini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, marka, tabela, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Kür İşlemi (Teknik Detay) — Güneş ve rüzgardan korumak için beton üzerine ıslak jüt (çuval) örtü veya jeotekstil serimi",
-    "secondaryDifference": "Primary su ile doğrudan kürlemeyi gösterirken, secondary döşemede ıslak örtü (jüt) ile nem kaybını önleme tekniğini öğretir.",
+    "secondaryPromptTr": "KONU: Kür İşlemi\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Yeni beton döşemenin doğrudan ve kontrollü sulanması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Bindirmeli ıslak geotekstil kür örtüsüyle nem kaybını ve döşeme kenarında örtü kalkmasını önleme\nMOD: site-process\nSAHNE: 16:9 yatay, yeni beton döşemeyi kaplayan ıslak beyaz geotekstil örtünün foto-gerçekçi yakın görünümü.\nMUTLAKA GÖRÜNSÜN: bindirmeli nemli örtü, örtüyü sulayan hortum, kenarı saran kumaş ve ahşap baskılarla sabitleme.\nPRIMARY'DEN FARK: Primary çıplak yüzeyi sularken, secondary ıslak örtüyle sürekli nem ve kenar korumasını gösterir.\nKESİNLİKLE OLMASIN: yazı, rakam, logo, marka, filigran, UI, HUD, ok, kolaj veya havada yüzen örtü.",
+    "secondaryAltTr": "Kür İşlemi (Uygulama Detayı) — Islak geotekstil kür örtüsünün bindirmeli serimi ve döşeme kenarında sabitlenmesi",
+    "secondaryDifference": "Primary çıplak beton yüzeyinin doğrudan sulanmasını gösterirken, secondary ıslak örtüyle nem kaybını ve kenar kalkmasını önleme tekniğini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "beton-testi",
@@ -1714,37 +1716,39 @@
     "secondaryTargetWebp": "/bina-asamalari/details/beton-testi.webp",
     "legacySvgCard": "/bina-asamalari/topics/beton-testi.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında taze betonun sahada slump konisine tabakalar halinde doldurulup şişlenmesi ve yanında silindir dayanım numunelerinin hazırlanması sürecini net olarak anlamalı.",
     "primaryMustShow": [
-      "ağır hidrolik pres plakaları",
-      "arada çatlayan 15x15 beton küp",
-      "kırılma piramidi koniği"
+      "düz deney tabanındaki metal slump konisi",
+      "taze betonu düşey şişleyen sıkıştırma çubuğu",
+      "yanında dizilmiş etiketsiz silindir numune kalıpları"
     ],
     "primaryMustNotShow": [
       "dijital ekrandaki okunur MPa rakamları",
       "yazı",
       "laboratuvar adı"
     ],
-    "primaryPromptTr": "KONU: Beton Testleri\nİÇERİK: Çökme deneyi, küp/silindir numuneleri ve kabul kriterleriyle beton kalitesinin doğrulanması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: ağır hidrolik pres plakaları, arada çatlayan 15x15 beton küp, kırılma piramidi koniği.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: dijital ekrandaki okunur MPa rakamları, yazı, laboratuvar adı, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Beton Testleri — Laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi",
+    "primaryPromptTr": "KONU: Beton Testleri\nİÇERİK: Çökme deneyi ve silindir numuneleriyle beton kalitesinin doğrulanması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Sahada slump konisine taze beton doldurma ve şişleme ile silindir numune hazırlama süreci ilk bakışta anlaşılmalı.\nMOD: site-process\nSAHNE: 16:9 yatay, etiketsiz transmikser yanında iki teknisyenin profesyonel saha deney sahnesi.\nMUTLAKA GÖRÜNSÜN: düz tabandaki slump konisi, düşey şişleme çubuğu ve yakında dizilmiş etiketsiz silindir kalıplar.\nFİZİKSEL DOĞRULUK: Koni sabit tutulmalı, çubuk düşey olmalı ve taze beton kohezif görünmeli.\nKESİNLİKLE OLMASIN: okunur ölçü, yazı, harf, rakam, logo, marka, filigran, araç işareti, UI veya HUD.",
+    "primaryAltTr": "Beton Testleri — Sahada slump konisine beton doldurma, şişleme ve silindir numune hazırlama süreci",
     "secondaryMode": "site-process",
     "secondaryPlacement": "quality-control",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: sahada sertleşmiş beton yüzeyinde schmidt test çekici (beton sklerometresi) uygulaması",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: sertleşmiş beton silindir numunesinin laboratuvar presinde merkezlenerek eksenel basınç altında denenmesi",
     "secondaryMustShow": [
-      "beton kolona dik tutulan çelik Schmidt çekici",
-      "darbe ucu",
-      "temizlenmiş pürüzsüz beton deney noktası"
+      "alt ve üst dairesel çelik pres plakaları",
+      "plakalar arasında düşey merkezlenmiş beton silindir",
+      "silindirde gelişen doğal boyuna yarılma çatlakları"
     ],
     "secondaryMustNotShow": [
       "skala üzerindeki sayılar",
       "yazı",
       "marka"
     ],
-    "secondaryPromptTr": "KONU: Beton Testleri\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Sahada sertleşmiş beton yüzeyinde Schmidt test çekici (beton sklerometresi) uygulaması\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: site-process\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: beton kolona dik tutulan çelik Schmidt çekici, darbe ucu, temizlenmiş pürüzsüz beton deney noktası.\nPRIMARY'DEN FARK: Primary pres altında küp numunenin kırılmasını gösterirken, secondary sahada tahribatsız Schmidt çekici kontrolünü öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: skala üzerindeki sayılar, yazı, marka, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Beton Testleri (Teknik Detay) — Sahada sertleşmiş beton yüzeyinde Schmidt test çekici (beton sklerometresi) uygulaması",
-    "secondaryDifference": "Primary pres altında küp numunenin kırılmasını gösterirken, secondary sahada tahribatsız Schmidt çekici kontrolünü öğretir.",
+    "secondaryPromptTr": "KONU: Beton Testleri\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Sahada slump konisi doldurma ve silindir numune hazırlama\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Sertleşmiş beton silindirin laboratuvar presinde eksenel basınç altında denenmesi\nMOD: site-process\nSAHNE: 16:9 yatay, güvenlik kafesli laboratuvar presinde düşey beton silindirin foto-gerçekçi yakın görünümü.\nMUTLAKA GÖRÜNSÜN: dairesel alt ve üst plakalar, merkezlenmiş silindir ve doğal boyuna çatlaklar.\nPRIMARY'DEN FARK: Primary saha numune hazırlığını, secondary sertleşmiş numunenin basınç testini öğretir.\nKESİNLİKLE OLMASIN: okunur ekran, yazı, rakam, etiket, logo, marka, filigran, UI, HUD veya patlayıcı kırılma.",
+    "secondaryAltTr": "Beton Testleri (Laboratuvar Detayı) — Beton silindir numunesinin eksenel basınç presinde denenmesi",
+    "secondaryDifference": "Primary taze betonun saha kıvam kontrolü ve numune hazırlığını gösterirken, secondary sertleşmiş silindirin laboratuvar basınç deneyini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "duvar-orme",
@@ -1779,22 +1783,24 @@
     "primaryAltTr": "Duvar Örme — Şakül ve mastar ipi doğrultusunda tuğla veya gazbeton duvar örgüsü",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: duvarın betonarme kolona lamel (çelik ankraj sacı) ile bağlanması detayı",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: dolgu duvarın bağlı köşe dönüşü, betonarme kolona galvaniz ankrajlarla tutturulması ve kapı açıklığı üzerindeki lento oturması",
     "secondaryMustShow": [
-      "betonarme kolon yüzeyi",
-      "kolona çakılan L tipi delikli galvaniz sac",
-      "tuğla yatay derzine gömülen sac lamel"
+      "betonarme kolon yüzeyi ve yatay derze giren delikli galvaniz ankrajlar",
+      "şaşırtmalı örgülü duvar köşe dönüşü",
+      "kapı açıklığına yeterli mesnetle oturan beton lento"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "rakam",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Duvar Örme\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Şakül ve mastar ipi doğrultusunda tuğla veya gazbeton duvar örgüsü\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Duvarın betonarme kolona lamel (çelik ankraj sacı) ile bağlanması detayı\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: betonarme kolon yüzeyi, kolona çakılan L tipi delikli galvaniz sac, tuğla yatay derzine gömülen sac lamel.\nPRIMARY'DEN FARK: Primary sahadaki duvar örgüsünü gösterirken, secondary duvarın depremde devrilmesini önleyen kolon bağlantı sacı kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, rakam, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Duvar Örme (Teknik Detay) — Duvarın betonarme kolona lamel (çelik ankraj sacı) ile bağlanması detayı",
-    "secondaryDifference": "Primary sahadaki duvar örgüsünü gösterirken, secondary duvarın depremde devrilmesini önleyen kolon bağlantı sacı kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Duvar Örme\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın ip ve teraziyle düz kil blok duvar örmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Bağlı köşe dönüşü, betonarme kolon ankrajları ve kapı açıklığı üzerindeki lento oturması\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz ve foto-gerçekçi kil blok duvar birleşim detayı.\nMUTLAKA GÖRÜNSÜN: yatay derze giren delikli galvaniz ankrajlar, şaşırtmalı köşe örgüsü ve yeterli mesnetli beton lento.\nPRIMARY'DEN FARK: Primary genel duvar örme işçiliğini, secondary kritik köşe-kolon-lento birleşimlerini öğretir.\nKESİNLİKLE OLMASIN: yazı, rakam, ok, logo, marka, filigran, UI, HUD, kolaj veya yüzen parça.",
+    "secondaryAltTr": "Duvar Örme (Teknik Detay) — Köşe örgüsü, betonarme kolon ankrajları ve kapı üstü lento birleşimi",
+    "secondaryDifference": "Primary ustanın düz duvar örme uygulamasını gösterirken, secondary köşe, kolon bağlantısı ve lento gibi kritik birleşimleri işçisiz yakın planda öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "tugla-duvar",

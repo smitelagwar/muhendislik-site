@@ -721,17 +721,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/kur-islemi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/kur-islemi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/kur-islemi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -742,17 +742,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/kaba-insaat/beton-isleri/beton-testi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/beton-testi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/beton-testi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -763,17 +763,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/kaba-insaat/duvar-orme",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/duvar-orme.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/duvar-orme.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
