@@ -19,6 +19,12 @@ import {
   checkSoftStoryIrregularity,
   checkFloorDiscontinuity,
 } from "@/lib/engineering/tbdy2018/irregularity";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function IrregularityCalculator() {
   // A1 Burulma Düzensizliği girdileri
@@ -104,12 +110,8 @@ export function IrregularityCalculator() {
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Activity className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Deprem Mühendisliği
-              </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                TBDY 2018 Tablo 3.6
-              </span>
+              <ToolScopeBadge kind="check" />
+              <ToolSourceStamp sources={["TBDY 2018 Tablo 3.6"]} tier="A" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -189,6 +191,18 @@ export function IrregularityCalculator() {
                 <span className="text-[10px] text-zinc-300 mt-1">Sınır: 1.20</span>
               </div>
             </div>
+
+            <GoverningCheckCard
+              label="A1 Burulma Düzensizliği Tahkiki (eta_bi <= 1.20)"
+              demand={Number((a1Result?.torsionalRatioEtaBi ?? 1.0).toFixed(3))}
+              capacity={1.2}
+              status={a1Result?.hasA1Irregularity ? "warn" : "ok"}
+              explanation={
+                a1Result?.hasA1Irregularity
+                  ? "eta_bi > 1.20 olduğundan A1 burulma düzensizliği mevcuttur. TBDY 2018 uyarınca dinamik analiz (Mod Birleştirme) zorunludur."
+                  : "eta_bi <= 1.20 olduğundan katta burulma düzensizliği bulunmamaktadır."
+              }
+            />
           </section>
 
           {/* Card 2: B2 Yumuşak Kat */}
@@ -256,6 +270,18 @@ export function IrregularityCalculator() {
                 <span className="text-[10px] text-zinc-300 mt-1">Sınır: 2.00</span>
               </div>
             </div>
+
+            <GoverningCheckCard
+              label="B2 Komşu Katlar Arası Rijitlik Düzensizliği (eta_ki <= 2.00)"
+              demand={Number((b2Result?.stiffnessRatioEtaKi ?? 1.0).toFixed(3))}
+              capacity={2.0}
+              status={b2Result?.hasB2Irregularity ? "fail" : "ok"}
+              explanation={
+                b2Result?.hasB2Irregularity
+                  ? "eta_ki > 2.00 olduğundan komşu katlar arası rijitlik düzensizliği (B2 yumuşak kat) mevcuttur."
+                  : "eta_ki <= 2.00 olduğundan komşu katlar arası rijitlik dağılımı güvenlidir."
+              }
+            />
           </section>
 
           {/* Card 3: A2 Döşeme Süreksizliği */}
@@ -321,6 +347,19 @@ export function IrregularityCalculator() {
                 <span className="text-[10px] text-zinc-300 mt-1">Sınır: %33</span>
               </div>
             </div>
+
+            <GoverningCheckCard
+              label="A2 Döşeme Süreksizliği Tahkiki (Boşluk Oranı <= %33)"
+              demand={Number((((a2Result?.openingRatio ?? 0) * 100)).toFixed(1))}
+              capacity={33}
+              unit="%"
+              status={a2Result?.hasA2Irregularity ? "warn" : "ok"}
+              explanation={
+                a2Result?.hasA2Irregularity
+                  ? "Döşeme boşluk alanı kat alanının 1/3'ünü (%33) aşmaktadır (A2 düzensizliği mevcut). Rijit diyafram modeli yerine yarı rijit diyafram modeli kullanılmalıdır."
+                  : "Döşeme boşluk oranı güvenli sınırlar içindedir; rijit diyafram kabulü geçerlidir."
+              }
+            />
           </section>
 
           {/* Copy Report Button */}
@@ -328,12 +367,30 @@ export function IrregularityCalculator() {
             <button
               type="button"
               onClick={handleCopyReport}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:scale-[1.02] transition-all"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:scale-[1.02] transition-all min-h-[44px]"
             >
               {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
               {copied ? "Rapor Kopyalandı" : "Tüm Düzensizlik Raporunu Kopyala"}
             </button>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Tablo 3.6 uyarınca A1 (Burulma düzensizliği), A2 (Döşeme süreksizliği) ve B2 (Komşu katlar arası rijitlik düzensizliği / yumuşak kat) kontrolleri",
+              "Kat göreli öteleme değerleri ve döşeme boşluk oranlarına göre düzensizlik katsayıları (eta_bi, eta_ki) tayini",
+              "TBDY 2018 doğrusal analiz yöntemi seçim sınırlarının (Eşdeğer Deprem Yükü vs Mod Birleştirme) değerlendirilmesi"
+            ]}
+            limitations={[
+              "A3 (Planda çıkıntılar), B1 (Komşu katlar arası dayanım düzensizliği / zayıf kat) ve B3 (Düşey elemanların süreksizliği) harici yapısal analiz gerektirir",
+              "3 boyutlu sonlu elemanlar modal analiz sonuçları ile kat ötelemeleri haricen doğrulanmalıdır",
+              "Düzensizlik kontrolleri her iki ana deprem doğrultusu (X ve Y) için ayrı ayrı yapılmalıdır"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Tablo 3.6 ve Bölüm 3"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
