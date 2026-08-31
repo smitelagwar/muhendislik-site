@@ -53,6 +53,11 @@ Bu oturumdaki GitHub connector, yerel binary dosya yolunu doğrudan GitHub conte
 
 Repo tarafında binary transport yapılacağı zaman bu dosyalar yukarıdaki altı hedef yola **byte-for-byte** kopyalanmalı ve SHA256 değerleri doğrulanmalıdır.
 
+## Preview deploy
+
+- Aşama 01 branch'i kullanıcı incelemesi için Vercel Preview deploy'a yeniden tetiklendi.
+- Bu preview yalnız branch'te fiziksel olarak bulunan dosyaları gösterebilir; teslim paketindeki 4K WebP binary'ler repo asset yollarına aktarılmadığı sürece yeni Aşama 01 görselleri sayfada görünmez.
+
 ## Aşama sınırı
 
 **Aşama 01 burada kapatılmıştır. Aşama 02 başlatılmamıştır.**
