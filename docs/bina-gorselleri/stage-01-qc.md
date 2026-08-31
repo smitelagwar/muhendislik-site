@@ -32,8 +32,8 @@ Kapsam: Proje & İzinler, Mimari Proje, Statik Proje. Her konu için 1 PRIMARY +
 - `public/bina-asamalari/topics/statik-proje.webp`
 - `public/bina-asamalari/details/statik-proje.webp`
 
-Mevcut V2 manifest bu hedef yolları zaten tanımlıyor; binary'ler bu yollarla eşleşecek şekilde hazırlanmıştır.
+V2 manifest, envanter ve coverage kayıtları bu hedef yollar ve QC skorlarıyla `published` durumuna güncellendi.
 
 ## Kapanış durumu
 
-**Görsel üretim + yerel QC tamamlandı.** Repo branch'i oluşturuldu (`bina-gorselleri-stage-01`), ancak 6 WebP henüz branch'e yazılmadı. Bu yüzden route/publish kapısı teknik olarak açık kalıyor; Aşama 01'i tam `published` saymıyoruz.
+**Görsel üretim, binary checksum doğrulaması, repo entegrasyonu ve yerel route/QC doğrulaması tamamlandı.** Aşama 01 kayıtları `published` durumundadır.

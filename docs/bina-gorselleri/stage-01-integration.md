@@ -1,6 +1,6 @@
 # Aşama 01 — TAMAMLANDI
 
-**Durum:** `COMPLETE — ASSET DELIVERY`  
+**Durum:** `COMPLETE — PUBLISHED`
 **Kapsam:** Proje & İzinler, Mimari Proje, Statik Proje  
 **Slot:** 3 konu × (PRIMARY + SECONDARY) = **6 final görsel**
 
@@ -16,8 +16,9 @@
 - [x] QC skorları 93–95/100 aralığında.
 - [x] Repo hedef yolları kesinleştirildi.
 - [x] Binary teslim paketi oluşturuldu: `STAGE01_BINA_PATCH.zip`.
-- [x] Contact sheet / teslim montajı oluşturuldu.
-- [x] QC ve entegrasyon belgeleri branch'e işlendi.
+- [x] 6 WebP byte-for-byte doğrulanarak repo hedef yollarına aktarıldı.
+- [x] Manifest, envanter ve coverage kayıtları QC skorlarıyla `published` durumuna alındı.
+- [x] Timeline kartı, ana hero ve makale içi SECONDARY resolver akışı yeni WebP dosyalarını kullanıyor.
 
 ## Final repo hedef yolları
 
@@ -47,17 +48,10 @@ statik-proje-secondary.webp
  c99d089bf4266b271956b9a92b9571a32be98239eca18addf85edcc400e6909e
 ```
 
-## Binary transport notu
+## Entegrasyon notu
 
-Bu oturumdaki GitHub connector, yerel binary dosya yolunu doğrudan GitHub contents write çağrısına bağlayamadığı için WebP binary'leri branch'e otomatik aktarılamadı. Bu, görsel üretim/QC tesliminin tekrar açılmasını gerektiren bir eksik değildir; final 4K binary seti ve checksum'ları sabitlenmiş teslim paketindedir.
-
-Repo tarafında binary transport yapılacağı zaman bu dosyalar yukarıdaki altı hedef yola **byte-for-byte** kopyalanmalı ve SHA256 değerleri doğrulanmalıdır.
-
-## Preview deploy
-
-- Aşama 01 branch'i kullanıcı incelemesi için Vercel Preview deploy'a yeniden tetiklendi.
-- Bu preview yalnız branch'te fiziksel olarak bulunan dosyaları gösterebilir; teslim paketindeki 4K WebP binary'ler repo asset yollarına aktarılmadığı sürece yeni Aşama 01 görselleri sayfada görünmez.
+`STAGE01_BINA_PATCH.zip` içindeki altı WebP, hedef yollara byte-for-byte kopyalandı ve SHA256 değerleri teslim manifestiyle eşleştirildi. Yerel doğrulama tamamlanmadan yeni Vercel Preview tetiklenmedi.
 
 ## Aşama sınırı
 
-**Aşama 01 burada kapatılmıştır. Aşama 02 başlatılmamıştır.**
+**Aşama 01 yerel repo entegrasyonu ve QC açısından kapatılmıştır. Aşama 02 başlatılmamıştır.**

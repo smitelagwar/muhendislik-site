@@ -27,6 +27,8 @@ interface InventoryItem {
   secondaryAltTr: string;
   secondaryDifference: string;
   negativePromptTr: string;
+  primaryQcScore?: number;
+  secondaryQcScore?: number;
   status: string;
 }
 
@@ -101,15 +103,19 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
     
     // Check if primary webp exists on disk
     const primaryExists = fs.existsSync(path.join(publicTopicsDir, `${item.id}.webp`));
-    const primarySrc = primaryExists ? item.primaryTargetWebp : item.primaryTargetWebp; // Canonical path is webp
-    const primaryCard = primaryExists ? item.primaryTargetWebp : item.legacySvgCard; // Transitional fallback for card if webp not on disk
+    const primarySrc = item.primaryTargetWebp;
 
     // Check if secondary webp exists on disk
     const secondaryExists = fs.existsSync(path.join(publicDetailsDir, `${item.id}.webp`));
     const secondarySrc = item.secondaryTargetWebp;
 
-    const status = isKeep ? "keep-existing" : (primaryExists && secondaryExists ? "published" : "pending");
-    const primaryQc = isKeep ? 92 : (primaryExists ? 88 : undefined);
+    const isPublished = item.status === "published" && primaryExists && secondaryExists;
+    const status = isKeep ? "keep-existing" : (isPublished ? "published" : "pending");
+    const primaryQc = item.primaryQcScore ?? (isKeep ? 92 : 0);
+    const secondaryQc = item.secondaryQcScore ?? 0;
+    const primaryCard = isKeep || isPublished ? item.primaryTargetWebp : item.legacySvgCard;
+    const heroSrc = primaryCard;
+    const diagramSrc = isPublished ? item.secondaryTargetWebp : item.legacySvgCard;
 
     manifestCode += `  ${JSON.stringify(item.slugPath)}: {
     nodeId: ${JSON.stringify(item.id)},
@@ -121,7 +127,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: ${JSON.stringify(item.primaryVisualPurpose)},
       promptTr: ${JSON.stringify(item.primaryPromptTr)},
       negativePromptTr: ${JSON.stringify(item.negativePromptTr)},
-      qcScore: ${primaryQc ? primaryQc : 0},
+      qcScore: ${primaryQc},
     },
     secondary: {
       src: ${JSON.stringify(secondarySrc)},
@@ -129,7 +135,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: ${JSON.stringify(item.secondaryVisualPurpose)},
       promptTr: ${JSON.stringify(item.secondaryPromptTr)},
       negativePromptTr: ${JSON.stringify(item.negativePromptTr)},
-      qcScore: 0,
+      qcScore: ${secondaryQc},
     },
     secondaryPlacement: ${JSON.stringify(item.secondaryPlacement)},
     status: ${JSON.stringify(status)},
@@ -137,8 +143,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: ${JSON.stringify(primaryCard)},
-    hero: ${JSON.stringify(primarySrc)},
-    diagram: ${JSON.stringify(secondarySrc)},
+    hero: ${JSON.stringify(heroSrc)},
+    diagram: ${JSON.stringify(diagramSrc)},
     altTr: ${JSON.stringify(item.primaryAltTr)},
     visualPurpose: ${JSON.stringify(item.primaryVisualPurpose)},
   },

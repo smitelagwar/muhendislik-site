@@ -63,7 +63,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Kullanıcı bu görsele baktığında tasarım koordinasyonu, mimari maket ve çizim paftaları genel görünümü durumunu net olarak anlamalı.",
       promptTr: "KONU: Proje & İzinler\nİÇERİK: Tasarım kararları, disiplinler arası koordinasyon, ruhsat süreçleri ve uygulama setinin sahaya doğru aktarımı.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında tasarım koordinasyonu, mimari maket ve çizim paftaları genel görünümü durumu ilk bakışta net anlaşılmalı.\nMOD: project-visual\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: mimari fiziksel maket, çizim paftaları üzerinde plan ve kesit geometrileri, koordinasyon masası.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: okunur metin, sahte resmi mühür, ölçü rakamları, logo, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 94,
     },
     secondary: {
       src: "/bina-asamalari/details/proje-hazirlik.webp",
@@ -71,14 +71,14 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Primary görselin göstermediği teknik bilgiyi öğretmek: metinsiz bim çakışma tespiti ve disiplinler arası 3d koordinasyon modeli",
       promptTr: "KONU: Proje & İzinler\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Tasarım koordinasyonu, mimari maket ve çizim paftaları genel görünümü\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Metinsiz BIM çakışma tespiti ve disiplinler arası 3D koordinasyon modeli\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: project-visual\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: çakışan mekanik kanal ve statik kiriş aksı 3D modeli, koordinasyon kesiti, farklı disiplin renk kodları.\nPRIMARY'DEN FARK: Primary genel mimari maket ve pafta masasını gösterirken, secondary metinsiz 3D BIM çakışma ve disiplin koordinasyon detayını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazılım menüleri, okunur etiketler, harf/rakam, pseudo-text, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 93,
     },
     secondaryPlacement: "technical-detail",
-    status: "pending",
+    status: "published",
     version: 2,
 
     // Geriye dönük uyumluluk
-    card: "/bina-asamalari/topics/proje-hazirlik.svg",
+    card: "/bina-asamalari/topics/proje-hazirlik.webp",
     hero: "/bina-asamalari/topics/proje-hazirlik.webp",
     diagram: "/bina-asamalari/details/proje-hazirlik.webp",
     altTr: "Proje & İzinler — Tasarım koordinasyonu, mimari maket ve çizim paftaları genel görünümü",
@@ -94,7 +94,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Kullanıcı bu görsele baktığında mimari plan ve kesit geometrileri ile temiz bina kütlesi ilişkisi durumunu net olarak anlamalı.",
       promptTr: "KONU: Mimari Proje\nİÇERİK: Plan, kesit, görünüş, mahal listesi ve detay paftaları üzerinden mekan kurgu kararlarının netleştirildiği proje seti.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında mimari plan ve kesit geometrileri ile temiz bina kütlesi ilişkisi durumu ilk bakışta net anlaşılmalı.\nMOD: project-visual\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: mimari kat planı geometrisi, kesit çizgileri, mekan hacimleri, temiz bina kütlesi.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: okunur oda isimleri, ölçü rakamları, lejant yazıları, logo, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 94,
     },
     secondary: {
       src: "/bina-asamalari/details/mimari-proje.webp",
@@ -102,14 +102,14 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Primary görselin göstermediği teknik bilgiyi öğretmek: plan-kesit ve düşey sirkülasyon (merdiven/galeri) hacim ilişkisini anlatan teknik kesit",
       promptTr: "KONU: Mimari Proje\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Mimari plan ve kesit geometrileri ile temiz bina kütlesi ilişkisi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Plan-kesit ve düşey sirkülasyon (merdiven/galeri) hacim ilişkisini anlatan teknik kesit\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: project-visual\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: bina düşey kesiti, döşeme kotları ve merdiven boşluğu ilişkisi, iç mekan akışı.\nPRIMARY'DEN FARK: Primary plan kütle ilişkisini sunarken, secondary düşey kesitte merdiven ve galeri sirkülasyon hacimlerini detaylandırır.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü etiketleri, sahte semboller, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 95,
     },
     secondaryPlacement: "application",
-    status: "pending",
+    status: "published",
     version: 2,
 
     // Geriye dönük uyumluluk
-    card: "/bina-asamalari/topics/mimari-proje.svg",
+    card: "/bina-asamalari/topics/mimari-proje.webp",
     hero: "/bina-asamalari/topics/mimari-proje.webp",
     diagram: "/bina-asamalari/details/mimari-proje.webp",
     altTr: "Mimari Proje — Mimari plan ve kesit geometrileri ile temiz bina kütlesi ilişkisi",
@@ -125,7 +125,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Kullanıcı bu görsele baktığında taşıyıcı sistem şeması, kolon-kiriş aksları ve 3d yapısal çerçeve modeli durumunu net olarak anlamalı.",
       promptTr: "KONU: Statik Proje\nİÇERİK: Taşıyıcı sistem şeması, betonarme kesitler, yük aktarımı ve uygulama donatılarının tariflendiği hesap ve çizim paketi.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında taşıyıcı sistem şeması, kolon-kiriş aksları ve 3d yapısal çerçeve modeli durumu ilk bakışta net anlaşılmalı.\nMOD: project-visual\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: 3D yapısal çerçeve modeli, kolon ve kiriş aks çizgileri, taşıyıcı sistem şeması.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazılım arayüzü (UI), okunur metin, boyutlandırma etiketleri, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 95,
     },
     secondary: {
       src: "/bina-asamalari/details/statik-proje.webp",
@@ -133,14 +133,14 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
       visualPurpose: "Primary görselin göstermediği teknik bilgiyi öğretmek: kolon-kiriş-döşeme yük aktarımı çerçeve düğüm noktası gerilme diyagramı",
       promptTr: "KONU: Statik Proje\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Taşıyıcı sistem şeması, kolon-kiriş aksları ve 3D yapısal çerçeve modeli\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Kolon-kiriş-döşeme yük aktarımı çerçeve düğüm noktası gerilme diyagramı\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: çerçeve düğüm noktası, moment ve kesme kuvveti yönleri, mesnet rijitliği birleşimi.\nPRIMARY'DEN FARK: Primary binanın genel 3D taşıyıcı karkasını gösterirken, secondary tek bir düğüm noktasındaki yük aktarım çerçeve davranışını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: okunur formüller, sayısal değerler, yazılım grafikleri, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
       negativePromptTr: "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-      qcScore: 0,
+      qcScore: 93,
     },
     secondaryPlacement: "technical-detail",
-    status: "pending",
+    status: "published",
     version: 2,
 
     // Geriye dönük uyumluluk
-    card: "/bina-asamalari/topics/statik-proje.svg",
+    card: "/bina-asamalari/topics/statik-proje.webp",
     hero: "/bina-asamalari/topics/statik-proje.webp",
     diagram: "/bina-asamalari/details/statik-proje.webp",
     altTr: "Statik Proje — Taşıyıcı sistem şeması, kolon-kiriş aksları ve 3D yapısal çerçeve modeli",
@@ -172,8 +172,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/tesisat-projesi.svg",
-    hero: "/bina-asamalari/topics/tesisat-projesi.webp",
-    diagram: "/bina-asamalari/details/tesisat-projesi.webp",
+    hero: "/bina-asamalari/topics/tesisat-projesi.svg",
+    diagram: "/bina-asamalari/topics/tesisat-projesi.svg",
     altTr: "Tesisat Projesi — Bina kesitinde mekanik tesisat boru güzergahları ve şaft koordinasyonu",
     visualPurpose: "Kullanıcı bu görsele baktığında bina kesitinde mekanik tesisat boru güzergahları ve şaft koordinasyonu durumunu net olarak anlamalı.",
   },
@@ -203,8 +203,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/elektrik-projesi.svg",
-    hero: "/bina-asamalari/topics/elektrik-projesi.webp",
-    diagram: "/bina-asamalari/details/elektrik-projesi.webp",
+    hero: "/bina-asamalari/topics/elektrik-projesi.svg",
+    diagram: "/bina-asamalari/topics/elektrik-projesi.svg",
     altTr: "Elektrik Projesi — Elektrik tava hatları, ana dağıtım ve aydınlatma linyesi proje koordinasyonu",
     visualPurpose: "Kullanıcı bu görsele baktığında elektrik tava hatları, ana dağıtım ve aydınlatma linyesi proje koordinasyonu durumunu net olarak anlamalı.",
   },
@@ -234,8 +234,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/yapi-ruhsati.svg",
-    hero: "/bina-asamalari/topics/yapi-ruhsati.webp",
-    diagram: "/bina-asamalari/details/yapi-ruhsati.webp",
+    hero: "/bina-asamalari/topics/yapi-ruhsati.svg",
+    diagram: "/bina-asamalari/topics/yapi-ruhsati.svg",
     altTr: "Yapı Ruhsatı — Onaylı proje setleri ve inşaata başlama hazırlığı bağlamı",
     visualPurpose: "Kullanıcı bu görsele baktığında onaylı proje setleri ve inşaata başlama hazırlığı bağlamı durumunu net olarak anlamalı.",
   },
@@ -265,8 +265,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kazi-temel.svg",
-    hero: "/bina-asamalari/topics/kazi-temel.webp",
-    diagram: "/bina-asamalari/details/kazi-temel.webp",
+    hero: "/bina-asamalari/topics/kazi-temel.svg",
+    diagram: "/bina-asamalari/topics/kazi-temel.svg",
     altTr: "Kazı & Temel — Kazı platformu, iksa sistemleri ve temel hazırlığının genel saha bağlamı",
     visualPurpose: "Kullanıcı bu görsele baktığında kazı platformu, iksa sistemleri ve temel hazırlığının genel saha bağlamı durumunu net olarak anlamalı.",
   },
@@ -296,8 +296,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/zemin-etudu.svg",
-    hero: "/bina-asamalari/topics/zemin-etudu.webp",
-    diagram: "/bina-asamalari/details/zemin-etudu.webp",
+    hero: "/bina-asamalari/topics/zemin-etudu.svg",
+    diagram: "/bina-asamalari/topics/zemin-etudu.svg",
     altTr: "Zemin Etüdü — Sondaj makinesi, karot numune sandıkları ve zemin araştırma operasyonu",
     visualPurpose: "Kullanıcı bu görsele baktığında sondaj makinesi, karot numune sandıkları ve zemin araştırma operasyonu durumunu net olarak anlamalı.",
   },
@@ -327,8 +327,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/hafriyat.svg",
-    hero: "/bina-asamalari/topics/hafriyat.webp",
-    diagram: "/bina-asamalari/details/hafriyat.webp",
+    hero: "/bina-asamalari/topics/hafriyat.svg",
+    diagram: "/bina-asamalari/topics/hafriyat.svg",
     altTr: "Hafriyat — Ekskavatörün temel çukurunda kademeli kazı yapması ve kamyon yüklemesi",
     visualPurpose: "Kullanıcı bu görsele baktığında ekskavatörün temel çukurunda kademeli kazı yapması ve kamyon yüklemesi durumunu net olarak anlamalı.",
   },
@@ -358,8 +358,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/iksa-sistemi.svg",
-    hero: "/bina-asamalari/topics/iksa-sistemi.webp",
-    diagram: "/bina-asamalari/details/iksa-sistemi.webp",
+    hero: "/bina-asamalari/topics/iksa-sistemi.svg",
+    diagram: "/bina-asamalari/topics/iksa-sistemi.svg",
     altTr: "İksa Sistemi — Derin kazı çukurunu tutan betonarme iksa perdesi ve zemin katmanı ilişkisi",
     visualPurpose: "Kullanıcı bu görsele baktığında derin kazı çukurunu tutan betonarme iksa perdesi ve zemin katmanı ilişkisi durumunu net olarak anlamalı.",
   },
@@ -389,8 +389,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/fore-kazik.svg",
-    hero: "/bina-asamalari/topics/fore-kazik.webp",
-    diagram: "/bina-asamalari/details/fore-kazik.webp",
+    hero: "/bina-asamalari/topics/fore-kazik.svg",
+    diagram: "/bina-asamalari/topics/fore-kazik.svg",
     altTr: "Fore Kazık — Döner delgi makinesi (fore kazık makinesi) ve donatı kafesi yerleşimi",
     visualPurpose: "Kullanıcı bu görsele baktığında döner delgi makinesi (fore kazık makinesi) ve donatı kafesi yerleşimi durumunu net olarak anlamalı.",
   },
@@ -420,8 +420,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ankrajli-iksa.svg",
-    hero: "/bina-asamalari/topics/ankrajli-iksa.webp",
-    diagram: "/bina-asamalari/details/ankrajli-iksa.webp",
+    hero: "/bina-asamalari/topics/ankrajli-iksa.svg",
+    diagram: "/bina-asamalari/topics/ankrajli-iksa.svg",
     altTr: "Ankrajlı İksa — İksa perdesi yüzeyindeki çelik ankraj başlıkları ve zemine eğik uzanan kök ankrajlar",
     visualPurpose: "Kullanıcı bu görsele baktığında i̇ksa perdesi yüzeyindeki çelik ankraj başlıkları ve zemine eğik uzanan kök ankrajlar durumunu net olarak anlamalı.",
   },
@@ -451,8 +451,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/palplans.svg",
-    hero: "/bina-asamalari/topics/palplans.webp",
-    diagram: "/bina-asamalari/details/palplans.webp",
+    hero: "/bina-asamalari/topics/palplans.svg",
+    diagram: "/bina-asamalari/topics/palplans.svg",
     altTr: "Palplanş — Kilitli çelik palplanş perdelerinin vibro-çekiç ile zemine çakılması",
     visualPurpose: "Kullanıcı bu görsele baktığında kilitli çelik palplanş perdelerinin vibro-çekiç ile zemine çakılması durumunu net olarak anlamalı.",
   },
@@ -482,8 +482,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/temel-turleri.svg",
-    hero: "/bina-asamalari/topics/temel-turleri.webp",
-    diagram: "/bina-asamalari/details/temel-turleri.webp",
+    hero: "/bina-asamalari/topics/temel-turleri.svg",
+    diagram: "/bina-asamalari/topics/temel-turleri.svg",
     altTr: "Temel Türleri — Tekil sömel, sürekli temel ve radye plağın zemin üzerindeki izometrik yapısal kesiti",
     visualPurpose: "Kullanıcı bu görsele baktığında tekil sömel, sürekli temel ve radye plağın zemin üzerindeki izometrik yapısal kesiti durumunu net olarak anlamalı.",
   },
@@ -513,8 +513,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/radye-temel.svg",
-    hero: "/bina-asamalari/topics/radye-temel.webp",
-    diagram: "/bina-asamalari/details/radye-temel.webp",
+    hero: "/bina-asamalari/topics/radye-temel.svg",
+    diagram: "/bina-asamalari/topics/radye-temel.svg",
     altTr: "Radye Temel — Geniş alanlı radye temel donatı ağı, sehpa demirleri ve kolon filizleri",
     visualPurpose: "Kullanıcı bu görsele baktığında geniş alanlı radye temel donatı ağı, sehpa demirleri ve kolon filizleri durumunu net olarak anlamalı.",
   },
@@ -544,8 +544,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/grobeton.svg",
-    hero: "/bina-asamalari/topics/grobeton.webp",
-    diagram: "/bina-asamalari/details/grobeton.webp",
+    hero: "/bina-asamalari/topics/grobeton.svg",
+    diagram: "/bina-asamalari/topics/grobeton.svg",
     altTr: "Grobeton — Kazılmış temel tabanına temiz grobeton tabakasının serilmesi ve mastarlanması",
     visualPurpose: "Kullanıcı bu görsele baktığında kazılmış temel tabanına temiz grobeton tabakasının serilmesi ve mastarlanması durumunu net olarak anlamalı.",
   },
@@ -575,8 +575,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/temel-donati.svg",
-    hero: "/bina-asamalari/topics/temel-donati.webp",
-    diagram: "/bina-asamalari/details/temel-donati.webp",
+    hero: "/bina-asamalari/topics/temel-donati.svg",
+    diagram: "/bina-asamalari/topics/temel-donati.svg",
     altTr: "Temel Donatısı — Radye temel alt ve üst donatı örgüsü, pas payı takozları ve bağ telleri",
     visualPurpose: "Kullanıcı bu görsele baktığında radye temel alt ve üst donatı örgüsü, pas payı takozları ve bağ telleri durumunu net olarak anlamalı.",
   },
@@ -606,8 +606,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/temel-betonlama.svg",
-    hero: "/bina-asamalari/topics/temel-betonlama.webp",
-    diagram: "/bina-asamalari/details/temel-betonlama.webp",
+    hero: "/bina-asamalari/topics/temel-betonlama.svg",
+    diagram: "/bina-asamalari/topics/temel-betonlama.svg",
     altTr: "Temel Betonlama — Mobil beton pompası bomu ile temele sürekli taze beton dökümü ve yayılması",
     visualPurpose: "Kullanıcı bu görsele baktığında mobil beton pompası bomu ile temele sürekli taze beton dökümü ve yayılması durumunu net olarak anlamalı.",
   },
@@ -637,8 +637,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/temel-su-yalitimi.svg",
-    hero: "/bina-asamalari/topics/temel-su-yalitimi.webp",
-    diagram: "/bina-asamalari/details/temel-su-yalitimi.webp",
+    hero: "/bina-asamalari/topics/temel-su-yalitimi.svg",
+    diagram: "/bina-asamalari/topics/temel-su-yalitimi.svg",
     altTr: "Temel Su Yalıtımı — Temel altı ve perde duvar dışındaki bitümlü membran yalıtım katmanının sürekliliği",
     visualPurpose: "Kullanıcı bu görsele baktığında temel altı ve perde duvar dışındaki bitümlü membran yalıtım katmanının sürekliliği durumunu net olarak anlamalı.",
   },
@@ -668,8 +668,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kaba-insaat.svg",
-    hero: "/bina-asamalari/topics/kaba-insaat.webp",
-    diagram: "/bina-asamalari/details/kaba-insaat.webp",
+    hero: "/bina-asamalari/topics/kaba-insaat.svg",
+    diagram: "/bina-asamalari/topics/kaba-insaat.svg",
     altTr: "Kaba İnşaat — Betonarme iskeletin yükseldiği şantiye: kolonlar, döşeme kalıpları ve kule vinç",
     visualPurpose: "Kullanıcı bu görsele baktığında betonarme iskeletin yükseldiği şantiye: kolonlar, döşeme kalıpları ve kule vinç durumunu net olarak anlamalı.",
   },
@@ -699,8 +699,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kalip-isleri.svg",
-    hero: "/bina-asamalari/topics/kalip-isleri.webp",
-    diagram: "/bina-asamalari/details/kalip-isleri.webp",
+    hero: "/bina-asamalari/topics/kalip-isleri.svg",
+    diagram: "/bina-asamalari/topics/kalip-isleri.svg",
     altTr: "Kalıp İşleri — Endüstriyel çelik çerçeveli plywood kalıp panelleri ve teleskopik dikmeler",
     visualPurpose: "Kullanıcı bu görsele baktığında endüstriyel çelik çerçeveli plywood kalıp panelleri ve teleskopik dikmeler durumunu net olarak anlamalı.",
   },
@@ -730,8 +730,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kolon-kalibi.svg",
-    hero: "/bina-asamalari/topics/kolon-kalibi.webp",
-    diagram: "/bina-asamalari/details/kolon-kalibi.webp",
+    hero: "/bina-asamalari/topics/kolon-kalibi.svg",
+    diagram: "/bina-asamalari/topics/kolon-kalibi.svg",
     altTr: "Kolon Kalıbı — Düşey kolon kalıp paneli, çelik kuşaklar ve şakül ayar payandaları",
     visualPurpose: "Kullanıcı bu görsele baktığında düşey kolon kalıp paneli, çelik kuşaklar ve şakül ayar payandaları durumunu net olarak anlamalı.",
   },
@@ -761,8 +761,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kiris-kalibi.svg",
-    hero: "/bina-asamalari/topics/kiris-kalibi.webp",
-    diagram: "/bina-asamalari/details/kiris-kalibi.webp",
+    hero: "/bina-asamalari/topics/kiris-kalibi.svg",
+    diagram: "/bina-asamalari/topics/kiris-kalibi.svg",
     altTr: "Kiriş Kalıbı — Kiriş taban ve kanat kalıpları, döşeme bağlantısı ve alt taşıyıcı iskele",
     visualPurpose: "Kullanıcı bu görsele baktığında kiriş taban ve kanat kalıpları, döşeme bağlantısı ve alt taşıyıcı iskele durumunu net olarak anlamalı.",
   },
@@ -792,8 +792,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/doseme-kalibi.svg",
-    hero: "/bina-asamalari/topics/doseme-kalibi.webp",
-    diagram: "/bina-asamalari/details/doseme-kalibi.webp",
+    hero: "/bina-asamalari/topics/doseme-kalibi.svg",
+    diagram: "/bina-asamalari/topics/doseme-kalibi.svg",
     altTr: "Döşeme Kalıbı — Geniş döşeme kalıp platformu, ana ve tali ahşap H20 kirişler ve teleskopik dikmeler",
     visualPurpose: "Kullanıcı bu görsele baktığında geniş döşeme kalıp platformu, ana ve tali ahşap h20 kirişler ve teleskopik dikmeler durumunu net olarak anlamalı.",
   },
@@ -823,8 +823,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kalip-sokumu.svg",
-    hero: "/bina-asamalari/topics/kalip-sokumu.webp",
-    diagram: "/bina-asamalari/details/kalip-sokumu.webp",
+    hero: "/bina-asamalari/topics/kalip-sokumu.svg",
+    diagram: "/bina-asamalari/topics/kalip-sokumu.svg",
     altTr: "Kalıp Sökümü — Betonu prizini almış kolon veya kiriş kanat kalıbının levyeyle dikkatle sökülmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında betonu prizini almış kolon veya kiriş kanat kalıbının levyeyle dikkatle sökülmesi durumunu net olarak anlamalı.",
   },
@@ -854,8 +854,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/donati-isleri.svg",
-    hero: "/bina-asamalari/topics/donati-isleri.webp",
-    diagram: "/bina-asamalari/details/donati-isleri.webp",
+    hero: "/bina-asamalari/topics/donati-isleri.svg",
+    diagram: "/bina-asamalari/topics/donati-isleri.svg",
     altTr: "Donatı İşleri — Nervürlü inşaat demirlerinin sahada bağlanması ve donatı hazırlığı",
     visualPurpose: "Kullanıcı bu görsele baktığında nervürlü inşaat demirlerinin sahada bağlanması ve donatı hazırlığı durumunu net olarak anlamalı.",
   },
@@ -885,8 +885,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kolon-donati.svg",
-    hero: "/bina-asamalari/topics/kolon-donati.webp",
-    diagram: "/bina-asamalari/details/kolon-donati.webp",
+    hero: "/bina-asamalari/topics/kolon-donati.svg",
+    diagram: "/bina-asamalari/topics/kolon-donati.svg",
     altTr: "Kolon Donatısı — Düşey kolon donatı kafesi, boyuna donatılar ve yatay etriyeler",
     visualPurpose: "Kullanıcı bu görsele baktığında düşey kolon donatı kafesi, boyuna donatılar ve yatay etriyeler durumunu net olarak anlamalı.",
   },
@@ -916,8 +916,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kiris-donati.svg",
-    hero: "/bina-asamalari/topics/kiris-donati.webp",
-    diagram: "/bina-asamalari/details/kiris-donati.webp",
+    hero: "/bina-asamalari/topics/kiris-donati.svg",
+    diagram: "/bina-asamalari/topics/kiris-donati.svg",
     altTr: "Kiriş Donatısı — Kiriş donatı sepeti, alt-üst boyuna donatılar, pilyeler ve etriyeler",
     visualPurpose: "Kullanıcı bu görsele baktığında kiriş donatı sepeti, alt-üst boyuna donatılar, pilyeler ve etriyeler durumunu net olarak anlamalı.",
   },
@@ -947,8 +947,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/doseme-donati.svg",
-    hero: "/bina-asamalari/topics/doseme-donati.webp",
-    diagram: "/bina-asamalari/details/doseme-donati.webp",
+    hero: "/bina-asamalari/topics/doseme-donati.svg",
+    diagram: "/bina-asamalari/topics/doseme-donati.svg",
     altTr: "Döşeme Donatısı — Döşeme donatısı çift yönlü hasır ağı ve mesnet ek donatıları",
     visualPurpose: "Kullanıcı bu görsele baktığında döşeme donatısı çift yönlü hasır ağı ve mesnet ek donatıları durumunu net olarak anlamalı.",
   },
@@ -978,8 +978,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/pas-payi.svg",
-    hero: "/bina-asamalari/topics/pas-payi.webp",
-    diagram: "/bina-asamalari/details/pas-payi.webp",
+    hero: "/bina-asamalari/topics/pas-payi.svg",
+    diagram: "/bina-asamalari/topics/pas-payi.svg",
     altTr: "Pas Payı — Kalıp yüzeyi ile çelik donatı arasındaki beton pas payı takozunun koruyucu konumu",
     visualPurpose: "Kullanıcı bu görsele baktığında kalıp yüzeyi ile çelik donatı arasındaki beton pas payı takozunun koruyucu konumu durumunu net olarak anlamalı.",
   },
@@ -1009,8 +1009,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/beton-isleri.svg",
-    hero: "/bina-asamalari/topics/beton-isleri.webp",
-    diagram: "/bina-asamalari/details/beton-isleri.webp",
+    hero: "/bina-asamalari/topics/beton-isleri.svg",
+    diagram: "/bina-asamalari/topics/beton-isleri.svg",
     altTr: "Beton İşleri — Transmikser ve mobil pompa ile taze betonun kalıba aktarılması süreci",
     visualPurpose: "Kullanıcı bu görsele baktığında transmikser ve mobil pompa ile taze betonun kalıba aktarılması süreci durumunu net olarak anlamalı.",
   },
@@ -1040,8 +1040,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/beton-sinifi.svg",
-    hero: "/bina-asamalari/topics/beton-sinifi.webp",
-    diagram: "/bina-asamalari/details/beton-sinifi.webp",
+    hero: "/bina-asamalari/topics/beton-sinifi.svg",
+    diagram: "/bina-asamalari/topics/beton-sinifi.svg",
     altTr: "Beton Sınıfı — C25, C30, C35 betonun agrega gradasyonu, çimento hamuru ve yoğunluk mikro-kesiti",
     visualPurpose: "Kullanıcı bu görsele baktığında c25, c30, c35 betonun agrega gradasyonu, çimento hamuru ve yoğunluk mikro-kesiti durumunu net olarak anlamalı.",
   },
@@ -1071,8 +1071,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/beton-dokumu.svg",
-    hero: "/bina-asamalari/topics/beton-dokumu.webp",
-    diagram: "/bina-asamalari/details/beton-dokumu.webp",
+    hero: "/bina-asamalari/topics/beton-dokumu.svg",
+    diagram: "/bina-asamalari/topics/beton-dokumu.svg",
     altTr: "Beton Dökümü — Pompa hortumu ile döşeme veya perdeye taze beton serilmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında pompa hortumu ile döşeme veya perdeye taze beton serilmesi durumunu net olarak anlamalı.",
   },
@@ -1102,8 +1102,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/vibrasyon.svg",
-    hero: "/bina-asamalari/topics/vibrasyon.webp",
-    diagram: "/bina-asamalari/details/vibrasyon.webp",
+    hero: "/bina-asamalari/topics/vibrasyon.svg",
+    diagram: "/bina-asamalari/topics/vibrasyon.svg",
     altTr: "Vibrasyon — Taze beton içine daldırılan mekanik iğne vibratör ve hava kabarcığı çıkışı",
     visualPurpose: "Kullanıcı bu görsele baktığında taze beton içine daldırılan mekanik iğne vibratör ve hava kabarcığı çıkışı durumunu net olarak anlamalı.",
   },
@@ -1133,8 +1133,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kur-islemi.svg",
-    hero: "/bina-asamalari/topics/kur-islemi.webp",
-    diagram: "/bina-asamalari/details/kur-islemi.webp",
+    hero: "/bina-asamalari/topics/kur-islemi.svg",
+    diagram: "/bina-asamalari/topics/kur-islemi.svg",
     altTr: "Kür İşlemi — Sertleşen taze beton yüzeyine su püskürtme veya kimyasal kür membranı uygulaması",
     visualPurpose: "Kullanıcı bu görsele baktığında sertleşen taze beton yüzeyine su püskürtme veya kimyasal kür membranı uygulaması durumunu net olarak anlamalı.",
   },
@@ -1164,8 +1164,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/beton-testi.svg",
-    hero: "/bina-asamalari/topics/beton-testi.webp",
-    diagram: "/bina-asamalari/details/beton-testi.webp",
+    hero: "/bina-asamalari/topics/beton-testi.svg",
+    diagram: "/bina-asamalari/topics/beton-testi.svg",
     altTr: "Beton Testleri — Laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi",
     visualPurpose: "Kullanıcı bu görsele baktığında laboratuvar hidrolik presinde beton küp numunesinin basınç kırılma testi durumunu net olarak anlamalı.",
   },
@@ -1195,8 +1195,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/duvar-orme.svg",
-    hero: "/bina-asamalari/topics/duvar-orme.webp",
-    diagram: "/bina-asamalari/details/duvar-orme.webp",
+    hero: "/bina-asamalari/topics/duvar-orme.svg",
+    diagram: "/bina-asamalari/topics/duvar-orme.svg",
     altTr: "Duvar Örme — Şakül ve mastar ipi doğrultusunda tuğla veya gazbeton duvar örgüsü",
     visualPurpose: "Kullanıcı bu görsele baktığında şakül ve mastar ipi doğrultusunda tuğla veya gazbeton duvar örgüsü durumunu net olarak anlamalı.",
   },
@@ -1226,8 +1226,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/tugla-duvar.svg",
-    hero: "/bina-asamalari/topics/tugla-duvar.webp",
-    diagram: "/bina-asamalari/details/tugla-duvar.webp",
+    hero: "/bina-asamalari/topics/tugla-duvar.svg",
+    diagram: "/bina-asamalari/topics/tugla-duvar.svg",
     altTr: "Tuğla Duvar — Düşey delikli kırmızı pişmiş kil tuğlalar ile harçlı duvar imalatı",
     visualPurpose: "Kullanıcı bu görsele baktığında düşey delikli kırmızı pişmiş kil tuğlalar ile harçlı duvar imalatı durumunu net olarak anlamalı.",
   },
@@ -1257,8 +1257,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ytong-gazbeton.svg",
-    hero: "/bina-asamalari/topics/ytong-gazbeton.webp",
-    diagram: "/bina-asamalari/details/ytong-gazbeton.webp",
+    hero: "/bina-asamalari/topics/ytong-gazbeton.svg",
+    diagram: "/bina-asamalari/topics/ytong-gazbeton.svg",
     altTr: "Ytong / Gazbeton — Hafif beyaz gazbeton blokların dişli mala ve özel yapıştırıcı ile örülmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında hafif beyaz gazbeton blokların dişli mala ve özel yapıştırıcı ile örülmesi durumunu net olarak anlamalı.",
   },
@@ -1288,8 +1288,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/briket.svg",
-    hero: "/bina-asamalari/topics/briket.webp",
-    diagram: "/bina-asamalari/details/briket.webp",
+    hero: "/bina-asamalari/topics/briket.svg",
+    diagram: "/bina-asamalari/topics/briket.svg",
     altTr: "Briket / Bims — Gri beton briket veya bims bloklarla çevre veya bölme duvar örgüsü",
     visualPurpose: "Kullanıcı bu görsele baktığında gri beton briket veya bims bloklarla çevre veya bölme duvar örgüsü durumunu net olarak anlamalı.",
   },
@@ -1319,8 +1319,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/cati-iskeleti.svg",
-    hero: "/bina-asamalari/topics/cati-iskeleti.webp",
-    diagram: "/bina-asamalari/details/cati-iskeleti.webp",
+    hero: "/bina-asamalari/topics/cati-iskeleti.svg",
+    diagram: "/bina-asamalari/topics/cati-iskeleti.svg",
     altTr: "Çatı İskeleti — Bina üstünde yükselen taşıyıcı çatı konstrüksiyonu, aşıklar ve mertekler",
     visualPurpose: "Kullanıcı bu görsele baktığında bina üstünde yükselen taşıyıcı çatı konstrüksiyonu, aşıklar ve mertekler durumunu net olarak anlamalı.",
   },
@@ -1350,8 +1350,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ahsap-cati.svg",
-    hero: "/bina-asamalari/topics/ahsap-cati.webp",
-    diagram: "/bina-asamalari/details/ahsap-cati.webp",
+    hero: "/bina-asamalari/topics/ahsap-cati.svg",
+    diagram: "/bina-asamalari/topics/ahsap-cati.svg",
     altTr: "Ahşap Çatı — Geleneksel emprenyeli ahşap karkas çatı: makaslar, aşıklar ve mertek dizilimi",
     visualPurpose: "Kullanıcı bu görsele baktığında geleneksel emprenyeli ahşap karkas çatı: makaslar, aşıklar ve mertek dizilimi durumunu net olarak anlamalı.",
   },
@@ -1381,8 +1381,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/celik-cati.svg",
-    hero: "/bina-asamalari/topics/celik-cati.webp",
-    diagram: "/bina-asamalari/details/celik-cati.webp",
+    hero: "/bina-asamalari/topics/celik-cati.svg",
+    diagram: "/bina-asamalari/topics/celik-cati.svg",
     altTr: "Çelik Çatı — Hafif çelik veya ağır çelik kafes makaslı endüstriyel çatı montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında hafif çelik veya ağır çelik kafes makaslı endüstriyel çatı montajı durumunu net olarak anlamalı.",
   },
@@ -1412,8 +1412,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/teras-cati.svg",
-    hero: "/bina-asamalari/topics/teras-cati.webp",
-    diagram: "/bina-asamalari/details/teras-cati.webp",
+    hero: "/bina-asamalari/topics/teras-cati.svg",
+    diagram: "/bina-asamalari/topics/teras-cati.svg",
     altTr: "Teras Çatı — Gezilebilen ters teras çatı katmanları: betonarme döşeme, eğim betonu, yalıtım, koruma",
     visualPurpose: "Kullanıcı bu görsele baktığında gezilebilen ters teras çatı katmanları: betonarme döşeme, eğim betonu, yalıtım, koruma durumunu net olarak anlamalı.",
   },
@@ -1444,7 +1444,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ince-isler.webp",
     hero: "/bina-asamalari/topics/ince-isler.webp",
-    diagram: "/bina-asamalari/details/ince-isler.webp",
+    diagram: "/bina-asamalari/topics/ince-isler.svg",
     altTr: "İnce İşler — Kaba inşaatı bitmiş modern iç mekanda ince işler: sıva, alçıpan, şap ve doğrama montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında kaba inşaatı bitmiş modern iç mekanda ince işler: sıva, alçıpan, şap ve doğrama montajı durumunu net olarak anlamalı.",
   },
@@ -1475,7 +1475,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/siva.webp",
     hero: "/bina-asamalari/topics/siva.webp",
-    diagram: "/bina-asamalari/details/siva.webp",
+    diagram: "/bina-asamalari/topics/siva.svg",
     altTr: "Sıva — İç mekan tuğla duvara mala ile taze harç sıva uygulaması",
     visualPurpose: "Kullanıcı bu görsele baktığında i̇ç mekan tuğla duvara mala ile taze harç sıva uygulaması durumunu net olarak anlamalı.",
   },
@@ -1505,8 +1505,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ic-siva.svg",
-    hero: "/bina-asamalari/topics/ic-siva.webp",
-    diagram: "/bina-asamalari/details/ic-siva.webp",
+    hero: "/bina-asamalari/topics/ic-siva.svg",
+    diagram: "/bina-asamalari/topics/ic-siva.svg",
     altTr: "İç Sıva — Oda içinde duvarlara makineyle püskürtülen veya elle çekilen iç mekan sıvası",
     visualPurpose: "Kullanıcı bu görsele baktığında oda içinde duvarlara makineyle püskürtülen veya elle çekilen iç mekan sıvası durumunu net olarak anlamalı.",
   },
@@ -1536,8 +1536,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/dis-siva.svg",
-    hero: "/bina-asamalari/topics/dis-siva.webp",
-    diagram: "/bina-asamalari/details/dis-siva.webp",
+    hero: "/bina-asamalari/topics/dis-siva.svg",
+    diagram: "/bina-asamalari/topics/dis-siva.svg",
     altTr: "Dış Sıva — Dış cephe iskelesinde mantolama veya tuğla üzerine fileli çimento esaslı dış cephe sıvası",
     visualPurpose: "Kullanıcı bu görsele baktığında dış cephe iskelesinde mantolama veya tuğla üzerine fileli çimento esaslı dış cephe sıvası durumunu net olarak anlamalı.",
   },
@@ -1567,8 +1567,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/alci-siva.svg",
-    hero: "/bina-asamalari/topics/alci-siva.webp",
-    diagram: "/bina-asamalari/details/alci-siva.webp",
+    hero: "/bina-asamalari/topics/alci-siva.svg",
+    diagram: "/bina-asamalari/topics/alci-siva.svg",
     altTr: "Alçı Sıva — Perlitli alçı sıvanın çelik mala ile pürüzsüz ipeksi yüzey elde edilecek şekilde perdahlanması",
     visualPurpose: "Kullanıcı bu görsele baktığında perlitli alçı sıvanın çelik mala ile pürüzsüz ipeksi yüzey elde edilecek şekilde perdahlanması durumunu net olarak anlamalı.",
   },
@@ -1599,7 +1599,7 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/alcipan.webp",
     hero: "/bina-asamalari/topics/alcipan.webp",
-    diagram: "/bina-asamalari/details/alcipan.webp",
+    diagram: "/bina-asamalari/topics/alcipan.svg",
     altTr: "Alçıpan & Asma Tavan — Galvaniz C ve U profilleri, tavan askı çubukları ve alçıpan levhaların karkas montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında galvaniz c ve u profilleri, tavan askı çubukları ve alçıpan levhaların karkas montajı durumunu net olarak anlamalı.",
   },
@@ -1629,8 +1629,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/bolme-duvar.svg",
-    hero: "/bina-asamalari/topics/bolme-duvar.webp",
-    diagram: "/bina-asamalari/details/bolme-duvar.webp",
+    hero: "/bina-asamalari/topics/bolme-duvar.svg",
+    diagram: "/bina-asamalari/topics/bolme-duvar.svg",
     altTr: "Bölme Duvar — Hafif çelik karkaslı alçıpan bölme duvar: dikmeler, ses yalıtım mineral yünü ve levhalar",
     visualPurpose: "Kullanıcı bu görsele baktığında hafif çelik karkaslı alçıpan bölme duvar: dikmeler, ses yalıtım mineral yünü ve levhalar durumunu net olarak anlamalı.",
   },
@@ -1660,8 +1660,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/asma-tavan.svg",
-    hero: "/bina-asamalari/topics/asma-tavan.webp",
-    diagram: "/bina-asamalari/details/asma-tavan.webp",
+    hero: "/bina-asamalari/topics/asma-tavan.svg",
+    diagram: "/bina-asamalari/topics/asma-tavan.svg",
     altTr: "Asma Tavan — Geniş salonda metal askı karkaslı modüler veya monolitik asma tavan montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında geniş salonda metal askı karkaslı modüler veya monolitik asma tavan montajı durumunu net olarak anlamalı.",
   },
@@ -1691,8 +1691,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/zemin-kaplamalari.svg",
-    hero: "/bina-asamalari/topics/zemin-kaplamalari.webp",
-    diagram: "/bina-asamalari/details/zemin-kaplamalari.webp",
+    hero: "/bina-asamalari/topics/zemin-kaplamalari.svg",
+    diagram: "/bina-asamalari/topics/zemin-kaplamalari.svg",
     altTr: "Zemin Kaplamaları — Aydınlık modern iç mekanda düzgün tesviye şapı üzerine seramik ve parke zemin uygulaması",
     visualPurpose: "Kullanıcı bu görsele baktığında aydınlık modern iç mekanda düzgün tesviye şapı üzerine seramik ve parke zemin uygulaması durumunu net olarak anlamalı.",
   },
@@ -1722,8 +1722,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/seramik-kaplama.svg",
-    hero: "/bina-asamalari/topics/seramik-kaplama.webp",
-    diagram: "/bina-asamalari/details/seramik-kaplama.webp",
+    hero: "/bina-asamalari/topics/seramik-kaplama.svg",
+    diagram: "/bina-asamalari/topics/seramik-kaplama.svg",
     altTr: "Seramik — Büyük ebatlı porselen seramik karoların zemin seviye takozları (tesviye klipsi) ile döşenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında büyük ebatlı porselen seramik karoların zemin seviye takozları (tesviye klipsi) ile döşenmesi durumunu net olarak anlamalı.",
   },
@@ -1753,8 +1753,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/parke-kaplama.svg",
-    hero: "/bina-asamalari/topics/parke-kaplama.webp",
-    diagram: "/bina-asamalari/details/parke-kaplama.webp",
+    hero: "/bina-asamalari/topics/parke-kaplama.svg",
+    diagram: "/bina-asamalari/topics/parke-kaplama.svg",
     altTr: "Parke — Kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi durumunu net olarak anlamalı.",
   },
@@ -1784,8 +1784,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/mermer-kaplama.svg",
-    hero: "/bina-asamalari/topics/mermer-kaplama.webp",
-    diagram: "/bina-asamalari/details/mermer-kaplama.webp",
+    hero: "/bina-asamalari/topics/mermer-kaplama.svg",
+    diagram: "/bina-asamalari/topics/mermer-kaplama.svg",
     altTr: "Mermer / Granit — Doğal mermer veya granit plakaların harç yatağına tokmaklanarak hassas seviyelenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında doğal mermer veya granit plakaların harç yatağına tokmaklanarak hassas seviyelenmesi durumunu net olarak anlamalı.",
   },
@@ -1815,8 +1815,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/epoksi-kaplama.svg",
-    hero: "/bina-asamalari/topics/epoksi-kaplama.webp",
-    diagram: "/bina-asamalari/details/epoksi-kaplama.webp",
+    hero: "/bina-asamalari/topics/epoksi-kaplama.svg",
+    diagram: "/bina-asamalari/topics/epoksi-kaplama.svg",
     altTr: "Epoksi — Helikopterli beton zemin üzerine self-leveling epoksi kaplamanın çekçek ve kirpi rulo ile yayılması",
     visualPurpose: "Kullanıcı bu görsele baktığında helikopterli beton zemin üzerine self-leveling epoksi kaplamanın çekçek ve kirpi rulo ile yayılması durumunu net olarak anlamalı.",
   },
@@ -1846,8 +1846,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/duvar-kaplamalari.svg",
-    hero: "/bina-asamalari/topics/duvar-kaplamalari.webp",
-    diagram: "/bina-asamalari/details/duvar-kaplamalari.webp",
+    hero: "/bina-asamalari/topics/duvar-kaplamalari.svg",
+    diagram: "/bina-asamalari/topics/duvar-kaplamalari.svg",
     altTr: "Duvar Kaplamaları — İç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında i̇ç mekan duvarlarına dekoratif akustik ahşap panellerin veya seramik kaplamanın montajı durumunu net olarak anlamalı.",
   },
@@ -1877,8 +1877,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/fayans.svg",
-    hero: "/bina-asamalari/topics/fayans.webp",
-    diagram: "/bina-asamalari/details/fayans.webp",
+    hero: "/bina-asamalari/topics/fayans.svg",
+    diagram: "/bina-asamalari/topics/fayans.svg",
     altTr: "Fayans — Banyo veya ıslak hacim duvarında su yalıtımı üstüne parlak seramik fayans döşeme",
     visualPurpose: "Kullanıcı bu görsele baktığında banyo veya ıslak hacim duvarında su yalıtımı üstüne parlak seramik fayans döşeme durumunu net olarak anlamalı.",
   },
@@ -1908,8 +1908,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/boya.svg",
-    hero: "/bina-asamalari/topics/boya.webp",
-    diagram: "/bina-asamalari/details/boya.webp",
+    hero: "/bina-asamalari/topics/boya.svg",
+    diagram: "/bina-asamalari/topics/boya.svg",
     altTr: "Boya — Astarlanmış pürüzsüz duvara rulo ile iç cephe su bazlı mat/ipek mat boya uygulaması",
     visualPurpose: "Kullanıcı bu görsele baktığında astarlanmış pürüzsüz duvara rulo ile iç cephe su bazlı mat/ipek mat boya uygulaması durumunu net olarak anlamalı.",
   },
@@ -1939,8 +1939,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/duvar-kagidi.svg",
-    hero: "/bina-asamalari/topics/duvar-kagidi.webp",
-    diagram: "/bina-asamalari/details/duvar-kagidi.webp",
+    hero: "/bina-asamalari/topics/duvar-kagidi.svg",
+    diagram: "/bina-asamalari/topics/duvar-kagidi.svg",
     altTr: "Duvar Kağıdı — Tutkallı pürüzsüz duvara desenli duvar kağıdının hava kabarcığı alıcı spatulayla yapıştırılması",
     visualPurpose: "Kullanıcı bu görsele baktığında tutkallı pürüzsüz duvara desenli duvar kağıdının hava kabarcığı alıcı spatulayla yapıştırılması durumunu net olarak anlamalı.",
   },
@@ -1970,8 +1970,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kapi-pencere.svg",
-    hero: "/bina-asamalari/topics/kapi-pencere.webp",
-    diagram: "/bina-asamalari/details/kapi-pencere.webp",
+    hero: "/bina-asamalari/topics/kapi-pencere.svg",
+    diagram: "/bina-asamalari/topics/kapi-pencere.svg",
     altTr: "Kapı & Pencere — Duvar boşluğuna kapı veya pencere kasasının montajı, kama ve terazi ayarı",
     visualPurpose: "Kullanıcı bu görsele baktığında duvar boşluğuna kapı veya pencere kasasının montajı, kama ve terazi ayarı durumunu net olarak anlamalı.",
   },
@@ -2001,8 +2001,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/dis-kapi.svg",
-    hero: "/bina-asamalari/topics/dis-kapi.webp",
-    diagram: "/bina-asamalari/details/dis-kapi.webp",
+    hero: "/bina-asamalari/topics/dis-kapi.svg",
+    diagram: "/bina-asamalari/topics/dis-kapi.svg",
     altTr: "Dış Kapı — Binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik",
     visualPurpose: "Kullanıcı bu görsele baktığında binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik durumunu net olarak anlamalı.",
   },
@@ -2032,8 +2032,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/ic-kapi.svg",
-    hero: "/bina-asamalari/topics/ic-kapi.webp",
-    diagram: "/bina-asamalari/details/ic-kapi.webp",
+    hero: "/bina-asamalari/topics/ic-kapi.svg",
+    diagram: "/bina-asamalari/topics/ic-kapi.svg",
     altTr: "İç Kapı — İç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması",
     visualPurpose: "Kullanıcı bu görsele baktığında i̇ç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması durumunu net olarak anlamalı.",
   },
@@ -2063,8 +2063,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/pencere.svg",
-    hero: "/bina-asamalari/topics/pencere.webp",
-    diagram: "/bina-asamalari/details/pencere.webp",
+    hero: "/bina-asamalari/topics/pencere.svg",
+    diagram: "/bina-asamalari/topics/pencere.svg",
     altTr: "Pencere — Çift veya üç camlı alüminyum/PVC pencere doğramasının cephe boşluğuna montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında çift veya üç camlı alüminyum/pvc pencere doğramasının cephe boşluğuna montajı durumunu net olarak anlamalı.",
   },
@@ -2094,8 +2094,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/cati-kaplamasi.svg",
-    hero: "/bina-asamalari/topics/cati-kaplamasi.webp",
-    diagram: "/bina-asamalari/details/cati-kaplamasi.webp",
+    hero: "/bina-asamalari/topics/cati-kaplamasi.svg",
+    diagram: "/bina-asamalari/topics/cati-kaplamasi.svg",
     altTr: "Çatı Kaplaması — Eğimli çatıda kaplama katmanları: mertek, OSB levha, su yalıtım örtüsü, çıtalar ve son kat kaplama",
     visualPurpose: "Kullanıcı bu görsele baktığında eğimli çatıda kaplama katmanları: mertek, osb levha, su yalıtım örtüsü, çıtalar ve son kat kaplama durumunu net olarak anlamalı.",
   },
@@ -2125,8 +2125,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kiremit.svg",
-    hero: "/bina-asamalari/topics/kiremit.webp",
-    diagram: "/bina-asamalari/details/kiremit.webp",
+    hero: "/bina-asamalari/topics/kiremit.svg",
+    diagram: "/bina-asamalari/topics/kiremit.svg",
     altTr: "Kiremit — Ahşap latolar üzerine kilitli kiremitlerin (Marsilya veya Akdeniz kiremiti) dizilmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında ahşap latolar üzerine kilitli kiremitlerin (marsilya veya akdeniz kiremiti) dizilmesi durumunu net olarak anlamalı.",
   },
@@ -2156,8 +2156,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/membran-cati.svg",
-    hero: "/bina-asamalari/topics/membran-cati.webp",
-    diagram: "/bina-asamalari/details/membran-cati.webp",
+    hero: "/bina-asamalari/topics/membran-cati.svg",
+    diagram: "/bina-asamalari/topics/membran-cati.svg",
     altTr: "Membran — Eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi",
     visualPurpose: "Kullanıcı bu görsele baktığında eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi durumunu net olarak anlamalı.",
   },
@@ -2187,8 +2187,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/metal-cati.svg",
-    hero: "/bina-asamalari/topics/metal-cati.webp",
-    diagram: "/bina-asamalari/details/metal-cati.webp",
+    hero: "/bina-asamalari/topics/metal-cati.svg",
+    diagram: "/bina-asamalari/topics/metal-cati.svg",
     altTr: "Metal Çatı — Kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı durumunu net olarak anlamalı.",
   },
@@ -2218,8 +2218,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/tesisat-isleri.svg",
-    hero: "/bina-asamalari/topics/tesisat-isleri.webp",
-    diagram: "/bina-asamalari/details/tesisat-isleri.webp",
+    hero: "/bina-asamalari/topics/tesisat-isleri.svg",
+    diagram: "/bina-asamalari/topics/tesisat-isleri.svg",
     altTr: "Tesisat İşleri — Kaba inşaat sonrası koridor tavanı ve şaftlarda mekanik-elektrik tesisat hatları koordinasyonu",
     visualPurpose: "Kullanıcı bu görsele baktığında kaba inşaat sonrası koridor tavanı ve şaftlarda mekanik-elektrik tesisat hatları koordinasyonu durumunu net olarak anlamalı.",
   },
@@ -2249,8 +2249,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/sihhi-tesisat.svg",
-    hero: "/bina-asamalari/topics/sihhi-tesisat.webp",
-    diagram: "/bina-asamalari/details/sihhi-tesisat.webp",
+    hero: "/bina-asamalari/topics/sihhi-tesisat.svg",
+    diagram: "/bina-asamalari/topics/sihhi-tesisat.svg",
     altTr: "Sıhhi Tesisat — Banyoda PPRC temiz su boruları ve sessiz PVC pis su hatlarının duvar içine gömülmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında banyoda pprc temiz su boruları ve sessiz pvc pis su hatlarının duvar içine gömülmesi durumunu net olarak anlamalı.",
   },
@@ -2280,8 +2280,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/temiz-su.svg",
-    hero: "/bina-asamalari/topics/temiz-su.webp",
-    diagram: "/bina-asamalari/details/temiz-su.webp",
+    hero: "/bina-asamalari/topics/temiz-su.svg",
+    diagram: "/bina-asamalari/topics/temiz-su.svg",
     altTr: "Temiz Su — Polipropilen (PPRC) boruların pafta kaynak makinesi ile ısıtılarak birleştirilmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında polipropilen (pprc) boruların pafta kaynak makinesi ile ısıtılarak birleştirilmesi durumunu net olarak anlamalı.",
   },
@@ -2311,8 +2311,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/pis-su.svg",
-    hero: "/bina-asamalari/topics/pis-su.webp",
-    diagram: "/bina-asamalari/details/pis-su.webp",
+    hero: "/bina-asamalari/topics/pis-su.svg",
+    diagram: "/bina-asamalari/topics/pis-su.svg",
     altTr: "Pis Su — Atık su ve yağmur iniş hatlarında contalı PVC/PP sessiz boruların eğimle döşenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında atık su ve yağmur iniş hatlarında contalı pvc/pp sessiz boruların eğimle döşenmesi durumunu net olarak anlamalı.",
   },
@@ -2342,8 +2342,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/elektrik-tesisati.svg",
-    hero: "/bina-asamalari/topics/elektrik-tesisati.webp",
-    diagram: "/bina-asamalari/details/elektrik-tesisati.webp",
+    hero: "/bina-asamalari/topics/elektrik-tesisati.svg",
+    diagram: "/bina-asamalari/topics/elektrik-tesisati.svg",
     altTr: "Elektrik Tesisatı — Duvar kanallarına alev yaymayan spiral boruların döşenmesi ve buat montajı",
     visualPurpose: "Kullanıcı bu görsele baktığında duvar kanallarına alev yaymayan spiral boruların döşenmesi ve buat montajı durumunu net olarak anlamalı.",
   },
@@ -2373,8 +2373,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/kablolama.svg",
-    hero: "/bina-asamalari/topics/kablolama.webp",
-    diagram: "/bina-asamalari/details/kablolama.webp",
+    hero: "/bina-asamalari/topics/kablolama.svg",
+    diagram: "/bina-asamalari/topics/kablolama.svg",
     altTr: "Kablolama — Asma tavan üstü perfore kablo tavasında halojen-free kablo demetlerinin çekilmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında asma tavan üstü perfore kablo tavasında halojen-free kablo demetlerinin çekilmesi durumunu net olarak anlamalı.",
   },
@@ -2404,8 +2404,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/pano-montaj.svg",
-    hero: "/bina-asamalari/topics/pano-montaj.webp",
-    diagram: "/bina-asamalari/details/pano-montaj.webp",
+    hero: "/bina-asamalari/topics/pano-montaj.svg",
+    diagram: "/bina-asamalari/topics/pano-montaj.svg",
     altTr: "Pano Montajı — Duvara monte edilmiş ana veya tali elektrik dağıtım panosu, sigortalar ve kablo düzeni",
     visualPurpose: "Kullanıcı bu görsele baktığında duvara monte edilmiş ana veya tali elektrik dağıtım panosu, sigortalar ve kablo düzeni durumunu net olarak anlamalı.",
   },
@@ -2435,8 +2435,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/isitma-sogutma.svg",
-    hero: "/bina-asamalari/topics/isitma-sogutma.webp",
-    diagram: "/bina-asamalari/details/isitma-sogutma.webp",
+    hero: "/bina-asamalari/topics/isitma-sogutma.svg",
+    diagram: "/bina-asamalari/topics/isitma-sogutma.svg",
     altTr: "Isıtma & Soğutma — Merkezi ısıtma-soğutma kanalları, fan-coil üniteleri ve tavan montaj askıları",
     visualPurpose: "Kullanıcı bu görsele baktığında merkezi ısıtma-soğutma kanalları, fan-coil üniteleri ve tavan montaj askıları durumunu net olarak anlamalı.",
   },
@@ -2466,8 +2466,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/yerden-isitma.svg",
-    hero: "/bina-asamalari/topics/yerden-isitma.webp",
-    diagram: "/bina-asamalari/details/yerden-isitma.webp",
+    hero: "/bina-asamalari/topics/yerden-isitma.svg",
+    diagram: "/bina-asamalari/topics/yerden-isitma.svg",
     altTr: "Yerden Isıtma — Modülasyonlu strafor yalıtım panelleri üzerine spiral PEX boruların döşenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında modülasyonlu strafor yalıtım panelleri üzerine spiral pex boruların döşenmesi durumunu net olarak anlamalı.",
   },
@@ -2497,8 +2497,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/klima-tesisat.svg",
-    hero: "/bina-asamalari/topics/klima-tesisat.webp",
-    diagram: "/bina-asamalari/details/klima-tesisat.webp",
+    hero: "/bina-asamalari/topics/klima-tesisat.svg",
+    diagram: "/bina-asamalari/topics/klima-tesisat.svg",
     altTr: "Klima Tesisatı — VRF/VRV klima bakır boru hattı montajı, armafleks izolasyonu ve lehim kaynağı",
     visualPurpose: "Kullanıcı bu görsele baktığında vrf/vrv klima bakır boru hattı montajı, armafleks izolasyonu ve lehim kaynağı durumunu net olarak anlamalı.",
   },
@@ -2528,8 +2528,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/yangin-tesisati.svg",
-    hero: "/bina-asamalari/topics/yangin-tesisati.webp",
-    diagram: "/bina-asamalari/details/yangin-tesisati.webp",
+    hero: "/bina-asamalari/topics/yangin-tesisati.svg",
+    diagram: "/bina-asamalari/topics/yangin-tesisati.svg",
     altTr: "Yangın Tesisatı — Kırmızı boyalı çelik dikişli borularla tavan yangın sprinkler sistemi kurulumu",
     visualPurpose: "Kullanıcı bu görsele baktığında kırmızı boyalı çelik dikişli borularla tavan yangın sprinkler sistemi kurulumu durumunu net olarak anlamalı.",
   },
@@ -2559,8 +2559,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/peyzaj-teslim.svg",
-    hero: "/bina-asamalari/topics/peyzaj-teslim.webp",
-    diagram: "/bina-asamalari/details/peyzaj-teslim.webp",
+    hero: "/bina-asamalari/topics/peyzaj-teslim.svg",
+    diagram: "/bina-asamalari/topics/peyzaj-teslim.svg",
     altTr: "Peyzaj & Teslim — Yapımı tamamlanmış modern bina, temiz çevre düzeni, yürüyüş yolları ve yeşil alanlar",
     visualPurpose: "Kullanıcı bu görsele baktığında yapımı tamamlanmış modern bina, temiz çevre düzeni, yürüyüş yolları ve yeşil alanlar durumunu net olarak anlamalı.",
   },
@@ -2590,8 +2590,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.svg",
-    hero: "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.webp",
-    diagram: "/bina-asamalari/details/peyzaj-ve-cevre-duzenleme.webp",
+    hero: "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.svg",
+    diagram: "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.svg",
     altTr: "Peyzaj & Çevre Düzenleme — Bina çevresinde sert zemin bordür taşları ile bitkisel toprak alanının uyumlu düzenlenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında bina çevresinde sert zemin bordür taşları ile bitkisel toprak alanının uyumlu düzenlenmesi durumunu net olarak anlamalı.",
   },
@@ -2621,8 +2621,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/sert-zemin.svg",
-    hero: "/bina-asamalari/topics/sert-zemin.webp",
-    diagram: "/bina-asamalari/details/sert-zemin.webp",
+    hero: "/bina-asamalari/topics/sert-zemin.svg",
+    diagram: "/bina-asamalari/topics/sert-zemin.svg",
     altTr: "Sert Zemin — Yaya yolunda kum yatağı üzerine beton kilit parke taşlarının tokmakla döşenmesi",
     visualPurpose: "Kullanıcı bu görsele baktığında yaya yolunda kum yatağı üzerine beton kilit parke taşlarının tokmakla döşenmesi durumunu net olarak anlamalı.",
   },
@@ -2652,8 +2652,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/bitkisel-peyzaj.svg",
-    hero: "/bina-asamalari/topics/bitkisel-peyzaj.webp",
-    diagram: "/bina-asamalari/details/bitkisel-peyzaj.webp",
+    hero: "/bina-asamalari/topics/bitkisel-peyzaj.svg",
+    diagram: "/bina-asamalari/topics/bitkisel-peyzaj.svg",
     altTr: "Bitkisel Peyzaj — Bahçe alanında fidan dikimi, kök boğazı toprağı, damlama sulama borusu ve malç serimi",
     visualPurpose: "Kullanıcı bu görsele baktığında bahçe alanında fidan dikimi, kök boğazı toprağı, damlama sulama borusu ve malç serimi durumunu net olarak anlamalı.",
   },
@@ -2683,8 +2683,8 @@ export const BINA_VISUALS: Record<string, BinaVisualAsset> = {
 
     // Geriye dönük uyumluluk
     card: "/bina-asamalari/topics/iskan-ruhsati.svg",
-    hero: "/bina-asamalari/topics/iskan-ruhsati.webp",
-    diagram: "/bina-asamalari/details/iskan-ruhsati.webp",
+    hero: "/bina-asamalari/topics/iskan-ruhsati.svg",
+    diagram: "/bina-asamalari/topics/iskan-ruhsati.svg",
     altTr: "İskan Ruhsatı — Tüm imalatları bitmiş, oturuma ve kabule hazır tamamlanmış kusursuz bina girişi",
     visualPurpose: "Kullanıcı bu görsele baktığında tüm imalatları bitmiş, oturuma ve kabule hazır tamamlanmış kusursuz bina girişi durumunu net olarak anlamalı.",
   },
