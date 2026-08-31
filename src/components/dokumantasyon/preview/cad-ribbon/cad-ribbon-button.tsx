@@ -5,7 +5,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export const CAD_RIBBON_BUTTON_BASE =
-  "group/cad-tooltip relative inline-flex h-9 min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-transparent px-2.5 text-xs font-semibold text-muted-foreground outline-none transition-[background-color,border-color,color,box-shadow] hover:bg-accent/70 hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-40";
+  "group/cad-tooltip relative inline-flex h-9 min-h-9 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-transparent px-2.5 text-xs font-semibold text-muted-foreground outline-none transition-[background-color,border-color,color,box-shadow] hover:bg-accent/70 hover:text-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/45 disabled:pointer-events-none disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11";
 
 export const CAD_RIBBON_BUTTON_ACTIVE =
   "border-primary/35 bg-primary/12 text-foreground shadow-sm ring-1 ring-primary/20";

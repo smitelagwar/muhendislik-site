@@ -36,7 +36,10 @@ export function CadSplitToolButton({
 }: CadSplitToolButtonProps) {
   return (
     <div
-      className={cn("inline-flex h-9 shrink-0 items-stretch overflow-visible rounded-md", className)}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-stretch overflow-visible rounded-md [@media(pointer:coarse)]:h-11",
+        className
+      )}
       data-cad-split-tool="true"
       data-cad-active={active ? "true" : "false"}
     >
@@ -62,7 +65,7 @@ export function CadSplitToolButton({
             data-cad-split-caret="true"
             className={cn(
               CAD_RIBBON_BUTTON_BASE,
-              "min-w-6 w-6 rounded-l-none border-l-0 px-0",
+              "min-w-6 w-6 rounded-l-none border-l-0 px-0 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:min-w-11",
               active && CAD_RIBBON_BUTTON_ACTIVE
             )}
           >

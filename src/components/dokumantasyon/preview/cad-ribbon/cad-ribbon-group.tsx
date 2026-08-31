@@ -23,7 +23,7 @@ export function CadRibbonGroup({
         data-cad-ribbon-group={label}
         data-testid={testId}
         className={cn(
-          "flex h-11 shrink-0 items-center gap-1 rounded-lg border border-border/65 bg-muted/35 p-1",
+          "flex h-11 shrink-0 items-center gap-1 rounded-lg border border-border/65 bg-muted/35 p-1 [@media(pointer:coarse)]:h-14",
           className
         )}
       >

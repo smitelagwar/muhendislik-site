@@ -5,6 +5,10 @@ import path from "node:path";
 const ROOT = path.resolve(process.cwd());
 const ribbonDir = path.join(ROOT, "src/components/dokumantasyon/preview/cad-ribbon");
 const ribbonFile = path.join(ROOT, "src/components/dokumantasyon/preview/cad-studio-ribbon.tsx");
+const browserAcceptanceFile = path.join(
+  ROOT,
+  "tests/document-studio/cad-ribbon-stage2-e2e.spec.ts"
+);
 
 function read(relative: string) {
   return fs.readFileSync(path.join(ribbonDir, relative), "utf8");
@@ -40,7 +44,7 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
     expect(source).not.toContain("DropdownMenuContent");
   });
 
-  test("desktop ölçü standardı ve tek active-state dili merkezidir", () => {
+  test("desktop ölçü standardı, coarse-pointer 44 px hedefi ve tek active-state dili merkezidir", () => {
     const button = read("cad-ribbon-button.tsx");
     const group = read("cad-ribbon-group.tsx");
     const split = read("cad-split-tool-button.tsx");
@@ -48,8 +52,15 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
 
     expect(button).toContain('"group/cad-tooltip relative inline-flex h-9 min-h-9');
     expect(button).toContain('iconOnly ? "w-9 px-0"');
+    expect(button).toContain("[@media(pointer:coarse)]:h-11");
+    expect(button).toContain("[@media(pointer:coarse)]:min-h-11");
+    expect(button).toContain("[@media(pointer:coarse)]:min-w-11");
+    expect(button).toContain("touch-manipulation");
     expect(group).toContain('"flex h-11');
+    expect(group).toContain("[@media(pointer:coarse)]:h-14");
     expect(split).toContain('"min-w-6 w-6');
+    expect(split).toContain("[@media(pointer:coarse)]:w-11");
+    expect(split).toContain("[@media(pointer:coarse)]:min-w-11");
     expect(split).toContain('data-cad-split-caret="true"');
 
     expect(button).toContain("CAD_RIBBON_BUTTON_ACTIVE");
@@ -86,6 +97,10 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
     expect(popover).toContain("avoidCollisions");
     expect(popover).toContain('sticky="partial"');
     expect(popover).toContain("onPointerDownOutside");
+    expect(popover).toContain("suppressDismissPointerSequence");
+    expect(popover).toContain('new PointerEvent("pointercancel"');
+    expect(popover).toContain('document.addEventListener("pointerup", onPointerUp, true)');
+    expect(popover).toContain('document.addEventListener("click", onClick, true)');
     expect(popover).toContain("originalEvent.preventDefault()");
     expect(popover).toContain("originalEvent.stopPropagation()");
     expect(popover).toContain('"z-[80]');
@@ -99,5 +114,16 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
     expect(button).toContain("group-focus-visible/cad-tooltip:opacity-100");
     expect(button).toContain("focus-visible:ring-2");
     expect(button).toContain("focus-visible:border-ring");
+  });
+
+  test("Stage 2 davranışları gerçek browser acceptance testiyle de korunur", () => {
+    expect(fs.existsSync(browserAcceptanceFile)).toBe(true);
+    const browserTest = fs.readFileSync(browserAcceptanceFile, "utf8");
+
+    expect(browserTest).toContain("split main/caret ayrımı");
+    expect(browserTest).toContain("expectInsideViewport");
+    expect(browserTest).toContain("promptCount");
+    expect(browserTest).toContain('matchMedia("(pointer: coarse)")');
+    expect(browserTest).toContain("toBeGreaterThanOrEqual(44)");
   });
 });
