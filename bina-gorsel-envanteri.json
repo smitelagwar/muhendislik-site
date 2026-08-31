@@ -3040,38 +3040,41 @@
     "secondaryTargetWebp": "/bina-asamalari/details/dis-kapi.webp",
     "legacySvgCard": "/bina-asamalari/topics/dis-kapi.svg",
     "primaryMode": "installed-component",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında yığma duvar açıklığına çelik dış kapı kasasının terazi, takoz ve ankrajlarla hizalanarak monte edildiğini net olarak anlamalı.",
     "primaryMustShow": [
-      "çelik kapı kasası ve kanadı",
-      "mermer giriş eşiği",
-      "güvenlik kilit mekanizması",
-      "temiz giriş holü"
+      "duvar açıklığında çelik dış kapı kasası",
+      "uzun su terazisiyle hizalama",
+      "kasa takozları ve mekanik ankrajlar",
+      "montaj için desteklenen ağır kapı kanadı"
     ],
     "primaryMustNotShow": [
       "yazı",
       "marka logosu",
       "daire numarası"
     ],
-    "primaryPromptTr": "KONU: Dış Kapı\nİÇERİK: Giriş güvenliği, ısı kontrolü ve dış etkilere dayanım için seçilen ana doğrama bileşeni.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik durumu ilk bakışta net anlaşılmalı.\nMOD: installed-component\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: çelik kapı kasası ve kanadı, mermer giriş eşiği, güvenlik kilit mekanizması, temiz giriş holü.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka logosu, daire numarası, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Dış Kapı — Binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik",
+    "primaryPromptTr": "KONU: Dış Kapı\nİÇERİK: Giriş güvenliği, ısı kontrolü ve dış etkilere dayanım için seçilen ana doğrama bileşeni.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Yığma duvar açıklığına çelik dış kapı kasasının terazi, takoz ve ankrajlarla hizalanarak montajını göstermek.\nMOD: site-process\nSAHNE: Gerçek şantiyede iki ustanın koyu çelik dış kapı kasasını uzun su terazisiyle hizaladığı, takoz ve ankrajların göründüğü 16:9 yatay fotogerçekçi sahne; ağır kapı kanadı montaj için yakında desteklenmiş olmalı.\nMUTLAKA GÖRÜNSÜN: duvar açıklığında çelik kasa, uzun su terazisi, takozlar, mekanik ankrajlar ve kapı kanadı.\nFİZİKSEL DOĞRULUK: Kasa sabitlemesi, insan ölçeği ve yapı geometrisi gerçek montaj pratiğine uygun olsun.\nKESİNLİKLE OLMASIN: okunur yazı, logo, filigran, UI, ölçü etiketi, kolaj veya havada yüzen parça.",
+    "primaryAltTr": "Dış Kapı — Çelik dış kapı kasasının terazi, takoz ve ankrajlarla duvar açıklığına montajı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: dış kapı altı otomatik giyotin fitil ve zemin su bariyeri eşik kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: dış kapının alt kasa-eşik birleşiminde ankraj, köpük, hava-su sızdırmazlık katmanları ve dışa su tahliyesi.",
     "secondaryMustShow": [
-      "kapı kanadı altındaki mekanik düşen giyotin fitil",
-      "termal bariyerli alüminyum eşik",
-      "hava ve rüzgar kesici contalar"
+      "çelik kapı kanadı, kasa ve sıkıştırma contaları",
+      "yığma duvara mekanik dişli ankraj",
+      "poliüretan köpük ile iç ve dış sızdırmazlık katmanları",
+      "ısı bariyerli eşik ve dış su yalıtım dönüşü"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü çizgisi",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Dış Kapı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Binanın ana girişinde monte edilmiş sağlam çelik zırhlı dış kapı ve mermer eşik\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Dış kapı altı otomatik giyotin fitil ve zemin su bariyeri eşik kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: kapı kanadı altındaki mekanik düşen giyotin fitil, termal bariyerli alüminyum eşik, hava ve rüzgar kesici contalar.\nPRIMARY'DEN FARK: Primary monte edilmiş dış kapıyı gösterirken, secondary kapı kapandığında zemine inen otomatik hava-ses kesici giyotin fitil kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Dış Kapı (Teknik Detay) — Dış kapı altı otomatik giyotin fitil ve zemin su bariyeri eşik kesiti",
-    "secondaryDifference": "Primary monte edilmiş dış kapıyı gösterirken, secondary kapı kapandığında zemine inen otomatik hava-ses kesici giyotin fitil kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Dış Kapı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Çelik dış kapı kasasının açıklığa hizalanarak montajı.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Alt kasa ve eşikte ankraj, köpük, iç-dış sızdırmazlık ile dışa su tahliyesini göstermek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay yakın teknik kesit; çelik kanat ve kasa, sıkıştırma contaları, yığma duvara dişli ankraj, poliüretan köpük, iç ve dış sızdırmazlık bantları, ısı bariyerli metal eşik ve dış kaplama üstüne dönen su yalıtımı görünür.\nPRIMARY'DEN FARK: Primary insanlı kasa montaj sürecini, secondary ise alt köşe-eşik birleşiminin katmanlarını ve su yönetimini öğretir.\nFİZİKSEL DOĞRULUK: Tüm katmanlar kesintisiz ve gerçek montaj sırasına uygun olsun.\nKESİNLİKLE OLMASIN: yazı, ölçü, ok, logo, filigran, UI, kolaj veya havada yüzen obje.",
+    "secondaryAltTr": "Dış Kapı (Teknik Detay) — Alt kasa ve eşikte ankraj, köpük, sızdırmazlık ve dış su yalıtımı kesiti",
+    "secondaryDifference": "Primary kasanın ustalar tarafından hizalanmasını gösterirken, secondary alt kasa-eşik birleşimindeki ankraj, yalıtım ve su tahliye katmanlarını yakın kesitte öğretir.",
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "ic-kapi",
@@ -3086,38 +3089,41 @@
     "secondaryTargetWebp": "/bina-asamalari/details/ic-kapi.webp",
     "legacySvgCard": "/bina-asamalari/topics/ic-kapi.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında i̇ç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında meşe iç kapı kanadının menteşelerle kasaya takıldığını, kasa-duvar boşluğunun köpüklendiğini ve pervaz montajının sürdüğünü net olarak anlamalı.",
     "primaryMustShow": [
-      "ahşap kapı kasası",
-      "menteşe montajı",
-      "duvar boşluğunda poliüretan köpük",
-      "oda perspektifi"
+      "meşe kapı kanadı ve ahşap kasa",
+      "yuvasına oturan metal menteşeler",
+      "açık kasa-duvar aralığında poliüretan köpük",
+      "bir yanda takılı diğer yanda bekleyen pervaz"
     ],
     "primaryMustNotShow": [
       "yazı",
       "marka",
       "kolaj"
     ],
-    "primaryPromptTr": "KONU: İç Kapı\nİÇERİK: Kullanım yoğunluğu, ses kontrolü ve mimari dil doğrultusunda seçilen iç mekan kapı sistemi.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında i̇ç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: ahşap kapı kasası, menteşe montajı, duvar boşluğunda poliüretan köpük, oda perspektifi.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka, kolaj, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "İç Kapı — İç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması",
+    "primaryPromptTr": "KONU: İç Kapı\nİÇERİK: Kullanım yoğunluğu, ses kontrolü ve mimari dil doğrultusunda seçilen iç mekan kapı sistemi.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Meşe iç kapı kanadının ahşap kasaya menteşelenmesi, kasa boşluğunun köpüklenmesi ve pervaz montajını göstermek.\nMOD: site-process\nSAHNE: Gerçek iç mekân şantiyesinde iki ustanın meşe kapı kanadını metal menteşelerinden kasaya taktığı 16:9 fotogerçekçi sahne; bir tarafta pervaz takılı, diğer tarafta açık köpüklü kasa-duvar aralığı ve bekleyen pervaz görünür.\nMUTLAKA GÖRÜNSÜN: meşe kanat ve kasa, menteşeler, poliüretan köpük, takılı ve bekleyen pervaz.\nFİZİKSEL DOĞRULUK: Kanat, menteşe, kasa ve duvar boşluğu gerçek montaj ilişkisine uygun olsun.\nKESİNLİKLE OLMASIN: yazı, marka, logo, filigran, UI, kolaj veya deforme insan.",
+    "primaryAltTr": "İç Kapı — Meşe kapı kanadının menteşelerle kasaya takılması, köpük ve pervaz montajı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: teleskopik pervazın kapı kasasına geçişi ve akustik fitil yuvası kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: iç kapı menteşesi, siyah akustik fitil, köpüklü kasa-duvar boşluğu ve teleskopik pervaz geçişi.",
     "secondaryMustShow": [
-      "teleskopik ayarlı ahşap pervaz",
-      "duvar kalınlığı tolerans yuvası",
-      "kasa oluğuna gömülü yumuşak elastomerik fitil"
+      "ahşaba gömülü metal yaprak menteşe",
+      "kasa oluğundaki siyah akustik fitil",
+      "takozlu ve köpüklü kasa-duvar boşluğu",
+      "teleskopik ahşap pervaz dili"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: İç Kapı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: İç mekan oda kapısı ahşap kasasının montajı, köpükleme ve kanat takılması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Teleskopik pervazın kapı kasasına geçişi ve akustik fitil yuvası kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: teleskopik ayarlı ahşap pervaz, duvar kalınlığı tolerans yuvası, kasa oluğuna gömülü yumuşak elastomerik fitil.\nPRIMARY'DEN FARK: Primary kapı kanadının menteşeye takılmasını gösterirken, secondary duvar eğriliklerini örten teleskopik pervaz ve ses fitili kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "İç Kapı (Teknik Detay) — Teleskopik pervazın kapı kasasına geçişi ve akustik fitil yuvası kesiti",
-    "secondaryDifference": "Primary kapı kanadının menteşeye takılmasını gösterirken, secondary duvar eğriliklerini örten teleskopik pervaz ve ses fitili kesitini öğretir.",
+    "secondaryPromptTr": "KONU: İç Kapı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: İç kapı kanadı ve kasasının saha montajı.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Menteşe, akustik fitil, kasa boşluğu ve teleskopik pervaz birleşimini yakın kesitte öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay makro teknik kesit; meşe kapı kanadı ve kasa içine gömülmüş metal yaprak menteşe, siyah akustik fitil, kesilerek açığa çıkarılmış duvar-kasa aralığında takoz ve köpük, pervazın geçme dili görünür.\nPRIMARY'DEN FARK: Primary insanlı montaj sürecini, secondary menteşe-kasa-fitil-pervaz birleşiminin malzeme ilişkisini gösterir.\nFİZİKSEL DOĞRULUK: Menteşe yuvaları, boşluklar ve kaplama birleşimleri gerçek uygulamaya uygun olsun.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, ok veya havada yüzen parça.",
+    "secondaryAltTr": "İç Kapı (Teknik Detay) — Menteşe, akustik fitil, köpüklü kasa boşluğu ve teleskopik pervaz birleşimi",
+    "secondaryDifference": "Primary iki ustanın kapı kanadını kasaya takmasını gösterirken, secondary menteşe, fitil, köpüklü boşluk ve pervaz geçişini makro kesitte öğretir.",
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "pencere",
@@ -3132,38 +3138,41 @@
     "secondaryTargetWebp": "/bina-asamalari/details/pencere.webp",
     "legacySvgCard": "/bina-asamalari/topics/pencere.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında çift veya üç camlı alüminyum/pvc pencere doğramasının cephe boşluğuna montajı durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında büyük üç camlı koyu renk pencere doğramasının vantuzlarla taşınıp takoz, mekanik braket ve terazi kullanılarak duvar açıklığına monte edildiğini net olarak anlamalı.",
     "primaryMustShow": [
-      "yalıtımlı pencere kasası",
-      "üçlü yalıtım camı (Isıcam)",
-      "cephe montaj vidaları ve terazi"
+      "büyük üç camlı koyu renk pencere doğraması",
+      "cam taşıma vantuzları ve doğal çalışan ustalar",
+      "alt ayar takozları ve mekanik montaj braketleri",
+      "düşey hizalamayı gösteren uzun su terazisi"
     ],
     "primaryMustNotShow": [
       "cam üzerindeki etiketler",
       "marka yazısı",
       "ölçü"
     ],
-    "primaryPromptTr": "KONU: Pencere\nİÇERİK: Gün ışığı, havalandırma ve ısı geçirgenliği performansını birlikte etkileyen cephe doğraması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında çift veya üç camlı alüminyum/pvc pencere doğramasının cephe boşluğuna montajı durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: yalıtımlı pencere kasası, üçlü yalıtım camı (Isıcam), cephe montaj vidaları ve terazi.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: cam üzerindeki etiketler, marka yazısı, ölçü, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Pencere — Çift veya üç camlı alüminyum/PVC pencere doğramasının cephe boşluğuna montajı",
+    "primaryPromptTr": "KONU: Pencere\nİÇERİK: Gün ışığı, havalandırma ve ısı geçirgenliği performansını birlikte etkileyen cephe doğraması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Büyük üç camlı koyu pencere ünitesinin duvar açıklığına güvenli ve doğru montajını göstermek.\nMOD: site-process\nSAHNE: Üç ustanın büyük camlı pencere ünitesini vantuzlarla duvar açıklığında tuttuğu 16:9 fotogerçekçi şantiye; altta ayar takozları, yanlarda mekanik braketler ve düşeyde uzun su terazisi görünür.\nMUTLAKA GÖRÜNSÜN: üç camlı doğrama, cam vantuzları, ayar takozları, montaj braketleri ve su terazisi.\nFİZİKSEL DOĞRULUK: Taşıma, destek ve sabitleme gerçek pencere montaj pratiğine uygun olsun.\nKESİNLİKLE OLMASIN: cam etiketi, yazı, logo, filigran, UI, ölçü veya deforme insan.",
+    "primaryAltTr": "Pencere — Üç camlı pencere doğramasının vantuz, takoz, braket ve teraziyle duvar açıklığına montajı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: pencere altı alüminyum damlalıklı denizlik, su yalıtım membranı ve ısı köprüsü kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: üçlü cam, ara boşluklar, contalar, ısı bariyerli profil ile iç ve dış denizliklerin alt köşe kesiti.",
     "secondaryMustShow": [
-      "dış alüminyum denizlik",
-      "eğimli su damlalık burnu",
-      "denizlik altı sızdırmazlık membranı",
-      "iç mermer parapet"
+      "üç cam tabakası ve yalıtımlı ara boşluklar",
+      "siyah cam ve kasa contaları",
+      "ısı bariyerli pencere profil kesiti",
+      "iç taş denizlik ile eğimli dış metal denizlik ve damlalık"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü çizgisi",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Pencere\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Çift veya üç camlı alüminyum/PVC pencere doğramasının cephe boşluğuna montajı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Pencere altı alüminyum damlalıklı denizlik, su yalıtım membranı ve ısı köprüsü kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: dış alüminyum denizlik, eğimli su damlalık burnu, denizlik altı sızdırmazlık membranı, iç mermer parapet.\nPRIMARY'DEN FARK: Primary pencerenin kasaya montajını gösterirken, secondary yağmur suyunun içeri sızmasını önleyen eğimli denizlik ve ısı köprüsü yalıtım kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Pencere (Teknik Detay) — Pencere altı alüminyum damlalıklı denizlik, su yalıtım membranı ve ısı köprüsü kesiti",
-    "secondaryDifference": "Primary pencerenin kasaya montajını gösterirken, secondary yağmur suyunun içeri sızmasını önleyen eğimli denizlik ve ısı köprüsü yalıtım kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Pencere\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Büyük pencere ünitesinin saha montajı.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Cam-kasa-conta, ısı bariyerli profil ve iç-dış denizliklerin alt köşe kesitini öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay yakın teknik kesit; üç cam tabakası ve ara boşlukları, siyah contalar, ısı bariyerli koyu profil, iç taş denizlik, eğimli dış metal denizlik ve damlalık ile duvar katmanları açıkça görünür.\nPRIMARY'DEN FARK: Primary insanlı pencere montajını, secondary cam ve profil performansı ile denizlik-su tahliye birleşimini gösterir.\nFİZİKSEL DOĞRULUK: Cam aralıkları, contalar, profil boşlukları ve denizlik eğimi gerçek doğrama sistemine uygun olsun.\nKESİNLİKLE OLMASIN: yazı, ölçü, ok, logo, filigran, UI, kolaj veya havada yüzen obje.",
+    "secondaryAltTr": "Pencere (Teknik Detay) — Üçlü cam, contalı ısı bariyerli profil ve iç-dış denizlik alt köşe kesiti",
+    "secondaryDifference": "Primary üç ustanın pencereyi açıklığa yerleştirmesini gösterirken, secondary üçlü cam-profil-conta ve denizlik birleşimini teknik kesitte öğretir.",
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "cati-kaplamasi",
