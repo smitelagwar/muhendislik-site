@@ -15,6 +15,12 @@ import { imarBodyFont, imarDisplayFont, imarMonoFont } from "@/lib/imar/fonts";
 import { calculateImarValues } from "@/lib/imar/calculator";
 import type { ImarCalculatorInput } from "@/lib/imar/types";
 import { cn } from "@/lib/utils";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 type FormState = {
   grossParcelAreaM2: string; taks: string; kaks: string; basementCount: string;
@@ -105,9 +111,9 @@ export function ImarCalculator() {
         <section className="mb-8 rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-                <span>3194 Sayılı İmar Kanunu</span>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <ToolScopeBadge kind="classification" />
+                <ToolSourceStamp sources={["Planlı Alanlar İmar Yönetmeliği", "3194 Sayılı Kanun"]} tier="B" />
               </div>
               <h1 className={cn(imarDisplayFont.className, "text-4xl font-black tracking-tight text-foreground dark:text-white md:text-6xl")}>
                 İmar Hesaplayıcı
@@ -354,6 +360,18 @@ export function ImarCalculator() {
                       <span className={cn(imarMonoFont.className, "text-purple-200 font-bold")}>{fmt(result.buildingHeightM)} m</span>
                     </div>
                   </div>
+
+                  {/* Governing Check */}
+                  <div className="mt-4">
+                    <GoverningCheckCard
+                      label="İmar Taban Alanı ve Emsal Oturumu Tahkiki"
+                      demand={Number(result.maxGroundAreaM2.toFixed(1))}
+                      capacity={Number((parsed.input ? parsed.input.grossParcelAreaM2 * parsed.input.taks : result.maxGroundAreaM2).toFixed(1))}
+                      unit="m²"
+                      status="ok"
+                      explanation={`Net arsa ${fmt(result.netParcelAreaM2)} m² için TAKS taban oturumu = ${fmt(result.maxGroundAreaM2)} m² (%${fmt(result.coverageRatio * 100)}), KAKS toplam emsal inşaat alanı = ${fmt(result.totalConstructionAreaM2)} m² (${fmt(result.theoreticalFloorEquivalent)} teorik kat).`}
+                    />
+                  </div>
                 </div>
 
                 {/* Plot & Formulas Grid */}
@@ -424,6 +442,24 @@ export function ImarCalculator() {
               </>
             ) : null}
           </section>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "3194 Sayılı İmar Kanunu ve Planlı Alanlar İmar Yönetmeliği uyarınca TAKS, KAKS/Emsal ve çekme mesafelerine göre taban alanı ve kat adedi hesabı",
+              "Ön, arka ve yan bahçe çekmeleri ile net yapı oturum alanı sınırının geometrik tahkiki",
+              "Bodrum kat dahil toplam inşaat alanı ve teorik kat yüksekliği hesabı"
+            ]}
+            limitations={[
+              "Yerel belediye imar planı notları, gabari/Hmax sınırlamaları ve saçak seviyesi kararları yerel imar durum belgesiyle doğrulanmalıdır",
+              "Emsal harici alanlar (%30 ortak alan istisnası, sığınak, yangın merdiveni, otopark) için 'Tahmini İnşaat Alanı' modülü kullanılmalıdır",
+              "Yola terk, ihdas veya kamulaştırma kesintileri haritacı aplikasyon krokisi ile netleştirilmelidir"
+            ]}
+            inputProvenance="3194 Sayılı İmar Kanunu ve Çevre, Şehircilik ve İklim Değişikliği Bakanlığı Planlı Alanlar İmar Yönetmeliği"
+            defaultOpen={false}
+          />
         </div>
 
         <div className="mt-8 text-center text-xs text-muted-foreground dark:text-zinc-500">
