@@ -5,6 +5,12 @@ import Link from "next/link";
 import { ArrowLeft, TrendingDown, CheckCircle2, AlertTriangle, Copy, SlidersHorizontal } from "lucide-react";
 
 import { calculateSlopeStability } from "@/lib/engineering/geotech/slope-stability";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const FAILURE_METHODS = [
   { id: "fellenius", name: "Fellenius (Basit Dilim)" },
@@ -74,6 +80,10 @@ Durum: ${results.isSafe ? "GÜVENLİ (Fs ≥ 1.50)" : results.isWarning ? "UYARI
       </div>
 
       <header className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs dark:border-white/[0.06] dark:bg-zinc-950 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <ToolScopeBadge kind="check" />
+          <ToolSourceStamp sources={["Fellenius & Bishop Yöntemi", "TBDY 2018 Bölüm 16"]} tier="A" />
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500/15 text-green-600 dark:text-green-400">
             <TrendingDown className="h-6 w-6" />
@@ -168,13 +178,48 @@ Durum: ${results.isSafe ? "GÜVENLİ (Fs ≥ 1.50)" : results.isWarning ? "UYARI
               </svg>
             </div>
 
+            {/* Governing Check Card */}
             <div className="mt-4">
-              <button onClick={handleCopy} className="w-full flex items-center justify-center gap-2 rounded-xl bg-green-500 py-3 text-xs font-bold text-white hover:bg-green-600 transition-colors">
+              <GoverningCheckCard
+                label={`Şev Stabilitesi Güvenlik Katsayısı (${methodId === "bishop" ? "Bishop" : "Fellenius"})`}
+                demand={1.5}
+                capacity={fs}
+                status={results.isSafe ? "ok" : results.isWarning ? "warn" : "fail"}
+                explanation={
+                  results.isSafe
+                    ? `Hesaplanan güvenlik katsayısı Fs = ${results.Fs} >= 1.50 sınırındadır. Şev statik koşullarda emniyetlidir.`
+                    : results.isWarning
+                    ? `Güvenlik katsayısı Fs = ${results.Fs} (1.20 <= Fs < 1.50). Şev hassas dengededir; drenaj veya şev açısını yatıklaştırma önerilir.`
+                    : `Güvenlik katsayısı Fs = ${results.Fs} < 1.20 yetersizdir! Şevde kayma riski mevcuttur; şev açısı azaltılmalı veya istinat yapılmalıdır.`
+                }
+              />
+            </div>
+
+            <div className="mt-4">
+              <button onClick={handleCopy} className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-green-500 py-3 text-xs font-bold text-white hover:bg-green-600 transition-colors">
                 <Copy className="h-4 w-4" />{copied ? "Kopyalandı!" : "Hesap Raporunu Kopyala"}
               </button>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "Fellenius ve basitleştirilmiş Bishop dilim yöntemi ile homojen zeminlerde dairesel kayma yüzeyi güvenlik katsayısı (Fs) hesabı",
+            "Kohezyon (c), içsel sürtünme açısı (phi) ve şev geometrisi (H, beta) parametrelerine göre stabilite değerlendirmesi",
+            "Kritik dairesel kayma yüzeyi için Fs >= 1.50 sınır tahkiki"
+          ]}
+          limitations={[
+            "Tabakalı zemin profilleri, anizotropik kayma mukavemeti ve çatlaklı kaya şevleri 2D/3D sonlu elemanlar analizi gerektirir",
+            "Yeraltı suyu boşluk suyu basıncı (ru) ve depremli durum psödo-statik analizi (kh katsayısı) haricen dikkate alınmalıdır",
+            "Kritik kayma çemberi optimizasyonu harici geoteknik yazılımla doğrulanmalıdır"
+          ]}
+          inputProvenance="Fellenius (1936) & Bishop (1955) Dilim Yöntemleri Esasları, TBDY 2018 Bölüm 16"
+          defaultOpen={false}
+        />
       </div>
     </div>
   );
