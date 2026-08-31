@@ -5,6 +5,13 @@ import Link from "next/link";
 import { ArrowLeft, Activity, Copy, SlidersHorizontal, Info, Check } from "lucide-react";
 import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  EngineeringDiagramFrame,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 import { calculateEquivalentBaseShear, type SoilClass } from "@/lib/engineering/tbdy2018";
 
@@ -151,9 +158,9 @@ SONUÇ:
         <section className="relative overflow-hidden rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-                <span>TBDY 2018 Bölüm 4</span>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <ToolScopeBadge kind="check" />
+                <ToolSourceStamp sources={["TBDY 2018 Bölüm 4.7"]} tier="A" />
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
                 Eşdeğer Deprem Yükü &{" "}
@@ -378,6 +385,84 @@ SONUÇ:
                 </div>
               </div>
 
+              {/* TBDY 2018 Governing Check Card */}
+              <div className="mt-4">
+                <GoverningCheckCard
+                  label="TBDY 2018 Taban Kesme Alt Sınır Tahkiki"
+                  demand={Number(results.Vt)}
+                  capacity={Number(results.VtMin)}
+                  unit="kN"
+                  status={Number(results.Vt) >= Number(results.VtMin) ? "ok" : "warn"}
+                  explanation={
+                    Number(results.Vt) >= Number(results.VtMin)
+                      ? `Hesaplanan Vt (${results.Vt} kN), TBDY 2018 Denklem 4.6 alt sınırından (${results.VtMin} kN) büyüktür. Tasarım taban kesmesi doğrudan hesaplanan değer olarak uygulanır.`
+                      : `Hesaplanan Vt (${results.Vt} kN), TBDY 2018 Denklem 4.6 alt sınırının (${results.VtMin} kN) altında kaldığı için tasarım taban kesmesi alt sınıra (${results.VtMin} kN) yükseltilmiştir.`
+                  }
+                />
+              </div>
+
+              {/* Bina ve Kat Yanal Deprem Kuvvetleri Görseli */}
+              <div className="mt-4">
+                <EngineeringDiagramFrame
+                  title={`Bina Kat Deprem Kuvvetleri Dağılımı (${numFloors} Kat, Hn = ${results.HN} m)`}
+                  subtitle="Ters üçgen / parabolik eşdeğer kat kuvvetleri Fi ve taban tepkisi Vt"
+                  accessibleFallbackText={`Toplam ${numFloors} katlı bina. Taban kesme kuvveti ${results.VtFinal} kN.`}
+                >
+                  <svg viewBox="0 0 340 220" className="w-full max-w-[340px] h-auto select-none">
+                    {/* Zemin Çizgisi ve Tarama */}
+                    <line x1="20" y1="190" x2="320" y2="190" stroke="#a855f7" strokeWidth="2.5" />
+                    <line x1="40" y1="190" x2="25" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="80" y1="190" x2="65" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="120" y1="190" x2="105" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="160" y1="190" x2="145" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="200" y1="190" x2="185" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="240" y1="190" x2="225" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+                    <line x1="280" y1="190" x2="265" y2="205" stroke="#94a3b8" strokeWidth="1.5" />
+
+                    {/* Bina Gövdesi */}
+                    <rect x="70" y="30" width="100" height="160" rx="4" fill="#1e1b4b" stroke="#6366f1" strokeWidth="2" />
+
+                    {/* Kat Çizgileri ve Kuvvet Okları */}
+                    {results.floorForces.map((f, idx) => {
+                      const totalCount = results.floorForces.length;
+                      const yPos = 190 - ((idx + 1) / totalCount) * 150;
+                      const forceVal = Number(f.Fi) || 1;
+                      const maxForce = Math.max(...results.floorForces.map((ff) => Number(ff.Fi) || 1));
+                      const arrowLen = Math.max(25, Math.min(100, (forceVal / maxForce) * 90));
+                      const startX = 170;
+                      const endX = startX + arrowLen;
+
+                      return (
+                        <g key={f.floorNum}>
+                          {/* Kat Döşeme Çizgisi */}
+                          <line x1="70" y1={yPos} x2="170" y2={yPos} stroke="#818cf8" strokeWidth="1.5" strokeDasharray="3 2" />
+                          <text x="75" y={yPos - 3} fill="#c7d2fe" fontSize="8" fontFamily="monospace">
+                            K{f.floorNum}
+                          </text>
+
+                          {/* Kuvvet Oku Fi (Sağa Doğru) */}
+                          <line x1={startX} y1={yPos} x2={endX} y2={yPos} stroke="#ec4899" strokeWidth="2" />
+                          <polygon
+                            points={`${endX},${yPos} ${endX - 6},${yPos - 3.5} ${endX - 6},${yPos + 3.5}`}
+                            fill="#ec4899"
+                          />
+                          <text x={endX + 4} y={yPos + 3} fill="#f472b6" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                            {f.Fi} kN
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Taban Kesme Reaksiyon Oku (Sola Doğru Taban Reaksiyonu) */}
+                    <line x1="170" y1="185" x2="35" y2="185" stroke="#a855f7" strokeWidth="3" />
+                    <polygon points="35,185 43,181 43,189" fill="#a855f7" />
+                    <text x="90" y="180" fill="#d8b4fe" fontSize="10" fontWeight="black" fontFamily="monospace">
+                      Vt = {results.VtFinal} kN
+                    </text>
+                  </svg>
+                </EngineeringDiagramFrame>
+              </div>
+
               {/* Floor Forces Table */}
               <div className="mt-4 overflow-hidden rounded-2xl border border-border/80 dark:border-white/10">
                 <table className="w-full text-xs">
@@ -404,7 +489,7 @@ SONUÇ:
                 <button
                   type="button"
                   onClick={handleCopyReport}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -412,6 +497,25 @@ SONUÇ:
               </div>
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Bölüm 4.7 uyarınca Eşdeğer Deprem Yükü Yöntemi ile toplam taban kesme kuvveti (Vt)",
+              "Kat ağırlıkları (wi) ve kat kotlarına (hi) göre kat yatay eşdeğer deprem kuvvetleri (Fi) dağılımı",
+              "TBDY 2018 Denklem 4.6 uyarınca taban kesme kuvveti alt sınır tahkiki (Vt,min)",
+              "Sae(T) yatay elastik tasarım ivme spektrumu ve azaltılmış tasarım ivmesi SaR(T)"
+            ]}
+            limitations={[
+              "TBDY 2018 Tablo 4.4 bina yükseklik sınıfı (BYS) ve düzensizlik şartlarına göre mod birleştirme gereksinimi kontrol edilmelidir",
+              "Bodrumlu binalarda iki yüklemeli hesap yöntemi (Rijit bodrum kütlesi) için harici analiz gerekir",
+              "Düşey deprem etkisi (Ez) veya 3D burulma etkilerini içermez"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Bölüm 4 (Deprem Etkisi Altında Binaların Doğrusal Hesabı) ve AFAD Deprem Tehlike Haritası"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
