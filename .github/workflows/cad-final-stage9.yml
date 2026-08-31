@@ -63,6 +63,7 @@ jobs:
         run: |
           node scripts/repair-cad-stage9-merge.mjs
           node scripts/repair-cad-stage9-mouse-bindings.mjs
+          node scripts/repair-cad-stage9-fixtures.mjs
           git add -A
           if ! git diff --cached --quiet; then
             if [ "$DID_MERGE" = "true" ]; then
