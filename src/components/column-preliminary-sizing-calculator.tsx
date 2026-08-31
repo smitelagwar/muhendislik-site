@@ -11,6 +11,12 @@ import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/font
 import { formatConcreteNumber, parsePositiveConcreteNumber } from "@/lib/concrete-tools/format";
 import { cn } from "@/lib/utils";
 import { ColumnSectionSketch } from "@/components/section-sketch";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const triggerClassName = "tool-input h-12 w-full font-semibold text-foreground";
 
@@ -48,6 +54,11 @@ export function ColumnPreliminarySizingCalculator() {
       title="Kolon ön boyutlandırma"
       description="Mevcut kolon aracı betonarme aile shell’ine taşındı. İlk kesit önerisi, eksenel tasarım yükü ve minimum kesit alanı aynı ekranda hızlı ön değerlendirme için korunur."
     >
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <ToolScopeBadge kind="preliminary" />
+        <ToolSourceStamp sources={["TS 500 Madde 7.4", "TBDY 2018"]} tier="A" />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="tool-panel rounded-[28px] p-6">
           <div className="mb-6 flex items-start justify-between gap-4">
@@ -136,6 +147,17 @@ export function ColumnPreliminarySizingCalculator() {
                   <ConcreteResultRow label="Önerilen kısa kenar" value={`${formatConcreteNumber(result.shortEdgeCm)} cm`} />
                   <ConcreteResultRow label="Önerilen uzun kenar" value={`${formatConcreteNumber(result.longEdgeCm)} cm`} tone="ok" />
                 </div>
+
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="Eksenel Gerilme & Kesit Kapasitesi Tahkiki"
+                    demand={Number(result.designAxialLoadKn.toFixed(1))}
+                    capacity={Number(((0.40 * result.shortEdgeCm * result.longEdgeCm * 100 * Number(concreteStrengthMpa)) / 1000).toFixed(1))}
+                    unit="kN"
+                    status="ok"
+                    explanation={`Tasarım eksenel yükü Nd = ${formatConcreteNumber(result.designAxialLoadKn)} kN. Önerilen ${result.shortEdgeCm}x${result.longEdgeCm} cm kesit brüt alanı (${result.shortEdgeCm * result.longEdgeCm} cm²), Ac,min = ${formatConcreteNumber(result.minimumAreaCm2)} cm² şartını sağlamaktadır.`}
+                  />
+                </div>
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
@@ -194,6 +216,24 @@ export function ColumnPreliminarySizingCalculator() {
             )}
           </div>
         </section>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "Düşey yük (G ve Q) ve kat adedine göre yaklaşık eksenel yük (Nd) hesabı",
+            "TS 500 ve TBDY 2018 ön boyutlandırma kuralı (Ac >= Nd / 0.40 fck)",
+            "Minimum kolon kesit boyutu kontrolü (TBDY 2018 7.3.1.1: min 300 mm)"
+          ]}
+          limitations={[
+            "Deprem ve rüzgar kaynaklı kolon eğilme momentleri (Mx, My) bu ön boyutta dikkate alınmaz",
+            "Güçlü kolon - zayıf kiriş tahkiki ve sarılma bölgesi etriye kontrolleri haricen yapılmalıdır",
+            "Narinlik (kl/r) ve ikinci mertebe etkileri nihai statik analizde incelenmelidir"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 7.4 ve TBDY 2018 Madde 7.3"
+          defaultOpen={false}
+        />
       </div>
     </ConcreteToolShell>
   );
