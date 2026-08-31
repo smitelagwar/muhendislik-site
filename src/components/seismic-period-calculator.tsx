@@ -21,6 +21,12 @@ import {
   type ShearWallInput,
   type SoilClass,
 } from "@/lib/engineering/tbdy2018";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const EARTHQUAKE_LEVELS = ["DD-1", "DD-2", "DD-3", "DD-4"] as const;
 type WallDirection = "X" | "Y";
@@ -282,7 +288,10 @@ Sae(${periodLabel}): ${format(saeAtPeriod)} g`;
         <section className="rounded-2xl border border-border bg-card shadow-sm">
           <header className="flex flex-col gap-3 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">TBDY 2018</p>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ToolScopeBadge kind="check" />
+                <ToolSourceStamp sources={["TBDY 2018 Madde 4.7.3", "TBDY 2018 Bölüm 2"]} tier="A" />
+              </div>
               <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Deprem Periyodu ve Elastik Spektrum</h1>
               <p className="mt-1 text-sm text-muted-foreground">Yeni binalar için ampirik periyot ve yatay elastik tasarım spektrumu.</p>
             </div>
@@ -344,6 +353,18 @@ Sae(${periodLabel}): ${format(saeAtPeriod)} g`;
               <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Sonuç</h2>
               {isShearWallOnly && !wallParameters ? <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-6 text-foreground">Bu sistemde Ct, TBDY 2018 Denk. 4.28a–4.28b&apos;ye göre perde geometrisiyle belirlenir. {heightError ? "Önce geçerli HN değeri girin." : "Seçili doğrultudaki tüm perde verilerini girin."}</div> : period && Number.isFinite(period) ? <div className="mt-4 rounded-xl border border-primary/25 bg-background p-4"><p className="text-sm font-medium text-muted-foreground">Ampirik periyot</p><p className="mt-1 font-mono text-3xl font-bold tracking-tight">{periodLabel} = {format(period)} <span className="text-lg font-semibold text-muted-foreground">s</span></p><div className="mt-4 border-t border-border pt-3"><div className="flex items-center gap-1.5 text-sm font-semibold"><span>1,4·{periodLabel} = {format(1.4 * period)} s</span><span title="TBDY 4.7.3.2, Denk. 4.26 ile hesaplanan hakim periyot için üst sınır referansıdır. Modal analiz programından alınan özdeğer periyotları otomatik olarak bu değere kesilmez." className="cursor-help text-muted-foreground"><Info className="h-4 w-4" /></span></div><p className="mt-1 text-xs leading-5 text-muted-foreground">Denk. 4.26 ile bulunan Tp için üst sınır referansı. TpA&apos;nın doğrudan Tp olarak kullanılması TBDY 4.7.3.3 koşullarına bağlıdır.</p></div></div> : <p className="mt-4 text-sm text-muted-foreground">HN girildiğinde ampirik periyot gösterilir.</p>}
               {soilClass === "ZF" ? <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm leading-6 text-foreground"><strong>ZF için sahaya özel zemin davranış analizi gerekir.</strong><br />TBDY 2018 §16.5 uyarınca Fs, F1, SDS, SD1, TA, TB ve elastik spektrum otomatik hesaplanmaz.</div> : spectrum ? <div className="mt-4 grid grid-cols-2 gap-3 text-sm">{[["Fs", format(spectrum.fs)], ["F1", format(spectrum.f1)], ["SDS", format(spectrum.sds)], ["SD1", format(spectrum.sd1)], ["TA", `${format(spectrum.ta)} s`], ["TB", `${format(spectrum.tb)} s`]].map(([label, value]) => <div key={label} className="rounded-lg border border-border bg-background px-3 py-2.5"><span className="text-xs text-muted-foreground">{label}</span><p className="mt-0.5 font-mono font-semibold">{value}</p></div>)}{saeAtPeriod !== null && <div className="col-span-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5"><span className="text-xs text-muted-foreground">Sae({periodLabel})</span><p className="mt-0.5 font-mono font-semibold">{format(saeAtPeriod)} g</p></div>}</div> : <p className="mt-4 text-sm text-muted-foreground">Geçerli Ss ve S1 değerleriyle spektrum parametreleri gösterilir.</p>}
+              {period && Number.isFinite(period) && (
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="TBDY 2018 Ampirik Periyot Üst Sınırı"
+                    demand={Number(period.toFixed(3))}
+                    capacity={Number((1.4 * period).toFixed(3))}
+                    unit="s"
+                    status="ok"
+                    explanation={`Hesaplanan ampirik periyot ${periodLabel} = ${format(period)} s, TBDY Denklem 4.26 üst sınır referansı (1.4x${periodLabel}) = ${format(1.4 * period)} s. TA = ${format(spectrum?.ta ?? 0)} s, TB = ${format(spectrum?.tb ?? 0)} s.`}
+                  />
+                </div>
+              )}
             </aside>
           </div>
 
@@ -356,6 +377,24 @@ Sae(${periodLabel}): ${format(saeAtPeriod)} g`;
 
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-7"><p className="text-xs text-muted-foreground">{actionFeedback === "copied" ? "Hesap özeti kopyalandı." : actionFeedback === "shared" ? "Hesap özeti paylaşıldı." : actionFeedback === "copy-failed" ? "Kopyalama yapılamadı; tarayıcı iznini kontrol edin." : ""}</p><div className="flex gap-2"><button type="button" onClick={handleShare} disabled={!summaryText} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Share2 className="h-4 w-4" />Paylaş</button><button type="button" onClick={handleCopy} disabled={!summaryText} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"><Copy className="h-4 w-4" />Kopyala</button></div></footer>
         </section>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Madde 4.7.3 uyarınca taşıyıcı sistem tipine göre ampirik doğal periyot (TpA / Tp) hesabı",
+              "Perde sistemleri için Denklem 4.28a ve 4.28b ile eşdeğer alan (At) ve Ct katsayısı hesabı",
+              "TBDY 2018 Bölüm 2 yatay elastik tasarım ivme spektrumu (Sae) ve köşe periyotları (TA, TB, TL) tayini"
+            ]}
+            limitations={[
+              "Ampirik periyot ön boyutlandırma ve üst sınır kıyası içindir; dinamik modal analiz periyotları (özdeğer analizi) yerine doğrudan kullanılamaz",
+              "ZF zemin sınıfı için TBDY Madde 16.5 uyarınca sahaya özel davranış analizi zorunludur; spektrum otomatik türetilmez",
+              "Düşey elastik tasarım ivme spektrumu (Sae,d) harici kontrol edilmelidir"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Bölüm 2 (Deprem Yer Hareketi) ve Madde 4.7.3 (Eşdeğer Deprem Yükü Yöntemi)"
+            defaultOpen={false}
+          />
+        </div>
       </div>
 
       {pasteDialogOpen && <div role="dialog" aria-modal="true" aria-labelledby="paste-dialog-title" className="fixed inset-0 z-50 flex items-end bg-black/50 p-0 sm:items-center sm:justify-center sm:p-6"><div className="w-full rounded-t-2xl border border-border bg-card shadow-xl sm:max-w-2xl sm:rounded-2xl"><div className="flex items-start justify-between gap-4 border-b border-border p-5"><div><h2 id="paste-dialog-title" className="text-lg font-bold">AFAD raporundan yapıştır</h2><p className="mt-1 text-sm text-muted-foreground">TDTH detay raporundan kopyaladığınız metin yalnız bu tarayıcıda okunur; sunucuya gönderilmez.</p></div><button type="button" onClick={() => setPasteDialogOpen(false)} aria-label="Pencereyi kapat" className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-5 w-5" /></button></div><div className="p-5"><label htmlFor="tdth-text" className="text-sm font-semibold">Rapor metni</label><textarea id="tdth-text" value={pasteText} onChange={(event) => { setPasteText(event.target.value); setParsedReport(null); }} rows={8} className="mt-2 w-full rounded-lg border border-border bg-background p-3 font-mono text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Ss = 0,860&#10;S1 = 0,229&#10;Deprem Yer Hareketi Düzeyi: DD-2&#10;Yerel Zemin Sınıfı: ZD" />{parsedReport && <div className="mt-4 rounded-xl border border-border bg-muted/25 p-4"><h3 className="font-semibold">Bulunan veriler</h3><div className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4"><div><span className="text-xs text-muted-foreground">Deprem düzeyi</span><p className="font-mono">{parsedReport.earthquakeLevel ?? "Bulunamadı"}</p></div><div><span className="text-xs text-muted-foreground">Ss</span><p className="font-mono">{parsedReport.ss === undefined ? "Bulunamadı" : format(parsedReport.ss)}</p></div><div><span className="text-xs text-muted-foreground">S1</span><p className="font-mono">{parsedReport.s1 === undefined ? "Bulunamadı" : format(parsedReport.s1)}</p></div><div><span className="text-xs text-muted-foreground">Zemin</span><p className="font-mono">{parsedReport.soilClass ?? "Bulunamadı"}</p></div></div>{!hasParsedValues && <p className="mt-3 text-xs leading-5 text-destructive">Yapıştırılan metinde desteklenen bir alan bulunamadı.</p>}{!parsedReport.soilClass && <p className="mt-3 text-xs leading-5 text-muted-foreground">Yerel zemin sınıfı rapor metninde bulunamadı. Mevcut {soilClass} değeri değiştirilmez.</p>}{parsedReport.soilClass && <p className="mt-3 text-xs leading-5 text-muted-foreground">Raporda seçili zemin sınıfı: {parsedReport.soilClass}. Proje zemin/temel etüdüyle uyumunu kontrol edin.</p>}{pasteMismatches.length > 0 && <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-5 text-foreground">Rapor sonucu ile yeniden hesaplanan sonuç eşleşmiyor ({pasteMismatches.map((item) => item.field.toUpperCase()).join(", ")}). Yapıştırılan metni ve zemin sınıfını kontrol edin. Raporun türetilmiş değerleri kaynak olarak kullanılmaz.</p>}</div>}</div><footer className="flex flex-wrap justify-end gap-2 border-t border-border p-5"><button type="button" onClick={() => setPasteDialogOpen(false)} className="min-h-11 rounded-lg border border-border bg-background px-4 text-sm font-semibold hover:bg-muted">Vazgeç</button>{parsedReport ? <button type="button" onClick={applyParsedReport} disabled={!hasParsedValues} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Uygula</button> : <button type="button" onClick={handlePasteParse} disabled={!pasteText.trim()} className="min-h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Verileri bul</button>}</footer></div></div>}
