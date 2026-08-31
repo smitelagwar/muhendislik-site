@@ -824,7 +824,9 @@
     "secondaryAltTr": "Temel Donatısı (Teknik Detay) — Temel donatı bindirme boyu (ek boyu) ve şaşırtmalı ek yerleşimi teknik detayı",
     "secondaryDifference": "Primary sahadaki genel donatı örgüsünü gösterirken, secondary donatı bindirme boyu ve şaşırtmalı ek kurallarını kesit olarak öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "temel-betonlama",
@@ -869,7 +871,9 @@
     "secondaryAltTr": "Temel Betonlama (Teknik Detay) — Dökülen taze betonun lazer nivo kontrolünde helikopter perdahı öncesi mastarlanması",
     "secondaryDifference": "Primary pompadan beton akışını gösterirken, secondary dökülen betonun yüzey kot doğruluğu için mastarlanma aşamasını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "temel-su-yalitimi",
@@ -915,7 +919,9 @@
     "secondaryAltTr": "Temel Su Yalıtımı (Teknik Detay) — Şalümö alevi ile bitümlü su yalıtım membranının ek yerlerinin eritilerek kaynaklanması",
     "secondaryDifference": "Primary sistemin bina köşesindeki katman kesitini gösterirken, secondary sahada şalümö ile membran ek yeri kaynaklama tekniğini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "kaba-insaat",
