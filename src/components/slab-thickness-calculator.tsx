@@ -11,6 +11,12 @@ import { formatConcreteNumber, formatMillimetersAsCentimeters, parsePositiveCent
 import { SLAB_BAR_DIAMETER_OPTIONS, SLAB_LOAD_OPTIONS, SLAB_STEEL_OPTIONS, SLAB_TYPE_OPTIONS, calculateSlabMinimumRebar, calculateSlabThickness } from "@/lib/concrete-tools/slab";
 import type { ConcreteStatusTone } from "@/lib/concrete-tools/types";
 import { cn } from "@/lib/utils";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 function getStatusLabel(tone: ConcreteStatusTone) {
   switch (tone) {
@@ -74,6 +80,11 @@ export function SlabThicknessCalculator() {
       title="Döşeme kalınlığı"
       description="Açıklık-kalınlık oranı, minimum döşeme kalınlığı ve 1 metre şerit için minimum donatı hesabı tek ekranda yer alır. Kaynak dashboard’daki iki blok birlikte taşındı."
     >
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <ToolScopeBadge kind="preliminary" />
+        <ToolSourceStamp sources={["TS 500 Madde 11.2", "TBDY 2018"]} tier="A" />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
         <section className="space-y-6">
           <div className="tool-panel rounded-[28px] p-6">
@@ -232,6 +243,17 @@ export function SlabThicknessCalculator() {
                   <ConcreteResultRow label="1 cm yuvarlama" value={`${formatMillimetersAsCentimeters(thicknessResult.roundedThicknessMm)} cm`} />
                   <ConcreteResultRow label="Önerilen kalınlık" value={`${formatMillimetersAsCentimeters(thicknessResult.recommendedThicknessMm)} cm`} tone="ok" />
                 </div>
+
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="TS 500 Sehim & Kalınlık Tahkiki"
+                    demand={Number(formatMillimetersAsCentimeters(thicknessResult.minimumThicknessMm))}
+                    capacity={Number(formatMillimetersAsCentimeters(thicknessResult.recommendedThicknessMm))}
+                    unit="cm"
+                    status={thicknessResult.status.tone === "ok" ? "ok" : "warn"}
+                    explanation={`TS 500 Madde 11.2 uyarınca teorik minimum kalınlık ${formatMillimetersAsCentimeters(thicknessResult.minimumThicknessMm)} cm, önerilen uygulama kalınlığı ${formatMillimetersAsCentimeters(thicknessResult.recommendedThicknessMm)} cm (Açıklık oranı Ly/Lx = ${formatConcreteNumber(thicknessResult.aspectRatio)}).`}
+                  />
+                </div>
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
@@ -276,6 +298,24 @@ export function SlabThicknessCalculator() {
             )}
           </div>
         </section>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "İki doğrultuda ve tek doğrultuda çalışan plak döşemelerde TS 500 sehim sınırı kalınlık hesabı",
+            "1 metre döşeme şeridi için minimum çekme donatısı (As,min) ve donatı aralığı hesabı",
+            "Kenar süreklilik koşullarına göre açıklık/kalınlık narinlik katsayıları karşılaştırması"
+          ]}
+          limitations={[
+            "Kirişsiz (mantar) döşeme zımbalama veya asmolen/kaset nervür detaylarını içermez",
+            "Döşeme içi yoğun konsantre veya çizgisel yükler için harici sonlu elemanlar analizi yapılmalıdır",
+            "Döşeme diyafram rijitlik ve düzlem içi gerilme analizlerini kapsamaz"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 11.2 ve TBDY 2018 Bölüm 7"
+          defaultOpen={false}
+        />
       </div>
     </ConcreteToolShell>
   );
