@@ -6,6 +6,7 @@ import {
 } from "./cad-studio-ribbon-desktop";
 import { CadResponsiveRibbon } from "./cad-responsive-ribbon";
 import { CadBlankCanvasRecovery } from "./cad-blank-canvas-recovery";
+import { CadCalibrationOverlay } from "./cad-calibration-overlay";
 
 export type { CadStudioRibbonProps } from "./cad-studio-ribbon-desktop";
 export { CAD_MARKUP_COLORS, CAD_TEXT_SIZES } from "./cad-studio-ribbon-desktop";
@@ -22,6 +23,7 @@ export function CadStudioRibbon(props: CadStudioRibbonProps) {
       </div>
       <CadResponsiveRibbon {...props} />
       <CadBlankCanvasRecovery onFitView={props.onFitView} />
+      <CadCalibrationOverlay />
     </>
   );
 }

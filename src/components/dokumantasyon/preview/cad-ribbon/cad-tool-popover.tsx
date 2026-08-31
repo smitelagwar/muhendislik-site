@@ -22,6 +22,12 @@ export interface CadToolPopoverProps {
 
 const GHOST_CLICK_GUARD_MS = 800;
 const CAD_GLOBAL_SINGLE_KEY_SHORTCUTS = new Set(["a", "f", "m", "p", "t", "/"]);
+export const CAD_CLOSE_TOOL_POPOVERS_EVENT = "cad:close-tool-popovers";
+
+export function closeCadToolPopovers(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(CAD_CLOSE_TOOL_POPOVERS_EVENT));
+}
 
 function suppressDismissPointerSequence(originalEvent: PointerEvent) {
   if (typeof document === "undefined") return;
@@ -99,8 +105,26 @@ export function CadToolPopover({
   className,
   testId,
 }: CadToolPopoverProps) {
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  const controlled = open !== undefined;
+  const resolvedOpen = controlled ? open : internalOpen;
+
+  const setResolvedOpen = React.useCallback(
+    (next: boolean) => {
+      if (!controlled) setInternalOpen(next);
+      onOpenChange?.(next);
+    },
+    [controlled, onOpenChange]
+  );
+
+  React.useEffect(() => {
+    const close = () => setResolvedOpen(false);
+    window.addEventListener(CAD_CLOSE_TOOL_POPOVERS_EVENT, close);
+    return () => window.removeEventListener(CAD_CLOSE_TOOL_POPOVERS_EVENT, close);
+  }, [setResolvedOpen]);
+
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange} modal>
+    <DropdownMenu open={resolvedOpen} onOpenChange={setResolvedOpen} modal>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent
         align={align}

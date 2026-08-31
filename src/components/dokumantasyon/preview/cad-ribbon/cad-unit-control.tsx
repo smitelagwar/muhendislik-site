@@ -6,7 +6,22 @@ import type {
   CadMeasurementAreaUnit,
   CadMeasurementLengthUnit,
 } from "@/lib/dokumantasyon/cad-review/store";
+import {
+  CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT,
+  resolveCadSourceUnitContext,
+  type CadSourceUnitContext,
+} from "@/lib/dokumantasyon/cad-review/units";
 import { cn } from "@/lib/utils";
+import { CAD_START_CALIBRATION_EVENT } from "../cad-calibration-overlay";
+import { closeCadToolPopovers } from "./cad-tool-popover";
+
+function sourceLabel(source: CadSourceUnitContext | null): string {
+  if (!source || source.source === "unknown") return "Birim yok / kalibrasyon gerekli";
+  if (source.source === "dxf-insunits") return `${source.sourceUnit} (DXF)`;
+  if (source.source === "manual") return `${source.sourceUnit} (manuel)`;
+  if (source.source === "calibration") return "Kalibre edilmiş çizim";
+  return String(source.sourceUnit);
+}
 
 export function CadUnitControl({
   lengthUnit,
@@ -27,6 +42,26 @@ export function CadUnitControl({
   onAreaUnitChange?: (unit: CadMeasurementAreaUnit) => void;
   onAreaPrecisionChange?: (precision: number) => void;
 }) {
+  const [source, setSource] = React.useState<CadSourceUnitContext | null>(null);
+
+  React.useEffect(() => {
+    const refresh = () => setSource(resolveCadSourceUnitContext());
+    refresh();
+    const timer = window.setTimeout(refresh, 500);
+    window.addEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
+    };
+  }, []);
+
+  const startCalibration = () => {
+    closeCadToolPopovers();
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event(CAD_START_CALIBRATION_EVENT));
+    });
+  };
+
   return (
     <div className="space-y-3" data-cad-unit-control="true">
       <div>
@@ -116,6 +151,23 @@ export function CadUnitControl({
           </div>
         </div>
       ) : null}
+
+      <div className="rounded-md border border-border/80 bg-muted/30 p-2" data-testid="cad-source-unit-card">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Çizim Birimi</div>
+            <div className="truncate text-xs font-medium" data-testid="cad-source-unit-label">Kaynak: {sourceLabel(source)}</div>
+          </div>
+          <button
+            type="button"
+            onClick={startCalibration}
+            className="h-8 shrink-0 rounded-md border border-border bg-background px-2.5 text-[11px] font-semibold outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            data-testid="cad-calibration-start"
+          >
+            Kalibre Et
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
