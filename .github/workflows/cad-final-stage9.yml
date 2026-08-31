@@ -91,6 +91,12 @@ jobs:
       - name: Install Chromium for release browser gates
         run: npx playwright install --with-deps chromium
 
+      - name: Upstream DXF parser smoke
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+          PLAYWRIGHT_PORT: "3030"
+        run: npx playwright test tests/document-studio/cad-dxf.spec.ts --project=chromium
+
       - name: Stage 9 Golden Paths — Pen, Area, Calibration
         env:
           PLAYWRIGHT_PRODUCTION_SERVER: "1"
