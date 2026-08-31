@@ -163,3 +163,50 @@ export const cadReviewPayloadSchema = z.object({
 });
 
 export type CadReviewPayload = z.infer<typeof cadReviewPayloadSchema>;
+
+const CAD_REVIEW_STORAGE_PREFIX = "dok_cad_review_v1_";
+
+/**
+ * Loads locally persisted review document for offline / instant recovery.
+ */
+export function loadLocalCadReview(fileId: string): CadReviewDocument | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(`${CAD_REVIEW_STORAGE_PREFIX}${fileId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.items)) {
+      return parsed as CadReviewDocument;
+    }
+  } catch {
+    // ignore corrupt data
+  }
+  return null;
+}
+
+/**
+ * Saves review document directly to browser local storage for persistent recovery.
+ */
+export function saveLocalCadReview(fileId: string, doc: CadReviewDocument): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `${CAD_REVIEW_STORAGE_PREFIX}${fileId}`,
+      JSON.stringify(doc)
+    );
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+/**
+ * Clears local review document cache.
+ */
+export function clearLocalCadReview(fileId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(`${CAD_REVIEW_STORAGE_PREFIX}${fileId}`);
+  } catch {
+    // ignore
+  }
+}

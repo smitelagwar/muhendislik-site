@@ -54,7 +54,12 @@ import { CadMarkupFacade } from "@/lib/dokumantasyon/cad-review/markup-facade";
 import { CadMarkupController } from "@/lib/dokumantasyon/cad-review/markup-controller";
 import { CadFreehandController } from "@/lib/dokumantasyon/cad-review/freehand-controller";
 import { attachCadReviewKeyboardShortcuts } from "./cad-review-shortcuts";
-import type { CadReviewDocument, CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
+import {
+  type CadReviewDocument,
+  type CadReviewItem,
+  loadLocalCadReview,
+  saveLocalCadReview,
+} from "@/lib/dokumantasyon/cad-review/schema";
 import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -176,6 +181,8 @@ export function DokCadUpstreamViewer({
     precision: 2,
     color: "#3b82f6",
   });
+  const [saveStatus, setSaveStatus] = useState<"clean" | "dirty" | "saving">("clean");
+  const saveTimeoutRef = useRef<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -233,12 +240,12 @@ export function DokCadUpstreamViewer({
     };
   }, [state]);
 
-  // ── CAD Review V1: Store initialization when viewer becomes ready ──────────
+  // ── CAD Review V1: Store initialization & Auto-Save Persistence ──────────
   useEffect(() => {
     if (!reviewEnabled || state !== "ready") return;
     if (reviewStoreRef.current) return; // already initialized
 
-    const emptyDoc: CadReviewDocument = {
+    const fallbackDoc: CadReviewDocument = {
       schemaVersion: 1,
       fileId,
       sourceVersionKey: `${fileId}:${accessUrl}`,
@@ -249,38 +256,71 @@ export function DokCadUpstreamViewer({
       updatedAt: new Date().toISOString(),
     };
 
-    const store = new CadReviewStore(emptyDoc);
+    // 1. Check local storage for instant offline recovery
+    const localDoc = loadLocalCadReview(fileId);
+    const initialDoc = localDoc && localDoc.items?.length ? localDoc : fallbackDoc;
+
+    const store = new CadReviewStore(initialDoc);
     reviewStoreRef.current = store;
 
-    // Try to load persisted review from API
+    queueMicrotask(() => {
+      if (reviewStoreRef.current === store) {
+        setReviewItems(store.getItems());
+        setReviewCanUndo(store.canUndo());
+        setReviewCanRedo(store.canRedo());
+        setReviewDocument(store.getDocument());
+      }
+    });
+
+    // 2. Query server in background to sync if local storage was empty
     fetch(`/api/dokumantasyon/files/${fileId}/review`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.items?.length && reviewStoreRef.current === store) {
-          // Re-initialize with loaded data
-          const loadedDoc: CadReviewDocument = {
-            ...emptyDoc,
-            items: data.items as CadReviewDocument["items"],
-            revision: data.revision ?? 0,
-          };
-          reviewStoreRef.current = new CadReviewStore(loadedDoc);
-          setReviewItems(reviewStoreRef.current.getItems());
-          setReviewCanUndo(reviewStoreRef.current.canUndo());
-          setReviewCanRedo(reviewStoreRef.current.canRedo());
+          if (store.getItems().length === 0) {
+            const loadedDoc: CadReviewDocument = {
+              ...fallbackDoc,
+              items: data.items as CadReviewDocument["items"],
+              revision: data.revision ?? 0,
+            };
+            reviewStoreRef.current = new CadReviewStore(loadedDoc);
+            setReviewItems(reviewStoreRef.current.getItems());
+            setReviewCanUndo(reviewStoreRef.current.canUndo());
+            setReviewCanRedo(reviewStoreRef.current.canRedo());
+            setReviewDocument(reviewStoreRef.current.getDocument());
+            saveLocalCadReview(fileId, loadedDoc);
+          }
         }
       })
       .catch(() => {/* silently ignore – server may not have a review yet */});
 
     const unsubscribe = store.subscribe(() => {
       if (reviewStoreRef.current) {
+        const curDoc = reviewStoreRef.current.getDocument();
         setReviewItems([...reviewStoreRef.current.getItems()]);
         setReviewCanUndo(reviewStoreRef.current.canUndo());
         setReviewCanRedo(reviewStoreRef.current.canRedo());
-        setReviewDocument({ ...reviewStoreRef.current.getDocument() });
+        setReviewDocument({ ...curDoc });
         setReviewDraft({ ...reviewStoreRef.current.getDraft() });
+
+        // Auto-save to localStorage
+        saveLocalCadReview(fileId, curDoc);
+        setSaveStatus("saving");
+        if (saveTimeoutRef.current) {
+          window.clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = window.setTimeout(() => {
+          setSaveStatus("clean");
+        }, 500);
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      unsubscribe();
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [reviewEnabled, state, fileId, accessUrl]);
 
   // ── CAD Review V1: Controllers (Markup & Freehand) Initialization ──────────
@@ -1037,7 +1077,7 @@ export function DokCadUpstreamViewer({
           canRedo={reviewCanRedo}
           onUndo={handleReviewUndo}
           onRedo={handleReviewRedo}
-          saveStatus="clean"
+          saveStatus={saveStatus}
           onDownloadOriginal={handleDownloadOriginal}
           onDownloadDxf={handleDownloadDxfRevision}
           onOpenExportDialog={() => setExportDialogOpen(true)}
