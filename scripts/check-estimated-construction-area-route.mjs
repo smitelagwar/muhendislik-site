@@ -126,6 +126,10 @@ async function main() {
     await page.setViewport({ width: 1440, height: 1600, deviceScaleFactor: 1 });
     const response = await page.goto(legacyUrl, { waitUntil: "networkidle2", timeout: 30000 });
     assert(response?.status() === 200, `Ruhsat route returned status ${response?.status() ?? "unknown"}.`);
+    const advancedTab = await page.$('[data-testid="ruhsat-mode-advanced"]');
+    if (advancedTab) {
+      await advancedTab.click();
+    }
     await page.waitForSelector('[data-testid="ruhsat-input-flow"]', { visible: true });
     await page.waitForFunction(() => window.location.search === "", { timeout: 5000 });
     steps.push("canonical-url-and-empty-state");

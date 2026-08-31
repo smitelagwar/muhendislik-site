@@ -58,6 +58,8 @@
     "check:yapi-denetim": "npm run check:yapi-denetim-data && npm run check:yapi-denetim-engine && npm run check:yapi-denetim-ui && npm run check:yapi-denetim-export",
     "check:estimated-area": "node scripts/check-estimated-construction-area-route.mjs",
     "check:estimated-area-pdf": "tsx scripts/check-estimated-construction-area-pdf.mjs",
+    "check:quick-feasibility": "tsx scripts/check-quick-feasibility.ts",
+    "check:typology-profiles": "tsx scripts/check-typology-profiles.ts",
     "check:ruhsat-domain": "tsx scripts/check-ruhsat-on-fizibilite-domain.ts",
     "check:ruhsat-engine": "tsx scripts/check-ruhsat-on-fizibilite-engine.ts",
     "check:ruhsat-fortress": "tsx scripts/check-ruhsat-on-fizibilite-fortress.ts",

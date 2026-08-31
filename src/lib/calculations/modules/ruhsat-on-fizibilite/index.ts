@@ -6,7 +6,37 @@ export {
 } from "./versions";
 
 export { evaluateConfidence } from "./confidence";
-export { calculateRuhsatFeasibility } from "./engine";
+export { calculateRuhsatFeasibility, calculateLegalRightsOnly } from "./engine";
+export {
+  calculateQuickFeasibility,
+  calculateImpliedMinFloorPlates,
+  calculateQuickTypologyMatrix,
+  calculateReverseUnitSizing,
+  type ComputationScope,
+  type QuickFeasibilityRequest,
+  type QuickFeasibilityResult,
+  type QuickLegalRights,
+  type QuickTriggerState,
+  type Range,
+  type ReverseFitClass,
+  type ReverseSizingResult,
+  type TypologyCardResult,
+} from "./quick-feasibility";
+export {
+  buildQuickFeasibilityViewModel,
+  type QuickFeasibilityViewModel,
+  type NextBestInputItem,
+} from "./view-model-builder";
+export {
+  TYPOLOGY_PROFILES,
+  UNIT_TYPOLOGIES,
+  COMFORT_BANDS,
+  QUICK_RESERVE_ENVELOPE,
+  type ComfortBand,
+  type TypologyProfileBand,
+  type UnitTypology,
+  type UnitTypologyProfile,
+} from "./typology-profiles";
 export { createDefaultScenarioAssumptionSet } from "./default-assumptions";
 export { SCENARIO_IDS } from "./engine-types";
 export { evaluateTechnicalTriggers } from "./technical-triggers";

@@ -63,10 +63,67 @@ export interface FormIssue {
   message: string;
 }
 
+import {
+  TYPOLOGY_PROFILES,
+  type UnitTypology,
+} from "@/lib/calculations/modules/ruhsat-on-fizibilite";
+
 const DEFAULT_ASSUMPTIONS = createDefaultScenarioAssumptionSet();
 
 function stringValue(value: number): string {
   return String(value).replace(".", ",");
+}
+
+export function getScenarioAssumptionsForTypology(
+  unitType: "1+1" | "2+1" | "3+1" | "4+1" | "MIXED" | ""
+): Record<ScenarioId, ScenarioAssumptionFormState> {
+  const base = {
+    COMPACT_MAX_UNITS: scenarioFormState("COMPACT_MAX_UNITS"),
+    BALANCED: scenarioFormState("BALANCED"),
+    COMFORT_FEWER_UNITS: scenarioFormState("COMFORT_FEWER_UNITS"),
+  };
+
+  const ut: UnitTypology | null =
+    unitType === "1+1" || unitType === "2+1" || unitType === "3+1" || unitType === "4+1"
+      ? unitType
+      : null;
+
+  if (!ut) {
+    return base;
+  }
+
+  const profile = TYPOLOGY_PROFILES[ut];
+  if (!profile) {
+    return base;
+  }
+
+  // Compact, Balanced ve Comfort için profilden orta değerleri veya mantıklı başlangıç değerlerini al
+  const compactNet = Math.round((profile.bands.COMPACT.targetNetAreaM2.min + profile.bands.COMPACT.targetNetAreaM2.max) / 2);
+  const compactGross = Math.round((profile.bands.COMPACT.targetClosedGrossAreaM2.min + profile.bands.COMPACT.targetClosedGrossAreaM2.max) / 2);
+
+  const balancedNet = Math.round((profile.bands.BALANCED.targetNetAreaM2.min + profile.bands.BALANCED.targetNetAreaM2.max) / 2);
+  const balancedGross = Math.round((profile.bands.BALANCED.targetClosedGrossAreaM2.min + profile.bands.BALANCED.targetClosedGrossAreaM2.max) / 2);
+
+  const comfortNet = Math.round((profile.bands.COMFORT.targetNetAreaM2.min + profile.bands.COMFORT.targetNetAreaM2.max) / 2);
+  const comfortGross = Math.round((profile.bands.COMFORT.targetClosedGrossAreaM2.min + profile.bands.COMFORT.targetClosedGrossAreaM2.max) / 2);
+
+  return {
+    COMPACT_MAX_UNITS: {
+      ...base.COMPACT_MAX_UNITS,
+      targetNetAreaM2: stringValue(compactNet),
+      targetClosedGrossAreaM2: stringValue(compactGross),
+    },
+    BALANCED: {
+      ...base.BALANCED,
+      targetNetAreaM2: stringValue(balancedNet),
+      targetClosedGrossAreaM2: stringValue(balancedGross),
+    },
+    COMFORT_FEWER_UNITS: {
+      ...base.COMFORT_FEWER_UNITS,
+      targetNetAreaM2: stringValue(comfortNet),
+      targetClosedGrossAreaM2: stringValue(comfortGross),
+    },
+  };
 }
 
 function scenarioFormState(id: ScenarioId): ScenarioAssumptionFormState {

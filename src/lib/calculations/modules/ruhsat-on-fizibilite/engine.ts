@@ -383,6 +383,10 @@ function calculationTrace(
   };
 }
 
+export function calculateLegalRightsOnly(request: FeasibilityCalculationRequest): LegalRightsResult {
+  return buildLegalRights(request);
+}
+
 function buildLegalRights(request: FeasibilityCalculationRequest): LegalRightsResult {
   const parcelAreaM2 = knownNumber(request.input.parcel.areaM2);
   const taks = knownNumber(request.input.parcel.taks);
