@@ -35,6 +35,16 @@ function response(status: number, body: unknown): Response {
   });
 }
 
+function acknowledgeMetadata(current: CadReviewDocument, saved: CadReviewDocument): CadReviewDocument {
+  return {
+    ...current,
+    revision: saved.revision,
+    updatedAt: saved.updatedAt,
+    sourceVersionKey: saved.sourceVersionKey,
+    sourceSha256: saved.sourceSha256,
+  };
+}
+
 async function queueGate() {
   let document = makeDocument({ serverRevisionId: "rev-a" });
   let patchCalls = 0;
@@ -76,7 +86,7 @@ async function queueGate() {
     fileId: document.fileId,
     getDocument: () => document,
     applyServerDocument: (next) => { document = next; },
-    acknowledgeServerSave: (next) => { document = next; },
+    acknowledgeServerSave: (next) => { document = acknowledgeMetadata(document, next); },
     saveLocal: (next) => { localSnapshots.push(next); },
     fetchImpl,
     debounceMs: 12,
@@ -93,7 +103,7 @@ async function queueGate() {
     });
     coordinator.markDocumentChanged();
   }
-  await wait(40);
+  await wait(45);
   assert.equal(patchCalls, 1, "rapid committed changes must collapse into one debounced PATCH");
   assert.equal(lastPatchItems, 20, "debounced save must send the latest snapshot");
   assert.equal(maxInFlight, 1, "save queue must never exceed one in-flight request");
@@ -107,9 +117,10 @@ async function queueGate() {
   document = makeDocument({ revision: serverRevision, serverRevisionId: "rev-a", items: [{ a: 1 } as never, { b: 2 } as never] });
   coordinator.markDocumentChanged();
   await firstFlush;
-  await wait(30);
+  await wait(35);
   assert.equal(maxInFlight, 1, "changes during save must wait behind the active request");
   assert.equal(lastPatchItems, 2, "queued save must eventually persist the latest snapshot");
+  assert.equal(coordinator.getState().status, "clean");
   coordinator.dispose();
 }
 
@@ -140,7 +151,7 @@ async function errorAndRetryGate() {
     fileId: document.fileId,
     getDocument: () => document,
     applyServerDocument: (next) => { document = next; },
-    acknowledgeServerSave: (next) => { document = next; },
+    acknowledgeServerSave: (next) => { document = acknowledgeMetadata(document, next); },
     saveLocal: () => { localWrites += 1; },
     fetchImpl,
     debounceMs: 5,
@@ -166,7 +177,7 @@ async function revisionConflictGate() {
     fileId: document.fileId,
     getDocument: () => document,
     applyServerDocument: (next) => { document = next; },
-    acknowledgeServerSave: (next) => { document = next; },
+    acknowledgeServerSave: (next) => { document = acknowledgeMetadata(document, next); },
     saveLocal: () => {},
     fetchImpl: async (_input, init) => {
       if (!init || init.method === "GET") {
@@ -231,15 +242,21 @@ function sourceContractGate() {
   const persistence = source("src/lib/dokumantasyon/cad-review/persistence.ts");
   const activeStore = source("src/lib/dokumantasyon/cad-review/active-store.ts");
   const saveUi = source("src/lib/dokumantasyon/cad-review/save-state-ui.ts");
+  const preferences = source("src/lib/dokumantasyon/cad-review/ui-preferences.ts");
   assert.ok(route.includes("export async function PATCH"));
   assert.ok(route.includes("status: 409"));
   assert.ok(route.includes("serverRevisionId"));
   assert.ok(persistence.includes("debounceMs ?? 600"));
   assert.ok(persistence.includes("private inFlight = false"));
   assert.ok(persistence.includes("private revisionBlocked = false"));
-  assert.ok(activeStore.includes("markDocumentChanged"));
+  assert.ok(persistence.includes("saveStartVersion"));
+  assert.ok(activeStore.includes("markDocumentMutation"));
   assert.ok(saveUi.includes("Sunucuya kaydedildi"));
   assert.ok(saveUi.includes("Yerelde kaydedildi · Sunucu hatası"));
+  assert.ok(preferences.includes("CAD_STUDIO_UI_PREFERENCES_KEY"));
+  assert.ok(!preferences.includes("activeTool:"));
+  assert.ok(!preferences.includes("hoveredItem"));
+  assert.ok(!preferences.includes("draftItem"));
 }
 
 await queueGate();

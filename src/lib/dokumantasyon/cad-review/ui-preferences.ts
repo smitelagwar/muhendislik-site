@@ -66,13 +66,10 @@ export function saveCadStudioUiPreferences(
 }
 
 let bridgeInstalled = false;
-let restoreApplied = false;
 
 /**
- * Stage 5 compatibility bridge for the existing viewer state ownership.
- * It persists only explicitly allowed UI preferences and restores them through
- * the same public Ribbon controls; active tool, hover, draft geometry and
- * popover state are deliberately never observed or written.
+ * Persists only the Stage 5 allow-list. Active tool, hover, half-complete
+ * geometry and popover state are intentionally absent from this contract.
  */
 export function installCadStudioUiPreferencesBridge(): void {
   if (bridgeInstalled || typeof window === "undefined" || typeof document === "undefined") return;
@@ -87,27 +84,40 @@ export function installCadStudioUiPreferencesBridge(): void {
     const target = event.target as HTMLElement | null;
     const button = target?.closest<HTMLElement>("[data-testid]");
     const testId = button?.dataset.testid;
-    if (!testId) return;
+    if (!testId || !button) return;
 
     if (testId === "cad-display-source") saveCadStudioUiPreferences({ displayMode: "source" }, storage);
     if (testId === "cad-display-monochrome") saveCadStudioUiPreferences({ displayMode: "monochrome" }, storage);
     if (testId === "cad-display-lineweight") {
-      const current = loadCadStudioUiPreferences(storage);
-      saveCadStudioUiPreferences({ lineWeightVisible: !current.lineWeightVisible }, storage);
+      saveCadStudioUiPreferences({ lineWeightVisible: button.dataset.cadActive !== "true" }, storage);
     }
     if (testId === "cad-bg-autocad") saveCadStudioUiPreferences({ backgroundColor: "autocad" }, storage);
     if (testId === "cad-bg-black") saveCadStudioUiPreferences({ backgroundColor: "black" }, storage);
     if (testId === "cad-bg-white") saveCadStudioUiPreferences({ backgroundColor: "white" }, storage);
-    if (testId === "cad-tool-search-panel") saveCadStudioUiPreferences({ sidePanel: "search" }, storage);
-    if (testId === "cad-tool-measurements-panel") saveCadStudioUiPreferences({ sidePanel: "measurements" }, storage);
-    if (testId === "cad-tool-comments-panel") saveCadStudioUiPreferences({ sidePanel: "comments" }, storage);
-    if (testId === "cad-tool-layers") saveCadStudioUiPreferences({ sidePanel: "layers" }, storage);
+
+    const sidePanel =
+      testId === "cad-tool-search-panel"
+        ? "search"
+        : testId === "cad-tool-measurements-panel"
+          ? "measurements"
+          : testId === "cad-tool-comments-panel"
+            ? "comments"
+            : testId === "cad-tool-layers"
+              ? "layers"
+              : undefined;
+    if (sidePanel !== undefined) {
+      saveCadStudioUiPreferences(
+        { sidePanel: button.dataset.cadActive === "true" ? null : sidePanel },
+        storage
+      );
+    }
 
     const color = button.getAttribute("data-cad-color");
     if (validColor(color)) {
       const current = loadCadStudioUiPreferences(storage);
+      const normalized = color.toUpperCase();
       saveCadStudioUiPreferences(
-        { recentColors: [color.toUpperCase(), ...current.recentColors.filter((item) => item.toUpperCase() !== color.toUpperCase())].slice(0, 5) },
+        { recentColors: [normalized, ...current.recentColors.filter((item) => item.toUpperCase() !== normalized)].slice(0, 5) },
         storage
       );
     }
@@ -117,8 +127,9 @@ export function installCadStudioUiPreferencesBridge(): void {
     const input = event.target as HTMLInputElement | null;
     if (input?.type !== "color" || !validColor(input.value)) return;
     const current = loadCadStudioUiPreferences(storage);
+    const normalized = input.value.toUpperCase();
     saveCadStudioUiPreferences(
-      { recentColors: [input.value.toUpperCase(), ...current.recentColors.filter((item) => item.toUpperCase() !== input.value.toUpperCase())].slice(0, 5) },
+      { recentColors: [normalized, ...current.recentColors.filter((item) => item.toUpperCase() !== normalized)].slice(0, 5) },
       storage
     );
   };
@@ -127,10 +138,9 @@ export function installCadStudioUiPreferencesBridge(): void {
   document.addEventListener("change", updateFromChange, true);
 
   const restore = () => {
-    if (restoreApplied) return;
-    const ribbon = document.querySelector('[data-testid="cad-studio-ribbon"]');
-    if (!ribbon) return;
-    restoreApplied = true;
+    const ribbon = document.querySelector<HTMLElement>('[data-testid="cad-studio-ribbon"]');
+    if (!ribbon || ribbon.dataset.cadStage5PreferencesRestored === "true") return;
+    ribbon.dataset.cadStage5PreferencesRestored = "true";
     const preferences = loadCadStudioUiPreferences(storage);
 
     const clickIfInactive = (testId: string) => {

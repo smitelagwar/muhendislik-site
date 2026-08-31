@@ -32,6 +32,7 @@ export class CadReviewPersistenceCoordinator {
   private disposed = false;
   private hydrated = false;
   private revisionBlocked = false;
+  private changeVersion = 0;
   private serverRevisionId: string | null = null;
   private expectedRevision = 0;
   private latestSnapshot: CadReviewDocument | null = null;
@@ -56,8 +57,9 @@ export class CadReviewPersistenceCoordinator {
   async hydrate(): Promise<void> {
     if (this.disposed || this.hydrated) return;
     this.hydrated = true;
-    const local = this.clone(this.host.getDocument());
-    this.host.saveLocal(local);
+    const hydrateStartVersion = this.changeVersion;
+    const localAtStart = this.clone(this.host.getDocument());
+    this.host.saveLocal(localAtStart);
 
     try {
       const response = await this.fetchImpl(`/api/dokumantasyon/files/${this.host.fileId}/review`, {
@@ -77,16 +79,33 @@ export class CadReviewPersistenceCoordinator {
       this.expectedRevision = payload.revision ?? payload.document.revision ?? 0;
       const serverDoc = this.clone(payload.document);
       (serverDoc as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId = payload.serverRevisionId;
+      const changedDuringHydrate = this.changeVersion !== hydrateStartVersion;
+      const local = changedDuringHydrate ? this.clone(this.host.getDocument()) : localAtStart;
 
       if (serverDoc.items.length > 0) {
+        if (changedDuringHydrate) {
+          this.revisionBlocked = true;
+          this.setState({
+            status: "error",
+            message: "Sunucu review verisi yüklenirken yeni yerel değişiklik oluştu. Yerel kurtarma korundu; veri kaybını önlemek için yeniden yükleyin.",
+          });
+          return;
+        }
         this.revisionBlocked = false;
         this.host.applyServerDocument(serverDoc, payload.serverRevisionId);
         this.host.saveLocal(serverDoc);
+        this.latestSnapshot = serverDoc;
         this.setState({ status: "clean", savedAt: serverDoc.updatedAt });
         return;
       }
 
-      const localRevisionId = (local as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId;
+      let localRevisionId = (local as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId;
+      if (changedDuringHydrate && local.items.length > 0 && !localRevisionId) {
+        localRevisionId = payload.serverRevisionId;
+        (local as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId = payload.serverRevisionId;
+        this.host.saveLocal(local);
+      }
+
       if (local.items.length > 0) {
         if (localRevisionId === payload.serverRevisionId) {
           this.revisionBlocked = false;
@@ -106,6 +125,7 @@ export class CadReviewPersistenceCoordinator {
       this.revisionBlocked = false;
       this.host.applyServerDocument(serverDoc, payload.serverRevisionId);
       this.host.saveLocal(serverDoc);
+      this.latestSnapshot = serverDoc;
       this.setState({ status: "clean", savedAt: serverDoc.updatedAt });
     } catch (error) {
       this.setState({
@@ -120,6 +140,7 @@ export class CadReviewPersistenceCoordinator {
 
   markDocumentChanged(): void {
     if (this.disposed) return;
+    this.changeVersion += 1;
     const snapshot = this.clone(this.host.getDocument());
     this.latestSnapshot = snapshot;
     this.host.saveLocal(snapshot);
@@ -167,6 +188,7 @@ export class CadReviewPersistenceCoordinator {
     }
 
     const snapshot = this.clone(this.latestSnapshot);
+    const saveStartVersion = this.changeVersion;
     this.pending = false;
     this.inFlight = true;
     this.setState({ status: "saving" });
@@ -197,9 +219,18 @@ export class CadReviewPersistenceCoordinator {
       this.expectedRevision = body.revision ?? saved.revision;
       (saved as CadReviewDocument & { serverRevisionId?: string }).serverRevisionId = this.serverRevisionId;
       this.host.acknowledgeServerSave(saved, this.serverRevisionId!);
-      this.host.saveLocal(saved);
-      this.latestSnapshot = saved;
-      this.setState({ status: "clean", savedAt: body.savedAt || saved.updatedAt });
+      this.host.saveLocal(
+        this.changeVersion === saveStartVersion ? saved : this.clone(this.host.getDocument())
+      );
+
+      if (this.changeVersion === saveStartVersion) {
+        this.latestSnapshot = saved;
+        this.pending = false;
+        this.setState({ status: "clean", savedAt: body.savedAt || saved.updatedAt });
+      } else {
+        this.pending = true;
+        this.setState({ status: "dirty" });
+      }
     } catch (error) {
       this.pending = true;
       this.setState({
