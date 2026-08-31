@@ -40,7 +40,7 @@
 | F3-05 | Zımbalama Kontrolü (06) | DONE | feat(punching): add punching safety governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (vpd vs fctd), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-06 | Kiriş Kesme & Etriye (07) | DONE | feat(shear): add Vmax crushing governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (kesme ezilme limiti Vd vs Vmax), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-07 | Kenetlenme & Ek Boyu (08) | DONE | feat(splice): add bond and lap splice governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (donatı ek & kenetlenme tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F4-01 | Eşdeğer Deprem Yükü V2 (09) | TODO | | | |
+| F4-01 | Eşdeğer Deprem Yükü V2 (09) | DONE | feat(seismic): complete V2 standardization | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | F2-03 pilotunda SVG bina şeması, GoverningCheckCard, ToolScopeBadge, ToolSourceStamp ve ToolLimitations tamamlandı |
 | F4-02 | Düzensizlik Kontrolleri V2 (10) | TODO | | | |
 | F4-03 | Yerel Zemin Sınıfı (11) | TODO | | | |
 | F4-04 | Ampirik Periyot & Spektrum (12) | TODO | | | |
