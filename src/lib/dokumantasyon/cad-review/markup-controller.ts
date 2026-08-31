@@ -146,7 +146,9 @@ export class CadMarkupController {
         style: {
           color: this.currentStyle.color ?? "#007aff",
           strokeWidth: this.currentStyle.strokeWidth ?? 2,
+          lineDash: this.currentStyle.lineDash ?? "continuous",
           opacity: this.currentStyle.opacity ?? 1,
+          fillColor: this.currentStyle.fillColor,
         },
       });
     } else if (tool === "shape_circle") {
@@ -163,7 +165,9 @@ export class CadMarkupController {
         style: {
           color: this.currentStyle.color ?? "#007aff",
           strokeWidth: this.currentStyle.strokeWidth ?? 2,
+          lineDash: this.currentStyle.lineDash ?? "continuous",
           opacity: this.currentStyle.opacity ?? 1,
+          fillColor: this.currentStyle.fillColor,
         },
       });
     } else if (tool === "shape_cloud") {
@@ -175,7 +179,9 @@ export class CadMarkupController {
         style: {
           color: this.currentStyle.color ?? "#007aff",
           strokeWidth: this.currentStyle.strokeWidth ?? 2,
+          lineDash: this.currentStyle.lineDash ?? "continuous",
           opacity: this.currentStyle.opacity ?? 1,
+          fillColor: this.currentStyle.fillColor,
         },
       });
     } else if (tool === "callout") {
@@ -187,6 +193,7 @@ export class CadMarkupController {
         style: {
           color: this.currentStyle.color ?? "#ff9500",
           strokeWidth: this.currentStyle.strokeWidth ?? 2,
+          lineDash: this.currentStyle.lineDash ?? "continuous",
           opacity: this.currentStyle.opacity ?? 1,
         },
       });

@@ -113,6 +113,15 @@ function ReviewItemRenderer({
   const opacity = item.style.opacity ?? 1;
   const highlight = isSelected ? 2.5 : isHovered ? 1.5 : 1;
   const sw = strokeWidth * highlight;
+  const dashArray =
+    item.style.lineDash === "dashed"
+      ? "8 5"
+      : item.style.lineDash === "dotted"
+      ? "3 4"
+      : undefined;
+  const effectiveFill = item.style.fillColor || color;
+  const effectiveFillOpacity = item.style.fillColor ? 0.22 : 0.08;
+
   const commonProps: React.SVGProps<SVGGElement> = {
     opacity,
     style: { pointerEvents: onClick ? "auto" : "none", cursor: onClick ? "pointer" : "default" },
@@ -316,10 +325,11 @@ function ReviewItemRenderer({
             y={minY}
             width={w}
             height={h}
-            fill={color}
-            fillOpacity={0.08}
+            fill={effectiveFill}
+            fillOpacity={effectiveFillOpacity}
             stroke={color}
             strokeWidth={sw}
+            strokeDasharray={dashArray}
           />
         </g>
       );
@@ -334,10 +344,11 @@ function ReviewItemRenderer({
             cx={cx}
             cy={cy}
             r={r}
-            fill={color}
-            fillOpacity={0.08}
+            fill={effectiveFill}
+            fillOpacity={effectiveFillOpacity}
             stroke={color}
             strokeWidth={sw}
+            strokeDasharray={dashArray}
           />
         </g>
       );
@@ -381,11 +392,11 @@ function ReviewItemRenderer({
             y={minY}
             width={w}
             height={h}
-            fill={color}
-            fillOpacity={0.08}
+            fill={effectiveFill}
+            fillOpacity={effectiveFillOpacity}
             stroke="none"
           />
-          <path d={d} fill="none" stroke={color} strokeWidth={sw} />
+          <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={dashArray} />
         </g>
       );
     }
@@ -403,6 +414,7 @@ function ReviewItemRenderer({
           fill="none"
           stroke={color}
           strokeWidth={sw}
+          strokeDasharray={dashArray}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

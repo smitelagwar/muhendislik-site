@@ -46,6 +46,7 @@ import {
   CadReviewStore,
   type CadReviewTool,
   type CadReviewDraftState,
+  type CadActiveMarkupStyle,
 } from "@/lib/dokumantasyon/cad-review/store";
 import { CadMarkupFacade } from "@/lib/dokumantasyon/cad-review/markup-facade";
 import { CadMarkupController } from "@/lib/dokumantasyon/cad-review/markup-controller";
@@ -161,8 +162,25 @@ export function DokCadUpstreamViewer({
   const [searchResults, setSearchResults] = useState<CadTextSearchResultItem[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [reviewDocument, setReviewDocument] = useState<import("@/lib/dokumantasyon/cad-review/schema").CadReviewDocument | null>(null);
+  const [markupStyle, setMarkupStyle] = useState<CadActiveMarkupStyle>({
+    color: "#ff3b30",
+    strokeWidth: 2,
+    lineDash: "continuous",
+    opacity: 1,
+    fontSize: 16,
+  });
   const sectionRef = useRef<HTMLElement>(null);
   // ──────────────────────────────────────────────────────────────────────────
+
+  const handleUpdateMarkupStyle = useCallback((patch: Partial<CadActiveMarkupStyle>) => {
+    setMarkupStyle((prev) => {
+      const next = { ...prev, ...patch };
+      reviewStoreRef.current?.setActiveMarkupStyle(next);
+      markupControllerRef.current?.setStyle(next);
+      freehandControllerRef.current?.setStyle(next);
+      return next;
+    });
+  }, []);
 
   const handleSearchQueryChange = (query: string) => {
     setReviewSearchQuery(query);
@@ -296,6 +314,9 @@ export function DokCadUpstreamViewer({
 
     const markupController = new CadMarkupController(host, store, facade, markupRuntime);
     const freehandController = new CadFreehandController(host, store, facade, freehandRuntime);
+
+    markupController.setStyle(markupStyle);
+    freehandController.setStyle(markupStyle);
 
     markupControllerRef.current = markupController;
     freehandControllerRef.current = freehandController;
@@ -959,6 +980,8 @@ export function DokCadUpstreamViewer({
           onToggleLineWeight={() => void toggleLineWeight()}
           backgroundColor={backgroundColor}
           onSelectBackgroundColor={selectBackgroundColor}
+          markupStyle={markupStyle}
+          onUpdateMarkupStyle={handleUpdateMarkupStyle}
           onStartDistance={() => void handleStartDistance()}
           onStartChainDistance={() => void handleStartChainDistance()}
           onStartArea={() => void handleStartArea()}

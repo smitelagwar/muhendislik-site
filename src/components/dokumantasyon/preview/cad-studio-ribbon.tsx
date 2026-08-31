@@ -31,6 +31,8 @@ import {
   Download,
   FileCode,
   Share2,
+  Check,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,10 +43,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import type { CadReviewTool } from "@/lib/dokumantasyon/cad-review/store";
+import type {
+  CadReviewTool,
+  CadActiveMarkupStyle,
+} from "@/lib/dokumantasyon/cad-review/store";
 import type { CadSidePanelTab } from "./cad-review-side-panel";
-import type { CadBackgroundColorOption, CadUpstreamDisplayMode } from "@/lib/dokumantasyon/cad-upstream/adapter";
+import type {
+  CadBackgroundColorOption,
+  CadUpstreamDisplayMode,
+} from "@/lib/dokumantasyon/cad-upstream/adapter";
 import { cn } from "@/lib/utils";
+
+export const CAD_MARKUP_COLORS = [
+  { name: "Kırmızı", hex: "#ef4444" },
+  { name: "Turuncu", hex: "#f97316" },
+  { name: "Amber", hex: "#f59e0b" },
+  { name: "Sarı", hex: "#eab308" },
+  { name: "Yeşil", hex: "#10b981" },
+  { name: "Mavi", hex: "#3b82f6" },
+  { name: "Mor", hex: "#a855f7" },
+  { name: "Cyan", hex: "#06b6d4" },
+  { name: "Beyaz", hex: "#ffffff" },
+  { name: "Siyah", hex: "#000000" },
+];
+
+export const CAD_STROKE_WIDTHS = [
+  { label: "1px", value: 1, desc: "İnce" },
+  { label: "2px", value: 2, desc: "Standart" },
+  { label: "3px", value: 3, desc: "Orta" },
+  { label: "5px", value: 5, desc: "Kalın" },
+  { label: "8px", value: 8, desc: "Vurgu" },
+];
+
+export const CAD_LINE_STYLES = [
+  { label: "Düz", value: "continuous" as const, pattern: "────────" },
+  { label: "Kesikli", value: "dashed" as const, pattern: "── ── ──" },
+  { label: "Noktalı", value: "dotted" as const, pattern: "• • • • •" },
+];
 
 export interface CadStudioRibbonProps {
   // Navigation
@@ -60,6 +95,10 @@ export interface CadStudioRibbonProps {
   onToggleLineWeight: () => void;
   backgroundColor: CadBackgroundColorOption;
   onSelectBackgroundColor: (color: CadBackgroundColorOption) => void;
+
+  // Active Markup Style (Aşama 2: Renk, Kalınlık, Çizgi Tipi, Dolgu)
+  markupStyle?: CadActiveMarkupStyle;
+  onUpdateMarkupStyle?: (style: Partial<CadActiveMarkupStyle>) => void;
 
   // Measure
   onStartDistance: () => void;
@@ -103,6 +142,14 @@ export function CadStudioRibbon({
   onToggleLineWeight,
   backgroundColor,
   onSelectBackgroundColor,
+  markupStyle = {
+    color: "#ff3b30",
+    strokeWidth: 2,
+    lineDash: "continuous",
+    opacity: 1,
+    fontSize: 16,
+  },
+  onUpdateMarkupStyle,
   onStartDistance,
   onStartChainDistance,
   onStartArea,
@@ -125,7 +172,6 @@ export function CadStudioRibbon({
   onDownloadDxf,
   onOpenExportDialog,
 }: CadStudioRibbonProps) {
-  // Daha büyük, ergonomik ve profesyonel buton standartları
   const btnBase = "h-9 px-3 text-xs font-semibold rounded-xl transition-all shrink-0 flex items-center gap-2 select-none shadow-sm";
   const iconBtnBase = "h-9 w-9 p-0 rounded-xl transition-all shrink-0 flex items-center justify-center select-none shadow-sm";
 
@@ -199,7 +245,6 @@ export function CadStudioRibbon({
 
         {/* ── 2. GÖRÜNÜM & RENK (VIEW & DISPLAY) GRUBU ── */}
         <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="Görünüm Seçenekleri">
-          {/* Renk Modu Toggle */}
           <Button
             type="button"
             size="sm"
@@ -236,7 +281,6 @@ export function CadStudioRibbon({
             <span className="lg:hidden text-xs">S/B</span>
           </Button>
 
-          {/* Çizgi Kalınlığı (Lineweight) */}
           <Button
             type="button"
             size="sm"
@@ -409,25 +453,148 @@ export function CadStudioRibbon({
             <Pin className="h-4.5 w-4.5" />
           </Button>
 
-          {/* Serbest Çizim / Kalem */}
-          <Button
-            type="button"
-            size="sm"
-            variant={activeTool === "stroke" ? "default" : "ghost"}
-            className={cn(
-              iconBtnBase,
-              activeTool === "stroke"
-                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-            )}
-            onClick={() => onSelectTool("stroke")}
-            title="Serbest El Kalem"
-            data-testid="cad-tool-stroke"
-          >
-            <Pencil className="h-4.5 w-4.5" />
-          </Button>
+          {/* Serbest Çizim / Kalem + Stil Menüsü Dropdown */}
+          <DropdownMenu>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                size="sm"
+                variant={activeTool === "stroke" ? "default" : "ghost"}
+                className={cn(
+                  btnBase,
+                  "pr-1.5 pl-2.5",
+                  activeTool === "stroke"
+                    ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                )}
+                onClick={() => onSelectTool("stroke")}
+                title="Serbest Çizim Kalemi"
+                data-testid="cad-tool-stroke"
+              >
+                <div className="relative">
+                  <Pencil className="h-4.5 w-4.5" />
+                  <span
+                    className="absolute -bottom-1 -right-1 h-2 w-2 rounded-full border border-black/50"
+                    style={{ backgroundColor: markupStyle.color }}
+                  />
+                </div>
+                <span className="hidden xl:inline text-xs">Kalem</span>
+              </Button>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={activeTool === "stroke" ? "default" : "ghost"}
+                  className={cn(
+                    "h-9 px-1 rounded-r-xl -ml-1 transition-all",
+                    activeTool === "stroke"
+                      ? "bg-amber-600 text-white hover:bg-amber-500 border-l border-amber-400/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                  )}
+                  title="Kalem Stili (Renk, Kalınlık, Çizgi Tipi)"
+                  data-testid="cad-tool-stroke-style-trigger"
+                >
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+            </div>
+            <DropdownMenuContent align="start" className="w-64 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl p-2.5">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Palette className="h-3.5 w-3.5 text-amber-500" />
+                  Kalem Çizim Stili
+                </span>
+                <span
+                  className="h-3 w-3 rounded-full border border-white/30"
+                  style={{ backgroundColor: markupStyle.color }}
+                />
+              </div>
 
-          {/* Şekiller Dropdown (Dikdörtgen, Daire, Bulut) */}
+              {/* 1. Renk Paleti */}
+              <div className="mt-2.5">
+                <span className="text-[11px] text-muted-foreground font-semibold">Renk Seçimi</span>
+                <div className="grid grid-cols-5 gap-1.5 mt-1.5">
+                  {CAD_MARKUP_COLORS.map((c) => (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      onClick={() => {
+                        onUpdateMarkupStyle?.({ color: c.hex });
+                        if (activeTool !== "stroke") onSelectTool("stroke");
+                      }}
+                      className={cn(
+                        "h-7 rounded-lg flex items-center justify-center transition-transform hover:scale-105 border border-white/20 shadow-sm",
+                        markupStyle.color === c.hex && "ring-2 ring-amber-400 scale-105"
+                      )}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.name}
+                    >
+                      {markupStyle.color === c.hex && (
+                        <Check
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            c.hex === "#ffffff" || c.hex === "#eab308" || c.hex === "#f59e0b"
+                              ? "text-black"
+                              : "text-white"
+                          )}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Çizgi Kalınlığı */}
+              <div className="mt-3">
+                <span className="text-[11px] text-muted-foreground font-semibold">Çizgi Kalınlığı</span>
+                <div className="grid grid-cols-5 gap-1 mt-1.5">
+                  {CAD_STROKE_WIDTHS.map((w) => (
+                    <button
+                      key={w.value}
+                      type="button"
+                      onClick={() => {
+                        onUpdateMarkupStyle?.({ strokeWidth: w.value });
+                        if (activeTool !== "stroke") onSelectTool("stroke");
+                      }}
+                      className={cn(
+                        "h-7 rounded-lg text-xs font-mono font-bold flex items-center justify-center border border-border/70 bg-muted/60 transition-all hover:bg-background",
+                        markupStyle.strokeWidth === w.value && "bg-amber-500 text-zinc-950 border-amber-400 font-extrabold shadow-sm"
+                      )}
+                      title={`${w.label} (${w.desc})`}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Çizgi Tipi */}
+              <div className="mt-3">
+                <span className="text-[11px] text-muted-foreground font-semibold">Çizgi Tipi</span>
+                <div className="grid grid-cols-3 gap-1 mt-1.5">
+                  {CAD_LINE_STYLES.map((st) => (
+                    <button
+                      key={st.value}
+                      type="button"
+                      onClick={() => {
+                        onUpdateMarkupStyle?.({ lineDash: st.value });
+                        if (activeTool !== "stroke") onSelectTool("stroke");
+                      }}
+                      className={cn(
+                        "h-7 px-2 rounded-lg text-[11px] font-medium flex items-center justify-center border border-border/70 bg-muted/60 transition-all hover:bg-background",
+                        markupStyle.lineDash === st.value && "bg-amber-500 text-zinc-950 border-amber-400 font-bold shadow-sm"
+                      )}
+                      title={st.label}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Şekiller Dropdown (Dikdörtgen, Daire, Bulut + Stil Ayarları) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -436,12 +603,12 @@ export function CadStudioRibbon({
                 variant={isShapeActive ? "default" : "ghost"}
                 className={cn(
                   btnBase,
-                  "px-2",
+                  "px-2.5",
                   isShapeActive
                     ? "bg-amber-600 text-white font-bold hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 )}
-                title="Şekil İşaretleri"
+                title="Şekil İşaretleri & Ayarları"
                 data-testid="cad-tool-shapes-dropdown"
               >
                 {activeTool === "shape_circle" ? (
@@ -455,31 +622,151 @@ export function CadStudioRibbon({
                 <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl">
-              <DropdownMenuItem
-                onClick={() => onSelectTool("shape_rect")}
-                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_rect" && "font-bold text-amber-500 bg-amber-500/10")}
-                data-testid="cad-tool-shape-rect"
-              >
-                <Square className="h-4 w-4" />
-                <span>Dikdörtgen</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onSelectTool("shape_circle")}
-                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_circle" && "font-bold text-amber-500 bg-amber-500/10")}
-                data-testid="cad-tool-shape-circle"
-              >
-                <Circle className="h-4 w-4" />
-                <span>Daire</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onSelectTool("shape_cloud")}
-                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_cloud" && "font-bold text-amber-500 bg-amber-500/10")}
-                data-testid="cad-tool-shape-cloud"
-              >
-                <Cloud className="h-4 w-4" />
-                <span>Revizyon Bulutu</span>
-              </DropdownMenuItem>
+            <DropdownMenuContent align="start" className="w-64 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl p-2.5">
+              <span className="text-[11px] text-muted-foreground font-semibold">Şekil Türü</span>
+              <div className="grid grid-cols-3 gap-1 mt-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onSelectTool("shape_rect")}
+                  className={cn(
+                    "h-8 flex items-center justify-center gap-1 text-xs rounded-lg border border-border/70",
+                    activeTool === "shape_rect" && "bg-amber-500 text-zinc-950 font-bold border-amber-400"
+                  )}
+                  data-testid="cad-tool-shape-rect"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  <span>Kare</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onSelectTool("shape_circle")}
+                  className={cn(
+                    "h-8 flex items-center justify-center gap-1 text-xs rounded-lg border border-border/70",
+                    activeTool === "shape_circle" && "bg-amber-500 text-zinc-950 font-bold border-amber-400"
+                  )}
+                  data-testid="cad-tool-shape-circle"
+                >
+                  <Circle className="h-3.5 w-3.5" />
+                  <span>Daire</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onSelectTool("shape_cloud")}
+                  className={cn(
+                    "h-8 flex items-center justify-center gap-1 text-xs rounded-lg border border-border/70",
+                    activeTool === "shape_cloud" && "bg-amber-500 text-zinc-950 font-bold border-amber-400"
+                  )}
+                  data-testid="cad-tool-shape-cloud"
+                >
+                  <Cloud className="h-3.5 w-3.5" />
+                  <span>Bulut</span>
+                </Button>
+              </div>
+
+              <DropdownMenuSeparator className="my-2" />
+
+              {/* Kenar Rengi */}
+              <span className="text-[11px] text-muted-foreground font-semibold">Kenar Rengi</span>
+              <div className="grid grid-cols-5 gap-1.5 mt-1.5">
+                {CAD_MARKUP_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => onUpdateMarkupStyle?.({ color: c.hex })}
+                    className={cn(
+                      "h-6 rounded-lg flex items-center justify-center transition-transform hover:scale-105 border border-white/20 shadow-sm",
+                      markupStyle.color === c.hex && "ring-2 ring-amber-400 scale-105"
+                    )}
+                    style={{ backgroundColor: c.hex }}
+                    title={c.name}
+                  >
+                    {markupStyle.color === c.hex && (
+                      <Check
+                        className={cn(
+                          "h-3 w-3",
+                          c.hex === "#ffffff" || c.hex === "#eab308" || c.hex === "#f59e0b"
+                            ? "text-black"
+                            : "text-white"
+                        )}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Kenar Kalınlığı & Çizgi Tipi */}
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[10px] text-muted-foreground font-semibold">Kalınlık</span>
+                  <div className="flex gap-1 mt-1">
+                    {[1, 2, 3, 5].map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => onUpdateMarkupStyle?.({ strokeWidth: w })}
+                        className={cn(
+                          "flex-1 h-6 text-[10px] font-mono font-bold rounded border border-border/70 bg-muted/60",
+                          markupStyle.strokeWidth === w && "bg-amber-500 text-zinc-950 font-extrabold"
+                        )}
+                      >
+                        {w}p
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted-foreground font-semibold">Çizgi Tipi</span>
+                  <div className="flex gap-1 mt-1">
+                    {CAD_LINE_STYLES.map((st) => (
+                      <button
+                        key={st.value}
+                        type="button"
+                        onClick={() => onUpdateMarkupStyle?.({ lineDash: st.value })}
+                        className={cn(
+                          "flex-1 h-6 text-[10px] font-medium rounded border border-border/70 bg-muted/60",
+                          markupStyle.lineDash === st.value && "bg-amber-500 text-zinc-950 font-bold"
+                        )}
+                        title={st.label}
+                      >
+                        {st.label[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Saydam Dolgu Seçeneği */}
+              <div className="mt-2.5">
+                <span className="text-[11px] text-muted-foreground font-semibold">Dolgu</span>
+                <div className="grid grid-cols-3 gap-1 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateMarkupStyle?.({ fillColor: undefined })}
+                    className={cn(
+                      "h-6 text-[10px] font-medium rounded border border-border/70 bg-muted/60",
+                      !markupStyle.fillColor && "bg-amber-500 text-zinc-950 font-bold"
+                    )}
+                  >
+                    Şeffaf
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateMarkupStyle?.({ fillColor: markupStyle.color })}
+                    className={cn(
+                      "h-6 text-[10px] font-medium rounded border border-border/70 bg-muted/60",
+                      Boolean(markupStyle.fillColor) && "bg-amber-500 text-zinc-950 font-bold"
+                    )}
+                  >
+                    %20 Dolgu
+                  </button>
+                </div>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 

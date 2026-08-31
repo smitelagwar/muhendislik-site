@@ -1,6 +1,7 @@
 import type {
   CadReviewDocument,
   CadReviewItem,
+  CadReviewLineDash,
 } from "./schema";
 
 export type CadReviewTool =
@@ -17,6 +18,14 @@ export type CadReviewTool =
   | "stroke"
   | "eraser";
 
+export interface CadActiveMarkupStyle {
+  color: string;
+  strokeWidth: number;
+  lineDash: CadReviewLineDash;
+  fillColor?: string;
+  opacity: number;
+  fontSize?: number;
+}
 
 export interface CadReviewSessionState {
   activeTool: CadReviewTool;
@@ -24,6 +33,7 @@ export interface CadReviewSessionState {
   hoveredItemId: string | null;
   statusFilter: "all" | "open" | "question" | "answered" | "closed";
   activeLayoutId: string | null;
+  activeMarkupStyle: CadActiveMarkupStyle;
 }
 
 export interface CadReviewDraftState {
@@ -51,6 +61,13 @@ export class CadReviewStore {
     hoveredItemId: null,
     statusFilter: "all",
     activeLayoutId: null,
+    activeMarkupStyle: {
+      color: "#ff3b30",
+      strokeWidth: 2,
+      lineDash: "continuous",
+      opacity: 1,
+      fontSize: 16,
+    },
   };
 
   // 3. Transient Gesture Draft State (never enters undo stack or server)
@@ -134,6 +151,18 @@ export class CadReviewStore {
   setActiveLayoutId(layoutId: string | null): void {
     if (this.session.activeLayoutId === layoutId) return;
     this.session.activeLayoutId = layoutId;
+    this.notify();
+  }
+
+  getActiveMarkupStyle(): Readonly<CadActiveMarkupStyle> {
+    return this.session.activeMarkupStyle;
+  }
+
+  setActiveMarkupStyle(style: Partial<CadActiveMarkupStyle>): void {
+    this.session.activeMarkupStyle = {
+      ...this.session.activeMarkupStyle,
+      ...style,
+    };
     this.notify();
   }
 

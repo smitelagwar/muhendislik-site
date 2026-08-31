@@ -85,7 +85,9 @@ export class CadFreehandController {
       style: {
         color: this.currentStyle.color ?? "#ff3b30",
         strokeWidth: this.currentStyle.strokeWidth ?? 2,
+        lineDash: this.currentStyle.lineDash ?? "continuous",
         opacity: this.currentStyle.opacity ?? 1,
+        fillColor: this.currentStyle.fillColor,
       },
     });
   };
@@ -136,7 +138,9 @@ export class CadFreehandController {
       style: {
         color: this.currentStyle.color ?? "#ff3b30",
         strokeWidth: this.currentStyle.strokeWidth ?? 2,
+        lineDash: this.currentStyle.lineDash ?? "continuous",
         opacity: this.currentStyle.opacity ?? 1,
+        fillColor: this.currentStyle.fillColor,
       },
     });
   };

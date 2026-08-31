@@ -113,6 +113,7 @@ export class CadMarkupFacade {
       style: {
         color: params.style?.color ?? "#007aff",
         strokeWidth: params.style?.strokeWidth ?? 2,
+        lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
         fillColor: params.style?.fillColor,
       },
@@ -272,7 +273,9 @@ export class CadMarkupFacade {
       style: {
         color: params.style?.color ?? "#ff3b30",
         strokeWidth: params.style?.strokeWidth ?? 2,
+        lineDash: params.style?.lineDash ?? "continuous",
         opacity: params.style?.opacity ?? 1,
+        fillColor: params.style?.fillColor,
       },
     };
 
