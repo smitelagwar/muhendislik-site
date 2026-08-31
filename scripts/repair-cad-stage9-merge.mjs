@@ -12,26 +12,32 @@ function replaceRequired(source, needle, replacement, label) {
 
 let adapter = readFileSync(adapterPath, "utf8");
 
-// Stage 9 release safety: never globally monkey-patch AcDbEntity.dxfInFields.
-// The hook that attempted to support subclass-less R12/flat DXF changes parser
-// cursor semantics for every DXF and can block MLightCAD openDocument() on
-// standard AC10xx drawings. Keep the upstream/native parser untouched here;
-// the full CAD Preview V2 matrix below this gate remains the compatibility
-// authority and will catch any legacy fixture regression before production.
-const globalDxfParserHookStart =
-  '    // DXF R12 / Flat DXF desteği: 100 AcDbEntity alt sınıf etiketi olmayan DXF\'lerde\n';
-const globalDxfParserHookEnd =
-  '    // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı\n';
-const globalDxfParserHookIndex = adapter.indexOf(globalDxfParserHookStart);
-if (globalDxfParserHookIndex !== -1) {
-  const nextSectionIndex = adapter.indexOf(globalDxfParserHookEnd, globalDxfParserHookIndex);
-  if (nextSectionIndex === -1) {
-    throw new Error("Stage 9 repair anchor missing: DXF parser hook end");
+// Stage 9 release safety: keep MLightCAD parser/render prototypes native.
+// The post-Stage-8 enhancement bundle monkey-patches DXF entity parsing, font
+// loading and hatch materials. In production-mode Chromium this can leave
+// manager.openDocument() permanently inside parse-convert. Stage 8's proven
+// adapter path did not require those global mutations. Preserve only the
+// measurement display flags; all CAD Preview V2 + review gates below remain the
+// release authority for compatibility and visual regressions.
+const enhancementStart =
+  "async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {\n";
+const normalizeStart = "function normalizeExtension(extension: string): string {\n";
+const enhancementIndex = adapter.indexOf(enhancementStart);
+if (enhancementIndex !== -1) {
+  const normalizeIndex = adapter.indexOf(normalizeStart, enhancementIndex);
+  if (normalizeIndex === -1) {
+    throw new Error("Stage 9 repair anchor missing: normalizeExtension after enhancements");
   }
-  adapter =
-    adapter.slice(0, globalDxfParserHookIndex) +
-    '    // DXF parser: native MLightCAD implementation retained for release safety.\n\n' +
-    adapter.slice(nextSectionIndex);
+  const safeEnhancement =
+    "async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {\n" +
+    "  if (engineEnhancementsInitialized) return;\n" +
+    "  engineEnhancementsInitialized = true;\n\n" +
+    "  if (Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS) {\n" +
+    "    Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS.showUnits = false;\n" +
+    "    Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS.showApproximate = false;\n" +
+    "  }\n" +
+    "}\n\n";
+  adapter = adapter.slice(0, enhancementIndex) + safeEnhancement + adapter.slice(normalizeIndex);
 }
 
 if (!adapter.includes('export type CadBackgroundColorOption = "autocad" | "black" | "white";')) {
