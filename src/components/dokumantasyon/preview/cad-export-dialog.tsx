@@ -160,14 +160,14 @@ export function CadExportDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-2 backdrop-blur-xs sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-dialog-title"
       aria-describedby="export-dialog-description"
       data-cad-export-dialog="true"
     >
-      <div className="w-full max-w-lg rounded-2xl border border-border/80 bg-background/95 p-5 shadow-2xl backdrop-blur">
+      <div className="max-h-[calc(100dvh_-_16px)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-2xl border border-border/80 bg-background/95 p-3 shadow-2xl backdrop-blur sm:max-h-[calc(100dvh_-_32px)] sm:p-5">
         <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
           <div>
             <h2 id="export-dialog-title" className="text-base font-semibold text-foreground">
@@ -182,7 +182,7 @@ export function CadExportDialog({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+            className="h-11 w-11 shrink-0 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8"
             onClick={onClose}
             aria-label="Kapat"
           >
@@ -325,7 +325,7 @@ export function CadExportDialog({
           </div>
         ) : null}
 
-        <div className="mt-5 flex items-center justify-end gap-2 border-t border-border/60 pt-3">
+        <div className="sticky -bottom-3 mt-5 flex items-center justify-end gap-2 border-t border-border/60 bg-background/95 pb-1 pt-3 sm:-bottom-5">
           <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={isExporting}>
             İptal
           </Button>

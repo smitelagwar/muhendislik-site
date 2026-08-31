@@ -95,13 +95,13 @@ export function CadToolPopover({
         align={align}
         side={side}
         sideOffset={6}
-        collisionPadding={12}
+        collisionPadding={8}
         avoidCollisions
         sticky="partial"
         data-cad-tool-popover="true"
         data-testid={testId}
         className={cn(
-          "z-[80] min-w-48 rounded-lg border-border/80 bg-popover/98 p-2 shadow-2xl backdrop-blur-xl",
+          "z-[80] max-h-[calc(100dvh_-_16px)] max-w-[calc(100vw_-_16px)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border-border/80 bg-popover/98 p-2 shadow-2xl backdrop-blur-xl sm:min-w-48",
           className
         )}
         onPointerDownOutside={(event) => {

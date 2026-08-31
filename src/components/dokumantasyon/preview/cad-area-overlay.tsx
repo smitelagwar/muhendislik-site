@@ -227,6 +227,7 @@ export function CadAreaOverlay({
                     fontSize="12"
                     fontWeight="700"
                     fontFamily="monospace, sans-serif"
+                    data-testid="cad-area-result-text"
                   >
                     Alan: {areaLabel}
                   </text>
@@ -322,12 +323,12 @@ export function CadAreaOverlay({
       </svg>
 
       {hasActive && snapshot ? (
-        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+        <div className="pointer-events-none absolute left-2 right-2 top-2 z-30 md:left-1/2 md:right-auto md:top-3 md:-translate-x-1/2">
           <div
-            className="pointer-events-none flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 shadow-md backdrop-blur text-xs font-medium"
+            className="pointer-events-none mx-auto flex max-w-full items-center justify-center gap-2 rounded-xl border border-border/80 bg-background/95 px-3 py-2 text-[11px] font-medium leading-4 shadow-md backdrop-blur md:rounded-full md:px-4 md:py-1.5 md:text-xs"
             data-testid="cad-area-status"
           >
-            <span>
+            <span className="min-w-0 break-words text-center">
               {snapshot.points.length === 0
                 ? "1. noktayı seçin (Esc: İptal)"
                 : snapshot.points.length === 1
@@ -344,7 +345,7 @@ export function CadAreaOverlay({
                 type="button"
                 size="sm"
                 variant="default"
-                className="pointer-events-auto h-6 rounded-full px-2.5 text-xs font-semibold"
+                className="pointer-events-auto h-11 min-h-11 shrink-0 rounded-full px-3 text-xs font-semibold md:h-7 md:min-h-7 md:px-2.5"
                 onClick={() => onFinish?.()}
                 data-testid="cad-area-finish-btn"
                 title="Alan ölçümünü tamamla (Enter)"
@@ -359,11 +360,15 @@ export function CadAreaOverlay({
 
       {unitMenu ? (
         <div
-          className="pointer-events-auto absolute z-40 min-w-32 -translate-x-1/2 translate-y-3 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-lg"
-          style={{ left: unitMenu.x, top: unitMenu.y }}
+          className="pointer-events-auto absolute z-40 min-w-32 max-w-[calc(100%_-_16px)] -translate-x-1/2 translate-y-3 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-lg"
+          style={{
+            left: `clamp(72px, ${unitMenu.x}px, calc(100% - 72px))`,
+            top: `clamp(8px, ${unitMenu.y}px, calc(100% - 160px))`,
+          }}
           role="menu"
           aria-label="Alan gösterim birimi"
           data-testid="cad-area-unit-menu"
+          data-cad-viewport-clamped="true"
         >
           {(["m2", "cm2", "mm2"] as const).map((unit) => (
             <button
@@ -371,7 +376,7 @@ export function CadAreaOverlay({
               type="button"
               role="menuitemradio"
               aria-checked={(areaUnitOverrides[unitMenu.id] ?? measurementSettings.areaUnit) === unit}
-              className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left hover:bg-accent"
+              className="flex min-h-11 w-full items-center justify-between rounded px-3 py-2 text-left hover:bg-accent"
               onClick={() => {
                 setAreaUnitOverrides((current) => ({ ...current, [unitMenu.id]: unit }));
                 setUnitMenu(null);
