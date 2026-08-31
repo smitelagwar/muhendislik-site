@@ -12,24 +12,26 @@ function replaceRequired(source, needle, replacement, label) {
 
 let adapter = readFileSync(adapterPath, "utf8");
 
-// AcDbDxfFiler.atSubclassData(...) is cursor-moving, not a pure predicate.
-// Probing it and then calling the native dxfInFields a second time consumes the
-// AcDbEntity subclass marker twice and can leave modern AC1027 DXF parsing
-// blocked inside openDocument(). Detect a standard subclass marker with the
-// non-consuming peekItem() path instead. Flat/R12 DXF keeps the legacy fallback.
-if (adapter.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity");')) {
-  adapter = replaceRequired(
-    adapter,
-    '        const hasAcDbEntity = f.atSubclassData("AcDbEntity");\n' +
-      '        if (hasAcDbEntity) {\n' +
-      '          return origEntityDxfIn.call(this, filer as never);\n' +
-      '        }\n',
-    '        const nextItem = f.peekItem?.();\n' +
-      '        if (Number(nextItem?.code) === 100) {\n' +
-      '          return origEntityDxfIn.call(this, filer as never);\n' +
-      '        }\n',
-    "non-consuming AcDbEntity subclass detection"
-  );
+// Stage 9 release safety: never globally monkey-patch AcDbEntity.dxfInFields.
+// The hook that attempted to support subclass-less R12/flat DXF changes parser
+// cursor semantics for every DXF and can block MLightCAD openDocument() on
+// standard AC10xx drawings. Keep the upstream/native parser untouched here;
+// the full CAD Preview V2 matrix below this gate remains the compatibility
+// authority and will catch any legacy fixture regression before production.
+const globalDxfParserHookStart =
+  '    // DXF R12 / Flat DXF desteği: 100 AcDbEntity alt sınıf etiketi olmayan DXF\'lerde\n';
+const globalDxfParserHookEnd =
+  '    // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı\n';
+const globalDxfParserHookIndex = adapter.indexOf(globalDxfParserHookStart);
+if (globalDxfParserHookIndex !== -1) {
+  const nextSectionIndex = adapter.indexOf(globalDxfParserHookEnd, globalDxfParserHookIndex);
+  if (nextSectionIndex === -1) {
+    throw new Error("Stage 9 repair anchor missing: DXF parser hook end");
+  }
+  adapter =
+    adapter.slice(0, globalDxfParserHookIndex) +
+    '    // DXF parser: native MLightCAD implementation retained for release safety.\n\n' +
+    adapter.slice(nextSectionIndex);
 }
 
 if (!adapter.includes('export type CadBackgroundColorOption = "autocad" | "black" | "white";')) {
