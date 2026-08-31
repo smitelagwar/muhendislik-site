@@ -16,6 +16,12 @@ import {
   TILE_DIMENSIONS,
   type TileDimension,
 } from "@/lib/engineering/quantity/tile-flooring";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function TileQuantityCalculator() {
   const [floorArea, setFloorArea] = useState(85);
@@ -81,12 +87,8 @@ ${result?.skirtingTilesCount ? `- Süpürgelik Fayansı (${skirtLength} m): ~${r
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <LayoutGrid className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                İnce Yapı Metrajı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Seramik Normları & TS EN 14411", "ÇŞB Pozları"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -254,10 +256,39 @@ ${result?.skirtingTilesCount ? `- Süpürgelik Fayansı (${skirtLength} m): ~${r
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Kaplama Alanı ve Seramik Kutu Tahkiki"
+                      demand={Number(result.totalGrossAreaM2.toFixed(1))}
+                      capacity={Number((result.tileBoxesCount * TILE_DIMENSIONS[tileDim].boxCoverageM2).toFixed(1))}
+                      unit="m²"
+                      status="ok"
+                      explanation={`Zemin (${floorArea} m²) + Duvar (${wallArea} m²) toplam net ${result.totalNetAreaM2.toFixed(1)} m² yüzey için %${wastePct} fire dahil ${result.totalGrossAreaM2.toFixed(1)} m² (${result.tileBoxesCount} kutu ${result.tileDimensionName}) seramik, ~${result.adhesiveBags25KgCount} torba yapıştırıcı ve ~${result.groutKg.toFixed(0)} kg derz dolgusu planlandı.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Zemin alanı ve duvar seramiği alanlarına göre kutu/paket bazında sipariş metrajı hesabı",
+              "Seramik ebadına göre kutu m² kapasitesi ve parça adedi hesabı",
+              "Seramik yapıştırıcısı (25 kg torba) ve derz dolgusu (5 kg paket) sarfiyatı tahmini"
+            ]}
+            limitations={[
+              "Diyagonal (çapraz) döşeme veya desenli motif döşemelerde kesim firesi %10-%15 seviyesine çıkabilir",
+              "Büyük ebatlı porselen seramiklerde (60x120 cm vb.) çift taraflı yapıştırma harç tüketimini %30 artırır",
+              "Süpürgelik, bordür ve basamak detayları için ilave parça payı bırakılmalıdır"
+            ]}
+            inputProvenance="TS EN 14411 Seramik Karolar Standardı, Seramik Yapıştırıcıları Üretici Normları, ÇŞB Pozları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>

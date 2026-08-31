@@ -61,7 +61,7 @@
 | F7-05 | Duvar & Tuğla Metrajı (27) | DONE | feat(masonry-qty): add wall area and block count governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (duvar alanı ve blok/tuğla tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F7-06 | Sıva & Boya Metrajı (28) | DONE | feat(plaster-paint): add surface area and paint consumption governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (yüzey alanı ve sıva/boya tüketim dengesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F7-07 | Çatı & Ahşap Metrajı (29) | DONE | feat(roof-qty): add sloped roof area and tiles count governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (eğimli çatı yüzeyi ve kaplama birim tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F7-08 | Seramik & Fayans Metrajı (30) | TODO | | | |
+| F7-08 | Seramik & Fayans Metrajı (30) | DONE | feat(tile-qty): add coverage area and tile boxes count governing check and limitations | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (kaplama alanı ve seramik kutu tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F8-01 | Katalog V2 Filtreler | TODO | | | |
 | F8-02 | Katalog V2 Kart Güven Bilgisi | TODO | | | |
 | F8-03 | Katalog V2 Arama | TODO | | | |
