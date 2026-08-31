@@ -4,28 +4,6 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, Wrench, CheckCircle2, AlertTriangle, Copy, SlidersHorizontal } from "lucide-react";
 
-// IPE Profile database (simplified)
-const IPE_PROFILES = [
-  { name: "IPE 80", h: 80, b: 46, tf: 5.2, tw: 3.8, A: 7.64, Iy: 80.1, Iz: 8.49, iy: 3.24, iz: 1.05, Wy: 20.0 },
-  { name: "IPE 100", h: 100, b: 55, tf: 5.7, tw: 4.1, A: 10.3, Iy: 171, Iz: 15.9, iy: 4.07, iz: 1.24, Wy: 34.2 },
-  { name: "IPE 120", h: 120, b: 64, tf: 6.3, tw: 4.4, A: 13.2, Iy: 318, Iz: 27.7, iy: 4.90, iz: 1.45, Wy: 53.0 },
-  { name: "IPE 140", h: 140, b: 73, tf: 6.9, tw: 4.7, A: 16.4, Iy: 541, Iz: 44.9, iy: 5.74, iz: 1.65, Wy: 77.3 },
-  { name: "IPE 160", h: 160, b: 82, tf: 7.4, tw: 5.0, A: 20.1, Iy: 869, Iz: 68.3, iy: 6.58, iz: 1.84, Wy: 109 },
-  { name: "IPE 180", h: 180, b: 91, tf: 8.0, tw: 5.3, A: 23.9, Iy: 1320, Iz: 101, iy: 7.42, iz: 2.05, Wy: 146 },
-  { name: "IPE 200", h: 200, b: 100, tf: 8.5, tw: 5.6, A: 28.5, Iy: 1940, Iz: 142, iy: 8.26, iz: 2.24, Wy: 194 },
-  { name: "IPE 220", h: 220, b: 110, tf: 9.2, tw: 5.9, A: 33.4, Iy: 2770, Iz: 205, iy: 9.11, iz: 2.48, Wy: 252 },
-  { name: "IPE 240", h: 240, b: 120, tf: 9.8, tw: 6.2, A: 39.1, Iy: 3890, Iz: 284, iy: 9.97, iz: 2.69, Wy: 324 },
-  { name: "IPE 270", h: 270, b: 135, tf: 10.2, tw: 6.6, A: 45.9, Iy: 5790, Iz: 420, iy: 11.2, iz: 3.02, Wy: 429 },
-  { name: "IPE 300", h: 300, b: 150, tf: 10.7, tw: 7.1, A: 53.8, Iy: 8360, Iz: 604, iy: 12.5, iz: 3.35, Wy: 557 },
-  { name: "IPE 330", h: 330, b: 160, tf: 11.5, tw: 7.5, A: 62.6, Iy: 11770, Iz: 788, iy: 13.7, iz: 3.55, Wy: 713 },
-  { name: "IPE 360", h: 360, b: 170, tf: 12.7, tw: 8.0, A: 72.7, Iy: 16270, Iz: 1040, iy: 15.0, iz: 3.79, Wy: 904 },
-  { name: "IPE 400", h: 400, b: 180, tf: 13.5, tw: 8.6, A: 84.5, Iy: 23130, Iz: 1320, iy: 16.5, iz: 3.95, Wy: 1160 },
-  { name: "IPE 450", h: 450, b: 190, tf: 14.6, tw: 9.4, A: 98.8, Iy: 33740, Iz: 1680, iy: 18.5, iz: 4.12, Wy: 1500 },
-  { name: "IPE 500", h: 500, b: 200, tf: 16.0, tw: 10.2, A: 116, Iy: 48200, Iz: 2140, iy: 20.4, iz: 4.31, Wy: 1930 },
-  { name: "IPE 550", h: 550, b: 210, tf: 17.2, tw: 11.1, A: 134, Iy: 67120, Iz: 2670, iy: 22.3, iz: 4.45, Wy: 2440 },
-  { name: "IPE 600", h: 600, b: 220, tf: 19.0, tw: 12.0, A: 156, Iy: 92080, Iz: 3390, iy: 24.3, iz: 4.66, Wy: 3070 },
-];
-
 import {
   calculateSteelProfile,
   STEEL_PROFILES_DATABASE,
@@ -40,7 +18,7 @@ const STEEL_GRADES = [
 
 export function SteelProfileCalculator() {
   const [steelIdx, setSteelIdx] = useState(2); // S355
-  const [profileIdx, setProfileIdx] = useState(6); // IPE 270
+  const [selectedProfileName, setSelectedProfileName] = useState("IPE 270");
   const [bucklingLengthM, setBucklingLengthM] = useState(5.0);
   const [ndKn, setNdKn] = useState(0);
   const [mdKnm, setMdKnm] = useState(60);
@@ -48,7 +26,9 @@ export function SteelProfileCalculator() {
   const [copied, setCopied] = useState(false);
 
   const steel = STEEL_GRADES[steelIdx];
-  const profile = STEEL_PROFILES_DATABASE[profileIdx] ?? STEEL_PROFILES_DATABASE[0];
+  const profile = useMemo(() => {
+    return STEEL_PROFILES_DATABASE.find((p) => p.name === selectedProfileName) ?? STEEL_PROFILES_DATABASE[0];
+  }, [selectedProfileName]);
 
   const results = useMemo(() => {
     const calc = calculateSteelProfile({
@@ -160,9 +140,13 @@ TAHKİK:
 
               {/* Profile select */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">IPE Profil</label>
-                <select value={profileIdx} onChange={(e) => setProfileIdx(Number(e.target.value))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white">
-                  {IPE_PROFILES.map((p, idx) => <option key={p.name} value={idx}>{p.name} — A={p.A}cm², Iy={p.Iy}cm⁴</option>)}
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">Çelik Profil (IPE / HEA / HEB)</label>
+                <select value={selectedProfileName} onChange={(e) => setSelectedProfileName(e.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-zinc-900 dark:text-white">
+                  {STEEL_PROFILES_DATABASE.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name} ({p.family}) — A={p.areaCm2} cm², h={p.hMm}mm, b={p.bMm}mm
+                    </option>
+                  ))}
                 </select>
               </div>
 
