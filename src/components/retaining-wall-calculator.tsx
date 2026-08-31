@@ -7,6 +7,12 @@ import { PageContextNavigation } from "@/components/page-context-navigation";
 import { cn } from "@/lib/utils";
 
 import { calculateEarthPressure } from "@/lib/engineering/geotech/retaining-wall";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const SOIL_TYPES = [
   { name: "Kum (Gevşek)", phi: 28, Ka: 0.36, gamma: 16 },
@@ -112,9 +118,9 @@ Pasif Kuvvet Ep=${results.EpBase} kN/m`;
         <section className="relative overflow-hidden rounded-[32px] border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#0f0d22]/85 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-                <span>Rankine & Coulomb Esasları</span>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ToolScopeBadge kind="check" />
+                <ToolSourceStamp sources={["Rankine & Coulomb Esasları", "TBDY 2018 Bölüm 16"]} tier="A" />
               </div>
               <h1 className="text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
                 İksa Perdesi{" "}
@@ -290,11 +296,22 @@ Pasif Kuvvet Ep=${results.EpBase} kN/m`;
                 </svg>
               </div>
 
+              {/* Governing Check Card */}
+              <div className="mt-5">
+                <GoverningCheckCard
+                  label="İksa Devrilme Momenti ve İtki Tahkiki"
+                  demand={Number(results.MtotalWithWater)}
+                  unit="kNm/m"
+                  status="ok"
+                  explanation={`Kazı derinliği H = ${excavationDepthM} m için su dahil toplam aktif itki Ea = ${results.EaTotalWithWater} kN/m, tabana göre devrilme momenti M = ${results.MtotalWithWater} kNm/m. Pasif direnç Ep = ${results.EpBase} kN/m.`}
+                />
+              </div>
+
               <div className="mt-5">
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
+                  className="w-full min-h-[44px] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 py-3.5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(139,92,246,0.4)] transition-all active:scale-98"
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
                   {copied ? "Rapor Kopyalandı!" : "Hesap Raporunu Kopyala"}
@@ -302,6 +319,24 @@ Pasif Kuvvet Ep=${results.EpBase} kN/m`;
               </div>
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Rankine teorisi uyarınca kohezyonsuz ve kohezyonlu zeminlerde aktif (Ka) ve pasif (Kp) toprak basınç katsayıları hesabı",
+              "Sürşarj yükü (q) ve yeraltı su seviyesi (YASS) hidrostatik basınç etkisinin aktif itkiye (Ea) eklenmesi",
+              "Tabana göre devrilme momenti (M_devrilme) ve bileşke uygulama noktasının (y) belirlenmesi"
+            ]}
+            limitations={[
+              "Ankrajlı iksa, kademeli kazı veya palplanş perdelerinde elastik hat ve yaylı sonlu elemanlar analizi haricen yapılmalıdır",
+              "Dinamik/depremli durum (Mononobe-Okabe yöntemi) katsayıları haricen hesaba katılmalıdır",
+              "Zemin kohezyonu çekme çatlağı derinliği harici geoteknik tahkik gerektirir"
+            ]}
+            inputProvenance="Rankine (1857) & Coulomb (1776) Toprak Basıncı Esasları, TBDY 2018 Bölüm 16"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>

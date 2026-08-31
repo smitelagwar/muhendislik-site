@@ -46,7 +46,7 @@
 | F4-04 | Ampirik Periyot & Spektrum (12) | DONE | feat(period): add TBDY period upper bound governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (ampirik periyot üst sınırı), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-05 | Göreli Kat Ötelemesi (13) | DONE | feat(drift): add interstory drift governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (kritik kat drift tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-06 | Radye Temel (14) | DONE | feat(mat): add soil bearing and punching governing checks and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (zemin taşıma emniyeti ve TS 500 zımbalama tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F4-07 | İksa Toprak Basıncı (15) | TODO | | | |
+| F4-07 | İksa Toprak Basıncı (15) | DONE | feat(retaining): add earth thrust and overturning governing check and limitations | npm run check:tools-earthquake-geotech-phase5, npm run check:tools-adversarial, tsc | GoverningCheckCard (itki ve devrilme momenti tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F4-08 | Şev Stabilitesi (16) | TODO | | | |
 | F5-01 | Çelik Profil Seçimi (17) | TODO | | | |
 | F5-02 | Çelik Cıvata & Kaynak (18) | TODO | | | |
