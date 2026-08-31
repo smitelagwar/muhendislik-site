@@ -343,16 +343,6 @@ export function DokCadUpstreamViewer({
       setCameraInteractionEnabled: (enabled: boolean) => {
         adapterRef.current?.setCameraInteractionEnabled(enabled);
       },
-      requestCommentInput: async () => {
-        const comment = window.prompt("Yorum notunuzu girin:")?.trim();
-        if (!comment) return null;
-        return { comment, title: "Yorum" };
-      },
-      requestTextInput: async () => {
-        const text = window.prompt("Metin notunu girin:")?.trim();
-        if (!text) return null;
-        return { text };
-      },
     };
 
     const freehandRuntime = {
