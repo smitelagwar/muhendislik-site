@@ -1,4 +1,5 @@
 import type { CadPoint2d } from "./schema";
+import { getCurrentCadMeasurementUnitSettings } from "./store";
 
 export type CadUnit = "mm" | "cm" | "m" | "in" | "ft";
 export type CadLengthUnit = "mm" | "cm" | "m";
@@ -390,9 +391,10 @@ export function calculateCalibrationFromWorldDistance(
 }
 
 /**
- * Legacy formatter used by persisted Review items. In the browser it now resolves the
- * active CAD source context so old call sites gain real conversion without faking units.
- * In non-DOM unit tests it preserves the historical "value already in target unit" contract.
+ * Legacy formatter used by persisted Review items. In the browser it resolves the
+ * active CAD source context and current measurement settings, so Distance/Area/Chain
+ * labels follow the same unit/precision contract. In non-DOM unit tests it preserves
+ * the historical "value already in target unit" contract.
  */
 export function formatCadDistance(
   worldDistance: number,
@@ -407,15 +409,22 @@ export function formatCadDistance(
     return `${formatNumber(realValue, precision)} ${CAD_BASE_UNITS[calibration.targetUnit]?.symbol ?? calibration.targetUnit}`;
   }
 
-  if (typeof document !== "undefined" && (unit === "m" || unit === "cm" || unit === "mm")) {
-    return formatDistance(worldDistance, resolveCadSourceUnitContext(), unit, precision);
+  if (typeof document !== "undefined") {
+    const settings = getCurrentCadMeasurementUnitSettings();
+    return formatDistance(
+      worldDistance,
+      resolveCadSourceUnitContext(),
+      settings.unit,
+      settings.precision
+    );
   }
 
   return `${formatNumber(worldDistance, precision)} ${CAD_BASE_UNITS[unit]?.symbol ?? unit}`;
 }
 
 /**
- * Legacy area formatter. Browser call sites now use physical source scale (scale²).
+ * Legacy area formatter. Browser call sites use physical source scale (scale²)
+ * and the shared area display settings; Node tests preserve the historical contract.
  */
 export function formatCadArea(
   worldArea: number,
@@ -430,9 +439,14 @@ export function formatCadArea(
     return `${formatNumber(realValue, precision)} ${CAD_BASE_UNITS[calibration.targetUnit]?.symbol ?? calibration.targetUnit}²`;
   }
 
-  if (typeof document !== "undefined" && (unit === "m" || unit === "cm" || unit === "mm")) {
-    const areaUnit: CadAreaUnit = unit === "m" ? "m2" : unit === "cm" ? "cm2" : "mm2";
-    return formatArea(worldArea, resolveCadSourceUnitContext(), areaUnit, precision);
+  if (typeof document !== "undefined") {
+    const settings = getCurrentCadMeasurementUnitSettings();
+    return formatArea(
+      worldArea,
+      resolveCadSourceUnitContext(),
+      settings.areaUnit,
+      settings.areaPrecision
+    );
   }
 
   return `${formatNumber(worldArea, precision)} ${CAD_BASE_UNITS[unit]?.symbol ?? unit}²`;
