@@ -34,7 +34,7 @@
 | F2-04 | Beton Metrajı Tier C workflow pilot | DONE | feat(quantity): add procurement telemetry and limit notes | npm run check:tools-quantity-phase7-8, npm run check:tools-adversarial, tsc | GoverningCheckCard (brüt sipariş/mikser dengesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F2-05 | 4 Pilot araç browser smoke genişletmesi | DONE | test(smoke): assert scope, limitations and diagram in pilot tools | npm run check:tools-browser-smoke, npm run check:tools | check-tools-browser-smoke.mjs 4 pilot için ScopeBadge, Limitations, Diagram kontrolleriyle genişletildi ve 30/30 PASS |
 | F3-01 | Kolon Ön Boyutlandırma (02) | DONE | feat(column): add axial capacity governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (eksenel yük & kesit kapasitesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F3-02 | Kiriş Kesiti V2 (03) | TODO | | | |
+| F3-02 | Kiriş Kesiti V2 (03) | DONE | feat(beam): complete V2 standardization | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | F2-02 pilotunda GoverningCheckCard, ToolScopeBadge, ToolSourceStamp ve ToolLimitations tamamlandı |
 | F3-03 | Döşeme Kalınlığı (04) | TODO | | | |
 | F3-04 | Pas Payı (05) | TODO | | | |
 | F3-05 | Zımbalama Kontrolü (06) | TODO | | | |
