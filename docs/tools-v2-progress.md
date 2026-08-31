@@ -23,11 +23,11 @@
 | F0-07 | Kaynak label drift hotfix | DONE | fix(tools): align public source labels with evidence | check:tools-inventory, check:tools-registry, check:tools-adversarial, tsc | Showcase kartlarındaki kaynak etiketleri engine verileriyle senkronize edildi |
 | F1-01 | Public metadata contract | DONE | feat(tools): add public metadata contract | tsc | src/lib/tool-public-meta.ts 30 araç için eksiksiz oluşturuldu |
 | F1-02 | Metadata cross-check CI | DONE | feat(tools): add metadata cross-check CI test and chain | npm run check:tools-metadata, tsc | scripts/check-tools-metadata.ts eklendi ve check:tools zincirine bağlandı |
-| F1-03 | ToolScopeBadge primitive | TODO | | | |
-| F1-04 | ToolSourceStamp primitive | TODO | | | |
-| F1-05 | ToolLimitations primitive | TODO | | | |
-| F1-06 | EngineeringDiagramFrame | TODO | | | |
-| F1-07 | GoverningCheckCard | TODO | | | |
+| F1-03 | ToolScopeBadge primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/tool-scope-badge.tsx |
+| F1-04 | ToolSourceStamp primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/tool-source-stamp.tsx |
+| F1-05 | ToolLimitations primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/tool-limitations.tsx |
+| F1-06 | EngineeringDiagramFrame primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/engineering-diagram-frame.tsx |
+| F1-07 | GoverningCheckCard primitive | DONE | feat(ui): add core engineering primitives | tsc | src/components/engineering-primitives/governing-check-card.tsx |
 | F2-01 | Donatı Hesabı constructability pilot | TODO | | | |
 | F2-02 | Kiriş Kesiti açıklanabilir sonuç pilot | TODO | | | |
 | F2-03 | Eşdeğer Deprem Yükü bina/kat görsel pilot | TODO | | | |
