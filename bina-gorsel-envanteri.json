@@ -339,7 +339,9 @@
     "secondaryAltTr": "Kazı & Temel (Teknik Detay) — Temel çukuru taban drenajı, kuyu pompası ve şev stabilitesi kesiti",
     "secondaryDifference": "Primary geniş kazı çukuru sahnesini sunarken, secondary taban suyu tahliye ve drenaj altyapı kesitini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "zemin-etudu",
@@ -384,7 +386,9 @@
     "secondaryAltTr": "Zemin Etüdü (Teknik Detay) — Sondaj derinliği boyunca zemin profil katmanları ve karot numune tüpü kesiti",
     "secondaryDifference": "Primary arazideki sondaj makinesini gösterirken, secondary yeraltı zemin profili ve numune alıcı tüp kesitini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 93,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "hafriyat",
@@ -430,7 +434,9 @@
     "secondaryAltTr": "Hafriyat (Teknik Detay) — Kazı tabanında nivo kontrolü ve son 20 cm taban tesviyesi hassas kazısı",
     "secondaryDifference": "Primary kaba hafriyat yüklemesini gösterirken, secondary taban kotuna yaklaşırken yapılan hassas tesviye ve kot doğrulamasını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "iksa-sistemi",
