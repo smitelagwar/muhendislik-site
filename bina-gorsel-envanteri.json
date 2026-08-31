@@ -2548,11 +2548,11 @@
     "secondaryTargetWebp": "/bina-asamalari/details/zemin-kaplamalari.webp",
     "legacySvgCard": "/bina-asamalari/topics/zemin-kaplamalari.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında aydınlık modern iç mekanda düzgün tesviye şapı üzerine seramik ve parke zemin uygulaması durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında aydınlık modern iç mekânda düzgün tesviye şapı üzerine geniş ebatlı zemin kaplaması uygulamasını net olarak anlamalı.",
     "primaryMustShow": [
       "tesviye şapı zemini",
       "taraklı yapıştırıcı harç",
-      "döşenen zemin kaplama elemanları",
+      "tesviye klipsleriyle döşenen geniş ebatlı zemin karoları",
       "oda perspektifi"
     ],
     "primaryMustNotShow": [
@@ -2561,8 +2561,8 @@
       "yazı",
       "logo"
     ],
-    "primaryPromptTr": "KONU: Zemin Kaplamaları\nİÇERİK: Mekan kullanım senaryosuna, aşınma sınıfına ve bakım beklentisine göre seçilen nihai döşeme kaplamaları.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında aydınlık modern iç mekanda düzgün tesviye şapı üzerine seramik ve parke zemin uygulaması durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: tesviye şapı zemini, taraklı yapıştırıcı harç, döşenen zemin kaplama elemanları, oda perspektifi.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: havada yüzen ürün numuneleri, katalog kolajı, yazı, logo, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Zemin Kaplamaları — Aydınlık modern iç mekanda düzgün tesviye şapı üzerine seramik ve parke zemin uygulaması",
+    "primaryPromptTr": "KONU: Zemin Kaplamaları\nİÇERİK: Mekân kullanım senaryosuna, aşınma sınıfına ve bakım beklentisine göre seçilen nihai döşeme kaplamaları.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Aydınlık modern iç mekânda düzgün şap üzerine geniş ebatlı zemin karosu uygulamasını göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay geniş oda perspektifi; usta taraklı yapıştırıcı üzerine büyük bir karoyu yerleştiriyor.\nMUTLAKA GÖRÜNSÜN: tesviye şapı, paralel taraklı yapıştırıcı, tesviye klipsleriyle döşenen geniş ebatlı karolar ve oda perspektifi.\nFİZİKSEL DOĞRULUK: Karo yapıştırıcı yatağına otursun; derzler ve klipsler düzenli olsun.\nKESİNLİKLE OLMASIN: havada yüzen numune, katalog kolajı, yazı, logo, marka, filigran, UI, HUD veya açıklama oku.",
+    "primaryAltTr": "Zemin Kaplamaları — Aydınlık iç mekânda şap ve taraklı yapıştırıcı üzerine geniş ebatlı karo uygulaması",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
     "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: betonarme döşeme, ses yalıtım şiltesi, yüzer şap ve zemin kaplaması katman kesiti",
@@ -2581,7 +2581,9 @@
     "secondaryAltTr": "Zemin Kaplamaları (Teknik Detay) — Betonarme döşeme, ses yalıtım şiltesi, yüzer şap ve zemin kaplaması katman kesiti",
     "secondaryDifference": "Primary mekandaki döşeme işçiliğini gösterirken, secondary ses yalıtımlı yüzer şap sisteminin döşeme katman kesitini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "seramik-kaplama",
@@ -2611,22 +2613,24 @@
     "primaryAltTr": "Seramik — Büyük ebatlı porselen seramik karoların zemin seviye takozları (tesviye klipsi) ile döşenmesi",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: çift taraflı yapıştırıcı tarama (back-buttering) ve derz dolgusu (fugalı birleşim) kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: iki büyük karonun yapıştırıcı yatağı, dar derzi ve aynı kotta birleşme ilişkisi",
     "secondaryMustShow": [
-      "hem zemine hem karo arkasına çekilmiş çift yönlü yapıştırıcı",
-      "hava boşluksuz tam yapışma",
-      "elastik derz dolgusu"
+      "zemin üzerinde düzenli taranmış ve karo altında sıkışan yapıştırıcı yatağı",
+      "aynı kotta iki büyük porselen karo",
+      "dar ve düzgün derz ile açık montaj kenarında tesviye klipsi"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü oku",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Seramik\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Büyük ebatlı porselen seramik karoların zemin seviye takozları (tesviye klipsi) ile döşenmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Çift taraflı yapıştırıcı tarama (back-buttering) ve derz dolgusu (fugalı birleşim) kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: hem zemine hem karo arkasına çekilmiş çift yönlü yapıştırıcı, hava boşluksuz tam yapışma, elastik derz dolgusu.\nPRIMARY'DEN FARK: Primary yüzeydeki seviye takozlu montajı gösterirken, secondary büyük karolarda kırılmayı önleyen çift taraflı yapıştırma kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü oku, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Seramik (Teknik Detay) — Çift taraflı yapıştırıcı tarama (back-buttering) ve derz dolgusu (fugalı birleşim) kesiti",
-    "secondaryDifference": "Primary yüzeydeki seviye takozlu montajı gösterirken, secondary büyük karolarda kırılmayı önleyen çift taraflı yapıştırma kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Seramik\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın büyük porselen karoyu tesviye klipsleriyle döşediği saha uygulaması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Yapıştırıcı yatağı, derz genişliği ve iki karonun aynı kotta birleşmesini yakın planda göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi karo birleşim yakın detayı.\nMUTLAKA GÖRÜNSÜN: zemindeki düzenli yapıştırıcı yatağı, aynı kotta iki büyük karo, dar düzgün derz ve açık montaj kenarında tesviye klipsi.\nPRIMARY'DEN FARK: Primary geniş saha uygulamasını, secondary karo altı destek ile üst yüzey derz-seviye ilişkisini gösterir.\nKESİNLİKLE OLMASIN: yazı, ölçü oku, oklar, logo, filigran, UI, HUD, kolaj veya havada yüzen karo.",
+    "secondaryAltTr": "Seramik (Teknik Detay) — Yapıştırıcı yatağı, tesviye klipsi ve aynı kotta dar derzli iki porselen karo",
+    "secondaryDifference": "Primary ustanın tesviye klipsli montajını geniş açıyla gösterirken, secondary yapıştırıcı desteği ile derz ve yüzey kotunu yakın planda öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "parke-kaplama",
@@ -2641,7 +2645,7 @@
     "secondaryTargetWebp": "/bina-asamalari/details/parke-kaplama.webp",
     "legacySvgCard": "/bina-asamalari/topics/parke-kaplama.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında kilitli lamine veya laminat parke panellerinin şilte üzerinde takoz ve kauçuk tokmakla birbirine geçirilmesini net olarak anlamalı.",
     "primaryMustShow": [
       "ahşap dokulu parke panelleri",
       "altına serilmiş beyaz kapron/şilte",
@@ -2652,26 +2656,29 @@
       "marka",
       "katalog görseli"
     ],
-    "primaryPromptTr": "KONU: Parke\nİÇERİK: İç mekan konforunu yükselten, altlık ve derz detayına duyarlı sıcak yüzey kaplaması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: ahşap dokulu parke panelleri, altına serilmiş beyaz kapron/şilte, kilit mekanizmasıyla birleştirme.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka, katalog görseli, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Parke — Kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi",
+    "primaryPromptTr": "KONU: Parke\nİÇERİK: İç mekân konforunu yükselten, altlık ve derz detayına duyarlı sıcak yüzey kaplaması.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kilitli ahşap parke panellerinin akustik şilte üzerinde takoz ve kauçuk tokmakla birleştirilmesini göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay aydınlık boş oda; usta şaşırtmalı sıralardaki yeni paneli kilit kenarından birleştiriyor.\nMUTLAKA GÖRÜNSÜN: ahşap dokulu paneller, açıkta kalan şilte, kilitli birleşim, vurma takozu ve kauçuk tokmak.\nFİZİKSEL DOĞRULUK: Paneller şilte üzerinde düz yatsın ve uç derzleri şaşırtmalı olsun.\nKESİNLİKLE OLMASIN: yazı, marka, katalog görseli, logo, filigran, UI, HUD veya havada yüzen panel.",
+    "primaryAltTr": "Parke — Akustik şilte üzerinde takoz ve kauçuk tokmakla birleştirilen kilitli ahşap paneller",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: parkenin duvar dibinde bıraktığı 15 mm genleşme boşluğu ve süpürgelik klipsi kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: şilte üzerindeki yüzer parkenin duvar dibi genleşme boşluğu, geçici takoz ve süpürgelikle kapanan kenar birleşimi",
     "secondaryMustShow": [
       "duvar sıvası",
-      "duvar ile parke arasındaki 15 mm genleşme aralığı takozu",
-      "üzerini örten süpürgelik"
+      "duvar ile parke arasındaki genleşme aralığı ve geçici takoz",
+      "zemini sıkıştırmadan boşluğu örten duvara bağlı süpürgelik",
+      "şap üzerinde kesintisiz akustik şilte"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "mm ölçüleri",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Parke\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Kilitli lamine veya laminat parke panellerinin kapпроntoz tokmakla birbirine geçirilmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Parkenin duvar dibinde bıraktığı 15 mm genleşme boşluğu ve süpürgelik klipsi kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: duvar sıvası, duvar ile parke arasındaki 15 mm genleşme aralığı takozu, üzerini örten süpürgelik.\nPRIMARY'DEN FARK: Primary odada parke döşenmesini gösterirken, secondary ahşabın şişip kabarmasını önleyen duvar dibi genleşme boşluğu kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, mm ölçüleri, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Parke (Teknik Detay) — Parkenin duvar dibinde bıraktığı 15 mm genleşme boşluğu ve süpürgelik klipsi kesiti",
-    "secondaryDifference": "Primary odada parke döşenmesini gösterirken, secondary ahşabın şişip kabarmasını önleyen duvar dibi genleşme boşluğu kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Parke\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın şilte üzerinde kilitli parke panellerini birleştirdiği oda uygulaması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Yüzer parkenin duvar dibi genleşme boşluğu ve süpürgelik bitişini göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi duvar-zemin yakın detayı; süpürgeliğin kısa bir bölümü inceleme için açık.\nMUTLAKA GÖRÜNSÜN: şap üzerinde şilte, duvardan boşlukla ayrılan parke, açık bölümde geçici takoz ve boşluğu örten duvara bağlı süpürgelik.\nPRIMARY'DEN FARK: Primary oda içindeki panel birleştirmeyi, secondary yüzer zeminin çevre hareket payını ve bitişini gösterir.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, HUD, kolaj veya havada yüzen parça.",
+    "secondaryAltTr": "Parke (Teknik Detay) — Akustik şilte, duvar dibi genleşme boşluğu, geçici takoz ve süpürgelik birleşimi",
+    "secondaryDifference": "Primary odadaki kilitli panel montajını gösterirken, secondary yüzer parkenin duvar dibindeki hareket boşluğu ve süpürgelik bitişini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "mermer-kaplama",
@@ -2701,23 +2708,25 @@
     "primaryAltTr": "Mermer / Granit — Doğal mermer veya granit plakaların harç yatağına tokmaklanarak hassas seviyelenmesi",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: mermer merdiven basamağı: rıht, basamak plağı, damlalık pahı ve harç bağlantı kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: doğal taş zemin plakalarının tam yatak harcı, dar derz, aynı kot ve duvar/kenar bitişi",
     "secondaryMustShow": [
-      "masif mermer basamak",
-      "düşey mermer rıht",
-      "önde kaymaz pah/oluk detayı",
-      "alttaki harç yatağı"
+      "aynı kalınlıkta damarlı doğal taş plakalar",
+      "plakaları boşluksuz destekleyen taraklı harç veya yapıştırıcı yatağı",
+      "dar düzgün derz ve aynı kotta cilalı yüzey",
+      "temiz duvar veya eşik kenar birleşimi"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Mermer / Granit\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Doğal mermer veya granit plakaların harç yatağına tokmaklanarak hassas seviyelenmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Mermer merdiven basamağı: rıht, basamak plağı, damlalık pahı ve harç bağlantı kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: masif mermer basamak, düşey mermer rıht, önde kaymaz pah/oluk detayı, alttaki harç yatağı.\nPRIMARY'DEN FARK: Primary zemin mermer döşeme sahnesini sunarken, secondary merdiven basamağındaki damlalık pahı ve rıht birleşim kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Mermer / Granit (Teknik Detay) — Mermer merdiven basamağı: rıht, basamak plağı, damlalık pahı ve harç bağlantı kesiti",
-    "secondaryDifference": "Primary zemin mermer döşeme sahnesini sunarken, secondary merdiven basamağındaki damlalık pahı ve rıht birleşim kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Mermer / Granit\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ustanın doğal taş plakayı harç yatağına tokmaklayıp su terazisiyle seviyelendirdiği saha uygulaması\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Taş altı tam destek, dar derz, yüzey kotu ve duvar/kenar bitişini yakın planda göstermek\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, işçisiz, foto-gerçekçi doğal taş zemin kenar detayı.\nMUTLAKA GÖRÜNSÜN: aynı kalınlıkta damarlı plakalar, boşluksuz taraklı harç yatağı, dar düzgün derz, aynı kotta cilalı yüzey ve temiz kenar birleşimi.\nPRIMARY'DEN FARK: Primary geniş döşeme ve seviye ayarı eylemini, secondary taşın alt desteği ile derz ve kenar bitişini gösterir.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, HUD, kolaj veya havada yüzen taş.",
+    "secondaryAltTr": "Mermer / Granit (Teknik Detay) — Tam harç yataklı doğal taş plakalar, dar derz ve temiz kenar birleşimi",
+    "secondaryDifference": "Primary doğal taş plakanın tokmak ve su terazisiyle ayarlanmasını gösterirken, secondary alt yatak, derz, yüzey kotu ve kenar bitişini yakın planda öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "epoksi-kaplama",
