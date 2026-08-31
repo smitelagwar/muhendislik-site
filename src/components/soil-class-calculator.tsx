@@ -15,6 +15,12 @@ import {
   Layers,
 } from "lucide-react";
 import { determineSoilClass, type SoilClassEvaluationInput } from "@/lib/engineering/tbdy2018/soil-class";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function SoilClassCalculator() {
   const [method, setMethod] = useState<"vs30" | "spt" | "cu">("vs30");
@@ -75,9 +81,9 @@ ${result.spectralCoefficients ? `Tasarım Katsayıları (Ss=${ssVal}, S1=${s1Val
 
         {/* Header */}
         <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-bold text-purple-600 dark:text-purple-300">
-            <Mountain className="h-3.5 w-3.5" />
-            <span>TBDY 2018 Bölüm 16.4</span>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <ToolScopeBadge kind="classification" />
+            <ToolSourceStamp sources={["TBDY 2018 Tablo 16.1"]} tier="A" />
           </div>
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground dark:text-white">
             Yerel Zemin Sınıfı Tayini
@@ -351,6 +357,17 @@ ${result.spectralCoefficients ? `Tasarım Katsayıları (Ss=${ssVal}, S1=${s1Val
                     </div>
                   ))}
                 </div>
+
+                {/* Governing Normative Classification Check */}
+                <div className="pt-2">
+                  <GoverningCheckCard
+                    label="TBDY 2018 Zemin Sınıfı Eşleşmesi"
+                    demand={method === "vs30" ? vs30Val : method === "spt" ? sptVal : cuVal}
+                    unit={method === "vs30" ? "m/s" : method === "spt" ? "darbe" : "kPa"}
+                    status="ok"
+                    explanation={`Değerlendirilen parametre: ${method.toUpperCase()} (${result.criteriaSummary.join(", ")}). TBDY 2018 Tablo 16.1 uyarınca "${result.soilClass} - ${result.className}" sınıfı doğrulanmıştır.`}
+                  />
+                </div>
               </section>
             ) : (
               <div className="rounded-3xl border border-border/80 dark:border-white/10 bg-card/80 p-6 text-center text-xs text-muted-foreground">
@@ -358,6 +375,24 @@ ${result.spectralCoefficients ? `Tasarım Katsayıları (Ss=${ssVal}, S1=${s1Val
               </div>
             )}
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TBDY 2018 Tablo 16.1 uyarınca üst 30 metre ortalama kayma dalgası hızı (Vs30), standart penetrasyon (SPT-N60) veya drenajsız kayma dayanımı (cu) parametreleri ile yerel zemin sınıfı tayini",
+              "TBDY 2018 Tablo 2.1 ve 2.2 yerel zemin etki katsayıları (Fs, F1) ve tasarım spektral ivmeleri (SDS, SD1) hesabı",
+              "Kısa ve 1 saniye periyot tasarım katsayılarının zemin büyütmesi etkilerinin incelenmesi"
+            ]}
+            limitations={[
+              "ZF zemin sınıfı (sıvılaşma potansiyeli, kalın organik kil, turba vb.) özel geoteknik saha araştırması ve sahaya özel deprem davranışı analizi gerektirir",
+              "Vs30 hesaplanırken tabakalı zeminlerde harmonik ortalama formülü (30 / sum(hi/vi)) harici geoteknik rapordan alınmalıdır",
+              "Heyelan veya dinamik şev stabilitesi risklerini kapsamaz"
+            ]}
+            inputProvenance="TBDY 2018 Türkiye Bina Deprem Yönetmeliği Bölüm 16 (Deprem Etkisi Altında Temel Zemini ve Temel Tasarımı) ve Tablo 16.1"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
