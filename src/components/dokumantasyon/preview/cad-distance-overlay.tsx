@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type {
   CadDistanceMeasurementResult,
@@ -10,6 +10,18 @@ import type {
   CadSnapPoint,
   CadSnapPrimitive,
 } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
+import {
+  getCurrentCadMeasurementUnitSettings,
+} from "@/lib/dokumantasyon/cad-review/store";
+import {
+  CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT,
+  calculateCalibrationFromWorldDistance,
+  formatDistance,
+  resolveCadMeasurementFileId,
+  resolveCadSourceUnitContext,
+  saveCadCalibration,
+  type CadLengthUnit,
+} from "@/lib/dokumantasyon/cad-review/units";
 import { CadPrecisionOverlay } from "./cad-precision-overlay";
 
 export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementResult {
@@ -35,17 +47,14 @@ type CadRendererHost = HTMLElement & {
   __cadAdapter?: CadRendererCanvasBridge;
 };
 
-function formatDistance(value: number): string {
-  return new Intl.NumberFormat("tr-TR", {
-    maximumFractionDigits: 3,
-  }).format(value);
-}
-
 function midpoint(a: CadSnapPoint, b: CadSnapPoint): CadSnapPoint {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string | null {
+function phaseMessage(
+  snapshot: CadDistanceMeasurementSnapshot | null,
+  formatValue: (value: number) => string
+): string | null {
   if (!snapshot) return null;
   switch (snapshot.phase) {
     case "awaiting-first":
@@ -57,13 +66,13 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
     case "awaiting-second":
       return snapshot.distance === null
         ? "2. noktayı seçin (Esc: İptal)"
-        : `Mesafe: ${formatDistance(snapshot.distance)} (2. noktayı seçin | Esc: İptal)`;
+        : `Mesafe: ${formatValue(snapshot.distance)} (2. noktayı seçin | Esc: İptal)`;
     case "pressing-second":
       return "Basılı tutmaya devam edin...";
     case "tracking-second":
       return snapshot.distance === null
         ? "Bırakın: ölçümü tamamla"
-        : `Bırakın: ${formatDistance(snapshot.distance)}`;
+        : `Bırakın: ${formatValue(snapshot.distance)}`;
     default:
       return null;
   }
@@ -136,6 +145,27 @@ export function CadDistanceOverlay({
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
+  const [, setMeasurementContextRevision] = useState(0);
+  const [calibrationValue, setCalibrationValue] = useState("");
+  const [calibrationUnit, setCalibrationUnit] = useState<CadLengthUnit>("cm");
+  const [calibrationError, setCalibrationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const refresh = () => setMeasurementContextRevision((value) => value + 1);
+    window.addEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, refresh);
+  }, []);
+
+  const measurementSettings = getCurrentCadMeasurementUnitSettings();
+  const sourceUnitContext = resolveCadSourceUnitContext(anchorRef.current);
+  const formatValue = (value: number) =>
+    formatDistance(
+      value,
+      sourceUnitContext,
+      measurementSettings.unit,
+      measurementSettings.precision
+    );
+
   const completed = measurements
     .map((measurement) => {
       const start = projectPoint(measurement.start);
@@ -146,7 +176,9 @@ export function CadDistanceOverlay({
 
   const first = snapshot?.firstPoint ? projectPoint(snapshot.firstPoint) : null;
   const preview = snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
-  const message = phaseMessage(snapshot);
+  const message = phaseMessage(snapshot, formatValue);
+  const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+  const sourceUnitUnknown = sourceUnitContext.mmPerWorldUnit === null;
 
   const getSourceCanvas = (): HTMLCanvasElement | null => {
     const host = anchorRef.current?.parentElement;
@@ -167,14 +199,13 @@ export function CadDistanceOverlay({
       ? catalog.filter((primitive) => wanted.has(primitive.id)).slice(0, 8)
       : [];
 
-const CAD_NEARBY_SNAP_RADIUS_PX = 55;
-const CAD_NEARBY_SNAP_LIMIT = 36;
+    const CAD_NEARBY_SNAP_RADIUS_PX = 55;
+    const CAD_NEARBY_SNAP_LIMIT = 36;
 
     let nearby: CadSnapPrimitive[] = [];
     if (worldPoint && typeof adapter.getNearbyPrimitives === "function") {
       nearby = adapter.getNearbyPrimitives(worldPoint, CAD_NEARBY_SNAP_RADIUS_PX, CAD_NEARBY_SNAP_LIMIT);
     } else if (Array.isArray(catalog) && catalog.length > 0 && worldPoint) {
-      // Proximity-filtered fallback: do not blindly slice arbitrary catalog entries
       nearby = catalog
         .filter((p) => {
           const px = p.kind === "line" ? (p.a.x + p.b.x) / 2 : p.center.x;
@@ -190,6 +221,37 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
     return merged.slice(0, 36);
   };
 
+  const applyCalibration = () => {
+    const fileId = resolveCadMeasurementFileId(anchorRef.current);
+    const knownDistance = Number(calibrationValue.trim().replace(",", "."));
+    if (!fileId) {
+      setCalibrationError("Dosya kimliği bulunamadı.");
+      return;
+    }
+    if (!latestMeasurement || latestMeasurement.distance <= 0) {
+      setCalibrationError("Önce bilinen bir mesafeyi ölçün.");
+      return;
+    }
+    if (!Number.isFinite(knownDistance) || knownDistance <= 0) {
+      setCalibrationError("Gerçek uzunluk sıfırdan büyük olmalıdır.");
+      return;
+    }
+
+    try {
+      const calibration = calculateCalibrationFromWorldDistance(
+        latestMeasurement.distance,
+        knownDistance,
+        calibrationUnit
+      );
+      saveCadCalibration(fileId, calibration);
+      setCalibrationError(null);
+      setCalibrationValue("");
+      setMeasurementContextRevision((value) => value + 1);
+    } catch (error) {
+      setCalibrationError(error instanceof Error ? error.message : "Kalibrasyon uygulanamadı.");
+    }
+  };
+
   return (
     <>
       <span ref={anchorRef} className="hidden" data-cad-distance-overlay-anchor="true" />
@@ -198,6 +260,9 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
         className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
         aria-hidden="true"
         data-testid="cad-distance-overlay"
+        data-cad-measurement-unit={measurementSettings.unit}
+        data-cad-source-unit={sourceUnitContext.sourceUnit}
+        data-cad-source-unit-source={sourceUnitContext.source}
       >
         {completed.map(({ measurement, start, end }) => {
           const label = midpoint(start, end);
@@ -208,12 +273,12 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
-                className="stroke-primary"
+                stroke={measurementSettings.color}
                 strokeWidth="1.5"
                 vectorEffect="non-scaling-stroke"
               />
-              <circle cx={start.x} cy={start.y} r="3" className="fill-primary" />
-              <circle cx={end.x} cy={end.y} r="3" className="fill-primary" />
+              <circle cx={start.x} cy={start.y} r="3" fill={measurementSettings.color} />
+              <circle cx={end.x} cy={end.y} r="3" fill={measurementSettings.color} />
               <text
                 x={label.x}
                 y={label.y - 7}
@@ -223,13 +288,13 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
                 strokeWidth="3"
                 paintOrder="stroke"
               >
-                {formatDistance(measurement.distance)}
+                {formatValue(measurement.distance)}
               </text>
             </g>
           );
         })}
 
-        {first ? <circle cx={first.x} cy={first.y} r="3.5" className="fill-primary" /> : null}
+        {first ? <circle cx={first.x} cy={first.y} r="3.5" fill={measurementSettings.color} /> : null}
 
         {first && preview ? (
           <>
@@ -238,7 +303,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
               y1={first.y}
               x2={preview.x}
               y2={preview.y}
-              className="stroke-primary"
+              stroke={measurementSettings.color}
               strokeWidth="1.5"
               strokeDasharray="6 4"
               vectorEffect="non-scaling-stroke"
@@ -255,7 +320,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
             >
               {snapshot?.distance === null || snapshot?.distance === undefined
                 ? ""
-                : formatDistance(snapshot.distance)}
+                : formatValue(snapshot.distance)}
             </text>
           </>
         ) : null}
@@ -265,7 +330,8 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
             cx={preview.x}
             cy={preview.y}
             r={snapshot?.previewSnap ? 4.5 : 3.5}
-            className={snapshot?.previewSnap ? "fill-primary" : "fill-background stroke-primary"}
+            fill={snapshot?.previewSnap ? measurementSettings.color : "var(--background)"}
+            stroke={measurementSettings.color}
             strokeWidth="1.5"
             opacity={snapshot?.previewSnap ? 0.35 : 0.7}
             data-cad-distance-preview="true"
@@ -289,6 +355,62 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
           data-cad-distance-phase={snapshot?.phase ?? "inactive"}
         >
           {message}
+        </div>
+      ) : null}
+
+      {sourceUnitUnknown ? (
+        <div
+          className="pointer-events-auto absolute bottom-12 left-1/2 z-30 w-[min(92vw,430px)] -translate-x-1/2 rounded-lg border border-amber-500/50 bg-background/95 p-3 text-xs text-foreground shadow-lg backdrop-blur"
+          role="status"
+          data-testid="cad-measurement-unit-warning"
+        >
+          <div className="font-semibold text-amber-500">Çizim birimi bilinmiyor</div>
+          <div className="mt-1 text-muted-foreground">
+            Sahte m/cm etiketi gösterilmiyor. Kalibrasyon için bilinen bir mesafeyi ölçün ve gerçek uzunluğu girin.
+          </div>
+
+          {latestMeasurement ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground">
+                Referans: {formatDistance(latestMeasurement.distance, sourceUnitContext, measurementSettings.unit, measurementSettings.precision)}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={calibrationValue}
+                onChange={(event) => setCalibrationValue(event.target.value)}
+                className="h-8 w-24 rounded-md border border-border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                placeholder="50"
+                aria-label="Gerçek referans uzunluğu"
+                data-testid="cad-calibration-value"
+              />
+              <select
+                value={calibrationUnit}
+                onChange={(event) => setCalibrationUnit(event.target.value as CadLengthUnit)}
+                className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                aria-label="Kalibrasyon birimi"
+                data-testid="cad-calibration-unit"
+              >
+                <option value="mm">mm</option>
+                <option value="cm">cm</option>
+                <option value="m">m</option>
+              </select>
+              <button
+                type="button"
+                onClick={applyCalibration}
+                className="h-8 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                data-testid="cad-calibration-apply"
+              >
+                Kalibre Et
+              </button>
+            </div>
+          ) : null}
+
+          {calibrationError ? (
+            <div className="mt-1.5 text-destructive" role="alert">
+              {calibrationError}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </>
