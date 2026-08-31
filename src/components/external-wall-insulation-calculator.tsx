@@ -42,6 +42,12 @@ import { BUILDING_MATERIALS, INSULATION_MATERIALS } from "@/lib/ts825/materials"
 import type { ThermalLayer } from "@/lib/ts825/types";
 import { WALL_PRESETS } from "@/lib/ts825/wall-presets";
 import { cn } from "@/lib/utils";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const numberFormatter = new Intl.NumberFormat("tr-TR", {
   minimumFractionDigits: 0,
@@ -168,9 +174,9 @@ export function ExternalWallInsulationCalculator() {
         {/* Hero Header */}
         <header className="mb-8 flex flex-col items-start justify-between gap-5 border-b border-border/70 dark:border-white/10 pb-8 md:flex-row md:items-end">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-              <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-              <span>TS 825:2024 / Dış Duvar</span>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <ToolScopeBadge kind="check" />
+              <ToolSourceStamp sources={["TS 825:2024"]} tier="B" />
             </div>
             <h1 className="mt-4 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
               Yalıtım Kalınlığı ve{" "}
@@ -382,6 +388,17 @@ export function ExternalWallInsulationCalculator() {
                     )}
                     <Ts825WallReportDialog calculation={calculation} wallPresetName={selectedPreset.name} />
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="TS 825:2024 Dış Duvar Isıl Geçirgenlik (U <= U_hedef)"
+                      demand={Number(calculation.currentUValue.toFixed(2))}
+                      capacity={Number(calculation.targetUValue.toFixed(2))}
+                      unit="W/m²K"
+                      status={calculation.currentUValue <= calculation.targetUValue ? "ok" : "fail"}
+                      explanation={`Mevcut duvar U = ${calculation.currentUValue.toFixed(2)} W/m²K ${calculation.currentUValue <= calculation.targetUValue ? "<=" : ">"} TS 825:2024 hedef U = ${calculation.targetUValue.toFixed(2)} W/m²K. Önerilen asgari yalıtım: ${formatCm(calculation.recommendedThicknessMm)} cm.`}
+                    />
+                  </div>
                 </>
               ) : null}
             </div>
@@ -460,6 +477,24 @@ export function ExternalWallInsulationCalculator() {
             </div>
           ) : null}
         </section>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TS 825:2024 Binalarda Isı Yalıtım Kuralları standardı uyarınca dış duvar bileşeni toplam ısıl direnç (R) ve ısıl geçirgenlik katsayısı (U) hesabı",
+              "Türkiye 1-6. iklim bölgeleri ve iller bazında azami U_duvar sınır değerleri ile karşılaştırma",
+              "Farklı yalıtım malzemeleri (EPS, XPS, Taşyünü) için minimum gerekli kalınlık hesabı"
+            ]}
+            limitations={[
+              "Bu araç yalnız opak dış duvar bileşeni U değerini tahkik eder; bina bütünü özgül ısı kaybı (H) ve yıllık ısıtma enerjisi ihtiyacı (Q) yerine geçmez",
+              "Pencere, döşeme, çatı ve ısı köprüleri (balkon, kolon-kiriş hatları psi katsayıları) bina genel TS 825 raporunda değerlendirilmelidir",
+              "Glaser yoğuşma ve buhar difüzyon tahkiki haricen yapılmalıdır"
+            ]}
+            inputProvenance="TS 825:2024 Binalarda Isı Yalıtım Kuralları ve Çevre, Şehircilik ve İklim Değişikliği Bakanlığı İklim Veritabanı"
+            defaultOpen={false}
+          />
+        </div>
 
         <div className="mt-6 flex flex-col justify-between gap-3 border-t border-border/70 dark:border-white/10 pt-5 text-xs text-muted-foreground dark:text-zinc-400 sm:flex-row sm:items-center">
           <p>Dış duvar bileşeni U hesabıdır; tam bina TS 825 enerji raporu yerine geçmez.</p>

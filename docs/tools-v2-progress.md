@@ -52,7 +52,7 @@
 | F5-02 | Çelik Cıvata & Kaynak (18) | DONE | feat(steel-conn): add bolt and weld capacity governing checks and limitations | npm run check:tools-steel-timber-phase6, npm run check:tools-adversarial, tsc | GoverningCheckCard (bulon makaslama/ezilme ve köşe kaynak kapasite tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F5-03 | Ahşap Eleman (19) | DONE | feat(timber): add bending and deflection governing checks and limitations | npm run check:tools-steel-timber-phase6, npm run check:tools-adversarial, tsc | GoverningCheckCard (eğilme gerilmesi ve anlık sehim tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F6-01 | Kalıp Söküm Süresi (20) | DONE | feat(stripping): add formwork curing duration governing check and limitations | npm run check:tools-adversarial, check:tools-metadata, tsc | GoverningCheckCard (güvenli kalıp söküm süresi tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F6-02 | Dış Cephe Yalıtım Kalınlığı (21) | TODO | | | |
+| F6-02 | Dış Cephe Yalıtım Kalınlığı (21) | DONE | feat(insulation): add TS 825 U-value governing check and limitations | npm run check:tools-adversarial, check:tools-metadata, tsc | GoverningCheckCard (TS 825 dış duvar ısıl geçirgenlik U tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F6-03 | İmar Hesaplayıcı (22) | TODO | | | |
 | F7-01 | Beton Metrajı V2 (23) | TODO | | | |
 | F7-02 | Hafriyat & Kamyon Sefer (24) | TODO | | | |
