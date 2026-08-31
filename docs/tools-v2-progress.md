@@ -36,7 +36,7 @@
 | F3-01 | Kolon Ön Boyutlandırma (02) | DONE | feat(column): add axial capacity governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (eksenel yük & kesit kapasitesi), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-02 | Kiriş Kesiti V2 (03) | DONE | feat(beam): complete V2 standardization | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | F2-02 pilotunda GoverningCheckCard, ToolScopeBadge, ToolSourceStamp ve ToolLimitations tamamlandı |
 | F3-03 | Döşeme Kalınlığı (04) | DONE | feat(slab): add deflection governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (sehim & kalınlık tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
-| F3-04 | Pas Payı (05) | TODO | | | |
+| F3-04 | Pas Payı (05) | DONE | feat(cover): add durability governing check and limitations | npm run check:tools-concrete-phase4, npm run check:tools-adversarial, tsc | GoverningCheckCard (nominal beton örtüsü tahkiki), ToolScopeBadge, ToolSourceStamp ve ToolLimitations eklendi |
 | F3-05 | Zımbalama Kontrolü (06) | TODO | | | |
 | F3-06 | Kiriş Kesme & Etriye (07) | TODO | | | |
 | F3-07 | Kenetlenme & Ek Boyu (08) | TODO | | | |

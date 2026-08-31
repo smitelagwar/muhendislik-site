@@ -9,6 +9,12 @@ import { concreteDisplayFont, concreteMonoFont } from "@/lib/concrete-tools/font
 import { formatConcreteNumber, parsePositiveConcreteNumber } from "@/lib/concrete-tools/format";
 import { COVER_ELEMENT_OPTIONS, COVER_EXPOSURE_OPTIONS, COVER_REBAR_DIAMETER_OPTIONS, COVER_SAFETY_CLASS_OPTIONS, COVER_SERVICE_LIFE_OPTIONS, COVER_STIRRUP_DIAMETER_OPTIONS, calculateConcreteCover } from "@/lib/concrete-tools/cover";
 import { cn } from "@/lib/utils";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 const triggerClassName = "tool-input h-12 w-full font-semibold text-zinc-900 dark:text-zinc-100";
 
@@ -46,6 +52,11 @@ export function ConcreteCoverCalculator() {
       title="Pas payı"
       description="Nominal beton örtüsü, dayanıklılık ve uygulama toleransı mantığıyla hızlıca hesaplanır. Kaynak dashboard’daki pas payı paneli form yapısı korunarak ayrı route’a taşındı."
     >
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <ToolScopeBadge kind="classification" />
+        <ToolSourceStamp sources={["TS 500 Madde 12.1.2"]} tier="A" />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
         <section className="tool-panel rounded-[28px] p-6">
           <div className="mb-6 flex items-start justify-between gap-4">
@@ -199,6 +210,17 @@ export function ConcreteCoverCalculator() {
                   <ConcreteResultRow label="c,nom" value={`${formatConcreteNumber(result.nominalCoverMm)} mm`} tone="ok" />
                   <ConcreteResultRow label="Pratik pas payı" value={`${formatConcreteNumber(result.practicalCoverMm)} mm`} tone="ok" />
                 </div>
+
+                <div className="mt-4">
+                  <GoverningCheckCard
+                    label="TS 500 Nominal Beton Örtüsü Tahkiki"
+                    demand={Number(result.minimumCoverMm)}
+                    capacity={Number(result.nominalCoverMm)}
+                    unit="mm"
+                    status="ok"
+                    explanation={`Minimum örtü c,min = ${result.minimumCoverMm} mm (Bağ min: ${result.bondMinimumMm} mm, Dürabilite min: ${result.durabilityMinimumMm} mm). Uygulama toleransı Delta-c,dev = ${result.deviationMm} mm eklenerek nominal pas payı c,nom = ${result.nominalCoverMm} mm (Pratik: ${result.practicalCoverMm} mm) belirlendi.`}
+                  />
+                </div>
               </>
             ) : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6">
@@ -228,6 +250,24 @@ export function ConcreteCoverCalculator() {
             <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-400">Bu araç nominal örtüyü dayanıklılık + bağ koşulu + tolerans yaklaşımıyla verir. Sahada kalıp işçiliği, eleman maruziyeti ve uygulama kontrol seviyesi bu sonucun üzerinde doğrudan etkilidir.</p>
           </div>
         </section>
+      </div>
+
+      {/* Tool Limitations & Normative Bounds */}
+      <div className="mt-8">
+        <ToolLimitations
+          scope={[
+            "TS 500 Madde 12.1.2 ve TS EN 1992-1-1 çevresel etki sınıflarına göre (XC, XD, XS) minimum beton örtüsü hesabı",
+            "Donatı aderansı (c,min,b) ve durabilite (c,min,dur) koşullarından elverişsiz olanın seçimi",
+            "Şantiye sapma toleransı (Delta-c,dev) ile nominal ve pratik pas payı tayini"
+          ]}
+          limitations={[
+            "Yangın dayanımı (R30, R60, R120) için gereken ilave özel beton örtüsü artışını içermez",
+            "Agresif kimyasal zemin temaslarında (XA sınıfları) özel sülfata dayanıklı çimento ve kaplama gerekir",
+            "Prefabrik elemanların fabrika içi hassas tolerans indirimleri haricen değerlendirilmelidir"
+          ]}
+          inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 12.1.2 ve TS EN 206 Çevresel Etki Sınıfları"
+          defaultOpen={false}
+        />
       </div>
     </ConcreteToolShell>
   );
