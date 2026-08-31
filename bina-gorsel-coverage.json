@@ -70,17 +70,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/proje-hazirlik/tesisat-projesi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/tesisat-projesi.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/tesisat-projesi.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -91,17 +91,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/proje-hazirlik/elektrik-projesi",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/elektrik-projesi.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/elektrik-projesi.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -112,17 +112,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/proje-hazirlik/yapi-ruhsati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/yapi-ruhsati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/yapi-ruhsati.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {

@@ -192,7 +192,9 @@
     "secondaryAltTr": "Tesisat Projesi (Teknik Detay) — Kazan dairesi ve kollektör dağıtım merkezi borulama ve vana grubu kesiti",
     "secondaryDifference": "Primary binadaki düşey şaft dağılımını gösterirken, secondary ana kollektör ve mekanik santral detayını kesit olarak öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "elektrik-projesi",
@@ -237,7 +239,9 @@
     "secondaryAltTr": "Elektrik Projesi (Teknik Detay) — Zayıf akım ve kuvvetli akım şaft ayrımı ve kat pano besleme detayı",
     "secondaryDifference": "Primary tavan tava güzergahını gösterirken, secondary şaft içindeki zayıf akım-kuvvetli akım ayrımı ve yangın durdurucu detayı öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 93,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "yapi-ruhsati",
@@ -282,7 +286,9 @@
     "secondaryAltTr": "Yapı Ruhsatı (Teknik Detay) — Şantiye sahasında parsel köşe kazıkları ve onaylı plankote aplikasyon kontrolü",
     "secondaryDifference": "Primary ofis proje setlerini gösterirken, secondary ruhsat sonrası sahada yapılan ilk parsel köşe aplikasyonunu öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 94,
+    "status": "published"
   },
   {
     "id": "kazi-temel",

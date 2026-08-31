@@ -97,7 +97,7 @@ muhendislik-site/
 - Tıklanabilir node'lar, zoom/pan
 - Mobil uyumlu (touch event'leri dahil)
 - Veri akışı: Temel → Kaba İnşaat → İnce İşler → Tesisat → Dış Cephe → Teslim
-- Görsel Yenileme V3 Aşama 01: Proje & İzinler, Mimari Proje ve Statik Proje için 6 adet 3840×2160 WebP PRIMARY/SECONDARY asseti QC 93–95 ile yerel olarak publish edildi; kalan aşamalar progressive legacy görünümle devam eder.
+- Görsel Yenileme V3 Aşama 01–02: Proje & İzinler fazındaki ilk 6 konu için 12 adet 3840×2160 WebP PRIMARY/SECONDARY asseti QC 93–95 ile publish edildi; kalan aşamalar progressive legacy görünümle devam eder.
 
 ### 2. Hesap Araçları (Mevcut — Dokunmadan Güncelle)
 Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
