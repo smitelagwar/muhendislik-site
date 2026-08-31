@@ -13,6 +13,12 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { calculateExcavation } from "@/lib/engineering/quantity/excavation";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function ExcavationQuantityCalculator() {
   const [baseWidth, setBaseWidth] = useState(18);
@@ -80,12 +86,8 @@ HESAP SONUÇLARI:
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Truck className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Altyapı & Kazı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Geometrik Prizmoid", "Saha Pratiği"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -253,10 +255,39 @@ HESAP SONUÇLARI:
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Hafriyat ve Damperli Kamyon Nakliye Tahkiki"
+                      demand={Number(result.looseVolumeM3.toFixed(1))}
+                      capacity={Number((result.truckTripsCount * truckCap).toFixed(1))}
+                      unit="m³"
+                      status="ok"
+                      explanation={`Sıkışık kazı hacmi = ${result.solidVolumeM3.toFixed(1)} m³, %${swellPct} zemin kabarması ile taşınacak brüt hafriyat = ${result.looseVolumeM3.toFixed(1)} m³. ${truckCap} m³ kapasiteli damperli kamyonla ~${result.truckTripsCount} sefer planlandı.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Prizmoid ve şev eğimi formülleriyle açık kazı çukuru yerinde sıkışık hacim (m³) hesabı",
+              "Zemin türüne bağlı ampirik kabarma faktörü (%15-%40) ile taşınacak gevşek hacim hesabı",
+              "Damperli kamyon kapasitesine (10-25 m³) göre tahmini nakliye sefer sayısı planlaması"
+            ]}
+            limitations={[
+              "Topoğrafik yükseklik eğrileri, kademeli kazı veya parsel içi hafriyat harici plankote haritasıyla netleştirilmelidir",
+              "Dolgu sıkışma katsayısı ve kazı fazlası toprak döküm sahası mesafesi harici nakliye maliyetine tabidir",
+              "İksa perdesi veya palplanşlı dik kazılarda şev hacmi sıfır alınmalıdır"
+            ]}
+            inputProvenance="Geometrik Prizmoid Hacim Bağıntısı ve Karayolları / ÇŞB Kazı Kabarma Standartları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
