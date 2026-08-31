@@ -46,7 +46,7 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
     const split = read("cad-split-tool-button.tsx");
     const source = fs.readFileSync(ribbonFile, "utf8");
 
-    expect(button).toContain('"relative inline-flex h-9 min-h-9');
+    expect(button).toContain('"group/cad-tooltip relative inline-flex h-9 min-h-9');
     expect(button).toContain('iconOnly ? "w-9 px-0"');
     expect(group).toContain('"flex h-11');
     expect(split).toContain('"min-w-6 w-6');
@@ -96,7 +96,7 @@ test.describe("CAD Stage 2 — Ribbon temel bileşenleri ve görsel sistem", () 
 
     expect(button).toContain('role="tooltip"');
     expect(button).toContain("group-hover/cad-tooltip:opacity-100");
-    expect(button).toContain("group-focus-within/cad-tooltip:opacity-100");
+    expect(button).toContain("group-focus-visible/cad-tooltip:opacity-100");
     expect(button).toContain("focus-visible:ring-2");
     expect(button).toContain("focus-visible:border-ring");
   });
