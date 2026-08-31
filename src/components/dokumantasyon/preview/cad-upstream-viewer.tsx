@@ -41,6 +41,7 @@ import { CadStudioRibbon } from "./cad-studio-ribbon";
 import { CadReviewSidePanel, type CadSidePanelTab, type CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
 import { CadExportDialog } from "./cad-export-dialog";
+import { exportReviewToDxf } from "@/lib/dokumantasyon/cad-review/export-dxf";
 import {
   CadReviewStore,
   type CadReviewTool,
@@ -877,6 +878,31 @@ export function DokCadUpstreamViewer({
   const handleTogglePanelTab = useCallback((tab: CadSidePanelTab) => {
     setActivePanelTab((prev) => (prev === tab ? null : tab));
   }, []);
+
+  const handleDownloadOriginal = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const link = document.createElement("a");
+    link.href = accessUrl;
+    link.download = displayName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [accessUrl, displayName]);
+
+  const handleDownloadDxfRevision = useCallback(() => {
+    if (!reviewDocument || typeof window === "undefined") return;
+    const dxfString = exportReviewToDxf(reviewDocument);
+    const blob = new Blob([dxfString], { type: "application/dxf" });
+    const url = URL.createObjectURL(blob);
+    const baseName = displayName.replace(/\.[^/.]+$/, "");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${baseName}_revizyon.dxf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [reviewDocument, displayName]);
   // ──────────────────────────────────────────────────────────────────────────
 
   const selectedSnapModes = CAD_SNAP_MODES.filter((mode) => snapSettings.modes[mode]).join(",");
@@ -955,6 +981,10 @@ export function DokCadUpstreamViewer({
           onUndo={handleReviewUndo}
           onRedo={handleReviewRedo}
           saveStatus="clean"
+          onDownloadOriginal={handleDownloadOriginal}
+          onDownloadDxf={handleDownloadDxfRevision}
+          onOpenExportDialog={() => setExportDialogOpen(true)}
+          sourceFileName={displayName}
         />
       ) : null}
 

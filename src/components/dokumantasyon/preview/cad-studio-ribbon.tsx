@@ -1,6 +1,6 @@
 // ============================================================================
 // DÖKÜMANTASYON MODÜLÜ — CAD STUDIO TOP RIBBON TOOLBAR
-// AutoCAD / Revit / Bluebeam Revu tarzı tam genişlikli üst araç çubuğu
+// AutoCAD / Revit / Bluebeam Revu tarzı tam genişlikli ergonomik üst araç çubuğu
 // ============================================================================
 
 "use client";
@@ -28,6 +28,9 @@ import {
   Type,
   Undo2,
   ChevronDown,
+  Download,
+  FileCode,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,6 +84,12 @@ export interface CadStudioRibbonProps {
   onUndo?: () => void;
   onRedo?: () => void;
   saveStatus?: "clean" | "dirty" | "saving";
+
+  // Downloads & Exports
+  onDownloadOriginal?: () => void;
+  onDownloadDxf?: () => void;
+  onOpenExportDialog?: () => void;
+  sourceFileName?: string;
 }
 
 export function CadStudioRibbon({
@@ -112,9 +121,13 @@ export function CadStudioRibbon({
   onUndo,
   onRedo,
   saveStatus = "clean",
+  onDownloadOriginal,
+  onDownloadDxf,
+  onOpenExportDialog,
 }: CadStudioRibbonProps) {
-  const btnBase = "h-8 px-2.5 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5";
-  const iconBtnBase = "h-8 w-8 p-0 rounded-lg transition-all shrink-0 flex items-center justify-center";
+  // Daha büyük, ergonomik ve profesyonel buton standartları
+  const btnBase = "h-9 px-3 text-xs font-semibold rounded-xl transition-all shrink-0 flex items-center gap-2 select-none shadow-sm";
+  const iconBtnBase = "h-9 w-9 p-0 rounded-xl transition-all shrink-0 flex items-center justify-center select-none shadow-sm";
 
   const isShapeActive =
     activeTool === "shape_rect" ||
@@ -125,37 +138,47 @@ export function CadStudioRibbon({
     <div
       data-testid="cad-studio-ribbon"
       data-cad-studio-ribbon="true"
-      className="flex h-11 w-full shrink-0 items-center justify-between border-b border-border/70 bg-card/95 px-2 sm:px-3 text-foreground backdrop-blur-md z-20 select-none overflow-x-auto scrollbar-none shadow-sm"
+      className="flex h-13 sm:h-14 w-full shrink-0 items-center justify-between border-b border-border/80 bg-card/95 px-2 sm:px-3.5 text-foreground backdrop-blur-xl z-20 select-none overflow-x-auto scrollbar-none shadow-md"
     >
-      <div className="flex items-center gap-1 sm:gap-1.5 min-w-max" data-testid="cad-left-quick-rail">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-max" data-testid="cad-left-quick-rail">
         {/* ── 1. GEZİNME (NAVIGATE) GRUBU ── */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5" role="toolbar" aria-label="Gezinme Araçları">
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="Gezinme Araçları">
           <Button
             type="button"
             size="sm"
             variant={activeTool === "select" ? "secondary" : "ghost"}
-            className={cn(btnBase, activeTool === "select" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              btnBase,
+              activeTool === "select"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+            )}
             onClick={() => onSelectTool("select")}
             title="Seç / Gezin [V]"
             data-testid="cad-tool-select"
             aria-label="Seç ve Gezin"
           >
-            <MousePointer className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Seç</span>
+            <MousePointer className="h-4.5 w-4.5 text-amber-500" />
+            <span className="hidden md:inline text-xs">Seç</span>
           </Button>
 
           <Button
             type="button"
             size="sm"
             variant={activeTool === "pan" || activeTool === null ? "secondary" : "ghost"}
-            className={cn(btnBase, (activeTool === "pan" || activeTool === null) ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              btnBase,
+              (activeTool === "pan" || activeTool === null)
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+            )}
             onClick={onPan}
             title="Kaydır (Pan) [P]"
             data-testid="cad-tool-pan"
             aria-label="Kaydır (Pan)"
           >
-            <Hand className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Kaydır</span>
+            <Hand className="h-4.5 w-4.5 text-amber-500" />
+            <span className="hidden md:inline text-xs">Kaydır</span>
           </Button>
 
           <Button
@@ -168,39 +191,49 @@ export function CadStudioRibbon({
             data-testid="cad-tool-fit"
             aria-label="Görünüme sığdır"
           >
-            <Maximize className="h-3.5 w-3.5" />
+            <Maximize className="h-4.5 w-4.5" />
           </Button>
         </div>
 
-        <div className="h-5 w-px bg-border/60 shrink-0" aria-hidden="true" />
+        <div className="h-6 w-px bg-border/60 shrink-0" aria-hidden="true" />
 
         {/* ── 2. GÖRÜNÜM & RENK (VIEW & DISPLAY) GRUBU ── */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5" role="toolbar" aria-label="Görünüm Seçenekleri">
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="Görünüm Seçenekleri">
           {/* Renk Modu Toggle */}
           <Button
             type="button"
             size="sm"
             variant={displayMode === "source" ? "secondary" : "ghost"}
-            className={cn(btnBase, displayMode === "source" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              btnBase,
+              displayMode === "source"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+            )}
             onClick={() => onSelectDisplayMode("source")}
             title="Gerçek Renkler"
             data-testid="cad-display-source"
           >
-            <Eye className="h-3.5 w-3.5 text-amber-500" />
-            <span className="hidden lg:inline">Gerçek</span>
+            <Eye className="h-4.5 w-4.5 text-amber-500" />
+            <span className="hidden lg:inline text-xs">Gerçek</span>
           </Button>
 
           <Button
             type="button"
             size="sm"
             variant={displayMode === "monochrome" ? "secondary" : "ghost"}
-            className={cn(btnBase, displayMode === "monochrome" ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              btnBase,
+              displayMode === "monochrome"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+            )}
             onClick={() => onSelectDisplayMode("monochrome")}
             title="Siyah-Beyaz Modu"
             data-testid="cad-display-monochrome"
           >
-            <span className="hidden lg:inline">Siyah-Beyaz</span>
-            <span className="lg:hidden">S/B</span>
+            <span className="hidden lg:inline text-xs">Siyah-Beyaz</span>
+            <span className="lg:hidden text-xs">S/B</span>
           </Button>
 
           {/* Çizgi Kalınlığı (Lineweight) */}
@@ -208,12 +241,18 @@ export function CadStudioRibbon({
             type="button"
             size="sm"
             variant={lineWeightVisible ? "secondary" : "ghost"}
-            className={cn(btnBase, lineWeightVisible ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground")}
+            className={cn(
+              btnBase,
+              "px-2.5",
+              lineWeightVisible
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+            )}
             onClick={onToggleLineWeight}
             title="Çizgi Kalınlıklarını Aç / Kapat"
             data-testid="cad-display-lineweight"
           >
-            <span className="text-[11px] font-mono">LW</span>
+            <span className="text-xs font-mono font-bold">LW</span>
           </Button>
 
           {/* Arka Plan Rengi Dropdown */}
@@ -223,12 +262,12 @@ export function CadStudioRibbon({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className={cn(btnBase, "text-muted-foreground hover:text-foreground hover:bg-background/80 px-2")}
+                className={cn(btnBase, "text-muted-foreground hover:text-foreground hover:bg-background/80 px-2.5")}
                 title="Arka Plan Rengi"
                 data-testid="cad-tool-view-settings"
               >
                 <span
-                  className="h-2.5 w-2.5 rounded-full border border-white/20"
+                  className="h-3 w-3 rounded-full border border-white/30 shadow-sm"
                   style={{
                     backgroundColor:
                       backgroundColor === "autocad"
@@ -238,45 +277,45 @@ export function CadStudioRibbon({
                         : "#ffffff",
                   }}
                 />
-                <span className="hidden xl:inline capitalize">{backgroundColor}</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
+                <span className="hidden xl:inline text-xs capitalize">{backgroundColor}</span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-40 bg-card/95 border-border shadow-xl backdrop-blur-md">
-              <DropdownMenuLabel className="text-[11px] text-muted-foreground">Arka Plan Rengi</DropdownMenuLabel>
+            <DropdownMenuContent align="start" className="w-44 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold">Arka Plan Rengi</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onSelectBackgroundColor("autocad")}
-                className="flex items-center gap-2 text-xs cursor-pointer font-medium"
+                className="flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg"
                 data-testid="cad-bg-autocad"
               >
-                <span className="h-3 w-3 rounded-full border border-white/30 bg-[#212830]" />
+                <span className="h-3.5 w-3.5 rounded-full border border-white/30 bg-[#212830]" />
                 <span>AutoCAD Koyu</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onSelectBackgroundColor("black")}
-                className="flex items-center gap-2 text-xs cursor-pointer font-medium"
+                className="flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg"
                 data-testid="cad-bg-black"
               >
-                <span className="h-3 w-3 rounded-full border border-white/30 bg-black" />
+                <span className="h-3.5 w-3.5 rounded-full border border-white/30 bg-black" />
                 <span>Tam Siyah</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onSelectBackgroundColor("white")}
-                className="flex items-center gap-2 text-xs cursor-pointer font-medium"
+                className="flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg"
                 data-testid="cad-bg-white"
               >
-                <span className="h-3 w-3 rounded-full border border-black/30 bg-white" />
+                <span className="h-3.5 w-3.5 rounded-full border border-black/30 bg-white" />
                 <span>Beyaz</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        <div className="h-5 w-px bg-border/60 shrink-0" aria-hidden="true" />
+        <div className="h-6 w-px bg-border/60 shrink-0" aria-hidden="true" />
 
         {/* ── 3. ÖLÇÜM (MEASURE) GRUBU ── */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5" role="toolbar" aria-label="Ölçüm Araçları">
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="Ölçüm Araçları">
           <Button
             type="button"
             size="sm"
@@ -284,16 +323,16 @@ export function CadStudioRibbon({
             className={cn(
               btnBase,
               activeTool === "distance"
-                ? "bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-md ring-2 ring-blue-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={onStartDistance}
             title="Mesafe Ölç [T]"
             data-testid="cad-tool-distance"
             aria-label="Mesafe ölç"
           >
-            <Ruler className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Mesafe</span>
+            <Ruler className="h-4.5 w-4.5" />
+            <span className="hidden md:inline text-xs">Mesafe</span>
           </Button>
 
           {onStartChainDistance && (
@@ -304,14 +343,14 @@ export function CadStudioRibbon({
               className={cn(
                 iconBtnBase,
                 activeTool === "chain_distance"
-                  ? "bg-blue-600 text-white hover:bg-blue-500 shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-blue-600 text-white hover:bg-blue-500 shadow-md ring-2 ring-blue-500/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/60"
               )}
               onClick={onStartChainDistance}
               title="Zincir Mesafe Ölçümü"
               data-testid="cad-tool-chain-distance"
             >
-              <Split className="h-3.5 w-3.5" />
+              <Split className="h-4.5 w-4.5" />
             </Button>
           )}
 
@@ -322,16 +361,16 @@ export function CadStudioRibbon({
             className={cn(
               btnBase,
               activeTool === "area"
-                ? "bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-md ring-2 ring-blue-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={onStartArea}
             title="Alan Ölç [A]"
             data-testid="cad-tool-area"
             aria-label="Alan ölç"
           >
-            <Square className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Alan</span>
+            <Square className="h-4.5 w-4.5" />
+            <span className="hidden md:inline text-xs">Alan</span>
           </Button>
 
           <Button
@@ -344,14 +383,14 @@ export function CadStudioRibbon({
             data-testid="cad-tool-clear"
             aria-label="Ölçümleri temizle"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4.5 w-4.5" />
           </Button>
         </div>
 
-        <div className="h-5 w-px bg-border/60 shrink-0" aria-hidden="true" />
+        <div className="h-6 w-px bg-border/60 shrink-0" aria-hidden="true" />
 
         {/* ── 4. İŞARETLEME & ÇİZİM (MARKUP & ANNOTATE) GRUBU ── */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5" role="toolbar" aria-label="İşaretleme Araçları">
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="İşaretleme Araçları">
           {/* Yorum Pini */}
           <Button
             type="button"
@@ -360,14 +399,14 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activeTool === "comment_pin"
-                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onSelectTool("comment_pin")}
             title="Yorum Pini Ekle"
             data-testid="cad-tool-pin"
           >
-            <Pin className="h-3.5 w-3.5" />
+            <Pin className="h-4.5 w-4.5" />
           </Button>
 
           {/* Serbest Çizim / Kalem */}
@@ -378,14 +417,14 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activeTool === "stroke"
-                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onSelectTool("stroke")}
             title="Serbest El Kalem"
             data-testid="cad-tool-stroke"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-4.5 w-4.5" />
           </Button>
 
           {/* Şekiller Dropdown (Dikdörtgen, Daire, Bulut) */}
@@ -397,48 +436,48 @@ export function CadStudioRibbon({
                 variant={isShapeActive ? "default" : "ghost"}
                 className={cn(
                   btnBase,
-                  "px-1.5",
+                  "px-2",
                   isShapeActive
-                    ? "bg-amber-600 text-white font-bold hover:bg-amber-500 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-amber-600 text-white font-bold hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 )}
                 title="Şekil İşaretleri"
                 data-testid="cad-tool-shapes-dropdown"
               >
                 {activeTool === "shape_circle" ? (
-                  <Circle className="h-3.5 w-3.5" />
+                  <Circle className="h-4.5 w-4.5" />
                 ) : activeTool === "shape_cloud" ? (
-                  <Cloud className="h-3.5 w-3.5" />
+                  <Cloud className="h-4.5 w-4.5" />
                 ) : (
-                  <Square className="h-3.5 w-3.5" />
+                  <Square className="h-4.5 w-4.5" />
                 )}
-                <span className="hidden xl:inline">Şekil</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
+                <span className="hidden xl:inline text-xs">Şekil</span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-44 bg-card/95 border-border shadow-xl backdrop-blur-md">
+            <DropdownMenuContent align="start" className="w-48 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl">
               <DropdownMenuItem
                 onClick={() => onSelectTool("shape_rect")}
-                className={cn("flex items-center gap-2 text-xs cursor-pointer", activeTool === "shape_rect" && "font-bold text-amber-500")}
+                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_rect" && "font-bold text-amber-500 bg-amber-500/10")}
                 data-testid="cad-tool-shape-rect"
               >
-                <Square className="h-3.5 w-3.5" />
+                <Square className="h-4 w-4" />
                 <span>Dikdörtgen</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onSelectTool("shape_circle")}
-                className={cn("flex items-center gap-2 text-xs cursor-pointer", activeTool === "shape_circle" && "font-bold text-amber-500")}
+                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_circle" && "font-bold text-amber-500 bg-amber-500/10")}
                 data-testid="cad-tool-shape-circle"
               >
-                <Circle className="h-3.5 w-3.5" />
+                <Circle className="h-4 w-4" />
                 <span>Daire</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onSelectTool("shape_cloud")}
-                className={cn("flex items-center gap-2 text-xs cursor-pointer", activeTool === "shape_cloud" && "font-bold text-amber-500")}
+                className={cn("flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg", activeTool === "shape_cloud" && "font-bold text-amber-500 bg-amber-500/10")}
                 data-testid="cad-tool-shape-cloud"
               >
-                <Cloud className="h-3.5 w-3.5" />
+                <Cloud className="h-4 w-4" />
                 <span>Revizyon Bulutu</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -452,14 +491,14 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activeTool === "callout"
-                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onSelectTool("callout")}
             title="Ok & Açıklama Baloncuğu (Callout)"
             data-testid="cad-tool-callout"
           >
-            <MessageSquare className="h-3.5 w-3.5" />
+            <MessageSquare className="h-4.5 w-4.5" />
           </Button>
 
           {/* Metin Notu */}
@@ -470,14 +509,14 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activeTool === "text"
-                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-amber-600 text-white hover:bg-amber-500 shadow-md ring-2 ring-amber-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onSelectTool("text")}
             title="Metin Notu Ekle"
             data-testid="cad-tool-text"
           >
-            <Type className="h-3.5 w-3.5" />
+            <Type className="h-4.5 w-4.5" />
           </Button>
 
           {/* Silgi */}
@@ -488,21 +527,21 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activeTool === "eraser"
-                ? "bg-rose-600 text-white hover:bg-rose-500 shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-rose-600 text-white hover:bg-rose-500 shadow-md ring-2 ring-rose-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onSelectTool("eraser")}
             title="İşaret Silgisi"
             data-testid="cad-tool-eraser"
           >
-            <Eraser className="h-3.5 w-3.5" />
+            <Eraser className="h-4.5 w-4.5" />
           </Button>
         </div>
 
-        <div className="h-5 w-px bg-border/60 shrink-0" aria-hidden="true" />
+        <div className="h-6 w-px bg-border/60 shrink-0" aria-hidden="true" />
 
         {/* ── 5. KATMAN, OSNAP & ARAMA ÇEKMECELERİ ── */}
-        <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-muted/40 p-0.5" role="toolbar" aria-label="Paneller ve Ayarlar">
+        <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/50 p-1" role="toolbar" aria-label="Paneller ve Ayarlar">
           {/* Katmanlar */}
           <Button
             type="button"
@@ -511,18 +550,18 @@ export function CadStudioRibbon({
             className={cn(
               btnBase,
               (layerPanelOpen || activePanelTab === "layers")
-                ? "bg-background text-foreground shadow-sm font-bold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={onToggleLayerPanel}
             title="Katmanlar Paneli"
             data-testid="cad-tool-layers"
             aria-label="Katmanlar"
           >
-            <Layers className="h-3.5 w-3.5 text-indigo-400" />
-            <span className="hidden md:inline">Katmanlar</span>
+            <Layers className="h-4.5 w-4.5 text-indigo-400" />
+            <span className="hidden md:inline text-xs">Katmanlar</span>
             {layersCount > 0 && (
-              <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.2 text-[9px] font-bold text-indigo-400 font-mono">
+              <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-bold text-indigo-400 font-mono">
                 {layersCount}
               </span>
             )}
@@ -536,9 +575,9 @@ export function CadStudioRibbon({
             className={cn(
               btnBase,
               snapPanelOpen
-                ? "bg-background text-foreground shadow-sm font-bold"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
                 : snapEnabled
-                ? "text-muted-foreground hover:text-foreground"
+                ? "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 : "text-muted-foreground/40"
             )}
             onClick={onToggleSnapPanel}
@@ -546,8 +585,8 @@ export function CadStudioRibbon({
             data-testid="cad-tool-snap-settings"
             aria-label="Nesne yakalama ayarları"
           >
-            <Magnet className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="hidden lg:inline">Osnap</span>
+            <Magnet className="h-4.5 w-4.5 text-emerald-400" />
+            <span className="hidden lg:inline text-xs">Osnap</span>
           </Button>
 
           {/* Metin Arama */}
@@ -558,14 +597,14 @@ export function CadStudioRibbon({
             className={cn(
               iconBtnBase,
               activePanelTab === "search"
-                ? "bg-background text-foreground shadow-sm font-bold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onTogglePanelTab("search")}
             title="Çizim İçi Metin Ara [/]"
             data-testid="cad-tool-search-panel"
           >
-            <Search className="h-3.5 w-3.5" />
+            <Search className="h-4.5 w-4.5" />
           </Button>
 
           {/* Yorumlar Listesi */}
@@ -576,17 +615,17 @@ export function CadStudioRibbon({
             className={cn(
               btnBase,
               activePanelTab === "comments"
-                ? "bg-background text-foreground shadow-sm font-bold"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground shadow font-bold border border-border/60"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => onTogglePanelTab("comments")}
             title="Yorumlar ve Notlar Listesi"
             data-testid="cad-tool-comments-panel"
           >
-            <MessageSquare className="h-3.5 w-3.5 text-amber-400" />
-            <span className="hidden lg:inline">Yorumlar</span>
+            <MessageSquare className="h-4.5 w-4.5 text-amber-400" />
+            <span className="hidden lg:inline text-xs">Yorumlar</span>
             {commentsCount > 0 && (
-              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-bold text-amber-400 font-mono">
+              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400 font-mono">
                 {commentsCount}
               </span>
             )}
@@ -594,20 +633,20 @@ export function CadStudioRibbon({
         </div>
       </div>
 
-      {/* ── 6. SAĞ TARAF: GEÇMİŞ (UNDO/REDO) & DURUM ── */}
-      <div className="flex items-center gap-1 shrink-0 ml-2">
+      {/* ── 6. SAĞ TARAF: GEÇMİŞ, HIZLI İNDİRME & DURUM ── */}
+      <div className="flex items-center gap-1.5 shrink-0 ml-2">
         {onUndo && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className={cn(iconBtnBase, "text-muted-foreground hover:text-foreground disabled:opacity-30")}
+            className={cn(iconBtnBase, "text-muted-foreground hover:text-foreground disabled:opacity-30 hover:bg-background/80")}
             onClick={onUndo}
             disabled={!canUndo}
             title="Geri Al [Ctrl+Z]"
             data-testid="cad-tool-undo"
           >
-            <Undo2 className="h-3.5 w-3.5" />
+            <Undo2 className="h-4 w-4" />
           </Button>
         )}
 
@@ -616,19 +655,19 @@ export function CadStudioRibbon({
             type="button"
             variant="ghost"
             size="sm"
-            className={cn(iconBtnBase, "text-muted-foreground hover:text-foreground disabled:opacity-30")}
+            className={cn(iconBtnBase, "text-muted-foreground hover:text-foreground disabled:opacity-30 hover:bg-background/80")}
             onClick={onRedo}
             disabled={!canRedo}
             title="Yinele [Ctrl+Y]"
             data-testid="cad-tool-redo"
           >
-            <Redo2 className="h-3.5 w-3.5" />
+            <Redo2 className="h-4 w-4" />
           </Button>
         )}
 
         {/* Canlı Kayıt Durumu Noktası */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono"
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono border border-border/50 bg-muted/40"
           title={
             saveStatus === "saving"
               ? "Değişiklikler kaydediliyor..."
@@ -649,6 +688,68 @@ export function CadStudioRibbon({
             )}
           />
         </div>
+
+        <div className="h-6 w-px bg-border/60 shrink-0 mx-0.5" aria-hidden="true" />
+
+        {/* Hızlı İndirme Dropdown / Butonları */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 gap-1.5 px-3 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-md text-xs"
+              title="Dosyayı veya Çizilen Revizyonları İndir"
+              data-testid="cad-tool-download-dropdown"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">İndir</span>
+              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 bg-card/95 border-border shadow-2xl backdrop-blur-xl rounded-xl">
+            <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold">İndirme Seçenekleri</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {onDownloadDxf && (
+              <DropdownMenuItem
+                onClick={onDownloadDxf}
+                className="flex items-center gap-2.5 text-xs cursor-pointer font-bold text-amber-500 bg-amber-500/10 rounded-lg my-0.5"
+                data-testid="cad-download-dxf-rev"
+              >
+                <FileCode className="h-4 w-4 text-amber-500" />
+                <div className="flex flex-col">
+                  <span>Revizyonlu DXF İndir</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Tüm çizim ve notlarla</span>
+                </div>
+              </DropdownMenuItem>
+            )}
+            {onDownloadOriginal && (
+              <DropdownMenuItem
+                onClick={onDownloadOriginal}
+                className="flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg my-0.5"
+                data-testid="cad-download-original"
+              >
+                <Download className="h-4 w-4 text-blue-500" />
+                <div className="flex flex-col">
+                  <span>Orijinal Çizimi İndir</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Kaynak DWG/DXF dosyası</span>
+                </div>
+              </DropdownMenuItem>
+            )}
+            {onOpenExportDialog && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onOpenExportDialog}
+                  className="flex items-center gap-2.5 text-xs cursor-pointer font-medium rounded-lg my-0.5"
+                  data-testid="cad-open-export-dialog"
+                >
+                  <Share2 className="h-4 w-4 text-indigo-400" />
+                  <span>Dışa Aktarma Merkezi (PNG/PDF)</span>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
