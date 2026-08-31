@@ -17,6 +17,12 @@ import {
   type TimberGrade,
   type LoadDurationClass,
 } from "@/lib/engineering/timber/timber-member";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function TimberMemberCalculator() {
   const [grade, setGrade] = useState<TimberGrade>("C24");
@@ -83,12 +89,8 @@ DURUM: ${result?.isOverallSafe ? "GÜVENLİ VE UYGUN" : "KAPASİTE/SEHİM AŞILD
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <TreePine className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                Ahşap Yapılar
-              </span>
-              <span className="rounded-full border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#1e193d] px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-muted-foreground dark:text-zinc-300">
-                TS EN 1995-1-1 / TS 647
-              </span>
+              <ToolScopeBadge kind="check" />
+              <ToolSourceStamp sources={["TS EN 1995-1-1 (Eurocode 5)", "TS 647"]} tier="A" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -290,10 +292,49 @@ DURUM: ${result?.isOverallSafe ? "GÜVENLİ VE UYGUN" : "KAPASİTE/SEHİM AŞILD
                       </div>
                     ))}
                   </div>
+
+                  <div className="space-y-3 pt-2">
+                    <GoverningCheckCard
+                      label={`Eurocode 5 Eğilme Gerilmesi Tahkiki (${grade})`}
+                      demand={Number(result.bendingStressSigmaMDMpa.toFixed(2))}
+                      capacity={Number(result.fmdMpa.toFixed(2))}
+                      utilization={result.bendingUtilization}
+                      unit="MPa"
+                      status={result.bendingUtilization <= 1.0 ? "ok" : "fail"}
+                      explanation={`Tasarım eğilme gerilmesi sigma_m,d = ${result.bendingStressSigmaMDMpa.toFixed(2)} MPa, tasarım eğilme dayanımı f_m,d = ${result.fmdMpa.toFixed(2)} MPa.`}
+                    />
+
+                    <GoverningCheckCard
+                      label="Eurocode 5 Anlık Sehim Tahkiki (w <= L/300)"
+                      demand={Number(result.instantaneousDeflectionMm.toFixed(1))}
+                      capacity={Number(result.deflectionLimitMm.toFixed(1))}
+                      unit="mm"
+                      status={result.isDeflectionSafe ? "ok" : "warn"}
+                      explanation={`Hesaplanan elastik sehim w = ${result.instantaneousDeflectionMm.toFixed(1)} mm, izin verilen L/300 sehim sınırı = ${result.deflectionLimitMm.toFixed(1)} mm.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Eurocode 5 (TS EN 1995-1-1) ve TS 647 uyarınca masif yapı kerestesi (C16-C30) ve glulam kiriş tasarımı",
+              "Yük süresi sınıfı (kmod katsayısı) ve malzeme katsayısı (gamma_M) ile tasarım mukavemetleri (fmd, fvd) hesabı",
+              "Eğilme, kesme ve anlık sehim (w_inst <= L/300) sınır durum kontrolleri"
+            ]}
+            limitations={[
+              "Zamana bağlı sünme sehimi (kdef katsayısı ve nihai sehim w_fin) harici nem sınıfı analizine tabidir",
+              "Yanal burulmalı burkulma (kcrit katsayısı) basınç başlığı tutulmamış yüksek kirişlerde haricen kontrol edilmelidir",
+              "Metalik bağlantı elemanları (çivi, bulon, vida) yuva ezilme dayanımı harici birleşim hesabına tabidir"
+            ]}
+            inputProvenance="TS EN 1995-1-1 (Eurocode 5) Ahşap Yapıların Tasarımı ve TS 647 Ahşap Yapıların Hesap ve Yapım Kuralları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
