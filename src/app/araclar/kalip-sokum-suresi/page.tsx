@@ -17,6 +17,12 @@ import {
   type CementType,
   type StructuralElementType,
 } from "@/lib/concrete-tools/stripping";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export default function KalipSokumHesapPage() {
   const [betonSinifi, setBetonSinifi] = useState("25");
@@ -56,9 +62,9 @@ export default function KalipSokumHesapPage() {
 
         {/* Hero Header */}
         <div className="mb-10 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wide text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)] backdrop-blur-md">
-            <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-            <span>Şantiye & Saha Yönetimi</span>
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <ToolScopeBadge kind="classification" />
+            <ToolSourceStamp sources={["TS 500 Madde 13.3", "ACI 347"]} tier="B" />
           </div>
           <h1 className="text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
             Kalıp Söküm{" "}
@@ -231,6 +237,21 @@ export default function KalipSokumHesapPage() {
                 </p>
               </div>
 
+              <div className="mt-4">
+                <GoverningCheckCard
+                  label="TS 500 Kalıp Söküm Güvenli Süre Tahkiki"
+                  demand={Number(result?.minimumDays ?? 0)}
+                  capacity={Number(result?.safeDays ?? 0)}
+                  unit="gün"
+                  status={result?.critical ? "fail" : "ok"}
+                  explanation={
+                    result?.critical
+                      ? "Ortam sıcaklığı 5°C altında olduğu için don riski nedeniyle kalıp sökümü yapılamaz!"
+                      : `Minimum bekleme süresi ${result?.minimumDays} gün, tavsiye edilen güvenli söküm süresi ${result?.safeDays} gündür (Hedef fck seviyesi: ${result?.ratioLabel}, ${result?.targetStrengthMpa.toFixed(1)} MPa).`
+                  }
+                />
+              </div>
+
               <Button asChild className="mt-6 h-11 w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(139,92,246,0.4)]">
                 <Link href="/kalip-sokumu-rehberi" className="flex items-center justify-center gap-2">
                   Kalıp Sökümü Rehberini Aç
@@ -239,6 +260,24 @@ export default function KalipSokumHesapPage() {
               </Button>
             </div>
           </section>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "TS 500 Madde 13.3 ve ACI 347 uyarınca ortam sıcaklığı, çimento cinsi ve eleman tipine göre tahmini kalıp söküm süresi hesabı",
+              "Döşeme, kiriş tabanı, kolon/perde yan kanatları ve konsol elemanlar için farklı dayanım eşikleri (%fck)",
+              "Soğuk hava (T < 5°C) koşullarında kritik don uyarısı ve kısıtlama kontrolü"
+            ]}
+            limitations={[
+              "Kalıp sökümünden önce şantiye ortamında kürlenmiş eşlenik basınç deney silindirleri kırılarak mukavemet doğrulanmalıdır",
+              "Söküm sonrası üst katların kalıp iskelesi yükü geliyorsa yeniden dikme (reshore) planı zorunludur",
+              "Uçucu küllü veya cüruflu CEM II/III tipi çimentolarda erken dayanım kazanımı daha yavaş olabileceğinden süre uzatılmalıdır"
+            ]}
+            inputProvenance="TS 500 Betonarme Yapıların Tasarım ve Yapım Kuralları Madde 13.3 ve ACI 347 Guide to Formwork for Concrete"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
