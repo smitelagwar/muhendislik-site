@@ -16,6 +16,12 @@ import {
   type PlasterType,
   type PaintType,
 } from "@/lib/engineering/quantity/plaster-paint";
+import {
+  ToolScopeBadge,
+  ToolSourceStamp,
+  ToolLimitations,
+  GoverningCheckCard,
+} from "@/components/engineering-primitives";
 
 export function PlasterPaintCalculator() {
   const [wallArea, setWallArea] = useState(350);
@@ -79,12 +85,8 @@ MALZEME İHTİYAÇLARI:
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
                 <Paintbrush className="h-6 w-6" />
               </div>
-              <span className="rounded-full border border-purple-500/30 bg-purple-500/10 px-3.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-purple-300">
-                İnce Yapı Metrajı
-              </span>
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                Yaklaşık Ön Keşif
-              </span>
+              <ToolScopeBadge kind="estimate" />
+              <ToolSourceStamp sources={["Boya & Sıva Tüketim Normları", "ÇŞB Pozları"]} tier="C" />
             </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
@@ -253,10 +255,39 @@ MALZEME İHTİYAÇLARI:
                       </div>
                     ))}
                   </div>
+
+                  <div className="pt-2">
+                    <GoverningCheckCard
+                      label="Yüzey Alanı ve Sıva/Boya Tüketim Dengesi"
+                      demand={Number(result.totalPlasterAreaM2.toFixed(1))}
+                      capacity={Number((result.plasterBags35KgCount * 35).toFixed(1))}
+                      unit="m²"
+                      status="ok"
+                      explanation={`Duvar (${wallArea} m²) + Tavan (${ceilingArea} m²) toplam ${result.totalPlasterAreaM2.toFixed(1)} m² yüzey için ${thicknessCm} cm kalınlıkta ~${result.plasterBags35KgCount} torba sıva (35 kg), ~${result.primerKg.toFixed(1)} kg astar ve ~${result.paintBucketsCount} kova boya (20 kg) gereklidir.`}
+                    />
+                  </div>
                 </>
               )}
             </section>
           </div>
+        </div>
+
+        {/* Tool Limitations & Normative Bounds */}
+        <div className="mt-8">
+          <ToolLimitations
+            scope={[
+              "Duvar ve tavan yüzey alanlarına göre kaba/ince alçı veya çimento sıva kalınlığına bağlı kg ve torba hesabı",
+              "Dönüşüm / bağlayıcı astar sarfiyatı (kg) hesabı",
+              "İç silikonlu ve dış akrilik boyalarda 2 kat yüzey kapatma sarfiyatı ve kova (20 kg) hesabı"
+            ]}
+            limitations={[
+              "Yüzey pürüzlülüğü, emiciliği ve bozuklukları sıva ve astar sarfiyatını %10-20 artırabilir",
+              "Koyu renkten açık renge geçişlerde ilave kat boya gerekebilir",
+              "Dış cephe dekoratif tane dokulu sıva metrajı harici kaplama hesabına tabidir"
+            ]}
+            inputProvenance="Boya ve Sıva İmalatçıları Tüketim Kılavuzları, ÇŞB İnce İnşaat Pozları"
+            defaultOpen={false}
+          />
         </div>
       </div>
     </div>
