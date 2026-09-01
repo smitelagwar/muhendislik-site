@@ -41,7 +41,7 @@ replaceOnce(
 
 replaceOnce(
   `    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");\n    const bytes = await fetchCadSource(options.accessUrl, options.signal);\n\n    const isDwg = extension.includes("dwg");`,
-  `    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");\n    const bytes = await fetchCadSource(options.accessUrl, options.signal);\n\n    // Reject obviously truncated DXF before entering the upstream parser. Some\n    // malformed token streams can otherwise leave a parser progress loop alive\n    // instead of producing the controlled recovery UI expected by the studio.\n    if (extension === ".dxf" && bytes.byteLength < 64) {\n      throw new CadUpstreamAdapterError(\n        "corrupt-truncated",\n        [96m`Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`[0m\n      );\n    }\n\n    const isDwg = extension.includes("dwg");`,
+  `    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");\n    const bytes = await fetchCadSource(options.accessUrl, options.signal);\n\n    // Reject obviously truncated DXF before entering the upstream parser. Some\n    // malformed token streams can otherwise leave a parser progress loop alive\n    // instead of producing the controlled recovery UI expected by the studio.\n    if (extension === ".dxf" && bytes.byteLength < 64) {\n      throw new CadUpstreamAdapterError(\n        "corrupt-truncated",\n        \`Eksik veya hasarlı dosya içeriği (\${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.\`\n      );\n    }\n\n    const isDwg = extension.includes("dwg");`,
   "truncated DXF preflight"
 );
 
