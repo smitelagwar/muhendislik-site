@@ -33,7 +33,7 @@ replaceOnce(
 
 replaceOnce(
   `        if (typeof f?.atSubclassData !== "function") {\n          return origEntityDxfIn.call(this, filer as never);\n        }\n\n        const hasAcDbEntity = f.atSubclassData("AcDbEntity");\n        if (hasAcDbEntity) {\n          return origEntityDxfIn.call(this, filer as never);\n        }`,
-  `        if (typeof f?.peekItem !== "function") {\n          return origEntityDxfIn.call(this, filer as never);\n        }\n\n        // atSubclassData() consumes the filer while probing. For flat/R12-style\n        // entities inspect the next token without advancing; the native parser owns\n        // real AcDbEntity subclass records and this compatibility path owns flat ones.\n        const nextItem = f.peekItem();\n        const hasAcDbEntity =\n          Number(nextItem?.code) === 100 && String(nextItem?.value) === "AcDbEntity";\n        if (hasAcDbEntity) {\n          return origEntityDxfIn.call(this, filer as never);\n        }`,
+  `        if (typeof f?.peekItem !== "function") {\n          return origEntityDxfIn.call(this, filer as never);\n        }\n\n        // For flat/R12-style entities inspect the next token without advancing.\n        // The native parser owns real AcDbEntity subclass records and this\n        // compatibility path owns entities without that subclass marker.\n        const nextItem = f.peekItem();\n        const hasAcDbEntity =\n          Number(nextItem?.code) === 100 && String(nextItem?.value) === "AcDbEntity";\n        if (hasAcDbEntity) {\n          return origEntityDxfIn.call(this, filer as never);\n        }`,
   "non-consuming flat DXF probe"
 );
 
@@ -51,19 +51,28 @@ replaceOnce(
   "DXF open options"
 );
 
+replaceOnce(
+  `    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");\n    const idle = await this.manager.curView.waitUntilIdle(\n      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS\n    );\n    if (idle && this.manager.curView.stats.summary.entityCount === 0) {`,
+  `    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");\n    // cad-simple-viewer 1.6.2 can leave waitUntilIdle() pending in a production\n    // browser even after openDocument() has returned and its own timeout elapsed.\n    // Stage 8 already owns post-ready blank-canvas diagnostics/recovery, so this\n    // pre-ready validation must be strictly bounded and may not hold the whole CAD\n    // workspace in a permanent loading state.\n    const idle = await Promise.race([\n      this.manager.curView.waitUntilIdle(CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS),\n      new Promise<boolean>((resolve) => {\n        window.setTimeout(\n          () => resolve(false),\n          CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS + 250\n        );\n      }),\n    ]);\n    if (idle && this.manager.curView.stats.summary.entityCount === 0) {`,
+  "bounded scene-idle validation"
+);
+
 if (!source.includes('const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";')) {
   throw new Error("Stage 9 runtime repair did not install the isolated runtime URL.");
 }
 if (!source.includes("webpackIgnore: true")) {
   throw new Error("Stage 9 runtime repair did not keep the runtime outside Next bundling.");
 }
-if (source.includes('f.atSubclassData("AcDbEntity")')) {
+if (!source.includes("Promise.race([\n      this.manager.curView.waitUntilIdle")) {
+  throw new Error("Stage 9 runtime repair did not bound scene-idle validation.");
+}
+if (source.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity")')) {
   throw new Error("Stage 9 runtime repair left the consuming flat-DXF probe active.");
 }
 
 if (changed) {
   writeFileSync(adapterPath, source, "utf8");
-  console.log("Stage 9 isolated MLightCAD runtime + non-consuming DXF compatibility repair applied.");
+  console.log("Stage 9 isolated MLightCAD runtime + bounded scene readiness repair applied.");
 } else {
   console.log("Stage 9 isolated MLightCAD runtime repair already applied.");
 }
