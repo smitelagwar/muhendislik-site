@@ -52,12 +52,6 @@ replaceOnce(
 );
 
 replaceOnce(
-  `    // Native DXF parsing is fully buffered and does not require the DWG parser\n    // worker readiness probe. In production, HEAD-based worker verification can\n    // stall before a valid DXF reaches the parser, so only gate DWG on workers\n    // and keep that probe bounded.\n    if (extension === ".dwg") {\n      options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");`,
-  `    // Native DXF parsing is fully buffered and does not require the DWG parser\n    // worker readiness probe. In production, HEAD-based worker verification can\n    // stall before a valid DXF reaches the parser, so only gate DWG on workers\n    // and keep that probe bounded.\n    if (extension === ".dwg") {\n      options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");\n      await registerLibreDwgConverter();`,
-  "lazy DWG converter registration"
-);
-
-replaceOnce(
   `    options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");\n    if (!(await this.manager.areWorkersReady())) {\n      throw new CadUpstreamAdapterError(\n        "worker-unavailable",\n        "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."\n      );\n    }`,
   `    // Native DXF parsing is fully buffered and does not require the DWG parser\n    // worker readiness probe. In production, HEAD-based worker verification can\n    // stall before a valid DXF reaches the parser, so only gate DWG on workers\n    // and keep that probe bounded.\n    if (extension === ".dwg") {\n      options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");\n      await registerLibreDwgConverter();\n      const workersReady = await Promise.race([\n        this.manager.areWorkersReady(),\n        new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 4_000)),\n      ]);\n      if (!workersReady) {\n        throw new CadUpstreamAdapterError(\n          "worker-unavailable",\n          "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."\n        );\n      }\n    }`,
   "DXF worker-readiness bypass"
@@ -74,6 +68,9 @@ if (source.includes("dataModel.AcDbEntity.prototype.dxfInFields = function")) {
 }
 if (!source.includes('if (extension === ".dwg")')) {
   throw new Error("Stage 9 DXF repair did not bypass the worker readiness probe for DXF.");
+}
+if (!source.includes("await registerLibreDwgConverter();")) {
+  throw new Error("Stage 9 DXF repair did not keep lazy DWG converter registration.");
 }
 if (!source.includes('if (extension === ".dxf" && bytes.byteLength < 64)')) {
   throw new Error("Stage 9 DXF repair did not install the truncated-file preflight.");
