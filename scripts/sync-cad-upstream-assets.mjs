@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,8 +50,16 @@ await mkdir(outputDir, { recursive: true });
 
 // Next/webpack production bundling changed the runtime identity of MLightCAD's
 // peer packages during the Stage 9 browser gate. Build one browser-native ESM
-// bundle so cad-simple-viewer, data-model, renderer and LibreDWG share exactly
-// one module graph in development, `next start`, Vercel preview and production.
+// graph so cad-simple-viewer, data-model and renderer packages share exactly one
+// module identity in development, `next start`, Vercel preview and production.
+//
+// IMPORTANT: LibreDWG is intentionally a dynamic import. Pulling
+// @mlightcad/libredwg-web into the DXF startup entry evaluates the generated DWG
+// runtime on the browser main thread even when the opened file is DXF. On CI and
+// slower clients that synchronous evaluation can monopolize the event loop long
+// enough that even the studio timeout/elapsed timers cannot tick. Esbuild ESM
+// splitting keeps the shared data-model identity while loading the DWG-only code
+// only when registerLibreDwgConverter() asks for it.
 const esbuildPackage = JSON.parse(
   await readFile(join(root, "node_modules", "esbuild", "package.json"), "utf8")
 );
@@ -63,6 +71,9 @@ if (esbuildPackage.version !== EXPECTED_ESBUILD_VERSION) {
 
 const { build } = await import("esbuild");
 const runtimeTarget = join(outputDir, "mlightcad-runtime.js");
+const runtimeChunksDir = join(outputDir, "mlightcad-runtime-chunks");
+await rm(runtimeChunksDir, { recursive: true, force: true });
+
 const threeJsmExtensionPlugin = {
   name: "three-jsm-extension",
   setup(esbuild) {
@@ -83,22 +94,29 @@ const threeJsmExtensionPlugin = {
   },
 };
 
-await build({
+const runtimeBuild = await build({
   stdin: {
     contents: `
       import * as Viewer from "@mlightcad/cad-simple-viewer";
       import * as dataModel from "@mlightcad/data-model";
       import * as mtextRenderer from "@mlightcad/mtext-renderer";
       import * as threeRenderer from "@mlightcad/three-renderer";
-      import * as libreDwg from "@mlightcad/libredwg-converter";
-      export { Viewer, dataModel, mtextRenderer, threeRenderer, libreDwg };
+
+      async function loadLibreDwg() {
+        return import("@mlightcad/libredwg-converter");
+      }
+
+      export { Viewer, dataModel, mtextRenderer, threeRenderer, loadLibreDwg };
     `,
     resolveDir: root,
     sourcefile: "cad-upstream-runtime-entry.ts",
     loader: "ts",
   },
-  outfile: runtimeTarget,
+  outdir: outputDir,
+  entryNames: "mlightcad-runtime",
+  chunkNames: "mlightcad-runtime-chunks/[name]-[hash]",
   bundle: true,
+  splitting: true,
   platform: "browser",
   format: "esm",
   target: ["es2022"],
@@ -107,14 +125,21 @@ await build({
   sourcemap: false,
   legalComments: "none",
   logLevel: "info",
+  metafile: true,
   plugins: [threeJsmExtensionPlugin],
 });
 const runtimeStat = await stat(runtimeTarget);
-if (!runtimeStat.isFile() || runtimeStat.size < 500_000) {
-  throw new Error(`CAD upstream runtime bundle is unexpectedly small: ${runtimeStat.size} bytes.`);
+const runtimeGraphBytes = Object.values(runtimeBuild.metafile.outputs).reduce(
+  (sum, output) => sum + Number(output.bytes || 0),
+  0
+);
+if (!runtimeStat.isFile() || runtimeStat.size <= 0 || runtimeGraphBytes < 500_000) {
+  throw new Error(
+    `CAD upstream runtime graph is unexpectedly small: entry=${runtimeStat.size} graph=${runtimeGraphBytes} bytes.`
+  );
 }
 console.log(
-  `[cad-upstream] bundled public/cad-upstream/mlightcad-runtime.js (${runtimeStat.size} bytes)`
+  `[cad-upstream] bundled public/cad-upstream/mlightcad-runtime.js (${runtimeStat.size} entry bytes; ${runtimeGraphBytes} graph bytes, LibreDWG lazy)`
 );
 
 for (const asset of assets) {
@@ -190,9 +215,11 @@ const fontsManifest = [
   },
 ];
 
-const fontsManifestPath = join(fontsOutputDir, "fonts.json");
-await writeFile(fontsManifestPath, JSON.stringify(fontsManifest, null, 2), "utf8");
-console.log(`[cad-upstream] wrote ${fontsManifestPath.slice(root.length + 1)}`);
+const fontsManifestPath = join(fontsOutputDir, "fonts", "fonts.json");
+// Preserve the existing public path: /cad-upstream/fonts/fonts.json.
+const canonicalFontsManifestPath = join(fontsOutputDir, "fonts.json");
+await writeFile(canonicalFontsManifestPath, JSON.stringify(fontsManifest, null, 2), "utf8");
+console.log(`[cad-upstream] wrote ${canonicalFontsManifestPath.slice(root.length + 1)}`);
 
 const gplNotice = `MLightCAD LibreDWG browser component\n\n@mlightcad/libredwg-converter ${LIBREDWG_CONVERTER_VERSION} — GPL-3.0\n@mlightcad/libredwg-web ${LIBREDWG_WEB_VERSION}\n\nCorresponding upstream source snapshot:\nhttps://github.com/mlightcad/realdwg-web/tree/${LIBREDWG_SOURCE_COMMIT}\n\nGPL-3.0 license text:\nhttps://www.gnu.org/licenses/gpl-3.0.html\n\nDistributed assets:\n- libredwg-parser-worker.js\n- libredwg-web.wasm\n\nRepository notice: THIRD_PARTY_NOTICES.md\n`;
 
