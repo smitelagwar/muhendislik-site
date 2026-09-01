@@ -64,6 +64,7 @@ jobs:
           node scripts/repair-cad-stage9-merge.mjs
           node scripts/repair-cad-stage9-mouse-bindings.mjs
           node scripts/repair-cad-stage9-flat-parser.mjs
+          node scripts/repair-cad-stage9-dxf-converter.mjs
           node scripts/repair-cad-stage9-native-dxf-parser.mjs
           node scripts/repair-cad-stage9-dxf-smoke-fixtures.mjs
           node scripts/repair-cad-stage9-fixtures.mjs
