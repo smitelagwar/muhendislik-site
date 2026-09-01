@@ -51,7 +51,7 @@ function createDxf(entities: string[]): string {
     "0", "SECTION", "2", "ENTITIES",
     ...entities,
     "0", "ENDSEC", "0", "EOF",
-  ].join("\\n");
+  ].join("\\n") + "\\n";
 }
 
 function line(x1: number, y1: number, x2: number, y2: number): string {
@@ -102,7 +102,7 @@ if (!source.includes('"9", "$HANDSEED", "5", "FFFFFF"')) {
   if (partialStart < 0 || patternedStart < 0 || patternedStart <= partialStart) {
     throw new Error("Stage 9 DXF smoke canonicalization could not locate fixture helpers.");
   }
-  const canonicalHelpers = `let nextDxfHandle = 0x100;\n\nfunction takeDxfHandle(): string {\n  return (nextDxfHandle++).toString(16).toUpperCase();\n}\n\nfunction createDxf(entities: string[]): string {\n  return [\n    \"0\", \"SECTION\", \"2\", \"HEADER\",\n    \"9\", \"$ACADVER\", \"1\", \"AC1027\",\n    \"9\", \"$HANDSEED\", \"5\", \"FFFFFF\",\n    \"0\", \"ENDSEC\",\n    \"0\", \"SECTION\", \"2\", \"TABLES\",\n    \"0\", \"TABLE\", \"2\", \"LAYER\", \"70\", \"2\",\n    \"0\", \"LAYER\", \"5\", \"10\", \"100\", \"AcDbSymbolTableRecord\", \"100\", \"AcDbLayerTableRecord\",\n    \"2\", \"0\", \"70\", \"0\", \"62\", \"7\", \"6\", \"CONTINUOUS\", \"290\", \"1\", \"370\", \"-3\",\n    \"0\", \"LAYER\", \"5\", \"11\", \"100\", \"AcDbSymbolTableRecord\", \"100\", \"AcDbLayerTableRecord\",\n    \"2\", \"KALIP\", \"70\", \"0\", \"62\", \"2\", \"6\", \"CONTINUOUS\", \"290\", \"1\", \"370\", \"-3\",\n    \"0\", \"ENDTAB\", \"0\", \"ENDSEC\",\n    \"0\", \"SECTION\", \"2\", \"ENTITIES\",\n    ...entities,\n    \"0\", \"ENDSEC\", \"0\", \"EOF\",\n  ].join(\"\\n\");\n}\n\nfunction line(x1: number, y1: number, x2: number, y2: number): string {\n  return [\n    \"0\", \"LINE\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbLine\",\n    \"10\", String(x1), \"20\", String(y1), \"30\", \"0\",\n    \"11\", String(x2), \"21\", String(y2), \"31\", \"0\",\n  ].join(\"\\n\");\n}\n\nfunction circle(cx: number, cy: number, radius: number): string {\n  return [\n    \"0\", \"CIRCLE\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbCircle\",\n    \"10\", String(cx), \"20\", String(cy), \"30\", \"0\", \"40\", String(radius),\n  ].join(\"\\n\");\n}\n\nfunction text(x: number, y: number, height: number, value: string): string {\n  return [\n    \"0\", \"TEXT\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbText\",\n    \"10\", String(x), \"20\", String(y), \"30\", \"0\",\n    \"40\", String(height), \"1\", value, \"7\", \"Standard\",\n  ].join(\"\\n\");\n}\n\n`;
+  const canonicalHelpers = `let nextDxfHandle = 0x100;\n\nfunction takeDxfHandle(): string {\n  return (nextDxfHandle++).toString(16).toUpperCase();\n}\n\nfunction createDxf(entities: string[]): string {\n  return [\n    \"0\", \"SECTION\", \"2\", \"HEADER\",\n    \"9\", \"$ACADVER\", \"1\", \"AC1027\",\n    \"9\", \"$HANDSEED\", \"5\", \"FFFFFF\",\n    \"0\", \"ENDSEC\",\n    \"0\", \"SECTION\", \"2\", \"TABLES\",\n    \"0\", \"TABLE\", \"2\", \"LAYER\", \"70\", \"2\",\n    \"0\", \"LAYER\", \"5\", \"10\", \"100\", \"AcDbSymbolTableRecord\", \"100\", \"AcDbLayerTableRecord\",\n    \"2\", \"0\", \"70\", \"0\", \"62\", \"7\", \"6\", \"CONTINUOUS\", \"290\", \"1\", \"370\", \"-3\",\n    \"0\", \"LAYER\", \"5\", \"11\", \"100\", \"AcDbSymbolTableRecord\", \"100\", \"AcDbLayerTableRecord\",\n    \"2\", \"KALIP\", \"70\", \"0\", \"62\", \"2\", \"6\", \"CONTINUOUS\", \"290\", \"1\", \"370\", \"-3\",\n    \"0\", \"ENDTAB\", \"0\", \"ENDSEC\",\n    \"0\", \"SECTION\", \"2\", \"ENTITIES\",\n    ...entities,\n    \"0\", \"ENDSEC\", \"0\", \"EOF\",\n  ].join(\"\\n\") + \"\\n\";\n}\n\nfunction line(x1: number, y1: number, x2: number, y2: number): string {\n  return [\n    \"0\", \"LINE\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbLine\",\n    \"10\", String(x1), \"20\", String(y1), \"30\", \"0\",\n    \"11\", String(x2), \"21\", String(y2), \"31\", \"0\",\n  ].join(\"\\n\");\n}\n\nfunction circle(cx: number, cy: number, radius: number): string {\n  return [\n    \"0\", \"CIRCLE\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbCircle\",\n    \"10\", String(cx), \"20\", String(cy), \"30\", \"0\", \"40\", String(radius),\n  ].join(\"\\n\");\n}\n\nfunction text(x: number, y: number, height: number, value: string): string {\n  return [\n    \"0\", \"TEXT\", \"5\", takeDxfHandle(),\n    \"100\", \"AcDbEntity\", \"8\", \"KALIP\",\n    \"100\", \"AcDbText\",\n    \"10\", String(x), \"20\", String(y), \"30\", \"0\",\n    \"40\", String(height), \"1\", value, \"7\", \"Standard\",\n  ].join(\"\\n\");\n}\n\n`;
   source = source.slice(0, partialStart) + canonicalHelpers + source.slice(patternedStart);
   source = source.replace(
     /\s*"0\\nCIRCLE[^"]*",\n\s*"0\\nTEXT[^"]*",/,
@@ -115,10 +115,20 @@ if (!source.includes('"9", "$HANDSEED", "5", "FFFFFF"')) {
   changed = true;
 }
 
+// The upstream native filer test vectors end with a trailing blank DXF line.
+// Ensure partially canonicalized fixtures from earlier Stage 9 repair runs do too.
+if (!source.includes('].join("\\n") + "\\n";')) {
+  source = source.replace(
+    /("0", "ENDSEC", "0", "EOF",\n\s*\]\.join\("\\\\n"\));/,
+    (_match, block) => block.replace('].join("\\\\n");', '].join("\\\\n") + "\\\\n";')
+  );
+  changed = true;
+}
+
 replaceOnce(
   `  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });`,
-  `  try {\n    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });\n  } catch (error) {\n    const trace = await page.locator("html").getAttribute("data-stage9-dxf-trace");\n    const phase = await host.getAttribute("data-cad-loading-phase");\n    console.log(\`STAGE9_DXF_TRACE=\${trace ?? "<null>"} PHASE=\${phase ?? "<null>"}\`);\n    throw error;\n  }`,
-  "DXF timeout trace"
+  `  try {\n    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });\n  } catch (error) {\n    console.log("STAGE9_DXF_READY_TIMEOUT");\n    throw error;\n  }`,
+  "DXF timeout marker"
 );
 
 if (!source.includes('"9", "$HANDSEED", "5", "FFFFFF"')) {
@@ -130,13 +140,13 @@ if (!source.includes('"0", "LINE", "5", takeDxfHandle()')) {
 if (!source.includes('"100", "AcDbLayerTableRecord"')) {
   throw new Error("Stage 9 DXF smoke fixture repair did not install LAYER subclass markers.");
 }
-if (!source.includes("STAGE9_DXF_TRACE=")) {
-  throw new Error("Stage 9 DXF smoke fixture repair did not install timeout trace.");
+if (!source.includes('].join("\\n") + "\\n";')) {
+  throw new Error("Stage 9 DXF smoke fixture repair did not terminate DXF with a trailing newline.");
 }
 
 if (changed) {
   writeFileSync(testPath, source, "utf8");
-  console.log("Stage 9 DXF smoke fixtures normalized to canonical handled AC1027 records.");
+  console.log("Stage 9 DXF smoke fixtures normalized to canonical newline-terminated AC1027 records.");
 } else {
   console.log("Stage 9 DXF smoke fixtures already canonical.");
 }
