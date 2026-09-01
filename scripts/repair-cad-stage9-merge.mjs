@@ -165,5 +165,55 @@ if (!viewer.includes("backgroundColor={backgroundColor}")) {
   );
 }
 
+// A viewer can unmount while MLightCAD is still opening a document. The old
+// teardown chain cleared the deadline timer and then waited for the unresolved
+// startup Promise, permanently blocking every later viewer at loading phase
+// "init". Give cleanup an explicit cancellation arm in the same startup race so
+// serialized teardown always reaches a terminal state before the next viewer.
+if (!viewer.includes("let cancelStartup: ((reason?: unknown) => void) | null = null;")) {
+  viewer = replaceRequired(
+    viewer,
+    "    let unsubscribeViewChanged: (() => void) | null = null;\n    let timeoutId: number | null = null;\n\n    const startup = previousCadUpstreamTeardown.then(async () => {",
+    "    let unsubscribeViewChanged: (() => void) | null = null;\n" +
+      "    let timeoutId: number | null = null;\n" +
+      "    let cancelStartup: ((reason?: unknown) => void) | null = null;\n\n" +
+      "    const startup = previousCadUpstreamTeardown.then(async () => {",
+    "viewer teardown cancellation state"
+  );
+
+  viewer = replaceRequired(
+    viewer,
+    "      const deadline = new Promise<never>((_, reject) => {\n",
+    "      const cancellation = new Promise<never>((_, reject) => {\n" +
+      "        cancelStartup = reject;\n" +
+      "      });\n\n" +
+      "      const deadline = new Promise<never>((_, reject) => {\n",
+    "viewer startup cancellation promise"
+  );
+
+  viewer = replaceRequired(
+    viewer,
+    "        await Promise.race([upstreamWork, deadline]);",
+    "        await Promise.race([upstreamWork, deadline, cancellation]);",
+    "viewer startup cancellation race"
+  );
+
+  viewer = replaceRequired(
+    viewer,
+    "    return () => {\n      cancelled = true;\n      abortController.abort(\"CAD_UPSTREAM_UNMOUNT\");",
+    "    return () => {\n" +
+      "      cancelled = true;\n" +
+      "      cancelStartup?.(\n" +
+      "        new CadUpstreamAdapterError(\n" +
+      "          \"adapter-destroyed\",\n" +
+      "          \"CAD görüntüleyici kapatıldı.\"\n" +
+      "        )\n" +
+      "      );\n" +
+      "      cancelStartup = null;\n" +
+      "      abortController.abort(\"CAD_UPSTREAM_UNMOUNT\");",
+    "viewer teardown cancellation trigger"
+  );
+}
+
 writeFileSync(viewerPath, viewer, "utf8");
 console.log("Stage 9 merge repair applied/idempotent.");
