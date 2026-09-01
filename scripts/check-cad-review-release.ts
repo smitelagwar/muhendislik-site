@@ -61,7 +61,7 @@ async function main() {
 
   // 4. CAD REVIEW PLAYWRIGHT SUITE (Stages 3-10)
   const reviewSpecs = [
-    "tests/document-studio/cad-chain-distance.spec.ts",
+    "tests/document-studio/cad-chain-measurement.spec.ts",
     "tests/document-studio/cad-text-search.spec.ts",
     "tests/document-studio/cad-markup-tools.spec.ts",
     "tests/document-studio/cad-freehand-stroke.spec.ts",

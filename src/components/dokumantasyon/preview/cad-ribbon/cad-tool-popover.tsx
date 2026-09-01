@@ -29,8 +29,14 @@ export function closeCadToolPopovers(): void {
   window.dispatchEvent(new Event(CAD_CLOSE_TOOL_POPOVERS_EVENT));
 }
 
-function suppressDismissPointerSequence(originalEvent: PointerEvent) {
-  if (typeof document === "undefined") return;
+function suppressDismissPointerSequence(originalEvent?: PointerEvent) {
+  if (typeof document === "undefined" || !originalEvent) return;
+  const pointerId = originalEvent.pointerId;
+
+  const stopEvent = (event: Event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
 
   const cleanup = () => {
     document.removeEventListener("pointerup", onPointerUp, true);
@@ -40,14 +46,14 @@ function suppressDismissPointerSequence(originalEvent: PointerEvent) {
   };
 
   const onPointerUp = (event: PointerEvent) => {
-    if (event.pointerId !== pointerId) return;
+    if (typeof pointerId === "number" && event.pointerId !== pointerId) return;
     stopEvent(event);
     document.removeEventListener("pointerup", onPointerUp, true);
     document.removeEventListener("pointercancel", onPointerCancel, true);
   };
 
   const onPointerCancel = (event: PointerEvent) => {
-    if (event.pointerId !== pointerId) return;
+    if (typeof pointerId === "number" && event.pointerId !== pointerId) return;
     stopEvent(event);
     cleanup();
   };
@@ -102,7 +108,7 @@ export function CadToolPopover({
   }, [setResolvedOpen]);
 
   return (
-    <DropdownMenu open={resolvedOpen} onOpenChange={setResolvedOpen} modal>
+    <DropdownMenu open={resolvedOpen} onOpenChange={setResolvedOpen} modal={false}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent
         align={align}
@@ -125,10 +131,8 @@ export function CadToolPopover({
           event.stopPropagation();
         }}
         onPointerDownOutside={(event) => {
-          const originalEvent = event.detail.originalEvent;
+          const originalEvent = event.detail.originalEvent as PointerEvent | undefined;
           suppressDismissPointerSequence(originalEvent);
-          originalEvent.preventDefault();
-          originalEvent.stopPropagation();
         }}
       >
         {children}

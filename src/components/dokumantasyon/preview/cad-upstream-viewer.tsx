@@ -75,7 +75,7 @@ export interface DokCadUpstreamViewerProps {
 }
 
 type HostState = "loading" | "ready" | "error";
-type ActiveTool = "distance" | "area" | null;
+type ActiveTool = "distance" | "area" | "chain_distance" | null;
 
 let previousCadUpstreamTeardown: Promise<void> = Promise.resolve();
 
@@ -772,9 +772,17 @@ export function DokCadUpstreamViewer({
     const adapter = adapterRef.current;
     if (!adapter) return;
     if (activeTool === "distance") {
+      setActiveTool(null);
+      setReviewTool("select");
+      reviewStoreRef.current?.setActiveTool("select");
       await adapter.cancelActiveCommand();
       return;
     }
+
+    await adapter.cancelActiveCommand();
+    setAreaSnapshot(null);
+    setReviewTool("distance");
+    reviewStoreRef.current?.setActiveTool("distance");
 
     const started = await adapter.startDistanceMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -790,11 +798,15 @@ export function DokCadUpstreamViewer({
             },
           ]);
           setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
+          setActiveTool(null);
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
         },
         onCancel: () => {
           setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
+          setActiveTool(null);
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
         },
       }
     );
@@ -806,12 +818,16 @@ export function DokCadUpstreamViewer({
     if (!adapter) return;
     if (activeTool === "area") {
       setActiveTool(null);
+      setReviewTool("select");
+      reviewStoreRef.current?.setActiveTool("select");
       await adapter.cancelActiveCommand();
       return;
     }
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
+    setReviewTool("area");
+    reviewStoreRef.current?.setActiveTool("area");
 
     const started = await adapter.startAreaMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -827,11 +843,15 @@ export function DokCadUpstreamViewer({
             },
           ]);
           setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
+          setActiveTool(null);
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
         },
         onCancel: () => {
           setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
+          setActiveTool(null);
+          setReviewTool("select");
+          reviewStoreRef.current?.setActiveTool("select");
         },
       }
     );
@@ -841,9 +861,20 @@ export function DokCadUpstreamViewer({
   const handleStartChainDistance = async () => {
     const adapter = adapterRef.current;
     if (!adapter) return;
+    if (activeTool === "chain_distance") {
+      setActiveTool(null);
+      setReviewTool("select");
+      reviewStoreRef.current?.setActiveTool("select");
+      await adapter.cancelActiveCommand();
+      return;
+    }
+
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
+
+    setReviewTool("chain_distance");
+    reviewStoreRef.current?.setActiveTool("chain_distance");
 
     const started = await adapter.startChainDistanceMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -862,21 +893,21 @@ export function DokCadUpstreamViewer({
               status: "open",
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
+              style: { color: measurementUnitSettings.color || "#3b82f6", strokeWidth: 2, opacity: 1 },
             });
           }
+          setActiveTool(null);
           setReviewTool("select");
           reviewStoreRef.current?.setActiveTool("select");
         },
         onCancel: () => {
+          setActiveTool(null);
           setReviewTool("select");
           reviewStoreRef.current?.setActiveTool("select");
         },
       }
     );
-    if (started) {
-      setActiveTool(null);
-    }
+    setActiveTool(started ? "chain_distance" : null);
   };
 
   useEffect(() => {
@@ -1057,6 +1088,8 @@ export function DokCadUpstreamViewer({
               ? "distance"
               : activeTool === "area"
               ? "area"
+              : activeTool === "chain_distance"
+              ? "chain_distance"
               : reviewTool
           }
           onSelectTool={handleSelectReviewTool}
