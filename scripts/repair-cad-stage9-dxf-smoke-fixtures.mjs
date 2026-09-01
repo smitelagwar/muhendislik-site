@@ -115,6 +115,12 @@ if (!source.includes('"9", "$HANDSEED", "5", "FFFFFF"')) {
   changed = true;
 }
 
+replaceOnce(
+  `  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });`,
+  `  try {\n    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });\n  } catch (error) {\n    const trace = await page.locator("html").getAttribute("data-stage9-dxf-trace");\n    const phase = await host.getAttribute("data-cad-loading-phase");\n    console.log(\`STAGE9_DXF_TRACE=\${trace ?? "<null>"} PHASE=\${phase ?? "<null>"}\`);\n    throw error;\n  }`,
+  "DXF timeout trace"
+);
+
 if (!source.includes('"9", "$HANDSEED", "5", "FFFFFF"')) {
   throw new Error("Stage 9 DXF smoke fixture repair did not install HANDSEED.");
 }
@@ -123,6 +129,9 @@ if (!source.includes('"0", "LINE", "5", takeDxfHandle()')) {
 }
 if (!source.includes('"100", "AcDbLayerTableRecord"')) {
   throw new Error("Stage 9 DXF smoke fixture repair did not install LAYER subclass markers.");
+}
+if (!source.includes("STAGE9_DXF_TRACE=")) {
+  throw new Error("Stage 9 DXF smoke fixture repair did not install timeout trace.");
 }
 
 if (changed) {
