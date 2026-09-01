@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
   },
+  webpack(config, { dev, isServer }) {
+    // MLightCAD's browser runtime depends on constructor/prototype identity while
+    // parsing DXF. The current production minimizer can rewrite those identities
+    // and leave openDocument() permanently in parse-convert even though the same
+    // source succeeds in the development bundle. Correct CAD rendering takes
+    // precedence over client minification; gzip/brotli HTTP compression remains on.
+    if (!dev && !isServer) {
+      config.optimization.minimize = false;
+    }
+    return config;
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
@@ -26,7 +37,7 @@ const nextConfig: NextConfig = {
       },
     ],
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async redirects() {
     return [
