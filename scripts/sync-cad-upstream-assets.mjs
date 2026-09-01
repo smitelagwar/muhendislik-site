@@ -1,4 +1,4 @@
-import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,9 +53,7 @@ await mkdir(outputDir, { recursive: true });
 // bundle so cad-simple-viewer, data-model, renderer and LibreDWG share exactly
 // one module graph in development, `next start`, Vercel preview and production.
 const esbuildPackage = JSON.parse(
-  await import("node:fs/promises").then(({ readFile }) =>
-    readFile(join(root, "node_modules", "esbuild", "package.json"), "utf8")
-  )
+  await readFile(join(root, "node_modules", "esbuild", "package.json"), "utf8")
 );
 if (esbuildPackage.version !== EXPECTED_ESBUILD_VERSION) {
   throw new Error(
@@ -65,6 +63,26 @@ if (esbuildPackage.version !== EXPECTED_ESBUILD_VERSION) {
 
 const { build } = await import("esbuild");
 const runtimeTarget = join(outputDir, "mlightcad-runtime.js");
+const threeJsmExtensionPlugin = {
+  name: "three-jsm-extension",
+  setup(esbuild) {
+    // MLightCAD's published ESM still has two browser-valid/bundler-tolerated
+    // Three.js example specifiers without `.js`. Node's package exports expose
+    // the concrete .js files, so normalize extensionless JSM imports for esbuild.
+    esbuild.onResolve(
+      { filter: /^three\/examples\/jsm\/.+[^.]$/ },
+      async (args) => {
+        if (args.path.endsWith(".js")) return null;
+        return esbuild.resolve(`${args.path}.js`, {
+          kind: args.kind,
+          resolveDir: args.resolveDir,
+          importer: args.importer,
+        });
+      }
+    );
+  },
+};
+
 await build({
   stdin: {
     contents: `
@@ -89,6 +107,7 @@ await build({
   sourcemap: false,
   legalComments: "none",
   logLevel: "info",
+  plugins: [threeJsmExtensionPlugin],
 });
 const runtimeStat = await stat(runtimeTarget);
 if (!runtimeStat.isFile() || runtimeStat.size < 500_000) {
