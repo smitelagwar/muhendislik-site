@@ -8,6 +8,7 @@ const outputDir = join(root, "public", "cad-upstream");
 const LIBREDWG_CONVERTER_VERSION = "3.14.2";
 const LIBREDWG_WEB_VERSION = "0.7.10";
 const LIBREDWG_SOURCE_COMMIT = "e3198a391b5c8599a94f1f1da285426443371451";
+const EXPECTED_ESBUILD_VERSION = "0.27.4";
 
 const assets = [
   {
@@ -46,6 +47,56 @@ const assets = [
 ];
 
 await mkdir(outputDir, { recursive: true });
+
+// Next/webpack production bundling changed the runtime identity of MLightCAD's
+// peer packages during the Stage 9 browser gate. Build one browser-native ESM
+// bundle so cad-simple-viewer, data-model, renderer and LibreDWG share exactly
+// one module graph in development, `next start`, Vercel preview and production.
+const esbuildPackage = JSON.parse(
+  await import("node:fs/promises").then(({ readFile }) =>
+    readFile(join(root, "node_modules", "esbuild", "package.json"), "utf8")
+  )
+);
+if (esbuildPackage.version !== EXPECTED_ESBUILD_VERSION) {
+  throw new Error(
+    `CAD upstream runtime requires esbuild ${EXPECTED_ESBUILD_VERSION}; found ${esbuildPackage.version ?? "unknown"}.`
+  );
+}
+
+const { build } = await import("esbuild");
+const runtimeTarget = join(outputDir, "mlightcad-runtime.js");
+await build({
+  stdin: {
+    contents: `
+      import * as Viewer from "@mlightcad/cad-simple-viewer";
+      import * as dataModel from "@mlightcad/data-model";
+      import * as mtextRenderer from "@mlightcad/mtext-renderer";
+      import * as threeRenderer from "@mlightcad/three-renderer";
+      import * as libreDwg from "@mlightcad/libredwg-converter";
+      export { Viewer, dataModel, mtextRenderer, threeRenderer, libreDwg };
+    `,
+    resolveDir: root,
+    sourcefile: "cad-upstream-runtime-entry.ts",
+    loader: "ts",
+  },
+  outfile: runtimeTarget,
+  bundle: true,
+  platform: "browser",
+  format: "esm",
+  target: ["es2022"],
+  keepNames: true,
+  minify: false,
+  sourcemap: false,
+  legalComments: "none",
+  logLevel: "info",
+});
+const runtimeStat = await stat(runtimeTarget);
+if (!runtimeStat.isFile() || runtimeStat.size < 500_000) {
+  throw new Error(`CAD upstream runtime bundle is unexpectedly small: ${runtimeStat.size} bytes.`);
+}
+console.log(
+  `[cad-upstream] bundled public/cad-upstream/mlightcad-runtime.js (${runtimeStat.size} bytes)`
+);
 
 for (const asset of assets) {
   const sourceStat = await stat(asset.source).catch(() => null);
