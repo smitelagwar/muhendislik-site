@@ -53,8 +53,8 @@ replaceOnce(
 
 replaceOnce(
   `    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");\n    const idle = await this.manager.curView.waitUntilIdle(\n      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS\n    );\n    if (idle && this.manager.curView.stats.summary.entityCount === 0) {`,
-  `    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");\n    // cad-simple-viewer 1.6.2 can leave waitUntilIdle() pending in a production\n    // browser even after openDocument() has returned and its own timeout elapsed.\n    // Stage 8 already owns post-ready blank-canvas diagnostics/recovery, so this\n    // pre-ready validation must be strictly bounded and may not hold the whole CAD\n    // workspace in a permanent loading state.\n    const idle = await Promise.race([\n      this.manager.curView.waitUntilIdle(CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS),\n      new Promise<boolean>((resolve) => {\n        window.setTimeout(\n          () => resolve(false),\n          CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS + 250\n        );\n      }),\n    ]);\n    if (idle && this.manager.curView.stats.summary.entityCount === 0) {`,
-  "bounded scene-idle validation"
+  `    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");\n    // In cad-simple-viewer 1.6.2 waitUntilIdle() can monopolize the browser main\n    // thread in a production bundle even when geometry is already visible. A\n    // timer-based Promise.race cannot pre-empt that synchronous work. For DXF,\n    // openDocument() is the terminal parser boundary and Stage 8 owns the real\n    // post-ready blank-canvas diagnostics/recovery. Do not block readiness on\n    // waitUntilIdle(). Keep the legacy idle check only for DWG where conversion\n    // can still be progressive/worker-backed.\n    const idle = isDwg\n      ? await this.manager.curView.waitUntilIdle(CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS)\n      : false;\n    if (idle && this.manager.curView.stats.summary.entityCount === 0) {`,
+  "non-blocking DXF scene readiness"
 );
 
 if (!source.includes('const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";')) {
@@ -63,8 +63,8 @@ if (!source.includes('const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-
 if (!source.includes("webpackIgnore: true")) {
   throw new Error("Stage 9 runtime repair did not keep the runtime outside Next bundling.");
 }
-if (!source.includes("Promise.race([\n      this.manager.curView.waitUntilIdle")) {
-  throw new Error("Stage 9 runtime repair did not bound scene-idle validation.");
+if (!source.includes("const idle = isDwg")) {
+  throw new Error("Stage 9 runtime repair did not make DXF scene readiness non-blocking.");
 }
 if (source.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity")')) {
   throw new Error("Stage 9 runtime repair left the consuming flat-DXF probe active.");
@@ -72,7 +72,7 @@ if (source.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity")')) {
 
 if (changed) {
   writeFileSync(adapterPath, source, "utf8");
-  console.log("Stage 9 isolated MLightCAD runtime + bounded scene readiness repair applied.");
+  console.log("Stage 9 isolated MLightCAD runtime + non-blocking DXF scene readiness repair applied.");
 } else {
   console.log("Stage 9 isolated MLightCAD runtime repair already applied.");
 }
