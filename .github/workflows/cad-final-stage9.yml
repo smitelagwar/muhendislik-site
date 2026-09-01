@@ -66,6 +66,7 @@ jobs:
           node scripts/repair-cad-stage9-flat-parser.mjs
           node scripts/repair-cad-stage9-dxf-converter.mjs
           node scripts/repair-cad-stage9-native-dxf-parser.mjs
+          node scripts/repair-cad-stage9-runtime-performance.mjs
           node scripts/repair-cad-stage9-dxf-smoke-fixtures.mjs
           node scripts/repair-cad-stage9-fixtures.mjs
           git add -A
