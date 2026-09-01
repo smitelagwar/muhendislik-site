@@ -15,7 +15,7 @@ function replaceOnce(needle, replacement, label) {
 
 replaceOnce(
   `type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");\n\nlet viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;\nlet libreDwgRegistrationPromise: Promise<void> | null = null;\nlet engineEnhancementsInitialized = false;`,
-  `type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");\ntype CadBundledRuntimeModule = {\n  Viewer: CadSimpleViewerModule;\n  dataModel: typeof import("@mlightcad/data-model");\n  mtextRenderer: typeof import("@mlightcad/mtext-renderer");\n  threeRenderer: typeof import("@mlightcad/three-renderer");\n  libreDwg: typeof import("@mlightcad/libredwg-converter");\n};\n\nconst CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";\nlet runtimeModulePromise: Promise<CadBundledRuntimeModule> | null = null;\nlet viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;\nlet libreDwgRegistrationPromise: Promise<void> | null = null;\nlet engineEnhancementsInitialized = false;`,
+  `type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");\ntype CadBundledRuntimeModule = {\n  Viewer: CadSimpleViewerModule;\n  dataModel: typeof import("@mlightcad/data-model");\n  mtextRenderer: typeof import("@mlightcad/mtext-renderer");\n  threeRenderer: typeof import("@mlightcad/three-renderer");\n  loadLibreDwg: () => Promise<typeof import("@mlightcad/libredwg-converter")>;\n};\n\nconst CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";\nlet runtimeModulePromise: Promise<CadBundledRuntimeModule> | null = null;\nlet viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;\nlet libreDwgRegistrationPromise: Promise<void> | null = null;\nlet engineEnhancementsInitialized = false;`,
   "runtime type and singleton state"
 );
 
@@ -38,11 +38,11 @@ replaceOnce(
 );
 
 const oldLoader = `async function loadViewerModule(): Promise<CadSimpleViewerModule> {\n  if (!viewerModulePromise) {\n    viewerModulePromise = import("@mlightcad/cad-simple-viewer")\n      .then(async (Viewer) => {\n        await initializeCadEngineEnhancements(Viewer);\n        return Viewer;\n      })\n      .catch((error) => {\n        viewerModulePromise = null;\n        throw error;\n      });\n  }\n  return viewerModulePromise;\n}`;
-const repairedLoader = `async function loadCadRuntimeModule(): Promise<CadBundledRuntimeModule> {\n  if (!runtimeModulePromise) {\n    const runtimeUrl = CAD_UPSTREAM_RUNTIME_URL;\n    runtimeModulePromise = import(/* webpackIgnore: true */ runtimeUrl)\n      .then((runtime) => {\n        const candidate = runtime as unknown as CadBundledRuntimeModule;\n        if (!candidate?.Viewer?.AcApDocManager || !candidate?.dataModel?.AcDbDatabase) {\n          throw new Error("MLightCAD isolated runtime bundle is invalid.");\n        }\n        return candidate;\n      })\n      .catch((error) => {\n        runtimeModulePromise = null;\n        throw error;\n      });\n  }\n  return runtimeModulePromise;\n}\n\nasync function loadViewerModule(): Promise<CadSimpleViewerModule> {\n  if (!viewerModulePromise) {\n    viewerModulePromise = loadCadRuntimeModule()\n      .then(async (runtime) => {\n        await initializeCadEngineEnhancements(runtime);\n        return runtime.Viewer;\n      })\n      .catch((error) => {\n        viewerModulePromise = null;\n        throw error;\n      });\n  }\n  return viewerModulePromise;\n}`;
+const repairedLoader = `async function loadCadRuntimeModule(): Promise<CadBundledRuntimeModule> {\n  if (!runtimeModulePromise) {\n    const runtimeUrl = CAD_UPSTREAM_RUNTIME_URL;\n    runtimeModulePromise = import(/* webpackIgnore: true */ runtimeUrl)\n      .then((runtime) => {\n        const candidate = runtime as unknown as CadBundledRuntimeModule;\n        if (\n          !candidate?.Viewer?.AcApDocManager ||\n          !candidate?.dataModel?.AcDbDatabase ||\n          typeof candidate.loadLibreDwg !== "function"\n        ) {\n          throw new Error("MLightCAD isolated runtime bundle is invalid.");\n        }\n        return candidate;\n      })\n      .catch((error) => {\n        runtimeModulePromise = null;\n        throw error;\n      });\n  }\n  return runtimeModulePromise;\n}\n\nasync function loadViewerModule(): Promise<CadSimpleViewerModule> {\n  if (!viewerModulePromise) {\n    viewerModulePromise = loadCadRuntimeModule()\n      .then(async (runtime) => {\n        await initializeCadEngineEnhancements(runtime);\n        return runtime.Viewer;\n      })\n      .catch((error) => {\n        viewerModulePromise = null;\n        throw error;\n      });\n  }\n  return viewerModulePromise;\n}`;
 replaceOnce(oldLoader, repairedLoader, "browser-native MLightCAD loader");
 
 const oldRegistration = `async function registerLibreDwgConverter(): Promise<void> {\n  if (!libreDwgRegistrationPromise) {\n    libreDwgRegistrationPromise = Promise.all([\n      import("@mlightcad/data-model"),\n      import("@mlightcad/libredwg-converter"),\n    ])\n      .then(([dataModel, libreDwg]) => {\n        const converter = new libreDwg.AcDbLibreDwgConverter({\n          convertByEntityType: false,\n          useWorker: true,\n          parserWorkerUrl: CAD_UPSTREAM_WORKER_URLS.dwgParser,\n        });\n        dataModel.AcDbDatabaseConverterManager.instance.register(\n          dataModel.AcDbFileType.DWG,\n          converter\n        );\n      })\n      .catch((error) => {\n        libreDwgRegistrationPromise = null;\n        throw error;\n      });\n  }\n  return libreDwgRegistrationPromise;\n}`;
-const repairedRegistration = `async function registerLibreDwgConverter(): Promise<void> {\n  if (!libreDwgRegistrationPromise) {\n    libreDwgRegistrationPromise = loadCadRuntimeModule()\n      .then(({ dataModel, libreDwg }) => {\n        const converter = new libreDwg.AcDbLibreDwgConverter({\n          convertByEntityType: false,\n          useWorker: true,\n          parserWorkerUrl: CAD_UPSTREAM_WORKER_URLS.dwgParser,\n        });\n        dataModel.AcDbDatabaseConverterManager.instance.register(\n          dataModel.AcDbFileType.DWG,\n          converter\n        );\n      })\n      .catch((error) => {\n        libreDwgRegistrationPromise = null;\n        throw error;\n      });\n  }\n  return libreDwgRegistrationPromise;\n}`;
+const repairedRegistration = `async function registerLibreDwgConverter(): Promise<void> {\n  if (!libreDwgRegistrationPromise) {\n    libreDwgRegistrationPromise = loadCadRuntimeModule()\n      .then(async ({ dataModel, loadLibreDwg }) => {\n        const libreDwg = await loadLibreDwg();\n        const converter = new libreDwg.AcDbLibreDwgConverter({\n          convertByEntityType: false,\n          useWorker: true,\n          parserWorkerUrl: CAD_UPSTREAM_WORKER_URLS.dwgParser,\n        });\n        dataModel.AcDbDatabaseConverterManager.instance.register(\n          dataModel.AcDbFileType.DWG,\n          converter\n        );\n      })\n      .catch((error) => {\n        libreDwgRegistrationPromise = null;\n        throw error;\n      });\n  }\n  return libreDwgRegistrationPromise;\n}`;
 replaceOnce(oldRegistration, repairedRegistration, "shared runtime LibreDWG registration");
 
 replaceOnce(
@@ -63,6 +63,9 @@ if (!source.includes('const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-
 if (!source.includes("webpackIgnore: true")) {
   throw new Error("Stage 9 runtime repair did not keep the runtime outside Next bundling.");
 }
+if (!source.includes("typeof candidate.loadLibreDwg")) {
+  throw new Error("Stage 9 runtime repair did not keep LibreDWG lazy.");
+}
 if (!source.includes("const idle = isDwg")) {
   throw new Error("Stage 9 runtime repair did not make DXF scene readiness non-blocking.");
 }
@@ -72,7 +75,7 @@ if (source.includes('const hasAcDbEntity = f.atSubclassData("AcDbEntity")')) {
 
 if (changed) {
   writeFileSync(adapterPath, source, "utf8");
-  console.log("Stage 9 isolated MLightCAD runtime + non-blocking DXF scene readiness repair applied.");
+  console.log("Stage 9 isolated MLightCAD runtime + lazy LibreDWG + non-blocking DXF scene readiness repair applied.");
 } else {
   console.log("Stage 9 isolated MLightCAD runtime repair already applied.");
 }
