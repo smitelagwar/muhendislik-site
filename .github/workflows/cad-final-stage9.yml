@@ -66,9 +66,9 @@ jobs:
           node scripts/repair-cad-stage9-flat-parser.mjs
           node scripts/repair-cad-stage9-dxf-converter.mjs
           node scripts/repair-cad-stage9-native-dxf-parser.mjs
-          node scripts/repair-cad-stage9-runtime-performance.mjs
           node scripts/repair-cad-stage9-dxf-smoke-fixtures.mjs
           node scripts/repair-cad-stage9-fixtures.mjs
+          node scripts/repair-cad-stage9-runtime-performance.mjs
           git add -A
           if ! git diff --cached --quiet; then
             if [ "$DID_MERGE" = "true" ]; then
