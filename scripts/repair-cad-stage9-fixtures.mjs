@@ -5,18 +5,25 @@ const fixtureDir = "tests/fixtures/cad-preview-v2";
 const manifestPath = `${fixtureDir}/manifest.ts`;
 
 function createLineRectangleDxf(insunits, width, height) {
-  const layer = (name, color) => [
+  let nextHandle = 0x100;
+  const takeHandle = () => (nextHandle++).toString(16).toUpperCase();
+
+  const layer = (handle, name, color) => [
     "0", "LAYER",
+    "5", handle,
     "100", "AcDbSymbolTableRecord",
+    "100", "AcDbLayerTableRecord",
     "2", name,
     "70", "0",
-    "100", "AcDbLayerTableRecord",
     "62", String(color),
     "6", "CONTINUOUS",
+    "290", "1",
+    "370", "-3",
   ];
 
   const line = (x1, y1, x2, y2) => [
     "0", "LINE",
+    "5", takeHandle(),
     "100", "AcDbEntity",
     "8", "GEOMETRY",
     "100", "AcDbLine",
@@ -28,11 +35,12 @@ function createLineRectangleDxf(insunits, width, height) {
     "0", "SECTION", "2", "HEADER",
     "9", "$ACADVER", "1", "AC1027",
     "9", "$INSUNITS", "70", String(insunits),
+    "9", "$HANDSEED", "5", "FFFFFF",
     "0", "ENDSEC",
     "0", "SECTION", "2", "TABLES",
     "0", "TABLE", "2", "LAYER", "70", "2",
-    ...layer("0", 7),
-    ...layer("GEOMETRY", 1),
+    ...layer("10", "0", 7),
+    ...layer("11", "GEOMETRY", 1),
     "0", "ENDTAB", "0", "ENDSEC",
     "0", "SECTION", "2", "ENTITIES",
     ...line(0, 0, width, 0),
@@ -78,8 +86,8 @@ for (const fixture of fixtures) {
     throw new Error(`Stage 9 fixture manifest entry missing: ${fixture.fileName}`);
   }
   manifest = manifest.replace(pattern, `$1${sha256}$2${bytes.length}`);
-  console.log(`Stage 9 AC1027 fixture ready: ${fixture.fileName} ${bytes.length} bytes ${sha256}`);
+  console.log(`Stage 9 canonical AC1027 fixture ready: ${fixture.fileName} ${bytes.length} bytes ${sha256}`);
 }
 
 writeFileSync(manifestPath, manifest, "utf8");
-console.log("Stage 9 AC1027 DXF fixtures repaired and manifest integrity refreshed.");
+console.log("Stage 9 canonical handled AC1027 DXF fixtures repaired and manifest integrity refreshed.");
