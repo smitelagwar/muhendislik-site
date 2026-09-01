@@ -32,33 +32,11 @@ export function closeCadToolPopovers(): void {
 function suppressDismissPointerSequence(originalEvent: PointerEvent) {
   if (typeof document === "undefined") return;
 
-  const pointerId = originalEvent.pointerId;
-  let timeoutId: number | undefined;
-
-  const originalTarget = originalEvent.target;
-  if (originalTarget instanceof Element) {
-    originalTarget.dispatchEvent(
-      new PointerEvent("pointercancel", {
-        bubbles: true,
-        pointerId,
-        pointerType: originalEvent.pointerType,
-        clientX: originalEvent.clientX,
-        clientY: originalEvent.clientY,
-      })
-    );
-  }
-
-  const stopEvent = (event: Event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-  };
-
   const cleanup = () => {
     document.removeEventListener("pointerup", onPointerUp, true);
     document.removeEventListener("pointercancel", onPointerCancel, true);
     document.removeEventListener("click", onClick, true);
-    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    window.clearTimeout(timeoutId);
   };
 
   const onPointerUp = (event: PointerEvent) => {
@@ -82,7 +60,7 @@ function suppressDismissPointerSequence(originalEvent: PointerEvent) {
   document.addEventListener("pointerup", onPointerUp, true);
   document.addEventListener("pointercancel", onPointerCancel, true);
   document.addEventListener("click", onClick, true);
-  timeoutId = window.setTimeout(cleanup, GHOST_CLICK_GUARD_MS);
+  const timeoutId = window.setTimeout(cleanup, GHOST_CLICK_GUARD_MS);
 }
 
 function shouldContainCadShortcut(event: React.KeyboardEvent<HTMLElement>): boolean {

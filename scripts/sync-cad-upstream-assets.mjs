@@ -121,7 +121,7 @@ const runtimeBuild = await build({
   format: "esm",
   target: ["es2022"],
   keepNames: true,
-  minify: false,
+  minify: true,
   sourcemap: false,
   legalComments: "none",
   logLevel: "info",
@@ -215,7 +215,6 @@ const fontsManifest = [
   },
 ];
 
-const fontsManifestPath = join(fontsOutputDir, "fonts", "fonts.json");
 // Preserve the existing public path: /cad-upstream/fonts/fonts.json.
 const canonicalFontsManifestPath = join(fontsOutputDir, "fonts.json");
 await writeFile(canonicalFontsManifestPath, JSON.stringify(fontsManifest, null, 2), "utf8");

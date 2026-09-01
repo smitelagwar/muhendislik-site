@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
 import { CadReviewStore, isCadMeasurementReviewItem } from "./store";
 import { saveLocalCadReview, type CadReviewDocument } from "./schema";
 import { CadReviewPersistenceCoordinator, type SaveState } from "./persistence";

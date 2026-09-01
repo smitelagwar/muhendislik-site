@@ -66,9 +66,9 @@ async function openFixture(page: Page, fixtureId: string) {
   const { fileId } = await uploadCadPreviewV2Fixture(page, fixtureId);
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
   const runtime = upstreamRuntime(page);
-  const host = upstreamHost(page);
   await expect(runtime).toBeVisible({ timeout: 35_000 });
-  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+  await page.waitForSelector('[data-cad-upstream-host="true"][data-cad-upstream-state="ready"]', { timeout: 35_000 });
+  const host = upstreamHost(page);
   await expect(host.locator("canvas").first()).toBeVisible();
   return { fileId, host };
 }
@@ -132,7 +132,7 @@ test.describe("CAD Stage 9 — final release blockers", () => {
     await expect(page.locator('[data-testid="cad-save-status"]')).toContainText("Kaydedildi", { timeout: 12_000 });
     await page.reload();
     await expect(upstreamRuntime(page)).toBeVisible({ timeout: 35_000 });
-    await expect(upstreamHost(page)).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 35_000 });
+    await page.waitForSelector('[data-cad-upstream-host="true"][data-cad-upstream-state="ready"]', { timeout: 35_000 });
     await expect(page.locator('[data-cad-review-overlay="true"] [data-review-type="stroke"]')).toHaveCount(1);
     expect(await entityCount(page)).toBe(sourceCount);
   });

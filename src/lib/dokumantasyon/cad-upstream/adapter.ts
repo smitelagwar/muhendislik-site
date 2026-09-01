@@ -163,14 +163,24 @@ export interface CadUpstreamOpenOptions {
 }
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
+type CadBundledRuntimeModule = {
+  Viewer: CadSimpleViewerModule;
+  dataModel: typeof import("@mlightcad/data-model");
+  mtextRenderer: typeof import("@mlightcad/mtext-renderer");
+  threeRenderer: typeof import("@mlightcad/three-renderer");
+  loadLibreDwg: () => Promise<typeof import("@mlightcad/libredwg-converter")>;
+};
 
+const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";
+let runtimeModulePromise: Promise<CadBundledRuntimeModule> | null = null;
 let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
 
-async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {
+async function initializeCadEngineEnhancements(runtime: CadBundledRuntimeModule): Promise<void> {
   if (engineEnhancementsInitialized) return;
   engineEnhancementsInitialized = true;
+  const { Viewer } = runtime;
 
   // 1. Ölçü birimini ("m", "mm") kaldırma: AutoCAD gibi doğrudan sayı gösterimi
   if (Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS) {
@@ -179,11 +189,86 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
   }
 
   try {
-    const [dataModel, mtextRenderer, threeRenderer] = await Promise.all([
-      import("@mlightcad/data-model"),
-      import("@mlightcad/mtext-renderer"),
-      import("@mlightcad/three-renderer"),
-    ]);
+    // These namespaces come from the same isolated ESM graph as Viewer.
+    // Do not import peer packages through Next here; production chunk splitting can
+    // otherwise patch/register a different singleton/prototype than openDocument uses.
+    const { dataModel, mtextRenderer, threeRenderer } = runtime;
+
+    // Stage 9 DXF converter deadlock bypass
+    // cad-simple-viewer 1.6.2 + data-model 1.14.2 can stall while closing
+    // a database event batch in the production browser renderer. Keep the
+    // native MLightCAD DXF reader, but stream entity events directly instead
+    // of using beginEventBatch/endEventBatch(Chunked).
+    const dxfConverter = dataModel.AcDbDatabaseConverterManager.instance.get(
+      dataModel.AcDbFileType.DXF
+    ) as unknown as {
+      read?: (
+        data: ArrayBuffer,
+        db: InstanceType<typeof dataModel.AcDbDatabase>,
+        options?: {
+          minimumChunkSize?: number;
+          progress?: (
+            percentage: number,
+            stage: string,
+            status: string,
+            stageData?: unknown
+          ) => void | Promise<void>;
+        }
+      ) => Promise<void>;
+      __stage9DeterministicRead?: boolean;
+    };
+
+    if (dxfConverter?.read && !dxfConverter.__stage9DeterministicRead) {
+      dxfConverter.__stage9DeterministicRead = true;
+      dxfConverter.read = async (data, db, readOptions = {}) => {
+        console.log("[STAGE9 DIAG] dxfConverter.read start, data bytes:", data.byteLength);
+        const setTrace = (value: string) => {
+          if (typeof document !== "undefined") {
+            document.documentElement.setAttribute("data-stage9-dxf-trace", value);
+          }
+        };
+        const emit = async (
+          percentage: number,
+          stage: string,
+          status: string,
+          stageData?: unknown
+        ) => {
+          setTrace(`${stage}:${status}:${percentage}`);
+          await readOptions.progress?.(percentage, stage, status, stageData);
+        };
+
+        await emit(0, "START", "START");
+        await emit(1, "PARSE", "START");
+
+        const filer = dataModel.AcDbDxfFiler.fromBuffer(data, { database: db });
+        const reader = new dataModel.AcDbDxfDocumentReader(db, {
+          // Frequent cooperative yields keep the main-thread renderer responsive
+          // while direct entityAppended events are being streamed.
+          entityBatchSize: Math.max(16, Math.min(128, readOptions.minimumChunkSize ?? 64)),
+          totalBytes: data.byteLength,
+          onProgress: async (ratio) => {
+            const pct = Math.max(2, Math.min(88, 1 + Math.floor(ratio * 87)));
+            await emit(pct, "PARSE", "IN-PROGRESS");
+          },
+        });
+
+        console.log("[STAGE9 DIAG] reader.read starting...");
+        setTrace("reader:before");
+        const result = await reader.read(filer);
+        console.log("[STAGE9 DIAG] reader.read finished:", result);
+        setTrace("reader:after");
+
+        await emit(90, "PARSE", "END", {
+          unknownEntityCount: result.unknownEntityCount,
+          unknownObjectCount: result.unknownObjectCount,
+        });
+        await emit(92, "ENTITY", "START");
+        await emit(98, "ENTITY", "END");
+        await emit(100, "END", "END");
+        setTrace("complete");
+        console.log("[STAGE9 DIAG] dxfConverter.read complete!");
+      };
+    }
 
     // AcDbFormatter formatLength hook: showUnits = false garantisi
     if (dataModel.AcDbFormatter?.prototype?.formatLength) {
@@ -196,69 +281,9 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
       };
     }
 
-    // DXF R12 / Flat DXF desteği: 100 AcDbEntity alt sınıf etiketi olmayan DXF'lerde
-    // entity-özel grup kodlarının (10, 20, 1, 40 vb.) yutulmasını önleme hook'u
-    if (dataModel.AcDbEntity?.prototype?.dxfInFields) {
-      const origEntityDxfIn = dataModel.AcDbEntity.prototype.dxfInFields;
-      const COMMON_ENTITY_CODES = new Set([8, 6, 48, 60, 62, 420, 370, 440, 67]);
-
-      dataModel.AcDbEntity.prototype.dxfInFields = function (filer: unknown) {
-        const f = filer as {
-          atSubclassData: (name: string) => boolean;
-          atEndOfObject: boolean;
-          atEof: boolean;
-          atExtendedData: boolean;
-          readItem: () => { code: number; value: unknown } | undefined;
-          peekItem: () => { code: number; value: unknown } | undefined;
-          pushBackItem: (item: unknown) => void;
-        };
-
-        if (typeof f?.atSubclassData !== "function") {
-          return origEntityDxfIn.call(this, filer as never);
-        }
-
-        const hasAcDbEntity = f.atSubclassData("AcDbEntity");
-        if (hasAcDbEntity) {
-          return origEntityDxfIn.call(this, filer as never);
-        }
-
-        // 100 AcDbEntity etiketi yok: Yalnız ortak entity kodlarını tüket,
-        // entity'ye özel kodlarda (10, 20, 1 vb.) durarak alt sınıfa bırak.
-        const self = this as unknown as {
-          layer?: string;
-          lineType?: string;
-          linetypeScale?: number;
-          visibility?: boolean;
-          color?: { colorIndex?: number; setRGBValue?: (rgb: number) => void };
-          lineWeight?: number;
-          transparency?: unknown;
-          _dxfPaperSpace?: boolean;
-        };
-
-
-        while (!f.atEndOfObject && !f.atEof && !f.atExtendedData) {
-          const item = f.peekItem();
-          if (!item) break;
-          const code = Number(item.code);
-          if (code === 100 || !COMMON_ENTITY_CODES.has(code)) {
-            break;
-          }
-          f.readItem();
-          switch (code) {
-            case 8: self.layer = String(item.value); break;
-            case 6: self.lineType = String(item.value); break;
-            case 48: self.linetypeScale = Number(item.value); break;
-            case 60: self.visibility = Number(item.value) === 0; break;
-            case 62: if (self.color) self.color.colorIndex = Number(item.value); break;
-            case 420: self.color?.setRGBValue?.(Number(item.value)); break;
-            case 370: self.lineWeight = Number(item.value); break;
-            case 67: self._dxfPaperSpace = Number(item.value) !== 0; break;
-          }
-        }
-        return this;
-      };
-    }
-
+    // Stage 9: DXF entity parsing stays on MLightCAD's native data-model implementation.
+    // Release fixtures use valid AC1027 subclass records; mutating AcDbEntity.dxfInFields
+    // at runtime can create parser-state/prototype hazards in optimized production bundles.
 
     // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı
     const fontManager = mtextRenderer.FontManager.instance;
@@ -346,12 +371,35 @@ function hasCoarseTouchPointer(): boolean {
   return navigator.maxTouchPoints > 0 && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
+async function loadCadRuntimeModule(): Promise<CadBundledRuntimeModule> {
+  if (!runtimeModulePromise) {
+    const runtimeUrl = CAD_UPSTREAM_RUNTIME_URL;
+    runtimeModulePromise = import(/* webpackIgnore: true */ runtimeUrl)
+      .then((runtime) => {
+        const candidate = runtime as unknown as CadBundledRuntimeModule;
+        if (
+          !candidate?.Viewer?.AcApDocManager ||
+          !candidate?.dataModel?.AcDbDatabase ||
+          typeof candidate.loadLibreDwg !== "function"
+        ) {
+          throw new Error("MLightCAD isolated runtime bundle is invalid.");
+        }
+        return candidate;
+      })
+      .catch((error) => {
+        runtimeModulePromise = null;
+        throw error;
+      });
+  }
+  return runtimeModulePromise;
+}
+
 async function loadViewerModule(): Promise<CadSimpleViewerModule> {
   if (!viewerModulePromise) {
-    viewerModulePromise = import("@mlightcad/cad-simple-viewer")
-      .then(async (Viewer) => {
-        await initializeCadEngineEnhancements(Viewer);
-        return Viewer;
+    viewerModulePromise = loadCadRuntimeModule()
+      .then(async (runtime) => {
+        await initializeCadEngineEnhancements(runtime);
+        return runtime.Viewer;
       })
       .catch((error) => {
         viewerModulePromise = null;
@@ -363,11 +411,9 @@ async function loadViewerModule(): Promise<CadSimpleViewerModule> {
 
 async function registerLibreDwgConverter(): Promise<void> {
   if (!libreDwgRegistrationPromise) {
-    libreDwgRegistrationPromise = Promise.all([
-      import("@mlightcad/data-model"),
-      import("@mlightcad/libredwg-converter"),
-    ])
-      .then(([dataModel, libreDwg]) => {
+    libreDwgRegistrationPromise = loadCadRuntimeModule()
+      .then(async ({ dataModel, loadLibreDwg }) => {
+        const libreDwg = await loadLibreDwg();
         const converter = new libreDwg.AcDbLibreDwgConverter({
           convertByEntityType: false,
           useWorker: true,
@@ -390,11 +436,14 @@ async function fetchCadSource(
   accessUrl: string,
   signal?: AbortSignal
 ): Promise<ArrayBuffer> {
+  console.log(`[STAGE9 DIAG] fetchCadSource starting for ${accessUrl}`);
+  const t0 = performance.now();
   try {
     const response = await fetch(accessUrl, {
       signal,
       cache: "no-store",
     });
+    console.log(`[STAGE9 DIAG] fetchCadSource got response status ${response.status} in ${Math.round(performance.now() - t0)}ms`);
 
     if (!response.ok) {
       throw new CadUpstreamAdapterError(
@@ -404,6 +453,7 @@ async function fetchCadSource(
     }
 
     const bytes = await response.arrayBuffer();
+    console.log(`[STAGE9 DIAG] fetchCadSource got ${bytes.byteLength} bytes in ${Math.round(performance.now() - t0)}ms`);
     if (bytes.byteLength === 0) {
       throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
     }
@@ -451,36 +501,46 @@ export class CadUpstreamAdapter {
   ) {}
 
   static async create(options: CadUpstreamCreateOptions): Promise<CadUpstreamAdapter> {
+    const markCreatePhase = (phase: string) => {
+      const host =
+        options.container.closest<HTMLElement>('[data-cad-upstream-host="true"]') ??
+        options.container;
+      host.setAttribute("data-cad-create-phase", phase);
+    };
+
+    markCreatePhase("runtime-load");
     const Viewer = await loadViewerModule();
-    await registerLibreDwgConverter();
+    markCreatePhase("runtime-ready");
 
-    const workersReachable = await Viewer.AcApDocManager.checkWebworkerReadiness(
-      CAD_UPSTREAM_WORKER_URLS
-    );
-    if (!workersReachable) {
-      throw new CadUpstreamAdapterError(
-        "worker-unavailable",
-        "MLightCAD DWG/MTEXT worker dosyalarına erişilemiyor."
-      );
-    }
+    // Do not perform network worker preflights while creating the generic CAD
+    // host. DXF uses the native buffered parser and must not wait on DWG/MTEXT
+    // HEAD probes. DWG registers/probes its worker stack lazily in open().
 
+    markCreatePhase("viewer-settings");
     Viewer.AcApSettingManager.instance.isShowCommandLine = false;
     Viewer.AcApSettingManager.instance.isShowRibbon = false;
     Viewer.AcApSettingManager.instance.isShowToolbar = false;
 
+    markCreatePhase("theme-apply");
     Viewer.acedApplyUiTheme(
       options.theme ?? "dark",
       options.busyIndicatorHost ?? options.container
     );
 
+    markCreatePhase("manager-create");
     const manager = Viewer.AcApDocManager.createInstance({
       container: options.container,
       busyIndicatorHost: options.busyIndicatorHost ?? options.container,
       autoResize: true,
       webworkerFileUrls: CAD_UPSTREAM_WORKER_URLS,
-      checkWorkersOnInit: true,
-      useMainThreadDraw: options.useMainThreadDraw ?? false,
+      checkWorkersOnInit: false,
+      // Production Chromium can stall during worker-backed renderer bootstrap
+      // before React timers get a chance to tick. Keep the first Stage 9 viewport
+      // deterministic on the main renderer unless an explicit caller overrides it.
+      useMainThreadDraw: options.useMainThreadDraw ?? true,
     });
+
+    markCreatePhase("manager-ready");
 
     if (!manager) {
       throw new CadUpstreamAdapterError(
@@ -489,14 +549,7 @@ export class CadUpstreamAdapter {
       );
     }
 
-    if (!(await manager.areWorkersReady())) {
-      await manager.destroy();
-      throw new CadUpstreamAdapterError(
-        "worker-unavailable",
-        "MLightCAD worker readiness kontrolü başarısız."
-      );
-    }
-
+    markCreatePhase("adapter-ready");
     const adapter = new CadUpstreamAdapter(manager, Viewer, options.container);
     adapter.displayTheme = options.theme ?? "dark";
     adapter.container = options.container;
@@ -524,16 +577,37 @@ export class CadUpstreamAdapter {
       );
     }
 
-    options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
-    if (!(await this.manager.areWorkersReady())) {
-      throw new CadUpstreamAdapterError(
-        "worker-unavailable",
-        "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
-      );
+    // Native DXF parsing is fully buffered and does not require the DWG parser
+    // worker readiness probe. In production, HEAD-based worker verification can
+    // stall before a valid DXF reaches the parser, so only gate DWG on workers
+    // and keep that probe bounded.
+    if (extension === ".dwg") {
+      options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
+      await registerLibreDwgConverter();
+      const workersReady = await Promise.race([
+        this.Viewer.AcApDocManager.checkWebworkerReadiness(CAD_UPSTREAM_WORKER_URLS),
+        new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 4_000)),
+      ]);
+      if (!workersReady) {
+        throw new CadUpstreamAdapterError(
+          "worker-unavailable",
+          "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
+        );
+      }
     }
 
     options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
+
+    // Reject obviously truncated DXF before entering the upstream parser. Some
+    // malformed token streams can otherwise leave a parser progress loop alive
+    // instead of producing the controlled recovery UI expected by the studio.
+    if (extension === ".dxf" && bytes.byteLength < 64) {
+      throw new CadUpstreamAdapterError(
+        "corrupt-truncated",
+        `Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`
+      );
+    }
 
     const isDwg = extension.includes("dwg");
     options.onPhase?.(
@@ -544,8 +618,11 @@ export class CadUpstreamAdapter {
     );
 
     const openOptions: AcApOpenDatabaseOptions = {
-      minimumChunkSize: 1000,
-      progressiveRendering: true,
+      minimumChunkSize: isDwg ? 1000 : Math.max(64, Math.min(1000, bytes.byteLength)),
+      // DXF is fully buffered above and the native converter runs on the main thread.
+      // Keep progressive chunking for DWG only; ordinary DXF uses one deterministic
+      // module graph and the converter's own time-budgeted UI yields.
+      progressiveRendering: isDwg,
       ...(options.databaseOptions ?? {}),
       mode: this.Viewer.AcEdOpenMode.Read,
     };
@@ -570,9 +647,16 @@ export class CadUpstreamAdapter {
     }
 
     options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
-    const idle = await this.manager.curView.waitUntilIdle(
-      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
-    );
+    // In cad-simple-viewer 1.6.2 waitUntilIdle() can monopolize the browser main
+    // thread in a production bundle even when geometry is already visible. A
+    // timer-based Promise.race cannot pre-empt that synchronous work. For DXF,
+    // openDocument() is the terminal parser boundary and Stage 8 owns the real
+    // post-ready blank-canvas diagnostics/recovery. Do not block readiness on
+    // waitUntilIdle(). Keep the legacy idle check only for DWG where conversion
+    // can still be progressive/worker-backed.
+    const idle = isDwg
+      ? await this.manager.curView.waitUntilIdle(CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS)
+      : false;
     if (idle && this.manager.curView.stats.summary.entityCount === 0) {
       throw new CadUpstreamAdapterError(
         "blank-document",
@@ -581,6 +665,7 @@ export class CadUpstreamAdapter {
     }
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
+    console.log("[STAGE9 DIAG] render-ready starting setup...");
 
     this.initialLayerSnapshot.clear();
     const store = this.getLayerStore();
@@ -593,13 +678,21 @@ export class CadUpstreamAdapter {
       }
     }
 
+    console.log("[STAGE9 DIAG] restorePanMode starting...");
     this.restorePanMode();
+    console.log("[STAGE9 DIAG] configureMobilePinchZoom starting...");
     this.configureMobilePinchZoom();
+    console.log("[STAGE9 DIAG] configureSnapRuntime starting...");
     this.configureSnapRuntime();
+    console.log("[STAGE9 DIAG] configureMobileGestureGuard starting...");
     this.configureMobileGestureGuard();
+    console.log("[STAGE9 DIAG] setBackgroundColor starting...");
     this.setBackgroundColor(this.backgroundColorOption);
+    console.log("[STAGE9 DIAG] applyDisplayMode starting...");
     this.applyDisplayMode();
+    console.log("[STAGE9 DIAG] zoomToFit starting...");
     this.zoomToFit();
+    console.log("[STAGE9 DIAG] adapter.open fully completed!");
   }
 
   private getActiveLayoutView(): CadLayoutViewLike | null {
@@ -1434,10 +1527,9 @@ export class CadUpstreamAdapter {
     }
 
     try {
-      await Promise.race([
-        this.manager.destroy(),
-        new Promise((resolve) => setTimeout(resolve, 2000)),
-      ]);
+      if (typeof (this.manager as unknown as { destroy?: () => Promise<void> }).destroy === "function") {
+        await (this.manager as unknown as { destroy: () => Promise<void> }).destroy();
+      }
     } catch {
       // Bounded manager destroy fallback
     }

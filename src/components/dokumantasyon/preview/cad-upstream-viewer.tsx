@@ -151,7 +151,6 @@ export function DokCadUpstreamViewer({
   const [areaMeasurements, setAreaMeasurements] = useState<
     CompletedAreaMeasurement[]
   >([]);
-  const [, setViewRevision] = useState(0);
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
@@ -411,9 +410,13 @@ export function DokCadUpstreamViewer({
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
+        const nextWidth = Math.round(entry.contentRect.width);
+        const nextHeight = Math.round(entry.contentRect.height);
+        setContainerSize((prev) => {
+          if (prev.width === nextWidth && prev.height === nextHeight) {
+            return prev;
+          }
+          return { width: nextWidth, height: nextHeight };
         });
       }
     });
@@ -439,6 +442,7 @@ export function DokCadUpstreamViewer({
     let unsubscribeLayers: (() => void) | null = null;
     let unsubscribeViewChanged: (() => void) | null = null;
     let timeoutId: number | null = null;
+    let cancelStartup: ((reason?: unknown) => void) | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
@@ -513,10 +517,32 @@ export function DokCadUpstreamViewer({
             setLayers(adapterRef.current.getLayers());
           }
         });
-        unsubscribeViewChanged = createdAdapter.subscribeViewChanged(() => {
-          if (!cancelled) setViewRevision((value) => value + 1);
-        });
       })();
+
+      const cancellation = new Promise<never>((_, reject) => {
+        cancelStartup = reject;
+        if (abortController.signal.aborted) {
+          reject(
+            new CadUpstreamAdapterError(
+              "adapter-destroyed",
+              "CAD görüntüleyici iptal edildi."
+            )
+          );
+        } else {
+          abortController.signal.addEventListener(
+            "abort",
+            () => {
+              reject(
+                new CadUpstreamAdapterError(
+                  "adapter-destroyed",
+                  "CAD görüntüleyici iptal edildi."
+                )
+              );
+            },
+            { once: true }
+          );
+        }
+      });
 
       const deadline = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => {
@@ -534,10 +560,12 @@ export function DokCadUpstreamViewer({
       });
 
       try {
-        await Promise.race([upstreamWork, deadline]);
+        await Promise.race([upstreamWork, deadline, cancellation]);
         if (timeoutId !== null) window.clearTimeout(timeoutId);
         timeoutId = null;
-        if (cancelled || timedOut || abortController.signal.aborted) return;
+        if (cancelled || timedOut || abortController.signal.aborted) {
+          return;
+        }
         setState("ready");
         setMessage("");
         onReady?.();
@@ -578,6 +606,13 @@ export function DokCadUpstreamViewer({
 
     return () => {
       cancelled = true;
+      cancelStartup?.(
+        new CadUpstreamAdapterError(
+          "adapter-destroyed",
+          "CAD görüntüleyici kapatıldı."
+        )
+      );
+      cancelStartup = null;
       abortController.abort("CAD_UPSTREAM_UNMOUNT");
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       themeObserver?.disconnect();

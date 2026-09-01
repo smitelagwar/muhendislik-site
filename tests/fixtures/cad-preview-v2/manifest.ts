@@ -66,8 +66,8 @@ export const CAD_PREVIEW_V2_MANIFEST: Record<string, CadPreviewV2FixtureManifest
   "known-geometry-measurements": {
     id: "known-geometry-measurements",
     fileName: "known-geometry-measurements.dxf",
-    sha256: "cbb0db6f81290f835228ec4aaef3c58bc6a9be18b0e8feebb97e3ce7e47d2bd0",
-    sizeBytes: 489,
+    sha256: "ddfc5ae7d57860b35b4ec66a653d247e6a9dfad658e739ecc132efb2eb6b0dd9",
+    sizeBytes: 747,
     expectedEngine: "upstream",
     description: "Geometries with mathematically exact Euclidean distance and area values",
     entities: [
@@ -94,8 +94,8 @@ export const CAD_PREVIEW_V2_MANIFEST: Record<string, CadPreviewV2FixtureManifest
   "stage9-area-20m2": {
     id: "stage9-area-20m2",
     fileName: "stage9-area-20m2.dxf",
-    sha256: "da5cf68697432e27b3b98b18567fdcac044f54d2999202674b6a5b9585bb247a",
-    sizeBytes: 489,
+    sha256: "e23ddcc0bcd0d2f557a6d399ca2d7cfe08b7770e633ef425323fddca8aecd607",
+    sizeBytes: 747,
     expectedEngine: "upstream",
     description: "Stage 9 construction oracle: 5000 mm x 4000 mm rectangle = 20.00 m2",
     entities: [
@@ -115,8 +115,8 @@ export const CAD_PREVIEW_V2_MANIFEST: Record<string, CadPreviewV2FixtureManifest
   "stage9-unitless-calibration": {
     id: "stage9-unitless-calibration",
     fileName: "stage9-unitless-calibration.dxf",
-    sha256: "7e8c06f3068b5f3bf5e6d0f4b3ef7998ce086314c394acfb2d3b6c6d5eb2f076",
-    sizeBytes: 481,
+    sha256: "54ca1f31540585a4bfa1c96ac37042d68de6cfd03616b48365f2f0945cd2bf85",
+    sizeBytes: 739,
     expectedEngine: "upstream",
     description: "Stage 9 unitless calibration oracle: 100 world units = 50 cm and 400x600 world rectangle",
     entities: [

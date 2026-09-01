@@ -76,8 +76,15 @@ export function CadBlankCanvasRecovery({ onFitView }: { onFitView: () => void })
   }, []);
 
   React.useEffect(() => {
+    let checkCount = 0;
     const startId = window.setTimeout(check, INITIAL_CHECK_DELAY_MS);
-    const intervalId = window.setInterval(check, CHECK_INTERVAL_MS);
+    const intervalId = window.setInterval(() => {
+      checkCount += 1;
+      check();
+      if (checkCount >= 3) {
+        window.clearInterval(intervalId);
+      }
+    }, CHECK_INTERVAL_MS);
     return () => {
       window.clearTimeout(startId);
       window.clearInterval(intervalId);

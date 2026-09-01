@@ -196,7 +196,7 @@ export function CadDistanceOverlay({
   }, [activeReviewStore]);
 
   const measurementSettings = getCurrentCadMeasurementUnitSettings();
-  const sourceUnitContext = resolveCadSourceUnitContext(anchorRef.current);
+  const sourceUnitContext = resolveCadSourceUnitContext();
   const formatValue = (value: number) =>
     formatDistance(
       value,

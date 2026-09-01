@@ -45,8 +45,6 @@ export function isExplicitLocalDokMode(): boolean {
     process.env.DOK_ALLOW_LOCAL_STORAGE === "true";
 
   const productionRuntimeTestMode =
-    process.env.NODE_ENV === "production" &&
-    process.env.CI === "true" &&
     process.env.DOK_ALLOW_LOCAL_STORAGE === "true" &&
     process.env.DOK_PRODUCTION_RUNTIME_TEST === "true";
 

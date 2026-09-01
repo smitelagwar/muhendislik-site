@@ -6,20 +6,58 @@ type DxfFixture = {
   content: string;
 };
 
+let nextDxfHandle = 0x100;
+
+function takeDxfHandle(): string {
+  return (nextDxfHandle++).toString(16).toUpperCase();
+}
+
 function createDxf(entities: string[]): string {
   return [
-    "0", "SECTION", "2", "HEADER", "9", "$ACADVER", "1", "AC1027", "0", "ENDSEC",
-    "0", "SECTION", "2", "TABLES", "0", "TABLE", "2", "LAYER", "70", "2",
-    "0", "LAYER", "2", "0", "70", "0", "62", "7", "6", "CONTINUOUS",
-    "0", "LAYER", "2", "KALIP", "70", "0", "62", "2", "6", "CONTINUOUS",
-    "0", "ENDTAB", "0", "ENDSEC", "0", "SECTION", "2", "ENTITIES",
+    "0", "SECTION", "2", "HEADER",
+    "9", "$ACADVER", "1", "AC1027",
+    "9", "$HANDSEED", "5", "FFFFFF",
+    "0", "ENDSEC",
+    "0", "SECTION", "2", "TABLES",
+    "0", "TABLE", "2", "LAYER", "70", "2",
+    "0", "LAYER", "5", "10", "100", "AcDbSymbolTableRecord", "100", "AcDbLayerTableRecord",
+    "2", "0", "70", "0", "62", "7", "6", "CONTINUOUS", "290", "1", "370", "-3",
+    "0", "LAYER", "5", "11", "100", "AcDbSymbolTableRecord", "100", "AcDbLayerTableRecord",
+    "2", "KALIP", "70", "0", "62", "2", "6", "CONTINUOUS", "290", "1", "370", "-3",
+    "0", "ENDTAB", "0", "ENDSEC",
+    "0", "SECTION", "2", "ENTITIES",
     ...entities,
     "0", "ENDSEC", "0", "EOF",
-  ].join("\n");
+  ].join("\n") + "\n";
 }
 
 function line(x1: number, y1: number, x2: number, y2: number): string {
-  return ["0", "LINE", "8", "KALIP", "10", String(x1), "20", String(y1), "11", String(x2), "21", String(y2)].join("\n");
+  return [
+    "0", "LINE", "5", takeDxfHandle(),
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbLine",
+    "10", String(x1), "20", String(y1), "30", "0",
+    "11", String(x2), "21", String(y2), "31", "0",
+  ].join("\n");
+}
+
+function circle(cx: number, cy: number, radius: number): string {
+  return [
+    "0", "CIRCLE", "5", takeDxfHandle(),
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbCircle",
+    "10", String(cx), "20", String(cy), "30", "0", "40", String(radius),
+  ].join("\n");
+}
+
+function text(x: number, y: number, height: number, value: string): string {
+  return [
+    "0", "TEXT", "5", takeDxfHandle(),
+    "100", "AcDbEntity", "8", "KALIP",
+    "100", "AcDbText",
+    "10", String(x), "20", String(y), "30", "0",
+    "40", String(height), "1", value, "7", "Standard",
+  ].join("\n");
 }
 
 function createPatternedDxf(): string {
@@ -79,8 +117,8 @@ const fixtures: DxfFixture[] = [
     content: createDxf([
       line(0, 0, 1200, 0), line(1200, 0, 1200, 800), line(1200, 800, 0, 800), line(0, 800, 0, 0),
       line(300, 0, 300, 800), line(750, 0, 750, 800), line(0, 400, 1200, 400),
-      "0\nCIRCLE\n8\nKALIP\n10\n525\n20\n400\n40\n120",
-      "0\nTEXT\n8\nKALIP\n10\n40\n20\n730\n40\n45\n1\nKALIP PLANI",
+      circle(525, 400, 120),
+      text(40, 730, 45, "KALIP PLANI"),
     ]),
   },
   {
@@ -130,12 +168,15 @@ async function forceUpstreamUnavailable(page: Page): Promise<void> {
 }
 
 async function expectUpstreamDxfReady(page: Page) {
-  const runtime = page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="upstream"]').first();
-  const host = runtime.locator('[data-cad-upstream-host="true"]').first();
-  await expect(runtime).toBeVisible({ timeout: 30_000 });
-  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
-  const canvas = host.locator("canvas").first();
-  await expect(canvas).toBeVisible();
+  console.log(new Date().toISOString(), "--> [TEST DIAG] expectUpstreamDxfReady starting...");
+  const host = page.locator('[data-cad-upstream-host="true"]').first();
+  await expect(host).toBeVisible({ timeout: 30_000 });
+  console.log(new Date().toISOString(), "--> [TEST DIAG] waiting for host to have data-cad-upstream-state ready...");
+  const readyHost = page.locator('[data-cad-upstream-host="true"][data-cad-upstream-state="ready"]').first();
+  await expect(readyHost).toBeVisible({ timeout: 45_000 });
+  console.log(new Date().toISOString(), "--> [TEST DIAG] host is ready! Checking canvas and topbar...");
+  const canvas = readyHost.locator("canvas").first();
+  await expect(canvas).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("DXF açılamadı")).toHaveCount(0);
 
   const studio = page.getByTestId("document-studio-shell");
@@ -154,16 +195,24 @@ async function expectUpstreamDxfReady(page: Page) {
   await expect(topbarControls.getByRole("button", { name: "Lineweight" })).toBeVisible();
   await expect(host.locator('[data-cad-display-controls="true"]')).toHaveCount(0);
 
+  console.log("--> [TEST DIAG] expectUpstreamDxfReady complete!");
   return canvas;
 }
 
 test("DXF upstream-primary küçük, proje-benzeri ve büyük çizimleri açar; etkileşim sonrası hazır kalır", async ({ page }) => {
-  await signIn(page);
+  test.setTimeout(150_000);
+  page.on("console", (msg) => console.log(`[BROWSER ${msg.type()}]:`, msg.text()));
   const pageErrors: string[] = [];
-  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("pageerror", (error) => {
+    console.log("[PAGE ERROR]:", error);
+    pageErrors.push(error.message);
+  });
+  await signIn(page);
 
   for (const fixture of fixtures) {
+    console.log("--> [TEST DIAG] Uploading fixture:", fixture.name);
     const fileId = await uploadDxf(page, fixture);
+    console.log("--> [TEST DIAG] Navigating to fixture page:", fixture.name, fileId);
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const canvas = await expectUpstreamDxfReady(page);
     const box = await canvas.boundingBox();

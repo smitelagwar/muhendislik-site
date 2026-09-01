@@ -19,6 +19,18 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    launchOptions: {
+      args: [
+        "--ignore-gpu-blocklist",
+        "--enable-webgl",
+        "--enable-webgl2",
+        "--use-gl=angle",
+        "--use-angle=swiftshader",
+        "--in-process-gpu",
+        "--disable-gpu-sandbox",
+        "--disable-dev-shm-usage",
+      ],
+    },
   },
   projects: [
     {
