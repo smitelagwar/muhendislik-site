@@ -11,34 +11,8 @@ export const CAD_SNAP_MODE_LABELS: Record<CadSnapMode, string> = {
   midpoint: "Midpoint",
   intersection: "Intersection",
   center: "Center",
-  perpendicular: "Perpendicular",
   nearest: "Nearest",
 };
-
-export type CadSnapGlyphKind =
-  | "square"
-  | "triangle"
-  | "cross"
-  | "circle-cross"
-  | "right-angle"
-  | "diamond";
-
-export function resolveCadSnapGlyphKind(mode: CadSnapMode): CadSnapGlyphKind {
-  switch (mode) {
-    case "endpoint":
-      return "square";
-    case "midpoint":
-      return "triangle";
-    case "intersection":
-      return "cross";
-    case "center":
-      return "circle-cross";
-    case "perpendicular":
-      return "right-angle";
-    case "nearest":
-      return "diamond";
-  }
-}
 
 export interface CadPrecisionViewportSize {
   width: number;
@@ -70,12 +44,14 @@ export function resolveCadMagnifierDiameter(viewport: CadPrecisionViewportSize):
     return CAD_PRECISION_MAGNIFIER_DIAMETER_PX;
   }
   if (viewport.width >= 768) {
+    // Desktop: lens boyutu viewport'un en fazla %20 genişliği ve %35 yüksekliğiyle sınırlandırılsın
     const maxW = viewport.width * 0.20;
     const maxH = viewport.height * 0.35;
     const maxAllowed = Math.min(maxW, maxH);
     const clamped = Math.min(CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX, maxAllowed);
     return Math.round(Math.max(120, clamped));
   }
+  // Mobile: max 40% width and 35% height
   const maxMobileW = viewport.width * 0.40;
   const maxMobileH = viewport.height * 0.35;
   const maxMobile = Math.min(maxMobileW, maxMobileH);
@@ -89,6 +65,7 @@ export function resolveCadPrecisionLensPlacement(
   avoidRight = false
 ): CadPrecisionLensPlacement {
   const margin = CAD_PRECISION_EDGE_MARGIN_PX;
+  // Pointer sağ üstte büyütecin altındaysa veya sağ panel açıksa sol üste geçer
   const isUnderTopRight =
     avoidRight ||
     (pointer.x >= viewport.width - diameter - margin * 2 &&

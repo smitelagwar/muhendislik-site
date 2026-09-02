@@ -163,24 +163,14 @@ export interface CadUpstreamOpenOptions {
 }
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
-type CadBundledRuntimeModule = {
-  Viewer: CadSimpleViewerModule;
-  dataModel: typeof import("@mlightcad/data-model");
-  mtextRenderer: typeof import("@mlightcad/mtext-renderer");
-  threeRenderer: typeof import("@mlightcad/three-renderer");
-  loadLibreDwg: () => Promise<typeof import("@mlightcad/libredwg-converter")>;
-};
 
-const CAD_UPSTREAM_RUNTIME_URL = "/cad-upstream/mlightcad-runtime.js";
-let runtimeModulePromise: Promise<CadBundledRuntimeModule> | null = null;
 let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
 
-async function initializeCadEngineEnhancements(runtime: CadBundledRuntimeModule): Promise<void> {
+async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {
   if (engineEnhancementsInitialized) return;
   engineEnhancementsInitialized = true;
-  const { Viewer } = runtime;
 
   // 1. Ölçü birimini ("m", "mm") kaldırma: AutoCAD gibi doğrudan sayı gösterimi
   if (Viewer.MEASUREMENT_LENGTH_FORMAT_OPTIONS) {
@@ -189,10 +179,11 @@ async function initializeCadEngineEnhancements(runtime: CadBundledRuntimeModule)
   }
 
   try {
-    // These namespaces come from the same isolated ESM graph as Viewer.
-    // Do not import peer packages through Next here; production chunk splitting can
-    // otherwise patch/register a different singleton/prototype than openDocument uses.
-    const { dataModel, mtextRenderer, threeRenderer } = runtime;
+    const [dataModel, mtextRenderer, threeRenderer] = await Promise.all([
+      import("@mlightcad/data-model"),
+      import("@mlightcad/mtext-renderer"),
+      import("@mlightcad/three-renderer"),
+    ]);
 
     // AcDbFormatter formatLength hook: showUnits = false garantisi
     if (dataModel.AcDbFormatter?.prototype?.formatLength) {
@@ -205,9 +196,69 @@ async function initializeCadEngineEnhancements(runtime: CadBundledRuntimeModule)
       };
     }
 
-    // Stage 9: DXF entity parsing stays on MLightCAD's native data-model implementation.
-    // Release fixtures use valid AC1027 subclass records; mutating AcDbEntity.dxfInFields
-    // at runtime can create parser-state/prototype hazards in optimized production bundles.
+    // DXF R12 / Flat DXF desteği: 100 AcDbEntity alt sınıf etiketi olmayan DXF'lerde
+    // entity-özel grup kodlarının (10, 20, 1, 40 vb.) yutulmasını önleme hook'u
+    if (dataModel.AcDbEntity?.prototype?.dxfInFields) {
+      const origEntityDxfIn = dataModel.AcDbEntity.prototype.dxfInFields;
+      const COMMON_ENTITY_CODES = new Set([8, 6, 48, 60, 62, 420, 370, 440, 67]);
+
+      dataModel.AcDbEntity.prototype.dxfInFields = function (filer: unknown) {
+        const f = filer as {
+          atSubclassData: (name: string) => boolean;
+          atEndOfObject: boolean;
+          atEof: boolean;
+          atExtendedData: boolean;
+          readItem: () => { code: number; value: unknown } | undefined;
+          peekItem: () => { code: number; value: unknown } | undefined;
+          pushBackItem: (item: unknown) => void;
+        };
+
+        if (typeof f?.atSubclassData !== "function") {
+          return origEntityDxfIn.call(this, filer as never);
+        }
+
+        const hasAcDbEntity = f.atSubclassData("AcDbEntity");
+        if (hasAcDbEntity) {
+          return origEntityDxfIn.call(this, filer as never);
+        }
+
+        // 100 AcDbEntity etiketi yok: Yalnız ortak entity kodlarını tüket,
+        // entity'ye özel kodlarda (10, 20, 1 vb.) durarak alt sınıfa bırak.
+        const self = this as unknown as {
+          layer?: string;
+          lineType?: string;
+          linetypeScale?: number;
+          visibility?: boolean;
+          color?: { colorIndex?: number; setRGBValue?: (rgb: number) => void };
+          lineWeight?: number;
+          transparency?: unknown;
+          _dxfPaperSpace?: boolean;
+        };
+
+
+        while (!f.atEndOfObject && !f.atEof && !f.atExtendedData) {
+          const item = f.peekItem();
+          if (!item) break;
+          const code = Number(item.code);
+          if (code === 100 || !COMMON_ENTITY_CODES.has(code)) {
+            break;
+          }
+          f.readItem();
+          switch (code) {
+            case 8: self.layer = String(item.value); break;
+            case 6: self.lineType = String(item.value); break;
+            case 48: self.linetypeScale = Number(item.value); break;
+            case 60: self.visibility = Number(item.value) === 0; break;
+            case 62: if (self.color) self.color.colorIndex = Number(item.value); break;
+            case 420: self.color?.setRGBValue?.(Number(item.value)); break;
+            case 370: self.lineWeight = Number(item.value); break;
+            case 67: self._dxfPaperSpace = Number(item.value) !== 0; break;
+          }
+        }
+        return this;
+      };
+    }
+
 
     // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı
     const fontManager = mtextRenderer.FontManager.instance;
@@ -295,35 +346,12 @@ function hasCoarseTouchPointer(): boolean {
   return navigator.maxTouchPoints > 0 && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
-async function loadCadRuntimeModule(): Promise<CadBundledRuntimeModule> {
-  if (!runtimeModulePromise) {
-    const runtimeUrl = CAD_UPSTREAM_RUNTIME_URL;
-    runtimeModulePromise = import(/* webpackIgnore: true */ runtimeUrl)
-      .then((runtime) => {
-        const candidate = runtime as unknown as CadBundledRuntimeModule;
-        if (
-          !candidate?.Viewer?.AcApDocManager ||
-          !candidate?.dataModel?.AcDbDatabase ||
-          typeof candidate.loadLibreDwg !== "function"
-        ) {
-          throw new Error("MLightCAD isolated runtime bundle is invalid.");
-        }
-        return candidate;
-      })
-      .catch((error) => {
-        runtimeModulePromise = null;
-        throw error;
-      });
-  }
-  return runtimeModulePromise;
-}
-
 async function loadViewerModule(): Promise<CadSimpleViewerModule> {
   if (!viewerModulePromise) {
-    viewerModulePromise = loadCadRuntimeModule()
-      .then(async (runtime) => {
-        await initializeCadEngineEnhancements(runtime);
-        return runtime.Viewer;
+    viewerModulePromise = import("@mlightcad/cad-simple-viewer")
+      .then(async (Viewer) => {
+        await initializeCadEngineEnhancements(Viewer);
+        return Viewer;
       })
       .catch((error) => {
         viewerModulePromise = null;
@@ -335,9 +363,11 @@ async function loadViewerModule(): Promise<CadSimpleViewerModule> {
 
 async function registerLibreDwgConverter(): Promise<void> {
   if (!libreDwgRegistrationPromise) {
-    libreDwgRegistrationPromise = loadCadRuntimeModule()
-      .then(async ({ dataModel, loadLibreDwg }) => {
-        const libreDwg = await loadLibreDwg();
+    libreDwgRegistrationPromise = Promise.all([
+      import("@mlightcad/data-model"),
+      import("@mlightcad/libredwg-converter"),
+    ])
+      .then(([dataModel, libreDwg]) => {
         const converter = new libreDwg.AcDbLibreDwgConverter({
           convertByEntityType: false,
           useWorker: true,
@@ -361,10 +391,9 @@ async function fetchCadSource(
   signal?: AbortSignal
 ): Promise<ArrayBuffer> {
   try {
-    const isBlobOrData = accessUrl.startsWith("blob:") || accessUrl.startsWith("data:");
     const response = await fetch(accessUrl, {
       signal,
-      ...(isBlobOrData ? {} : { cache: "no-store" }),
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -422,46 +451,36 @@ export class CadUpstreamAdapter {
   ) {}
 
   static async create(options: CadUpstreamCreateOptions): Promise<CadUpstreamAdapter> {
-    const markCreatePhase = (phase: string) => {
-      const host =
-        options.container.closest<HTMLElement>('[data-cad-upstream-host="true"]') ??
-        options.container;
-      host.setAttribute("data-cad-create-phase", phase);
-    };
-
-    markCreatePhase("runtime-load");
     const Viewer = await loadViewerModule();
-    markCreatePhase("runtime-ready");
+    await registerLibreDwgConverter();
 
-    // Do not perform network worker preflights while creating the generic CAD
-    // host. DXF uses the native buffered parser and must not wait on DWG/MTEXT
-    // HEAD probes. DWG registers/probes its worker stack lazily in open().
+    const workersReachable = await Viewer.AcApDocManager.checkWebworkerReadiness(
+      CAD_UPSTREAM_WORKER_URLS
+    );
+    if (!workersReachable) {
+      throw new CadUpstreamAdapterError(
+        "worker-unavailable",
+        "MLightCAD DWG/MTEXT worker dosyalarına erişilemiyor."
+      );
+    }
 
-    markCreatePhase("viewer-settings");
     Viewer.AcApSettingManager.instance.isShowCommandLine = false;
     Viewer.AcApSettingManager.instance.isShowRibbon = false;
     Viewer.AcApSettingManager.instance.isShowToolbar = false;
 
-    markCreatePhase("theme-apply");
     Viewer.acedApplyUiTheme(
       options.theme ?? "dark",
       options.busyIndicatorHost ?? options.container
     );
 
-    markCreatePhase("manager-create");
     const manager = Viewer.AcApDocManager.createInstance({
       container: options.container,
       busyIndicatorHost: options.busyIndicatorHost ?? options.container,
       autoResize: true,
       webworkerFileUrls: CAD_UPSTREAM_WORKER_URLS,
-      checkWorkersOnInit: false,
-      // Production Chromium can stall during worker-backed renderer bootstrap
-      // before React timers get a chance to tick. Keep the first Stage 9 viewport
-      // deterministic on the main renderer unless an explicit caller overrides it.
-      useMainThreadDraw: options.useMainThreadDraw ?? true,
+      checkWorkersOnInit: true,
+      useMainThreadDraw: options.useMainThreadDraw ?? false,
     });
-
-    markCreatePhase("manager-ready");
 
     if (!manager) {
       throw new CadUpstreamAdapterError(
@@ -470,7 +489,14 @@ export class CadUpstreamAdapter {
       );
     }
 
-    markCreatePhase("adapter-ready");
+    if (!(await manager.areWorkersReady())) {
+      await manager.destroy();
+      throw new CadUpstreamAdapterError(
+        "worker-unavailable",
+        "MLightCAD worker readiness kontrolü başarısız."
+      );
+    }
+
     const adapter = new CadUpstreamAdapter(manager, Viewer, options.container);
     adapter.displayTheme = options.theme ?? "dark";
     adapter.container = options.container;
@@ -498,37 +524,16 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Native DXF parsing is fully buffered and does not require the DWG parser
-    // worker readiness probe. In production, HEAD-based worker verification can
-    // stall before a valid DXF reaches the parser, so only gate DWG on workers
-    // and keep that probe bounded.
-    if (extension === ".dwg") {
-      options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
-      await registerLibreDwgConverter();
-      const workersReady = await Promise.race([
-        this.Viewer.AcApDocManager.checkWebworkerReadiness(CAD_UPSTREAM_WORKER_URLS),
-        new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), 4_000)),
-      ]);
-      if (!workersReady) {
-        throw new CadUpstreamAdapterError(
-          "worker-unavailable",
-          "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
-        );
-      }
+    options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
+    if (!(await this.manager.areWorkersReady())) {
+      throw new CadUpstreamAdapterError(
+        "worker-unavailable",
+        "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
+      );
     }
 
     options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
-
-    // Reject obviously truncated DXF before entering the upstream parser. Some
-    // malformed token streams can otherwise leave a parser progress loop alive
-    // instead of producing the controlled recovery UI expected by the studio.
-    if (extension === ".dxf" && bytes.byteLength < 64) {
-      throw new CadUpstreamAdapterError(
-        "corrupt-truncated",
-        `Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`
-      );
-    }
 
     const isDwg = extension.includes("dwg");
     options.onPhase?.(
@@ -539,11 +544,8 @@ export class CadUpstreamAdapter {
     );
 
     const openOptions: AcApOpenDatabaseOptions = {
-      minimumChunkSize: isDwg ? 1000 : Math.max(64, Math.min(1000, bytes.byteLength)),
-      // DXF is fully buffered above and the native converter runs on the main thread.
-      // Keep progressive chunking for DWG only; ordinary DXF uses one deterministic
-      // module graph and the converter's own time-budgeted UI yields.
-      progressiveRendering: isDwg,
+      minimumChunkSize: 1000,
+      progressiveRendering: true,
       ...(options.databaseOptions ?? {}),
       mode: this.Viewer.AcEdOpenMode.Read,
     };
@@ -568,10 +570,15 @@ export class CadUpstreamAdapter {
     }
 
     options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
-    // In cad-simple-viewer 1.6.2 waitUntilIdle() can monopolize the browser main
-    // thread in a production bundle even when geometry is already visible. A
-    // timer-based Promise.race cannot pre-empt that synchronous work.
-    // Keep openDocument() as the terminal parser boundary and do not block on waitUntilIdle.
+    const idle = await this.manager.curView.waitUntilIdle(
+      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
+    );
+    if (idle && this.manager.curView.stats.summary.entityCount === 0) {
+      throw new CadUpstreamAdapterError(
+        "blank-document",
+        `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
+      );
+    }
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
 
@@ -1427,9 +1434,10 @@ export class CadUpstreamAdapter {
     }
 
     try {
-      if (typeof (this.manager as unknown as { destroy?: () => Promise<void> }).destroy === "function") {
-        await (this.manager as unknown as { destroy: () => Promise<void> }).destroy();
-      }
+      await Promise.race([
+        this.manager.destroy(),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
     } catch {
       // Bounded manager destroy fallback
     }

@@ -27,10 +27,6 @@ const MODE_COPY: Record<CadSnapMode, { label: string; description: string }> = {
     label: "Merkez",
     description: "Daire ve yay merkezleri",
   },
-  perpendicular: {
-    label: "Dik",
-    description: "Çizgi üzerindeki ortogonal izdüşüm noktasına yakalar",
-  },
   nearest: {
     label: "En Yakın",
     description: "İşaretçiye en yakın geometri noktası",
@@ -83,7 +79,7 @@ export function CadSnapSettingsPanel({
         onClick={() => onChange(setCadSnapEnabled(settings, !settings.enabled))}
       >
         <span>
-          <span className="block text-xs font-semibold text-foreground">Osnap</span>
+          <span className="block text-xs font-semibold text-foreground">Snap</span>
           <span className="block text-[10px] text-muted-foreground">
             {settings.enabled ? "Nesne yakalama açık" : "Nesne yakalama kapalı"}
           </span>
@@ -142,7 +138,7 @@ export function CadSnapSettingsPanel({
 
       {!settings.enabled ? (
         <p className="mt-2 rounded-md bg-muted/60 px-2.5 py-2 text-[10px] leading-4 text-muted-foreground">
-          Alt seçimler korunur. Osnap tekrar açıldığında aynı tercihler kullanılacaktır.
+          Alt seçimler korunur. Snap tekrar açıldığında aynı tercihler kullanılacaktır.
         </p>
       ) : null}
     </aside>

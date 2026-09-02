@@ -29,10 +29,6 @@ function isPointInRect(
   return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
 }
 
-function hasVisibleFill(item: CadReviewItem): boolean {
-  return Boolean(item.style.fillColor) && (item.style.fillOpacity ?? 0) > 0;
-}
-
 export function hitTestReviewItem(
   item: CadReviewItem,
   screenPoint: { x: number; y: number },
@@ -91,14 +87,18 @@ export function hitTestReviewItem(
             return true;
           }
         }
-        return hasVisibleFill(item) && isPointInRect(screenPoint, s1, s2);
+        if (item.style.fillColor && isPointInRect(screenPoint, s1, s2)) {
+          return true;
+        }
+        return false;
       }
 
       if (item.shapeKind === "circle") {
         const radius = Math.hypot(s2.x - s1.x, s2.y - s1.y);
         const dist = Math.hypot(screenPoint.x - s1.x, screenPoint.y - s1.y);
         if (Math.abs(dist - radius) <= tol) return true;
-        return hasVisibleFill(item) && dist <= radius;
+        if (item.style.fillColor && dist <= radius) return true;
+        return false;
       }
       return false;
     }

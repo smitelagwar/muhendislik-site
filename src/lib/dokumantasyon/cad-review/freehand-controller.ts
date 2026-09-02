@@ -1,5 +1,5 @@
-import type { CadPoint2d } from "./schema";
-import type { CadActiveMarkupStyle, CadReviewStore } from "./store";
+import type { CadPoint2d, CadReviewItemStyle } from "./schema";
+import type { CadReviewStore } from "./store";
 import type { CadMarkupFacade } from "./markup-facade";
 import { filterClosePoints, simplifyPointsRdp } from "./stroke-simplifier";
 
@@ -13,13 +13,10 @@ export class CadFreehandController {
   private destroyed = false;
   private isDrawing = false;
   private rawPoints: CadPoint2d[] = [];
-  private draftFrameId: number | null = null;
-  private currentStyle: Partial<CadActiveMarkupStyle> = {
+  private currentStyle: Partial<CadReviewItemStyle> = {
     color: "#ff3b30",
     strokeWidth: 2,
-    lineDash: "continuous",
     opacity: 1,
-    eraserRadiusPx: 16,
   };
   private readonly maxPoints = 5000;
   private readonly simplificationEpsilon = 1.5;
@@ -33,13 +30,12 @@ export class CadFreehandController {
     this.attach();
   }
 
-  setStyle(style: Partial<CadActiveMarkupStyle>): void {
+  setStyle(style: Partial<CadReviewItemStyle>): void {
     this.currentStyle = { ...this.currentStyle, ...style };
   }
 
   cancel(): void {
     if (this.destroyed) return;
-    this.cancelDraftFrame();
     this.isDrawing = false;
     this.rawPoints = [];
     this.store.clearDraft();
@@ -61,55 +57,14 @@ export class CadFreehandController {
     };
   }
 
-  private strokeDraft(points: readonly CadPoint2d[]) {
-    return {
-      type: "stroke" as const,
-      points: [...points],
-      smooth: true,
-      style: {
-        color: this.currentStyle.color ?? "#ff3b30",
-        strokeWidth: this.currentStyle.strokeWidth ?? 2,
-        lineDash: this.currentStyle.lineDash ?? "continuous",
-        opacity: this.currentStyle.opacity ?? 1,
-        fillColor: this.currentStyle.fillColor,
-        fillOpacity: this.currentStyle.fillOpacity,
-      },
-    };
-  }
-
-  private cancelDraftFrame(): void {
-    if (this.draftFrameId === null) return;
-    window.cancelAnimationFrame(this.draftFrameId);
-    this.draftFrameId = null;
-  }
-
-  private scheduleDraftRefresh(): void {
-    if (this.destroyed || this.draftFrameId !== null) return;
-    this.draftFrameId = window.requestAnimationFrame(() => {
-      this.draftFrameId = null;
-      if (this.destroyed || !this.isDrawing || this.store.getSession().activeTool !== "stroke") return;
-      this.store.setDraft("stroke", this.strokeDraft(this.rawPoints));
-    });
-  }
-
-  private eraseAt(screenPoint: { x: number; y: number }): void {
-    this.facade.eraseItemAtPoint(
-      screenPoint,
-      this.runtime.worldToScreen,
-      this.currentStyle.eraserRadiusPx ?? 16
-    );
-  }
-
   private readonly handlePointerDown = (e: PointerEvent): void => {
     if (this.destroyed || e.button > 0) return;
     const tool = this.store.getSession().activeTool;
     const screenPt = this.getScreenPoint(e);
 
     if (tool === "eraser") {
-      e.preventDefault();
       this.isDrawing = true;
-      this.runtime.setCameraInteractionEnabled?.(false);
-      this.eraseAt(screenPt);
+      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
       return;
     }
 
@@ -119,11 +74,22 @@ export class CadFreehandController {
     if (!worldPt) return;
 
     e.preventDefault();
-    this.cancelDraftFrame();
     this.isDrawing = true;
     this.rawPoints = [worldPt];
     this.runtime.setCameraInteractionEnabled?.(false);
-    this.store.setDraft("stroke", this.strokeDraft(this.rawPoints));
+
+    this.store.setDraft("stroke", {
+      type: "stroke",
+      points: [worldPt],
+      smooth: true,
+      style: {
+        color: this.currentStyle.color ?? "#ff3b30",
+        strokeWidth: this.currentStyle.strokeWidth ?? 2,
+        lineDash: this.currentStyle.lineDash ?? "continuous",
+        opacity: this.currentStyle.opacity ?? 1,
+        fillColor: this.currentStyle.fillColor,
+      },
+    });
   };
 
   private readonly handlePointerMove = (e: PointerEvent): void => {
@@ -132,12 +98,13 @@ export class CadFreehandController {
     const screenPt = this.getScreenPoint(e);
 
     if (tool === "eraser") {
-      this.eraseAt(screenPt);
+      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
       return;
     }
 
     if (tool !== "stroke") return;
 
+    // Coalesced pointer events for high-precision stylus/trackpad/touch hardware
     const coalesced: PointerEvent[] =
       typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
 
@@ -155,6 +122,7 @@ export class CadFreehandController {
       } else {
         const dx = subWorldPt.x - lastPoint.x;
         const dy = subWorldPt.y - lastPoint.y;
+        // Jitter filter (min 1 unit distance)
         if (dx * dx + dy * dy >= 1.0) {
           this.rawPoints.push(subWorldPt);
           lastPoint = subWorldPt;
@@ -162,10 +130,19 @@ export class CadFreehandController {
       }
     }
 
-    // Draft SVG updates are capped to the display refresh rate. Coalesced
-    // pointer samples are still collected, but React/store work is not done
-    // for every hardware pointer event on large drawings.
-    this.scheduleDraftRefresh();
+    // Update real-time draft preview
+    this.store.setDraft("stroke", {
+      type: "stroke",
+      points: [...this.rawPoints],
+      smooth: true,
+      style: {
+        color: this.currentStyle.color ?? "#ff3b30",
+        strokeWidth: this.currentStyle.strokeWidth ?? 2,
+        lineDash: this.currentStyle.lineDash ?? "continuous",
+        opacity: this.currentStyle.opacity ?? 1,
+        fillColor: this.currentStyle.fillColor,
+      },
+    });
   };
 
   private readonly handlePointerUp = (e: PointerEvent): void => {
@@ -174,11 +151,10 @@ export class CadFreehandController {
     const screenPt = this.getScreenPoint(e);
 
     this.isDrawing = false;
-    this.cancelDraftFrame();
     this.runtime.setCameraInteractionEnabled?.(true);
 
     if (tool === "eraser") {
-      this.eraseAt(screenPt);
+      this.facade.eraseItemAtPoint(screenPt, this.runtime.worldToScreen);
       return;
     }
 
@@ -189,7 +165,7 @@ export class CadFreehandController {
       const last = this.rawPoints[this.rawPoints.length - 1]!;
       const dx = finalWorldPt.x - last.x;
       const dy = finalWorldPt.y - last.y;
-      if (dx * dx + dy * dy >= 0.5 && this.rawPoints.length < this.maxPoints) {
+      if (dx * dx + dy * dy >= 0.5) {
         this.rawPoints.push(finalWorldPt);
       }
     }
@@ -204,12 +180,7 @@ export class CadFreehandController {
         this.facade.addStroke({
           points: simplified,
           smooth: true,
-          style: {
-            color: this.currentStyle.color,
-            strokeWidth: this.currentStyle.strokeWidth,
-            lineDash: this.currentStyle.lineDash,
-            opacity: this.currentStyle.opacity,
-          },
+          style: this.currentStyle,
         });
       }
     }

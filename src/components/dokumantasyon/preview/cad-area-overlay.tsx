@@ -1,30 +1,12 @@
 import { useEffect, useState } from "react";
-import type {
+import {
   CadAreaMeasurementResult,
   CadAreaMeasurementSnapshot,
-} from "@/lib/dokumantasyon/cad-upstream/area-measurement";
-import type { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
-import { CAD_VIEWPORT_ROOT_RESIZED_EVENT } from "@/lib/dokumantasyon/cad-upstream/viewport-coordination";
-import { getCurrentCadMeasurementUnitSettings } from "@/lib/dokumantasyon/cad-review/store";
-import {
-  createCadReviewItemId,
-  getCurrentCadReviewStore,
-} from "@/lib/dokumantasyon/cad-review/active-store";
-import {
-  getCadNativeMeasurementReviewId,
-  pruneCadNativeMeasurementRegistrations,
-  registerCadNativeMeasurement,
-} from "@/lib/dokumantasyon/cad-review/measurement-render-registry";
-import {
-  CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT,
   formatArea,
-  formatDistance,
-  resolveCadSourceUnitContext,
-  type CadAreaUnit,
-} from "@/lib/dokumantasyon/cad-review/units";
+} from "@/lib/dokumantasyon/cad-upstream/area-measurement";
+import { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-import { CadSnapGlyph } from "./cad-precision-overlay";
 
 export interface CompletedAreaMeasurement extends CadAreaMeasurementResult {
   readonly id: string;
@@ -39,8 +21,8 @@ interface CadAreaOverlayProps {
 
 function pointsToString(points: readonly (CadSnapPoint | null)[]): string {
   return points
-    .filter((point): point is CadSnapPoint => point !== null)
-    .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
+    .filter((p): p is CadSnapPoint => p !== null)
+    .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
     .join(" ");
 }
 
@@ -51,81 +33,33 @@ export function CadAreaOverlay({
   onFinish,
 }: CadAreaOverlayProps) {
   const [, setRenderTick] = useState(0);
-  const [areaUnitOverrides, setAreaUnitOverrides] = useState<Record<string, CadAreaUnit>>({});
-  const [unitMenu, setUnitMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 
+  // Re-project whenever view moves or changes
   useEffect(() => {
     const handleViewChange = () => setRenderTick((tick) => (tick + 1) % 10000);
     window.addEventListener("resize", handleViewChange);
-    window.addEventListener(CAD_VIEWPORT_ROOT_RESIZED_EVENT, handleViewChange);
-    window.addEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, handleViewChange);
     return () => {
       window.removeEventListener("resize", handleViewChange);
-      window.removeEventListener(CAD_VIEWPORT_ROOT_RESIZED_EVENT, handleViewChange);
-      window.removeEventListener(CAD_MEASUREMENT_CONTEXT_CHANGED_EVENT, handleViewChange);
     };
   }, []);
-
-  const activeReviewStore = getCurrentCadReviewStore();
-  useEffect(() => {
-    if (!activeReviewStore) return;
-    return activeReviewStore.subscribe(() => setRenderTick((tick) => (tick + 1) % 10000));
-  }, [activeReviewStore]);
-
-  const measurementSettings = getCurrentCadMeasurementUnitSettings();
-  const sourceUnitContext = resolveCadSourceUnitContext();
-  const measurementColor = measurementSettings.color;
-
-  useEffect(() => {
-    const store = getCurrentCadReviewStore();
-    if (!store) return;
-
-    const activeNativeIds = new Set(measurements.map((measurement) => measurement.id));
-    pruneCadNativeMeasurementRegistrations("area", activeNativeIds);
-
-    for (const measurement of measurements) {
-      if (getCadNativeMeasurementReviewId("area", measurement.id)) continue;
-      const reviewId = createCadReviewItemId();
-      registerCadNativeMeasurement("area", measurement.id, reviewId);
-      const now = new Date().toISOString();
-      store.addItem({
-        id: reviewId,
-        type: "area",
-        points: measurement.points.map((point) => ({ x: point.x, y: point.y })),
-        measuredArea: measurement.area,
-        measuredPerimeter: measurement.perimeter,
-        author: "Admin",
-        comment: "",
-        status: "open",
-        style: {
-          color: measurementColor,
-          strokeWidth: 2,
-          opacity: 1,
-        },
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-  }, [measurements, measurementColor]);
-
-  const formatAreaValue = (value: number, unit: CadAreaUnit = measurementSettings.areaUnit) =>
-    formatArea(value, sourceUnitContext, unit, measurementSettings.areaPrecision);
-  const formatPerimeterValue = (value: number) =>
-    formatDistance(value, sourceUnitContext, measurementSettings.unit, measurementSettings.precision);
 
   const hasActive = Boolean(
     snapshot && (snapshot.phase === "awaiting-first" || snapshot.phase === "awaiting-next")
   );
   const hasCompleted = measurements.length > 0;
 
-  if (!hasActive && !hasCompleted) return null;
+  if (!hasActive && !hasCompleted) {
+    return null;
+  }
 
-  const reviewStore = getCurrentCadReviewStore();
-  const reviewItems = reviewStore?.getItems() ?? [];
-  const selectedIds = reviewStore?.getSession().selectedItemIds ?? new Set<string>();
+  // Project active points
   const activeConfirmed = snapshot?.points.map(projectPoint) ?? [];
   const activePreview = snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
-  const livePolyPoints = activePreview ? [...activeConfirmed, activePreview] : activeConfirmed;
+
+  // Build live polygon points
+  const livePolyPoints = activePreview
+    ? [...activeConfirmed, activePreview]
+    : activeConfirmed;
 
   return (
     <>
@@ -133,113 +67,64 @@ export function CadAreaOverlay({
         className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
         data-testid="cad-area-overlay"
         data-cad-area-overlay="true"
-        data-cad-area-unit={measurementSettings.areaUnit}
-        data-cad-source-unit={sourceUnitContext.sourceUnit}
-        data-cad-coordinate-root="viewport"
       >
-        {measurements.map((measurement) => {
-          const reviewId = getCadNativeMeasurementReviewId("area", measurement.id);
-          const reviewItem = reviewId
-            ? reviewItems.find((item) => item.id === reviewId && item.type === "area")
-            : undefined;
-          if (reviewId && !reviewItem) return null;
-          if (reviewItem && (reviewItem.style.opacity ?? 1) <= 0) return null;
-
-          const projectedPoints = measurement.points
-            .map(projectPoint)
-            .filter((point): point is CadSnapPoint => point !== null);
+        {/* 1. Completed Measurements */}
+        {measurements.map((m) => {
+          const projectedPoints = m.points.map(projectPoint).filter((p): p is CadSnapPoint => p !== null);
           if (projectedPoints.length < 3) return null;
-          const selected = Boolean(reviewId && selectedIds.has(reviewId));
           const polyStr = pointsToString(projectedPoints);
-          const centroidProjected = projectPoint(measurement.centroid);
-          const displayAreaUnit = areaUnitOverrides[measurement.id] ?? measurementSettings.areaUnit;
-          const areaLabel = formatAreaValue(measurement.area, displayAreaUnit);
-          const perimeterLabel = formatPerimeterValue(measurement.perimeter);
-          const title = reviewItem?.comment.trim();
+          const centroidProjected = projectPoint(m.centroid);
 
           return (
-            <g
-              key={measurement.id}
-              data-cad-area-complete="true"
-              data-cad-measurement-selected={selected ? "true" : "false"}
-            >
+            <g key={m.id} data-cad-area-complete="true">
+              {/* Semi-transparent filled polygon */}
               <polygon
                 points={polyStr}
-                fill={measurementColor}
-                fillOpacity={selected ? "0.24" : "0.16"}
-                stroke={measurementColor}
-                strokeWidth={selected ? "3.5" : "2"}
+                fill="rgba(16, 185, 129, 0.20)"
+                stroke="#10b981"
+                strokeWidth="2"
                 strokeDasharray="6 4"
                 data-cad-area-polygon="true"
               />
 
-              {projectedPoints.map((point, index) => (
+              {/* Vertex dots */}
+              {projectedPoints.map((p, idx) => (
                 <circle
-                  key={index}
-                  cx={point.x}
-                  cy={point.y}
-                  r={selected ? "5" : "3.5"}
-                  fill={measurementColor}
+                  key={idx}
+                  cx={p.x}
+                  cy={p.y}
+                  r="3.5"
+                  fill="#10b981"
                   stroke="#ffffff"
                   strokeWidth="1.5"
                 />
               ))}
 
+              {/* Centroid badge */}
               {centroidProjected ? (
                 <g
                   transform={`translate(${centroidProjected.x}, ${centroidProjected.y})`}
                   data-cad-area-badge="true"
-                  data-cad-area-display-unit={displayAreaUnit}
-                  style={{ pointerEvents: "auto", cursor: "pointer" }}
-                  onClick={() => setUnitMenu({ id: measurement.id, x: centroidProjected.x, y: centroidProjected.y })}
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    setUnitMenu({ id: measurement.id, x: centroidProjected.x, y: centroidProjected.y });
-                  }}
                 >
-                  <title>Alan gösterim birimini değiştir</title>
                   <rect
-                    x="-108"
-                    y={title ? "-30" : "-22"}
-                    width="216"
-                    height={title ? "52" : "44"}
-                    rx="7"
-                    fill="rgba(15, 23, 42, 0.94)"
-                    stroke={measurementColor}
-                    strokeWidth={selected ? "2" : "1.2"}
+                    x="-105"
+                    y="-15"
+                    width="210"
+                    height="30"
+                    rx="6"
+                    fill="rgba(15, 23, 42, 0.92)"
+                    stroke="#10b981"
+                    strokeWidth="1.2"
                   />
-                  {title ? (
-                    <text
-                      textAnchor="middle"
-                      y="-14"
-                      fill="#93c5fd"
-                      fontSize="9.5"
-                      fontWeight="700"
-                      fontFamily="system-ui, sans-serif"
-                    >
-                      {title}
-                    </text>
-                  ) : null}
                   <text
                     textAnchor="middle"
-                    y={title ? "2" : "-2"}
+                    y="5"
                     fill="#f8fafc"
-                    fontSize="12"
-                    fontWeight="700"
-                    fontFamily="monospace, sans-serif"
-                    data-testid="cad-area-result-text"
-                  >
-                    Alan: {areaLabel}
-                  </text>
-                  <text
-                    textAnchor="middle"
-                    y="14"
-                    fill="#cbd5e1"
-                    fontSize="9.5"
-                    fontWeight="500"
+                    fontSize="11.5"
+                    fontWeight="600"
                     fontFamily="monospace, sans-serif"
                   >
-                    Çevre: {perimeterLabel}
+                    Alan: {formatArea(m.area)} çizim birimi²
                   </text>
                 </g>
               ) : null}
@@ -247,105 +132,114 @@ export function CadAreaOverlay({
           );
         })}
 
+        {/* 2. Active in-progress measurement */}
         {hasActive && snapshot ? (
           <g data-cad-area-active="true">
+            {/* Live filled preview polygon (if >= 2 points + cursor) */}
             {livePolyPoints.length >= 3 ? (
               <polygon
                 points={pointsToString(livePolyPoints)}
-                fill={measurementColor}
-                fillOpacity="0.12"
-                stroke={measurementColor}
+                fill="rgba(59, 130, 246, 0.18)"
+                stroke="#3b82f6"
                 strokeWidth="1.5"
                 strokeDasharray="4 4"
                 data-cad-area-preview="true"
               />
             ) : null}
 
+            {/* Confirmed lines */}
             {activeConfirmed.length >= 2 ? (
               <polyline
                 points={pointsToString(activeConfirmed)}
                 fill="none"
-                stroke={measurementColor}
+                stroke="#3b82f6"
                 strokeWidth="2"
               />
             ) : null}
 
+            {/* Live rubber-band line from last point to preview cursor */}
             {activeConfirmed.length >= 1 && activePreview ? (
               <line
                 x1={activeConfirmed[activeConfirmed.length - 1]!.x}
                 y1={activeConfirmed[activeConfirmed.length - 1]!.y}
                 x2={activePreview.x}
                 y2={activePreview.y}
-                stroke={measurementColor}
+                stroke="#3b82f6"
                 strokeWidth="2"
                 data-cad-area-rubber-band="true"
               />
             ) : null}
 
+            {/* Closing guide line from preview cursor back to first point */}
             {activeConfirmed.length >= 2 && activePreview ? (
               <line
                 x1={activePreview.x}
                 y1={activePreview.y}
                 x2={activeConfirmed[0]!.x}
                 y2={activeConfirmed[0]!.y}
-                stroke={measurementColor}
-                strokeOpacity="0.5"
+                stroke="rgba(59, 130, 246, 0.5)"
                 strokeWidth="1"
                 strokeDasharray="3 3"
               />
             ) : null}
 
-            {activeConfirmed.map((point, index) =>
-              point ? (
+            {/* Vertex dots */}
+            {activeConfirmed.map((p, idx) =>
+              p ? (
                 <circle
-                  key={index}
-                  cx={point.x}
-                  cy={point.y}
+                  key={idx}
+                  cx={p.x}
+                  cy={p.y}
                   r="4"
-                  fill={measurementColor}
+                  fill={idx === 0 && activeConfirmed.length >= 3 ? "#10b981" : "#3b82f6"}
                   stroke="#ffffff"
                   strokeWidth="1.5"
-                  data-cad-area-vertex={index}
+                  data-cad-area-vertex={idx}
                 />
               ) : null
             )}
 
+            {/* Snap indicator marker */}
             {activePreview && snapshot.previewSnap ? (
-              <CadSnapGlyph
-                mode={snapshot.previewSnap.mode}
-                x={activePreview.x}
-                y={activePreview.y}
-                size={11}
+              <circle
+                cx={activePreview.x}
+                cy={activePreview.y}
+                r="7"
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="2"
               />
             ) : null}
           </g>
         ) : null}
       </svg>
 
+      {/* 3. Top Floating Status Banner */}
       {hasActive && snapshot ? (
-        <div className="pointer-events-none absolute left-2 right-2 top-2 z-30 md:left-1/2 md:right-auto md:top-3 md:-translate-x-1/2">
+        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
           <div
-            className="pointer-events-none mx-auto flex max-w-full items-center justify-center gap-2 rounded-xl border border-border/80 bg-background/95 px-3 py-2 text-[11px] font-medium leading-4 shadow-md backdrop-blur md:rounded-full md:px-4 md:py-1.5 md:text-xs"
+            className="pointer-events-none flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 shadow-md backdrop-blur text-xs font-medium"
             data-testid="cad-area-status"
           >
-            <span className="min-w-0 break-words text-center">
+            <span>
               {snapshot.points.length === 0
                 ? "1. noktayı seçin (Esc: İptal)"
                 : snapshot.points.length === 1
                   ? "2. noktayı seçin (Esc: İptal | Backspace: Geri al)"
                   : snapshot.points.length === 2
                     ? snapshot.area !== null
-                      ? `Alan: ${formatAreaValue(snapshot.area)} (3. noktayı seçin | Esc: İptal | Backspace: Geri al)`
+                      ? `Alan: ${formatArea(snapshot.area)} çizim birimi² (3. noktayı seçin | Esc: İptal | Backspace: Geri al)`
                       : "3. noktayı seçin (Esc: İptal | Backspace: Geri al)"
-                    : `Alan: ${formatAreaValue(snapshot.area ?? 0)} (${snapshot.points.length + 1}. noktayı seçin | Enter: Bitir | Esc: İptal)`}
+                    : `Alan: ${formatArea(snapshot.area ?? 0)} çizim birimi² (${snapshot.points.length + 1}. noktayı seçin | Enter: Bitir | Esc: İptal)`}
             </span>
 
+            {/* Direct Finish button for touch or mouse users */}
             {snapshot.points.length >= 3 ? (
               <Button
                 type="button"
                 size="sm"
                 variant="default"
-                className="pointer-events-auto h-11 min-h-11 shrink-0 rounded-full px-3 text-xs font-semibold md:h-7 md:min-h-7 md:px-2.5"
+                className="pointer-events-auto h-6 rounded-full px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => onFinish?.()}
                 data-testid="cad-area-finish-btn"
                 title="Alan ölçümünü tamamla (Enter)"
@@ -355,37 +249,6 @@ export function CadAreaOverlay({
               </Button>
             ) : null}
           </div>
-        </div>
-      ) : null}
-
-      {unitMenu ? (
-        <div
-          className="pointer-events-auto absolute z-40 min-w-32 max-w-[calc(100%_-_16px)] -translate-x-1/2 translate-y-3 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-lg"
-          style={{
-            left: `clamp(72px, ${unitMenu.x}px, calc(100% - 72px))`,
-            top: `clamp(8px, ${unitMenu.y}px, calc(100% - 160px))`,
-          }}
-          role="menu"
-          aria-label="Alan gösterim birimi"
-          data-testid="cad-area-unit-menu"
-          data-cad-viewport-clamped="true"
-        >
-          {(["m2", "cm2", "mm2"] as const).map((unit) => (
-            <button
-              key={unit}
-              type="button"
-              role="menuitemradio"
-              aria-checked={(areaUnitOverrides[unitMenu.id] ?? measurementSettings.areaUnit) === unit}
-              className="flex min-h-11 w-full items-center justify-between rounded px-3 py-2 text-left hover:bg-accent"
-              onClick={() => {
-                setAreaUnitOverrides((current) => ({ ...current, [unitMenu.id]: unit }));
-                setUnitMenu(null);
-              }}
-            >
-              <span>{unit === "m2" ? "m²" : unit === "cm2" ? "cm²" : "mm²"}</span>
-              {(areaUnitOverrides[unitMenu.id] ?? measurementSettings.areaUnit) === unit ? <Check className="h-3.5 w-3.5" /> : null}
-            </button>
-          ))}
         </div>
       ) : null}
     </>
