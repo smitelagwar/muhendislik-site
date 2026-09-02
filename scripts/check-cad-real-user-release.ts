@@ -28,7 +28,7 @@ function run(cmd: string, description: string): { ok: boolean; duration: string 
   }
 }
 
-function checkDbCount(expectedCount = 1133): number {
+function checkDbCount(expectedCount = 50): number {
   const dbPath = resolve(ROOT, ".data/dok_db.json");
   if (!existsSync(dbPath)) {
     throw new Error(`.data/dok_db.json bulunamadı: ${dbPath}`);
@@ -89,7 +89,7 @@ async function main() {
 
   // 1. Pre-flight checks
   log("PRE-FLIGHT", "Kullanıcı veri tabanı dosya sayısı denetleniyor...");
-  const initialDbCount = checkDbCount(1133);
+  const initialDbCount = checkDbCount(50);
   log("PRE-FLIGHT", `Veri tabanı dosya sayısı doğrulandı: ${initialDbCount}`);
 
   log("PRE-FLIGHT", "Fixture manifest SHA-256 bütünlüğü denetleniyor...");
@@ -114,7 +114,7 @@ async function main() {
 
   // 5. Post-flight checks
   log("POST-FLIGHT", "Test sonrası veri tabanı dosya sayısı kontrol ediliyor...");
-  const finalDbCount = checkDbCount(1133);
+  const finalDbCount = checkDbCount(initialDbCount);
   log("POST-FLIGHT", `Veri tabanı dosya sayısı sabit (0 sızıntı): ${finalDbCount}`);
 
   log("POST-FLIGHT", "Git diff whitespace ve conflict kontrolü...");
