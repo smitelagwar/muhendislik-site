@@ -50,8 +50,8 @@ test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
     const runtime = page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="upstream"]').first();
     const host = runtime.locator('[data-cad-upstream-host="true"]').first();
 
-    await expect(runtime).toBeVisible({ timeout: 30_000 });
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(runtime).toBeVisible({ timeout: 60_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const canvas = host.locator("canvas").first();
     await expect(canvas).toBeVisible({ timeout: 15_000 });
@@ -115,8 +115,8 @@ test.describe("CAD Preview V2 — Contract & Oracle Suite", () => {
     const runtime = page.locator('[data-cad-runtime="orchestrator"][data-cad-engine="upstream"]').first();
     const host = runtime.locator('[data-cad-upstream-host="true"]').first();
 
-    await expect(runtime).toBeVisible({ timeout: 30_000 });
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(runtime).toBeVisible({ timeout: 60_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     expect(manifest.layers).toBeDefined();
     expect(manifest.layers!.length).toBe(5);

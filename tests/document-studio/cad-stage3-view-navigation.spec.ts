@@ -14,7 +14,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const canvas = host.locator("canvas").first();
     await expect(canvas).toBeVisible();
@@ -124,7 +124,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     // Open view settings panel from quick rail
     const viewSettingsBtn = page.locator('[data-testid="cad-tool-view-settings"]').first();
@@ -183,7 +183,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     // Open layer panel which has a search input
     await page.locator('[data-testid="cad-tool-layers"]').first().click();
@@ -207,7 +207,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const canvas = host.locator("canvas").first();
     await expect(canvas).toBeVisible();

@@ -39,4 +39,13 @@ export default async function globalTeardown(): Promise<void> {
       }
     }
   }
+
+  const lockFile = path.resolve(process.cwd(), ".next-playwright/dev/lock");
+  if (fs.existsSync(lockFile)) {
+    try {
+      fs.rmSync(lockFile, { force: true });
+    } catch {
+      // ignore
+    }
+  }
 }

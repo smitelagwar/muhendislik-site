@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
-const productionServer = process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1";
+const productionServer =
+  process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1" ||
+  (process.env.PLAYWRIGHT_PRODUCTION_SERVER !== "0" && fs.existsSync(".next"));
 
 export default defineConfig({
   testDir: "./tests/document-studio",
@@ -11,8 +14,8 @@ export default defineConfig({
   // Tek Next sunucusu, paralel SSR derleme yükünde modül fabrikasını
   // kaybedebiliyor; kabul kapısı deterministik olarak tek worker çalışır.
   workers: 1,
-  timeout: 45_000,
-  expect: { timeout: 12_000 },
+  timeout: 90_000,
+  expect: { timeout: 20_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,

@@ -567,6 +567,7 @@ export function DokCadUpstreamViewer({
           return;
         }
         setState("ready");
+        setLoadingPhase("ready");
         setMessage("");
         onReady?.();
       } catch (error) {
@@ -1081,7 +1082,7 @@ export function DokCadUpstreamViewer({
       data-cad-timeout-ms={effectiveTimeoutMs}
     >
       {/* ── TOP RIBBON TOOLBAR ── */}
-      {state === "ready" ? (
+      {state !== "error" ? (
         <CadStudioRibbon
           activeTool={
             activeTool === "distance"

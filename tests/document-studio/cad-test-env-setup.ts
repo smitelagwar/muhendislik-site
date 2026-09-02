@@ -14,5 +14,14 @@ export default async function globalSetup(): Promise<void> {
   const pointerFile = path.join(testBaseDir, "active-test-dir.txt");
   fs.writeFileSync(pointerFile, runDataDir, "utf8");
 
+  const lockFile = path.resolve(process.cwd(), ".next-playwright/dev/lock");
+  if (fs.existsSync(lockFile)) {
+    try {
+      fs.rmSync(lockFile, { force: true });
+    } catch {
+      // ignore
+    }
+  }
+
   process.env.DOK_LOCAL_DATA_DIR = runDataDir;
 }

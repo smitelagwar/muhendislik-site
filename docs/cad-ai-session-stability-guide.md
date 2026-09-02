@@ -1,4 +1,4 @@
-﻿# CAD Sistemi — AI Oturumu Takılma Analizi ve Önleme Kılavuzu
+# CAD Sistemi — AI Oturumu Takılma Analizi ve Önleme Kılavuzu
 
 > **Bu belge kimin içindir?**
 > Bu projede çalışan her AI ajanı (Antigravity, Gemini, Claude, GPT-4 vb.) bu dosyayı CAD
@@ -55,6 +55,13 @@ Bu döngü hiçbir yeni bilgi üretmeden 4 kez tekrarlandı:
 
 checkDbCount(1133) dev ortamda 54 dosya buldu → exception → test başlamadan crash.
 
+### 2.4 Dördüncül Neden: Next.js Dev Lock Dosyası (.next-playwright/dev/lock) ve Cold-Start
+
+- Windows ortamında önceki yarıda kesilen/timeout alan test süreçleri arkada `node` süreci bırakabilir.
+- Bu artık süreçler `.next-playwright/dev/lock` dosyasını kilitli tutar (`⨯ Unable to acquire lock at ...\.next-playwright\dev\lock`).
+- Yeni açılan sunucu bu kilit yüzünden hiçbir route'u derleyemez ve gelen istekler (özellikle `/api/.../stream` ve sayfa yüklemeleri) sonsuza dek askıda (hang) kalır.
+- Ayrıca Next.js dev modunda Three.js/WebGL modüllerinin ilk derlemesi ~35-40 saniye sürdüğü için 30s'lik test timeout'ları zamansız FAIL üretir.
+
 ---
 
 ## 3. Kalıcı Çözümler (Uygulandı)
@@ -74,6 +81,13 @@ scripts/check-cad-review-release.ts:
 
 İki playwright süreci aynı portu kullanırken aralarında cooldown gerekiyor.
 Her yeni playwright komutu öncesinde eski sunucunun kapanması beklenmeli.
+
+### 3.3 Dev Lock Otomatik Temizliği ve Timeout Ayarları
+
+- `tests/document-studio/cad-test-env-setup.ts` ve `teardown.ts` içine `.next-playwright/dev/lock` dosyasının otomatik temizliği eklendi.
+- `CAD_UPSTREAM_TOTAL_TIMEOUT_MS` 35s'den 60s'ye çıkarıldı.
+- Test dosyalarında ilk açılış için `ready` timeout'u 60s olarak standardize edildi.
+- Gerektiğinde `PLAYWRIGHT_PRODUCTION_SERVER=1` ile `npm run build` sonrası anlık derlemesiz test koşumu sağlandı.
 
 ---
 

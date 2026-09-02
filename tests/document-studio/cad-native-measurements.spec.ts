@@ -8,7 +8,7 @@ test.describe("CAD Preview V2 — Native Measurements & Left Quick Access Rail S
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const rail = page.locator('[data-testid="cad-left-quick-rail"]').first();
     await expect(rail).toBeVisible();
@@ -33,7 +33,7 @@ test.describe("CAD Preview V2 — Native Measurements & Left Quick Access Rail S
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const distBtn = page.locator('[data-testid="cad-tool-distance"]').first();
     await distBtn.click();
@@ -64,7 +64,7 @@ test.describe("CAD Preview V2 — Native Measurements & Left Quick Access Rail S
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const areaBtn = page.locator('[data-testid="cad-tool-area"]').first();
     await areaBtn.click();
@@ -82,7 +82,7 @@ test.describe("CAD Preview V2 — Native Measurements & Left Quick Access Rail S
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 60_000 });
 
     const fitBtn = page.locator('[data-testid="cad-tool-fit"]').first();
     await fitBtn.click();

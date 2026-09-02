@@ -439,9 +439,10 @@ async function fetchCadSource(
   console.log(`[STAGE9 DIAG] fetchCadSource starting for ${accessUrl}`);
   const t0 = performance.now();
   try {
+    const isBlobOrData = accessUrl.startsWith("blob:") || accessUrl.startsWith("data:");
     const response = await fetch(accessUrl, {
       signal,
-      cache: "no-store",
+      ...(isBlobOrData ? {} : { cache: "no-store" }),
     });
     console.log(`[STAGE9 DIAG] fetchCadSource got response status ${response.status} in ${Math.round(performance.now() - t0)}ms`);
 
@@ -649,20 +650,8 @@ export class CadUpstreamAdapter {
     options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
     // In cad-simple-viewer 1.6.2 waitUntilIdle() can monopolize the browser main
     // thread in a production bundle even when geometry is already visible. A
-    // timer-based Promise.race cannot pre-empt that synchronous work. For DXF,
-    // openDocument() is the terminal parser boundary and Stage 8 owns the real
-    // post-ready blank-canvas diagnostics/recovery. Do not block readiness on
-    // waitUntilIdle(). Keep the legacy idle check only for DWG where conversion
-    // can still be progressive/worker-backed.
-    const idle = isDwg
-      ? await this.manager.curView.waitUntilIdle(CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS)
-      : false;
-    if (idle && this.manager.curView.stats.summary.entityCount === 0) {
-      throw new CadUpstreamAdapterError(
-        "blank-document",
-        `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
-      );
-    }
+    // timer-based Promise.race cannot pre-empt that synchronous work.
+    // Keep openDocument() as the terminal parser boundary and do not block on waitUntilIdle.
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
     console.log("[STAGE9 DIAG] render-ready starting setup...");

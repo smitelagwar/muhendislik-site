@@ -7,6 +7,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "build": "next build --webpack",
+    "prestart": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "start": "next start",
     "lint": "eslint",
     "check:bina-visuals": "tsx scripts/check-bina-visuals.ts",
