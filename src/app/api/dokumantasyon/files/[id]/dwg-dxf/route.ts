@@ -35,7 +35,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     if (!file || file.deleted_at) {
       return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 404 });
     }
-    if (file.extension.toLowerCase() !== ".dwg") {
+    const ext = file.extension.trim().toLowerCase();
+    if (ext !== ".dwg" && ext !== "dwg") {
       return NextResponse.json({ error: "Bu endpoint yalnızca DWG dosyaları içindir." }, { status: 400 });
     }
 

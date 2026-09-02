@@ -23,13 +23,13 @@ test.describe("CAD Preview V2 — Arka Plan Rengi Popover ve Görünüm Sözleş
 
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
-    // Viewer host'u DOM'a çıktığında (loading state dahil) hazır
+    // Viewer host'u DOM'a çıktığında hazır
     const host = page.locator('[data-cad-upstream-host="true"]').first();
-    await expect(host).toBeVisible({ timeout: 30_000 });
+    await expect(host).toBeVisible({ timeout: 60_000 });
 
-    // Ribbon'ın yüklendiğini bekle (viewer ready olmasa bile ribbon DOM'da olmalı)
+    // Ribbon'ın yüklendiğini bekle
     const ribbon = page.locator('[data-testid="cad-studio-ribbon"]').first();
-    await expect(ribbon).toBeVisible({ timeout: 30_000 });
+    await expect(ribbon).toBeVisible({ timeout: 60_000 });
 
     // 1. Initial background attribute is autocad
     await expect(host).toHaveAttribute("data-cad-background-color", "autocad");

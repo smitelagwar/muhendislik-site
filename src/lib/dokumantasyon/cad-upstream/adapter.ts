@@ -194,82 +194,6 @@ async function initializeCadEngineEnhancements(runtime: CadBundledRuntimeModule)
     // otherwise patch/register a different singleton/prototype than openDocument uses.
     const { dataModel, mtextRenderer, threeRenderer } = runtime;
 
-    // Stage 9 DXF converter deadlock bypass
-    // cad-simple-viewer 1.6.2 + data-model 1.14.2 can stall while closing
-    // a database event batch in the production browser renderer. Keep the
-    // native MLightCAD DXF reader, but stream entity events directly instead
-    // of using beginEventBatch/endEventBatch(Chunked).
-    const dxfConverter = dataModel.AcDbDatabaseConverterManager.instance.get(
-      dataModel.AcDbFileType.DXF
-    ) as unknown as {
-      read?: (
-        data: ArrayBuffer,
-        db: InstanceType<typeof dataModel.AcDbDatabase>,
-        options?: {
-          minimumChunkSize?: number;
-          progress?: (
-            percentage: number,
-            stage: string,
-            status: string,
-            stageData?: unknown
-          ) => void | Promise<void>;
-        }
-      ) => Promise<void>;
-      __stage9DeterministicRead?: boolean;
-    };
-
-    if (dxfConverter?.read && !dxfConverter.__stage9DeterministicRead) {
-      dxfConverter.__stage9DeterministicRead = true;
-      dxfConverter.read = async (data, db, readOptions = {}) => {
-        console.log("[STAGE9 DIAG] dxfConverter.read start, data bytes:", data.byteLength);
-        const setTrace = (value: string) => {
-          if (typeof document !== "undefined") {
-            document.documentElement.setAttribute("data-stage9-dxf-trace", value);
-          }
-        };
-        const emit = async (
-          percentage: number,
-          stage: string,
-          status: string,
-          stageData?: unknown
-        ) => {
-          setTrace(`${stage}:${status}:${percentage}`);
-          await readOptions.progress?.(percentage, stage, status, stageData);
-        };
-
-        await emit(0, "START", "START");
-        await emit(1, "PARSE", "START");
-
-        const filer = dataModel.AcDbDxfFiler.fromBuffer(data, { database: db });
-        const reader = new dataModel.AcDbDxfDocumentReader(db, {
-          // Frequent cooperative yields keep the main-thread renderer responsive
-          // while direct entityAppended events are being streamed.
-          entityBatchSize: Math.max(16, Math.min(128, readOptions.minimumChunkSize ?? 64)),
-          totalBytes: data.byteLength,
-          onProgress: async (ratio) => {
-            const pct = Math.max(2, Math.min(88, 1 + Math.floor(ratio * 87)));
-            await emit(pct, "PARSE", "IN-PROGRESS");
-          },
-        });
-
-        console.log("[STAGE9 DIAG] reader.read starting...");
-        setTrace("reader:before");
-        const result = await reader.read(filer);
-        console.log("[STAGE9 DIAG] reader.read finished:", result);
-        setTrace("reader:after");
-
-        await emit(90, "PARSE", "END", {
-          unknownEntityCount: result.unknownEntityCount,
-          unknownObjectCount: result.unknownObjectCount,
-        });
-        await emit(92, "ENTITY", "START");
-        await emit(98, "ENTITY", "END");
-        await emit(100, "END", "END");
-        setTrace("complete");
-        console.log("[STAGE9 DIAG] dxfConverter.read complete!");
-      };
-    }
-
     // AcDbFormatter formatLength hook: showUnits = false garantisi
     if (dataModel.AcDbFormatter?.prototype?.formatLength) {
       const originalFormatLength = dataModel.AcDbFormatter.prototype.formatLength;
@@ -436,15 +360,12 @@ async function fetchCadSource(
   accessUrl: string,
   signal?: AbortSignal
 ): Promise<ArrayBuffer> {
-  console.log(`[STAGE9 DIAG] fetchCadSource starting for ${accessUrl}`);
-  const t0 = performance.now();
   try {
     const isBlobOrData = accessUrl.startsWith("blob:") || accessUrl.startsWith("data:");
     const response = await fetch(accessUrl, {
       signal,
       ...(isBlobOrData ? {} : { cache: "no-store" }),
     });
-    console.log(`[STAGE9 DIAG] fetchCadSource got response status ${response.status} in ${Math.round(performance.now() - t0)}ms`);
 
     if (!response.ok) {
       throw new CadUpstreamAdapterError(
@@ -454,7 +375,6 @@ async function fetchCadSource(
     }
 
     const bytes = await response.arrayBuffer();
-    console.log(`[STAGE9 DIAG] fetchCadSource got ${bytes.byteLength} bytes in ${Math.round(performance.now() - t0)}ms`);
     if (bytes.byteLength === 0) {
       throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
     }
@@ -654,7 +574,6 @@ export class CadUpstreamAdapter {
     // Keep openDocument() as the terminal parser boundary and do not block on waitUntilIdle.
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
-    console.log("[STAGE9 DIAG] render-ready starting setup...");
 
     this.initialLayerSnapshot.clear();
     const store = this.getLayerStore();
@@ -667,21 +586,13 @@ export class CadUpstreamAdapter {
       }
     }
 
-    console.log("[STAGE9 DIAG] restorePanMode starting...");
     this.restorePanMode();
-    console.log("[STAGE9 DIAG] configureMobilePinchZoom starting...");
     this.configureMobilePinchZoom();
-    console.log("[STAGE9 DIAG] configureSnapRuntime starting...");
     this.configureSnapRuntime();
-    console.log("[STAGE9 DIAG] configureMobileGestureGuard starting...");
     this.configureMobileGestureGuard();
-    console.log("[STAGE9 DIAG] setBackgroundColor starting...");
     this.setBackgroundColor(this.backgroundColorOption);
-    console.log("[STAGE9 DIAG] applyDisplayMode starting...");
     this.applyDisplayMode();
-    console.log("[STAGE9 DIAG] zoomToFit starting...");
     this.zoomToFit();
-    console.log("[STAGE9 DIAG] adapter.open fully completed!");
   }
 
   private getActiveLayoutView(): CadLayoutViewLike | null {
