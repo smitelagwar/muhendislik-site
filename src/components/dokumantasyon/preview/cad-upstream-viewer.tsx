@@ -75,7 +75,7 @@ export interface DokCadUpstreamViewerProps {
 }
 
 type HostState = "loading" | "ready" | "error";
-type ActiveTool = "distance" | "area" | "chain_distance" | null;
+type ActiveTool = "distance" | "area" | null;
 
 let previousCadUpstreamTeardown: Promise<void> = Promise.resolve();
 
@@ -151,6 +151,7 @@ export function DokCadUpstreamViewer({
   const [areaMeasurements, setAreaMeasurements] = useState<
     CompletedAreaMeasurement[]
   >([]);
+  const [, setViewRevision] = useState(0);
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
@@ -342,6 +343,16 @@ export function DokCadUpstreamViewer({
       setCameraInteractionEnabled: (enabled: boolean) => {
         adapterRef.current?.setCameraInteractionEnabled(enabled);
       },
+      requestCommentInput: async () => {
+        const comment = window.prompt("Yorum notunuzu girin:")?.trim();
+        if (!comment) return null;
+        return { comment, title: "Yorum" };
+      },
+      requestTextInput: async () => {
+        const text = window.prompt("Metin notunu girin:")?.trim();
+        if (!text) return null;
+        return { text };
+      },
     };
 
     const freehandRuntime = {
@@ -410,13 +421,9 @@ export function DokCadUpstreamViewer({
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const nextWidth = Math.round(entry.contentRect.width);
-        const nextHeight = Math.round(entry.contentRect.height);
-        setContainerSize((prev) => {
-          if (prev.width === nextWidth && prev.height === nextHeight) {
-            return prev;
-          }
-          return { width: nextWidth, height: nextHeight };
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
         });
       }
     });
@@ -442,7 +449,6 @@ export function DokCadUpstreamViewer({
     let unsubscribeLayers: (() => void) | null = null;
     let unsubscribeViewChanged: (() => void) | null = null;
     let timeoutId: number | null = null;
-    let cancelStartup: ((reason?: unknown) => void) | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
@@ -517,32 +523,10 @@ export function DokCadUpstreamViewer({
             setLayers(adapterRef.current.getLayers());
           }
         });
+        unsubscribeViewChanged = createdAdapter.subscribeViewChanged(() => {
+          if (!cancelled) setViewRevision((value) => value + 1);
+        });
       })();
-
-      const cancellation = new Promise<never>((_, reject) => {
-        cancelStartup = reject;
-        if (abortController.signal.aborted) {
-          reject(
-            new CadUpstreamAdapterError(
-              "adapter-destroyed",
-              "CAD görüntüleyici iptal edildi."
-            )
-          );
-        } else {
-          abortController.signal.addEventListener(
-            "abort",
-            () => {
-              reject(
-                new CadUpstreamAdapterError(
-                  "adapter-destroyed",
-                  "CAD görüntüleyici iptal edildi."
-                )
-              );
-            },
-            { once: true }
-          );
-        }
-      });
 
       const deadline = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => {
@@ -560,14 +544,11 @@ export function DokCadUpstreamViewer({
       });
 
       try {
-        await Promise.race([upstreamWork, deadline, cancellation]);
+        await Promise.race([upstreamWork, deadline]);
         if (timeoutId !== null) window.clearTimeout(timeoutId);
         timeoutId = null;
-        if (cancelled || timedOut || abortController.signal.aborted) {
-          return;
-        }
+        if (cancelled || timedOut || abortController.signal.aborted) return;
         setState("ready");
-        setLoadingPhase("ready");
         setMessage("");
         onReady?.();
       } catch (error) {
@@ -607,13 +588,6 @@ export function DokCadUpstreamViewer({
 
     return () => {
       cancelled = true;
-      cancelStartup?.(
-        new CadUpstreamAdapterError(
-          "adapter-destroyed",
-          "CAD görüntüleyici kapatıldı."
-        )
-      );
-      cancelStartup = null;
       abortController.abort("CAD_UPSTREAM_UNMOUNT");
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       themeObserver?.disconnect();
@@ -773,17 +747,9 @@ export function DokCadUpstreamViewer({
     const adapter = adapterRef.current;
     if (!adapter) return;
     if (activeTool === "distance") {
-      setActiveTool(null);
-      setReviewTool("select");
-      reviewStoreRef.current?.setActiveTool("select");
       await adapter.cancelActiveCommand();
       return;
     }
-
-    await adapter.cancelActiveCommand();
-    setAreaSnapshot(null);
-    setReviewTool("distance");
-    reviewStoreRef.current?.setActiveTool("distance");
 
     const started = await adapter.startDistanceMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -799,15 +765,11 @@ export function DokCadUpstreamViewer({
             },
           ]);
           setDistanceSnapshot(null);
-          setActiveTool(null);
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
+          setActiveTool((current) => (current === "distance" ? null : current));
         },
         onCancel: () => {
           setDistanceSnapshot(null);
-          setActiveTool(null);
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
+          setActiveTool((current) => (current === "distance" ? null : current));
         },
       }
     );
@@ -819,16 +781,12 @@ export function DokCadUpstreamViewer({
     if (!adapter) return;
     if (activeTool === "area") {
       setActiveTool(null);
-      setReviewTool("select");
-      reviewStoreRef.current?.setActiveTool("select");
       await adapter.cancelActiveCommand();
       return;
     }
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
-    setReviewTool("area");
-    reviewStoreRef.current?.setActiveTool("area");
 
     const started = await adapter.startAreaMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -844,15 +802,11 @@ export function DokCadUpstreamViewer({
             },
           ]);
           setAreaSnapshot(null);
-          setActiveTool(null);
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
+          setActiveTool((current) => (current === "area" ? null : current));
         },
         onCancel: () => {
           setAreaSnapshot(null);
-          setActiveTool(null);
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
+          setActiveTool((current) => (current === "area" ? null : current));
         },
       }
     );
@@ -862,20 +816,9 @@ export function DokCadUpstreamViewer({
   const handleStartChainDistance = async () => {
     const adapter = adapterRef.current;
     if (!adapter) return;
-    if (activeTool === "chain_distance") {
-      setActiveTool(null);
-      setReviewTool("select");
-      reviewStoreRef.current?.setActiveTool("select");
-      await adapter.cancelActiveCommand();
-      return;
-    }
-
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
-
-    setReviewTool("chain_distance");
-    reviewStoreRef.current?.setActiveTool("chain_distance");
 
     const started = await adapter.startChainDistanceMeasurement(
       getEnabledCadSnapModes(snapSettings),
@@ -894,21 +837,21 @@ export function DokCadUpstreamViewer({
               status: "open",
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
-              style: { color: measurementUnitSettings.color || "#3b82f6", strokeWidth: 2, opacity: 1 },
+              style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
             });
           }
-          setActiveTool(null);
           setReviewTool("select");
           reviewStoreRef.current?.setActiveTool("select");
         },
         onCancel: () => {
-          setActiveTool(null);
           setReviewTool("select");
           reviewStoreRef.current?.setActiveTool("select");
         },
       }
     );
-    setActiveTool(started ? "chain_distance" : null);
+    if (started) {
+      setActiveTool(null);
+    }
   };
 
   useEffect(() => {
@@ -1082,15 +1025,13 @@ export function DokCadUpstreamViewer({
       data-cad-timeout-ms={effectiveTimeoutMs}
     >
       {/* ── TOP RIBBON TOOLBAR ── */}
-      {state !== "error" ? (
+      {state === "ready" ? (
         <CadStudioRibbon
           activeTool={
             activeTool === "distance"
               ? "distance"
               : activeTool === "area"
               ? "area"
-              : activeTool === "chain_distance"
-              ? "chain_distance"
               : reviewTool
           }
           onSelectTool={handleSelectReviewTool}
