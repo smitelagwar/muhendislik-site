@@ -611,7 +611,7 @@ export class CadUpstreamAdapter {
       autoResize: true,
       webworkerFileUrls: CAD_UPSTREAM_WORKER_URLS,
       checkWorkersOnInit: true,
-      useMainThreadDraw: options.useMainThreadDraw ?? false,
+      useMainThreadDraw: options.useMainThreadDraw ?? true,
     });
 
     if (!manager) {
@@ -778,6 +778,10 @@ export class CadUpstreamAdapter {
     this.configureMobilePinchZoom();
     this.configureSnapRuntime();
     this.configureMobileGestureGuard();
+
+    if (typeof window !== "undefined") {
+      (window as unknown as { __cadAdapter?: unknown }).__cadAdapter = this;
+    }
     this.setBackgroundColor(this.backgroundColorOption);
     this.applyDisplayMode();
     this.zoomToFit();

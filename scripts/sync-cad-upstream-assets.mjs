@@ -52,11 +52,17 @@ for (const asset of assets) {
   if (!sourceStat?.isFile() || sourceStat.size <= 0) {
     throw new Error(`Required CAD upstream asset is missing: ${asset.source}`);
   }
-  await copyFile(asset.source, asset.target);
-  const targetStat = await stat(asset.target);
-  if (targetStat.size !== sourceStat.size) {
-    throw new Error(`CAD upstream asset copy size mismatch: ${asset.target}`);
+  if (asset.target.endsWith("mtext-renderer-worker.js")) {
+    const rawWorker = await readFile(asset.source, "utf8");
+    const patchedWorker = rawWorker.replaceAll(
+      "https://cdn.jsdelivr.net/gh/mlightcad/cad-data/fonts/",
+      "/cad-upstream/fonts/"
+    );
+    await writeFile(asset.target, patchedWorker, "utf8");
+  } else {
+    await copyFile(asset.source, asset.target);
   }
+  const targetStat = await stat(asset.target);
   console.log(
     `[cad-upstream] synced ${asset.target.slice(root.length + 1)} (${targetStat.size} bytes)`
   );
