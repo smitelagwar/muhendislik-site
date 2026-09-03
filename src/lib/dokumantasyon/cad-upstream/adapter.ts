@@ -64,6 +64,7 @@ import {
   type CadFontParityEvaluation,
 } from "../cad-font-registry";
 export type { CadFontParityEvaluation };
+import { decodeDxfBytes, detectDxfEncoding } from "../dxf-encoding";
 
 export const CAD_UPSTREAM_WORKER_URLS = {
 
@@ -172,7 +173,111 @@ type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
 
 let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
+let fontPreloadPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
+
+async function ensureFontsPreloaded(fontManager: {
+  cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>;
+}): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (!fontPreloadPromise) {
+    fontPreloadPromise = (async () => {
+      try {
+        const [regularRes, boldRes, serifRegularRes, serifBoldRes] = await Promise.all([
+          fetch("/cad-upstream/fonts/Arial-Regular.ttf"),
+          fetch("/cad-upstream/fonts/Arial-Bold.ttf"),
+          fetch("/cad-upstream/fonts/IBMPlexSerif-Regular.ttf"),
+          fetch("/cad-upstream/fonts/IBMPlexSerif-Bold.ttf"),
+        ]);
+
+        const cacheTasks: Promise<unknown>[] = [];
+
+        if (regularRes.ok) {
+          const buf = await regularRes.arrayBuffer();
+          cacheTasks.push(
+            fontManager.cacheFont(buf, "Arial-Regular.ttf", [
+              "arial",
+              "arial-regular",
+              "arial.ttf",
+              "standard",
+              "txt",
+              "txt.shx",
+              "romans",
+              "romans.shx",
+              "simplex",
+              "simplex.shx",
+              "isocpeur",
+              "isocpeur.ttf",
+              "calibri",
+              "helvetica",
+              "verdana",
+              "tahoma",
+              "swis",
+              "arial_1_18",
+            ])
+          );
+        }
+
+        if (boldRes.ok) {
+          const buf = await boldRes.arrayBuffer();
+          cacheTasks.push(
+            fontManager.cacheFont(buf, "Arial-Bold.ttf", [
+              "arial-bold",
+              "arial-bold.ttf",
+              "arialb.ttf",
+              "arialbd.ttf",
+              "arialbd",
+              "arial bold",
+              "arial_bold",
+            ])
+          );
+        }
+
+        if (serifRegularRes.ok) {
+          const buf = await serifRegularRes.arrayBuffer();
+          cacheTasks.push(
+            fontManager.cacheFont(buf, "IBMPlexSerif-Regular.ttf", [
+              "ibm-plex-serif",
+              "ibm plex serif",
+              "times",
+              "times roman",
+              "times-roman",
+              "times_roman",
+              "times new roman",
+              "times-new-roman",
+              "times new roman tur",
+              "times new roman tur_1_18",
+              "romant",
+              "romanc",
+              "romand",
+              "serif",
+            ])
+          );
+        }
+
+        if (serifBoldRes.ok) {
+          const buf = await serifBoldRes.arrayBuffer();
+          cacheTasks.push(
+            fontManager.cacheFont(buf, "IBMPlexSerif-Bold.ttf", [
+              "ibm-plex-serif-bold",
+              "ibm plex serif bold",
+              "times-bold",
+              "times bold",
+              "times new roman bold",
+              "timesbd",
+              "timesbd.ttf",
+            ])
+          );
+        }
+
+        await Promise.all(cacheTasks);
+      } catch (err) {
+        console.warn("[cad-upstream] Font preload hatası:", err);
+      }
+    })();
+  }
+  return fontPreloadPromise;
+}
 
 async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {
   if (engineEnhancementsInitialized) return;
@@ -269,96 +374,63 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
     // 2. Dolu Font ve Yüksek Kalite Metin Render Altyapısı
     const fontManager = mtextRenderer.FontManager.instance;
     fontManager.baseUrl = "/cad-upstream/fonts/";
-    fontManager.setDefaultFonts(["arial"]);
+    fontManager.setDefaultFonts(["arial", "ibm-plex-serif"]);
     fontManager.awaitFontsBeforeDraw = true;
     fontManager.lazyFontLoading = true;
 
-    if (!CAD_AUTOCAD_FONT_PARITY_V1) {
-      // Tüm standart ve yaygın CAD fontlarını dolu gövdeli yerel Arial fontuna haritalama (Legacy / Flag OFF)
-      fontManager.setFontMapping({
-        standard: "arial",
-        txt: "arial",
-        "txt.shx": "arial",
-        romans: "arial",
-        "romans.shx": "arial",
-        simplex: "arial",
-        "simplex.shx": "arial",
-        isocpeur: "arial",
-        "isocpeur.ttf": "arial",
-        times: "arial",
-        "times new roman": "arial",
-        calibri: "arial",
-        arial: "arial",
-        "arial.ttf": "arial",
-      });
+    // Tüm standart ve yaygın CAD fontlarını dolu gövdeli TrueType fontlara haritalama
+    fontManager.setFontMapping({
+      // Arial ailesi (düz ve sans-serif)
+      arial: "arial",
+      "arial.ttf": "arial",
+      "arial-regular": "arial",
+      arial_1_18: "arial",
+      "arial-bold": "arial-bold",
+      "arial-bold.ttf": "arial-bold",
+      "arialbd.ttf": "arial-bold",
+      arialbd: "arial-bold",
+      "arial bold": "arial-bold",
+      arial_bold: "arial-bold",
+      "arialb.ttf": "arial-bold",
 
-      // Arial TrueType fontunu belleğe yükleyip önbelleğe alma (tel kafes fallback'i engeller)
-      if (typeof window !== "undefined" && !fontManager.isDefaultFontLoaded()) {
-        fetch("/cad-upstream/fonts/Arial-Regular.ttf")
-          .then((res) => (res.ok ? res.arrayBuffer() : null))
-          .then((buffer) => {
-            if (buffer) {
-              fontManager
-                .cacheFont(buffer, "Arial-Regular.ttf", [
-                  "arial",
-                  "standard",
-                  "txt",
-                  "romans",
-                  "simplex",
-                  "isocpeur",
-                ])
-                .catch((err) => console.warn("[cad-upstream] Font önbelleğe alınamadı:", err));
-            }
-          })
-          .catch((err) => console.warn("[cad-upstream] Font yüklenemedi:", err));
-      }
-    } else {
-      // Yeni Exact CAD Font Parite Yolu (Flag ON):
-      // SHX fontları Arial'a map edilmez; yalnız gerçek mesh font alias'ları korunur
-      fontManager.setFontMapping({
-        arial: "arial",
-        "arial.ttf": "arial",
-        "arial-regular": "arial",
-        "arial-bold": "arial-bold",
-        "arial-bold.ttf": "arial-bold",
-        "arialbd.ttf": "arial-bold",
-        arialbd: "arial-bold",
-        "arial bold": "arial-bold",
-        "arialb.ttf": "arial-bold",
-      });
+      // Klasik CAD SHX ve tek-çizgi fallback'lerini dolu gövdeli Arial'a haritalama
+      standard: "arial",
+      txt: "arial",
+      "txt.shx": "arial",
+      romans: "arial",
+      "romans.shx": "arial",
+      simplex: "arial",
+      "simplex.shx": "arial",
+      isocpeur: "arial",
+      "isocpeur.ttf": "arial",
+      calibri: "arial",
+      helvetica: "arial",
+      verdana: "arial",
+      tahoma: "arial",
+      swis: "arial",
 
-      // Awaited deterministik preload: Regular ve Bold fontlar yüklenmeden devam edilmez
-      if (typeof window !== "undefined") {
-        try {
-          const [regularRes, boldRes] = await Promise.all([
-            fetch("/cad-upstream/fonts/Arial-Regular.ttf"),
-            fetch("/cad-upstream/fonts/Arial-Bold.ttf"),
-          ]);
+      // Times / Serif ailesi (AutoCAD'deki Times Roman / RomanT serif stilleri)
+      times: "ibm-plex-serif",
+      "times roman": "ibm-plex-serif",
+      "times-roman": "ibm-plex-serif",
+      times_roman: "ibm-plex-serif",
+      "times new roman": "ibm-plex-serif",
+      "times-new-roman": "ibm-plex-serif",
+      "times new roman tur": "ibm-plex-serif",
+      "times new roman tur_1_18": "ibm-plex-serif",
+      romant: "ibm-plex-serif",
+      romanc: "ibm-plex-serif",
+      romand: "ibm-plex-serif",
+      serif: "ibm-plex-serif",
+      "times-bold": "ibm-plex-serif-bold",
+      "times bold": "ibm-plex-serif-bold",
+      "times new roman bold": "ibm-plex-serif-bold",
+      timesbd: "ibm-plex-serif-bold",
+      "timesbd.ttf": "ibm-plex-serif-bold",
+    });
 
-          if (regularRes.ok) {
-            const buf = await regularRes.arrayBuffer();
-            await fontManager.cacheFont(buf, "Arial-Regular.ttf", [
-              "arial",
-              "arial-regular",
-              "arial.ttf",
-            ]);
-          }
-          if (boldRes.ok) {
-            const buf = await boldRes.arrayBuffer();
-            await fontManager.cacheFont(buf, "Arial-Bold.ttf", [
-              "arial-bold",
-              "arial-bold.ttf",
-              "arialb.ttf",
-              "arialbd.ttf",
-              "arialbd",
-              "arial bold",
-            ]);
-          }
-        } catch (err) {
-          console.warn("[cad-upstream] Parite font preload hatası:", err);
-        }
-      }
-    }
+    // Fontları deterministik olarak belleğe yükle ve önbelleğe al
+    await ensureFontsPreloaded(fontManager);
 
     // 3. Perde Taramalarının Opaklığı (Hatch Opacity)
     // Sert kör edici beyazlık yerine AutoCAD'deki gibi zarif ve yumuşatılmış opaklık (0.70 alpha)
@@ -595,12 +667,17 @@ export class CadUpstreamAdapter {
     options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
 
+    // Çizim açılmadan önce tüm TrueType fontların bellekte yüklü olduğunu kesinleştir
+    const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>; events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
+    const fontManager = mtextRenderer?.FontManager?.instance;
+    if (fontManager) {
+      await ensureFontsPreloaded(fontManager);
+    }
+
     if (CAD_AUTOCAD_FONT_PARITY_V1) {
       const requested = extractDxfOrDwgFonts(bytes, extension);
       this.fontDiagnostics = evaluateCadFontParity(requested);
 
-      const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
-      const fontManager = mtextRenderer?.FontManager?.instance;
       if (fontManager?.events?.fontNotFound?.subscribe) {
         fontManager.events.fontNotFound.subscribe(({ fontName }) => {
           if (fontName && !this.fontDiagnostics.missingFonts.includes(fontName)) {
@@ -627,6 +704,26 @@ export class CadUpstreamAdapter {
         : "DXF içeriği çözümleniyor"
     );
 
+    // DXF dosyalarında windows-1254 (veya UTF-8 harici) tek bayt kodlama algılanırsa temiz UTF-8 baytına transcode et
+    let documentBytes: ArrayBuffer = bytes;
+    if (!isDwg && bytes.byteLength >= 64) {
+      try {
+        const uint8 = new Uint8Array(bytes);
+        const encodingResolution = detectDxfEncoding(uint8);
+        if (!encodingResolution.isBinary && encodingResolution.encoding !== "utf-8") {
+          const decodedText = decodeDxfBytes(uint8, encodingResolution.encoding);
+          if (decodedText && decodedText.trim().length > 0) {
+            const encoded = new TextEncoder().encode(decodedText);
+            const copy = new Uint8Array(encoded.byteLength);
+            copy.set(encoded);
+            documentBytes = copy.buffer as ArrayBuffer;
+          }
+        }
+      } catch (encodingErr) {
+        console.warn("[cad-upstream] DXF encoding transcode uyarısı:", encodingErr);
+      }
+    }
+
     const openOptions: AcApOpenDatabaseOptions = {
       minimumChunkSize: 1000,
       progressiveRendering: true,
@@ -636,7 +733,7 @@ export class CadUpstreamAdapter {
 
     const success = await this.manager.openDocument(
       options.displayName,
-      bytes,
+      documentBytes,
       openOptions
     );
 

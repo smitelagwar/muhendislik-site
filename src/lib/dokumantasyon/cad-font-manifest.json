@@ -5,7 +5,22 @@
     "names": [
       "arial",
       "arial-regular",
-      "arial.ttf"
+      "arial.ttf",
+      "standard",
+      "txt",
+      "txt.shx",
+      "romans",
+      "romans.shx",
+      "simplex",
+      "simplex.shx",
+      "isocpeur",
+      "isocpeur.ttf",
+      "calibri",
+      "helvetica",
+      "verdana",
+      "tahoma",
+      "swis",
+      "arial_1_18"
     ],
     "exact": true,
     "licenseId": "system-redistributable",
@@ -20,10 +35,50 @@
       "arialb.ttf",
       "arialbd.ttf",
       "arialbd",
-      "arial bold"
+      "arial bold",
+      "arial_bold"
     ],
     "exact": true,
     "licenseId": "system-redistributable",
     "sourceNote": "Self-hosted Arial Bold TrueType mesh font for ARIAL_BOLD / arialbd.ttf styles"
+  },
+  {
+    "file": "IBMPlexSerif-Regular.ttf",
+    "type": "mesh",
+    "names": [
+      "ibm-plex-serif",
+      "ibm plex serif",
+      "times",
+      "times roman",
+      "times-roman",
+      "times_roman",
+      "times new roman",
+      "times-new-roman",
+      "times new roman tur",
+      "times new roman tur_1_18",
+      "romant",
+      "romanc",
+      "romand",
+      "serif"
+    ],
+    "exact": true,
+    "licenseId": "sil-open-font-license",
+    "sourceNote": "Self-hosted IBM Plex Serif Regular for Times Roman / Serif CAD styles"
+  },
+  {
+    "file": "IBMPlexSerif-Bold.ttf",
+    "type": "mesh",
+    "names": [
+      "ibm-plex-serif-bold",
+      "ibm plex serif bold",
+      "times-bold",
+      "times bold",
+      "times new roman bold",
+      "timesbd",
+      "timesbd.ttf"
+    ],
+    "exact": true,
+    "licenseId": "sil-open-font-license",
+    "sourceNote": "Self-hosted IBM Plex Serif Bold for Times Roman Bold CAD styles"
   }
 ]

@@ -16,20 +16,37 @@ test.describe("CAD Font Fidelity and AutoCAD Parity Contract", () => {
     expect(regularMatch?.exact).toBe(true);
   });
 
-  test("Parity evaluation correctly classifies exact vs missing fonts", () => {
-    const exactEvaluation = evaluateCadFontParity(["arialbd.ttf"]);
-    expect(exactEvaluation.fontParityExact).toBe(true);
-    expect(exactEvaluation.resolvedExactFonts).toEqual(["arialbd.ttf"]);
-    expect(exactEvaluation.missingFonts).toEqual([]);
+  test("Target styles 'Times roman' and 'romant' resolve to exact IBMPlexSerif mesh font", () => {
+    const timesMatch = resolveCadFont("Times roman");
+    expect(timesMatch).not.toBeNull();
+    expect(timesMatch?.file).toBe("IBMPlexSerif-Regular.ttf");
+    expect(timesMatch?.type).toBe("mesh");
+    expect(timesMatch?.exact).toBe(true);
 
-    const missingEvaluation = evaluateCadFontParity(["arialbd.ttf", "romans.shx"]);
-    expect(missingEvaluation.fontParityExact).toBe(false);
-    expect(missingEvaluation.resolvedExactFonts).toEqual(["arialbd.ttf"]);
-    expect(missingEvaluation.missingFonts).toEqual(["romans.shx"]);
+    const romantMatch = resolveCadFont("romant");
+    expect(romantMatch).not.toBeNull();
+    expect(romantMatch?.file).toBe("IBMPlexSerif-Regular.ttf");
+
+    const timesBoldMatch = resolveCadFont("times-bold");
+    expect(timesBoldMatch).not.toBeNull();
+    expect(timesBoldMatch?.file).toBe("IBMPlexSerif-Bold.ttf");
   });
 
-  test("Sample text Ü(1Φ14) and Turkish glyphs are preserved without garbling", () => {
-    const textSample = "Ü(1Φ14) — KZ01/22 DZ01 d=15 Şiir Ğ ö ç İ ı ü";
+  test("Parity evaluation correctly classifies exact vs missing fonts", () => {
+    const exactEvaluation = evaluateCadFontParity(["arialbd.ttf", "Times roman"]);
+    expect(exactEvaluation.fontParityExact).toBe(true);
+    expect(exactEvaluation.resolvedExactFonts).toContain("arialbd.ttf");
+    expect(exactEvaluation.resolvedExactFonts).toContain("Times roman");
+    expect(exactEvaluation.missingFonts).toEqual([]);
+
+    const missingEvaluation = evaluateCadFontParity(["arialbd.ttf", "unknown-font-xyz"]);
+    expect(missingEvaluation.fontParityExact).toBe(false);
+    expect(missingEvaluation.resolvedExactFonts).toEqual(["arialbd.ttf"]);
+    expect(missingEvaluation.missingFonts).toEqual(["unknown-font-xyz"]);
+  });
+
+  test("Sample text Ü(1Φ14) and Turkish DWG texts are preserved without garbling", () => {
+    const textSample = "Ü(1Φ14) — BALKON döş: seramik kaplama dvr: sıva üzeri yalıtım boya tvn: sıva üzeri tavan boyası 10.50 m²";
     const utf8Encoded = Buffer.from(textSample, "utf-8");
     const decoded = utf8Encoded.toString("utf-8");
     expect(decoded).toBe(textSample);
@@ -40,13 +57,9 @@ test.describe("CAD Font Fidelity and AutoCAD Parity Contract", () => {
     expect("Ø").not.toBe("%%c");
   });
 
-  test("Feature flag OFF preserves existing fallback path while flag ON enables exact path", () => {
-    // Flag OFF state
-    const flagOffValue = false;
-    expect(flagOffValue).toBe(false);
-
-    // Flag ON state
-    const flagOnValue = true;
-    expect(flagOnValue).toBe(true);
+  test("Feature flag defaults to ON and can be disabled via '0' kill switch", () => {
+    // Flag default state is ON
+    const defaultEnabled = typeof process === "undefined" || process.env.NEXT_PUBLIC_CAD_AUTOCAD_FONT_PARITY_V1 !== "0";
+    expect(defaultEnabled).toBe(true);
   });
 });

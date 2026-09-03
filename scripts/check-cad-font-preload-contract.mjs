@@ -29,6 +29,14 @@ console.log("[check-cad-font-preload-contract] Testing font preload contract and
     "Arial-Bold.ttf preload edilmelidir"
   );
   assert.ok(
+    adapterSource.includes('fetch("/cad-upstream/fonts/IBMPlexSerif-Regular.ttf")'),
+    "IBMPlexSerif-Regular.ttf preload edilmelidir"
+  );
+  assert.ok(
+    adapterSource.includes('fetch("/cad-upstream/fonts/IBMPlexSerif-Bold.ttf")'),
+    "IBMPlexSerif-Bold.ttf preload edilmelidir"
+  );
+  assert.ok(
     adapterSource.includes("fontManager.awaitFontsBeforeDraw = true"),
     "awaitFontsBeforeDraw = true ayarı zorunlu olmalıdır (ilk frame yarışı engellenir)"
   );
