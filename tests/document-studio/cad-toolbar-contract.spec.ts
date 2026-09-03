@@ -32,17 +32,14 @@ test.describe("CAD Preview V2 — Toolbar Button Contract & Side Effects", () =>
 
     // ── 1. GEZİNME GRUBU ───────────────────────────────────────────────────
     const selectBtn = page.locator('[data-testid="cad-tool-select"]').first();
-    const panBtn = page.locator('[data-testid="cad-tool-pan"]').first();
     const fitBtn = page.locator('[data-testid="cad-tool-fit"]').first();
 
     // Select button activates selection mode
     await selectBtn.click();
     await expect(selectBtn).toHaveAttribute("aria-pressed", "true");
-    await expect(panBtn).toHaveAttribute("aria-pressed", "false");
 
-    // Pan button activates pan mode
-    await panBtn.click();
-    await expect(panBtn).toHaveAttribute("aria-pressed", "true");
+    // Clicking Select button again toggles back to default navigation/pan mode
+    await selectBtn.click();
     await expect(selectBtn).toHaveAttribute("aria-pressed", "false");
 
     // Fit view button is visible

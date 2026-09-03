@@ -11,10 +11,8 @@ import {
   Cloud,
   Eraser,
   Eye,
-  Hand,
   Layers,
   Magnet,
-  Maximize,
   MessageSquare,
   MousePointer,
   Pencil,
@@ -101,7 +99,7 @@ export interface CadStudioRibbonProps {
   // Navigation
   activeTool: CadReviewTool | "pan" | null;
   onSelectTool: (tool: CadReviewTool) => void;
-  onPan: () => void;
+  onPan?: () => void;
   onFitView: () => void;
 
   // Display & Style
@@ -149,6 +147,42 @@ export interface CadStudioRibbonProps {
   onDownloadDxf?: () => void;
   onOpenExportDialog?: () => void;
   sourceFileName?: string;
+}
+
+/**
+ * AutoCAD Zoom-Extents / Ekrana Sığdır özel ikonu
+ * İç içe çift köşe ve merkez yaylı ( ) CAD odaklanma sembolü
+ */
+export function CadZoomExtentsIcon({ className, ...props }: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      className={className}
+      {...props}
+    >
+      {/* Dış Köşeler */}
+      <path d="M 2 9.5 V 4 H 9.8" />
+      <path d="M 14.2 4 H 22 V 9.5" />
+      <path d="M 2 14.5 V 20 H 9.8" />
+      <path d="M 14.2 20 H 22 V 14.5" />
+
+      {/* İç Eşmerkezli Köşeler */}
+      <path d="M 5.8 9.5 V 7.2 H 9.8" />
+      <path d="M 14.2 7.2 H 18.2 V 9.5" />
+      <path d="M 5.8 14.5 V 16.8 H 9.8" />
+      <path d="M 14.2 16.8 H 18.2 V 14.5" />
+
+      {/* Merkez Parantez Yayları ( ) */}
+      <path d="M 10.5 9.8 C 9 10.5 9 13.5 10.5 14.2" strokeLinecap="round" />
+      <path d="M 13.5 9.8 C 15 10.5 15 13.5 13.5 14.2" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 export function CadStudioRibbon({
@@ -227,32 +261,19 @@ export function CadStudioRibbon({
                 ? "bg-background text-foreground shadow font-bold border border-border/60"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
-            onClick={() => onSelectTool("select")}
+            onClick={() => {
+              if (activeTool === "select") {
+                onPan?.();
+              } else {
+                onSelectTool("select");
+              }
+            }}
             title="Seç / Gezin [V]"
             data-testid="cad-tool-select"
             aria-label="Seç ve Gezin"
           >
             <MousePointer className="h-4.5 w-4.5 text-amber-500" />
             <span className="hidden md:inline text-xs">Seç</span>
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant={activeTool === "pan" || activeTool === null ? "secondary" : "ghost"}
-            className={cn(
-              btnBase,
-              (activeTool === "pan" || activeTool === null)
-                ? "bg-background text-foreground shadow font-bold border border-border/60"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-            )}
-            onClick={onPan}
-            title="Kaydır (Pan) [P]"
-            data-testid="cad-tool-pan"
-            aria-label="Kaydır (Pan)"
-          >
-            <Hand className="h-4.5 w-4.5 text-amber-500" />
-            <span className="hidden md:inline text-xs">Kaydır</span>
           </Button>
 
           <Button
@@ -265,7 +286,7 @@ export function CadStudioRibbon({
             data-testid="cad-tool-fit"
             aria-label="Görünüme sığdır"
           >
-            <Maximize className="h-4.5 w-4.5" />
+            <CadZoomExtentsIcon className="h-4.5 w-4.5" />
           </Button>
         </div>
 

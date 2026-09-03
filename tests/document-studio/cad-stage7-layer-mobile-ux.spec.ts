@@ -25,11 +25,11 @@ test.describe("CAD Preview V2 — Aşama 7/8 Katman, Mobil Sheet, Erişilebilirl
     expect(layerBtnBox!.width).toBeGreaterThanOrEqual(44);
     expect(layerBtnBox!.height).toBeGreaterThanOrEqual(44);
 
-    const panBtn = page.locator('[data-testid="cad-tool-pan"]').first();
-    const panBtnBox = await panBtn.boundingBox();
-    expect(panBtnBox).not.toBeNull();
-    expect(panBtnBox!.width).toBeGreaterThanOrEqual(44);
-    expect(panBtnBox!.height).toBeGreaterThanOrEqual(44);
+    const fitBtn = page.locator('[data-testid="cad-tool-fit"]').first();
+    const fitBtnBox = await fitBtn.boundingBox();
+    expect(fitBtnBox).not.toBeNull();
+    expect(fitBtnBox!.width).toBeGreaterThanOrEqual(44);
+    expect(fitBtnBox!.height).toBeGreaterThanOrEqual(44);
 
     await layerBtn.click();
     const panel = page.locator('[data-testid="cad-layer-panel"]').first();

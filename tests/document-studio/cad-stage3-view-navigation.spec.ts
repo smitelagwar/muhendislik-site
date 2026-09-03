@@ -36,10 +36,10 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
     await page.waitForTimeout(100);
     await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
 
-    // 3. Pan tool button in quick rail is active by default
-    const panTool = page.locator('[data-testid="cad-tool-pan"]').first();
-    await expect(panTool).toBeVisible();
-    await expect(panTool).toHaveAttribute("aria-pressed", "true");
+    // 3. Pan is the native default navigation mode (select tool not pressed)
+    const selectTool = page.locator('[data-testid="cad-tool-select"]').first();
+    await expect(selectTool).toBeVisible();
+    await expect(selectTool).toHaveAttribute("aria-pressed", "false");
 
     // 4. Initial camera center
     const centerInitial = await page.evaluate(() => {
