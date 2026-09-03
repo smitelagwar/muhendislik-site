@@ -61,6 +61,8 @@ import {
   saveLocalCadReview,
 } from "@/lib/dokumantasyon/cad-review/schema";
 import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
+import { CAD_AUTOCAD_FONT_PARITY_V1 } from "@/lib/dokumantasyon/cad-font-fidelity-config";
+import type { CadFontParityEvaluation } from "@/lib/dokumantasyon/cad-font-registry";
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface DokCadUpstreamViewerProps {
@@ -152,6 +154,7 @@ export function DokCadUpstreamViewer({
     CompletedAreaMeasurement[]
   >([]);
   const [, setViewRevision] = useState(0);
+  const [fontDiagnostics, setFontDiagnostics] = useState<CadFontParityEvaluation | null>(null);
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
@@ -548,6 +551,9 @@ export function DokCadUpstreamViewer({
         if (timeoutId !== null) window.clearTimeout(timeoutId);
         timeoutId = null;
         if (cancelled || timedOut || abortController.signal.aborted) return;
+        if (adapterRef.current) {
+          setFontDiagnostics(adapterRef.current.getFontFidelityDiagnostics());
+        }
         setState("ready");
         setMessage("");
         onReady?.();
@@ -1023,6 +1029,11 @@ export function DokCadUpstreamViewer({
       data-cad-snap-modes={snapSettings.enabled ? selectedSnapModes : ""}
       data-cad-snap-selected-modes={selectedSnapModes}
       data-cad-timeout-ms={effectiveTimeoutMs}
+      data-cad-font-parity-flag={CAD_AUTOCAD_FONT_PARITY_V1 ? "on" : "off"}
+      data-cad-font-parity-exact={fontDiagnostics?.fontParityExact ? "true" : "false"}
+      data-cad-missing-fonts={fontDiagnostics?.missingFonts?.join(",") ?? ""}
+      data-cad-resolved-fonts={fontDiagnostics?.resolvedExactFonts?.join(",") ?? ""}
+      data-cad-fallback-fonts={fontDiagnostics?.fallbackFonts?.join(",") ?? ""}
     >
       {/* ── TOP RIBBON TOOLBAR ── */}
       {state === "ready" ? (

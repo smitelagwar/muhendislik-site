@@ -1,0 +1,29 @@
+[
+  {
+    "file": "Arial-Regular.ttf",
+    "type": "mesh",
+    "names": [
+      "arial",
+      "arial-regular",
+      "arial.ttf"
+    ],
+    "exact": true,
+    "licenseId": "system-redistributable",
+    "sourceNote": "Self-hosted Arial Regular TrueType mesh font"
+  },
+  {
+    "file": "Arial-Bold.ttf",
+    "type": "mesh",
+    "names": [
+      "arial-bold",
+      "arial-bold.ttf",
+      "arialb.ttf",
+      "arialbd.ttf",
+      "arialbd",
+      "arial bold"
+    ],
+    "exact": true,
+    "licenseId": "system-redistributable",
+    "sourceNote": "Self-hosted Arial Bold TrueType mesh font for ARIAL_BOLD / arialbd.ttf styles"
+  }
+]

@@ -58,6 +58,12 @@ export type {
 } from "./chain-distance";
 import type { CadRenderReadinessSnapshot } from "./readiness";
 export type { CadRenderReadinessSnapshot, CadResilienceState } from "./readiness";
+import { CAD_AUTOCAD_FONT_PARITY_V1 } from "../cad-font-fidelity-config";
+import {
+  evaluateCadFontParity,
+  type CadFontParityEvaluation,
+} from "../cad-font-registry";
+export type { CadFontParityEvaluation };
 
 export const CAD_UPSTREAM_WORKER_URLS = {
 
@@ -267,43 +273,91 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
     fontManager.awaitFontsBeforeDraw = true;
     fontManager.lazyFontLoading = true;
 
-    // Tüm standart ve yaygın CAD fontlarını dolu gövdeli yerel Arial fontuna haritalama
-    fontManager.setFontMapping({
-      standard: "arial",
-      txt: "arial",
-      "txt.shx": "arial",
-      romans: "arial",
-      "romans.shx": "arial",
-      simplex: "arial",
-      "simplex.shx": "arial",
-      isocpeur: "arial",
-      "isocpeur.ttf": "arial",
-      times: "arial",
-      "times new roman": "arial",
-      calibri: "arial",
-      arial: "arial",
-      "arial.ttf": "arial",
-    });
+    if (!CAD_AUTOCAD_FONT_PARITY_V1) {
+      // Tüm standart ve yaygın CAD fontlarını dolu gövdeli yerel Arial fontuna haritalama (Legacy / Flag OFF)
+      fontManager.setFontMapping({
+        standard: "arial",
+        txt: "arial",
+        "txt.shx": "arial",
+        romans: "arial",
+        "romans.shx": "arial",
+        simplex: "arial",
+        "simplex.shx": "arial",
+        isocpeur: "arial",
+        "isocpeur.ttf": "arial",
+        times: "arial",
+        "times new roman": "arial",
+        calibri: "arial",
+        arial: "arial",
+        "arial.ttf": "arial",
+      });
 
-    // Arial TrueType fontunu belleğe yükleyip önbelleğe alma (tel kafes fallback'i engeller)
-    if (typeof window !== "undefined" && !fontManager.isDefaultFontLoaded()) {
-      fetch("/cad-upstream/fonts/Arial-Regular.ttf")
-        .then((res) => (res.ok ? res.arrayBuffer() : null))
-        .then((buffer) => {
-          if (buffer) {
-            fontManager
-              .cacheFont(buffer, "Arial-Regular.ttf", [
-                "arial",
-                "standard",
-                "txt",
-                "romans",
-                "simplex",
-                "isocpeur",
-              ])
-              .catch((err) => console.warn("[cad-upstream] Font önbelleğe alınamadı:", err));
+      // Arial TrueType fontunu belleğe yükleyip önbelleğe alma (tel kafes fallback'i engeller)
+      if (typeof window !== "undefined" && !fontManager.isDefaultFontLoaded()) {
+        fetch("/cad-upstream/fonts/Arial-Regular.ttf")
+          .then((res) => (res.ok ? res.arrayBuffer() : null))
+          .then((buffer) => {
+            if (buffer) {
+              fontManager
+                .cacheFont(buffer, "Arial-Regular.ttf", [
+                  "arial",
+                  "standard",
+                  "txt",
+                  "romans",
+                  "simplex",
+                  "isocpeur",
+                ])
+                .catch((err) => console.warn("[cad-upstream] Font önbelleğe alınamadı:", err));
+            }
+          })
+          .catch((err) => console.warn("[cad-upstream] Font yüklenemedi:", err));
+      }
+    } else {
+      // Yeni Exact CAD Font Parite Yolu (Flag ON):
+      // SHX fontları Arial'a map edilmez; yalnız gerçek mesh font alias'ları korunur
+      fontManager.setFontMapping({
+        arial: "arial",
+        "arial.ttf": "arial",
+        "arial-regular": "arial",
+        "arial-bold": "arial-bold",
+        "arial-bold.ttf": "arial-bold",
+        "arialbd.ttf": "arial-bold",
+        arialbd: "arial-bold",
+        "arial bold": "arial-bold",
+        "arialb.ttf": "arial-bold",
+      });
+
+      // Awaited deterministik preload: Regular ve Bold fontlar yüklenmeden devam edilmez
+      if (typeof window !== "undefined") {
+        try {
+          const [regularRes, boldRes] = await Promise.all([
+            fetch("/cad-upstream/fonts/Arial-Regular.ttf"),
+            fetch("/cad-upstream/fonts/Arial-Bold.ttf"),
+          ]);
+
+          if (regularRes.ok) {
+            const buf = await regularRes.arrayBuffer();
+            await fontManager.cacheFont(buf, "Arial-Regular.ttf", [
+              "arial",
+              "arial-regular",
+              "arial.ttf",
+            ]);
           }
-        })
-        .catch((err) => console.warn("[cad-upstream] Font yüklenemedi:", err));
+          if (boldRes.ok) {
+            const buf = await boldRes.arrayBuffer();
+            await fontManager.cacheFont(buf, "Arial-Bold.ttf", [
+              "arial-bold",
+              "arial-bold.ttf",
+              "arialb.ttf",
+              "arialbd.ttf",
+              "arialbd",
+              "arial bold",
+            ]);
+          }
+        } catch (err) {
+          console.warn("[cad-upstream] Parite font preload hatası:", err);
+        }
+      }
     }
 
     // 3. Perde Taramalarının Opaklığı (Hatch Opacity)
@@ -442,7 +496,13 @@ export class CadUpstreamAdapter {
     string,
     { isOn: boolean; isFrozen: boolean }
   >();
-
+  private fontDiagnostics: CadFontParityEvaluation = {
+    fontParityExact: true,
+    requestedFonts: [],
+    resolvedExactFonts: [],
+    fallbackFonts: [],
+    missingFonts: [],
+  };
 
   private constructor(
     private readonly manager: AcApDocManager,
@@ -534,6 +594,30 @@ export class CadUpstreamAdapter {
 
     options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
     const bytes = await fetchCadSource(options.accessUrl, options.signal);
+
+    if (CAD_AUTOCAD_FONT_PARITY_V1) {
+      const requested = extractDxfOrDwgFonts(bytes, extension);
+      this.fontDiagnostics = evaluateCadFontParity(requested);
+
+      const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
+      const fontManager = mtextRenderer?.FontManager?.instance;
+      if (fontManager?.events?.fontNotFound?.subscribe) {
+        fontManager.events.fontNotFound.subscribe(({ fontName }) => {
+          if (fontName && !this.fontDiagnostics.missingFonts.includes(fontName)) {
+            this.fontDiagnostics.missingFonts.push(fontName);
+            this.fontDiagnostics.fontParityExact = false;
+          }
+        });
+      }
+    } else {
+      this.fontDiagnostics = {
+        fontParityExact: false,
+        requestedFonts: [],
+        resolvedExactFonts: [],
+        fallbackFonts: [],
+        missingFonts: [],
+      };
+    }
 
     const isDwg = extension.includes("dwg");
     options.onPhase?.(
@@ -1397,6 +1481,16 @@ export class CadUpstreamAdapter {
     };
   }
 
+  getFontFidelityDiagnostics(): CadFontParityEvaluation {
+    return {
+      fontParityExact: this.fontDiagnostics.fontParityExact,
+      requestedFonts: [...this.fontDiagnostics.requestedFonts],
+      resolvedExactFonts: [...this.fontDiagnostics.resolvedExactFonts],
+      fallbackFonts: [...this.fontDiagnostics.fallbackFonts],
+      missingFonts: [...this.fontDiagnostics.missingFonts],
+    };
+  }
+
   async destroy(): Promise<void> {
     if (this.destroyed) return;
     this.destroyed = true;
@@ -1441,5 +1535,81 @@ export class CadUpstreamAdapter {
     } catch {
       // Bounded manager destroy fallback
     }
+  }
+}
+
+function extractDxfOrDwgFonts(inputBytes: ArrayBuffer | Uint8Array, extension: string): string[] {
+  const bytes = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
+  const isDxf = extension.includes("dxf") || bytes[0] === 0x20 || bytes[0] === 0x30;
+  if (!isDxf) return [];
+
+  try {
+    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+    const lines = text.replace(/\r\n?/g, "\n").split("\n");
+    const styleFontMap = new Map<string, string>();
+    const usedStyles = new Set<string>();
+
+    let inTableStyle = false;
+    let currentStyleName = "";
+    let currentFont = "";
+
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+      const code = Number.parseInt(lines[i].trim(), 10);
+      const val = lines[i + 1]?.trim() ?? "";
+
+      if (code === 0 && val === "TABLE") {
+        if (i + 3 < lines.length && Number.parseInt(lines[i + 2].trim(), 10) === 2 && lines[i + 3].trim().toUpperCase() === "STYLE") {
+          inTableStyle = true;
+        }
+      } else if (code === 0 && val === "ENDTAB") {
+        if (currentStyleName && currentFont) {
+          styleFontMap.set(currentStyleName.toUpperCase(), currentFont);
+        }
+        inTableStyle = false;
+      }
+
+      if (inTableStyle) {
+        if (code === 0 && val === "STYLE") {
+          if (currentStyleName && currentFont) {
+            styleFontMap.set(currentStyleName.toUpperCase(), currentFont);
+          }
+          currentStyleName = "";
+          currentFont = "";
+        } else if (code === 2) {
+          currentStyleName = val;
+        } else if (code === 3) {
+          currentFont = val;
+        }
+      }
+
+      // Entity style kullanımı (Group code 7)
+      if (code === 7 && val) {
+        usedStyles.add(val.toUpperCase());
+      }
+    }
+
+    if (currentStyleName && currentFont) {
+      styleFontMap.set(currentStyleName.toUpperCase(), currentFont);
+    }
+
+    const requestedFonts = new Set<string>();
+    for (const styleName of usedStyles) {
+      const fontFile = styleFontMap.get(styleName);
+      if (fontFile) {
+        requestedFonts.add(fontFile);
+      } else {
+        requestedFonts.add(styleName);
+      }
+    }
+
+    if (requestedFonts.size === 0) {
+      for (const fontFile of styleFontMap.values()) {
+        requestedFonts.add(fontFile);
+      }
+    }
+
+    return Array.from(requestedFonts);
+  } catch {
+    return [];
   }
 }

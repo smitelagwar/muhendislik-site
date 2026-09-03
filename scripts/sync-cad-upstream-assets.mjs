@@ -1,4 +1,4 @@
-import { copyFile, mkdir, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -65,63 +65,85 @@ for (const asset of assets) {
 const fontsOutputDir = join(outputDir, "fonts");
 await mkdir(fontsOutputDir, { recursive: true });
 
-const fontAssets = [
-  {
-    source: join(root, "public", "fonts", "Arial-Regular.ttf"),
-    target: join(fontsOutputDir, "Arial-Regular.ttf"),
-  },
-  {
-    source: join(root, "public", "fonts", "Arial-Bold.ttf"),
-    target: join(fontsOutputDir, "Arial-Bold.ttf"),
-  },
-];
+// Tek kaynak: src/lib/dokumantasyon/cad-font-manifest.json
+const manifestPath = join(root, "src", "lib", "dokumantasyon", "cad-font-manifest.json");
+const manifestRaw = await readFile(manifestPath, "utf8");
+const manifestItems = JSON.parse(manifestRaw);
 
-for (const fontAsset of fontAssets) {
-  const sourceStat = await stat(fontAsset.source).catch(() => null);
-  if (!sourceStat?.isFile() || sourceStat.size <= 0) {
-    throw new Error(`Required font asset is missing: ${fontAsset.source}`);
-  }
-  await copyFile(fontAsset.source, fontAsset.target);
-  const targetStat = await stat(fontAsset.target);
-  if (targetStat.size !== sourceStat.size) {
-    throw new Error(`Font asset copy size mismatch: ${fontAsset.target}`);
-  }
-  console.log(
-    `[cad-upstream] synced font ${fontAsset.target.slice(root.length + 1)} (${targetStat.size} bytes)`
-  );
+if (!Array.isArray(manifestItems) || manifestItems.length === 0) {
+  throw new Error("CAD font manifest is empty or invalid: " + manifestPath);
 }
 
-const fontsManifest = [
-  {
-    file: "Arial-Regular.ttf",
-    name: [
-      "arial",
-      "arial-regular",
-      "arial.ttf",
-      "standard",
-      "txt",
-      "txt.shx",
-      "romans",
-      "romans.shx",
-      "simplex",
-      "simplex.shx",
-      "isocpeur",
-      "isocpeur.ttf",
-      "times",
-      "times new roman",
-      "calibri",
-    ],
-    type: "mesh",
-  },
-  {
-    file: "Arial-Bold.ttf",
-    name: ["arial-bold", "arial-bold.ttf", "arialb.ttf"],
-    type: "mesh",
-  },
-];
+const seenAliases = new Map();
+const processedFontsManifest = [];
+
+for (const item of manifestItems) {
+  if (!item.file || !Array.isArray(item.names) || item.names.length === 0) {
+    throw new Error(`Invalid manifest entry: ${JSON.stringify(item)}`);
+  }
+
+  // Dosya public/fonts/ veya public/fonts/cad/ içinde aranır
+  const candidatePaths = [
+    join(root, "public", "fonts", item.file),
+    join(root, "public", "fonts", "cad", item.file),
+  ];
+
+  let sourcePath = null;
+  let sourceStat = null;
+  for (const cand of candidatePaths) {
+    const s = await stat(cand).catch(() => null);
+    if (s?.isFile() && s.size > 0) {
+      sourcePath = cand;
+      sourceStat = s;
+      break;
+    }
+  }
+
+  if (!sourcePath || !sourceStat) {
+    throw new Error(`Required font asset is missing or empty in public/fonts/ or public/fonts/cad/: ${item.file}`);
+  }
+
+  const targetPath = join(fontsOutputDir, item.file);
+  await copyFile(sourcePath, targetPath);
+  const targetStat = await stat(targetPath);
+  if (targetStat.size !== sourceStat.size) {
+    throw new Error(`Font asset copy size mismatch: ${targetPath}`);
+  }
+  console.log(
+    `[cad-upstream] synced font ${targetPath.slice(root.length + 1)} (${targetStat.size} bytes)`
+  );
+
+  // Alias çakışması kontrolü (fail-fast)
+  for (const name of item.names) {
+    const normalized = name.trim().toLowerCase();
+    if (seenAliases.has(normalized)) {
+      const prevFile = seenAliases.get(normalized);
+      if (prevFile !== item.file) {
+        throw new Error(
+          `Font alias conflict: alias "${name}" is assigned to both "${prevFile}" and "${item.file}"`
+        );
+      }
+    }
+    seenAliases.set(normalized, item.file);
+  }
+
+  // Type: .shx -> "shx", .ttf/.otf/.woff -> "mesh"
+  const isShx = item.file.toLowerCase().endsWith(".shx");
+  const fontType = item.type ?? (isShx ? "shx" : "mesh");
+
+  processedFontsManifest.push({
+    file: item.file,
+    name: [...item.names].sort((a, b) => a.localeCompare(b)),
+    type: fontType,
+    ...(item.encoding ? { encoding: item.encoding } : {}),
+  });
+}
+
+// Deterministik alfabetik sıralama (aynı input her zaman aynı JSON hash'ini üretir)
+processedFontsManifest.sort((a, b) => a.file.localeCompare(b.file));
 
 const fontsManifestPath = join(fontsOutputDir, "fonts.json");
-await writeFile(fontsManifestPath, JSON.stringify(fontsManifest, null, 2), "utf8");
+await writeFile(fontsManifestPath, JSON.stringify(processedFontsManifest, null, 2) + "\n", "utf8");
 console.log(`[cad-upstream] wrote ${fontsManifestPath.slice(root.length + 1)}`);
 
 const gplNotice = `MLightCAD LibreDWG browser component\n\n@mlightcad/libredwg-converter ${LIBREDWG_CONVERTER_VERSION} — GPL-3.0\n@mlightcad/libredwg-web ${LIBREDWG_WEB_VERSION}\n\nCorresponding upstream source snapshot:\nhttps://github.com/mlightcad/realdwg-web/tree/${LIBREDWG_SOURCE_COMMIT}\n\nGPL-3.0 license text:\nhttps://www.gnu.org/licenses/gpl-3.0.html\n\nDistributed assets:\n- libredwg-parser-worker.js\n- libredwg-web.wasm\n\nRepository notice: THIRD_PARTY_NOTICES.md\n`;
