@@ -80,6 +80,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/cad-upstream/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/(.*)\\.(ico|png|jpg|jpeg|svg|webp|avif)",
         headers: [
           {

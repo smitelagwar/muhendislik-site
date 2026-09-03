@@ -25,6 +25,7 @@ export function resolveCadUpstreamTimeoutMs(sizeBytes: number): number {
   if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return CAD_UPSTREAM_TOTAL_TIMEOUT_MS;
   if (sizeBytes > CAD_UPSTREAM_LARGE_FILE_BYTES) return CAD_UPSTREAM_LARGE_TIMEOUT_MS;
   if (sizeBytes > CAD_UPSTREAM_MEDIUM_FILE_BYTES) return CAD_UPSTREAM_MEDIUM_TIMEOUT_MS;
+  if (sizeBytes >= 2 * 1024 * 1024) return 90_000;
   return CAD_UPSTREAM_TOTAL_TIMEOUT_MS;
 }
 
