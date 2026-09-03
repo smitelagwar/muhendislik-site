@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { ArrowLeft, SlidersHorizontal, Maximize2, Minimize2 } from "lucide-react";
 import { PreviewKind } from "@/lib/dokumantasyon/preview-capabilities";
 import { StudioTopbar } from "./studio-topbar";
 import { CreateShareModal } from "../modals/create-share-modal";
@@ -76,6 +77,49 @@ export function DocumentStudioShell({
   const [editedContent, setEditedContent] = useState<string | null>(null);
   const [currentVersionNo, setCurrentVersionNo] = useState<number>(versionNo);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Mobil Yatay (Landscape) Modu Takibi
+  const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isLandscapeBarsHidden, setIsLandscapeBarsHidden] = useState(true);
+
+  useEffect(() => {
+    const checkMobileLandscape = () => {
+      if (typeof window === "undefined") return false;
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const isSmallHeight = window.innerHeight <= 560;
+      const isMobileWidth = window.innerWidth <= 1024;
+      return isLandscape && isSmallHeight && isMobileWidth;
+    };
+
+    const handleResizeOrOrientation = () => {
+      const nowLandscape = checkMobileLandscape();
+      setIsMobileLandscape((prev) => {
+        if (!prev && nowLandscape) {
+          setIsLandscapeBarsHidden(true);
+        }
+        if (!nowLandscape) {
+          setIsLandscapeBarsHidden(false);
+        }
+        return nowLandscape;
+      });
+    };
+
+    handleResizeOrOrientation();
+
+    window.addEventListener("resize", handleResizeOrOrientation);
+    window.addEventListener("orientationchange", handleResizeOrOrientation);
+    if (typeof screen !== "undefined" && screen.orientation) {
+      screen.orientation.addEventListener("change", handleResizeOrOrientation);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResizeOrOrientation);
+      window.removeEventListener("orientationchange", handleResizeOrOrientation);
+      if (typeof screen !== "undefined" && screen.orientation) {
+        screen.orientation.removeEventListener("change", handleResizeOrOrientation);
+      }
+    };
+  }, []);
 
   // Modallar
   const [isCreateShareOpen, setIsCreateShareOpen] = useState(false);
@@ -320,8 +364,11 @@ export function DocumentStudioShell({
   return (
     <div
       ref={studioRootRef}
+      id="document-studio-shell"
       data-testid="document-studio-shell"
       data-studio-locked="true"
+      data-mobile-landscape={isMobileLandscape ? "true" : "false"}
+      data-mobile-landscape-hidden={isMobileLandscape && isLandscapeBarsHidden ? "true" : "false"}
       className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden overscroll-none bg-background text-foreground select-none"
     >
       {/* 1. Minimal Stüdyo Üst Çubuğu */}
@@ -331,6 +378,8 @@ export function DocumentStudioShell({
         isDirty={isDirty}
         versionNo={currentVersionNo}
         isFullscreen={isFullscreen}
+        isMobileLandscape={isMobileLandscape}
+        onHideLandscapeBars={() => setIsLandscapeBarsHidden(true)}
         onBack={handleBack}
         onShare={() => setIsCreateShareOpen(true)}
         onDownload={handleDownload}
@@ -340,6 +389,49 @@ export function DocumentStudioShell({
         onSave={isEditableKind ? handleSaveVersion : undefined}
         isSaving={isSaving}
       />
+
+      {/* Mobil Yatayda Çubuklar Gizliyken Gösterilen Yüzen Hızlı Kontrol Kapsülü */}
+      {isMobileLandscape && isLandscapeBarsHidden && (
+        <div
+          data-testid="mobile-landscape-quick-controls"
+          className="fixed top-2.5 right-2.5 z-[250] flex items-center gap-1.5 rounded-full bg-card/90 border border-border/80 p-1 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2"
+        >
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            title="Geri Dön"
+            aria-label="Geri Dön"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsLandscapeBarsHidden(false)}
+            className="flex h-8 items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 text-xs font-bold text-amber-500 hover:bg-amber-500/25 transition-colors cursor-pointer shadow-sm"
+            title="Üst araç çubuğunu ve başlığı geçici olarak göster"
+            aria-label="Araçları Göster"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Araçlar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleFullscreen}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+            aria-label="Tam Ekran"
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* 2. Tam Görünüm (Full-Viewport) İçerik Alanı */}
       <main className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">

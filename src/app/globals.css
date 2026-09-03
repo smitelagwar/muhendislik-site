@@ -1537,3 +1537,19 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
   height: 1.15em;
   position: relative;
 }
+
+/* ============================================================================
+   DOCUMENT STUDIO — MOBİL YATAY (LANDSCAPE) İMMERSIVE MODU
+   ============================================================================ */
+[data-mobile-landscape-hidden="true"] [data-cad-studio-ribbon="true"],
+[data-mobile-landscape-hidden="true"] [data-testid="document-studio-topbar"] {
+  display: none !important;
+}
+
+@media (max-width: 1024px) and (orientation: landscape) and (max-height: 560px) {
+  [data-mobile-landscape-hidden="true"] [data-cad-studio-ribbon="true"],
+  [data-mobile-landscape-hidden="true"] [data-testid="document-studio-topbar"] {
+    display: none !important;
+  }
+}
+

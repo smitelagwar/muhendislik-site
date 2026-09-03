@@ -4,7 +4,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Share2,
@@ -15,8 +15,12 @@ import {
   Edit3,
   Trash2,
   Save,
+  Sun,
+  Moon,
+  PanelTopClose,
+  FileText,
 } from "lucide-react";
-import { formatBytes, getFileIcon } from "../ui-helpers";
+import { formatBytes, formatDate, getFileIcon } from "../ui-helpers";
 import { StudioCommandButton } from "./studio-command-button";
 import {
   DropdownMenu,
@@ -27,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PreviewKind } from "@/lib/dokumantasyon/preview-capabilities";
 import { ModeToggle } from "@/components/mode-toggle";
+import { useTheme } from "next-themes";
 
 interface StudioTopbarProps {
   file: {
@@ -36,11 +41,14 @@ interface StudioTopbarProps {
     mime_type: string;
     extension: string;
     folder_id: string | null;
+    created_at?: string;
   };
   previewKind: PreviewKind;
   isDirty?: boolean;
   versionNo?: number;
   isFullscreen?: boolean;
+  isMobileLandscape?: boolean;
+  onHideLandscapeBars?: () => void;
   onBack: () => void;
   onShare: () => void;
   onDownload: () => void;
@@ -56,6 +64,8 @@ export function StudioTopbar({
   isDirty = false,
   versionNo = 1,
   isFullscreen = false,
+  isMobileLandscape = false,
+  onHideLandscapeBars,
   onBack,
   onShare,
   onDownload,
@@ -66,6 +76,24 @@ export function StudioTopbar({
   isSaving = false,
   actionsSlot,
 }: StudioTopbarProps & { onSave?: () => void; isSaving?: boolean }) {
+  const { setTheme, resolvedTheme } = useTheme();
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      const updateContainer = () => {
+        const el =
+          (document.fullscreenElement as HTMLElement) ||
+          document.getElementById("document-studio-shell") ||
+          document.body;
+        setPortalContainer(el);
+      };
+      updateContainer();
+      document.addEventListener("fullscreenchange", updateContainer);
+      return () => document.removeEventListener("fullscreenchange", updateContainer);
+    }
+  }, [isFullscreen]);
+
   return (
     <header
       data-testid="document-studio-topbar"
@@ -136,6 +164,20 @@ export function StudioTopbar({
 
       {/* Sağ Alan: Eylem Butonları */}
       <div className="flex items-center gap-2 shrink-0">
+        {/* Mobil yatay modda kullanıcı geçici açtıysa tek tuşla tekrar gizleme imkanı */}
+        {isMobileLandscape && onHideLandscapeBars && (
+          <button
+            type="button"
+            onClick={onHideLandscapeBars}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-2.5 text-xs font-bold text-amber-500 hover:bg-amber-500/25 transition-colors cursor-pointer shadow-sm"
+            title="Çizimi tam ekran görmek için çubukları gizle"
+            aria-label="Çubukları Gizle"
+          >
+            <PanelTopClose className="h-3.5 w-3.5" />
+            <span className="text-[11px]">Gizle</span>
+          </button>
+        )}
+
         <div className="hidden origin-right scale-90 sm:block" aria-label="Tema kontrolü">
           <ModeToggle />
         </div>
@@ -190,42 +232,123 @@ export function StudioTopbar({
           }
         />
 
-        {/* Ekstra Aksiyonlar Menüsü */}
+        {/* Ekstra Aksiyonlar Menüsü (3 Nokta) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
+              type="button"
               aria-label="Daha Fazla İşlem"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              data-testid="studio-more-options-trigger"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
+          <DropdownMenuContent
+            align="end"
+            container={portalContainer}
+            className="z-[300] w-60 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1.5"
+          >
+            {/* 1. Paylaşım Linki */}
+            <DropdownMenuItem
+              data-command-id="studio.share"
+              onClick={onShare}
+              className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2"
+            >
+              <Share2 className="h-3.5 w-3.5 text-amber-500" />
+              <span>Paylaşım Linki Oluştur</span>
+            </DropdownMenuItem>
+
+            {/* 2. Orijinalini İndir */}
+            <DropdownMenuItem
+              data-command-id="studio.download"
+              onClick={onDownload}
+              className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2"
+            >
+              <Download className="h-3.5 w-3.5 text-amber-500" />
+              <span>Orijinalini İndir ({formatBytes(file.size_bytes)})</span>
+            </DropdownMenuItem>
+
+            {/* 3. Yeniden Adlandır (varsa) */}
             {onRename && (
               <DropdownMenuItem
                 data-command-id="studio.rename"
                 onClick={onRename}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
+                className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2"
               >
                 <Edit3 className="h-3.5 w-3.5 text-blue-500" />
                 <span>Yeniden Adlandır</span>
               </DropdownMenuItem>
             )}
+
+            {/* 4. Tam Ekran Aç / Kapat */}
             <DropdownMenuItem
-              data-command-id="studio.download"
-              onClick={onDownload}
-              className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
+              data-command-id="studio.fullscreen"
+              onClick={onToggleFullscreen}
+              className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2"
             >
-              <Download className="h-3.5 w-3.5 text-amber-500" />
-              <span>Orijinalini İndir</span>
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="h-3.5 w-3.5 text-foreground/80" />
+                  <span>Tam Ekrandan Çık</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-3.5 w-3.5 text-foreground/80" />
+                  <span>Tam Ekran Yap</span>
+                </>
+              )}
             </DropdownMenuItem>
+
+            {/* 5. Tema Değiştir */}
+            <DropdownMenuItem
+              data-command-id="studio.theme"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2"
+            >
+              {resolvedTheme === "dark" ? (
+                <>
+                  <Sun className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Açık Temaya Geç</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="h-3.5 w-3.5 text-blue-400" />
+                  <span>Koyu Temaya Geç</span>
+                </>
+              )}
+            </DropdownMenuItem>
+
+            {/* 6. Dosya Bilgileri Özeti */}
+            <DropdownMenuSeparator className="bg-border/60 my-1" />
+            <div className="px-2 py-1.5 text-[11px] text-muted-foreground flex flex-col gap-0.5 select-text">
+              <div className="flex items-center gap-1.5 font-medium text-foreground truncate">
+                <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="truncate">{file.display_name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="font-mono">{formatBytes(file.size_bytes)}</span>
+                <span>•</span>
+                <span className="uppercase font-bold text-amber-500/90 font-mono">
+                  {file.extension.replace(".", "") || previewKind}
+                </span>
+                {file.created_at && (
+                  <>
+                    <span>•</span>
+                    <span>{formatDate(file.created_at)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 7. Çöp Kutusuna At (varsa) */}
             {onDelete && (
               <>
-                <DropdownMenuSeparator className="bg-border/60" />
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
                 <DropdownMenuItem
                   data-command-id="studio.delete"
                   onClick={onDelete}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg font-medium"
+                  className="flex items-center gap-2.5 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg py-2 font-medium"
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />
                   <span>Çöp Kutusuna At</span>
