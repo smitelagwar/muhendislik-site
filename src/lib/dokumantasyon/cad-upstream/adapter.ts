@@ -623,6 +623,10 @@ export class CadUpstreamAdapter {
       options.busyIndicatorHost ?? options.container
     );
 
+    try {
+      options.container.replaceChildren();
+    } catch {}
+
     const manager = Viewer.AcApDocManager.createInstance({
       container: options.container,
       busyIndicatorHost: options.busyIndicatorHost ?? options.container,
@@ -796,6 +800,7 @@ export class CadUpstreamAdapter {
     this.configureMobilePinchZoom();
     this.configureSnapRuntime();
     this.configureMobileGestureGuard();
+    this.attachCanvasContextLostHandler();
 
     if (typeof window !== "undefined") {
       (window as unknown as { __cadAdapter?: unknown }).__cadAdapter = this;
@@ -1632,6 +1637,108 @@ export class CadUpstreamAdapter {
     };
   }
 
+  getCanvas(): HTMLCanvasElement | null {
+    return (this.container?.querySelector("canvas") as HTMLCanvasElement | null) ?? null;
+  }
+
+  isContextLost(): boolean {
+    const canvas = this.getCanvas();
+    if (!canvas) return false;
+    const gl = (canvas.getContext("webgl2") || canvas.getContext("webgl")) as WebGLRenderingContext | null;
+    return Boolean(gl && gl.isContextLost && gl.isContextLost());
+  }
+
+  private attachCanvasContextLostHandler(): void {
+    const canvas = this.getCanvas();
+    if (!canvas) return;
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      console.warn("[cad-upstream] Canvas WebGL context lost; preventDefault() çağrıldı (kurtarmaya izin verildi).");
+    };
+    canvas.addEventListener("webglcontextlost", onContextLost, false);
+  }
+
+  resumeAfterBackground(): void {
+    if (this.destroyed) return;
+
+    this.mobileGestureGuard?.reset();
+    this.distanceMeasurementController?.cancel(false);
+    this.chainDistanceMeasurementController?.cancel(false);
+    this.areaMeasurementController?.cancel(false);
+
+    const view = this.getActiveLayoutView();
+    if (view) {
+      view.enabled = true;
+      const controls = (view as unknown as {
+        _cameraControls?: {
+          disconnect?: () => void;
+          connect?: () => void;
+          state?: number;
+          pointers?: unknown[];
+          pointerPositions?: Map<unknown, unknown>;
+          update?: () => void;
+        };
+      })._cameraControls;
+
+      if (controls) {
+        try {
+          if (typeof controls.disconnect === "function" && typeof controls.connect === "function") {
+            controls.disconnect();
+            controls.connect();
+          }
+          if (controls.state !== undefined) {
+            controls.state = -1;
+          }
+          if (Array.isArray(controls.pointers)) {
+            controls.pointers.length = 0;
+          }
+          if (controls.pointerPositions && typeof controls.pointerPositions.clear === "function") {
+            controls.pointerPositions.clear();
+          }
+          controls.update?.();
+        } catch (err) {
+          console.warn("[cad-upstream] Controls reset uyarısı:", err);
+        }
+      }
+
+      try {
+        const anyView = view as unknown as {
+          onWindowResize?: () => void;
+          startAnimationLoop?: () => void;
+          _isDirty?: boolean;
+        };
+        anyView.onWindowResize?.();
+        anyView.startAnimationLoop?.();
+        if (anyView._isDirty !== undefined) {
+          anyView._isDirty = true;
+        }
+      } catch (err) {
+        console.warn("[cad-upstream] View wake up uyarısı:", err);
+      }
+    }
+
+    if (this.manager.curView) {
+      try {
+        const anyCurView = this.manager.curView as unknown as {
+          onWindowResize?: () => void;
+          startAnimationLoop?: () => void;
+          _isDirty?: boolean;
+        };
+        anyCurView.onWindowResize?.();
+        anyCurView.startAnimationLoop?.();
+        if (anyCurView._isDirty !== undefined) {
+          anyCurView._isDirty = true;
+        }
+      } catch (err) {
+        console.warn("[cad-upstream] curView wake up uyarısı:", err);
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("resize"));
+    }
+  }
+
   async destroy(): Promise<void> {
     if (this.destroyed) return;
     this.destroyed = true;
@@ -1663,6 +1770,7 @@ export class CadUpstreamAdapter {
 
     this.displayMode = "source";
     this.applyDisplayMode();
+    const targetContainer = this.container;
     if (this.container) {
       delete (this.container as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter;
       this.container = null;
@@ -1675,6 +1783,12 @@ export class CadUpstreamAdapter {
       ]);
     } catch {
       // Bounded manager destroy fallback
+    }
+
+    if (targetContainer) {
+      try {
+        targetContainer.replaceChildren();
+      } catch {}
     }
   }
 }

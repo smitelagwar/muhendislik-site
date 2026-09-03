@@ -452,6 +452,9 @@ export function DokCadUpstreamViewer({
     let unsubscribeLayers: (() => void) | null = null;
     let unsubscribeViewChanged: (() => void) | null = null;
     let timeoutId: number | null = null;
+    let handleVisibilityChange: (() => void) | null = null;
+    let handlePageShow: ((e: PageTransitionEvent) => void) | null = null;
+    let handleContextRestored: (() => void) | null = null;
 
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
@@ -557,6 +560,44 @@ export function DokCadUpstreamViewer({
         setState("ready");
         setMessage("");
         onReady?.();
+
+        handleVisibilityChange = () => {
+          if (document.visibilityState === "visible") {
+            const currentAdapter = adapterRef.current;
+            if (!currentAdapter || cancelled) return;
+
+            if (currentAdapter.isContextLost()) {
+              console.warn(
+                "[cad-upstream-viewer] Mobil arka plandan dönerken WebGL bağlam kaybı algılandı. Otomatik kurtarılıyor..."
+              );
+              setRetryKey((k) => k + 1);
+            } else {
+              currentAdapter.resumeAfterBackground();
+            }
+          }
+        };
+
+        handlePageShow = (e: PageTransitionEvent) => {
+          if (e.persisted) {
+            setRetryKey((k) => k + 1);
+          } else {
+            handleVisibilityChange?.();
+          }
+        };
+
+        handleContextRestored = () => {
+          if (!cancelled) {
+            console.log(
+              "[cad-upstream-viewer] WebGL context restored algılandı. Viewer taze başlatılıyor..."
+            );
+            setRetryKey((k) => k + 1);
+          }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("pageshow", handlePageShow);
+        window.addEventListener("focus", handleVisibilityChange);
+        viewport.addEventListener("webglcontextrestored", handleContextRestored, true);
       } catch (error) {
         if (timeoutId !== null) window.clearTimeout(timeoutId);
         timeoutId = null;
@@ -571,6 +612,19 @@ export function DokCadUpstreamViewer({
         if (unsubscribeViewChanged) {
           unsubscribeViewChanged();
           unsubscribeViewChanged = null;
+        }
+        if (handleVisibilityChange) {
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          window.removeEventListener("focus", handleVisibilityChange);
+          handleVisibilityChange = null;
+        }
+        if (handlePageShow) {
+          window.removeEventListener("pageshow", handlePageShow);
+          handlePageShow = null;
+        }
+        if (handleContextRestored) {
+          viewport.removeEventListener("webglcontextrestored", handleContextRestored, true);
+          handleContextRestored = null;
         }
 
         if (adapter) {
@@ -607,6 +661,19 @@ export function DokCadUpstreamViewer({
       if (unsubscribeViewChanged) {
         unsubscribeViewChanged();
         unsubscribeViewChanged = null;
+      }
+      if (handleVisibilityChange) {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("focus", handleVisibilityChange);
+        handleVisibilityChange = null;
+      }
+      if (handlePageShow) {
+        window.removeEventListener("pageshow", handlePageShow);
+        handlePageShow = null;
+      }
+      if (handleContextRestored) {
+        viewport.removeEventListener("webglcontextrestored", handleContextRestored, true);
+        handleContextRestored = null;
       }
 
       if (adapterRef.current === adapter) adapterRef.current = null;

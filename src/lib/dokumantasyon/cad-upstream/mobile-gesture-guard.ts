@@ -22,10 +22,20 @@ export class CadMobileGestureGuard {
     host.addEventListener("pointerup", this.handlePointerEnd, true);
     host.addEventListener("pointercancel", this.handlePointerEnd, true);
     host.addEventListener("lostpointercapture", this.handlePointerEnd, true);
+    if (typeof window !== "undefined") {
+      window.addEventListener("blur", this.handleReset, true);
+      window.addEventListener("pagehide", this.handleReset, true);
+      document.addEventListener("visibilitychange", this.handleReset, true);
+    }
   }
 
   get isMultiTouchActive(): boolean {
     return this.multiTouchActive;
+  }
+
+  reset(): void {
+    this.activeTouchPointers.clear();
+    this.multiTouchActive = false;
   }
 
   destroy(): void {
@@ -33,9 +43,17 @@ export class CadMobileGestureGuard {
     this.host.removeEventListener("pointerup", this.handlePointerEnd, true);
     this.host.removeEventListener("pointercancel", this.handlePointerEnd, true);
     this.host.removeEventListener("lostpointercapture", this.handlePointerEnd, true);
-    this.activeTouchPointers.clear();
-    this.multiTouchActive = false;
+    if (typeof window !== "undefined") {
+      window.removeEventListener("blur", this.handleReset, true);
+      window.removeEventListener("pagehide", this.handleReset, true);
+      document.removeEventListener("visibilitychange", this.handleReset, true);
+    }
+    this.reset();
   }
+
+  private readonly handleReset = (): void => {
+    this.reset();
+  };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (event.pointerType !== "touch") return;

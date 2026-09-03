@@ -306,6 +306,8 @@ export class CadPressHoldDistanceController {
     if (typeof window !== "undefined") {
       window.addEventListener("keydown", this.handleKeyDown, true);
       window.addEventListener("keyup", this.handleKeyUp, true);
+      window.addEventListener("blur", this.handleWindowBlur, true);
+      document.addEventListener("visibilitychange", this.handleVisibilityChange, true);
     }
   }
 
@@ -419,8 +421,27 @@ export class CadPressHoldDistanceController {
     if (typeof window !== "undefined") {
       window.removeEventListener("keydown", this.handleKeyDown, true);
       window.removeEventListener("keyup", this.handleKeyUp, true);
+      window.removeEventListener("blur", this.handleWindowBlur, true);
+      document.removeEventListener("visibilitychange", this.handleVisibilityChange, true);
     }
   }
+
+  private readonly handleWindowBlur = (): void => {
+    this.isShiftDown = false;
+    this.isMouseDown = false;
+    this.clearHoldTimer();
+    if (this.machine.activePointerId !== null) {
+      this.emit(this.machine.cancelPointer(this.machine.activePointerId));
+    }
+    this.pointerStart = null;
+    this.lastScreenPoint = null;
+  };
+
+  private readonly handleVisibilityChange = (): void => {
+    if (document.visibilityState === "hidden") {
+      this.handleWindowBlur();
+    }
+  };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (!this.machine.isActive || event.button > 0 || !event.isPrimary) return;
