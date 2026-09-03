@@ -31,6 +31,10 @@ const MODE_COPY: Record<CadSnapMode, { label: string; description: string }> = {
     label: "En Yakın",
     description: "İşaretçiye en yakın geometri noktası",
   },
+  perpendicular: {
+    label: "Dik (Perpendicular)",
+    description: "Referans noktasına tam 90° dik kesişim noktası (Shift)",
+  },
 };
 
 export function CadSnapSettingsPanel({

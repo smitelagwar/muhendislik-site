@@ -1,4 +1,22 @@
-export type CadSnapMode = "endpoint" | "midpoint" | "intersection" | "center" | "nearest";
+export type CadSnapMode = "endpoint" | "midpoint" | "intersection" | "center" | "nearest" | "perpendicular";
+
+export function projectPerpendicularPoint(
+  origin: CadSnapPoint,
+  line: CadSnapLinePrimitive
+): { point: CadSnapPoint; t: number } | null {
+  const dx = line.b.x - line.a.x;
+  const dy = line.b.y - line.a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq <= 1e-9) return null;
+  const t = ((origin.x - line.a.x) * dx + (origin.y - line.a.y) * dy) / lenSq;
+  return {
+    point: {
+      x: line.a.x + t * dx,
+      y: line.a.y + t * dy,
+    },
+    t,
+  };
+}
 
 export interface CadSnapPoint {
   x: number;
@@ -48,6 +66,7 @@ export interface CadSnapQuery {
   tolerancePx: number;
   worldUnitsPerPixel: number;
   modes?: ReadonlySet<CadSnapMode>;
+  origin?: CadSnapPoint | null;
 }
 
 interface Bounds {
@@ -63,6 +82,7 @@ const DEFAULT_MODES: ReadonlySet<CadSnapMode> = new Set([
   "intersection",
   "center",
   "nearest",
+  "perpendicular",
 ]);
 
 const MODE_PRIORITY: Record<CadSnapMode, number> = {
@@ -70,7 +90,8 @@ const MODE_PRIORITY: Record<CadSnapMode, number> = {
   intersection: 1,
   midpoint: 2,
   center: 3,
-  nearest: 4,
+  perpendicular: 4,
+  nearest: 5,
 };
 
 const TAU = Math.PI * 2;
@@ -305,6 +326,12 @@ export class CadSnapEngine {
           [primitive.id]
         );
         push("nearest", nearestOnLine(input.point, primitive), [primitive.id]);
+        if (input.origin && modes.has("perpendicular")) {
+          const perp = projectPerpendicularPoint(input.origin, primitive);
+          if (perp && perp.t >= -0.05 && perp.t <= 1.05) {
+            push("perpendicular", perp.point, [primitive.id]);
+          }
+        }
       } else {
         push("center", primitive.center, [primitive.id]);
         if (primitive.kind === "arc") {

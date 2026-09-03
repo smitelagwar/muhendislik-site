@@ -1110,6 +1110,7 @@ export function DokCadUpstreamViewer({
             snapshot={distanceSnapshot}
             measurements={distanceMeasurements}
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            adapter={adapterRef.current as any}
           />
         ) : null}
 

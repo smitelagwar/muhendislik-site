@@ -47,6 +47,7 @@ function midpoint(a: CadSnapPoint, b: CadSnapPoint): CadSnapPoint {
 
 function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string | null {
   if (!snapshot) return null;
+  const orthoHint = snapshot.isOrthoLocked ? "Dik kilitli" : "Shift: Dik kilit";
   switch (snapshot.phase) {
     case "awaiting-first":
       return "1. noktayı seçin (Hassas seçim için basılı tutun | Esc: İptal)";
@@ -56,20 +57,28 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
       return "Bırakın: 1. noktayı ayarla";
     case "awaiting-second":
       return snapshot.distance === null
-        ? "2. noktayı seçin (Esc: İptal)"
-        : `Mesafe: ${formatDistance(snapshot.distance)} (2. noktayı seçin | Esc: İptal)`;
+        ? `2. noktayı seçin (${orthoHint} | Esc: İptal)`
+        : `Mesafe: ${formatDistance(snapshot.distance)} (${orthoHint} | Esc: İptal)`;
     case "pressing-second":
       return "Basılı tutmaya devam edin...";
     case "tracking-second":
       return snapshot.distance === null
         ? "Bırakın: ölçümü tamamla"
-        : `Bırakın: ${formatDistance(snapshot.distance)}`;
+        : `Bırakın: ${formatDistance(snapshot.distance)} (${orthoHint})`;
     default:
       return null;
   }
 }
 
-function resolveCadAdapter(host?: HTMLElement | null): CadRendererCanvasBridge | null {
+function resolveCadAdapter(
+  host?: HTMLElement | null,
+  explicitAdapter?: CadRendererCanvasBridge | null
+): CadRendererCanvasBridge | null {
+  if (explicitAdapter) return explicitAdapter;
+  if (typeof window !== "undefined") {
+    const winAdapter = (window as unknown as { __cadAdapter?: CadRendererCanvasBridge }).__cadAdapter;
+    if (winAdapter) return winAdapter;
+  }
   if (host) {
     const directAdapter = (host as CadRendererHost).__cadAdapter;
     if (directAdapter) return directAdapter;
@@ -130,10 +139,12 @@ export function CadDistanceOverlay({
   snapshot,
   measurements,
   projectPoint,
+  adapter,
 }: {
   snapshot: CadDistanceMeasurementSnapshot | null;
   measurements: readonly CadDistanceOverlayMeasurement[];
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
+  adapter?: CadRendererCanvasBridge | null;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const completed = measurements
@@ -149,6 +160,11 @@ export function CadDistanceOverlay({
   const message = phaseMessage(snapshot);
 
   const getSourceCanvas = (): HTMLCanvasElement | null => {
+    const liveAdapter = resolveCadAdapter(anchorRef.current?.parentElement, adapter);
+    const liveCanvas = liveAdapter?.manager?.curView?.canvas ?? liveAdapter?.manager?.curView?.canvas2d;
+    if (liveCanvas instanceof HTMLCanvasElement && liveCanvas.width > 0 && liveCanvas.height > 0) {
+      return liveCanvas;
+    }
     const host = anchorRef.current?.parentElement;
     return host ? resolveLiveCadCanvas(host) : null;
   };
@@ -158,11 +174,11 @@ export function CadDistanceOverlay({
     worldPoint?: CadSnapPoint | null
   ): CadSnapPrimitive[] => {
     const host = anchorRef.current?.parentElement;
-    const adapter = resolveCadAdapter(host);
-    if (!adapter) return [];
+    const liveAdapter = resolveCadAdapter(host, adapter);
+    if (!liveAdapter) return [];
 
     const wanted = new Set(primitiveIds);
-    const catalog = adapter.snapCatalog;
+    const catalog = liveAdapter.snapCatalog;
     const snapped = Array.isArray(catalog) && wanted.size > 0
       ? catalog.filter((primitive) => wanted.has(primitive.id)).slice(0, 8)
       : [];
@@ -171,8 +187,8 @@ const CAD_NEARBY_SNAP_RADIUS_PX = 55;
 const CAD_NEARBY_SNAP_LIMIT = 36;
 
     let nearby: CadSnapPrimitive[] = [];
-    if (worldPoint && typeof adapter.getNearbyPrimitives === "function") {
-      nearby = adapter.getNearbyPrimitives(worldPoint, CAD_NEARBY_SNAP_RADIUS_PX, CAD_NEARBY_SNAP_LIMIT);
+    if (worldPoint && typeof liveAdapter.getNearbyPrimitives === "function") {
+      nearby = liveAdapter.getNearbyPrimitives(worldPoint, CAD_NEARBY_SNAP_RADIUS_PX, CAD_NEARBY_SNAP_LIMIT);
     } else if (Array.isArray(catalog) && catalog.length > 0 && worldPoint) {
       // Proximity-filtered fallback: do not blindly slice arbitrary catalog entries
       nearby = catalog
@@ -239,8 +255,8 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
               x2={preview.x}
               y2={preview.y}
               className="stroke-primary"
-              strokeWidth="1.5"
-              strokeDasharray="6 4"
+              strokeWidth={snapshot?.isOrthoLocked ? "2" : "1.5"}
+              strokeDasharray={snapshot?.isOrthoLocked ? "none" : "6 4"}
               vectorEffect="non-scaling-stroke"
               data-cad-distance-rubber-band="true"
             />
@@ -255,7 +271,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
             >
               {snapshot?.distance === null || snapshot?.distance === undefined
                 ? ""
-                : formatDistance(snapshot.distance)}
+                : `${formatDistance(snapshot.distance)}${snapshot?.isOrthoLocked ? " (Dik)" : ""}`}
             </text>
           </>
         ) : null}

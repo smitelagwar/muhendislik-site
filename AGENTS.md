@@ -119,6 +119,8 @@ Uzun işler için önerilen sıra:
 
 Bir kalite scripti hata verdiği halde exit code `0` döndürüyorsa veya false-positive/false-negative davranıyorsa bu ayrıca teknik borç olarak raporlanır; yalnız process code'a bakılarak PASS denmez.
 
+Test ve doğrulama scriptlerinin terminalde asılı (hanging) kalmaması için `.agents/rules/test-ve-otomasyon-standardi.md` kuralı zorunludur.
+
 ## 6. Push öncesi zorunlu kontrol listesi
 
 Her remote write öncesi şu sorular cevaplanmalıdır:

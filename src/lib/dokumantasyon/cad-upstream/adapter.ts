@@ -66,6 +66,24 @@ import {
 export type { CadFontParityEvaluation };
 import { decodeDxfBytes, detectDxfEncoding } from "../dxf-encoding";
 
+if (typeof window !== "undefined") {
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    contextId: string,
+    options?: unknown
+  ) {
+    if (contextId === "webgl2" || contextId === "webgl") {
+      const opts =
+        typeof options === "object" && options !== null
+          ? { ...options, preserveDrawingBuffer: true }
+          : { preserveDrawingBuffer: true };
+      return originalGetContext.call(this, contextId, opts);
+    }
+    return originalGetContext.call(this, contextId, options);
+  } as typeof HTMLCanvasElement.prototype.getContext;
+}
+
 export const CAD_UPSTREAM_WORKER_URLS = {
 
   mtextRender: "/cad-upstream/mtext-renderer-worker.js",
@@ -827,8 +845,8 @@ export class CadUpstreamAdapter {
     this.distanceMeasurementController = new CadPressHoldDistanceController(
       this.interactionHost,
       {
-        resolvePoint: (screenPoint, snapModes) =>
-          this.resolveDistancePoint(screenPoint, snapModes),
+        resolvePoint: (screenPoint, snapModes, options) =>
+          this.resolveDistancePoint(screenPoint, snapModes, options),
         setCameraInteractionEnabled: (enabled) =>
           this.setCameraInteractionEnabled(enabled),
       }
@@ -889,7 +907,8 @@ export class CadUpstreamAdapter {
 
   private resolveDistancePoint(
     screenPoint: CadSnapPoint,
-    snapModes: ReadonlySet<CadSnapMode>
+    snapModes: ReadonlySet<CadSnapMode>,
+    options?: { originPoint?: CadSnapPoint | null; isOrtho?: boolean }
   ): CadDistanceResolvedPoint | null {
     const view = this.getActiveLayoutView();
     if (!view) return null;
@@ -905,12 +924,33 @@ export class CadUpstreamAdapter {
             tolerancePx: CAD_DISTANCE_SNAP_TOLERANCE_PX,
             worldUnitsPerPixel,
             modes: snapModes,
+            origin: options?.originPoint ?? null,
           })
         : null;
 
+    if (snap) {
+      return {
+        point: snap.point,
+        snap,
+      };
+    }
+
+    if (options?.isOrtho && options.originPoint) {
+      const dx = worldPoint.x - options.originPoint.x;
+      const dy = worldPoint.y - options.originPoint.y;
+      const lockedPoint =
+        Math.abs(dx) >= Math.abs(dy)
+          ? { x: worldPoint.x, y: options.originPoint.y }
+          : { x: options.originPoint.x, y: worldPoint.y };
+      return {
+        point: lockedPoint,
+        snap: null,
+      };
+    }
+
     return {
-      point: snap?.point ?? worldPoint,
-      snap,
+      point: worldPoint,
+      snap: null,
     };
   }
 

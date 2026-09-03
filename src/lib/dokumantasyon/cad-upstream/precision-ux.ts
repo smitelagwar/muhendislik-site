@@ -1,7 +1,7 @@
 import type { CadSnapMode, CadSnapPoint } from "./snap-engine";
 
-export const CAD_PRECISION_MAGNIFIER_DIAMETER_PX = 152;
-export const CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX = 240;
+export const CAD_PRECISION_MAGNIFIER_DIAMETER_PX = 176;
+export const CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX = 300;
 export const CAD_PRECISION_MAGNIFIER_ZOOM = 2.75;
 export const CAD_PRECISION_MAGNIFIER_GAP_PX = 28;
 export const CAD_PRECISION_EDGE_MARGIN_PX = 12;
@@ -12,6 +12,7 @@ export const CAD_SNAP_MODE_LABELS: Record<CadSnapMode, string> = {
   intersection: "Intersection",
   center: "Center",
   nearest: "Nearest",
+  perpendicular: "Dik",
 };
 
 export interface CadPrecisionViewportSize {
@@ -44,18 +45,18 @@ export function resolveCadMagnifierDiameter(viewport: CadPrecisionViewportSize):
     return CAD_PRECISION_MAGNIFIER_DIAMETER_PX;
   }
   if (viewport.width >= 768) {
-    // Desktop: lens boyutu viewport'un en fazla %20 genişliği ve %35 yüksekliğiyle sınırlandırılsın
-    const maxW = viewport.width * 0.20;
-    const maxH = viewport.height * 0.35;
+    // Desktop: lens boyutu viewport'un en fazla %28 genişliği ve %46 yüksekliğiyle sınırlandırılsın
+    const maxW = viewport.width * 0.28;
+    const maxH = viewport.height * 0.46;
     const maxAllowed = Math.min(maxW, maxH);
     const clamped = Math.min(CAD_PRECISION_MAGNIFIER_DESKTOP_DIAMETER_PX, maxAllowed);
-    return Math.round(Math.max(120, clamped));
+    return Math.round(Math.max(160, clamped));
   }
-  // Mobile: max 40% width and 35% height
-  const maxMobileW = viewport.width * 0.40;
-  const maxMobileH = viewport.height * 0.35;
+  // Mobile: max 45% width and 40% height
+  const maxMobileW = viewport.width * 0.45;
+  const maxMobileH = viewport.height * 0.40;
   const maxMobile = Math.min(maxMobileW, maxMobileH);
-  return Math.round(Math.min(CAD_PRECISION_MAGNIFIER_DIAMETER_PX, Math.max(110, maxMobile)));
+  return Math.round(Math.min(CAD_PRECISION_MAGNIFIER_DIAMETER_PX, Math.max(130, maxMobile)));
 }
 
 export function resolveCadPrecisionLensPlacement(

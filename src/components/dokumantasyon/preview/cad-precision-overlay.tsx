@@ -48,6 +48,14 @@ function SnapGlyph({ mode, x, y, size = 8 }: { mode: CadSnapMode; x: number; y: 
       );
     case "nearest":
       return <path d={`M ${x} ${y - half - 0.8} L ${x + half + 0.8} ${y} L ${x} ${y + half + 0.8} L ${x - half - 0.8} ${y} Z`} {...common} />;
+    case "perpendicular":
+      return (
+        <g stroke="var(--primary)" strokeWidth="1.8" fill="none" vectorEffect="non-scaling-stroke">
+          <path d={`M ${x - half} ${y + half} L ${x + half} ${y + half}`} />
+          <path d={`M ${x} ${y + half} L ${x} ${y - half}`} />
+          <path d={`M ${x} ${y + half - 3.5} L ${x + 3.5} ${y + half - 3.5} L ${x + 3.5} ${y + half}`} />
+        </g>
+      );
   }
 }
 

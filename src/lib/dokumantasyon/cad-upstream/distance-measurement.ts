@@ -21,6 +21,7 @@ export interface CadDistanceMeasurementSnapshot {
   previewSnap: CadSnapCandidate | null;
   pointerScreenPoint: CadSnapPoint | null;
   distance: number | null;
+  isOrthoLocked?: boolean;
 }
 
 export interface CadDistanceMeasurementResult {
@@ -43,7 +44,8 @@ export interface CadDistanceMeasurementCallbacks {
 export interface CadDistanceMeasurementRuntime {
   resolvePoint(
     screenPoint: CadSnapPoint,
-    snapModes: ReadonlySet<CadSnapMode>
+    snapModes: ReadonlySet<CadSnapMode>,
+    options?: { originPoint?: CadSnapPoint | null; isOrtho?: boolean }
   ): CadDistanceResolvedPoint | null;
   setCameraInteractionEnabled(enabled: boolean): void;
 }
@@ -62,9 +64,14 @@ export class CadPressHoldDistanceMachine {
   private firstPointValue: CadSnapPoint | null = null;
   private previewPointValue: CadSnapPoint | null = null;
   private previewSnapValue: CadSnapCandidate | null = null;
+  private isOrthoLockedValue = false;
 
   get phase(): CadDistanceMeasurementPhase {
     return this.phaseValue;
+  }
+
+  get firstPoint(): CadSnapPoint | null {
+    return this.firstPointValue;
   }
 
   get activePointerId(): number | null {
@@ -77,6 +84,10 @@ export class CadPressHoldDistanceMachine {
 
   get isTracking(): boolean {
     return this.phaseValue === "tracking-first" || this.phaseValue === "tracking-second";
+  }
+
+  setOrthoLocked(locked: boolean): void {
+    this.isOrthoLockedValue = locked;
   }
 
   start(): CadDistanceMeasurementSnapshot {
@@ -265,6 +276,7 @@ export class CadPressHoldDistanceMachine {
       pointerScreenPoint: null,
       distance:
         firstPoint && previewPoint ? pointDistance(firstPoint, previewPoint) : null,
+      isOrthoLocked: this.isOrthoLockedValue,
     };
   }
 }
@@ -277,6 +289,7 @@ export class CadPressHoldDistanceController {
   private pointerStart: CadSnapPoint | null = null;
   private lastScreenPoint: CadSnapPoint | null = null;
   private isMouseDown = false;
+  private isShiftDown = false;
   private destroyed = false;
 
   constructor(
@@ -290,6 +303,10 @@ export class CadPressHoldDistanceController {
     host.addEventListener("lostpointercapture", this.handlePointerCancel, true);
     host.addEventListener("contextmenu", this.handleContextMenu, true);
     host.addEventListener("pointerleave", this.handlePointerLeave, true);
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", this.handleKeyDown, true);
+      window.addEventListener("keyup", this.handleKeyUp, true);
+    }
   }
 
   get phase(): CadDistanceMeasurementPhase {
@@ -311,12 +328,55 @@ export class CadPressHoldDistanceController {
   updateSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
     this.snapModes = new Set(snapModes);
     if (!this.lastScreenPoint) return;
-    const resolved = this.runtime.resolvePoint(this.lastScreenPoint, this.snapModes);
+    const isOrtho = this.isShiftDown && Boolean(this.machine.firstPoint);
+    this.machine.setOrthoLocked(isOrtho);
+    const effectiveModes = isOrtho
+      ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+      : this.snapModes;
+    const resolved = this.runtime.resolvePoint(this.lastScreenPoint, effectiveModes, {
+      originPoint: this.machine.firstPoint,
+      isOrtho,
+    });
     if (!resolved) return;
     if (this.machine.isTracking && this.machine.activePointerId !== null) {
       const snapshot = this.machine.move(this.machine.activePointerId, resolved);
       if (snapshot) this.emit(snapshot);
     } else if (this.machine.isActive) {
+      this.machine.updateHoverPreview(resolved);
+      this.emit(this.machine.snapshot());
+    }
+  }
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === "Shift" && !this.isShiftDown) {
+      this.isShiftDown = true;
+      this.reResolveCurrent();
+    }
+  };
+
+  private readonly handleKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === "Shift" && this.isShiftDown) {
+      this.isShiftDown = false;
+      this.reResolveCurrent();
+    }
+  };
+
+  private reResolveCurrent(): void {
+    if (!this.machine.isActive || !this.lastScreenPoint) return;
+    const isOrtho = this.isShiftDown && Boolean(this.machine.firstPoint);
+    this.machine.setOrthoLocked(isOrtho);
+    const effectiveModes = isOrtho
+      ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+      : this.snapModes;
+    const resolved = this.runtime.resolvePoint(this.lastScreenPoint, effectiveModes, {
+      originPoint: this.machine.firstPoint,
+      isOrtho,
+    });
+    if (!resolved) return;
+    if (this.machine.isTracking && this.machine.activePointerId !== null) {
+      const snapshot = this.machine.move(this.machine.activePointerId, resolved);
+      if (snapshot) this.emit(snapshot);
+    } else {
       this.machine.updateHoverPreview(resolved);
       this.emit(this.machine.snapshot());
     }
@@ -356,6 +416,10 @@ export class CadPressHoldDistanceController {
     this.host.removeEventListener("lostpointercapture", this.handlePointerCancel, true);
     this.host.removeEventListener("contextmenu", this.handleContextMenu, true);
     this.host.removeEventListener("pointerleave", this.handlePointerLeave, true);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleKeyDown, true);
+      window.removeEventListener("keyup", this.handleKeyUp, true);
+    }
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
@@ -373,7 +437,15 @@ export class CadPressHoldDistanceController {
         this.holdTimer = null;
         const current = this.lastScreenPoint;
         if (!current || this.machine.activePointerId !== event.pointerId) return;
-        const resolved = this.runtime.resolvePoint(current, this.snapModes);
+        const isOrtho = this.isShiftDown && Boolean(this.machine.firstPoint);
+        this.machine.setOrthoLocked(isOrtho);
+        const effectiveModes = isOrtho
+          ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+          : this.snapModes;
+        const resolved = this.runtime.resolvePoint(current, effectiveModes, {
+          originPoint: this.machine.firstPoint,
+          isOrtho,
+        });
         if (!resolved) {
           this.emit(this.machine.cancelPointer(event.pointerId));
           return;
@@ -410,7 +482,15 @@ export class CadPressHoldDistanceController {
       }
 
       event.preventDefault();
-      const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+      const isOrtho = this.isShiftDown && Boolean(this.machine.firstPoint);
+      this.machine.setOrthoLocked(isOrtho);
+      const effectiveModes = isOrtho
+        ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+        : this.snapModes;
+      const resolved = this.runtime.resolvePoint(screenPoint, effectiveModes, {
+        originPoint: this.machine.firstPoint,
+        isOrtho,
+      });
       if (!resolved) return;
       const snapshot = this.machine.move(event.pointerId, resolved);
       if (snapshot) this.emit(snapshot);
@@ -420,7 +500,15 @@ export class CadPressHoldDistanceController {
     // Non-touch (desktop mouse):
     if (!this.machine.isActive) return;
     this.lastScreenPoint = screenPoint;
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    const isOrtho = (event.shiftKey || this.isShiftDown) && Boolean(this.machine.firstPoint);
+    this.machine.setOrthoLocked(isOrtho);
+    const effectiveModes = isOrtho
+      ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+      : this.snapModes;
+    const resolved = this.runtime.resolvePoint(screenPoint, effectiveModes, {
+      originPoint: this.machine.firstPoint,
+      isOrtho,
+    });
     if (!resolved) return;
 
     this.machine.updateHoverPreview(resolved);
@@ -435,7 +523,15 @@ export class CadPressHoldDistanceController {
       this.clearHoldTimer();
       const screenPoint = this.eventScreenPoint(event);
       this.lastScreenPoint = screenPoint;
-      const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+      const isOrtho = this.isShiftDown && Boolean(this.machine.firstPoint);
+      this.machine.setOrthoLocked(isOrtho);
+      const effectiveModes = isOrtho
+        ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+        : this.snapModes;
+      const resolved = this.runtime.resolvePoint(screenPoint, effectiveModes, {
+        originPoint: this.machine.firstPoint,
+        isOrtho,
+      });
 
       if (!this.machine.isTracking && resolved) {
         const transition = this.machine.commitPoint(resolved);
@@ -471,7 +567,15 @@ export class CadPressHoldDistanceController {
     this.isMouseDown = false;
     const screenPoint = this.eventScreenPoint(event);
     this.lastScreenPoint = screenPoint;
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    const isOrtho = (event.shiftKey || this.isShiftDown) && Boolean(this.machine.firstPoint);
+    this.machine.setOrthoLocked(isOrtho);
+    const effectiveModes = isOrtho
+      ? new Set<CadSnapMode>([...this.snapModes, "perpendicular"])
+      : this.snapModes;
+    const resolved = this.runtime.resolvePoint(screenPoint, effectiveModes, {
+      originPoint: this.machine.firstPoint,
+      isOrtho,
+    });
     if (!resolved) return;
 
     const transition = this.machine.commitPoint(resolved);

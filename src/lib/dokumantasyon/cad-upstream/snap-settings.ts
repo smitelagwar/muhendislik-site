@@ -10,6 +10,7 @@ export const CAD_SNAP_MODES = [
   "intersection",
   "center",
   "nearest",
+  "perpendicular",
 ] as const satisfies readonly CadSnapMode[];
 
 export interface CadSnapSettings {
@@ -31,6 +32,7 @@ export function createDefaultCadSnapSettings(): CadSnapSettings {
       intersection: true,
       center: true,
       nearest: true,
+      perpendicular: true,
     },
   };
 }
