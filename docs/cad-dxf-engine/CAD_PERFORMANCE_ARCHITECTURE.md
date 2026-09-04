@@ -47,29 +47,43 @@
 - **Yarış Durumu Koruması:** `documentGeneration` monotonically artan token ile dosya geçişlerinde eski dosyanın indeksinin yeni dosyaya yazması engellenir.
 
 ### 2.6. MTEXT Worker Render Modu Kararı
-- **Değerlendirme:** Aşama 9 kapsamında `useMainThreadDraw: false` modu, CAD-G Türkçe glifleri (`ç`, `ğ`, `ı`, `ö`, `ş`, `ü`, `Ç`, `Ğ`, `İ`, `Ö`, `Ş`, `Ü`, `±`, `~`) ve çok satırlı MTEXT üzerinde test edilmiştir.
-- **Sonuç:** SHA256 piksel hash düzeyinde **birebir 100% eşitlik** (`ad9c66f...bfa`) ve mobilde **1,121 ms (%36) hızlanma** kanıtlanmıştır.
-- **Karar:** `MTEXT WORKER: ACCEPT`. Varsayılan `options.useMainThreadDraw ?? !isCadMtextWorkerExperimentEnabled()` üzerinden güvenli geçişe izin verilmiştir.
+- **Değerlendirme:** Aşama 9 ve Repair Fazı kapsamında `useMainThreadDraw: false` modu, CAD-G Türkçe glifleri (`ç`, `ğ`, `ı`, `ö`, `ş`, `ü`, `Ç`, `Ğ`, `İ`, `Ö`, `Ş`, `Ü`, `±`, `~`) ve çok satırlı MTEXT üzerinde izole taze bağlamlarda (fresh contexts) test edilmiştir.
+- **Bulgular:** Taze tarayıcı bağlamlarında worker başlatma yükü nedeniyle Worker modu ana iş parçacığından hızlı değildir (Baseline median 3805 ms vs Canary median 4049 ms). Ancak font ve Türkçe arama paritesi %100 eşittir.
+- **Nihai Karar:** `MTEXT WORKER: VALIDATED CANARY — DEFAULT OFF`. Üretim ortamında `useMainThreadDraw: true` korunur. Worker modu deneysel bayrak (`?mtextWorker=1` veya `CAD_MTEXT_WORKER_EXPERIMENT`) ile sınırlı tutulmuştur.
 
 ---
 
-## 3. Geri Alma (Rollback) Prosedürü
+## 3. Üç Kademeli Geri Alma (Rollback) Prosedürü
 
-Herhangi bir beklenmeyen davranış durumunda aşama geri alma:
+Herhangi bir beklenmeyen problem durumunda uygulanacak kademeli geri alma yolları:
 
+### Kademe 1: Tekil Aşama Geri Alma (Single Stage Rollback)
+Her aşama bağımsız bir özellik bayrağı veya izole bir commit ile ayrılmıştır.
+- **Aşama 2 (Preload):** `preloadCadViewerCode()` çağrıları devre dışı bırakılabilir.
+- **Aşama 6 (DWG Hint):** `dwgFastPreviewHint` prop'u `undefined` yapılarak eski ağ kontrolü moduna dönülebilir.
+- **Aşama 7 (Session Cache):** `CAD_SESSION_CACHE_MAX_ENTRIES = 0` yapılarak önbellek baypas edilebilir.
+- **Aşama 9 (MTEXT Worker):** Varsayılan zaten KAPALI (`useMainThreadDraw: true`).
+
+### Kademe 2: Tüm Performans PR'ını Geri Alma (Full PR Rollback)
+Tüm performans çalışmasını geri almak için yalnız 3 core dosya restore etmek YETERSİZDİR (çünkü `page.tsx`, `file-preview-shell.tsx`, drive selection ve DTO katmanları da etkilenmiştir).
+Tam geri alma için dedike bir branch açılmalı ve PR merge commit'i temiz bir git revert ile geri alınmalıdır:
 ```bash
-# Aşama 1 başlangıç referansına dönmek için:
-git restore --source=74e56241359bb4136b46e58705fc55a41dfbc7d0 --staged --worktree -- \
-  src/lib/dokumantasyon/cad-upstream/adapter.ts \
-  src/components/dokumantasyon/preview/cad-upstream-viewer.tsx \
-  src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx
+git checkout -b revert-cad-performance
+git revert -m 1 <PR_MERGE_COMMIT_HASH>
+# Yerel testleri çalıştır:
+npm run build
+npx playwright test tests/document-studio/cad-preview-v2-contract.spec.ts
 ```
 
-Çekirdek motor altın referansına dönmek için:
+### Kademe 3: Tarihsel Altın Motor Acil Durum Geri Dönüşü (Historical Golden Emergency Restore)
+Çekirdek CAD motorunda beklenmeyen bir regresyon olursa dokunulmaz `IGNORE2` altın referansına dönülür:
 ```bash
-git restore --source=909c59cb9dcac8e722b3bda4c66fd9d8a25755c8 --worktree -- \
+GOLDEN=909c59cb9dcac8e722b3bda4c66fd9d8a25755c8
+git restore --source="$GOLDEN" --worktree -- \
   src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx \
   src/components/dokumantasyon/preview/cad-upstream-viewer.tsx \
   src/components/dokumantasyon/preview/cad-viewer.tsx \
   src/components/dokumantasyon/preview/dxf-viewer-worker.ts
 ```
+Geri dönüş sonrasında Git blob eşitliği `git diff` ile doğrulanmalıdır.
+
