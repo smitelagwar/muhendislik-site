@@ -94,9 +94,14 @@ Tablolar `db/dokumantasyon/` altındaki SQL dosyalarıyla yönetilir:
 | POST | `/api/dokumantasyon/shares` | Yeni süreli link oluşturma | Admin | - |
 | GET | `/api/dokumantasyon/shares` | Aktif linkleri listeleme | Admin | - |
 | POST | `/api/dokumantasyon/shares/[id]/revoke` | Linki anında iptal etme | Admin | - |
+| POST | `/api/dokumantasyon/bulk/trash` | Toplu çöpe taşıma (1..250 öğe) | Admin | - |
+| POST | `/api/dokumantasyon/bulk/move` | Toplu öğe taşıma (1..250 öğe) | Admin | - |
+| POST | `/api/dokumantasyon/bulk/star` | Toplu yıldızlama/kaldırma | Admin | - |
+| POST | `/api/dokumantasyon/bulk/restore` | Çöpten toplu geri yükleme | Admin | - |
 | POST | `/api/dokumantasyon/public/share/[token]/unlock` | Şifreli linki açma | Public | 15 dk / 8 deneme |
 | GET | `/api/dokumantasyon/public/share/[token]/files/[fileId]/download` | Tek dosya indirme stream'i | Public | Atomic Max-Download |
 | GET | `/api/dokumantasyon/public/share/[token]/download-all` | Tümünü ZIP indirme stream'i | Public | Atomic Max-Download |
+
 
 ---
 

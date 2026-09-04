@@ -85,6 +85,7 @@
     "check:dokumantasyon-ui:faz5": "node scripts/check-dokumantasyon-ui-faz5.mjs",
     "check:dokumantasyon-ui:faz6": "node scripts/check-dokumantasyon-ui-faz6.mjs",
     "check:dokumantasyon-ui:all": "npm run check:dokumantasyon-ui:faz1 && npm run check:dokumantasyon-ui:faz2 && npm run check:dokumantasyon-ui:faz3 && npm run check:dokumantasyon-ui:faz4 && npm run check:dokumantasyon-ui:faz5 && npm run check:dokumantasyon-ui:faz6",
+    "check:dok-drive-v3": "tsx scripts/check-dok-drive-v3-stage1-poc.ts && tsx scripts/check-dok-drive-v3-stage2-server-state.ts && tsx scripts/check-dok-drive-v3-stage3-selection.ts && tsx scripts/check-dok-drive-v3-command-contract.ts && tsx scripts/check-dok-drive-v3-stage5-overlay.ts && tsx scripts/check-dok-drive-v3-stage6-bulk-dnd.ts && tsx scripts/check-dok-drive-v3-stage7-virtualization.ts && tsx scripts/check-dok-drive-v3-stage8-visuals.ts && tsx scripts/check-dok-drive-v3-stage9-mobile.ts",
     "check:dokumantasyon:auth": "tsx scripts/check-dokumantasyon-auth-config.ts",
     "check:dokumantasyon:audit": "node scripts/poc-stage1-audit-and-data-plane.mjs",
     "check:dokumantasyon:phase1": "node scripts/check-dokumantasyon-phase1.mjs",

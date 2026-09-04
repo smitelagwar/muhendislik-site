@@ -4,8 +4,10 @@
 
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+
+const emptySubscribe = () => () => {};
 
 export interface OverlayPortalProps {
   children: React.ReactNode;
@@ -22,13 +24,9 @@ export function OverlayPortal({
   zIndex = "var(--dok-z-dialog-backdrop, 600)",
   preventBackdropClose = false,
 }: OverlayPortalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const triggerElementRef = useRef<HTMLElement | null>(null);
   const modalContainerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

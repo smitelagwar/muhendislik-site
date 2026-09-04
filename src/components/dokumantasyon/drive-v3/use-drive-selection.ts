@@ -57,6 +57,7 @@ export function useDriveSelection({
 
   const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const rafIdRef = useRef<number | null>(null);
+  const updateMarqueeFrameRef = useRef<() => void>(() => {});
 
   // Reconcile selection when visible universe changes
   useEffect(() => {
@@ -243,9 +244,11 @@ export function useDriveSelection({
 
     // Schedule next frame if marquee still active
     if (isMarqueeActiveRef.current) {
-      rafIdRef.current = requestAnimationFrame(updateMarqueeFrame);
+      rafIdRef.current = requestAnimationFrame(() => updateMarqueeFrameRef.current());
     }
   }, [scrollContainerRef, viewMode, visibleOrderedIds, gridMetrics]);
+
+  updateMarqueeFrameRef.current = updateMarqueeFrame;
 
   const handleContainerPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
