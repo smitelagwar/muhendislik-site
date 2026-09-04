@@ -69,9 +69,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { uploadPresigned } from "@vercel/blob/client";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
-import { useDokSelection } from "./hooks/use-dok-selection";
 import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-derive";
 import { executeBulkTrash, executeBulkMove, executeBulkStar, BulkItem } from "./drive-v3/bulk-operations";
+import { useDriveSelection } from "./drive-v3/use-drive-selection";
+import {
+  calculateGridMetrics,
+  DRIVE_GRID_MIN_CARD_WIDTH,
+  DRIVE_GRID_GAP_X,
+  DRIVE_GRID_GAP_Y,
+  DRIVE_GRID_ROW_HEIGHT,
+} from "./drive-v3/drive-metrics";
+import {
+  registerDraggableItem,
+  registerFolderDropTarget,
+  registerContainerAutoScroll,
+} from "./drive-v3/pdd-integration";
+import { createLongPressController } from "./drive-v3/mobile-gesture-engine";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -119,8 +132,87 @@ export function DokumantasyonFileManager() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [groupBy, setGroupBy] = useState<"none" | "type" | "date" | "size">("none");
 
-  // Çoklu Seçim
-  const { selectedIds, setSelectedIds, toggleSelectedId, replaceSelection } = useDokSelection();
+  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler (Tek Deterministik Comparator & Derive Motoru)
+  const {
+    displayedFolders,
+    displayedFiles,
+    groupedBuckets,
+    visibleOrderedIds,
+  } = useMemo(() => {
+    return deriveExplorerView(
+      { folders, files },
+      {
+        sortBy,
+        sortOrder,
+        groupBy,
+        typeFilter: activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type,
+        dateFilter: workspaceFilters.date,
+        sizeFilter: workspaceFilters.size,
+        starredOnly: activeFilter === "starred" || workspaceFilters.starredOnly,
+        collection: activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none",
+      }
+    );
+  }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
+
+  // Container Ref & Metrics
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(1200);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = Math.round(entry.contentRect.width);
+        if (width > 0 && Math.abs(width - containerWidth) >= 4) {
+          setContainerWidth(width);
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [containerWidth]);
+
+  const gridMetrics = useMemo(() => {
+    return calculateGridMetrics(
+      containerWidth,
+      DRIVE_GRID_MIN_CARD_WIDTH,
+      DRIVE_GRID_GAP_X,
+      DRIVE_GRID_GAP_Y,
+      DRIVE_GRID_ROW_HEIGHT
+    );
+  }, [containerWidth]);
+
+  // Çoklu Seçim & Marquee & Klavye Motoru (Drive V3)
+  const {
+    selectedIds,
+    setSelectedIds,
+    toggleSelectedId,
+    replaceSelection,
+    anchorId,
+    focusedId,
+    marqueeBox,
+    handleItemClick,
+    handleItemContextMenu,
+    selectAll,
+    clearSelection,
+    handleKeyDown,
+    containerPointerHandlers,
+  } = useDriveSelection({
+    visibleOrderedIds,
+    viewMode,
+    gridMetrics,
+    scrollContainerRef,
+  });
+
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+
+  // Auto-scroll for container during drag
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    return registerContainerAutoScroll(el);
+  }, []);
   // Modallar
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{
@@ -374,27 +466,133 @@ export function DokumantasyonFileManager() {
     }
   };
 
-  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler (Tek Deterministik Comparator & Derive Motoru)
-  const {
-    displayedFolders,
-    displayedFiles,
-    groupedBuckets,
-    visibleOrderedIds,
-  } = useMemo(() => {
-    return deriveExplorerView(
-      { folders, files },
-      {
-        sortBy,
-        sortOrder,
-        groupBy,
-        typeFilter: activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type,
-        dateFilter: workspaceFilters.date,
-        sizeFilter: workspaceFilters.size,
-        starredOnly: activeFilter === "starred" || workspaceFilters.starredOnly,
-        collection: activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none",
+  const handleDropOnFolder = useCallback(
+    async (items: BulkItem[], targetFolderId: string) => {
+      try {
+        const result = await executeBulkMove(items, targetFolderId);
+        if (result.succeeded.length > 0) {
+          await fetchItems();
+        }
+        if (result.failed.length > 0) {
+          setActionError(`${result.failed.length} öğe taşınamadı.`);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Taşıma işlemi başarısız.";
+        setActionError(msg);
       }
-    );
-  }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
+    },
+    [fetchItems]
+  );
+
+  const allSelectedItems: BulkItem[] = useMemo(() => {
+    return Array.from(selectedIds).map((id) => {
+      const folder = folders.find((f) => f.id === id);
+      return { id, type: (folder ? "folder" : "file") as "file" | "folder" };
+    });
+  }, [selectedIds, folders, files]);
+
+  const pddCleanupsRef = useRef<Map<string, () => void>>(new Map());
+
+  const setFolderNodeRef = useCallback(
+    (node: HTMLElement | null, folder: DokFolder) => {
+      const existing = pddCleanupsRef.current.get(folder.id);
+      if (existing) {
+        existing();
+        pddCleanupsRef.current.delete(folder.id);
+      }
+      if (!node) return;
+
+      const cleanupDraggable = registerDraggableItem({
+        element: node,
+        item: { id: folder.id, type: "folder" },
+        selectedIds,
+        allSelectedItems,
+        onSelectSingle: (id) => replaceSelection([id]),
+      });
+
+      const cleanupDrop = registerFolderDropTarget({
+        element: node,
+        targetFolderId: folder.id,
+        onDropItems: handleDropOnFolder,
+        onDragStateChange: (isOver) => {
+          setDragOverFolderId(isOver ? folder.id : null);
+        },
+      });
+
+      pddCleanupsRef.current.set(folder.id, () => {
+        cleanupDraggable();
+        cleanupDrop();
+      });
+    },
+    [selectedIds, allSelectedItems, replaceSelection, handleDropOnFolder]
+  );
+
+  const setFileNodeRef = useCallback(
+    (node: HTMLElement | null, file: DokFile) => {
+      const existing = pddCleanupsRef.current.get(file.id);
+      if (existing) {
+        existing();
+        pddCleanupsRef.current.delete(file.id);
+      }
+      if (!node) return;
+
+      const cleanupDraggable = registerDraggableItem({
+        element: node,
+        item: { id: file.id, type: "file" },
+        selectedIds,
+        allSelectedItems,
+        onSelectSingle: (id) => replaceSelection([id]),
+      });
+
+      pddCleanupsRef.current.set(file.id, cleanupDraggable);
+    },
+    [selectedIds, allSelectedItems, replaceSelection]
+  );
+
+  useEffect(() => {
+    return () => {
+      pddCleanupsRef.current.forEach((c) => c());
+      pddCleanupsRef.current.clear();
+    };
+  }, []);
+
+  const longPressControllersRef = useRef<Map<string, ReturnType<typeof createLongPressController>>>(new Map());
+
+  const getItemGestureHandlers = useCallback(
+    (id: string, type: "file" | "folder", file?: DokFile) => {
+      let controller = longPressControllersRef.current.get(id);
+      if (!controller) {
+        controller = createLongPressController({
+          id,
+          delayMs: 500,
+          moveThresholdPx: 8,
+          isSelectionModeActive: selectedIds.size > 0,
+          onLongPressTrigger: (itemId) => {
+            toggleSelectedId(itemId);
+          },
+          onSingleTap: (itemId) => {
+            if (selectedIds.size > 0) {
+              toggleSelectedId(itemId);
+            } else {
+              if (type === "folder") {
+                navigateToFolder(itemId);
+              } else if (file) {
+                router.push(`/dokumantasyon/dosya/${file.id}`);
+              }
+            }
+          },
+        });
+        longPressControllersRef.current.set(id, controller);
+      }
+      return {
+        onPointerDown: controller.handlePointerDown,
+        onPointerMove: controller.handlePointerMove,
+        onPointerUp: controller.handlePointerUp,
+        onPointerCancel: controller.handlePointerCancel,
+      };
+    },
+    [selectedIds.size, toggleSelectedId, navigateToFolder, router]
+  );
 
   // Toplam İstatistikler
   const totalSizeBytes = useMemo(() => {
@@ -1323,7 +1521,25 @@ export function DokumantasyonFileManager() {
         )}
 
         {/* Ana İçerik Alanı: Liste veya Grid */}
-        <div className={`flex-1 overflow-auto p-3 sm:p-4 ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}>
+        <div
+          ref={scrollContainerRef}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          {...containerPointerHandlers}
+          className={`relative flex-1 overflow-auto p-3 sm:p-4 outline-none ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}
+        >
+          {/* Sanal Marquee Seçim Kutusu */}
+          {marqueeBox && (
+            <div
+              className="pointer-events-none absolute z-50 rounded border border-amber-500/80 bg-amber-500/20 shadow-sm transition-none"
+              style={{
+                left: marqueeBox.left,
+                top: marqueeBox.top,
+                width: marqueeBox.width,
+                height: marqueeBox.height,
+              }}
+            />
+          )}
           {listError ? (
             <div role="alert" className="mx-auto flex max-w-lg flex-col items-center justify-center py-24 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500 mb-2">
@@ -1500,12 +1716,18 @@ export function DokumantasyonFileManager() {
                           return (
                             <div
                               key={folder.id}
+                              ref={(node) => setFolderNodeRef(node, folder)}
                               data-testid="dok-folder-row"
                               data-folder-id={folder.id}
-                              onClick={() => navigateToFolder(folder.id)}
-                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
-                                isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-                              }`}
+                              onClick={(e) => handleItemClick(folder.id, e)}
+                              onDoubleClick={() => navigateToFolder(folder.id)}
+                              onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+                              {...getItemGestureHandlers(folder.id, "folder")}
+                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
+                                dragOverFolderId === folder.id ? styles.dragOverFolder : ""
+                              } ${
+                                isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
+                              } ${focusedId === folder.id ? styles.virtualRowFocused : ""}`}
                             >
                               <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
                                 <button
@@ -1619,12 +1841,17 @@ export function DokumantasyonFileManager() {
                           return (
                             <div
                               key={file.id}
+                              ref={(node) => setFileNodeRef(node, file)}
                               data-testid="dok-file-row"
                               data-file-id={file.id}
                               data-extension={file.extension}
-                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
-                                isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-                              }`}
+                              onClick={(e) => handleItemClick(file.id, e)}
+                              onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+                              onContextMenu={(e) => handleItemContextMenu(file.id, e)}
+                              {...getItemGestureHandlers(file.id, "file", file)}
+                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
+                                isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
+                              } ${focusedId === file.id ? styles.virtualRowFocused : ""}`}
                             >
                               <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
                                 <button
@@ -1828,12 +2055,18 @@ export function DokumantasyonFileManager() {
                             return (
                               <div
                                 key={folder.id}
+                                ref={(node) => setFolderNodeRef(node, folder)}
                                 data-testid="dok-folder-card"
                                 data-folder-id={folder.id}
-                                onClick={() => navigateToFolder(folder.id)}
-                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all cursor-pointer ${styles.card} ${
-                                  isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
-                                }`}
+                                onClick={(e) => handleItemClick(folder.id, e)}
+                                onDoubleClick={() => navigateToFolder(folder.id)}
+                                onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+                                {...getItemGestureHandlers(folder.id, "folder")}
+                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+                                  dragOverFolderId === folder.id ? styles.dragOverFolder : ""
+                                } ${
+                                  isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
+                                } ${focusedId === folder.id ? styles.virtualCardFocused : ""}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5">
@@ -1949,12 +2182,17 @@ export function DokumantasyonFileManager() {
                             return (
                               <div
                                 key={file.id}
+                                ref={(node) => setFileNodeRef(node, file)}
                                 data-testid="dok-file-card"
                                 data-file-id={file.id}
                                 data-extension={file.extension}
-                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all ${styles.card} ${
-                                  isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
-                                }`}
+                                onClick={(e) => handleItemClick(file.id, e)}
+                                onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+                                onContextMenu={(e) => handleItemContextMenu(file.id, e)}
+                                {...getItemGestureHandlers(file.id, "file", file)}
+                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+                                  isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
+                                } ${focusedId === file.id ? styles.virtualCardFocused : ""}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5">

@@ -226,10 +226,10 @@ export function useDriveSelection({
     const visHeight = Math.abs(clientCurrentY - clientStartY);
 
     setMarqueeBox({
-      left: Math.max(0, visLeft),
-      top: Math.max(0, visTop),
-      width: Math.min(container.clientWidth - visLeft, visWidth),
-      height: Math.min(container.clientHeight - visTop, visHeight),
+      left: contentBbox.left,
+      top: contentBbox.top,
+      width: contentBbox.right - contentBbox.left,
+      height: contentBbox.bottom - contentBbox.top,
     });
 
     // Auto-scroll calculation
@@ -352,8 +352,22 @@ export function useDriveSelection({
     latestPointerRef.current = null;
   }, []);
 
+  const setSelectedIds = useCallback(
+    (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+      if (typeof idsOrUpdater === "function") {
+        const next = idsOrUpdater(state.selectedIds);
+        dispatch({ type: "REPLACE_SELECTION", ids: Array.from(next) });
+      } else {
+        dispatch({ type: "REPLACE_SELECTION", ids: Array.from(idsOrUpdater) });
+      }
+    },
+    [state.selectedIds]
+  );
+
   return {
     selectedIds: state.selectedIds,
+    setSelectedIds,
+    toggleSelectedId: toggleItemSelection,
     anchorId: state.anchorId,
     focusedId: state.focusedId,
     interactionMode: state.interactionMode,
