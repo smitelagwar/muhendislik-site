@@ -48,7 +48,7 @@ test.describe("Drive V3.1 — Context Menu Contract", () => {
   });
 
   test("3. Boş alana sağ tıklandığında mevcut seçim temizlenir ve boş alan menüsü açılır", () => {
-    let selectedIds = new Set(["item-1", "item-2"]);
+    const selectedIds = new Set(["item-1", "item-2"]);
     let isBlankMenuOpen = false;
 
     const handleContextMenuBlank = () => {

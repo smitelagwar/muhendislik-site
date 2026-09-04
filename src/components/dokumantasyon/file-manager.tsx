@@ -405,9 +405,9 @@ function DokumantasyonFileManagerInner() {
     type: "file" | "folder",
     id: string,
     isStarred: boolean,
-    event: React.MouseEvent
+    event?: React.MouseEvent
   ) => {
-    event.stopPropagation();
+    event?.stopPropagation();
     const nextStarred = !isStarred;
     updateItemStarInCache(dokQueryClient, currentQueryKey, id, type, nextStarred);
 
@@ -708,13 +708,13 @@ function DokumantasyonFileManagerInner() {
 
     cleanups.push(registry.register("star", async (ctx) => {
       for (const item of ctx.selectedItems) {
-        await toggleStar(item.type, item.id, false, { stopPropagation: () => {} } as any);
+        await toggleStar(item.type, item.id, false);
       }
     }));
 
     cleanups.push(registry.register("unstar", async (ctx) => {
       for (const item of ctx.selectedItems) {
-        await toggleStar(item.type, item.id, true, { stopPropagation: () => {} } as any);
+        await toggleStar(item.type, item.id, true);
       }
     }));
 

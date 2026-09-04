@@ -264,7 +264,9 @@ export function useDriveSelection({
     }
   }, [scrollContainerRef, viewMode, visibleOrderedIds, gridMetrics]);
 
-  updateMarqueeFrameRef.current = updateMarqueeFrame;
+  useEffect(() => {
+    updateMarqueeFrameRef.current = updateMarqueeFrame;
+  });
 
   // Coordinate with native / PDD drag: cancel marquee if HTML5 drag begins
   useEffect(() => {
@@ -439,7 +441,7 @@ export function useDriveSelection({
     anchorId: state.anchorId,
     focusedId: state.focusedId,
     interactionMode: state.interactionMode,
-    isMarqueeActive: isMarqueeActiveRef.current,
+    isMarqueeActive: Boolean(marqueeBox),
     marqueeBox,
     handleItemClick,
     handleItemContextMenu,
