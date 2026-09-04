@@ -70,6 +70,7 @@ import {
 import { uploadPresigned } from "@vercel/blob/client";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { useDokSelection } from "./hooks/use-dok-selection";
+import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-derive";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -238,8 +239,16 @@ export function DokumantasyonFileManager() {
     };
   }, [isSidebarOpenMobile]);
 
-  // 2. Klasör İçeriğini Getir
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 2. Klasör İçeriğini Getir (AbortSignal Destekli ve Seçim Koruyan Deterministik Akış)
   const fetchItems = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const url = new URL("/api/dokumantasyon/items", window.location.origin);
@@ -254,7 +263,7 @@ export function DokumantasyonFileManager() {
       url.searchParams.set("scope", workspaceFilters.scope);
       url.searchParams.set("collection", collection);
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), { signal: controller.signal });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
@@ -265,7 +274,13 @@ export function DokumantasyonFileManager() {
         setFolders(data.folders || []);
         setFiles(data.files || []);
         setStarredCount(Number(data.summary?.starredCount || 0));
-        setSelectedIds(new Set());
+        // Arka plan yenilemesinde seçimi asla körü körüne sıfırlama;
+        // mevcut geçerli öğeleri reconcileSelection ile koru.
+        const rawIds = [
+          ...(data.folders || []).map((f: DokFolder) => f.id),
+          ...(data.files || []).map((f: DokFile) => f.id),
+        ];
+        setSelectedIds((previous) => reconcileSelection(previous, rawIds));
       } else if (res.status === 503 || data.code?.includes("CONFIGURED") || data.code?.includes("FORBIDDEN")) {
         setConfigError(data.error || "Dökümantasyon kalıcı depolama altyapısı hazır değil.");
         setListError(null);
@@ -284,6 +299,9 @@ export function DokumantasyonFileManager() {
         setListError({ kind: "server", message: data.error || "Dosyalar şu anda listelenemiyor." });
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return; // Yeni klasöre hızlı geçildi, iptal edilen önceki istek sessizce yutulur
+      }
       console.error("Dosyalar yüklenirken hata:", err);
       setConfigError(null);
       setFolders([]);
@@ -295,7 +313,9 @@ export function DokumantasyonFileManager() {
           : "Çevrimdışısınız. Bağlantınızı kontrol edip tekrar deneyin.",
       });
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, [activeFilter, currentFolderId, router, setSelectedIds, sortBy, sortOrder, workspaceFilters]);
 
@@ -353,137 +373,27 @@ export function DokumantasyonFileManager() {
     }
   };
 
-  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler
-  const displayedFolders = useMemo(() => {
-    return [...folders].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") {
-        cmp = a.name.localeCompare(b.name, "tr");
-      } else if (sortBy === "date") {
-        cmp = new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
+  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler (Tek Deterministik Comparator & Derive Motoru)
+  const {
+    displayedFolders,
+    displayedFiles,
+    groupedBuckets,
+    visibleOrderedIds,
+  } = useMemo(() => {
+    return deriveExplorerView(
+      { folders, files },
+      {
+        sortBy,
+        sortOrder,
+        groupBy,
+        typeFilter: activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type,
+        dateFilter: workspaceFilters.date,
+        sizeFilter: workspaceFilters.size,
+        starredOnly: activeFilter === "starred" || workspaceFilters.starredOnly,
+        collection: activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none",
       }
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
-  }, [folders, sortBy, sortOrder]);
-
-  const displayedFiles = useMemo(() => {
-    return [...files].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") {
-        cmp = a.display_name.localeCompare(b.display_name, "tr");
-      } else if (sortBy === "date") {
-        cmp = new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
-      } else if (sortBy === "size") {
-        cmp = Number(b.size_bytes) - Number(a.size_bytes);
-      } else if (sortBy === "type") {
-        cmp = (a.extension || "").localeCompare(b.extension || "");
-      }
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
-  }, [files, sortBy, sortOrder]);
-
-  // Gruplama Kovalari (Group Buckets)
-  type ItemGroup = {
-    key: string;
-    label: string;
-    folders: DokFolder[];
-    files: DokFile[];
-  };
-
-  const groupedBuckets = useMemo((): ItemGroup[] => {
-    if (groupBy === "none") {
-      return [
-        {
-          key: "all",
-          label: "Tüm Öğeler",
-          folders: displayedFolders,
-          files: displayedFiles,
-        },
-      ];
-    }
-
-    if (groupBy === "type") {
-      const buckets: Record<string, ItemGroup> = {
-        folders: { key: "folders", label: "📁 Klasörler", folders: [], files: [] },
-        cad: { key: "cad", label: "📐 AutoCAD & CAD Çizimleri (DWG / DXF)", folders: [], files: [] },
-        pdf: { key: "pdf", label: "📄 PDF Dokümanları", folders: [], files: [] },
-        image: { key: "image", label: "🖼️ Görseller & Fotoğraflar", folders: [], files: [] },
-        text: { key: "text", label: "📝 Metin & Kod Belgeleri", folders: [], files: [] },
-        other: { key: "other", label: "📦 Diğer Dosyalar", folders: [], files: [] },
-      };
-
-      buckets.folders.folders = displayedFolders;
-
-      displayedFiles.forEach((file) => {
-        const ext = (file.extension || "").toLowerCase().replace(".", "");
-        if (ext === "dwg" || ext === "dxf") {
-          buckets.cad.files.push(file);
-        } else if (ext === "pdf") {
-          buckets.pdf.files.push(file);
-        } else if (["png", "jpg", "jpeg", "webp", "svg", "gif"].includes(ext)) {
-          buckets.image.files.push(file);
-        } else if (["txt", "md", "json", "csv", "ts", "js", "html", "css", "doc", "docx", "xls", "xlsx"].includes(ext)) {
-          buckets.text.files.push(file);
-        } else {
-          buckets.other.files.push(file);
-        }
-      });
-
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
-
-    if (groupBy === "date") {
-      const now = Date.now();
-      const ONE_DAY = 24 * 60 * 60 * 1000;
-      const ONE_WEEK = 7 * ONE_DAY;
-      const ONE_MONTH = 30 * ONE_DAY;
-
-      const buckets: Record<string, ItemGroup> = {
-        today: { key: "today", label: "⚡ Bugün", folders: [], files: [] },
-        week: { key: "week", label: "📅 Bu Hafta", folders: [], files: [] },
-        month: { key: "month", label: "🗓️ Bu Ay", folders: [], files: [] },
-        older: { key: "older", label: "🗄️ Daha Eski", folders: [], files: [] },
-      };
-
-      const classify = (dateStr?: string) => {
-        if (!dateStr) return "older";
-        const diff = now - new Date(dateStr).getTime();
-        if (diff < ONE_DAY) return "today";
-        if (diff < ONE_WEEK) return "week";
-        if (diff < ONE_MONTH) return "month";
-        return "older";
-      };
-
-      displayedFolders.forEach((f) => buckets[classify(f.updated_at || f.created_at)].folders.push(f));
-      displayedFiles.forEach((f) => buckets[classify(f.updated_at || f.created_at)].files.push(f));
-
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
-
-    if (groupBy === "size") {
-      const buckets: Record<string, ItemGroup> = {
-        folders: { key: "folders", label: "📁 Klasörler", folders: displayedFolders, files: [] },
-        large: { key: "large", label: "🚀 Büyük Dosyalar (> 100 MB)", folders: [], files: [] },
-        medium: { key: "medium", label: "📊 Orta Boyutlu Dosyalar (5 – 100 MB)", folders: [], files: [] },
-        small: { key: "small", label: "📄 Küçük Dosyalar (< 5 MB)", folders: [], files: [] },
-      };
-
-      displayedFiles.forEach((file) => {
-        const size = Number(file.size_bytes) || 0;
-        if (size > 100 * 1024 * 1024) {
-          buckets.large.files.push(file);
-        } else if (size >= 5 * 1024 * 1024) {
-          buckets.medium.files.push(file);
-        } else {
-          buckets.small.files.push(file);
-        }
-      });
-
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
-
-    return [];
-  }, [groupBy, displayedFolders, displayedFiles]);
+    );
+  }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
 
   // Toplam İstatistikler
   const totalSizeBytes = useMemo(() => {
@@ -529,10 +439,7 @@ export function DokumantasyonFileManager() {
     toggleSelectedId(id);
   };
 
-  const allItemIds = useMemo(() => [
-    ...displayedFolders.map((f) => f.id),
-    ...displayedFiles.map((f) => f.id)
-  ], [displayedFolders, displayedFiles]);
+  const allItemIds = visibleOrderedIds;
 
   const isAllSelected =
     allItemIds.length > 0 && allItemIds.every((id) => selectedIds.has(id));
@@ -2238,6 +2145,13 @@ export function DokumantasyonFileManager() {
         currentFolderId={currentFolderId}
         onClose={() => setIsNewFolderOpen(false)}
         onSuccess={fetchItems}
+        onStartPending={(pending) => setFolders((prev) => [...prev, pending])}
+        onCreatedFolder={(serverFolder) => {
+          setFolders((prev) => prev.map((f) => (f.id.startsWith("pending:") ? serverFolder : f)));
+        }}
+        onCancelPending={(tempId) => {
+          setFolders((prev) => prev.filter((f) => f.id !== tempId));
+        }}
       />
 
       <RenameModal

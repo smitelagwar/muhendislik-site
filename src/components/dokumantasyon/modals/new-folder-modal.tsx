@@ -5,11 +5,16 @@ import { FolderPlus, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 
+import { DokFolder } from "@/lib/dokumantasyon/types";
+
 interface NewFolderModalProps {
   isOpen: boolean;
   currentFolderId: string | null;
   onClose: () => void;
   onSuccess: () => void;
+  onStartPending?: (pendingFolder: DokFolder) => void;
+  onCreatedFolder?: (folder: DokFolder) => void;
+  onCancelPending?: (tempId: string) => void;
 }
 
 export function NewFolderModal({
@@ -17,6 +22,9 @@ export function NewFolderModal({
   currentFolderId,
   onClose,
   onSuccess,
+  onStartPending,
+  onCreatedFolder,
+  onCancelPending,
 }: NewFolderModalProps) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,30 +34,49 @@ export function NewFolderModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || loading) return;
+    const trimmedName = name.trim();
+    if (!trimmedName || loading) return;
 
     setLoading(true);
     setError(null);
 
+    const tempId = `pending:${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const pendingFolder: DokFolder = {
+      id: tempId,
+      name: trimmedName,
+      parent_id: currentFolderId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      deleted_at: null,
+      pending: true,
+    };
+
+    onStartPending?.(pendingFolder);
+
     try {
-      const result = await requestDokMutation("/api/dokumantasyon/folders", {
+      const result = await requestDokMutation<{ success: boolean; folder: DokFolder }>("/api/dokumantasyon/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
+          name: trimmedName,
           parentId: currentFolderId,
         }),
       });
 
       if (!result.ok) {
+        onCancelPending?.(tempId);
         setError(result.message);
         return;
       }
 
       setName("");
+      if (result.data?.folder) {
+        onCreatedFolder?.(result.data.folder);
+      }
       onSuccess();
       onClose();
     } catch {
+      onCancelPending?.(tempId);
       setError("Bağlantı hatası oluştu.");
     } finally {
       setLoading(false);
