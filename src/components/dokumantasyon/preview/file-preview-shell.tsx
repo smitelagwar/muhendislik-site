@@ -41,6 +41,8 @@ const DokMarkdownViewer = dynamic(() => import("./markdown-viewer").then((module
 export const loadCadRuntimeModule = () => import("./cad-runtime-orchestrator");
 const DokCadViewer = dynamic(() => loadCadRuntimeModule().then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
 
+import type { DwgFastPreviewHint } from "./cad-runtime-orchestrator";
+
 interface FilePreviewShellProps {
   file: {
     id: string;
@@ -56,6 +58,7 @@ interface FilePreviewShellProps {
   previewKind: PreviewKind;
   expiresAt: string;
   isLocal: boolean;
+  dwgFastPreviewHint?: DwgFastPreviewHint;
   children?: React.ReactNode;
 }
 
@@ -72,6 +75,7 @@ export function FilePreviewShell({
   file,
   accessUrl,
   previewKind,
+  dwgFastPreviewHint,
   children,
 }: FilePreviewShellProps) {
   const router = useRouter();
@@ -254,6 +258,7 @@ export function FilePreviewShell({
             fileId={file.id}
             extension={file.extension}
             sizeBytes={file.size_bytes}
+            dwgFastPreviewHint={dwgFastPreviewHint}
           />
         ) : previewKind === "text" || previewKind === "json" || previewKind === "csv" ? (
           <DokTextViewer

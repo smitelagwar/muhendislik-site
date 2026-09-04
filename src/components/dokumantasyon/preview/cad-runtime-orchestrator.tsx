@@ -22,12 +22,23 @@ const CurrentCadViewer = lazy(async () => {
   return { default: viewerModule.DokCadViewer };
 });
 
+export type DwgFastPreviewHint =
+  | {
+      ready: true;
+      sizeBytes?: number | null;
+      decision?: "PASS" | "WARN";
+    }
+  | {
+      ready: false;
+    };
+
 export interface DokCadRuntimeOrchestratorProps {
   accessUrl: string;
   displayName: string;
   fileId: string;
   extension: string;
   sizeBytes: number;
+  dwgFastPreviewHint?: DwgFastPreviewHint;
   onViewerFailure?: (reason: string) => void;
 }
 
@@ -124,10 +135,13 @@ function DxfRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
 }
 
 function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
-  const { accessUrl, displayName, fileId, sizeBytes } = props;
-  const [engine, setEngine] = useState<DwgEngine>("fast-resolving");
+  const { accessUrl, displayName, fileId, sizeBytes, dwgFastPreviewHint } = props;
+  const isFastCacheBypassed = dwgFastPreviewHint?.ready === false;
+  const [engine, setEngine] = useState<DwgEngine>(isFastCacheBypassed ? "upstream" : "fast-resolving");
   const [cachedDxf, setCachedDxf] = useState<CachedDxf | null>(null);
-  const [transitionReason, setTransitionReason] = useState<string>("INITIAL");
+  const [transitionReason, setTransitionReason] = useState<string>(
+    isFastCacheBypassed ? "SERVER_FAST_CACHE_MISS" : "INITIAL"
+  );
   const objectUrlRef = useRef<string | null>(null);
 
   const revokeCachedUrl = useCallback(() => {
@@ -138,6 +152,11 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
   }, []);
 
   useEffect(() => {
+    // Stage 6: If server already determined no ready derivative exists, skip the network probe
+    if (isFastCacheBypassed) {
+      return;
+    }
+
     const controller = new AbortController();
     let active = true;
 
@@ -187,7 +206,7 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
       active = false;
       controller.abort("FAST_CACHE_UNMOUNT");
     };
-  }, [fileId, revokeCachedUrl]);
+  }, [fileId, revokeCachedUrl, isFastCacheBypassed]);
 
   useEffect(() => () => revokeCachedUrl(), [revokeCachedUrl]);
 
