@@ -27,7 +27,10 @@ export type CommandId =
   | "change-view"
   | "change-sort"
   | "open-trash"
-  | "open-active-shares";
+  | "open-active-shares"
+  | "copy"
+  | "cut"
+  | "paste";
 
 export type CommandTargetItem = {
   id: string;
@@ -36,6 +39,7 @@ export type CommandTargetItem = {
   size?: number;
   starred?: boolean;
   pending?: boolean;
+  parentId?: string | null;
 };
 
 export type CommandContext = {
@@ -48,6 +52,7 @@ export type CommandContext = {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   isPendingOperation?: boolean;
+  clipboardState?: { mode: "copy" | "cut"; items: CommandTargetItem[] } | null;
 };
 
 export type CommandHandler = (context: CommandContext, payload?: unknown) => void | Promise<void>;
@@ -241,6 +246,38 @@ export const COMMAND_DEFINITIONS: Record<CommandId, CommandDefinition> = {
     id: "open-active-shares",
     label: "Aktif Paylaşımları Aç",
     canExecute: () => true,
+  },
+  copy: {
+    id: "copy",
+    label: "Kopyala",
+    shortcut: "Ctrl+C",
+    requiresSelection: true,
+    allowMulti: true,
+    canExecute: (ctx) =>
+      ctx.selectedItems.length >= 1 &&
+      ctx.selectedItems.every((i) => !i.pending) &&
+      !ctx.isTrashView,
+  },
+  cut: {
+    id: "cut",
+    label: "Kes",
+    shortcut: "Ctrl+X",
+    requiresSelection: true,
+    allowMulti: true,
+    canExecute: (ctx) =>
+      ctx.selectedItems.length >= 1 &&
+      ctx.selectedItems.every((i) => !i.pending) &&
+      !ctx.isTrashView &&
+      !ctx.isPendingOperation,
+  },
+  paste: {
+    id: "paste",
+    label: "Yapıştır",
+    shortcut: "Ctrl+V",
+    canExecute: (ctx) =>
+      Boolean(ctx.clipboardState && ctx.clipboardState.items.length > 0) &&
+      !ctx.isTrashView &&
+      !ctx.isPendingOperation,
   },
 };
 

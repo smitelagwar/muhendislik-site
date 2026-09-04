@@ -46,9 +46,12 @@ async function runStage4Tests() {
     "change-sort",
     "open-trash",
     "open-active-shares",
+    "copy",
+    "cut",
+    "paste",
   ];
 
-  assert(EXPECTED_COMMANDS.length === 23, "Plandaki 23 komutun tamamı tanımlı");
+  assert(EXPECTED_COMMANDS.length === 26, "Plandaki 26 komutun tamamı tanımlı");
 
   const registry = new CommandRegistry();
   const executedCommands = new Set<CommandId>();
@@ -155,7 +158,22 @@ async function runStage4Tests() {
   assert(registry.canExecute("restore", trashContext) === true, "restore: çöp kutusunda etkin");
   assert(registry.canExecute("delete-forever", trashContext) === true, "delete-forever: çöp kutusunda etkin");
 
-  // 6. Tüm 23 Komutun Başarıyla Çalıştırılması (Zero Unknown Handlers)
+  // 6. Clipboard & Kopyala/Yapıştır Bağlamı
+  console.log("\n--- Clipboard Bağlamı (Copy / Cut / Paste) ---");
+  assert(registry.canExecute("copy", singleFileContext) === true, "copy: tek dosyada etkin");
+  assert(registry.canExecute("cut", singleFileContext) === true, "cut: tek dosyada etkin");
+  assert(registry.canExecute("paste", singleFileContext) === false, "paste: panoda öğe yoksa devre dışı");
+  
+  const clipboardContext: CommandContext = {
+    ...emptyContext,
+    clipboardState: {
+      mode: "copy",
+      items: [{ id: "file-1", type: "file", name: "proje.dwg" }],
+    },
+  };
+  assert(registry.canExecute("paste", clipboardContext) === true, "paste: panoda öğe varken etkin");
+
+  // 7. Tüm 26 Komutun Başarıyla Çalıştırılması (Zero Unknown Handlers)
   console.log("\n--- Bütün Komutların İcrası (Execution Verification) ---");
   for (const cmdId of EXPECTED_COMMANDS) {
     // Fabricate a valid context for this command
@@ -166,12 +184,13 @@ async function runStage4Tests() {
       totalItemCount: 5,
       isTrashView: cmdId === "restore" || cmdId === "delete-forever",
       isPendingOperation: false,
+      clipboardState: cmdId === "paste" ? { mode: "copy", items: [{ id: "item-1", type: "file", name: "test.pdf" }] } : undefined,
     };
     await registry.execute(cmdId, testContext);
     assert(executedCommands.has(cmdId), `Komut başarıyla yürütüldü: ${cmdId}`);
   }
 
-  assert(executedCommands.size === 23, `Tüm 23 komut tek çekirdek üzerinden icra edildi (${executedCommands.size}/23)`);
+  assert(executedCommands.size === 26, `Tüm 26 komut tek çekirdek üzerinden icra edildi (${executedCommands.size}/26)`);
 
   console.log("\n======================================================================");
   console.log("AŞAMA 4 COMMAND CONTRACT & ACTION MATRIX TESTLERİ BAŞARIYLA GEÇTİ!");

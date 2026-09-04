@@ -101,6 +101,7 @@ import {
   registerContainerAutoScroll,
 } from "./drive-v3/pdd-integration";
 import { createLongPressController } from "./drive-v3/mobile-gesture-engine";
+import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -528,6 +529,18 @@ function DokumantasyonFileManagerInner() {
     };
   }, []);
 
+  // ============================================================================
+  // MOBILE GESTURE ENGINE — STALE STATE SHIELD (MUTABLE LATEST REFS)
+  // ============================================================================
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+
+  const navigateToFolderRef = useRef(navigateToFolder);
+  navigateToFolderRef.current = navigateToFolder;
+
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
   const longPressControllersRef = useRef<Map<string, ReturnType<typeof createLongPressController>>>(new Map());
 
   const getItemGestureHandlers = useCallback(
@@ -538,18 +551,19 @@ function DokumantasyonFileManagerInner() {
           id,
           delayMs: 500,
           moveThresholdPx: 8,
-          isSelectionModeActive: selectedIds.size > 0,
+          isSelectionModeActive: selectedIdsRef.current.size > 0,
           onLongPressTrigger: (itemId) => {
             toggleSelectedId(itemId);
           },
           onSingleTap: (itemId) => {
-            if (selectedIds.size > 0) {
+            // ALWAYS read the freshest selection state to avoid stale closure
+            if (selectedIdsRef.current.size > 0) {
               toggleSelectedId(itemId);
             } else {
               if (type === "folder") {
-                navigateToFolder(itemId);
+                navigateToFolderRef.current(itemId);
               } else if (file) {
-                router.push(`/dokumantasyon/dosya/${file.id}`);
+                routerRef.current.push(`/dokumantasyon/dosya/${file.id}`);
               }
             }
           },
@@ -563,8 +577,222 @@ function DokumantasyonFileManagerInner() {
         onPointerCancel: controller.handlePointerCancel,
       };
     },
-    [selectedIds.size, toggleSelectedId, navigateToFolder, router]
+    [toggleSelectedId]
   );
+
+  // ============================================================================
+  // COMMAND REGISTRY & UNIFIED ACTION DISPATCHER (DRIVE V3.1)
+  // ============================================================================
+  const commandRegistryRef = useRef(new CommandRegistry());
+  const [clipboardState, setClipboardState] = useState<{ mode: "copy" | "cut"; items: CommandTargetItem[] } | null>(null);
+
+  const getCommandContext = useCallback((): CommandContext => {
+    const selectedItems: CommandTargetItem[] = Array.from(selectedIds).map((id) => {
+      const folder = folders.find((f) => f.id === id);
+      if (folder) {
+        return {
+          id: folder.id,
+          type: "folder" as const,
+          name: folder.name,
+          starred: Boolean(folder.starred_at),
+          pending: Boolean(folder.pending),
+          parentId: folder.parent_id,
+        };
+      }
+      const file = files.find((f) => f.id === id);
+      return {
+        id,
+        type: "file" as const,
+        name: file?.display_name || "Dosya",
+        size: file ? Number(file.size_bytes) : 0,
+        starred: Boolean(file?.starred_at),
+        pending: false,
+        parentId: file?.folder_id || null,
+      };
+    });
+
+    return {
+      currentFolderId,
+      selectedIds,
+      selectedItems,
+      totalItemCount: allExplorerItems.length,
+      isTrashView: isTrashOpen,
+      viewMode,
+      sortBy,
+      sortOrder,
+      isPendingOperation: false,
+      clipboardState,
+    };
+  }, [folders, files, currentFolderId, selectedIds, allExplorerItems.length, isTrashOpen, viewMode, sortBy, sortOrder, clipboardState]);
+
+  const executeCommand = useCallback(
+    async (id: CommandId, payload?: unknown): Promise<boolean> => {
+      const ctx = getCommandContext();
+      return commandRegistryRef.current.execute(id, ctx, payload);
+    },
+    [getCommandContext]
+  );
+
+  // Register All Command Handlers
+  useEffect(() => {
+    const registry = commandRegistryRef.current;
+    const cleanups: Array<() => void> = [];
+
+    cleanups.push(registry.register("new-folder", () => {
+      setIsNewFolderOpen(true);
+    }));
+
+    cleanups.push(registry.register("upload-files", () => {
+      fileInputRef.current?.click();
+    }));
+
+    cleanups.push(registry.register("open", (ctx) => {
+      if (ctx.selectedItems.length !== 1) return;
+      const target = ctx.selectedItems[0];
+      if (target.type === "folder") {
+        navigateToFolder(target.id);
+      } else {
+        router.push(`/dokumantasyon/dosya/${target.id}`);
+      }
+    }));
+
+    cleanups.push(registry.register("preview", (ctx) => {
+      if (ctx.selectedItems.length !== 1) return;
+      const target = ctx.selectedItems[0];
+      if (target.type === "file") {
+        router.push(`/dokumantasyon/dosya/${target.id}`);
+      }
+    }));
+
+    cleanups.push(registry.register("download", (ctx) => {
+      const fileItems = ctx.selectedItems.filter((i) => i.type === "file");
+      fileItems.forEach((item) => {
+        const fileObj = files.find((f) => f.id === item.id);
+        if (fileObj) void handleDownload(fileObj);
+      });
+    }));
+
+    cleanups.push(registry.register("rename", (ctx) => {
+      if (ctx.selectedItems.length === 1) {
+        setRenameItem({
+          id: ctx.selectedItems[0].id,
+          name: ctx.selectedItems[0].name,
+          type: ctx.selectedItems[0].type,
+        });
+      }
+    }));
+
+    cleanups.push(registry.register("move", (ctx) => {
+      if (ctx.selectedItems.length > 0) {
+        const itemsToMove: DriveItem[] = ctx.selectedItems.map((i) => ({
+          id: i.id,
+          name: i.name,
+          type: i.type,
+          parentId: i.parentId ?? null,
+        }));
+        setMoveItems(itemsToMove);
+      }
+    }));
+
+    cleanups.push(registry.register("trash", (ctx) => {
+      if (ctx.selectedItems.length === 1) {
+        setDeleteItem({
+          id: ctx.selectedItems[0].id,
+          name: ctx.selectedItems[0].name,
+          type: ctx.selectedItems[0].type,
+        });
+      } else if (ctx.selectedItems.length > 1) {
+        setIsMultiDeleteOpen(true);
+      }
+    }));
+
+    cleanups.push(registry.register("star", async (ctx) => {
+      for (const item of ctx.selectedItems) {
+        await toggleStar(item.type, item.id, false, { stopPropagation: () => {} } as any);
+      }
+    }));
+
+    cleanups.push(registry.register("unstar", async (ctx) => {
+      for (const item of ctx.selectedItems) {
+        await toggleStar(item.type, item.id, true, { stopPropagation: () => {} } as any);
+      }
+    }));
+
+    cleanups.push(registry.register("share", (ctx) => {
+      if (ctx.selectedItems.length === 1) {
+        handleOpenShareSingle(ctx.selectedItems[0]);
+      } else if (ctx.selectedItems.length > 1) {
+        handleOpenShareSelected();
+      }
+    }));
+
+    cleanups.push(registry.register("details", () => {
+      setIsDetailsOpen((prev) => !prev);
+    }));
+
+    cleanups.push(registry.register("search", () => {
+      setIsSearchOpen(true);
+    }));
+
+    cleanups.push(registry.register("select-all", () => {
+      selectAll();
+    }));
+
+    cleanups.push(registry.register("clear-selection", () => {
+      clearSelection();
+    }));
+
+    cleanups.push(registry.register("refresh", async () => {
+      await refetchItems();
+    }));
+
+    cleanups.push(registry.register("change-view", (_ctx, payload) => {
+      if (payload === "list" || payload === "grid") {
+        setViewMode(payload);
+      } else {
+        setViewMode((prev) => (prev === "list" ? "grid" : "list"));
+      }
+    }));
+
+    cleanups.push(registry.register("copy", (ctx) => {
+      if (ctx.selectedItems.length > 0) {
+        setClipboardState({ mode: "copy", items: ctx.selectedItems });
+      }
+    }));
+
+    cleanups.push(registry.register("cut", (ctx) => {
+      if (ctx.selectedItems.length > 0) {
+        setClipboardState({ mode: "cut", items: ctx.selectedItems });
+      }
+    }));
+
+    cleanups.push(registry.register("paste", async (ctx) => {
+      if (!ctx.clipboardState || ctx.clipboardState.items.length === 0) return;
+      const { mode, items } = ctx.clipboardState;
+      if (mode === "cut") {
+        const bulkItems: BulkItem[] = items.map((i) => ({ id: i.id, type: i.type }));
+        await executeBulkMove(bulkItems, ctx.currentFolderId);
+        setClipboardState(null);
+        await refetchItems();
+      } else {
+        await refetchItems();
+      }
+    }));
+
+    return () => {
+      cleanups.forEach((c) => c());
+    };
+  }, [
+    allSelectedItems,
+    files,
+    currentFolderId,
+    navigateToFolder,
+    router,
+    selectAll,
+    clearSelection,
+    refetchItems,
+    setViewMode,
+  ]);
 
   // Toplam İstatistikler
   const totalSizeBytes = useMemo(() => {
@@ -919,25 +1147,39 @@ function DokumantasyonFileManagerInner() {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       const dialogIsOpen = isSearchOpen || isNewFolderOpen || renameItem !== null || moveItems.length > 0 || deleteItem !== null || isMultiDeleteOpen || isCreateShareOpen || isTrashOpen || isFilterSheetOpen;
-      if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (dialogIsOpen) return;
+
+      const isCtrl = event.ctrlKey || event.metaKey;
+
+      if (event.key === "/" && !isCtrl && !event.altKey) {
         event.preventDefault();
-        setIsSearchOpen(true);
-      } else if (event.key === "Delete" && selectedIds.size > 0 && !dialogIsOpen) {
+        void executeCommand("search");
+      } else if (event.key === "Delete" && selectedIds.size > 0) {
         event.preventDefault();
-        setIsMultiDeleteOpen(true);
-      } else if (event.key === "Escape" && selectedIds.size > 0 && !dialogIsOpen) {
-        setSelectedIds(new Set());
-      } else if (event.key === "Enter" && selectedIds.size === 1 && !dialogIsOpen) {
-        const selectedFile = files.find((file) => selectedIds.has(file.id));
-        if (selectedFile) {
-          event.preventDefault();
-          router.push(`/dokumantasyon/dosya/${selectedFile.id}`);
-        }
+        void executeCommand("trash");
+      } else if (event.key === "Escape" && selectedIds.size > 0) {
+        event.preventDefault();
+        void executeCommand("clear-selection");
+      } else if (event.key === "Enter" && selectedIds.size === 1) {
+        event.preventDefault();
+        void executeCommand("open");
+      } else if (event.key === "F2" && selectedIds.size === 1) {
+        event.preventDefault();
+        void executeCommand("rename");
+      } else if (isCtrl && event.key.toLowerCase() === "c" && selectedIds.size > 0) {
+        event.preventDefault();
+        void executeCommand("copy");
+      } else if (isCtrl && event.key.toLowerCase() === "x" && selectedIds.size > 0) {
+        event.preventDefault();
+        void executeCommand("cut");
+      } else if (isCtrl && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        void executeCommand("paste");
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteItem, files, isCreateShareOpen, isFilterSheetOpen, isMultiDeleteOpen, isNewFolderOpen, isSearchOpen, isTrashOpen, moveItems.length, renameItem, router, selectedIds, setSelectedIds]);
+  }, [deleteItem, executeCommand, isCreateShareOpen, isFilterSheetOpen, isMultiDeleteOpen, isNewFolderOpen, isSearchOpen, isTrashOpen, moveItems.length, renameItem, selectedIds.size]);
 
   // ============================================================================
   // VIRTUALIZED & SHARED ROW / CARD RENDERERS
@@ -1690,7 +1932,7 @@ function DokumantasyonFileManagerInner() {
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => setIsMultiDeleteOpen(true)}
+                onClick={() => void executeCommand("trash")}
                 className="h-10 gap-1.5 px-3 text-xs font-bold rounded-xl shadow-md animate-in fade-in bg-red-600 hover:bg-red-500 text-white"
                 title="Seçili öğeleri çöp kutusuna taşı"
               >
@@ -1981,7 +2223,7 @@ function DokumantasyonFileManagerInner() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleOpenMoveSelected}
+                onClick={() => void executeCommand("move")}
                 className="h-9 gap-1.5 border-purple-500/40 px-3 text-xs text-purple-500 hover:bg-purple-500/10 rounded-xl"
               >
                 <Move className="h-3.5 w-3.5" />
@@ -1990,7 +2232,7 @@ function DokumantasyonFileManagerInner() {
 
               <Button
                 size="sm"
-                onClick={handleOpenShareSelected}
+                onClick={() => void executeCommand("share")}
                 className="h-9 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm"
               >
                 <Link2 className="h-3.5 w-3.5" />
@@ -2000,7 +2242,7 @@ function DokumantasyonFileManagerInner() {
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => setIsMultiDeleteOpen(true)}
+                onClick={() => void executeCommand("trash")}
                 className="h-9 gap-1.5 px-3 text-xs rounded-xl font-bold bg-red-600 hover:bg-red-500 text-white"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -2010,7 +2252,7 @@ function DokumantasyonFileManagerInner() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setSelectedIds(new Set())}
+                onClick={() => void executeCommand("clear-selection")}
                 className="hidden h-9 text-xs sm:inline-flex rounded-xl"
               >
                 Seçimi Temizle
