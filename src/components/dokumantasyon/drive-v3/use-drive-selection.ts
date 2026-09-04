@@ -202,12 +202,27 @@ export function useDriveSelection({
       height: Math.max(0, contentBbox.bottom - contentBbox.top),
     });
 
-    // Hit test: First prioritize real rendered DOM elements for 100% viewport accuracy
+    // Source-of-Truth: Content-space virtual geometry (virtualization-aware, includes offscreen items)
+    let geometryHits: string[] = [];
+    if (viewMode === "list") {
+      geometryHits = hitTestList(
+        contentBbox,
+        visibleOrderedIds,
+        undefined,
+        undefined,
+        0,
+        container.clientWidth
+      );
+    } else {
+      geometryHits = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
+    }
+
+    // Optional mounted element union: Ensures mounted items along visual edges are included
+    // without ever dropping offscreen items from the virtual geometry selection
+    const hitSet = new Set<string>(geometryHits);
     const renderedElements = container.querySelectorAll<HTMLElement>(
       "[data-folder-id], [data-file-id]"
     );
-
-    let hitIds: string[] = [];
 
     if (renderedElements && renderedElements.length > 0) {
       const marqueeViewport: Rect = {
@@ -217,7 +232,6 @@ export function useDriveSelection({
         bottom: Math.max(start.clientY, latest.clientY),
       };
 
-      const hitSet = new Set<string>();
       renderedElements.forEach((el) => {
         const elRect = el.getBoundingClientRect();
         if (intersects(marqueeViewport, elRect)) {
@@ -225,22 +239,9 @@ export function useDriveSelection({
           if (id) hitSet.add(id);
         }
       });
-      hitIds = visibleOrderedIds.filter((id) => hitSet.has(id));
-    } else {
-      // Fallback for headless / offscreen virtual testing environments
-      if (viewMode === "list") {
-        hitIds = hitTestList(
-          contentBbox,
-          visibleOrderedIds,
-          undefined,
-          undefined,
-          0,
-          container.clientWidth
-        );
-      } else {
-        hitIds = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
-      }
     }
+
+    const hitIds = visibleOrderedIds.filter((id) => hitSet.has(id));
 
     dispatch({
       type: "MARQUEE_UPDATE",

@@ -25,6 +25,7 @@ export interface UseVirtualExplorerProps<T> {
   folderId?: string | null;
   filter?: string;
   overscan?: number;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useVirtualExplorer<T>({
@@ -33,8 +34,10 @@ export function useVirtualExplorer<T>({
   folderId,
   filter,
   overscan = 5,
+  scrollContainerRef,
 }: UseVirtualExplorerProps<T>) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const internalContainerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = scrollContainerRef || internalContainerRef;
   const [containerWidth, setContainerWidth] = useState<number>(1200);
 
   // Grid Metrics (JS columnCount == CSS columnCount)
