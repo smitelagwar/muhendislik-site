@@ -654,6 +654,12 @@ export class CadUpstreamAdapter {
   private snapCatalog: CadSnapPrimitive[] = [];
   private readonly snapEngine = new CadSnapEngine();
   private textSearchIndex: CadTextSearchIndex | null = null;
+  private documentGeneration = 0;
+  private snapReady = false;
+  private snapPromise: Promise<void> | null = null;
+  private textSearchReady = false;
+  private textSearchPromise: Promise<void> | null = null;
+  private readonly toolDataReadyListeners = new Set<() => void>();
   private readonly initialLayerSnapshot = new Map<
     string,
     { isOn: boolean; isFrozen: boolean }
@@ -746,6 +752,15 @@ export class CadUpstreamAdapter {
         "CAD adapter kapatıldı."
       );
     }
+
+    const currentGeneration = ++this.documentGeneration;
+    this.snapReady = false;
+    this.snapPromise = null;
+    this.snapCatalog = [];
+    this.snapEngine.clear();
+    this.textSearchReady = false;
+    this.textSearchPromise = null;
+    this.textSearchIndex = null;
 
     const extension = normalizeExtension(options.extension);
     if (!CAD_UPSTREAM_SUPPORTED_EXTENSIONS.has(extension)) {
@@ -946,6 +961,124 @@ export class CadUpstreamAdapter {
     this.setBackgroundColor(this.backgroundColorOption);
     this.applyDisplayMode();
     this.zoomToFit();
+    this.scheduleAuxiliaryIndexes(currentGeneration);
+  }
+
+  isSnapReady(): boolean {
+    return this.snapReady;
+  }
+
+  isTextSearchReady(): boolean {
+    return this.textSearchReady;
+  }
+
+  isToolDataReady(): boolean {
+    return this.snapReady && this.textSearchReady;
+  }
+
+  subscribeToolDataReady(listener: () => void): () => void {
+    this.toolDataReadyListeners.add(listener);
+    return () => {
+      this.toolDataReadyListeners.delete(listener);
+    };
+  }
+
+  private notifyToolDataReady(): void {
+    for (const listener of this.toolDataReadyListeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error("[cad-upstream] toolDataReady listener error:", err);
+      }
+    }
+  }
+
+  async ensureSnapReady(generation = this.documentGeneration): Promise<void> {
+    if (this.destroyed || this.documentGeneration !== generation) return;
+    if (this.snapReady) return;
+    if (this.snapPromise) return this.snapPromise;
+
+    this.snapPromise = (async () => {
+      try {
+        startCadPerfPhase("snap-catalog");
+        const database = this.manager.curDocument?.database;
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.snapCatalog = buildCadSnapPrimitives(database);
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.rebuildVisibleSnapIndex();
+        endCadPerfPhase("snap-catalog");
+        this.snapReady = true;
+        this.notifyToolDataReady();
+      } catch (err) {
+        console.warn("[cad-upstream] snap primitives build failed:", err);
+        this.snapCatalog = [];
+        this.snapEngine.clear();
+        this.snapReady = true;
+      }
+    })();
+
+    return this.snapPromise;
+  }
+
+  async ensureTextSearchReady(generation = this.documentGeneration): Promise<void> {
+    if (this.destroyed || this.documentGeneration !== generation) return;
+    if (this.textSearchReady) return;
+    if (this.textSearchPromise) return this.textSearchPromise;
+
+    this.textSearchPromise = (async () => {
+      try {
+        startCadPerfPhase("text-catalog");
+        const database = this.manager.curDocument?.database;
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        const textEntities = buildCadTextSearchCatalog(database);
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.textSearchIndex = new CadTextSearchIndex(textEntities);
+        endCadPerfPhase("text-catalog");
+        this.textSearchReady = true;
+        this.notifyToolDataReady();
+      } catch (err) {
+        console.warn("[cad-upstream] text search catalog build failed:", err);
+        this.textSearchIndex = new CadTextSearchIndex([]);
+        this.textSearchReady = true;
+      }
+    })();
+
+    return this.textSearchPromise;
+  }
+
+  whenSnapReady(): Promise<void> {
+    return this.ensureSnapReady();
+  }
+
+  whenTextSearchReady(): Promise<void> {
+    return this.ensureTextSearchReady();
+  }
+
+  private scheduleAuxiliaryIndexes(generation: number): void {
+    const runIdle = (cb: () => void) => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        (
+          window as unknown as {
+            requestIdleCallback: (
+              cb: () => void,
+              opts?: { timeout: number }
+            ) => number;
+          }
+        ).requestIdleCallback(cb, { timeout: 2000 });
+      } else {
+        setTimeout(cb, 50);
+      }
+    };
+
+    runIdle(() => {
+      if (this.destroyed || this.documentGeneration !== generation) return;
+      void this.ensureSnapReady(generation).then(() => {
+        runIdle(() => {
+          if (this.destroyed || this.documentGeneration !== generation) return;
+          void this.ensureTextSearchReady(generation);
+        });
+      });
+    });
   }
 
   private getActiveLayoutView(): CadLayoutViewLike | null {
@@ -972,22 +1105,6 @@ export class CadUpstreamAdapter {
     this.areaMeasurementController = null;
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
-
-    startCadPerfPhase("snap-catalog");
-    const database = this.manager.curDocument?.database;
-    this.snapCatalog = buildCadSnapPrimitives(database);
-    this.rebuildVisibleSnapIndex();
-    endCadPerfPhase("snap-catalog");
-
-    startCadPerfPhase("text-catalog");
-    try {
-      const textEntities = buildCadTextSearchCatalog(database);
-      this.textSearchIndex = new CadTextSearchIndex(textEntities);
-    } catch {
-      this.textSearchIndex = new CadTextSearchIndex([]);
-    }
-    endCadPerfPhase("text-catalog");
-
 
     this.distanceMeasurementController = new CadPressHoldDistanceController(
       this.interactionHost,
@@ -1023,7 +1140,11 @@ export class CadUpstreamAdapter {
 
     const store = this.getLayerStore();
     if (store) {
-      const handleLayersChanged = () => this.rebuildVisibleSnapIndex();
+      const handleLayersChanged = () => {
+        if (this.snapReady) {
+          this.rebuildVisibleSnapIndex();
+        }
+      };
       store.events.changed.addEventListener(handleLayersChanged);
       this.snapLayerUnsubscribe = () => {
         store.events.changed.removeEventListener(handleLayersChanged);
@@ -1380,6 +1501,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadDistanceMeasurementCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.distanceMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.distanceMeasurementController) return false;
@@ -1413,6 +1538,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadAreaMeasurementCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.areaMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.areaMeasurementController) return false;
@@ -1442,6 +1571,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadChainDistanceCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.chainDistanceMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.chainDistanceMeasurementController) return false;
@@ -1478,11 +1611,20 @@ export class CadUpstreamAdapter {
   }
 
   searchCadText(options: CadTextSearchQuery): CadTextSearchResult[] {
-    if (this.destroyed || !this.textSearchIndex) return [];
+    if (this.destroyed) return [];
+    if (!this.textSearchIndex) {
+      if (!this.textSearchReady && !this.textSearchPromise) {
+        void this.ensureTextSearchReady();
+      }
+      return [];
+    }
     return this.textSearchIndex.search(options);
   }
 
   getTextSearchIndex(): CadTextSearchIndex | null {
+    if (!this.textSearchIndex && !this.textSearchReady && !this.textSearchPromise) {
+      void this.ensureTextSearchReady();
+    }
     return this.textSearchIndex;
   }
 
@@ -1906,6 +2048,12 @@ export class CadUpstreamAdapter {
 
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
+    this.documentGeneration++;
+    this.snapReady = false;
+    this.snapPromise = null;
+    this.textSearchReady = false;
+    this.textSearchPromise = null;
+    this.toolDataReadyListeners.clear();
     this.snapCatalog = [];
     this.snapEngine.clear();
     this.textSearchIndex = null;

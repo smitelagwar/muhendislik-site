@@ -176,6 +176,9 @@ export function DokCadUpstreamViewer({
   >([]);
   const [, setViewRevision] = useState(0);
   const [fontDiagnostics, setFontDiagnostics] = useState<CadFontParityEvaluation | null>(null);
+  const [isSnapReady, setIsSnapReady] = useState(false);
+  const [isTextSearchReady, setIsTextSearchReady] = useState(false);
+  const [isPreparingTool, setIsPreparingTool] = useState(false);
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
@@ -228,7 +231,7 @@ export function DokCadUpstreamViewer({
     });
   }, []);
 
-  const handleSearchQueryChange = (query: string) => {
+  const handleSearchQueryChange = async (query: string) => {
     setReviewSearchQuery(query);
     const q = query.trim();
     if (!q || !adapterRef.current) {
@@ -236,6 +239,9 @@ export function DokCadUpstreamViewer({
       return;
     }
     try {
+      if (!adapterRef.current.isTextSearchReady()) {
+        await adapterRef.current.ensureTextSearchReady();
+      }
       const results = adapterRef.current.searchCadText({ query: q });
       setSearchResults(
         results.map((r, index) => ({
@@ -503,6 +509,7 @@ export function DokCadUpstreamViewer({
     let syncTheme: (() => void) | null = null;
     let unsubscribeLayers: (() => void) | null = null;
     let unsubscribeViewChanged: (() => void) | null = null;
+    let unsubscribeToolReady: (() => void) | null = null;
     let timeoutId: number | null = null;
     let handleVisibilityChange: (() => void) | null = null;
     let handlePageShow: ((e: PageTransitionEvent) => void) | null = null;
@@ -522,6 +529,9 @@ export function DokCadUpstreamViewer({
       setDistanceMeasurements([]);
       setAreaSnapshot(null);
       setAreaMeasurements([]);
+      setIsSnapReady(false);
+      setIsTextSearchReady(false);
+      setIsPreparingTool(false);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -579,6 +589,14 @@ export function DokCadUpstreamViewer({
         setLineWeightVisible(initialLineWeight);
 
         setLayers(createdAdapter.getLayers());
+        setIsSnapReady(createdAdapter.isSnapReady());
+        setIsTextSearchReady(createdAdapter.isTextSearchReady());
+        unsubscribeToolReady = createdAdapter.subscribeToolDataReady(() => {
+          if (!cancelled && adapterRef.current) {
+            setIsSnapReady(adapterRef.current.isSnapReady());
+            setIsTextSearchReady(adapterRef.current.isTextSearchReady());
+          }
+        });
         unsubscribeLayers = createdAdapter.subscribeLayersChanged(() => {
           if (!cancelled && adapterRef.current) {
             setLayers(adapterRef.current.getLayers());
@@ -669,6 +687,10 @@ export function DokCadUpstreamViewer({
           unsubscribeViewChanged();
           unsubscribeViewChanged = null;
         }
+        if (unsubscribeToolReady) {
+          unsubscribeToolReady();
+          unsubscribeToolReady = null;
+        }
         if (handleVisibilityChange) {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
           window.removeEventListener("focus", handleVisibilityChange);
@@ -717,6 +739,10 @@ export function DokCadUpstreamViewer({
       if (unsubscribeViewChanged) {
         unsubscribeViewChanged();
         unsubscribeViewChanged = null;
+      }
+      if (unsubscribeToolReady) {
+        unsubscribeToolReady();
+        unsubscribeToolReady = null;
       }
       if (handleVisibilityChange) {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -880,29 +906,38 @@ export function DokCadUpstreamViewer({
       return;
     }
 
-    const started = await adapter.startDistanceMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
-        onComplete: (measurement) => {
-          distanceMeasurementIdRef.current += 1;
-          setDistanceMeasurements((current) => [
-            ...current,
-            {
-              ...measurement,
-              id: `distance-${distanceMeasurementIdRef.current}`,
-            },
-          ]);
-          setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
-        },
-        onCancel: () => {
-          setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
-        },
-      }
-    );
-    setActiveTool(started ? "distance" : null);
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
+          onComplete: (measurement) => {
+            distanceMeasurementIdRef.current += 1;
+            setDistanceMeasurements((current) => [
+              ...current,
+              {
+                ...measurement,
+                id: `distance-${distanceMeasurementIdRef.current}`,
+              },
+            ]);
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+          },
+          onCancel: () => {
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+          },
+        }
+      );
+      setActiveTool(started ? "distance" : null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
+    }
   };
 
   const handleStartArea = async () => {
@@ -917,29 +952,38 @@ export function DokCadUpstreamViewer({
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
 
-    const started = await adapter.startAreaMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: (snapshot) => setAreaSnapshot(snapshot),
-        onComplete: (measurement) => {
-          areaMeasurementIdRef.current += 1;
-          setAreaMeasurements((current) => [
-            ...current,
-            {
-              ...measurement,
-              id: `area-${areaMeasurementIdRef.current}`,
-            },
-          ]);
-          setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
-        },
-        onCancel: () => {
-          setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
-        },
-      }
-    );
-    setActiveTool(started ? "area" : null);
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startAreaMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: (snapshot) => setAreaSnapshot(snapshot),
+          onComplete: (measurement) => {
+            areaMeasurementIdRef.current += 1;
+            setAreaMeasurements((current) => [
+              ...current,
+              {
+                ...measurement,
+                id: `area-${areaMeasurementIdRef.current}`,
+              },
+            ]);
+            setAreaSnapshot(null);
+            setActiveTool((current) => (current === "area" ? null : current));
+          },
+          onCancel: () => {
+            setAreaSnapshot(null);
+            setActiveTool((current) => (current === "area" ? null : current));
+          },
+        }
+      );
+      setActiveTool(started ? "area" : null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
+    }
   };
 
   const handleStartChainDistance = async () => {
@@ -949,37 +993,46 @@ export function DokCadUpstreamViewer({
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
 
-    const started = await adapter.startChainDistanceMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: () => {},
-        onComplete: (measurement) => {
-          if (reviewStoreRef.current) {
-            reviewStoreRef.current.addItem({
-              id: `chain-${Date.now()}`,
-              type: "chain_distance",
-              points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
-              segmentDistances: [...measurement.segmentDistances],
-              totalDistance: measurement.totalDistance,
-              author: "Admin",
-              comment: "",
-              status: "open",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
-            });
-          }
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
-        },
-        onCancel: () => {
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
-        },
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startChainDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: () => {},
+          onComplete: (measurement) => {
+            if (reviewStoreRef.current) {
+              reviewStoreRef.current.addItem({
+                id: `chain-${Date.now()}`,
+                type: "chain_distance",
+                points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
+                segmentDistances: [...measurement.segmentDistances],
+                totalDistance: measurement.totalDistance,
+                author: "Admin",
+                comment: "",
+                status: "open",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
+              });
+            }
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+          onCancel: () => {
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+        }
+      );
+      if (started) {
+        setActiveTool(null);
       }
-    );
-    if (started) {
-      setActiveTool(null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
     }
   };
 
@@ -1140,6 +1193,11 @@ export function DokCadUpstreamViewer({
       data-cad-upstream-state={state}
       data-cad-loading-phase={state === "loading" ? loadingPhase : state}
       data-cad-elapsed-seconds={elapsedSeconds}
+      data-cad-visual-ready={state === "ready" ? "true" : "false"}
+      data-cad-snap-ready={isSnapReady ? "true" : "false"}
+      data-cad-search-ready={isTextSearchReady ? "true" : "false"}
+      data-cad-tool-ready={isSnapReady && isTextSearchReady ? "true" : "false"}
+      data-cad-tool-preparing={isPreparingTool ? "true" : "false"}
       data-cad-color-mode={displayMode}
       data-cad-background-color={backgroundColor}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}

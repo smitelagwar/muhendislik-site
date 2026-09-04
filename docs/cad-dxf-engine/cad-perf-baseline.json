@@ -5,26 +5,24 @@
     "format": "dxf",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 398.7,
+    "totalToReadyMs": 410.4,
     "phases": {
-      "raw-viewer-preload": 155.8,
-      "mlightcad-import": 155.9,
+      "raw-viewer-preload": 173.6,
+      "mlightcad-import": 173.7,
       "engine-enhancements": 18.4,
-      "libredwg-registration": 6.3,
-      "worker-readiness": 46.9,
-      "source-fetch": 48.6,
-      "font-preload": 128.2,
-      "open-document": 70.6,
-      "wait-until-idle": 23,
-      "layer-snapshot": 0.1,
-      "snap-catalog": 0.4,
-      "text-catalog": 0.1,
-      "total-to-ready": 398.7
+      "libredwg-registration": 6.6,
+      "worker-readiness": 46.6,
+      "source-fetch": 53.1,
+      "font-preload": 127.3,
+      "open-document": 64.5,
+      "wait-until-idle": 23.4,
+      "layer-snapshot": 0.3,
+      "total-to-ready": 410.4
     },
     "longTasks": [
       {
-        "startTime": 356,
-        "durationMs": 109
+        "startTime": 378,
+        "durationMs": 114
       }
     ],
     "network": {
@@ -46,30 +44,28 @@
     "format": "dxf",
     "sizeBytes": 1419,
     "engine": "upstream",
-    "totalToReadyMs": 1553.1,
+    "totalToReadyMs": 1699,
     "phases": {
-      "raw-viewer-preload": 37.6,
-      "mlightcad-import": 37.7,
-      "engine-enhancements": 4,
-      "libredwg-registration": 3.4,
-      "worker-readiness": 31.5,
-      "source-fetch": 70,
-      "font-preload": 116.1,
-      "open-document": 65.3,
-      "wait-until-idle": 1329,
+      "raw-viewer-preload": 39,
+      "mlightcad-import": 39.1,
+      "engine-enhancements": 4.8,
+      "libredwg-registration": 4,
+      "worker-readiness": 62.4,
+      "source-fetch": 50,
+      "font-preload": 121.4,
+      "open-document": 71.3,
+      "wait-until-idle": 1461.3,
       "layer-snapshot": 0.1,
-      "snap-catalog": 0.1,
-      "text-catalog": 0,
-      "total-to-ready": 1553.1
+      "total-to-ready": 1699
     },
     "longTasks": [
       {
-        "startTime": 1476,
-        "durationMs": 74
+        "startTime": 1458,
+        "durationMs": 75
       },
       {
-        "startTime": 1563,
-        "durationMs": 262
+        "startTime": 1697,
+        "durationMs": 264
       }
     ],
     "network": {
@@ -91,30 +87,28 @@
     "format": "dxf",
     "sizeBytes": 461,
     "engine": "upstream",
-    "totalToReadyMs": 576.3,
+    "totalToReadyMs": 584.3,
     "phases": {
-      "raw-viewer-preload": 9.5,
-      "mlightcad-import": 9.7,
-      "engine-enhancements": 2.8,
-      "libredwg-registration": 1,
-      "worker-readiness": 39,
-      "source-fetch": 56,
-      "font-preload": 111,
-      "open-document": 59.5,
-      "wait-until-idle": 392.2,
-      "layer-snapshot": 0,
-      "snap-catalog": 0,
-      "text-catalog": 0.1,
-      "total-to-ready": 576.3
+      "raw-viewer-preload": 11.7,
+      "mlightcad-import": 11.8,
+      "engine-enhancements": 3.4,
+      "libredwg-registration": 2.2,
+      "worker-readiness": 28.8,
+      "source-fetch": 55.4,
+      "font-preload": 100.9,
+      "open-document": 62.9,
+      "wait-until-idle": 404.2,
+      "layer-snapshot": 0.1,
+      "total-to-ready": 584.3
     },
     "longTasks": [
       {
-        "startTime": 506,
-        "durationMs": 71
+        "startTime": 513,
+        "durationMs": 73
       },
       {
-        "startTime": 587,
-        "durationMs": 269
+        "startTime": 600,
+        "durationMs": 275
       }
     ],
     "network": {
@@ -136,21 +130,19 @@
     "format": "dwg",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 252.1,
+    "totalToReadyMs": 279.4,
     "phases": {
-      "raw-viewer-preload": 49.4,
-      "mlightcad-import": 49.4,
-      "engine-enhancements": 6.4,
-      "libredwg-registration": 13.3,
-      "worker-readiness": 37.6,
-      "source-fetch": 45.5,
-      "font-preload": 104.5,
-      "open-document": 64.6,
-      "wait-until-idle": 26.2,
-      "layer-snapshot": 0.2,
-      "snap-catalog": 0.2,
-      "text-catalog": 0,
-      "total-to-ready": 252.1
+      "raw-viewer-preload": 55.9,
+      "mlightcad-import": 56,
+      "engine-enhancements": 15.1,
+      "libredwg-registration": 10.7,
+      "worker-readiness": 40.6,
+      "source-fetch": 48,
+      "font-preload": 109.5,
+      "open-document": 63.8,
+      "wait-until-idle": 34.3,
+      "layer-snapshot": 0,
+      "total-to-ready": 279.4
     },
     "longTasks": [],
     "network": {
@@ -172,58 +164,56 @@
     "format": "dwg",
     "sizeBytes": 2139550,
     "engine": "upstream",
-    "totalToReadyMs": 9100.1,
+    "totalToReadyMs": 9333.5,
     "phases": {
-      "raw-viewer-preload": 50.4,
-      "mlightcad-import": 50.5,
-      "engine-enhancements": 11.2,
-      "libredwg-registration": 7.9,
-      "worker-readiness": 38.1,
-      "source-fetch": 55.4,
-      "font-preload": 109,
-      "open-document": 3805.6,
-      "wait-until-idle": 4995.4,
-      "layer-snapshot": 0,
-      "snap-catalog": 103.7,
-      "text-catalog": 22.9,
-      "total-to-ready": 9100.1
+      "raw-viewer-preload": 52.1,
+      "mlightcad-import": 52.1,
+      "engine-enhancements": 9.5,
+      "libredwg-registration": 10.3,
+      "worker-readiness": 41.7,
+      "source-fetch": 60.2,
+      "font-preload": 118.4,
+      "open-document": 4181.9,
+      "wait-until-idle": 4970.2,
+      "layer-snapshot": 0.1,
+      "total-to-ready": 9333.5
     },
     "longTasks": [
       {
-        "startTime": 3192,
-        "durationMs": 176
+        "startTime": 3499,
+        "durationMs": 183
       },
       {
-        "startTime": 3445,
-        "durationMs": 249
+        "startTime": 3768,
+        "durationMs": 254
       },
       {
-        "startTime": 3730,
-        "durationMs": 311
+        "startTime": 4052,
+        "durationMs": 308
       },
       {
-        "startTime": 4042,
-        "durationMs": 301
+        "startTime": 4362,
+        "durationMs": 303
       },
       {
-        "startTime": 4352,
+        "startTime": 4673,
+        "durationMs": 308
+      },
+      {
+        "startTime": 5001,
         "durationMs": 302
       },
       {
-        "startTime": 4676,
-        "durationMs": 301
+        "startTime": 5305,
+        "durationMs": 275
       },
       {
-        "startTime": 4982,
-        "durationMs": 324
+        "startTime": 5617,
+        "durationMs": 3737
       },
       {
-        "startTime": 5342,
-        "durationMs": 3726
-      },
-      {
-        "startTime": 9069,
-        "durationMs": 271
+        "startTime": 9355,
+        "durationMs": 283
       }
     ],
     "network": {

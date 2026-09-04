@@ -26,6 +26,7 @@ export const CAD_SESSION_CACHE_MAX_TOTAL_BYTES = 40 * 1024 * 1024; // 40 MB
 export const CAD_SESSION_CACHE_MAX_SINGLE_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 
 const sessionCache = new Map<string, CadSessionCacheEntry>();
+let accessSequence = 0;
 
 function cleanUrlPath(rawUrl: string): string {
   try {
@@ -109,7 +110,7 @@ export function getCachedCadSource(cacheKey: string): ArrayBuffer | null {
     return null;
   }
 
-  entry.lastUsedAt = Date.now();
+  entry.lastUsedAt = ++accessSequence;
   // Return an isolated slice(0) copy so engine/worker cannot detach or mutate cached buffer
   return entry.sourceBytes.slice(0);
 }
@@ -130,7 +131,7 @@ export function putCachedCadSource(cacheKey: string, sourceBytes: ArrayBuffer): 
     cacheKey,
     sourceBytes: sourceBytes.slice(0),
     byteLength,
-    lastUsedAt: Date.now(),
+    lastUsedAt: ++accessSequence,
   });
 }
 
@@ -142,6 +143,7 @@ export function evictCachedCadSource(cacheKey: string): void {
 
 export function clearCadSessionCache(): void {
   sessionCache.clear();
+  accessSequence = 0;
 }
 
 export function getCadSessionCacheStats(): CadSessionCacheStats {
