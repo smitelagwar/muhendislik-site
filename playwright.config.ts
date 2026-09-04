@@ -86,6 +86,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
+      CI: "true",
       NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || (productionServer ? ".next" : ".next-playwright"),
       DOK_ALLOW_LOCAL_STORAGE: "true",
       DOK_PRODUCTION_RUNTIME_TEST: productionServer ? "true" : "false",

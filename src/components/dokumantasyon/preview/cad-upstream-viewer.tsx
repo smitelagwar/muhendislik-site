@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,16 +34,33 @@ import {
   CadAreaOverlay,
   type CompletedAreaMeasurement,
 } from "./cad-area-overlay";
-import { CadLayerPanel } from "./cad-layer-panel";
-import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
-import { CadViewSettingsPanel } from "./cad-view-settings-panel";
 import { CadStudioRibbon } from "./cad-studio-ribbon";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
-import { CadReviewSidePanel, type CadSidePanelTab, type CadTextSearchResultItem } from "./cad-review-side-panel";
+import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
-import { CadExportDialog } from "./cad-export-dialog";
-import { exportReviewToDxf } from "@/lib/dokumantasyon/cad-review/export-dxf";
+
+// ── Non-critical UI panels deferred from initial frame bundle ─────────────────
+const CadLayerPanel = dynamic(
+  () => import("./cad-layer-panel").then((m) => m.CadLayerPanel),
+  { ssr: false }
+);
+const CadSnapSettingsPanel = dynamic(
+  () => import("./cad-snap-settings-panel").then((m) => m.CadSnapSettingsPanel),
+  { ssr: false }
+);
+const CadViewSettingsPanel = dynamic(
+  () => import("./cad-view-settings-panel").then((m) => m.CadViewSettingsPanel),
+  { ssr: false }
+);
+const CadReviewSidePanel = dynamic(
+  () => import("./cad-review-side-panel").then((m) => m.CadReviewSidePanel),
+  { ssr: false }
+);
+const CadExportDialog = dynamic(
+  () => import("./cad-export-dialog").then((m) => m.CadExportDialog),
+  { ssr: false }
+);
 import {
   CadReviewStore,
   type CadReviewTool,
@@ -242,6 +260,37 @@ export function DokCadUpstreamViewer({
       window.clearInterval(interval);
       setElapsedSeconds(0);
     };
+  }, [state]);
+
+  // ── Post-Ready Idle Pre-warm: Secondary UI & Export Engine ────────────────
+  useEffect(() => {
+    if (state !== "ready") return;
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+    const executeSecondaryWarm = () => {
+      if (cancelled) return;
+      void import("./cad-layer-panel");
+      void import("./cad-snap-settings-panel");
+      void import("./cad-view-settings-panel");
+      void import("./cad-review-side-panel");
+      void import("./cad-export-dialog");
+      void import("@/lib/dokumantasyon/cad-review/export-dxf");
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(executeSecondaryWarm, { timeout: 3500 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(id);
+      };
+    } else {
+      const timer = window.setTimeout(executeSecondaryWarm, 1500);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
   }, [state]);
 
   // ── CAD Review V1: Store initialization & Auto-Save Persistence ──────────
@@ -1048,7 +1097,7 @@ export function DokCadUpstreamViewer({
     }
   }, [accessUrl, displayName]);
 
-  const handleDownloadDxfRevision = useCallback(() => {
+  const handleDownloadDxfRevision = useCallback(async () => {
     if (typeof window === "undefined") return;
     const doc = reviewStoreRef.current?.getDocument() || reviewDocument;
     if (!doc) {
@@ -1056,6 +1105,7 @@ export function DokCadUpstreamViewer({
       return;
     }
     try {
+      const { exportReviewToDxf } = await import("@/lib/dokumantasyon/cad-review/export-dxf");
       const dxfString = exportReviewToDxf(doc);
       const blob = new Blob([dxfString], { type: "application/dxf;charset=utf-8" });
       const url = URL.createObjectURL(blob);
