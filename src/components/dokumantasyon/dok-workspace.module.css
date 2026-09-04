@@ -246,12 +246,69 @@
 
 /* Erişilebilirlik: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
+  .card,
+  .virtualCard,
+  .virtualRow {
+    transition: none !important;
+    animation: none !important;
   }
-  .card:hover {
-    transform: none;
+  .card:hover,
+  .virtualCard:hover,
+  .virtualRow:hover {
+    transform: none !important;
   }
+}
+
+/* --- Stage 8 Premium Explorer Görsel Sistemi & GPU Transitions --- */
+.virtualRow,
+.virtualCard {
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  will-change: transform, opacity;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .virtualCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.12);
+  }
+  .virtualRow:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
+  :global(.dark) .virtualRow:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.virtualCardSelected,
+.virtualRowSelected {
+  border-color: rgba(245, 158, 11, 0.8) !important;
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4), inset 0 0 12px rgba(245, 158, 11, 0.06);
+}
+
+.virtualCardFocused,
+.virtualRowFocused {
+  outline: 2px solid rgba(245, 158, 11, 0.7);
+  outline-offset: 2px;
+}
+
+.dragOverFolder {
+  box-shadow: 0 0 0 2px #f59e0b, 0 12px 28px -6px rgba(245, 158, 11, 0.45) !important;
+  background-color: rgba(245, 158, 11, 0.2) !important;
+  transform: scale(1.02);
+}
+
+@keyframes dokSuccessFlash {
+  0% {
+    background-color: rgba(245, 158, 11, 0.4);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.itemSuccessFlash {
+  animation: dokSuccessFlash 0.8s ease-out;
 }
 
 /* Mobil Viewport Uyarlamaları */
@@ -264,3 +321,12 @@
     scrollbar-gutter: auto;
   }
 }
+
+@media (max-width: 768px) {
+  .virtualCard {
+    /* Mobilde per-card blur yerine container camı kullanılır (GPU tasarrufu) */
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
