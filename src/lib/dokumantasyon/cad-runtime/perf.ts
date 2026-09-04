@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 // ============================================================================
 // CAD RUNTIME PERFORMANCE TELEMETRY
@@ -40,8 +40,12 @@ function isPerfSupported(): boolean {
   return typeof window !== "undefined" && typeof performance !== "undefined" && typeof performance.mark === "function";
 }
 
-export function initCadPerfSession(sessionId: string): void {
-  currentSessionId = sessionId;
+export function initCadPerfSession(sessionId?: string): void {
+  currentSessionId =
+    sessionId ||
+    (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `cad-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   sessionStartTime = isPerfSupported() ? performance.now() : Date.now();
   timeToReady = null;
   recordedPhases.clear();
@@ -49,8 +53,20 @@ export function initCadPerfSession(sessionId: string): void {
 
   if (isPerfSupported()) {
     try {
-      performance.clearMarks();
-      performance.clearMeasures();
+      // F-04: Only clear marks and measures created by CAD runtime telemetry,
+      // preserving application-level or framework Performance API metrics.
+      const marks = performance.getEntriesByType("mark");
+      for (const m of marks) {
+        if (m.name.startsWith("cad:") || m.name.startsWith("cad-perf:")) {
+          performance.clearMarks(m.name);
+        }
+      }
+      const measures = performance.getEntriesByType("measure");
+      for (const m of measures) {
+        if (m.name.startsWith("cad:") || m.name.startsWith("cad-perf:")) {
+          performance.clearMeasures(m.name);
+        }
+      }
     } catch {}
   }
 
@@ -66,7 +82,11 @@ function setupLongTaskObserver(): void {
 
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        if (entry.duration >= 50 && longTasks.length < MAX_LONG_TASKS) {
+        if (
+          entry.startTime >= sessionStartTime &&
+          entry.duration >= 50 &&
+          longTasks.length < MAX_LONG_TASKS
+        ) {
           longTasks.push({
             startTime: Math.round(entry.startTime),
             durationMs: Math.round(entry.duration),

@@ -194,6 +194,7 @@ export function DokCadUpstreamViewer({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [reviewSearchQuery, setReviewSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<CadTextSearchResultItem[]>([]);
+  const [textSearchError, setTextSearchError] = useState<string | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [reviewDocument, setReviewDocument] = useState<import("@/lib/dokumantasyon/cad-review/schema").CadReviewDocument | null>(null);
   const [markupStyle, setMarkupStyle] = useState<CadActiveMarkupStyle>({
@@ -236,12 +237,20 @@ export function DokCadUpstreamViewer({
     const q = query.trim();
     if (!q || !adapterRef.current) {
       setSearchResults([]);
+      setTextSearchError(null);
       return;
     }
     try {
       if (!adapterRef.current.isTextSearchReady()) {
         await adapterRef.current.ensureTextSearchReady();
       }
+      const searchErr = adapterRef.current.getTextSearchError();
+      if (searchErr) {
+        setTextSearchError("Arama indeksi hazırlanamadı: " + searchErr.message);
+        setSearchResults([]);
+        return;
+      }
+      setTextSearchError(null);
       const results = adapterRef.current.searchCadText({ query: q });
       setSearchResults(
         results.map((r, index) => ({
@@ -252,8 +261,11 @@ export function DokCadUpstreamViewer({
           bounds: r.item.bounds,
         }))
       );
-    } catch {
+    } catch (err) {
       setSearchResults([]);
+      setTextSearchError(
+        "Arama indeksi hazırlanamadı: " + (err instanceof Error ? err.message : String(err))
+      );
     }
   };
 
@@ -518,7 +530,7 @@ export function DokCadUpstreamViewer({
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
 
-      initCadPerfSession(fileId);
+      initCadPerfSession();
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
@@ -531,6 +543,7 @@ export function DokCadUpstreamViewer({
       setAreaMeasurements([]);
       setIsSnapReady(false);
       setIsTextSearchReady(false);
+      setTextSearchError(null);
       setIsPreparingTool(false);
 
       const upstreamWork = (async () => {
@@ -933,7 +946,12 @@ export function DokCadUpstreamViewer({
           },
         }
       );
-      setActiveTool(started ? "distance" : null);
+      if (!started && adapter.getSnapError()) {
+        toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
+        setActiveTool(null);
+      } else {
+        setActiveTool(started ? "distance" : null);
+      }
     } finally {
       setIsPreparingTool(false);
       toast.dismiss("cad-tool-prep");
@@ -979,7 +997,12 @@ export function DokCadUpstreamViewer({
           },
         }
       );
-      setActiveTool(started ? "area" : null);
+      if (!started && adapter.getSnapError()) {
+        toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
+        setActiveTool(null);
+      } else {
+        setActiveTool(started ? "area" : null);
+      }
     } finally {
       setIsPreparingTool(false);
       toast.dismiss("cad-tool-prep");
@@ -1027,6 +1050,9 @@ export function DokCadUpstreamViewer({
           },
         }
       );
+      if (!started && adapter.getSnapError()) {
+        toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
+      }
       if (started) {
         setActiveTool(null);
       }
@@ -1326,6 +1352,7 @@ export function DokCadUpstreamViewer({
             searchQuery={reviewSearchQuery}
             onSearchQueryChange={handleSearchQueryChange}
             searchResults={searchResults}
+            searchError={textSearchError}
             onSelectSearchResult={(result) => {
               if (result.bounds) {
                 void adapterRef.current?.zoomToBounds(result.bounds);

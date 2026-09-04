@@ -618,10 +618,6 @@ async function fetchCadSource(
       throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
     }
 
-    if (cacheKey) {
-      putCachedCadSource(cacheKey, bytes);
-    }
-
     return { bytes, fromCache: false };
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
@@ -657,8 +653,10 @@ export class CadUpstreamAdapter {
   private textSearchIndex: CadTextSearchIndex | null = null;
   private documentGeneration = 0;
   private snapReady = false;
+  private snapError: Error | null = null;
   private snapPromise: Promise<void> | null = null;
   private textSearchReady = false;
+  private textSearchError: Error | null = null;
   private textSearchPromise: Promise<void> | null = null;
   private readonly toolDataReadyListeners = new Set<() => void>();
   private readonly initialLayerSnapshot = new Map<
@@ -757,10 +755,12 @@ export class CadUpstreamAdapter {
 
     const currentGeneration = ++this.documentGeneration;
     this.snapReady = false;
+    this.snapError = null;
     this.snapPromise = null;
     this.snapCatalog = [];
     this.snapEngine.clear();
     this.textSearchReady = false;
+    this.textSearchError = null;
     this.textSearchPromise = null;
     this.textSearchIndex = null;
 
@@ -772,9 +772,8 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Stage 4 & 5: Overlap worker verification, source file download, and font readiness concurrently.
-    // Instead of waiting serially, all three operations run in parallel.
-    // If worker readiness fails or is rejected, in-flight fetch is aborted immediately.
+    // Stage 4 & 5 (Hardened for F-01): Overlap worker verification, source file download, and font readiness.
+    // If worker readiness fails or is rejected, in-flight fetch is aborted immediately without waiting.
     const fetchController = new AbortController();
     const handleSignalAbort = () => {
       fetchController.abort(options.signal?.reason);
@@ -790,15 +789,26 @@ export class CadUpstreamAdapter {
 
     options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
 
-    const workerReadyPromise = (async () => {
+    const workerReadyTask = (async () => {
       try {
         const ready = await this.manager.areWorkersReady();
-        if (ready) {
-          options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
+        if (!ready) {
+          fetchController.abort("WORKER_UNAVAILABLE");
+          throw new CadUpstreamAdapterError(
+            "worker-unavailable",
+            "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
+          );
         }
-        return ready;
-      } catch {
-        return false;
+        options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
+        return true;
+      } catch (err) {
+        fetchController.abort("WORKER_UNAVAILABLE");
+        if (err instanceof CadUpstreamAdapterError) throw err;
+        throw new CadUpstreamAdapterError(
+          "worker-unavailable",
+          "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı.",
+          { cause: err }
+        );
       }
     })();
 
@@ -809,30 +819,27 @@ export class CadUpstreamAdapter {
     });
 
     const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal, cacheKey);
+    const safeSourceTask = sourceFetchPromise.then(
+      (res) => ({ ok: true as const, bytes: res.bytes, fromCache: res.fromCache }),
+      (err) => ({ ok: false as const, error: err })
+    );
 
     const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: CadFontManagerInstance } } }).mtextRenderer;
     const fontManager = mtextRenderer?.FontManager?.instance ?? activeFontManager;
     const fontPreloadTask = ensureFontsPreloaded(fontManager);
 
-    const [workersReady, sourceResult] = await Promise.all([
-      workerReadyPromise,
-      sourceFetchPromise.then(
-        (res) => ({ ok: true as const, bytes: res.bytes, fromCache: res.fromCache }),
-        (err) => ({ ok: false as const, error: err })
-      ),
-      fontPreloadTask,
-    ]);
-
-    if (options.signal) {
-      options.signal.removeEventListener("abort", handleSignalAbort);
-    }
-
-    if (!workersReady) {
-      fetchController.abort("WORKER_UNAVAILABLE");
-      throw new CadUpstreamAdapterError(
-        "worker-unavailable",
-        "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
-      );
+    let sourceResult: { ok: true; bytes: ArrayBuffer; fromCache: boolean } | { ok: false; error: unknown };
+    try {
+      const [, srcRes] = await Promise.all([
+        workerReadyTask,
+        safeSourceTask,
+        fontPreloadTask,
+      ]);
+      sourceResult = srcRes;
+    } finally {
+      if (options.signal) {
+        options.signal.removeEventListener("abort", handleSignalAbort);
+      }
     }
 
     if (!sourceResult.ok) {
@@ -899,41 +906,51 @@ export class CadUpstreamAdapter {
       mode: this.Viewer.AcEdOpenMode.Read,
     };
 
-    startCadPerfPhase("open-document");
-    const success = await this.manager.openDocument(
-      options.displayName,
-      documentBytes,
-      openOptions
-    );
-    endCadPerfPhase("open-document");
+    try {
+      startCadPerfPhase("open-document");
+      const success = await this.manager.openDocument(
+        options.displayName,
+        documentBytes,
+        openOptions
+      );
+      endCadPerfPhase("open-document");
 
-    if (!success) {
+      if (!success) {
+        if (bytes.byteLength < 64) {
+          throw new CadUpstreamAdapterError(
+            "corrupt-truncated",
+            `Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`
+          );
+        }
+        throw new CadUpstreamAdapterError(
+          "open-failed",
+          `MLightCAD dosyayı açamadı: ${options.displayName}`
+        );
+      }
+
+      options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
+      startCadPerfPhase("wait-until-idle");
+      const idle = await this.manager.curView.waitUntilIdle(
+        CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
+      );
+      endCadPerfPhase("wait-until-idle");
+      if (idle && this.manager.curView.stats.summary.entityCount === 0) {
+        throw new CadUpstreamAdapterError(
+          "blank-document",
+          `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
+        );
+      }
+
+      // Stage 7 (Hardened for F-03): Commit newly fetched bytes to in-memory session cache
+      // ONLY after document open and non-blank entity count have proven the document is valid.
+      if (cacheKey && !sourceResult.fromCache) {
+        putCachedCadSource(cacheKey, bytes);
+      }
+    } catch (docErr) {
       if (cacheKey) {
         evictCachedCadSource(cacheKey);
       }
-      if (bytes.byteLength < 64) {
-        throw new CadUpstreamAdapterError(
-          "corrupt-truncated",
-          `Eksik veya hasarlı dosya içeriği (${bytes.byteLength} B). Çizim dosyası beklenenden önce sonlanmış.`
-        );
-      }
-      throw new CadUpstreamAdapterError(
-        "open-failed",
-        `MLightCAD dosyayı açamadı: ${options.displayName}`
-      );
-    }
-
-    options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
-    startCadPerfPhase("wait-until-idle");
-    const idle = await this.manager.curView.waitUntilIdle(
-      CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
-    );
-    endCadPerfPhase("wait-until-idle");
-    if (idle && this.manager.curView.stats.summary.entityCount === 0) {
-      throw new CadUpstreamAdapterError(
-        "blank-document",
-        `MLightCAD dosyayı açtı ancak çizilebilir geometri üretmedi: ${options.displayName}`
-      );
+      throw docErr;
     }
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
@@ -970,8 +987,16 @@ export class CadUpstreamAdapter {
     return this.snapReady;
   }
 
+  getSnapError(): Error | null {
+    return this.snapError;
+  }
+
   isTextSearchReady(): boolean {
     return this.textSearchReady;
+  }
+
+  getTextSearchError(): Error | null {
+    return this.textSearchError;
   }
 
   isToolDataReady(): boolean {
@@ -997,7 +1022,7 @@ export class CadUpstreamAdapter {
 
   async ensureSnapReady(generation = this.documentGeneration): Promise<void> {
     if (this.destroyed || this.documentGeneration !== generation) return;
-    if (this.snapReady) return;
+    if (this.snapReady || this.snapError) return;
     if (this.snapPromise) return this.snapPromise;
 
     this.snapPromise = (async () => {
@@ -1008,14 +1033,18 @@ export class CadUpstreamAdapter {
         this.snapCatalog = buildCadSnapPrimitives(database);
         if (this.destroyed || this.documentGeneration !== generation) return;
         this.rebuildVisibleSnapIndex();
-        endCadPerfPhase("snap-catalog");
         this.snapReady = true;
+        this.snapError = null;
         this.notifyToolDataReady();
       } catch (err) {
         console.warn("[cad-upstream] snap primitives build failed:", err);
         this.snapCatalog = [];
         this.snapEngine.clear();
-        this.snapReady = true;
+        this.snapReady = false;
+        this.snapError = err instanceof Error ? err : new Error(String(err));
+        this.notifyToolDataReady();
+      } finally {
+        endCadPerfPhase("snap-catalog");
       }
     })();
 
@@ -1024,7 +1053,7 @@ export class CadUpstreamAdapter {
 
   async ensureTextSearchReady(generation = this.documentGeneration): Promise<void> {
     if (this.destroyed || this.documentGeneration !== generation) return;
-    if (this.textSearchReady) return;
+    if (this.textSearchReady || this.textSearchError) return;
     if (this.textSearchPromise) return this.textSearchPromise;
 
     this.textSearchPromise = (async () => {
@@ -1035,13 +1064,17 @@ export class CadUpstreamAdapter {
         const textEntities = buildCadTextSearchCatalog(database);
         if (this.destroyed || this.documentGeneration !== generation) return;
         this.textSearchIndex = new CadTextSearchIndex(textEntities);
-        endCadPerfPhase("text-catalog");
         this.textSearchReady = true;
+        this.textSearchError = null;
         this.notifyToolDataReady();
       } catch (err) {
         console.warn("[cad-upstream] text search catalog build failed:", err);
-        this.textSearchIndex = new CadTextSearchIndex([]);
-        this.textSearchReady = true;
+        this.textSearchIndex = null;
+        this.textSearchReady = false;
+        this.textSearchError = err instanceof Error ? err : new Error(String(err));
+        this.notifyToolDataReady();
+      } finally {
+        endCadPerfPhase("text-catalog");
       }
     })();
 
@@ -1507,9 +1540,9 @@ export class CadUpstreamAdapter {
     if (!this.snapReady) {
       await this.ensureSnapReady();
     }
-    if (this.destroyed || !this.distanceMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.distanceMeasurementController) return false;
     await this.cancelActiveCommand();
-    if (this.destroyed || !this.distanceMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.distanceMeasurementController) return false;
 
     this.activeMeasurementCommand = "distance";
     this.distanceMeasurementController.start(snapModes, {
@@ -1544,9 +1577,9 @@ export class CadUpstreamAdapter {
     if (!this.snapReady) {
       await this.ensureSnapReady();
     }
-    if (this.destroyed || !this.areaMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.areaMeasurementController) return false;
     await this.cancelActiveCommand();
-    if (this.destroyed || !this.areaMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.areaMeasurementController) return false;
 
     this.activeMeasurementCommand = "area";
     this.areaMeasurementController.start(snapModes, {
@@ -1577,9 +1610,9 @@ export class CadUpstreamAdapter {
     if (!this.snapReady) {
       await this.ensureSnapReady();
     }
-    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.chainDistanceMeasurementController) return false;
     await this.cancelActiveCommand();
-    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+    if (this.destroyed || !this.snapReady || !this.chainDistanceMeasurementController) return false;
 
     this.activeMeasurementCommand = "chain_distance";
     this.chainDistanceMeasurementController.start(snapModes, {
@@ -1614,6 +1647,9 @@ export class CadUpstreamAdapter {
 
   searchCadText(options: CadTextSearchQuery): CadTextSearchResult[] {
     if (this.destroyed) return [];
+    if (this.textSearchError) {
+      throw new Error(`Arama indeksi hazırlanamadı: ${this.textSearchError.message}`);
+    }
     if (!this.textSearchIndex) {
       if (!this.textSearchReady && !this.textSearchPromise) {
         void this.ensureTextSearchReady();

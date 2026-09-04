@@ -20,6 +20,7 @@ export interface FileAccessResult {
     extension: string;
     created_at: string;
     updated_at?: string;
+    current_version_number?: number;
     folder_id: string | null;
   };
   accessUrl: string;
@@ -181,6 +182,7 @@ function formatSafeFileDto(file: DokFile) {
     extension: file.extension,
     created_at: file.created_at,
     updated_at: file.updated_at,
+    current_version_number: file.current_version_number,
     folder_id: file.folder_id,
   };
 }

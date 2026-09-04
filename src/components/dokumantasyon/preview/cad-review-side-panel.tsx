@@ -42,6 +42,7 @@ export interface CadReviewSidePanelProps {
   onSearchQueryChange?: (query: string) => void;
   searchResults?: CadTextSearchResultItem[];
   onSelectSearchResult?: (result: CadTextSearchResultItem) => void;
+  searchError?: string | null;
   // Measurements
   measurements?: CadMeasurementListItem[];
   onDeleteMeasurement?: (id: string) => void;
@@ -66,6 +67,7 @@ export function CadReviewSidePanel({
   onSearchQueryChange,
   searchResults = [],
   onSelectSearchResult,
+  searchError = null,
   measurements = [],
   onDeleteMeasurement,
   onSelectMeasurement,
@@ -234,7 +236,12 @@ export function CadReviewSidePanel({
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-1.5">
-              {searchResults.length === 0 ? (
+              {searchError ? (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-center text-xs text-destructive">
+                  <p className="font-semibold mb-1">Arama İndeksi Hatası</p>
+                  <p>{searchError}</p>
+                </div>
+              ) : searchResults.length === 0 ? (
                 <p className="p-4 text-center text-xs text-muted-foreground">
                   {searchQuery.trim() ? "Eşleşen metin bulunamadı." : "Aramak istediğiniz metni girin."}
                 </p>

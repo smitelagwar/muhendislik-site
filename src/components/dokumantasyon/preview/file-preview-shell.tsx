@@ -52,6 +52,7 @@ interface FilePreviewShellProps {
     extension: string;
     created_at: string;
     updated_at?: string;
+    current_version_number?: number;
     folder_id: string | null;
   };
   accessUrl: string;
@@ -258,7 +259,7 @@ export function FilePreviewShell({
             fileId={file.id}
             extension={file.extension}
             sizeBytes={file.size_bytes}
-            sourceVersionKey={`${file.id}:${file.updated_at || file.created_at}:${file.size_bytes}`}
+            sourceVersionKey={`${file.id}:${file.current_version_number || 1}:${file.updated_at || file.created_at}:${file.size_bytes}`}
             dwgFastPreviewHint={dwgFastPreviewHint}
           />
         ) : previewKind === "text" || previewKind === "json" || previewKind === "csv" ? (
