@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DokFolder } from "@/lib/dokumantasyon/types";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { OverlayPortal } from "../drive-v3/overlay-portal";
+import { executeBulkMove } from "../drive-v3/bulk-operations";
 
 interface MoveModalProps {
   isOpen: boolean;
@@ -86,27 +87,21 @@ export function MoveModal({
     setError(null);
 
     try {
-      const failedIds: string[] = [];
-      let movedCount = 0;
-
-      for (const item of items) {
-        if (item.parentId === selectedFolderId) continue;
-        const endpoint = item.type === "folder" ? `/api/dokumantasyon/folders/${item.id}` : `/api/dokumantasyon/files/${item.id}`;
-        const body = item.type === "folder" ? { parentId: selectedFolderId } : { folderId: selectedFolderId };
-        const result = await requestDokMutation(endpoint, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        if (result.ok) movedCount += 1;
-        else failedIds.push(item.id);
+      const itemsToMove = items.filter((item) => item.parentId !== selectedFolderId);
+      if (itemsToMove.length === 0) {
+        onClose();
+        return;
       }
 
-      if (movedCount > 0) await onSuccess();
-      if (failedIds.length > 0) {
-        onPartialFailure?.(failedIds);
-        setError(`${items.length} öğeden ${failedIds.length}'si taşınamadı. Başarısız öğeler seçili bırakıldı.`);
+      const result = await executeBulkMove(
+        itemsToMove.map((i) => ({ id: i.id, type: i.type })),
+        selectedFolderId
+      );
+
+      if (result.succeeded.length > 0) await onSuccess();
+      if (result.failed.length > 0) {
+        onPartialFailure?.(result.failed.map((f) => f.id));
+        setError(`${items.length} öğeden ${result.failed.length}'si taşınamadı. Başarısız öğeler seçili bırakıldı.`);
         return;
       }
 

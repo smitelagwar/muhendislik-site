@@ -71,6 +71,7 @@ import { uploadPresigned } from "@vercel/blob/client";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { useDokSelection } from "./hooks/use-dok-selection";
 import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-derive";
+import { executeBulkTrash, executeBulkMove, executeBulkStar, BulkItem } from "./drive-v3/bulk-operations";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -280,7 +281,7 @@ export function DokumantasyonFileManager() {
           ...(data.folders || []).map((f: DokFolder) => f.id),
           ...(data.files || []).map((f: DokFile) => f.id),
         ];
-        setSelectedIds((previous) => reconcileSelection(previous, rawIds));
+        setSelectedIds((previous: Set<string>) => reconcileSelection(previous, rawIds));
       } else if (res.status === 503 || data.code?.includes("CONFIGURED") || data.code?.includes("FORBIDDEN")) {
         setConfigError(data.error || "Dökümantasyon kalıcı depolama altyapısı hazır değil.");
         setListError(null);
@@ -454,7 +455,7 @@ export function DokumantasyonFileManager() {
 
   const getSelectedDriveItems = (): DriveItem[] => {
     const items: DriveItem[] = [];
-    selectedIds.forEach((id) => {
+    selectedIds.forEach((id: string) => {
       const folder = folders.find((candidate) => candidate.id === id);
       if (folder) {
         items.push({ id: folder.id, type: "folder", name: folder.name, parentId: folder.parent_id });
@@ -506,28 +507,21 @@ export function DokumantasyonFileManager() {
 
   // Çoklu Silme
   const handleMultiDeleteConfirm = async () => {
-    const ids = Array.from(selectedIds);
-    const failedIds: string[] = [];
-    let completedCount = 0;
+    const ids: string[] = Array.from(selectedIds);
+    if (ids.length === 0) return;
 
-    for (const id of ids) {
+    const itemsToTrash: BulkItem[] = ids.map((id) => {
       const folder = folders.find((f) => f.id === id);
-      const endpoint = folder
-        ? `/api/dokumantasyon/folders/${id}`
-        : `/api/dokumantasyon/files/${id}`;
-      const result = await requestDokMutation(endpoint, { method: "DELETE" });
-      if (result.ok) {
-        completedCount += 1;
-      } else {
-        failedIds.push(id);
-      }
-    }
+      return { id, type: (folder ? "folder" : "file") as "file" | "folder" };
+    });
 
-    if (completedCount > 0) await fetchItems();
-    setSelectedIds(new Set(failedIds));
+    const result = await executeBulkTrash(itemsToTrash);
 
-    if (failedIds.length > 0) {
-      throw new Error(`${ids.length} öğeden ${failedIds.length}'si silinemedi. Başarısız öğeler seçili bırakıldı.`);
+    if (result.succeeded.length > 0) await fetchItems();
+    setSelectedIds(new Set(result.failed.map((f) => f.id)));
+
+    if (result.failed.length > 0) {
+      throw new Error(`${ids.length} öğeden ${result.failed.length}'si silinemedi. Başarısız öğeler seçili bırakıldı.`);
     }
   };
 
@@ -622,7 +616,20 @@ export function DokumantasyonFileManager() {
       relativePath: entry.relativePath,
     }));
     setUploadQueue((previous) => [...previous, ...queueItems]);
-    for (const item of queueItems) await runQueueItem(item);
+
+    // Concurrency limit: 3 active uploads concurrently
+    const concurrency = 3;
+    let nextIndex = 0;
+    const workers = Array.from({ length: Math.min(concurrency, queueItems.length) }, async () => {
+      while (nextIndex < queueItems.length) {
+        const item = queueItems[nextIndex++];
+        if (item) {
+          await runQueueItem(item);
+        }
+      }
+    });
+
+    await Promise.all(workers);
     await fetchItems();
   };
 
