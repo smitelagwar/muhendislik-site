@@ -102,6 +102,7 @@ import {
 } from "./drive-v3/pdd-integration";
 import { createLongPressController } from "./drive-v3/mobile-gesture-engine";
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
+import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -218,6 +219,20 @@ function DokumantasyonFileManagerInner() {
       }
     );
   }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
+
+  // CAD Pre-warming (Arka planda idle ön ısıtma — WebGL ve Document başlatmaz)
+  const hasCadFiles = useMemo(() => {
+    return displayedFiles.some((f) => {
+      const ext = (f.extension || "").toLowerCase().replace(/^\./, "");
+      return ext === "dwg" || ext === "dxf";
+    });
+  }, [displayedFiles]);
+
+  useEffect(() => {
+    if (!hasCadFiles) return;
+    const cleanup = scheduleIdleCadPreload({ minDelayMs: 1500 });
+    return cleanup;
+  }, [hasCadFiles]);
 
   // Single Scroll Container Ref (Unified for Virtualization, Marquee, Keyboard, Auto-scroll)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -1313,6 +1328,7 @@ function DokumantasyonFileManagerInner() {
   const renderFileRow = (file: DokFile, style?: React.CSSProperties) => {
     const isSelected = selectedIds.has(file.id);
     const isStarred = Boolean(file.starred_at);
+    const gestureHandlers = getItemGestureHandlers(file.id, "file", file);
 
     return (
       <div
@@ -1324,7 +1340,13 @@ function DokumantasyonFileManagerInner() {
         onClick={(e) => handleItemClick(file.id, e)}
         onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
         onContextMenu={(e) => handleItemContextMenu(file.id, e)}
-        {...getItemGestureHandlers(file.id, "file", file)}
+        {...gestureHandlers}
+        onPointerDown={(e) => {
+          triggerCadIntentPreload(file.extension);
+          gestureHandlers.onPointerDown(e);
+        }}
+        onPointerEnter={() => triggerCadIntentPreload(file.extension)}
+        onFocus={() => triggerCadIntentPreload(file.extension)}
         style={style}
         className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
           isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
@@ -1584,6 +1606,7 @@ function DokumantasyonFileManagerInner() {
   const renderFileCard = (file: DokFile, style?: React.CSSProperties) => {
     const isSelected = selectedIds.has(file.id);
     const isStarred = Boolean(file.starred_at);
+    const gestureHandlers = getItemGestureHandlers(file.id, "file", file);
 
     return (
       <div
@@ -1595,7 +1618,13 @@ function DokumantasyonFileManagerInner() {
         onClick={(e) => handleItemClick(file.id, e)}
         onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
         onContextMenu={(e) => handleItemContextMenu(file.id, e)}
-        {...getItemGestureHandlers(file.id, "file", file)}
+        {...gestureHandlers}
+        onPointerDown={(e) => {
+          triggerCadIntentPreload(file.extension);
+          gestureHandlers.onPointerDown(e);
+        }}
+        onPointerEnter={() => triggerCadIntentPreload(file.extension)}
+        onFocus={() => triggerCadIntentPreload(file.extension)}
         style={style}
         className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""

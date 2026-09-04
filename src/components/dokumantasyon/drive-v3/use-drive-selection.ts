@@ -422,16 +422,19 @@ export function useDriveSelection({
     latestPointerRef.current = null;
   }, []);
 
+  const selectedIdsRef = useRef(state.selectedIds);
+  selectedIdsRef.current = state.selectedIds;
+
   const setSelectedIds = useCallback(
     (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
       if (typeof idsOrUpdater === "function") {
-        const next = idsOrUpdater(state.selectedIds);
+        const next = idsOrUpdater(selectedIdsRef.current);
         dispatch({ type: "REPLACE_SELECTION", ids: Array.from(next) });
       } else {
         dispatch({ type: "REPLACE_SELECTION", ids: Array.from(idsOrUpdater) });
       }
     },
-    [state.selectedIds]
+    []
   );
 
   return {

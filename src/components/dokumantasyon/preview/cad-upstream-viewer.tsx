@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,16 +34,33 @@ import {
   CadAreaOverlay,
   type CompletedAreaMeasurement,
 } from "./cad-area-overlay";
-import { CadLayerPanel } from "./cad-layer-panel";
-import { CadSnapSettingsPanel } from "./cad-snap-settings-panel";
-import { CadViewSettingsPanel } from "./cad-view-settings-panel";
 import { CadStudioRibbon } from "./cad-studio-ribbon";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
-import { CadReviewSidePanel, type CadSidePanelTab, type CadTextSearchResultItem } from "./cad-review-side-panel";
+import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
-import { CadExportDialog } from "./cad-export-dialog";
-import { exportReviewToDxf } from "@/lib/dokumantasyon/cad-review/export-dxf";
+
+// ── Non-critical UI panels deferred from initial frame bundle ─────────────────
+const CadLayerPanel = dynamic(
+  () => import("./cad-layer-panel").then((m) => m.CadLayerPanel),
+  { ssr: false }
+);
+const CadSnapSettingsPanel = dynamic(
+  () => import("./cad-snap-settings-panel").then((m) => m.CadSnapSettingsPanel),
+  { ssr: false }
+);
+const CadViewSettingsPanel = dynamic(
+  () => import("./cad-view-settings-panel").then((m) => m.CadViewSettingsPanel),
+  { ssr: false }
+);
+const CadReviewSidePanel = dynamic(
+  () => import("./cad-review-side-panel").then((m) => m.CadReviewSidePanel),
+  { ssr: false }
+);
+const CadExportDialog = dynamic(
+  () => import("./cad-export-dialog").then((m) => m.CadExportDialog),
+  { ssr: false }
+);
 import {
   CadReviewStore,
   type CadReviewTool,
@@ -63,6 +81,7 @@ import {
 import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
 import { CAD_AUTOCAD_FONT_PARITY_V1 } from "@/lib/dokumantasyon/cad-font-fidelity-config";
 import type { CadFontParityEvaluation } from "@/lib/dokumantasyon/cad-font-registry";
+import { initCadPerfSession, markCadPerfReady } from "@/lib/dokumantasyon/cad-runtime/perf";
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface DokCadUpstreamViewerProps {
@@ -71,6 +90,7 @@ export interface DokCadUpstreamViewerProps {
   fileId: string;
   extension: string;
   sizeBytes: number;
+  sourceVersionKey?: string;
   timeoutMs?: number;
   onReady?: () => void;
   onViewerFailure?: (reason: string) => void;
@@ -113,6 +133,7 @@ export function DokCadUpstreamViewer({
   fileId,
   extension,
   sizeBytes,
+  sourceVersionKey,
   timeoutMs,
   onReady,
   onViewerFailure,
@@ -155,6 +176,9 @@ export function DokCadUpstreamViewer({
   >([]);
   const [, setViewRevision] = useState(0);
   const [fontDiagnostics, setFontDiagnostics] = useState<CadFontParityEvaluation | null>(null);
+  const [isSnapReady, setIsSnapReady] = useState(false);
+  const [isTextSearchReady, setIsTextSearchReady] = useState(false);
+  const [isPreparingTool, setIsPreparingTool] = useState(false);
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
@@ -207,7 +231,7 @@ export function DokCadUpstreamViewer({
     });
   }, []);
 
-  const handleSearchQueryChange = (query: string) => {
+  const handleSearchQueryChange = async (query: string) => {
     setReviewSearchQuery(query);
     const q = query.trim();
     if (!q || !adapterRef.current) {
@@ -215,6 +239,9 @@ export function DokCadUpstreamViewer({
       return;
     }
     try {
+      if (!adapterRef.current.isTextSearchReady()) {
+        await adapterRef.current.ensureTextSearchReady();
+      }
       const results = adapterRef.current.searchCadText({ query: q });
       setSearchResults(
         results.map((r, index) => ({
@@ -241,6 +268,37 @@ export function DokCadUpstreamViewer({
       window.clearInterval(interval);
       setElapsedSeconds(0);
     };
+  }, [state]);
+
+  // ── Post-Ready Idle Pre-warm: Secondary UI & Export Engine ────────────────
+  useEffect(() => {
+    if (state !== "ready") return;
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+    const executeSecondaryWarm = () => {
+      if (cancelled) return;
+      void import("./cad-layer-panel");
+      void import("./cad-snap-settings-panel");
+      void import("./cad-view-settings-panel");
+      void import("./cad-review-side-panel");
+      void import("./cad-export-dialog");
+      void import("@/lib/dokumantasyon/cad-review/export-dxf");
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(executeSecondaryWarm, { timeout: 3500 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(id);
+      };
+    } else {
+      const timer = window.setTimeout(executeSecondaryWarm, 1500);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
   }, [state]);
 
   // ── CAD Review V1: Store initialization & Auto-Save Persistence ──────────
@@ -451,6 +509,7 @@ export function DokCadUpstreamViewer({
     let syncTheme: (() => void) | null = null;
     let unsubscribeLayers: (() => void) | null = null;
     let unsubscribeViewChanged: (() => void) | null = null;
+    let unsubscribeToolReady: (() => void) | null = null;
     let timeoutId: number | null = null;
     let handleVisibilityChange: (() => void) | null = null;
     let handlePageShow: ((e: PageTransitionEvent) => void) | null = null;
@@ -459,6 +518,7 @@ export function DokCadUpstreamViewer({
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
 
+      initCadPerfSession(fileId);
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
@@ -469,6 +529,9 @@ export function DokCadUpstreamViewer({
       setDistanceMeasurements([]);
       setAreaSnapshot(null);
       setAreaMeasurements([]);
+      setIsSnapReady(false);
+      setIsTextSearchReady(false);
+      setIsPreparingTool(false);
 
       const upstreamWork = (async () => {
         setMessage("CAD worker dosyaları doğrulanıyor");
@@ -508,6 +571,8 @@ export function DokCadUpstreamViewer({
           accessUrl,
           displayName,
           extension,
+          fileId,
+          sourceVersionKey,
           signal: abortController.signal,
           onPhase: (phase, phaseText) => {
             if (!cancelled) {
@@ -524,6 +589,14 @@ export function DokCadUpstreamViewer({
         setLineWeightVisible(initialLineWeight);
 
         setLayers(createdAdapter.getLayers());
+        setIsSnapReady(createdAdapter.isSnapReady());
+        setIsTextSearchReady(createdAdapter.isTextSearchReady());
+        unsubscribeToolReady = createdAdapter.subscribeToolDataReady(() => {
+          if (!cancelled && adapterRef.current) {
+            setIsSnapReady(adapterRef.current.isSnapReady());
+            setIsTextSearchReady(adapterRef.current.isTextSearchReady());
+          }
+        });
         unsubscribeLayers = createdAdapter.subscribeLayersChanged(() => {
           if (!cancelled && adapterRef.current) {
             setLayers(adapterRef.current.getLayers());
@@ -557,6 +630,7 @@ export function DokCadUpstreamViewer({
         if (adapterRef.current) {
           setFontDiagnostics(adapterRef.current.getFontFidelityDiagnostics());
         }
+        markCadPerfReady();
         setState("ready");
         setMessage("");
         onReady?.();
@@ -613,6 +687,10 @@ export function DokCadUpstreamViewer({
           unsubscribeViewChanged();
           unsubscribeViewChanged = null;
         }
+        if (unsubscribeToolReady) {
+          unsubscribeToolReady();
+          unsubscribeToolReady = null;
+        }
         if (handleVisibilityChange) {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
           window.removeEventListener("focus", handleVisibilityChange);
@@ -661,6 +739,10 @@ export function DokCadUpstreamViewer({
       if (unsubscribeViewChanged) {
         unsubscribeViewChanged();
         unsubscribeViewChanged = null;
+      }
+      if (unsubscribeToolReady) {
+        unsubscribeToolReady();
+        unsubscribeToolReady = null;
       }
       if (handleVisibilityChange) {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -824,29 +906,38 @@ export function DokCadUpstreamViewer({
       return;
     }
 
-    const started = await adapter.startDistanceMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
-        onComplete: (measurement) => {
-          distanceMeasurementIdRef.current += 1;
-          setDistanceMeasurements((current) => [
-            ...current,
-            {
-              ...measurement,
-              id: `distance-${distanceMeasurementIdRef.current}`,
-            },
-          ]);
-          setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
-        },
-        onCancel: () => {
-          setDistanceSnapshot(null);
-          setActiveTool((current) => (current === "distance" ? null : current));
-        },
-      }
-    );
-    setActiveTool(started ? "distance" : null);
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
+          onComplete: (measurement) => {
+            distanceMeasurementIdRef.current += 1;
+            setDistanceMeasurements((current) => [
+              ...current,
+              {
+                ...measurement,
+                id: `distance-${distanceMeasurementIdRef.current}`,
+              },
+            ]);
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+          },
+          onCancel: () => {
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+          },
+        }
+      );
+      setActiveTool(started ? "distance" : null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
+    }
   };
 
   const handleStartArea = async () => {
@@ -861,29 +952,38 @@ export function DokCadUpstreamViewer({
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
 
-    const started = await adapter.startAreaMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: (snapshot) => setAreaSnapshot(snapshot),
-        onComplete: (measurement) => {
-          areaMeasurementIdRef.current += 1;
-          setAreaMeasurements((current) => [
-            ...current,
-            {
-              ...measurement,
-              id: `area-${areaMeasurementIdRef.current}`,
-            },
-          ]);
-          setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
-        },
-        onCancel: () => {
-          setAreaSnapshot(null);
-          setActiveTool((current) => (current === "area" ? null : current));
-        },
-      }
-    );
-    setActiveTool(started ? "area" : null);
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startAreaMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: (snapshot) => setAreaSnapshot(snapshot),
+          onComplete: (measurement) => {
+            areaMeasurementIdRef.current += 1;
+            setAreaMeasurements((current) => [
+              ...current,
+              {
+                ...measurement,
+                id: `area-${areaMeasurementIdRef.current}`,
+              },
+            ]);
+            setAreaSnapshot(null);
+            setActiveTool((current) => (current === "area" ? null : current));
+          },
+          onCancel: () => {
+            setAreaSnapshot(null);
+            setActiveTool((current) => (current === "area" ? null : current));
+          },
+        }
+      );
+      setActiveTool(started ? "area" : null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
+    }
   };
 
   const handleStartChainDistance = async () => {
@@ -893,37 +993,46 @@ export function DokCadUpstreamViewer({
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
 
-    const started = await adapter.startChainDistanceMeasurement(
-      getEnabledCadSnapModes(snapSettings),
-      {
-        onSnapshot: () => {},
-        onComplete: (measurement) => {
-          if (reviewStoreRef.current) {
-            reviewStoreRef.current.addItem({
-              id: `chain-${Date.now()}`,
-              type: "chain_distance",
-              points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
-              segmentDistances: [...measurement.segmentDistances],
-              totalDistance: measurement.totalDistance,
-              author: "Admin",
-              comment: "",
-              status: "open",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
-            });
-          }
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
-        },
-        onCancel: () => {
-          setReviewTool("select");
-          reviewStoreRef.current?.setActiveTool("select");
-        },
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startChainDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: () => {},
+          onComplete: (measurement) => {
+            if (reviewStoreRef.current) {
+              reviewStoreRef.current.addItem({
+                id: `chain-${Date.now()}`,
+                type: "chain_distance",
+                points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
+                segmentDistances: [...measurement.segmentDistances],
+                totalDistance: measurement.totalDistance,
+                author: "Admin",
+                comment: "",
+                status: "open",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
+              });
+            }
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+          onCancel: () => {
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+        }
+      );
+      if (started) {
+        setActiveTool(null);
       }
-    );
-    if (started) {
-      setActiveTool(null);
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
     }
   };
 
@@ -1045,7 +1154,7 @@ export function DokCadUpstreamViewer({
     }
   }, [accessUrl, displayName]);
 
-  const handleDownloadDxfRevision = useCallback(() => {
+  const handleDownloadDxfRevision = useCallback(async () => {
     if (typeof window === "undefined") return;
     const doc = reviewStoreRef.current?.getDocument() || reviewDocument;
     if (!doc) {
@@ -1053,6 +1162,7 @@ export function DokCadUpstreamViewer({
       return;
     }
     try {
+      const { exportReviewToDxf } = await import("@/lib/dokumantasyon/cad-review/export-dxf");
       const dxfString = exportReviewToDxf(doc);
       const blob = new Blob([dxfString], { type: "application/dxf;charset=utf-8" });
       const url = URL.createObjectURL(blob);
@@ -1083,6 +1193,11 @@ export function DokCadUpstreamViewer({
       data-cad-upstream-state={state}
       data-cad-loading-phase={state === "loading" ? loadingPhase : state}
       data-cad-elapsed-seconds={elapsedSeconds}
+      data-cad-visual-ready={state === "ready" ? "true" : "false"}
+      data-cad-snap-ready={isSnapReady ? "true" : "false"}
+      data-cad-search-ready={isTextSearchReady ? "true" : "false"}
+      data-cad-tool-ready={isSnapReady && isTextSearchReady ? "true" : "false"}
+      data-cad-tool-preparing={isPreparingTool ? "true" : "false"}
       data-cad-color-mode={displayMode}
       data-cad-background-color={backgroundColor}
       data-cad-lineweight={lineWeightVisible ? "on" : "off"}

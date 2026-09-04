@@ -56,6 +56,7 @@ export default defineConfig({
         "**/cad-stage5-distance-measurement.spec.ts",
         "**/cad-stage6-area-measurement.spec.ts",
         "**/cad-stage7-layer-mobile-ux.spec.ts",
+        "**/cad-perf-baseline.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },
@@ -85,6 +86,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
+      CI: "true",
       NEXT_DIST_DIR: process.env.NEXT_DIST_DIR || (productionServer ? ".next" : ".next-playwright"),
       DOK_ALLOW_LOCAL_STORAGE: "true",
       DOK_PRODUCTION_RUNTIME_TEST: productionServer ? "true" : "false",
