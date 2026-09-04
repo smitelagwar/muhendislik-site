@@ -78,3 +78,27 @@ export const createShareSchema = z.object({
 export const unlockShareSchema = z.object({
   password: z.string().min(1, "Şifre girilmelidir."),
 });
+
+export const bulkItemSchema = z.object({
+  id: z.string().uuid("Geçersiz öğe kimliği."),
+  type: z.enum(["file", "folder"]),
+});
+
+export const bulkTrashSchema = z.object({
+  items: z.array(bulkItemSchema).min(1, "En az bir öğe belirtilmelidir.").max(250, "Maksimum 250 öğe işlenebilir."),
+});
+
+export const bulkMoveSchema = z.object({
+  items: z.array(bulkItemSchema).min(1, "En az bir öğe belirtilmelidir.").max(250, "Maksimum 250 öğe işlenebilir."),
+  targetFolderId: z.string().uuid("Geçersiz hedef klasör kimliği.").nullable(),
+});
+
+export const bulkStarSchema = z.object({
+  items: z.array(bulkItemSchema).min(1, "En az bir öğe belirtilmelidir.").max(250, "Maksimum 250 öğe işlenebilir."),
+  starred: z.boolean(),
+});
+
+export const bulkRestoreSchema = z.object({
+  items: z.array(bulkItemSchema).min(1, "En az bir öğe belirtilmelidir.").max(250, "Maksimum 250 öğe işlenebilir."),
+});
+

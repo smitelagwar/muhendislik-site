@@ -38,7 +38,10 @@ const DokPdfViewer = dynamic(() => import("./pdf-viewer").then((module) => modul
 const DokImageViewer = dynamic(() => import("./image-viewer").then((module) => module.DokImageViewer), { ssr: false });
 const DokTextViewer = dynamic(() => import("./text-viewer").then((module) => module.DokTextViewer), { ssr: false });
 const DokMarkdownViewer = dynamic(() => import("./markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
-const DokCadViewer = dynamic(() => import("./cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
+export const loadCadRuntimeModule = () => import("./cad-runtime-orchestrator");
+const DokCadViewer = dynamic(() => loadCadRuntimeModule().then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
+
+import type { DwgFastPreviewHint } from "./cad-runtime-orchestrator";
 
 interface FilePreviewShellProps {
   file: {
@@ -55,6 +58,7 @@ interface FilePreviewShellProps {
   previewKind: PreviewKind;
   expiresAt: string;
   isLocal: boolean;
+  dwgFastPreviewHint?: DwgFastPreviewHint;
   children?: React.ReactNode;
 }
 
@@ -71,6 +75,7 @@ export function FilePreviewShell({
   file,
   accessUrl,
   previewKind,
+  dwgFastPreviewHint,
   children,
 }: FilePreviewShellProps) {
   const router = useRouter();
@@ -253,6 +258,8 @@ export function FilePreviewShell({
             fileId={file.id}
             extension={file.extension}
             sizeBytes={file.size_bytes}
+            sourceVersionKey={`${file.id}:${file.updated_at || file.created_at}:${file.size_bytes}`}
+            dwgFastPreviewHint={dwgFastPreviewHint}
           />
         ) : previewKind === "text" || previewKind === "json" || previewKind === "csv" ? (
           <DokTextViewer

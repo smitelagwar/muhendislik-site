@@ -51,7 +51,6 @@
     "check:tools": "npm run check:tools-metadata && npm run check:tools-inventory && npm run check:tools-baseline && npm run check:tools-registry && npm run check:tools-existing && npm run check:tools-concrete-phase4 && npm run check:tools-earthquake-geotech-phase5 && npm run check:tools-steel-timber-phase6 && npm run check:tools-quantity-phase7-8 && npm run check:tools-adversarial && npm run check:tools-browser-smoke",
     "check:visual-system": "node scripts/check-visual-system.mjs",
     "check:official-cost": "node scripts/check-official-cost-route.mjs",
-
     "check:official-cost-pdf": "tsx scripts/check-official-cost-pdf.mjs",
     "check:yapi-denetim-data": "tsx scripts/check-yapi-denetim-data-layer.ts",
     "check:yapi-denetim-engine": "tsx scripts/check-yapi-denetim-engine.ts",
@@ -86,6 +85,7 @@
     "check:dokumantasyon-ui:faz5": "node scripts/check-dokumantasyon-ui-faz5.mjs",
     "check:dokumantasyon-ui:faz6": "node scripts/check-dokumantasyon-ui-faz6.mjs",
     "check:dokumantasyon-ui:all": "npm run check:dokumantasyon-ui:faz1 && npm run check:dokumantasyon-ui:faz2 && npm run check:dokumantasyon-ui:faz3 && npm run check:dokumantasyon-ui:faz4 && npm run check:dokumantasyon-ui:faz5 && npm run check:dokumantasyon-ui:faz6",
+    "check:dok-drive-v3": "tsx scripts/check-dok-drive-v3-stage1-poc.ts && tsx scripts/check-dok-drive-v3-stage2-server-state.ts && tsx scripts/check-dok-drive-v3-stage3-selection.ts && tsx scripts/check-dok-drive-v3-command-contract.ts && tsx scripts/check-dok-drive-v3-stage5-overlay.ts && tsx scripts/check-dok-drive-v3-stage6-bulk-dnd.ts && tsx scripts/check-dok-drive-v3-stage7-virtualization.ts && tsx scripts/check-dok-drive-v3-stage8-visuals.ts && tsx scripts/check-dok-drive-v3-stage9-mobile.ts",
     "check:dokumantasyon:auth": "tsx scripts/check-dokumantasyon-auth-config.ts",
     "check:dokumantasyon:audit": "node scripts/poc-stage1-audit-and-data-plane.mjs",
     "check:dokumantasyon:phase1": "node scripts/check-dokumantasyon-phase1.mjs",
@@ -122,9 +122,10 @@
     "check:cad-preview-v2": "playwright test --config=playwright.config.ts tests/document-studio/cad-preview-v2-contract.spec.ts tests/document-studio/cad-readonly-contract.spec.ts tests/document-studio/cad-cache-and-routing.spec.ts tests/document-studio/cad-native-measurements.spec.ts tests/document-studio/cad-public-layer-store.spec.ts tests/document-studio/cad-text-orientation-v2.spec.ts tests/document-studio/cad-robustness-security.spec.ts tests/document-studio/cad-dxf.spec.ts tests/document-studio/cad-stage3-view-navigation.spec.ts tests/document-studio/cad-stage4-loading-error.spec.ts tests/document-studio/cad-stage5-distance-measurement.spec.ts tests/document-studio/cad-stage6-area-measurement.spec.ts tests/document-studio/cad-stage7-layer-mobile-ux.spec.ts --project=chromium",
     "check:cad-real-user-release": "tsx scripts/check-cad-real-user-release.ts",
     "check:cad-review:release": "tsx scripts/check-cad-review-release.ts"
-
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^3.1.0",
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "^3.2.0",
     "@mlightcad/cad-simple-viewer": "1.6.2",
     "@mlightcad/data-model": "1.14.2",
     "@mlightcad/libredwg-converter": "3.14.2",
@@ -133,6 +134,8 @@
     "@pdf-lib/fontkit": "^1.1.1",
     "@react-map/turkey": "^1.0.9",
     "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.102.8",
+    "@tanstack/react-virtual": "^3.14.10",
     "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

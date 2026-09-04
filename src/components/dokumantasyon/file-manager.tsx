@@ -69,7 +69,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { uploadPresigned } from "@vercel/blob/client";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
-import { useDokSelection } from "./hooks/use-dok-selection";
+import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-derive";
+import { executeBulkTrash, executeBulkMove, executeBulkStar, BulkItem } from "./drive-v3/bulk-operations";
+import { useDriveSelection } from "./drive-v3/use-drive-selection";
+import {
+  calculateGridMetrics,
+  DRIVE_GRID_MIN_CARD_WIDTH,
+  DRIVE_GRID_GAP_X,
+  DRIVE_GRID_GAP_Y,
+  DRIVE_GRID_ROW_HEIGHT,
+} from "./drive-v3/drive-metrics";
+import {
+  registerDraggableItem,
+  registerFolderDropTarget,
+  registerContainerAutoScroll,
+} from "./drive-v3/pdd-integration";
+import { createLongPressController } from "./drive-v3/mobile-gesture-engine";
+import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
 import styles from "./dok-workspace.module.css";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
@@ -117,8 +133,101 @@ export function DokumantasyonFileManager() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [groupBy, setGroupBy] = useState<"none" | "type" | "date" | "size">("none");
 
-  // Çoklu Seçim
-  const { selectedIds, setSelectedIds, toggleSelectedId, replaceSelection } = useDokSelection();
+  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler (Tek Deterministik Comparator & Derive Motoru)
+  const {
+    displayedFolders,
+    displayedFiles,
+    groupedBuckets,
+    visibleOrderedIds,
+  } = useMemo(() => {
+    return deriveExplorerView(
+      { folders, files },
+      {
+        sortBy,
+        sortOrder,
+        groupBy,
+        typeFilter: activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type,
+        dateFilter: workspaceFilters.date,
+        sizeFilter: workspaceFilters.size,
+        starredOnly: activeFilter === "starred" || workspaceFilters.starredOnly,
+        collection: activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none",
+      }
+    );
+  }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
+
+  // CAD Pre-warming (Arka planda idle ön ısıtma — WebGL ve Document başlatmaz)
+  const hasCadFiles = useMemo(() => {
+    return displayedFiles.some((f) => {
+      const ext = (f.extension || "").toLowerCase().replace(/^\./, "");
+      return ext === "dwg" || ext === "dxf";
+    });
+  }, [displayedFiles]);
+
+  useEffect(() => {
+    if (!hasCadFiles) return;
+    const cleanup = scheduleIdleCadPreload({ minDelayMs: 1500 });
+    return cleanup;
+  }, [hasCadFiles]);
+
+  // Container Ref & Metrics
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(1200);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = Math.round(entry.contentRect.width);
+        if (width > 0 && Math.abs(width - containerWidth) >= 4) {
+          setContainerWidth(width);
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [containerWidth]);
+
+  const gridMetrics = useMemo(() => {
+    return calculateGridMetrics(
+      containerWidth,
+      DRIVE_GRID_MIN_CARD_WIDTH,
+      DRIVE_GRID_GAP_X,
+      DRIVE_GRID_GAP_Y,
+      DRIVE_GRID_ROW_HEIGHT
+    );
+  }, [containerWidth]);
+
+  // Çoklu Seçim & Marquee & Klavye Motoru (Drive V3)
+  const {
+    selectedIds,
+    setSelectedIds,
+    toggleSelectedId,
+    replaceSelection,
+    anchorId,
+    focusedId,
+    marqueeBox,
+    handleItemClick,
+    handleItemContextMenu,
+    selectAll,
+    clearSelection,
+    handleKeyDown,
+    containerPointerHandlers,
+  } = useDriveSelection({
+    visibleOrderedIds,
+    viewMode,
+    gridMetrics,
+    scrollContainerRef,
+  });
+
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
+
+  // Auto-scroll for container during drag
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    return registerContainerAutoScroll(el);
+  }, []);
   // Modallar
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{
@@ -238,8 +347,16 @@ export function DokumantasyonFileManager() {
     };
   }, [isSidebarOpenMobile]);
 
-  // 2. Klasör İçeriğini Getir
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 2. Klasör İçeriğini Getir (AbortSignal Destekli ve Seçim Koruyan Deterministik Akış)
   const fetchItems = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     try {
       const url = new URL("/api/dokumantasyon/items", window.location.origin);
@@ -254,7 +371,7 @@ export function DokumantasyonFileManager() {
       url.searchParams.set("scope", workspaceFilters.scope);
       url.searchParams.set("collection", collection);
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), { signal: controller.signal });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
@@ -265,7 +382,13 @@ export function DokumantasyonFileManager() {
         setFolders(data.folders || []);
         setFiles(data.files || []);
         setStarredCount(Number(data.summary?.starredCount || 0));
-        setSelectedIds(new Set());
+        // Arka plan yenilemesinde seçimi asla körü körüne sıfırlama;
+        // mevcut geçerli öğeleri reconcileSelection ile koru.
+        const rawIds = [
+          ...(data.folders || []).map((f: DokFolder) => f.id),
+          ...(data.files || []).map((f: DokFile) => f.id),
+        ];
+        setSelectedIds((previous: Set<string>) => reconcileSelection(previous, rawIds));
       } else if (res.status === 503 || data.code?.includes("CONFIGURED") || data.code?.includes("FORBIDDEN")) {
         setConfigError(data.error || "Dökümantasyon kalıcı depolama altyapısı hazır değil.");
         setListError(null);
@@ -284,6 +407,9 @@ export function DokumantasyonFileManager() {
         setListError({ kind: "server", message: data.error || "Dosyalar şu anda listelenemiyor." });
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return; // Yeni klasöre hızlı geçildi, iptal edilen önceki istek sessizce yutulur
+      }
       console.error("Dosyalar yüklenirken hata:", err);
       setConfigError(null);
       setFolders([]);
@@ -295,7 +421,9 @@ export function DokumantasyonFileManager() {
           : "Çevrimdışısınız. Bağlantınızı kontrol edip tekrar deneyin.",
       });
     } finally {
-      setLoading(false);
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, [activeFilter, currentFolderId, router, setSelectedIds, sortBy, sortOrder, workspaceFilters]);
 
@@ -353,137 +481,133 @@ export function DokumantasyonFileManager() {
     }
   };
 
-  // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler
-  const displayedFolders = useMemo(() => {
-    return [...folders].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") {
-        cmp = a.name.localeCompare(b.name, "tr");
-      } else if (sortBy === "date") {
-        cmp = new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
+  const handleDropOnFolder = useCallback(
+    async (items: BulkItem[], targetFolderId: string) => {
+      try {
+        const result = await executeBulkMove(items, targetFolderId);
+        if (result.succeeded.length > 0) {
+          await fetchItems();
+        }
+        if (result.failed.length > 0) {
+          setActionError(`${result.failed.length} öğe taşınamadı.`);
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Taşıma işlemi başarısız.";
+        setActionError(msg);
       }
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
-  }, [folders, sortBy, sortOrder]);
+    },
+    [fetchItems]
+  );
 
-  const displayedFiles = useMemo(() => {
-    return [...files].sort((a, b) => {
-      let cmp = 0;
-      if (sortBy === "name") {
-        cmp = a.display_name.localeCompare(b.display_name, "tr");
-      } else if (sortBy === "date") {
-        cmp = new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
-      } else if (sortBy === "size") {
-        cmp = Number(b.size_bytes) - Number(a.size_bytes);
-      } else if (sortBy === "type") {
-        cmp = (a.extension || "").localeCompare(b.extension || "");
+  const allSelectedItems: BulkItem[] = useMemo(() => {
+    return Array.from(selectedIds).map((id) => {
+      const folder = folders.find((f) => f.id === id);
+      return { id, type: (folder ? "folder" : "file") as "file" | "folder" };
+    });
+  }, [selectedIds, folders, files]);
+
+  const pddCleanupsRef = useRef<Map<string, () => void>>(new Map());
+
+  const setFolderNodeRef = useCallback(
+    (node: HTMLElement | null, folder: DokFolder) => {
+      const existing = pddCleanupsRef.current.get(folder.id);
+      if (existing) {
+        existing();
+        pddCleanupsRef.current.delete(folder.id);
       }
-      return sortOrder === "asc" ? cmp : -cmp;
-    });
-  }, [files, sortBy, sortOrder]);
+      if (!node) return;
 
-  // Gruplama Kovalari (Group Buckets)
-  type ItemGroup = {
-    key: string;
-    label: string;
-    folders: DokFolder[];
-    files: DokFile[];
-  };
+      const cleanupDraggable = registerDraggableItem({
+        element: node,
+        item: { id: folder.id, type: "folder" },
+        selectedIds,
+        allSelectedItems,
+        onSelectSingle: (id) => replaceSelection([id]),
+      });
 
-  const groupedBuckets = useMemo((): ItemGroup[] => {
-    if (groupBy === "none") {
-      return [
-        {
-          key: "all",
-          label: "Tüm Öğeler",
-          folders: displayedFolders,
-          files: displayedFiles,
+      const cleanupDrop = registerFolderDropTarget({
+        element: node,
+        targetFolderId: folder.id,
+        onDropItems: handleDropOnFolder,
+        onDragStateChange: (isOver) => {
+          setDragOverFolderId(isOver ? folder.id : null);
         },
-      ];
-    }
-
-    if (groupBy === "type") {
-      const buckets: Record<string, ItemGroup> = {
-        folders: { key: "folders", label: "📁 Klasörler", folders: [], files: [] },
-        cad: { key: "cad", label: "📐 AutoCAD & CAD Çizimleri (DWG / DXF)", folders: [], files: [] },
-        pdf: { key: "pdf", label: "📄 PDF Dokümanları", folders: [], files: [] },
-        image: { key: "image", label: "🖼️ Görseller & Fotoğraflar", folders: [], files: [] },
-        text: { key: "text", label: "📝 Metin & Kod Belgeleri", folders: [], files: [] },
-        other: { key: "other", label: "📦 Diğer Dosyalar", folders: [], files: [] },
-      };
-
-      buckets.folders.folders = displayedFolders;
-
-      displayedFiles.forEach((file) => {
-        const ext = (file.extension || "").toLowerCase().replace(".", "");
-        if (ext === "dwg" || ext === "dxf") {
-          buckets.cad.files.push(file);
-        } else if (ext === "pdf") {
-          buckets.pdf.files.push(file);
-        } else if (["png", "jpg", "jpeg", "webp", "svg", "gif"].includes(ext)) {
-          buckets.image.files.push(file);
-        } else if (["txt", "md", "json", "csv", "ts", "js", "html", "css", "doc", "docx", "xls", "xlsx"].includes(ext)) {
-          buckets.text.files.push(file);
-        } else {
-          buckets.other.files.push(file);
-        }
       });
 
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
+      pddCleanupsRef.current.set(folder.id, () => {
+        cleanupDraggable();
+        cleanupDrop();
+      });
+    },
+    [selectedIds, allSelectedItems, replaceSelection, handleDropOnFolder]
+  );
 
-    if (groupBy === "date") {
-      const now = Date.now();
-      const ONE_DAY = 24 * 60 * 60 * 1000;
-      const ONE_WEEK = 7 * ONE_DAY;
-      const ONE_MONTH = 30 * ONE_DAY;
+  const setFileNodeRef = useCallback(
+    (node: HTMLElement | null, file: DokFile) => {
+      const existing = pddCleanupsRef.current.get(file.id);
+      if (existing) {
+        existing();
+        pddCleanupsRef.current.delete(file.id);
+      }
+      if (!node) return;
 
-      const buckets: Record<string, ItemGroup> = {
-        today: { key: "today", label: "⚡ Bugün", folders: [], files: [] },
-        week: { key: "week", label: "📅 Bu Hafta", folders: [], files: [] },
-        month: { key: "month", label: "🗓️ Bu Ay", folders: [], files: [] },
-        older: { key: "older", label: "🗄️ Daha Eski", folders: [], files: [] },
-      };
-
-      const classify = (dateStr?: string) => {
-        if (!dateStr) return "older";
-        const diff = now - new Date(dateStr).getTime();
-        if (diff < ONE_DAY) return "today";
-        if (diff < ONE_WEEK) return "week";
-        if (diff < ONE_MONTH) return "month";
-        return "older";
-      };
-
-      displayedFolders.forEach((f) => buckets[classify(f.updated_at || f.created_at)].folders.push(f));
-      displayedFiles.forEach((f) => buckets[classify(f.updated_at || f.created_at)].files.push(f));
-
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
-
-    if (groupBy === "size") {
-      const buckets: Record<string, ItemGroup> = {
-        folders: { key: "folders", label: "📁 Klasörler", folders: displayedFolders, files: [] },
-        large: { key: "large", label: "🚀 Büyük Dosyalar (> 100 MB)", folders: [], files: [] },
-        medium: { key: "medium", label: "📊 Orta Boyutlu Dosyalar (5 – 100 MB)", folders: [], files: [] },
-        small: { key: "small", label: "📄 Küçük Dosyalar (< 5 MB)", folders: [], files: [] },
-      };
-
-      displayedFiles.forEach((file) => {
-        const size = Number(file.size_bytes) || 0;
-        if (size > 100 * 1024 * 1024) {
-          buckets.large.files.push(file);
-        } else if (size >= 5 * 1024 * 1024) {
-          buckets.medium.files.push(file);
-        } else {
-          buckets.small.files.push(file);
-        }
+      const cleanupDraggable = registerDraggableItem({
+        element: node,
+        item: { id: file.id, type: "file" },
+        selectedIds,
+        allSelectedItems,
+        onSelectSingle: (id) => replaceSelection([id]),
       });
 
-      return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
-    }
+      pddCleanupsRef.current.set(file.id, cleanupDraggable);
+    },
+    [selectedIds, allSelectedItems, replaceSelection]
+  );
 
-    return [];
-  }, [groupBy, displayedFolders, displayedFiles]);
+  useEffect(() => {
+    return () => {
+      pddCleanupsRef.current.forEach((c) => c());
+      pddCleanupsRef.current.clear();
+    };
+  }, []);
+
+  const longPressControllersRef = useRef<Map<string, ReturnType<typeof createLongPressController>>>(new Map());
+
+  const getItemGestureHandlers = useCallback(
+    (id: string, type: "file" | "folder", file?: DokFile) => {
+      let controller = longPressControllersRef.current.get(id);
+      if (!controller) {
+        controller = createLongPressController({
+          id,
+          delayMs: 500,
+          moveThresholdPx: 8,
+          isSelectionModeActive: selectedIds.size > 0,
+          onLongPressTrigger: (itemId) => {
+            toggleSelectedId(itemId);
+          },
+          onSingleTap: (itemId) => {
+            if (selectedIds.size > 0) {
+              toggleSelectedId(itemId);
+            } else {
+              if (type === "folder") {
+                navigateToFolder(itemId);
+              } else if (file) {
+                router.push(`/dokumantasyon/dosya/${file.id}`);
+              }
+            }
+          },
+        });
+        longPressControllersRef.current.set(id, controller);
+      }
+      return {
+        onPointerDown: controller.handlePointerDown,
+        onPointerMove: controller.handlePointerMove,
+        onPointerUp: controller.handlePointerUp,
+        onPointerCancel: controller.handlePointerCancel,
+      };
+    },
+    [selectedIds.size, toggleSelectedId, navigateToFolder, router]
+  );
 
   // Toplam İstatistikler
   const totalSizeBytes = useMemo(() => {
@@ -529,10 +653,7 @@ export function DokumantasyonFileManager() {
     toggleSelectedId(id);
   };
 
-  const allItemIds = useMemo(() => [
-    ...displayedFolders.map((f) => f.id),
-    ...displayedFiles.map((f) => f.id)
-  ], [displayedFolders, displayedFiles]);
+  const allItemIds = visibleOrderedIds;
 
   const isAllSelected =
     allItemIds.length > 0 && allItemIds.every((id) => selectedIds.has(id));
@@ -547,7 +668,7 @@ export function DokumantasyonFileManager() {
 
   const getSelectedDriveItems = (): DriveItem[] => {
     const items: DriveItem[] = [];
-    selectedIds.forEach((id) => {
+    selectedIds.forEach((id: string) => {
       const folder = folders.find((candidate) => candidate.id === id);
       if (folder) {
         items.push({ id: folder.id, type: "folder", name: folder.name, parentId: folder.parent_id });
@@ -599,28 +720,21 @@ export function DokumantasyonFileManager() {
 
   // Çoklu Silme
   const handleMultiDeleteConfirm = async () => {
-    const ids = Array.from(selectedIds);
-    const failedIds: string[] = [];
-    let completedCount = 0;
+    const ids: string[] = Array.from(selectedIds);
+    if (ids.length === 0) return;
 
-    for (const id of ids) {
+    const itemsToTrash: BulkItem[] = ids.map((id) => {
       const folder = folders.find((f) => f.id === id);
-      const endpoint = folder
-        ? `/api/dokumantasyon/folders/${id}`
-        : `/api/dokumantasyon/files/${id}`;
-      const result = await requestDokMutation(endpoint, { method: "DELETE" });
-      if (result.ok) {
-        completedCount += 1;
-      } else {
-        failedIds.push(id);
-      }
-    }
+      return { id, type: (folder ? "folder" : "file") as "file" | "folder" };
+    });
 
-    if (completedCount > 0) await fetchItems();
-    setSelectedIds(new Set(failedIds));
+    const result = await executeBulkTrash(itemsToTrash);
 
-    if (failedIds.length > 0) {
-      throw new Error(`${ids.length} öğeden ${failedIds.length}'si silinemedi. Başarısız öğeler seçili bırakıldı.`);
+    if (result.succeeded.length > 0) await fetchItems();
+    setSelectedIds(new Set(result.failed.map((f) => f.id)));
+
+    if (result.failed.length > 0) {
+      throw new Error(`${ids.length} öğeden ${result.failed.length}'si silinemedi. Başarısız öğeler seçili bırakıldı.`);
     }
   };
 
@@ -715,7 +829,20 @@ export function DokumantasyonFileManager() {
       relativePath: entry.relativePath,
     }));
     setUploadQueue((previous) => [...previous, ...queueItems]);
-    for (const item of queueItems) await runQueueItem(item);
+
+    // Concurrency limit: 3 active uploads concurrently
+    const concurrency = 3;
+    let nextIndex = 0;
+    const workers = Array.from({ length: Math.min(concurrency, queueItems.length) }, async () => {
+      while (nextIndex < queueItems.length) {
+        const item = queueItems[nextIndex++];
+        if (item) {
+          await runQueueItem(item);
+        }
+      }
+    });
+
+    await Promise.all(workers);
     await fetchItems();
   };
 
@@ -1409,7 +1536,26 @@ export function DokumantasyonFileManager() {
         )}
 
         {/* Ana İçerik Alanı: Liste veya Grid */}
-        <div className={`flex-1 overflow-auto p-3 sm:p-4 ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}>
+        <div
+          ref={scrollContainerRef}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          {...containerPointerHandlers}
+          className={`relative flex-1 overflow-auto p-3 sm:p-4 outline-none select-none min-h-[300px] ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}
+        >
+          {/* Sanal Marquee Seçim Kutusu (Windows Explorer Mavi Dikdörtgen) */}
+          {marqueeBox && (
+            <div
+              data-testid="dok-marquee-box"
+              className="pointer-events-none absolute z-50 rounded-sm border border-blue-500/90 bg-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.15)] transition-none"
+              style={{
+                left: marqueeBox.left,
+                top: marqueeBox.top,
+                width: marqueeBox.width,
+                height: marqueeBox.height,
+              }}
+            />
+          )}
           {listError ? (
             <div role="alert" className="mx-auto flex max-w-lg flex-col items-center justify-center py-24 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500 mb-2">
@@ -1586,12 +1732,18 @@ export function DokumantasyonFileManager() {
                           return (
                             <div
                               key={folder.id}
+                              ref={(node) => setFolderNodeRef(node, folder)}
                               data-testid="dok-folder-row"
                               data-folder-id={folder.id}
-                              onClick={() => navigateToFolder(folder.id)}
-                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
-                                isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-                              }`}
+                              onClick={(e) => handleItemClick(folder.id, e)}
+                              onDoubleClick={() => navigateToFolder(folder.id)}
+                              onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+                              {...getItemGestureHandlers(folder.id, "folder")}
+                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
+                                dragOverFolderId === folder.id ? styles.dragOverFolder : ""
+                              } ${
+                                isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
+                              } ${focusedId === folder.id ? styles.virtualRowFocused : ""}`}
                             >
                               <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
                                 <button
@@ -1701,16 +1853,28 @@ export function DokumantasyonFileManager() {
                         {bucket.files.slice(0, displayLimit).map((file) => {
                           const isSelected = selectedIds.has(file.id);
                           const isStarred = Boolean(file.starred_at);
+                          const gestureHandlers = getItemGestureHandlers(file.id, "file", file);
 
                           return (
                             <div
                               key={file.id}
+                              ref={(node) => setFileNodeRef(node, file)}
                               data-testid="dok-file-row"
                               data-file-id={file.id}
                               data-extension={file.extension}
-                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm transition-all duration-150 sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 ${
-                                isSelected ? "bg-amber-500/15 border-l-2 border-amber-500" : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-                              }`}
+                              onClick={(e) => handleItemClick(file.id, e)}
+                              onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+                              onContextMenu={(e) => handleItemContextMenu(file.id, e)}
+                              {...gestureHandlers}
+                              onPointerDown={(e) => {
+                                triggerCadIntentPreload(file.extension);
+                                gestureHandlers.onPointerDown(e);
+                              }}
+                              onPointerEnter={() => triggerCadIntentPreload(file.extension)}
+                              onFocus={() => triggerCadIntentPreload(file.extension)}
+                              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
+                                isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
+                              } ${focusedId === file.id ? styles.virtualRowFocused : ""}`}
                             >
                               <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
                                 <button
@@ -1914,12 +2078,18 @@ export function DokumantasyonFileManager() {
                             return (
                               <div
                                 key={folder.id}
+                                ref={(node) => setFolderNodeRef(node, folder)}
                                 data-testid="dok-folder-card"
                                 data-folder-id={folder.id}
-                                onClick={() => navigateToFolder(folder.id)}
-                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all cursor-pointer ${styles.card} ${
-                                  isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
-                                }`}
+                                onClick={(e) => handleItemClick(folder.id, e)}
+                                onDoubleClick={() => navigateToFolder(folder.id)}
+                                onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+                                {...getItemGestureHandlers(folder.id, "folder")}
+                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+                                  dragOverFolderId === folder.id ? styles.dragOverFolder : ""
+                                } ${
+                                  isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
+                                } ${focusedId === folder.id ? styles.virtualCardFocused : ""}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5">
@@ -2031,16 +2201,28 @@ export function DokumantasyonFileManager() {
                           {bucket.files.slice(0, displayLimit).map((file) => {
                             const isSelected = selectedIds.has(file.id);
                             const isStarred = Boolean(file.starred_at);
+                            const gestureHandlers = getItemGestureHandlers(file.id, "file", file);
 
                             return (
                               <div
                                 key={file.id}
+                                ref={(node) => setFileNodeRef(node, file)}
                                 data-testid="dok-file-card"
                                 data-file-id={file.id}
                                 data-extension={file.extension}
-                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 transition-all ${styles.card} ${
-                                  isSelected ? "border-amber-500 ring-2 ring-amber-500/40" : ""
-                                }`}
+                                onClick={(e) => handleItemClick(file.id, e)}
+                                onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+                                onContextMenu={(e) => handleItemContextMenu(file.id, e)}
+                                {...gestureHandlers}
+                                onPointerDown={(e) => {
+                                  triggerCadIntentPreload(file.extension);
+                                  gestureHandlers.onPointerDown(e);
+                                }}
+                                onPointerEnter={() => triggerCadIntentPreload(file.extension)}
+                                onFocus={() => triggerCadIntentPreload(file.extension)}
+                                className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+                                  isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
+                                } ${focusedId === file.id ? styles.virtualCardFocused : ""}`}
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1.5">
@@ -2238,6 +2420,13 @@ export function DokumantasyonFileManager() {
         currentFolderId={currentFolderId}
         onClose={() => setIsNewFolderOpen(false)}
         onSuccess={fetchItems}
+        onStartPending={(pending) => setFolders((prev) => [...prev, pending])}
+        onCreatedFolder={(serverFolder) => {
+          setFolders((prev) => prev.map((f) => (f.id.startsWith("pending:") ? serverFolder : f)));
+        }}
+        onCancelPending={(tempId) => {
+          setFolders((prev) => prev.filter((f) => f.id !== tempId));
+        }}
       />
 
       <RenameModal

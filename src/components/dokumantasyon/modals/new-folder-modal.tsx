@@ -4,12 +4,17 @@ import { useState } from "react";
 import { FolderPlus, X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
+import { DokFolder } from "@/lib/dokumantasyon/types";
+import { OverlayPortal } from "../drive-v3/overlay-portal";
 
 interface NewFolderModalProps {
   isOpen: boolean;
   currentFolderId: string | null;
   onClose: () => void;
   onSuccess: () => void;
+  onStartPending?: (pendingFolder: DokFolder) => void;
+  onCreatedFolder?: (folder: DokFolder) => void;
+  onCancelPending?: (tempId: string) => void;
 }
 
 export function NewFolderModal({
@@ -17,6 +22,9 @@ export function NewFolderModal({
   currentFolderId,
   onClose,
   onSuccess,
+  onStartPending,
+  onCreatedFolder,
+  onCancelPending,
 }: NewFolderModalProps) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,30 +34,49 @@ export function NewFolderModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || loading) return;
+    const trimmedName = name.trim();
+    if (!trimmedName || loading) return;
 
     setLoading(true);
     setError(null);
 
+    const tempId = `pending:${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const pendingFolder: DokFolder = {
+      id: tempId,
+      name: trimmedName,
+      parent_id: currentFolderId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      deleted_at: null,
+      pending: true,
+    };
+
+    onStartPending?.(pendingFolder);
+
     try {
-      const result = await requestDokMutation("/api/dokumantasyon/folders", {
+      const result = await requestDokMutation<{ success: boolean; folder: DokFolder }>("/api/dokumantasyon/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
+          name: trimmedName,
           parentId: currentFolderId,
         }),
       });
 
       if (!result.ok) {
+        onCancelPending?.(tempId);
         setError(result.message);
         return;
       }
 
       setName("");
+      if (result.data?.folder) {
+        onCreatedFolder?.(result.data.folder);
+      }
       onSuccess();
       onClose();
     } catch {
+      onCancelPending?.(tempId);
       setError("Bağlantı hatası oluştu.");
     } finally {
       setLoading(false);
@@ -57,13 +84,12 @@ export function NewFolderModal({
   };
 
   return (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+      {/* z-[90] overlay standard */}
+      <div
+        data-testid="dok-dialog-content"
+        className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl z-[90]"
+      >
         <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
@@ -129,6 +155,6 @@ export function NewFolderModal({
           </div>
         </form>
       </div>
-    </div>
+    </OverlayPortal>
   );
 }

@@ -65,6 +65,14 @@ import {
 } from "../cad-font-registry";
 export type { CadFontParityEvaluation };
 import { decodeDxfBytes, detectDxfEncoding } from "../dxf-encoding";
+import { startCadPerfPhase, endCadPerfPhase } from "../cad-runtime/perf";
+import {
+  buildCadSessionCacheKey,
+  getCachedCadSource,
+  putCachedCadSource,
+  evictCachedCadSource,
+} from "../cad-runtime/session-cache";
+import { isCadMtextWorkerExperimentEnabled } from "../cad-runtime/feature-flags";
 
 if (typeof window !== "undefined") {
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
@@ -182,6 +190,8 @@ export interface CadUpstreamOpenOptions {
   accessUrl: string;
   displayName: string;
   extension: string;
+  fileId?: string;
+  sourceVersionKey?: string;
   signal?: AbortSignal;
   databaseOptions?: Omit<AcApOpenDatabaseOptions, "mode">;
   onPhase?: (phase: CadLoadingPhase, phaseText: string) => void;
@@ -189,18 +199,34 @@ export interface CadUpstreamOpenOptions {
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
 
-let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
+let rawViewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
+let initializedViewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
 let fontPreloadPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
 
-async function ensureFontsPreloaded(fontManager: {
+type CadFontManagerInstance = {
   cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>;
-}): Promise<void> {
+  events?: unknown;
+};
+
+let activeFontManager: CadFontManagerInstance | null = null;
+
+async function ensureFontsPreloaded(fontManager?: CadFontManagerInstance | null): Promise<void> {
   if (typeof window === "undefined") return;
+  if (fontManager) {
+    activeFontManager = fontManager;
+  }
   if (!fontPreloadPromise) {
+    startCadPerfPhase("font-preload");
     fontPreloadPromise = (async () => {
       try {
+        const mgr =
+          fontManager ??
+          activeFontManager ??
+          (await import("@mlightcad/mtext-renderer")).FontManager.instance;
+        activeFontManager = mgr;
+
         const [regularRes, boldRes, serifRegularRes, serifBoldRes] = await Promise.all([
           fetch("/cad-upstream/fonts/Arial-Regular.ttf"),
           fetch("/cad-upstream/fonts/Arial-Bold.ttf"),
@@ -213,7 +239,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (regularRes.ok) {
           const buf = await regularRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "Arial-Regular.ttf", [
+            mgr.cacheFont(buf, "Arial-Regular.ttf", [
               "arial",
               "arial-regular",
               "arial.ttf",
@@ -239,7 +265,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (boldRes.ok) {
           const buf = await boldRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "Arial-Bold.ttf", [
+            mgr.cacheFont(buf, "Arial-Bold.ttf", [
               "arial-bold",
               "arial-bold.ttf",
               "arialb.ttf",
@@ -254,7 +280,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (serifRegularRes.ok) {
           const buf = await serifRegularRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "IBMPlexSerif-Regular.ttf", [
+            mgr.cacheFont(buf, "IBMPlexSerif-Regular.ttf", [
               "ibm-plex-serif",
               "ibm plex serif",
               "times",
@@ -276,7 +302,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (serifBoldRes.ok) {
           const buf = await serifBoldRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "IBMPlexSerif-Bold.ttf", [
+            mgr.cacheFont(buf, "IBMPlexSerif-Bold.ttf", [
               "ibm-plex-serif-bold",
               "ibm plex serif bold",
               "times-bold",
@@ -291,6 +317,8 @@ async function ensureFontsPreloaded(fontManager: {
         await Promise.all(cacheTasks);
       } catch (err) {
         console.warn("[cad-upstream] Font preload hatası:", err);
+      } finally {
+        endCadPerfPhase("font-preload");
       }
     })();
   }
@@ -447,8 +475,9 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
       "timesbd.ttf": "ibm-plex-serif-bold",
     });
 
-    // Fontları deterministik olarak belleğe yükle ve önbelleğe al
-    await ensureFontsPreloaded(fontManager);
+    // Stage 5: Fontları deterministik olarak arka planda paralel başlat, modül init'i bloklama
+    activeFontManager = fontManager;
+    void ensureFontsPreloaded(fontManager);
 
     // 3. Perde Taramalarının Opaklığı (Hatch Opacity)
     // Sert kör edici beyazlık yerine AutoCAD'deki gibi zarif ve yumuşatılmış opaklık (0.70 alpha)
@@ -490,23 +519,49 @@ function hasCoarseTouchPointer(): boolean {
   return navigator.maxTouchPoints > 0 && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
-async function loadViewerModule(): Promise<CadSimpleViewerModule> {
-  if (!viewerModulePromise) {
-    viewerModulePromise = import("@mlightcad/cad-simple-viewer")
-      .then(async (Viewer) => {
-        await initializeCadEngineEnhancements(Viewer);
+export function preloadCadViewerCode(): Promise<CadSimpleViewerModule> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("preloadCadViewerCode is client-only"));
+  }
+  if (!rawViewerModulePromise) {
+    startCadPerfPhase("raw-viewer-preload");
+    rawViewerModulePromise = import("@mlightcad/cad-simple-viewer")
+      .then((Viewer) => {
+        endCadPerfPhase("raw-viewer-preload");
         return Viewer;
       })
       .catch((error) => {
-        viewerModulePromise = null;
+        endCadPerfPhase("raw-viewer-preload");
+        rawViewerModulePromise = null;
         throw error;
       });
   }
-  return viewerModulePromise;
+  return rawViewerModulePromise;
+}
+
+export async function loadViewerModule(): Promise<CadSimpleViewerModule> {
+  if (!initializedViewerModulePromise) {
+    initializedViewerModulePromise = (async () => {
+      startCadPerfPhase("mlightcad-import");
+      const Viewer = await (rawViewerModulePromise ?? preloadCadViewerCode());
+      endCadPerfPhase("mlightcad-import");
+
+      startCadPerfPhase("engine-enhancements");
+      await initializeCadEngineEnhancements(Viewer);
+      endCadPerfPhase("engine-enhancements");
+
+      return Viewer;
+    })().catch((error) => {
+      initializedViewerModulePromise = null;
+      throw error;
+    });
+  }
+  return initializedViewerModulePromise;
 }
 
 async function registerLibreDwgConverter(): Promise<void> {
   if (!libreDwgRegistrationPromise) {
+    startCadPerfPhase("libredwg-registration");
     libreDwgRegistrationPromise = Promise.all([
       import("@mlightcad/data-model"),
       import("@mlightcad/libredwg-converter"),
@@ -521,8 +576,10 @@ async function registerLibreDwgConverter(): Promise<void> {
           dataModel.AcDbFileType.DWG,
           converter
         );
+        endCadPerfPhase("libredwg-registration");
       })
       .catch((error) => {
+        endCadPerfPhase("libredwg-registration");
         libreDwgRegistrationPromise = null;
         throw error;
       });
@@ -532,8 +589,17 @@ async function registerLibreDwgConverter(): Promise<void> {
 
 async function fetchCadSource(
   accessUrl: string,
-  signal?: AbortSignal
-): Promise<ArrayBuffer> {
+  signal?: AbortSignal,
+  cacheKey?: string | null
+): Promise<{ bytes: ArrayBuffer; fromCache: boolean }> {
+  if (cacheKey) {
+    const cached = getCachedCadSource(cacheKey);
+    if (cached) {
+      return { bytes: cached, fromCache: true };
+    }
+  }
+
+  startCadPerfPhase("source-fetch");
   try {
     const response = await fetch(accessUrl, {
       signal,
@@ -551,7 +617,12 @@ async function fetchCadSource(
     if (bytes.byteLength === 0) {
       throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
     }
-    return bytes;
+
+    if (cacheKey) {
+      putCachedCadSource(cacheKey, bytes);
+    }
+
+    return { bytes, fromCache: false };
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       throw error;
@@ -561,6 +632,8 @@ async function fetchCadSource(
       "network-error",
       error instanceof Error ? error.message : "Ağ bağlantı hatası."
     );
+  } finally {
+    endCadPerfPhase("source-fetch");
   }
 }
 
@@ -582,6 +655,12 @@ export class CadUpstreamAdapter {
   private snapCatalog: CadSnapPrimitive[] = [];
   private readonly snapEngine = new CadSnapEngine();
   private textSearchIndex: CadTextSearchIndex | null = null;
+  private documentGeneration = 0;
+  private snapReady = false;
+  private snapPromise: Promise<void> | null = null;
+  private textSearchReady = false;
+  private textSearchPromise: Promise<void> | null = null;
+  private readonly toolDataReadyListeners = new Set<() => void>();
   private readonly initialLayerSnapshot = new Map<
     string,
     { isOn: boolean; isFrozen: boolean }
@@ -604,10 +683,12 @@ export class CadUpstreamAdapter {
     const Viewer = await loadViewerModule();
     await registerLibreDwgConverter();
 
+    startCadPerfPhase("worker-readiness");
     const workersReachable = await Viewer.AcApDocManager.checkWebworkerReadiness(
       CAD_UPSTREAM_WORKER_URLS
     );
     if (!workersReachable) {
+      endCadPerfPhase("worker-readiness");
       throw new CadUpstreamAdapterError(
         "worker-unavailable",
         "MLightCAD DWG/MTEXT worker dosyalarına erişilemiyor."
@@ -633,10 +714,12 @@ export class CadUpstreamAdapter {
       autoResize: true,
       webworkerFileUrls: CAD_UPSTREAM_WORKER_URLS,
       checkWorkersOnInit: true,
-      useMainThreadDraw: options.useMainThreadDraw ?? true,
+      useMainThreadDraw:
+        options.useMainThreadDraw ?? !isCadMtextWorkerExperimentEnabled(),
     });
 
     if (!manager) {
+      endCadPerfPhase("worker-readiness");
       throw new CadUpstreamAdapterError(
         "open-failed",
         "MLightCAD document manager başlatılamadı."
@@ -644,12 +727,14 @@ export class CadUpstreamAdapter {
     }
 
     if (!(await manager.areWorkersReady())) {
+      endCadPerfPhase("worker-readiness");
       await manager.destroy();
       throw new CadUpstreamAdapterError(
         "worker-unavailable",
         "MLightCAD worker readiness kontrolü başarısız."
       );
     }
+    endCadPerfPhase("worker-readiness");
 
     const adapter = new CadUpstreamAdapter(manager, Viewer, options.container);
     adapter.displayTheme = options.theme ?? "dark";
@@ -670,6 +755,15 @@ export class CadUpstreamAdapter {
       );
     }
 
+    const currentGeneration = ++this.documentGeneration;
+    this.snapReady = false;
+    this.snapPromise = null;
+    this.snapCatalog = [];
+    this.snapEngine.clear();
+    this.textSearchReady = false;
+    this.textSearchPromise = null;
+    this.textSearchIndex = null;
+
     const extension = normalizeExtension(options.extension);
     if (!CAD_UPSTREAM_SUPPORTED_EXTENSIONS.has(extension)) {
       throw new CadUpstreamAdapterError(
@@ -678,30 +772,82 @@ export class CadUpstreamAdapter {
       );
     }
 
+    // Stage 4 & 5: Overlap worker verification, source file download, and font readiness concurrently.
+    // Instead of waiting serially, all three operations run in parallel.
+    // If worker readiness fails or is rejected, in-flight fetch is aborted immediately.
+    const fetchController = new AbortController();
+    const handleSignalAbort = () => {
+      fetchController.abort(options.signal?.reason);
+    };
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        fetchController.abort(options.signal.reason);
+      } else {
+        options.signal.addEventListener("abort", handleSignalAbort, { once: true });
+      }
+    }
+
     options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
-    if (!(await this.manager.areWorkersReady())) {
+
+    const workerReadyPromise = (async () => {
+      try {
+        const ready = await this.manager.areWorkersReady();
+        if (ready) {
+          options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
+        }
+        return ready;
+      } catch {
+        return false;
+      }
+    })();
+
+    const cacheKey = buildCadSessionCacheKey({
+      fileId: options.fileId,
+      sourceVersionKey: options.sourceVersionKey,
+      accessUrl: options.accessUrl,
+    });
+
+    const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal, cacheKey);
+
+    const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: CadFontManagerInstance } } }).mtextRenderer;
+    const fontManager = mtextRenderer?.FontManager?.instance ?? activeFontManager;
+    const fontPreloadTask = ensureFontsPreloaded(fontManager);
+
+    const [workersReady, sourceResult] = await Promise.all([
+      workerReadyPromise,
+      sourceFetchPromise.then(
+        (res) => ({ ok: true as const, bytes: res.bytes, fromCache: res.fromCache }),
+        (err) => ({ ok: false as const, error: err })
+      ),
+      fontPreloadTask,
+    ]);
+
+    if (options.signal) {
+      options.signal.removeEventListener("abort", handleSignalAbort);
+    }
+
+    if (!workersReady) {
+      fetchController.abort("WORKER_UNAVAILABLE");
       throw new CadUpstreamAdapterError(
         "worker-unavailable",
         "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
       );
     }
 
-    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
-    const bytes = await fetchCadSource(options.accessUrl, options.signal);
-
-    // Çizim açılmadan önce tüm TrueType fontların bellekte yüklü olduğunu kesinleştir
-    const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>; events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
-    const fontManager = mtextRenderer?.FontManager?.instance;
-    if (fontManager) {
-      await ensureFontsPreloaded(fontManager);
+    if (!sourceResult.ok) {
+      throw sourceResult.error;
     }
+
+    const bytes = sourceResult.bytes;
 
     if (CAD_AUTOCAD_FONT_PARITY_V1) {
       const requested = extractDxfOrDwgFonts(bytes, extension);
       this.fontDiagnostics = evaluateCadFontParity(requested);
 
-      if (fontManager?.events?.fontNotFound?.subscribe) {
-        fontManager.events.fontNotFound.subscribe(({ fontName }) => {
+      const fontEvents = fontManager?.events as { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } | undefined;
+      if (fontEvents?.fontNotFound?.subscribe) {
+        fontEvents.fontNotFound.subscribe(({ fontName }) => {
           if (fontName && !this.fontDiagnostics.missingFonts.includes(fontName)) {
             this.fontDiagnostics.missingFonts.push(fontName);
             this.fontDiagnostics.fontParityExact = false;
@@ -753,13 +899,18 @@ export class CadUpstreamAdapter {
       mode: this.Viewer.AcEdOpenMode.Read,
     };
 
+    startCadPerfPhase("open-document");
     const success = await this.manager.openDocument(
       options.displayName,
       documentBytes,
       openOptions
     );
+    endCadPerfPhase("open-document");
 
     if (!success) {
+      if (cacheKey) {
+        evictCachedCadSource(cacheKey);
+      }
       if (bytes.byteLength < 64) {
         throw new CadUpstreamAdapterError(
           "corrupt-truncated",
@@ -773,9 +924,11 @@ export class CadUpstreamAdapter {
     }
 
     options.onPhase?.("build-scene", "Sahne ve katmanlar oluşturuluyor");
+    startCadPerfPhase("wait-until-idle");
     const idle = await this.manager.curView.waitUntilIdle(
       CAD_UPSTREAM_BLANK_VALIDATION_IDLE_MS
     );
+    endCadPerfPhase("wait-until-idle");
     if (idle && this.manager.curView.stats.summary.entityCount === 0) {
       throw new CadUpstreamAdapterError(
         "blank-document",
@@ -785,6 +938,7 @@ export class CadUpstreamAdapter {
 
     options.onPhase?.("render-ready", "İlk çizim görünümü hazırlanıyor");
 
+    startCadPerfPhase("layer-snapshot");
     this.initialLayerSnapshot.clear();
     const store = this.getLayerStore();
     if (store) {
@@ -795,6 +949,7 @@ export class CadUpstreamAdapter {
         });
       }
     }
+    endCadPerfPhase("layer-snapshot");
 
     this.restorePanMode();
     this.configureMobilePinchZoom();
@@ -808,6 +963,124 @@ export class CadUpstreamAdapter {
     this.setBackgroundColor(this.backgroundColorOption);
     this.applyDisplayMode();
     this.zoomToFit();
+    this.scheduleAuxiliaryIndexes(currentGeneration);
+  }
+
+  isSnapReady(): boolean {
+    return this.snapReady;
+  }
+
+  isTextSearchReady(): boolean {
+    return this.textSearchReady;
+  }
+
+  isToolDataReady(): boolean {
+    return this.snapReady && this.textSearchReady;
+  }
+
+  subscribeToolDataReady(listener: () => void): () => void {
+    this.toolDataReadyListeners.add(listener);
+    return () => {
+      this.toolDataReadyListeners.delete(listener);
+    };
+  }
+
+  private notifyToolDataReady(): void {
+    for (const listener of this.toolDataReadyListeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error("[cad-upstream] toolDataReady listener error:", err);
+      }
+    }
+  }
+
+  async ensureSnapReady(generation = this.documentGeneration): Promise<void> {
+    if (this.destroyed || this.documentGeneration !== generation) return;
+    if (this.snapReady) return;
+    if (this.snapPromise) return this.snapPromise;
+
+    this.snapPromise = (async () => {
+      try {
+        startCadPerfPhase("snap-catalog");
+        const database = this.manager.curDocument?.database;
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.snapCatalog = buildCadSnapPrimitives(database);
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.rebuildVisibleSnapIndex();
+        endCadPerfPhase("snap-catalog");
+        this.snapReady = true;
+        this.notifyToolDataReady();
+      } catch (err) {
+        console.warn("[cad-upstream] snap primitives build failed:", err);
+        this.snapCatalog = [];
+        this.snapEngine.clear();
+        this.snapReady = true;
+      }
+    })();
+
+    return this.snapPromise;
+  }
+
+  async ensureTextSearchReady(generation = this.documentGeneration): Promise<void> {
+    if (this.destroyed || this.documentGeneration !== generation) return;
+    if (this.textSearchReady) return;
+    if (this.textSearchPromise) return this.textSearchPromise;
+
+    this.textSearchPromise = (async () => {
+      try {
+        startCadPerfPhase("text-catalog");
+        const database = this.manager.curDocument?.database;
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        const textEntities = buildCadTextSearchCatalog(database);
+        if (this.destroyed || this.documentGeneration !== generation) return;
+        this.textSearchIndex = new CadTextSearchIndex(textEntities);
+        endCadPerfPhase("text-catalog");
+        this.textSearchReady = true;
+        this.notifyToolDataReady();
+      } catch (err) {
+        console.warn("[cad-upstream] text search catalog build failed:", err);
+        this.textSearchIndex = new CadTextSearchIndex([]);
+        this.textSearchReady = true;
+      }
+    })();
+
+    return this.textSearchPromise;
+  }
+
+  whenSnapReady(): Promise<void> {
+    return this.ensureSnapReady();
+  }
+
+  whenTextSearchReady(): Promise<void> {
+    return this.ensureTextSearchReady();
+  }
+
+  private scheduleAuxiliaryIndexes(generation: number): void {
+    const runIdle = (cb: () => void) => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        (
+          window as unknown as {
+            requestIdleCallback: (
+              cb: () => void,
+              opts?: { timeout: number }
+            ) => number;
+          }
+        ).requestIdleCallback(cb, { timeout: 2000 });
+      } else {
+        setTimeout(cb, 50);
+      }
+    };
+
+    runIdle(() => {
+      if (this.destroyed || this.documentGeneration !== generation) return;
+      void this.ensureSnapReady(generation).then(() => {
+        runIdle(() => {
+          if (this.destroyed || this.documentGeneration !== generation) return;
+          void this.ensureTextSearchReady(generation);
+        });
+      });
+    });
   }
 
   private getActiveLayoutView(): CadLayoutViewLike | null {
@@ -834,18 +1107,6 @@ export class CadUpstreamAdapter {
     this.areaMeasurementController = null;
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
-
-    const database = this.manager.curDocument?.database;
-    this.snapCatalog = buildCadSnapPrimitives(database);
-    this.rebuildVisibleSnapIndex();
-
-    try {
-      const textEntities = buildCadTextSearchCatalog(database);
-      this.textSearchIndex = new CadTextSearchIndex(textEntities);
-    } catch {
-      this.textSearchIndex = new CadTextSearchIndex([]);
-    }
-
 
     this.distanceMeasurementController = new CadPressHoldDistanceController(
       this.interactionHost,
@@ -881,7 +1142,11 @@ export class CadUpstreamAdapter {
 
     const store = this.getLayerStore();
     if (store) {
-      const handleLayersChanged = () => this.rebuildVisibleSnapIndex();
+      const handleLayersChanged = () => {
+        if (this.snapReady) {
+          this.rebuildVisibleSnapIndex();
+        }
+      };
       store.events.changed.addEventListener(handleLayersChanged);
       this.snapLayerUnsubscribe = () => {
         store.events.changed.removeEventListener(handleLayersChanged);
@@ -1238,6 +1503,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadDistanceMeasurementCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.distanceMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.distanceMeasurementController) return false;
@@ -1271,6 +1540,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadAreaMeasurementCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.areaMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.areaMeasurementController) return false;
@@ -1300,6 +1573,10 @@ export class CadUpstreamAdapter {
     snapModes: ReadonlySet<CadSnapMode>,
     callbacks: CadChainDistanceCallbacks = {}
   ): Promise<boolean> {
+    if (this.destroyed) return false;
+    if (!this.snapReady) {
+      await this.ensureSnapReady();
+    }
     if (this.destroyed || !this.chainDistanceMeasurementController) return false;
     await this.cancelActiveCommand();
     if (this.destroyed || !this.chainDistanceMeasurementController) return false;
@@ -1336,11 +1613,20 @@ export class CadUpstreamAdapter {
   }
 
   searchCadText(options: CadTextSearchQuery): CadTextSearchResult[] {
-    if (this.destroyed || !this.textSearchIndex) return [];
+    if (this.destroyed) return [];
+    if (!this.textSearchIndex) {
+      if (!this.textSearchReady && !this.textSearchPromise) {
+        void this.ensureTextSearchReady();
+      }
+      return [];
+    }
     return this.textSearchIndex.search(options);
   }
 
   getTextSearchIndex(): CadTextSearchIndex | null {
+    if (!this.textSearchIndex && !this.textSearchReady && !this.textSearchPromise) {
+      void this.ensureTextSearchReady();
+    }
     return this.textSearchIndex;
   }
 
@@ -1742,6 +2028,7 @@ export class CadUpstreamAdapter {
   async destroy(): Promise<void> {
     if (this.destroyed) return;
     this.destroyed = true;
+    startCadPerfPhase("destroy");
 
     try {
       await Promise.race([
@@ -1763,6 +2050,12 @@ export class CadUpstreamAdapter {
 
     this.snapLayerUnsubscribe?.();
     this.snapLayerUnsubscribe = null;
+    this.documentGeneration++;
+    this.snapReady = false;
+    this.snapPromise = null;
+    this.textSearchReady = false;
+    this.textSearchPromise = null;
+    this.toolDataReadyListeners.clear();
     this.snapCatalog = [];
     this.snapEngine.clear();
     this.textSearchIndex = null;
@@ -1790,6 +2083,7 @@ export class CadUpstreamAdapter {
         targetContainer.replaceChildren();
       } catch {}
     }
+    endCadPerfPhase("destroy");
   }
 }
 

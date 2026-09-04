@@ -25,6 +25,8 @@ const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((modul
 const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
 const DokCadViewer = dynamic(() => import("../preview/cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
 
+import type { DwgFastPreviewHint } from "../preview/cad-runtime-orchestrator";
+
 interface DocumentStudioShellProps {
   file: {
     id: string;
@@ -41,6 +43,7 @@ interface DocumentStudioShellProps {
   expiresAt: string;
   isLocal: boolean;
   versionNo?: number;
+  dwgFastPreviewHint?: DwgFastPreviewHint;
 }
 
 type ShareResult = {
@@ -59,6 +62,7 @@ export function DocumentStudioShell({
   expiresAt: initialExpiresAt,
   isLocal,
   versionNo = 1,
+  dwgFastPreviewHint,
 }: DocumentStudioShellProps) {
   const router = useRouter();
   const studioRootRef = useRef<HTMLDivElement>(null);
@@ -342,6 +346,8 @@ export function DocumentStudioShell({
             fileId={file.id}
             extension={file.extension}
             sizeBytes={file.size_bytes}
+            sourceVersionKey={`${file.id}:${file.updated_at || file.created_at}:${file.size_bytes}`}
+            dwgFastPreviewHint={dwgFastPreviewHint}
           />
         );
 

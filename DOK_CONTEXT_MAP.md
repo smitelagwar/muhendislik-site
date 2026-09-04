@@ -18,13 +18,28 @@ Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrı
 Ana bileşenler `src/components/dokumantasyon/` ağacındadır. Özellikle:
 
 - `admin-shell.tsx`
-- `file-manager.tsx` — Bounded DOM (100'lük bloklar + Daha Fazla Göster), CAD filtresi, arama ve geri dönüş bağlamı
+- `file-manager.tsx` — Drive V3.1 Sanallaştırılmış Dosya Yöneticisi (TanStack Virtual, Zero-F5, PDD Drag & Drop, Virtual Marquee)
 - `drive-sidebar.tsx`
 - `drive-details-drawer.tsx`
 - `studio/document-studio-shell.tsx`
 - `preview/file-preview-shell.tsx`
 
-Responsive workspace; geniş ekranda sidebar/details, dar ekranda drawer/sheet yaklaşımını kullanır. File Manager seçim durumu `use-dok-selection.ts` ile ayrılmıştır.
+Responsive workspace; geniş ekranda sidebar/details, dar ekranda drawer/sheet yaklaşımını kullanır.
+
+## Drive V3.1 Mimarisi (Nihai Standart)
+
+Dosya yöneticisi (`/dokumantasyon`) V3.1 sürümüyle aşağıdaki modern işletim sistemi ve bulut depolama standartlarına yükseltilmiştir:
+
+- **Sıfır-F5 & Server-State:** `@tanstack/react-query`, tek `deriveExplorerView` comparator'ı, optimistic pending updates, abort controller request cancellation.
+- **Sanal Marquee:** Matematiksel offscreen hit-testing, row-major Grid Shift seçimi, sağ tık çoklu seçim koruması (`src/components/dokumantasyon/drive-v3/selection-reducer.ts`).
+- **Body-Level Overlay:** `#dok-overlay-root` ve `OverlayPortal` ile scroll konumundan bağımsız viewport-centered modallar (`--dok-z` tokenleri).
+- **Toplu İşlemler & PDD:** `/api/dokumantasyon/bulk/*` (trash, move, star, restore), tek request 100 item, max chunk 250, partial failure toleransı, Atlassian Pragmatic Drag & Drop auto-scroll (`pdd-integration.ts`, `bulk-operations.ts`).
+- **Transfer Kuyruğu:** Eşzamanlılık (concurrency: 3) limitli, iptal ve yeniden deneme destekli `UploadQueueManager`.
+- **Sanallaştırma & Ölçek:** `@tanstack/react-virtual` 5.000+ item desteği, mounted DOM < 250 node, anchor-preserving resize (`use-virtual-explorer.ts`, `virtual-scroll.ts`).
+- **Görsel & Mobil:** CSS GPU transitions (will-change, virtual row/card üzerinde framer-motion yasağı), 500ms long-press state machine, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover`.
+- **Birleşik Test Paketi:** `npm run check:dok-drive-v3` (tüm aşamalar 1-9 tek komutla test edilir).
+- **Ayrıntılı Belgeler:** `docs/DOK_DRIVE_V3_ARCHITECTURE.md`, `docs/DOK_DRIVE_V3_INTERACTION_CONTRACT.md`, `docs/DOK_DRIVE_V3_COMMAND_MATRIX.md`, `docs/DOK_DRIVE_V3_TEST_MATRIX.md`, `docs/DOK_DRIVE_V3_PERFORMANCE_BUDGET.md`.
+
 
 ## API / veri / storage
 

@@ -10,6 +10,7 @@ export interface DokFolder {
   updated_at: string;
   deleted_at: string | null;
   starred_at?: string | null;
+  pending?: boolean;
 }
 
 export interface DokFile {
@@ -27,6 +28,7 @@ export interface DokFile {
   starred_at?: string | null;
   last_opened_at?: string | null;
   current_version_number?: number;
+  pending?: boolean;
 }
 
 export interface DokFileVersion {
