@@ -1,0 +1,237 @@
+{
+  "CAD-A": {
+    "fixtureId": "CAD-A",
+    "fixtureName": "known-geometry-measurements.dxf",
+    "format": "dxf",
+    "sizeBytes": 747,
+    "engine": "upstream",
+    "totalToReadyMs": 2112.7,
+    "phases": {
+      "mlightcad-import": 135.2,
+      "font-preload": 95.2,
+      "engine-enhancements": 141.8,
+      "libredwg-registration": 33.8,
+      "worker-readiness": 45.9,
+      "source-fetch": 1672.3,
+      "open-document": 56.8,
+      "wait-until-idle": 23.5,
+      "layer-snapshot": 0.1,
+      "snap-catalog": 0.4,
+      "text-catalog": 0.1,
+      "total-to-ready": 2112.7
+    },
+    "longTasks": [
+      {
+        "startTime": 393,
+        "durationMs": 62
+      }
+    ],
+    "network": {
+      "workerJsBytes": 6880715,
+      "wasmBytes": 0,
+      "fontsBytes": 8736922,
+      "sourceBytes": 2142946,
+      "totalTransferredBytes": 18400888
+    },
+    "canvasState": {
+      "width": 824,
+      "height": 1454,
+      "isWebGLValid": true
+    }
+  },
+  "CAD-B": {
+    "fixtureId": "CAD-B",
+    "fixtureName": "multi-layout-model-paperspace.dxf",
+    "format": "dxf",
+    "sizeBytes": 1419,
+    "engine": "upstream",
+    "totalToReadyMs": 2704.9,
+    "phases": {
+      "mlightcad-import": 35.4,
+      "font-preload": 67.3,
+      "engine-enhancements": 78.3,
+      "libredwg-registration": 8.6,
+      "worker-readiness": 45.6,
+      "source-fetch": 22.1,
+      "open-document": 64.3,
+      "wait-until-idle": 2448.7,
+      "layer-snapshot": 0.1,
+      "snap-catalog": 0.2,
+      "text-catalog": 0,
+      "total-to-ready": 2704.9
+    },
+    "longTasks": [
+      {
+        "startTime": 2021,
+        "durationMs": 70
+      },
+      {
+        "startTime": 2705,
+        "durationMs": 269
+      }
+    ],
+    "network": {
+      "workerJsBytes": 5504572,
+      "wasmBytes": 0,
+      "fontsBytes": 8736922,
+      "sourceBytes": 2142199,
+      "totalTransferredBytes": 16895937
+    },
+    "canvasState": {
+      "width": 824,
+      "height": 1454,
+      "isWebGLValid": true
+    }
+  },
+  "CAD-G": {
+    "fixtureId": "CAD-G",
+    "fixtureName": "text-turkish-unicode.dxf",
+    "format": "dxf",
+    "sizeBytes": 461,
+    "engine": "upstream",
+    "totalToReadyMs": 636.4,
+    "phases": {
+      "mlightcad-import": 15.5,
+      "font-preload": 62.5,
+      "engine-enhancements": 69.9,
+      "libredwg-registration": 2.3,
+      "worker-readiness": 31.1,
+      "source-fetch": 23.6,
+      "open-document": 58.9,
+      "wait-until-idle": 433.4,
+      "layer-snapshot": 0.1,
+      "snap-catalog": 0,
+      "text-catalog": 0,
+      "total-to-ready": 636.4
+    },
+    "longTasks": [
+      {
+        "startTime": 1027,
+        "durationMs": 77
+      },
+      {
+        "startTime": 1107,
+        "durationMs": 279
+      }
+    ],
+    "network": {
+      "workerJsBytes": 4128429,
+      "wasmBytes": 0,
+      "fontsBytes": 9296,
+      "sourceBytes": 2140780,
+      "totalTransferredBytes": 6662688
+    },
+    "canvasState": {
+      "width": 824,
+      "height": 1454,
+      "isWebGLValid": true
+    }
+  },
+  "CAD-E": {
+    "fixtureId": "CAD-E",
+    "fixtureName": "cached-derivative.dwg",
+    "format": "dwg",
+    "sizeBytes": 747,
+    "engine": "upstream",
+    "totalToReadyMs": 462.6,
+    "phases": {
+      "mlightcad-import": 95.5,
+      "font-preload": 104.3,
+      "engine-enhancements": 146.4,
+      "libredwg-registration": 42.7,
+      "worker-readiness": 47.6,
+      "source-fetch": 28.7,
+      "open-document": 69.5,
+      "wait-until-idle": 30.7,
+      "layer-snapshot": 0.2,
+      "snap-catalog": 0.1,
+      "text-catalog": 0,
+      "total-to-ready": 462.6
+    },
+    "longTasks": [],
+    "network": {
+      "workerJsBytes": 2752286,
+      "wasmBytes": 0,
+      "fontsBytes": 4648,
+      "sourceBytes": 2140319,
+      "totalTransferredBytes": 5153375
+    },
+    "canvasState": {
+      "width": 824,
+      "height": 1454,
+      "isWebGLValid": true
+    }
+  },
+  "CAD-F": {
+    "fixtureId": "CAD-F",
+    "fixtureName": "kiris_acilimlari_tum_katlar.dwg (cache miss)",
+    "format": "dwg",
+    "sizeBytes": 2139550,
+    "engine": "upstream",
+    "totalToReadyMs": 8917.4,
+    "phases": {
+      "mlightcad-import": 92.6,
+      "font-preload": 132,
+      "engine-enhancements": 199.5,
+      "libredwg-registration": 31.7,
+      "worker-readiness": 38.6,
+      "source-fetch": 34,
+      "open-document": 3784.3,
+      "wait-until-idle": 4612.9,
+      "layer-snapshot": 0.1,
+      "snap-catalog": 99,
+      "text-catalog": 22.4,
+      "total-to-ready": 8917.4
+    },
+    "longTasks": [
+      {
+        "startTime": 3352,
+        "durationMs": 181
+      },
+      {
+        "startTime": 3605,
+        "durationMs": 236
+      },
+      {
+        "startTime": 3872,
+        "durationMs": 308
+      },
+      {
+        "startTime": 4180,
+        "durationMs": 308
+      },
+      {
+        "startTime": 4499,
+        "durationMs": 302
+      },
+      {
+        "startTime": 4821,
+        "durationMs": 301
+      },
+      {
+        "startTime": 5126,
+        "durationMs": 262
+      },
+      {
+        "startTime": 5420,
+        "durationMs": 3417
+      },
+      {
+        "startTime": 8837,
+        "durationMs": 266
+      }
+    ],
+    "network": {
+      "workerJsBytes": 1376143,
+      "wasmBytes": 0,
+      "fontsBytes": 4648,
+      "sourceBytes": 2139572,
+      "totalTransferredBytes": 3648424
+    },
+    "canvasState": {
+      "width": 824,
+      "height": 1454,
+      "isWebGLValid": true
+    }
+  }
+}

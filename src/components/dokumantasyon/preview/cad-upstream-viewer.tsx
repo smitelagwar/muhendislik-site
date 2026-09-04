@@ -63,6 +63,7 @@ import {
 import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
 import { CAD_AUTOCAD_FONT_PARITY_V1 } from "@/lib/dokumantasyon/cad-font-fidelity-config";
 import type { CadFontParityEvaluation } from "@/lib/dokumantasyon/cad-font-registry";
+import { initCadPerfSession, markCadPerfReady } from "@/lib/dokumantasyon/cad-runtime/perf";
 // ──────────────────────────────────────────────────────────────────────────────
 
 export interface DokCadUpstreamViewerProps {
@@ -459,6 +460,7 @@ export function DokCadUpstreamViewer({
     const startup = previousCadUpstreamTeardown.then(async () => {
       if (cancelled) return;
 
+      initCadPerfSession(fileId);
       setState("loading");
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
@@ -557,6 +559,7 @@ export function DokCadUpstreamViewer({
         if (adapterRef.current) {
           setFontDiagnostics(adapterRef.current.getFontFidelityDiagnostics());
         }
+        markCadPerfReady();
         setState("ready");
         setMessage("");
         onReady?.();
