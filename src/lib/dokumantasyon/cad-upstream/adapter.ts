@@ -325,6 +325,66 @@ async function ensureFontsPreloaded(fontManager?: CadFontManagerInstance | null)
   return fontPreloadPromise;
 }
 
+let activeCadDatabase: unknown = null;
+
+export function resolveCadLineweightPixels(lw: number): number {
+  if (lw <= 0) return 1;
+  if (lw <= 5) return 1;
+  if (lw <= 9) return 1.5;
+  if (lw <= 15) return 2;
+  if (lw <= 20) return 2.5;
+  if (lw <= 25) return 3;
+  if (lw <= 35) return 4;
+  if (lw <= 50) return 5;
+  if (lw <= 60) return 6;
+  if (lw <= 80) return 7.5;
+  if (lw <= 100) return 9;
+  return Math.max(1, Math.round(lw / 10));
+}
+
+function resolveEffectiveLineweight(
+  traits: { lineWeight?: number; layer?: string } | null | undefined
+): number {
+  if (!traits) return -1;
+  if (typeof traits.lineWeight === "number" && traits.lineWeight >= 0) {
+    return traits.lineWeight;
+  }
+  if (traits.layer) {
+    try {
+      const db =
+        (activeCadDatabase as {
+          tables?: { layerTable?: { getAt?: (name: string) => { lineWeight?: number } } };
+        } | null) ??
+        ((typeof window !== "undefined" &&
+          (
+            window as unknown as {
+              __cadAdapter?: {
+                manager?: {
+                  curDocument?: {
+                    database?: {
+                      tables?: { layerTable?: { getAt?: (name: string) => { lineWeight?: number } } };
+                    };
+                  };
+                };
+              };
+            }
+          )?.__cadAdapter?.manager?.curDocument?.database) as {
+          tables?: { layerTable?: { getAt?: (name: string) => { lineWeight?: number } } };
+        } | null) ??
+        null;
+      if (db?.tables?.layerTable?.getAt) {
+        const layerRecord = db.tables.layerTable.getAt(traits.layer);
+        if (layerRecord && typeof layerRecord.lineWeight === "number" && layerRecord.lineWeight >= 0) {
+          return layerRecord.lineWeight;
+        }
+      }
+    } catch {
+      // Fall through to default
+    }
+  }
+  return -1;
+}
+
 async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): Promise<void> {
   if (engineEnhancementsInitialized) return;
   engineEnhancementsInitialized = true;
@@ -502,6 +562,51 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
         }
         return mat;
       };
+    }
+
+    // 4. Doğru Lineweight (Çizgi Kalınlığı) ve ByLayer Çözümleme
+    // AutoCAD standart lineweight değerlerini (1/100 mm) görünür ekran pikseli kalınlığına eşler.
+    // ByLayer (-1) veya varsayılan (<0) çizgileri katmanın lineweight değerine bağlar.
+    const AcTrLineMaterialManager = (threeRenderer as { AcTrLineMaterialManager?: { prototype?: unknown } }).AcTrLineMaterialManager;
+    if (AcTrLineMaterialManager?.prototype) {
+      const lineMgrProto = AcTrLineMaterialManager.prototype as {
+        resolveLineWidth?: (lineWeight: number) => number;
+        buildKey?: (traits: unknown, options: unknown) => string;
+        createMaterialImpl?: (traits: unknown, options: unknown, layerColorRgb: unknown) => unknown;
+      };
+
+      const origBuildKey = lineMgrProto.buildKey;
+      const origCreateMaterialImpl = lineMgrProto.createMaterialImpl;
+
+      lineMgrProto.resolveLineWidth = function (lineWeight: number): number {
+        return resolveCadLineweightPixels(lineWeight);
+      };
+
+      if (origBuildKey) {
+        lineMgrProto.buildKey = function (traits: unknown, options: unknown): string {
+          const t = traits as { lineWeight?: number; layer?: string } | undefined;
+          const effectiveLw = resolveEffectiveLineweight(t);
+          const syn = t && typeof t.lineWeight === "number" && t.lineWeight < 0 && effectiveLw > 0
+            ? { ...t, lineWeight: effectiveLw }
+            : traits;
+          return origBuildKey.call(this, syn, options);
+        };
+      }
+
+      if (origCreateMaterialImpl) {
+        lineMgrProto.createMaterialImpl = function (
+          traits: unknown,
+          options: unknown,
+          layerColorRgb: unknown
+        ): unknown {
+          const t = traits as { lineWeight?: number; layer?: string } | undefined;
+          const effectiveLw = resolveEffectiveLineweight(t);
+          const syn = t && typeof t.lineWeight === "number" && t.lineWeight < 0 && effectiveLw > 0
+            ? { ...t, lineWeight: effectiveLw }
+            : traits;
+          return origCreateMaterialImpl.call(this, syn, options, layerColorRgb);
+        };
+      }
     }
   } catch (error) {
     console.warn("[cad-upstream] Engine enhancements could not be fully applied:", error);
@@ -967,6 +1072,27 @@ export class CadUpstreamAdapter {
       }
     }
     endCadPerfPhase("layer-snapshot");
+
+    const activeDb = this.manager.curDocument?.database;
+    if (activeDb) {
+      activeCadDatabase = activeDb;
+      if (typeof activeDb.lwdisplay === "boolean") {
+        this.lineWeightVisible = activeDb.lwdisplay;
+      }
+    }
+
+    const curViewInit = this.manager.curView as unknown as {
+      renderer?: { showLineWeight?: boolean; forceShowLineWeight?: boolean };
+      activeLayoutView?: { renderer?: { showLineWeight?: boolean; forceShowLineWeight?: boolean } };
+    };
+    if (curViewInit?.renderer) {
+      curViewInit.renderer.showLineWeight = this.lineWeightVisible;
+      curViewInit.renderer.forceShowLineWeight = this.lineWeightVisible;
+    }
+    if (curViewInit?.activeLayoutView?.renderer) {
+      curViewInit.activeLayoutView.renderer.showLineWeight = this.lineWeightVisible;
+      curViewInit.activeLayoutView.renderer.forceShowLineWeight = this.lineWeightVisible;
+    }
 
     this.restorePanMode();
     this.configureMobilePinchZoom();
@@ -1449,8 +1575,34 @@ export class CadUpstreamAdapter {
       db.lwdisplay = visible;
     }
     const curView = this.manager.curView as unknown as {
+      renderer?: { showLineWeight?: boolean; forceShowLineWeight?: boolean };
+      activeLayoutView?: { renderer?: { showLineWeight?: boolean; forceShowLineWeight?: boolean } };
+      clear?: () => void;
+      isProcessingEntities?: boolean;
+      waitUntilIdle?: (timeout?: number) => Promise<boolean>;
+      isDirty?: boolean;
       refreshEntitiesForLineWeightChange?: () => Promise<void>;
     };
+    if (curView) {
+      curView.refreshEntitiesForLineWeightChange = async () => {
+        if (curView.renderer) {
+          curView.renderer.showLineWeight = visible;
+          curView.renderer.forceShowLineWeight = visible;
+        }
+        if (curView.activeLayoutView?.renderer) {
+          curView.activeLayoutView.renderer.showLineWeight = visible;
+          curView.activeLayoutView.renderer.forceShowLineWeight = visible;
+        }
+        if (curView.clear && db && !curView.isProcessingEntities) {
+          curView.clear();
+          void db.regen();
+        }
+        if (curView.waitUntilIdle) {
+          await curView.waitUntilIdle(10_000);
+        }
+        curView.isDirty = true;
+      };
+    }
     if (typeof curView?.refreshEntitiesForLineWeightChange === "function") {
       await curView.refreshEntitiesForLineWeightChange();
     }
@@ -2096,6 +2248,9 @@ export class CadUpstreamAdapter {
     this.snapEngine.clear();
     this.textSearchIndex = null;
     this.initialLayerSnapshot.clear();
+    if (activeCadDatabase === this.manager?.curDocument?.database) {
+      activeCadDatabase = null;
+    }
 
     this.displayMode = "source";
     this.applyDisplayMode();

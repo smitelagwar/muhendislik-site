@@ -233,6 +233,17 @@ export function CadStudioRibbon({
   onOpenExportDialog,
 }: CadStudioRibbonProps) {
   const [selectedShapeKind, setSelectedShapeKind] = useState<"shape_rect" | "shape_circle" | "shape_cloud">("shape_rect");
+  const [prevActiveTool, setPrevActiveTool] = useState(activeTool);
+  const [selectToggled, setSelectToggled] = useState(false);
+
+  if (activeTool !== prevActiveTool) {
+    setPrevActiveTool(activeTool);
+    if (activeTool !== "select") {
+      setSelectToggled(false);
+    }
+  }
+
+  const isSelectActive = activeTool === "select" && selectToggled;
 
   const btnBase = "h-9 px-3 text-xs font-semibold rounded-xl transition-all shrink-0 flex items-center gap-2 select-none shadow-sm cursor-pointer";
   const iconBtnBase = "h-9 w-9 p-0 rounded-xl transition-all shrink-0 flex items-center justify-center select-none shadow-sm cursor-pointer";
@@ -254,23 +265,26 @@ export function CadStudioRibbon({
           <Button
             type="button"
             size="sm"
-            variant={activeTool === "select" ? "secondary" : "ghost"}
+            variant={isSelectActive ? "secondary" : "ghost"}
             className={cn(
               btnBase,
-              activeTool === "select"
+              isSelectActive
                 ? "bg-background text-foreground shadow font-bold border border-border/60"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/60"
             )}
             onClick={() => {
-              if (activeTool === "select") {
+              if (isSelectActive) {
+                setSelectToggled(false);
                 onPan?.();
               } else {
+                setSelectToggled(true);
                 onSelectTool("select");
               }
             }}
             title="Seç / Gezin [V]"
             data-testid="cad-tool-select"
             aria-label="Seç ve Gezin"
+            aria-pressed={isSelectActive ? "true" : "false"}
           >
             <MousePointer className="h-4.5 w-4.5 text-amber-500" />
             <span className="hidden md:inline text-xs">Seç</span>
@@ -307,6 +321,7 @@ export function CadStudioRibbon({
             onClick={() => onSelectDisplayMode("source")}
             title="Gerçek Renkler"
             data-testid="cad-display-source"
+            aria-pressed={displayMode === "source" ? "true" : "false"}
           >
             <Eye className="h-4.5 w-4.5 text-amber-500" />
             <span className="hidden lg:inline text-xs">Gerçek</span>
@@ -325,6 +340,7 @@ export function CadStudioRibbon({
             onClick={() => onSelectDisplayMode("monochrome")}
             title="Siyah-Beyaz Modu"
             data-testid="cad-display-monochrome"
+            aria-pressed={displayMode === "monochrome" ? "true" : "false"}
           >
             <span className="hidden lg:inline text-xs">Siyah-Beyaz</span>
             <span className="lg:hidden text-xs">S/B</span>
@@ -344,6 +360,7 @@ export function CadStudioRibbon({
             onClick={onToggleLineWeight}
             title="Çizgi Kalınlıklarını Aç / Kapat"
             data-testid="cad-display-lineweight"
+            aria-pressed={lineWeightVisible ? "true" : "false"}
           >
             <span className="text-xs font-mono font-bold">LW</span>
           </Button>
@@ -423,6 +440,7 @@ export function CadStudioRibbon({
             title="Mesafe Ölç [T]"
             data-testid="cad-tool-distance"
             aria-label="Mesafe ölç"
+            aria-pressed={activeTool === "distance" ? "true" : "false"}
           >
             <Ruler className="h-4.5 w-4.5" />
             <span className="hidden md:inline text-xs">Mesafe</span>
@@ -442,6 +460,7 @@ export function CadStudioRibbon({
               onClick={onStartChainDistance}
               title="Zincir Mesafe Ölçümü"
               data-testid="cad-tool-chain-distance"
+              aria-pressed={activeTool === "chain_distance" ? "true" : "false"}
             >
               <Split className="h-4.5 w-4.5" />
             </Button>
@@ -461,6 +480,7 @@ export function CadStudioRibbon({
             title="Alan Ölç [A]"
             data-testid="cad-tool-area"
             aria-label="Alan ölç"
+            aria-pressed={activeTool === "area" ? "true" : "false"}
           >
             <Square className="h-4.5 w-4.5" />
             <span className="hidden md:inline text-xs">Alan</span>
@@ -587,6 +607,7 @@ export function CadStudioRibbon({
               onClick={() => onSelectTool("comment_pin")}
               title="Yorum Pini Ekle"
               data-testid="cad-tool-pin"
+              aria-pressed={activeTool === "comment_pin" ? "true" : "false"}
             >
               <div className="relative flex items-center justify-center">
                 <Pin className="h-4.5 w-4.5" />
@@ -678,6 +699,7 @@ export function CadStudioRibbon({
               onClick={() => onSelectTool("stroke")}
               title="Serbest Çizim Kalemi"
               data-testid="cad-tool-stroke"
+              aria-pressed={activeTool === "stroke" ? "true" : "false"}
             >
               <div className="relative flex items-center justify-center">
                 <Pencil className="h-4.5 w-4.5" />
@@ -816,6 +838,7 @@ export function CadStudioRibbon({
               onClick={() => onSelectTool(selectedShapeKind)}
               title="Şekil Çiz (Kare / Daire / Bulut)"
               data-testid="cad-tool-shapes"
+              aria-pressed={isShapeActive ? "true" : "false"}
             >
               {selectedShapeKind === "shape_circle" ? (
                 <Circle className="h-4.5 w-4.5" />
@@ -1026,6 +1049,7 @@ export function CadStudioRibbon({
               onClick={() => onSelectTool("callout")}
               title="Ok & Açıklama Baloncuğu (Callout)"
               data-testid="cad-tool-callout"
+              aria-pressed={activeTool === "callout" ? "true" : "false"}
             >
               <div className="relative flex items-center justify-center">
                 <MessageSquare className="h-4.5 w-4.5" />
@@ -1125,6 +1149,7 @@ export function CadStudioRibbon({
               onClick={() => onSelectTool("text")}
               title="Metin Notu Ekle"
               data-testid="cad-tool-text"
+              aria-pressed={activeTool === "text" ? "true" : "false"}
             >
               <div className="relative flex items-center justify-center">
                 <Type className="h-4.5 w-4.5" />
@@ -1265,6 +1290,7 @@ export function CadStudioRibbon({
             onClick={() => onSelectTool("eraser")}
             title="İşaret Silgisi"
             data-testid="cad-tool-eraser"
+            aria-pressed={activeTool === "eraser" ? "true" : "false"}
           >
             <Eraser className="h-4.5 w-4.5" />
           </Button>
