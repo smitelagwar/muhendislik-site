@@ -719,16 +719,64 @@ export class CadUpstreamAdapter {
       );
     }
 
+    // Stage 4: Overlap worker verification with source file download.
+    // Instead of waiting serially, both operations run in parallel.
+    // An internal AbortController aborts in-flight network requests immediately
+    // if worker readiness fails or is rejected.
+    const fetchController = new AbortController();
+    const handleSignalAbort = () => {
+      fetchController.abort(options.signal?.reason);
+    };
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        fetchController.abort(options.signal.reason);
+      } else {
+        options.signal.addEventListener("abort", handleSignalAbort, { once: true });
+      }
+    }
+
     options.onPhase?.("verify-workers", "CAD worker dosyaları doğrulanıyor");
-    if (!(await this.manager.areWorkersReady())) {
+
+    const workerReadyPromise = (async () => {
+      try {
+        const ready = await this.manager.areWorkersReady();
+        if (ready) {
+          options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
+        }
+        return ready;
+      } catch {
+        return false;
+      }
+    })();
+
+    const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal);
+
+    const [workersReady, sourceResult] = await Promise.all([
+      workerReadyPromise,
+      sourceFetchPromise.then(
+        (bytes) => ({ ok: true as const, bytes }),
+        (err) => ({ ok: false as const, error: err })
+      ),
+    ]);
+
+    if (options.signal) {
+      options.signal.removeEventListener("abort", handleSignalAbort);
+    }
+
+    if (!workersReady) {
+      fetchController.abort("WORKER_UNAVAILABLE");
       throw new CadUpstreamAdapterError(
         "worker-unavailable",
         "MLightCAD worker dosyaları çizim açılmadan önce doğrulanamadı."
       );
     }
 
-    options.onPhase?.("fetch-source", "Çizim dosyası indiriliyor");
-    const bytes = await fetchCadSource(options.accessUrl, options.signal);
+    if (!sourceResult.ok) {
+      throw sourceResult.error;
+    }
+
+    const bytes = sourceResult.bytes;
 
     // Çizim açılmadan önce tüm TrueType fontların bellekte yüklü olduğunu kesinleştir
     const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>; events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
