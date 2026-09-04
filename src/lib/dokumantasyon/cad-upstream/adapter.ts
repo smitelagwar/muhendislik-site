@@ -66,6 +66,12 @@ import {
 export type { CadFontParityEvaluation };
 import { decodeDxfBytes, detectDxfEncoding } from "../dxf-encoding";
 import { startCadPerfPhase, endCadPerfPhase } from "../cad-runtime/perf";
+import {
+  buildCadSessionCacheKey,
+  getCachedCadSource,
+  putCachedCadSource,
+  evictCachedCadSource,
+} from "../cad-runtime/session-cache";
 
 if (typeof window !== "undefined") {
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
@@ -183,6 +189,8 @@ export interface CadUpstreamOpenOptions {
   accessUrl: string;
   displayName: string;
   extension: string;
+  fileId?: string;
+  sourceVersionKey?: string;
   signal?: AbortSignal;
   databaseOptions?: Omit<AcApOpenDatabaseOptions, "mode">;
   onPhase?: (phase: CadLoadingPhase, phaseText: string) => void;
@@ -580,8 +588,16 @@ async function registerLibreDwgConverter(): Promise<void> {
 
 async function fetchCadSource(
   accessUrl: string,
-  signal?: AbortSignal
-): Promise<ArrayBuffer> {
+  signal?: AbortSignal,
+  cacheKey?: string | null
+): Promise<{ bytes: ArrayBuffer; fromCache: boolean }> {
+  if (cacheKey) {
+    const cached = getCachedCadSource(cacheKey);
+    if (cached) {
+      return { bytes: cached, fromCache: true };
+    }
+  }
+
   startCadPerfPhase("source-fetch");
   try {
     const response = await fetch(accessUrl, {
@@ -600,7 +616,12 @@ async function fetchCadSource(
     if (bytes.byteLength === 0) {
       throw new CadUpstreamAdapterError("source-empty", "CAD dosyası boş.");
     }
-    return bytes;
+
+    if (cacheKey) {
+      putCachedCadSource(cacheKey, bytes);
+    }
+
+    return { bytes, fromCache: false };
   } catch (error) {
     if (signal?.aborted || (error instanceof Error && error.name === "AbortError")) {
       throw error;
@@ -764,7 +785,13 @@ export class CadUpstreamAdapter {
       }
     })();
 
-    const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal);
+    const cacheKey = buildCadSessionCacheKey({
+      fileId: options.fileId,
+      sourceVersionKey: options.sourceVersionKey,
+      accessUrl: options.accessUrl,
+    });
+
+    const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal, cacheKey);
 
     const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: CadFontManagerInstance } } }).mtextRenderer;
     const fontManager = mtextRenderer?.FontManager?.instance ?? activeFontManager;
@@ -773,7 +800,7 @@ export class CadUpstreamAdapter {
     const [workersReady, sourceResult] = await Promise.all([
       workerReadyPromise,
       sourceFetchPromise.then(
-        (bytes) => ({ ok: true as const, bytes }),
+        (res) => ({ ok: true as const, bytes: res.bytes, fromCache: res.fromCache }),
         (err) => ({ ok: false as const, error: err })
       ),
       fontPreloadTask,
@@ -864,6 +891,9 @@ export class CadUpstreamAdapter {
     endCadPerfPhase("open-document");
 
     if (!success) {
+      if (cacheKey) {
+        evictCachedCadSource(cacheKey);
+      }
       if (bytes.byteLength < 64) {
         throw new CadUpstreamAdapterError(
           "corrupt-truncated",

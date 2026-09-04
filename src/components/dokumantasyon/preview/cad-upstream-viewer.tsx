@@ -90,6 +90,7 @@ export interface DokCadUpstreamViewerProps {
   fileId: string;
   extension: string;
   sizeBytes: number;
+  sourceVersionKey?: string;
   timeoutMs?: number;
   onReady?: () => void;
   onViewerFailure?: (reason: string) => void;
@@ -132,6 +133,7 @@ export function DokCadUpstreamViewer({
   fileId,
   extension,
   sizeBytes,
+  sourceVersionKey,
   timeoutMs,
   onReady,
   onViewerFailure,
@@ -559,6 +561,8 @@ export function DokCadUpstreamViewer({
           accessUrl,
           displayName,
           extension,
+          fileId,
+          sourceVersionKey,
           signal: abortController.signal,
           onPhase: (phase, phaseText) => {
             if (!cancelled) {

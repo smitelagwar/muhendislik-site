@@ -38,6 +38,7 @@ export interface DokCadRuntimeOrchestratorProps {
   fileId: string;
   extension: string;
   sizeBytes: number;
+  sourceVersionKey?: string;
   dwgFastPreviewHint?: DwgFastPreviewHint;
   onViewerFailure?: (reason: string) => void;
 }
@@ -250,6 +251,7 @@ function DwgRuntimeOrchestrator(props: DokCadRuntimeOrchestratorProps) {
           fileId={fileId}
           extension=".dxf"
           sizeBytes={cachedDxf.sizeBytes}
+          sourceVersionKey={props.sourceVersionKey ? `fast-dxf:${props.sourceVersionKey}` : undefined}
           onViewerFailure={advanceFromFastRender}
         />
       </div>

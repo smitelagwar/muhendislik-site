@@ -258,6 +258,7 @@ export function FilePreviewShell({
             fileId={file.id}
             extension={file.extension}
             sizeBytes={file.size_bytes}
+            sourceVersionKey={`${file.id}:${file.updated_at || file.created_at}:${file.size_bytes}`}
             dwgFastPreviewHint={dwgFastPreviewHint}
           />
         ) : previewKind === "text" || previewKind === "json" || previewKind === "csv" ? (

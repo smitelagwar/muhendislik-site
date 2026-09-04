@@ -5,26 +5,26 @@
     "format": "dxf",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 347.1,
+    "totalToReadyMs": 398.7,
     "phases": {
-      "raw-viewer-preload": 129.3,
-      "mlightcad-import": 129.4,
-      "engine-enhancements": 6.5,
-      "libredwg-registration": 7.3,
-      "worker-readiness": 44.5,
-      "source-fetch": 46.8,
-      "font-preload": 115.7,
-      "open-document": 71.3,
-      "wait-until-idle": 21.3,
-      "layer-snapshot": 0.3,
+      "raw-viewer-preload": 155.8,
+      "mlightcad-import": 155.9,
+      "engine-enhancements": 18.4,
+      "libredwg-registration": 6.3,
+      "worker-readiness": 46.9,
+      "source-fetch": 48.6,
+      "font-preload": 128.2,
+      "open-document": 70.6,
+      "wait-until-idle": 23,
+      "layer-snapshot": 0.1,
       "snap-catalog": 0.4,
       "text-catalog": 0.1,
-      "total-to-ready": 347.1
+      "total-to-ready": 398.7
     },
     "longTasks": [
       {
-        "startTime": 401,
-        "durationMs": 98
+        "startTime": 356,
+        "durationMs": 109
       }
     ],
     "network": {
@@ -32,11 +32,11 @@
       "wasmBytes": 0,
       "fontsBytes": 8736922,
       "sourceBytes": 2142924,
-      "totalTransferredBytes": 18229456
+      "totalTransferredBytes": 18199276
     },
     "canvasState": {
-      "width": 1280,
-      "height": 608,
+      "width": 824,
+      "height": 1454,
       "isWebGLValid": true
     }
   },
@@ -46,30 +46,30 @@
     "format": "dxf",
     "sizeBytes": 1419,
     "engine": "upstream",
-    "totalToReadyMs": 2835.3,
+    "totalToReadyMs": 1553.1,
     "phases": {
-      "raw-viewer-preload": 31.3,
-      "mlightcad-import": 31.3,
-      "engine-enhancements": 3.5,
-      "libredwg-registration": 2.3,
-      "worker-readiness": 25.7,
-      "source-fetch": 51.8,
-      "font-preload": 91.8,
-      "open-document": 59.6,
-      "wait-until-idle": 2647.9,
-      "layer-snapshot": 0.2,
+      "raw-viewer-preload": 37.6,
+      "mlightcad-import": 37.7,
+      "engine-enhancements": 4,
+      "libredwg-registration": 3.4,
+      "worker-readiness": 31.5,
+      "source-fetch": 70,
+      "font-preload": 116.1,
+      "open-document": 65.3,
+      "wait-until-idle": 1329,
+      "layer-snapshot": 0.1,
       "snap-catalog": 0.1,
       "text-catalog": 0,
-      "total-to-ready": 2835.3
+      "total-to-ready": 1553.1
     },
     "longTasks": [
       {
-        "startTime": 2783,
-        "durationMs": 83
+        "startTime": 1476,
+        "durationMs": 74
       },
       {
-        "startTime": 2881,
-        "durationMs": 269
+        "startTime": 1563,
+        "durationMs": 262
       }
     ],
     "network": {
@@ -77,11 +77,11 @@
       "wasmBytes": 0,
       "fontsBytes": 8736922,
       "sourceBytes": 2142177,
-      "totalTransferredBytes": 16754763
+      "totalTransferredBytes": 16734643
     },
     "canvasState": {
-      "width": 1280,
-      "height": 608,
+      "width": 824,
+      "height": 1454,
       "isWebGLValid": true
     }
   },
@@ -91,30 +91,30 @@
     "format": "dxf",
     "sizeBytes": 461,
     "engine": "upstream",
-    "totalToReadyMs": 579,
+    "totalToReadyMs": 576.3,
     "phases": {
-      "raw-viewer-preload": 13.3,
-      "mlightcad-import": 13.5,
-      "engine-enhancements": 6.4,
-      "libredwg-registration": 2,
-      "worker-readiness": 26.7,
-      "source-fetch": 55,
-      "font-preload": 89.7,
-      "open-document": 57,
-      "wait-until-idle": 411.6,
-      "layer-snapshot": 0.1,
+      "raw-viewer-preload": 9.5,
+      "mlightcad-import": 9.7,
+      "engine-enhancements": 2.8,
+      "libredwg-registration": 1,
+      "worker-readiness": 39,
+      "source-fetch": 56,
+      "font-preload": 111,
+      "open-document": 59.5,
+      "wait-until-idle": 392.2,
+      "layer-snapshot": 0,
       "snap-catalog": 0,
       "text-catalog": 0.1,
-      "total-to-ready": 579
+      "total-to-ready": 576.3
     },
     "longTasks": [
       {
-        "startTime": 1241,
-        "durationMs": 70
+        "startTime": 506,
+        "durationMs": 71
       },
       {
-        "startTime": 1331,
-        "durationMs": 274
+        "startTime": 587,
+        "durationMs": 269
       }
     ],
     "network": {
@@ -122,11 +122,11 @@
       "wasmBytes": 0,
       "fontsBytes": 9296,
       "sourceBytes": 2140758,
-      "totalTransferredBytes": 6551772
+      "totalTransferredBytes": 6541712
     },
     "canvasState": {
-      "width": 1280,
-      "height": 608,
+      "width": 824,
+      "height": 1454,
       "isWebGLValid": true
     }
   },
@@ -136,21 +136,21 @@
     "format": "dwg",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 271.5,
+    "totalToReadyMs": 252.1,
     "phases": {
-      "raw-viewer-preload": 45.9,
-      "mlightcad-import": 46,
-      "engine-enhancements": 6,
-      "libredwg-registration": 6,
-      "worker-readiness": 33.8,
-      "source-fetch": 47.8,
-      "font-preload": 108.6,
-      "open-document": 71,
-      "wait-until-idle": 39.1,
+      "raw-viewer-preload": 49.4,
+      "mlightcad-import": 49.4,
+      "engine-enhancements": 6.4,
+      "libredwg-registration": 13.3,
+      "worker-readiness": 37.6,
+      "source-fetch": 45.5,
+      "font-preload": 104.5,
+      "open-document": 64.6,
+      "wait-until-idle": 26.2,
       "layer-snapshot": 0.2,
       "snap-catalog": 0.2,
       "text-catalog": 0,
-      "total-to-ready": 271.5
+      "total-to-ready": 252.1
     },
     "longTasks": [],
     "network": {
@@ -161,8 +161,8 @@
       "totalTransferredBytes": 5072717
     },
     "canvasState": {
-      "width": 1280,
-      "height": 608,
+      "width": 824,
+      "height": 1454,
       "isWebGLValid": true
     }
   },
@@ -172,58 +172,58 @@
     "format": "dwg",
     "sizeBytes": 2139550,
     "engine": "upstream",
-    "totalToReadyMs": 20055,
+    "totalToReadyMs": 9100.1,
     "phases": {
-      "raw-viewer-preload": 46.5,
-      "mlightcad-import": 46.5,
-      "engine-enhancements": 10,
-      "libredwg-registration": 7.1,
-      "worker-readiness": 49,
-      "source-fetch": 54.6,
-      "font-preload": 118,
-      "open-document": 4352.3,
-      "wait-until-idle": 15404.6,
-      "layer-snapshot": 0.2,
-      "snap-catalog": 99,
-      "text-catalog": 23,
-      "total-to-ready": 20055
+      "raw-viewer-preload": 50.4,
+      "mlightcad-import": 50.5,
+      "engine-enhancements": 11.2,
+      "libredwg-registration": 7.9,
+      "worker-readiness": 38.1,
+      "source-fetch": 55.4,
+      "font-preload": 109,
+      "open-document": 3805.6,
+      "wait-until-idle": 4995.4,
+      "layer-snapshot": 0,
+      "snap-catalog": 103.7,
+      "text-catalog": 22.9,
+      "total-to-ready": 9100.1
     },
     "longTasks": [
       {
-        "startTime": 3844,
-        "durationMs": 175
+        "startTime": 3192,
+        "durationMs": 176
       },
       {
-        "startTime": 4091,
-        "durationMs": 250
+        "startTime": 3445,
+        "durationMs": 249
       },
       {
-        "startTime": 4372,
-        "durationMs": 309
+        "startTime": 3730,
+        "durationMs": 311
       },
       {
-        "startTime": 4682,
-        "durationMs": 307
+        "startTime": 4042,
+        "durationMs": 301
       },
       {
-        "startTime": 4998,
-        "durationMs": 303
-      },
-      {
-        "startTime": 5323,
+        "startTime": 4352,
         "durationMs": 302
       },
       {
-        "startTime": 5628,
-        "durationMs": 307
+        "startTime": 4676,
+        "durationMs": 301
       },
       {
-        "startTime": 5965,
-        "durationMs": 3766
+        "startTime": 4982,
+        "durationMs": 324
       },
       {
-        "startTime": 9732,
-        "durationMs": 10665
+        "startTime": 5342,
+        "durationMs": 3726
+      },
+      {
+        "startTime": 9069,
+        "durationMs": 271
       }
     ],
     "network": {
@@ -234,8 +234,8 @@
       "totalTransferredBytes": 3608084
     },
     "canvasState": {
-      "width": 1280,
-      "height": 664,
+      "width": 824,
+      "height": 1454,
       "isWebGLValid": true
     }
   }
