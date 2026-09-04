@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
+import { AlertCircle, Download, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +35,7 @@ import {
   type CompletedAreaMeasurement,
 } from "./cad-area-overlay";
 import { CadStudioRibbon } from "./cad-studio-ribbon";
+import { CadTechnologyLoader } from "./cad-technology-loader";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
 import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
@@ -1318,6 +1319,7 @@ export function DokCadUpstreamViewer({
             snapshot={distanceSnapshot}
             measurements={distanceMeasurements}
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             adapter={adapterRef.current as any}
           />
         ) : null}
@@ -1440,42 +1442,16 @@ export function DokCadUpstreamViewer({
       ) : null}
 
       {state === "loading" ? (
-        <div
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/75 backdrop-blur-[2px]"
-          data-testid="cad-loading-overlay"
-        >
-          <div className="pointer-events-auto flex max-w-xs flex-col items-center gap-2.5 rounded-xl border border-border/80 bg-card/95 p-4 text-center shadow-lg backdrop-blur-md">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <div>
-              <p
-                className="text-xs font-semibold text-foreground"
-                data-testid="cad-loading-phase-text"
-              >
-                {message}
-              </p>
-              <p
-                className="mt-0.5 text-[11px] text-muted-foreground"
-                data-testid="cad-loading-elapsed"
-              >
-                {elapsedSeconds > 0 ? `${elapsedSeconds} saniye geçti` : "Yükleniyor..."}
-              </p>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="mt-1 h-7 text-[11px]"
-              onClick={() => {
-                abortControllerRef.current?.abort("USER_CANCELLED");
-                setState("error");
-                setMessage("Yükleme kullanıcı tarafından iptal edildi.");
-              }}
-              data-testid="cad-loading-cancel"
-            >
-              İptal Et
-            </Button>
-          </div>
-        </div>
+        <CadTechnologyLoader
+          message={message}
+          elapsedSeconds={elapsedSeconds}
+          fileName={displayName}
+          onCancel={() => {
+            abortControllerRef.current?.abort("USER_CANCELLED");
+            setState("error");
+            setMessage("Yükleme kullanıcı tarafından iptal edildi.");
+          }}
+        />
       ) : null}
 
       {state === "error" ? (

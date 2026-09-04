@@ -1573,3 +1573,40 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
   }
 }
 
+/* ============================================================================
+   CAD STUDIO — FÜTÜRİSTİK AI YÜKLEME VE MLIGHTCAD ÇAKIŞMA ENGELİ
+   ============================================================================ */
+
+/* Upstream MLightCAD dahili üst üste binen spinner ve "Parsing entities..." yazısını tamamen bastır */
+.ml-ccl-overlay {
+  display: none !important;
+}
+
+@keyframes cad-orb-float {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.02);
+  }
+}
+
+@keyframes cad-light-sweep {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+
+.cad-ai-loader-cluster {
+  animation: cad-orb-float 4s ease-in-out infinite;
+}
+
+.cad-ai-light-beam {
+  animation: cad-light-sweep 3.5s ease-in-out infinite;
+}
+
