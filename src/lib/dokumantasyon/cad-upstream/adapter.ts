@@ -72,6 +72,7 @@ import {
   putCachedCadSource,
   evictCachedCadSource,
 } from "../cad-runtime/session-cache";
+import { isCadMtextWorkerExperimentEnabled } from "../cad-runtime/feature-flags";
 
 if (typeof window !== "undefined") {
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
@@ -713,7 +714,8 @@ export class CadUpstreamAdapter {
       autoResize: true,
       webworkerFileUrls: CAD_UPSTREAM_WORKER_URLS,
       checkWorkersOnInit: true,
-      useMainThreadDraw: options.useMainThreadDraw ?? true,
+      useMainThreadDraw:
+        options.useMainThreadDraw ?? !isCadMtextWorkerExperimentEnabled(),
     });
 
     if (!manager) {
