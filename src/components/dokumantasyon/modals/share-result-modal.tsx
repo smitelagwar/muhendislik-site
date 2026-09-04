@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import QRCode from "qrcode";
 import { formatDate, formatBytes } from "../ui-helpers";
+import { OverlayPortal } from "../drive-v3/overlay-portal";
 
 interface ShareResultModalProps {
   isOpen: boolean;
@@ -105,13 +106,11 @@ export function ShareResultModal({
   };
 
   return (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+      <div
+        data-testid="dok-dialog-content"
+        className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl"
+      >
         <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
@@ -229,6 +228,6 @@ export function ShareResultModal({
           </div>
         </div>
       </div>
-    </div>
+    </OverlayPortal>
   );
 }

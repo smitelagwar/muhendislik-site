@@ -5,6 +5,7 @@ import { FolderInput, X, Loader2, AlertCircle, Folder, HardDrive } from "lucide-
 import { Button } from "@/components/ui/button";
 import { DokFolder } from "@/lib/dokumantasyon/types";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
+import { OverlayPortal } from "../drive-v3/overlay-portal";
 
 interface MoveModalProps {
   isOpen: boolean;
@@ -118,16 +119,12 @@ export function MoveModal({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Öğeleri taşı"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+      {/* z-[90] overlay standard */}
+      <div
+        data-testid="dok-dialog-content"
+        className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl z-[90]"
+      >
         <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20">
@@ -220,6 +217,6 @@ export function MoveModal({
           </div>
         </div>
       </div>
-    </div>
+    </OverlayPortal>
   );
 }

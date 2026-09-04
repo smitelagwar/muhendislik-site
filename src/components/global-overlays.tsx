@@ -12,6 +12,7 @@ export function GlobalOverlays() {
       <BottomNav />
       <BackToTop />
       <DeferredCommandPalette />
+      <div id="dok-overlay-root" />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2, X, Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OverlayPortal } from "../drive-v3/overlay-portal";
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -43,13 +44,11 @@ export function DeleteConfirmModal({
     : `${item?.name || "Öğe"} Çöp Kutusuna Taşınsın mı?`;
 
   return (
-    <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md animate-in fade-in"
-    >
-      <div className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl">
+    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+      <div
+        data-testid="dok-dialog-content"
+        className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl"
+      >
         <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5 font-bold text-red-500">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500 border border-red-500/20">
@@ -115,6 +114,6 @@ export function DeleteConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </OverlayPortal>
   );
 }

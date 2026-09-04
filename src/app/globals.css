@@ -75,6 +75,26 @@
   --table-hover: #e8eef9;
   --table-text: #252a28;
   --table-muted: #5f6965;
+
+  /* --- Dokümantasyon Drive V3 Exact Z-Index Tokens (Plan Section 7.4) --- */
+  --dok-z-sticky: 100;
+  --dok-z-menu: 300;
+  --dok-z-context: 320;
+  --dok-z-drag-preview: 400;
+  --dok-z-sheet-backdrop: 500;
+  --dok-z-sheet: 510;
+  --dok-z-dialog-backdrop: 600;
+  --dok-z-dialog: 610;
+  --dok-z-dialog-floating: 620;
+  --dok-z-toast: 700;
+}
+
+/* Dokümantasyon Root Transform & Overlay Contract (Plan Section 7.3) */
+#dok-overlay-root {
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  perspective: none !important;
 }
 
 .dark {
