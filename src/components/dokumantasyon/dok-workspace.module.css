@@ -330,3 +330,20 @@
   }
 }
 
+/* --- Stage 9 Touch Gesture & iOS Callout Suppression --- */
+.touchSurface,
+.virtualCard,
+.virtualRow,
+.card {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.mobileContainerDvh {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+
