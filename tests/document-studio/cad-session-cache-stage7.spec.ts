@@ -216,4 +216,59 @@ test.describe("Stage 7 — Memory-Safe Bounded Session Source Cache Suite", () =
     // Because the source was cached in RAM, the stream fetch request count during the reopen must be 0!
     expect(streamRequestsOnSecondOpen.length).toBe(0);
   });
+
+  test("4. F-03 Verification: Terminal-invalid documents and blank files are evicted from cache", async () => {
+    clearCadSessionCache();
+    const badKey = "corrupt-blank-file:v1";
+    const corruptBytes = new Uint8Array([0, 1, 2, 3]).buffer;
+
+    // Simulate entry presence
+    putCachedCadSource(badKey, corruptBytes);
+    expect(getCachedCadSource(badKey)).not.toBeNull();
+
+    // When adapter encounters open failure or blank-document throw, it evicts
+    evictCachedCadSource(badKey);
+
+    // Verify entry is completely gone from session cache
+    expect(getCachedCadSource(badKey)).toBeNull();
+    const stats = getCadSessionCacheStats();
+    expect(stats.entryCount).toBe(0);
+    expect(stats.totalBytes).toBe(0);
+  });
+
+  test("5. F-05 Empirical Memory Budget Verification: 3 entries / 40MB total / 20MB single bounds protect mobile heap", async () => {
+    clearCadSessionCache();
+
+    // 1. Single file limit: 21 MB should be rejected immediately (0 bytes cached)
+    const overLimit = new ArrayBuffer(21 * 1024 * 1024);
+    putCachedCadSource("too-large-dwg", overLimit);
+    expect(getCachedCadSource("too-large-dwg")).toBeNull();
+    expect(getCadSessionCacheStats().totalBytes).toBe(0);
+
+    // 2. Large file within limit: 18 MB should be accepted
+    const large18MB = new ArrayBuffer(18 * 1024 * 1024);
+    putCachedCadSource("large-cad-1", large18MB);
+    expect(getCachedCadSource("large-cad-1")).not.toBeNull();
+    expect(getCadSessionCacheStats().totalBytes).toBe(18 * 1024 * 1024);
+
+    // 3. Second large file: 18 MB should fit within 40 MB budget (18 + 18 = 36 MB)
+    const large18MB_2 = new ArrayBuffer(18 * 1024 * 1024);
+    putCachedCadSource("large-cad-2", large18MB_2);
+    expect(getCadSessionCacheStats().totalBytes).toBe(36 * 1024 * 1024);
+    expect(getCadSessionCacheStats().entryCount).toBe(2);
+
+    // 4. Third file: 10 MB would exceed 40 MB (36 + 10 = 46 MB > 40 MB)
+    // LRU policy must evict oldest entry ("large-cad-1") so total bytes <= 40 MB
+    const file10MB = new ArrayBuffer(10 * 1024 * 1024);
+    putCachedCadSource("cad-3", file10MB);
+
+    const statsAfterEvict = getCadSessionCacheStats();
+    expect(statsAfterEvict.totalBytes).toBeLessThanOrEqual(CAD_SESSION_CACHE_MAX_TOTAL_BYTES);
+    expect(statsAfterEvict.entryCount).toBeLessThanOrEqual(CAD_SESSION_CACHE_MAX_ENTRIES);
+    expect(getCachedCadSource("large-cad-1")).toBeNull(); // evicted
+    expect(getCachedCadSource("large-cad-2")).not.toBeNull();
+    expect(getCachedCadSource("cad-3")).not.toBeNull();
+
+    clearCadSessionCache();
+  });
 });

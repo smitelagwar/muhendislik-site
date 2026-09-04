@@ -1,4 +1,5 @@
 import type { CadSnapPrimitive, CadSnapPoint } from "./snap-engine";
+import { normalizeTurkishText } from "./text-search";
 
 type MatrixLike = { elements?: ArrayLike<number> } | ArrayLike<number>;
 type EntityLike = Record<string, unknown> & {
@@ -323,7 +324,7 @@ export function buildCadTextSearchCatalog(database: unknown): import("./text-sea
             handle: entityId(entity, `h:${out.length}`),
             type: typeName,
             text: clean,
-            normalizedText: clean.toLowerCase(),
+            normalizedText: normalizeTurkishText(clean),
             layer: typeof entity.layer === "string" ? entity.layer : "0",
             layout: layoutName,
             anchor: transformedAnchor,
