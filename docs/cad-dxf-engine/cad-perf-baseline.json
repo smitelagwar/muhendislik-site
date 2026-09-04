@@ -5,25 +5,26 @@
     "format": "dxf",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 2112.7,
+    "totalToReadyMs": 412.8,
     "phases": {
-      "mlightcad-import": 135.2,
-      "font-preload": 95.2,
-      "engine-enhancements": 141.8,
-      "libredwg-registration": 33.8,
-      "worker-readiness": 45.9,
-      "source-fetch": 1672.3,
-      "open-document": 56.8,
-      "wait-until-idle": 23.5,
-      "layer-snapshot": 0.1,
-      "snap-catalog": 0.4,
+      "raw-viewer-preload": 161.7,
+      "mlightcad-import": 161.8,
+      "font-preload": 73.5,
+      "engine-enhancements": 89.4,
+      "libredwg-registration": 5.2,
+      "worker-readiness": 48.5,
+      "source-fetch": 12.6,
+      "open-document": 66.9,
+      "wait-until-idle": 24.6,
+      "layer-snapshot": 0,
+      "snap-catalog": 0.5,
       "text-catalog": 0.1,
-      "total-to-ready": 2112.7
+      "total-to-ready": 412.8
     },
     "longTasks": [
       {
-        "startTime": 393,
-        "durationMs": 62
+        "startTime": 364,
+        "durationMs": 110
       }
     ],
     "network": {
@@ -31,7 +32,7 @@
       "wasmBytes": 0,
       "fontsBytes": 8736922,
       "sourceBytes": 2142946,
-      "totalTransferredBytes": 18400888
+      "totalTransferredBytes": 18199298
     },
     "canvasState": {
       "width": 824,
@@ -45,29 +46,30 @@
     "format": "dxf",
     "sizeBytes": 1419,
     "engine": "upstream",
-    "totalToReadyMs": 2704.9,
+    "totalToReadyMs": 2413.9,
     "phases": {
-      "mlightcad-import": 35.4,
-      "font-preload": 67.3,
-      "engine-enhancements": 78.3,
-      "libredwg-registration": 8.6,
-      "worker-readiness": 45.6,
-      "source-fetch": 22.1,
-      "open-document": 64.3,
-      "wait-until-idle": 2448.7,
+      "raw-viewer-preload": 39.2,
+      "mlightcad-import": 39.2,
+      "font-preload": 80.7,
+      "engine-enhancements": 85.4,
+      "libredwg-registration": 0.5,
+      "worker-readiness": 23.3,
+      "source-fetch": 9.5,
+      "open-document": 62,
+      "wait-until-idle": 2192.4,
       "layer-snapshot": 0.1,
       "snap-catalog": 0.2,
       "text-catalog": 0,
-      "total-to-ready": 2704.9
+      "total-to-ready": 2413.9
     },
     "longTasks": [
       {
-        "startTime": 2021,
+        "startTime": 902,
         "durationMs": 70
       },
       {
-        "startTime": 2705,
-        "durationMs": 269
+        "startTime": 2415,
+        "durationMs": 264
       }
     ],
     "network": {
@@ -75,7 +77,7 @@
       "wasmBytes": 0,
       "fontsBytes": 8736922,
       "sourceBytes": 2142199,
-      "totalTransferredBytes": 16895937
+      "totalTransferredBytes": 16734665
     },
     "canvasState": {
       "width": 824,
@@ -89,29 +91,30 @@
     "format": "dxf",
     "sizeBytes": 461,
     "engine": "upstream",
-    "totalToReadyMs": 636.4,
+    "totalToReadyMs": 584.1,
     "phases": {
-      "mlightcad-import": 15.5,
-      "font-preload": 62.5,
-      "engine-enhancements": 69.9,
-      "libredwg-registration": 2.3,
-      "worker-readiness": 31.1,
-      "source-fetch": 23.6,
-      "open-document": 58.9,
-      "wait-until-idle": 433.4,
-      "layer-snapshot": 0.1,
+      "raw-viewer-preload": 10.6,
+      "mlightcad-import": 10.6,
+      "font-preload": 77.1,
+      "engine-enhancements": 80.4,
+      "libredwg-registration": 0.5,
+      "worker-readiness": 28.6,
+      "source-fetch": 10.2,
+      "open-document": 60.4,
+      "wait-until-idle": 391.8,
+      "layer-snapshot": 0,
       "snap-catalog": 0,
       "text-catalog": 0,
-      "total-to-ready": 636.4
+      "total-to-ready": 584.1
     },
     "longTasks": [
       {
-        "startTime": 1027,
-        "durationMs": 77
+        "startTime": 617,
+        "durationMs": 66
       },
       {
-        "startTime": 1107,
-        "durationMs": 279
+        "startTime": 691,
+        "durationMs": 276
       }
     ],
     "network": {
@@ -119,7 +122,7 @@
       "wasmBytes": 0,
       "fontsBytes": 9296,
       "sourceBytes": 2140780,
-      "totalTransferredBytes": 6662688
+      "totalTransferredBytes": 6541734
     },
     "canvasState": {
       "width": 824,
@@ -133,20 +136,21 @@
     "format": "dwg",
     "sizeBytes": 747,
     "engine": "upstream",
-    "totalToReadyMs": 462.6,
+    "totalToReadyMs": 267.1,
     "phases": {
-      "mlightcad-import": 95.5,
-      "font-preload": 104.3,
-      "engine-enhancements": 146.4,
-      "libredwg-registration": 42.7,
-      "worker-readiness": 47.6,
-      "source-fetch": 28.7,
-      "open-document": 69.5,
-      "wait-until-idle": 30.7,
-      "layer-snapshot": 0.2,
-      "snap-catalog": 0.1,
+      "raw-viewer-preload": 35.1,
+      "mlightcad-import": 35.1,
+      "font-preload": 75.5,
+      "engine-enhancements": 82.2,
+      "libredwg-registration": 5.5,
+      "worker-readiness": 34.9,
+      "source-fetch": 12.6,
+      "open-document": 68.6,
+      "wait-until-idle": 27,
+      "layer-snapshot": 0.1,
+      "snap-catalog": 0.2,
       "text-catalog": 0,
-      "total-to-ready": 462.6
+      "total-to-ready": 267.1
     },
     "longTasks": [],
     "network": {
@@ -154,7 +158,7 @@
       "wasmBytes": 0,
       "fontsBytes": 4648,
       "sourceBytes": 2140319,
-      "totalTransferredBytes": 5153375
+      "totalTransferredBytes": 5072739
     },
     "canvasState": {
       "width": 824,
@@ -168,57 +172,58 @@
     "format": "dwg",
     "sizeBytes": 2139550,
     "engine": "upstream",
-    "totalToReadyMs": 8917.4,
+    "totalToReadyMs": 9233.9,
     "phases": {
-      "mlightcad-import": 92.6,
-      "font-preload": 132,
-      "engine-enhancements": 199.5,
-      "libredwg-registration": 31.7,
-      "worker-readiness": 38.6,
-      "source-fetch": 34,
-      "open-document": 3784.3,
-      "wait-until-idle": 4612.9,
+      "raw-viewer-preload": 56,
+      "mlightcad-import": 56,
+      "font-preload": 77.1,
+      "engine-enhancements": 85.8,
+      "libredwg-registration": 5.7,
+      "worker-readiness": 26.3,
+      "source-fetch": 23.7,
+      "open-document": 3860.7,
+      "wait-until-idle": 5043,
       "layer-snapshot": 0.1,
-      "snap-catalog": 99,
-      "text-catalog": 22.4,
-      "total-to-ready": 8917.4
+      "snap-catalog": 105.8,
+      "text-catalog": 24.8,
+      "total-to-ready": 9233.9
     },
     "longTasks": [
       {
-        "startTime": 3352,
-        "durationMs": 181
+        "startTime": 3281,
+        "durationMs": 176
       },
       {
-        "startTime": 3605,
-        "durationMs": 236
+        "startTime": 3536,
+        "durationMs": 279
       },
       {
-        "startTime": 3872,
-        "durationMs": 308
+        "startTime": 3836,
+        "durationMs": 306
       },
       {
-        "startTime": 4180,
-        "durationMs": 308
+        "startTime": 4144,
+        "durationMs": 305
       },
       {
-        "startTime": 4499,
+        "startTime": 4456,
+        "durationMs": 306
+      },
+      {
+        "startTime": 4781,
         "durationMs": 302
       },
       {
-        "startTime": 4821,
-        "durationMs": 301
+        "startTime": 5085,
+        "durationMs": 314
       },
       {
-        "startTime": 5126,
-        "durationMs": 262
+        "startTime": 5430,
+        "durationMs": 3804
       },
       {
-        "startTime": 5420,
-        "durationMs": 3417
-      },
-      {
-        "startTime": 8837,
-        "durationMs": 266
+        "startTime": 9234,
+        "durationMs": 261
       }
     ],
     "network": {
@@ -226,7 +231,7 @@
       "wasmBytes": 0,
       "fontsBytes": 4648,
       "sourceBytes": 2139572,
-      "totalTransferredBytes": 3648424
+      "totalTransferredBytes": 3608106
     },
     "canvasState": {
       "width": 824,

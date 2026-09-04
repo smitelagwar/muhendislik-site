@@ -190,7 +190,8 @@ export interface CadUpstreamOpenOptions {
 
 type CadSimpleViewerModule = typeof import("@mlightcad/cad-simple-viewer");
 
-let viewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
+let rawViewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
+let initializedViewerModulePromise: Promise<CadSimpleViewerModule> | null = null;
 let libreDwgRegistrationPromise: Promise<void> | null = null;
 let fontPreloadPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
@@ -494,24 +495,44 @@ function hasCoarseTouchPointer(): boolean {
   return navigator.maxTouchPoints > 0 && window.matchMedia?.("(pointer: coarse)").matches === true;
 }
 
-async function loadViewerModule(): Promise<CadSimpleViewerModule> {
-  if (!viewerModulePromise) {
-    startCadPerfPhase("mlightcad-import");
-    viewerModulePromise = import("@mlightcad/cad-simple-viewer")
-      .then(async (Viewer) => {
-        endCadPerfPhase("mlightcad-import");
-        startCadPerfPhase("engine-enhancements");
-        await initializeCadEngineEnhancements(Viewer);
-        endCadPerfPhase("engine-enhancements");
+export function preloadCadViewerCode(): Promise<CadSimpleViewerModule> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("preloadCadViewerCode is client-only"));
+  }
+  if (!rawViewerModulePromise) {
+    startCadPerfPhase("raw-viewer-preload");
+    rawViewerModulePromise = import("@mlightcad/cad-simple-viewer")
+      .then((Viewer) => {
+        endCadPerfPhase("raw-viewer-preload");
         return Viewer;
       })
       .catch((error) => {
-        endCadPerfPhase("mlightcad-import");
-        viewerModulePromise = null;
+        endCadPerfPhase("raw-viewer-preload");
+        rawViewerModulePromise = null;
         throw error;
       });
   }
-  return viewerModulePromise;
+  return rawViewerModulePromise;
+}
+
+export async function loadViewerModule(): Promise<CadSimpleViewerModule> {
+  if (!initializedViewerModulePromise) {
+    initializedViewerModulePromise = (async () => {
+      startCadPerfPhase("mlightcad-import");
+      const Viewer = await (rawViewerModulePromise ?? preloadCadViewerCode());
+      endCadPerfPhase("mlightcad-import");
+
+      startCadPerfPhase("engine-enhancements");
+      await initializeCadEngineEnhancements(Viewer);
+      endCadPerfPhase("engine-enhancements");
+
+      return Viewer;
+    })().catch((error) => {
+      initializedViewerModulePromise = null;
+      throw error;
+    });
+  }
+  return initializedViewerModulePromise;
 }
 
 async function registerLibreDwgConverter(): Promise<void> {
