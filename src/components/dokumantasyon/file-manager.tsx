@@ -73,6 +73,21 @@ import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-deri
 import { executeBulkTrash, executeBulkMove, executeBulkStar, BulkItem } from "./drive-v3/bulk-operations";
 import { useDriveSelection } from "./drive-v3/use-drive-selection";
 import {
+  DokQueryProvider,
+  useDokItemsQuery,
+  dokQueryClient,
+  dokKeys,
+  insertPendingFolderInCache,
+  replacePendingFolderInCache,
+  removePendingFolderFromCache,
+  updateItemNameInCache,
+  updateItemStarInCache,
+  removeItemsFromCache,
+  insertUploadedFileInCache,
+  acquireMutationScope,
+  releaseMutationScope,
+} from "./drive-v3/query-client";
+import {
   calculateGridMetrics,
   DRIVE_GRID_MIN_CARD_WIDTH,
   DRIVE_GRID_GAP_X,
@@ -103,6 +118,14 @@ const DEFAULT_WORKSPACE_FILTERS: WorkspaceFilters = {
 };
 
 export function DokumantasyonFileManager() {
+  return (
+    <DokQueryProvider>
+      <DokumantasyonFileManagerInner />
+    </DokQueryProvider>
+  );
+}
+
+function DokumantasyonFileManagerInner() {
   const router = useRouter();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -110,12 +133,7 @@ export function DokumantasyonFileManager() {
     }
     return null;
   });
-  const [currentFolder, setCurrentFolder] = useState<DokFolder | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<DokBreadcrumbItem[]>([{ id: null, name: "Kök Dizin" }]);
-  const [folders, setFolders] = useState<DokFolder[]>([]);
-  const [files, setFiles] = useState<DokFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [listError, setListError] = useState<ListError | null>(null);
+
   // Drive UX Durumları
   const [activeFilter, setActiveFilter] = useState<DriveNavFilter>("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
@@ -123,7 +141,6 @@ export function DokumantasyonFileManager() {
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
   const [workspaceFilters, setWorkspaceFilters] = useState<WorkspaceFilters>(DEFAULT_WORKSPACE_FILTERS);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-  const [starredCount, setStarredCount] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [starMigrationVersion, setStarMigrationVersion] = useState(0);
 
@@ -131,6 +148,52 @@ export function DokumantasyonFileManager() {
   const [sortBy, setSortBy] = useState<"name" | "date" | "size" | "type">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [groupBy, setGroupBy] = useState<"none" | "type" | "date" | "size">("none");
+
+  // TanStack Query Deterministik Sunucu Durumu (Zero-F5 Cache Engine)
+  const navigationType = activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type;
+  const activeCollection = activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none";
+
+  const currentQueryKey = useMemo(() => {
+    return dokKeys.items(currentFolderId, {
+      collection: activeCollection,
+      type: navigationType,
+      date: workspaceFilters.date,
+      size: workspaceFilters.size,
+      sortBy,
+      sortOrder,
+    });
+  }, [currentFolderId, activeCollection, navigationType, workspaceFilters.date, workspaceFilters.size, sortBy, sortOrder]);
+
+  const {
+    data: queryData,
+    isLoading: isQueryLoading,
+    isError: isQueryError,
+    error: queryErrorObj,
+    refetch: refetchItems,
+  } = useDokItemsQuery({
+    folderId: currentFolderId,
+    collection: activeCollection,
+    typeFilter: navigationType,
+    dateFilter: workspaceFilters.date,
+    sizeFilter: workspaceFilters.size,
+    sortBy,
+    sortOrder,
+  });
+
+  const folders = useMemo(() => queryData?.folders ?? [], [queryData?.folders]);
+  const files = useMemo(() => queryData?.files ?? [], [queryData?.files]);
+  const currentFolder = queryData?.folder ?? null;
+  const breadcrumbs = queryData?.breadcrumbs ?? [{ id: null, name: "Kök Dizin" }];
+  const starredCount = Number(queryData?.summary?.starredCount ?? 0);
+  const loading = isQueryLoading;
+  const listError: ListError | null = useMemo(() => {
+    if (!isQueryError) return null;
+    const status = (queryErrorObj as unknown as { status?: number })?.status;
+    return {
+      kind: status === 401 ? "auth" : "network",
+      message: queryErrorObj instanceof Error ? queryErrorObj.message : "Dosyalar listelenemedi",
+    };
+  }, [isQueryError, queryErrorObj]);
 
   // 3. Sıralanmış ve Filtrelenmiş Dosya ve Klasörler (Tek Deterministik Comparator & Derive Motoru)
   const {
@@ -332,93 +395,14 @@ export function DokumantasyonFileManager() {
     };
   }, [isSidebarOpenMobile]);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // 2. Klasör İçeriğini Getir (AbortSignal Destekli ve Seçim Koruyan Deterministik Akış)
+  // 2. Klasör İçeriğini Yenile (TanStack Query Cache Reconciler)
   const fetchItems = useCallback(async () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setLoading(true);
-    try {
-      const url = new URL("/api/dokumantasyon/items", window.location.origin);
-      if (currentFolderId) url.searchParams.set("folderId", currentFolderId);
-      url.searchParams.set("sortBy", sortBy);
-      url.searchParams.set("order", sortOrder);
-      const navigationType = activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type;
-      const collection = activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none";
-      url.searchParams.set("type", navigationType);
-      url.searchParams.set("date", workspaceFilters.date);
-      url.searchParams.set("size", workspaceFilters.size);
-      url.searchParams.set("scope", workspaceFilters.scope);
-      url.searchParams.set("collection", collection);
-
-      const res = await fetch(url.toString(), { signal: controller.signal });
-      const data = await res.json().catch(() => ({}));
-
-      if (res.ok) {
-        setConfigError(null);
-        setListError(null);
-        setCurrentFolder(data.folder || null);
-        setBreadcrumbs(data.breadcrumbs || [{ id: null, name: "Kök Dizin" }]);
-        setFolders(data.folders || []);
-        setFiles(data.files || []);
-        setStarredCount(Number(data.summary?.starredCount || 0));
-        // Arka plan yenilemesinde seçimi asla körü körüne sıfırlama;
-        // mevcut geçerli öğeleri reconcileSelection ile koru.
-        const rawIds = [
-          ...(data.folders || []).map((f: DokFolder) => f.id),
-          ...(data.files || []).map((f: DokFile) => f.id),
-        ];
-        setSelectedIds((previous: Set<string>) => reconcileSelection(previous, rawIds));
-      } else if (res.status === 503 || data.code?.includes("CONFIGURED") || data.code?.includes("FORBIDDEN")) {
-        setConfigError(data.error || "Dökümantasyon kalıcı depolama altyapısı hazır değil.");
-        setListError(null);
-        setFolders([]);
-        setFiles([]);
-      } else if (res.status === 401) {
-        setConfigError(null);
-        setFolders([]);
-        setFiles([]);
-        setListError({ kind: "auth", message: data.error || "Oturumunuz sona erdi. Giriş sayfasına yönlendiriliyorsunuz." });
-        router.refresh();
-      } else {
-        setConfigError(null);
-        setFolders([]);
-        setFiles([]);
-        setListError({ kind: "server", message: data.error || "Dosyalar şu anda listelenemiyor." });
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return; // Yeni klasöre hızlı geçildi, iptal edilen önceki istek sessizce yutulur
-      }
-      console.error("Dosyalar yüklenirken hata:", err);
-      setConfigError(null);
-      setFolders([]);
-      setFiles([]);
-      setListError({
-        kind: "network",
-        message: navigator.onLine
-          ? "Ağ bağlantısı kurulamadı. Lütfen tekrar deneyin."
-          : "Çevrimdışısınız. Bağlantınızı kontrol edip tekrar deneyin.",
-      });
-    } finally {
-      if (abortControllerRef.current === controller) {
-        setLoading(false);
-      }
-    }
-  }, [activeFilter, currentFolderId, router, setSelectedIds, sortBy, sortOrder, workspaceFilters]);
+    await refetchItems();
+  }, [refetchItems]);
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
-
-  useEffect(() => {
-    if (starMigrationVersion > 0) void fetchItems();
-  }, [fetchItems, starMigrationVersion]);
+    if (starMigrationVersion > 0) void refetchItems();
+  }, [refetchItems, starMigrationVersion]);
 
   useEffect(() => {
     setDisplayLimit(100);
@@ -431,27 +415,23 @@ export function DokumantasyonFileManager() {
     event: React.MouseEvent
   ) => {
     event.stopPropagation();
-    const nextStarredAt = isStarred ? null : new Date().toISOString();
-    const updateState = (starredAt: string | null) => {
-      if (type === "file") {
-        setFiles((previous) => previous.map((file) => file.id === id ? { ...file, starred_at: starredAt } : file));
-      } else {
-        setFolders((previous) => previous.map((folder) => folder.id === id ? { ...folder, starred_at: starredAt } : folder));
-      }
-    };
+    const nextStarred = !isStarred;
+    updateItemStarInCache(dokQueryClient, currentQueryKey, id, type, nextStarred);
 
-    updateState(nextStarredAt);
-    setStarredCount((count) => Math.max(0, count + (isStarred ? -1 : 1)));
-    const endpoint = type === "file" ? `/api/dokumantasyon/files/${id}` : `/api/dokumantasyon/folders/${id}`;
-    const result = await requestDokMutation(endpoint, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ starred: !isStarred }),
-    });
-    if (!result.ok) {
-      updateState(isStarred ? new Date().toISOString() : null);
-      setStarredCount((count) => Math.max(0, count + (isStarred ? 1 : -1)));
-      setActionError(result.message);
+    try {
+      const url = type === "folder" ? `/api/dokumantasyon/folders/${id}` : `/api/dokumantasyon/files/${id}`;
+      const res = await requestDokMutation(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isStarred: nextStarred }),
+      });
+      if (!res.ok) {
+        updateItemStarInCache(dokQueryClient, currentQueryKey, id, type, isStarred);
+        setActionError(res.message);
+      }
+    } catch {
+      updateItemStarInCache(dokQueryClient, currentQueryKey, id, type, isStarred);
+      setActionError("Yıldız durumu güncellenemedi.");
     }
   };
 
@@ -2391,12 +2371,12 @@ export function DokumantasyonFileManager() {
         currentFolderId={currentFolderId}
         onClose={() => setIsNewFolderOpen(false)}
         onSuccess={fetchItems}
-        onStartPending={(pending) => setFolders((prev) => [...prev, pending])}
+        onStartPending={(pending) => insertPendingFolderInCache(dokQueryClient, currentQueryKey, pending)}
         onCreatedFolder={(serverFolder) => {
-          setFolders((prev) => prev.map((f) => (f.id.startsWith("pending:") ? serverFolder : f)));
+          replacePendingFolderInCache(dokQueryClient, currentQueryKey, serverFolder.id, serverFolder);
         }}
         onCancelPending={(tempId) => {
-          setFolders((prev) => prev.filter((f) => f.id !== tempId));
+          removePendingFolderFromCache(dokQueryClient, currentQueryKey, tempId);
         }}
       />
 

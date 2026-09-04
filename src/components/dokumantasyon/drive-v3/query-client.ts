@@ -2,7 +2,10 @@
 // DÖKÜMANTASYON DRIVE V3.1 — QUERY CLIENT & SERVER STATE MOTORU
 // ============================================================================
 
-import { QueryClient } from "@tanstack/react-query";
+"use client";
+
+import React from "react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { DokFile, DokFolder, DokBreadcrumbItem } from "@/lib/dokumantasyon/types";
 
 export type DokItemsResponse = {
@@ -31,14 +34,31 @@ export const dokQueryClient = new QueryClient({
   },
 });
 
+export function DokQueryProvider({ children }: { children: React.ReactNode }) {
+  return React.createElement(QueryClientProvider, { client: dokQueryClient }, children);
+}
+
+export type DokItemsKeyParams = {
+  collection?: string;
+  type?: string;
+  date?: string;
+  size?: string;
+  sortBy?: string;
+  sortOrder?: string;
+};
+
 export const dokKeys = {
-  all: ["dokumantasyon"] as const,
-  items: (folderId: string | null, params: Record<string, unknown>) =>
+  all: ["dok-items"] as const,
+  items: (folderId: string | null, params: DokItemsKeyParams) =>
     [
-      "dokumantasyon",
-      "items",
+      "dok-items",
       folderId ?? "root",
-      JSON.stringify(params),
+      params.collection ?? "none",
+      params.type ?? "all",
+      params.date ?? "all",
+      params.size ?? "all",
+      params.sortBy ?? "name",
+      params.sortOrder ?? "asc",
     ] as const,
 };
 
@@ -50,7 +70,7 @@ export async function fetchDokItems(
   const url = new URL("/api/dokumantasyon/items", typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
   if (folderId) url.searchParams.set("folderId", folderId);
   for (const [k, v] of Object.entries(queryParams)) {
-    if (v) url.searchParams.set(k, v);
+    if (v && v !== "all" && v !== "none") url.searchParams.set(k, v);
   }
 
   const res = await fetch(url.toString(), { signal });
@@ -64,6 +84,67 @@ export async function fetchDokItems(
   return res.json();
 }
 
+export function useDokItemsQuery({
+  folderId,
+  collection = "none",
+  typeFilter = "all",
+  dateFilter = "all",
+  sizeFilter = "all",
+  sortBy = "name",
+  sortOrder = "asc",
+  enabled = true,
+}: {
+  folderId: string | null;
+  collection?: string;
+  typeFilter?: string;
+  dateFilter?: string;
+  sizeFilter?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  enabled?: boolean;
+}) {
+  const keyParams: DokItemsKeyParams = {
+    collection,
+    type: typeFilter,
+    date: dateFilter,
+    size: sizeFilter,
+    sortBy,
+    sortOrder,
+  };
+  const queryKey = dokKeys.items(folderId, keyParams);
+
+  return useQuery({
+    queryKey,
+    queryFn: ({ signal }) => {
+      const queryParams: Record<string, string> = {};
+      if (collection && collection !== "none") queryParams.collection = collection;
+      if (typeFilter && typeFilter !== "all") queryParams.type = typeFilter;
+      if (dateFilter && dateFilter !== "all") queryParams.date = dateFilter;
+      if (sizeFilter && sizeFilter !== "all") queryParams.size = sizeFilter;
+      if (sortBy) queryParams.sortBy = sortBy;
+      if (sortOrder) queryParams.sortOrder = sortOrder;
+      return fetchDokItems(folderId, queryParams, signal);
+    },
+    enabled,
+  });
+}
+
+// ============================================================================
+// MUTATION SCOPE COORDINATOR (CONCURRENCY PROTECTION)
+// ============================================================================
+
+const activeMutationScopes = new Set<string>();
+
+export function acquireMutationScope(scope: string): boolean {
+  if (activeMutationScopes.has(scope)) return false;
+  activeMutationScopes.add(scope);
+  return true;
+}
+
+export function releaseMutationScope(scope: string): void {
+  activeMutationScopes.delete(scope);
+}
+
 // ============================================================================
 // OPTIMISTIC CACHE MANIPULATORS (NO F5 ARCHITECTURE)
 // ============================================================================
@@ -75,8 +156,6 @@ export function insertPendingFolderInCache(
 ) {
   client.setQueryData<DokItemsResponse>(queryKey, (old) => {
     if (!old) return old;
-    // unshift YASAK: pending folder raw cache listesine eklenir,
-    // görsel sıralamayı deriveExplorerView comparator'u belirler!
     return {
       ...old,
       folders: [...old.folders, pendingFolder],
@@ -172,7 +251,6 @@ export function insertUploadedFileInCache(
 ) {
   client.setQueryData<DokItemsResponse>(queryKey, (old) => {
     if (!old) return old;
-    // Dosya listesine ekle (duplicate kontrolüyle)
     const exists = old.files.some((f) => f.id === file.id);
     if (exists) return old;
     return {
