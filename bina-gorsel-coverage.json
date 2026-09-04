@@ -7,17 +7,17 @@
     "depth": 1,
     "route": "/kategori/bina-asamalari/proje-hazirlik",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/proje-hazirlik.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/proje-hazirlik.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -28,17 +28,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/proje-hazirlik/mimari-proje",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/mimari-proje.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/mimari-proje.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -49,17 +49,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/proje-hazirlik/statik-proje",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/statik-proje.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/statik-proje.webp",
-      "qcScore": null
+      "qcScore": 93
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {

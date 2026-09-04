@@ -201,9 +201,12 @@ const TOPIC_CUSTOM_IMAGES: Record<string, { hero: string; diagram: string }> = {
 export function getTopicVisual(node: IndexedBinaNode): { hero: string; diagram: string } {
   const visual = getBinaVisual(node.slugPath) || getBinaVisual(node.id);
   if (visual) {
+    const modernPrimary = visual.status === "published" || visual.status === "approved" || visual.status === "keep-existing";
+    const modernSecondary = visual.status === "published" || visual.status === "approved";
+
     return {
-      hero: visual.primary?.src || visual.hero || visual.card,
-      diagram: visual.secondary?.src || visual.diagram || visual.card,
+      hero: modernPrimary ? visual.primary.src : visual.card,
+      diagram: modernSecondary ? visual.secondary.src : visual.diagram || visual.card,
     };
   }
 

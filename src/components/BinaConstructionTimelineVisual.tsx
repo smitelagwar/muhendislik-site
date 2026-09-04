@@ -69,7 +69,7 @@ interface FlatTopic {
 
 function getTopicImageUrl(nodeId: string): string {
   const visual = getBinaVisual(nodeId);
-  return visual?.primary?.src || visual?.card || `/bina-asamalari/topics/${nodeId}.webp`;
+  return visual?.card || visual?.primary?.src || `/bina-asamalari/topics/${nodeId}.webp`;
 }
 
 function flattenTree(root: BinaMindMapNode): FlatTopic[] {
@@ -694,7 +694,7 @@ export default function BinaConstructionTimelineVisual() {
           <div className="relative hidden min-h-[360px] overflow-hidden border-l border-slate-200/70 bg-slate-950 lg:block dark:border-white/[0.07]">
             <div className="absolute inset-0 opacity-90">
               <Image
-                src="/bina-asamalari/topics/proje-hazirlik.svg"
+                src="/bina-asamalari/topics/proje-hazirlik.webp"
                 alt="Bina yapım süreci teknik görseli"
                 fill
                 unoptimized
@@ -708,11 +708,11 @@ export default function BinaConstructionTimelineVisual() {
             <div className="absolute bottom-5 left-5 right-5 grid grid-cols-3 gap-2.5">
               {[
                 {
-                  src: "/bina-asamalari/images/mimari-proje-hero.jpg",
+                  src: "/bina-asamalari/topics/mimari-proje.webp",
                   label: "Mimari",
                 },
                 {
-                  src: "/bina-asamalari/topics/statik-proje.svg",
+                  src: "/bina-asamalari/topics/statik-proje.webp",
                   label: "Statik",
                 },
                 {

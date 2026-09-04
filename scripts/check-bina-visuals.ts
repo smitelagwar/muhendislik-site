@@ -56,6 +56,18 @@ for (const node of canonicalNodes) {
       }
     }
 
+    if (visual.status === "published") {
+      if (!primaryExists) {
+        errors.push(`[Published Primary Eksik] ${node.slugPath} published olduğu halde dosya yok: ${primaryPath}`);
+      }
+      if ((visual.primary.qcScore ?? 0) < 90) {
+        errors.push(`[Published Primary QC] ${node.slugPath} için QC skoru 90 altında: ${visual.primary.qcScore ?? 0}`);
+      }
+      if (visual.card !== visual.primary.src) {
+        errors.push(`[Published Card Uyumsuz] ${node.slugPath} card alanı primary WebP'ye işaret etmiyor.`);
+      }
+    }
+
     if (!visual.primary.altTr || visual.primary.altTr.trim().length < 5) {
       errors.push(`[Geçersiz Primary Alt Metin] ${node.slugPath} için primary alt metin yetersiz.`);
     }
@@ -85,6 +97,15 @@ for (const node of canonicalNodes) {
         if (isStrict) {
           errors.push(`[Eksik Secondary Dosyası] Dosya diskte mevcut değil: ${secondaryPath}`);
         }
+      }
+    }
+
+    if (visual.status === "published") {
+      if (!secondaryExists) {
+        errors.push(`[Published Secondary Eksik] ${node.slugPath} published olduğu halde dosya yok: ${secondaryPath}`);
+      }
+      if ((visual.secondary.qcScore ?? 0) < 90) {
+        errors.push(`[Published Secondary QC] ${node.slugPath} için QC skoru 90 altında: ${visual.secondary.qcScore ?? 0}`);
       }
     }
 
@@ -141,12 +162,8 @@ if (errors.length > 0) {
   for (const e of errors) {
     console.error(`- ${e}`);
   }
-  if (isStrict) {
-    console.error(`\n[STRICT MOD] Hatalar nedeniyle doğrulama başarısız.`);
-    process.exit(1);
-  } else {
-    console.log(`\n[BİLGİ] Standart modda manifest ve veri sözleşmesi doğrulandı. Strict mod için: --strict`);
-  }
+  console.error(`\nDoğrulama hatalar nedeniyle başarısız.`);
+  process.exit(1);
 } else {
   console.log("\n✓ Tüm canonical düğümler Manifest V2 veri sözleşmesine tam uygun!");
 }

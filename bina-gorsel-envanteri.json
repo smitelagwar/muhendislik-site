@@ -49,7 +49,9 @@
     "secondaryAltTr": "Proje & İzinler (Teknik Detay) — Metinsiz BIM çakışma tespiti ve disiplinler arası 3D koordinasyon modeli",
     "secondaryDifference": "Primary genel mimari maket ve pafta masasını gösterirken, secondary metinsiz 3D BIM çakışma ve disiplin koordinasyon detayını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 93,
+    "status": "published"
   },
   {
     "id": "mimari-proje",
@@ -96,7 +98,9 @@
     "secondaryAltTr": "Mimari Proje (Teknik Detay) — Plan-kesit ve düşey sirkülasyon (merdiven/galeri) hacim ilişkisini anlatan teknik kesit",
     "secondaryDifference": "Primary plan kütle ilişkisini sunarken, secondary düşey kesitte merdiven ve galeri sirkülasyon hacimlerini detaylandırır.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "statik-proje",
@@ -141,7 +145,9 @@
     "secondaryAltTr": "Statik Proje (Teknik Detay) — Kolon-kiriş-döşeme yük aktarımı çerçeve düğüm noktası gerilme diyagramı",
     "secondaryDifference": "Primary binanın genel 3D taşıyıcı karkasını gösterirken, secondary tek bir düğüm noktasındaki yük aktarım çerçeve davranışını öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 93,
+    "status": "published"
   },
   {
     "id": "tesisat-projesi",
