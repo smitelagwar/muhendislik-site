@@ -196,14 +196,28 @@ let libreDwgRegistrationPromise: Promise<void> | null = null;
 let fontPreloadPromise: Promise<void> | null = null;
 let engineEnhancementsInitialized = false;
 
-async function ensureFontsPreloaded(fontManager: {
+type CadFontManagerInstance = {
   cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>;
-}): Promise<void> {
+  events?: unknown;
+};
+
+let activeFontManager: CadFontManagerInstance | null = null;
+
+async function ensureFontsPreloaded(fontManager?: CadFontManagerInstance | null): Promise<void> {
   if (typeof window === "undefined") return;
+  if (fontManager) {
+    activeFontManager = fontManager;
+  }
   if (!fontPreloadPromise) {
     startCadPerfPhase("font-preload");
     fontPreloadPromise = (async () => {
       try {
+        const mgr =
+          fontManager ??
+          activeFontManager ??
+          (await import("@mlightcad/mtext-renderer")).FontManager.instance;
+        activeFontManager = mgr;
+
         const [regularRes, boldRes, serifRegularRes, serifBoldRes] = await Promise.all([
           fetch("/cad-upstream/fonts/Arial-Regular.ttf"),
           fetch("/cad-upstream/fonts/Arial-Bold.ttf"),
@@ -216,7 +230,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (regularRes.ok) {
           const buf = await regularRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "Arial-Regular.ttf", [
+            mgr.cacheFont(buf, "Arial-Regular.ttf", [
               "arial",
               "arial-regular",
               "arial.ttf",
@@ -242,7 +256,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (boldRes.ok) {
           const buf = await boldRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "Arial-Bold.ttf", [
+            mgr.cacheFont(buf, "Arial-Bold.ttf", [
               "arial-bold",
               "arial-bold.ttf",
               "arialb.ttf",
@@ -257,7 +271,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (serifRegularRes.ok) {
           const buf = await serifRegularRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "IBMPlexSerif-Regular.ttf", [
+            mgr.cacheFont(buf, "IBMPlexSerif-Regular.ttf", [
               "ibm-plex-serif",
               "ibm plex serif",
               "times",
@@ -279,7 +293,7 @@ async function ensureFontsPreloaded(fontManager: {
         if (serifBoldRes.ok) {
           const buf = await serifBoldRes.arrayBuffer();
           cacheTasks.push(
-            fontManager.cacheFont(buf, "IBMPlexSerif-Bold.ttf", [
+            mgr.cacheFont(buf, "IBMPlexSerif-Bold.ttf", [
               "ibm-plex-serif-bold",
               "ibm plex serif bold",
               "times-bold",
@@ -452,8 +466,9 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
       "timesbd.ttf": "ibm-plex-serif-bold",
     });
 
-    // Fontları deterministik olarak belleğe yükle ve önbelleğe al
-    await ensureFontsPreloaded(fontManager);
+    // Stage 5: Fontları deterministik olarak arka planda paralel başlat, modül init'i bloklama
+    activeFontManager = fontManager;
+    void ensureFontsPreloaded(fontManager);
 
     // 3. Perde Taramalarının Opaklığı (Hatch Opacity)
     // Sert kör edici beyazlık yerine AutoCAD'deki gibi zarif ve yumuşatılmış opaklık (0.70 alpha)
@@ -719,10 +734,9 @@ export class CadUpstreamAdapter {
       );
     }
 
-    // Stage 4: Overlap worker verification with source file download.
-    // Instead of waiting serially, both operations run in parallel.
-    // An internal AbortController aborts in-flight network requests immediately
-    // if worker readiness fails or is rejected.
+    // Stage 4 & 5: Overlap worker verification, source file download, and font readiness concurrently.
+    // Instead of waiting serially, all three operations run in parallel.
+    // If worker readiness fails or is rejected, in-flight fetch is aborted immediately.
     const fetchController = new AbortController();
     const handleSignalAbort = () => {
       fetchController.abort(options.signal?.reason);
@@ -752,12 +766,17 @@ export class CadUpstreamAdapter {
 
     const sourceFetchPromise = fetchCadSource(options.accessUrl, fetchController.signal);
 
+    const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: CadFontManagerInstance } } }).mtextRenderer;
+    const fontManager = mtextRenderer?.FontManager?.instance ?? activeFontManager;
+    const fontPreloadTask = ensureFontsPreloaded(fontManager);
+
     const [workersReady, sourceResult] = await Promise.all([
       workerReadyPromise,
       sourceFetchPromise.then(
         (bytes) => ({ ok: true as const, bytes }),
         (err) => ({ ok: false as const, error: err })
       ),
+      fontPreloadTask,
     ]);
 
     if (options.signal) {
@@ -778,19 +797,13 @@ export class CadUpstreamAdapter {
 
     const bytes = sourceResult.bytes;
 
-    // Çizim açılmadan önce tüm TrueType fontların bellekte yüklü olduğunu kesinleştir
-    const mtextRenderer = (this.Viewer as unknown as { mtextRenderer?: { FontManager?: { instance?: { cacheFont: (buf: ArrayBuffer, filename: string, aliases: string[]) => Promise<unknown>; events?: { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } } } } }).mtextRenderer;
-    const fontManager = mtextRenderer?.FontManager?.instance;
-    if (fontManager) {
-      await ensureFontsPreloaded(fontManager);
-    }
-
     if (CAD_AUTOCAD_FONT_PARITY_V1) {
       const requested = extractDxfOrDwgFonts(bytes, extension);
       this.fontDiagnostics = evaluateCadFontParity(requested);
 
-      if (fontManager?.events?.fontNotFound?.subscribe) {
-        fontManager.events.fontNotFound.subscribe(({ fontName }) => {
+      const fontEvents = fontManager?.events as { fontNotFound?: { subscribe?: (cb: (e: { fontName: string }) => void) => void } } | undefined;
+      if (fontEvents?.fontNotFound?.subscribe) {
+        fontEvents.fontNotFound.subscribe(({ fontName }) => {
           if (fontName && !this.fontDiagnostics.missingFonts.includes(fontName)) {
             this.fontDiagnostics.missingFonts.push(fontName);
             this.fontDiagnostics.fontParityExact = false;
