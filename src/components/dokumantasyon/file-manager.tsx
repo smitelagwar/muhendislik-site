@@ -1526,12 +1526,13 @@ export function DokumantasyonFileManager() {
           tabIndex={0}
           onKeyDown={handleKeyDown}
           {...containerPointerHandlers}
-          className={`relative flex-1 overflow-auto p-3 sm:p-4 outline-none ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}
+          className={`relative flex-1 overflow-auto p-3 sm:p-4 outline-none select-none min-h-[300px] ${selectedIds.size > 0 ? "pb-28 sm:pb-28 lg:pb-28" : "pb-4"} ${styles.viewport}`}
         >
-          {/* Sanal Marquee Seçim Kutusu */}
+          {/* Sanal Marquee Seçim Kutusu (Windows Explorer Mavi Dikdörtgen) */}
           {marqueeBox && (
             <div
-              className="pointer-events-none absolute z-50 rounded border border-amber-500/80 bg-amber-500/20 shadow-sm transition-none"
+              data-testid="dok-marquee-box"
+              className="pointer-events-none absolute z-50 rounded-sm border border-blue-500/90 bg-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.15)] transition-none"
               style={{
                 left: marqueeBox.left,
                 top: marqueeBox.top,

@@ -12,6 +12,7 @@ import {
 } from "./selection-reducer";
 import {
   getBoundingBox,
+  intersects,
   hitTestList,
   hitTestGrid,
   calculateAutoScrollDelta,
@@ -166,6 +167,7 @@ export function useDriveSelection({
   );
 
   // ============================================================================
+  // ============================================================================
   // VIRTUAL MARQUEE POINTER GESTURE ENGINE
   // ============================================================================
 
@@ -192,19 +194,52 @@ export function useDriveSelection({
       currentContentY
     );
 
-    // Hit test without DOM
+    // Update visual marquee rect (in container content coordinates)
+    setMarqueeBox({
+      left: contentBbox.left,
+      top: contentBbox.top,
+      width: Math.max(0, contentBbox.right - contentBbox.left),
+      height: Math.max(0, contentBbox.bottom - contentBbox.top),
+    });
+
+    // Hit test: First prioritize real rendered DOM elements for 100% viewport accuracy
+    const renderedElements = container.querySelectorAll<HTMLElement>(
+      "[data-folder-id], [data-file-id]"
+    );
+
     let hitIds: string[] = [];
-    if (viewMode === "list") {
-      hitIds = hitTestList(
-        contentBbox,
-        visibleOrderedIds,
-        undefined,
-        undefined,
-        0,
-        container.clientWidth
-      );
+
+    if (renderedElements && renderedElements.length > 0) {
+      const marqueeViewport: Rect = {
+        left: Math.min(start.clientX, latest.clientX),
+        right: Math.max(start.clientX, latest.clientX),
+        top: Math.min(start.clientY, latest.clientY),
+        bottom: Math.max(start.clientY, latest.clientY),
+      };
+
+      const hitSet = new Set<string>();
+      renderedElements.forEach((el) => {
+        const elRect = el.getBoundingClientRect();
+        if (intersects(marqueeViewport, elRect)) {
+          const id = el.dataset.folderId || el.dataset.fileId;
+          if (id) hitSet.add(id);
+        }
+      });
+      hitIds = visibleOrderedIds.filter((id) => hitSet.has(id));
     } else {
-      hitIds = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
+      // Fallback for headless / offscreen virtual testing environments
+      if (viewMode === "list") {
+        hitIds = hitTestList(
+          contentBbox,
+          visibleOrderedIds,
+          undefined,
+          undefined,
+          0,
+          container.clientWidth
+        );
+      } else {
+        hitIds = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
+      }
     }
 
     dispatch({
@@ -212,24 +247,6 @@ export function useDriveSelection({
       hitIds,
       isAdditive: start.isAdditive,
       initialSelection: start.initialSelection,
-    });
-
-    // Update visual marquee rect (in container viewport coordinates)
-    const clientStartX = start.contentX - currentScrollLeft;
-    const clientStartY = start.contentY - currentScrollTop;
-    const clientCurrentX = latest.clientX - rect.left;
-    const clientCurrentY = latest.clientY - rect.top;
-
-    const visLeft = Math.min(clientStartX, clientCurrentX);
-    const visTop = Math.min(clientStartY, clientCurrentY);
-    const visWidth = Math.abs(clientCurrentX - clientStartX);
-    const visHeight = Math.abs(clientCurrentY - clientStartY);
-
-    setMarqueeBox({
-      left: contentBbox.left,
-      top: contentBbox.top,
-      width: contentBbox.right - contentBbox.left,
-      height: contentBbox.bottom - contentBbox.top,
     });
 
     // Auto-scroll calculation
@@ -240,15 +257,57 @@ export function useDriveSelection({
     );
     if (scrollDelta !== 0) {
       container.scrollTop += scrollDelta;
-    }
-
-    // Schedule next frame if marquee still active
-    if (isMarqueeActiveRef.current) {
-      rafIdRef.current = requestAnimationFrame(() => updateMarqueeFrameRef.current());
+      if (isMarqueeActiveRef.current) {
+        rafIdRef.current = requestAnimationFrame(() => updateMarqueeFrameRef.current());
+      }
     }
   }, [scrollContainerRef, viewMode, visibleOrderedIds, gridMetrics]);
 
   updateMarqueeFrameRef.current = updateMarqueeFrame;
+
+  // Coordinate with native / PDD drag: cancel marquee if HTML5 drag begins
+  useEffect(() => {
+    const handleNativeDragStart = () => {
+      if (isMarqueeActiveRef.current || pointerStartRef.current) {
+        isMarqueeActiveRef.current = false;
+        pointerStartRef.current = null;
+        latestPointerRef.current = null;
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        setMarqueeBox(null);
+      }
+    };
+
+    window.addEventListener("dragstart", handleNativeDragStart, { capture: true });
+    return () => {
+      window.removeEventListener("dragstart", handleNativeDragStart, { capture: true });
+    };
+  }, []);
+
+  // Window-level safety: release marquee if pointer is released outside container
+  useEffect(() => {
+    const handleWindowPointerUp = () => {
+      if (isMarqueeActiveRef.current) {
+        isMarqueeActiveRef.current = false;
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        setMarqueeBox(null);
+        pointerStartRef.current = null;
+        latestPointerRef.current = null;
+      }
+    };
+
+    window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("pointercancel", handleWindowPointerUp);
+    return () => {
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("pointercancel", handleWindowPointerUp);
+    };
+  }, []);
 
   const handleContainerPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -258,10 +317,10 @@ export function useDriveSelection({
       const target = e.target as HTMLElement | null;
       if (!target) return;
 
-      // Ignore if clicking on interactive controls
+      // Ignore interactive controls (buttons, links, inputs, dropdown triggers)
       if (
         target.closest(
-          "button, a, input, select, textarea, [data-testid='dok-folder-row'], [data-testid='dok-file-row'], [data-testid='dok-folder-card'], [data-testid='dok-file-card'], [data-no-marquee]"
+          "button, a, input, select, textarea, [data-no-marquee]"
         )
       ) {
         return;
@@ -308,8 +367,10 @@ export function useDriveSelection({
             e.currentTarget.setPointerCapture(e.pointerId);
           } catch {}
           dispatch({ type: "MARQUEE_START", isAdditive: start.isAdditive });
-          rafIdRef.current = requestAnimationFrame(updateMarqueeFrame);
+          updateMarqueeFrame();
         }
+      } else {
+        updateMarqueeFrame();
       }
     },
     [updateMarqueeFrame]
@@ -331,8 +392,14 @@ export function useDriveSelection({
         } catch {}
         setMarqueeBox(null);
       } else {
-        // Did not cross threshold -> Empty area click clears selection
-        clearSelection();
+        // Did not cross drag threshold -> If clicked on empty whitespace, clear selection
+        const target = e.target as HTMLElement | null;
+        const isItem = target?.closest(
+          "[data-folder-id], [data-file-id], [data-testid='dok-folder-row'], [data-testid='dok-file-row'], [data-testid='dok-folder-card'], [data-testid='dok-file-card']"
+        );
+        if (!isItem) {
+          clearSelection();
+        }
       }
 
       pointerStartRef.current = null;
