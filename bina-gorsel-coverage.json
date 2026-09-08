@@ -1603,17 +1603,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/isitma-sogutma.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/isitma-sogutma.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1624,17 +1624,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma/yerden-isitma",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/yerden-isitma.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/yerden-isitma.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1645,17 +1645,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/tesisat-isleri/isitma-sogutma/klima-tesisat",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/klima-tesisat.webp",
-      "qcScore": null
+      "qcScore": 94
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/klima-tesisat.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1666,17 +1666,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/tesisat-isleri/yangin-tesisati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/yangin-tesisati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/yangin-tesisati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
