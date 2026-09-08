@@ -3190,40 +3190,43 @@
     "primaryTargetWebp": "/bina-asamalari/topics/cati-kaplamasi.webp",
     "secondaryTargetWebp": "/bina-asamalari/details/cati-kaplamasi.webp",
     "legacySvgCard": "/bina-asamalari/topics/cati-kaplamasi.svg",
-    "primaryMode": "technical-cutaway",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında eğimli çatıda kaplama katmanları: mertek, osb levha, su yalıtım örtüsü, çıtalar ve son kat kaplama durumunu net olarak anlamalı.",
+    "primaryMode": "site-process",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında eğimli çatıda mertek ve OSB üzerinde nefes alan örtü, karşı çıta, yatay lata ve son kat kaplamanın gerçek uygulama sırasını net olarak anlamalı.",
     "primaryMustShow": [
-      "ahşap taşıyıcı mertek",
-      "OSB alt kaplama",
+      "ahşap mertek ve OSB alt kaplama",
       "nefes alan su yalıtım örtüsü",
-      "havalandırma çıtaları",
-      "çatı kaplaması"
+      "düşey karşı çıta ve yatay lata ızgarası",
+      "tamamlanan koyu çatı kaplaması",
+      "doğal çalışan iki çatı ustası"
     ],
     "primaryMustNotShow": [
       "katman yazı etiketleri",
       "oklar",
       "reklam"
     ],
-    "primaryPromptTr": "KONU: Çatı Kaplaması\nİÇERİK: Çatı taşıyıcısı üzerinde su geçirimsizlik, rüzgar güvenliği ve bakım sürekliliği sağlayan kaplama katmanları.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında eğimli çatıda kaplama katmanları: mertek, osb levha, su yalıtım örtüsü, çıtalar ve son kat kaplama durumu ilk bakışta net anlaşılmalı.\nMOD: technical-cutaway\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: ahşap taşıyıcı mertek, OSB alt kaplama, nefes alan su yalıtım örtüsü, havalandırma çıtaları, çatı kaplaması.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: katman yazı etiketleri, oklar, reklam, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Çatı Kaplaması — Eğimli çatıda kaplama katmanları: mertek, OSB levha, su yalıtım örtüsü, çıtalar ve son kat kaplama",
+    "primaryPromptTr": "KONU: Çatı Kaplaması\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Eğimli çatıda mertekten son kaplamaya kadar katmanların gerçek uygulama sırasını göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay fotogerçekçi şantiye; iki usta eğimli çatıda çalışırken kademeli açık bölgelerde ahşap mertek, OSB, nefes alan gri su örtüsü, düşey karşı çıtalar, yatay latalar ve tamamlanmış koyu kaplama birlikte görünür.\nMUTLAKA GÖRÜNSÜN: mertek, OSB, su örtüsü, karşı çıta, lata ve son kat kaplama.\nFİZİKSEL DOĞRULUK: Katmanlar yerçekimi, bindirme ve havalandırma boşluğu bakımından gerçek çatı pratiğine uygun olsun.\nKESİNLİKLE OLMASIN: yazı, etiket, ok, logo, filigran, UI, kolaj, havada yüzen katman veya deforme insan.",
+    "primaryAltTr": "Çatı Kaplaması — Mertek, OSB, su örtüsü, karşı çıta, lata ve son kaplamanın gerçek eğimli çatı uygulaması",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: eğimli çatı saçak havalandırma tarağı ve gizli dere yağmur oluğu kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: eğimli çatı saçak ucunda havalandırma tarağı, su örtüsü, damlalık ve yağmur oluğu sürekliliği.",
     "secondaryMustShow": [
-      "saçak ucu havalandırma menfezi/tarağı",
-      "asma çinko veya PVC yağmur oluğu",
-      "damlalık sacı"
+      "kiremit altındaki havalandırma tarağı",
+      "su örtüsünün metal damlalık üstüne devamı",
+      "yarım yuvarlak metal yağmur oluğu",
+      "mertek, lata, alın tahtası ve saçak geometrisi"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Çatı Kaplaması\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Eğimli çatıda kaplama katmanları: mertek, OSB levha, su yalıtım örtüsü, çıtalar ve son kat kaplama\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Eğimli çatı saçak havalandırma tarağı ve gizli dere yağmur oluğu kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: saçak ucu havalandırma menfezi/tarağı, asma çinko veya PVC yağmur oluğu, damlalık sacı.\nPRIMARY'DEN FARK: Primary çatı yüzeyindeki tüm katman mimarisini gösterirken, secondary çatının nefes almasını sağlayan saçak havalandırma tarağı ve dere oluğu kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Çatı Kaplaması (Teknik Detay) — Eğimli çatı saçak havalandırma tarağı ve gizli dere yağmur oluğu kesiti",
-    "secondaryDifference": "Primary çatı yüzeyindeki tüm katman mimarisini gösterirken, secondary çatının nefes almasını sağlayan saçak havalandırma tarağı ve dere oluğu kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Çatı Kaplaması\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Eğimli çatı yüzeyindeki katmanlı uygulama.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Saçak havalandırması ile suyun örtü ve damlalıktan oluğa kesintisiz aktarımını öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay yakın fotogerçekçi saçak kesiti; kiremit, lata, nefes alan örtü, siyah havalandırma tarağı, metal damlalık, ahşap mertek ve alın tahtası ile yarım yuvarlak oluk tek birleşimde görünür.\nPRIMARY'DEN FARK: Primary geniş çatı uygulamasını, secondary saçak ucundaki hava ve su sürekliliğini yakın kesitte gösterir.\nFİZİKSEL DOĞRULUK: Örtü damlalığa, damlalık oluğa boşalmalı ve hava yolu açık kalmalıdır.\nKESİNLİKLE OLMASIN: yazı, ölçü, etiket, logo, filigran, UI, ok veya havada yüzen parça.",
+    "secondaryAltTr": "Çatı Kaplaması (Teknik Detay) — Saçak havalandırma tarağı, su örtüsü, damlalık ve metal oluk birleşimi",
+    "secondaryDifference": "Primary çatı yüzeyindeki yapım sürecini gösterirken, secondary saçak ucunda havalandırma ve yağmur suyu tahliye sürekliliğini öğretir.",
+    "primaryQcScore": 93,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "kiremit",
@@ -3238,22 +3241,23 @@
     "secondaryTargetWebp": "/bina-asamalari/details/kiremit.webp",
     "legacySvgCard": "/bina-asamalari/topics/kiremit.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında ahşap latolar üzerine kilitli kiremitlerin (marsilya veya akdeniz kiremiti) dizilmesi durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında kırmızı kil kiremitlerin su örtüsü üzerindeki karşı çıta ve yatay latalara aşağıdan yukarı bindirmeli sıralar halinde döşendiğini net olarak anlamalı.",
     "primaryMustShow": [
-      "kırmızı killi kiremitler",
-      "yatay ve düşey ahşap lata ızgarası",
-      "birbirine kilitlenen kiremit kanalları"
+      "kırmızı kil kilitli kiremitler",
+      "su örtüsü üzerinde düşey karşı çıta ve yatay latalar",
+      "aşağıdan yukarı bindirmeli düzgün kiremit sıraları",
+      "doğal pozlarda çalışan iki çatı ustası"
     ],
     "primaryMustNotShow": [
       "yazı",
       "marka",
       "tabela"
     ],
-    "primaryPromptTr": "KONU: Kiremit\nİÇERİK: Eğimli çatılarda su tahliyesi ve geleneksel görünüm sağlayan kaplama sistemi.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında ahşap latolar üzerine kilitli kiremitlerin (marsilya veya akdeniz kiremiti) dizilmesi durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: kırmızı killi kiremitler, yatay ve düşey ahşap lata ızgarası, birbirine kilitlenen kiremit kanalları.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka, tabela, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Kiremit — Ahşap latolar üzerine kilitli kiremitlerin (Marsilya veya Akdeniz kiremiti) dizilmesi",
+    "primaryPromptTr": "KONU: Kiremit\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kırmızı kil kiremitlerin latalara gerçek saha koşullarında bindirmeli döşenmesini göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay fotogerçekçi eğimli çatı; iki usta kırmızı kil kilitli kiremitleri sıra halinde yerleştirirken tamamlanmış alan, açık yatay latalar, düşey karşı çıtalar ve koyu su örtüsü görünür.\nMUTLAKA GÖRÜNSÜN: kil kiremit, lata ızgarası, su örtüsü, bindirmeli sıralar ve doğal çalışan ustalar.\nFİZİKSEL DOĞRULUK: Kiremitler aşağıdan yukarı doğru doğru bindirme ve hat düzeniyle yerleşmelidir.\nKESİNLİKLE OLMASIN: yazı, marka, logo, filigran, UI, kolaj, havada yüzen kiremit veya deforme insan.",
+    "primaryAltTr": "Kiremit — Kırmızı kil kiremitlerin su örtüsü üzerindeki ahşap latalara bindirmeli döşenmesi",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: kiremit çatı mahya hattında kuru mahya bandı ve mahya kiremiti tespit kancası kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: kiremit çatının kuru mahya hattında havalandırma rulosu, mahya çıtası ve mekanik tespit birleşimi.",
     "secondaryMustShow": [
       "havalandırmalı kuru mahya rulosu",
       "mahya aşık çıtası",
@@ -3264,11 +3268,13 @@
       "ölçü",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Kiremit\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Ahşap latolar üzerine kilitli kiremitlerin (Marsilya veya Akdeniz kiremiti) dizilmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Kiremit çatı mahya hattında kuru mahya bandı ve mahya kiremiti tespit kancası kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: havalandırmalı kuru mahya rulosu, mahya aşık çıtası, çelik tespit kancasıyla sabitlenmiş yarım yuvarlak mahya kiremiti.\nPRIMARY'DEN FARK: Primary sahadaki kiremit döşeme akışını sunarken, secondary çatının en tepe noktasında harçsız kuru mahya havalandırma kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
+    "secondaryPromptTr": "KONU: Kiremit\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Çatı yüzeyinde kiremit döşeme süreci.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Harçsız kuru mahya havalandırmasını ve mekanik sabitlemeyi öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay makro mahya kesiti; iki eğimin kırmızı kiremitleri, oluklu siyah havalandırma rulosu, yükseltilmiş ahşap mahya çıtası ve yarım yuvarlak mahya kiremidini sabitleyen metal klips görünür.\nPRIMARY'DEN FARK: Primary sahadaki geniş döşemeyi, secondary çatının tepe noktasındaki kuru mahya birleşimini gösterir.\nFİZİKSEL DOĞRULUK: Hava yolu açık, rulo yan kiremitlere oturmuş ve mahya kiremiti mekanik olarak sabitlenmiş olmalıdır.\nKESİNLİKLE OLMASIN: yazı, ölçü, ok, logo, filigran, UI, harç veya havada yüzen parça.",
     "secondaryAltTr": "Kiremit (Teknik Detay) — Kiremit çatı mahya hattında kuru mahya bandı ve mahya kiremiti tespit kancası kesiti",
-    "secondaryDifference": "Primary sahadaki kiremit döşeme akışını sunarken, secondary çatının en tepe noktasında harçsız kuru mahya havalandırma kesitini öğretir.",
+    "secondaryDifference": "Primary kiremitlerin saha döşemesini gösterirken, secondary mahya kiremidinin havalandırmalı rulo, çıta ve metal klipsle kuru tespitini öğretir.",
+    "primaryQcScore": 94,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "membran-cati",
@@ -3283,37 +3289,41 @@
     "secondaryTargetWebp": "/bina-asamalari/details/membran-cati.webp",
     "legacySvgCard": "/bina-asamalari/topics/membran-cati.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında düz beton çatıda siyah mineral yüzeyli bitümlü membranın şalümöyle ısıtılıp kontrollü bindirme hattı boyunca rulo halinde kaynatıldığını net olarak anlamalı.",
     "primaryMustShow": [
-      "yeşil veya kırmızı arduvaz taş kaplı membran rulosu",
-      "şalümö alevi",
-      "10 cm boyuna biniş çizgisi"
+      "siyah mineral yüzeyli bitümlü membran rulosu",
+      "kontrollü şalümö alevi ve basınç rulosu",
+      "düzgün boyuna bindirme hattı",
+      "koruyucu ekipmanlı iki usta ve yangın söndürücü"
     ],
     "primaryMustNotShow": [
       "yazı",
       "marka",
       "tabela"
     ],
-    "primaryPromptTr": "KONU: Membran\nİÇERİK: Teras ve düşük eğimli çatılarda su geçirimsizliği ana performans kriteri olan sentetik/bitümlü kaplama.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: yeşil veya kırmızı arduvaz taş kaplı membran rulosu, şalümö alevi, 10 cm boyuna biniş çizgisi.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka, tabela, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "Membran — Eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi",
+    "primaryPromptTr": "KONU: Membran\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Düz beton çatıda mineral yüzeyli bitümlü membranın şalümöyle gerçek kaynatma uygulamasını göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay fotogerçekçi şantiye; koruyucu ekipmanlı iki usta siyah mineral yüzeyli membran rulosunu açarken biri kontrollü şalümö aleviyle alt yüzeyi ısıtır, diğeri metal basınç rulosuyla ilerler; bitmiş alan ve düzgün bindirme hattı görünür.\nMUTLAKA GÖRÜNSÜN: bitümlü rulo, kontrollü alev, bindirme, basınç rulosu ve yangın söndürücü.\nFİZİKSEL DOĞRULUK: Rulo yönü, alev konumu, yapışma ve iş güvenliği gerçek uygulamaya uygun olsun.\nKESİNLİKLE OLMASIN: yazı, marka, logo, filigran, UI, aşırı ateş veya duman, kolaj ya da deforme insan.",
+    "primaryAltTr": "Membran — Düz çatıda siyah mineral yüzeyli bitümlü membranın şalümö ve basınç rulosuyla kaynatılması",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: membran çatıda baca ve havalandırma borusu etrafı kurşun/baskı çıtası su yalıtım prapet dönüşü kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: çift kat membran bindirmesi, parapet dönüşü, iç köşe takviyesi ve süzgeç çevresindeki kesintisiz su yalıtımı.",
     "secondaryMustShow": [
-      "çatıdan çıkan dairesel baca borusu",
-      "üste tırmanan membran eteği",
-      "paslanmaz çelik kelepçe ve mastik dolgusu"
+      "şaşırtmalı bindirmeli iki bitümlü membran katı",
+      "pahlı iç köşeden parapete yükselen membran",
+      "metal üst bitiş profili",
+      "kelepçe flanşlı çatı süzgeci ve süzgece yönlenen eğim"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü çizgisi",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Membran\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Eğimli veya düz çatıya şalümö ateşiyle arduvazlı (mineral kaplı) bitümlü membran serimi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Membran çatıda baca ve havalandırma borusu etrafı kurşun/baskı çıtası su yalıtım prapet dönüşü kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: çatıdan çıkan dairesel baca borusu, üste tırmanan membran eteği, paslanmaz çelik kelepçe ve mastik dolgusu.\nPRIMARY'DEN FARK: Primary yüzey membran yapıştırmasını gösterirken, secondary çatı bacası veya boru geçişindeki en kritik sızdırmazlık etek kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Membran (Teknik Detay) — Membran çatıda baca ve havalandırma borusu etrafı kurşun/baskı çıtası su yalıtım prapet dönüşü kesiti",
-    "secondaryDifference": "Primary yüzey membran yapıştırmasını gösterirken, secondary çatı bacası veya boru geçişindeki en kritik sızdırmazlık etek kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Membran\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Bitümlü membranın sahada şalümöyle kaynatılması.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Bindirme, parapet iç köşe dönüşü ve çatı süzgeci çevresindeki su yalıtım sürekliliğini öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay fotogerçekçi tam ölçekli çatı detay kesiti; beton döşeme üstünde eğimli ısı yalıtımı/şap, şaşırtmalı iki siyah membran katı, pahlı parapet dibinden dikey yükselen membran ve metal bitiş, kelepçe flanşlı süzgeç ile yaprak tutucu görünür.\nPRIMARY'DEN FARK: Primary insanlı serme-kaynatma sürecini, secondary parapet ve süzgeçte bitmiş sızdırmazlık geometrisini gösterir.\nFİZİKSEL DOĞRULUK: Membran katları yüzeye bağlı, parapette kesintisiz ve eğim süzgece yönlenmiş olmalıdır.\nKESİNLİKLE OLMASIN: yazı, ölçü, ok, logo, filigran, UI, kolaj veya havada yüzen katman.",
+    "secondaryAltTr": "Membran (Teknik Detay) — Çift kat bindirme, parapet dönüşü ve kelepçe flanşlı çatı süzgeci kesiti",
+    "secondaryDifference": "Primary membranın şalümöyle saha uygulamasını gösterirken, secondary çift kat örtünün parapet ve süzgeçte kesintisiz bitişini öğretir.",
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "metal-cati",
@@ -3328,7 +3338,7 @@
     "secondaryTargetWebp": "/bina-asamalari/details/metal-cati.webp",
     "legacySvgCard": "/bina-asamalari/topics/metal-cati.svg",
     "primaryMode": "site-process",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı durumunu net olarak anlamalı.",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında uzun koyu metal kenet panellerinin gizli klipslerle eğimli çatıya yerleştirildiğini ve elektrikli kenet makinesiyle kapatıldığını net olarak anlamalı.",
     "primaryMustShow": [
       "uzun metal kenet sacları",
       "yükselen dik kenet hatları",
@@ -3339,25 +3349,29 @@
       "marka",
       "kolaj"
     ],
-    "primaryPromptTr": "KONU: Metal Çatı\nİÇERİK: Büyük açıklık ve hızlı montaj gerektiren yapılarda panel veya kenet sistem olarak uygulanan hafif kaplama.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: uzun metal kenet sacları, yükselen dik kenet hatları, çatı eğimi ve bağlantı klipsleri.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: yazı, marka, kolaj, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
+    "primaryPromptTr": "KONU: Metal Çatı\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Uzun kenet metal panellerin gizli klips ve elektrikli kenet makinesiyle gerçek çatı montajını göstermek.\nMOD: site-process\nSAHNE: 16:9 yatay fotogerçekçi eğimli çatı; iki usta mat koyu gri paneller üzerinde çalışır, paralel dik kenetler saçaktan mahyaya uzanır, kompakt elektrikli kenet makinesi bir hattı kapatır; açık iş kenarında su örtüsü, lata ve gizli klipsler görünür.\nMUTLAKA GÖRÜNSÜN: uzun metal paneller, dik kenetler, elektrikli kenet makinesi, gizli klipsler ve çatı eğimi.\nFİZİKSEL DOĞRULUK: Paneller saçaktan mahyaya kesintisiz, klipsler kapanan panel altında kalacak biçimde gerçek montaja uygun olsun.\nKESİNLİKLE OLMASIN: yazı, marka, logo, filigran, UI, yüzeyde açık vida, kolaj veya deforme insan.",
     "primaryAltTr": "Metal Çatı — Kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: gizli hareketli paslanmaz klips (cleat) ve çift kilitli kenet birleşim kesiti",
+    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: çift kilitli dik kenet, gizli hareketli klips, ayırıcı örtü ve saçak damlalığı-oluk su tahliye birleşimi.",
     "secondaryMustShow": [
-      "birbirine 360 derece sarılan çift kenet kıvrımı",
-      "alttaki OSB'ye vidalı gizli hareketli çelik klips"
+      "birbirine sıkıca katlanmış çift dik kenet",
+      "OSB'ye vidalı gizli hareketli paslanmaz klips",
+      "metal panel altındaki ayırıcı örtü",
+      "saçak damlalığı ve metal yağmur oluğu"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü",
       "oklar"
     ],
-    "secondaryPromptTr": "KONU: Metal Çatı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Kenet çatı alüminyum/çinko panellerinin özel elektrikli kenet sıkma makinesi ile montajı\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Gizli hareketli paslanmaz klips (cleat) ve çift kilitli kenet birleşim kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: birbirine 360 derece sarılan çift kenet kıvrımı, alttaki OSB'ye vidalı gizli hareketli çelik klips.\nPRIMARY'DEN FARK: Primary sahadaki kenet metal çatı döşemesini gösterirken, secondary sacın genleşmesine izin veren gizli hareketli klips kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü, oklar, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Metal Çatı (Teknik Detay) — Gizli hareketli paslanmaz klips (cleat) ve çift kilitli kenet birleşim kesiti",
-    "secondaryDifference": "Primary sahadaki kenet metal çatı döşemesini gösterirken, secondary sacın genleşmesine izin veren gizli hareketli klips kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Metal Çatı\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Kenet metal panellerin sahada makineyle kapatılması.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Çift kilitli kenet, gizli hareketli klips ve saçak su tahliyesini yakın kesitte öğretmek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay fotogerçekçi makro çatı kenarı; iki mat gri panelin çift katlanmış dik kenedi, kenet içinde yakalanıp OSB'ye vidalanan paslanmaz hareketli klips, siyah ayırıcı örtü, katlanmış saçak damlalığı ve alttaki metal oluk görünür.\nPRIMARY'DEN FARK: Primary insanlı geniş montajı, secondary kenet-klips-altlık ve su tahliye geometrisini gösterir.\nFİZİKSEL DOĞRULUK: Drenaj yüzeyinde açık vida olmamalı, klips panelin ısıl hareketine izin vermeli ve damlalık oluğa boşalmalıdır.\nKESİNLİKLE OLMASIN: yazı, ölçü, ok, logo, filigran, UI, kolaj veya havada yüzen parça.",
+    "secondaryAltTr": "Metal Çatı (Teknik Detay) — Çift kilitli kenet, gizli hareketli klips ve saçak-oluk su tahliyesi kesiti",
+    "secondaryDifference": "Primary panellerin elektrikli makineyle saha montajını gösterirken, secondary kenet-klips-altlık ve saçak drenaj birleşimini makro kesitte öğretir.",
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "status": "published"
   },
   {
     "id": "tesisat-isleri",
