@@ -3940,24 +3940,26 @@
     ],
     "primaryPromptTr": "KONU: Peyzaj & Teslim\nİÇERİK: Çevre düzenleme, son kontroller, işletmeye alma ve iskan kapanışına uzanan proje tamamlama fazı.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında yapımı tamamlanmış modern bina, temiz çevre düzeni, yürüyüş yolları ve yeşil alanlar durumu ilk bakışta net anlaşılmalı.\nMOD: site-process\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: tamamlanmış çağdaş bina dış cephesi, aydınlatma direkleri ve yaya yolları, düzenlenmiş bahçe çimleri ve ağaçlar.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: sahte tabela, yazı, insan deformasyonu, kolaj, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
     "primaryAltTr": "Peyzaj & Teslim — Yapımı tamamlanmış modern bina, temiz çevre düzeni, yürüyüş yolları ve yeşil alanlar",
-    "secondaryMode": "site-process",
+    "secondaryMode": "installed-component",
     "secondaryPlacement": "quality-control",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: teslim öncesi son kontrol (punch list): mühendisin daire içinde yüzey ve mekanik kontrolü",
+    "secondaryVisualPurpose": "Teslim öncesinde cephe kaidesi, kapı eşiği, taş kaplama, lineer drenaj ve bitkisel alan birleşimindeki bitiş kalitesini yakın görünümde öğretmek.",
     "secondaryMustShow": [
-      "tamamlanmış aydınlık oda",
-      "pencere ve radyatör kontrolü",
-      "profesyonel teslim kabul süreci"
+      "temiz cephe kaidesi ve sızdırmaz birleşim çizgileri",
+      "eşiksiz kapı geçişi ve hassas kesilmiş taş kaplama",
+      "lineer drenaj ızgarası, bordür ve malçlı bitkisel alan"
     ],
     "secondaryMustNotShow": [
       "okunur kontrol listesi yazısı",
       "sahte evrak",
       "yazı"
     ],
-    "secondaryPromptTr": "KONU: Peyzaj & Teslim\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Yapımı tamamlanmış modern bina, temiz çevre düzeni, yürüyüş yolları ve yeşil alanlar\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Teslim öncesi son kontrol (punch list): mühendisin daire içinde yüzey ve mekanik kontrolü\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: site-process\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: tamamlanmış aydınlık oda, pencere ve radyatör kontrolü, profesyonel teslim kabul süreci.\nPRIMARY'DEN FARK: Primary binanın bitmiş dış cephe ve çevre genel görünümünü sunarken, secondary bina içinde yapılan son eksik-kusur kontrolü (punch list) anını öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: okunur kontrol listesi yazısı, sahte evrak, yazı, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Peyzaj & Teslim (Teknik Detay) — Teslim öncesi son kontrol (punch list): mühendisin daire içinde yüzey ve mekanik kontrolü",
-    "secondaryDifference": "Primary binanın bitmiş dış cephe ve çevre genel görünümünü sunarken, secondary bina içinde yapılan son eksik-kusur kontrolü (punch list) anını öğretir.",
+    "secondaryPromptTr": "KONU: Peyzaj & Teslim\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Tamamlanmış binanın dış cephe ve çevre genel görünümü.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Cephe, eşik, zemin, drenaj, bordür ve bitkisel alan birleşimindeki teslim kalitesini yakından göstermek.\nÖNEMLİ: Primary'nin yeniden kadrajlanmış kopyası olmayacak.\nMOD: installed-component\nSAHNE: 16:9 yatay, tamamlanmış zemin kat cephe köşesine yakın eğik görünüm.\nMUTLAKA GÖRÜNSÜN: temiz cephe kaidesi, düzgün sızdırmaz derzler, eşiksiz kapı geçişi, hassas kesilmiş taşlar, lineer drenaj, bordür ve sağlıklı malçlı bitkiler.\nPRIMARY'DEN FARK: Primary bina ve peyzajın geniş teslim görünümünü, secondary kritik dış çevre birleşimlerinin yakın işçilik kalitesini gösterir.\nFİZİKSEL DOĞRULUK: Kaplamada drenaja doğru su eğimi, cephede su kesici kaide ve takılma yaratmayan eşik olmalı.\nKESİNLİKLE OLMASIN: yazı, rakam, sahte evrak, etiket, logo, marka, filigran, UI, HUD, ok, ölçü, kolaj.",
+    "secondaryAltTr": "Peyzaj & Teslim (Teknik Detay) — Cephe kaidesi, eşik, taş zemin, lineer drenaj ve bitkisel alan birleşimi",
+    "secondaryDifference": "Primary bina ve peyzajın geniş teslim görünümünü gösterirken secondary kritik dış çevre birleşimlerinin yakın işçilik kalitesini gösterir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "peyzaj-ve-cevre-duzenleme",
@@ -3990,22 +3992,24 @@
     "primaryAltTr": "Peyzaj & Çevre Düzenleme — Bina çevresinde sert zemin bordür taşları ile bitkisel toprak alanının uyumlu düzenlenmesi",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: açık otopark ve yaya yolu altında yağmur suyu ızgarası ve drenaj kanalı kesiti",
+    "secondaryVisualPurpose": "Sert kaplama ile yumuşak peyzaj sınırında yüzey eğimi, lineer drenaj kanalı, bordür kotu, çıkış borusu ve damlama hattı ilişkisini öğretmek.",
     "secondaryMustShow": [
-      "döküm demir ızgara",
-      "polimer beton drenaj kanalı",
-      "alttaki çakıllı süzülme ve boru bağlantısı"
+      "ıslak parke yüzey boyunca lineer metal ızgara",
+      "beton bordürle ayrılmış malçlı bitkisel alan",
+      "drenaj çıkış borusu ve bitki yatağındaki siyah damlama hattı"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü oku",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Peyzaj & Çevre Düzenleme\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Bina çevresinde sert zemin bordür taşları ile bitkisel toprak alanının uyumlu düzenlenmesi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Açık otopark ve yaya yolu altında yağmur suyu ızgarası ve drenaj kanalı kesiti\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: döküm demir ızgara, polimer beton drenaj kanalı, alttaki çakıllı süzülme ve boru bağlantısı.\nPRIMARY'DEN FARK: Primary genel çevre düzenleme sahasını gösterirken, secondary yaya yollarındaki yüzey sularını toplayan lineer drenaj kanalı kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü oku, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Peyzaj & Çevre Düzenleme (Teknik Detay) — Açık otopark ve yaya yolu altında yağmur suyu ızgarası ve drenaj kanalı kesiti",
-    "secondaryDifference": "Primary genel çevre düzenleme sahasını gösterirken, secondary yaya yollarındaki yüzey sularını toplayan lineer drenaj kanalı kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Peyzaj & Çevre Düzenleme\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Sert ve yumuşak peyzajın birlikte uygulandığı geniş saha süreci.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Parke yol ile bitki yatağı sınırındaki drenaj ve kot ilişkisini yakından göstermek.\nÖNEMLİ: Primary'nin yeniden kadrajlanmış kopyası olmayacak.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, yağmur sonrası gerçek dış mekân yakın görünümü.\nMUTLAKA GÖRÜNSÜN: ıslak parke, lineer metal ızgara, beton bordür, malçlı bitki yatağı, drenaj çıkış borusu ve siyah damlama hattı.\nPRIMARY'DEN FARK: Primary insanlı peyzaj uygulamasını, secondary sert-yumuşak sınırındaki su yönetimi detayını gösterir.\nFİZİKSEL DOĞRULUK: Parke drenaja doğru eğimli, bordür bitki toprağını tutmalı ve drenaj çıkışı kesintisiz olmalı.\nKESİNLİKLE OLMASIN: yazı, rakam, ölçü oku, etiket, logo, marka, filigran, UI, HUD, kolaj.",
+    "secondaryAltTr": "Peyzaj & Çevre Düzenleme (Teknik Detay) — Parke yol, lineer drenaj, bordür ve damlama hatlı bitki yatağı sınırı",
+    "secondaryDifference": "Primary insanlı peyzaj uygulamasını gösterirken secondary sert-yumuşak sınırındaki drenaj ve kot ilişkisini yakından gösterir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "sert-zemin",
@@ -4052,7 +4056,9 @@
     "secondaryAltTr": "Sert Zemin (Teknik Detay) — Sert zemin katman kesiti: sıkıştırılmış alt temel, kırma taş, kum sergi ve kilit parke taşı",
     "secondaryDifference": "Primary sahadaki parke taşı döşeme işini gösterirken, secondary çökme ve dalgalanmayı önleyen alt temel ve sergi kumu katman kesitini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "bitkisel-peyzaj",

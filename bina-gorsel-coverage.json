@@ -1687,17 +1687,17 @@
     "depth": 1,
     "route": "/kategori/bina-asamalari/peyzaj-teslim",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/peyzaj-teslim.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/peyzaj-teslim.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1708,17 +1708,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/peyzaj-ve-cevre-duzenleme.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/peyzaj-ve-cevre-duzenleme.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1729,17 +1729,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme/sert-zemin",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/sert-zemin.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/sert-zemin.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
