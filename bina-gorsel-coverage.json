@@ -1750,17 +1750,17 @@
     "depth": 3,
     "route": "/kategori/bina-asamalari/peyzaj-teslim/peyzaj-ve-cevre-duzenleme/bitkisel-peyzaj",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/bitkisel-peyzaj.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/bitkisel-peyzaj.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   },
   {
@@ -1771,17 +1771,17 @@
     "depth": 2,
     "route": "/kategori/bina-asamalari/peyzaj-teslim/iskan-ruhsati",
     "primary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/topics/iskan-ruhsati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "secondary": {
-      "status": "pending",
+      "status": "published",
       "src": "/bina-asamalari/details/iskan-ruhsati.webp",
-      "qcScore": null
+      "qcScore": 95
     },
     "page": {
-      "twoDistinctVisuals": false
+      "twoDistinctVisuals": true
     }
   }
 ]

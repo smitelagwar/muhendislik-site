@@ -4088,23 +4088,25 @@
     "primaryAltTr": "Bitkisel Peyzaj — Bahçe alanında fidan dikimi, kök boğazı toprağı, damlama sulama borusu ve malç serimi",
     "secondaryMode": "technical-cutaway",
     "secondaryPlacement": "technical-detail",
-    "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: ağaç dikim çukuru kesiti: kök topu, gübreli toprak, drenaj çakılı ve ahşap herek (kazık) desteği",
+    "secondaryVisualPurpose": "Genç ağacın doğru kotta yerleştirilen kök topunu, iyileştirilmiş dolgu toprağını, damlama halkasını, organik malçı ve esnek herek desteğini yakın kesitte öğretmek.",
     "secondaryMustShow": [
-      "kök balyası (root ball)",
-      "çukurdaki organik toprak karışımı",
-      "ağacı rüzgardan koruyan çapraz ahşap herek gergisi",
-      "sulama çanağı"
+      "kök boğazı zemin kotunda duran sağlam kök topu",
+      "çevrede iyileştirilmiş toprak ve dışta doğal zemin",
+      "iki ahşap herek ile esnek gövde bağları",
+      "siyah damlama halkası ve gövdeden uzak organik malç"
     ],
     "secondaryMustNotShow": [
       "yazı",
       "ölçü çizgisi",
       "etiket"
     ],
-    "secondaryPromptTr": "KONU: Bitkisel Peyzaj\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: Bahçe alanında fidan dikimi, kök boğazı toprağı, damlama sulama borusu ve malç serimi\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Ağaç dikim çukuru kesiti: kök topu, gübreli toprak, drenaj çakılı ve ahşap herek (kazık) desteği\nÖNEMLİ: Bu görsel primary'nin yeniden kadrajlanmış veya yakınlaştırılmış kopyası OLMAYACAK. Aynı konunun tamamlayıcı ve farklı teknik detayını gösterecek.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay teknik detay veya kesit sahnesi.\nMUTLAKA GÖRÜNSÜN: kök balyası (root ball), çukurdaki organik toprak karışımı, ağacı rüzgardan koruyan çapraz ahşap herek gergisi, sulama çanağı.\nPRIMARY'DEN FARK: Primary genel fidan dikimini sunarken, secondary fidanın tutunmasını sağlayan kök çukuru drenajı ve rüzgar hereği kesitini öğretir.\nFİZİKSEL DOĞRULUK: Gerçekçi mühendislik ilişkisi, doğru malzeme katmanları, sıfır yapay süsleme.\nKESİNLİKLE OLMASIN: yazı, ölçü çizgisi, etiket, hiçbir yazı, harf, rakam, logo, marka, filigran, etiket, ölçü, UI, HUD, kolaj, havada yüzen obje.",
-    "secondaryAltTr": "Bitkisel Peyzaj (Teknik Detay) — Ağaç dikim çukuru kesiti: kök topu, gübreli toprak, drenaj çakılı ve ahşap herek (kazık) desteği",
-    "secondaryDifference": "Primary genel fidan dikimini sunarken, secondary fidanın tutunmasını sağlayan kök çukuru drenajı ve rüzgar hereği kesitini öğretir.",
+    "secondaryPromptTr": "KONU: Bitkisel Peyzaj\nGÖRSELİN ROLÜ: SECONDARY / ARTICLE DETAIL\nPRIMARY GÖRSELİN ÖĞRETTİĞİ: İşçilerin bahçe alanında genç ağaç dikme ve toprak hazırlama süreci.\nBU İKİNCİ GÖRSELİN FARKLI AMACI: Kök topu, iyileştirilmiş toprak, doğal zemin, damlama halkası, malç ve herek desteği ilişkisini yakın kesitte göstermek.\nÖNEMLİ: Primary'nin yeniden kadrajlanmış kopyası olmayacak.\nMOD: technical-cutaway\nSAHNE: 16:9 yatay, ağaç dikim çukurunun üst ve alt bölgesini birlikte gösteren gerçekçi yakın kesit.\nMUTLAKA GÖRÜNSÜN: zemin kotunda kök boğazı, sağlam kök topu, çevresinde gevşetilmiş iyileştirilmiş toprak, dışta doğal zemin, iki ahşap herek, esnek bağlar, siyah damlama halkası ve gövdeden uzak organik malç.\nPRIMARY'DEN FARK: Primary insanlı dikim sürecini, secondary bitmiş kök bölgesinin toprak, sulama ve destek düzenini gösterir.\nFİZİKSEL DOĞRULUK: Kök topu boşlukta kalmamalı, gövde derine gömülmemeli, herekler kök topunun dışında ve malç gövdeden uzak olmalı.\nKESİNLİKLE OLMASIN: yazı, rakam, ölçü, etiket, logo, marka, filigran, UI, HUD, ok, patlatılmış yüzen katmanlar.",
+    "secondaryAltTr": "Bitkisel Peyzaj (Teknik Detay) — Kök topu, iyileştirilmiş toprak, damlama halkası, malç ve herek desteği kesiti",
+    "secondaryDifference": "Primary insanlı dikim sürecini gösterirken secondary bitmiş kök bölgesinin toprak, sulama ve destek düzenini yakından gösterir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   },
   {
     "id": "iskan-ruhsati",
@@ -4118,20 +4120,20 @@
     "primaryTargetWebp": "/bina-asamalari/topics/iskan-ruhsati.webp",
     "secondaryTargetWebp": "/bina-asamalari/details/iskan-ruhsati.webp",
     "legacySvgCard": "/bina-asamalari/topics/iskan-ruhsati.svg",
-    "primaryMode": "project-visual",
-    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında tüm imalatları bitmiş, oturuma ve kabule hazır tamamlanmış kusursuz bina girişi durumunu net olarak anlamalı.",
+    "primaryMode": "installed-component",
+    "primaryVisualPurpose": "Kullanıcı bu görsele baktığında basamaksız erişilebilir rota, korunaklı eşik ve tamamen bitmiş ortak giriş holüyle yapının kullanıma ve iskân kabulüne hazır olduğunu net olarak anlamalı.",
     "primaryMustShow": [
-      "bitmiş bina giriş holü ve cephesi",
-      "aydınlatılmış peyzaj",
-      "kabul aşamasında kusursuz mimari"
+      "rampalı basamaksız giriş ve iki yanda kesintisiz korkuluk",
+      "korunaklı düz eşik ve otomatik cam giriş kapısı",
+      "aydınlatılmış bitmiş lobi, kaymaz zemin ve asansör kapıları"
     ],
     "primaryMustNotShow": [
       "sahte belediye belgesi",
       "sahte resmi mühür",
       "okunur yazı/imza"
     ],
-    "primaryPromptTr": "KONU: İskan Ruhsatı\nİÇERİK: Projenin mevzuata uygun tamamlanıp kullanıma açılabilmesi için yapılan son resmi ve teknik kontrol süreci.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Kullanıcı bu görsele baktığında tüm imalatları bitmiş, oturuma ve kabule hazır tamamlanmış kusursuz bina girişi durumu ilk bakışta net anlaşılmalı.\nMOD: project-visual\nSAHNE: Gerçekçi şantiye veya mimari bağlam. 16:9 yatay kompozisyon. Tek ana odak, kart boyutunda anlaşılır. Kolaj veya havada yüzen parça yok.\nMUTLAKA GÖRÜNSÜN: bitmiş bina giriş holü ve cephesi, aydınlatılmış peyzaj, kabul aşamasında kusursuz mimari.\nFİZİKSEL DOĞRULUK: Malzemeler, birleşimler, taşıyıcı sistemler ve montaj gerçek inşaat pratiğine uygun olsun.\nKALİTE: Profesyonel mimari/inşaat görselleştirmesi. Gerçekçi malzemeler, doğal kontrollü ışık.\nKESİNLİKLE OLMASIN: sahte belediye belgesi, sahte resmi mühür, okunur yazı/imza, hiçbir yazı, harf, rakam, logo, marka, filigran, tabela, etiket, ölçü rakamı, pseudo-text, UI, HUD, açıklama oku.",
-    "primaryAltTr": "İskan Ruhsatı — Tüm imalatları bitmiş, oturuma ve kabule hazır tamamlanmış kusursuz bina girişi",
+    "primaryPromptTr": "KONU: İskan Ruhsatı\nİÇERİK: Projenin teknik olarak tamamlanıp güvenli ve erişilebilir biçimde kullanıma hazır hale gelmesi.\nGÖRSELİN ROLÜ: PRIMARY / HERO / CARD\nGÖRSELİN AMACI: Basamaksız erişim rotası ve tamamen bitmiş ortak lobi ile yapının iskân kabulüne hazır olduğu ilk bakışta anlaşılmalı.\nMOD: installed-component\nSAHNE: 16:9 yatay, erken akşam ışığında gerçek tamamlanmış bina girişi; cam kapıdan iç lobi görülsün.\nMUTLAKA GÖRÜNSÜN: gerçekçi eğimli rampa, iki yanda kesintisiz korkuluk, düz ve korunaklı eşik, otomatik cam kapı, bitmiş kaymaz zemin, aydınlık lobi ve asansör kapıları.\nFİZİKSEL DOĞRULUK: Rampa eğimi ve sahanlıklar kullanılabilir, dolaşım engelsiz ve eşik takılma yaratmayacak biçimde olmalı.\nKALİTE: Fotogerçekçi profesyonel mimari fotoğraf.\nKESİNLİKLE OLMASIN: sahte belge, mühür, kâğıt, yazı, rakam, tabela, logo, marka, filigran, UI, HUD, kolaj.",
+    "primaryAltTr": "İskan Ruhsatı — Basamaksız erişilebilir rota ve tamamen bitmiş ortak lobiyle kullanıma hazır bina girişi",
     "secondaryMode": "site-process",
     "secondaryPlacement": "quality-control",
     "secondaryVisualPurpose": "Primary görselin göstermediği teknik bilgiyi öğretmek: yetkili yapı denetim ve belediye heyetinin yangın merdiveni ve sığınakta teknik kabul denetimi",
@@ -4149,6 +4151,8 @@
     "secondaryAltTr": "İskan Ruhsatı (Teknik Detay) — Yetkili yapı denetim ve belediye heyetinin yangın merdiveni ve sığınakta teknik kabul denetimi",
     "secondaryDifference": "Primary teslime hazır binanın kusursuz dış/giriş mimarisini gösterirken, secondary iskânın asıl şartı olan yangın güvenlik kabul denetimini öğretir.",
     "negativePromptTr": "okunur yazı, bozuk yazı, anlamsız harf dizisi, ters yazı, aynalı yazı, rakam, ölçü etiketi, logo, marka, filigran, tabela, sahte mühür, pseudo-text, UI, HUD, teknik açıklama kutusu, gereksiz ok, stok görsel damgası, ürün katalog kompozisyonu, kolaj, havada yüzen parça, rastgele geometrik dekor, konuyla ilgisiz el aleti, konuyla ilgisiz kablo veya boru, oyuncak görünümü, plastik doku, aşırı neon, bozuk perspektif, deforme geometri, eksik yapı elemanı, fiziksel olarak imkansız bağlantı, tekrar eden obje, bozuk el, fazla parmak, deforme insan, gereksiz kalabalık, aşırı lens efekti, aşırı alan derinliği, aşırı glow, aşırı doygunluk.",
-    "status": "planned"
+    "primaryQcScore": 95,
+    "secondaryQcScore": 95,
+    "status": "published"
   }
 ]
