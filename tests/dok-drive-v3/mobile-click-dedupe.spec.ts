@@ -82,7 +82,7 @@ test.describe("Drive V3.1 — Mobile synthetic click dedupe", () => {
     expect(consumeSyntheticClickSuppression("long-touch-item")).toBe(false);
   });
 
-  test("5. Scroll olarak iptal edilen gesture click suppression üretmez", () => {
+  test("5. Scroll olarak iptal edilen gesture hayalet click'i bastırır ama tap/selection çalıştırmaz", () => {
     let tapCount = 0;
     let longPressCount = 0;
 
@@ -104,6 +104,7 @@ test.describe("Drive V3.1 — Mobile synthetic click dedupe", () => {
 
     expect(tapCount).toBe(0);
     expect(longPressCount).toBe(0);
+    expect(consumeSyntheticClickSuppression("scroll-touch-item")).toBe(true);
     expect(consumeSyntheticClickSuppression("scroll-touch-item")).toBe(false);
   });
 });
