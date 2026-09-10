@@ -222,8 +222,6 @@
 
 /* Floating Action Bars & Sheets */
 .mobileSelectionBar {
-  /* BUG-1 FIX: CSS bottom override kaldırıldı — Tailwind bottom-2 class'ı
-     konumu yönetir. Sadece safe-area padding ve shadow burada. */
   padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
   box-shadow: var(--dok-shadow-overlay);
 }
@@ -318,7 +316,39 @@
   }
 
   .viewport {
+    /* Mobile explorer is the single shrinking/scrolling flex child. The old
+       min-h-[300px] + pb-28 contract could force the last virtual row below
+       the visible area or reserve space for a bar that had already wrapped. */
+    min-height: 0 !important;
+    padding-bottom: 1rem !important;
     scrollbar-gutter: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .mobileSelectionBar {
+    /* Mobile selection actions participate in the flex layout instead of
+       covering the explorer as a fixed overlay. `order` moves this DOM child
+       after the flex-1 viewport without a risky file-manager rewrite. */
+    position: static !important;
+    inset: auto !important;
+    order: 50;
+    flex-shrink: 0;
+    width: auto;
+    max-width: calc(100% - 1rem);
+    margin: 0.5rem;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobileSelectionBar > div {
+    flex-shrink: 0;
+  }
+
+  .mobileSelectionBar > div:last-child {
+    flex-wrap: nowrap !important;
   }
 }
 
@@ -345,5 +375,3 @@
   min-height: 100dvh;
   height: 100dvh;
 }
-
-
