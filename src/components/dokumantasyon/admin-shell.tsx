@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FolderArchive, User, ShieldCheck, ShieldAlert, Laptop } from "lucide-react";
 import { DokumantasyonFileManager } from "./file-manager";
 import styles from "./dok-workspace.module.css";
+import layoutStyles from "./mobile-shell-layout.module.css";
 
 interface AdminShellProps {
   username: string;
@@ -82,7 +83,9 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
         </div>
 
         {/* İçerik veya Drive Benzeri Dosya Yöneticisi */}
-        {children ? children : <DokumantasyonFileManager />}
+        <div className={layoutStyles.managerSlot}>
+          {children ? children : <DokumantasyonFileManager />}
+        </div>
       </div>
     </div>
   );
