@@ -22,6 +22,10 @@ import {
   DRIVE_MARQUEE_START_THRESHOLD,
   GridMetrics,
 } from "./drive-metrics";
+import {
+  canStartMarquee,
+  isActiveMarqueePointer,
+} from "./marquee-pointer-policy";
 
 export type UseDriveSelectionOptions = {
   visibleOrderedIds: string[];
@@ -48,6 +52,7 @@ export function useDriveSelection({
 
   const isMarqueeActiveRef = useRef(false);
   const pointerStartRef = useRef<{
+    pointerId: number;
     clientX: number;
     clientY: number;
     contentX: number;
@@ -289,9 +294,17 @@ export function useDriveSelection({
     };
   }, []);
 
-  // Window-level safety: release marquee if pointer is released outside container
+  // Window-level safety: release marquee if the same mouse pointer is released outside container
   useEffect(() => {
-    const handleWindowPointerUp = () => {
+    const handleWindowPointerUp = (e: PointerEvent) => {
+      const start = pointerStartRef.current;
+      if (
+        !start ||
+        !isActiveMarqueePointer(e.pointerType, e.pointerId, start.pointerId)
+      ) {
+        return;
+      }
+
       if (isMarqueeActiveRef.current) {
         isMarqueeActiveRef.current = false;
         if (rafIdRef.current) {
@@ -314,8 +327,9 @@ export function useDriveSelection({
 
   const handleContainerPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      // Only primary mouse button (left click)
-      if (e.button !== 0) return;
+      // Desktop marquee is intentionally restricted to the primary mouse button.
+      // Touch must remain available for native scrolling; pen does not inherit mouse semantics.
+      if (!canStartMarquee(e.pointerType, e.button)) return;
 
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -339,6 +353,7 @@ export function useDriveSelection({
       const isAdditive = e.ctrlKey || e.metaKey;
 
       pointerStartRef.current = {
+        pointerId: e.pointerId,
         clientX: e.clientX,
         clientY: e.clientY,
         contentX,
@@ -355,7 +370,12 @@ export function useDriveSelection({
   const handleContainerPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const start = pointerStartRef.current;
-      if (!start) return;
+      if (
+        !start ||
+        !isActiveMarqueePointer(e.pointerType, e.pointerId, start.pointerId)
+      ) {
+        return;
+      }
 
       latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
 
@@ -382,7 +402,12 @@ export function useDriveSelection({
   const handleContainerPointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const start = pointerStartRef.current;
-      if (!start) return;
+      if (
+        !start ||
+        !isActiveMarqueePointer(e.pointerType, e.pointerId, start.pointerId)
+      ) {
+        return;
+      }
 
       if (isMarqueeActiveRef.current) {
         isMarqueeActiveRef.current = false;
@@ -411,16 +436,27 @@ export function useDriveSelection({
     [clearSelection]
   );
 
-  const handleContainerPointerCancel = useCallback(() => {
-    isMarqueeActiveRef.current = false;
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    setMarqueeBox(null);
-    pointerStartRef.current = null;
-    latestPointerRef.current = null;
-  }, []);
+  const handleContainerPointerCancel = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const start = pointerStartRef.current;
+      if (
+        !start ||
+        !isActiveMarqueePointer(e.pointerType, e.pointerId, start.pointerId)
+      ) {
+        return;
+      }
+
+      isMarqueeActiveRef.current = false;
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      setMarqueeBox(null);
+      pointerStartRef.current = null;
+      latestPointerRef.current = null;
+    },
+    []
+  );
 
   const selectedIdsRef = useRef(state.selectedIds);
   selectedIdsRef.current = state.selectedIds;
