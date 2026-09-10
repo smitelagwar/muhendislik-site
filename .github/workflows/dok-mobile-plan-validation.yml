@@ -1,0 +1,68 @@
+name: dok-mobile-plan-validation
+
+on:
+  push:
+    branches:
+      - internal-dok-mobile-plan-no-deploy
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-mobile-documents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint changed mobile explorer sources
+        run: >-
+          npx eslint
+          src/components/dokumantasyon/drive-v3/marquee-pointer-policy.ts
+          src/components/dokumantasyon/drive-v3/mobile-click-suppression.ts
+          src/components/dokumantasyon/drive-v3/mobile-gesture-engine.ts
+          src/components/dokumantasyon/drive-v3/use-drive-selection.ts
+          tests/dok-drive-v3/marquee-pointer-policy.spec.ts
+          tests/dok-drive-v3/mobile-selection.spec.ts
+          tests/dok-drive-v3/mobile-click-dedupe.spec.ts
+          tests/dok-drive-v3/mobile-real-explorer.spec.ts
+          playwright.dok-drive.config.ts
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run pointer and gesture contracts
+        run: >-
+          npx playwright test
+          tests/dok-drive-v3/marquee-pointer-policy.spec.ts
+          tests/dok-drive-v3/mobile-selection.spec.ts
+          tests/dok-drive-v3/mobile-click-dedupe.spec.ts
+          --config=playwright.dok-drive.config.ts
+          --project=desktop-chromium
+
+      - name: Run real mobile Chromium acceptance
+        run: >-
+          npx playwright test
+          tests/dok-drive-v3/mobile-real-explorer.spec.ts
+          --config=playwright.dok-drive.config.ts
+          --project=mobile-chromium-390
+          --project=compact-mobile-chromium-320
+
+      - name: Run real iPhone WebKit acceptance
+        run: >-
+          npx playwright test
+          tests/dok-drive-v3/mobile-real-explorer.spec.ts
+          --config=playwright.dok-drive.config.ts
+          --project=mobile-webkit-iphone13
