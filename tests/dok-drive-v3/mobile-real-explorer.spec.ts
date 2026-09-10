@@ -87,10 +87,7 @@ async function getScrollViewport(page: Page) {
     let node = row.parentElement;
     while (node) {
       const style = window.getComputedStyle(node);
-      if (
-        (style.overflowY === "auto" || style.overflowY === "scroll") &&
-        node.scrollHeight > node.clientHeight
-      ) {
+      if (style.overflowY === "auto" || style.overflowY === "scroll") {
         return node;
       }
       node = node.parentElement;
@@ -139,7 +136,7 @@ test.describe("Drive V3.1 — Real mobile explorer acceptance", () => {
 
     await expect(page).toHaveURL(/folderId=folder-mobile/);
     await expect(page.getByRole("button", { name: "Taşı" })).toHaveCount(0);
-    await expect(page.getByText("Mobil Klasör", { exact: true }).first()).toBeVisible();
+    await expect(page.locator('button:visible').filter({ hasText: /^Mobil Klasör$/ }).first()).toBeVisible();
   });
 
   test("3. Selection dock explorer'ın üstüne binmez ve en son sanal dosya tamamen görünür", async ({ page }) => {
@@ -150,6 +147,17 @@ test.describe("Drive V3.1 — Real mobile explorer acceptance", () => {
     const viewportHandle = await getScrollViewport(page);
     const hasViewport = await viewportHandle.evaluate((node) => node !== null);
     expect(hasViewport).toBe(true);
+
+    const viewportMetrics = await viewportHandle.evaluate((node) => {
+      if (!(node instanceof HTMLElement)) throw new Error("Scrollable explorer viewport bulunamadı");
+      return {
+        clientHeight: node.clientHeight,
+        scrollHeight: node.scrollHeight,
+        overflowY: window.getComputedStyle(node).overflowY,
+      };
+    });
+    expect(viewportMetrics.overflowY === "auto" || viewportMetrics.overflowY === "scroll").toBe(true);
+    expect(viewportMetrics.scrollHeight).toBeGreaterThan(viewportMetrics.clientHeight);
 
     await viewportHandle.evaluate((node) => {
       if (!(node instanceof HTMLElement)) throw new Error("Scrollable explorer viewport bulunamadı");
