@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: dok-mobile-plan-validation
+  cancel-in-progress: true
+
 jobs:
   validate-mobile-documents:
     runs-on: ubuntu-latest
@@ -30,6 +34,7 @@ jobs:
       - name: Lint changed mobile explorer sources
         run: >-
           npx eslint
+          src/components/dokumantasyon/admin-shell.tsx
           src/components/dokumantasyon/drive-v3/marquee-pointer-policy.ts
           src/components/dokumantasyon/drive-v3/mobile-click-suppression.ts
           src/components/dokumantasyon/drive-v3/mobile-gesture-engine.ts
