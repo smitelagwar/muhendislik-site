@@ -28,9 +28,10 @@ export interface LongPressOptions {
  * - 8px kayma olduğunda timer iptal edilir (doğal scroll'a izin verilir)
  * - 500ms dolmadan pointerup gelirse timer iptal edilir ve tekil tık işlenir
  * - 500ms dolduğunda seçim modu tetiklenir ve haptik titreşim verilir
- * - Touch/pen gesture bir öğeyi işlediğinde aynı öğe için gelecek sentetik
- *   compatibility click tam bir kez bastırılır; böylece pointerup + click iki ayrı
- *   seçme/açma yolu olarak çalışmaz.
+ * - Touch/pen pointer dizisi tamamlandığında aynı öğe için gelecek sentetik
+ *   compatibility click tam bir kez bastırılır. Bu, normal tap ve long-press'in
+ *   iki kez işlenmesini engellediği gibi scroll-cancel sonrası oluşabilecek
+ *   hayalet click'in yanlışlıkla seçim yapmasını da önler.
  */
 export function createLongPressController({
   id,
@@ -95,9 +96,10 @@ export function createLongPressController({
   };
 
   const handlePointerUp = () => {
-    const completedGesture = state === "pressing" || state === "triggered";
+    const shouldSuppressCompatibilityClick =
+      activePointerType !== null && activePointerType !== "mouse" && state !== "idle";
 
-    if (completedGesture && activePointerType !== "mouse") {
+    if (shouldSuppressCompatibilityClick) {
       armSyntheticClickSuppression(id);
     }
 
