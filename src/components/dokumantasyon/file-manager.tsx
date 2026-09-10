@@ -1767,10 +1767,10 @@ function DokumantasyonFileManagerInner() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative flex min-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-2xl border border-border/80 sm:min-h-[calc(100dvh-11rem)] ${styles.workspace}`}
+      className={`relative flex min-h-0 lg:min-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-2xl border border-border/80 lg:sm:min-h-[calc(100dvh-11rem)] ${styles.workspace}`}
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-        {isMobileSelectionMode ? `Seçim modu açık. ${selectedIds.size} öğe seçildi.` : "Seçim modu kapalı."}
+        {isMobileSelectionMode ? `Seçim modu açık. ${selectedIds.size} öğe seçildi.` : ""}
       </div>
       {/* Gizli Dosya Girişi */}
       <input

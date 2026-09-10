@@ -58,8 +58,8 @@
   box-shadow: 0 20px 50px -12px rgba(245, 158, 11, 0.12),
               0 0 0 1px rgba(255, 255, 255, 0.4),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
-  /* BUG-4 FIX: overflow:clip yerine hidden — fixed child'ları (toast, modal) etkilemez,
-     border-radius clipping korunur */
+  /* overflow:clip: border-radius clipping korunur; fixed pozisyonlu
+     child'lar (toast, modal) bu değerden etkilenmez. */
   overflow: clip;
 }
 
@@ -263,7 +263,9 @@
 .virtualRow,
 .virtualCard {
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  will-change: transform, opacity;
+  /* will-change kasıtlı olarak kaldırıldı: sanal listedeki tüm satırlarda
+     sürekli compositing katmanı açık tutmak gereksiz GPU ve bellek maliyeti
+     yaratır. Tarayıcı transition sırasında zaten otomatik optimize eder. */
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -328,15 +330,18 @@
   }
 
   .mobileSelectionBar {
-    /* Dock, DOM sırasında viewport sonrasında yer alır. */
+    /* Dock, DOM sırasında viewport sonrasında yer alır. Full-width, margin 0. */
     position: static !important;
     inset: auto !important;
     flex-shrink: 0;
-    width: auto;
-    max-width: calc(100% - 1rem);
-    margin: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 0;
     flex-wrap: nowrap !important;
-    overflow-x: auto;
+    /* Dock en fazla 3 action içermeli; scroll gerekmez */
+    overflow-x: hidden;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
@@ -413,11 +418,6 @@
   -webkit-user-select: none;
   user-select: none;
   touch-action: pan-y;
-}
-
-.mobileContainerDvh {
-  min-height: 100dvh;
-  height: 100dvh;
 }
 
 @media (max-width: 1023px) {

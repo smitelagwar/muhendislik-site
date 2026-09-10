@@ -58,7 +58,7 @@ export function DriveSidebar({
 
   const getNavButtonClass = (filter: DriveNavFilter) => {
     const isActive = activeFilter === filter;
-    return `flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs transition-all duration-200 ${
+    return `flex min-h-[44px] w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs transition-all duration-200 ${
       isActive
         ? "bg-gradient-to-r from-amber-500/25 to-amber-500/10 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-bold shadow-sm backdrop-blur-md"
         : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground border border-transparent font-medium"
@@ -66,7 +66,7 @@ export function DriveSidebar({
   };
 
   return (
-    <aside className={`flex w-64 shrink-0 flex-col gap-4 p-4 select-none ${styles.sidebar} ${className}`}>
+    <aside className={`flex w-64 shrink-0 flex-col gap-4 overflow-y-auto overscroll-y-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] select-none ${styles.sidebar} ${className}`}>
       {/* Mobil Başlık ve Kapatma Butonu */}
       {onNavigate && (
         <div className="flex items-center justify-between border-b border-border/60 pb-3 lg:hidden">
@@ -79,7 +79,7 @@ export function DriveSidebar({
           <button
             type="button"
             onClick={completeNavigation}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
+            className="flex min-h-[44px] min-w-[44px] h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Menüyü Kapat"
           >
             <X className="h-5 w-5" />
