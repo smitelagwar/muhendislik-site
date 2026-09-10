@@ -8,7 +8,6 @@ import { useReducer, useRef, useCallback, useEffect, useState } from "react";
 import {
   selectionReducer,
   INITIAL_SELECTION_STATE,
-  DriveSelectionState,
 } from "./selection-reducer";
 import {
   getBoundingBox,
@@ -459,7 +458,9 @@ export function useDriveSelection({
   );
 
   const selectedIdsRef = useRef(state.selectedIds);
-  selectedIdsRef.current = state.selectedIds;
+  useEffect(() => {
+    selectedIdsRef.current = state.selectedIds;
+  }, [state.selectedIds]);
 
   const setSelectedIds = useCallback(
     (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
