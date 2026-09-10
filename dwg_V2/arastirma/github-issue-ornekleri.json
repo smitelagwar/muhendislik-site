@@ -1,0 +1,82 @@
+{
+  "researchDate": "2026-09-05",
+  "results": [
+    {
+      "repo": "mlightcad/cad-viewer",
+      "items": [
+        {
+          "number": 601,
+          "title": "OrcaRouter provider support for cad-viewer",
+          "url": "https://github.com/mlightcad/cad-viewer/issues/601",
+          "updatedAt": "2026-09-05T00:07:37Z"
+        },
+        {
+          "number": 571,
+          "title": "Load SHX fonts",
+          "url": "https://github.com/mlightcad/cad-viewer/issues/571",
+          "updatedAt": "2026-08-31T09:42:58Z"
+        },
+        {
+          "number": 572,
+          "title": "Block / Disable export functions",
+          "url": "https://github.com/mlightcad/cad-viewer/issues/572",
+          "updatedAt": "2026-08-31T02:18:38Z"
+        },
+        {
+          "number": 552,
+          "title": "Blocks with more than 1 attribute cannot be edited",
+          "url": "https://github.com/mlightcad/cad-viewer/issues/552",
+          "updatedAt": "2026-08-27T21:24:34Z"
+        }
+      ],
+      "note": "Small sample of open issues, not exhaustive and not reproduced."
+    },
+    {
+      "repo": "DomCR/ACadSharp",
+      "items": [],
+      "note": "Small sample of open issues, not exhaustive and not reproduced."
+    },
+    {
+      "repo": "vagran/dxf-viewer",
+      "items": [
+        {
+          "number": 166,
+          "title": "DXF file rendering stuck at \"Parsing file\" indefinitely",
+          "url": "https://github.com/vagran/dxf-viewer/issues/166",
+          "updatedAt": "2026-08-12T02:24:41Z"
+        },
+        {
+          "number": 164,
+          "title": "Table cell multi-line MTEXT content missing, two-line text cell renders blank",
+          "url": "https://github.com/vagran/dxf-viewer/issues/164",
+          "updatedAt": "2026-07-17T11:42:49Z"
+        },
+        {
+          "number": 158,
+          "title": "Display « blocks » list",
+          "url": "https://github.com/vagran/dxf-viewer/issues/158",
+          "updatedAt": "2026-01-14T09:13:30Z"
+        },
+        {
+          "number": 157,
+          "title": "Some annotated information cannot be displayed",
+          "url": "https://github.com/vagran/dxf-viewer/issues/157",
+          "updatedAt": "2025-12-28T02:29:48Z"
+        },
+        {
+          "number": 156,
+          "title": "I have a lot of 2D data in dxf.dwg format.",
+          "url": "https://github.com/vagran/dxf-viewer/issues/156",
+          "updatedAt": "2025-12-17T09:28:38Z"
+        },
+        {
+          "number": 154,
+          "title": "displaying is not correct",
+          "url": "https://github.com/vagran/dxf-viewer/issues/154",
+          "updatedAt": "2025-11-18T03:20:27Z"
+        }
+      ],
+      "note": "Small sample of open issues, not exhaustive and not reproduced."
+    }
+  ]
+}

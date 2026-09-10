@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "researchDate": "2026-09-05",
+  "files": [
+    {
+      "id": "R001",
+      "path": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+      "sizeBytes": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+      "format": "DWG",
+      "readOnlyInspection": true,
+      "magic": "AC1032"
+    },
+    {
+      "id": "R002",
+      "path": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+      "sizeBytes": 2139550,
+      "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+      "format": "DWG",
+      "readOnlyInspection": true,
+      "magic": "AC1032"
+    },
+    {
+      "id": "R003",
+      "path": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+      "sizeBytes": 16084252,
+      "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+      "format": "DWG",
+      "readOnlyInspection": true,
+      "magic": "AC1032"
+    },
+    {
+      "id": "R004",
+      "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+      "sizeBytes": 55259742,
+      "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+      "format": "DXF",
+      "readOnlyInspection": true,
+      "header": {
+        "$ACADVER": [
+          {
+            "code": 1,
+            "value": "AC1021"
+          }
+        ],
+        "$DWGCODEPAGE": [
+          {
+            "code": 3,
+            "value": "ANSI_1254"
+          }
+        ],
+        "$MEASUREMENT": [
+          {
+            "code": 70,
+            "value": "0"
+          }
+        ],
+        "$INSUNITS": [
+          {
+            "code": 70,
+            "value": "5"
+          }
+        ]
+      },
+      "sectionRecordCounts": {
+        "BLOCKS": {
+          "BLOCK": 303,
+          "ENDBLK": 303,
+          "HATCH": 232,
+          "LWPOLYLINE": 54790,
+          "TEXT": 25617,
+          "CIRCLE": 5024,
+          "LINE": 5191,
+          "ARC": 4148,
+          "SOLID": 4,
+          "INSERT": 1552,
+          "MTEXT": 477,
+          "POINT": 906,
+          "ELLIPSE": 3,
+          "DIMENSION": 276
+        },
+        "ENTITIES": {
+          "INSERT": 13,
+          "LWPOLYLINE": 73960,
+          "LINE": 867,
+          "ARC": 10293,
+          "TEXT": 27830,
+          "MTEXT": 16,
+          "HATCH": 984,
+          "CIRCLE": 18676,
+          "OLE2FRAME": 1,
+          "ELLIPSE": 20,
+          "DIMENSION": 9
+        }
+      },
+      "groupPairs": 3968453,
+      "note": "Lexical group-code scan, not a CAD parser. Record counts include structural records such as BLOCK/ENDBLK/SEQEND; INSERT contents are not expanded. String geometry, dependencies and visual fidelity were not evaluated.",
+      "wholeFileUtf8Valid": true
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-09-05T09:50:01.401Z",
+  "status": "PASS",
+  "head": "042b04a96300c6e2d4f44593fdab33eb7cd8593c",
+  "markdownFiles": 22,
+  "jsonFiles": 5,
+  "whitespaceDelimitedWords": 23356,
+  "totalBytesExcludingThisReport": 212122,
+  "localLinksChecked": 144,
+  "externalUrlSyntaxChecked": 105,
+  "externalHttpStatusRecheckPerformed": false,
+  "codeFenceParity": true,
+  "jsonParse": true,
+  "solByteEquivalent": true,
+  "existingFingerprints": [
+    {
+      "path": "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-viewer.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+      "unchanged": true
+    },
+    {
+      "path": "package.json",
+      "unchanged": true
+    },
+    {
+      "path": "package-lock.json",
+      "unchanged": true
+    },
+    {
+      "path": "vercel.json",
+      "unchanged": true
+    },
+    {
+      "path": ".vercelignore",
+      "unchanged": true
+    },
+    {
+      "path": "docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md",
+      "unchanged": true
+    }
+  ],
+  "trackedDiff": null,
+  "runtimeTestsRun": false,
+  "problems": []
+}

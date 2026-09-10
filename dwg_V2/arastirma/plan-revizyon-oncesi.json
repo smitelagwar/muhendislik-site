@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-09-05T14:15:58.763Z",
+  "purpose": "Gemini uygulama ve Astra denetim düzenlemesi öncesindeki araştırma paketinin kimliği; uygulama başlangıcı değildir.",
+  "head": "042b04a96300c6e2d4f44593fdab33eb7cd8593c",
+  "status": "?? docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md\n?? dwg_V2/",
+  "files": [
+    {
+      "path": "dwg_V2/01_MANIFESTO.md",
+      "sha256": "9afc638284ef457c39fd4f83e491aa120b7e4f2878b6fd134c263db36d842708"
+    },
+    {
+      "path": "dwg_V2/02_REPO_INCELEMESI.md",
+      "sha256": "4888d2a016f1e37f37be800efccdfb5f8bb1f5996f62e02c6bb9a3432245d348"
+    },
+    {
+      "path": "dwg_V2/03_ARASTIRMA_VE_ADAYLAR.md",
+      "sha256": "e7ae5faab5675c176393fabff765bb57458f059939a22d7f14c0b291df4e1c6b"
+    },
+    {
+      "path": "dwg_V2/04_KARAR_CERCEVESI.md",
+      "sha256": "f28624d4547466eda84234e330727b0694a390aa94581c54c092ccb5665830fe"
+    },
+    {
+      "path": "dwg_V2/05_SISTEM_MIMARISI.md",
+      "sha256": "66cb2dd87303c4e349901f3135089bde2019a7b551f1730dbf68ea8169a1c4cd"
+    },
+    {
+      "path": "dwg_V2/06_DOGRULUK_ATLASI.md",
+      "sha256": "b524d45c79d89a5cbd97c414a6e2c274bae393af822924f34b32d6eefa2260fc"
+    },
+    {
+      "path": "dwg_V2/07_PERFORMANS_VE_BELLEK.md",
+      "sha256": "4ee4467ce6ac280d36e906d8f5b1e9b1050f98e8f7bab0d34c8ebc10c5052fec"
+    },
+    {
+      "path": "dwg_V2/08_CIHAZLAR_VE_ETKILESIM.md",
+      "sha256": "a25e668f7991e7455f45d68660afeacb76a77f64bae321da8f5b41c696215c82"
+    },
+    {
+      "path": "dwg_V2/09_SITE_ENTEGRASYONU.md",
+      "sha256": "59069ca974151bacdd1e984927c688cf0f9097776bdd52e201157eb249ab333c"
+    },
+    {
+      "path": "dwg_V2/10_GUVENLIK_VE_ISLETIM.md",
+      "sha256": "e6d4e610744fe65e23555a30d9e178828dab3acbf74ae735f0a89d6d6362c401"
+    },
+    {
+      "path": "dwg_V2/11_DOGRULAMA_PROGRAMI.md",
+      "sha256": "12996336d4f6b903ca0dbdc4d5095441e7028e1d9cdacdea6da1b1414e356bbb"
+    },
+    {
+      "path": "dwg_V2/12_YOL_HARITALARI.md",
+      "sha256": "f348f8146db5a9eef19f2eac854bb7cefa123e5c50b8f26723636986ce6b5285"
+    },
+    {
+      "path": "dwg_V2/13_IS_PAKETLERI.md",
+      "sha256": "8ec3264822d71252ec48b1985be551404c840f73ac43aa91a52896ae924c47cd"
+    },
+    {
+      "path": "dwg_V2/14_KAYNAK_VE_RISK_PLANI.md",
+      "sha256": "ebc770f793eaea6a870794ed6d0d50c7d93f1a3f7b411e2b64b756d832aa677d"
+    },
+    {
+      "path": "dwg_V2/15_ASTRA_CALISMA_REHBERI.md",
+      "sha256": "e7bcb194082ff0888beddf7c1abfa32895470a9a80a6565eaa7dd19017f495e6"
+    },
+    {
+      "path": "dwg_V2/16_KAYNAKCA.md",
+      "sha256": "cf1e7a1f260eda7e312c3868ec7939d83671d3b8de43d420e93852b37985261e"
+    },
+    {
+      "path": "dwg_V2/17_TESLIM_VE_DURUM.md",
+      "sha256": "9949d3f9149cfacb60685d53e176e6dd3d0dc1120517b2776a39d97433b50abb"
+    },
+    {
+      "path": "dwg_V2/arastirma/github-issue-ornekleri.json",
+      "sha256": "cd58746e67490e37f3ecfbeff49614e6aa8d3abe4e513d19722006816ff496ee"
+    },
+    {
+      "path": "dwg_V2/arastirma/github-snapshot.json",
+      "sha256": "36f1c3658f93b525d5522e2baa3653b3fc29cfaa031c1f34a4e9d2cff30ac01c"
+    },
+    {
+      "path": "dwg_V2/arastirma/teslim-kontrol.json",
+      "sha256": "b691ad009129b94b77a393d365f80d1d710c60882d323bca73e663639813af6b"
+    },
+    {
+      "path": "dwg_V2/arastirma/yerel-baslangic.json",
+      "sha256": "51db8a5ec78e54748641d54cb6693c19bdfb3709f79bd856bec5564125704654"
+    },
+    {
+      "path": "dwg_V2/arastirma/yerel-corpus.json",
+      "sha256": "1c514b085e0fa0f678c54362e3c2d5b6a2225bdd602e85c9a97051d81ade9c3a"
+    },
+    {
+      "path": "dwg_V2/girdi/SOL_TEKNIK_ONERILER_ORIJINAL.md",
+      "sha256": "6a595741f3abbfd9fa3b9c9f23baf781f0a83f44162dea376fda40675b7db059"
+    },
+    {
+      "path": "dwg_V2/README.md",
+      "sha256": "d80cb075eee2e5bc06b00c0ebb1bfcf6956681552697d2176d9a5bc9261eeb15"
+    },
+    {
+      "path": "dwg_V2/sablonlar/DENEY_RAPORU.md",
+      "sha256": "06bd600aa00ee65056df56e82d96a5a2bb8196ea5105ea0e217c0f1f2a53cd42"
+    },
+    {
+      "path": "dwg_V2/sablonlar/KARAR_KAYDI.md",
+      "sha256": "177c20d79d0a4ddd68d85fd774f27d36bd47608b5e862b287ae8aeabc66b3cec"
+    },
+    {
+      "path": "dwg_V2/sablonlar/OTURUM_DEVRI.md",
+      "sha256": "b2730a8d43ea11503899095d7895d0487ca00660cb575846bd95872653a7f150"
+    }
+  ]
+}

@@ -37,8 +37,9 @@ Dökümantasyon modülü Dosya Yöneticisi V3.1, modern masaüstü işletim sist
    - Scroll Pozisyonu Saklama: `folderId + filter + viewMode` bazlı anahtar ile klasörler arası gezinip geri dönüldüğünde kaydırma konumu tam olarak geri yüklenir.
 
 6. **Mobil & iOS Erişilebilirliği:**
-   - 500ms haptik titreşimli Long-Press durum makinesi.
-   - 8px üzerinde parmak hareketi algılandığında doğal kaydırma serbest bırakılır ve long-press iptal edilir.
+   - Mobil çoklu seçim yalnız açık `Seç` modu ile başlar; gizli timer/haptik long-press seçim yolu yoktur.
+   - Doğal dikey kaydırma `touch-action: pan-y` ile korunur; swipe/flick yanlışlıkla açma veya seçim üretmez.
    - iOS Safari metin seçme baloncukları engellenmiştir (`-webkit-touch-callout: none; user-select: none;`).
-   - `100dvh`, `viewportFit: cover` ve safe-area inset desteği.
-   - Tüm dokunmatik etkileşim alanları WCAG 2.5.5 kriterine uygun olarak minimum 44x44 CSS pikseldir.
+   - `100dvh`, ölçülen navbar yüksekliği, `viewportFit: cover` ve safe-area inset desteği.
+   - Liste, kart, dosya adı, çift tıklama, checkbox ve context menu girişleri tek `explorer-activation.ts` policy'sine bağlıdır.
+   - 44×44 CSS px, projenin geliştirilmiş dokunma hedefi standardıdır; bu değer evrensel WCAG minimumu olarak etiketlenmez.

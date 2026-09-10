@@ -3,6 +3,10 @@
 }
 
 @media (max-width: 1023px) {
+  .shell {
+    height: calc(100dvh - var(--dok-app-header-height, 4.5rem));
+  }
+
   .managerSlot {
     flex: 1 1 0%;
     min-height: 0;
@@ -24,5 +28,30 @@
     height: 56px !important;
     padding-top: 6px !important;
     padding-bottom: 6px !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .shell :global([data-testid="dok-admin-header"]) {
+    padding: 8px 12px;
+    gap: 0;
+  }
+  .shell :global([data-admin-user]),
+  .shell :global([data-admin-meta]),
+  .shell :global([data-testid="dok-admin-header"] p) {
+    display: none;
+  }
+}
+
+/* Yatay telefonlarda başlık erişilebilir kalır, dosya alanını tüketmez. */
+@media (max-width: 1023px) and (max-height: 500px) {
+  .shell :global([data-testid="dok-admin-header"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }

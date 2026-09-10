@@ -142,6 +142,7 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
   - **Aşama 6**: Türkçe Gauss çokgen alan ölçümü (`CadAreaMeasurementController`), 12.000.000,00 oracle'ı, SVG kılavuz ve mobil "Bitir" butonu.
   - **Aşama 7**: Mobil alt sheet katman çekmecesi, safe-area, 44×44 px touch target standardı, klavye focus trap & restore, screen reader etiketleri, bounded DOM (100'lük bloklar) ve CAD liste gezintisi.
   - **Aşama 8**: Birleşik gerçek release kapısı (`npm run check:cad-real-user-release`), browser matrisi doğrulaması ve yaşayan mimari hafıza.
+- Dosya yöneticisi mobil sertleştirme (10 Eylül 2026, yerel): açık seçim modu bütün satır/kart/ad girişlerinde merkezi policy kullanır. Navbar ölçümlü viewport ve normal akış dock, 320px / Chromium / WebKit / yatay ekran regresyonlarıyla korunur. Ayrıntılar: `docs/DOK_MOBILE_HARDENING_2026-09-10.md`; hedefli typecheck: `npx tsc --noEmit --incremental false -p tsconfig.dok-mobile.json`.
 - Release Kapısı: `npm run check:cad-real-user-release`
 
 ---

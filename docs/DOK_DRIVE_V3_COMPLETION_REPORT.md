@@ -5,6 +5,8 @@
 **Referans Plan:** `DOKUMANTASYON_DRIVE_V3_1_EKSIKLERI_KAPATMA_NIHAI_PLANI.md`  
 **Durum:** TAMAMLANDI (ALL GATES PASSED)
 
+> **Tarihsel kayıt notu (10 Eylül 2026):** Bu rapor 4 Eylül 2026 tarihli entegrasyon snapshot'ıdır. Mobil dosya yöneticisinin güncel interaction contract'ı, gerçek cihaz testleri ve bu snapshot'taki eski/abartılı kabullerin düzeltilmiş açıklaması [`docs/DOK_MOBILE_HARDENING_2026-09-10.md`](DOK_MOBILE_HARDENING_2026-09-10.md) içindedir. Buradaki long-press controller, command registry ve repo-geneli gate ifadeleri güncel mobil uygulama kanıtı olarak yorumlanmamalıdır.
+
 ---
 
 ## 1. Yönetici Özeti (Executive Summary)

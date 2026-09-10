@@ -9,7 +9,7 @@ import path from "path";
 import {
   MOBILE_VIEWPORT_PRESETS,
   isSufficientTouchTarget,
-} from "../src/components/dokumantasyon/drive-v3/mobile-gesture-engine";
+} from "../src/components/dokumantasyon/drive-v3/mobile-ui-contract";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -99,8 +99,8 @@ async function runStage9Tests() {
     assert(preset.width > 0 && preset.height > 0, `${preset.name} (${preset.width}x${preset.height} - ${preset.orientation}) doğrulandı`);
   }
 
-  // 6. Touch Target Alanı Kontrolü (WCAG 44x44px Kriteri)
-  console.log("\n--- 6. WCAG Dokunmatik Hedef Alanı Kontrolü (44x44px) ---");
+  // 6. Touch Target Alanı Kontrolü (Proje 44x44px standardı)
+  console.log("\n--- 6. Geliştirilmiş Dokunmatik Hedef Alanı Kontrolü (44x44px) ---");
   assert(isSufficientTouchTarget(44, 44) === true, "44x44 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(48, 48) === true, "48x48 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(32, 32) === false, "32x32 piksel yetersiz touch target olarak tespit edildi");

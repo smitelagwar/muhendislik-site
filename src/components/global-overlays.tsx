@@ -1,16 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { DeferredCommandPalette } from "@/components/deferred-command-palette";
 
 const BackToTop = dynamic(() => import("@/components/back-to-top").then((module) => module.BackToTop), { ssr: false });
 const BottomNav = dynamic(() => import("@/components/bottom-nav").then((module) => module.BottomNav), { ssr: false });
 
 export function GlobalOverlays() {
+  const pathname = usePathname();
+  const isDocumentWorkspace = pathname === "/dokumantasyon" || pathname.startsWith("/dokumantasyon/");
   return (
     <>
-      <BottomNav />
-      <BackToTop />
+      {!isDocumentWorkspace && <BottomNav />}
+      {!isDocumentWorkspace && <BackToTop />}
       <DeferredCommandPalette />
       <div id="dok-overlay-root" />
     </>

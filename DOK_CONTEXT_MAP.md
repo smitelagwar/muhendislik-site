@@ -1,6 +1,6 @@
 # Dokümantasyon bağlam haritası
 
-Son güncelleme: 30 Ağustos 2026 (CAD Preview V2 Hardening — Aşama 1–8)
+Son güncelleme: 10 Eylül 2026 (Dökümantasyon mobil dosya yöneticisi sertleştirmesi; CAD Preview V2 Hardening — Aşama 1–8)
 
 Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrıntılı CAD geçmişi için `docs/cad-upstream-migration-stage*.md`, **güncel CAD çalışma mimarisi** için `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md` okunur.
 
@@ -36,7 +36,8 @@ Dosya yöneticisi (`/dokumantasyon`) V3.1 sürümüyle aşağıdaki modern işle
 - **Toplu İşlemler & PDD:** `/api/dokumantasyon/bulk/*` (trash, move, star, restore), tek request 100 item, max chunk 250, partial failure toleransı, Atlassian Pragmatic Drag & Drop auto-scroll (`pdd-integration.ts`, `bulk-operations.ts`).
 - **Transfer Kuyruğu:** Eşzamanlılık (concurrency: 3) limitli, iptal ve yeniden deneme destekli `UploadQueueManager`.
 - **Sanallaştırma & Ölçek:** `@tanstack/react-virtual` 5.000+ item desteği, mounted DOM < 250 node, anchor-preserving resize (`use-virtual-explorer.ts`, `virtual-scroll.ts`).
-- **Görsel & Mobil:** CSS GPU transitions (will-change, virtual row/card üzerinde framer-motion yasağı), 500ms long-press state machine, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover`.
+- **Görsel & Mobil:** CSS GPU transitions (will-change, virtual row/card üzerinde framer-motion yasağı), açık Seç modu, merkezi explorer-activation policy, mouse-only double-click/contextmenu, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover`.
+- **Mobil sertleştirme (10 Eylül 2026, yerel çalışma):** Dosya adı ve satır/kart aynı seçim sözleşmesini kullanır. Normal mobil görünümde checkbox/Tümünü Seç kapalıdır. Breakpoint değişimi seçimi temizler. Dock DOM sırasında viewport sonrasındadır; sabit site alt menüsü dokümantasyon rotalarında görünmez. Navbar yüksekliği ResizeObserver ile ölçülür; kısa yatay ekranda modül başlığı yalnız erişilebilir metin olarak kalır. Ayrıntı: `docs/DOK_MOBILE_HARDENING_2026-09-10.md`.
 - **Birleşik Test Paketi:** `npm run check:dok-drive-v3` (tüm aşamalar 1-9 tek komutla test edilir).
 - **Ayrıntılı Belgeler:** `docs/DOK_DRIVE_V3_ARCHITECTURE.md`, `docs/DOK_DRIVE_V3_INTERACTION_CONTRACT.md`, `docs/DOK_DRIVE_V3_COMMAND_MATRIX.md`, `docs/DOK_DRIVE_V3_TEST_MATRIX.md`, `docs/DOK_DRIVE_V3_PERFORMANCE_BUDGET.md`.
 

@@ -8,10 +8,10 @@ import { test, expect } from "@playwright/test";
 import {
   isSufficientTouchTarget,
   MOBILE_VIEWPORT_PRESETS,
-} from "../../src/components/dokumantasyon/drive-v3/mobile-gesture-engine";
+} from "../../src/components/dokumantasyon/drive-v3/mobile-ui-contract";
 
 test.describe("Drive V3.1 — Mobile Gesture & Explicit Selection Contract", () => {
-  test("1. WCAG dokunmatik hedef alanı sözleşmesi (44x44px)", () => {
+  test("1. Geliştirilmiş dokunmatik hedef alanı sözleşmesi (44x44px)", () => {
     expect(isSufficientTouchTarget(44, 44)).toBe(true);
     expect(isSufficientTouchTarget(48, 48)).toBe(true);
     expect(isSufficientTouchTarget(40, 44)).toBe(false);
@@ -43,3 +43,20 @@ test.describe("Drive V3.1 — Mobile Gesture & Explicit Selection Contract", () 
     expect(compact?.name).toBe("iPhone SE");
   });
 });
+
+import { resolveExplorerActivation, type ItemActivationSource, type ExplorerAction } from "../../src/components/dokumantasyon/drive-v3/explorer-activation";
+const cases: [ItemActivationSource, boolean, boolean, string, ExplorerAction][] = [
+  ["body", true, false, "touch", "open"], ["name", true, false, "touch", "link"],
+  ["body", true, true, "touch", "toggle"], ["name", true, true, "touch", "toggle"],
+  ["select-control", true, false, "touch", "ignore"], ["select-control", true, true, "touch", "toggle"],
+  ["double", true, true, "touch", "ignore"], ["double", true, false, "mouse", "ignore"],
+  ["context", true, false, "touch", "ignore"], ["context", false, false, "touch", "ignore"],
+  ["context", false, false, "pen", "ignore"], ["double", false, false, "pen", "ignore"],
+  ["body", false, false, "mouse", "desktop-select"], ["name", false, false, "mouse", "link"],
+  ["double", false, false, "mouse", "open"], ["context", false, false, "mouse", "desktop-context"],
+];
+for (const [source, mobile, selectionMode, pointerType, result] of cases) {
+  test(`Etkinleştirme ${source}/${mobile}/${selectionMode}/${pointerType}: ${result}`, () => {
+    expect(resolveExplorerActivation({ source, mobile, selectionMode, pointerType })).toBe(result);
+  });
+}

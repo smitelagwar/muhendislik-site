@@ -25,7 +25,6 @@ import {
   canStartMarquee,
   isActiveMarqueePointer,
 } from "./marquee-pointer-policy";
-import { consumeSyntheticClickSuppression } from "./mobile-click-suppression";
 
 export type UseDriveSelectionOptions = {
   visibleOrderedIds: string[];
@@ -74,11 +73,6 @@ export function useDriveSelection({
   const handleItemClick = useCallback(
     (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
-
-      // Touch/pen gesture path may already have opened or selected this item.
-      // Consume exactly one compatibility click so a single finger tap cannot
-      // execute both pointer-up and click selection paths.
-      if (consumeSyntheticClickSuppression(id)) return;
 
       const isCtrl = e.ctrlKey || e.metaKey;
       const isShift = e.shiftKey;

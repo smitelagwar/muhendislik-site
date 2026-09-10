@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "researchDate": "2026-09-05",
+  "head": "042b04a96300c6e2d4f44593fdab33eb7cd8593c",
+  "branch": "main",
+  "remoteWasNotFetched": true,
+  "existingUntracked": "docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md",
+  "originalSolSha256": "6a595741f3abbfd9fa3b9c9f23baf781f0a83f44162dea376fda40675b7db059",
+  "fingerprints": [
+    {
+      "path": "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+      "sha256": "85e47c8a2610a327eefb6747a1ecdacb0e6b84e3a7d85d1a0b79878f471b7748"
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "sha256": "3e8f10cc6fbc4ce8d32c527aab6dbd8903077872c491279e4f949e1e914a450a"
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-viewer.tsx",
+      "sha256": "0015c7749d9a5499b39286c5cb53c132f03d5d550c5d91455bd2726506410957"
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+      "sha256": "181f17b9fcc7e41c4ef2d46972b78fec10023f267c2db20a1db62d6735dde1a7"
+    },
+    {
+      "path": "package.json",
+      "sha256": "c8fa61eb80d1744ee72fa8772af4faa94f70a2bd2c38051b1b2338c7da622600"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3034409e5b9895d75e73bddd59505bbe468917bebba08319d4143e58301b7e4d"
+    },
+    {
+      "path": "vercel.json",
+      "sha256": "9fd4ea9e9bbb01391e7e946e1b2d3e2af2dd003b27067dadcdcaf4f20b799fb1"
+    },
+    {
+      "path": ".vercelignore",
+      "sha256": "65b81876d748ba01618a50df583e12a2e7de2dcfcae5aac773616aa67c6c6109"
+    },
+    {
+      "path": "docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md",
+      "sha256": "b6ee5c2e55c2490b6fe0d3061d544c7288fab503d8d1a52da50907f6a07eb172"
+    }
+  ]
+}

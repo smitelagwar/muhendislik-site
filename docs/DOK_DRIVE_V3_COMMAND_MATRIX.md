@@ -1,6 +1,8 @@
 # DÖKÜMANTASYON DRIVE V3.1 — KOMUT MATRİSİ (COMMAND MATRIX)
 
-Tüm kullanıcı eylemleri tek bir komut kayıt defteri (`src/components/dokumantasyon/drive-v3/command-registry.ts`) üzerinden doğrulanır ve yönlendirilir.
+Bu belge, kullanıcı eylemleri için hedeflenen komut kayıt defteri sözleşmesini (`src/components/dokumantasyon/drive-v3/command-registry.ts`) ve UI tetikleyicilerini envanterler.
+
+> **Kapsam notu (10 Eylül 2026):** Bu matris komut sözleşmesi ve hedef UI envanteridir; mobil item activation'ın güncel kaynağı değildir. Mobil gövde/ad/çift tıklama/contextmenu/seçim kontrolü kuralları için [`docs/DOK_DRIVE_V3_INTERACTION_CONTRACT.md`](DOK_DRIVE_V3_INTERACTION_CONTRACT.md) ve uygulama/test kanıtı için [`docs/DOK_MOBILE_HARDENING_2026-09-10.md`](DOK_MOBILE_HARDENING_2026-09-10.md) esas alınır.
 
 | ID | Komut Adı | Kısayol | Hedef | Çoklu Seçim Desteği | Tetikleyici UI |
 |---|---|---|---|---|---|

@@ -6,6 +6,8 @@
 > **Main HEAD SHA:** `ae4d9d7005d5d74560aa4ea936ad0715f98f5112`  
 > **CAD Diff vs Main:** **0 DIFF (KESİNLİKLE KORUMADA)**  
 
+> **Tarihsel kayıt notu (10 Eylül 2026):** Bu belge 4 Eylül 2026 tarihli bir baseline fotoğrafıdır. Mobil dosya yöneticisi için güncel kararlar, kaynak gerçekliği, test sonuçları ve eski ifadelerin hangi nedenle değiştirildiği [`docs/DOK_MOBILE_HARDENING_2026-09-10.md`](DOK_MOBILE_HARDENING_2026-09-10.md) içinde tutulur. Bu baseline'daki `mobile-gesture-engine`, gizli long-press ve benzeri mobil satırları güncel uygulama sözleşmesi olarak kullanılmamalıdır.
+
 ---
 
 ## 1. MODÜL ENTEGRASYON VE BAĞLANTI ENVANTERİ

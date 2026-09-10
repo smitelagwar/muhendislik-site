@@ -2,12 +2,15 @@
 
 Bu belge, `internal-dok-mobile-plan-no-deploy` çalışmasında uygulanan mobil Dökümantasyon davranışlarının kalıcı sözleşmesidir.
 
+> **Güncel uygulama notu (10 Eylül 2026):** Bu sözleşme, `docs/DOK_MOBILE_HARDENING_2026-09-10.md` ile birlikte okunmalıdır. Strict seçim modelinde normal mobil görünümde checkbox ve Tümünü Seç gizlidir; seçim modu yalnız üstteki `Seç` düğmesiyle açılır.
+
 ## Mobil etkileşim kuralları
 
 - Satıra tek dokunuş: dosyayı açar veya klasöre girer.
 - Dikey kaydırma: yalnız kaydırır; seçim veya açma üretmez.
 - Uzun basma: seçim başlatmaz ve dosya açmaz.
-- Checkbox / `Dosya Seç` / `Klasör Seç`: çoklu seçimin açık giriş noktasıdır.
+- `Seç` düğmesi: mobil çoklu seçimin tek açık giriş noktasıdır.
+- Seçim modu açıkken checkbox, dosya/klasör gövdesi ve dosya adı: seçimi toggle eder; normal modda bu kontroller gizli ve programatik olarak etkisizdir.
 - `⋮` ve diğer interaktif alt kontroller parent satır gesture'ını tetiklemez.
 - Touch/pen marquee başlatamaz; marquee yalnız primary left mouse içindir.
 - Bir touch gesture sonrası browser compatibility click aynı öğede ikinci aksiyon üretemez.

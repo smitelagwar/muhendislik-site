@@ -14,7 +14,7 @@ Bu belge, Drive V3.1 dosya yöneticisi uygulamasının tüm otomatik ve statik t
 | `scripts/check-dok-drive-v3-stage6-bulk-dnd.ts` | 100 Bulk Trash/Move, 97/3 Partial, Concurrency 3 | AŞAMA 6 | ✓ PASS (8/8) |
 | `scripts/check-dok-drive-v3-stage7-virtualization.ts` | 5K DOM Budget, Anchor-Preserving Resize, Scroll Restore | AŞAMA 7 | ✓ PASS (12/12) |
 | `scripts/check-dok-drive-v3-stage8-visuals.ts` | CSS GPU Transitions, Selection Glow, Reduced Motion | AŞAMA 8 | ✓ PASS (8/8) |
-| `scripts/check-dok-drive-v3-stage9-mobile.ts` | 500ms Long-Press, Callout Suppression, Viewport Matrisi | AŞAMA 9 | ✓ PASS (7/7) |
+| `scripts/check-dok-drive-v3-stage9-mobile.ts` | Explicit Seç modu, callout suppression, 56px virtual row ve viewport matrisi | AŞAMA 9 | ✓ PASS |
 | `npm run check:dok-drive-v3` | **Tüm Drive V3.1 Aşama Testlerinin Birleşik Çalıştırılması** | AŞAMA 1-9 | ✓ PASS |
 
 ## 2. Dökümantasyon Modülü Regresyon Testleri
@@ -41,3 +41,7 @@ Bu belge, Drive V3.1 dosya yöneticisi uygulamasının tüm otomatik ve statik t
 - **CAD Motoru Koruma:** `git diff src/components/dokumantasyon/preview/ src/lib/dokumantasyon/cad-upstream/ ...` sonucu kesin olarak **0 diff**'tir.
 - **TypeScript Kontrolü:** `npx tsc --project tsconfig.next.json --noEmit` sıfır hata (`0 errors`).
 - **Build Bütünlüğü:** `npm run build` hatasız derlenir.
+
+### Mobil sertleştirme güncellemesi — 10 Eylül 2026
+
+Gerçek tarayıcı acceptance paketi artık liste ve ızgarada normal açma, dosya adı navigasyonu, açık Seç modu, tekrar dokunmada deselect, double-click/contextmenu guard, gerçek swipe/flick/long-press, 100/500 öğe son satır görünürlüğü, açık/koyu tema ve breakpoint/orientation geçişlerini kapsar. Ayrıntılı bulgular ve gerekçeler `docs/DOK_MOBILE_HARDENING_2026-09-10.md` içindedir.

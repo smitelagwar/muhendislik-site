@@ -9,7 +9,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 30_000,
-  expect: { timeout: 10_000 },
+  globalTimeout: 600_000,
+  expect: { timeout: 8_000 },
   reporter: [["list"]],
   webServer: {
     command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
@@ -19,6 +20,8 @@ export default defineConfig({
   },
   use: {
     baseURL,
+    actionTimeout: 8_000,
+    navigationTimeout: 45_000,
     trace: "on-first-retry",
   },
   projects: [

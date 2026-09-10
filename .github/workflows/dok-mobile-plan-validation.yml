@@ -3,14 +3,29 @@ name: dok-mobile-plan-validation
 on:
   push:
     branches:
+      - main
       - internal-dok-mobile-plan-no-deploy
+  pull_request:
+    paths:
+      - "src/components/dokumantasyon/**"
+      - "src/app/dokumantasyon/**"
+      - "src/components/navbar*.tsx"
+      - "src/components/global-overlays.tsx"
+      - "src/app/layout.tsx"
+      - "src/app/globals.css"
+      - "tests/dok-drive-v3/**"
+      - "scripts/check-dok-drive-v3-*"
+      - "playwright.dok-drive.config.ts"
+      - "tsconfig.dok-mobile.json"
+      - "package*.json"
+      - ".github/workflows/dok-mobile-plan-validation.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: dok-mobile-plan-validation
+  group: dok-mobile-plan-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,16 +49,23 @@ jobs:
       - name: Lint changed mobile explorer sources
         run: >-
           npx eslint
+          src/components/global-overlays.tsx
           src/components/dokumantasyon/admin-shell.tsx
+          src/components/dokumantasyon/file-manager.tsx
+          src/components/dokumantasyon/drive-v3/explorer-activation.ts
+          src/components/dokumantasyon/drive-v3/use-mobile-explorer.ts
+          tests/dok-drive-v3/explorer-fixture.ts
+          tests/dok-drive-v3/desktop-real-explorer.spec.ts
           src/components/dokumantasyon/drive-v3/marquee-pointer-policy.ts
-          src/components/dokumantasyon/drive-v3/mobile-click-suppression.ts
-          src/components/dokumantasyon/drive-v3/mobile-gesture-engine.ts
+          src/components/dokumantasyon/drive-v3/mobile-ui-contract.ts
           src/components/dokumantasyon/drive-v3/use-drive-selection.ts
           tests/dok-drive-v3/marquee-pointer-policy.spec.ts
           tests/dok-drive-v3/mobile-selection.spec.ts
-          tests/dok-drive-v3/mobile-click-dedupe.spec.ts
           tests/dok-drive-v3/mobile-real-explorer.spec.ts
           playwright.dok-drive.config.ts
+
+      - name: Typecheck runtime and mobile regression
+        run: npx tsc --noEmit --incremental false -p tsconfig.dok-mobile.json
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
@@ -65,3 +87,11 @@ jobs:
           tests/dok-drive-v3/mobile-real-explorer.spec.ts
           --config=playwright.dok-drive.config.ts
           --project=mobile-webkit-iphone13
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dok-mobile-failure-evidence
+          path: test-results/dok-drive-v3
+          retention-days: 7

@@ -100,8 +100,8 @@ import {
   registerFolderDropTarget,
   registerContainerAutoScroll,
 } from "./drive-v3/pdd-integration";
-// mobile-gesture-engine: MOBILE_VIEWPORT_PRESETS ve isSufficientTouchTarget
-// A7 sonrası doğrudan bu dosyada kullanılmıyor; test/contract için modül korundu.
+import { useMobileExplorer } from "./drive-v3/use-mobile-explorer";
+import { MOBILE_EXPLORER_QUERY, resolveExplorerActivation, type ItemActivationSource } from "./drive-v3/explorer-activation";
 
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
 import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
@@ -132,6 +132,9 @@ export function DokumantasyonFileManager() {
 
 function DokumantasyonFileManagerInner() {
   const router = useRouter();
+  const isMobileExplorer = useMobileExplorer();
+  const lastPointerTypeRef = useRef("mouse");
+  const selectionModeButtonRef = useRef<HTMLButtonElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("folderId") || null;
@@ -231,10 +234,10 @@ function DokumantasyonFileManagerInner() {
   }, [displayedFiles]);
 
   useEffect(() => {
-    if (!hasCadFiles) return;
+    if (!hasCadFiles || isMobileExplorer) return;
     const cleanup = scheduleIdleCadPreload({ minDelayMs: 1500 });
     return cleanup;
-  }, [hasCadFiles]);
+  }, [hasCadFiles, isMobileExplorer]);
 
   // Single Scroll Container Ref (Unified for Virtualization, Marquee, Keyboard, Auto-scroll)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -293,8 +296,17 @@ function DokumantasyonFileManagerInner() {
   const exitMobileSelectionMode = useCallback(() => {
     setIsMobileSelectionMode(false);
     clearSelection();
+    selectionModeButtonRef.current?.focus();
   }, [clearSelection]);
 
+
+  // Breakpoint değiştiğinde eski seçim oturumu her iki yönde de kapanır.
+  useEffect(() => {
+    const media = window.matchMedia(MOBILE_EXPLORER_QUERY);
+    const resetMode = () => { setIsMobileSelectionMode(false); clearSelection(); };
+    media.addEventListener("change", resetMode);
+    return () => media.removeEventListener("change", resetMode);
+  }, [clearSelection]);
 
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{
@@ -495,7 +507,7 @@ function DokumantasyonFileManagerInner() {
         existing();
         pddCleanupsRef.current.delete(folder.id);
       }
-      if (!node) return;
+      if (!node || isMobileExplorer) return;
 
       const cleanupDraggable = registerDraggableItem({
         element: node,
@@ -519,7 +531,7 @@ function DokumantasyonFileManagerInner() {
         cleanupDrop();
       });
     },
-    [selectedIds, allSelectedItems, replaceSelection, handleDropOnFolder]
+    [selectedIds, allSelectedItems, replaceSelection, handleDropOnFolder, isMobileExplorer]
   );
 
   const setFileNodeRef = useCallback(
@@ -529,7 +541,7 @@ function DokumantasyonFileManagerInner() {
         existing();
         pddCleanupsRef.current.delete(file.id);
       }
-      if (!node) return;
+      if (!node || isMobileExplorer) return;
 
       const cleanupDraggable = registerDraggableItem({
         element: node,
@@ -541,7 +553,7 @@ function DokumantasyonFileManagerInner() {
 
       pddCleanupsRef.current.set(file.id, cleanupDraggable);
     },
-    [selectedIds, allSelectedItems, replaceSelection]
+    [selectedIds, allSelectedItems, replaceSelection, isMobileExplorer]
   );
 
   useEffect(() => {
@@ -557,22 +569,6 @@ function DokumantasyonFileManagerInner() {
     if (!el) return;
     return registerContainerAutoScroll(el);
   }, []);
-
-  // ============================================================================
-  // MOBILE STABLE REFS — mutable latest refs for event handlers
-  // ============================================================================
-  const selectedIdsRef = useRef(selectedIds);
-  selectedIdsRef.current = selectedIds;
-
-  const navigateToFolderRef = useRef(navigateToFolder);
-  navigateToFolderRef.current = navigateToFolder;
-
-  const routerRef = useRef(router);
-  routerRef.current = router;
-
-  // A3 — Mobil Seçim Modu için en güncel state ref'i
-  const isMobileSelectionModeRef = useRef(isMobileSelectionMode);
-  isMobileSelectionModeRef.current = isMobileSelectionMode;
 
   // ============================================================================
   // COMMAND REGISTRY & UNIFIED ACTION DISPATCHER (DRIVE V3.1)
@@ -621,10 +617,13 @@ function DokumantasyonFileManagerInner() {
 
   const executeCommand = useCallback(
     async (id: CommandId, payload?: unknown): Promise<boolean> => {
+      if (id === "select-all" && isMobileExplorer && !isMobileSelectionMode) {
+        return false;
+      }
       const ctx = getCommandContext();
       return commandRegistryRef.current.execute(id, ctx, payload);
     },
-    [getCommandContext]
+    [getCommandContext, isMobileExplorer, isMobileSelectionMode]
   );
 
   // Register All Command Handlers
@@ -729,6 +728,9 @@ function DokumantasyonFileManagerInner() {
     }));
 
     cleanups.push(registry.register("select-all", () => {
+      // Strict mobil sözleşme: command palette/harici dispatcher da Seç modu
+      // kapalıyken görünmez bir seçim oturumu başlatamaz.
+      if (isMobileExplorer && !isMobileSelectionMode) return;
       selectAll();
     }));
 
@@ -786,6 +788,8 @@ function DokumantasyonFileManagerInner() {
     clearSelection,
     refetchItems,
     setViewMode,
+    isMobileExplorer,
+    isMobileSelectionMode,
   ]);
 
   // Toplam İstatistikler
@@ -827,17 +831,13 @@ function DokumantasyonFileManagerInner() {
   };
 
   // Çoklu Seçim İşlemleri
-  const handleToggleSelect = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleSelectedId(id);
-  };
-
   const allItemIds = visibleOrderedIds;
 
   const isAllSelected =
     allItemIds.length > 0 && allItemIds.every((id) => selectedIds.has(id));
 
   const handleToggleSelectAll = () => {
+    if (isMobileExplorer && !isMobileSelectionMode) return;
     if (isAllSelected) {
       setSelectedIds(new Set());
     } else {
@@ -1137,7 +1137,7 @@ function DokumantasyonFileManagerInner() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (window.innerWidth < 1024) return;
+      if (isMobileExplorer) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       const dialogIsOpen = isSearchOpen || isNewFolderOpen || renameItem !== null || moveItems.length > 0 || deleteItem !== null || isMultiDeleteOpen || isCreateShareOpen || isTrashOpen || isFilterSheetOpen;
@@ -1173,11 +1173,32 @@ function DokumantasyonFileManagerInner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteItem, executeCommand, isCreateShareOpen, isFilterSheetOpen, isMultiDeleteOpen, isNewFolderOpen, isSearchOpen, isTrashOpen, moveItems.length, renameItem, selectedIds.size]);
+  }, [isMobileExplorer, deleteItem, executeCommand, isCreateShareOpen, isFilterSheetOpen, isMultiDeleteOpen, isNewFolderOpen, isSearchOpen, isTrashOpen, moveItems.length, renameItem, selectedIds.size]);
 
   // ============================================================================
   // VIRTUALIZED & SHARED ROW / CARD RENDERERS
   // ============================================================================
+  const activateItem = (item: DokFile | DokFolder, source: ItemActivationSource, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (source === "double" && event.target instanceof Element &&
+        event.target.closest("button, a, [role='menuitem']")) return;
+    const action = resolveExplorerActivation({
+      source, mobile: isMobileExplorer, selectionMode: isMobileSelectionMode,
+      pointerType: (event.nativeEvent as PointerEvent).pointerType || lastPointerTypeRef.current,
+    });
+    if (action !== "link") event.preventDefault();
+    if (action === "toggle") toggleSelectedId(item.id);
+    if (action === "desktop-select") handleItemClick(item.id, event);
+    if (action === "desktop-context") handleItemContextMenu(item.id, event);
+    if (action === "open" || action === "link") {
+      if ("parent_id" in item) navigateToFolder(item.id);
+      else {
+        triggerCadIntentPreload(item.extension);
+        if (action === "open") router.push(`/dokumantasyon/dosya/${item.id}`);
+      }
+    }
+  };
+
   const renderFolderRow = (folder: DokFolder, style?: React.CSSProperties) => {
     const isSelected = selectedIds.has(folder.id);
     const isStarred = Boolean(folder.starred_at);
@@ -1188,22 +1209,10 @@ function DokumantasyonFileManagerInner() {
         ref={(node) => setFolderNodeRef(node, folder)}
         data-testid="dok-folder-row"
         data-folder-id={folder.id}
-        onClick={(e) => {
-          // A3 — Mobil tap davranışı: masaüstünden ayır
-          if (typeof window !== "undefined" && window.innerWidth < 1024 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            if (isMobileSelectionMode) {
-              e.stopPropagation();
-              toggleSelectedId(folder.id);
-            } else {
-              navigateToFolder(folder.id);
-            }
-            return;
-          }
-          // Masaüstü: mevcut selection motoru
-          handleItemClick(folder.id, e);
-        }}
-        onDoubleClick={() => navigateToFolder(folder.id)}
-        onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+        data-selected={isSelected}
+        onClick={(e) => activateItem(folder, "body", e)}
+        onDoubleClick={(e) => activateItem(folder, "double", e)}
+        onContextMenu={(e) => activateItem(folder, "context", e)}
         style={style}
         className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
           dragOverFolderId === folder.id ? styles.dragOverFolder : ""
@@ -1212,17 +1221,19 @@ function DokumantasyonFileManagerInner() {
         } ${focusedId === folder.id ? styles.virtualRowFocused : ""}`}
       >
         <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
-          <button
-            onClick={(e) => handleToggleSelect(folder.id, e)}
+          {(!isMobileExplorer || isMobileSelectionMode) && (<button
+            onClick={(e) => activateItem(folder, "select-control", e)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto"
-            aria-label="Klasör Seç"
+            data-selection-control
+            aria-pressed={isSelected}
+            aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
           >
             {isSelected ? (
               <CheckSquare className="h-4 w-4 text-amber-500" />
             ) : (
               <Square className="h-4 w-4" />
             )}
-          </button>
+          </button>)}
 
           <button
             onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
@@ -1327,42 +1338,31 @@ function DokumantasyonFileManagerInner() {
         data-testid="dok-file-row"
         data-file-id={file.id}
         data-extension={file.extension}
-        onClick={(e) => {
-          // A3 — Mobil tap davranışı
-          if (typeof window !== "undefined" && window.innerWidth < 1024 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            if (isMobileSelectionMode) {
-              e.stopPropagation();
-              toggleSelectedId(file.id);
-            } else {
-              router.push(`/dokumantasyon/dosya/${file.id}`);
-            }
-            return;
-          }
-          // Masaüstü: mevcut selection motoru
-          handleItemClick(file.id, e);
-        }}
-        onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
-        onContextMenu={(e) => handleItemContextMenu(file.id, e)}
-        onPointerDown={() => triggerCadIntentPreload(file.extension)}
-        onPointerEnter={() => triggerCadIntentPreload(file.extension)}
-        onFocus={() => triggerCadIntentPreload(file.extension)}
+        data-selected={isSelected}
+        onClick={(e) => activateItem(file, "body", e)}
+        onDoubleClick={(e) => activateItem(file, "double", e)}
+        onContextMenu={(e) => activateItem(file, "context", e)}
+        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
+        onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
         style={style}
         className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
           isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
         } ${focusedId === file.id ? styles.virtualRowFocused : ""}`}
       >
         <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
-          <button
-            onClick={(e) => handleToggleSelect(file.id, e)}
+          {(!isMobileExplorer || isMobileSelectionMode) && (<button
+            onClick={(e) => activateItem(file, "select-control", e)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto"
-            aria-label="Dosya Seç"
+            data-selection-control
+            aria-pressed={isSelected}
+            aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
           >
             {isSelected ? (
               <CheckSquare className="h-4 w-4 text-amber-500" />
             ) : (
               <Square className="h-4 w-4" />
             )}
-          </button>
+          </button>)}
 
           <button
             onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
@@ -1379,7 +1379,10 @@ function DokumantasyonFileManagerInner() {
           <div className="min-w-0">
             <Link
               href={`/dokumantasyon/dosya/${file.id}`}
-              onClick={(e) => e.stopPropagation()}
+              prefetch={false}
+              data-testid="dok-file-name"
+              onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
+              onClick={(e) => activateItem(file, "name", e)}
               className="block truncate font-bold text-foreground hover:text-amber-500 hover:underline"
             >
               {file.display_name}
@@ -1496,21 +1499,10 @@ function DokumantasyonFileManagerInner() {
         ref={(node) => setFolderNodeRef(node, folder)}
         data-testid="dok-folder-card"
         data-folder-id={folder.id}
-        onClick={(e) => {
-          // A3 — Mobil tap davranışı
-          if (typeof window !== "undefined" && window.innerWidth < 1024 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            if (isMobileSelectionMode) {
-              e.stopPropagation();
-              toggleSelectedId(folder.id);
-            } else {
-              navigateToFolder(folder.id);
-            }
-            return;
-          }
-          handleItemClick(folder.id, e);
-        }}
-        onDoubleClick={() => navigateToFolder(folder.id)}
-        onContextMenu={(e) => handleItemContextMenu(folder.id, e)}
+        data-selected={isSelected}
+        onClick={(e) => activateItem(folder, "body", e)}
+        onDoubleClick={(e) => activateItem(folder, "double", e)}
+        onContextMenu={(e) => activateItem(folder, "context", e)}
         style={style}
         className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           dragOverFolderId === folder.id ? styles.dragOverFolder : ""
@@ -1520,18 +1512,20 @@ function DokumantasyonFileManagerInner() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <button
+            {(!isMobileExplorer || isMobileSelectionMode) && (<button
               type="button"
-              onClick={(e) => handleToggleSelect(folder.id, e)}
+              onClick={(e) => activateItem(folder, "select-control", e)}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
-              aria-label="Klasör Seç"
+              data-selection-control
+            aria-pressed={isSelected}
+            aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
             >
               {isSelected ? (
                 <CheckSquare className="h-4 w-4 text-amber-500" />
               ) : (
                 <Square className="h-4 w-4" />
               )}
-            </button>
+            </button>)}
             <Folder className="h-6 w-6 text-amber-500" />
           </div>
           <div className="flex items-center gap-1">
@@ -1624,24 +1618,12 @@ function DokumantasyonFileManagerInner() {
         data-testid="dok-file-card"
         data-file-id={file.id}
         data-extension={file.extension}
-        onClick={(e) => {
-          // A3 — Mobil tap davranışı
-          if (typeof window !== "undefined" && window.innerWidth < 1024 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            if (isMobileSelectionMode) {
-              e.stopPropagation();
-              toggleSelectedId(file.id);
-            } else {
-              router.push(`/dokumantasyon/dosya/${file.id}`);
-            }
-            return;
-          }
-          handleItemClick(file.id, e);
-        }}
-        onDoubleClick={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
-        onContextMenu={(e) => handleItemContextMenu(file.id, e)}
-        onPointerDown={() => triggerCadIntentPreload(file.extension)}
-        onPointerEnter={() => triggerCadIntentPreload(file.extension)}
-        onFocus={() => triggerCadIntentPreload(file.extension)}
+        data-selected={isSelected}
+        onClick={(e) => activateItem(file, "body", e)}
+        onDoubleClick={(e) => activateItem(file, "double", e)}
+        onContextMenu={(e) => activateItem(file, "context", e)}
+        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
+        onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
         style={style}
         className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
@@ -1649,18 +1631,20 @@ function DokumantasyonFileManagerInner() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <button
+            {(!isMobileExplorer || isMobileSelectionMode) && (<button
               type="button"
-              onClick={(e) => handleToggleSelect(file.id, e)}
+              onClick={(e) => activateItem(file, "select-control", e)}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
-              aria-label="Dosya Seç"
+              data-selection-control
+            aria-pressed={isSelected}
+            aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
             >
               {isSelected ? (
                 <CheckSquare className="h-4 w-4 text-amber-500" />
               ) : (
                 <Square className="h-4 w-4" />
               )}
-            </button>
+            </button>)}
             <div className="flex h-7 w-7 items-center justify-center">
               {getFileIcon(file.extension)}
             </div>
@@ -1760,7 +1744,10 @@ function DokumantasyonFileManagerInner() {
         <div className="mt-3 min-w-0">
           <Link
             href={`/dokumantasyon/dosya/${file.id}`}
-            onClick={(e) => e.stopPropagation()}
+            prefetch={false}
+              data-testid="dok-file-name"
+              onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
+              onClick={(e) => activateItem(file, "name", e)}
             className="block line-clamp-2 text-xs font-bold text-foreground hover:text-amber-500 hover:underline"
           >
             {file.display_name}
@@ -1775,11 +1762,16 @@ function DokumantasyonFileManagerInner() {
 
   return (
     <div
+      data-mobile-selection-mode={isMobileSelectionMode}
+      onPointerDownCapture={(e) => { lastPointerTypeRef.current = e.pointerType; }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`relative flex min-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-2xl border border-border/80 sm:min-h-[calc(100dvh-11rem)] ${styles.workspace}`}
     >
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {isMobileSelectionMode ? `Seçim modu açık. ${selectedIds.size} öğe seçildi.` : "Seçim modu kapalı."}
+      </div>
       {/* Gizli Dosya Girişi */}
       <input
         type="file"
@@ -1864,7 +1856,7 @@ function DokumantasyonFileManagerInner() {
         {/* Üst Gezinti ve Kontrol Çubuğu */}
         <div className={`flex min-w-0 flex-wrap items-center justify-between gap-2 border-b p-2.5 sm:gap-3 sm:p-3 ${styles.commandBar}`}>
           {/* Breadcrumb ve Mobil Menü */}
-          <div className="flex min-w-fit flex-1 items-center gap-1.5 text-xs sm:text-sm">
+          <div data-breadcrumb className="flex min-w-fit flex-1 items-center gap-1.5 text-xs sm:text-sm">
             <Button
               size="sm"
               variant="ghost"
@@ -1949,34 +1941,26 @@ function DokumantasyonFileManagerInner() {
           </div>
 
           {/* Sağ Kontroller: Tümünü Seç, Seçilenleri Sil, Sırala, Grupla, Arama, Filtre, Yükle, Yeni Klasör, Görünüm Modu */}
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
-            {/* A3 — Mobil Seç Butonu (lg'de gizli) */}
-            {allItemIds.length > 0 && (
-              <Button
-                size="sm"
-                variant={isMobileSelectionMode ? "default" : "outline"}
-                onClick={() => {
-                  if (isMobileSelectionMode) {
-                    exitMobileSelectionMode();
-                  } else {
-                    setIsMobileSelectionMode(true);
-                  }
-                }}
-                className={`lg:hidden h-10 border-border/80 text-xs rounded-xl px-3 gap-1.5 transition-all ${
-                  isMobileSelectionMode
-                    ? "bg-amber-500 text-zinc-950 font-bold border-amber-500"
-                    : "hover:bg-secondary"
-                }`}
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:gap-2 lg:w-auto">
+            {(allItemIds.length > 0 || isMobileSelectionMode) && (
+              <Button ref={selectionModeButtonRef} data-testid="dok-selection-mode"
+                size="sm" variant="outline" className="lg:hidden min-h-11 rounded-xl"
+                aria-pressed={isMobileSelectionMode}
                 aria-label={isMobileSelectionMode ? "Seçim modundan çık" : "Seçim moduna gir"}
-              >
-                <CheckSquare className="h-4 w-4" />
-                <span>{isMobileSelectionMode ? "Seçimden Çık" : "Seç"}</span>
+                onClick={() => isMobileSelectionMode ? exitMobileSelectionMode() : setIsMobileSelectionMode(true)}>
+                {isMobileSelectionMode ? "✕" : <CheckSquare className="h-4 w-4" />}
+                <span>{isMobileSelectionMode ? "Çık" : "Seç"}</span>
               </Button>
+            )}
+            {isMobileExplorer && isMobileSelectionMode && (
+              <span className="text-xs font-semibold" data-testid="dok-selection-count">{selectedIds.size} öğe seçildi</span>
             )}
 
             {/* Tümünü Seç / Seçimi Kaldır Butonu */}
-            {allItemIds.length > 0 && (
+            {allItemIds.length > 0 && (!isMobileExplorer || isMobileSelectionMode) && (
               <Button
+                data-testid="dok-select-all"
+                aria-label={isAllSelected ? "Tüm seçimleri kaldır" : "Tümünü seç"}
                 size="sm"
                 variant="outline"
                 onClick={handleToggleSelectAll}
@@ -1997,6 +1981,7 @@ function DokumantasyonFileManagerInner() {
               </Button>
             )}
 
+            <div className={`${isMobileExplorer && isMobileSelectionMode ? "hidden" : "flex"} min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2`}>
             {/* Seçilenleri Sil Butonu (Seçim Varsa Görünür) */}
             {selectedIds.size > 0 && (
               <Button
@@ -2207,7 +2192,7 @@ function DokumantasyonFileManagerInner() {
               <span>Yeni Klasör</span>
             </Button>
 
-            <div className="hidden items-center rounded-xl border border-border/80 bg-secondary/40 p-0.5 sm:flex">
+            <div className="flex items-center rounded-xl border border-border/80 bg-secondary/40 p-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
@@ -2247,6 +2232,7 @@ function DokumantasyonFileManagerInner() {
             >
               <Info className="h-4 w-4" />
             </Button>
+            </div>
           </div>
         </div>
 
@@ -2268,90 +2254,6 @@ function DokumantasyonFileManagerInner() {
             >
               Temizle
             </button>
-          </div>
-        )}
-
-        {/* A6 — Seçim Aksiyon Dock'u (Normal Layout — Overlay Değil) */}
-        {selectedIds.size > 0 && (
-          <div
-            data-testid="dok-mobile-selection-dock"
-            className={`flex shrink-0 items-center justify-between gap-2 border-t border-amber-500/30 bg-card/95 px-4 py-2.5 text-xs font-medium text-foreground backdrop-blur-xl animate-in fade-in ${styles.mobileSelectionBar}`}
-          >
-            {/* Sol: Sayım + X (mobil seçim modu çıkış) */}
-            <div className="flex items-center gap-2 min-w-0">
-              <button
-                type="button"
-                onClick={() => {
-                  exitMobileSelectionMode();
-                  clearSelection();
-                }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
-                aria-label="Seçimden çık"
-              >
-                <span className="text-base font-bold leading-none">✕</span>
-              </button>
-              <CheckSquare className="hidden h-4 w-4 text-amber-500 lg:block" />
-              <span className="font-bold text-amber-500 font-mono">{selectedIds.size}</span>
-              <span className="truncate text-muted-foreground hidden sm:inline">/ {allItemIds.length} öğe seçildi</span>
-            </div>
-
-            {/* Sağ: Aksiyonlar (tek satır, wrap yok) */}
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleToggleSelectAll}
-                className="hidden sm:inline-flex h-9 gap-1.5 border-border text-xs hover:bg-secondary rounded-xl"
-                aria-label={isAllSelected ? "Seçimi Kaldır" : "Tümünü Seç"}
-              >
-                {isAllSelected ? "Kaldır" : "Tümünü Seç"}
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void executeCommand("move")}
-                className="h-9 gap-1.5 border-purple-500/40 px-3 text-xs text-purple-500 hover:bg-purple-500/10 rounded-xl"
-                aria-label="Taşı"
-              >
-                <Move className="h-3.5 w-3.5" />
-                <span>Taşı</span>
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => void executeCommand("share")}
-                className="h-9 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm"
-                aria-label="Paylaş"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                <span>Paylaş</span>
-              </Button>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => void executeCommand("trash")}
-                className="h-9 gap-1.5 px-3 text-xs rounded-xl font-bold bg-red-600 hover:bg-red-500 text-white"
-                aria-label="Sil"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Sil</span>
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  exitMobileSelectionMode();
-                  clearSelection();
-                }}
-                className="h-9 text-xs rounded-xl"
-                aria-label="Seçimi Temizle"
-              >
-                <span>Temizle</span>
-              </Button>
-            </div>
           </div>
         )}
 
@@ -2378,9 +2280,14 @@ function DokumantasyonFileManagerInner() {
         <div
           ref={scrollContainerRef}
           tabIndex={0}
-          onKeyDown={handleKeyDown}
+          data-testid="dok-explorer-viewport"
+          onKeyDown={(e) => {
+            if (!isMobileExplorer) { handleKeyDown(e); return; }
+            if (e.key === "Escape" && isMobileSelectionMode) { e.preventDefault(); exitMobileSelectionMode(); }
+            if (isMobileSelectionMode && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") { e.preventDefault(); selectAll(); }
+          }}
           onScroll={handleVirtualScroll}
-          {...containerPointerHandlers}
+          {...(isMobileExplorer ? {} : containerPointerHandlers)}
           className={`relative flex-1 overflow-auto p-3 sm:p-4 pb-4 outline-none select-none min-h-[300px] ${styles.viewport}`}
         >
           {/* Sanal Marquee Seçim Kutusu (Windows Explorer Mavi Dikdörtgen) */}
@@ -2505,6 +2412,7 @@ function DokumantasyonFileManagerInner() {
                   <div className="col-span-8 flex items-center gap-3 sm:col-span-6">
                     <button
                       onClick={handleToggleSelectAll}
+                      data-selection-control
                       className="text-muted-foreground hover:text-foreground"
                       aria-label="Tümünü seç"
                     >
@@ -2591,6 +2499,7 @@ function DokumantasyonFileManagerInner() {
                           <div className="col-span-8 flex items-center gap-3 sm:col-span-6">
                             <button
                               onClick={handleToggleSelectAll}
+                              data-selection-control
                               className="text-muted-foreground hover:text-foreground"
                               aria-label="Tümünü seç"
                             >
@@ -2725,6 +2634,94 @@ function DokumantasyonFileManagerInner() {
             )
           )}
         </div>
+        {/* A6 — Seçim Aksiyon Dock'u (Normal Layout — Overlay Değil) */}
+        {selectedIds.size > 0 && (!isMobileExplorer || isMobileSelectionMode) && (
+          <div
+            data-testid="dok-mobile-selection-dock"
+            className={`flex shrink-0 items-center justify-between gap-2 border-t border-amber-500/30 bg-card/95 px-4 py-2.5 text-xs font-medium text-foreground backdrop-blur-xl animate-in fade-in ${styles.mobileSelectionBar}`}
+          >
+            {/* Sol: Sayım + X (mobil seçim modu çıkış) */}
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => {
+                  exitMobileSelectionMode();
+                }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
+                data-mobile-action="exit"
+                aria-label="Seçimden çık"
+              >
+                <span className="text-base font-bold leading-none">✕</span>
+              </button>
+              <CheckSquare className="hidden h-4 w-4 text-amber-500 lg:block" />
+              <span className="font-bold text-amber-500 font-mono">{selectedIds.size}</span>
+              <span className="truncate text-muted-foreground hidden sm:inline">/ {allItemIds.length} öğe seçildi</span>
+            </div>
+
+            {/* Sağ: Aksiyonlar (tek satır, wrap yok) */}
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleToggleSelectAll}
+                className="hidden sm:inline-flex h-9 gap-1.5 border-border text-xs hover:bg-secondary rounded-xl"
+                data-mobile-action="all"
+                aria-label={isAllSelected ? "Seçimi Kaldır" : "Tümünü Seç"}
+              >
+                {isAllSelected ? "Kaldır" : "Tümünü Seç"}
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void executeCommand("move")}
+                className="h-9 gap-1.5 border-purple-500/40 px-3 text-xs text-purple-500 hover:bg-purple-500/10 rounded-xl"
+                data-mobile-action="move"
+                aria-label="Taşı"
+              >
+                <Move className="h-3.5 w-3.5" />
+                <span>Taşı</span>
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={() => void executeCommand("share")}
+                className="h-9 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm"
+                data-mobile-action="share"
+                aria-label="Paylaş"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                <span>Paylaş</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => void executeCommand("trash")}
+                className="h-9 gap-1.5 px-3 text-xs rounded-xl font-bold bg-red-600 hover:bg-red-500 text-white"
+                data-mobile-action="trash"
+                aria-label="Sil"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Sil</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  exitMobileSelectionMode();
+                }}
+                className="h-9 text-xs rounded-xl"
+                data-mobile-action="clear"
+                aria-label="Seçimi Temizle"
+              >
+                <span>Temizle</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* 3. Sağ Detay Çekmecesi (Info Drawer) */}

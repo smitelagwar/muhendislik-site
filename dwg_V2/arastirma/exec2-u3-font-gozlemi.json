@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-06",
+  "scope": "LOCAL_SOURCE_INSPECTION_NOT_RENDER_TEST",
+  "source": {
+    "path": "src/lib/dokumantasyon/cad-font-manifest.json",
+    "sha256": "cea2cab225d2522d62e27a0746e1531c9c4897542d2c172919042fedd8858f08"
+  },
+  "fontAssets": [
+    {
+      "path": "public/fonts/Arial-Regular.ttf",
+      "sha256": "c9b76220a5be42ead4733611e417cd65c5fd8aeaa33eb56576ac378a37d130a1"
+    },
+    {
+      "path": "public/fonts/Arial-Bold.ttf",
+      "sha256": "766f06ac8761f82f25d032a220e89438f6064591af9915061f20b949efdedf69"
+    },
+    {
+      "path": "public/fonts/IBMPlexSerif-Regular.ttf",
+      "sha256": "77cd233a2af8dc6b1022faea3bb3b01f3c75af68bcf530cb6aeb15982ff3dbb7"
+    },
+    {
+      "path": "public/fonts/IBMPlexSerif-Bold.ttf",
+      "sha256": "b8d294e9b5c5a0940f167c3ced0f7ef2e3f57082ca3ff096ef30e86e26c1c159"
+    }
+  ],
+  "finding": "Alias lists include distinct font names under exact:true. V2 must independently distinguish exact/substitute; legacy untouched."
+}

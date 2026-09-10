@@ -7,7 +7,7 @@ Bu belge, Drive V3.1 dosya yöneticisi arayüzündeki tüm kullanıcı etkileşi
 | Eylem | Davranış | Anchor & Focus |
 |---|---|---|
 | **Tek Tık (Sol Tık)** | Önceki tüm seçimi temizler, yalnızca tıklanan öğeyi seçer. | `anchorId = item.id`, `focusedId = item.id` |
-| **Ctrl / Cmd + Sol Tık** | Önceki seçimi korur; tıklanan öğenin seçim durumunu tersine çevirir (additive toggle). | `focusedId = item.id`, anchor korunur |
+| **Ctrl / Cmd + Sol Tık** | Önceki seçimi korur; tıklanan öğenin seçim durumunu tersine çevirir (additive toggle). | `focusedId = item.id`, anchor tıklanan öğeye güncellenir |
 | **Shift + Sol Tık** | `anchorId` ile tıklanan öğe arasındaki tüm öğeleri doğrusal (linear row-major) aralık olarak seçer. | Anchor sabit kalır, `focusedId = item.id` |
 | **Boş Alana Tıklama** | Tüm seçimi temizler. | Anchor ve focus temizlenir |
 | **Sağ Tık (Seçili Öğeye)** | Mevcut çoklu seçimi korur; bağlam menüsünü tüm seçili öğeler için açar. | Seçim değişmez |
@@ -33,9 +33,30 @@ Bu belge, Drive V3.1 dosya yöneticisi arayüzündeki tüm kullanıcı etkileşi
 - **Döngüsel Koruma (Circular Move Prevention):**
   - Bir klasör kendi içine veya kendi alt klasörlerinin (descendants) içine sürüklenip bırakılamaz (`canDrop: false`).
 
-## 4. Mobil ve Dokunmatik Etkileşim (Touch & Gestures)
+## 4. Mobil etkileşim — 10 Eylül 2026 yerel sertleştirme
 
-- **500ms Long-Press:** Dokunmatik cihazlarda karta 500ms basılı tutulduğunda haptik titreşim verilir ve çoklu seçim moduna girilir.
-- **8px Kayma Toleransı:** Kullanıcı parmağını basılı tutarken 8px'den fazla kaydırırsa long-press iptal edilir ve doğal dikey sayfa kaydırma serbest bırakılır.
-- **Erken Bırakma:** 500ms dolmadan parmak kaldırılırsa normal tekil dokunma (dosya önizleme veya klasöre girme) çalışır.
-- **Mobil Seçim Modu:** Seçili en az 1 öğe varken mobil seçim çubuğu altta belirir; bu moddayken kartlara dokunmak dosyayı açmak yerine seçimi toggle eder.
+Layout sınırı `(max-width: 1023px)`; touch/pen kökenli contextmenu koruması geniş ekranlarda da geçerlidir. `explorer-activation.ts` liste, kart, dosya adı, çift tıklama ve seçim kontrolünün ortak policy kaynağıdır.
+
+| Durum / giriş | Sonuç |
+|---|---|
+| Normal mod: dosya adı veya gövde | Tek navigasyon ile aç |
+| Normal mod: klasör | Klasöre gir |
+| Seç düğmesi | Boş seçimle açık seçim moduna gir |
+| Seçim modu: ad / gövde / checkbox | Tek kez toggle; navigasyon yok |
+| Normal mod: checkbox / Tümünü Seç | Gizli; programatik handler da korumalı |
+| Mobil çift tıklama | Ek açma işlemi yok |
+| Touch/pen contextmenu, uzun basma | Gizli seçim / navigasyon yok |
+| ⋮ veya alt işlem düğmesi | Yalnız ilgili çocuk eylemi |
+| Çık / Escape | Seçim ve mod temizlenir; odak Seç düğmesine döner |
+| 1024px sınırını iki yönden geçme | Eski seçim oturumu temizlenir |
+| Aynı breakpoint içindeki döndürme | Seçim korunur, alan yeniden ölçülür |
+
+Masaüstü marquee motoru ve native drag yolu korunur; dar görünümde kayıt edilmez. Mobil Ctrl+A normal modda seçim başlatmaz; seçim modunda mevcut görünümü seçer. Selection state `aria-pressed` ve kalıcı `aria-live` ile duyurulur. 44×44 CSS px, projenin geliştirilmiş dokunma hedefi standardıdır.
+
+Timer/haptik long-press motoru ve üreticisi kalmamış synthetic click suppression kaldırılmıştır. Mobil CAD ön yükleme yalnız doğrulanmış açma niyetinde çalışır; kaydırma başlangıcı motoru ısıtmaz.
+
+## 5. Görsel yerleşim
+
+Mobil shell `100dvh` içinden ölçülen navbar yüksekliğini çıkarır. Liste satırı 56px kalır. Tek scroll viewport küçülebilir flex çocuğudur; dock bu viewport sonrasında normal DOM akışındadır. Global sabit alt gezinme / başa dön kontrolleri dokümantasyon alanında gizlidir. 500px ve altı ekran yüksekliğinde modül başlığı görsel olarak gizlenir, erişilebilir h1 korunur.
+
+Masaüstü dock da viewport sonrasında normal akıştadır. Mouse sağ tık mevcut seçim semantiğini korur; açılır eylem menüsünün açık giriş noktası ⋮ düğmesidir.

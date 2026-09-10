@@ -1,0 +1,270 @@
+{
+  "date": "2026-09-06",
+  "revision": "EXEC-2-U2",
+  "scope": "DOCUMENT_ONLY",
+  "status": "PASS",
+  "errors": [],
+  "localLinksChecked": 482,
+  "protectedFiles": [
+    {
+      "path": "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+      "sha256": "85e47c8a2610a327eefb6747a1ecdacb0e6b84e3a7d85d1a0b79878f471b7748",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "sha256": "3e8f10cc6fbc4ce8d32c527aab6dbd8903077872c491279e4f949e1e914a450a",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-viewer.tsx",
+      "sha256": "0015c7749d9a5499b39286c5cb53c132f03d5d550c5d91455bd2726506410957",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+      "sha256": "181f17b9fcc7e41c4ef2d46972b78fec10023f267c2db20a1db62d6735dde1a7",
+      "unchanged": true
+    },
+    {
+      "path": "package.json",
+      "sha256": "c8fa61eb80d1744ee72fa8772af4faa94f70a2bd2c38051b1b2338c7da622600",
+      "unchanged": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3034409e5b9895d75e73bddd59505bbe468917bebba08319d4143e58301b7e4d",
+      "unchanged": true
+    },
+    {
+      "path": "vercel.json",
+      "sha256": "9fd4ea9e9bbb01391e7e946e1b2d3e2af2dd003b27067dadcdcaf4f20b799fb1",
+      "unchanged": true
+    },
+    {
+      "path": ".vercelignore",
+      "sha256": "65b81876d748ba01618a50df583e12a2e7de2dcfcae5aac773616aa67c6c6109",
+      "unchanged": true
+    },
+    {
+      "path": "docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md",
+      "sha256": "b6ee5c2e55c2490b6fe0d3061d544c7288fab503d8d1a52da50907f6a07eb172",
+      "unchanged": true
+    }
+  ],
+  "documents": [
+    {
+      "path": "dwg_V2/00_BAGLAYICI_UYGULAMA_KARARLARI.md",
+      "sha256": "212b397c953797df9881ef1f1f5bbe226502bda19b94870e8264b87003c06477"
+    },
+    {
+      "path": "dwg_V2/01_MANIFESTO.md",
+      "sha256": "2d7fe24555cf9d1c4f5e7f10a6f317687c19a79b11c7261b69e741bc004bcad4"
+    },
+    {
+      "path": "dwg_V2/02_REPO_INCELEMESI.md",
+      "sha256": "4b20fd0456775167f9b9fc57013eefcf228619745d3cc4ddafabc332ca49074b"
+    },
+    {
+      "path": "dwg_V2/03_ARASTIRMA_VE_ADAYLAR.md",
+      "sha256": "a9e92f0abecd4c3de0748f10cbddb4c6c5cde2628786064f7bc4f7ce59ce7875"
+    },
+    {
+      "path": "dwg_V2/04_KARAR_CERCEVESI.md",
+      "sha256": "a72855fd39e41db2b3f744b48fca43c729634a53cbb9731fe325eade60033d84"
+    },
+    {
+      "path": "dwg_V2/05_SISTEM_MIMARISI.md",
+      "sha256": "be5e25a6feb6abcc536dcf84af688996fe0ec350224e2c5ad3c2e1f015282a17"
+    },
+    {
+      "path": "dwg_V2/06_DOGRULUK_ATLASI.md",
+      "sha256": "de71cb3a3a04f5e4b5e0ad3e91beada9eeb26e4232c303bfdbed4d019eabaec1"
+    },
+    {
+      "path": "dwg_V2/07_PERFORMANS_VE_BELLEK.md",
+      "sha256": "ec7a210f0e91dc3d5ad3935fa65320a5c92d6cc1865aa5ddfb05ac32789ca147"
+    },
+    {
+      "path": "dwg_V2/08_CIHAZLAR_VE_ETKILESIM.md",
+      "sha256": "7721a9acaa7c9277a9f05915f937bcf115f6a88c261ab36dd59e94e8e5fb9aa0"
+    },
+    {
+      "path": "dwg_V2/09_SITE_ENTEGRASYONU.md",
+      "sha256": "a33337189a8c6e98bac753f95f06028f2b01ad2bb20e923d469a6c0c53414ae1"
+    },
+    {
+      "path": "dwg_V2/10_GUVENLIK_VE_ISLETIM.md",
+      "sha256": "20296f9e4a77040675f15e1da7fb77308b86287e817f439f3c7a500778c41ef1"
+    },
+    {
+      "path": "dwg_V2/11_DOGRULAMA_PROGRAMI.md",
+      "sha256": "c4801f6d8fba86f2bc978012be81c86f7ab356814a9ee096928affbd9be1aee4"
+    },
+    {
+      "path": "dwg_V2/12_YOL_HARITALARI.md",
+      "sha256": "013f95483ddc5ddb785f3ee270f2f8aef8acd230810b6828b1a23977fce44ddb"
+    },
+    {
+      "path": "dwg_V2/13_IS_PAKETLERI.md",
+      "sha256": "2cf0caa96e54c65041fa788dd5970d23460c562c02bed7f6e1249676f3b57940"
+    },
+    {
+      "path": "dwg_V2/14_KAYNAK_VE_RISK_PLANI.md",
+      "sha256": "e851c147b0910802daa26caf3dd4a3a8c63a3115d06faab1de016bf31411ef9e"
+    },
+    {
+      "path": "dwg_V2/15_ASTRA_CALISMA_REHBERI.md",
+      "sha256": "709c8e25c27f8923be3802c5d3f163507f0856b0b00b17ec4649831f3f9b8684"
+    },
+    {
+      "path": "dwg_V2/16_KAYNAKCA.md",
+      "sha256": "93395b554d49794390bd376995f7b3698565c7c1148caa0f8ca63292ff4effaa"
+    },
+    {
+      "path": "dwg_V2/17_TESLIM_VE_DURUM.md",
+      "sha256": "991a2cf9fd47a86a5e4c63fa7e5f7bf62f1babd75e6dbe9127b4286affe5c1a1"
+    },
+    {
+      "path": "dwg_V2/18_GEMINI_UYGULAMA_REHBERI.md",
+      "sha256": "f5935bf1f39ff75d384921733704521700a6cef59a3425653b82e391c4affc43"
+    },
+    {
+      "path": "dwg_V2/19_GEMINI_ADIM_ADIM_UYGULAMA.md",
+      "sha256": "912cc374e571b037c613b6315da2ecb472cee4de6c6ac9fcf4a3781ecaf26c55"
+    },
+    {
+      "path": "dwg_V2/20_KAYIT_VE_KANIT_SISTEMI.md",
+      "sha256": "ebdc3abe0983139de8b30ee22146376c511e95ca3b27eca6fe7a88e58224516d"
+    },
+    {
+      "path": "dwg_V2/21_ARAYUZ_TASARIM_SISTEMI.md",
+      "sha256": "db14faa67ad4c80b0728d4f7bb484f3c460ee5c6feb526004db6500d9ac71bf5"
+    },
+    {
+      "path": "dwg_V2/22_ARAYUZ_SENARYOLARI_VE_KABUL.md",
+      "sha256": "5bc2b9f47069a60c201cffd709af0c6c00967d0de3382e13d6c70347cec9b81f"
+    },
+    {
+      "path": "dwg_V2/23_ASTRA_DENETIM_VE_DUZELTME_DONGUSU.md",
+      "sha256": "4a9bfbaa917e2c47b948c351aa597358c75e0f6ccf7e4bcbfe0a7b7546889974"
+    },
+    {
+      "path": "dwg_V2/24_GEREKSINIM_KATALOGU.md",
+      "sha256": "db41bb0b68aed5a880fc0063388075183188c47262e384a136626cd96140bcee"
+    },
+    {
+      "path": "dwg_V2/25_SABIT_VERI_VE_API_SOZLESMELERI.md",
+      "sha256": "f77f20d577682ee5957835de19dfbf1d52a2a0dd6ed57d8cedc06e9a341f66a1"
+    },
+    {
+      "path": "dwg_V2/26_PLAN_DENETIMI_VE_EXEC2.md",
+      "sha256": "b1969adcf201be5d4ddb64e0f0001e5624103418a82f28f5b3f62f039c07c38c"
+    },
+    {
+      "path": "dwg_V2/27_KAYNAK_KOD_VE_YENIDEN_KULLANIM.md",
+      "sha256": "5392e1049223d18d2b7bbbc31b9cb58f01903f3919517e0f7bc7e0ea33c285ac"
+    },
+    {
+      "path": "dwg_V2/28_PAN_ZOOM_FIT_SOZLESMESI.md",
+      "sha256": "920eb4037792a123326ab3620f2a5a6b82fcb6de4c206fb7f7a535bea51a865f"
+    },
+    {
+      "path": "dwg_V2/29_RENDER_VE_YASAM_DONGUSU.md",
+      "sha256": "83b682fcb454c90a6dfb63f9c03759fb35f6304883074c67d9da5d739d494dcc"
+    },
+    {
+      "path": "dwg_V2/30_OZELLIK_KAPSAMI_VE_KALITE_KAPILARI.md",
+      "sha256": "d401299253465519a6593787a5206f78d1f37b74febfaa8f3de88d2200dbcbc0"
+    },
+    {
+      "path": "dwg_V2/31_SOZLESME_TAMAMLAMALARI.md",
+      "sha256": "7ddf76dcca5771744d098f934ec5023676c17843456a11c65ebcbe6764f48f3d"
+    },
+    {
+      "path": "dwg_V2/32_KULLANICI_HEDEFI_VE_GERCEK_KABUL.md",
+      "sha256": "9d6f91fb81eff609ec529fbb6432308e897dabc919dc78becf32ec0e03fc7b9a"
+    },
+    {
+      "path": "dwg_V2/girdi/SOL_TEKNIK_ONERILER_ORIJINAL.md",
+      "sha256": "6a595741f3abbfd9fa3b9c9f23baf781f0a83f44162dea376fda40675b7db059"
+    },
+    {
+      "path": "dwg_V2/README.md",
+      "sha256": "0ea1a6719a9aef851d92603039ffd7f7c682da817e7fd6c4feb63ccebfb921e5"
+    },
+    {
+      "path": "dwg_V2/sablonlar/DENETIM_VE_DUZELTME.md",
+      "sha256": "1cc06ff9cb61be352d3fa118f6d29e7fc85ba3c803b5627d0702c58762d09a93"
+    },
+    {
+      "path": "dwg_V2/sablonlar/DENEY_RAPORU.md",
+      "sha256": "a2bd10e407520fd1f921d78d638a5498785abdafb5350e5acfd137b04dfc88c8"
+    },
+    {
+      "path": "dwg_V2/sablonlar/GORSEL_KANIT.md",
+      "sha256": "03de064e9568e23d6e4e0b5f24dc8146eddf8b2b344fdc674085e992d1b2e6fe"
+    },
+    {
+      "path": "dwg_V2/sablonlar/KARAR_ENGELI.md",
+      "sha256": "ff75343992f0153af092a0b397392e598a98969699359d6b4d8861e7c47016cf"
+    },
+    {
+      "path": "dwg_V2/sablonlar/KARAR_KAYDI.md",
+      "sha256": "832548ea7bf89b9e9c6981de39b1382ac67662f53305c4c0c9a912666845453a"
+    },
+    {
+      "path": "dwg_V2/sablonlar/OTURUM_DEVRI.md",
+      "sha256": "4ca610d7684d3a95a1f5aea776878981cb13e1e163328b84787888d73abb86b6"
+    },
+    {
+      "path": "dwg_V2/sablonlar/TEST_KANITI.md",
+      "sha256": "d421eede48013021fa3f482dd6aeb8790933337377cc5065fc857a2755121ccc"
+    },
+    {
+      "path": "dwg_V2/sablonlar/UYGULAMA_PAKETI.md",
+      "sha256": "8a77cc2b4a480be8db1bcf0da8ef0e1c72628372ae8ea1cf06088ade5be04c10"
+    },
+    {
+      "path": "dwg_V2/uygulama/ALT_KABUL_DURUMLARI.md",
+      "sha256": "1067d5914293ef860c25ec8c1cf3a51bcea666b82476a49daef7c65630092c20"
+    },
+    {
+      "path": "dwg_V2/uygulama/BILINEN_EKSIKLER.md",
+      "sha256": "064dc4d6819e9d1bbc4b4f2f4d2e9ffa42c2bff093e2ad2858abef7e2fe3b823"
+    },
+    {
+      "path": "dwg_V2/uygulama/DENETIM_DEVRI.md",
+      "sha256": "deec58c85c707406b2f16d645a589b33fe30b59ed7e202a7d50f2e2bfb1d361e"
+    },
+    {
+      "path": "dwg_V2/uygulama/DENETIM_TURLARI.md",
+      "sha256": "62123311a1a1fea1561ee7bd0ba33fa1d61e633b46b34ffcdddd414c7c770c2c"
+    },
+    {
+      "path": "dwg_V2/uygulama/DURUM.md",
+      "sha256": "455a5449d47704a5850179171d579e42ba2ad336b72566b6a6ea25841eafeb8f"
+    },
+    {
+      "path": "dwg_V2/uygulama/IZLENEBILIRLIK.md",
+      "sha256": "64b825aafe466d94f47a52bcb141dae52c2c9438002c06955af6b0abb2dcc69f"
+    },
+    {
+      "path": "dwg_V2/uygulama/KARAR_VE_ENGELLER.md",
+      "sha256": "1001a51cb9b63ec83230a89a323f0abe2e26a9834ce291971a43ea6e10ecc8b1"
+    },
+    {
+      "path": "dwg_V2/uygulama/OTURUM_GUNLUGU.md",
+      "sha256": "9554fb3fffc1f8421bd8a7f9794dde7dfaf920ea684d4e566e966f0d7035bb13"
+    },
+    {
+      "path": "dwg_V2/uygulama/PAKET_DURUMLARI.md",
+      "sha256": "57a4d98d33ab124aeadc7e10a3b8516ed67b401f3e908c96cf149b66c8e60fee"
+    },
+    {
+      "path": "dwg_V2/uygulama/README.md",
+      "sha256": "8e2f16563fb2049db658dd24bbcb1ffc0321039afe383c6aa89be1c43bf6dc18"
+    }
+  ],
+  "runtimeStatus": "NOT_RUN"
+}
