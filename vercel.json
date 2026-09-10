@@ -4,6 +4,8 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "internal-dok-mobile-plan-no-deploy": false
+    }
   }
 }
