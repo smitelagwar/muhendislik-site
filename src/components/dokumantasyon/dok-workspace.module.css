@@ -7,35 +7,23 @@
  * ============================================================================ */
 
 .workspace {
-  /* --- 1. Scoped Yüzey ve Cam Tokenları (G0 - G3) --- */
   --dok-surface-g0: var(--card);
   --dok-surface-g1: color-mix(in srgb, var(--card) 60%, transparent);
   --dok-surface-g2: color-mix(in srgb, var(--card) 78%, transparent);
   --dok-surface-g3: color-mix(in srgb, var(--card) 92%, transparent);
-
-  /* --- 2. Blur / Cam Derinlik Skalası --- */
   --dok-blur-g1: 12px;
   --dok-blur-g2: 20px;
   --dok-blur-g3: 28px;
-
-  /* --- 3. Sınır ve İç Işık (Inner Rim) Tokenları --- */
   --dok-border-soft: rgba(255, 255, 255, 0.55);
   --dok-border-strong: rgba(255, 255, 255, 0.85);
   --dok-border-glow: rgba(245, 158, 11, 0.4);
   --dok-inner-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.75);
-
-  /* --- 4. Gölgeler (Warm Ambient Shadows) --- */
-  --dok-shadow-ambient: 0 24px 70px -15px rgba(245, 158, 11, 0.14),
-                        0 8px 32px 0 rgba(0, 0, 0, 0.06);
+  --dok-shadow-ambient: 0 24px 70px -15px rgba(245, 158, 11, 0.14), 0 8px 32px 0 rgba(0, 0, 0, 0.06);
   --dok-shadow-card: 0 10px 30px -8px rgba(0, 0, 0, 0.08);
   --dok-shadow-overlay: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
-
-  /* --- 5. Vurgu (Amber / Accent) Tokenları --- */
   --dok-accent-solid: #f59e0b;
   --dok-accent-soft: rgba(245, 158, 11, 0.15);
   --dok-accent-hover: #d97706;
-
-  /* --- 6. Standart Z-Index Hiyerarşisi --- */
   --dok-z-base: 1;
   --dok-z-sticky: 20;
   --dok-z-dropdown: 40;
@@ -44,7 +32,6 @@
   --dok-z-mobile-sheet: 70;
   --dok-z-modal: 90;
   --dok-z-toast: 100;
-
   position: relative;
   isolation: isolate;
   border-radius: 1.5rem;
@@ -55,11 +42,7 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.40) 100%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: 0 20px 50px -12px rgba(245, 158, 11, 0.12),
-              0 0 0 1px rgba(255, 255, 255, 0.4),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
-  /* BUG-4 FIX: overflow:clip yerine hidden — fixed child'ları (toast, modal) etkilemez,
-     border-radius clipping korunur */
+  box-shadow: 0 20px 50px -12px rgba(245, 158, 11, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
   overflow: clip;
 }
 
@@ -72,29 +55,23 @@
     radial-gradient(circle at 10% 4%, rgba(245, 158, 11, 0.18), transparent 30rem),
     radial-gradient(circle at 92% 95%, rgba(234, 88, 12, 0.14), transparent 32rem),
     linear-gradient(135deg, rgba(20, 20, 28, 0.75) 0%, rgba(12, 12, 18, 0.65) 100%);
-  box-shadow: 0 24px 70px -15px rgba(0, 0, 0, 0.7),
-              0 0 0 1px rgba(255, 255, 255, 0.08),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 70px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* Header & Admin Shell Glass */
 .workspaceHeader {
   border: 1px solid rgba(255, 255, 255, 0.8);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.06),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.06), inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 :global(.dark) .workspaceHeader {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, rgba(24, 24, 32, 0.8) 0%, rgba(15, 15, 22, 0.68) 100%);
-  box-shadow: 0 16px 44px -10px rgba(0, 0, 0, 0.6),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 44px -10px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-/* Command Bar (G2 Glass) */
 .commandBar {
   border-bottom: 1px solid rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.55);
@@ -109,7 +86,6 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Sidebar (G2 Glass Panel) */
 .sidebar {
   border-right: 1px solid rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.45);
@@ -122,7 +98,6 @@
   background: rgba(18, 18, 25, 0.55);
 }
 
-/* Right Details Drawer (G2 Glass Panel) */
 .details {
   border-left: 1px solid rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.65);
@@ -137,49 +112,40 @@
   box-shadow: -16px 0 40px -10px rgba(0, 0, 0, 0.5);
 }
 
-/* File / Folder Table Container */
 .list {
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.04),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.04), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 :global(.dark) .list {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(20, 20, 28, 0.55);
-  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Grid Cards (G1 Glass Card) */
 .card {
   min-height: 10rem;
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.2s ease;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 :global(.dark) .card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(22, 22, 30, 0.6);
-  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.4),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .card:hover {
   transform: translateY(-3px) scale(1.01);
   border-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 16px 40px -8px rgba(245, 158, 11, 0.18),
-              0 0 0 1px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 16px 40px -8px rgba(245, 158, 11, 0.18), 0 0 0 1px rgba(245, 158, 11, 0.3);
 }
 
 .viewport {
@@ -188,76 +154,35 @@
   scrollbar-color: rgba(245, 158, 11, 0.4) transparent;
 }
 
-.viewport::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.viewport::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+.viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+.viewport::-webkit-scrollbar-track { background: transparent; }
 .viewport::-webkit-scrollbar-thumb {
   background-color: rgba(245, 158, 11, 0.35);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+.viewport::-webkit-scrollbar-thumb:hover { background-color: rgba(245, 158, 11, 0.6); }
+:global(.dark) .viewport { scrollbar-color: rgba(245, 158, 11, 0.35) transparent; }
+:global(.dark) .viewport::-webkit-scrollbar-thumb { background-color: rgba(245, 158, 11, 0.35); }
+:global(.dark) .viewport::-webkit-scrollbar-thumb:hover { background-color: rgba(245, 158, 11, 0.6); }
 
-.viewport::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(245, 158, 11, 0.6);
-}
-
-:global(.dark) .viewport {
-  scrollbar-color: rgba(245, 158, 11, 0.35) transparent;
-}
-
-:global(.dark) .viewport::-webkit-scrollbar-thumb {
-  background-color: rgba(245, 158, 11, 0.35);
-}
-
-:global(.dark) .viewport::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(245, 158, 11, 0.6);
-}
-
-/* Floating Action Bars & Sheets */
 .mobileSelectionBar {
   padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
   box-shadow: var(--dok-shadow-overlay);
 }
 
-.mobileSheetSafeArea {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-}
+.mobileSheetSafeArea { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 
-/* Fallback: Backdrop Filter Desteklenmediğinde */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .workspaceHeader,
-  .commandBar,
-  .sidebar,
-  .details,
-  .list,
-  .card {
-    background: var(--card);
-  }
+  .workspaceHeader, .commandBar, .sidebar, .details, .list, .card { background: var(--card); }
 }
 
-/* Erişilebilirlik: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .card,
-  .virtualCard,
-  .virtualRow {
-    transition: none !important;
-    animation: none !important;
-  }
-  .card:hover,
-  .virtualCard:hover,
-  .virtualRow:hover {
-    transform: none !important;
-  }
+  .card, .virtualCard, .virtualRow { transition: none !important; animation: none !important; }
+  .card:hover, .virtualCard:hover, .virtualRow:hover { transform: none !important; }
 }
 
-/* --- Stage 8 Premium Explorer Görsel Sistemi & GPU Transitions --- */
 .virtualRow,
 .virtualCard {
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
@@ -269,12 +194,8 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.12);
   }
-  .virtualRow:hover {
-    background-color: rgba(255, 255, 255, 0.35);
-  }
-  :global(.dark) .virtualRow:hover {
-    background-color: rgba(255, 255, 255, 0.04);
-  }
+  .virtualRow:hover { background-color: rgba(255, 255, 255, 0.35); }
+  :global(.dark) .virtualRow:hover { background-color: rgba(255, 255, 255, 0.04); }
 }
 
 .virtualCardSelected,
@@ -297,28 +218,16 @@
 }
 
 @keyframes dokSuccessFlash {
-  0% {
-    background-color: rgba(245, 158, 11, 0.4);
-  }
-  100% {
-    background-color: transparent;
-  }
+  0% { background-color: rgba(245, 158, 11, 0.4); }
+  100% { background-color: transparent; }
 }
 
-.itemSuccessFlash {
-  animation: dokSuccessFlash 0.8s ease-out;
-}
+.itemSuccessFlash { animation: dokSuccessFlash 0.8s ease-out; }
 
-/* Mobil Viewport Uyarlamaları */
 @media (max-width: 1023px) {
-  .workspace {
-    border-radius: 1.25rem;
-  }
+  .workspace { border-radius: 1.25rem; }
 
   .viewport {
-    /* Mobile explorer is the single shrinking/scrolling flex child. The old
-       min-h-[300px] + pb-28 contract could force the last virtual row below
-       the visible area or reserve space for a bar that had already wrapped. */
     min-height: 0 !important;
     padding-bottom: 1rem !important;
     scrollbar-gutter: auto;
@@ -326,9 +235,6 @@
   }
 
   .mobileSelectionBar {
-    /* Mobile selection actions participate in the flex layout instead of
-       covering the explorer as a fixed overlay. `order` moves this DOM child
-       after the flex-1 viewport without a risky file-manager rewrite. */
     position: static !important;
     inset: auto !important;
     order: 50;
@@ -343,16 +249,21 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .mobileSelectionBar > div {
-    flex-shrink: 0;
-  }
+  .mobileSelectionBar > div { flex-shrink: 0; }
+  .mobileSelectionBar > div:last-child { flex-wrap: nowrap !important; }
 
-  .mobileSelectionBar > div:last-child {
-    flex-wrap: nowrap !important;
+  /* Explicit selection controls must be comfortably tappable on both list and grid. */
+  .virtualRow button[aria-label="Dosya Seç"],
+  .virtualRow button[aria-label="Klasör Seç"],
+  .virtualCard button[aria-label="Dosya Seç"],
+  .virtualCard button[aria-label="Klasör Seç"] {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
   }
 }
 
-/* Dar telefonda seçim dock'u tek satır ve ikon-ağırlıklı tutulur. */
 @media (max-width: 639px) {
   .mobileSelectionBar {
     gap: 0.375rem;
@@ -363,23 +274,10 @@
     padding-top: 0.5rem;
   }
 
-  .mobileSelectionBar > div:first-child {
-    gap: 0.375rem;
-  }
-
-  .mobileSelectionBar > div:first-child > span:last-child {
-    display: none;
-  }
-
-  .mobileSelectionBar > div:last-child {
-    min-width: 0;
-    gap: 0.25rem;
-  }
-
-  /* Tümünü seç üst toolbar'da zaten var; dock'ta tekrar edilmez. */
-  .mobileSelectionBar > div:last-child > button:first-child {
-    display: none !important;
-  }
+  .mobileSelectionBar > div:first-child { gap: 0.375rem; }
+  .mobileSelectionBar > div:first-child > span:last-child { display: none; }
+  .mobileSelectionBar > div:last-child { min-width: 0; gap: 0.25rem; }
+  .mobileSelectionBar > div:last-child > button:first-child { display: none !important; }
 
   .mobileSelectionBar > div:last-child > button:nth-child(2),
   .mobileSelectionBar > div:last-child > button:nth-child(3),
@@ -395,7 +293,6 @@
     justify-content: center;
   }
 
-  /* Görselde yalnız ikon kalır; metin erişilebilir ad olarak DOM'da korunur. */
   .mobileSelectionBar > div:last-child > button:nth-child(2) > span,
   .mobileSelectionBar > div:last-child > button:nth-child(3) > span,
   .mobileSelectionBar > div:last-child > button:nth-child(4) > span {
@@ -410,11 +307,7 @@
     border: 0 !important;
   }
 
-  /* Clear-selection butonunda ikon yok; erişilebilir metni koruyup görsel × üret. */
-  .mobileSelectionBar > div:last-child > button:last-child {
-    font-size: 0 !important;
-  }
-
+  .mobileSelectionBar > div:last-child > button:last-child { font-size: 0 !important; }
   .mobileSelectionBar > div:last-child > button:last-child::after {
     content: "×";
     font-size: 1.25rem;
@@ -425,13 +318,11 @@
 
 @media (max-width: 768px) {
   .virtualCard {
-    /* Mobilde per-card blur yerine container camı kullanılır (GPU tasarrufu) */
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
 
-/* --- Stage 9 Touch Gesture & iOS Callout Suppression --- */
 .touchSurface,
 .virtualCard,
 .virtualRow,
