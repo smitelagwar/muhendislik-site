@@ -2,6 +2,8 @@
 // DÖKÜMANTASYON DRIVE V3.1 — MOBILE GESTURE & ACCESSIBILITY ENGINE
 // ============================================================================
 
+import { armSyntheticClickSuppression } from "./mobile-click-suppression";
+
 export type LongPressState = "idle" | "pressing" | "triggered" | "cancelled";
 
 export interface LongPressHandlers {
@@ -26,6 +28,9 @@ export interface LongPressOptions {
  * - 8px kayma olduğunda timer iptal edilir (doğal scroll'a izin verilir)
  * - 500ms dolmadan pointerup gelirse timer iptal edilir ve tekil tık işlenir
  * - 500ms dolduğunda seçim modu tetiklenir ve haptik titreşim verilir
+ * - Touch/pen gesture bir öğeyi işlediğinde aynı öğe için gelecek sentetik
+ *   compatibility click tam bir kez bastırılır; böylece pointerup + click iki ayrı
+ *   seçme/açma yolu olarak çalışmaz.
  */
 export function createLongPressController({
   id,
@@ -39,6 +44,11 @@ export function createLongPressController({
   let timer: ReturnType<typeof setTimeout> | null = null;
   let startX = 0;
   let startY = 0;
+  let activePointerType: string | null = null;
+
+  // Backward-compatible option: callers may still pass this while the current
+  // state machine reads the freshest selection state in file-manager callbacks.
+  void isSelectionModeActive;
 
   const clearTimer = () => {
     if (timer) {
@@ -51,6 +61,7 @@ export function createLongPressController({
     // Mouse için long-press gerekmez (sağ tık veya ctrl-click kullanılır)
     if (e.pointerType === "mouse") return;
 
+    activePointerType = e.pointerType ?? "touch";
     state = "pressing";
     startX = e.clientX;
     startY = e.clientY;
@@ -84,6 +95,12 @@ export function createLongPressController({
   };
 
   const handlePointerUp = () => {
+    const completedGesture = state === "pressing" || state === "triggered";
+
+    if (completedGesture && activePointerType !== "mouse") {
+      armSyntheticClickSuppression(id);
+    }
+
     if (state === "pressing") {
       clearTimer();
       state = "idle";
@@ -93,12 +110,15 @@ export function createLongPressController({
       clearTimer();
       state = "idle";
     }
+
+    activePointerType = null;
   };
 
   const handlePointerCancel = () => {
     state = "cancelled";
     clearTimer();
     state = "idle";
+    activePointerType = null;
   };
 
   return {
