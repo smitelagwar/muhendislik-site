@@ -54,7 +54,7 @@ test.describe("Drive V3.1 — Mobile synthetic click dedupe", () => {
     expect(consumeSyntheticClickSuppression("fast-touch-item")).toBe(false);
   });
 
-  test("4. Long-press sonrası release de compatibility click'i bastırır", async () => {
+  test("4. Uzun basma seçim/açma yapmaz; release sonrası compatibility click bastırılır", async () => {
     let tapCount = 0;
     let longPressCount = 0;
 
@@ -73,11 +73,13 @@ test.describe("Drive V3.1 — Mobile synthetic click dedupe", () => {
     controller.handlePointerDown({ clientX: 40, clientY: 50, pointerType: "touch" });
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(longPressCount).toBe(1);
+    expect(controller.getState()).toBe("cancelled");
+    expect(longPressCount).toBe(0);
     expect(tapCount).toBe(0);
 
     controller.handlePointerUp();
 
+    expect(controller.getState()).toBe("idle");
     expect(consumeSyntheticClickSuppression("long-touch-item")).toBe(true);
     expect(consumeSyntheticClickSuppression("long-touch-item")).toBe(false);
   });
