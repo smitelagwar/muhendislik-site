@@ -24,7 +24,7 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   }, []);
 
   return (
-    <div className="relative min-h-[calc(100vh-4.5rem)] w-full bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05]">
+    <div className="relative min-h-[calc(100vh-4.5rem)] w-full bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05] max-lg:h-[calc(100dvh-4.5rem)] max-lg:min-h-0 max-lg:overflow-hidden">
       {/* Ambiyans Warm Glass Işık Küreleri (Luminous Background Glow) — Yalnızca küreler için overflow-hidden */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-32 -left-32 h-[32rem] w-[32rem] rounded-full bg-amber-500/20 blur-[130px] dark:bg-amber-500/15" />
@@ -32,9 +32,9 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
         <div className="absolute -bottom-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-400/20 blur-[140px] dark:bg-amber-600/10" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8 z-10">
+      <div className="relative z-10 mx-auto w-full max-w-[1920px] space-y-3 px-2 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:px-6 xl:px-8 max-lg:flex max-lg:h-full max-lg:min-h-0 max-lg:flex-col max-lg:space-y-0 max-lg:gap-3 sm:max-lg:gap-4">
         {/* Üst Bar / Header */}
-        <div className={`flex flex-col gap-3 rounded-2xl p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${styles.workspaceHeader}`}>
+        <div className={`flex flex-col gap-3 rounded-2xl p-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5 max-lg:shrink-0 ${styles.workspaceHeader}`}>
           <div className="flex min-w-0 items-center gap-3.5">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400 shadow-sm">
               <FolderArchive className="h-5 w-5" />
