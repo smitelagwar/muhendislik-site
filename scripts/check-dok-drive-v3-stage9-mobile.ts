@@ -28,6 +28,11 @@ async function runStage9Tests() {
   const cssContent = fs.readFileSync(cssPath, "utf-8");
   const layoutPath = path.join(rootDir, "src/app/layout.tsx");
   const layoutContent = fs.readFileSync(layoutPath, "utf-8");
+  const mobileShellPath = path.join(
+    rootDir,
+    "src/components/dokumantasyon/mobile-shell-layout.module.css"
+  );
+  const mobileShellContent = fs.readFileSync(mobileShellPath, "utf-8");
 
   // 1. 100dvh ve Safe-Area Sözleşmesi
   console.log("\n--- 1. 100dvh ve Safe-Area Desteği ---");
@@ -47,8 +52,8 @@ async function runStage9Tests() {
     "Doğal dikey kaydırma korunurken yatay çakışmalar engellendi (touch-action: pan-y)"
   );
 
-  // 3. 500ms Long-Press State Machine: Başarılı Tetikleme
-  console.log("\n--- 3. Long-Press State Machine: 500ms Tetikleme ---");
+  // 3. Long-press artık seçim keşif gesture'ı değildir.
+  console.log("\n--- 3. Long-Press: Açık Seçim Sözleşmesi ---");
   let triggeredId: string | null = null;
   let tappedId: string | null = null;
 
@@ -68,13 +73,16 @@ async function runStage9Tests() {
   assert(controller1.getState() === "pressing", "PointerDown sonrası state 'pressing' oldu");
 
   await new Promise((r) => setTimeout(r, 70));
-  assert(triggeredId === "item-card-1", "50ms sonra long-press başarıyla tetiklendi");
-  assert(controller1.getState() === "triggered", "State 'triggered' oldu");
-  assert(tappedId === null, "Long-press tetiklendiğinde tekil tık (singleTap) tetiklenmedi");
+  assert(triggeredId === null, "Long-press seçim callback'ini tetiklemedi");
+  assert(controller1.getState() === "cancelled", "Bekleme süresi sonunda long-press güvenli biçimde cancelled oldu");
+  controller1.handlePointerUp();
+  assert(tappedId === null, "Long-press bırakıldığında dosya açma/singleTap tetiklenmedi");
+  assert(controller1.getState() === "idle", "Long-press release sonrası state idle'a döndü");
 
-  // 4. Long-Press State Machine: 8px Kayma ile İptal (Doğal Scroll)
-  console.log("\n--- 4. Long-Press State Machine: 8px Kayma İptali ---");
+  // 4. 8px üzeri hareket doğal scroll olarak iptal edilir.
+  console.log("\n--- 4. Touch Hareketi: 8px Üzeri Scroll İptali ---");
   let triggered2 = false;
+  let tapped2 = false;
   const controller2 = createLongPressController({
     id: "item-card-2",
     delayMs: 50,
@@ -82,19 +90,22 @@ async function runStage9Tests() {
     onLongPressTrigger: () => {
       triggered2 = true;
     },
-    onSingleTap: () => {},
+    onSingleTap: () => {
+      tapped2 = true;
+    },
   });
 
   controller2.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-  // 12px kaydır (hareket eşiği 8px'i aştı)
   controller2.handlePointerMove({ clientX: 100, clientY: 112 });
-  assert(controller2.getState() === "cancelled", "8px üzerinde kaydırmada long-press iptal edildi (scroll serbest bırakıldı)");
+  assert(controller2.getState() === "cancelled", "8px üzerinde kaydırmada gesture iptal edildi (scroll serbest)");
 
   await new Promise((r) => setTimeout(r, 70));
-  assert(triggered2 === false, "Kaydırma sonrası zamanlayıcı çalışmadı");
+  controller2.handlePointerUp();
+  assert(triggered2 === false, "Scroll sonrası long-press/seçim callback'i çalışmadı");
+  assert(tapped2 === false, "Scroll sonrası singleTap/açma callback'i çalışmadı");
 
-  // 5. Long-Press State Machine: Erken Bırakma (Single Tap)
-  console.log("\n--- 5. Long-Press State Machine: Erken Bırakma (Single Tap) ---");
+  // 5. Erken bırakma yalnız tek normal tap üretir.
+  console.log("\n--- 5. Erken Bırakma: Tekil Tap ---");
   let tapped3 = false;
   let triggered3 = false;
 
@@ -111,12 +122,11 @@ async function runStage9Tests() {
   });
 
   controller3.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-  // 20ms sonra bırak (80ms dolmadan)
   await new Promise((r) => setTimeout(r, 20));
   controller3.handlePointerUp();
 
-  assert(tapped3 === true, "Zaman dolmadan bırakıldığında tekil tık (single tap) çalıştı");
-  assert(triggered3 === false, "Zaman dolmadan bırakıldığında long-press tetiklenmedi");
+  assert(tapped3 === true, "Zaman dolmadan bırakıldığında yalnız single tap çalıştı");
+  assert(triggered3 === false, "Hızlı tap seçim/long-press callback'ini tetiklemedi");
 
   // 6. Mobil Viewport Boyut Test Matrisi
   console.log("\n--- 6. Mobil Viewport Boyut Matrisi Kontrolü ---");
@@ -130,6 +140,20 @@ async function runStage9Tests() {
   assert(isSufficientTouchTarget(44, 44) === true, "44x44 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(48, 48) === true, "48x48 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(32, 32) === false, "32x32 piksel yetersiz touch target olarak tespit edildi");
+
+  // 8. Virtualizer / gerçek mobil satır geometrisi aynı sözleşmede kalmalı.
+  console.log("\n--- 8. Mobil Virtual Row Geometri Sözleşmesi ---");
+  assert(
+    mobileShellContent.includes('data-testid="dok-file-row"') &&
+      mobileShellContent.includes('data-testid="dok-folder-row"'),
+    "Mobil shell hem dosya hem klasör sanal satırlarını açıkça sınırlandırıyor"
+  );
+  assert(
+    mobileShellContent.includes("height: 56px !important") &&
+      mobileShellContent.includes("padding-top: 6px !important") &&
+      mobileShellContent.includes("padding-bottom: 6px !important"),
+    "Gerçek mobil satır yüksekliği 56px virtualizer metriğiyle birebir uyumlu"
+  );
 
   console.log("\n======================================================================");
   console.log("🎉 AŞAMA 9 TESTLERİNİN HEPSİ BAŞARIYLA GEÇTİ (PASS)!");
