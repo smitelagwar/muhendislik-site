@@ -19,8 +19,8 @@ export function NavbarLeading() {
         href="/"
         priority
         className="home-navbar-logo-visual group flex-shrink-0"
-        lightClassName="h-10 object-contain object-left transition-all duration-500 sm:h-12 lg:h-14 group-data-[scrolled=true]/navbar:h-8 sm:group-data-[scrolled=true]/navbar:h-10"
-        darkClassName="h-10 object-contain object-left transition-all duration-500 sm:h-12 lg:h-14 group-data-[scrolled=true]/navbar:h-8 sm:group-data-[scrolled=true]/navbar:h-10"
+        lightClassName="h-10 object-contain object-left sm:h-11 lg:h-12"
+        darkClassName="h-10 object-contain object-left sm:h-11 lg:h-12"
       />
     </div>
   );

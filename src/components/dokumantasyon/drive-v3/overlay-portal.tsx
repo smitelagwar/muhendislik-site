@@ -1,132 +1,44 @@
-// ============================================================================
-// DÖKÜMANTASYON DRIVE V3.1 — BODY-LEVEL OVERLAY PORTAL & DIALOG HOST
-// ============================================================================
-
 "use client";
-
-import React, { useEffect, useRef, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
-
-const emptySubscribe = () => () => {};
-
+import React, { useRef } from "react";
+import { Dialog } from "radix-ui";
+import { X } from "lucide-react";
+import { useVisibleViewport } from "./use-visible-viewport";
+import styles from "../mobile-workspace.module.css";
 export interface OverlayPortalProps {
   children: React.ReactNode;
   isOpen: boolean;
   onClose?: () => void;
   zIndex?: number | string;
   preventBackdropClose?: boolean;
+  title?: string;
+  presentation?: "dialog" | "sheet" | "drawer";
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
+  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
-
-export function OverlayPortal({
-  children,
-  isOpen,
-  onClose,
-  zIndex = "var(--dok-z-dialog-backdrop, 600)",
-  preventBackdropClose = false,
-}: OverlayPortalProps) {
-  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const triggerElementRef = useRef<HTMLElement | null>(null);
-  const modalContainerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    // Save previous active element for focus restoration
-    triggerElementRef.current = document.activeElement as HTMLElement | null;
-
-    // Body scroll lock
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    // Escape listener
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onClose) {
-        e.stopPropagation();
-        onClose();
-      }
-
-      // Focus trap
-      if (e.key === "Tab" && modalContainerRef.current) {
-        const focusableElements = modalContainerRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements.length === 0) return;
-
-        const first = focusableElements[0];
-        const last = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    // Initial focus into modal
-    const timer = window.setTimeout(() => {
-      if (modalContainerRef.current) {
-        const initialFocus = modalContainerRef.current.querySelector<HTMLElement>(
-          "[autofocus], input, button"
-        );
-        initialFocus?.focus();
-      }
-    }, 20);
-
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-
-      // Restore focus to trigger
-      triggerElementRef.current?.focus();
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !mounted) return null;
-
-  const targetHost =
-    document.getElementById("dok-overlay-root") || document.body;
-
-  const content = (
-    <div
-      ref={modalContainerRef}
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex,
-        display: "grid",
-        placeItems: "center",
-        padding: "16px",
-      }}
-      className="bg-black/60 backdrop-blur-md animate-in fade-in duration-150"
-      onClick={(e) => {
-        if (!preventBackdropClose && e.target === e.currentTarget && onClose) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        style={{
-          maxHeight: "calc(100dvh - 32px)",
-          overflowY: "auto",
+/** Odak ve scroll kilidinin tek sahibi. */
+export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z-dialog-backdrop, 600)", preventBackdropClose = false, title = "Dokümantasyon işlemi", presentation = "dialog", initialFocusRef, returnFocusRef }: OverlayPortalProps) {
+  const trigger = useRef<HTMLElement | null>(null);
+  const rect = useVisibleViewport(isOpen);
+  return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) onClose?.(); }}>
+    <Dialog.Portal>
+      <Dialog.Overlay className={styles.backdrop} style={{ zIndex }} />
+      <Dialog.Content className={styles.modal} data-presentation={presentation} aria-describedby={undefined}
+        style={{ zIndex, ...(rect ? { maxHeight: rect.height - 16, top: presentation === "sheet" ? rect.top + rect.height : rect.top + rect.height / 2 } : {}) }}
+        onOpenAutoFocus={event => {
+          trigger.current = document.activeElement as HTMLElement | null;
+          if (initialFocusRef?.current) { event.preventDefault(); initialFocusRef.current.focus(); }
         }}
-        className="w-full flex justify-center"
-      >
+        onCloseAutoFocus={event => {
+          event.preventDefault();
+          const target = returnFocusRef?.current || trigger.current;
+          if (target?.isConnected) target.focus({ preventScroll: true });
+          else document.querySelector<HTMLElement>('[data-testid="dok-phone-more"], [data-testid="dok-explorer-viewport"]')?.focus({ preventScroll: true });
+        }}
+        onPointerDownOutside={event => { if (preventBackdropClose) event.preventDefault(); }}>
+        <Dialog.Title className="sr-only">{title}</Dialog.Title>
         {children}
-      </div>
-    </div>
-  );
-
-  return createPortal(content, targetHost);
+        <Dialog.Close aria-label="Pencereyi kapat" className={styles.modalClose}><X size={20} aria-hidden /></Dialog.Close>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>;
 }

@@ -15,7 +15,7 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   const shellRef = useRef<HTMLDivElement>(null);
   // Navbar yüksekliği logo, metin boyutu ve kaydırma durumuyla değişebilir.
   useEffect(() => {
-    const header = document.querySelector("header");
+    const header = document.querySelector("[data-site-header]");
     if (!header) return;
     const updateHeight = () => shellRef.current?.style.setProperty("--dok-app-header-height", `${header.getBoundingClientRect().height}px`);
     updateHeight();
@@ -36,9 +36,9 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
   }, []);
 
   return (
-    <div ref={shellRef} className={`relative min-h-[calc(100vh-4.5rem)] w-full bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05] max-lg:min-h-0 max-lg:overflow-hidden ${layoutStyles.shell}`}>
+    <div data-dok-shell ref={shellRef} className={`relative min-h-[calc(100vh-4.5rem)] w-full bg-gradient-to-b from-amber-500/[0.03] via-background to-amber-500/[0.05] max-lg:min-h-0 max-lg:overflow-hidden ${layoutStyles.shell}`}>
       {/* Ambiyans Warm Glass Işık Küreleri (Luminous Background Glow) — Yalnızca küreler için overflow-hidden */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div data-dok-ambient className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-32 -left-32 h-[32rem] w-[32rem] rounded-full bg-amber-500/20 blur-[130px] dark:bg-amber-500/15" />
         <div className="absolute top-1/4 -right-32 h-[36rem] w-[36rem] rounded-full bg-orange-500/15 blur-[150px] dark:bg-orange-600/12" />
         <div className="absolute -bottom-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-amber-400/20 blur-[140px] dark:bg-amber-600/10" />

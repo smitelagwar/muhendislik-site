@@ -20,6 +20,7 @@ export interface UploadQueueItem {
   file?: File;
   targetFolderId?: string | null;
   abortController?: AbortController;
+  relativePath?: string;
 }
 
 export type QueueListener = (queue: UploadQueueItem[]) => void;
@@ -58,13 +59,13 @@ export class UploadQueueManager {
     return [...this.queue];
   }
 
-  public enqueue(files: Array<{ file: File; targetFolderId?: string | null; id?: string }>): string[] {
+  public enqueue(files: Array<{ file: File; targetFolderId?: string | null; relativePath?: string; id?: string }>): string[] {
     const addedIds: string[] = [];
     const timestamp = Date.now();
 
     for (let i = 0; i < files.length; i++) {
       const entry = files[i];
-      const id = entry.id || `upload_${timestamp}_${i}_${entry.file.name}`;
+      const id = entry.id || `upload_${timestamp}_${crypto.randomUUID()}_${i}`;
       addedIds.push(id);
 
       this.queue.push({
@@ -75,6 +76,7 @@ export class UploadQueueManager {
         status: "queued",
         file: entry.file,
         targetFolderId: entry.targetFolderId,
+        relativePath: entry.relativePath,
         abortController: new AbortController(),
       });
     }
@@ -166,6 +168,7 @@ export class UploadQueueManager {
 
       item.status = "success";
       item.progress = 100;
+      item.file = undefined;
     } catch (err: unknown) {
       if (item.abortController?.signal.aborted) {
         item.status = "cancelled";

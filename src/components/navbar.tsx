@@ -18,11 +18,11 @@ export function Navbar() {
   return (
     <>
       <NavbarRouteTracker />
-      <NavbarChrome>
+      <NavbarChrome documentWorkspace={pathname === "/dokumantasyon"}>
         <div className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-blue-500" />
 
         <div className="mx-auto max-w-screen-2xl px-2 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
-          <div className="flex items-center justify-between py-5 transition-all duration-500 group-data-[scrolled=true]/navbar:py-3">
+          <div className="flex items-center justify-between py-3.5 sm:py-4">
             <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 xl:gap-6 2xl:gap-8">
               <NavbarLeading />
               <NavbarDesktopNav />

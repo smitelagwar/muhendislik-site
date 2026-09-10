@@ -29,8 +29,8 @@ async function runStage8Tests() {
     ".virtualRow ve .virtualCard CSS sınıfları mevcut"
   );
   assert(
-    cssContent.includes("will-change: transform, opacity;"),
-    "Virtual kartlar GPU donanım hızlandırması için will-change: transform, opacity kullanıyor"
+    !cssContent.includes("will-change: transform, opacity;"),
+    "Sanal öğelerde sürekli will-change katmanı oluşturulmuyor"
   );
 
   // 2. Framer Motion Yasağı (Virtual item'lar üzerinde Motion olmamalı)

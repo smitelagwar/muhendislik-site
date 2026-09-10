@@ -1582,3 +1582,14 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
   display: none !important;
 }
 
+
+/* Dokümantasyon telefon sunumu: ilk çizimde tek başlık. */
+@media (max-width:639px), (pointer:coarse) and (max-width:1023px) and (max-height:500px) {
+  [data-site-header][data-document-workspace=true] { display:none; }
+  [data-dok-shell] { height:100dvh!important; background:var(--card)!important; }
+  [data-dok-shell] > [data-dok-ambient] { display:none; }
+  [data-dok-shell] > div:not([data-dok-ambient]) { padding:0!important; gap:0!important; }
+  [data-dok-shell] [data-testid=dok-explorer-viewport] { padding:0!important; background:var(--card); }
+  [data-dok-shell] [data-testid=dok-mobile-selection-dock] { padding:6px 10px max(6px,env(safe-area-inset-bottom)); min-height:56px; background:var(--card); backdrop-filter:none; }
+  [data-dok-shell] [data-testid=dok-mobile-selection-dock] button { font-size:.75rem; }
+}

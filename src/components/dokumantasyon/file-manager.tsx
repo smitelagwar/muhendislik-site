@@ -57,7 +57,7 @@ import { TrashModal } from "./modals/trash-modal";
 import { CreateShareModal } from "./modals/create-share-modal";
 import { ShareResultModal } from "./modals/share-result-modal";
 import { ActiveSharesModal } from "./modals/active-shares-modal";
-import { UploadProgressToast, UploadQueueItem } from "./upload-progress-toast";
+import { UploadProgressToast } from "./upload-progress-toast";
 import { WorkspaceFilterSheet, WorkspaceFilters } from "./workspace-filter-sheet";
 import { makeFolderUploadPlan, FolderUploadEntry } from "@/lib/dokumantasyon/folder-upload";
 import {
@@ -67,14 +67,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { uploadPresigned } from "@vercel/blob/client";
+import { useDokUploadSession } from "./drive-v3/workspace-session";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { deriveExplorerView, reconcileSelection } from "./drive-v3/explorer-derive";
 import { executeBulkTrash, executeBulkMove, executeBulkStar, BulkItem } from "./drive-v3/bulk-operations";
 import { useDriveSelection } from "./drive-v3/use-drive-selection";
 import { useVirtualExplorer } from "./drive-v3/use-virtual-explorer";
 import {
-  DokQueryProvider,
   useDokItemsQuery,
   dokQueryClient,
   dokKeys,
@@ -106,6 +105,13 @@ import { MOBILE_EXPLORER_QUERY, resolveExplorerActivation, type ItemActivationSo
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
 import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
 import styles from "./dok-workspace.module.css";
+import mobileStyles from "./mobile-workspace.module.css";
+import { usePhonePresentation } from "./drive-v3/use-phone-presentation";
+import { useWorkspaceHistory } from "./drive-v3/use-workspace-history";
+import { MobileExplorer } from "./mobile-explorer";
+import { MobileWorkspaceBar, MobileWorkspacePanel, MobileItemPanel, MobileSiteLinks, type MobileSurface } from "./mobile-workspace-controls";
+import { MobileSearch } from "./mobile-search";
+import { OverlayPortal } from "./drive-v3/overlay-portal";
 
 type DriveItem = { id: string; name: string; type: "file" | "folder"; parentId: string | null; size?: number };
 
@@ -123,16 +129,18 @@ const DEFAULT_WORKSPACE_FILTERS: WorkspaceFilters = {
 };
 
 export function DokumantasyonFileManager() {
-  return (
-    <DokQueryProvider>
-      <DokumantasyonFileManagerInner />
-    </DokQueryProvider>
-  );
+  return <DokumantasyonFileManagerInner />;
 }
 
 function DokumantasyonFileManagerInner() {
   const router = useRouter();
   const isMobileExplorer = useMobileExplorer();
+  const isPhone = usePhonePresentation();
+  const [mobileSurface, setMobileSurface] = useState<MobileSurface>(null);
+  const [mobileItem, setMobileItem] = useState<DokFile | DokFolder | null>(null);
+  const [mobileQuery, setMobileQuery] = useState("");
+  const [mobileDetail, setMobileDetail] = useState<DokFile | DokFolder | null>(null);
+  const phoneMoreRef = useRef<HTMLButtonElement>(null);
   const lastPointerTypeRef = useRef("mouse");
   const selectionModeButtonRef = useRef<HTMLButtonElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
@@ -261,6 +269,7 @@ function DokumantasyonFileManagerInner() {
     filter: activeFilter,
     overscan: 6,
     scrollContainerRef,
+    enabled: !isPhone,
   });
 
   // Çoklu Seçim & Marquee & Klavye Motoru (Drive V3)
@@ -296,7 +305,7 @@ function DokumantasyonFileManagerInner() {
   const exitMobileSelectionMode = useCallback(() => {
     setIsMobileSelectionMode(false);
     clearSelection();
-    selectionModeButtonRef.current?.focus();
+    (phoneMoreRef.current || selectionModeButtonRef.current)?.focus();
   }, [clearSelection]);
 
 
@@ -339,8 +348,16 @@ function DokumantasyonFileManagerInner() {
   } | null>(null);
   const [isActiveSharesOpen, setIsActiveSharesOpen] = useState(false);
 
+  const historySnapshot = { currentFolderId, mobileSurface, mobileItem, mobileDetail, mobileQuery, isMobileSelectionMode, isSearchOpen, isNewFolderOpen, renameItem, moveItems, deleteItem, isMultiDeleteOpen, isCreateShareOpen, isTrashOpen, isActiveSharesOpen, viewMode, sortBy, sortOrder, groupBy, workspaceFilters, activeFilter };
+  const historyDepth = (isMobileSelectionMode || isSearchOpen ? 1 : 0) + (mobileSurface || mobileItem || mobileDetail || isNewFolderOpen || renameItem || moveItems.length || deleteItem || isMultiDeleteOpen || isCreateShareOpen || isTrashOpen || isActiveSharesOpen ? 1 : 0);
+  useWorkspaceHistory(historySnapshot, historyDepth, value => {
+    setCurrentFolderId(value.currentFolderId); setMobileSurface(value.mobileSurface); setMobileItem(value.mobileItem); setMobileDetail(value.mobileDetail); setMobileQuery(value.mobileQuery);
+    setIsMobileSelectionMode(value.isMobileSelectionMode); if(!value.isMobileSelectionMode) clearSelection(); setIsSearchOpen(value.isSearchOpen); setIsNewFolderOpen(value.isNewFolderOpen); setRenameItem(value.renameItem); setMoveItems(value.moveItems); setDeleteItem(value.deleteItem); setIsMultiDeleteOpen(value.isMultiDeleteOpen); setIsCreateShareOpen(value.isCreateShareOpen); setIsTrashOpen(value.isTrashOpen); setIsActiveSharesOpen(value.isActiveSharesOpen);
+    setViewMode(value.viewMode); setSortBy(value.sortBy); setSortOrder(value.sortOrder); setGroupBy(value.groupBy); setWorkspaceFilters(value.workspaceFilters); setActiveFilter(value.activeFilter);
+  }, isPhone);
+
   // Yükleme Sırası ve Sürükle-Bırak
-  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const { queue: uploadQueue, manager: uploadManager } = useDokUploadSession();
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -917,125 +934,13 @@ function DokumantasyonFileManagerInner() {
     }
   };
 
-  const waitForUploadMetadata = async (pathname: string) => {
-    const retryDelays = [250, 500, 750, 1_000, 1_500, 2_000];
-
-    for (const delay of retryDelays) {
-      await new Promise((resolve) => window.setTimeout(resolve, delay));
-      const result = await requestDokMutation<{ finalized?: boolean }>(
-        `/api/dokumantasyon/upload/status?pathname=${encodeURIComponent(pathname)}`
-      );
-
-      if (result.ok && result.data.finalized) return;
-      if (!result.ok && (result.code === "HTTP_401" || result.code === "HTTP_403")) {
-        throw new Error(result.message);
-      }
-    }
-
-    throw new Error("Dosya depoya yüklendi ancak liste kaydı doğrulanamadı. Lütfen listeyi yenileyin.");
-  };
-
-  const runQueueItem = async (item: UploadQueueItem) => {
-    if (!item.file) return;
-    const file = item.file;
-    const targetFolderId = item.targetFolderId || null;
-
-    setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "authorizing", progress: 5, errorMessage: undefined } : queueItem));
-    try {
-      const intentResult = await requestDokMutation<{
-        isLocalMode?: boolean;
-        pathname: string;
-        handleUploadUrl?: string;
-        intentToken: string;
-        mimeType?: string;
-      }>("/api/dokumantasyon/upload/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type || "application/octet-stream",
-          folderId: targetFolderId,
-        }),
-      });
-      if (!intentResult.ok) throw new Error(intentResult.message);
-      const tokenData = intentResult.data;
-
-      if (tokenData.isLocalMode) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("pathname", tokenData.pathname);
-        formData.append("folderId", targetFolderId || "null");
-        setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, progress: 60 } : queueItem));
-        const localResult = await requestDokMutation("/api/dokumantasyon/upload/local", { method: "POST", body: formData });
-        if (!localResult.ok) throw new Error(localResult.message);
-      } else {
-        if (!tokenData.handleUploadUrl) throw new Error("Yükleme kontrol uç noktası bulunamadı.");
-        setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "uploading", progress: 10 } : queueItem));
-        await uploadPresigned(tokenData.pathname, file, {
-          access: "private",
-          handleUploadUrl: tokenData.handleUploadUrl,
-          clientPayload: JSON.stringify({ intentToken: tokenData.intentToken }),
-          contentType: tokenData.mimeType,
-          multipart: file.size >= 5 * 1024 * 1024,
-          onUploadProgress: ({ percentage }) => {
-            setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, progress: Math.min(90, Math.max(10, Math.round(percentage * 0.8 + 10))) } : queueItem));
-          },
-        });
-        setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "finalizing", progress: 92 } : queueItem));
-      }
-
-      setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "confirming_metadata", progress: 96 } : queueItem));
-      await waitForUploadMetadata(tokenData.pathname);
-      setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "completed", progress: 100 } : queueItem));
-    } catch (error: unknown) {
-      console.error("Yükleme hatası:", error);
-      const errorMessage = error instanceof Error ? error.message : "Yüklenemedi";
-      setUploadQueue((previous) => previous.map((queueItem) => queueItem.id === item.id ? { ...queueItem, status: "error", errorMessage } : queueItem));
-    }
-  };
-
   const queueUploadEntries = async (entries: Array<{ file: File; folderId: string | null; relativePath?: string }>) => {
-    if (entries.length === 0) return;
-    const queueItems: UploadQueueItem[] = entries.map((entry, index) => ({
-      id: `${Date.now()}_${index}_${entry.file.name}`,
-      name: entry.file.name,
-      size: entry.file.size,
-      progress: 0,
-      status: "queued",
-      file: entry.file,
-      targetFolderId: entry.folderId,
-      relativePath: entry.relativePath,
-    }));
-    setUploadQueue((previous) => [...previous, ...queueItems]);
-
-    // Concurrency limit: 3 active uploads concurrently
-    const concurrency = 3;
-    let nextIndex = 0;
-    const workers = Array.from({ length: Math.min(concurrency, queueItems.length) }, async () => {
-      while (nextIndex < queueItems.length) {
-        const item = queueItems[nextIndex++];
-        if (item) {
-          await runQueueItem(item);
-        }
-      }
-    });
-
-    await Promise.all(workers);
-    await fetchItems();
+    uploadManager.enqueue(entries.map(entry => ({ file: entry.file, targetFolderId: entry.folderId, relativePath: entry.relativePath })));
   };
-
-  // 5. Dosya Yükleme Süreci
   const uploadFiles = async (fileList: FileList | File[]) => {
-    await queueUploadEntries(Array.from(fileList).map((file) => ({ file, folderId: currentFolderId })));
+    await queueUploadEntries(Array.from(fileList).map(file => ({ file, folderId: currentFolderId })));
   };
-
-  const handleRetryUpload = async (itemId: string) => {
-    const item = uploadQueue.find((queueItem) => queueItem.id === itemId);
-    if (!item?.file || item.status !== "error") return;
-    await runQueueItem(item);
-    await fetchItems();
-  };
+  const handleRetryUpload = async (itemId: string) => { uploadManager.retryItem(itemId); };
 
   const uploadFolder = async (fileList: FileList | File[]) => {
     const createdFolderIds: string[] = [];
@@ -1817,7 +1722,7 @@ function DokumantasyonFileManagerInner() {
         />
       </div>
 
-      {isSidebarOpenMobile && (
+      {!isPhone && isSidebarOpenMobile && (
         <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setIsSidebarOpenMobile(false)}>
           <div aria-hidden="true" className="absolute inset-0 bg-black/55" />
           <div
@@ -1853,6 +1758,12 @@ function DokumantasyonFileManagerInner() {
 
       {/* 2. Ana Çalışma Alanı (Center Content) — BUG-3 FIX: overflow-hidden → min-h-0 */}
       <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+        {isPhone ? <>
+          <MobileWorkspaceBar title={currentFolder?.name || "Dosyalar"} hasParent={!!currentFolderId} selection={isMobileSelectionMode} count={selectedIds.size} allSelected={isAllSelected}
+            onBack={() => navigateToFolder(breadcrumbs[breadcrumbs.length - 2]?.id ?? null)} onDrawer={() => setMobileSurface("drawer")} onSearch={() => setIsSearchOpen(true)} onSurface={setMobileSurface}
+            onSelectAll={handleToggleSelectAll} onExit={exitMobileSelectionMode} moreRef={phoneMoreRef}/>
+          {activeFilterLabels.length > 0 && !isMobileSelectionMode && <div className={mobileStyles.summary}><button className={mobileStyles.icon} onClick={() => setMobileSurface("settings")}>{activeFilterLabels.length} filtre etkin</button><button className={mobileStyles.icon} onClick={() => { setActiveFilter("all"); setWorkspaceFilters(DEFAULT_WORKSPACE_FILTERS); }}>Temizle</button></div>}
+        </> : <>
         {/* Üst Gezinti ve Kontrol Çubuğu */}
         <div className={`flex min-w-0 flex-wrap items-center justify-between gap-2 border-b p-2.5 sm:gap-3 sm:p-3 ${styles.commandBar}`}>
           {/* Breadcrumb ve Mobil Menü */}
@@ -2257,6 +2168,7 @@ function DokumantasyonFileManagerInner() {
           </div>
         )}
 
+        </>}
         {/* Kalıcı Depolama Yapılandırma Uyarısı */}
         {configError && (
           <div className="mx-4 mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-400 flex items-start gap-3 shadow-sm">
@@ -2402,6 +2314,8 @@ function DokumantasyonFileManagerInner() {
                 )}
               </div>
             </div>
+          ) : isPhone ? (
+            <MobileExplorer items={allExplorerItems} buckets={groupedBuckets} grouped={groupBy !== "none"} view={viewMode} selectedIds={selectedIds} selection={isMobileSelectionMode} scrollRef={scrollContainerRef} onActivate={activateItem} onMore={setMobileItem} persistenceKey={`${currentFolderId || "root"}:${activeFilter}`} />
           ) : viewMode === "list" ? (
             /* ========================================================= */
             /* LİSTE GÖRÜNÜMÜ (TABLE VIEW - VIRTUAL & GROUPED)           */
@@ -2473,9 +2387,9 @@ function DokumantasyonFileManagerInner() {
                       width: "100%",
                       transform: `translateY(${virtualRow.start}px)`,
                     };
-                    return "parent_id" in item
-                      ? renderFolderRow(item as DokFolder, rowStyle)
-                      : renderFileRow(item as DokFile, rowStyle);
+                    return <div key={virtualRow.key} style={rowStyle}>
+                      {"parent_id" in item ? renderFolderRow(item as DokFolder) : renderFileRow(item as DokFile)}
+                    </div>;
                   })}
                 </div>
               </div>
@@ -2801,7 +2715,7 @@ function DokumantasyonFileManagerInner() {
       />
 
       <SearchModal
-        isOpen={isSearchOpen}
+        isOpen={isSearchOpen && !isPhone}
         onClose={() => setIsSearchOpen(false)}
         onNavigateToFolder={(folderId) => navigateToFolder(folderId)}
       />
@@ -2840,10 +2754,31 @@ function DokumantasyonFileManagerInner() {
         onClose={() => setIsFilterSheetOpen(false)}
       />
 
+      {isPhone && <>
+        <MobileWorkspacePanel surface={mobileSurface} onSurface={setMobileSurface} onUpload={() => fileInputRef.current?.click()} onFolderUpload={supportsFolderUpload ? openFolderPicker : undefined} onNewFolder={() => setIsNewFolderOpen(true)} onSelect={() => setIsMobileSelectionMode(true)} onRefresh={() => void fetchItems()} moreRef={phoneMoreRef}
+          settings={{ view: viewMode, sortBy, sortOrder, groupBy, filters: workspaceFilters }} onApply={v => { setViewMode(v.view); setSortBy(v.sortBy); setSortOrder(v.sortOrder); setGroupBy(v.groupBy); handleWorkspaceFiltersChange(v.filters); }}>
+          <DriveSidebar activeFilter={activeFilter} onFilterChange={filter => { handleNavigationFilter(filter); if (filter !== "all" && currentFolderId) navigateToFolder(null); setMobileSurface(null); }} onNewFolder={() => setIsNewFolderOpen(true)} onUploadClick={() => fileInputRef.current?.click()} onOpenActiveShares={() => {setMobileSurface(null);setIsActiveSharesOpen(true);}} onOpenTrash={() => {setMobileSurface(null);setIsTrashOpen(true);}} totalFilesCount={files.length} totalFoldersCount={folders.length} totalSizeBytes={totalSizeBytes} starredCount={starredCount} className="!w-full !p-0" compact />
+          <MobileSiteLinks breadcrumbs={breadcrumbs} onNavigate={id => { setMobileSurface(null); navigateToFolder(id); }}/>
+        </MobileWorkspacePanel>
+        <MobileItemPanel item={mobileItem} onClose={() => setMobileItem(null)} onAction={(action,item) => {
+          const folder = "parent_id" in item;
+          const target = { id:item.id, name:folder ? item.name : item.display_name, type:folder ? "folder" as const : "file" as const, parentId:folder ? item.parent_id : item.folder_id };
+          if(action==="open") { if(folder) navigateToFolder(item.id); else router.push(`/dokumantasyon/dosya/${item.id}`); }
+          else if(action==="download" && !folder) window.location.assign(`/api/dokumantasyon/files/${item.id}/stream?download=1`);
+          else if(action==="share") handleOpenShareSingle(target);
+          else if(action==="rename") setRenameItem(target);
+          else if(action==="move") setMoveItems([target]);
+          else if(action==="trash") setDeleteItem(target);
+          else if(action==="star") void toggleStar(target.type,item.id,Boolean(item.starred_at));
+          else if(action==="details") setMobileDetail(item);
+        }}/>
+        <OverlayPortal isOpen={!!mobileDetail} onClose={() => setMobileDetail(null)} title="Öğe detayları" presentation="sheet"><div className={mobileStyles.panel}><h2>{mobileDetail ? ("parent_id" in mobileDetail ? mobileDetail.name : mobileDetail.display_name) : ""}</h2><p className="break-words">{mobileDetail ? formatDate(mobileDetail.updated_at) : ""}</p>{mobileDetail && !("parent_id" in mobileDetail) && <p>{formatBytes(mobileDetail.size_bytes)}</p>}</div></OverlayPortal>
+        {isSearchOpen && <MobileSearch query={mobileQuery} onQuery={setMobileQuery} onClose={() => setIsSearchOpen(false)} onOpen={file => router.push(`/dokumantasyon/dosya/${file.id}`)} onFolder={id => { setIsSearchOpen(false); navigateToFolder(id); }}/>} 
+      </>}
       {/* Yükleme İlerleme Bildirimi */}
       <UploadProgressToast
         queue={uploadQueue}
-        onDismiss={() => setUploadQueue([])}
+        onDismiss={() => uploadManager.clearFinished()}
         onRetry={(itemId) => void handleRetryUpload(itemId)}
       />
     </div>

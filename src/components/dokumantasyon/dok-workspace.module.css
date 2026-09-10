@@ -262,7 +262,7 @@
 /* --- Stage 8 Premium Explorer Görsel Sistemi & GPU Transitions --- */
 .virtualRow,
 .virtualCard {
-  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   /* will-change kasıtlı olarak kaldırıldı: sanal listedeki tüm satırlarda
      sürekli compositing katmanı açık tutmak gereksiz GPU ve bellek maliyeti
      yaratır. Tarayıcı transition sırasında zaten otomatik optimize eder. */
@@ -424,4 +424,11 @@
   .workspace[data-mobile-selection-mode="true"] .commandBar [data-breadcrumb] { display: none; }
   .commandBar { flex-shrink: 0; }
   .workspace[data-mobile-selection-mode="true"] .commandBar { padding: 8px 10px; }
+}
+
+@media (max-width:639px), (pointer:coarse) and (max-width:1023px) and (max-height:500px) {
+ .workspace { border-radius:0; border:0; box-shadow:none; background:var(--card); backdrop-filter:none; }
+ .workspace::before, .workspace::after { display:none; }
+ .mobileSelectionBar > div:last-child { width:100%; display:flex; }
+ .mobileSelectionBar [data-mobile-action=move], .mobileSelectionBar [data-mobile-action=share], .mobileSelectionBar [data-mobile-action=trash] { flex:1; }
 }

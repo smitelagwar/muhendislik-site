@@ -22,8 +22,8 @@
      touch row exactly on that contract: 44px selection target + 6px top/bottom
      breathing room. This prevents the final virtual row from extending below
      the scroll viewport on compact 320px devices. */
-  .managerSlot :global([data-testid="dok-file-row"]),
-  .managerSlot :global([data-testid="dok-folder-row"]) {
+  .managerSlot :global([data-testid="dok-file-row"]:not([data-mobile-item])),
+  .managerSlot :global([data-testid="dok-folder-row"]:not([data-mobile-item])) {
     box-sizing: border-box;
     height: 56px !important;
     padding-top: 6px !important;
@@ -43,8 +43,8 @@
   }
 }
 
-/* Mobil portrait'te modül başlığı görsel olarak gizlenir; ekranda ~60px kazanılır.
-   Erişilebilirlik: DOM'da kalır, screen reader okuyabilir. */
+/* Mobil portrait'te modÃ¼l baÅŸlÄ±ÄŸÄ± gÃ¶rsel olarak gizlenir; ekranda ~60px kazanÄ±lÄ±r.
+   EriÅŸilebilirlik: DOM'da kalÄ±r, screen reader okuyabilir. */
 @media (max-width: 1023px) {
   .shell :global([data-testid="dok-admin-header"]) {
     position: absolute;
@@ -57,6 +57,6 @@
   }
 }
 
-/* Yatay telefonlarda zaten üstteki kural geçerli; bu blok artık gerekmiyor.
-   Korunabilir erişilebilirlik notu olarak bırakıldı. */
-/* @media (max-width: 1023px) and (max-height: 500px) — kural üstteki ile birleştirildi */
+/* Yatay telefonlarda zaten Ã¼stteki kural geÃ§erli; bu blok artÄ±k gerekmiyor.
+   Korunabilir eriÅŸilebilirlik notu olarak bÄ±rakÄ±ldÄ±. */
+/* @media (max-width: 1023px) and (max-height: 500px) â€” kural Ã¼stteki ile birleÅŸtirildi */

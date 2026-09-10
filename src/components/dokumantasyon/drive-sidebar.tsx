@@ -38,6 +38,7 @@ interface DriveSidebarProps {
   starredCount: number;
   className?: string;
   onNavigate?: () => void;
+  compact?: boolean;
 }
 
 export function DriveSidebar({
@@ -53,6 +54,7 @@ export function DriveSidebar({
   starredCount,
   className = "",
   onNavigate,
+  compact = false,
 }: DriveSidebarProps) {
   const completeNavigation = () => onNavigate?.();
 
@@ -66,7 +68,7 @@ export function DriveSidebar({
   };
 
   return (
-    <aside className={`flex w-64 shrink-0 flex-col gap-4 overflow-y-auto overscroll-y-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] select-none ${styles.sidebar} ${className}`}>
+    <aside data-compact={compact} className={`flex w-64 shrink-0 flex-col gap-4 overflow-y-auto overscroll-y-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] select-none ${styles.sidebar} ${className}`}>
       {/* Mobil Başlık ve Kapatma Butonu */}
       {onNavigate && (
         <div className="flex items-center justify-between border-b border-border/60 pb-3 lg:hidden">
@@ -88,7 +90,7 @@ export function DriveSidebar({
       )}
 
       {/* 1. Hızlı Eylem Butonları */}
-      <div className="flex flex-col gap-2">
+      {!compact && <div className="flex flex-col gap-2">
         <Button
           onClick={() => {
             onUploadClick();
@@ -111,7 +113,7 @@ export function DriveSidebar({
           <FolderPlus className="h-4 w-4 shrink-0 text-amber-500" />
           <span>Yeni Klasör Oluştur</span>
         </Button>
-      </div>
+      </div>}
 
       {/* 2. Ana Menü Gezintisi */}
       <div className="space-y-1">
@@ -241,7 +243,7 @@ export function DriveSidebar({
       </div>
 
       {/* 5. Alt Kısım: Depolama Alanı ve Bilgi Kartı */}
-      <div className="mt-auto space-y-2 border-t border-border/60 pt-3">
+      {!compact && <div className="mt-auto space-y-2 border-t border-border/60 pt-3">
         <div className="rounded-xl border border-white/60 dark:border-white/10 bg-white/60 dark:bg-card/60 p-3 text-xs shadow-inner backdrop-blur-md">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="flex items-center gap-1.5 font-bold text-foreground">
@@ -259,7 +261,7 @@ export function DriveSidebar({
             <span>{totalFilesCount} dosya</span>
           </div>
         </div>
-      </div>
+      </div>}
     </aside>
   );
 }

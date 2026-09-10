@@ -25,6 +25,7 @@ export interface UseVirtualExplorerProps<T> {
   folderId?: string | null;
   filter?: string;
   overscan?: number;
+  enabled?: boolean;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -34,6 +35,7 @@ export function useVirtualExplorer<T>({
   folderId,
   filter,
   overscan = 5,
+  enabled = true,
   scrollContainerRef,
 }: UseVirtualExplorerProps<T>) {
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -50,7 +52,7 @@ export function useVirtualExplorer<T>({
   // ResizeObserver for Container Width & Anchor Preservation
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !enabled) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -77,7 +79,7 @@ export function useVirtualExplorer<T>({
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, [containerWidth, viewMode]);
+  }, [containerWidth, viewMode, enabled]);
 
   // Scroll Restoration Key
   const persistenceKey = useMemo(() => {
@@ -87,23 +89,24 @@ export function useVirtualExplorer<T>({
   // Restore Scroll on Mount or Folder/View Change
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !enabled) return;
 
     const savedOffset = restoreScrollPosition(persistenceKey);
     if (savedOffset > 0) {
       container.scrollTop = savedOffset;
     }
-  }, [persistenceKey]);
+  }, [persistenceKey, enabled]);
 
   // Save Scroll Position on Scroll
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !enabled) return;
     saveScrollPosition(persistenceKey, container.scrollTop);
-  }, [persistenceKey]);
+  }, [persistenceKey, enabled]);
 
   // List Virtualizer (1 row = 1 item)
   const listVirtualizer = useVirtualizer({
+    enabled,
     count: items.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => DRIVE_LIST_ROW_HEIGHT,
@@ -120,6 +123,7 @@ export function useVirtualExplorer<T>({
   }, [items.length, gridMetrics.columnCount]);
 
   const gridVirtualizer = useVirtualizer({
+    enabled,
     count: gridRowCount,
     getScrollElement: () => containerRef.current,
     estimateSize: () => DRIVE_GRID_ROW_HEIGHT,
