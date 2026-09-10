@@ -136,7 +136,7 @@ test.describe("Drive V3.1 — Real mobile explorer acceptance", () => {
 
     await expect(page).toHaveURL(/folderId=folder-mobile/);
     await expect(page.getByRole("button", { name: "Taşı" })).toHaveCount(0);
-    await expect(page.locator('button:visible').filter({ hasText: /^Mobil Klasör$/ }).first()).toBeVisible();
+    await expect(page.locator('[data-testid="dok-folder-row"]')).toHaveCount(0);
   });
 
   test("3. Selection dock explorer'ın üstüne binmez ve en son sanal dosya tamamen görünür", async ({ page }) => {
@@ -182,8 +182,10 @@ test.describe("Drive V3.1 — Real mobile explorer acceptance", () => {
     expect(lastBox).not.toBeNull();
     expect(viewportBox).not.toBeNull();
     expect(dockBox).not.toBeNull();
-    expect(lastBox!.bottom).toBeLessThanOrEqual(viewportBox!.bottom + 1);
-    expect(viewportBox!.bottom).toBeLessThanOrEqual(dockBox!.top + 1);
+    const lastBottom = lastBox!.y + lastBox!.height;
+    const dockTop = dockBox!.y;
+    expect(lastBottom).toBeLessThanOrEqual(viewportBox!.bottom + 1);
+    expect(viewportBox!.bottom).toBeLessThanOrEqual(dockTop + 1);
     expect(dockPosition).toBe("static");
     expect(dockFlexWrap).toBe("nowrap");
   });
