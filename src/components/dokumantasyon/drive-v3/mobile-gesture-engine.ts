@@ -23,15 +23,34 @@ export interface LongPressOptions {
   onSingleTap: (id: string) => void;
 }
 
+type PointerLike = {
+  clientX: number;
+  clientY: number;
+  pointerType?: string;
+  target?: EventTarget | null;
+};
+
+function isInteractivePointerTarget(target: EventTarget | null | undefined): boolean {
+  const candidate = target as { closest?: (selector: string) => unknown } | null | undefined;
+  if (!candidate || typeof candidate.closest !== "function") return false;
+  return Boolean(
+    candidate.closest(
+      "button, a, input, select, textarea, [contenteditable='true'], [data-no-mobile-gesture]"
+    )
+  );
+}
+
 /**
- * 500ms iOS/Android Long-Press State Machine
- * - 8px kayma olduğunda timer iptal edilir (doğal scroll'a izin verilir)
- * - 500ms dolmadan pointerup gelirse timer iptal edilir ve tekil tık işlenir
- * - 500ms dolduğunda seçim modu tetiklenir ve haptik titreşim verilir
- * - Touch/pen pointer dizisi tamamlandığında aynı öğe için gelecek sentetik
- *   compatibility click tam bir kez bastırılır. Bu, normal tap ve long-press'in
- *   iki kez işlenmesini engellediği gibi scroll-cancel sonrası oluşabilecek
- *   hayalet click'in yanlışlıkla seçim yapmasını da önler.
+ * iOS/Android mobile pointer state machine.
+ *
+ * Product contract:
+ * - Row/card tap: one normal open/navigate action.
+ * - Scroll: only scroll; no selection and no ghost click.
+ * - Long-press: deliberately does NOT enter selection mode.
+ * - Explicit child controls (checkbox, menu, links, inputs): parent gesture engine
+ *   stays completely idle so the child receives exactly one interaction.
+ * - Selection begins only through an explicit selection control already rendered
+ *   on each file/folder item.
  */
 export function createLongPressController({
   id,
@@ -47,9 +66,10 @@ export function createLongPressController({
   let startY = 0;
   let activePointerType: string | null = null;
 
-  // Backward-compatible option: callers may still pass this while the current
-  // state machine reads the freshest selection state in file-manager callbacks.
+  // Retained for call-site API compatibility while mobile selection is moved to
+  // explicit controls instead of long-press discovery gestures.
   void isSelectionModeActive;
+  void onLongPressTrigger;
 
   const clearTimer = () => {
     if (timer) {
@@ -58,9 +78,13 @@ export function createLongPressController({
     }
   };
 
-  const handlePointerDown = (e: { clientX: number; clientY: number; pointerType?: string }) => {
-    // Mouse için long-press gerekmez (sağ tık veya ctrl-click kullanılır)
+  const handlePointerDown = (e: PointerLike) => {
+    // Desktop mouse keeps its existing click/right-click/marquee semantics.
     if (e.pointerType === "mouse") return;
+
+    // A child button/link owns its gesture. Do not let the parent row/card also
+    // open, toggle selection, vibrate, or arm a duplicate-click token.
+    if (isInteractivePointerTarget(e.target)) return;
 
     activePointerType = e.pointerType ?? "touch";
     state = "pressing";
@@ -70,15 +94,9 @@ export function createLongPressController({
     clearTimer();
     timer = setTimeout(() => {
       if (state === "pressing") {
-        state = "triggered";
-        if (typeof navigator !== "undefined" && navigator.vibrate) {
-          try {
-            navigator.vibrate(40);
-          } catch {
-            // titreşim hatasında sessizce geç
-          }
-        }
-        onLongPressTrigger(id);
+        // Long-press selection is intentionally disabled. Treat the hold as a
+        // cancelled row gesture; release will suppress any compatibility click.
+        state = "cancelled";
       }
     }, delayMs);
   };
@@ -106,7 +124,6 @@ export function createLongPressController({
     if (state === "pressing") {
       clearTimer();
       state = "idle";
-      // 500ms dolmadan bırakıldı -> normal tap
       onSingleTap(id);
     } else {
       clearTimer();
