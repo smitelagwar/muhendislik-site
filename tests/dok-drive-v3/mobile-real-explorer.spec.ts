@@ -174,7 +174,7 @@ test.describe("Drive V3.1 — Real mobile explorer acceptance", () => {
       const rect = node.getBoundingClientRect();
       return { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
     });
-    const selectionDock = moveButton.locator('xpath=ancestor::div[contains(@class,"fixed")][1]');
+    const selectionDock = page.locator('[data-testid="dok-mobile-selection-dock"]');
     const dockBox = await selectionDock.boundingBox();
     const dockPosition = await selectionDock.evaluate((node) => window.getComputedStyle(node).position);
     const dockFlexWrap = await selectionDock.evaluate((node) => window.getComputedStyle(node).flexWrap);

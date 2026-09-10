@@ -1,11 +1,12 @@
 // ============================================================================
 // DÖKÜMANTASYON DRIVE V3.1 — AŞAMA 9 MOBİL, GESTURE & ERİŞİLEBİLİRLİK TESTİ
 // ============================================================================
+// A7 güncelleme: createLongPressController kaldırıldı. Mobil seçim artık
+// açık Seç butonu modundan başlıyor. Bu script yeni UX sözleşmesini doğrular.
 
 import fs from "fs";
 import path from "path";
 import {
-  createLongPressController,
   MOBILE_VIEWPORT_PRESETS,
   isSufficientTouchTarget,
 } from "../src/components/dokumantasyon/drive-v3/mobile-gesture-engine";
@@ -52,97 +53,60 @@ async function runStage9Tests() {
     "Doğal dikey kaydırma korunurken yatay çakışmalar engellendi (touch-action: pan-y)"
   );
 
-  // 3. Long-press artık seçim keşif gesture'ı değildir.
-  console.log("\n--- 3. Long-Press: Açık Seçim Sözleşmesi ---");
-  let triggeredId: string | null = null;
-  let tappedId: string | null = null;
+  // 3. Yeni UX: Açık Seçim Modu sözleşmesi (A3)
+  console.log("\n--- 3. Açık Seçim Modu UX Sözleşmesi (A3) ---");
+  const fileManagerPath = path.join(
+    rootDir,
+    "src/components/dokumantasyon/file-manager.tsx"
+  );
+  const fileManagerContent = fs.readFileSync(fileManagerPath, "utf-8");
+  assert(
+    fileManagerContent.includes("isMobileSelectionMode"),
+    "file-manager.tsx açık mobil seçim modu state'i içeriyor (isMobileSelectionMode)"
+  );
+  assert(
+    fileManagerContent.includes("exitMobileSelectionMode"),
+    "file-manager.tsx seçim modundan çıkış fonksiyonu içeriyor"
+  );
+  assert(
+    !fileManagerContent.includes("createLongPressController"),
+    "file-manager.tsx artık createLongPressController kullanmıyor (A7)"
+  );
+  assert(
+    !fileManagerContent.includes("longPressControllersRef"),
+    "file-manager.tsx artık longPressControllersRef içermiyor (A7)"
+  );
+  assert(
+    !fileManagerContent.includes("getItemGestureHandlers"),
+    "file-manager.tsx artık getItemGestureHandlers içermiyor (A7)"
+  );
 
-  const controller1 = createLongPressController({
-    id: "item-card-1",
-    delayMs: 50, // Test için hızlandırılmış
-    moveThresholdPx: 8,
-    onLongPressTrigger: (id) => {
-      triggeredId = id;
-    },
-    onSingleTap: (id) => {
-      tappedId = id;
-    },
-  });
+  // 4. Selection dock — artık fixed overlay değil, normal layout child (A6)
+  console.log("\n--- 4. Selection Dock Layout Sözleşmesi (A6) ---");
+  assert(
+    !fileManagerContent.includes("fixed inset-x-2 bottom-2 z-[60]"),
+    "Selection dock artık fixed overlay değil (A6)"
+  );
+  assert(
+    fileManagerContent.includes("border-t border-amber-500/30"),
+    "Selection dock normal layout akışında border-t ile ayrılıyor (A6)"
+  );
 
-  controller1.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-  assert(controller1.getState() === "pressing", "PointerDown sonrası state 'pressing' oldu");
-
-  await new Promise((r) => setTimeout(r, 70));
-  assert(triggeredId === null, "Long-press seçim callback'ini tetiklemedi");
-  assert(controller1.getState() === "cancelled", "Bekleme süresi sonunda long-press güvenli biçimde cancelled oldu");
-  controller1.handlePointerUp();
-  assert(tappedId === null, "Long-press bırakıldığında dosya açma/singleTap tetiklenmedi");
-  assert(controller1.getState() === "idle", "Long-press release sonrası state idle'a döndü");
-
-  // 4. 8px üzeri hareket doğal scroll olarak iptal edilir.
-  console.log("\n--- 4. Touch Hareketi: 8px Üzeri Scroll İptali ---");
-  let triggered2 = false;
-  let tapped2 = false;
-  const controller2 = createLongPressController({
-    id: "item-card-2",
-    delayMs: 50,
-    moveThresholdPx: 8,
-    onLongPressTrigger: () => {
-      triggered2 = true;
-    },
-    onSingleTap: () => {
-      tapped2 = true;
-    },
-  });
-
-  controller2.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-  controller2.handlePointerMove({ clientX: 100, clientY: 112 });
-  assert(controller2.getState() === "cancelled", "8px üzerinde kaydırmada gesture iptal edildi (scroll serbest)");
-
-  await new Promise((r) => setTimeout(r, 70));
-  controller2.handlePointerUp();
-  assert(triggered2 === false, "Scroll sonrası long-press/seçim callback'i çalışmadı");
-  assert(tapped2 === false, "Scroll sonrası singleTap/açma callback'i çalışmadı");
-
-  // 5. Erken bırakma yalnız tek normal tap üretir.
-  console.log("\n--- 5. Erken Bırakma: Tekil Tap ---");
-  let tapped3 = false;
-  let triggered3 = false;
-
-  const controller3 = createLongPressController({
-    id: "item-card-3",
-    delayMs: 80,
-    moveThresholdPx: 8,
-    onLongPressTrigger: () => {
-      triggered3 = true;
-    },
-    onSingleTap: () => {
-      tapped3 = true;
-    },
-  });
-
-  controller3.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-  await new Promise((r) => setTimeout(r, 20));
-  controller3.handlePointerUp();
-
-  assert(tapped3 === true, "Zaman dolmadan bırakıldığında yalnız single tap çalıştı");
-  assert(triggered3 === false, "Hızlı tap seçim/long-press callback'ini tetiklemedi");
-
-  // 6. Mobil Viewport Boyut Test Matrisi
-  console.log("\n--- 6. Mobil Viewport Boyut Matrisi Kontrolü ---");
+  // 5. Mobil Viewport Boyut Test Matrisi
+  console.log("\n--- 5. Mobil Viewport Boyut Matrisi Kontrolü ---");
   assert(MOBILE_VIEWPORT_PRESETS.length >= 6, "En az 6 farklı mobil cihaz viewport profili tanımlı");
   for (const preset of MOBILE_VIEWPORT_PRESETS) {
     assert(preset.width > 0 && preset.height > 0, `${preset.name} (${preset.width}x${preset.height} - ${preset.orientation}) doğrulandı`);
   }
 
-  // 7. Touch Target Alanı Kontrolü (WCAG 44x44px Kriteri)
-  console.log("\n--- 7. WCAG Dokunmatik Hedef Alanı Kontrolü (44x44px) ---");
+  // 6. Touch Target Alanı Kontrolü (WCAG 44x44px Kriteri)
+  console.log("\n--- 6. WCAG Dokunmatik Hedef Alanı Kontrolü (44x44px) ---");
   assert(isSufficientTouchTarget(44, 44) === true, "44x44 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(48, 48) === true, "48x48 piksel touch target yeterli kabul edildi");
   assert(isSufficientTouchTarget(32, 32) === false, "32x32 piksel yetersiz touch target olarak tespit edildi");
 
-  // 8. Virtualizer / gerçek mobil satır geometrisi aynı sözleşmede kalmalı.
-  console.log("\n--- 8. Mobil Virtual Row Geometri Sözleşmesi ---");
+  // 7. Virtualizer / gerçek mobil satır geometrisi aynı sözleşmede kalmalı.
+  console.log("\n--- 7. Mobil Virtual Row Geometri Sözleşmesi ---");
   assert(
     mobileShellContent.includes('data-testid="dok-file-row"') &&
       mobileShellContent.includes('data-testid="dok-folder-row"'),

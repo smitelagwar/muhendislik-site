@@ -3,7 +3,6 @@
 // ============================================================================
 
 import { test, expect } from "@playwright/test";
-import { createLongPressController } from "../../src/components/dokumantasyon/drive-v3/mobile-gesture-engine";
 import {
   armSyntheticClickSuppression,
   clearSyntheticClickSuppressions,
@@ -29,84 +28,26 @@ test.describe("Drive V3.1 — Mobile synthetic click dedupe", () => {
     expect(consumeSyntheticClickSuppression("item-A", 1_251)).toBe(false);
   });
 
-  test("3. Hızlı touch tap tekil aksiyonu bir kez çalıştırır ve sonraki click'i bastırır", () => {
-    let tapCount = 0;
-    let longPressCount = 0;
+  test("3. Aynı item için peş peşe token'lar doğru sırayla tüketilir", () => {
+    armSyntheticClickSuppression("item-repeat", 1_000, 500);
+    armSyntheticClickSuppression("item-repeat", 1_000, 500);
 
-    const controller = createLongPressController({
-      id: "fast-touch-item",
-      delayMs: 500,
-      moveThresholdPx: 8,
-      onLongPressTrigger: () => {
-        longPressCount += 1;
-      },
-      onSingleTap: () => {
-        tapCount += 1;
-      },
-    });
-
-    controller.handlePointerDown({ clientX: 20, clientY: 30, pointerType: "touch" });
-    controller.handlePointerUp();
-
-    expect(tapCount).toBe(1);
-    expect(longPressCount).toBe(0);
-    expect(consumeSyntheticClickSuppression("fast-touch-item")).toBe(true);
-    expect(consumeSyntheticClickSuppression("fast-touch-item")).toBe(false);
+    expect(consumeSyntheticClickSuppression("item-repeat", 1_100)).toBe(true);
+    expect(consumeSyntheticClickSuppression("item-repeat", 1_100)).toBe(true);
+    expect(consumeSyntheticClickSuppression("item-repeat", 1_100)).toBe(false);
   });
 
-  test("4. Uzun basma seçim/açma yapmaz; release sonrası compatibility click bastırılır", async () => {
-    let tapCount = 0;
-    let longPressCount = 0;
+  test("4. clearSyntheticClickSuppressions tüm aktif token'ları temizler", () => {
+    armSyntheticClickSuppression("item-x", 1_000, 5_000);
+    armSyntheticClickSuppression("item-y", 1_000, 5_000);
 
-    const controller = createLongPressController({
-      id: "long-touch-item",
-      delayMs: 25,
-      moveThresholdPx: 8,
-      onLongPressTrigger: () => {
-        longPressCount += 1;
-      },
-      onSingleTap: () => {
-        tapCount += 1;
-      },
-    });
+    clearSyntheticClickSuppressions();
 
-    controller.handlePointerDown({ clientX: 40, clientY: 50, pointerType: "touch" });
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    expect(controller.getState()).toBe("cancelled");
-    expect(longPressCount).toBe(0);
-    expect(tapCount).toBe(0);
-
-    controller.handlePointerUp();
-
-    expect(controller.getState()).toBe("idle");
-    expect(consumeSyntheticClickSuppression("long-touch-item")).toBe(true);
-    expect(consumeSyntheticClickSuppression("long-touch-item")).toBe(false);
+    expect(consumeSyntheticClickSuppression("item-x", 1_050)).toBe(false);
+    expect(consumeSyntheticClickSuppression("item-y", 1_050)).toBe(false);
   });
 
-  test("5. Scroll olarak iptal edilen gesture hayalet click'i bastırır ama tap/selection çalıştırmaz", () => {
-    let tapCount = 0;
-    let longPressCount = 0;
-
-    const controller = createLongPressController({
-      id: "scroll-touch-item",
-      delayMs: 500,
-      moveThresholdPx: 8,
-      onLongPressTrigger: () => {
-        longPressCount += 1;
-      },
-      onSingleTap: () => {
-        tapCount += 1;
-      },
-    });
-
-    controller.handlePointerDown({ clientX: 100, clientY: 100, pointerType: "touch" });
-    controller.handlePointerMove({ clientX: 100, clientY: 120 });
-    controller.handlePointerUp();
-
-    expect(tapCount).toBe(0);
-    expect(longPressCount).toBe(0);
-    expect(consumeSyntheticClickSuppression("scroll-touch-item")).toBe(true);
-    expect(consumeSyntheticClickSuppression("scroll-touch-item")).toBe(false);
+  test("5. Tanımsız veya boş item id için tüketim false döner", () => {
+    expect(consumeSyntheticClickSuppression("non-existent")).toBe(false);
   });
 });
