@@ -13,4 +13,16 @@
     height: 100%;
     min-height: 0 !important;
   }
+
+  /* TanStack Virtual list uses DRIVE_LIST_ROW_HEIGHT = 56. Keep the real
+     touch row exactly on that contract: 44px selection target + 6px top/bottom
+     breathing room. This prevents the final virtual row from extending below
+     the scroll viewport on compact 320px devices. */
+  .managerSlot :global([data-testid="dok-file-row"]),
+  .managerSlot :global([data-testid="dok-folder-row"]) {
+    box-sizing: border-box;
+    height: 56px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
 }
