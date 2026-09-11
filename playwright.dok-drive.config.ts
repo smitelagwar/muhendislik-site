@@ -14,7 +14,12 @@ export default defineConfig({
   reporter: [["list"]],
   webServer: {
     command: `npm run dev -- --webpack --hostname 127.0.0.1 --port ${port}`,
-    url: baseURL,
+    // Wait for the actual workspace's cold compilation before timing UI tests.
+    url: `${baseURL}/dokumantasyon`,
+    env: {
+      DOK_ALLOW_LOCAL_STORAGE: "true",
+      DOK_LOCAL_DATA_DIR: "test-results/dok-drive-server-data",
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

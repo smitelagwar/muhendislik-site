@@ -69,3 +69,11 @@ Kaynak denetiminde paylaşım sonucu penceresinin geçmiş kaydına katılmadı�
 Kullanıcı 12 Eylül'de GitHub push ve Production deployment istedi. Bu nedenle testleri geçen uygulama tek anlamlı `main` checkpoint'iyle yayınlanır; deployment sonucu commit SHA ile ayrıca doğrulanır. Fiziksel cihaz kabulü yayın sonucundan ayrı raporlanır. Geçici derleme dizini ve görev dışı `logolar/` dosyaları bu checkpoint'e alınmaz.
 
 Son yayın öncesi koşu: **214 geçti, 1 platforma özgü test atlandı** (2,9 dakika). Güncel `npm run build`, hedefli typecheck ve statik/domain paketi geçti. Derlenmiş `next start` uygulamasında sekiz mobil kabul testinin tamamı geçti. Lint: sıfır hata, TanStack Virtual için bir bilinen React Compiler uyumluluk uyarısı.
+
+### Bulut yayın denetimi
+
+`07d375a` checkpoint'i Vercel Production üzerinde `READY` oldu ve `muhendislik-site.vercel.app` adresine bağlandı. İlk GitHub mobil koşusunda statik kapı geçti; üç tarayıcı işinin ilk `/dokumantasyon` navigasyonu, soğuk derleme sırasında 30 saniyelik test süresini aştı. Sonraki testler geçti. Playwright sunucu hazırlığı gerçek workspace adresini bekleyecek ve izole yerel test deposunu açıkça kullanacak şekilde düzeltildi; test süreleri veya doğrulamalar gevşetilmedi.
+
+CAD production ve DXF fidelity CI işleri tam repo typecheck aşamasında eski test/script API başvuruları nedeniyle başarısızdır. Bu mobil yayının hedefli typecheck/build sonucu ile bu genel CI borcu aynı şey değildir; bütün CI işlerinin yeşil olduğu iddia edilmez. Fiziksel POCO kabulü de açık kalır.
+
+Düzeltilmiş Playwright ayarı, yeni ve boş bir derleme dizininde `CI=true` ile başlatılan sunucuda **214 geçti, 1 atlandı** sonucunu verdi (3,2 dakika); hedefli typecheck ve config lint'i geçti. Canlı 390/320 px incelemesinde liste ve ayarlar açıldı, 320 px doküman genişliği 320 px kaldı, tarayıcı hata kaydı boştu. Bu bulutta saptanan CI hazırlık hatası için test edilmiş tek takip checkpoint'i hazırlanır; uygulama kaynakları veya üretim build sistemi değişmez.
