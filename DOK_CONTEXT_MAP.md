@@ -1,6 +1,6 @@
 # Dokümantasyon bağlam haritası
 
-Son güncelleme: 10 Eylül 2026 (Dökümantasyon mobil dosya yöneticisi sertleştirmesi; CAD Preview V2 Hardening — Aşama 1–8)
+Son güncelleme: 12 Eylül 2026 (telefon dosya yöneticisi yayın denetimi; fiziksel cihaz kabulü ayrıdır)
 
 Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrıntılı CAD geçmişi için `docs/cad-upstream-migration-stage*.md`, **güncel CAD çalışma mimarisi** için `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md` okunur.
 
@@ -32,11 +32,12 @@ Dosya yöneticisi (`/dokumantasyon`) V3.1 sürümüyle aşağıdaki modern işle
 
 - **Sıfır-F5 & Server-State:** `@tanstack/react-query`, tek `deriveExplorerView` comparator'ı, optimistic pending updates, abort controller request cancellation.
 - **Sanal Marquee:** Matematiksel offscreen hit-testing, row-major Grid Shift seçimi, sağ tık çoklu seçim koruması (`src/components/dokumantasyon/drive-v3/selection-reducer.ts`).
-- **Body-Level Overlay:** `#dok-overlay-root` ve `OverlayPortal` ile scroll konumundan bağımsız viewport-centered modallar (`--dok-z` tokenleri).
+- **Body-Level Overlay:** `OverlayPortal` artık Radix Dialog Portal kullanır; odak kapanı, modal semantiği ve scroll kilidi Radix'e aittir. `#dok-overlay-root` diğer overlay tüketicileri için korunur.
 - **Toplu İşlemler & PDD:** `/api/dokumantasyon/bulk/*` (trash, move, star, restore), tek request 100 item, max chunk 250, partial failure toleransı, Atlassian Pragmatic Drag & Drop auto-scroll (`pdd-integration.ts`, `bulk-operations.ts`).
-- **Transfer Kuyruğu:** Eşzamanlılık (concurrency: 3) limitli, iptal ve yeniden deneme destekli `UploadQueueManager`.
+- **Transfer Kuyruğu:** `app/dokumantasyon/layout.tsx` içindeki `DokWorkspaceSessionProvider`, gerçek yükleyiciyi `UploadQueueManager(3)` ile çalıştırır. Dosya yöneticisi/görüntüleyici geçişlerinde sürer; yenileme veya sekme kapanmasında kaldığı yerden devam garantisi yoktur. Başarı metadata doğrulamasından sonra gösterilir. Telefon görünümünde akış içi özet ve detay paneli kullanılır.
 - **Sanallaştırma & Ölçek:** `@tanstack/react-virtual` 5.000+ item desteği, mounted DOM < 250 node, anchor-preserving resize (`use-virtual-explorer.ts`, `virtual-scroll.ts`).
-- **Görsel & Mobil:** CSS GPU transitions (will-change, virtual row/card üzerinde framer-motion yasağı), açık Seç modu, merkezi explorer-activation policy, mouse-only double-click/contextmenu, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover`.
+- **Görsel & Mobil:** Sürekli `will-change` katmanları kullanılmaz. Merkezi explorer-activation policy, mouse-only double-click/contextmenu, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover` korunur.
+- **Telefon sunumu:** `<640px` veya coarse pointer + `<1024px` + `<=500px` yükseklikte tek uygulama başlığı vardır. Liste varsayılandır; iki sütunlu kart, sıralama, gruplama ve filtreler Diğer → Görünüm ve düzen panelindedir. Seçim Diğer → Öğeleri seç ile başlar. `mobile-explorer.tsx` liste/kart/grupları ölçerek sanallaştırır. Panel, seçim ve arama durumları `use-workspace-history.ts` ile tarayıcı geçmişine bağlanır. Snapshot'lar oturum belleğindedir; URL/history state içine dosya içerikleri yazılmaz.
 - **Mobil sertleştirme (10 Eylül 2026, yerel çalışma):** Dosya adı ve satır/kart aynı seçim sözleşmesini kullanır. Normal mobil görünümde checkbox/Tümünü Seç kapalıdır. Breakpoint değişimi seçimi temizler. Dock DOM sırasında viewport sonrasındadır; sabit site alt menüsü dokümantasyon rotalarında görünmez. Navbar yüksekliği ResizeObserver ile ölçülür; kısa yatay ekranda modül başlığı yalnız erişilebilir metin olarak kalır. Ayrıntı: `docs/DOK_MOBILE_HARDENING_2026-09-10.md`.
 - **Birleşik Test Paketi:** `npm run check:dok-drive-v3` (tüm aşamalar 1-9 tek komutla test edilir).
 - **Ayrıntılı Belgeler:** `docs/DOK_DRIVE_V3_ARCHITECTURE.md`, `docs/DOK_DRIVE_V3_INTERACTION_CONTRACT.md`, `docs/DOK_DRIVE_V3_COMMAND_MATRIX.md`, `docs/DOK_DRIVE_V3_TEST_MATRIX.md`, `docs/DOK_DRIVE_V3_PERFORMANCE_BUDGET.md`.

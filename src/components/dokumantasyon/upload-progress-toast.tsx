@@ -2,6 +2,8 @@
 
 import { Upload, X, CheckCircle2, AlertCircle, Loader2, RotateCw } from "lucide-react";
 import { formatBytes } from "./ui-helpers";
+import { useState } from "react";
+import { OverlayPortal } from "./drive-v3/overlay-portal";
 
 export interface UploadQueueItem {
   id: string;
@@ -16,12 +18,19 @@ export interface UploadQueueItem {
 }
 
 interface UploadProgressToastProps {
+  compact?: boolean;
+  embedded?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (open: boolean) => void;
   queue: UploadQueueItem[];
   onDismiss: () => void;
   onRetry: (itemId: string) => void;
 }
 
-export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgressToastProps) {
+export function UploadProgressToast({ queue, onDismiss, onRetry, compact = false, embedded = false, expanded: controlledExpanded, onExpandedChange }: UploadProgressToastProps) {
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
   if (queue.length === 0) return null;
 
   const isAllDone = queue.every(
@@ -31,12 +40,23 @@ export function UploadProgressToast({ queue, onDismiss, onRetry }: UploadProgres
   const completedCount = queue.filter((i) => i.status === "completed").length;
   const errorCount = queue.filter((i) => i.status === "error").length;
 
+  if (compact) return <div className="shrink-0 border-t border-border bg-card" data-testid="dok-upload-summary">
+    <button type="button" className="flex min-h-11 w-full items-center gap-2 px-3 text-left text-sm" onClick={() => setExpanded(true)}>
+      <Upload size={18} aria-hidden />
+      <span role="status">{isAllDone ? "Yüklemeler" : "Yükleniyor"}: {completedCount}/{queue.length}{errorCount ? ` · ${errorCount} hata` : ""}</span>
+      <span className="ml-auto">Detaylar</span>
+    </button>
+    <OverlayPortal isOpen={expanded} onClose={() => setExpanded(false)} title="Yükleme durumu" presentation="sheet">
+      <div className="pt-12"><UploadProgressToast queue={queue} onRetry={onRetry} onDismiss={() => { setExpanded(false); onDismiss(); }} embedded /></div>
+    </OverlayPortal>
+  </div>;
+
   return (
     <div
       role="status"
       aria-live="polite"
       aria-label="Yükleme durumu"
-      className="fixed bottom-20 right-4 z-[100] w-full max-w-sm rounded-2xl border border-border/80 bg-card/95 p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-4 sm:right-6 sm:bottom-20"
+      className={embedded ? "w-full bg-card p-4" : "fixed bottom-20 right-4 z-[100] w-full max-w-sm rounded-2xl border border-border/80 bg-card/95 p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-4 sm:right-6 sm:bottom-20"}
     >
       <div className="flex items-center justify-between border-b border-border/60 pb-3">
         <div className="flex items-center gap-2.5">

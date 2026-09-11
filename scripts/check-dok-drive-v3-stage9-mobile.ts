@@ -37,7 +37,7 @@ async function runStage9Tests() {
 
   // 1. 100dvh ve Safe-Area Sözleşmesi
   console.log("\n--- 1. 100dvh ve Safe-Area Desteği ---");
-  assert(cssContent.includes("100dvh"), "CSS modülü 100dvh dynamic viewport birimini içeriyor");
+  assert(mobileShellContent.includes("100dvh"), "CSS modülü 100dvh dynamic viewport birimini içeriyor");
   assert(layoutContent.includes('viewportFit: "cover"'), "layout.tsx viewportFit: 'cover' içeriyor (çentik/safe-area taşma koruması)");
   assert(cssContent.includes("safe-area-inset-bottom"), "Safe-area padding (env(safe-area-inset-bottom)) kuralları tanımlı");
 

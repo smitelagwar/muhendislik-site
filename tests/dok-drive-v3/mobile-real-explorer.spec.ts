@@ -8,7 +8,17 @@ async function openExplorer(p: Page, count = 100) {
   await mockExplorerData(p, count);
   await p.goto("/dokumantasyon");
   await expect(p.getByTestId("dok-file-row").first()).toBeVisible();
-  await expect(mode(p)).toBeVisible();
+  await expect(p.getByTestId("dok-phone-more")).toBeVisible();
+}
+async function toggleMode(p: Page) {
+  if (await p.getByTestId("dok-phone-more").isVisible()) await p.getByTestId("dok-phone-more").tap();
+  await mode(p).tap();
+}
+async function openGrid(p: Page) {
+  await p.getByTestId("dok-phone-more").tap();
+  await p.getByRole("button", { name: "Görünüm ve düzen", exact: true }).tap();
+  await p.getByLabel("Görünüm", { exact: true }).selectOption("grid");
+  await p.getByRole("button", { name: "Uygula", exact: true }).tap();
 }
 async function lastItem(p: Page, id: string, dock: boolean) {
   await viewport(p).evaluate(n => { n.scrollTop = n.scrollHeight; });
@@ -37,7 +47,7 @@ for (const view of ["list", "grid"] as const) {
   test.describe(`Mobil ${view}`, () => {
     test.beforeEach(async ({ page: p }) => {
       await openExplorer(p);
-      if (view === "grid") await p.getByRole("button", { name: "Kart (Grid) Görünümü", exact: true }).tap();
+      if (view === "grid") await openGrid(p);
     });
     test("Strict Seç modu, ad/gövde seçimi, iptal ve odak", async ({ page: p }) => {
       const initial = p.url();
@@ -45,7 +55,7 @@ for (const view of ["list", "grid"] as const) {
       await expect(p.getByTestId("dok-select-all")).toBeHidden();
       await viewport(p).focus(); await p.keyboard.press("Control+a");
       await expect(selected(p)).toHaveCount(0);
-      await mode(p).tap();
+      await toggleMode(p);
       const a = p.locator('[data-file-id="file-000"]'), b = p.locator('[data-file-id="file-001"]');
       await a.getByTestId("dok-file-name").tap();
       await expect(a.locator("[data-selection-control]")).toHaveAttribute("aria-pressed", "true");
@@ -54,24 +64,27 @@ for (const view of ["list", "grid"] as const) {
       await a.getByTestId("dok-file-name").tap();
       await expect(p.getByTestId("dok-selection-count")).toHaveText("1 öğe seçildi");
       expect(p.url()).toBe(initial);
-      await mode(p).tap();
+      await toggleMode(p);
       await expect(selected(p)).toHaveCount(0);
       await expect(p.getByTestId("dok-mobile-selection-dock")).toBeHidden();
-      await expect(mode(p)).toBeFocused();
+      await expect(p.getByTestId("dok-phone-more")).toBeFocused();
     });
     test("44px hedefler ve More menüsü parent açmaz", async ({ page: p }) => {
-      await mode(p).tap();
       const a = p.locator('[data-file-id="file-000"]');
-      const control = a.locator("[data-selection-control]"), menu = a.getByRole("button", { name: "Dosya İşlemleri" });
-      for (const b of [control, menu]) {
-        const r = (await b.boundingBox())!;
-        expect(r.width).toBeGreaterThanOrEqual(44); expect(r.height).toBeGreaterThanOrEqual(44);
-      }
-      await control.tap();
+      const menu = a.getByTestId("dok-item-more");
+      const bounds = (await menu.boundingBox())!;
+      expect(bounds.width).toBeGreaterThanOrEqual(44); expect(bounds.height).toBeGreaterThanOrEqual(44);
       const initial = p.url(); await menu.tap();
-      await expect(p.getByRole("menu")).toBeVisible();
-      await expect(a).toHaveAttribute("data-selected", "true"); expect(p.url()).toBe(initial);
+      await expect(p.getByRole("dialog")).toBeVisible();
+      expect(p.url()).toBe(initial);
       await p.keyboard.press("Escape"); await expect(menu).toBeFocused();
+      await toggleMode(p);
+      const control = a.locator("[data-selection-control]");
+      const target = (await control.boundingBox())!;
+      expect(target.width).toBeGreaterThanOrEqual(44); expect(target.height).toBeGreaterThanOrEqual(44);
+      await expect(a.getByTestId("dok-item-more")).toHaveCount(0);
+      await control.tap();
+      await expect(a).toHaveAttribute("data-selected", "true");
     });
     test("Double-click ve touch/pen contextmenu dosya/klasör açmaz", async ({ page: p }) => {
       const initial = p.url();
@@ -84,7 +97,7 @@ for (const view of ["list", "grid"] as const) {
           await expect(selected(p)).toHaveCount(0);
         }
       }
-      await mode(p).tap();
+      await toggleMode(p);
       for (const selector of ['[data-file-id="file-000"]', '[data-folder-id="folder-mobile"]']) {
         await p.locator(selector).dblclick({ position: { x: 8, y: 8 } }); expect(p.url()).toBe(initial);
       }
@@ -109,15 +122,15 @@ for (const view of ["list", "grid"] as const) {
 }
 for (const count of [100, 500]) {
   test(`${count} öğede son satır dock açılıp kapanırken görünür`, async ({ page: p }, info) => {
-    await openExplorer(p, count); await mode(p).tap();
+    await openExplorer(p, count); await toggleMode(p);
     await p.locator('[data-file-id="file-000"] [data-selection-control]').tap();
     const id = `file-${String(count - 1).padStart(3, "0")}`;
     await lastItem(p, id, true); await p.screenshot({ path: info.outputPath(`last-${count}.png`) });
-    await mode(p).tap(); await lastItem(p, id, false);
+    await toggleMode(p); await lastItem(p, id, false);
   });
 }
 test("Yatay/dikey ve breakpoint geçişi", async ({ page: p }, info) => {
-  await openExplorer(p); await mode(p).tap(); await p.locator('[data-file-id="file-000"] [data-selection-control]').tap();
+  await openExplorer(p); await toggleMode(p); await p.locator('[data-file-id="file-000"] [data-selection-control]').tap();
   await p.setViewportSize({ width: 844, height: 390 });
   await expect(mode(p)).toHaveAttribute("aria-pressed", "true");
   await p.screenshot({ path: info.outputPath("landscape-before.png") });
@@ -126,7 +139,7 @@ test("Yatay/dikey ve breakpoint geçişi", async ({ page: p }, info) => {
   await expect.poll(() => p.evaluate(() => matchMedia("(max-width: 1023px)").matches)).toBe(false);
   await expect(p.locator("[data-mobile-selection-mode]")).toHaveAttribute("data-mobile-selection-mode", "false");
   await p.setViewportSize({ width: 390, height: 844 });
-  await expect(mode(p)).toHaveAttribute("aria-pressed", "false");
+  await expect(p.getByTestId("dok-phone-more")).toBeVisible();
   await expect(p.locator("[data-selection-control]:visible")).toHaveCount(0);
 });
 test("Gerçek touch swipe/flick ve uzun basma", async ({ page: p, browserName }) => {
@@ -155,8 +168,8 @@ test("Gerçek touch swipe/flick ve uzun basma", async ({ page: p, browserName })
 for (const view of ["list", "grid"] as const) {
   test(`Açık/koyu tema, 500 öğe ${view} son öğe, tümünü seç ve sıfıra dön`, async ({page:p}, info) => {
     await openExplorer(p, 500);
-    if (view === "grid") await p.getByRole("button", { name: "Kart (Grid) Görünümü", exact: true }).tap();
-    await mode(p).tap();
+    if (view === "grid") await openGrid(p);
+    await toggleMode(p);
     await p.getByTestId("dok-select-all").tap();
     await expect(p.getByTestId("dok-selection-count")).toHaveText("501 öğe seçildi");
     for (const theme of ["light", "dark"]) {
@@ -173,7 +186,7 @@ for (const view of ["list", "grid"] as const) {
 test("Toplu taşı/paylaş/sil pencereleri dar ekranda açılır, iptal seçimi korur", async({page:p}) => {
   await openExplorer(p);
   await p.route("**/api/dokumantasyon/folders/tree", r => r.fulfill({ json: { folders: [] } }));
-  await mode(p).tap(); await p.locator('[data-file-id="file-000"] [data-selection-control]').tap();
+  await toggleMode(p); await p.locator('[data-file-id="file-000"] [data-selection-control]').tap();
   for (const action of ["move", "share", "trash"]) {
     await p.locator(`[data-mobile-action="${action}"]`).tap();
     const dialog = p.getByRole("dialog"); await expect(dialog).toBeVisible();

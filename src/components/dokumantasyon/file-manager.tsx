@@ -305,7 +305,7 @@ function DokumantasyonFileManagerInner() {
   const exitMobileSelectionMode = useCallback(() => {
     setIsMobileSelectionMode(false);
     clearSelection();
-    (phoneMoreRef.current || selectionModeButtonRef.current)?.focus();
+    requestAnimationFrame(() => (phoneMoreRef.current || selectionModeButtonRef.current)?.focus({ preventScroll: true }));
   }, [clearSelection]);
 
 
@@ -348,10 +348,12 @@ function DokumantasyonFileManagerInner() {
   } | null>(null);
   const [isActiveSharesOpen, setIsActiveSharesOpen] = useState(false);
 
-  const historySnapshot = { currentFolderId, mobileSurface, mobileItem, mobileDetail, mobileQuery, isMobileSelectionMode, isSearchOpen, isNewFolderOpen, renameItem, moveItems, deleteItem, isMultiDeleteOpen, isCreateShareOpen, isTrashOpen, isActiveSharesOpen, viewMode, sortBy, sortOrder, groupBy, workspaceFilters, activeFilter };
-  const historyDepth = (isMobileSelectionMode || isSearchOpen ? 1 : 0) + (mobileSurface || mobileItem || mobileDetail || isNewFolderOpen || renameItem || moveItems.length || deleteItem || isMultiDeleteOpen || isCreateShareOpen || isTrashOpen || isActiveSharesOpen ? 1 : 0);
+  const [mobileSearchItem, setMobileSearchItem] = useState<DokFile | null>(null);
+  const [mobileUploadOpen, setMobileUploadOpen] = useState(false);
+  const historySnapshot = { shareResult, shareItemsToProcess, mobileUploadOpen, mobileSearchItem, selectionIds: Array.from(selectedIds), currentFolderId, mobileSurface, mobileItem, mobileDetail, mobileQuery, isMobileSelectionMode, isSearchOpen, isNewFolderOpen, renameItem, moveItems, deleteItem, isMultiDeleteOpen, isCreateShareOpen, isTrashOpen, isActiveSharesOpen, viewMode, sortBy, sortOrder, groupBy, workspaceFilters, activeFilter };
+  const historyDepth = (isMobileSelectionMode || isSearchOpen ? 1 : 0) + (shareResult || mobileUploadOpen || mobileSearchItem || mobileSurface || mobileItem || mobileDetail || isNewFolderOpen || renameItem || moveItems.length || deleteItem || isMultiDeleteOpen || isCreateShareOpen || isTrashOpen || isActiveSharesOpen ? 1 : 0);
   useWorkspaceHistory(historySnapshot, historyDepth, value => {
-    setCurrentFolderId(value.currentFolderId); setMobileSurface(value.mobileSurface); setMobileItem(value.mobileItem); setMobileDetail(value.mobileDetail); setMobileQuery(value.mobileQuery);
+    setShareResult(value.shareResult); setShareItemsToProcess(value.shareItemsToProcess); setMobileUploadOpen(value.mobileUploadOpen); setMobileSearchItem(value.mobileSearchItem); setSelectedIds(new Set(value.selectionIds)); setCurrentFolderId(value.currentFolderId); setMobileSurface(value.mobileSurface); setMobileItem(value.mobileItem); setMobileDetail(value.mobileDetail); setMobileQuery(value.mobileQuery);
     setIsMobileSelectionMode(value.isMobileSelectionMode); if(!value.isMobileSelectionMode) clearSelection(); setIsSearchOpen(value.isSearchOpen); setIsNewFolderOpen(value.isNewFolderOpen); setRenameItem(value.renameItem); setMoveItems(value.moveItems); setDeleteItem(value.deleteItem); setIsMultiDeleteOpen(value.isMultiDeleteOpen); setIsCreateShareOpen(value.isCreateShareOpen); setIsTrashOpen(value.isTrashOpen); setIsActiveSharesOpen(value.isActiveSharesOpen);
     setViewMode(value.viewMode); setSortBy(value.sortBy); setSortOrder(value.sortOrder); setGroupBy(value.groupBy); setWorkspaceFilters(value.workspaceFilters); setActiveFilter(value.activeFilter);
   }, isPhone);
@@ -2549,6 +2551,7 @@ function DokumantasyonFileManagerInner() {
           )}
         </div>
         {/* A6 — Seçim Aksiyon Dock'u (Normal Layout — Overlay Değil) */}
+        {isPhone && <UploadProgressToast compact expanded={mobileUploadOpen} onExpandedChange={setMobileUploadOpen} queue={uploadQueue} onDismiss={() => uploadManager.clearFinished()} onRetry={handleRetryUpload} />}
         {selectedIds.size > 0 && (!isMobileExplorer || isMobileSelectionMode) && (
           <div
             data-testid="dok-mobile-selection-dock"
@@ -2764,7 +2767,7 @@ function DokumantasyonFileManagerInner() {
           const folder = "parent_id" in item;
           const target = { id:item.id, name:folder ? item.name : item.display_name, type:folder ? "folder" as const : "file" as const, parentId:folder ? item.parent_id : item.folder_id };
           if(action==="open") { if(folder) navigateToFolder(item.id); else router.push(`/dokumantasyon/dosya/${item.id}`); }
-          else if(action==="download" && !folder) window.location.assign(`/api/dokumantasyon/files/${item.id}/stream?download=1`);
+          else if(action==="download" && !folder) void handleDownload(item as DokFile);
           else if(action==="share") handleOpenShareSingle(target);
           else if(action==="rename") setRenameItem(target);
           else if(action==="move") setMoveItems([target]);
@@ -2773,14 +2776,14 @@ function DokumantasyonFileManagerInner() {
           else if(action==="details") setMobileDetail(item);
         }}/>
         <OverlayPortal isOpen={!!mobileDetail} onClose={() => setMobileDetail(null)} title="Öğe detayları" presentation="sheet"><div className={mobileStyles.panel}><h2>{mobileDetail ? ("parent_id" in mobileDetail ? mobileDetail.name : mobileDetail.display_name) : ""}</h2><p className="break-words">{mobileDetail ? formatDate(mobileDetail.updated_at) : ""}</p>{mobileDetail && !("parent_id" in mobileDetail) && <p>{formatBytes(mobileDetail.size_bytes)}</p>}</div></OverlayPortal>
-        {isSearchOpen && <MobileSearch query={mobileQuery} onQuery={setMobileQuery} onClose={() => setIsSearchOpen(false)} onOpen={file => router.push(`/dokumantasyon/dosya/${file.id}`)} onFolder={id => { setIsSearchOpen(false); navigateToFolder(id); }}/>} 
+        {isSearchOpen && <MobileSearch menu={mobileSearchItem} onMenu={setMobileSearchItem} query={mobileQuery} onQuery={setMobileQuery} onClose={() => setIsSearchOpen(false)} onOpen={file => router.push(`/dokumantasyon/dosya/${file.id}`)} onFolder={id => { setIsSearchOpen(false); navigateToFolder(id); }}/>}
       </>}
       {/* Yükleme İlerleme Bildirimi */}
-      <UploadProgressToast
+      {!isPhone && <UploadProgressToast
         queue={uploadQueue}
         onDismiss={() => uploadManager.clearFinished()}
         onRetry={(itemId) => void handleRetryUpload(itemId)}
-      />
+      />}
     </div>
   );
 }

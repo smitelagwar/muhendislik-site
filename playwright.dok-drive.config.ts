@@ -13,7 +13,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   reporter: [["list"]],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run dev -- --webpack --hostname 127.0.0.1 --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
@@ -27,7 +27,7 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
-      testIgnore: /mobile-real-explorer\.spec\.ts/,
+      testIgnore: /mobile-(real-explorer|workspace-v2)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
       },

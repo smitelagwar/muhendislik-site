@@ -74,15 +74,15 @@ async function runStage5Tests() {
   assert(fs.existsSync(overlayPortalPath), "overlay-portal.tsx dosyası mevcut");
   const overlayPortalContent = fs.readFileSync(overlayPortalPath, "utf-8");
   assert(
-    overlayPortalContent.includes('document.getElementById("dok-overlay-root")'),
-    "overlay-portal.tsx dok-overlay-root portal hedefini sorguluyor"
+    overlayPortalContent.includes("<Dialog.Portal>"),
+    "Radix Portal modalı body altına taşır (containing-block dışı)"
   );
   assert(
-    overlayPortalContent.includes('role="dialog"'),
+    overlayPortalContent.includes("<Dialog.Content"),
     "overlay-portal.tsx role=\"dialog\" erişilebilirlik özniteliğine sahip"
   );
   assert(
-    overlayPortalContent.includes('aria-modal="true"'),
+    overlayPortalContent.includes("<Dialog.Root"),
     "overlay-portal.tsx aria-modal=\"true\" erişilebilirlik özniteliğine sahip"
   );
 
