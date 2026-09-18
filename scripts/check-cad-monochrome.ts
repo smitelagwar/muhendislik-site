@@ -110,7 +110,10 @@ const redHatchShader = {
   needsUpdate: false,
 };
 
-// Step 3a: Apply monochrome (White background -> Black ink)
+// Step 3a: Verify captureSourceColor and apply monochrome (White background -> Black ink)
+const blueSnapshot = captureSourceColor(blueLineMaterial);
+assert.equal(blueSnapshot?.colorHex, 0x0000ff, "captureSourceColor kaynak rengi doğru yakalamalıdır.");
+
 applyMonochromeToMaterial(blueLineMaterial, 0x000000);
 assert.equal(blueLineMaterial.color.hex, 0x000000, "Çizgi rengi siyah olmalıdır.");
 assert.equal(blueLineMaterial.needsUpdate, true, "needsUpdate true olmalıdır.");

@@ -225,6 +225,10 @@ type CadMaterialUtilLike = {
 let activeMaterialUtil: CadMaterialUtilLike | null = null;
 let currentCadAdapter: CadUpstreamAdapter | null = null;
 
+function setCurrentCadAdapter(adapter: CadUpstreamAdapter | null): void {
+  currentCadAdapter = adapter;
+}
+
 async function ensureFontsPreloaded(fontManager?: CadFontManagerInstance | null): Promise<void> {
   if (typeof window === "undefined") return;
   if (fontManager) {
@@ -840,7 +844,7 @@ export class CadUpstreamAdapter {
     private readonly Viewer: CadSimpleViewerModule,
     private readonly interactionHost: HTMLElement
   ) {
-    currentCadAdapter = this;
+    setCurrentCadAdapter(this);
   }
 
   static async create(options: CadUpstreamCreateOptions): Promise<CadUpstreamAdapter> {
@@ -1161,7 +1165,7 @@ export class CadUpstreamAdapter {
     this.configureMobileGestureGuard();
     this.attachCanvasContextLostHandler();
 
-    currentCadAdapter = this;
+    setCurrentCadAdapter(this);
     if (typeof window !== "undefined") {
       (window as unknown as { __cadAdapter?: unknown }).__cadAdapter = this;
     }
@@ -2335,7 +2339,7 @@ export class CadUpstreamAdapter {
     this.displayMode = "source";
     this.applyDisplayMode();
     if (currentCadAdapter === this) {
-      currentCadAdapter = null;
+      setCurrentCadAdapter(null);
     }
     const targetContainer = this.container;
     if (this.container) {
