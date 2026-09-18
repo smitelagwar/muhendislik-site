@@ -86,6 +86,10 @@ let previousCadUpstreamTeardown: Promise<void> = Promise.resolve();
 
 mekanizması baseline'ın bir parçasıdır. Bir AI bunu "global state kötü" gerekçesiyle tek başına kaldırmamalıdır. Böyle bir değişiklik engine lifecycle değişikliğidir.
 
+### Monochrome (Siyah-Beyaz) Mimari Standardı
+
+CAD görüntüleyicide "Siyah-Beyaz" modu, canvas üzerinde yıkıcı raster CSS filtreleri (`grayscale`, `invert`, `contrast`) **kullanmaz**. `src/lib/dokumantasyon/cad-upstream/monochrome.ts` saf modülü üzerinden Three.js materyallerinin (`LineBasicMaterial`, `MeshBasicMaterial`, shader `u_color`) renklerini doğrudan geçersiz kılar (AutoCAD `monochrome.ctb` standardı). Çizim geometrisi silinmez veya gizlenmez; CAD çalışma alanı arka planına göre yüksek kontrastlı monokrom mürekkep rengi atanır ve kaynak moduna dönüşte tüm renkler `userData._cadSourceColor` üzerinden kayıpsız (%100) geri yüklenir.
+
 ## 4. Current / legacy DXF fallback
 
 Dosya:

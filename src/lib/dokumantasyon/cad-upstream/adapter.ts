@@ -32,6 +32,13 @@ import {
   type CadSnapPrimitive,
 } from "./snap-engine";
 
+import {
+  resolveMonochromeInkColor,
+  applyMonochromeToSceneAndManagers,
+  restoreSourceColorsToSceneAndManagers,
+  applyMonochromeToMaterial,
+} from "./monochrome";
+
 
 export type {
   CadDistanceMeasurementCallbacks,
@@ -211,6 +218,16 @@ type CadFontManagerInstance = {
 };
 
 let activeFontManager: CadFontManagerInstance | null = null;
+
+type CadMaterialUtilLike = {
+  setMaterialColor: (mat: unknown, color: unknown) => void;
+};
+let activeMaterialUtil: CadMaterialUtilLike | null = null;
+let currentCadAdapter: CadUpstreamAdapter | null = null;
+
+function setCurrentCadAdapter(adapter: CadUpstreamAdapter | null): void {
+  currentCadAdapter = adapter;
+}
 
 async function ensureFontsPreloaded(fontManager?: CadFontManagerInstance | null): Promise<void> {
   if (typeof window === "undefined") return;
@@ -608,6 +625,52 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
         };
       }
     }
+
+    // 5. Monochrome Çizim Desteği: Yeni oluşturulan materyallerin renk takibi
+    activeMaterialUtil = (threeRenderer as { AcTrMaterialUtil?: CadMaterialUtilLike })
+      .AcTrMaterialUtil ?? null;
+
+    const AcTrMaterialManager = (threeRenderer as {
+      AcTrMaterialManager?: {
+        prototype?: {
+          createMaterial?: (
+            key: string,
+            traits: unknown,
+            options: unknown,
+            byLayerBindings?: unknown,
+            layerColorRgb?: unknown,
+            layerColor?: unknown
+          ) => unknown;
+        };
+      };
+    }).AcTrMaterialManager;
+
+    if (AcTrMaterialManager?.prototype?.createMaterial) {
+      const origCreateMaterial = AcTrMaterialManager.prototype.createMaterial;
+      AcTrMaterialManager.prototype.createMaterial = function (
+        key: string,
+        traits: unknown,
+        options: unknown,
+        byLayerBindings?: unknown,
+        layerColorRgb?: unknown,
+        layerColor?: unknown
+      ) {
+        const mat = origCreateMaterial.call(
+          this,
+          key,
+          traits,
+          options,
+          byLayerBindings,
+          layerColorRgb,
+          layerColor
+        );
+        if (mat && currentCadAdapter?.getDisplayMode() === "monochrome") {
+          const ink = resolveMonochromeInkColor(currentCadAdapter.getBackgroundColor());
+          applyMonochromeToMaterial(mat, ink, activeMaterialUtil ?? undefined);
+        }
+        return mat;
+      };
+    }
   } catch (error) {
     console.warn("[cad-upstream] Engine enhancements could not be fully applied:", error);
   }
@@ -780,7 +843,9 @@ export class CadUpstreamAdapter {
     private readonly manager: AcApDocManager,
     private readonly Viewer: CadSimpleViewerModule,
     private readonly interactionHost: HTMLElement
-  ) {}
+  ) {
+    setCurrentCadAdapter(this);
+  }
 
   static async create(options: CadUpstreamCreateOptions): Promise<CadUpstreamAdapter> {
     const Viewer = await loadViewerModule();
@@ -1100,6 +1165,7 @@ export class CadUpstreamAdapter {
     this.configureMobileGestureGuard();
     this.attachCanvasContextLostHandler();
 
+    setCurrentCadAdapter(this);
     if (typeof window !== "undefined") {
       (window as unknown as { __cadAdapter?: unknown }).__cadAdapter = this;
     }
@@ -1461,6 +1527,15 @@ export class CadUpstreamAdapter {
       curView.applyCanvasBackground(config.numeric);
       curView.isDirty = true;
     }
+
+    if (this.displayMode === "monochrome" && this.manager.curView) {
+      const inkColor = resolveMonochromeInkColor(option, config.numeric);
+      applyMonochromeToSceneAndManagers({
+        curView: this.manager.curView,
+        inkColor,
+        MaterialUtil: activeMaterialUtil ?? undefined,
+      });
+    }
   }
 
   isMeasurementUnitsEnabled(): boolean {
@@ -1547,19 +1622,28 @@ export class CadUpstreamAdapter {
       | undefined;
 
     const canvas = view?.canvas ?? view?.canvas2d;
-    if (!canvas) return;
-
-    if (this.sourceCanvasFilter === null) {
-      this.sourceCanvasFilter = canvas.style.filter || "";
+    if (canvas) {
+      if (this.sourceCanvasFilter === null) {
+        this.sourceCanvasFilter = canvas.style.filter || "";
+      }
+      // Never use destructive CSS grayscale/invert/contrast filters on CAD canvas
+      canvas.style.filter = this.sourceCanvasFilter;
     }
 
+    if (!this.manager.curView) return;
+
     if (this.displayMode === "monochrome") {
-      const isDark = this.displayTheme === "dark";
-      canvas.style.filter = isDark
-        ? "grayscale(100%) invert(100%) contrast(150%) brightness(1.2)"
-        : "grayscale(100%) contrast(150%)";
+      const inkColor = resolveMonochromeInkColor(this.backgroundColorOption);
+      applyMonochromeToSceneAndManagers({
+        curView: this.manager.curView,
+        inkColor,
+        MaterialUtil: activeMaterialUtil ?? undefined,
+      });
     } else {
-      canvas.style.filter = this.sourceCanvasFilter;
+      restoreSourceColorsToSceneAndManagers({
+        curView: this.manager.curView,
+        MaterialUtil: activeMaterialUtil ?? undefined,
+      });
     }
   }
 
@@ -2254,6 +2338,9 @@ export class CadUpstreamAdapter {
 
     this.displayMode = "source";
     this.applyDisplayMode();
+    if (currentCadAdapter === this) {
+      setCurrentCadAdapter(null);
+    }
     const targetContainer = this.container;
     if (this.container) {
       delete (this.container as unknown as { __cadAdapter?: CadUpstreamAdapter }).__cadAdapter;

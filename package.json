@@ -122,6 +122,7 @@
     "check:cad-preview-v2": "playwright test --config=playwright.config.ts tests/document-studio/cad-preview-v2-contract.spec.ts tests/document-studio/cad-readonly-contract.spec.ts tests/document-studio/cad-cache-and-routing.spec.ts tests/document-studio/cad-native-measurements.spec.ts tests/document-studio/cad-public-layer-store.spec.ts tests/document-studio/cad-text-orientation-v2.spec.ts tests/document-studio/cad-robustness-security.spec.ts tests/document-studio/cad-dxf.spec.ts tests/document-studio/cad-stage3-view-navigation.spec.ts tests/document-studio/cad-stage4-loading-error.spec.ts tests/document-studio/cad-stage5-distance-measurement.spec.ts tests/document-studio/cad-stage6-area-measurement.spec.ts tests/document-studio/cad-stage7-layer-mobile-ux.spec.ts --project=chromium",
     "check:cad-real-user-release": "tsx scripts/check-cad-real-user-release.ts",
     "check:cad-review:release": "tsx scripts/check-cad-review-release.ts",
+    "check:cad-monochrome": "tsx scripts/check-cad-monochrome.ts",
     "check:dok-drive-v3:static": "tsx scripts/check-dok-drive-v3-stage1-poc.ts && tsx scripts/check-dok-drive-v3-stage2-server-state.ts && tsx scripts/check-dok-drive-v3-stage3-selection.ts && tsx scripts/check-dok-drive-v3-command-contract.ts && tsx scripts/check-dok-drive-v3-stage5-overlay.ts && tsx scripts/check-dok-drive-v3-stage6-bulk-dnd.ts && tsx scripts/check-dok-drive-v3-stage7-virtualization.ts && tsx scripts/check-dok-drive-v3-stage8-visuals.ts && tsx scripts/check-dok-drive-v3-stage9-mobile.ts"
   },
   "dependencies": {

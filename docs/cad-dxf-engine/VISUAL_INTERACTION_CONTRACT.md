@@ -67,6 +67,17 @@ Lineweight bağımsız toggle'dır.
 
 Renk modu, lineweight ve background birbirinin yerine geçen tek state yapılmamalıdır.
 
+### Monochrome Sözleşmesi (AutoCAD monochrome.ctb Standardı)
+
+- **Materyal Seviyesinde Override:** Siyah-Beyaz modu raster bir CSS canvas filtresi (`grayscale`, `invert`, `contrast`) **değildir**. Doğrudan Three.js materyal ve shader uniform (`u_color`) seviyesinde çalışan bir renk geçersiz kılma (override) sistemidir.
+- **Geometri Korunumu:** Monokrom mod hiçbir aşamada CAD geometrisini silmez, filtrelemez veya gizlemez. Tüm görünür çizgiler ve metinler ekranda kalır.
+- **Arka Plan Duyarlı Mürekkep:** Monokrom mürekkep rengi web sitesi temasından (`displayTheme`) değil, doğrudan CAD arka planından (`backgroundColorOption`) türetilir:
+  - Beyaz arka plan (`white` / `0xffffff`) → Saf Siyah mürekkep (`0x000000`).
+  - Siyah arka plan (`black` / `0x000000`) → Saf Beyaz mürekkep (`0xffffff`).
+  - AutoCAD koyu gri arka plan (`autocad` / `#212830`) → Saf Beyaz mürekkep (`0xffffff`).
+- **Wipeout / Maske Koruma:** `isBackgroundFill: true` olan dolgu/maske materyalleri mürekkep rengine boyanmaz, arka plan renginde kalır.
+- **Kayıpsız Geri Dönüş (Lossless Restoration):** "Gerçek Renk" moduna dönüldüğünde tüm orijinal renkler dosya yeniden yüklenmeden veya re-parse edilmeden anında geri gelir.
+
 ## 4. Arka plan seçenekleri
 
 Korunan seçenek kimlikleri:
