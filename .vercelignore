@@ -3,8 +3,7 @@ node_modules
 .yarn
 
 # Next.js build output
-.next
-.next-playwright*
+.next*
 out
 build
 
@@ -30,3 +29,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Local scratch / heavy directories
+logolar
+eklediklerim
+-EKLEDİKLERİM
+get-shit-done
+scratch
+.tmp
+.data
+.test-data
+.gorsel-cikti-ham

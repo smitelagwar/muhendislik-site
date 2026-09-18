@@ -25,8 +25,7 @@
 !/tests/private-dwg-corpus/manifest.example.json
 
 # next.js
-/.next/
-/.next-playwright*/
+/.next*/
 /out/
 
 # production
@@ -58,6 +57,7 @@ next-env.d.ts
 
 # local helper content / generated artifacts
 .agent/
+logolar/
 eklediklerim/*
 !eklediklerim/ornek_dosyalar/
 get-shit-done/
