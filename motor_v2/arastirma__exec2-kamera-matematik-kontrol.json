@@ -1,0 +1,245 @@
+{
+  "date": "2026-09-06",
+  "scope": "PLAN_EQUATIONS_AND_INSTALLED_LIBRARY_PURE_MATH_ONLY",
+  "notTested": [
+    "browser DOM/gesture binding",
+    "WebGL raster",
+    "CAD decoding",
+    "physical device",
+    "runtime performance"
+  ],
+  "cases": 31,
+  "results": [
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 0,
+      "u": 0.001,
+      "maxPixelError": 9.663381206337363e-13
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 0,
+      "u": 1,
+      "maxPixelError": 1.4210854715202004e-14
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 0,
+      "u": 125,
+      "maxPixelError": 5.684341886080802e-14
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.00005844116208209016
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 1000000000,
+      "u": 1,
+      "maxPixelError": 2.8610259050765308e-8
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": 1000000000,
+      "u": 125,
+      "maxPixelError": 1.4210854715202004e-14
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": -1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.00005844116208209016
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": -1000000000,
+      "u": 1,
+      "maxPixelError": 2.8610259050765308e-8
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "origin": -1000000000,
+      "u": 125,
+      "maxPixelError": 1.4210854715202004e-14
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 0,
+      "u": 0.001,
+      "maxPixelError": 1.4779288903810084e-12
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 0,
+      "u": 1,
+      "maxPixelError": 2.842170943040401e-14
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 0,
+      "u": 125,
+      "maxPixelError": 2.842170943040401e-14
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.000056266784682179605
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 1000000000,
+      "u": 1,
+      "maxPixelError": 5.7220461258111754e-8
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": 1000000000,
+      "u": 125,
+      "maxPixelError": 0
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": -1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.000056266784682179605
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": -1000000000,
+      "u": 1,
+      "maxPixelError": 5.7220461258111754e-8
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "origin": -1000000000,
+      "u": 125,
+      "maxPixelError": 0
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 0,
+      "u": 0.001,
+      "maxPixelError": 9.094947017729282e-13
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 0,
+      "u": 1,
+      "maxPixelError": 2.842170943040401e-14
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 0,
+      "u": 125,
+      "maxPixelError": 1.1368683772161603e-13
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.000057029724104040724
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 1000000000,
+      "u": 1,
+      "maxPixelError": 4.768372718899627e-8
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": 1000000000,
+      "u": 125,
+      "maxPixelError": 4.9960036108132044e-14
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": -1000000000,
+      "u": 0.001,
+      "maxPixelError": 0.000057029724104040724
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": -1000000000,
+      "u": 1,
+      "maxPixelError": 4.768372718899627e-8
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "origin": -1000000000,
+      "u": 125,
+      "maxPixelError": 4.9960036108132044e-14
+    },
+    {
+      "kind": "fit",
+      "bbox": [
+        1000,
+        1
+      ],
+      "W": 320,
+      "H": 568,
+      "u": 3.90625
+    },
+    {
+      "kind": "fit",
+      "bbox": [
+        1,
+        1000
+      ],
+      "W": 1440,
+      "H": 900,
+      "u": 1.1961722488038278
+    },
+    {
+      "kind": "fit",
+      "bbox": [
+        10,
+        10
+      ],
+      "W": 320,
+      "H": 568,
+      "u": 0.0390625
+    },
+    {
+      "kind": "fit",
+      "bbox": [
+        0,
+        0
+      ],
+      "W": 768,
+      "H": 1024,
+      "u": 0.0014204545454545455
+    }
+  ],
+  "status": "PASS",
+  "error": null
+}

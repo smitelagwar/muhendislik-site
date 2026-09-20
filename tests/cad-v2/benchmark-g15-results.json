@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-09-20T07:23:59.568Z",
+  "benchmarkResults": [
+    {
+      "fileId": "R001",
+      "format": "DWG",
+      "sizeBytes": 3444087,
+      "usageClass": "<=30MB",
+      "coldPrepareMs": 1799.7489999999998,
+      "warmIterations": 30,
+      "warmMedianMs": 0.010900000001129229,
+      "warmMeanMs": 0.0148633333328083,
+      "warmMinMs": 0.0063999999983934686,
+      "warmMaxMs": 0.11669999999867287,
+      "speedImprovementPercent": 99.99939435999124
+    },
+    {
+      "fileId": "R002",
+      "format": "DWG",
+      "sizeBytes": 2139550,
+      "usageClass": "<=30MB",
+      "coldPrepareMs": 1492.4693000000007,
+      "warmIterations": 30,
+      "warmMedianMs": 0.002599999999802094,
+      "warmMeanMs": 0.003973333333609237,
+      "warmMinMs": 0.002300000000104774,
+      "warmMaxMs": 0.02050000000235741,
+      "speedImprovementPercent": 99.99982579206154
+    }
+  ],
+  "verifiedChunksCount": 35,
+  "corpusCovered": [
+    {
+      "id": "R001",
+      "size": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086"
+    },
+    {
+      "id": "R002",
+      "size": 2139550,
+      "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459"
+    },
+    {
+      "id": "R003",
+      "size": 16084252,
+      "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6"
+    },
+    {
+      "id": "R004",
+      "size": 55259742,
+      "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1"
+    }
+  ]
+}

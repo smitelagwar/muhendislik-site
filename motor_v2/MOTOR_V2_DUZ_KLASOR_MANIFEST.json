@@ -1,0 +1,378 @@
+{
+  "copiedAt": "2026-09-19T13:29:52.475Z",
+  "sourceFolder": "dwg_V2",
+  "flatFolder": "motor_v2",
+  "sourceFileCount": 73,
+  "copiedMarkdownCount": 53,
+  "copiedJsonCount": 20,
+  "topLevelOnly": true,
+  "localMarkdownLinksChecked": 489,
+  "brokenLocalMarkdownLinks": [],
+  "sourceFiles": [
+    {
+      "originalPath": "00_BAGLAYICI_UYGULAMA_KARARLARI.md",
+      "flatFileName": "00_BAGLAYICI_UYGULAMA_KARARLARI.md",
+      "sha256": "eaa6fc76358372294783c3a450fee7468c9488295208c1e1a6a928f491dde626"
+    },
+    {
+      "originalPath": "01_MANIFESTO.md",
+      "flatFileName": "01_MANIFESTO.md",
+      "sha256": "3c75c8f85bd81ad661dc2c14f0c070636a2f5b080957c59d66b78c30aa6315be"
+    },
+    {
+      "originalPath": "02_REPO_INCELEMESI.md",
+      "flatFileName": "02_REPO_INCELEMESI.md",
+      "sha256": "4b20fd0456775167f9b9fc57013eefcf228619745d3cc4ddafabc332ca49074b"
+    },
+    {
+      "originalPath": "03_ARASTIRMA_VE_ADAYLAR.md",
+      "flatFileName": "03_ARASTIRMA_VE_ADAYLAR.md",
+      "sha256": "a9e92f0abecd4c3de0748f10cbddb4c6c5cde2628786064f7bc4f7ce59ce7875"
+    },
+    {
+      "originalPath": "04_KARAR_CERCEVESI.md",
+      "flatFileName": "04_KARAR_CERCEVESI.md",
+      "sha256": "a72855fd39e41db2b3f744b48fca43c729634a53cbb9731fe325eade60033d84"
+    },
+    {
+      "originalPath": "05_SISTEM_MIMARISI.md",
+      "flatFileName": "05_SISTEM_MIMARISI.md",
+      "sha256": "be5e25a6feb6abcc536dcf84af688996fe0ec350224e2c5ad3c2e1f015282a17"
+    },
+    {
+      "originalPath": "06_DOGRULUK_ATLASI.md",
+      "flatFileName": "06_DOGRULUK_ATLASI.md",
+      "sha256": "de71cb3a3a04f5e4b5e0ad3e91beada9eeb26e4232c303bfdbed4d019eabaec1"
+    },
+    {
+      "originalPath": "07_PERFORMANS_VE_BELLEK.md",
+      "flatFileName": "07_PERFORMANS_VE_BELLEK.md",
+      "sha256": "ec7a210f0e91dc3d5ad3935fa65320a5c92d6cc1865aa5ddfb05ac32789ca147"
+    },
+    {
+      "originalPath": "08_CIHAZLAR_VE_ETKILESIM.md",
+      "flatFileName": "08_CIHAZLAR_VE_ETKILESIM.md",
+      "sha256": "7721a9acaa7c9277a9f05915f937bcf115f6a88c261ab36dd59e94e8e5fb9aa0"
+    },
+    {
+      "originalPath": "09_SITE_ENTEGRASYONU.md",
+      "flatFileName": "09_SITE_ENTEGRASYONU.md",
+      "sha256": "a33337189a8c6e98bac753f95f06028f2b01ad2bb20e923d469a6c0c53414ae1"
+    },
+    {
+      "originalPath": "10_GUVENLIK_VE_ISLETIM.md",
+      "flatFileName": "10_GUVENLIK_VE_ISLETIM.md",
+      "sha256": "20296f9e4a77040675f15e1da7fb77308b86287e817f439f3c7a500778c41ef1"
+    },
+    {
+      "originalPath": "11_DOGRULAMA_PROGRAMI.md",
+      "flatFileName": "11_DOGRULAMA_PROGRAMI.md",
+      "sha256": "c4801f6d8fba86f2bc978012be81c86f7ab356814a9ee096928affbd9be1aee4"
+    },
+    {
+      "originalPath": "12_YOL_HARITALARI.md",
+      "flatFileName": "12_YOL_HARITALARI.md",
+      "sha256": "013f95483ddc5ddb785f3ee270f2f8aef8acd230810b6828b1a23977fce44ddb"
+    },
+    {
+      "originalPath": "13_IS_PAKETLERI.md",
+      "flatFileName": "13_IS_PAKETLERI.md",
+      "sha256": "2cf0caa96e54c65041fa788dd5970d23460c562c02bed7f6e1249676f3b57940"
+    },
+    {
+      "originalPath": "14_KAYNAK_VE_RISK_PLANI.md",
+      "flatFileName": "14_KAYNAK_VE_RISK_PLANI.md",
+      "sha256": "e851c147b0910802daa26caf3dd4a3a8c63a3115d06faab1de016bf31411ef9e"
+    },
+    {
+      "originalPath": "15_ASTRA_CALISMA_REHBERI.md",
+      "flatFileName": "15_ASTRA_CALISMA_REHBERI.md",
+      "sha256": "709c8e25c27f8923be3802c5d3f163507f0856b0b00b17ec4649831f3f9b8684"
+    },
+    {
+      "originalPath": "16_KAYNAKCA.md",
+      "flatFileName": "16_KAYNAKCA.md",
+      "sha256": "93395b554d49794390bd376995f7b3698565c7c1148caa0f8ca63292ff4effaa"
+    },
+    {
+      "originalPath": "17_TESLIM_VE_DURUM.md",
+      "flatFileName": "17_TESLIM_VE_DURUM.md",
+      "sha256": "b14a22d4395eb09d7072ed783ea2aaec99476c3b9122b73518c145efb97aeb59"
+    },
+    {
+      "originalPath": "18_GEMINI_UYGULAMA_REHBERI.md",
+      "flatFileName": "18_GEMINI_UYGULAMA_REHBERI.md",
+      "sha256": "c4698c941524aee8c5667b8797a2468021a51a27b813ada54a3fa7cac092b105"
+    },
+    {
+      "originalPath": "19_GEMINI_ADIM_ADIM_UYGULAMA.md",
+      "flatFileName": "19_GEMINI_ADIM_ADIM_UYGULAMA.md",
+      "sha256": "e59787d8af014e5d954866c9e4a2aff3bea7eb882048fff99c7d2e995b4fb3b8"
+    },
+    {
+      "originalPath": "20_KAYIT_VE_KANIT_SISTEMI.md",
+      "flatFileName": "20_KAYIT_VE_KANIT_SISTEMI.md",
+      "sha256": "ebdc3abe0983139de8b30ee22146376c511e95ca3b27eca6fe7a88e58224516d"
+    },
+    {
+      "originalPath": "21_ARAYUZ_TASARIM_SISTEMI.md",
+      "flatFileName": "21_ARAYUZ_TASARIM_SISTEMI.md",
+      "sha256": "db14faa67ad4c80b0728d4f7bb484f3c460ee5c6feb526004db6500d9ac71bf5"
+    },
+    {
+      "originalPath": "22_ARAYUZ_SENARYOLARI_VE_KABUL.md",
+      "flatFileName": "22_ARAYUZ_SENARYOLARI_VE_KABUL.md",
+      "sha256": "debe502a52b8db42f82b7aab14655d05b745630a03d2dcf1fb42a64d0cb35a24"
+    },
+    {
+      "originalPath": "23_ASTRA_DENETIM_VE_DUZELTME_DONGUSU.md",
+      "flatFileName": "23_ASTRA_DENETIM_VE_DUZELTME_DONGUSU.md",
+      "sha256": "4a9bfbaa917e2c47b948c351aa597358c75e0f6ccf7e4bcbfe0a7b7546889974"
+    },
+    {
+      "originalPath": "24_GEREKSINIM_KATALOGU.md",
+      "flatFileName": "24_GEREKSINIM_KATALOGU.md",
+      "sha256": "250f544516d5b01bbc953fc7497a2be42e4056284dba8f9b3ba59fa177551176"
+    },
+    {
+      "originalPath": "25_SABIT_VERI_VE_API_SOZLESMELERI.md",
+      "flatFileName": "25_SABIT_VERI_VE_API_SOZLESMELERI.md",
+      "sha256": "f607478d51f1402f2cb23d27a60c86d5fb2e687eb657bc2158fef233909dcf64"
+    },
+    {
+      "originalPath": "26_PLAN_DENETIMI_VE_EXEC2.md",
+      "flatFileName": "26_PLAN_DENETIMI_VE_EXEC2.md",
+      "sha256": "b1969adcf201be5d4ddb64e0f0001e5624103418a82f28f5b3f62f039c07c38c"
+    },
+    {
+      "originalPath": "27_KAYNAK_KOD_VE_YENIDEN_KULLANIM.md",
+      "flatFileName": "27_KAYNAK_KOD_VE_YENIDEN_KULLANIM.md",
+      "sha256": "5392e1049223d18d2b7bbbc31b9cb58f01903f3919517e0f7bc7e0ea33c285ac"
+    },
+    {
+      "originalPath": "28_PAN_ZOOM_FIT_SOZLESMESI.md",
+      "flatFileName": "28_PAN_ZOOM_FIT_SOZLESMESI.md",
+      "sha256": "920eb4037792a123326ab3620f2a5a6b82fcb6de4c206fb7f7a535bea51a865f"
+    },
+    {
+      "originalPath": "29_RENDER_VE_YASAM_DONGUSU.md",
+      "flatFileName": "29_RENDER_VE_YASAM_DONGUSU.md",
+      "sha256": "83b682fcb454c90a6dfb63f9c03759fb35f6304883074c67d9da5d739d494dcc"
+    },
+    {
+      "originalPath": "30_OZELLIK_KAPSAMI_VE_KALITE_KAPILARI.md",
+      "flatFileName": "30_OZELLIK_KAPSAMI_VE_KALITE_KAPILARI.md",
+      "sha256": "583fa6abebfde8b16999d8903684c0d7bf70de587d32199861160dc517c1a24a"
+    },
+    {
+      "originalPath": "31_SOZLESME_TAMAMLAMALARI.md",
+      "flatFileName": "31_SOZLESME_TAMAMLAMALARI.md",
+      "sha256": "15f3ea2746fb1145375762b5173dbd7f5eb0c9340c29c92084ed231cf796c260"
+    },
+    {
+      "originalPath": "32_KULLANICI_HEDEFI_VE_GERCEK_KABUL.md",
+      "flatFileName": "32_KULLANICI_HEDEFI_VE_GERCEK_KABUL.md",
+      "sha256": "f212feafae1a74c4644907d8a05ed72589e6cd541f054f12f9e8ac57777684c9"
+    },
+    {
+      "originalPath": "README.md",
+      "flatFileName": "README.md",
+      "sha256": "982a3acd7ba737aad4ddf1f508923ed4a8ebfb87ec57869f8a4a76d9f13a8f1c"
+    },
+    {
+      "originalPath": "arastirma/exec1-tam-belge-arsivi.json",
+      "flatFileName": "arastirma__exec1-tam-belge-arsivi.json",
+      "sha256": "5707a70df8a96b1779593e5aa65647a08a2226c8fa6fc915e3cb7ed9f5c97f2e"
+    },
+    {
+      "originalPath": "arastirma/exec2-kamera-matematik-kontrol.json",
+      "flatFileName": "arastirma__exec2-kamera-matematik-kontrol.json",
+      "sha256": "015748eaa5e08ce631639743f8548152bd70de57b6c4ef6117a46c7b8bda30f1"
+    },
+    {
+      "originalPath": "arastirma/exec2-plan-kontrol.json",
+      "flatFileName": "arastirma__exec2-plan-kontrol.json",
+      "sha256": "8153c9975eb6335a9c9386a97bd7a296007d8f5c2940a8d9f91ef02c10ef7762"
+    },
+    {
+      "originalPath": "arastirma/exec2-public-kaynak-kimlikleri.json",
+      "flatFileName": "arastirma__exec2-public-kaynak-kimlikleri.json",
+      "sha256": "f72686ab7e8741ee3bfb63e58a1f7c9c12fcbae556b3813babc1c36f095ceb09"
+    },
+    {
+      "originalPath": "arastirma/exec2-u1-oncesi-belge-arsivi.json",
+      "flatFileName": "arastirma__exec2-u1-oncesi-belge-arsivi.json",
+      "sha256": "6d744d5a40e630bfa530d6d5ed5cf0ee6c0e84ec1824707a3d073e458a331650"
+    },
+    {
+      "originalPath": "arastirma/exec2-u1-plan-kontrol.json",
+      "flatFileName": "arastirma__exec2-u1-plan-kontrol.json",
+      "sha256": "ef1c833028d38034706413b53691451173a2122e6848a6f0565e5a3d93483c30"
+    },
+    {
+      "originalPath": "arastirma/exec2-u2-oncesi-kayit.json",
+      "flatFileName": "arastirma__exec2-u2-oncesi-kayit.json",
+      "sha256": "828887270bffee52f8419e072a6b503f3f8de7eb85dfbb908dcb2c45ecfbc895"
+    },
+    {
+      "originalPath": "arastirma/exec2-u2-plan-kontrol.json",
+      "flatFileName": "arastirma__exec2-u2-plan-kontrol.json",
+      "sha256": "56661cb6e738423b58393b3107dd5b7d0a14d0c57dd8ffc5d8cb29e61ad054be"
+    },
+    {
+      "originalPath": "arastirma/exec2-u3-font-gozlemi.json",
+      "flatFileName": "arastirma__exec2-u3-font-gozlemi.json",
+      "sha256": "3f79884e69c13c34c362759178c0e479744b77fa10d852fa335e6a460cad79a0"
+    },
+    {
+      "originalPath": "arastirma/exec2-u3-oncesi-kayit.json",
+      "flatFileName": "arastirma__exec2-u3-oncesi-kayit.json",
+      "sha256": "97a63f0ddb3b86cdb4628cba2176a3bba613a70555d4724b43c275b6d759f114"
+    },
+    {
+      "originalPath": "arastirma/exec2-u3-plan-kontrol.json",
+      "flatFileName": "arastirma__exec2-u3-plan-kontrol.json",
+      "sha256": "d9e86518331da599663dd5a8bf0a00e8b054dbf0651b2f5512f2f11b95eae2d1"
+    },
+    {
+      "originalPath": "arastirma/exec2-yerel-kaynak-kaniti.json",
+      "flatFileName": "arastirma__exec2-yerel-kaynak-kaniti.json",
+      "sha256": "593d73a0f4d25c8c00834b86c4eabeb68d864a8d2792cf35b1060bad29f01c14"
+    },
+    {
+      "originalPath": "arastirma/gemini-devir-kontrol.json",
+      "flatFileName": "arastirma__gemini-devir-kontrol.json",
+      "sha256": "d5218f853c4dedad6cedcb447795a2cf7e205f6552f60bfb49a0174225d78792"
+    },
+    {
+      "originalPath": "arastirma/gemini-karar-dayanaklari.json",
+      "flatFileName": "arastirma__gemini-karar-dayanaklari.json",
+      "sha256": "3945c0971627f15af3d8a18c4bc6c71bc1500692a6c77c1ed6a3d0dd1522faf9"
+    },
+    {
+      "originalPath": "arastirma/github-issue-ornekleri.json",
+      "flatFileName": "arastirma__github-issue-ornekleri.json",
+      "sha256": "cd58746e67490e37f3ecfbeff49614e6aa8d3abe4e513d19722006816ff496ee"
+    },
+    {
+      "originalPath": "arastirma/github-snapshot.json",
+      "flatFileName": "arastirma__github-snapshot.json",
+      "sha256": "36f1c3658f93b525d5522e2baa3653b3fc29cfaa031c1f34a4e9d2cff30ac01c"
+    },
+    {
+      "originalPath": "arastirma/plan-revizyon-oncesi.json",
+      "flatFileName": "arastirma__plan-revizyon-oncesi.json",
+      "sha256": "ac1c27c36d07f5dc9b2113ca295f71409feb4821074b943f949959d41765bc45"
+    },
+    {
+      "originalPath": "arastirma/teslim-kontrol.json",
+      "flatFileName": "arastirma__teslim-kontrol.json",
+      "sha256": "b691ad009129b94b77a393d365f80d1d710c60882d323bca73e663639813af6b"
+    },
+    {
+      "originalPath": "arastirma/yerel-baslangic.json",
+      "flatFileName": "arastirma__yerel-baslangic.json",
+      "sha256": "51db8a5ec78e54748641d54cb6693c19bdfb3709f79bd856bec5564125704654"
+    },
+    {
+      "originalPath": "arastirma/yerel-corpus.json",
+      "flatFileName": "arastirma__yerel-corpus.json",
+      "sha256": "1c514b085e0fa0f678c54362e3c2d5b6a2225bdd602e85c9a97051d81ade9c3a"
+    },
+    {
+      "originalPath": "girdi/SOL_TEKNIK_ONERILER_ORIJINAL.md",
+      "flatFileName": "girdi__SOL_TEKNIK_ONERILER_ORIJINAL.md",
+      "sha256": "6a595741f3abbfd9fa3b9c9f23baf781f0a83f44162dea376fda40675b7db059"
+    },
+    {
+      "originalPath": "sablonlar/DENETIM_VE_DUZELTME.md",
+      "flatFileName": "sablonlar__DENETIM_VE_DUZELTME.md",
+      "sha256": "1cc06ff9cb61be352d3fa118f6d29e7fc85ba3c803b5627d0702c58762d09a93"
+    },
+    {
+      "originalPath": "sablonlar/DENEY_RAPORU.md",
+      "flatFileName": "sablonlar__DENEY_RAPORU.md",
+      "sha256": "a2bd10e407520fd1f921d78d638a5498785abdafb5350e5acfd137b04dfc88c8"
+    },
+    {
+      "originalPath": "sablonlar/GORSEL_KANIT.md",
+      "flatFileName": "sablonlar__GORSEL_KANIT.md",
+      "sha256": "03de064e9568e23d6e4e0b5f24dc8146eddf8b2b344fdc674085e992d1b2e6fe"
+    },
+    {
+      "originalPath": "sablonlar/KARAR_ENGELI.md",
+      "flatFileName": "sablonlar__KARAR_ENGELI.md",
+      "sha256": "ff75343992f0153af092a0b397392e598a98969699359d6b4d8861e7c47016cf"
+    },
+    {
+      "originalPath": "sablonlar/KARAR_KAYDI.md",
+      "flatFileName": "sablonlar__KARAR_KAYDI.md",
+      "sha256": "832548ea7bf89b9e9c6981de39b1382ac67662f53305c4c0c9a912666845453a"
+    },
+    {
+      "originalPath": "sablonlar/OTURUM_DEVRI.md",
+      "flatFileName": "sablonlar__OTURUM_DEVRI.md",
+      "sha256": "4ca610d7684d3a95a1f5aea776878981cb13e1e163328b84787888d73abb86b6"
+    },
+    {
+      "originalPath": "sablonlar/TEST_KANITI.md",
+      "flatFileName": "sablonlar__TEST_KANITI.md",
+      "sha256": "d421eede48013021fa3f482dd6aeb8790933337377cc5065fc857a2755121ccc"
+    },
+    {
+      "originalPath": "sablonlar/UYGULAMA_PAKETI.md",
+      "flatFileName": "sablonlar__UYGULAMA_PAKETI.md",
+      "sha256": "8a77cc2b4a480be8db1bcf0da8ef0e1c72628372ae8ea1cf06088ade5be04c10"
+    },
+    {
+      "originalPath": "uygulama/ALT_KABUL_DURUMLARI.md",
+      "flatFileName": "uygulama__ALT_KABUL_DURUMLARI.md",
+      "sha256": "1067d5914293ef860c25ec8c1cf3a51bcea666b82476a49daef7c65630092c20"
+    },
+    {
+      "originalPath": "uygulama/BILINEN_EKSIKLER.md",
+      "flatFileName": "uygulama__BILINEN_EKSIKLER.md",
+      "sha256": "be4dfb739e366ab322353cecdfe9e0f508fe96e0374498e002f733500152e55f"
+    },
+    {
+      "originalPath": "uygulama/DENETIM_DEVRI.md",
+      "flatFileName": "uygulama__DENETIM_DEVRI.md",
+      "sha256": "deec58c85c707406b2f16d645a589b33fe30b59ed7e202a7d50f2e2bfb1d361e"
+    },
+    {
+      "originalPath": "uygulama/DENETIM_TURLARI.md",
+      "flatFileName": "uygulama__DENETIM_TURLARI.md",
+      "sha256": "62123311a1a1fea1561ee7bd0ba33fa1d61e633b46b34ffcdddd414c7c770c2c"
+    },
+    {
+      "originalPath": "uygulama/DURUM.md",
+      "flatFileName": "uygulama__DURUM.md",
+      "sha256": "abe688d717639359c5d964d2b16b27074c31acb70b7281515f9fad183679ea30"
+    },
+    {
+      "originalPath": "uygulama/IZLENEBILIRLIK.md",
+      "flatFileName": "uygulama__IZLENEBILIRLIK.md",
+      "sha256": "64b825aafe466d94f47a52bcb141dae52c2c9438002c06955af6b0abb2dcc69f"
+    },
+    {
+      "originalPath": "uygulama/KARAR_VE_ENGELLER.md",
+      "flatFileName": "uygulama__KARAR_VE_ENGELLER.md",
+      "sha256": "5a364515bc2f181f245f24c162a5fb8e2f1d41e217e2c3847fb648cf8aa5a091"
+    },
+    {
+      "originalPath": "uygulama/OTURUM_GUNLUGU.md",
+      "flatFileName": "uygulama__OTURUM_GUNLUGU.md",
+      "sha256": "9554fb3fffc1f8421bd8a7f9794dde7dfaf920ea684d4e566e966f0d7035bb13"
+    },
+    {
+      "originalPath": "uygulama/PAKET_DURUMLARI.md",
+      "flatFileName": "uygulama__PAKET_DURUMLARI.md",
+      "sha256": "57a4d98d33ab124aeadc7e10a3b8516ed67b401f3e908c96cf149b66c8e60fee"
+    },
+    {
+      "originalPath": "uygulama/README.md",
+      "flatFileName": "uygulama__README.md",
+      "sha256": "8e2f16563fb2049db658dd24bbcb1ffc0321039afe383c6aa89be1c43bf6dc18"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-09-05T15:00:05.383Z",
+  "purpose": "EXEC-1 kararı için okunan yerel paket/API/tema kanıtı; decoder veya UI runtime testi değildir.",
+  "nodeObserved": "v24.15.0",
+  "packages": [
+    {
+      "name": "@mlightcad/libredwg-web",
+      "version": "0.7.10",
+      "licenseMetadata": "GPL-3.0"
+    },
+    {
+      "name": "@mlightcad/data-model",
+      "version": "1.14.2",
+      "licenseMetadata": "MIT"
+    },
+    {
+      "name": "@mlightcad/shx-parser",
+      "version": "1.4.5",
+      "licenseMetadata": "MIT"
+    },
+    {
+      "name": "@mlightcad/mtext-parser",
+      "version": "1.5.0",
+      "licenseMetadata": "MIT"
+    },
+    {
+      "name": "opentype.js",
+      "version": "1.3.4",
+      "licenseMetadata": "MIT"
+    },
+    {
+      "name": "earcut",
+      "version": "3.2.3",
+      "licenseMetadata": "ISC"
+    }
+  ],
+  "sources": [
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/package.json",
+      "sha256": "575030333607eae04c87874aba9f26b1a2ad208a84d5f636991ba3bc296af42e"
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/README.md",
+      "sha256": "0e0c4c4f2f307efded238e113674952fc4ca813db684954694e833f30a8da79a"
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/lib/libredwg.js",
+      "sha256": "03af3ce2d455f8df0e70612013c1a2dc0c86d45f3d63e8705035dffb5f12234b"
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/lib/libredwg.d.ts",
+      "sha256": "5e0d2b19a3c59053cfa0aab42bff53077f7bf8d993c581c215a7f77fd6948f10"
+    },
+    {
+      "path": "node_modules/@mlightcad/data-model/lib/dxf/AcDbNativeDxfConverter.d.ts",
+      "sha256": "251e47afe446332d4de11fc90f91270fc2133d1e6309748c4e9a89df1361e7c0"
+    },
+    {
+      "path": "node_modules/@mlightcad/data-model/lib/dxf/AcDbDxfDocumentReader.d.ts",
+      "sha256": "86235e64177dc06b269a8f4afc0988e266df1a52dc2fff6a42ce31699de4344f"
+    },
+    {
+      "path": "src/app/globals.css",
+      "sha256": "f660a4a4eee4bd36e63b7b6d2a497a64365bba691ff6a6157ad9f879862b4598"
+    },
+    {
+      "path": "src/components/dokumantasyon/studio/studio-topbar.tsx",
+      "sha256": "776fc8e0869bd4ff995158f7294b52b9535aefafb10b6d6441346c9dc16b5df2"
+    }
+  ],
+  "observations": [
+    "LibreDWG README Node kullanımını belgeliyor; bu oturumda instantiate/decode çalıştırılmadı.",
+    "dwg_read_data kaynağında DXF dalı yorumda.",
+    "dwg_free tipi Dwg_Data pointer alıyor; README örneği JSON db değişkeniyle karıştırılmamalı.",
+    "Package build scriptinde INITIAL_MEMORY=1GB ve MAXIMUM_MEMORY=4GB var; mevcut artifact RSS veya heap ölçümü değil.",
+    "Native DXF public tiplerinde unknownEntityCount ve unknownObjectCount var; Node tam akışı henüz doğrulanmadı.",
+    "V2 UI tokenları mevcut globals.css açık/koyu tema değerlerine bağlandı."
+  ],
+  "runtimeTestsRun": false
+}

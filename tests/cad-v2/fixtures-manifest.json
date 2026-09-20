@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "generatedAt": "2026-09-19T13:37:00.000Z",
+  "description": "DWG/DXF Motor V2 - Doğrulanmış Test ve Gerçek Çizim Fixture Manifesti",
+  "realCorpus": [
+    {
+      "id": "R001",
+      "relativePath": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+      "format": "DWG",
+      "magic": "AC1032",
+      "sizeBytes": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+      "readOnlyInspection": true
+    },
+    {
+      "id": "R002",
+      "relativePath": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+      "format": "DWG",
+      "magic": "AC1032",
+      "sizeBytes": 2139550,
+      "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+      "readOnlyInspection": true
+    },
+    {
+      "id": "R003",
+      "relativePath": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+      "format": "DWG",
+      "magic": "AC1032",
+      "sizeBytes": 16084252,
+      "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+      "readOnlyInspection": true
+    },
+    {
+      "id": "R004",
+      "relativePath": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+      "format": "DXF",
+      "magic": "AC1021",
+      "sizeBytes": 55259742,
+      "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+      "readOnlyInspection": true
+    }
+  ],
+  "syntheticFixtures": [
+    {
+      "id": "SYN-BASIC-GEOM",
+      "description": "Temel 2D geometriler: LINE, CIRCLE, ARC, LWPOLYLINE",
+      "entities": [
+        { "type": "LINE", "layer": "0", "start": [0, 0], "end": [100, 100], "color": 1 },
+        { "type": "CIRCLE", "layer": "WALL", "center": [50, 50], "radius": 25, "color": 3 },
+        { "type": "ARC", "layer": "DOOR", "center": [0, 0], "radius": 40, "startAngle": 0, "endAngle": 1.570796, "color": 4 },
+        { "type": "LWPOLYLINE", "layer": "OUTLINE", "vertices": [[0, 0], [100, 0], [100, 50], [0, 50]], "isClosed": true, "color": 2 }
+      ],
+      "bbox": [0, 0, 100, 100]
+    },
+    {
+      "id": "SYN-LARGE-COORDS",
+      "description": "Büyük dünya koordinatları hassasiyet testi (1e8 origin, 0.01 birim detay)",
+      "entities": [
+        { "type": "LINE", "layer": "0", "start": [100000000.0, 100000000.0], "end": [100000000.05, 100000000.05], "color": 7 }
+      ],
+      "bbox": [100000000.0, 100000000.0, 100000000.05, 100000000.05]
+    },
+    {
+      "id": "SYN-HATCH-HOLES",
+      "description": "Delikli ve iç adalı HATCH testi",
+      "outerLoop": [[0, 0], [200, 0], [200, 200], [0, 200]],
+      "innerHoles": [
+        [[50, 50], [150, 50], [150, 150], [50, 150]]
+      ],
+      "bbox": [0, 0, 200, 200]
+    }
+  ]
+}

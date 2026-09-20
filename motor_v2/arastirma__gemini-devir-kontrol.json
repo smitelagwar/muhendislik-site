@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-09-05T15:14:40.342Z",
+  "kind": "documentation-and-handoff-validation",
+  "planRevision": "EXEC-1",
+  "status": "PASS",
+  "head": "042b04a96300c6e2d4f44593fdab33eb7cd8593c",
+  "markdownFiles": 45,
+  "jsonFiles": 8,
+  "whitespaceDelimitedWords": 39684,
+  "totalBytesExcludingThisReport": 352145,
+  "localLinkTargetsChecked": 299,
+  "externalUrlSyntaxChecked": 104,
+  "externalHttpStatusRecheckPerformed": false,
+  "markdownAnchorsIndividuallyChecked": false,
+  "stageCount": 18,
+  "requirementCount": 48,
+  "uiScenarioCount": 20,
+  "bindingDecisionCount": 24,
+  "indexesMatch": true,
+  "seedStatusesHonest": true,
+  "researchSupersessionBanners": 15,
+  "solByteEquivalent": true,
+  "existingFingerprints": [
+    {
+      "path": "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/cad-viewer.tsx",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+      "unchanged": true
+    },
+    {
+      "path": "package.json",
+      "unchanged": true
+    },
+    {
+      "path": "package-lock.json",
+      "unchanged": true
+    },
+    {
+      "path": "vercel.json",
+      "unchanged": true
+    },
+    {
+      "path": ".vercelignore",
+      "unchanged": true
+    },
+    {
+      "path": "docs/cad-dxf-engine/CAD_ENGINE_ACCELERATION_PROPOSAL.md",
+      "unchanged": true
+    }
+  ],
+  "historicalEvidence": [
+    {
+      "path": "dwg_V2/arastirma/github-issue-ornekleri.json",
+      "unchanged": true
+    },
+    {
+      "path": "dwg_V2/arastirma/github-snapshot.json",
+      "unchanged": true
+    },
+    {
+      "path": "dwg_V2/arastirma/teslim-kontrol.json",
+      "unchanged": true
+    },
+    {
+      "path": "dwg_V2/arastirma/yerel-baslangic.json",
+      "unchanged": true
+    },
+    {
+      "path": "dwg_V2/arastirma/yerel-corpus.json",
+      "unchanged": true
+    },
+    {
+      "path": "dwg_V2/girdi/SOL_TEKNIK_ONERILER_ORIJINAL.md",
+      "unchanged": true
+    }
+  ],
+  "localDecisionEvidence": [
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/package.json",
+      "unchanged": true
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/README.md",
+      "unchanged": true
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/lib/libredwg.js",
+      "unchanged": true
+    },
+    {
+      "path": "node_modules/@mlightcad/libredwg-web/lib/libredwg.d.ts",
+      "unchanged": true
+    },
+    {
+      "path": "node_modules/@mlightcad/data-model/lib/dxf/AcDbNativeDxfConverter.d.ts",
+      "unchanged": true
+    },
+    {
+      "path": "node_modules/@mlightcad/data-model/lib/dxf/AcDbDxfDocumentReader.d.ts",
+      "unchanged": true
+    },
+    {
+      "path": "src/app/globals.css",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/dokumantasyon/studio/studio-topbar.tsx",
+      "unchanged": true
+    }
+  ],
+  "trackedDiff": null,
+  "runtimeTestsRun": false,
+  "viewerImplementationStarted": false,
+  "problems": []
+}

@@ -1,0 +1,57 @@
+{
+  "recordedAt": "2026-09-19T13:37:44.261Z",
+  "metrics": [
+    {
+      "fileId": "R001",
+      "relativePath": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+      "format": "DWG",
+      "sizeBytes": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+      "magic": "AC1032",
+      "fileReadTimeMs": 2.41,
+      "memoryBeforeMb": 7.77,
+      "memoryAfterMb": 7.78,
+      "memoryDeltaMb": 0,
+      "status": "RECORDED"
+    },
+    {
+      "fileId": "R002",
+      "relativePath": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+      "format": "DWG",
+      "sizeBytes": 2139550,
+      "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+      "magic": "AC1032",
+      "fileReadTimeMs": 1.58,
+      "memoryBeforeMb": 7.78,
+      "memoryAfterMb": 7.78,
+      "memoryDeltaMb": 0,
+      "status": "RECORDED"
+    },
+    {
+      "fileId": "R003",
+      "relativePath": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+      "format": "DWG",
+      "sizeBytes": 16084252,
+      "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+      "magic": "AC1032",
+      "fileReadTimeMs": 9.69,
+      "memoryBeforeMb": 7.79,
+      "memoryAfterMb": 7.79,
+      "memoryDeltaMb": 0,
+      "status": "RECORDED"
+    },
+    {
+      "fileId": "R004",
+      "relativePath": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+      "format": "DXF",
+      "sizeBytes": 55259742,
+      "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+      "magic": "  0\nSE",
+      "fileReadTimeMs": 35.42,
+      "memoryBeforeMb": 7.79,
+      "memoryAfterMb": 7.79,
+      "memoryDeltaMb": 0,
+      "status": "RECORDED"
+    }
+  ]
+}

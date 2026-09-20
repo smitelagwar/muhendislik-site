@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
 
 interface FilePageProps {
   params: Promise<{ fileId: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function DokumantasyonFilePage({ params }: FilePageProps) {
+export default async function DokumantasyonFilePage({ params, searchParams }: FilePageProps) {
   const { fileId } = await params;
+  const sp = searchParams ? await searchParams : undefined;
+  const cadEngine = typeof sp?.cadEngine === "string" ? sp.cadEngine : undefined;
 
   if (!fileId) {
     notFound();
@@ -69,6 +72,7 @@ export default async function DokumantasyonFilePage({ params }: FilePageProps) {
       expiresAt={accessData.expiresAt}
       isLocal={accessData.isLocal}
       dwgFastPreviewHint={dwgFastPreviewHint}
+      cadEngine={cadEngine}
     />
   );
 }

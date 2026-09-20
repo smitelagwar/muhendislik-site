@@ -24,6 +24,7 @@ const DokImageViewer = dynamic(() => import("../preview/image-viewer").then((mod
 const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((module) => module.DokTextViewer), { ssr: false });
 const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
 const DokCadViewer = dynamic(() => import("../preview/cad-runtime-orchestrator").then((module) => module.DokCadRuntimeOrchestrator), { ssr: false });
+const DokCadV2Viewer = dynamic(() => import("../cad-v2/cad-v2-host-shell").then((module) => module.CadV2HostShell), { ssr: false });
 
 import type { DwgFastPreviewHint } from "../preview/cad-runtime-orchestrator";
 
@@ -45,6 +46,7 @@ interface DocumentStudioShellProps {
   isLocal: boolean;
   versionNo?: number;
   dwgFastPreviewHint?: DwgFastPreviewHint;
+  cadEngine?: string;
 }
 
 type ShareResult = {
@@ -64,6 +66,7 @@ export function DocumentStudioShell({
   isLocal,
   versionNo = 1,
   dwgFastPreviewHint,
+  cadEngine,
 }: DocumentStudioShellProps) {
   const router = useRouter();
   const studioRootRef = useRef<HTMLDivElement>(null);
@@ -340,6 +343,23 @@ export function DocumentStudioShell({
         );
 
       case "cad":
+        if (cadEngine === "v2") {
+          return (
+            <DokCadV2Viewer
+              accessUrl={currentLease.url}
+              displayName={file.display_name}
+              fileId={file.id}
+              extension={file.extension}
+              sizeBytes={file.size_bytes}
+              sourceVersionKey={`${file.id}_${file.updated_at || file.current_version_number || currentVersionNo || "1"}`}
+              onBack={handleBack}
+              onDownload={handleDownload}
+              onShare={() => setIsCreateShareOpen(true)}
+              onFallbackToLegacy={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+            />
+          );
+        }
+
         return (
           <DokCadViewer
             accessUrl={currentLease.url}
@@ -378,24 +398,26 @@ export function DocumentStudioShell({
       data-mobile-landscape-hidden={isMobileLandscape && isLandscapeBarsHidden ? "true" : "false"}
       className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden overscroll-none bg-background text-foreground select-none"
     >
-      {/* 1. Minimal Stüdyo Üst Çubuğu */}
-      <StudioTopbar
-        file={file}
-        previewKind={previewKind}
-        isDirty={isDirty}
-        versionNo={currentVersionNo}
-        isFullscreen={isFullscreen}
-        isMobileLandscape={isMobileLandscape}
-        onHideLandscapeBars={() => setIsLandscapeBarsHidden(true)}
-        onBack={handleBack}
-        onShare={() => setIsCreateShareOpen(true)}
-        onDownload={handleDownload}
-        onToggleFullscreen={handleToggleFullscreen}
-        onRename={() => setIsRenameOpen(true)}
-        onDelete={() => setIsDeleteOpen(true)}
-        onSave={isEditableKind ? handleSaveVersion : undefined}
-        isSaving={isSaving}
-      />
+      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor kendi tam entegre üst çubuğuna sahiptir) */}
+      {cadEngine !== "v2" && (
+        <StudioTopbar
+          file={file}
+          previewKind={previewKind}
+          isDirty={isDirty}
+          versionNo={currentVersionNo}
+          isFullscreen={isFullscreen}
+          isMobileLandscape={isMobileLandscape}
+          onHideLandscapeBars={() => setIsLandscapeBarsHidden(true)}
+          onBack={handleBack}
+          onShare={() => setIsCreateShareOpen(true)}
+          onDownload={handleDownload}
+          onToggleFullscreen={handleToggleFullscreen}
+          onRename={() => setIsRenameOpen(true)}
+          onDelete={() => setIsDeleteOpen(true)}
+          onSave={isEditableKind ? handleSaveVersion : undefined}
+          isSaving={isSaving}
+        />
+      )}
 
       {/* Mobil Yatayda Çubuklar Gizliyken Gösterilen Yüzen Hızlı Kontrol Kapsülü */}
       {isMobileLandscape && isLandscapeBarsHidden && (

@@ -1,0 +1,58 @@
+{
+  "date": "2026-09-06",
+  "readOnly": true,
+  "rows": [
+    {
+      "id": "three-r172",
+      "url": "https://api.github.com/repos/mrdoob/three.js/commits/r172",
+      "commit": "79497a2c9b86036cfcc0c7ed448574f2d62de64d",
+      "version": null,
+      "license": null,
+      "integrity": null,
+      "dependencies": null
+    },
+    {
+      "id": "d3-zoom-v3",
+      "url": "https://api.github.com/repos/d3/d3-zoom/commits/v3.0.0",
+      "commit": "debbe3d76d86ea96965ed4cc61beb6bdf7238156",
+      "version": null,
+      "license": null,
+      "integrity": null,
+      "dependencies": null
+    },
+    {
+      "id": "d3-selection-v3",
+      "url": "https://api.github.com/repos/d3/d3-selection/commits/v3.0.0",
+      "commit": "91245ee124ec4dd491e498ecbdc9679d75332b49",
+      "version": null,
+      "license": null,
+      "integrity": null,
+      "dependencies": null
+    },
+    {
+      "id": "d3-drag-v3",
+      "url": "https://api.github.com/repos/d3/d3-drag/commits/v3.0.0",
+      "commit": "1b88d8a2d69fca86d4d90a8329987693b79ec506",
+      "version": null,
+      "license": null,
+      "integrity": null,
+      "dependencies": null
+    },
+    {
+      "id": "three-types-172",
+      "url": "https://registry.npmjs.org/@types%2fthree/0.172.0",
+      "commit": null,
+      "version": "0.172.0",
+      "license": "MIT",
+      "integrity": "sha512-LrUtP3FEG26Zg5WiF0nbg8VoXiKokBLTcqM2iLvM9vzcfEiYmmBAPGdBgV0OYx9fvWlY3R/3ERTZcD9X5sc0NA==",
+      "dependencies": {
+        "fflate": "~0.8.2",
+        "@types/webxr": "*",
+        "@webgpu/types": "*",
+        "meshoptimizer": "~0.18.1",
+        "@types/stats.js": "*",
+        "@tweenjs/tween.js": "~23.1.3"
+      }
+    }
+  ]
+}

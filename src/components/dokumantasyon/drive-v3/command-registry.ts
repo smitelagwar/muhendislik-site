@@ -30,12 +30,14 @@ export type CommandId =
   | "open-active-shares"
   | "copy"
   | "cut"
-  | "paste";
+  | "paste"
+  | "open-cad-v2";
 
 export type CommandTargetItem = {
   id: string;
   type: "file" | "folder";
   name: string;
+  extension?: string;
   size?: number;
   starred?: boolean;
   pending?: boolean;
@@ -103,6 +105,19 @@ export const COMMAND_DEFINITIONS: Record<CommandId, CommandDefinition> = {
       ctx.selectedItems.length === 1 &&
       ctx.selectedItems[0].type === "file" &&
       !ctx.selectedItems[0].pending,
+  },
+  "open-cad-v2": {
+    id: "open-cad-v2",
+    label: "Motor V2 ile Aç",
+    requiresSelection: true,
+    allowMulti: false,
+    canExecute: (ctx) => {
+      if (ctx.selectedItems.length !== 1) return false;
+      const item = ctx.selectedItems[0];
+      if (item.type !== "file" || item.pending || ctx.isTrashView) return false;
+      const ext = (item.extension || item.name.split(".").pop() || "").toLowerCase().replace(/^\./, "");
+      return ext === "dwg" || ext === "dxf";
+    },
   },
   download: {
     id: "download",

@@ -613,6 +613,7 @@ function DokumantasyonFileManagerInner() {
         id,
         type: "file" as const,
         name: file?.display_name || "Dosya",
+        extension: file?.extension || file?.display_name.split(".").pop() || "",
         size: file ? Number(file.size_bytes) : 0,
         starred: Boolean(file?.starred_at),
         pending: false,
@@ -665,6 +666,14 @@ function DokumantasyonFileManagerInner() {
         navigateToFolder(target.id);
       } else {
         router.push(`/dokumantasyon/dosya/${target.id}`);
+      }
+    }));
+
+    cleanups.push(registry.register("open-cad-v2", (ctx) => {
+      if (ctx.selectedItems.length !== 1) return;
+      const target = ctx.selectedItems[0];
+      if (target.type === "file") {
+        router.push(`/dokumantasyon/dosya/${target.id}?cadEngine=v2`);
       }
     }));
 
@@ -1331,6 +1340,18 @@ function DokumantasyonFileManagerInner() {
                 <Eye className="h-3.5 w-3.5 text-blue-500" />
                 <span>Önizle / Studio</span>
               </DropdownMenuItem>
+              {(file.extension.toLowerCase() === ".dwg" || file.extension.toLowerCase() === ".dxf") && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/dokumantasyon/dosya/${file.id}?cadEngine=v2`);
+                  }}
+                  className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 hover:text-amber-400 rounded-lg"
+                >
+                  <Layers className="h-3.5 w-3.5 text-amber-500" />
+                  <span>{file.extension.toLowerCase() === ".dwg" ? "DWG Motor V2 ile aç" : "DXF Motor V2 ile aç"}</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1585,6 +1606,18 @@ function DokumantasyonFileManagerInner() {
                   <Eye className="h-3.5 w-3.5 text-blue-500" />
                   <span>Önizle / Studio</span>
                 </DropdownMenuItem>
+                {(file.extension.toLowerCase() === ".dwg" || file.extension.toLowerCase() === ".dxf") && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/dokumantasyon/dosya/${file.id}?cadEngine=v2`);
+                    }}
+                    className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 hover:text-amber-400 rounded-lg"
+                  >
+                    <Layers className="h-3.5 w-3.5 text-amber-500" />
+                    <span>{file.extension.toLowerCase() === ".dwg" ? "DWG Motor V2 ile aç" : "DXF Motor V2 ile aç"}</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();

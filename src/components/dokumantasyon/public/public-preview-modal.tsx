@@ -18,6 +18,10 @@ const DokImageViewer = dynamic(() => import("../preview/image-viewer").then((mod
 const DokTextViewer = dynamic(() => import("../preview/text-viewer").then((module) => module.DokTextViewer), { ssr: false });
 const DokMarkdownViewer = dynamic(() => import("../preview/markdown-viewer").then((module) => module.DokMarkdownViewer), { ssr: false });
 const DokCadViewer = dynamic(() => import("../preview/cad-viewer").then((module) => module.DokCadViewer), { ssr: false });
+const CadV2HostShell = dynamic(
+  () => import("../cad-v2/cad-v2-host-shell").then((module) => module.CadV2HostShell),
+  { ssr: false }
+);
 
 interface PublicPreviewModalProps {
   isOpen: boolean;
@@ -32,6 +36,8 @@ export function PublicPreviewModal({
   item,
   onClose,
 }: PublicPreviewModalProps) {
+  const [cadEngine, setCadEngine] = React.useState<"v2" | "legacy">("v2");
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,6 +86,17 @@ export function PublicPreviewModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {previewKind === "cad" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCadEngine((prev) => (prev === "v2" ? "legacy" : "v2"))}
+                className="h-8 text-xs border-border/80 bg-secondary/50 hover:bg-secondary rounded-xl"
+              >
+                {cadEngine === "v2" ? "Klasik Motora Geç" : "Motor V2'ye Geç"}
+              </Button>
+            )}
+
             <Button
               size="sm"
               onClick={handleDownload}
@@ -108,13 +125,24 @@ export function PublicPreviewModal({
           ) : previewKind === "markdown" ? (
             <DokMarkdownViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
           ) : previewKind === "cad" ? (
-            <DokCadViewer
-              accessUrl={accessUrl}
-              displayName={item.snapshot_name}
-              fileId={item.file_id || item.id}
-              extension={ext}
-              sizeBytes={Number(item.snapshot_size_bytes)}
-            />
+            cadEngine === "v2" ? (
+              <CadV2HostShell
+                displayName={item.snapshot_name}
+                fileId={item.file_id || item.id}
+                extension={ext}
+                sizeBytes={Number(item.snapshot_size_bytes)}
+                publicToken={rawToken}
+                onBack={() => setCadEngine("legacy")}
+              />
+            ) : (
+              <DokCadViewer
+                accessUrl={accessUrl}
+                displayName={item.snapshot_name}
+                fileId={item.file_id || item.id}
+                extension={ext}
+                sizeBytes={Number(item.snapshot_size_bytes)}
+              />
+            )
           ) : previewKind === "text" || previewKind === "json" || previewKind === "csv" ? (
             <DokTextViewer
               accessUrl={accessUrl}

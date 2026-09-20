@@ -1,0 +1,108 @@
+{
+  "date": "2026-09-06",
+  "scope": "SOURCE_INSPECTION_ONLY_NOT_RUNTIME_VERIFICATION",
+  "files": [
+    {
+      "path": "node_modules/three/package.json",
+      "sha256": "310d254eb9889f1e53052fc0e5fb8044e22d875f15dcbd396eb2acfcba25b495",
+      "bytes": 4492
+    },
+    {
+      "path": "node_modules/three/examples/jsm/controls/MapControls.js",
+      "sha256": "83d22280adf0d68db4ca02e6ccafda13936a2aa11ed2ed9427bbb31c0f883772",
+      "bytes": 863
+    },
+    {
+      "path": "node_modules/three/examples/jsm/controls/OrbitControls.js",
+      "sha256": "64088a1d7b040c980f61de9a5de74daa21b282eaabb853ed1d52dafa62ec0418",
+      "bytes": 32471
+    },
+    {
+      "path": "node_modules/three/src/renderers/WebGLRenderer.js",
+      "sha256": "3b0096fd882bde61368c5c7c1f09f5dd6b1052f9ec9901a74dcbd9746189fea1",
+      "bytes": 79980
+    },
+    {
+      "path": "node_modules/three/src/cameras/OrthographicCamera.js",
+      "sha256": "31d26df021bc0dc8ce01ae0a8f3a6e71b9368448aa869a042c7f27a40fb94675",
+      "bytes": 2753
+    },
+    {
+      "path": "node_modules/d3-zoom/package.json",
+      "sha256": "0adc45c5f4e5830e8c639c3953761e73e9493f1cb5f3dea6abc2249adb8ff2a9",
+      "bytes": 1741
+    },
+    {
+      "path": "node_modules/d3-zoom/src/zoom.js",
+      "sha256": "15894ee80608d5194df74289c0101d188eab418c74f6a10837fb802d3922371a",
+      "bytes": 15672
+    },
+    {
+      "path": "node_modules/d3-zoom/src/transform.js",
+      "sha256": "6ff36e973298bcc8e34e9a1069de0bfd1406bcdffaa74d95c763ca8a4c937d02",
+      "bytes": 1395
+    },
+    {
+      "path": "node_modules/d3-selection/src/pointer.js",
+      "sha256": "9eb4bc425e6e3b0fb02b376eab68f96507938ebe637fc701acc7fd2c694ada72",
+      "bytes": 696
+    },
+    {
+      "path": "node_modules/d3-drag/src/nodrag.js",
+      "sha256": "783b7107c71f8262d6d68dc80575436ac3a7801772122685d59b50042e0739de",
+      "bytes": 920
+    },
+    {
+      "path": "node_modules/dxf-viewer/src/DxfViewer.js",
+      "sha256": "54d3e93178320805b665b01932b702beadb4dc52fda91751edf149ad4f742341",
+      "bytes": 37095
+    }
+  ],
+  "packages": [
+    {
+      "name": "three",
+      "version": "0.172.0",
+      "integrity": "sha512-6HMgMlzU97MsV7D/tY8Va38b83kz8YJX+BefKjspMNAv0Vx6dxMogHOrnRl/sbMIs3BPUKijPqDqJ/+UwJbIow==",
+      "license": "MIT"
+    },
+    {
+      "name": "d3-zoom",
+      "version": "3.0.0",
+      "integrity": "sha512-b8AmV3kfQaqWAuacbPuNbL6vahnOJflOhexLzMMNLga62+/nh0JzvJ0aO/5a5MVgUFGS7Hu1P9P03o3fJkDCyw==",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-selection",
+      "version": "3.0.0",
+      "integrity": "sha512-fmTRWbNMmsmWq6xJV8D19U/gw/bwrHfNXxrIN+HfZgnzqTHp9jOmKMhsTUjXOJnZOdZY9Q28y4yebKzqDKlxlQ==",
+      "license": "ISC"
+    },
+    {
+      "name": "d3-drag",
+      "version": "3.0.0",
+      "integrity": "sha512-pWbUJLdETVA8lQNJecMxoXfH6x+mO2UQo8rSmZ+QqxcbyA3hfeprFgIT//HW2nlHChWeIIMwS2Fq+gEARkhTkg==",
+      "license": "ISC"
+    },
+    {
+      "name": "@types/three"
+    },
+    {
+      "name": "@types/d3-zoom",
+      "version": "3.0.8",
+      "integrity": "sha512-iqMC4/YlFCSlO8+2Ii1GGGliCAY4XdeG748w5vQUbevlbDu0zSjH/+jojorQVBK/se0j6DUFNPBGSqD3YWYnDw==",
+      "license": "MIT"
+    },
+    {
+      "name": "@types/d3-selection",
+      "version": "3.0.11",
+      "integrity": "sha512-bhAXu23DJWsrI45xafYpkQ4NtcKMwWnAC/vKrd2l+nxMFuvOT3XMYTIj2opv8vq8AO5Yh7Qac/nSeP/3zjTK0w==",
+      "license": "MIT"
+    },
+    {
+      "name": "@types/d3-drag",
+      "version": "3.0.7",
+      "integrity": "sha512-HE3jVKlzU9AaMazNufooRJ5ZpWmLIoc90A37WU2JMmeq28w1FQqCZswHZ3xR+SuxYftzHq6WU6KJHvqxKzTxxQ==",
+      "license": "MIT"
+    }
+  ]
+}
