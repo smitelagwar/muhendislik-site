@@ -33,6 +33,7 @@ export class CadV2Renderer {
 
   // Geometri kök grubu (kamera-bağıl ofset için)
   private contentGroup: THREE.Group;
+  private defaultWorldOrigin: CadPoint2D;
   private layerVisibility = new Map<string, boolean>();
   private isMonochrome = false;
   private isLineweight = false;
@@ -55,6 +56,9 @@ export class CadV2Renderer {
   constructor(options: CadV2RendererOptions) {
     this.canvas = options.canvas;
     this.backgroundColorHex = options.backgroundColor ?? 0x121212;
+
+    const [minX, minY, maxX, maxY] = options.initialBBox;
+    this.defaultWorldOrigin = [(minX + maxX) / 2, (minY + maxY) / 2];
 
     const width = Math.max(10, this.canvas.clientWidth || 800);
     const height = Math.max(10, this.canvas.clientHeight || 600);
@@ -165,7 +169,7 @@ export class CadV2Renderer {
    * Dünya koordinatları merkezden çıkarılarak küçük yerel koordinat uzayında çizilir.
    */
   private updateCameraRelativeOffset(cameraCenter: CadPoint2D): void {
-    const camOrigin = this.cameraAdapter.getState().worldOrigin;
+    const camOrigin = this.cameraAdapter ? this.cameraAdapter.getState().worldOrigin : this.defaultWorldOrigin;
     // contentGroup konumu: kamera merkezine göre ters yönde ötelenir
     const dx = -(cameraCenter[0] - camOrigin[0]);
     const dy = -(cameraCenter[1] - camOrigin[1]);
@@ -349,7 +353,7 @@ export class CadV2Renderer {
   ): void {
     const positions: number[] = [];
     const colors: number[] = [];
-    const camOrigin = this.cameraAdapter.getState().worldOrigin;
+    const camOrigin = this.cameraAdapter ? this.cameraAdapter.getState().worldOrigin : this.defaultWorldOrigin;
 
     for (const seg of segments) {
       // Koordinatları dünya orijinine göre rölatif hesapla

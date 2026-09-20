@@ -4,7 +4,11 @@ const nextConfig: NextConfig = {
   compress: true,
   distDir: process.env.NEXT_DIST_DIR || ".next",
   allowedDevOrigins: ["localhost", "127.0.0.1"],
-  serverExternalPackages: ["@node-projects/acad-ts"],
+  serverExternalPackages: [
+    "@node-projects/acad-ts",
+    "@mlightcad/libredwg-web",
+    "@mlightcad/libredwg-converter",
+  ],
   typescript: {
     tsconfigPath: "tsconfig.next.json",
   },

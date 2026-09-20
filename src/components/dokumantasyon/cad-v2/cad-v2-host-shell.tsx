@@ -8,7 +8,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   ArrowLeft,
   AlertCircle,
@@ -122,7 +122,13 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   const startPrepareFlowRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   const apiBase = publicToken ? "/api/public/cad-v2" : "/api/dokumantasyon/cad-v2";
-  const authHeaders: Record<string, string> = publicToken ? { "x-share-token": publicToken } : {};
+  const authHeaders = useMemo<Record<string, string>>(() => {
+    const headers: Record<string, string> = {};
+    if (publicToken) {
+      headers["x-share-token"] = publicToken;
+    }
+    return headers;
+  }, [publicToken]);
 
   // Kalp atışı (Heartbeat) yöneticisi (180s TTL, 30s aktif, 60s arka plan)
   const scheduleHeartbeat = useCallback((viewSessionId: string) => {
@@ -177,6 +183,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
           fileId,
           expectedSourceVersionKey: currentVersionKeyRef.current,
           clientRequestId,
+          accessUrl: accessUrl || undefined,
           ...(publicToken ? { shareToken: publicToken } : {}),
         }),
         signal,
@@ -268,7 +275,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
         const modelBBox = manifest.layouts[0].bbox;
         rendererRef.current.setFitBBox(modelBBox);
         rendererRef.current.fit(modelBBox);
-        fitURef.current = rendererRef.current.getCameraAdapter().getState().unitsPerCssPixel;
+        fitURef.current = rendererRef.current.getCameraAdapter()?.getState()?.unitsPerCssPixel ?? null;
         setZoomPercent(100);
       }
 
@@ -386,41 +393,12 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
     setPhase("ready");
   }, []);
 
-  // Yaşam Döngüsü (Mount, Unmount, Visibility Change, Fullscreen, Escape)
+  // Yaşam Döngüsü (Mount, Unmount per fileId)
   useEffect(() => {
     startPrepareFlow();
 
-    const handleVisibilityChange = () => {
-      if (currentViewSessionIdRef.current) {
-        scheduleHeartbeat(currentViewSessionIdRef.current);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (isLayerPanelOpen || isSettingsOpen) {
-          e.preventDefault();
-          setIsLayerPanelOpen(false);
-          setIsSettingsOpen(false);
-        } else if (isFocusMode) {
-          e.preventDefault();
-          setIsFocusMode(false);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleGlobalKeyDown);
-
     return () => {
       isCancelledRef.current = true;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      window.removeEventListener("keydown", handleGlobalKeyDown);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -438,7 +416,48 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
         workerClientRef.current.dispose();
       }
     };
-  }, [startPrepareFlow, scheduleHeartbeat, apiBase, authHeaders, isLayerPanelOpen, isSettingsOpen, isFocusMode]);
+  }, [fileId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ekran ve görünürlük olayları (Visibility, Fullscreen)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (currentViewSessionIdRef.current) {
+        scheduleHeartbeat(currentViewSessionIdRef.current);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [scheduleHeartbeat]);
+
+  // Klavye kısayolları (Escape vb.)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isLayerPanelOpen || isSettingsOpen) {
+          e.preventDefault();
+          setIsLayerPanelOpen(false);
+          setIsSettingsOpen(false);
+        } else if (isFocusMode) {
+          e.preventDefault();
+          setIsFocusMode(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+    };
+  }, [isLayerPanelOpen, isSettingsOpen, isFocusMode]);
 
   const handleRendererReady = useCallback((renderer: CadV2Renderer) => {
     rendererRef.current = renderer;
@@ -456,7 +475,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   const handleFit = () => {
     rendererRef.current?.fit();
     if (rendererRef.current) {
-      fitURef.current = rendererRef.current.getCameraAdapter().getState().unitsPerCssPixel;
+      fitURef.current = rendererRef.current.getCameraAdapter()?.getState()?.unitsPerCssPixel ?? null;
       setZoomPercent(100);
     }
   };
@@ -513,7 +532,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
       setActiveLayoutName(target.name);
       rendererRef.current.setFitBBox(target.bbox);
       rendererRef.current.fit(target.bbox);
-      fitURef.current = rendererRef.current.getCameraAdapter().getState().unitsPerCssPixel;
+      fitURef.current = rendererRef.current.getCameraAdapter()?.getState()?.unitsPerCssPixel ?? null;
       setZoomPercent(100);
     }
   };

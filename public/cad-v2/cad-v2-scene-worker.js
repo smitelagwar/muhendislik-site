@@ -225,7 +225,7 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             payload: unpacked
           };
           const transferables = [unpacked.xyArray.buffer];
-          if (unpacked.drawRunsArray) {
+          if (unpacked.drawRunsArray && unpacked.drawRunsArray.buffer !== unpacked.xyArray.buffer) {
             transferables.push(unpacked.drawRunsArray.buffer);
           }
           self.postMessage(response, transferables);

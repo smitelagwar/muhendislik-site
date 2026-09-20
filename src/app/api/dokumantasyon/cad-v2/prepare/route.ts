@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     await requireDokumantasyonAdmin();
 
     const body = await request.json().catch(() => ({}));
-    const { fileId, expectedSourceVersionKey, clientRequestId } = body;
+    const { fileId, expectedSourceVersionKey, clientRequestId, accessUrl } = body;
 
     if (!fileId || typeof fileId !== "string") {
       return NextResponse.json(
@@ -90,13 +90,28 @@ export async function POST(request: Request) {
             access: "private",
             ...getBlobCommandOptions(),
           });
-          if (getResult && (getResult as any).blob) {
+          if (getResult?.stream) {
+            buffer = Buffer.from(await new Response(getResult.stream).arrayBuffer());
+          } else if (typeof (getResult as any)?.arrayBuffer === "function") {
+            buffer = Buffer.from(await (getResult as any).arrayBuffer());
+          } else if (typeof (getResult as any)?.blob === "function") {
             const blobObj = await (getResult as any).blob();
             buffer = Buffer.from(await blobObj.arrayBuffer());
           }
         }
       } catch (e) {
         console.warn("[CAD-V2 Prepare] Blob read fallback failed:", e);
+      }
+
+      if (!buffer && typeof accessUrl === "string" && accessUrl.startsWith("http")) {
+        try {
+          const httpRes = await fetch(accessUrl);
+          if (httpRes.ok) {
+            buffer = Buffer.from(await httpRes.arrayBuffer());
+          }
+        } catch (fetchErr) {
+          console.warn("[CAD-V2 Prepare] AccessUrl fetch fallback failed:", fetchErr);
+        }
       }
 
       if (!buffer && file.blob_url?.startsWith("http")) {
@@ -107,6 +122,21 @@ export async function POST(request: Request) {
           }
         } catch (fetchErr) {
           console.warn("[CAD-V2 Prepare] Direct HTTP fetch failed:", fetchErr);
+        }
+      }
+
+      if (!buffer) {
+        try {
+          const { getAdminFileAccess } = await import("@/lib/dokumantasyon/file-access");
+          const access = await getAdminFileAccess(fileId);
+          if (access?.accessUrl && access.accessUrl.startsWith("http")) {
+            const fRes = await fetch(access.accessUrl);
+            if (fRes.ok) {
+              buffer = Buffer.from(await fRes.arrayBuffer());
+            }
+          }
+        } catch (fErr) {
+          console.warn("[CAD-V2 Prepare] Signed URL fetch fallback failed:", fErr);
         }
       }
     }

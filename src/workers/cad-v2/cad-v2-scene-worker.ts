@@ -169,7 +169,7 @@ if (typeof self !== "undefined" && typeof (self as any).postMessage === "functio
 
           // Transferable ArrayBuffers ile sıfır kopya aktarım
           const transferables: Transferable[] = [unpacked.xyArray.buffer];
-          if (unpacked.drawRunsArray) {
+          if (unpacked.drawRunsArray && unpacked.drawRunsArray.buffer !== unpacked.xyArray.buffer) {
             transferables.push(unpacked.drawRunsArray.buffer);
           }
 
