@@ -2,7 +2,7 @@
 // DWG/DXF MOTOR V2 — DXF DECODE ADAPTER (@mlightcad/data-model 1.14.2)
 // ============================================================================
 
-import type { CadCanonicalDocument, CadEntity, CadLayer } from "../canonical/types";
+import type { CadCanonicalDocument, CadEntity, CadLayer, CadBlockDefinition } from "../canonical/types";
 
 export interface DxfParseOptions {
   sourceVersionKey?: string;
@@ -89,7 +89,233 @@ export async function parseDxfToCanonical(
     };
   }
 
-  // 2. Model Space varlıklarını çözümle
+  // 2. DXF Varlık Çevirici Yardımcı Fonksiyon
+  function convertDxfEntity(ent: any, orderVal: bigint): CadEntity | null {
+    if (!ent) return null;
+    const type = (ent.dxfTypeName || "").toUpperCase();
+
+    let color: any = undefined;
+    const col = ent.color || ent._color;
+    if (col) {
+      if (typeof col.colorIndex === "number") {
+        if (col.colorIndex === 0) {
+          color = { method: "byBlock" };
+        } else if (col.colorIndex === 256) {
+          color = { method: "byLayer" };
+        } else {
+          color = { method: "aci", aci: col.colorIndex };
+        }
+      } else if (col.red != null && col.green != null && col.blue != null) {
+        color = { method: "trueColor", r: col.red, g: col.green, b: col.blue };
+      }
+    }
+
+    const base = {
+      handle: ent.handle != null ? String(ent.handle) : `H_${orderVal}`,
+      layer: ent._layer || ent.layer || "0",
+      visible: ent._visibility !== false,
+      order: orderVal,
+      ...(color ? { color } : {}),
+    };
+
+    switch (type) {
+      case "LINE": {
+        const start = ent.startPoint || ent.start;
+        const end = ent.endPoint || ent.end;
+        if (start && end) {
+          return {
+            ...base,
+            type: "LINE",
+            start: [start.x || 0, start.y || 0],
+            end: [end.x || 0, end.y || 0],
+          };
+        }
+        break;
+      }
+
+      case "CIRCLE": {
+        const center = ent.center;
+        const radius = typeof ent.radius === "number" ? ent.radius : 0;
+        if (center) {
+          return {
+            ...base,
+            type: "CIRCLE",
+            center: [center.x || 0, center.y || 0],
+            radius,
+          };
+        }
+        break;
+      }
+
+      case "ARC": {
+        const center = ent.center;
+        const radius = typeof ent.radius === "number" ? ent.radius : 0;
+        if (center) {
+          return {
+            ...base,
+            type: "ARC",
+            center: [center.x || 0, center.y || 0],
+            radius,
+            startAngleRad: ent.startAngle || 0,
+            endAngleRad: ent.endAngle || Math.PI * 2,
+          };
+        }
+        break;
+      }
+
+      case "LWPOLYLINE": {
+        const vertices: Array<{ x: number; y: number; bulge?: number }> = [];
+        if (ent.vertices && Array.isArray(ent.vertices)) {
+          for (const v of ent.vertices) {
+            vertices.push({
+              x: v.x || 0,
+              y: v.y || 0,
+              bulge: v.bulge || 0,
+            });
+          }
+        }
+        return {
+          ...base,
+          type: "LWPOLYLINE",
+          vertices,
+          isClosed: !!ent.isClosed,
+        };
+      }
+
+      case "TEXT": {
+        const pos = ent.position || ent._position || { x: 0, y: 0 };
+        return {
+          ...base,
+          type: "TEXT",
+          text: ent.textString || ent._textString || "",
+          insertionPoint: [pos.x || 0, pos.y || 0],
+          height: ent.height || ent._height || 2.5,
+          rotationRad: ent.rotation || ent._rotation || 0,
+          widthFactor: ent.widthFactor || ent._widthFactor || 1,
+          obliqueRad: ent.oblique || ent._oblique || 0,
+          styleName: ent.styleName || ent._styleName || "STANDARD",
+        };
+      }
+
+      case "MTEXT": {
+        const pos = ent.position || ent._position || { x: 0, y: 0 };
+        return {
+          ...base,
+          type: "MTEXT",
+          text: ent.textString || ent._textString || ent.contents || "",
+          insertionPoint: [pos.x || 0, pos.y || 0],
+          height: ent.height || ent._height || 2.5,
+          referenceWidth: ent.width || ent._referenceWidth || 0,
+          rotationRad: ent.rotation || ent._rotation || 0,
+          attachmentPoint: ent.attachmentPoint || 1,
+          styleName: ent.styleName || "STANDARD",
+        };
+      }
+
+      case "INSERT": {
+        const pos = ent.position || ent._position || { x: 0, y: 0 };
+        const blockName = ent.blockName || ent._blockName || ent.name || ent.blockTableRecordName || "";
+        return {
+          ...base,
+          type: "INSERT",
+          blockName,
+          insertionPoint: [pos.x || 0, pos.y || 0],
+          scale: [
+            ent.scaleFactors?.x ?? ent._scaleFactors?.x ?? 1,
+            ent.scaleFactors?.y ?? ent._scaleFactors?.y ?? 1,
+            ent.scaleFactors?.z ?? ent._scaleFactors?.z ?? 1,
+          ],
+          rotationRad: ent.rotation ?? ent._rotation ?? 0,
+        };
+      }
+
+      case "ELLIPSE": {
+        const center = ent.center || { x: 0, y: 0 };
+        const major = ent.majorAxisEndPoint || ent.majorAxis || { x: 1, y: 0 };
+        return {
+          ...base,
+          type: "ELLIPSE",
+          center: [center.x || 0, center.y || 0],
+          majorAxisVector: [major.x || 1, major.y || 0],
+          axisRatio: ent.axisRatio ?? ent.ratio ?? 1,
+          startParam: ent.startParam ?? ent.startAngle ?? 0,
+          endParam: ent.endParam ?? ent.endAngle ?? Math.PI * 2,
+        };
+      }
+
+      case "SPLINE": {
+        const cp = (ent.controlPoints || []).map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
+        return {
+          ...base,
+          type: "SPLINE",
+          degree: ent.degree || 3,
+          controlPoints: cp,
+          knots: ent.knots || [],
+          weights: ent.weights,
+          isPeriodic: !!ent.isPeriodic,
+          isRational: !!ent.isRational,
+        };
+      }
+
+      case "HATCH": {
+        const loops: any[] = [];
+        const rawLoops = ent.boundaryLoops || ent.loops || [];
+        for (const rl of rawLoops) {
+          if (rl.isPolyline && Array.isArray(rl.vertices)) {
+            loops.push({
+              isPolyline: true,
+              vertices: rl.vertices.map((v: any) => [v.x || 0, v.y || 0] as [number, number]),
+            });
+          } else if (Array.isArray(rl.edges)) {
+            const edges: any[] = [];
+            for (const ed of rl.edges) {
+              if (ed.type === "LINE" || ed.startPoint) {
+                edges.push({
+                  type: "LINE",
+                  start: [ed.startPoint?.x || ed.start?.x || 0, ed.startPoint?.y || ed.start?.y || 0],
+                  end: [ed.endPoint?.x || ed.end?.x || 0, ed.endPoint?.y || ed.end?.y || 0],
+                });
+              } else if (ed.type === "ARC" || ed.center) {
+                edges.push({
+                  type: "ARC",
+                  center: [ed.center?.x || 0, ed.center?.y || 0],
+                  radius: ed.radius || 1,
+                  startAngleRad: ed.startAngle || 0,
+                  endAngleRad: ed.endAngle || Math.PI * 2,
+                  ccw: ed.ccw !== false,
+                });
+              }
+            }
+            loops.push({ isPolyline: false, edges });
+          }
+        }
+        return {
+          ...base,
+          type: "HATCH",
+          patternName: ent.patternName || "SOLID",
+          isSolid: ent.isSolid !== false,
+          patternScale: ent.patternScale || 1,
+          patternAngleDeg: ent.patternAngle || 0,
+          loops,
+        };
+      }
+
+      case "WIPEOUT": {
+        const vertices = (ent.vertices || []).map((v: any) => [v.x || 0, v.y || 0] as [number, number]);
+        return {
+          ...base,
+          type: "WIPEOUT",
+          vertices,
+        };
+      }
+
+      default:
+        break;
+    }
+    return null;
+  }
+
+  // 3. Model Space varlıklarını çözümle
   const modelEntities: CadEntity[] = [];
   let currentOrder = BigInt(1);
 
@@ -100,218 +326,46 @@ export async function parseDxfToCanonical(
       for (const item of rawEntities) {
         const ent = typeof item === "string" ? (db.openEntityForRead(item) as any) : item;
         if (!ent) continue;
-
-        const type = (ent.dxfTypeName || "").toUpperCase();
-        const orderVal = currentOrder;
-        currentOrder += BigInt(1);
-        const base = {
-          handle: ent.handle != null ? String(ent.handle) : `H_${orderVal}`,
-          layer: ent._layer || ent.layer || "0",
-          visible: ent._visibility !== false,
-          order: currentOrder++,
-        };
-
-        switch (type) {
-          case "LINE": {
-            const start = ent.startPoint || ent.start;
-            const end = ent.endPoint || ent.end;
-            if (start && end) {
-              modelEntities.push({
-                ...base,
-                type: "LINE",
-                start: [start.x || 0, start.y || 0],
-                end: [end.x || 0, end.y || 0],
-              });
-            }
-            break;
-          }
-
-          case "CIRCLE": {
-            const center = ent.center;
-            const radius = typeof ent.radius === "number" ? ent.radius : 0;
-            if (center) {
-              modelEntities.push({
-                ...base,
-                type: "CIRCLE",
-                center: [center.x || 0, center.y || 0],
-                radius,
-              });
-            }
-            break;
-          }
-
-          case "ARC": {
-            const center = ent.center;
-            const radius = typeof ent.radius === "number" ? ent.radius : 0;
-            if (center) {
-              modelEntities.push({
-                ...base,
-                type: "ARC",
-                center: [center.x || 0, center.y || 0],
-                radius,
-                startAngleRad: ent.startAngle || 0,
-                endAngleRad: ent.endAngle || Math.PI * 2,
-              });
-            }
-            break;
-          }
-
-          case "LWPOLYLINE": {
-            const vertices: Array<{ x: number; y: number; bulge?: number }> = [];
-            if (ent.vertices && Array.isArray(ent.vertices)) {
-              for (const v of ent.vertices) {
-                vertices.push({
-                  x: v.x || 0,
-                  y: v.y || 0,
-                  bulge: v.bulge || 0,
-                });
-              }
-            }
-            modelEntities.push({
-              ...base,
-              type: "LWPOLYLINE",
-              vertices,
-              isClosed: !!ent.isClosed,
-            });
-            break;
-          }
-
-          case "TEXT": {
-            const pos = ent.position || ent._position || { x: 0, y: 0 };
-            modelEntities.push({
-              ...base,
-              type: "TEXT",
-              text: ent.textString || ent._textString || "",
-              insertionPoint: [pos.x || 0, pos.y || 0],
-              height: ent.height || ent._height || 2.5,
-              rotationRad: ent.rotation || ent._rotation || 0,
-              widthFactor: ent.widthFactor || ent._widthFactor || 1,
-              obliqueRad: ent.oblique || ent._oblique || 0,
-              styleName: ent.styleName || ent._styleName || "STANDARD",
-            });
-            break;
-          }
-
-          case "MTEXT": {
-            const pos = ent.position || ent._position || { x: 0, y: 0 };
-            modelEntities.push({
-              ...base,
-              type: "MTEXT",
-              text: ent.textString || ent._textString || ent.contents || "",
-              insertionPoint: [pos.x || 0, pos.y || 0],
-              height: ent.height || ent._height || 2.5,
-              referenceWidth: ent.width || ent._referenceWidth || 0,
-              rotationRad: ent.rotation || ent._rotation || 0,
-              attachmentPoint: ent.attachmentPoint || 1,
-              styleName: ent.styleName || "STANDARD",
-            });
-            break;
-          }
-
-            case "INSERT": {
-            const pos = ent.position || { x: 0, y: 0 };
-            modelEntities.push({
-              ...base,
-              type: "INSERT",
-              blockName: ent.blockTableRecordName || ent.name || "",
-              insertionPoint: [pos.x || 0, pos.y || 0],
-              scale: [ent.scaleFactors?.x || 1, ent.scaleFactors?.y || 1, ent.scaleFactors?.z || 1],
-              rotationRad: ent.rotation || 0,
-            });
-            break;
-          }
-
-          case "ELLIPSE": {
-            const center = ent.center || { x: 0, y: 0 };
-            const major = ent.majorAxisEndPoint || ent.majorAxis || { x: 1, y: 0 };
-            modelEntities.push({
-              ...base,
-              type: "ELLIPSE",
-              center: [center.x || 0, center.y || 0],
-              majorAxisVector: [major.x || 1, major.y || 0],
-              axisRatio: ent.axisRatio ?? ent.ratio ?? 1,
-              startParam: ent.startParam ?? ent.startAngle ?? 0,
-              endParam: ent.endParam ?? ent.endAngle ?? (Math.PI * 2),
-            });
-            break;
-          }
-
-          case "SPLINE": {
-            const cp = (ent.controlPoints || []).map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
-            modelEntities.push({
-              ...base,
-              type: "SPLINE",
-              degree: ent.degree || 3,
-              controlPoints: cp,
-              knots: ent.knots || [],
-              weights: ent.weights,
-              isPeriodic: !!ent.isPeriodic,
-              isRational: !!ent.isRational,
-            });
-            break;
-          }
-
-          case "HATCH": {
-            const loops: any[] = [];
-            const rawLoops = ent.boundaryLoops || ent.loops || [];
-            for (const rl of rawLoops) {
-              if (rl.isPolyline && Array.isArray(rl.vertices)) {
-                loops.push({
-                  isPolyline: true,
-                  vertices: rl.vertices.map((v: any) => [v.x || 0, v.y || 0] as [number, number]),
-                });
-              } else if (Array.isArray(rl.edges)) {
-                const edges: any[] = [];
-                for (const ed of rl.edges) {
-                  if (ed.type === "LINE" || ed.startPoint) {
-                    edges.push({
-                      type: "LINE",
-                      start: [ed.startPoint?.x || ed.start?.x || 0, ed.startPoint?.y || ed.start?.y || 0],
-                      end: [ed.endPoint?.x || ed.end?.x || 0, ed.endPoint?.y || ed.end?.y || 0],
-                    });
-                  } else if (ed.type === "ARC" || ed.center) {
-                    edges.push({
-                      type: "ARC",
-                      center: [ed.center?.x || 0, ed.center?.y || 0],
-                      radius: ed.radius || 1,
-                      startAngleRad: ed.startAngle || 0,
-                      endAngleRad: ed.endAngle || (Math.PI * 2),
-                      ccw: ed.ccw !== false,
-                    });
-                  }
-                }
-                loops.push({ isPolyline: false, edges });
-              }
-            }
-            modelEntities.push({
-              ...base,
-              type: "HATCH",
-              patternName: ent.patternName || "SOLID",
-              isSolid: ent.isSolid !== false,
-              patternScale: ent.patternScale || 1,
-              patternAngleDeg: ent.patternAngle || 0,
-              loops,
-            });
-            break;
-          }
-
-          case "WIPEOUT": {
-            const vertices = (ent.vertices || []).map((v: any) => [v.x || 0, v.y || 0] as [number, number]);
-            modelEntities.push({
-              ...base,
-              type: "WIPEOUT",
-              vertices,
-            });
-            break;
-          }
-
-          default:
-            break;
+        const converted = convertDxfEntity(ent, currentOrder++);
+        if (converted) {
+          modelEntities.push(converted);
         }
       }
     }
   } catch (err) {
     console.warn("[DxfAdapter] ModelSpace varlıkları okunurken uyarı:", err);
+  }
+
+  // 4. Blok tanımlarını çözümle (ModelSpace ve PaperSpace hariç)
+  const blocks: Record<string, CadBlockDefinition> = {};
+  if (db.tables?.blockTable) {
+    try {
+      const bt = db.tables.blockTable as any;
+      const records = bt.newIterator ? bt.newIterator().toArray() : [];
+      for (const rec of records) {
+        const name = rec.name;
+        if (!name || name.startsWith("*Model_Space") || name.startsWith("*Paper_Space")) {
+          continue;
+        }
+        const rawEntities: any[] = rec.newIterator ? (rec.newIterator().toArray() as any[]) : [];
+        const bEntities: CadEntity[] = [];
+        for (const item of rawEntities) {
+          const ent = typeof item === "string" ? (db.openEntityForRead(item) as any) : item;
+          if (!ent) continue;
+          const converted = convertDxfEntity(ent, currentOrder++);
+          if (converted) {
+            bEntities.push(converted);
+          }
+        }
+        blocks[name] = {
+          name,
+          basePoint: [rec.origin?.x || 0, rec.origin?.y || 0],
+          entities: bEntities,
+        };
+      }
+    } catch (err) {
+      console.warn("[DxfAdapter] Blok tablosu okunurken uyarı:", err);
+    }
   }
 
   return {
@@ -324,7 +378,7 @@ export async function parseDxfToCanonical(
     layers,
     linetypes: {},
     textStyles: {},
-    blocks: {},
+    blocks,
     layouts: {
       Model: {
         id: "Model",
