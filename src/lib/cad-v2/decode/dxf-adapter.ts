@@ -13,13 +13,40 @@ export async function parseDxfToCanonical(
   dxfBuffer: Buffer | Uint8Array,
   options: DxfParseOptions = {}
 ): Promise<CadCanonicalDocument> {
-  const { AcDbNativeDxfConverter, AcDbDatabase, acdbAssignWorkingDatabase } = await import("@mlightcad/data-model");
+  const {
+    AcDbNativeDxfConverter,
+    AcDbDatabase,
+    acdbAssignWorkingDatabase,
+    acdbHostApplicationServices,
+    acdbSetHostApplicationServicesProvider,
+  } = await import("@mlightcad/data-model");
 
   const db = new AcDbDatabase();
-  acdbAssignWorkingDatabase(db);
+
+  // 1. Host Application Services Provider'ı garantiye al (Webpack tree-shaking koruması)
+  if (typeof acdbSetHostApplicationServicesProvider === "function" && typeof acdbHostApplicationServices === "function") {
+    acdbSetHostApplicationServicesProvider(acdbHostApplicationServices);
+  }
+
+  // 2. Working Database'i hem doğrudan hem de yardımcı fonksiyonla ata
+  if (typeof acdbHostApplicationServices === "function") {
+    try {
+      const services = acdbHostApplicationServices();
+      if (services) {
+        services.workingDatabase = db;
+      }
+    } catch (e) {
+      console.warn("[DxfAdapter] acdbHostApplicationServices workingDatabase atama uyarısı:", e);
+    }
+  }
+
+  if (typeof acdbAssignWorkingDatabase === "function") {
+    acdbAssignWorkingDatabase(db);
+  }
 
   const converter = new AcDbNativeDxfConverter();
-  await converter.read(dxfBuffer as unknown as ArrayBuffer, db);
+  const u8Data = dxfBuffer instanceof Uint8Array ? dxfBuffer : new Uint8Array(dxfBuffer);
+  await converter.read(u8Data as unknown as ArrayBuffer, db);
 
   // 1. Katmanları çözümle
   const layers: Record<string, CadLayer> = {};
