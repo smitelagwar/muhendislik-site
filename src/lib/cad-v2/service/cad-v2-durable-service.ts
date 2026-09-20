@@ -294,20 +294,18 @@ export class CadV2DurableService {
 
       // Vercel Blob kalıcılığı (cross-lambda paylaşım)
       if (process.env.BLOB_READ_WRITE_TOKEN) {
-        const compiledRef = compiled;
-        (async () => {
-          try {
-            const { put } = await import("@vercel/blob");
-            const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
-            const opts = { access: "private" as const, ...getBlobCommandOptions() };
-            await put(`cad-v2/scenes/${sceneId}/manifest.json`, JSON.stringify(compiledRef.manifest), opts);
-            for (const [chunkId, chunkBytes] of Array.from(compiledRef.chunks.entries())) {
-              await put(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, Buffer.from(chunkBytes), opts);
-            }
-          } catch (bErr) {
-            console.warn("[CadV2DurableService] Vercel Blob sahne kayıt uyarısı:", bErr);
-          }
-        })().catch(() => {});
+        try {
+          const { put } = await import("@vercel/blob");
+          const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
+          const opts = { access: "private" as const, ...getBlobCommandOptions() };
+          await put(`cad-v2/scenes/${sceneId}/manifest.json`, JSON.stringify(compiled.manifest), opts);
+          const chunkUploads = Array.from(compiled.chunks.entries()).map(([chunkId, chunkBytes]) =>
+            put(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, Buffer.from(chunkBytes), opts)
+          );
+          await Promise.all(chunkUploads);
+        } catch (bErr) {
+          console.warn("[CadV2DurableService] Vercel Blob sahne kayıt uyarısı:", bErr);
+        }
       }
 
       job.status = "ready";
