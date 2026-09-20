@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    const manifest = service.getManifest(sceneId);
+    const manifest = await service.getManifestAsync(sceneId);
 
     if (!manifest) {
       return NextResponse.json(

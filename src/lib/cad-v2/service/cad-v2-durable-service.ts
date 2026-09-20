@@ -7,6 +7,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import * as os from "node:os";
 import { parseDwgToCanonical } from "../decode/dwg-adapter";
 import { parseDxfToCanonical } from "../decode/dxf-adapter";
 import { compileCanonicalToScene, type CompiledSceneOutput } from "../compile/scene-compiler";
@@ -68,7 +69,11 @@ export class CadV2DurableService {
   private storageDir: string;
 
   constructor(storageDir?: string) {
-    this.storageDir = storageDir || path.resolve(process.cwd(), ".data/cad-v2-scenes");
+    const isVercel = !!process.env.VERCEL;
+    const defaultDir =
+      process.env.CAD_V2_STORAGE_DIR ||
+      (isVercel ? path.join(os.tmpdir(), "cad-v2-scenes") : path.resolve(process.cwd(), ".data/cad-v2-scenes"));
+    this.storageDir = storageDir || defaultDir;
     if (!fs.existsSync(this.storageDir)) {
       try {
         fs.mkdirSync(this.storageDir, { recursive: true });
@@ -287,6 +292,24 @@ export class CadV2DurableService {
         console.warn("[CadV2DurableService] Sahne diske kaydedilemedi (RAM kullanılacak):", saveErr);
       }
 
+      // Vercel Blob kalıcılığı (cross-lambda paylaşım)
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const compiledRef = compiled;
+        (async () => {
+          try {
+            const { put } = await import("@vercel/blob");
+            const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
+            const opts = { access: "private" as const, ...getBlobCommandOptions() };
+            await put(`cad-v2/scenes/${sceneId}/manifest.json`, JSON.stringify(compiledRef.manifest), opts);
+            for (const [chunkId, chunkBytes] of Array.from(compiledRef.chunks.entries())) {
+              await put(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, Buffer.from(chunkBytes), opts);
+            }
+          } catch (bErr) {
+            console.warn("[CadV2DurableService] Vercel Blob sahne kayıt uyarısı:", bErr);
+          }
+        })().catch(() => {});
+      }
+
       job.status = "ready";
       job.sceneId = sceneId;
       job.phase = "done";
@@ -353,7 +376,6 @@ export class CadV2DurableService {
         }
       }
     }
-
     return true;
   }
 
@@ -364,13 +386,49 @@ export class CadV2DurableService {
     const scene = this.readyScenes.get(sceneId);
     if (scene) return scene.manifest;
 
-    // Diskte ara
-    const manifestPath = path.join(this.storageDir, sceneId, "manifest.json");
-    if (fs.existsSync(manifestPath)) {
+    const candidateDirs = [
+      this.storageDir,
+      path.join(os.tmpdir(), "cad-v2-scenes"),
+      path.resolve(process.cwd(), ".data/cad-v2-scenes"),
+    ];
+
+    for (const dir of candidateDirs) {
+      const manifestPath = path.join(dir, sceneId, "manifest.json");
+      if (fs.existsSync(manifestPath)) {
+        try {
+          return JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+        } catch {
+          continue;
+        }
+      }
+    }
+    return null;
+  }
+
+  public async getManifestAsync(sceneId: string): Promise<any | null> {
+    const local = this.getManifest(sceneId);
+    if (local) return local;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
-        return JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-      } catch {
-        return null;
+        const { get } = await import("@vercel/blob");
+        const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
+        const blobRes = await get(`cad-v2/scenes/${sceneId}/manifest.json`, {
+          access: "private",
+          ...getBlobCommandOptions(),
+        });
+        if (blobRes?.stream) {
+          const text = await new Response(blobRes.stream).text();
+          const parsed = JSON.parse(text);
+          try {
+            const sceneDir = path.join(this.storageDir, sceneId);
+            if (!fs.existsSync(sceneDir)) fs.mkdirSync(sceneDir, { recursive: true });
+            fs.writeFileSync(path.join(sceneDir, "manifest.json"), text, "utf-8");
+          } catch {}
+          return parsed;
+        }
+      } catch (err) {
+        console.warn(`[CadV2DurableService] Blob manifest fetch hatası:`, err);
       }
     }
     return null;
@@ -385,13 +443,49 @@ export class CadV2DurableService {
       return scene.chunks.get(chunkId)!;
     }
 
-    // Diskte ara
-    const chunkPath = path.join(this.storageDir, sceneId, `${chunkId}.bin`);
-    if (fs.existsSync(chunkPath)) {
+    const candidateDirs = [
+      this.storageDir,
+      path.join(os.tmpdir(), "cad-v2-scenes"),
+      path.resolve(process.cwd(), ".data/cad-v2-scenes"),
+    ];
+
+    for (const dir of candidateDirs) {
+      const chunkPath = path.join(dir, sceneId, `${chunkId}.bin`);
+      if (fs.existsSync(chunkPath)) {
+        try {
+          return new Uint8Array(fs.readFileSync(chunkPath));
+        } catch {
+          continue;
+        }
+      }
+    }
+    return null;
+  }
+
+  public async getChunkAsync(sceneId: string, chunkId: string): Promise<Uint8Array | null> {
+    const local = this.getChunk(sceneId, chunkId);
+    if (local) return local;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
-        return new Uint8Array(fs.readFileSync(chunkPath));
-      } catch {
-        return null;
+        const { get } = await import("@vercel/blob");
+        const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
+        const blobRes = await get(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, {
+          access: "private",
+          ...getBlobCommandOptions(),
+        });
+        if (blobRes?.stream) {
+          const buf = await new Response(blobRes.stream).arrayBuffer();
+          const u8 = new Uint8Array(buf);
+          try {
+            const sceneDir = path.join(this.storageDir, sceneId);
+            if (!fs.existsSync(sceneDir)) fs.mkdirSync(sceneDir, { recursive: true });
+            fs.writeFileSync(path.join(sceneDir, `${chunkId}.bin`), u8);
+          } catch {}
+          return u8;
+        }
+      } catch (err) {
+        console.warn(`[CadV2DurableService] Blob chunk fetch hatası (${chunkId}):`, err);
       }
     }
     return null;

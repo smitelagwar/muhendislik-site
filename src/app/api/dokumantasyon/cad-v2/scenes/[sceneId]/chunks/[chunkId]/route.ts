@@ -28,7 +28,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    const chunkBytes = service.getChunk(sceneId, chunkId);
+    const chunkBytes = await service.getChunkAsync(sceneId, chunkId);
 
     if (!chunkBytes) {
       return NextResponse.json(

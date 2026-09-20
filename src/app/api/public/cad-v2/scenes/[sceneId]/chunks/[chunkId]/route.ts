@@ -44,7 +44,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    const chunkBytes = service.getChunk(sceneId, chunkId);
+    const chunkBytes = await service.getChunkAsync(sceneId, chunkId);
 
     if (!chunkBytes) {
       return NextResponse.json(
