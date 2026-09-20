@@ -303,7 +303,12 @@ export class CadV2DurableService {
         try {
           const { put } = await import("@vercel/blob");
           const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
-          const opts = { access: "private" as const, ...getBlobCommandOptions() };
+          const opts = {
+            access: "private" as const,
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            ...getBlobCommandOptions(),
+          };
           await put(`cad-v2/scenes/${sceneId}/manifest.json`, JSON.stringify(compiled.manifest), opts);
           const chunkEntries = Array.from(compiled.chunks.entries());
           const BATCH_SIZE = 6;
