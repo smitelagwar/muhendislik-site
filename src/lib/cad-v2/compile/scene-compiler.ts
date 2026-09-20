@@ -79,8 +79,19 @@ export interface CompiledSceneOutput {
   chunks: Map<string, Uint8Array>;
 }
 
-export function compileCanonicalToScene(doc: CadCanonicalDocument): CompiledSceneOutput {
-  const sceneId = `scene_${crypto.randomUUID()}`;
+export interface SceneCompileOptions {
+  sceneId?: string;
+}
+
+export function compileCanonicalToScene(
+  doc: CadCanonicalDocument,
+  options?: SceneCompileOptions
+): CompiledSceneOutput {
+  const sceneId =
+    options?.sceneId ||
+    (doc.sourceSha256
+      ? `scene_${crypto.createHash("sha256").update(doc.sourceSha256).digest("hex").slice(0, 24)}`
+      : `scene_${crypto.randomUUID()}`);
 
   // 1. Model alanı varlıklarını tara ve BBox hesapla
   let minX = Infinity;

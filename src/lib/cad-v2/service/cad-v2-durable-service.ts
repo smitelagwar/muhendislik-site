@@ -162,15 +162,20 @@ export class CadV2DurableService {
 
     const versionKey = req.expectedSourceVersionKey || `v_${Date.now()}`;
     const cacheKey = `${req.fileId}:${versionKey}`;
+    const deterministicSceneId = `scene_${crypto.createHash("sha256").update(`${req.fileId}_${versionKey}`).digest("hex").slice(0, 24)}`;
 
-    // Zaten hazır derlenmiş sahne var mı? (Bellek veya disk indeksi)
+    // Zaten hazır derlenmiş sahne var mı? (Bellek, disk veya Vercel Blob)
     const existingSceneId =
       this.fileSceneMap.get(cacheKey) ||
       this.fileSceneMap.get(versionKey) ||
       this.fileSceneMap.get(`${req.fileId}:latest`) ||
-      this.fileSceneMap.get(req.fileId);
+      this.fileSceneMap.get(req.fileId) ||
+      deterministicSceneId;
 
-    if (existingSceneId && this.getManifest(existingSceneId)) {
+    const existingManifest = await this.getManifestAsync(existingSceneId);
+    if (existingManifest) {
+      this.fileSceneMap.set(cacheKey, existingSceneId);
+      this.fileSceneMap.set(req.fileId, existingSceneId);
       this.sceneFileMap.set(existingSceneId, req.fileId);
       const viewSessionId = `vs_${crypto.randomUUID()}`;
       this.viewSessions.set(viewSessionId, {
@@ -259,7 +264,8 @@ export class CadV2DurableService {
 
       job.phase = "compile";
       job.updatedAt = Date.now();
-      const compiled = compileCanonicalToScene(canonical);
+      const deterministicSceneId = `scene_${crypto.createHash("sha256").update(`${job.fileId}_${job.sourceVersionKey}`).digest("hex").slice(0, 24)}`;
+      const compiled = compileCanonicalToScene(canonical, { sceneId: deterministicSceneId });
 
       // Atomik publish kontrolü: Fencing token eşleşmeli
       if (job.fence !== 1) {
@@ -299,10 +305,16 @@ export class CadV2DurableService {
           const { getBlobCommandOptions } = await import("@/lib/dokumantasyon/runtime-mode");
           const opts = { access: "private" as const, ...getBlobCommandOptions() };
           await put(`cad-v2/scenes/${sceneId}/manifest.json`, JSON.stringify(compiled.manifest), opts);
-          const chunkUploads = Array.from(compiled.chunks.entries()).map(([chunkId, chunkBytes]) =>
-            put(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, Buffer.from(chunkBytes), opts)
-          );
-          await Promise.all(chunkUploads);
+          const chunkEntries = Array.from(compiled.chunks.entries());
+          const BATCH_SIZE = 6;
+          for (let i = 0; i < chunkEntries.length; i += BATCH_SIZE) {
+            const batch = chunkEntries.slice(i, i + BATCH_SIZE);
+            await Promise.all(
+              batch.map(([chunkId, chunkBytes]) =>
+                put(`cad-v2/scenes/${sceneId}/${chunkId}.bin`, Buffer.from(chunkBytes), opts)
+              )
+            );
+          }
         } catch (bErr) {
           console.warn("[CadV2DurableService] Vercel Blob sahne kayıt uyarısı:", bErr);
         }
