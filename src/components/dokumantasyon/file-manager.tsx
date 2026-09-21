@@ -1291,7 +1291,7 @@ function DokumantasyonFileManagerInner() {
             />
           </button>
 
-          {<FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="list" />}
+          <FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="list" />
 
           <div className="min-w-0">
             <Link
