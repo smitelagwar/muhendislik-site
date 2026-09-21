@@ -90,8 +90,8 @@ test("markdown math, headings, fences, tables and long sections render safely", 
     .locator("h1,h2,h3,h4,h5,h6")
     .filter({ hasText: /SAHTE KOD BAŞLIĞI|TILDE SAHTE BAŞLIK/ });
   await expect(fakeHeadings).toHaveCount(0);
-  await expect(reader.getByText("# SAHTE KOD BAŞLIĞI", { exact: true })).toBeVisible();
-  await expect(reader.getByText("### TILDE SAHTE BAŞLIK", { exact: true })).toBeVisible();
+  await expect(reader.locator("pre").filter({ hasText: "# SAHTE KOD BAŞLIĞI" })).toBeVisible();
+  await expect(reader.locator("pre").filter({ hasText: "### TILDE SAHTE BAŞLIK" })).toBeVisible();
 
   await expect(reader.getByRole("table")).toBeVisible();
   await expect(reader.getByText("LONG_SECTION_END", { exact: true })).toBeVisible();
