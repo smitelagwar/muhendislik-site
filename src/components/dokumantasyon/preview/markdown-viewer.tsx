@@ -41,15 +41,65 @@ function slugify(text: string): string {
   return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-// ─── TOC öğesi ────────────────────────────────────────────────────────────────
+// ─── TOC / section heading tarayıcı ───────────────────────────────────────────
 interface TocItem { level: number; text: string; id: string; }
-function extractToc(markdown: string): TocItem[] {
-  const toc: TocItem[] = [];
-  for (const line of markdown.split("\n")) {
-    const m = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (m) { const text = m[2].replace(/[*_`~]/g, "").trim(); toc.push({ level: m[1].length, text, id: slugify(text) }); }
+interface ParsedHeading extends TocItem {
+  lineIndex: number;
+  inlineMd: string;
+  sourceLine: string;
+}
+
+function headingPlainText(inlineMd: string): string {
+  return inlineMd
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`~]/g, "")
+    .replace(/[$\\{}]/g, "")
+    .trim();
+}
+
+function scanMarkdownHeadings(markdown: string): ParsedHeading[] {
+  const headings: ParsedHeading[] = [];
+  const ids = new Map<string, number>();
+  const lines = markdown.split("\n");
+  let activeFence: { marker: "`" | "~"; length: number } | null = null;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const fenceMatch = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+
+    if (fenceMatch) {
+      const fence = fenceMatch[1];
+      const marker = fence[0] as "`" | "~";
+      if (!activeFence) {
+        activeFence = { marker, length: fence.length };
+      } else if (activeFence.marker === marker && fence.length >= activeFence.length) {
+        activeFence = null;
+      }
+      continue;
+    }
+
+    if (activeFence) continue;
+
+    const headingMatch = /^ {0,3}(#{1,6})[ \t]+(.+?)\s*$/.exec(line);
+    if (!headingMatch) continue;
+
+    const level = headingMatch[1].length;
+    const inlineMd = headingMatch[2].replace(/[ \t]+#+[ \t]*$/, "").trim();
+    const text = headingPlainText(inlineMd);
+    const base = slugify(text) || "section";
+    const count = (ids.get(base) ?? 0) + 1;
+    ids.set(base, count);
+    const id = count === 1 ? base : `${base}-${count}`;
+
+    headings.push({ lineIndex, level, inlineMd, text, id, sourceLine: line });
   }
-  return toc;
+
+  return headings;
+}
+
+function extractToc(markdown: string): TocItem[] {
+  return scanMarkdownHeadings(markdown).map(({ level, text, id }) => ({ level, text, id }));
 }
 
 // ─── Markdown'ı bölümlere ayır ────────────────────────────────────────────────
@@ -64,28 +114,32 @@ interface MdSection {
 
 function splitSections(markdown: string): { preamble: string; sections: MdSection[] } {
   const lines = markdown.split("\n");
+  const headings = scanMarkdownHeadings(markdown);
+  const headingByLine = new Map(headings.map((heading) => [heading.lineIndex, heading]));
   const sections: MdSection[] = [];
   let preamble = "";
   let current: MdSection | null = null;
-  const ids = new Map<string, number>();
 
-  for (const line of lines) {
-    const m = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (m) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const heading = headingByLine.get(lineIndex);
+
+    if (heading) {
       if (current) sections.push(current);
-      const level = m[1].length;
-      const headingInlineMd = m[2].trim();
-      const headingText = headingInlineMd.replace(/[*_`~[\]()$\\{}]/g, "").trim();
-      const base = slugify(headingText) || "section";
-      const count = (ids.get(base) ?? 0) + 1;
-      ids.set(base, count);
-      const id = count === 1 ? base : `${base}-${count}`;
-      current = { id, level, headingText, headingInlineMd, headingMd: line, body: "" };
+      current = {
+        id: heading.id,
+        level: heading.level,
+        headingText: heading.text,
+        headingInlineMd: heading.inlineMd,
+        headingMd: heading.sourceLine,
+        body: "",
+      };
     } else {
       if (current) current.body += line + "\n";
       else preamble += line + "\n";
     }
   }
+
   if (current) sections.push(current);
   return { preamble, sections };
 }
@@ -123,14 +177,14 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
     try { await navigator.clipboard.writeText(code.trim()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
   return (
-    <div className="group relative my-5 overflow-hidden rounded-xl border border-border/60 bg-zinc-950/80 shadow-md dark:bg-zinc-900/80">
+    <div className={`${styles.codeBlock} group relative overflow-hidden rounded-xl border border-border/60 bg-zinc-950/80 shadow-md dark:bg-zinc-900/80`}>
       <div className="flex items-center justify-between border-b border-border/40 bg-zinc-900/60 px-4 py-2">
         <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{lang || "kod"}</span>
-        <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-border/40 bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 opacity-0 transition-all hover:border-amber-500/40 hover:text-amber-400 group-hover:opacity-100">
+        <button type="button" onClick={handleCopy} aria-label="Kod bloğunu kopyala" className={`${styles.codeCopyButton} flex items-center gap-1.5 rounded-lg border border-border/40 bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400`}>
           {copied ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Kopyalandı</span></> : <><Copy className="h-3 w-3" /><span>Kopyala</span></>}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4"><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
+      <pre className={`${styles.codePre} overflow-x-auto p-4`}><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
     </div>
   );
 }
@@ -173,24 +227,26 @@ function MarkdownContent({
 function buildComponents(): Components {
   return {
     // Body içindeki başlıklar (iç içe markdown varsa — normalde body'de heading olmaz ama fallback)
-    h1: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel1}`}>{children}</p>,
-    h2: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel2}`}>{children}</p>,
-    h3: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel3}`}>{children}</p>,
-    h4: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel4}`}>{children}</p>,
+    h1: ({ children }) => <h1 className={`${styles.fallbackHeading} ${styles.headingLevel1}`}>{children}</h1>,
+    h2: ({ children }) => <h2 className={`${styles.fallbackHeading} ${styles.headingLevel2}`}>{children}</h2>,
+    h3: ({ children }) => <h3 className={`${styles.fallbackHeading} ${styles.headingLevel3}`}>{children}</h3>,
+    h4: ({ children }) => <h4 className={`${styles.fallbackHeading} ${styles.headingLevel4}`}>{children}</h4>,
+    h5: ({ children }) => <h5 className={`${styles.fallbackHeading} ${styles.headingLevel5}`}>{children}</h5>,
+    h6: ({ children }) => <h6 className={`${styles.fallbackHeading} ${styles.headingLevel6}`}>{children}</h6>,
     p: ({ children }) => <p className={`${styles.paragraph} text-foreground/90`}>{children}</p>,
     a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="font-medium text-amber-600 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-500 dark:text-amber-400">{children}</a>,
     code: ({ children, className }) => {
       if (className?.startsWith("language-")) return <CodeBlock className={className}>{children}</CodeBlock>;
-      return <code className="rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-amber-600 dark:text-amber-400">{children}</code>;
+      return <code className={`${styles.inlineCode} rounded-md border border-amber-500/20 bg-amber-500/10 font-mono font-medium text-amber-600 dark:text-amber-400`}>{children}</code>;
     },
     pre: ({ children }) => <>{children}</>,
     blockquote: ({ children }) => <blockquote className={`${styles.blockquote} border-l-4 border-amber-500/60 bg-amber-500/5 rounded-r-xl italic text-muted-foreground`}>{children}</blockquote>,
     ul: ({ children }) => <ul className={`${styles.unorderedList} list-none`}>{children}</ul>,
-    ol: ({ children }) => <ol className={`${styles.orderedList} list-decimal`}>{children}</ol>,
+    ol: ({ children }) => <ol className={`${styles.orderedList} list-none`}>{children}</ol>,
     li: ({ children }) => (
-      <li className={`${styles.listItem} flex items-start gap-2.5 text-foreground/90`}>
-        <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500/70" />
-        <span className="flex-1 min-w-0">{children}</span>
+      <li className={`${styles.listItem} flex items-start text-foreground/90`}>
+        <span className={styles.listMarker} aria-hidden="true" />
+        <span className="min-w-0 flex-1">{children}</span>
       </li>
     ),
     input: ({ type, checked }) => {
@@ -226,6 +282,24 @@ const HEADING_STYLES: Record<number, string> = {
   5: styles.headingLevel5,
   6: styles.headingLevel6,
 };
+
+function SectionHeadingText({
+  level,
+  children,
+}: {
+  level: number;
+  children: React.ReactNode;
+}) {
+  const className = "min-w-0 flex-1 text-foreground";
+  switch (level) {
+    case 1: return <h1 className={className}>{children}</h1>;
+    case 2: return <h2 className={className}>{children}</h2>;
+    case 3: return <h3 className={className}>{children}</h3>;
+    case 4: return <h4 className={className}>{children}</h4>;
+    case 5: return <h5 className={className}>{children}</h5>;
+    default: return <h6 className={className}>{children}</h6>;
+  }
+}
 
 function CollapsibleSection({
   section,
@@ -272,10 +346,10 @@ function CollapsibleSection({
           <span className={styles.headingChevron} aria-hidden="true" />
         )}
 
-        {/* Başlık metni — inline Markdown + matematik destekli */}
-        <span className="flex-1 text-foreground">
+        {/* Başlık metni — semantic heading + inline Markdown + matematik destekli */}
+        <SectionHeadingText level={section.level}>
           <MarkdownContent markdown={section.headingInlineMd} components={components} inline />
-        </span>
+        </SectionHeadingText>
 
         {/* Gizlendi etiketi */}
         {isCollapsed && hasBody && (

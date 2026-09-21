@@ -35,6 +35,41 @@
   line-height: inherit;
 }
 
+.reader a,
+.paragraph,
+.listItem,
+.tableCell,
+.tableHeader {
+  overflow-wrap: anywhere;
+}
+
+.codeBlock {
+  margin-block: 0.9em;
+}
+
+.codeCopyButton {
+  opacity: 0;
+}
+
+.codeBlock:hover .codeCopyButton,
+.codeCopyButton:focus-visible {
+  opacity: 1;
+}
+
+.codePre {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inlineCode {
+  padding: 0.08em 0.32em;
+  font-size: 0.88em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 .section {
   min-width: 0;
   padding-inline: 0;
@@ -141,16 +176,55 @@
   margin-block: 0.62em;
 }
 
-.unorderedList {
-  margin-left: 0.1em;
+.unorderedList,
+.orderedList {
+  margin-left: 0;
+  padding-left: 0;
 }
 
 .orderedList {
-  margin-left: 1.45em;
+  counter-reset: md-list;
 }
 
 .listItem {
+  gap: 0.62em;
   line-height: 1.5;
+}
+
+.listMarker {
+  position: relative;
+  flex: 0 0 1.35em;
+  width: 1.35em;
+  min-height: 1.5em;
+  text-align: right;
+  color: var(--muted-foreground);
+}
+
+.unorderedList > .listItem > .listMarker::before {
+  content: "";
+  position: absolute;
+  top: 0.7em;
+  right: 0.34em;
+  width: 0.34em;
+  height: 0.34em;
+  border-radius: 999px;
+  background: var(--site-accent-solid);
+  opacity: 0.72;
+}
+
+.orderedList > .listItem {
+  counter-increment: md-list;
+}
+
+.orderedList > .listItem > .listMarker::before {
+  content: counter(md-list) ".";
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.listItem:has(input[type="checkbox"]) > .listMarker {
+  display: none;
 }
 
 .rule {
@@ -212,6 +286,16 @@
 .reader :global(.katex-display > .katex) {
   min-width: max-content;
   text-align: center;
+}
+
+.reader :global(.katex):not(:global(.katex-display .katex)) {
+  font-size: 1em;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .codeCopyButton {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 639px) {
