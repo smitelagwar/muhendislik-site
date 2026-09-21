@@ -9,11 +9,11 @@ import {
   Download,
   Edit3,
   Trash2,
-  Folder,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
-import { formatBytes, formatDate, getFileIcon } from "./ui-helpers";
+import { formatBytes, formatDate } from "./ui-helpers";
+import { FileTypeIcon, FolderIcon } from "./file-icons";
 import styles from "./dok-workspace.module.css";
 
 interface DriveDetailsDrawerProps {
@@ -69,11 +69,11 @@ export function DriveDetailsDrawer({
       <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-secondary/30 p-6 text-center shadow-inner">
         {isFile ? (
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border/80 shadow-md">
-            {getFileIcon(file!.extension)}
+            <FileTypeIcon extension={file!.extension} mimeType={file!.mime_type} size="detail" />
           </div>
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-sm">
-            <Folder className="h-9 w-9" />
+            <FolderIcon size="detail" />
           </div>
         )}
 
