@@ -174,10 +174,6 @@
 .unorderedList,
 .orderedList {
   margin-block: 0.62em;
-}
-
-.unorderedList,
-.orderedList {
   margin-left: 0;
   padding-left: 0;
 }
@@ -288,7 +284,11 @@
   text-align: center;
 }
 
-.reader :global(.katex):not(:global(.katex-display .katex)) {
+.paragraph :global(.katex),
+.listItem :global(.katex),
+.tableCell :global(.katex),
+.tableHeader :global(.katex),
+.heading :global(.katex) {
   font-size: 1em;
 }
 

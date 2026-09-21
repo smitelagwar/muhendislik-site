@@ -66,17 +66,27 @@ function scanMarkdownHeadings(markdown: string): ParsedHeading[] {
 
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
-    const fenceMatch = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+    const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
 
     if (fenceMatch) {
       const fence = fenceMatch[1];
       const marker = fence[0] as "`" | "~";
+      const suffix = fenceMatch[2];
+
       if (!activeFence) {
         activeFence = { marker, length: fence.length };
-      } else if (activeFence.marker === marker && fence.length >= activeFence.length) {
-        activeFence = null;
+        continue;
       }
-      continue;
+
+      const isClosingFence =
+        activeFence.marker === marker &&
+        fence.length >= activeFence.length &&
+        /^[ \t]*$/.test(suffix);
+
+      if (isClosingFence) {
+        activeFence = null;
+        continue;
+      }
     }
 
     if (activeFence) continue;
