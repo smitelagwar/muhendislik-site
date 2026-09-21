@@ -91,7 +91,7 @@ async function run() {
     assert(!source.includes("getFileIcon("), `${name} eski getFileIcon() render yolunu kullanmıyor`);
   }
 
-  assert(fileManager.includes('size="list"'), "Desktop list 24px token kullanıyor");
+  assert(fileManager.includes('size="list"'), "Desktop list okunabilir list tokenını kullanıyor");
   assert(fileManager.includes('size="grid"'), "Desktop grid 40px token kullanıyor");
   assert(mobileExplorer.includes('view === "grid" ? "grid" : "list"'), "Mobil liste/grid boyutu görünümle değişiyor");
   assert(detailsDrawer.includes('size="detail"'), "Desktop detay çekmecesi 48px token kullanıyor");
