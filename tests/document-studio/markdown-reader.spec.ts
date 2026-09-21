@@ -65,7 +65,20 @@ test("markdown math, headings, fences, tables and long sections render safely", 
   const reader = await openFixture(page);
 
   await expect(reader.locator(".katex").first()).toBeVisible();
-  await expect(reader).not.toContainText("$$");
+  await expect(reader.locator(".katex-display")).toHaveCount(5);
+
+  const hasRawDisplayDelimiterOutsideCode = await reader.evaluate((root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const parent = node.parentElement;
+      if (!parent?.closest("pre, code") && node.textContent?.includes("$")) return true;
+      node = walker.nextNode();
+    }
+    return false;
+  });
+  expect(hasRawDisplayDelimiterOutsideCode).toBe(false);
+
   await expect(reader.getByRole("heading", { name: /Kesme kuvveti/ })).toBeVisible();
   await expect(
     reader.getByRole("heading", { name: /Kesme kuvveti/ }).locator(".katex")
