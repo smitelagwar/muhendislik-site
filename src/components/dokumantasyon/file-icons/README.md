@@ -18,7 +18,7 @@ Bu klasör kullanıcı tarafından seçilen ilk ikon konseptinin kod karşılı�
 ```
 
 Boyut tokenları:
-- `list`: 24 px
+- `list`: 28 px
 - `grid`: 40 px
 - `detail`: 48 px
 - sayı: özel px değeri
