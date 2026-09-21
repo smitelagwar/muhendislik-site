@@ -108,8 +108,8 @@ function scanMarkdownHeadings(markdown: string): ParsedHeading[] {
   return headings;
 }
 
-function extractToc(markdown: string): TocItem[] {
-  return scanMarkdownHeadings(markdown).map(({ level, text, id }) => ({ level, text, id }));
+function extractToc(headings: ParsedHeading[]): TocItem[] {
+  return headings.map(({ level, text, id }) => ({ level, text, id }));
 }
 
 // ─── Markdown'ı bölümlere ayır ────────────────────────────────────────────────
@@ -122,9 +122,8 @@ interface MdSection {
   body: string;         // bu başlıktan sonraki, bir sonraki başlığa kadar olan içerik
 }
 
-function splitSections(markdown: string): { preamble: string; sections: MdSection[] } {
+function splitSections(markdown: string, headings: ParsedHeading[]): { preamble: string; sections: MdSection[] } {
   const lines = markdown.split("\n");
-  const headings = scanMarkdownHeadings(markdown);
   const headingByLine = new Map(headings.map((heading) => [heading.lineIndex, heading]));
   const sections: MdSection[] = [];
   let preamble = "";
@@ -155,27 +154,35 @@ function splitSections(markdown: string): { preamble: string; sections: MdSectio
 }
 
 // ─── Parent zinciri hesapla ───────────────────────────────────────────────────
-function computeParentIds(sections: MdSection[]): (string | null)[] {
-  return sections.map((sec, i) => {
-    for (let j = i - 1; j >= 0; j--) {
-      if (sections[j].level < sec.level) return sections[j].id;
+function computeParentMap(sections: MdSection[]): Map<string, string | null> {
+  const parentMap = new Map<string, string | null>();
+  const stack: MdSection[] = [];
+
+  for (const section of sections) {
+    while (stack.length > 0 && stack[stack.length - 1].level >= section.level) {
+      stack.pop();
     }
-    return null;
-  });
+
+    parentMap.set(section.id, stack.length > 0 ? stack[stack.length - 1].id : null);
+    stack.push(section);
+  }
+
+  return parentMap;
 }
 
 function isAncestorCollapsed(
   sectionId: string,
-  sections: MdSection[],
-  parentIds: (string | null)[],
+  parentMap: Map<string, string | null>,
   collapsed: Set<string>
 ): boolean {
-  const idx = sections.findIndex((s) => s.id === sectionId);
-  if (idx === -1) return false;
-  const parentId = parentIds[idx];
-  if (!parentId) return false;
-  if (collapsed.has(parentId)) return true;
-  return isAncestorCollapsed(parentId, sections, parentIds, collapsed);
+  let parentId = parentMap.get(sectionId) ?? null;
+
+  while (parentId) {
+    if (collapsed.has(parentId)) return true;
+    parentId = parentMap.get(parentId) ?? null;
+  }
+
+  return false;
 }
 
 // ─── Kod Bloğu ───────────────────────────────────────────────────────────────
@@ -414,10 +421,14 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const [fontPrefsReady, setFontPrefsReady] = useState<boolean>(false);
   const [showReaderSettings, setShowReaderSettings] = useState<boolean>(false);
 
-  const components = useCallback(() => buildComponents(), []);
-  const toc = useMemo(() => extractToc(content), [content]);
-  const { preamble, sections } = useMemo(() => splitSections(content), [content]);
-  const parentIds = useMemo(() => computeParentIds(sections), [sections]);
+  const components = useMemo(() => buildComponents(), []);
+  const parsedHeadings = useMemo(() => scanMarkdownHeadings(content), [content]);
+  const toc = useMemo(() => extractToc(parsedHeadings), [parsedHeadings]);
+  const { preamble, sections } = useMemo(
+    () => splitSections(content, parsedHeadings),
+    [content, parsedHeadings]
+  );
+  const parentMap = useMemo(() => computeParentMap(sections), [sections]);
   const wordCount = content.split(/\s+/).filter(Boolean).length;
   const fontScalePercent = Math.round(fontScale * 100);
   const canDecreaseFont = fontScale > READER_FONT_SCALE_MIN;
@@ -553,6 +564,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
               {showReaderSettings && (
                 <div
                   id="markdown-reader-font-settings"
+                  data-testid="markdown-font-settings"
                   role="dialog"
                   aria-label="Markdown yazı boyutu"
                   className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-3 shadow-2xl lg:hidden"
@@ -676,7 +688,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
           {!loading && !error && mode === "preview" && (
             <div className={styles.readerViewport}>
-              <article className={styles.reader} style={readerStyle}>
+              <article className={styles.reader} style={readerStyle} data-testid="markdown-reader" data-font-scale={fontScalePercent}>
                 {/* Dosya meta kartı */}
                 <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5`}>
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
@@ -691,7 +703,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                 {/* Başlık öncesi içerik (varsa) */}
                 {preamble.trim() && (
                   <div className={styles.preamble}>
-                    <MarkdownContent markdown={preamble} components={components()} />
+                    <MarkdownContent markdown={preamble} components={components} />
                   </div>
                 )}
 
@@ -702,9 +714,9 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                       key={section.id}
                       section={section}
                       isCollapsed={collapsed.has(section.id)}
-                      isHidden={isAncestorCollapsed(section.id, sections, parentIds, collapsed)}
+                      isHidden={isAncestorCollapsed(section.id, parentMap, collapsed)}
                       onToggle={() => toggleSection(section.id)}
-                      components={components()}
+                      components={components}
                     />
                   ))}
                 </div>
