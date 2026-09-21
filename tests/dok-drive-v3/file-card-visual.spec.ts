@@ -25,19 +25,20 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     expect(box!.height).toBeGreaterThanOrEqual(255);
     expect(box!.height).toBeLessThanOrEqual(265);
 
-    const hero = first.locator("svg").filter({ has: page.locator("path") }).first();
+    const hero = first.getByTestId("dok-card-icon-stage").locator("svg");
     const heroBox = await hero.boundingBox();
     expect(heroBox).not.toBeNull();
     expect(heroBox!.width).toBeGreaterThanOrEqual(64);
     expect(heroBox!.height).toBeGreaterThanOrEqual(64);
 
-    await expect(first.locator('[class*="cardMetaRow"]')).toBeVisible();
-    await expect(first.locator('[class*="cardFooter"]')).toBeVisible();
+    await expect(first.getByTestId("dok-card-meta")).toBeVisible();
+    await expect(first.getByTestId("dok-card-footer")).toBeVisible();
 
-    const footerBox = await first.locator('[class*="cardFooter"]').boundingBox();
+    const footerBox = await first.getByTestId("dok-card-footer").boundingBox();
     expect(footerBox).not.toBeNull();
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(box!.y + box!.height + 1);
 
+    await page.evaluate(() => document.documentElement.classList.remove("dark"));
     await page.screenshot({ path: info.outputPath("grid-light-1920.png"), fullPage: true });
   });
 

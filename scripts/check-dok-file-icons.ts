@@ -98,6 +98,9 @@ async function run() {
   assert(fileManager.includes("size={72}"), "Desktop grid klasör ikonu 72px hero boyutunu kullanıyor");
   assert(fileManager.includes("cardMetaRow"), "Desktop grid metadata chip satırını kullanıyor");
   assert(fileManager.includes("cardFooter"), "Desktop grid tarih footer satırını kullanıyor");
+  assert(fileManager.includes('data-testid="dok-card-icon-stage"'), "Desktop grid hero ikon sahnesi test kancasını taşıyor");
+  assert(fileManager.includes('data-testid="dok-card-meta"'), "Desktop grid meta satırı test kancasını taşıyor");
+  assert(fileManager.includes('data-testid="dok-card-footer"'), "Desktop grid footer test kancasını taşıyor");
   assert(mobileExplorer.includes('view === "grid" ? "grid" : "list"'), "Mobil liste/grid boyutu görünümle değişiyor");
   assert(detailsDrawer.includes('size="detail"'), "Desktop detay çekmecesi 48px token kullanıyor");
   assert(mobileSearch.includes('<FolderIcon size="list" />'), "Mobil arama klasör sonuçlarında özel ikon kullanıyor");

@@ -362,6 +362,71 @@
   border-color: rgba(236, 72, 153, 0.14);
 }
 
+[data-file-kind="dwg"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(219, 234, 254, 0.96), rgba(239, 246, 255, 0.72) 72%);
+  border-color: rgba(47, 140, 255, 0.13);
+}
+
+[data-file-kind="dxf"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(204, 251, 241, 0.94), rgba(240, 253, 250, 0.7) 72%);
+  border-color: rgba(24, 209, 212, 0.14);
+}
+
+[data-file-kind="pdf"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(255, 228, 230, 0.94), rgba(255, 241, 242, 0.7) 72%);
+  border-color: rgba(255, 75, 85, 0.13);
+}
+
+[data-file-kind="markdown"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(241, 245, 249, 0.96), rgba(248, 250, 252, 0.7) 72%);
+  border-color: rgba(100, 116, 139, 0.13);
+}
+
+[data-file-kind="image"] .cardIconStage,
+[data-file-kind="spreadsheet"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(220, 252, 231, 0.94), rgba(240, 253, 244, 0.7) 72%);
+  border-color: rgba(37, 201, 90, 0.13);
+}
+
+:global(.dark) [data-file-kind="dwg"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(30, 64, 175, 0.28), rgba(30, 41, 59, 0.72) 72%);
+}
+:global(.dark) [data-file-kind="dxf"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(13, 148, 136, 0.24), rgba(30, 41, 59, 0.72) 72%);
+}
+:global(.dark) [data-file-kind="pdf"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(190, 24, 93, 0.22), rgba(30, 41, 59, 0.72) 72%);
+}
+:global(.dark) [data-file-kind="markdown"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(100, 116, 139, 0.22), rgba(30, 41, 59, 0.72) 72%);
+}
+:global(.dark) [data-file-kind="image"] .cardIconStage,
+:global(.dark) [data-file-kind="spreadsheet"] .cardIconStage {
+  background: radial-gradient(circle at 50% 28%, rgba(22, 163, 74, 0.22), rgba(30, 41, 59, 0.72) 72%);
+}
+
+:global(.dark) .cardTypeChip {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+:global(.dark) .cardSizeChip {
+  color: #cbd5e1;
+  background: rgba(71, 85, 105, 0.28);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+:global(.dark) .folderTypeChip { color: #fbbf24; }
+:global(.dark) [data-file-kind="dwg"] .cardTypeChip { color: #60a5fa; }
+:global(.dark) [data-file-kind="dxf"] .cardTypeChip { color: #5eead4; }
+:global(.dark) [data-file-kind="pdf"] .cardTypeChip { color: #fb7185; }
+:global(.dark) [data-file-kind="markdown"] .cardTypeChip { color: #cbd5e1; }
+:global(.dark) [data-file-kind="image"] .cardTypeChip,
+:global(.dark) [data-file-kind="spreadsheet"] .cardTypeChip { color: #4ade80; }
+:global(.dark) [data-file-kind="document"] .cardTypeChip { color: #a5b4fc; }
+:global(.dark) [data-file-kind="archive"] .cardTypeChip { color: #f9a8d4; }
+
 @media (hover: hover) and (pointer: fine) {
 .card:hover {
   transform: translateY(-3px) scale(1.01);

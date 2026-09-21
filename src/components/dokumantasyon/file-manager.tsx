@@ -1528,16 +1528,16 @@ function DokumantasyonFileManagerInner() {
           </div>
         </div>
 
-        <div className={`${styles.cardIconStage} ${styles.folderIconStage}`}>
+        <div className={`${styles.cardIconStage} ${styles.folderIconStage}`} data-testid="dok-card-icon-stage">
           <FolderIcon size={72} />
         </div>
 
         <div className={styles.cardInfo}>
           <span className={styles.cardName}>{folder.name}</span>
-          <div className={styles.cardMetaRow}>
+          <div className={styles.cardMetaRow} data-testid="dok-card-meta">
             <span className={`${styles.cardTypeChip} ${styles.folderTypeChip}`}>Klasör</span>
           </div>
-          <div className={styles.cardFooter}>
+          <div className={styles.cardFooter} data-testid="dok-card-footer">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{formatDate(folder.updated_at || folder.created_at)}</span>
           </div>
@@ -1693,7 +1693,7 @@ function DokumantasyonFileManagerInner() {
           </div>
         </div>
 
-        <div className={styles.cardIconStage}>
+        <div className={styles.cardIconStage} data-testid="dok-card-icon-stage">
           <FileTypeIcon extension={file.extension} mimeType={file.mime_type} size={68} />
         </div>
 
@@ -1709,12 +1709,12 @@ function DokumantasyonFileManagerInner() {
             {file.display_name}
           </Link>
 
-          <div className={styles.cardMetaRow}>
+          <div className={styles.cardMetaRow} data-testid="dok-card-meta">
             <span className={styles.cardTypeChip}>{extensionLabel || "DOSYA"}</span>
             <span className={styles.cardSizeChip}>{formatBytes(Number(file.size_bytes))}</span>
           </div>
 
-          <div className={styles.cardFooter}>
+          <div className={styles.cardFooter} data-testid="dok-card-footer">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{formatDate(file.updated_at || file.created_at)}</span>
           </div>
