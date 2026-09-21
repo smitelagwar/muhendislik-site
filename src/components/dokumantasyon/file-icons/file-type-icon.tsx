@@ -22,7 +22,7 @@ function resolveSize(size: FileIconSize): number {
   if (typeof size === "number") return size;
   if (size === "grid") return 40;
   if (size === "detail") return 48;
-  return 24;
+  return 28;
 }
 
 function FileSymbol({ kind, color }: { kind: FileIconKind; color: string }) {
