@@ -79,7 +79,12 @@ test.describe("Drive V3.1 — Virtualization & DOM Budget", () => {
       newMetrics,
     });
 
-    // 16. öğe 3 kolonda 5. satırdadır -> 5 * 180 = 900 + 80 = 980px
-    expect(newScrollTop).toBe(980);
+    const oldRow = Math.floor(oldScrollTop / DRIVE_GRID_ROW_HEIGHT);
+    const oldOffset = oldScrollTop % DRIVE_GRID_ROW_HEIGHT;
+    const anchorItem = oldRow * oldMetrics.columnCount;
+    const expectedRow = Math.floor(anchorItem / newMetrics.columnCount);
+    const expectedScrollTop = expectedRow * DRIVE_GRID_ROW_HEIGHT + oldOffset;
+
+    expect(newScrollTop).toBe(expectedScrollTop);
   });
 });

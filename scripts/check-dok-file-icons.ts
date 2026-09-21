@@ -79,6 +79,8 @@ async function run() {
   const mobileSearch = read(root, "src/components/dokumantasyon/mobile-search.tsx");
   const iconComponent = read(root, "src/components/dokumantasyon/file-icons/file-type-icon.tsx");
   const folderComponent = read(root, "src/components/dokumantasyon/file-icons/folder-icon.tsx");
+  const workspaceCss = read(root, "src/components/dokumantasyon/dok-workspace.module.css");
+  const driveMetrics = read(root, "src/components/dokumantasyon/drive-v3/drive-metrics.ts");
 
   for (const [name, source] of [
     ["file-manager.tsx", fileManager],
@@ -92,7 +94,10 @@ async function run() {
   }
 
   assert(fileManager.includes('size="list"'), "Desktop list okunabilir list tokenını kullanıyor");
-  assert(fileManager.includes('size="grid"'), "Desktop grid 40px token kullanıyor");
+  assert(fileManager.includes("size={68}"), "Desktop grid dosya ikonu 68px hero boyutunu kullanıyor");
+  assert(fileManager.includes("size={72}"), "Desktop grid klasör ikonu 72px hero boyutunu kullanıyor");
+  assert(fileManager.includes("cardMetaRow"), "Desktop grid metadata chip satırını kullanıyor");
+  assert(fileManager.includes("cardFooter"), "Desktop grid tarih footer satırını kullanıyor");
   assert(mobileExplorer.includes('view === "grid" ? "grid" : "list"'), "Mobil liste/grid boyutu görünümle değişiyor");
   assert(detailsDrawer.includes('size="detail"'), "Desktop detay çekmecesi 48px token kullanıyor");
   assert(mobileSearch.includes('<FolderIcon size="list" />'), "Mobil arama klasör sonuçlarında özel ikon kullanıyor");
@@ -105,6 +110,9 @@ async function run() {
   assert(folderComponent.includes("linearGradient"), "Klasör ikonu v1 iki tonlu tasarımını koruyor");
   assert(iconComponent.includes('focusable="false"'), "Dekoratif SVG klavye odağını çalmıyor");
   assert(folderComponent.includes('focusable="false"'), "Klasör SVG klavye odağını çalmıyor");
+  assert(workspaceCss.includes(".cardIconStage"), "Grid kartlarında büyük ikon sahnesi CSS'i mevcut");
+  assert(workspaceCss.includes(".cardTypeChip"), "Grid kartlarında dosya türü chip CSS'i mevcut");
+  assert(driveMetrics.includes("DRIVE_GRID_ROW_HEIGHT = 276"), "Grid sanallaştırma satır yüksekliği yeni kart geometrisiyle senkron");
 
   console.log("\n======================================================================");
   console.log("🎉 ÖZGÜN DOSYA İKON SİSTEMİ REGRESYON TESTLERİ PASS");

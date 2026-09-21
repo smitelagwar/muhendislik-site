@@ -45,7 +45,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder, DokBreadcrumbItem } from "@/lib/dokumantasyon/types";
 import { formatBytes, formatDate } from "./ui-helpers";
-import { FileTypeIcon, FolderIcon } from "./file-icons";
+import { FileTypeIcon, FolderIcon, resolveFileIconKind } from "./file-icons";
 import { DriveSidebar, DriveNavFilter } from "./drive-sidebar";
 import { DriveDetailsDrawer } from "./drive-details-drawer";
 import { MobileDetailsSheet } from "./mobile-details-sheet";
@@ -1433,7 +1433,7 @@ function DokumantasyonFileManagerInner() {
         onDoubleClick={(e) => activateItem(folder, "double", e)}
         onContextMenu={(e) => activateItem(folder, "context", e)}
         style={style}
-        className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+        className={`group relative flex min-h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           dragOverFolderId === folder.id ? styles.dragOverFolder : ""
         } ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
@@ -1455,7 +1455,7 @@ function DokumantasyonFileManagerInner() {
                 <Square className="h-4 w-4" />
               )}
             </button>)}
-            <FolderIcon size="grid" />
+
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -1528,9 +1528,19 @@ function DokumantasyonFileManagerInner() {
           </div>
         </div>
 
-        <div className="mt-3 min-w-0">
-          <span className="block line-clamp-2 text-xs font-bold text-foreground">{folder.name}</span>
-          <span className="mt-1 block text-[10px] text-muted-foreground">Klasör</span>
+        <div className={`${styles.cardIconStage} ${styles.folderIconStage}`}>
+          <FolderIcon size={72} />
+        </div>
+
+        <div className={styles.cardInfo}>
+          <span className={styles.cardName}>{folder.name}</span>
+          <div className={styles.cardMetaRow}>
+            <span className={`${styles.cardTypeChip} ${styles.folderTypeChip}`}>Klasör</span>
+          </div>
+          <div className={styles.cardFooter}>
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{formatDate(folder.updated_at || folder.created_at)}</span>
+          </div>
         </div>
       </div>
     );
@@ -1539,6 +1549,8 @@ function DokumantasyonFileManagerInner() {
   const renderFileCard = (file: DokFile, style?: React.CSSProperties) => {
     const isSelected = selectedIds.has(file.id);
     const isStarred = Boolean(file.starred_at);
+    const fileKind = resolveFileIconKind(file.extension, file.mime_type);
+    const extensionLabel = (file.extension || "DOSYA").replace(/^\./, "").toUpperCase();
 
     return (
       <div
@@ -1547,6 +1559,7 @@ function DokumantasyonFileManagerInner() {
         data-testid="dok-file-card"
         data-file-id={file.id}
         data-extension={file.extension}
+        data-file-kind={fileKind}
         data-selected={isSelected}
         onClick={(e) => activateItem(file, "body", e)}
         onDoubleClick={(e) => activateItem(file, "double", e)}
@@ -1554,7 +1567,7 @@ function DokumantasyonFileManagerInner() {
         onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
         onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
         style={style}
-        className={`group relative flex min-h-40 flex-col justify-between rounded-2xl p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+        className={`group relative flex min-h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
         } ${focusedId === file.id ? styles.virtualCardFocused : ""}`}
       >
@@ -1574,9 +1587,7 @@ function DokumantasyonFileManagerInner() {
                 <Square className="h-4 w-4" />
               )}
             </button>)}
-            <div className="flex h-7 w-7 items-center justify-center">
-              {<FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="grid" />}
-            </div>
+
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -1682,20 +1693,31 @@ function DokumantasyonFileManagerInner() {
           </div>
         </div>
 
-        <div className="mt-3 min-w-0">
+        <div className={styles.cardIconStage}>
+          <FileTypeIcon extension={file.extension} mimeType={file.mime_type} size={68} />
+        </div>
+
+        <div className={styles.cardInfo}>
           <Link
             href={`/dokumantasyon/dosya/${file.id}`}
             prefetch={false}
-              data-testid="dok-file-name"
-              onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
-              onClick={(e) => activateItem(file, "name", e)}
-            className="block line-clamp-2 text-xs font-bold text-foreground hover:text-amber-500 hover:underline"
+            data-testid="dok-file-name"
+            onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
+            onClick={(e) => activateItem(file, "name", e)}
+            className={`${styles.cardName} hover:text-amber-500 hover:underline`}
           >
             {file.display_name}
           </Link>
-          <span className="block text-[10px] font-mono text-muted-foreground">
-            {file.extension.toUpperCase()} • {formatBytes(Number(file.size_bytes))}
-          </span>
+
+          <div className={styles.cardMetaRow}>
+            <span className={styles.cardTypeChip}>{extensionLabel || "DOSYA"}</span>
+            <span className={styles.cardSizeChip}>{formatBytes(Number(file.size_bytes))}</span>
+          </div>
+
+          <div className={styles.cardFooter}>
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{formatDate(file.updated_at || file.created_at)}</span>
+          </div>
         </div>
       </div>
     );

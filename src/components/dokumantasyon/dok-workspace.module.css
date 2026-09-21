@@ -156,23 +156,210 @@
 
 /* Grid Cards (G1 Glass Card) */
 .card {
-  min-height: 10rem;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.2s ease;
+  min-height: 16.25rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.92), transparent 46%),
+    rgba(255, 255, 255, 0.68);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  backdrop-filter: blur(18px) saturate(165%);
+  box-shadow:
+    0 12px 30px -10px rgba(15, 23, 42, 0.12),
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.38), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(245, 158, 11, 0.07), transparent 30%);
+  opacity: 0.9;
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 :global(.dark) .card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(22, 22, 30, 0.6);
-  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.4),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(54, 54, 68, 0.34), transparent 44%),
+    rgba(22, 22, 30, 0.74);
+  box-shadow:
+    0 16px 38px -10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cardIconStage {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin: 0.2rem auto 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.72) 70%);
+  box-shadow:
+    0 12px 24px -14px rgba(15, 23, 42, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.folderIconStage {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 247, 214, 0.98), rgba(255, 237, 184, 0.62) 72%);
+  border-color: rgba(245, 158, 11, 0.15);
+}
+
+:global(.dark) .cardIconStage {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(60, 66, 78, 0.86), rgba(34, 39, 49, 0.72) 72%);
+  box-shadow:
+    0 14px 28px -14px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:global(.dark) .folderIconStage {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(90, 64, 24, 0.7), rgba(48, 40, 28, 0.72) 72%);
+  border-color: rgba(245, 158, 11, 0.16);
+}
+
+.cardInfo {
+  min-width: 0;
+  margin-top: auto;
+}
+
+.cardName {
+  display: -webkit-box;
+  min-height: 2.25rem;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.cardMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  margin-top: 0.5rem;
+}
+
+.cardTypeChip,
+.cardSizeChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cardTypeChip {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.13);
+}
+
+.cardSizeChip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--secondary) 82%, transparent);
+  border-color: color-mix(in srgb, var(--border) 70%, transparent);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.folderTypeChip {
+  color: #9a5a00;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.16);
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 68%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+.cardFooter span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-file-kind="dwg"] .cardTypeChip {
+  color: #0b62d6;
+  background: rgba(47, 140, 255, 0.11);
+  border-color: rgba(47, 140, 255, 0.14);
+}
+
+[data-file-kind="dxf"] .cardTypeChip {
+  color: #04747f;
+  background: rgba(24, 209, 212, 0.11);
+  border-color: rgba(24, 209, 212, 0.15);
+}
+
+[data-file-kind="pdf"] .cardTypeChip {
+  color: #c51422;
+  background: rgba(255, 75, 85, 0.11);
+  border-color: rgba(255, 75, 85, 0.14);
+}
+
+[data-file-kind="markdown"] .cardTypeChip {
+  color: #52606d;
+  background: rgba(100, 116, 139, 0.11);
+  border-color: rgba(100, 116, 139, 0.14);
+}
+
+[data-file-kind="image"] .cardTypeChip,
+[data-file-kind="spreadsheet"] .cardTypeChip {
+  color: #087d31;
+  background: rgba(37, 201, 90, 0.11);
+  border-color: rgba(37, 201, 90, 0.14);
+}
+
+[data-file-kind="document"] .cardTypeChip {
+  color: #3730a3;
+  background: rgba(79, 70, 229, 0.1);
+  border-color: rgba(79, 70, 229, 0.14);
+}
+
+[data-file-kind="archive"] .cardTypeChip {
+  color: #a20f55;
+  background: rgba(236, 72, 153, 0.1);
+  border-color: rgba(236, 72, 153, 0.14);
 }
 
 @media (hover: hover) and (pointer: fine) {
