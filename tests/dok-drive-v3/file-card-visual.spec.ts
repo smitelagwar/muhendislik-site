@@ -14,6 +14,13 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     const cards = page.getByTestId("dok-file-card");
     await expect(cards).toHaveCount(6);
 
+    const folder = page.getByTestId("dok-folder-card");
+    await expect(folder).toHaveCount(1);
+    const folderIconBox = await folder.getByTestId("dok-card-icon-stage").locator("svg").boundingBox();
+    expect(folderIconBox).not.toBeNull();
+    expect(folderIconBox!.width).toBeGreaterThanOrEqual(70);
+    expect(folderIconBox!.height).toBeGreaterThanOrEqual(70);
+
     for (const kind of ["dwg", "dxf", "pdf", "markdown", "image", "spreadsheet"]) {
       await expect(page.locator(`[data-testid="dok-file-card"][data-file-kind="${kind}"]`)).toHaveCount(1);
     }
@@ -33,6 +40,9 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
 
     await expect(first.getByTestId("dok-card-meta")).toBeVisible();
     await expect(first.getByTestId("dok-card-footer")).toBeVisible();
+
+    await first.click({ position: { x: 8, y: 8 } });
+    await expect(first).toHaveAttribute("data-selected", "true");
 
     const footerBox = await first.getByTestId("dok-card-footer").boundingBox();
     expect(footerBox).not.toBeNull();
