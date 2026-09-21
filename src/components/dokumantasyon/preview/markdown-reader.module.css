@@ -1,0 +1,24 @@
+.reader {
+  min-width: 0;
+}
+
+.reader :global(.katex) {
+  max-width: 100%;
+  color: inherit;
+}
+
+.reader :global(.katex-display) {
+  display: block;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  padding: 0.2rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.reader :global(.katex-display > .katex) {
+  min-width: max-content;
+  text-align: center;
+}

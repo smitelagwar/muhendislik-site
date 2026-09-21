@@ -8,6 +8,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import type { Components } from "react-markdown";
 import {
   FileText, Code2, Copy, Check, Loader2, AlertCircle,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudioCommandButton } from "../studio/studio-command-button";
+import styles from "./markdown-reader.module.css";
 
 interface DokMarkdownViewerProps {
   accessUrl: string;
@@ -42,8 +45,9 @@ function extractToc(markdown: string): TocItem[] {
 interface MdSection {
   id: string;
   level: number;        // 1-6
-  headingText: string;  // plain text
-  headingMd: string;    // orijinal #...# satırı (ReactMarkdown ile render edilecek)
+  headingText: string;      // TOC/slug/accessibility için plain text
+  headingInlineMd: string;  // başlığın # işaretleri hariç orijinal inline Markdown içeriği
+  headingMd: string;        // orijinal #...# satırı
   body: string;         // bu başlıktan sonraki, bir sonraki başlığa kadar olan içerik
 }
 
@@ -59,12 +63,13 @@ function splitSections(markdown: string): { preamble: string; sections: MdSectio
     if (m) {
       if (current) sections.push(current);
       const level = m[1].length;
-      const headingText = m[2].replace(/[*_`~[\]()]/g, "").trim();
+      const headingInlineMd = m[2].trim();
+      const headingText = headingInlineMd.replace(/[*_`~[\]()$\\{}]/g, "").trim();
       const base = slugify(headingText) || "section";
       const count = (ids.get(base) ?? 0) + 1;
       ids.set(base, count);
       const id = count === 1 ? base : `${base}-${count}`;
-      current = { id, level, headingText, headingMd: line, body: "" };
+      current = { id, level, headingText, headingInlineMd, headingMd: line, body: "" };
     } else {
       if (current) current.body += line + "\n";
       else preamble += line + "\n";
@@ -116,6 +121,40 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
       </div>
       <pre className="overflow-x-auto p-4"><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
     </div>
+  );
+}
+
+const MARKDOWN_REMARK_PLUGINS: NonNullable<React.ComponentProps<typeof ReactMarkdown>["remarkPlugins"]> = [
+  remarkGfm,
+  remarkMath,
+];
+
+const MARKDOWN_REHYPE_PLUGINS: NonNullable<React.ComponentProps<typeof ReactMarkdown>["rehypePlugins"]> = [
+  [rehypeKatex, { throwOnError: false, strict: "warn" }],
+];
+
+function MarkdownContent({
+  markdown,
+  components,
+  inline = false,
+}: {
+  markdown: string;
+  components: Components;
+  inline?: boolean;
+}) {
+  const renderComponents = inline
+    ? { ...components, p: ({ children }: { children?: React.ReactNode }) => <>{children}</> }
+    : components;
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+      rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
+      skipHtml={true}
+      components={renderComponents}
+    >
+      {markdown}
+    </ReactMarkdown>
   );
 }
 
@@ -220,8 +259,10 @@ function CollapsibleSection({
           <span className="h-5 w-5 shrink-0" />
         )}
 
-        {/* Başlık metni */}
-        <span className="flex-1 text-foreground">{section.headingText}</span>
+        {/* Başlık metni — inline Markdown + matematik destekli */}
+        <span className="flex-1 text-foreground">
+          <MarkdownContent markdown={section.headingInlineMd} components={components} inline />
+        </span>
 
         {/* Gizlendi etiketi */}
         {isCollapsed && hasBody && (
@@ -237,9 +278,7 @@ function CollapsibleSection({
           className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "max-h-0 opacity-0" : "max-h-[9999px] opacity-100"}`}
         >
           <div className={`pt-1 ${section.level > 1 ? "border-l-2 border-border/30 pl-4 ml-2" : ""}`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components}>
-              {section.body}
-            </ReactMarkdown>
+            <MarkdownContent markdown={section.body} components={components} />
           </div>
         </div>
       )}
@@ -390,7 +429,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
           {!loading && !error && mode === "preview" && (
             <div className="px-5 py-8 sm:px-10 sm:py-10">
-              <article className="mx-auto max-w-5xl">
+              <article className={`mx-auto max-w-5xl ${styles.reader}`}>
                 {/* Dosya meta kartı */}
                 <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3.5">
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
@@ -405,9 +444,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                 {/* Başlık öncesi içerik (varsa) */}
                 {preamble.trim() && (
                   <div className="mb-6">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components()}>
-                      {preamble}
-                    </ReactMarkdown>
+                    <MarkdownContent markdown={preamble} components={components()} />
                   </div>
                 )}
 
