@@ -1255,7 +1255,6 @@ function DokumantasyonFileManagerInner() {
         data-testid="dok-file-row"
         data-file-id={file.id}
         data-extension={file.extension}
-        data-file-kind={fileKind}
         data-selected={isSelected}
         onClick={(e) => activateItem(file, "body", e)}
         onDoubleClick={(e) => activateItem(file, "double", e)}
@@ -1560,6 +1559,7 @@ function DokumantasyonFileManagerInner() {
         data-testid="dok-file-card"
         data-file-id={file.id}
         data-extension={file.extension}
+        data-file-kind={fileKind}
         data-selected={isSelected}
         onClick={(e) => activateItem(file, "body", e)}
         onDoubleClick={(e) => activateItem(file, "double", e)}
