@@ -64,7 +64,7 @@ async function runStage7Tests() {
     "Sanal liste toplam scroll yüksekliği (280,000px) doğru korundu"
   );
 
-  // Grid Modu (160px satır yüksekliği, 4 kolon -> 1250 satır)
+  // Grid Modu (merkezi DRIVE_GRID_ROW_HEIGHT sözleşmesi, 4 kolon -> 1250 satır)
   const gridRowCount = Math.ceil(5000 / 4);
   const gridWindow = calculateVirtualWindow({
     itemCount: gridRowCount,
@@ -82,11 +82,11 @@ async function runStage7Tests() {
   // 3. Anchor-Preserving Resize Algoritması
   console.log("\n--- 3. Anchor-Preserving Resize Algoritması ---");
   // Senaryo: 4 kolondan (width: 1200) 3 kolona (width: 900) pencere daralıyor
-  // Eski scrollTop = 800px (yani row 5 = 800 / 160. Satır 5'teki ilk öğe indeksi = 5 * 4 = 20)
-  // 3 kolonda öğe 20'nin yeni satırı: Math.floor(20 / 3) = 6. satır
-  // Yeni scrollTop = 6 * 160 = 960px
-  const oldMetrics = { columnCount: 4, rowHeight: 160 };
-  const newMetrics = { columnCount: 3, rowHeight: 160 };
+  // Test bu bölümde bilinçli olarak küçük bir sentetik satır yüksekliği kullanır;
+  // production grid yüksekliği DRIVE_GRID_ROW_HEIGHT sabitinden ayrı test edilmektedir.
+  const syntheticRowHeight = 160;
+  const oldMetrics = { columnCount: 4, rowHeight: syntheticRowHeight };
+  const newMetrics = { columnCount: 3, rowHeight: syntheticRowHeight };
   const oldScrollTop = 800;
 
   const preservedScrollTop = calculateAnchorScrollTop({

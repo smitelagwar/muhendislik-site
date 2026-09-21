@@ -6,7 +6,8 @@ export const DRIVE_LIST_ROW_HEIGHT = 56;
 export const DRIVE_LIST_ROW_GAP = 0;
 
 export const DRIVE_GRID_GAP_X = 12;
-export const DRIVE_GRID_GAP_Y = 12;
+export const DRIVE_GRID_GAP_Y = 16;
+// 260px kart yüksekliği + 16px satır nefesi. Virtualizer ve gerçek kart geometrisi birlikte tutulur.
 export const DRIVE_GRID_ROW_HEIGHT = 276;
 export const DRIVE_GRID_MIN_CARD_WIDTH = 168;
 
