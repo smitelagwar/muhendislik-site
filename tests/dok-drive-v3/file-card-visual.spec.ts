@@ -49,15 +49,15 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     await expect(first.getByTestId("dok-card-meta")).toBeVisible();
     await expect(first.getByTestId("dok-card-footer")).toBeVisible();
 
-    await first.click({ position: { x: 8, y: 8 } });
-    await expect(first).toHaveAttribute("data-selected", "true");
-
     const footerBox = await first.getByTestId("dok-card-footer").boundingBox();
     expect(footerBox).not.toBeNull();
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(box!.y + box!.height + 1);
 
     await page.evaluate(() => document.documentElement.classList.remove("dark"));
     await page.screenshot({ path: info.outputPath("grid-light-1920.png"), fullPage: true });
+
+    await first.click({ position: { x: 8, y: 8 } });
+    await expect(first).toHaveAttribute("data-selected", "true");
   });
 
   test("koyu temada kart hiyerarşisi ve okunabilirlik korunur", async ({ page }, info) => {
