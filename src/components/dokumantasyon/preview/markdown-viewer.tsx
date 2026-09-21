@@ -13,7 +13,7 @@ import rehypeKatex from "rehype-katex";
 import type { Components } from "react-markdown";
 import {
   FileText, Code2, Copy, Check, Loader2, AlertCircle,
-  BookOpen, Edit3, List, ChevronRight, ChevronDown,
+  BookOpen, Edit3, List, ChevronRight, ChevronDown, Minus, Plus, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudioCommandButton } from "../studio/studio-command-button";
@@ -23,6 +23,17 @@ interface DokMarkdownViewerProps {
   accessUrl: string;
   displayName: string;
   onContentChange?: (newContent: string) => void;
+}
+
+const READER_PREFS_STORAGE_KEY = "dok-markdown-reader:v1";
+const READER_FONT_SCALE_MIN = 0.85;
+const READER_FONT_SCALE_MAX = 1.3;
+const READER_FONT_SCALE_STEP = 0.05;
+const READER_FONT_SCALE_DEFAULT = 1;
+
+function normalizeReaderFontScale(value: number): number {
+  const clamped = Math.min(READER_FONT_SCALE_MAX, Math.max(READER_FONT_SCALE_MIN, value));
+  return Math.round(clamped * 100) / 100;
 }
 
 // ─── Başlıktan anchor ID ──────────────────────────────────────────────────────
@@ -315,12 +326,22 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const [copied, setCopied] = useState<boolean>(false);
   const [showToc, setShowToc] = useState<boolean>(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [fontScale, setFontScale] = useState<number>(READER_FONT_SCALE_DEFAULT);
+  const [fontPrefsReady, setFontPrefsReady] = useState<boolean>(false);
+  const [showReaderSettings, setShowReaderSettings] = useState<boolean>(false);
 
   const components = useCallback(() => buildComponents(), []);
   const toc = useMemo(() => extractToc(content), [content]);
   const { preamble, sections } = useMemo(() => splitSections(content), [content]);
   const parentIds = useMemo(() => computeParentIds(sections), [sections]);
   const wordCount = content.split(/\s+/).filter(Boolean).length;
+  const fontScalePercent = Math.round(fontScale * 100);
+  const canDecreaseFont = fontScale > READER_FONT_SCALE_MIN;
+  const canIncreaseFont = fontScale < READER_FONT_SCALE_MAX;
+  const readerStyle = useMemo(
+    () => ({ "--md-font-scale": String(fontScale) } as React.CSSProperties),
+    [fontScale]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -332,9 +353,49 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
     return () => { isMounted = false; };
   }, [accessUrl]);
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(READER_PREFS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { fontScale?: unknown };
+        if (typeof parsed.fontScale === "number" && Number.isFinite(parsed.fontScale)) {
+          setFontScale(normalizeReaderFontScale(parsed.fontScale));
+        }
+      }
+    } catch {
+      // Geçersiz/eski preference okuyucuyu bozmamalı.
+    } finally {
+      setFontPrefsReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!fontPrefsReady) return;
+    try {
+      window.localStorage.setItem(
+        READER_PREFS_STORAGE_KEY,
+        JSON.stringify({ fontScale: normalizeReaderFontScale(fontScale) })
+      );
+    } catch {
+      // Private mode / storage engeli okuyucuyu bozmamalı.
+    }
+  }, [fontPrefsReady, fontScale]);
+
+  useEffect(() => {
+    if (mode !== "preview") setShowReaderSettings(false);
+  }, [mode]);
+
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(content); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
+
+  const changeFontScale = useCallback((delta: number) => {
+    setFontScale((current) => normalizeReaderFontScale(current + delta));
+  }, []);
+
+  const resetFontScale = useCallback(() => {
+    setFontScale(READER_FONT_SCALE_DEFAULT);
+  }, []);
 
   const toggleSection = useCallback((id: string) => {
     setCollapsed((prev) => {
@@ -350,7 +411,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
       {/* Araç Çubuğu */}
-      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-4 py-1.5 text-xs backdrop-blur-md">
+      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-3 py-1 text-xs backdrop-blur-md sm:px-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner">
             {(["preview", "raw", ...(onContentChange ? ["edit"] : [])] as const).map((m) => (
@@ -384,14 +445,118 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-1.5 sm:gap-2">
           {!loading && content && (
-            <span className="hidden sm:block font-mono text-[11px] text-muted-foreground">
+            <span className="hidden xl:block font-mono text-[11px] text-muted-foreground">
               {wordCount} kelime · {toc.length} başlık
             </span>
           )}
+
+          {mode === "preview" && (
+            <>
+              {/* Telefon/tablet: tek Aa düğmesi; panel içinde A− / A+ / reset. */}
+              <button
+                type="button"
+                onClick={() => setShowReaderSettings((value) => !value)}
+                className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-border/80 bg-background/80 px-2 text-[13px] font-bold text-foreground shadow-sm transition-colors hover:bg-secondary lg:hidden"
+                aria-label="Yazı boyutu ayarları"
+                aria-expanded={showReaderSettings}
+                aria-controls="markdown-reader-font-settings"
+              >
+                Aa
+              </button>
+
+              {showReaderSettings && (
+                <div
+                  id="markdown-reader-font-settings"
+                  role="dialog"
+                  aria-label="Markdown yazı boyutu"
+                  className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-3 shadow-2xl lg:hidden"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setShowReaderSettings(false);
+                  }}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">Yazı Boyutu</span>
+                    <span className="font-mono text-[11px] text-muted-foreground" aria-live="polite">
+                      {fontScalePercent}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
+                      disabled={!canDecreaseFont}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Yazıyı küçült"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetFontScale}
+                      className="inline-flex h-11 items-center justify-center gap-1 rounded-xl border border-border/80 bg-background px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                      aria-label="Yazı boyutunu yüzde 100 yap"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      100%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
+                      disabled={!canIncreaseFont}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Yazıyı büyüt"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+                    Tercih bu cihazda hatırlanır.
+                  </p>
+                </div>
+              )}
+
+              {/* Geniş ekran: kontroller toolbar üzerinde doğrudan görünür. */}
+              <div className="hidden items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner lg:flex" aria-label="Yazı boyutu">
+                <button
+                  type="button"
+                  onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
+                  disabled={!canDecreaseFont}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Yazıyı küçült"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetFontScale}
+                  className="h-8 min-w-12 rounded-lg px-1.5 font-mono text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
+                  aria-label="Yazı boyutunu yüzde 100 yap"
+                  title="Varsayılan yazı boyutuna dön"
+                >
+                  {fontScalePercent}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
+                  disabled={!canIncreaseFont}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Yazıyı büyüt"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Mobilde kopyala icon-only tutularak Aa için alan bırakılır. */}
           <StudioCommandButton commandId="text.copy" onClick={handleCopy} disabled={loading || !content}
-            size="sm" variant="outline" className="h-8 gap-1.5 px-3 text-xs rounded-xl border-border/80 hover:bg-secondary"
+            size="sm" variant="outline" className="h-10 min-w-10 gap-1.5 rounded-xl border-border/80 px-2 hover:bg-secondary sm:hidden"
+            icon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-amber-500" />}
+            label={copied ? "Kopyalandı" : "Kopyala"} showLabel={false} />
+          <StudioCommandButton commandId="text.copy" onClick={handleCopy} disabled={loading || !content}
+            size="sm" variant="outline" className="hidden h-8 gap-1.5 rounded-xl border-border/80 px-3 text-xs hover:bg-secondary sm:inline-flex"
             icon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-amber-500" />}
             label={copied ? "Kopyalandı" : "Kopyala"} showLabel={true} />
         </div>
@@ -427,7 +592,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
           {!loading && !error && mode === "preview" && (
             <div className={styles.readerViewport}>
-              <article className={styles.reader}>
+              <article className={styles.reader} style={readerStyle}>
                 {/* Dosya meta kartı */}
                 <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5`}>
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
