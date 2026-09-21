@@ -2,10 +2,11 @@
 
 import React, { useEffect, useId, useRef } from "react";
 import Link from "next/link";
-import { Download, Edit3, Eye, Folder, Share2, Trash2, X } from "lucide-react";
+import { Download, Edit3, Eye, Share2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
-import { formatBytes, formatDate, getFileIcon } from "./ui-helpers";
+import { formatBytes, formatDate } from "./ui-helpers";
+import { FileTypeIcon, FolderIcon } from "./file-icons";
 import styles from "./dok-workspace.module.css";
 
 interface MobileDetailsSheetProps {
@@ -86,7 +87,11 @@ export function MobileDetailsSheet({ selectedItem, onClose, onShare, onRename, o
         <div className="flex items-start justify-between gap-3 pb-2">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border/80 bg-secondary/40 shadow-sm">
-              {isFile ? getFileIcon(file!.extension) : <Folder className="h-6 w-6 text-amber-500" />}
+              {isFile ? (
+                <FileTypeIcon extension={file!.extension} mimeType={file!.mime_type} size="grid" />
+              ) : (
+                <FolderIcon size="grid" />
+              )}
             </div>
             <div className="min-w-0">
               <h2 id={titleId} className="truncate text-sm font-bold text-foreground">{name}</h2>

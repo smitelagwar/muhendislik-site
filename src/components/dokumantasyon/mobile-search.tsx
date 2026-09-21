@@ -5,6 +5,7 @@ import type { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { useVisibleViewport } from "./drive-v3/use-visible-viewport";
 import { mobileMetadata } from "./mobile-explorer";
 import { OverlayPortal } from "./drive-v3/overlay-portal";
+import { FileTypeIcon, FolderIcon } from "./file-icons";
 import s from "./mobile-workspace.module.css";
 const searchPositions = new Map<string, number>();
 export function MobileSearch({
@@ -157,11 +158,16 @@ export function MobileSearch({
             className={s.action}
             onClick={() => onFolder(f.id)}
           >
-            {f.name}
+            <FolderIcon size="list" />
+            <span className={s.content}>
+              <span className={s.name}>{f.name}</span>
+              <span className={s.meta}>Klasör</span>
+            </span>
           </button>
         ))}
         {visibleResult.files.map((f) => (
           <div className={s.row} key={f.id}>
+            <FileTypeIcon extension={f.extension} mimeType={f.mime_type} size="list" />
             <button className={s.content} onClick={() => onOpen(f)}>
               <span className={s.name}>{f.display_name}</span>
               <span className={s.meta}>{mobileMetadata(f)}</span>
