@@ -118,6 +118,7 @@ async function run() {
   assert(workspaceCss.includes(".cardTypeChip"), "Grid kartlarında dosya türü chip CSS'i mevcut");
   assert(driveMetrics.includes("DRIVE_GRID_ROW_HEIGHT = 276"), "Grid sanallaştırma satır yüksekliği yeni kart geometrisiyle senkron");
   assert(driveMetrics.includes("DRIVE_GRID_GAP_Y = 16"), "Grid satırları arasında 16px dikey nefes sözleşmesi mevcut");
+  assert(fileManager.includes('alignItems: "start"'), "Virtual grid kartları 276px satıra esnemiyor; 260px kart + 16px nefes korunuyor");
   assert(visualSpec.includes("grid-light-1920.png"), "Açık tema 1920px görsel kabul screenshot testi mevcut");
   assert(visualSpec.includes("grid-dark-1920.png"), "Koyu tema 1920px görsel kabul screenshot testi mevcut");
   assert(visualSpec.includes("1366px genişlikte yatay taşma oluşturmaz"), "1366px responsive taşma testi mevcut");

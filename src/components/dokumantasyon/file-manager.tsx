@@ -2551,6 +2551,7 @@ function DokumantasyonFileManagerInner() {
                         transform: `translateY(${virtualRow.start}px)`,
                         display: "grid",
                         gridTemplateColumns: `repeat(${gridMetrics.columnCount}, minmax(0, 1fr))`,
+                        alignItems: "start",
                         gap: `${gridMetrics.gapX}px`,
                       }}
                     >

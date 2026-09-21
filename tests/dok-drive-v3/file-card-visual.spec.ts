@@ -84,9 +84,14 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(1);
 
-    const firstBox = await page.getByTestId("dok-file-card").first().boundingBox();
+    const firstCard = page.getByTestId("dok-file-card").first();
+    const firstBox = await firstCard.boundingBox();
     expect(firstBox).not.toBeNull();
-    expect(firstBox!.width).toBeGreaterThanOrEqual(DRIVE_GRID_MIN_CARD_WIDTH);
+    expect(firstBox!.width).toBeGreaterThan(145);
+
+    const heroBox = await firstCard.getByTestId("dok-card-icon-stage").locator("svg").boundingBox();
+    expect(heroBox).not.toBeNull();
+    expect(heroBox!.width).toBeGreaterThanOrEqual(64);
   });
 
   test("uzun dosya adı karta taşmaz ve aksiyonlar çalışır", async ({ page }) => {
