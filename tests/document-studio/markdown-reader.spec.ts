@@ -1,27 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { signInAdmin } from "./cad-test-helpers";
 
 const FIXTURE = readFileSync(
   resolve(process.cwd(), "tests/fixtures/markdown/engineering-reader-fixture.md"),
   "utf8"
 );
-
-async function login(page: Page) {
-  await page.goto("/dokumantasyon");
-  await page.getByLabel("Kullanıcı Adı").fill("admin");
-  await page.locator("input#password").fill("admin");
-
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/dokumantasyon/giris") &&
-      response.request().method() === "POST"
-  );
-  await page.getByRole("button", { name: "Giriş Yap" }).click();
-  const response = await responsePromise;
-  if (!response.ok()) throw new Error(`Admin login failed: ${response.status()}`);
-  await expect(page.getByLabel("Kullanıcı Adı")).toBeHidden();
-}
 
 async function uploadMarkdownFixture(page: Page): Promise<string> {
   return page.evaluate(async ({ content }) => {
@@ -51,7 +36,7 @@ async function uploadMarkdownFixture(page: Page): Promise<string> {
 }
 
 async function openFixture(page: Page) {
-  await login(page);
+  await signInAdmin(page);
   const fileId = await uploadMarkdownFixture(page);
   await page.evaluate(() => localStorage.removeItem("dok-markdown-reader:v1"));
   await page.goto(`/dokumantasyon/dosya/${fileId}`);
