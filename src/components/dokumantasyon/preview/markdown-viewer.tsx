@@ -233,10 +233,10 @@ function CollapsibleSection({
 
   const headingStyle = HEADING_STYLES[section.level] ?? HEADING_STYLES[6];
   const hasBody = section.body.trim().length > 0;
-  const indent = (section.level - 1) * 12; // px, görsel hiyerarşi ipucu
+  const bodyId = `${section.id}-content`;
 
   return (
-    <div style={{ paddingLeft: section.level > 1 ? `${indent}px` : undefined }}>
+    <section className={styles.section} data-md-section-level={section.level}>
       {/* Başlık + Chevron */}
       <div
         id={section.id}
@@ -247,17 +247,18 @@ function CollapsibleSection({
         tabIndex={hasBody ? 0 : undefined}
         onKeyDown={hasBody ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } } : undefined}
         aria-expanded={hasBody ? !isCollapsed : undefined}
+        aria-controls={hasBody ? bodyId : undefined}
       >
         {/* Chevron butonu */}
         {hasBody ? (
-          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-all duration-200 group-hover:bg-secondary/60 group-hover:text-amber-500 ${isCollapsed ? "" : "rotate-0"}`}>
+          <span className={`${styles.headingChevron} flex shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-colors duration-150 group-hover:bg-secondary/60 group-hover:text-amber-500`}>
             {isCollapsed
               ? <ChevronRight className="h-4 w-4" />
               : <ChevronDown className="h-4 w-4" />
             }
           </span>
         ) : (
-          <span className="h-5 w-5 shrink-0" />
+          <span className={styles.headingChevron} aria-hidden="true" />
         )}
 
         {/* Başlık metni — inline Markdown + matematik destekli */}
@@ -273,17 +274,13 @@ function CollapsibleSection({
         )}
       </div>
 
-      {/* İçerik — collapse animasyonu */}
-      {hasBody && (
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "max-h-0 opacity-0" : "max-h-[9999px] opacity-100"}`}
-        >
-          <div className={`pt-1 ${section.level > 1 ? "border-l-2 border-border/30 pl-4 ml-2" : ""}`}>
-            <MarkdownContent markdown={section.body} components={components} />
-          </div>
+      {/* İçerik — sabit max-height yerine yalnızca açıkken DOM'a girer. */}
+      {hasBody && !isCollapsed && (
+        <div id={bodyId} className={styles.sectionBody}>
+          <MarkdownContent markdown={section.body} components={components} />
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
