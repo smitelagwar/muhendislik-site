@@ -1433,7 +1433,7 @@ function DokumantasyonFileManagerInner() {
         onDoubleClick={(e) => activateItem(folder, "double", e)}
         onContextMenu={(e) => activateItem(folder, "context", e)}
         style={style}
-        className={`group relative flex min-h-[228px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+        className={`group relative flex min-h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           dragOverFolderId === folder.id ? styles.dragOverFolder : ""
         } ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
@@ -1567,7 +1567,7 @@ function DokumantasyonFileManagerInner() {
         onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
         onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
         style={style}
-        className={`group relative flex min-h-[228px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
+        className={`group relative flex min-h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
         } ${focusedId === file.id ? styles.virtualCardFocused : ""}`}
       >

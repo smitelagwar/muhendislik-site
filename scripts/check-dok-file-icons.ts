@@ -112,7 +112,7 @@ async function run() {
   assert(folderComponent.includes('focusable="false"'), "Klasör SVG klavye odağını çalmıyor");
   assert(workspaceCss.includes(".cardIconStage"), "Grid kartlarında büyük ikon sahnesi CSS'i mevcut");
   assert(workspaceCss.includes(".cardTypeChip"), "Grid kartlarında dosya türü chip CSS'i mevcut");
-  assert(driveMetrics.includes("DRIVE_GRID_ROW_HEIGHT = 244"), "Grid sanallaştırma satır yüksekliği yeni kart geometrisiyle senkron");
+  assert(driveMetrics.includes("DRIVE_GRID_ROW_HEIGHT = 276"), "Grid sanallaştırma satır yüksekliği yeni kart geometrisiyle senkron");
 
   console.log("\n======================================================================");
   console.log("🎉 ÖZGÜN DOSYA İKON SİSTEMİ REGRESYON TESTLERİ PASS");
