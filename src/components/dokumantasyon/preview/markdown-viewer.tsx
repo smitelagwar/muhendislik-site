@@ -162,22 +162,22 @@ function MarkdownContent({
 function buildComponents(): Components {
   return {
     // Body içindeki başlıklar (iç içe markdown varsa — normalde body'de heading olmaz ama fallback)
-    h1: ({ children }) => <p className="text-3xl font-bold text-foreground my-3">{children}</p>,
-    h2: ({ children }) => <p className="text-2xl font-bold text-foreground my-3">{children}</p>,
-    h3: ({ children }) => <p className="text-xl font-bold text-foreground my-2">{children}</p>,
-    h4: ({ children }) => <p className="text-lg font-semibold text-foreground my-2">{children}</p>,
-    p: ({ children }) => <p className="my-3.5 leading-7 text-foreground/90">{children}</p>,
+    h1: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel1}`}>{children}</p>,
+    h2: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel2}`}>{children}</p>,
+    h3: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel3}`}>{children}</p>,
+    h4: ({ children }) => <p className={`${styles.fallbackHeading} ${styles.headingLevel4}`}>{children}</p>,
+    p: ({ children }) => <p className={`${styles.paragraph} text-foreground/90`}>{children}</p>,
     a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="font-medium text-amber-600 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-500 dark:text-amber-400">{children}</a>,
     code: ({ children, className }) => {
       if (className?.startsWith("language-")) return <CodeBlock className={className}>{children}</CodeBlock>;
       return <code className="rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-amber-600 dark:text-amber-400">{children}</code>;
     },
     pre: ({ children }) => <>{children}</>,
-    blockquote: ({ children }) => <blockquote className="my-5 border-l-4 border-amber-500/60 bg-amber-500/5 py-3 pl-5 pr-4 rounded-r-xl italic text-muted-foreground">{children}</blockquote>,
-    ul: ({ children }) => <ul className="my-3.5 ml-2 space-y-2 list-none">{children}</ul>,
-    ol: ({ children }) => <ol className="my-3.5 ml-6 list-decimal space-y-2">{children}</ol>,
+    blockquote: ({ children }) => <blockquote className={`${styles.blockquote} border-l-4 border-amber-500/60 bg-amber-500/5 rounded-r-xl italic text-muted-foreground`}>{children}</blockquote>,
+    ul: ({ children }) => <ul className={`${styles.unorderedList} list-none`}>{children}</ul>,
+    ol: ({ children }) => <ol className={`${styles.orderedList} list-decimal`}>{children}</ol>,
     li: ({ children }) => (
-      <li className="flex items-start gap-2.5 leading-6 text-foreground/90">
+      <li className={`${styles.listItem} flex items-start gap-2.5 text-foreground/90`}>
         <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500/70" />
         <span className="flex-1 min-w-0">{children}</span>
       </li>
@@ -186,18 +186,18 @@ function buildComponents(): Components {
       if (type !== "checkbox") return null;
       return <span className={`mr-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border align-middle ${checked ? "border-amber-500 bg-amber-500 text-zinc-950" : "border-border/70 bg-secondary/30"}`}>{checked && <Check className="h-3 w-3" />}</span>;
     },
-    hr: () => <hr className="my-8 border-0 border-t border-border/60" />,
-    table: ({ children }) => <div className="my-6 overflow-x-auto rounded-xl border border-border/60 shadow-sm"><table className="w-full border-collapse text-sm">{children}</table></div>,
-    thead: ({ children }) => <thead className="border-b border-border/60 bg-secondary/60 text-xs font-bold uppercase tracking-wider text-muted-foreground">{children}</thead>,
+    hr: () => <hr className={`${styles.rule} border-0 border-t border-border/60`} />,
+    table: ({ children }) => <div className={`${styles.tableWrap} overflow-x-auto rounded-xl border border-border/60 shadow-sm`}><table className={`${styles.table} w-full border-collapse`}>{children}</table></div>,
+    thead: ({ children }) => <thead className={`${styles.tableHead} border-b border-border/60 bg-secondary/60 font-bold uppercase text-muted-foreground`}>{children}</thead>,
     tbody: ({ children }) => <tbody className="divide-y divide-border/40">{children}</tbody>,
     tr: ({ children }) => <tr className="transition-colors hover:bg-amber-500/5">{children}</tr>,
-    th: ({ children }) => <th className="px-4 py-3 text-left font-bold">{children}</th>,
-    td: ({ children }) => <td className="px-4 py-3 text-foreground/85">{children}</td>,
+    th: ({ children }) => <th className={`${styles.tableHeader} text-left font-bold`}>{children}</th>,
+    td: ({ children }) => <td className={`${styles.tableCell} text-foreground/85`}>{children}</td>,
     strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
     em: ({ children }) => <em className="italic text-foreground/90">{children}</em>,
     del: ({ children }) => <del className="text-muted-foreground line-through">{children}</del>,
     img: ({ src, alt }) => (
-      <span className="my-5 block">
+      <span className={`${styles.imageWrap} block`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt ?? ""} className="max-w-full rounded-xl border border-border/60 shadow-md" loading="lazy" />
         {alt && <span className="mt-2 block text-center text-xs italic text-muted-foreground">{alt}</span>}
@@ -208,12 +208,12 @@ function buildComponents(): Components {
 
 // ─── Collapsible Heading başlık elemanı ──────────────────────────────────────
 const HEADING_STYLES: Record<number, string> = {
-  1: "text-3xl font-bold border-b border-border/60 pb-3 mt-8 mb-1",
-  2: "text-2xl font-bold border-b border-border/40 pb-2 mt-7 mb-1",
-  3: "text-xl font-bold mt-6 mb-1",
-  4: "text-lg font-semibold mt-5 mb-1",
-  5: "text-base font-semibold text-muted-foreground mt-4 mb-0.5",
-  6: "text-sm font-semibold uppercase tracking-wider text-muted-foreground mt-3 mb-0.5",
+  1: styles.headingLevel1,
+  2: styles.headingLevel2,
+  3: styles.headingLevel3,
+  4: styles.headingLevel4,
+  5: styles.headingLevel5,
+  6: styles.headingLevel6,
 };
 
 function CollapsibleSection({
@@ -240,7 +240,8 @@ function CollapsibleSection({
       {/* Başlık + Chevron */}
       <div
         id={section.id}
-        className={`group scroll-mt-20 flex items-center gap-1.5 ${headingStyle} ${hasBody ? "cursor-pointer select-none" : ""}`}
+        className={`${styles.heading} group scroll-mt-20 flex items-center gap-1.5 ${headingStyle} ${hasBody ? "cursor-pointer select-none" : ""}`}
+        data-md-heading-level={section.level}
         onClick={hasBody ? onToggle : undefined}
         role={hasBody ? "button" : undefined}
         tabIndex={hasBody ? 0 : undefined}
@@ -428,10 +429,10 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
             </div>
           )}
           {!loading && !error && mode === "preview" && (
-            <div className="px-5 py-8 sm:px-10 sm:py-10">
-              <article className={`mx-auto max-w-5xl ${styles.reader}`}>
+            <div className={styles.readerViewport}>
+              <article className={styles.reader}>
                 {/* Dosya meta kartı */}
-                <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3.5">
+                <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5`}>
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
@@ -443,7 +444,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
 
                 {/* Başlık öncesi içerik (varsa) */}
                 {preamble.trim() && (
-                  <div className="mb-6">
+                  <div className={styles.preamble}>
                     <MarkdownContent markdown={preamble} components={components()} />
                   </div>
                 )}
