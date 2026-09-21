@@ -2,10 +2,11 @@
 import React, { useMemo, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Folder, MoreVertical, CheckSquare, Square } from "lucide-react";
+import { MoreVertical, CheckSquare, Square } from "lucide-react";
 import type { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import type { ItemActivationSource } from "./drive-v3/explorer-activation";
-import { getFileIcon, formatBytes } from "./ui-helpers";
+import { formatBytes } from "./ui-helpers";
+import { FileTypeIcon, FolderIcon } from "./file-icons";
 import s from "./mobile-workspace.module.css";
 
 type Item = DokFile | DokFolder;
@@ -143,9 +144,13 @@ export function MobileExplorer({
     const folder = "parent_id" in item;
     const name = folder ? item.name : item.display_name;
     const icon = folder ? (
-      <Folder size={20} className="text-amber-500" aria-hidden />
+      <FolderIcon size={view === "grid" ? "grid" : "list"} />
     ) : (
-      getFileIcon(item.extension, item.mime_type)
+      <FileTypeIcon
+        extension={item.extension}
+        mimeType={item.mime_type}
+        size={view === "grid" ? "grid" : "list"}
+      />
     );
     const controls = selection ? (
       <button
