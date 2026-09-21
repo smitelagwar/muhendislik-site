@@ -44,7 +44,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder, DokBreadcrumbItem } from "@/lib/dokumantasyon/types";
-import { formatBytes, formatDate, getFileIcon } from "./ui-helpers";
+import { formatBytes, formatDate } from "./ui-helpers";
+import { FileTypeIcon, FolderIcon } from "./file-icons";
 import { DriveSidebar, DriveNavFilter } from "./drive-sidebar";
 import { DriveDetailsDrawer } from "./drive-details-drawer";
 import { MobileDetailsSheet } from "./mobile-details-sheet";
@@ -1161,7 +1162,7 @@ function DokumantasyonFileManagerInner() {
             />
           </button>
 
-          <Folder className="h-5 w-5 shrink-0 text-amber-500" />
+          <FolderIcon size="list" />
           <div className="min-w-0">
             <span className="block truncate font-bold text-foreground">{folder.name}</span>
             <span className="mt-0.5 block text-[11px] text-muted-foreground sm:hidden">Klasör • {formatDate(folder.updated_at || folder.created_at)}</span>
@@ -1290,7 +1291,7 @@ function DokumantasyonFileManagerInner() {
             />
           </button>
 
-          {getFileIcon(file.extension)}
+          {<FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="list" />}
 
           <div className="min-w-0">
             <Link
@@ -1454,7 +1455,7 @@ function DokumantasyonFileManagerInner() {
                 <Square className="h-4 w-4" />
               )}
             </button>)}
-            <Folder className="h-6 w-6 text-amber-500" />
+            <FolderIcon size="grid" />
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -1574,7 +1575,7 @@ function DokumantasyonFileManagerInner() {
               )}
             </button>)}
             <div className="flex h-7 w-7 items-center justify-center">
-              {getFileIcon(file.extension)}
+              {<FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="grid" />}
             </div>
           </div>
           <div className="flex items-center gap-1">
