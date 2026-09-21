@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { mockMixedExplorerData } from "./explorer-fixture";
+import { DRIVE_GRID_MIN_CARD_WIDTH } from "../../src/components/dokumantasyon/drive-v3/drive-metrics";
 
 test.describe("Dökümantasyon grid kartı görsel kabul", () => {
   test.beforeEach(async ({ page }) => {
@@ -28,7 +29,7 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     const first = cards.first();
     const box = await first.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeGreaterThanOrEqual(200);
+    expect(box!.width).toBeGreaterThanOrEqual(DRIVE_GRID_MIN_CARD_WIDTH);
     expect(box!.height).toBeGreaterThanOrEqual(255);
     expect(box!.height).toBeLessThanOrEqual(265);
 
@@ -57,9 +58,28 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
 
     const pdf = page.locator('[data-testid="dok-file-card"][data-file-kind="pdf"]');
     await expect(pdf).toBeVisible();
-    await expect(pdf.getByText("PDF", { exact: true })).toBeVisible();
+    const pdfChip = pdf.getByText("PDF", { exact: true });
+    await expect(pdfChip).toBeVisible();
+
+    const chipBackground = await pdfChip.evaluate((node) => getComputedStyle(node).backgroundColor);
+    expect(chipBackground).not.toBe("rgba(0, 0, 0, 0)");
+
+    const stageBackground = await pdf.getByTestId("dok-card-icon-stage").evaluate((node) => getComputedStyle(node).backgroundImage);
+    expect(stageBackground).toContain("radial-gradient");
 
     await page.screenshot({ path: info.outputPath("grid-dark-1920.png"), fullPage: true });
+  });
+
+  test("1366px genişlikte yatay taşma oluşturmaz", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await expect(page.getByTestId("dok-file-card").first()).toBeVisible();
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+
+    const firstBox = await page.getByTestId("dok-file-card").first().boundingBox();
+    expect(firstBox).not.toBeNull();
+    expect(firstBox!.width).toBeGreaterThanOrEqual(DRIVE_GRID_MIN_CARD_WIDTH);
   });
 
   test("uzun dosya adı karta taşmaz ve aksiyonlar çalışır", async ({ page }) => {

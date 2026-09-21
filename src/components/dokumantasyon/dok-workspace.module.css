@@ -417,15 +417,48 @@
   border-color: rgba(148, 163, 184, 0.12);
 }
 
-:global(.dark) .folderTypeChip { color: #fbbf24; }
-:global(.dark) [data-file-kind="dwg"] .cardTypeChip { color: #60a5fa; }
-:global(.dark) [data-file-kind="dxf"] .cardTypeChip { color: #5eead4; }
-:global(.dark) [data-file-kind="pdf"] .cardTypeChip { color: #fb7185; }
-:global(.dark) [data-file-kind="markdown"] .cardTypeChip { color: #cbd5e1; }
+:global(.dark) .folderTypeChip {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+:global(.dark) [data-file-kind="dwg"] .cardTypeChip {
+  color: #60a5fa;
+  background: rgba(47, 140, 255, 0.15);
+  border-color: rgba(96, 165, 250, 0.2);
+}
+:global(.dark) [data-file-kind="dxf"] .cardTypeChip {
+  color: #5eead4;
+  background: rgba(24, 209, 212, 0.13);
+  border-color: rgba(94, 234, 212, 0.2);
+}
+:global(.dark) [data-file-kind="pdf"] .cardTypeChip {
+  color: #fb7185;
+  background: rgba(255, 75, 85, 0.14);
+  border-color: rgba(251, 113, 133, 0.2);
+}
+:global(.dark) [data-file-kind="markdown"] .cardTypeChip {
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.18);
+  border-color: rgba(203, 213, 225, 0.14);
+}
 :global(.dark) [data-file-kind="image"] .cardTypeChip,
-:global(.dark) [data-file-kind="spreadsheet"] .cardTypeChip { color: #4ade80; }
-:global(.dark) [data-file-kind="document"] .cardTypeChip { color: #a5b4fc; }
-:global(.dark) [data-file-kind="archive"] .cardTypeChip { color: #f9a8d4; }
+:global(.dark) [data-file-kind="spreadsheet"] .cardTypeChip {
+  color: #4ade80;
+  background: rgba(37, 201, 90, 0.13);
+  border-color: rgba(74, 222, 128, 0.18);
+}
+:global(.dark) [data-file-kind="document"] .cardTypeChip {
+  color: #a5b4fc;
+  background: rgba(79, 70, 229, 0.15);
+  border-color: rgba(165, 180, 252, 0.18);
+}
+:global(.dark) [data-file-kind="archive"] .cardTypeChip {
+  color: #f9a8d4;
+  background: rgba(236, 72, 153, 0.14);
+  border-color: rgba(249, 168, 212, 0.18);
+}
 
 @media (hover: hover) and (pointer: fine) {
 .card:hover {
