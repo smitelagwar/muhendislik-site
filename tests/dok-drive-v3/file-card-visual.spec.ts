@@ -39,6 +39,13 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
     expect(heroBox!.width).toBeGreaterThanOrEqual(64);
     expect(heroBox!.height).toBeGreaterThanOrEqual(64);
 
+    const selectionButton = first.locator("[data-selection-control]").first();
+    const selectionBox = await selectionButton.boundingBox();
+    const stageBox = await first.getByTestId("dok-card-icon-stage").boundingBox();
+    expect(selectionBox).not.toBeNull();
+    expect(stageBox).not.toBeNull();
+    expect(stageBox!.y).toBeGreaterThanOrEqual(selectionBox!.y + selectionBox!.height - 2);
+
     await expect(first.getByTestId("dok-card-meta")).toBeVisible();
     await expect(first.getByTestId("dok-card-footer")).toBeVisible();
 
@@ -58,7 +65,7 @@ test.describe("Dökümantasyon grid kartı görsel kabul", () => {
 
     const pdf = page.locator('[data-testid="dok-file-card"][data-file-kind="pdf"]');
     await expect(pdf).toBeVisible();
-    const pdfChip = pdf.getByText("PDF", { exact: true });
+    const pdfChip = pdf.getByTestId("dok-card-meta").getByText("PDF", { exact: true });
     await expect(pdfChip).toBeVisible();
 
     const chipBackground = await pdfChip.evaluate((node) => getComputedStyle(node).backgroundColor);

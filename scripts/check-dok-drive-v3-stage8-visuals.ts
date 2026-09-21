@@ -82,6 +82,20 @@ async function runStage8Tests() {
     "Hover efektleri sadece mouse kullanan masaüstü cihazlara sınırlandı (dokunmatik cihazlarda yapışma engellendi)"
   );
 
+  // 6B. Dolu kart hiyerarşisi
+  assert(
+    cssContent.includes(".cardIconStage") &&
+      cssContent.includes(".cardMetaRow") &&
+      cssContent.includes(".cardFooter"),
+    "Grid kartlarında büyük ikon sahnesi + meta chip satırı + tarih footer hiyerarşisi mevcut"
+  );
+  assert(
+    cssContent.includes('[data-file-kind="dwg"] .cardIconStage') &&
+      cssContent.includes('[data-file-kind="pdf"] .cardIconStage') &&
+      cssContent.includes('[data-file-kind="markdown"] .cardIconStage'),
+    "DWG/PDF/Markdown kart sahneleri dosya türüne göre optik olarak ayrıştırılıyor"
+  );
+
   // 7. Mobil Blur Optimizasyonu
   console.log("\n--- 7. Mobil GPU & Blur Optimizasyonu ---");
   assert(

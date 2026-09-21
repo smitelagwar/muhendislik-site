@@ -81,6 +81,7 @@ async function run() {
   const folderComponent = read(root, "src/components/dokumantasyon/file-icons/folder-icon.tsx");
   const workspaceCss = read(root, "src/components/dokumantasyon/dok-workspace.module.css");
   const driveMetrics = read(root, "src/components/dokumantasyon/drive-v3/drive-metrics.ts");
+  const visualSpec = read(root, "tests/dok-drive-v3/file-card-visual.spec.ts");
 
   for (const [name, source] of [
     ["file-manager.tsx", fileManager],
@@ -116,6 +117,10 @@ async function run() {
   assert(workspaceCss.includes(".cardIconStage"), "Grid kartlarında büyük ikon sahnesi CSS'i mevcut");
   assert(workspaceCss.includes(".cardTypeChip"), "Grid kartlarında dosya türü chip CSS'i mevcut");
   assert(driveMetrics.includes("DRIVE_GRID_ROW_HEIGHT = 276"), "Grid sanallaştırma satır yüksekliği yeni kart geometrisiyle senkron");
+  assert(driveMetrics.includes("DRIVE_GRID_GAP_Y = 16"), "Grid satırları arasında 16px dikey nefes sözleşmesi mevcut");
+  assert(visualSpec.includes("grid-light-1920.png"), "Açık tema 1920px görsel kabul screenshot testi mevcut");
+  assert(visualSpec.includes("grid-dark-1920.png"), "Koyu tema 1920px görsel kabul screenshot testi mevcut");
+  assert(visualSpec.includes("1366px genişlikte yatay taşma oluşturmaz"), "1366px responsive taşma testi mevcut");
 
   console.log("\n======================================================================");
   console.log("🎉 ÖZGÜN DOSYA İKON SİSTEMİ REGRESYON TESTLERİ PASS");
