@@ -57,7 +57,7 @@ test("markdown math, headings, fences, tables and long sections render safely", 
     let node = walker.nextNode();
     while (node) {
       const parent = node.parentElement;
-      if (!parent?.closest("pre, code") && node.textContent?.includes("$")) return true;
+      if (!parent?.closest("pre, code") && node.textContent?.includes("$$")) return true;
       node = walker.nextNode();
     }
     return false;

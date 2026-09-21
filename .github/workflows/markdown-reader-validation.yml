@@ -45,14 +45,14 @@ jobs:
       - name: Typecheck deployable runtime
         run: npx tsc --noEmit --incremental false -p tsconfig.next.json
 
-      - name: Build
-        run: npm run build
-
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Run Markdown Reader acceptance tests
         run: npm run check:markdown-reader
+
+      - name: Build
+        run: npm run build
 
       - name: Upload Playwright evidence on failure
         if: failure()
