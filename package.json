@@ -128,7 +128,8 @@
     "check:cad-v2:unit": "tsx tests/cad-v2/binary-protocol.test.ts && tsx tests/cad-v2/compiler-decode.test.ts && tsx tests/cad-v2/block-layer-semantics.test.ts && tsx tests/cad-v2/font-text-dimension.test.ts && tsx tests/cad-v2/geometry-curves-hatch.test.ts && tsx tests/cad-v2/layout-viewport.test.ts && tsx tests/cad-v2/chunk-scheduler-cache.test.ts",
     "check:cad-v2:integration": "tsx tests/cad-v2/durable-service.test.ts && tsx tests/cad-v2/admin-menu-routing.test.ts && tsx tests/cad-v2/public-share-auth.test.ts && tsx tests/cad-v2/accuracy-performance-acceptance.test.ts && tsx scripts/cad-v2/check-cad-v2-g00-baseline.ts && tsx scripts/cad-v2/run-v2-compiler-cli.ts --input \"eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg\"",
     "check:cad-v2:ui": "tsx tests/cad-v2/camera-interaction.test.ts && tsx tests/cad-v2/real-scene-render.test.ts && tsx tests/cad-v2/host-lifecycle-cancellation.test.ts && tsx tests/cad-v2/ui-quality-acceptance.test.ts",
-    "check:cad-v2:release": "npm run check:cad-v2:unit && npm run check:cad-v2:integration && npm run check:cad-v2:ui"
+    "check:cad-v2:release": "npm run check:cad-v2:unit && npm run check:cad-v2:integration && npm run check:cad-v2:ui",
+    "check:markdown-reader": "playwright test --config=playwright.config.ts tests/document-studio/markdown-reader.spec.ts --project=chromium --project=mobile-chromium"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^3.1.0",
@@ -161,6 +162,7 @@
     "jose": "^6.2.9",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
+    "katex": "^0.16.21",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -173,7 +175,9 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.0",
+    "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "three": "0.172.0",

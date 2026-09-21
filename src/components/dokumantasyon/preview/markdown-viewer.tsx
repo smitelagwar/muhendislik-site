@@ -8,13 +8,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import type { Components } from "react-markdown";
 import {
   FileText, Code2, Copy, Check, Loader2, AlertCircle,
-  BookOpen, Edit3, List, ChevronRight, ChevronDown,
+  BookOpen, Edit3, List, ChevronRight, ChevronDown, Minus, Plus, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudioCommandButton } from "../studio/studio-command-button";
+import styles from "./markdown-reader.module.css";
 
 interface DokMarkdownViewerProps {
   accessUrl: string;
@@ -22,80 +25,164 @@ interface DokMarkdownViewerProps {
   onContentChange?: (newContent: string) => void;
 }
 
+const READER_PREFS_STORAGE_KEY = "dok-markdown-reader:v1";
+const READER_FONT_SCALE_MIN = 0.85;
+const READER_FONT_SCALE_MAX = 1.3;
+const READER_FONT_SCALE_STEP = 0.05;
+const READER_FONT_SCALE_DEFAULT = 1;
+
+function normalizeReaderFontScale(value: number): number {
+  const clamped = Math.min(READER_FONT_SCALE_MAX, Math.max(READER_FONT_SCALE_MIN, value));
+  return Math.round(clamped * 100) / 100;
+}
+
 // ─── Başlıktan anchor ID ──────────────────────────────────────────────────────
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-// ─── TOC öğesi ────────────────────────────────────────────────────────────────
+// ─── TOC / section heading tarayıcı ───────────────────────────────────────────
 interface TocItem { level: number; text: string; id: string; }
-function extractToc(markdown: string): TocItem[] {
-  const toc: TocItem[] = [];
-  for (const line of markdown.split("\n")) {
-    const m = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (m) { const text = m[2].replace(/[*_`~]/g, "").trim(); toc.push({ level: m[1].length, text, id: slugify(text) }); }
+interface ParsedHeading extends TocItem {
+  lineIndex: number;
+  inlineMd: string;
+  sourceLine: string;
+}
+
+function headingPlainText(inlineMd: string): string {
+  return inlineMd
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`~]/g, "")
+    .replace(/[$\\{}]/g, "")
+    .trim();
+}
+
+function scanMarkdownHeadings(markdown: string): ParsedHeading[] {
+  const headings: ParsedHeading[] = [];
+  const ids = new Map<string, number>();
+  const lines = markdown.split("\n");
+  let activeFence: { marker: "`" | "~"; length: number } | null = null;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+
+    if (fenceMatch) {
+      const fence = fenceMatch[1];
+      const marker = fence[0] as "`" | "~";
+      const suffix = fenceMatch[2];
+
+      if (!activeFence) {
+        activeFence = { marker, length: fence.length };
+        continue;
+      }
+
+      const isClosingFence =
+        activeFence.marker === marker &&
+        fence.length >= activeFence.length &&
+        /^[ \t]*$/.test(suffix);
+
+      if (isClosingFence) {
+        activeFence = null;
+        continue;
+      }
+    }
+
+    if (activeFence) continue;
+
+    const headingMatch = /^ {0,3}(#{1,6})[ \t]+(.+?)\s*$/.exec(line);
+    if (!headingMatch) continue;
+
+    const level = headingMatch[1].length;
+    const inlineMd = headingMatch[2].replace(/[ \t]+#+[ \t]*$/, "").trim();
+    const text = headingPlainText(inlineMd);
+    const base = slugify(text) || "section";
+    const count = (ids.get(base) ?? 0) + 1;
+    ids.set(base, count);
+    const id = count === 1 ? base : `${base}-${count}`;
+
+    headings.push({ lineIndex, level, inlineMd, text, id, sourceLine: line });
   }
-  return toc;
+
+  return headings;
+}
+
+function extractToc(headings: ParsedHeading[]): TocItem[] {
+  return headings.map(({ level, text, id }) => ({ level, text, id }));
 }
 
 // ─── Markdown'ı bölümlere ayır ────────────────────────────────────────────────
 interface MdSection {
   id: string;
   level: number;        // 1-6
-  headingText: string;  // plain text
-  headingMd: string;    // orijinal #...# satırı (ReactMarkdown ile render edilecek)
+  headingText: string;      // TOC/slug/accessibility için plain text
+  headingInlineMd: string;  // başlığın # işaretleri hariç orijinal inline Markdown içeriği
+  headingMd: string;        // orijinal #...# satırı
   body: string;         // bu başlıktan sonraki, bir sonraki başlığa kadar olan içerik
 }
 
-function splitSections(markdown: string): { preamble: string; sections: MdSection[] } {
+function splitSections(markdown: string, headings: ParsedHeading[]): { preamble: string; sections: MdSection[] } {
   const lines = markdown.split("\n");
+  const headingByLine = new Map(headings.map((heading) => [heading.lineIndex, heading]));
   const sections: MdSection[] = [];
   let preamble = "";
   let current: MdSection | null = null;
-  const ids = new Map<string, number>();
 
-  for (const line of lines) {
-    const m = /^(#{1,6})\s+(.+)$/.exec(line);
-    if (m) {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
+    const heading = headingByLine.get(lineIndex);
+
+    if (heading) {
       if (current) sections.push(current);
-      const level = m[1].length;
-      const headingText = m[2].replace(/[*_`~[\]()]/g, "").trim();
-      const base = slugify(headingText) || "section";
-      const count = (ids.get(base) ?? 0) + 1;
-      ids.set(base, count);
-      const id = count === 1 ? base : `${base}-${count}`;
-      current = { id, level, headingText, headingMd: line, body: "" };
+      current = {
+        id: heading.id,
+        level: heading.level,
+        headingText: heading.text,
+        headingInlineMd: heading.inlineMd,
+        headingMd: heading.sourceLine,
+        body: "",
+      };
     } else {
       if (current) current.body += line + "\n";
       else preamble += line + "\n";
     }
   }
+
   if (current) sections.push(current);
   return { preamble, sections };
 }
 
 // ─── Parent zinciri hesapla ───────────────────────────────────────────────────
-function computeParentIds(sections: MdSection[]): (string | null)[] {
-  return sections.map((sec, i) => {
-    for (let j = i - 1; j >= 0; j--) {
-      if (sections[j].level < sec.level) return sections[j].id;
+function computeParentMap(sections: MdSection[]): Map<string, string | null> {
+  const parentMap = new Map<string, string | null>();
+  const stack: MdSection[] = [];
+
+  for (const section of sections) {
+    while (stack.length > 0 && stack[stack.length - 1].level >= section.level) {
+      stack.pop();
     }
-    return null;
-  });
+
+    parentMap.set(section.id, stack.length > 0 ? stack[stack.length - 1].id : null);
+    stack.push(section);
+  }
+
+  return parentMap;
 }
 
 function isAncestorCollapsed(
   sectionId: string,
-  sections: MdSection[],
-  parentIds: (string | null)[],
+  parentMap: Map<string, string | null>,
   collapsed: Set<string>
 ): boolean {
-  const idx = sections.findIndex((s) => s.id === sectionId);
-  if (idx === -1) return false;
-  const parentId = parentIds[idx];
-  if (!parentId) return false;
-  if (collapsed.has(parentId)) return true;
-  return isAncestorCollapsed(parentId, sections, parentIds, collapsed);
+  let parentId = parentMap.get(sectionId) ?? null;
+
+  while (parentId) {
+    if (collapsed.has(parentId)) return true;
+    parentId = parentMap.get(parentId) ?? null;
+  }
+
+  return false;
 }
 
 // ─── Kod Bloğu ───────────────────────────────────────────────────────────────
@@ -107,15 +194,49 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
     try { await navigator.clipboard.writeText(code.trim()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
   return (
-    <div className="group relative my-5 overflow-hidden rounded-xl border border-border/60 bg-zinc-950/80 shadow-md dark:bg-zinc-900/80">
+    <div className={`${styles.codeBlock} group relative overflow-hidden rounded-xl border border-border/60 bg-zinc-950/80 shadow-md dark:bg-zinc-900/80`}>
       <div className="flex items-center justify-between border-b border-border/40 bg-zinc-900/60 px-4 py-2">
         <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{lang || "kod"}</span>
-        <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-border/40 bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 opacity-0 transition-all hover:border-amber-500/40 hover:text-amber-400 group-hover:opacity-100">
+        <button type="button" onClick={handleCopy} aria-label="Kod bloğunu kopyala" className={`${styles.codeCopyButton} flex items-center gap-1.5 rounded-lg border border-border/40 bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400`}>
           {copied ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Kopyalandı</span></> : <><Copy className="h-3 w-3" /><span>Kopyala</span></>}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4"><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
+      <pre className={`${styles.codePre} overflow-x-auto p-4`}><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
     </div>
+  );
+}
+
+const MARKDOWN_REMARK_PLUGINS: NonNullable<React.ComponentProps<typeof ReactMarkdown>["remarkPlugins"]> = [
+  remarkGfm,
+  remarkMath,
+];
+
+const MARKDOWN_REHYPE_PLUGINS: NonNullable<React.ComponentProps<typeof ReactMarkdown>["rehypePlugins"]> = [
+  [rehypeKatex, { throwOnError: false, strict: "warn" }],
+];
+
+function MarkdownContent({
+  markdown,
+  components,
+  inline = false,
+}: {
+  markdown: string;
+  components: Components;
+  inline?: boolean;
+}) {
+  const renderComponents = inline
+    ? { ...components, p: ({ children }: { children?: React.ReactNode }) => <>{children}</> }
+    : components;
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+      rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
+      skipHtml={true}
+      components={renderComponents}
+    >
+      {markdown}
+    </ReactMarkdown>
   );
 }
 
@@ -123,42 +244,44 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
 function buildComponents(): Components {
   return {
     // Body içindeki başlıklar (iç içe markdown varsa — normalde body'de heading olmaz ama fallback)
-    h1: ({ children }) => <p className="text-3xl font-bold text-foreground my-3">{children}</p>,
-    h2: ({ children }) => <p className="text-2xl font-bold text-foreground my-3">{children}</p>,
-    h3: ({ children }) => <p className="text-xl font-bold text-foreground my-2">{children}</p>,
-    h4: ({ children }) => <p className="text-lg font-semibold text-foreground my-2">{children}</p>,
-    p: ({ children }) => <p className="my-3.5 leading-7 text-foreground/90">{children}</p>,
+    h1: ({ children }) => <h1 className={`${styles.fallbackHeading} ${styles.headingLevel1}`}>{children}</h1>,
+    h2: ({ children }) => <h2 className={`${styles.fallbackHeading} ${styles.headingLevel2}`}>{children}</h2>,
+    h3: ({ children }) => <h3 className={`${styles.fallbackHeading} ${styles.headingLevel3}`}>{children}</h3>,
+    h4: ({ children }) => <h4 className={`${styles.fallbackHeading} ${styles.headingLevel4}`}>{children}</h4>,
+    h5: ({ children }) => <h5 className={`${styles.fallbackHeading} ${styles.headingLevel5}`}>{children}</h5>,
+    h6: ({ children }) => <h6 className={`${styles.fallbackHeading} ${styles.headingLevel6}`}>{children}</h6>,
+    p: ({ children }) => <p className={`${styles.paragraph} text-foreground/90`}>{children}</p>,
     a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="font-medium text-amber-600 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-500 dark:text-amber-400">{children}</a>,
     code: ({ children, className }) => {
       if (className?.startsWith("language-")) return <CodeBlock className={className}>{children}</CodeBlock>;
-      return <code className="rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-amber-600 dark:text-amber-400">{children}</code>;
+      return <code className={`${styles.inlineCode} rounded-md border border-amber-500/20 bg-amber-500/10 font-mono font-medium text-amber-600 dark:text-amber-400`}>{children}</code>;
     },
     pre: ({ children }) => <>{children}</>,
-    blockquote: ({ children }) => <blockquote className="my-5 border-l-4 border-amber-500/60 bg-amber-500/5 py-3 pl-5 pr-4 rounded-r-xl italic text-muted-foreground">{children}</blockquote>,
-    ul: ({ children }) => <ul className="my-3.5 ml-2 space-y-2 list-none">{children}</ul>,
-    ol: ({ children }) => <ol className="my-3.5 ml-6 list-decimal space-y-2">{children}</ol>,
+    blockquote: ({ children }) => <blockquote className={`${styles.blockquote} border-l-4 border-amber-500/60 bg-amber-500/5 rounded-r-xl italic text-muted-foreground`}>{children}</blockquote>,
+    ul: ({ children }) => <ul className={`${styles.unorderedList} list-none`}>{children}</ul>,
+    ol: ({ children }) => <ol className={`${styles.orderedList} list-none`}>{children}</ol>,
     li: ({ children }) => (
-      <li className="flex items-start gap-2.5 leading-6 text-foreground/90">
-        <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500/70" />
-        <span className="flex-1 min-w-0">{children}</span>
+      <li className={`${styles.listItem} flex items-start text-foreground/90`}>
+        <span className={styles.listMarker} aria-hidden="true" />
+        <span className="min-w-0 flex-1">{children}</span>
       </li>
     ),
     input: ({ type, checked }) => {
       if (type !== "checkbox") return null;
       return <span className={`mr-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border align-middle ${checked ? "border-amber-500 bg-amber-500 text-zinc-950" : "border-border/70 bg-secondary/30"}`}>{checked && <Check className="h-3 w-3" />}</span>;
     },
-    hr: () => <hr className="my-8 border-0 border-t border-border/60" />,
-    table: ({ children }) => <div className="my-6 overflow-x-auto rounded-xl border border-border/60 shadow-sm"><table className="w-full border-collapse text-sm">{children}</table></div>,
-    thead: ({ children }) => <thead className="border-b border-border/60 bg-secondary/60 text-xs font-bold uppercase tracking-wider text-muted-foreground">{children}</thead>,
+    hr: () => <hr className={`${styles.rule} border-0 border-t border-border/60`} />,
+    table: ({ children }) => <div className={`${styles.tableWrap} overflow-x-auto rounded-xl border border-border/60 shadow-sm`}><table className={`${styles.table} w-full border-collapse`}>{children}</table></div>,
+    thead: ({ children }) => <thead className={`${styles.tableHead} border-b border-border/60 bg-secondary/60 font-bold uppercase text-muted-foreground`}>{children}</thead>,
     tbody: ({ children }) => <tbody className="divide-y divide-border/40">{children}</tbody>,
     tr: ({ children }) => <tr className="transition-colors hover:bg-amber-500/5">{children}</tr>,
-    th: ({ children }) => <th className="px-4 py-3 text-left font-bold">{children}</th>,
-    td: ({ children }) => <td className="px-4 py-3 text-foreground/85">{children}</td>,
+    th: ({ children }) => <th className={`${styles.tableHeader} text-left font-bold`}>{children}</th>,
+    td: ({ children }) => <td className={`${styles.tableCell} text-foreground/85`}>{children}</td>,
     strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
     em: ({ children }) => <em className="italic text-foreground/90">{children}</em>,
     del: ({ children }) => <del className="text-muted-foreground line-through">{children}</del>,
     img: ({ src, alt }) => (
-      <span className="my-5 block">
+      <span className={`${styles.imageWrap} block`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt ?? ""} className="max-w-full rounded-xl border border-border/60 shadow-md" loading="lazy" />
         {alt && <span className="mt-2 block text-center text-xs italic text-muted-foreground">{alt}</span>}
@@ -169,13 +292,31 @@ function buildComponents(): Components {
 
 // ─── Collapsible Heading başlık elemanı ──────────────────────────────────────
 const HEADING_STYLES: Record<number, string> = {
-  1: "text-3xl font-bold border-b border-border/60 pb-3 mt-8 mb-1",
-  2: "text-2xl font-bold border-b border-border/40 pb-2 mt-7 mb-1",
-  3: "text-xl font-bold mt-6 mb-1",
-  4: "text-lg font-semibold mt-5 mb-1",
-  5: "text-base font-semibold text-muted-foreground mt-4 mb-0.5",
-  6: "text-sm font-semibold uppercase tracking-wider text-muted-foreground mt-3 mb-0.5",
+  1: styles.headingLevel1,
+  2: styles.headingLevel2,
+  3: styles.headingLevel3,
+  4: styles.headingLevel4,
+  5: styles.headingLevel5,
+  6: styles.headingLevel6,
 };
+
+function SectionHeadingText({
+  level,
+  children,
+}: {
+  level: number;
+  children: React.ReactNode;
+}) {
+  const className = "min-w-0 flex-1 text-foreground";
+  switch (level) {
+    case 1: return <h1 className={className}>{children}</h1>;
+    case 2: return <h2 className={className}>{children}</h2>;
+    case 3: return <h3 className={className}>{children}</h3>;
+    case 4: return <h4 className={className}>{children}</h4>;
+    case 5: return <h5 className={className}>{children}</h5>;
+    default: return <h6 className={className}>{children}</h6>;
+  }
+}
 
 function CollapsibleSection({
   section,
@@ -194,34 +335,38 @@ function CollapsibleSection({
 
   const headingStyle = HEADING_STYLES[section.level] ?? HEADING_STYLES[6];
   const hasBody = section.body.trim().length > 0;
-  const indent = (section.level - 1) * 12; // px, görsel hiyerarşi ipucu
+  const bodyId = `${section.id}-content`;
 
   return (
-    <div style={{ paddingLeft: section.level > 1 ? `${indent}px` : undefined }}>
+    <section className={styles.section} data-md-section-level={section.level}>
       {/* Başlık + Chevron */}
       <div
         id={section.id}
-        className={`group scroll-mt-20 flex items-center gap-1.5 ${headingStyle} ${hasBody ? "cursor-pointer select-none" : ""}`}
+        className={`${styles.heading} group scroll-mt-20 flex items-center gap-1.5 ${headingStyle} ${hasBody ? "cursor-pointer select-none" : ""}`}
+        data-md-heading-level={section.level}
         onClick={hasBody ? onToggle : undefined}
         role={hasBody ? "button" : undefined}
         tabIndex={hasBody ? 0 : undefined}
         onKeyDown={hasBody ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } } : undefined}
         aria-expanded={hasBody ? !isCollapsed : undefined}
+        aria-controls={hasBody ? bodyId : undefined}
       >
         {/* Chevron butonu */}
         {hasBody ? (
-          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-all duration-200 group-hover:bg-secondary/60 group-hover:text-amber-500 ${isCollapsed ? "" : "rotate-0"}`}>
+          <span className={`${styles.headingChevron} flex shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-colors duration-150 group-hover:bg-secondary/60 group-hover:text-amber-500`}>
             {isCollapsed
               ? <ChevronRight className="h-4 w-4" />
               : <ChevronDown className="h-4 w-4" />
             }
           </span>
         ) : (
-          <span className="h-5 w-5 shrink-0" />
+          <span className={styles.headingChevron} aria-hidden="true" />
         )}
 
-        {/* Başlık metni */}
-        <span className="flex-1 text-foreground">{section.headingText}</span>
+        {/* Başlık metni — semantic heading + inline Markdown + matematik destekli */}
+        <SectionHeadingText level={section.level}>
+          <MarkdownContent markdown={section.headingInlineMd} components={components} inline />
+        </SectionHeadingText>
 
         {/* Gizlendi etiketi */}
         {isCollapsed && hasBody && (
@@ -231,19 +376,13 @@ function CollapsibleSection({
         )}
       </div>
 
-      {/* İçerik — collapse animasyonu */}
-      {hasBody && (
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? "max-h-0 opacity-0" : "max-h-[9999px] opacity-100"}`}
-        >
-          <div className={`pt-1 ${section.level > 1 ? "border-l-2 border-border/30 pl-4 ml-2" : ""}`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components}>
-              {section.body}
-            </ReactMarkdown>
-          </div>
+      {/* İçerik — sabit max-height yerine yalnızca açıkken DOM'a girer. */}
+      {hasBody && !isCollapsed && (
+        <div id={bodyId} className={styles.sectionBody}>
+          <MarkdownContent markdown={section.body} components={components} />
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -278,12 +417,26 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const [copied, setCopied] = useState<boolean>(false);
   const [showToc, setShowToc] = useState<boolean>(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [fontScale, setFontScale] = useState<number>(READER_FONT_SCALE_DEFAULT);
+  const [fontPrefsReady, setFontPrefsReady] = useState<boolean>(false);
+  const [showReaderSettings, setShowReaderSettings] = useState<boolean>(false);
 
-  const components = useCallback(() => buildComponents(), []);
-  const toc = useMemo(() => extractToc(content), [content]);
-  const { preamble, sections } = useMemo(() => splitSections(content), [content]);
-  const parentIds = useMemo(() => computeParentIds(sections), [sections]);
+  const components = useMemo(() => buildComponents(), []);
+  const parsedHeadings = useMemo(() => scanMarkdownHeadings(content), [content]);
+  const toc = useMemo(() => extractToc(parsedHeadings), [parsedHeadings]);
+  const { preamble, sections } = useMemo(
+    () => splitSections(content, parsedHeadings),
+    [content, parsedHeadings]
+  );
+  const parentMap = useMemo(() => computeParentMap(sections), [sections]);
   const wordCount = content.split(/\s+/).filter(Boolean).length;
+  const fontScalePercent = Math.round(fontScale * 100);
+  const canDecreaseFont = fontScale > READER_FONT_SCALE_MIN;
+  const canIncreaseFont = fontScale < READER_FONT_SCALE_MAX;
+  const readerStyle = useMemo(
+    () => ({ "--md-font-scale": String(fontScale) } as React.CSSProperties),
+    [fontScale]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -295,9 +448,49 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
     return () => { isMounted = false; };
   }, [accessUrl]);
 
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(READER_PREFS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { fontScale?: unknown };
+        if (typeof parsed.fontScale === "number" && Number.isFinite(parsed.fontScale)) {
+          setFontScale(normalizeReaderFontScale(parsed.fontScale));
+        }
+      }
+    } catch {
+      // Geçersiz/eski preference okuyucuyu bozmamalı.
+    } finally {
+      setFontPrefsReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!fontPrefsReady) return;
+    try {
+      window.localStorage.setItem(
+        READER_PREFS_STORAGE_KEY,
+        JSON.stringify({ fontScale: normalizeReaderFontScale(fontScale) })
+      );
+    } catch {
+      // Private mode / storage engeli okuyucuyu bozmamalı.
+    }
+  }, [fontPrefsReady, fontScale]);
+
+  useEffect(() => {
+    if (mode !== "preview") setShowReaderSettings(false);
+  }, [mode]);
+
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(content); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
+
+  const changeFontScale = useCallback((delta: number) => {
+    setFontScale((current) => normalizeReaderFontScale(current + delta));
+  }, []);
+
+  const resetFontScale = useCallback(() => {
+    setFontScale(READER_FONT_SCALE_DEFAULT);
+  }, []);
 
   const toggleSection = useCallback((id: string) => {
     setCollapsed((prev) => {
@@ -313,7 +506,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
       {/* Araç Çubuğu */}
-      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-4 py-1.5 text-xs backdrop-blur-md">
+      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-3 py-1 text-xs backdrop-blur-md sm:px-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner">
             {(["preview", "raw", ...(onContentChange ? ["edit"] : [])] as const).map((m) => (
@@ -347,14 +540,119 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-1.5 sm:gap-2">
           {!loading && content && (
-            <span className="hidden sm:block font-mono text-[11px] text-muted-foreground">
+            <span className="hidden xl:block font-mono text-[11px] text-muted-foreground">
               {wordCount} kelime · {toc.length} başlık
             </span>
           )}
+
+          {mode === "preview" && (
+            <>
+              {/* Telefon/tablet: tek Aa düğmesi; panel içinde A− / A+ / reset. */}
+              <button
+                type="button"
+                onClick={() => setShowReaderSettings((value) => !value)}
+                className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-border/80 bg-background/80 px-2 text-[13px] font-bold text-foreground shadow-sm transition-colors hover:bg-secondary lg:hidden"
+                aria-label="Yazı boyutu ayarları"
+                aria-expanded={showReaderSettings}
+                aria-controls="markdown-reader-font-settings"
+              >
+                Aa
+              </button>
+
+              {showReaderSettings && (
+                <div
+                  id="markdown-reader-font-settings"
+                  data-testid="markdown-font-settings"
+                  role="dialog"
+                  aria-label="Markdown yazı boyutu"
+                  className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-3 shadow-2xl lg:hidden"
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setShowReaderSettings(false);
+                  }}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">Yazı Boyutu</span>
+                    <span className="font-mono text-[11px] text-muted-foreground" aria-live="polite">
+                      {fontScalePercent}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
+                      disabled={!canDecreaseFont}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Yazıyı küçült"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetFontScale}
+                      className="inline-flex h-11 items-center justify-center gap-1 rounded-xl border border-border/80 bg-background px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                      aria-label="Yazı boyutunu yüzde 100 yap"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      100%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
+                      disabled={!canIncreaseFont}
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label="Yazıyı büyüt"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+                    Tercih bu cihazda hatırlanır.
+                  </p>
+                </div>
+              )}
+
+              {/* Geniş ekran: kontroller toolbar üzerinde doğrudan görünür. */}
+              <div className="hidden items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner lg:flex" aria-label="Yazı boyutu">
+                <button
+                  type="button"
+                  onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
+                  disabled={!canDecreaseFont}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Yazıyı küçült"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetFontScale}
+                  className="h-8 min-w-12 rounded-lg px-1.5 font-mono text-[11px] font-semibold text-foreground transition-colors hover:bg-secondary"
+                  aria-label="Yazı boyutunu yüzde 100 yap"
+                  title="Varsayılan yazı boyutuna dön"
+                >
+                  {fontScalePercent}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
+                  disabled={!canIncreaseFont}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="Yazıyı büyüt"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Mobilde kopyala icon-only tutularak Aa için alan bırakılır. */}
           <StudioCommandButton commandId="text.copy" onClick={handleCopy} disabled={loading || !content}
-            size="sm" variant="outline" className="h-8 gap-1.5 px-3 text-xs rounded-xl border-border/80 hover:bg-secondary"
+            size="sm" variant="outline" className="h-10 min-w-10 gap-1.5 rounded-xl border-border/80 px-2 hover:bg-secondary sm:hidden"
+            icon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-amber-500" />}
+            label={copied ? "Kopyalandı" : "Kopyala"} showLabel={false} />
+          <StudioCommandButton commandId="text.copy" onClick={handleCopy} disabled={loading || !content}
+            size="sm" variant="outline" className="hidden h-8 gap-1.5 rounded-xl border-border/80 px-3 text-xs hover:bg-secondary sm:inline-flex"
             icon={copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 text-amber-500" />}
             label={copied ? "Kopyalandı" : "Kopyala"} showLabel={true} />
         </div>
@@ -389,10 +687,10 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
             </div>
           )}
           {!loading && !error && mode === "preview" && (
-            <div className="px-5 py-8 sm:px-10 sm:py-10">
-              <article className="mx-auto max-w-5xl">
+            <div className={styles.readerViewport}>
+              <article className={styles.reader} style={readerStyle} data-testid="markdown-reader" data-font-scale={fontScalePercent}>
                 {/* Dosya meta kartı */}
-                <div className="mb-8 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3.5">
+                <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5`}>
                   <FileText className="h-5 w-5 shrink-0 text-amber-500" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
@@ -404,10 +702,8 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
 
                 {/* Başlık öncesi içerik (varsa) */}
                 {preamble.trim() && (
-                  <div className="mb-6">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml={true} components={components()}>
-                      {preamble}
-                    </ReactMarkdown>
+                  <div className={styles.preamble}>
+                    <MarkdownContent markdown={preamble} components={components} />
                   </div>
                 )}
 
@@ -418,9 +714,9 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                       key={section.id}
                       section={section}
                       isCollapsed={collapsed.has(section.id)}
-                      isHidden={isAncestorCollapsed(section.id, sections, parentIds, collapsed)}
+                      isHidden={isAncestorCollapsed(section.id, parentMap, collapsed)}
                       onToggle={() => toggleSection(section.id)}
-                      components={components()}
+                      components={components}
                     />
                   ))}
                 </div>

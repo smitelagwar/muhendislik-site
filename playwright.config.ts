@@ -57,6 +57,7 @@ export default defineConfig({
         "**/cad-stage6-area-measurement.spec.ts",
         "**/cad-stage7-layer-mobile-ux.spec.ts",
         "**/cad-perf-baseline.spec.ts",
+        "**/markdown-reader.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },

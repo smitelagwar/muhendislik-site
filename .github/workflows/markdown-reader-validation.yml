@@ -1,0 +1,66 @@
+name: markdown-reader-validation
+
+on:
+  pull_request:
+    paths:
+      - "src/components/dokumantasyon/preview/markdown-viewer.tsx"
+      - "src/components/dokumantasyon/preview/markdown-reader.module.css"
+      - "src/app/globals.css"
+      - "tests/document-studio/markdown-reader.spec.ts"
+      - "tests/fixtures/markdown/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/markdown-reader-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: markdown-reader-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint Markdown Reader scope
+        run: npx eslint src/components/dokumantasyon/preview/markdown-viewer.tsx tests/document-studio/markdown-reader.spec.ts playwright.config.ts
+
+      - name: Typecheck deployable runtime
+        run: npx tsc --noEmit --incremental false -p tsconfig.next.json
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Markdown Reader acceptance tests
+        run: npm run check:markdown-reader
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Playwright evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: markdown-reader-test-evidence
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
