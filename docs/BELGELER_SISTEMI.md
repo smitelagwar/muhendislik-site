@@ -14,7 +14,7 @@ Sistem, kullanıcıların resmi mühendislik evraklarını tarayıcı üzerinden
 ```
 ┌────────────────────────────────────────────────────────┐
 │                   /belgeler Sayfası                    │
-│   (Kategori Filtreleme + Arama + Belge Kartları)       │
+│   (Arama + Belge Kartları)       │
 └───────────────────────────┬────────────────────────────┘
                             │
                             ▼

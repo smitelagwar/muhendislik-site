@@ -10,13 +10,10 @@ import {
   FileCheck2,
   FilePenLine,
   FileSignature,
-  FileText,
   Search,
-  Sparkles,
   X,
 } from "lucide-react";
 import {
-  DOCUMENT_CATEGORIES,
   DOCUMENTS,
   type DocumentCategory,
   type DocumentItem,
@@ -167,33 +164,15 @@ function DocumentCard({
 }
 
 export function BelgelerHub() {
-  const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputId = useId();
-
-  const categoryCounts = useMemo(() => {
-    return DOCUMENT_CATEGORIES.reduce<Record<DocumentCategory, number>>(
-      (counts, category) => {
-        counts[category.id] =
-          category.id === "all"
-            ? DOCUMENTS.length
-            : DOCUMENTS.filter((document) => document.category === category.id).length;
-        return counts;
-      },
-      { all: 0, "santiye-tutanak": 0, taahhutname: 0, dilekce: 0, sozlesme: 0 },
-    );
-  }, []);
 
   const filteredDocuments = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase("tr-TR");
 
+    if (!query) return DOCUMENTS;
+
     return DOCUMENTS.filter((document) => {
-      const categoryMatches =
-        selectedCategory === "all" || document.category === selectedCategory;
-
-      if (!categoryMatches) return false;
-      if (!query) return true;
-
       const searchableText = [
         document.title,
         document.subtitle,
@@ -210,130 +189,52 @@ export function BelgelerHub() {
 
       return searchableText.includes(query);
     });
-  }, [searchQuery, selectedCategory]);
-
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory("all");
-  };
+  }, [searchQuery]);
 
   return (
-    <section
-      id="belge-arsivi"
-      aria-labelledby="belge-arsivi-baslik"
-      className="scroll-mt-24"
-    >
-      <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-12 lg:py-20 xl:px-16">
-        {/* Section Header */}
-        <div className="flex flex-col gap-5 border-b border-black/5 pb-8 dark:border-white/[0.08] lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div
-              className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 shadow-sm backdrop-blur-md dark:border-amber-400/35 dark:bg-white/[0.08]"
+    <section aria-label="Belge arama ve listesi">
+      <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
+        <div className="relative">
+          <label htmlFor={searchInputId} className="sr-only">
+            Belge veya şablon ara
+          </label>
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            id={searchInputId}
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Belge adı, tutanak, taahhütname veya anahtar kelime ara..."
+            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-11 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-all focus:border-amber-500/60 focus:bg-white focus:shadow-md dark:border-white/15 dark:bg-white/[0.06] dark:focus:bg-white/[0.1] dark:focus:shadow-[0_0_24px_rgba(245,158,11,0.2)]"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label="Aramayı temizle"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
-                Belge Kütüphanesi
-              </span>
-            </div>
-            <h2
-              id="belge-arsivi-baslik"
-              className="mt-4 text-3xl font-black tracking-[-0.035em] text-foreground sm:text-4xl lg:text-5xl"
-            >
-              İhtiyacınız olan belgeyi bulun
-            </h2>
-          </div>
-          <p className="max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
-            Şablonu doğrudan indirebilir veya canlı stüdyoda doldurarak resmi belgeyi imza ve teslim sürecine saniyeler içinde hazırlayabilirsiniz.
-          </p>
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
 
-        {/* ─── Search + Filter Panel ─── */}
-        <div className="mt-8 rounded-[28px] border border-black/5 bg-white/75 p-5 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl sm:p-6">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <div className="relative">
-              <label htmlFor={searchInputId} className="sr-only">
-                Belge veya şablon ara
-              </label>
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                id={searchInputId}
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Belge adı, tutanak, taahhütname veya anahtar kelime ara..."
-                className="h-13 w-full rounded-2xl border border-black/10 bg-black/[0.03] pl-11 pr-11 text-sm text-foreground placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-all focus:border-amber-500/60 focus:bg-white focus:shadow-md dark:border-white/15 dark:bg-white/[0.06] dark:focus:bg-white/[0.1] dark:focus:shadow-[0_0_24px_rgba(245,158,11,0.25)]"
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                  aria-label="Aramayı temizle"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              ) : null}
-            </div>
-
-            <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span aria-live="polite">{filteredDocuments.length} belge listeleniyor</span>
-            </div>
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="mt-5 flex gap-2.5 overflow-x-auto border-t border-black/5 pt-4 dark:border-white/[0.08] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {DOCUMENT_CATEGORIES.map((category) => {
-              const isSelected = selectedCategory === category.id;
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setSelectedCategory(category.id)}
-                  aria-pressed={isSelected}
-                  className={`inline-flex min-h-10 shrink-0 items-center gap-2.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
-                    isSelected
-                      ? "border border-amber-500/50 bg-amber-500/15 text-amber-700 shadow-sm dark:border-amber-400/50 dark:bg-amber-500/20 dark:text-amber-300"
-                      : "border border-black/5 bg-black/[0.03] text-muted-foreground hover:border-black/15 hover:bg-black/[0.06] hover:text-foreground dark:border-white/10 dark:bg-white/[0.05] dark:text-white/70 dark:hover:border-white/20 dark:hover:bg-white/[0.1] dark:hover:text-white"
-                  }`}
-                >
-                  {category.label}
-                  <span
-                    className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold ${
-                      isSelected
-                        ? "bg-amber-500/20 text-amber-800 dark:bg-amber-400/30 dark:text-amber-200"
-                        : "bg-black/5 text-muted-foreground dark:bg-white/10 dark:text-white/70"
-                    }`}
-                  >
-                    {categoryCounts[category.id]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ─── Document Cards Grid ─── */}
         {filteredDocuments.length > 0 ? (
-          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filteredDocuments.map((document) => (
               <DocumentCard key={document.id} document={document} />
             ))}
           </div>
         ) : (
-          <div className="mt-8 rounded-[28px] border border-black/5 bg-white/75 px-6 py-16 text-center shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl">
-            <Search className="mx-auto h-10 w-10 text-muted-foreground/50" />
-            <h3 className="mt-5 text-xl font-black text-foreground">Eşleşen belge bulunamadı</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-              Arama ifadenizi değiştirin veya tüm belge kategorilerini görüntüleyin.
-            </p>
+          <div className="mt-8 rounded-[24px] border border-black/5 bg-white/60 px-6 py-12 text-center dark:border-white/10 dark:bg-white/[0.03]">
+            <Search className="mx-auto h-9 w-9 text-muted-foreground/50" />
+            <h2 className="mt-4 text-lg font-black text-foreground">Eşleşen belge bulunamadı</h2>
             <button
               type="button"
-              onClick={clearFilters}
-              className="mt-6 inline-flex min-h-10 items-center gap-2 rounded-full border border-black/10 bg-black/[0.04] px-5 py-2.5 text-sm font-bold text-foreground shadow-sm backdrop-blur-md transition-all hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-white/10 dark:bg-white/[0.06] dark:hover:border-amber-400/40 dark:hover:bg-amber-500/20 dark:hover:text-amber-300"
+              onClick={() => setSearchQuery("")}
+              className="mt-5 inline-flex min-h-10 items-center rounded-full border border-black/10 bg-black/[0.04] px-5 py-2.5 text-sm font-bold text-foreground transition hover:border-amber-500/40 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-white/10 dark:bg-white/[0.06] dark:hover:border-amber-400/40 dark:hover:bg-amber-500/20"
             >
-              Filtreleri Temizle
-              <ArrowRight className="h-4 w-4" />
+              Aramayı temizle
             </button>
           </div>
         )}
@@ -341,4 +242,3 @@ export function BelgelerHub() {
     </section>
   );
 }
-
