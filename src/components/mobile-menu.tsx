@@ -3,28 +3,30 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Calculator,
   ChevronRight,
   FileDown,
-  FileText,
   FolderArchive,
-  HardHat,
+  Home,
   Mail,
   Menu,
+  Scale,
+  Wrench,
   X,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { PortalOverlay } from "@/components/portal-overlay";
 import { SiteLogo } from "@/components/site-logo";
 import { Button } from "@/components/ui/button";
-import { MOBILE_NAV_ITEMS } from "@/lib/navigation-config";
+import { MOBILE_NAV_ITEMS, isNavigationItemActive } from "@/lib/navigation-config";
 
 const MOBILE_ICONS: Record<string, ReactNode> = {
-  home: <FileText className="h-5 w-5" />,
-  "deprem-yonetmelik": <HardHat className="h-5 w-5" />,
+  home: <Home className="h-5 w-5" />,
+  "deprem-yonetmelik": <Scale className="h-5 w-5" />,
   hesaplamalar: <Calculator className="h-5 w-5" />,
-  araclar: <Calculator className="h-5 w-5" />,
+  araclar: <Wrench className="h-5 w-5" />,
   belgeler: <FileDown className="h-5 w-5" />,
   dokumantasyon: <FolderArchive className="h-5 w-5" />,
   iletisim: <Mail className="h-5 w-5" />,
@@ -32,9 +34,9 @@ const MOBILE_ICONS: Record<string, ReactNode> = {
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
 
   const toggleMenu = () => setIsOpen((current) => !current);
-
 
   return (
     <div>
@@ -50,9 +52,9 @@ export function MobileMenu() {
       </Button>
 
       <PortalOverlay isOpen={isOpen} onClose={toggleMenu}>
-        <div 
-          onClick={toggleMenu} 
-          className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md transition-opacity duration-300" 
+        <div
+          onClick={toggleMenu}
+          className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md transition-opacity duration-300"
         />
 
         <div
@@ -67,22 +69,46 @@ export function MobileMenu() {
           </div>
 
           <div className="flex-grow overflow-y-auto px-4 py-6">
-            <div className="space-y-2">
-              {MOBILE_NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={toggleMenu}
-                  className="group flex min-h-12 items-center justify-between rounded-md border border-border bg-card/75 p-3 transition-colors hover:border-amber-500/35 hover:bg-card"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-muted-foreground transition-colors group-hover:text-primary">{MOBILE_ICONS[item.id]}</div>
-                    <span className="font-medium text-foreground">{item.label}</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                </Link>
-              ))}
-            </div>
+            <nav aria-label="Mobil menü" className="space-y-2">
+              {MOBILE_NAV_ITEMS.map((item) => {
+                const isActive = isNavigationItemActive(pathname, item);
+
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    data-testid="mobile-menu-item"
+                    data-nav-id={item.id}
+                    data-active={isActive ? "true" : "false"}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={toggleMenu}
+                    className={`group flex min-h-12 items-center justify-between rounded-md border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/55 ${
+                      isActive
+                        ? "border-amber-500/45 bg-amber-500/10 text-foreground"
+                        : "border-border bg-card/75 hover:border-amber-500/35 hover:bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`transition-colors ${
+                          isActive ? "text-amber-600 dark:text-amber-300" : "text-muted-foreground group-hover:text-primary"
+                        }`}
+                      >
+                        {MOBILE_ICONS[item.id]}
+                      </div>
+                      <span className={isActive ? "font-semibold text-foreground" : "font-medium text-foreground"}>
+                        {item.label}
+                      </span>
+                    </div>
+                    <ChevronRight
+                      className={`h-4 w-4 transition-colors ${
+                        isActive ? "text-amber-600 dark:text-amber-300" : "text-muted-foreground group-hover:text-primary"
+                      }`}
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
           <div className="flex items-center justify-between border-t border-border bg-background p-6">

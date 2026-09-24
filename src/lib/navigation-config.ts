@@ -39,7 +39,7 @@ export const PRIMARY_NAV_ITEMS: SiteNavigationItem[] = [
   },
   {
     id: "dokumantasyon",
-    label: "Dökümantasyon",
+    label: "Dokümantasyon",
     href: "/dokumantasyon",
     matchPrefixes: ["/dokumantasyon"],
     iconKey: "folder-archive",
@@ -56,21 +56,14 @@ export const MOBILE_NAV_ITEMS: SiteNavigationItem[] = [
   },
 ];
 
-export const BOTTOM_NAV_ITEMS: SiteNavigationItem[] = [
-  PRIMARY_NAV_ITEMS[0],
-  PRIMARY_NAV_ITEMS[3],
-  {
-    id: "iletisim",
-    label: "İletişim",
-    href: "/iletisim",
-    matchPrefixes: ["/iletisim"],
-  },
-];
+const BOTTOM_NAV_IDS = new Set(["home", "araclar", "belgeler", "dokumantasyon"]);
+
+export const BOTTOM_NAV_ITEMS: SiteNavigationItem[] = PRIMARY_NAV_ITEMS.filter((item) =>
+  BOTTOM_NAV_IDS.has(item.id),
+);
 
 export function isNavigationItemActive(pathname: string, item: SiteNavigationItem) {
   return item.matchPrefixes.some((prefix) =>
     prefix === "/" ? pathname === "/" : pathname.startsWith(prefix),
   );
 }
-
-

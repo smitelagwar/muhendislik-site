@@ -252,6 +252,11 @@ function checkRetiredSurfaceProblems(problems: Problem[]) {
 }
 
 function checkNavigationProblems(problems: Problem[]) {
+  const expectedNavIds = {
+    "primary-nav": ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "belgeler", "dokumantasyon"],
+    "mobile-nav": ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "belgeler", "dokumantasyon", "iletisim"],
+    "bottom-nav": ["home", "araclar", "belgeler", "dokumantasyon"],
+  } as const;
   const navGroups = [
     ["primary-nav", PRIMARY_NAV_ITEMS],
     ["mobile-nav", MOBILE_NAV_ITEMS],
@@ -259,7 +264,16 @@ function checkNavigationProblems(problems: Problem[]) {
   ] as const;
 
   for (const [label, items] of navGroups) {
-    assertUnique(items.map((item) => item.id), `${label}:id`, problems);
+    const actualIds = items.map((item) => item.id);
+    if (JSON.stringify(actualIds) !== JSON.stringify(expectedNavIds[label])) {
+      addProblem(
+        problems,
+        label,
+        `unexpected navigation order: ${actualIds.join(" > ")}`,
+      );
+    }
+
+    assertUnique(actualIds, `${label}:id`, problems);
     assertUnique(items.map((item) => item.href), `${label}:href`, problems);
 
     for (const item of items) {

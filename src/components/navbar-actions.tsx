@@ -41,7 +41,7 @@ export function NavbarActions() {
 
   return (
     <div className="flex items-center gap-3">
-      {!isArticle ? <LiveSearch /> : null}
+      <LiveSearch />
 
       {isArticle ? (
         <div className="flex items-center gap-2">

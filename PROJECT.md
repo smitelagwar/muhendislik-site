@@ -88,6 +88,14 @@ muhendislik-site/
 - Teknik değerler / sonuçlar: `font-mono`
 - Türkçe subset zorunlu: `latin-ext` (ğ, ş, ç, ı, ö, ü için)
 
+### Global Navigasyon — Sadeleştirme Aşama 4
+- Mobil alt bar kesin sıra: **Ana Sayfa / Ara / Araçlar / Belgeler / Dokümantasyon**.
+- Mobil hamburger sıra: **Ana Sayfa / Mevzuat / Hesaplamalar / Araçlar / Belgeler / Dokümantasyon / İletişim**.
+- Masaüstü ana nav, hamburger ile aynı mühendislik bilgi mimarisini kullanır; **İletişim** yardımcı sayfa olarak drawer'da kalır.
+- Masaüstü arama makale/rehber sayfalarında da header içinde erişilebilir kalır.
+- Mobil alt bar `env(safe-area-inset-bottom)` kullanır; akış spacer'ı ve kayan kontrol ofseti içeriğin/barın üst üste binmesini önler.
+- Navigasyon kaynakları `src/lib/navigation-config.ts` üzerinden türetilir; eski Konu Haritası, Kaydedilenler, Yapı/Şantiye/Bina Aşamaları ana yüzeyleri geri eklenmez.
+
 ---
 
 ## Aktif Workstream'ler
