@@ -57,7 +57,17 @@ jobs:
           console.log("Puppeteer executable:", executable);
           NODE
 
+      - name: Full repository TypeScript baseline
+        continue-on-error: true
+        run: npx tsc --noEmit --incremental false
+
+      - name: Full repository lint baseline
+        continue-on-error: true
+        run: npm run lint
+
       - name: Run Stage 7 release gate
+        env:
+          SIMPLIFICATION_BASE_REF: origin/main
         run: npm run check:simplification-stage7
 
       - name: Upload failure evidence

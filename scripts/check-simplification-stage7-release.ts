@@ -195,7 +195,16 @@ assert.deepEqual(
   "package-lock devDependencies package.json ile eşleşmiyor.",
 );
 assert.ok(pkg.scripts?.["check:simplification-stage6"], "Stage 6 kabul komutu eksik.");
+assert.ok(pkg.scripts?.["check:simplification-stage7:lint"], "Stage 7 changed-scope lint komutu eksik.");
 assert.ok(pkg.scripts?.["check:simplification-stage7"], "Stage 7 release komutu eksik.");
+assert.ok(
+  pkg.scripts?.["check:simplification-stage7"]?.includes("tsconfig.next.json"),
+  "Stage 7 blocker typecheck deployable Next.js kapsamını kullanmalı.",
+);
+assert.ok(
+  pkg.scripts?.["check:simplification-stage7"]?.includes("check:simplification-stage7:lint"),
+  "Stage 7 blocker lint changed-scope kapısını çalıştırmalı.",
+);
 assert.ok(pkg.scripts?.["check:simplification-stage7:clean"], "Clean Stage 7 release komutu eksik.");
 assert.ok(exists("tests/site-audit/simplification-stage6.spec.ts"), "Stage 6 browser spec'i eksik.");
 
@@ -219,6 +228,12 @@ assert.ok(
 assert.ok(
   releaseWorkflow.includes("npm run check:simplification-stage7"),
   "Release workflow Stage 7 gate'i çalıştırmıyor.",
+);
+assert.ok(
+  releaseWorkflow.includes("continue-on-error: true") &&
+    releaseWorkflow.includes("npx tsc --noEmit --incremental false") &&
+    releaseWorkflow.includes("npm run lint"),
+  "Full-repo historical type/lint baseline görünürlüğü CI workflow'unda korunmalı.",
 );
 pass("Package/lock bütünlüğü, deploysuz release branch'i ve Stage 6 + Stage 7 CI zinciri kayıtlı");
 
