@@ -18,10 +18,11 @@ export function PortalOverlay({
 }: PortalOverlayProps) {
   useEffect(() => {
     if (lockScroll && isOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const previousInlineOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
+
       return () => {
-        document.body.style.overflow = originalStyle;
+        document.body.style.overflow = previousInlineOverflow;
       };
     }
   }, [isOpen, lockScroll]);

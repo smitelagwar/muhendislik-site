@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Calculator,
   ChevronRight,
@@ -36,9 +37,14 @@ const MOBILE_ICONS: Record<string, ReactNode> = {
 };
 
 export function MobileMenu() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen((current) => !current);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
 
   return (
     <div>

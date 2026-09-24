@@ -21,6 +21,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  BELGE_STUDIO_FORM_SCROLL_CLASS,
+  BELGE_STUDIO_MAIN_SPLIT_CLASS,
+  BELGE_STUDIO_MOBILE_ACTIONS_CLASS,
+  BELGE_STUDIO_MOBILE_TAB_CLASS,
+} from "@/lib/belge-studio-layout";
+import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
   downloadFilledSozlesmePdf,
@@ -103,15 +110,20 @@ export function SozlesmeStudio({
   const [previewPage, setPreviewPage] = useState<number>(1);
   const totalPages = 2;
 
+  const studioRootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<any>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const generationRequestRef = useRef<number>(0);
+  const renderRequestRef = useRef<number>(0);
   const activeBlobUrlRef = useRef<string | null>(null);
   const latestPdfBytesRef = useRef<Uint8Array | null>(null);
   const cachedPdfDocRef = useRef<any>(null);
   const zoomLevelRef = useRef<number>(zoomLevel);
   zoomLevelRef.current = zoomLevel;
+
+  useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const previewPageRef = useRef<number>(previewPage);
   previewPageRef.current = previewPage;
 
@@ -172,6 +184,8 @@ export function SozlesmeStudio({
     const container = previewContainerRef.current;
     if (!canvas || !container || !pdf) return;
 
+    const renderRequestId = ++renderRequestRef.current;
+
     try {
       if (renderTaskRef.current) {
         try {
@@ -182,6 +196,8 @@ export function SozlesmeStudio({
       }
 
       const page = await pdf.getPage(pageNum);
+      if (renderRequestId !== renderRequestRef.current) return;
+
       const unscaledViewport = page.getViewport({ scale: 1.0 });
 
       const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
@@ -221,15 +237,25 @@ export function SozlesmeStudio({
       renderTaskRef.current = renderTask;
 
       await renderTask.promise;
+      if (renderRequestId !== renderRequestRef.current) return;
+
+      if (renderTaskRef.current === renderTask) {
+        renderTaskRef.current = null;
+      }
       setHasRenderedOnce(true);
     } catch (err: any) {
-      if (err?.name === "RenderingCancelledException") return;
+      if (
+        renderRequestId !== renderRequestRef.current ||
+        err?.name === "RenderingCancelledException"
+      ) return;
       console.error("Canvas render error:", err);
     }
   }, []);
 
   // Debounced PDF Generation (Triggers ONLY when formData changes)
   useEffect(() => {
+    const generationRequestId = ++generationRequestRef.current;
+
     setSyncStatus("updating");
     setIsGenerating(true);
 
@@ -240,6 +266,7 @@ export function SozlesmeStudio({
     debounceTimerRef.current = setTimeout(async () => {
       try {
         const bytes = await generateSozlesmePdf(formData);
+        if (generationRequestId !== generationRequestRef.current) return;
         const storedBytes = new Uint8Array(bytes.byteLength);
         storedBytes.set(bytes);
         latestPdfBytesRef.current = storedBytes;
@@ -253,6 +280,8 @@ export function SozlesmeStudio({
         setBlobUrl(url);
 
         const pdfjs = await loadBrowserPdfJs();
+        if (generationRequestId !== generationRequestRef.current) return;
+
         if (pdfjs) {
           const clonedBytes = new Uint8Array(storedBytes.byteLength);
           clonedBytes.set(storedBytes);
@@ -264,14 +293,25 @@ export function SozlesmeStudio({
             isEvalSupported: false,
           });
           const pdf = await loadingTask.promise;
+          if (generationRequestId !== generationRequestRef.current) {
+            if (typeof pdf?.destroy === "function") {
+              void pdf.destroy();
+            }
+            return;
+          }
+
           cachedPdfDocRef.current = pdf;
 
           await renderPdfPage(pdf, zoomLevelRef.current, previewPageRef.current);
         }
 
+        if (generationRequestId !== generationRequestRef.current) return;
+
         setSyncStatus("synced");
         setIsGenerating(false);
       } catch (err) {
+        if (generationRequestId !== generationRequestRef.current) return;
+
         console.error("Error generating PDF:", err);
         setSyncStatus("error");
         setIsGenerating(false);
@@ -363,11 +403,34 @@ export function SozlesmeStudio({
     };
   }, []);
 
-  // Cleanup blob URLs on unmount
+  // Bileşen kapanırken geçici PDF kaynaklarını temizle
   useEffect(() => {
     return () => {
+      generationRequestRef.current += 1;
+      renderRequestRef.current += 1;
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {
+          // Render işlemi zaten tamamlanmış olabilir.
+        }
+        renderTaskRef.current = null;
+      }
+
+      const cachedPdf = cachedPdfDocRef.current;
+      cachedPdfDocRef.current = null;
+      if (cachedPdf && typeof cachedPdf.destroy === "function") {
+        void cachedPdf.destroy();
+      }
+
       if (activeBlobUrlRef.current) {
         URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = null;
       }
     };
   }, []);
@@ -433,25 +496,6 @@ export function SozlesmeStudio({
     );
   };
 
-  // Lock window/body scroll when studio is active in full page mode
-  useEffect(() => {
-    if (isModal) return;
-    if (typeof window !== "undefined") {
-      const htmlEl = document.documentElement;
-      const bodyEl = document.body;
-
-      const prevHtmlOverflow = htmlEl.style.overflow;
-      const prevBodyOverflow = bodyEl.style.overflow;
-
-      htmlEl.style.overflow = "hidden";
-      bodyEl.style.overflow = "hidden";
-
-      return () => {
-        htmlEl.style.overflow = prevHtmlOverflow;
-        bodyEl.style.overflow = prevBodyOverflow;
-      };
-    }
-  }, [isModal]);
 
   const yibfInvalid = Boolean(
     formData.yibf &&
@@ -462,8 +506,9 @@ export function SozlesmeStudio({
 
   return (
     <div
-      data-studio-locked="true"
-      className={`flex flex-col bg-background text-foreground w-full h-full overflow-hidden ${
+      ref={studioRootRef}
+      data-studio-locked={isModal ? undefined : "true"}
+      className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
         isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
           : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
@@ -518,7 +563,7 @@ export function SozlesmeStudio({
         <button
           type="button"
           onClick={() => setActiveTabMobile("form")}
-          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "form"
               ? "bg-background text-foreground shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
@@ -534,7 +579,7 @@ export function SozlesmeStudio({
         <button
           type="button"
           onClick={() => setActiveTabMobile("preview")}
-          className={`flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+          className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "preview"
               ? "bg-background text-foreground shadow-xs ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
@@ -551,10 +596,11 @@ export function SozlesmeStudio({
       </div>
 
       {/* Main Split Layout: Left Form & Right Live PDF */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-border">
+      <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
         <div
-          className={`w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full overflow-y-auto p-2.5 sm:p-3.5 space-y-2.5 ${
+          data-testid="belge-studio-form-scroll"
+          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
@@ -894,7 +940,10 @@ export function SozlesmeStudio({
           }`}
         >
           {/* Top Mini Control Bar (Zoom, Fit, Open, Multi-Page Switcher) */}
-          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
+          <div
+            data-testid="belge-studio-preview-toolbar"
+            className="flex items-center justify-between mb-1 px-1 shrink-0"
+          >
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-amber-500" />
@@ -1009,13 +1058,16 @@ export function SozlesmeStudio({
       </div>
 
       {/* Mobile Sticky Bottom Action Bar */}
-      <div className="flex lg:hidden items-center justify-between gap-2 border-t border-border bg-background/95 backdrop-blur-md px-3 py-2 shrink-0 shadow-lg z-20">
+      <div
+        data-testid="belge-studio-mobile-actions"
+        className={BELGE_STUDIO_MOBILE_ACTIONS_CLASS}
+      >
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => setActiveTabMobile(activeTabMobile === "form" ? "preview" : "form")}
-          className="flex-1 h-9 gap-1.5 text-xs font-semibold"
+          className="flex-1 min-w-0 min-h-11 h-auto py-2 gap-1.5 text-xs font-semibold whitespace-normal leading-tight"
         >
           {activeTabMobile === "form" ? (
             <>
@@ -1034,7 +1086,7 @@ export function SozlesmeStudio({
           type="button"
           onClick={handleDownload}
           disabled={isDownloading}
-          className="flex-1 h-9 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md dark:bg-amber-500 dark:text-zinc-950"
+          className="flex-1 min-w-0 min-h-11 h-auto py-2 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs leading-tight whitespace-normal shadow-md dark:bg-amber-500 dark:text-zinc-950"
         >
           {isDownloading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

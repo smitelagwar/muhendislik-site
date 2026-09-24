@@ -13,6 +13,7 @@ const REPRESENTATIVE_ROUTES = [
   { name: "Bina Aşamaları", path: "/kategori/bina-asamalari" },
   { name: "Konu Haritası", path: "/konu-haritasi" },
   { name: "Belgeler ve Şablonlar", path: "/belgeler" },
+  { name: "Beton Döküm Belge Stüdyosu", path: "/belgeler/beton-dokum-tutanagi" },
 ];
 
 test.describe("Site Geneli — Responsive Düzen ve Yatay Taşma Denetimi", () => {

@@ -10,10 +10,13 @@ const BottomNav = dynamic(() => import("@/components/bottom-nav").then((module) 
 export function GlobalOverlays() {
   const pathname = usePathname();
   const isDocumentWorkspace = pathname === "/dokumantasyon" || pathname.startsWith("/dokumantasyon/");
+  const isBelgeStudio = pathname.startsWith("/belgeler/");
+  const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio;
+
   return (
     <>
-      {!isDocumentWorkspace && <BottomNav />}
-      {!isDocumentWorkspace && <BackToTop />}
+      {!isImmersiveWorkspace && <BottomNav />}
+      {!isImmersiveWorkspace && <BackToTop />}
       <DeferredCommandPalette />
       <div id="dok-overlay-root" />
     </>
