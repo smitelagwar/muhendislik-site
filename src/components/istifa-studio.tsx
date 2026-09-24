@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -113,6 +113,31 @@ export function IstifaStudio({
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("form");
+  const mobileTabIds = {
+    formTab: "istifa-mobile-tab-form",
+    previewTab: "istifa-mobile-tab-preview",
+    formPanel: "istifa-mobile-panel-form",
+    previewPanel: "istifa-mobile-panel-preview",
+  } as const;
+
+  const handleMobileTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentTab: "form" | "preview"
+  ) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+    event.preventDefault();
+    const nextTab = currentTab === "form" ? "preview" : "form";
+    setActiveTabMobile(nextTab);
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(
+          nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab
+        )
+        ?.focus();
+    });
+  };
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [syncStatus, setSyncStatus] = useState<"synced" | "updating" | "error">("updating");
   const [hasRenderedOnce, setHasRenderedOnce] = useState<boolean>(false);
@@ -573,9 +598,19 @@ export function IstifaStudio({
         </div>
       )}
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
-      <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Belge stüdyosu görünümü"
+        className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5"
+      >
         <button
+          id={mobileTabIds.formTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "form"}
+          aria-controls={mobileTabIds.formPanel}
+          tabIndex={activeTabMobile === "form" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "form")}
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "form"
@@ -591,7 +626,13 @@ export function IstifaStudio({
         </button>
 
         <button
+          id={mobileTabIds.previewTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "preview"}
+          aria-controls={mobileTabIds.previewPanel}
+          tabIndex={activeTabMobile === "preview" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "preview"
@@ -613,6 +654,9 @@ export function IstifaStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
+          id={mobileTabIds.formPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.formTab}
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
@@ -876,6 +920,9 @@ export function IstifaStudio({
 
         {/* Right Column: Live PDF Canvas Preview (Fitted 100% inside view, zero window scroll) */}
         <div
+          id={mobileTabIds.previewPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.previewTab}
           className={`flex-1 min-h-0 flex flex-col p-2 sm:p-3 overflow-hidden bg-muted/20 ${
             activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
           }`}

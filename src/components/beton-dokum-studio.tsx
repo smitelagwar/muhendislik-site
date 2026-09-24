@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
   ArrowLeft,
   Building2,
@@ -114,6 +114,31 @@ export function BetonDokumStudio({
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("form");
+  const mobileTabIds = {
+    formTab: "beton-dokum-mobile-tab-form",
+    previewTab: "beton-dokum-mobile-tab-preview",
+    formPanel: "beton-dokum-mobile-panel-form",
+    previewPanel: "beton-dokum-mobile-panel-preview",
+  } as const;
+
+  const handleMobileTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentTab: "form" | "preview"
+  ) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+    event.preventDefault();
+    const nextTab = currentTab === "form" ? "preview" : "form";
+    setActiveTabMobile(nextTab);
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(
+          nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab
+        )
+        ?.focus();
+    });
+  };
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [syncStatus, setSyncStatus] = useState<"synced" | "updating" | "error">("updating");
   const [hasRenderedOnce, setHasRenderedOnce] = useState<boolean>(false);
@@ -564,9 +589,19 @@ export function BetonDokumStudio({
         </div>
       )}
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
-      <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Belge stüdyosu görünümü"
+        className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5"
+      >
         <button
+          id={mobileTabIds.formTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "form"}
+          aria-controls={mobileTabIds.formPanel}
+          tabIndex={activeTabMobile === "form" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "form")}
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${activeTabMobile === "form"
             ? "bg-background text-foreground shadow-xs ring-1 ring-border"
@@ -581,7 +616,13 @@ export function BetonDokumStudio({
         </button>
 
         <button
+          id={mobileTabIds.previewTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "preview"}
+          aria-controls={mobileTabIds.previewPanel}
+          tabIndex={activeTabMobile === "preview" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${activeTabMobile === "preview"
             ? "bg-background text-foreground shadow-xs ring-1 ring-border"
@@ -602,6 +643,9 @@ export function BetonDokumStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
+          id={mobileTabIds.formPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.formTab}
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
             }`}
@@ -877,6 +921,9 @@ export function BetonDokumStudio({
 
         {/* Right Column: Full-Height Live PDF Canvas Panel (Starts right at top, fits 100% viewport) */}
         <div
+          id={mobileTabIds.previewPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.previewTab}
           className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${activeTabMobile === "preview" ? "block" : "hidden lg:flex"
             }`}
         >

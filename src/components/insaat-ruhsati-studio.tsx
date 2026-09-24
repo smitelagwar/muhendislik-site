@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -159,6 +159,31 @@ export function InsaatRuhsatiStudio({
   const [isGenerating, setIsGenerating] = useState<boolean>(true);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("form");
+  const mobileTabIds = {
+    formTab: "insaat-ruhsati-mobile-tab-form",
+    previewTab: "insaat-ruhsati-mobile-tab-preview",
+    formPanel: "insaat-ruhsati-mobile-panel-form",
+    previewPanel: "insaat-ruhsati-mobile-panel-preview",
+  } as const;
+
+  const handleMobileTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentTab: "form" | "preview"
+  ) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+    event.preventDefault();
+    const nextTab = currentTab === "form" ? "preview" : "form";
+    setActiveTabMobile(nextTab);
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(
+          nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab
+        )
+        ?.focus();
+    });
+  };
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [syncStatus, setSyncStatus] = useState<"synced" | "updating" | "error">("updating");
   const [hasRenderedOnce, setHasRenderedOnce] = useState<boolean>(false);
@@ -605,9 +630,19 @@ export function InsaatRuhsatiStudio({
       )}
 
       {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
-      <div className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5">
+      <div
+        role="tablist"
+        aria-label="Belge stüdyosu görünümü"
+        className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5"
+      >
         <button
+          id={mobileTabIds.formTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "form"}
+          aria-controls={mobileTabIds.formPanel}
+          tabIndex={activeTabMobile === "form" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "form")}
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "form"
@@ -623,7 +658,13 @@ export function InsaatRuhsatiStudio({
         </button>
 
         <button
+          id={mobileTabIds.previewTab}
           type="button"
+          role="tab"
+          aria-selected={activeTabMobile === "preview"}
+          aria-controls={mobileTabIds.previewPanel}
+          tabIndex={activeTabMobile === "preview" ? 0 : -1}
+          onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "preview"
@@ -645,6 +686,9 @@ export function InsaatRuhsatiStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
         <div
+          id={mobileTabIds.formPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.formTab}
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
@@ -878,6 +922,9 @@ export function InsaatRuhsatiStudio({
 
         {/* Right Column: Full-Height Live PDF Canvas Panel */}
         <div
+          id={mobileTabIds.previewPanel}
+          role="tabpanel"
+          aria-labelledby={mobileTabIds.previewTab}
           className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
             activeTabMobile === "preview" ? "block" : "hidden lg:flex"
           }`}
