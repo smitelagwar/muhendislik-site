@@ -199,7 +199,7 @@ try {
         "/kategori/araclar/imar-hesaplayici",
         "/hesaplamalar/tahmini-insaat-alani",
         "/hesaplamalar/insaat-maliyeti",
-        "/kategori/bina-asamalari/proje-hazirlik",
+        "/rehber/proje-hazirlik",
       ]),
     "Ön fizibilite karar yolu beklenen rotalara bağlanmıyor.",
   );

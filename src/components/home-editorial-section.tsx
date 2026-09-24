@@ -5,9 +5,8 @@ import type { HomeArticle } from "@/lib/home-content";
 
 const TOPIC_ROUTES = [
   { label: "Deprem ve mevzuat", href: "/kategori/deprem-yonetmelik", code: "TBDY" },
+  { label: "Geoteknik ve zemin", href: "/kategori/geoteknik", code: "ZEMİN" },
   { label: "Malzeme bilgisi", href: "/kategori/malzeme", code: "MALZ." },
-  { label: "Şantiye ve uygulama", href: "/kategori/santiye", code: "SAHA" },
-  { label: "Tüm konular", href: "/konu-haritasi", code: "HARİTA" },
 ] as const;
 
 export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) {
@@ -23,7 +22,7 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
     >
       <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28 xl:px-16">
         <div className="grid gap-8 border-b border-[var(--home-border)] pb-8 lg:grid-cols-12 lg:items-end">
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-12">
             <p className="home-section-kicker">02 / Öğren</p>
             <h2
               id="home-editorial-title"
@@ -32,10 +31,6 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
               Yönetmelikten malzemeye, projeden saha pratiğine.
             </h2>
           </div>
-          <Link href="/konu-haritasi" className="home-quiet-link lg:col-span-4 lg:justify-self-end">
-            Konu haritasını aç
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-12">

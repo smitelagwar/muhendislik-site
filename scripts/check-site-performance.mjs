@@ -16,8 +16,8 @@ const TEST_ROUTES = [
   { name: "Araçlar İndeks", path: "/kategori/araclar" },
   { name: "Donatı Hesabı", path: "/kategori/araclar/donati-hesabi" },
   { name: "Kolon Ön Boyutlandırma", path: "/kategori/araclar/kolon-on-boyutlandirma" },
-  { name: "Bina Aşamaları", path: "/kategori/bina-asamalari" },
-  { name: "Konu Haritası", path: "/konu-haritasi" },
+  { name: "Teknik Rehber", path: "/rehber/proje-hazirlik" },
+  { name: "Deprem ve Yönetmelikler", path: "/kategori/deprem-yonetmelik" },
   { name: "Belgeler ve Şablonlar", path: "/belgeler" },
 ];
 
@@ -89,7 +89,7 @@ async function measureRouteRun(page, url, isCold = false) {
 
 async function runLongevityStressTest(page) {
   console.log("\n[PERF-LONGEVITY] 50 hızlı rota değişimi ve uzun oturum bellek kararlılığı testi...");
-  const routes = ["/", "/hesaplamalar", "/kategori/araclar", "/konu-haritasi", "/belgeler"];
+  const routes = ["/", "/hesaplamalar", "/kategori/araclar", "/kategori/deprem-yonetmelik", "/belgeler"];
 
   const initialHeap = await page.evaluate(() => window.performance?.memory?.usedJSHeapSize || 0);
 

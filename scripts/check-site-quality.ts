@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { BOTTOM_NAV_ITEMS, MOBILE_NAV_ITEMS, PRIMARY_NAV_ITEMS } from "../src/lib/navigation-config";
-import { SITE_SECTIONS, getSiteSectionById } from "../src/lib/site-sections";
+import { SITE_SECTIONS, getSiteSectionById, isUserVisibleSiteSection } from "../src/lib/site-sections";
 import { TOOLS, getLiveTools } from "../src/lib/tools-data";
 import { getCalculationPages } from "../src/lib/calculation-pages";
 import { DEPREM_SERIES } from "../src/lib/deprem-series";
@@ -42,7 +42,6 @@ const PUBLIC_SHELL_FILES = [
   "src/lib/calculation-pages.ts",
   "src/lib/home-content.ts",
   "src/app/page.tsx",
-  "src/app/konu-haritasi/page.tsx",
   "src/app/iletisim/page.tsx",
   "src/app/hakkimizda/page.tsx",
   "src/app/gizlilik/page.tsx",
@@ -50,21 +49,16 @@ const PUBLIC_SHELL_FILES = [
   "src/app/kategori/araclar/page.tsx",
   "src/app/hesaplamalar/page.tsx",
   "src/app/hesaplamalar/layout.tsx",
-  "src/app/kategori/bina-asamalari/page.tsx",
   "src/app/kategori/deprem-yonetmelik/page.tsx",
-  "src/app/kaydedilenler/page.tsx",
 ];
 const METADATA_ROUTE_FILES = [
   "src/app/page.tsx",
-  "src/app/konu-haritasi/page.tsx",
   "src/app/iletisim/page.tsx",
   "src/app/hakkimizda/page.tsx",
   "src/app/gizlilik/page.tsx",
   "src/app/kullanim-kosullari/page.tsx",
-  "src/app/kaydedilenler/page.tsx",
   "src/app/kategori/araclar/page.tsx",
   "src/app/hesaplamalar/layout.tsx",
-  "src/app/kategori/bina-asamalari/page.tsx",
   "src/app/kategori/deprem-yonetmelik/page.tsx",
 ];
 const kategoriStaticSlugs = new Set<string>(getKategoriStaticParams().map((item) => item.slug));
@@ -204,6 +198,59 @@ function checkRemovedAdminSurface(problems: Problem[]) {
   }
 }
 
+function checkRetiredSurfaceProblems(problems: Problem[]) {
+  const retiredFiles = [
+    "src/app/konu-haritasi/page.tsx",
+    "src/app/kaydedilenler/page.tsx",
+    "src/app/kategori/bina-asamalari/page.tsx",
+    "src/components/bookmark-button.tsx",
+    "src/components/reading-list.tsx",
+    "src/components/kaydedilenler/saved-items-client.tsx",
+    "src/components/BinaConstructionTimeline.tsx",
+    "src/components/BinaConstructionTimelineVisual.tsx",
+  ];
+
+  for (const file of retiredFiles) {
+    if (fileExists(file)) {
+      addProblem(problems, "retired-surfaces", `retired user surface should be removed: ${file}`);
+    }
+  }
+
+  for (const sectionId of ["bina-asamalari", "yapi-tasarimi", "santiye"] as const) {
+    if (isUserVisibleSiteSection(sectionId)) {
+      addProblem(problems, "retired-surfaces", `retired section is still user-visible: ${sectionId}`);
+    }
+  }
+
+  const traceChecks = [
+    "src/lib/navigation-config.ts",
+    "src/components/command-palette.tsx",
+    "src/lib/search-index.ts",
+    "src/lib/route-metadata.ts",
+    "src/app/sitemap.ts",
+    "src/app/page.tsx",
+    "src/components/home-hero-section.tsx",
+    "src/components/home-editorial-section.tsx",
+    "src/components/home-project-path.tsx",
+    "src/components/navbar-actions.tsx",
+  ];
+  const forbiddenTerms = ["/konu-haritasi", "/kaydedilenler"];
+
+  for (const file of traceChecks) {
+    const content = readFile(file);
+    for (const term of forbiddenTerms) {
+      if (content.includes(term)) {
+        addProblem(problems, "retired-surfaces", `stale user-surface reference in ${file}: ${term}`);
+      }
+    }
+  }
+
+  const navbarActions = readFile("src/components/navbar-actions.tsx");
+  if (navbarActions.includes("BookmarkButton") || navbarActions.includes("bookmarks-updated")) {
+    addProblem(problems, "retired-surfaces", "bookmark runtime is still reachable from navbar actions");
+  }
+}
+
 function checkNavigationProblems(problems: Problem[]) {
   const navGroups = [
     ["primary-nav", PRIMARY_NAV_ITEMS],
@@ -235,7 +282,9 @@ function checkSectionProblems(problems: Problem[]) {
   assertUnique(SITE_SECTIONS.map((section) => section.href), "site-sections:href", problems);
 
   for (const section of SITE_SECTIONS) {
-    checkRouteExists(section.href, "site-sections", problems);
+    if (isUserVisibleSiteSection(section.id)) {
+      checkRouteExists(section.href, "site-sections", problems);
+    }
     scanText(
       `section:${section.id}`,
       `${section.title} ${section.description} ${section.categories.join(" ")} ${section.tags.join(" ")}`,
@@ -311,6 +360,7 @@ checkPublicShellFiles(problems);
 checkMetadataCoverage(problems);
 checkRedirectRoutes(problems);
 checkRemovedAdminSurface(problems);
+checkRetiredSurfaceProblems(problems);
 checkNavigationProblems(problems);
 checkSectionProblems(problems);
 checkToolsProblems(problems);

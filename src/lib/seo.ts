@@ -204,15 +204,15 @@ export function buildHomeMetadata(): Metadata {
   return buildSeoMetadata({
     title: "İnşaat Mühendisliği Hesap Araçları ve Teknik Rehberler",
     description:
-      "Mühendis ve mimarlar için yapısal hesap araçları, maliyet ve metraj hesaplamaları, TBDY 2018 rehberleri, şantiye içerikleri ve bina yapım aşamaları.",
+      "Mühendis ve mimarlar için yapısal hesap araçları, maliyet ve metraj hesaplamaları, TBDY 2018 içerikleri ve teknik uygulama rehberleri.",
     pathname: "/",
     keywords: [
       "inşaat mühendisliği",
       "betonarme hesap araçları",
       "maliyet ve metraj hesabı",
       "TBDY 2018",
-      "şantiye rehberi",
-      "bina aşamaları",
+      "uygulama rehberi",
+      "teknik rehber",
     ],
   });
 }

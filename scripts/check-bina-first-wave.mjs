@@ -71,8 +71,10 @@ async function startLocalServer() {
 const contentModule = await import(new URL("../src/lib/bina-asamalari-content/index.ts", import.meta.url));
 const binaModule = await import(new URL("../src/lib/bina-asamalari.ts", import.meta.url));
 const { getFirstWaveBinaGuidePaths } = contentModule;
-const { BINA_ASAMALARI_LEGACY_HUB_URL, BINA_ASAMALARI_ROOT_URL } = binaModule;
-const firstWavePaths = getFirstWaveBinaGuidePaths().map((guidePath) => `${BINA_ASAMALARI_ROOT_URL}/${guidePath}`);
+const { BINA_ASAMALARI_ROOT_URL } = binaModule;
+const LEGACY_BINA_ROUTE_PREFIX = "/kategori/bina-asamalari";
+const firstWaveGuidePaths = getFirstWaveBinaGuidePaths();
+const firstWavePaths = firstWaveGuidePaths.map((guidePath) => `${BINA_ASAMALARI_ROOT_URL}/${guidePath}`);
 
 const localServer = EXTERNAL_BASE_URL ? null : await startLocalServer();
 const baseUrl = EXTERNAL_BASE_URL ?? localServer.baseUrl;
@@ -81,21 +83,26 @@ const page = await browser.newPage();
 const errors = [];
 
 try {
-  const rootResponse = await page.goto(`${baseUrl}${BINA_ASAMALARI_LEGACY_HUB_URL}`, {
+  const rootResponse = await page.goto(`${baseUrl}${LEGACY_BINA_ROUTE_PREFIX}`, {
     waitUntil: "networkidle2",
     timeout: 60000,
   });
 
-  if (!rootResponse || rootResponse.status() >= 400) {
-    errors.push(`Kök sayfa açılamadı: ${rootResponse?.status() ?? "yanıtsız"}`);
-  } else {
-    const rootLinks = await page.$eval(`a[href^="${BINA_ASAMALARI_ROOT_URL}/"]`, (anchors) =>
-      [...new Set(anchors.map((anchor) => anchor.getAttribute("href")).filter(Boolean))],
-    );
+  if (!rootResponse || rootResponse.status() !== 404) {
+    errors.push(`Kaldırılan Bina Aşamaları kökü 404 dönmedi: ${rootResponse?.status() ?? "yanıtsız"}`);
+  }
 
-    const missingRootLinks = firstWavePaths.filter((guidePath) => !rootLinks.includes(guidePath));
-    if (missingRootLinks.length > 0) {
-      errors.push(`Kök ağaçta eksik ilk dalga linkleri var: ${missingRootLinks.slice(0, 8).join(", ")}`);
+  const redirectSlug = firstWaveGuidePaths[0];
+  if (redirectSlug) {
+    await page.goto(`${baseUrl}${LEGACY_BINA_ROUTE_PREFIX}/${redirectSlug}`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+
+    const redirectedPath = new URL(page.url()).pathname;
+    const expectedPath = `${BINA_ASAMALARI_ROOT_URL}/${redirectSlug}`;
+    if (redirectedPath !== expectedPath) {
+      errors.push(`Legacy rehber yönlendirmesi hatalı: ${redirectedPath} -> beklenen ${expectedPath}`);
     }
   }
 
@@ -178,4 +185,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Bina ilk dalga taraması geçti. Kontrol edilen sayfa sayısı: ${firstWavePaths.length + 1}`);
+console.log(`Teknik rehber ilk dalga taraması geçti. Kontrol edilen canonical sayfa sayısı: ${firstWavePaths.length}`);

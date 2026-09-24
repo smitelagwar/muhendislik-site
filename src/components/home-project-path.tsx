@@ -64,12 +64,6 @@ export function HomeProjectPath({ phases }: { phases: HomeProjectPhase[] }) {
           ))}
         </div>
 
-        <div className="mt-10 flex justify-end">
-          <Link href="/kategori/bina-asamalari" className="home-button-primary justify-center">
-            Tüm bina aşamalarını aç
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </div>
       </div>
     </section>
   );

@@ -16,13 +16,13 @@ export default function Home() {
   const schema = buildCollectionPageSchema({
     title: "İnşaat mühendisliği ve mimarlık için teknik çalışma alanı",
     description:
-      "Mühendis ve mimarlar için hesaplamalar, yapısal araçlar, yönetmelik içerikleri ve bina yapım aşamaları.",
+      "Mühendis ve mimarlar için hesaplamalar, yapısal araçlar, yönetmelik içerikleri ve teknik uygulama rehberleri.",
     pathname: "/",
     items: [
       { name: "İnşaat hesaplamaları", href: "/hesaplamalar" },
       { name: "Yapısal araçlar", href: "/kategori/araclar" },
-      { name: "Teknik konu haritası", href: "/konu-haritasi" },
-      { name: "Bina aşamaları", href: "/kategori/bina-asamalari" },
+      { name: "Deprem ve yönetmelikler", href: "/kategori/deprem-yonetmelik" },
+      { name: "Belgeler ve şablonlar", href: "/belgeler" },
     ],
   });
 

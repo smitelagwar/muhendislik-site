@@ -181,26 +181,48 @@ try {
   results.push("construction cost explicit share link");
 
   await goto(page, `${baseUrl}/beton-dokumu-kontrol-listesi`);
-  const articleBackHref = await page.$eval(
-    "main article a[href^='/kategori/']",
-    (element) => element.getAttribute("href") ?? ""
-  );
+  const articleBackHref = await getHref(page, '[data-testid="page-context-back-link"]');
   assert(
-    articleBackHref.startsWith("/kategori/"),
-    "Article page should expose a section-aware back or breadcrumb link."
+    articleBackHref === "/",
+    "Reclassified application article should fall back to the home page instead of a retired category."
   );
-  results.push("article section navigation");
+  results.push("retired-section article fallback");
 
-  await goto(page, `${baseUrl}/kategori/bina-asamalari/proje-hazirlik/elektrik-projesi`);
-  const guideBackHref = await page.$eval(
-    "main article a[href^='/kategori/bina-asamalari/']",
-    (element) => element.getAttribute("href") ?? ""
-  );
+  await goto(page, `${baseUrl}/rehber/proje-hazirlik/elektrik-projesi`);
+  const guideBackHref = await getHref(page, '[data-testid="page-context-back-link"]');
   assert(
-    guideBackHref === "/kategori/bina-asamalari/proje-hazirlik",
-    "Nested bina aşamaları guide should point back to its logical parent."
+    guideBackHref === "/rehber/proje-hazirlik",
+    "Nested technical guide should point back to its canonical logical parent."
   );
-  results.push("guide parent navigation");
+  results.push("canonical guide parent navigation");
+
+  await page.goto(`${baseUrl}/kategori/bina-asamalari/proje-hazirlik/elektrik-projesi`, {
+    waitUntil: "networkidle2",
+    timeout: 60000,
+  });
+  assert(
+    new URL(page.url()).pathname === "/rehber/proje-hazirlik/elektrik-projesi",
+    "Legacy bina guide URL should permanently resolve to the canonical /rehber path."
+  );
+  results.push("legacy guide redirect");
+
+  for (const retiredPath of [
+    "/konu-haritasi",
+    "/kaydedilenler",
+    "/kategori/bina-asamalari",
+    "/kategori/yapi-tasarimi",
+    "/kategori/santiye",
+  ]) {
+    const response = await page.goto(`${baseUrl}${retiredPath}`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    assert(
+      response?.status() === 404,
+      `Retired surface '${retiredPath}' should return 404, got ${response?.status() ?? "unknown"}.`
+    );
+  }
+  results.push("retired surfaces return 404");
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   await goto(page, `${baseUrl}/hesaplamalar/tahmini-insaat-alani`);

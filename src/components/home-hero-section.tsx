@@ -37,10 +37,6 @@ export function HomeHeroSection({ counts }: { counts: HomeCounts }) {
                 Hesaplamaları incele
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
-              <Link href="/konu-haritasi" className="home-quiet-link">
-                Konu haritasını aç
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
             </div>
 
             <div className="home-status-rail mt-7" aria-label="Platform kapsamı">

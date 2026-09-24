@@ -95,8 +95,10 @@ muhendislik-site/
 ### 1. Yapım Rehberleri / Bina İçerik Ağı
 - Değerli yapım rehberleri tek kaynak yapısıyla korunur; kullanıcıya açık canonical rehber rotası `/rehber/...` biçimindedir.
 - Eski `/kategori/bina-asamalari/:path+` çocuk URL'leri kalıcı yönlendirmeyle yeni canonical rehber URL'lerine gider.
-- `/kategori/bina-asamalari` D3.js kök haritası sadeleştirme geçişi boyunca içerik keşfi için geçici olarak korunur; çocuk node'lar doğrudan `/rehber/...` adreslerine bağlanır.
-- D3.js SVG veri ağacı, zoom/pan, mobil touch desteği ve içerik/asset altyapısı içerik kaybı olmaması için korunur.
+- Eski `/kategori/bina-asamalari` kök kullanıcı yüzeyi kaldırılmıştır ve 404 verir; Konu Haritası ile Kaydedilenler/Kaydetme kullanıcı yüzeyleri de kaldırılmıştır.
+- Yapı Tasarımı ve Şantiye kategori veri tanımları ileride içerik eklenebilmesi için korunur ancak kullanıcıya açık navigasyon/route yüzeyi değildir.
+- Rehberlerin veri, içerik ve `public/bina-asamalari/` görsel asset altyapısı korunur; eski D3 kök ekran bileşenleri runtime'dan çıkarılmıştır.
+- Tarayıcıdaki eski `bookmarks` localStorage verisine migration uygulanmaz; artık tüketicisi olmadığı için kullanıcı deneyimine etkisi yoktur.
 - Veri akışı: Temel → Kaba İnşaat → İnce İşler → Tesisat → Dış Cephe → Teslim
 - Görsel Yenileme V3 Aşama 01–25 tamamlandı: 85 canonical konunun tamamı için 170 modern WebP PRIMARY/SECONDARY asseti publish edildi; bunların yeni üretilen 167 adedi 3840×2160, planda korunması istenen 3 PRIMARY ise 1920×1080 çözünürlüktedir. Tüm sayfalarda iki farklı görsel coverage değeri `true`, QC aralığı 92–95, hash duplicate ve kırık görsel sayısı 0'dır.
 
