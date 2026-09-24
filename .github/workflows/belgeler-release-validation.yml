@@ -57,6 +57,8 @@ jobs:
         continue-on-error: true
 
       - name: Belgeler changed-scope lint
+        id: scope_lint
+        continue-on-error: true
         run: >-
           npx eslint
           src/components/belgeler-hub.tsx
@@ -79,37 +81,85 @@ jobs:
         continue-on-error: true
 
       - name: Deployable TypeScript
+        id: deployable_tsc
+        continue-on-error: true
         run: npx tsc -p tsconfig.next.json --noEmit --incremental false
 
       - name: PDF field contract
+        id: pdf_contract
+        continue-on-error: true
         run: npx tsx tests/belgeler/document-field-contract.test.ts
 
       - name: PDF generation regression
+        id: pdf_regression
+        continue-on-error: true
         run: npx tsx tests/belgeler/pdf-generation-regression.test.ts
 
       - name: PDF long-text stress
+        id: pdf_stress
+        continue-on-error: true
         run: npx tsx tests/belgeler/pdf-long-text-stress.test.ts
 
       - name: Belgeler targeted Playwright
+        id: belgeler_playwright
+        continue-on-error: true
         env:
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-mobile-studio.spec.ts
 
       - name: Site E2E
+        id: site_e2e
+        continue-on-error: true
         env:
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npm run check:site-e2e
 
       - name: Site accessibility
+        id: site_a11y
+        continue-on-error: true
         env:
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npm run check:site-a11y
 
       - name: Production build
+        id: production_build
+        continue-on-error: true
         run: npm run build
 
       - name: Smoke
+        id: smoke
+        continue-on-error: true
         run: npm run check:smoke
+
+      - name: Assert release gates
+        if: always()
+        shell: bash
+        env:
+          SCOPE_LINT: ${{ steps.scope_lint.outcome }}
+          DEPLOYABLE_TSC: ${{ steps.deployable_tsc.outcome }}
+          PDF_CONTRACT: ${{ steps.pdf_contract.outcome }}
+          PDF_REGRESSION: ${{ steps.pdf_regression.outcome }}
+          PDF_STRESS: ${{ steps.pdf_stress.outcome }}
+          BELGELER_PLAYWRIGHT: ${{ steps.belgeler_playwright.outcome }}
+          SITE_E2E: ${{ steps.site_e2e.outcome }}
+          SITE_A11Y: ${{ steps.site_a11y.outcome }}
+          PRODUCTION_BUILD: ${{ steps.production_build.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+        run: |
+          printf '%s\n' \
+            "scope_lint=$SCOPE_LINT" \
+            "deployable_tsc=$DEPLOYABLE_TSC" \
+            "pdf_contract=$PDF_CONTRACT" \
+            "pdf_regression=$PDF_REGRESSION" \
+            "pdf_stress=$PDF_STRESS" \
+            "belgeler_playwright=$BELGELER_PLAYWRIGHT" \
+            "site_e2e=$SITE_E2E" \
+            "site_a11y=$SITE_A11Y" \
+            "production_build=$PRODUCTION_BUILD" \
+            "smoke=$SMOKE"
+          for value in "$SCOPE_LINT" "$DEPLOYABLE_TSC" "$PDF_CONTRACT" "$PDF_REGRESSION" "$PDF_STRESS" "$BELGELER_PLAYWRIGHT" "$SITE_E2E" "$SITE_A11Y" "$PRODUCTION_BUILD" "$SMOKE"; do
+            test "$value" = "success" || exit 1
+          done
 
       - name: Upload failure evidence
         if: failure()

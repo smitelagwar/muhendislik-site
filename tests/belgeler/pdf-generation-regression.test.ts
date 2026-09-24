@@ -75,44 +75,51 @@ const cases: RegressionCase[] = [
   },
 ];
 
-for (const testCase of cases) {
-  const blankBytes = readFileSync(resolve(repoRoot, testCase.templatePath));
-  assert.ok(blankBytes.byteLength > 0, `${testCase.id}: boş PDF şablonu okunamadı`);
+async function main() {
+  for (const testCase of cases) {
+    const blankBytes = readFileSync(resolve(repoRoot, testCase.templatePath));
+    assert.ok(blankBytes.byteLength > 0, `${testCase.id}: boş PDF şablonu okunamadı`);
 
-  const blankPdf = await PDFDocument.load(blankBytes);
-  assert.equal(
-    blankPdf.getPageCount(),
-    testCase.expectedPages,
-    `${testCase.id}: boş PDF sayfa sayısı değişti`
-  );
-
-  const generatedBytes = await testCase.generate(testCase.defaults);
-  assert.ok(
-    generatedBytes.byteLength > 0,
-    `${testCase.id}: default PDF üretilemedi`
-  );
-
-  const generatedPdf = await PDFDocument.load(generatedBytes);
-  assert.equal(
-    generatedPdf.getPageCount(),
-    testCase.expectedPages,
-    `${testCase.id}: default PDF sayfa sayısı değişti`
-  );
-
-  const generatedForm = generatedPdf.getForm();
-
-  for (const [fieldName, expectedValue] of Object.entries(testCase.defaults)) {
-    if (typeof expectedValue !== "string") continue;
-
-    const field = generatedForm.getFieldMaybe(fieldName);
-    if (!(field instanceof PDFTextField)) continue;
-
+    const blankPdf = await PDFDocument.load(blankBytes);
     assert.equal(
-      field.getText(),
-      expectedValue,
-      `${testCase.id}/${fieldName}: default PDF alan değeri değişti`
+      blankPdf.getPageCount(),
+      testCase.expectedPages,
+      `${testCase.id}: boş PDF sayfa sayısı değişti`
     );
+
+    const generatedBytes = await testCase.generate(testCase.defaults);
+    assert.ok(
+      generatedBytes.byteLength > 0,
+      `${testCase.id}: default PDF üretilemedi`
+    );
+
+    const generatedPdf = await PDFDocument.load(generatedBytes);
+    assert.equal(
+      generatedPdf.getPageCount(),
+      testCase.expectedPages,
+      `${testCase.id}: default PDF sayfa sayısı değişti`
+    );
+
+    const generatedForm = generatedPdf.getForm();
+
+    for (const [fieldName, expectedValue] of Object.entries(testCase.defaults)) {
+      if (typeof expectedValue !== "string") continue;
+
+      const field = generatedForm.getFieldMaybe(fieldName);
+      if (!(field instanceof PDFTextField)) continue;
+
+      assert.equal(
+        field.getText(),
+        expectedValue,
+        `${testCase.id}/${fieldName}: default PDF alan değeri değişti`
+      );
+    }
   }
+
+  console.log("Belge blank + default PDF üretim regresyon testi başarılı.");
 }
 
-console.log("Belge blank + default PDF üretim regresyon testi başarılı.");
+void main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
