@@ -25,7 +25,7 @@ export function HomeHeroVisual() {
       data-testid="home-hero-visual"
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className="home-hero-visual relative aspect-[3/2] overflow-hidden rounded-xl border border-[var(--home-border)]"
+      className="home-hero-visual relative aspect-[16/9] overflow-hidden rounded-xl border border-[var(--home-border)] sm:aspect-[3/2]"
     >
       <Image
         src="/home/hero-structure-light.webp"

@@ -96,11 +96,18 @@ export function PageContextNavigation({
             "no-scrollbar flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground"
           }
         >
+          {breadcrumbItems.length > 2 ? (
+            <span aria-hidden className="font-black text-muted-foreground/60 sm:hidden">…</span>
+          ) : null}
           {breadcrumbItems.map((item, index) => {
             const isLast = index === breadcrumbItems.length - 1;
+            const hideOnMobile = breadcrumbItems.length > 2 && index < breadcrumbItems.length - 2;
 
             return (
-              <div key={`${item.href}-${index}`} className="flex items-center gap-2">
+              <div
+                key={`${item.href}-${index}`}
+                className={`${hideOnMobile ? "hidden sm:flex" : "flex"} items-center gap-2`}
+              >
                 {isLast ? (
                   <span className="max-w-[220px] truncate text-foreground md:max-w-xs">{item.title}</span>
                 ) : (

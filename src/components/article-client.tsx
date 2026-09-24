@@ -664,6 +664,7 @@ export default function ArticleClient({
             breadcrumbs={breadcrumbItems}
             backHref={backLink?.href}
             backLabel={backLink?.title}
+            showBackLink={false}
           />
 
           <header className="mb-10 border-b border-border pb-10">
@@ -674,8 +675,8 @@ export default function ArticleClient({
               </Badge>
             </div>
             {article.tags && article.tags.length > 0 ? (
-              <div className="mb-5 flex flex-wrap gap-2">
-                {article.tags.slice(0, 8).map((tag) => (
+              <div className="mb-5 hidden flex-wrap gap-2 sm:flex">
+                {article.tags.slice(0, 4).map((tag) => (
                   <Badge key={tag} variant="outline" className="border-zinc-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:text-zinc-300">
                     {tag}
                   </Badge>

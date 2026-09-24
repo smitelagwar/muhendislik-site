@@ -10,12 +10,6 @@ import { parseLocalizedDateToDate } from "@/lib/seo";
 import type { ToolIconKey } from "@/lib/tools-data";
 import { getLiveTools } from "@/lib/tools-data";
 
-export interface HomeCounts {
-  calculations: number;
-  tools: number;
-  articles: number;
-}
-
 export interface HomeArticle {
   title: string;
   slug: string;
@@ -66,13 +60,6 @@ export interface HomeStandard {
   href: string;
 }
 
-export interface HomeWorkflowStep {
-  number: string;
-  title: string;
-  description: string;
-  href: string;
-}
-
 export interface HomeProjectPhase {
   id: string;
   title: string;
@@ -82,12 +69,10 @@ export interface HomeProjectPhase {
 }
 
 export interface HomePageModel {
-  counts: HomeCounts;
   featuredCalculation: HomeFeaturedCalculation;
   resources: HomeResourceLink[];
   standards: HomeStandard[];
   articles: HomeArticle[];
-  workflow: HomeWorkflowStep[];
   phases: HomeProjectPhase[];
 }
 
@@ -131,33 +116,6 @@ const STANDARDS: HomeStandard[] = [
   { code: "TBDY 2018", label: "Deprem ve modelleme", href: "/kategori/deprem-yonetmelik" },
   { code: "TS EN 1992-1-1", label: "Detay ve dayanıklılık", href: "/kategori/araclar/pas-payi" },
   { code: "TS EN 206", label: "Beton performansı", href: "/beton-dokumu-kontrol-listesi" },
-];
-
-const WORKFLOW: HomeWorkflowStep[] = [
-  {
-    number: "01",
-    title: "İmarı kontrol et",
-    description: "TAKS, KAKS ve çekme mesafelerini okuyun.",
-    href: "/kategori/araclar/imar-hesaplayici",
-  },
-  {
-    number: "02",
-    title: "Alanı hesapla",
-    description: "Emsal ve bodrum katkısını birlikte görün.",
-    href: "/hesaplamalar/tahmini-insaat-alani",
-  },
-  {
-    number: "03",
-    title: "Maliyeti modelle",
-    description: "Proje kabullerini bütçe senaryosuna dönüştürün.",
-    href: "/hesaplamalar/insaat-maliyeti",
-  },
-  {
-    number: "04",
-    title: "Hazırlığı planla",
-    description: "Disiplinler arası proje ve izin akışına geçin.",
-    href: "/rehber/proje-hazirlik",
-  },
 ];
 
 function formatNumber(value: number, maximumFractionDigits = 0) {
@@ -258,20 +216,11 @@ function buildFeaturedCalculation(): HomeFeaturedCalculation {
 
 export function getHomePageModel(): HomePageModel {
   const articles = getArticleList();
-  const calculations = getCalculationPages();
-  const tools = getLiveTools();
-
   return {
-    counts: {
-      calculations: calculations.length,
-      tools: tools.length,
-      articles: articles.length,
-    },
     featuredCalculation: buildFeaturedCalculation(),
     resources: selectSupportResources(),
     standards: STANDARDS,
     articles: selectFeaturedArticles(articles),
-    workflow: WORKFLOW,
     phases:
       BINA_MINDMAP_DATA.children?.map((phase, frameIndex) => ({
         id: phase.id,

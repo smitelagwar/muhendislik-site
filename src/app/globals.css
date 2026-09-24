@@ -194,41 +194,9 @@
   transition: opacity 180ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-html[data-home-logo-floating="true"] .home-navbar-logo-visual {
-  pointer-events: none;
-  opacity: 0;
-  transform: scale(0.82);
-}
-
-.home-scroll-logo {
-  top: 9.5rem;
-  left: max(1.5rem, calc((100vw - 1440px) / 2 - 196px));
-  width: clamp(11rem, calc((100vw - 1440px) / 2 + 40px), 17.5rem);
-  opacity: 0;
-  transform-origin: left top;
-  will-change: transform, opacity;
-  filter: drop-shadow(0 18px 26px rgba(23, 26, 25, 0.13));
-}
-
-.dark .home-scroll-logo {
-  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.5));
-}
-
-.home-scroll-logo[data-inverse="true"] img:first-child {
-  display: none;
-}
-
-.home-scroll-logo[data-inverse="true"] img:last-child {
-  display: block;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .home-navbar-logo-visual {
     transition: none;
-  }
-
-  .home-scroll-logo {
-    will-change: auto;
   }
 }
 

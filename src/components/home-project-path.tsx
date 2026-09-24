@@ -20,7 +20,7 @@ export function HomeProjectPath({ phases }: { phases: HomeProjectPhase[] }) {
       className="home-process-shell relative isolate overflow-hidden"
     >
       <div className="home-process-grid pointer-events-none absolute inset-0" aria-hidden />
-      <div className="relative mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28 xl:px-16">
+      <div className="relative mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20 xl:px-16">
         <div className="grid gap-8 border-b border-white/10 pb-8 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-8">
             <p className="home-section-kicker home-section-kicker-inverse">03 / Uygula</p>

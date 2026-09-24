@@ -20,7 +20,7 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
       aria-labelledby="home-editorial-title"
       className="border-y border-[var(--home-border)] bg-[var(--home-surface-raised)]"
     >
-      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28 xl:px-16">
+      <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20 xl:px-16">
         <div className="grid gap-8 border-b border-[var(--home-border)] pb-8 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-12">
             <p className="home-section-kicker">02 / Öğren</p>

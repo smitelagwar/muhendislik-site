@@ -26,7 +26,7 @@ export function HomeResourceShowcase({
       id="home-resources"
       data-testid="home-resource-grid"
       aria-labelledby="home-resources-title"
-      className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-28 xl:px-16"
+      className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12 lg:py-20 xl:px-16"
     >
       <div className="grid gap-8 border-b border-[var(--home-border)] pb-8 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
