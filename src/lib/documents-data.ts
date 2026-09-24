@@ -132,6 +132,7 @@ export const DOCUMENTS: DocumentItem[] = [
       { key: "yapi_sahibi", label: "Yapı Sahibi (Gerçek/Tüzel Kişi)", placeholder: "Örn: ABC YAPI İNŞAAT LTD. ŞTİ." },
       { key: "yapi_sahibi_adresi", label: "Yapı Sahibi Adresi", placeholder: "Örn: Çankaya / ANKARA" },
       { key: "tarih", label: "Taahhüt Tarihi", placeholder: "Örn: 16.08.2026" },
+      { key: "unvan_imza", label: "İmza Alanı Unvanı", placeholder: "Örn: İNŞAAT MÜHENDİSİ" },
     ],
     defaultValues: {
       santiye_sefi_ad_soyad: "Hüseyin GÜNAYDIN",
@@ -147,6 +148,7 @@ export const DOCUMENTS: DocumentItem[] = [
       yapi_sahibi: "ABC YAPI İNŞAAT LTD. ŞTİ.",
       yapi_sahibi_adresi: "Çankaya / ANKARA",
       tarih: "16.08.2026",
+      unvan_imza: "İNŞAAT MÜHENDİSİ",
     },
     generatePreviewText: (values) =>
       ((values.ilgili_idare || "İLGİLİ BELEDİYE BAŞKANLIĞI").toLocaleUpperCase("tr-TR")) + "\n" +

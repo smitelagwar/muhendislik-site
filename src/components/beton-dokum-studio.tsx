@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  countFilledEditableFields,
+  DOCUMENT_EDITABLE_FIELDS,
+} from "@/lib/document-field-contracts";
+import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
   BELGE_STUDIO_MOBILE_ACTIONS_CLASS,
@@ -165,9 +169,14 @@ export function BetonDokumStudio({
   };
 
   // Count filled fields
-  const filledFieldCount = useMemo(() => {
-    return Object.values(formData).filter((v) => (v || "").trim().length > 0).length;
-  }, [formData]);
+  const filledFieldCount = useMemo(
+    () =>
+      countFilledEditableFields(
+        formData,
+        DOCUMENT_EDITABLE_FIELDS["beton-dokum-tutanagi"]
+      ),
+    [formData]
+  );
 
   // Render already loaded PDF Page onto Canvas at the requested zoom level (Instant 60fps)
   const renderPdfPage = useCallback(async (pdf: any, zoom: number) => {
@@ -564,7 +573,7 @@ export function BetonDokumStudio({
           <FileEdit className="h-3.5 w-3.5 text-amber-500" />
           <span>Form Alanları</span>
           <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
-            {filledFieldCount}/10
+            {filledFieldCount}/{DOCUMENT_EDITABLE_FIELDS["beton-dokum-tutanagi"].length}
           </span>
         </button>
 
