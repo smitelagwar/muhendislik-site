@@ -1140,7 +1140,7 @@ function DokumantasyonFileManagerInner() {
         <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
           {(!isMobileExplorer || isMobileSelectionMode) && (<button
             onClick={(e) => activateItem(folder, "select-control", e)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
             data-selection-control
             aria-pressed={isSelected}
             aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
@@ -1155,7 +1155,7 @@ function DokumantasyonFileManagerInner() {
           <button
             onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
             aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-            className="hidden shrink-0 text-muted-foreground hover:text-amber-400 sm:block"
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400 sm:flex"
           >
             <Star
               className={`h-4 w-4 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`}
@@ -1182,7 +1182,7 @@ function DokumantasyonFileManagerInner() {
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto sm:p-1.5"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="Klasör İşlemleri"
                 data-folder-name={folder.name}
               >
@@ -1269,7 +1269,7 @@ function DokumantasyonFileManagerInner() {
         <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
           {(!isMobileExplorer || isMobileSelectionMode) && (<button
             onClick={(e) => activateItem(file, "select-control", e)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
             data-selection-control
             aria-pressed={isSelected}
             aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
@@ -1284,7 +1284,7 @@ function DokumantasyonFileManagerInner() {
           <button
             onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
             aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-            className="hidden shrink-0 text-muted-foreground hover:text-amber-400 sm:block"
+            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400 sm:flex"
           >
             <Star
               className={`h-4 w-4 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`}
@@ -1323,7 +1323,7 @@ function DokumantasyonFileManagerInner() {
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:h-auto sm:w-auto sm:p-1.5"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="Dosya İşlemleri"
                 data-file-name={file.display_name}
               >
@@ -1444,7 +1444,7 @@ function DokumantasyonFileManagerInner() {
             {(!isMobileExplorer || isMobileSelectionMode) && (<button
               type="button"
               onClick={(e) => activateItem(folder, "select-control", e)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
               data-selection-control
             aria-pressed={isSelected}
             aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
@@ -1461,7 +1461,7 @@ function DokumantasyonFileManagerInner() {
             <button
               onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
               aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-amber-400"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400"
             >
               <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`} />
             </button>
@@ -1469,7 +1469,7 @@ function DokumantasyonFileManagerInner() {
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
                   aria-label="Klasör İşlemleri"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
@@ -1576,7 +1576,7 @@ function DokumantasyonFileManagerInner() {
             {(!isMobileExplorer || isMobileSelectionMode) && (<button
               type="button"
               onClick={(e) => activateItem(file, "select-control", e)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
               data-selection-control
             aria-pressed={isSelected}
             aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
@@ -1593,7 +1593,7 @@ function DokumantasyonFileManagerInner() {
             <button
               onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
               aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-              className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-amber-400"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400"
             >
               <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : ""}`} />
             </button>
@@ -1601,7 +1601,7 @@ function DokumantasyonFileManagerInner() {
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
                   aria-label="Dosya İşlemleri"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
