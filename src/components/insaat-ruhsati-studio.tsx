@@ -511,6 +511,9 @@ export function InsaatRuhsatiStudio({
   };
 
   // Helper for field headers with local reset buttons
+  const getFieldId = (fieldKey: keyof InsaatRuhsatiData) =>
+    `insaat-ruhsati-${String(fieldKey)}`;
+
   const renderFieldHeader = (
     label: string,
     fieldKey: keyof InsaatRuhsatiData,
@@ -521,7 +524,7 @@ export function InsaatRuhsatiStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-bold text-foreground truncate">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-bold leading-tight text-foreground">
             {label}
           </label>
           {badge && (
@@ -692,6 +695,7 @@ export function InsaatRuhsatiStudio({
                 {renderFieldHeader("Dilekçe Tarihi", "tarih")}
                 <input
                   type="text"
+                  id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
                   placeholder="08.12.2023"
@@ -703,6 +707,7 @@ export function InsaatRuhsatiStudio({
                 {renderFieldHeader("İlgili Belediye / İdare", "belediye_adi")}
                 <input
                   type="text"
+                  id={getFieldId("belediye_adi")}
                   value={formData.belediye_adi || ""}
                   onChange={(e) => handleFieldChange("belediye_adi", e.target.value)}
                   placeholder="ÇANKAYA BELEDİYESİ"
@@ -715,6 +720,7 @@ export function InsaatRuhsatiStudio({
               {renderFieldHeader("İlgili Birim / Müdürlük", "mudurluk_adi")}
               <input
                 type="text"
+                id={getFieldId("mudurluk_adi")}
                 value={formData.mudurluk_adi || ""}
                 onChange={(e) => handleFieldChange("mudurluk_adi", e.target.value)}
                 placeholder="İmar ve Şehircilik Müdürlüğüne"
@@ -728,6 +734,7 @@ export function InsaatRuhsatiStudio({
             {renderFieldHeader("Talep ve Parsel Bilgileri Metni", "ana_metin")}
             <textarea
               rows={3}
+              id={getFieldId("ana_metin")}
               value={formData.ana_metin || ""}
               onChange={(e) => handleFieldChange("ana_metin", e.target.value)}
               placeholder="İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum..."
@@ -747,6 +754,8 @@ export function InsaatRuhsatiStudio({
                 {renderFieldHeader("Adı Soyadı", "ad_soyad")}
                 <input
                   type="text"
+                  id={getFieldId("ad_soyad")}
+                  autoComplete="name"
                   value={formData.ad_soyad || ""}
                   onChange={(e) => handleFieldChange("ad_soyad", e.target.value)}
                   placeholder="Hüseyin GÜNAYDIN"
@@ -758,6 +767,7 @@ export function InsaatRuhsatiStudio({
                 {renderFieldHeader("Sıfat / Unvan", "unvan")}
                 <input
                   type="text"
+                  id={getFieldId("unvan")}
                   value={formData.unvan || ""}
                   onChange={(e) => handleFieldChange("unvan", e.target.value)}
                   placeholder="Yapı Sahibi"
@@ -778,6 +788,8 @@ export function InsaatRuhsatiStudio({
               {renderFieldHeader("Adres Bilgisi", "adres")}
               <textarea
                 rows={2}
+                id={getFieldId("adres")}
+                autoComplete="street-address"
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
                 placeholder="Adres: Örnek Mah. Mühendisler Cad. No:24/6 Çankaya / ANKARA"
@@ -789,6 +801,9 @@ export function InsaatRuhsatiStudio({
               {renderFieldHeader("Telefon Numarası", "tel")}
               <input
                 type="text"
+                id={getFieldId("tel")}
+                inputMode="tel"
+                autoComplete="tel"
                 value={formData.tel || ""}
                 onChange={(e) => handleFieldChange("tel", e.target.value)}
                 placeholder="Tel: 0566 666 66 66"

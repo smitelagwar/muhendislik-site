@@ -487,6 +487,9 @@ export function TaahhutnameStudio({
   };
 
   // Helper for field headers with local reset buttons
+  const getFieldId = (fieldKey: keyof TaahhutnameData) =>
+    `taahhutname-${String(fieldKey)}`;
+
   const renderFieldHeader = (
     fieldKey: keyof TaahhutnameData,
     label: string,
@@ -497,7 +500,7 @@ export function TaahhutnameStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-semibold text-foreground/90 truncate">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-semibold leading-tight text-foreground/90">
             {label}
           </label>
           {tag && (
@@ -659,6 +662,8 @@ export function TaahhutnameStudio({
               {renderFieldHeader("santiye_sefi_ad_soyad", "Şantiye Şefi Adı Soyadı")}
               <input
                 type="text"
+                id={getFieldId("santiye_sefi_ad_soyad")}
+                autoComplete="name"
                 value={formData.santiye_sefi_ad_soyad || ""}
                 onChange={(e) => handleFieldChange("santiye_sefi_ad_soyad", e.target.value)}
                 placeholder="Örn: Hüseyin GÜNAYDIN"
@@ -672,6 +677,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("unvan", "Meslek / Unvan")}
                 <input
                   type="text"
+                  id={getFieldId("unvan")}
                   value={formData.unvan || ""}
                   onChange={(e) => handleFieldChange("unvan", e.target.value)}
                   placeholder="İNŞAAT MÜHENDİSİ"
@@ -683,6 +689,8 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("oda_sicil_no", "Oda Sicil No")}
                 <input
                   type="text"
+                  id={getFieldId("oda_sicil_no")}
+                  inputMode="numeric"
                   value={formData.oda_sicil_no || ""}
                   onChange={(e) => handleFieldChange("oda_sicil_no", e.target.value)}
                   placeholder="12345"
@@ -698,6 +706,8 @@ export function TaahhutnameStudio({
                 <input
                   type="text"
                   maxLength={11}
+                  id={getFieldId("tc_kimlik_no")}
+                  inputMode="numeric"
                   value={formData.tc_kimlik_no || ""}
                   onChange={(e) => handleFieldChange("tc_kimlik_no", e.target.value)}
                   placeholder="11111111110"
@@ -709,6 +719,9 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("telefon", "İletişim Telefonu")}
                 <input
                   type="text"
+                  id={getFieldId("telefon")}
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={formData.telefon || ""}
                   onChange={(e) => handleFieldChange("telefon", e.target.value)}
                   placeholder="0566 666 66 66"
@@ -722,6 +735,8 @@ export function TaahhutnameStudio({
               {renderFieldHeader("adres", "Tebligat Adresi")}
               <input
                 type="text"
+                id={getFieldId("adres")}
+                autoComplete="street-address"
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
                 placeholder="Örnek Mah. Mühendisler Cad. No:1/A Çankaya / ANKARA"
@@ -745,6 +760,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("ilgili_idare", "İlgili İdare (Belediye)")}
                 <input
                   type="text"
+                  id={getFieldId("ilgili_idare")}
                   value={formData.ilgili_idare || ""}
                   onChange={(e) => handleFieldChange("ilgili_idare", e.target.value)}
                   placeholder="ÇANKAYA BELEDİYESİ"
@@ -756,6 +772,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("il_ilce", "İl / İlçe")}
                 <input
                   type="text"
+                  id={getFieldId("il_ilce")}
                   value={formData.il_ilce || ""}
                   onChange={(e) => handleFieldChange("il_ilce", e.target.value)}
                   placeholder="ANKARA / ÇANKAYA"
@@ -769,6 +786,7 @@ export function TaahhutnameStudio({
               {renderFieldHeader("pafta_ada_parsel", "Tapu Kaydı (Pafta / Ada / Parsel)")}
               <input
                 type="text"
+                id={getFieldId("pafta_ada_parsel")}
                 value={formData.pafta_ada_parsel || ""}
                 onChange={(e) => handleFieldChange("pafta_ada_parsel", e.target.value)}
                 placeholder="Pafta: 12, Ada: 345, Parsel: 6"
@@ -781,6 +799,7 @@ export function TaahhutnameStudio({
               {renderFieldHeader("yapi_adresi", "Yapı Adresi")}
               <input
                 type="text"
+                id={getFieldId("yapi_adresi")}
                 value={formData.yapi_adresi || ""}
                 onChange={(e) => handleFieldChange("yapi_adresi", e.target.value)}
                 placeholder="Örnek Mah. Yapı Cad. No:10 Çankaya / ANKARA"
@@ -794,6 +813,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("yapi_sahibi", "Yapı Sahibi")}
                 <input
                   type="text"
+                  id={getFieldId("yapi_sahibi")}
                   value={formData.yapi_sahibi || ""}
                   onChange={(e) => handleFieldChange("yapi_sahibi", e.target.value)}
                   placeholder="ABC YAPI İNŞAAT LTD. ŞTİ."
@@ -805,6 +825,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("yapi_sahibi_adresi", "Yapı Sahibi Adresi")}
                 <input
                   type="text"
+                  id={getFieldId("yapi_sahibi_adresi")}
                   value={formData.yapi_sahibi_adresi || ""}
                   onChange={(e) => handleFieldChange("yapi_sahibi_adresi", e.target.value)}
                   placeholder="Çankaya / ANKARA"
@@ -819,6 +840,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("tarih", "Taahhüt Tarihi")}
                 <input
                   type="text"
+                  id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
                   placeholder="16.08.2026"
@@ -830,6 +852,7 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("unvan_imza", "İmza Alanı Unvanı")}
                 <input
                   type="text"
+                  id={getFieldId("unvan_imza")}
                   value={formData.unvan_imza || ""}
                   onChange={(e) => handleFieldChange("unvan_imza", e.target.value)}
                   placeholder="İNŞAAT MÜHENDİSİ"

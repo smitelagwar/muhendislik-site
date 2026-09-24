@@ -471,6 +471,9 @@ export function BetonDokumStudio({
   };
 
   // Helper component for label with per-field reset button
+  const getFieldId = (fieldKey: keyof BetonDokumData) =>
+    `beton-dokum-${String(fieldKey)}`;
+
   const renderFieldHeader = (
     label: string,
     fieldKey: keyof BetonDokumData,
@@ -481,7 +484,7 @@ export function BetonDokumStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-bold text-foreground truncate">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-bold leading-tight text-foreground">
             {label}
           </label>
           {badge && (
@@ -630,6 +633,7 @@ export function BetonDokumStudio({
             {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
             <input
               type="text"
+              id={getFieldId("tutanak_alt_baslik")}
               value={formData.tutanak_alt_baslik || ""}
               onChange={(e) => handleFieldChange("tutanak_alt_baslik", e.target.value)}
               placeholder="Beton Dökümü Sistem Onay Sorunu"
@@ -643,6 +647,7 @@ export function BetonDokumStudio({
               {renderFieldHeader("Tarih", "tarih")}
               <input
                 type="text"
+                id={getFieldId("tarih")}
                 value={formData.tarih || ""}
                 onChange={(e) => handleFieldChange("tarih", e.target.value)}
                 placeholder="10.08.2026"
@@ -658,15 +663,24 @@ export function BetonDokumStudio({
             >
               <div className="flex items-center justify-between gap-1 mb-1">
                 <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                  <label className="text-[11px] font-bold text-foreground truncate">
+                  <label
+                    htmlFor={getFieldId("yibf")}
+                    className="text-[11px] font-bold leading-tight text-foreground"
+                  >
                     YİBF No
                   </label>
                   {(formData.yibf || "").trim().length > 7 ? (
-                    <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">
+                    <span
+                      id="beton-dokum-yibf-help"
+                      className="text-[10px] font-semibold text-red-600 dark:text-red-400"
+                    >
                       (YİBF No normalde 7 haneli olmalıdır, kontrol ediniz)
                     </span>
                   ) : (
-                    <span className="text-[9px] font-mono text-muted-foreground/80">
+                    <span
+                      id="beton-dokum-yibf-help"
+                      className="text-[9px] font-mono text-muted-foreground/80"
+                    >
                       (7 Hane)
                     </span>
                   )}
@@ -688,6 +702,8 @@ export function BetonDokumStudio({
               <input
                 type="text"
                 inputMode="numeric"
+                id={getFieldId("yibf")}
+                aria-describedby="beton-dokum-yibf-help"
                 value={formData.yibf || ""}
                 onChange={(e) => handleFieldChange("yibf", e.target.value)}
                 placeholder="1234567"
@@ -704,6 +720,7 @@ export function BetonDokumStudio({
             {renderFieldHeader("Şantiye Yeri", "yer", "(İl/İlçe/Mahalle/Ada/Parsel)")}
             <textarea
               rows={2}
+              id={getFieldId("yer")}
               value={formData.yer || ""}
               onChange={(e) => handleFieldChange("yer", e.target.value)}
               placeholder="ANKARA İli ÇANKAYA İlçesi Örnek Mahallesi 1234 ada 56 parsel"
@@ -716,6 +733,7 @@ export function BetonDokumStudio({
             {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
             <textarea
               rows={3}
+              id={getFieldId("olay_aciklamasi")}
               value={formData.olay_aciklamasi || ""}
               onChange={(e) => handleFieldChange("olay_aciklamasi", e.target.value)}
               placeholder="Yukarıda belirtilen şantiye adresinde gerçekleştirilen beton dökümü sırasında..."
@@ -728,6 +746,7 @@ export function BetonDokumStudio({
             {renderFieldHeader("Gözlem ve Notlar", "gozlem_notlar")}
             <textarea
               rows={2}
+              id={getFieldId("gozlem_notlar")}
               value={formData.gozlem_notlar || ""}
               onChange={(e) => handleFieldChange("gozlem_notlar", e.target.value)}
               placeholder="Beton dökümü gerçekleştirilmiştir..."
@@ -746,6 +765,7 @@ export function BetonDokumStudio({
                 {renderFieldHeader("1. Laboratuvar", "laboratuvar")}
                 <input
                   type="text"
+                  id={getFieldId("laboratuvar")}
                   value={formData.laboratuvar || ""}
                   onChange={(e) => handleFieldChange("laboratuvar", e.target.value)}
                   placeholder="XYZ BETON LABORATUVARI A.Ş."
@@ -757,6 +777,7 @@ export function BetonDokumStudio({
                 {renderFieldHeader("2. Müteahhit", "muteahhit")}
                 <input
                   type="text"
+                  id={getFieldId("muteahhit")}
                   value={formData.muteahhit || ""}
                   onChange={(e) => handleFieldChange("muteahhit", e.target.value)}
                   placeholder="ABC İNŞAAT TAAHHÜT LTD. ŞTİ."
@@ -768,6 +789,7 @@ export function BetonDokumStudio({
                 {renderFieldHeader("3. Şantiye Şefi", "santiye_sefi")}
                 <input
                   type="text"
+                  id={getFieldId("santiye_sefi")}
                   value={formData.santiye_sefi || ""}
                   onChange={(e) => handleFieldChange("santiye_sefi", e.target.value)}
                   placeholder="İnş. Müh. Hüseyin GÜNAYDIN"
@@ -779,6 +801,7 @@ export function BetonDokumStudio({
                 {renderFieldHeader("4. Yapı Denetim", "yapi_denetim")}
                 <input
                   type="text"
+                  id={getFieldId("yapi_denetim")}
                   value={formData.yapi_denetim || ""}
                   onChange={(e) => handleFieldChange("yapi_denetim", e.target.value)}
                   placeholder="GÜVEN YAPI DENETİM LTD. ŞTİ."

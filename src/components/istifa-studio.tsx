@@ -479,6 +479,9 @@ export function IstifaStudio({
   };
 
   // Helper for field headers with local reset buttons
+  const getFieldId = (fieldKey: keyof IstifaDilekcesiData) =>
+    `istifa-${String(fieldKey)}`;
+
   const renderFieldHeader = (
     fieldKey: keyof IstifaDilekcesiData,
     label: string,
@@ -489,7 +492,7 @@ export function IstifaStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-semibold text-foreground/90 truncate">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-semibold leading-tight text-foreground/90">
             {label}
           </label>
           {tag && (
@@ -652,6 +655,7 @@ export function IstifaStudio({
                 {renderFieldHeader("hitap_1", "Hitap Başlığı")}
                 <input
                   type="text"
+                  id={getFieldId("hitap_1")}
                   value={formData.hitap_1 || ""}
                   onChange={(e) => handleFieldChange("hitap_1", e.target.value)}
                   placeholder="BELEDİYE BAŞKANLIĞINA"
@@ -663,6 +667,7 @@ export function IstifaStudio({
                 {renderFieldHeader("hitap_2", "İlçe / Şehir")}
                 <input
                   type="text"
+                  id={getFieldId("hitap_2")}
                   value={formData.hitap_2 || ""}
                   onChange={(e) => handleFieldChange("hitap_2", e.target.value)}
                   placeholder="ÇANKAYA"
@@ -686,6 +691,7 @@ export function IstifaStudio({
               {renderFieldHeader("ana_paragraf", "İstifa & Proje Açıklaması")}
               <textarea
                 rows={4}
+                id={getFieldId("ana_paragraf")}
                 value={formData.ana_paragraf || ""}
                 onChange={(e) => handleFieldChange("ana_paragraf", e.target.value)}
                 placeholder="Arsa sahibi ... adına kayıtlı ... ada ... parselde bulunan inşaatta üstlenmiş olduğum şantiye şefliği görevimden..."
@@ -698,6 +704,7 @@ export function IstifaStudio({
               {renderFieldHeader("sonuc_cumlesi", "Sonuç & Talep Cümlesi")}
               <input
                 type="text"
+                id={getFieldId("sonuc_cumlesi")}
                 value={formData.sonuc_cumlesi || ""}
                 onChange={(e) => handleFieldChange("sonuc_cumlesi", e.target.value)}
                 placeholder="İstifa ettiğimi bildirir, gereğinin yapılmasını dilerim."
@@ -721,6 +728,7 @@ export function IstifaStudio({
                 {renderFieldHeader("tarih", "Dilekçe Tarihi")}
                 <input
                   type="text"
+                  id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
                   placeholder="29.12.2025"
@@ -732,6 +740,7 @@ export function IstifaStudio({
                 {renderFieldHeader("unvan", "Mesleki Unvan")}
                 <input
                   type="text"
+                  id={getFieldId("unvan")}
                   value={formData.unvan || ""}
                   onChange={(e) => handleFieldChange("unvan", e.target.value)}
                   placeholder="İNŞAAT MÜHENDİSİ"
@@ -743,6 +752,8 @@ export function IstifaStudio({
                 {renderFieldHeader("ad_soyad", "Şantiye Şefi Ad Soyad")}
                 <input
                   type="text"
+                  id={getFieldId("ad_soyad")}
+                  autoComplete="name"
                   value={formData.ad_soyad || ""}
                   onChange={(e) => handleFieldChange("ad_soyad", e.target.value)}
                   placeholder="HÜSEYİN GÜNAYDIN"
@@ -758,6 +769,8 @@ export function IstifaStudio({
                 <input
                   type="text"
                   maxLength={11}
+                  id={getFieldId("tc_deger")}
+                  inputMode="numeric"
                   value={formData.tc_deger || ""}
                   onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
                   placeholder="11111111110"
@@ -769,6 +782,9 @@ export function IstifaStudio({
                 {renderFieldHeader("iletisim_deger", "İletişim Telefonu")}
                 <input
                   type="text"
+                  id={getFieldId("iletisim_deger")}
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={formData.iletisim_deger || ""}
                   onChange={(e) => handleFieldChange("iletisim_deger", e.target.value)}
                   placeholder="0566 666 66 66"
@@ -782,6 +798,8 @@ export function IstifaStudio({
               {renderFieldHeader("adres_deger", "Tebligat Adresi")}
               <input
                 type="text"
+                id={getFieldId("adres_deger")}
+                autoComplete="street-address"
                 value={formData.adres_deger || ""}
                 onChange={(e) => handleFieldChange("adres_deger", e.target.value)}
                 placeholder="Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA"

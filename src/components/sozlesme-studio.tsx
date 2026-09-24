@@ -471,6 +471,9 @@ export function SozlesmeStudio({
   };
 
   // Helper for field headers with local reset buttons
+  const getFieldId = (fieldKey: keyof SozlesmeData) =>
+    `sozlesme-${String(fieldKey)}`;
+
   const renderFieldHeader = (
     label: string,
     fieldKey: keyof SozlesmeData,
@@ -481,7 +484,7 @@ export function SozlesmeStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label className="text-[11px] font-bold text-foreground truncate">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-bold leading-tight text-foreground">
             {label}
           </label>
           {badge && (
@@ -648,6 +651,7 @@ export function SozlesmeStudio({
               <input
                 type="text"
                 maxLength={36}
+                id={getFieldId("muteahhit_unvan")}
                 value={formData.muteahhit_unvan || ""}
                 onChange={(e) => handleFieldChange("muteahhit_unvan", e.target.value)}
                 placeholder="ABC İNŞAAT"
@@ -660,6 +664,8 @@ export function SozlesmeStudio({
               <input
                 type="text"
                 maxLength={35}
+                id={getFieldId("santiye_sefi_ad")}
+                autoComplete="name"
                 value={formData.santiye_sefi_ad || ""}
                 onChange={(e) => handleFieldChange("santiye_sefi_ad", e.target.value)}
                 placeholder="HÜSEYİN GÜNAYDIN"
@@ -681,6 +687,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={18}
+                  id={getFieldId("il")}
                   value={formData.il || ""}
                   onChange={(e) => handleFieldChange("il", e.target.value)}
                   placeholder="YOZGAT"
@@ -692,6 +699,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={22}
+                  id={getFieldId("ilce")}
                   value={formData.ilce || ""}
                   onChange={(e) => handleFieldChange("ilce", e.target.value)}
                   placeholder="AKDAĞMADENİ"
@@ -705,6 +713,7 @@ export function SozlesmeStudio({
               <input
                 type="text"
                 maxLength={48}
+                id={getFieldId("adres")}
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
                 placeholder="-"
@@ -718,6 +727,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={32}
+                  id={getFieldId("mahalle")}
                   value={formData.mahalle || ""}
                   onChange={(e) => handleFieldChange("mahalle", e.target.value)}
                   placeholder="EMEK MAHALLESİ"
@@ -729,6 +739,8 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={8}
+                  id={getFieldId("ada")}
+                  inputMode="numeric"
                   value={formData.ada || ""}
                   onChange={(e) => handleFieldChange("ada", e.target.value)}
                   placeholder="666"
@@ -740,6 +752,8 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={8}
+                  id={getFieldId("parsel")}
+                  inputMode="numeric"
                   value={formData.parsel || ""}
                   onChange={(e) => handleFieldChange("parsel", e.target.value)}
                   placeholder="66"
@@ -758,15 +772,24 @@ export function SozlesmeStudio({
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                    <label className="text-[11px] font-bold text-foreground truncate">
+                    <label
+                      htmlFor={getFieldId("yibf")}
+                      className="text-[11px] font-bold leading-tight text-foreground"
+                    >
                       YİBF No
                     </label>
                     {yibfInvalid ? (
-                      <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">
+                      <span
+                        id="sozlesme-yibf-help"
+                        className="text-[10px] font-semibold text-red-600 dark:text-red-400"
+                      >
                         (7 Hane olmalı)
                       </span>
                     ) : (
-                      <span className="text-[9px] font-mono text-muted-foreground/80">
+                      <span
+                        id="sozlesme-yibf-help"
+                        className="text-[9px] font-mono text-muted-foreground/80"
+                      >
                         (7 Hane veya -)
                       </span>
                     )}
@@ -786,6 +809,9 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={7}
+                  id={getFieldId("yibf")}
+                  inputMode="numeric"
+                  aria-describedby="sozlesme-yibf-help"
                   value={formData.yibf || ""}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -805,6 +831,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={12}
+                  id={getFieldId("pafta")}
                   value={formData.pafta || ""}
                   onChange={(e) => handleFieldChange("pafta", e.target.value)}
                   placeholder="-"
@@ -826,6 +853,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Aylık Brüt Ücret", "ucret", "(Madde 5)")}
                 <input
                   type="text"
+                  id={getFieldId("ucret")}
                   value={formData.ucret || ""}
                   onChange={(e) => handleFieldChange("ucret", e.target.value)}
                   placeholder="40.000,00 TL"
@@ -837,6 +865,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Sözleşme Tarihi", "sozlesme_tarihi", "(Madde 8)")}
                 <input
                   type="text"
+                  id={getFieldId("sozlesme_tarihi")}
                   value={formData.sozlesme_tarihi || ""}
                   onChange={(e) => handleFieldChange("sozlesme_tarihi", e.target.value)}
                   placeholder="01.05.2026"
@@ -859,6 +888,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={35}
+                  id={getFieldId("santiye_sefi_imza_adi")}
                   value={formData.santiye_sefi_imza_adi || ""}
                   onChange={(e) => handleFieldChange("santiye_sefi_imza_adi", e.target.value)}
                   placeholder="Hüseyin GÜNAYDIN"
@@ -870,6 +900,7 @@ export function SozlesmeStudio({
                 <input
                   type="text"
                   maxLength={36}
+                  id={getFieldId("muteahhit_imza_unvan")}
                   value={formData.muteahhit_imza_unvan || ""}
                   onChange={(e) => handleFieldChange("muteahhit_imza_unvan", e.target.value)}
                   placeholder="ABC İNŞAAT"
