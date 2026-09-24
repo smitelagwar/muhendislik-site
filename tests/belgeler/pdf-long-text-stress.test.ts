@@ -29,7 +29,14 @@ mkdirSync(outputDir, { recursive: true });
 const turkishStress =
   "ÇĞİÖŞÜ çğıöşü — mühendislik kontrolü; çok uzun içerik sınaması";
 
-const cases = [
+type StressCase = {
+  id: string;
+  expectedPages: number;
+  data: Record<string, string | undefined>;
+  generate: (data: Record<string, string | undefined>) => Promise<Uint8Array>;
+};
+
+const cases: StressCase[] = [
   {
     id: "beton-dokum-tutanagi",
     expectedPages: 1,
@@ -58,7 +65,8 @@ const cases = [
       yapi_denetim:
         "ÇOK UZUN GÜVENLİ YAPI DENETİM MÜHENDİSLİK VE MÜŞAVİRLİK LİMİTED ŞİRKETİ",
     } satisfies BetonDokumData,
-    generate: generateBetonDokumPdf,
+    generate: (data) =>
+      generateBetonDokumPdf(data as BetonDokumData, { flatten: false }),
   },
   {
     id: "insaat-ruhsati-dilekcesi",
@@ -82,7 +90,8 @@ const cases = [
         turkishStress,
       tel: "Tel: 0555 111 22 33 / 0555 444 55 66",
     } satisfies InsaatRuhsatiData,
-    generate: generateInsaatRuhsatiPdf,
+    generate: (data) =>
+      generateInsaatRuhsatiPdf(data as InsaatRuhsatiData, { flatten: false }),
   },
   {
     id: "santiye-sefi-istifa-dilekcesi",
@@ -108,7 +117,8 @@ const cases = [
         turkishStress,
       iletisim_deger: "0555 111 22 33 / 0555 444 55 66",
     } satisfies IstifaDilekcesiData,
-    generate: generateIstifaDilekcesiPdf,
+    generate: (data) =>
+      generateIstifaDilekcesiPdf(data as IstifaDilekcesiData, { flatten: false }),
   },
   {
     id: "santiye-sefi-sozlesmesi",
@@ -131,7 +141,8 @@ const cases = [
       muteahhit_imza_unvan:
         "ÇOK UZUN ÖRNEK İNŞAAT TAAHHÜT MÜHENDİSLİK LİMİTED ŞİRKETİ",
     } satisfies SozlesmeData,
-    generate: generateSozlesmePdf,
+    generate: (data) =>
+      generateSozlesmePdf(data as SozlesmeData, { flatten: false }),
   },
   {
     id: "santiye-sefi-taahhutnamesi",
@@ -160,12 +171,13 @@ const cases = [
       unvan_imza:
         "İNŞAAT YÜKSEK MÜHENDİSİ — ŞANTİYE ŞEFİ",
     } satisfies TaahhutnameData,
-    generate: generateTaahhutnamePdf,
+    generate: (data) =>
+      generateTaahhutnamePdf(data as TaahhutnameData, { flatten: false }),
   },
-] as const;
+];
 
 for (const testCase of cases) {
-  const pdfBytes = await testCase.generate(testCase.data, { flatten: false });
+  const pdfBytes = await testCase.generate(testCase.data);
   assert.ok(pdfBytes.byteLength > 0, `${testCase.id}: stres PDF üretilemedi`);
 
   const pdfDocument = await PDFDocument.load(pdfBytes);

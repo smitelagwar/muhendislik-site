@@ -14,48 +14,66 @@ import {
   generateIstifaDilekcesiPdf,
   generateSozlesmePdf,
   generateTaahhutnamePdf,
+  type BetonDokumData,
+  type InsaatRuhsatiData,
+  type IstifaDilekcesiData,
+  type SozlesmeData,
+  type TaahhutnameData,
 } from "../../src/lib/pdf-engine";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
 
-const cases = [
+type RegressionCase = {
+  id: string;
+  templatePath: string;
+  expectedPages: number;
+  defaults: Record<string, string | undefined>;
+  generate: (data: Record<string, string | undefined>) => Promise<Uint8Array>;
+};
+
+const cases: RegressionCase[] = [
   {
     id: "beton-dokum-tutanagi",
     templatePath: "public/belgeler/beton-dokum-tutanagi.pdf",
     expectedPages: 1,
     defaults: BETON_DOKUM_DEFAULT_DATA,
-    generate: generateBetonDokumPdf,
+    generate: (data) =>
+      generateBetonDokumPdf(data as BetonDokumData, { flatten: false }),
   },
   {
     id: "insaat-ruhsati-dilekcesi",
     templatePath: "public/belgeler/insaat-ruhsati-dilekcesi.pdf",
     expectedPages: 1,
     defaults: INSAAT_RUHSATI_DEFAULT_DATA,
-    generate: generateInsaatRuhsatiPdf,
+    generate: (data) =>
+      generateInsaatRuhsatiPdf(data as InsaatRuhsatiData, { flatten: false }),
   },
   {
     id: "santiye-sefi-istifa-dilekcesi",
     templatePath: "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
     expectedPages: 1,
     defaults: ISTIFA_DILEKCESI_DEFAULT_DATA,
-    generate: generateIstifaDilekcesiPdf,
+    generate: (data) =>
+      generateIstifaDilekcesiPdf(data as IstifaDilekcesiData, { flatten: false }),
   },
   {
     id: "santiye-sefi-sozlesmesi",
     templatePath: "public/belgeler/santiye-sefi-sozlesmesi.pdf",
     expectedPages: 2,
     defaults: SOZLESME_DEFAULT_DATA,
-    generate: generateSozlesmePdf,
+    generate: (data) =>
+      generateSozlesmePdf(data as SozlesmeData, { flatten: false }),
   },
   {
     id: "santiye-sefi-taahhutnamesi",
     templatePath: "public/belgeler/santiye-sefi-taahhutnamesi.pdf",
     expectedPages: 1,
     defaults: TAAHHUTNAME_DEFAULT_DATA,
-    generate: generateTaahhutnamePdf,
+    generate: (data) =>
+      generateTaahhutnamePdf(data as TaahhutnameData, { flatten: false }),
   },
-] as const;
+];
 
 for (const testCase of cases) {
   const blankBytes = readFileSync(resolve(repoRoot, testCase.templatePath));
@@ -68,9 +86,7 @@ for (const testCase of cases) {
     `${testCase.id}: boş PDF sayfa sayısı değişti`
   );
 
-  const generatedBytes = await testCase.generate(testCase.defaults, {
-    flatten: false,
-  });
+  const generatedBytes = await testCase.generate(testCase.defaults);
   assert.ok(
     generatedBytes.byteLength > 0,
     `${testCase.id}: default PDF üretilemedi`
