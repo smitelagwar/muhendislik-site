@@ -126,58 +126,51 @@ async function gotoOk(page: Page, baseURL: string, pathname: string) {
   await page.waitForTimeout(250);
 }
 
-async function loginDokumantasyon(context: BrowserContext, baseURL: string) {
-  const response = await context.request.post(absolute(baseURL, "/api/dokumantasyon/giris"), {
+async function seedDokumantasyonFixture(context: BrowserContext, baseURL: string) {
+  const suffix = Date.now().toString(36);
+  const mutationHeaders = { Origin: new URL(baseURL).origin };
+
+  const folderResponse = await context.request.post(absolute(baseURL, "/api/dokumantasyon/folders"), {
+    headers: mutationHeaders,
     data: {
-      username: process.env.TEST_ADMIN_USERNAME || "admin",
-      password: process.env.TEST_ADMIN_PASSWORD || "admin",
+      name: "Stage6 UX Kabul " + suffix,
+      parentId: null,
     },
   });
-  expect(response.status(), "Dokümantasyon test admin girişi başarısız").toBe(200);
-}
+  expect(folderResponse.status(), "Stage 6 test klasörü oluşturulamadı").toBe(200);
+  const folderPayload = await folderResponse.json();
+  const folderId = String(folderPayload.folder?.id ?? "");
+  expect(folderId).not.toBe("");
 
-function visibleFolderItems(page: Page) {
-  return page.locator(
-    '[data-testid="dok-folder-row"]:visible, [data-testid="dok-folder-card"]:visible',
-  );
-}
-
-function visibleFileLinks(page: Page) {
-  return page.locator('[data-testid="dok-file-name"]:visible');
-}
-
-async function descendUntilFile(page: Page, maxDepth = 4) {
-  for (let depth = 0; depth <= maxDepth; depth += 1) {
-    if ((await visibleFileLinks(page).count()) > 0) {
-      return;
-    }
-
-    const folders = visibleFolderItems(page);
+  const fileIds: string[] = [];
+  for (const index of [1, 2]) {
+    const fileName = "stage6-ux-" + suffix + "-" + index + ".txt";
+    const uploadResponse = await context.request.post(
+      absolute(baseURL, "/api/dokumantasyon/upload/local"),
+      {
+        headers: mutationHeaders,
+        multipart: {
+          file: {
+            name: fileName,
+            mimeType: "text/plain",
+            buffer: Buffer.from("Stage 6 UX fixture " + index + "\n", "utf8"),
+          },
+          pathname: fileName,
+          folderId,
+        },
+      },
+    );
     expect(
-      await folders.count(),
-      "Dokümantasyon akışında dosyaya ulaşmak için görünür klasör bulunamadı.",
-    ).toBeGreaterThan(0);
-
-    const beforeUrl = page.url();
-    await folders.first().dblclick();
-    await expect
-      .poll(() => page.url(), { message: "Klasör açıldıktan sonra URL güncellenmedi." })
-      .not.toBe(beforeUrl);
-    await page.waitForTimeout(250);
+      uploadResponse.status(),
+      "Stage 6 test dosyası yüklenemedi: " + fileName,
+    ).toBe(200);
+    const uploadPayload = await uploadResponse.json();
+    const fileId = String(uploadPayload.file?.id ?? "");
+    expect(fileId).not.toBe("");
+    fileIds.push(fileId);
   }
 
-  expect(await visibleFileLinks(page).count(), "Klasör ağacında görünür dosya bulunamadı.").toBeGreaterThan(0);
-}
-
-async function preferredFileLink(page: Page) {
-  const pdf = page.locator(
-    '[data-testid="dok-file-row"][data-extension=".pdf"] [data-testid="dok-file-name"]:visible, ' +
-      '[data-testid="dok-file-card"][data-extension=".pdf"] [data-testid="dok-file-name"]:visible',
-  );
-  if ((await pdf.count()) > 0) {
-    return pdf.first();
-  }
-  return visibleFileLinks(page).first();
+  return { folderId, fileIds };
 }
 
 test.describe("Sadeleştirme Aşama 6 — gerçek kullanıcı akışları", () => {
@@ -225,7 +218,7 @@ test.describe("Sadeleştirme Aşama 6 — gerçek kullanıcı akışları", () =
     expect(baseURL).toBeTruthy();
 
     const context = await createContext(browser, VIEWPORT_MATRIX[5]);
-    await loginDokumantasyon(context, baseURL!);
+    const fixture = await seedDokumantasyonFixture(context, baseURL!);
     const page = await context.newPage();
     const probe = attachRuntimeProbe(page);
 
@@ -235,46 +228,38 @@ test.describe("Sadeleştirme Aşama 6 — gerçek kullanıcı akışları", () =
       await expect(page).toHaveURL(/\/dokumantasyon$/);
       await expect(page.locator("[data-dok-shell]")).toBeVisible();
 
-      const rootFolders = visibleFolderItems(page);
-      await expect(rootFolders.first()).toBeVisible({ timeout: 15_000 });
+      const fixtureFolder = page.locator(
+        '[data-testid="dok-folder-row"][data-folder-id="' + fixture.folderId + '"]:visible, ' +
+          '[data-testid="dok-folder-card"][data-folder-id="' + fixture.folderId + '"]:visible',
+      ).first();
+      await expect(fixtureFolder).toBeVisible({ timeout: 15_000 });
+
       const rootUrl = page.url();
-      await rootFolders.first().dblclick();
+      await fixtureFolder.dblclick();
       await expect.poll(() => page.url()).not.toBe(rootUrl);
 
-      await descendUntilFile(page);
-      const firstFile = await preferredFileLink(page);
-      const firstHref = await firstFile.getAttribute("href");
-      expect(firstHref).toBeTruthy();
+      const firstFile = page.locator(
+        '[data-file-id="' + fixture.fileIds[0] + '"] [data-testid="dok-file-name"]:visible',
+      ).first();
+      const secondFile = page.locator(
+        '[data-file-id="' + fixture.fileIds[1] + '"] [data-testid="dok-file-name"]:visible',
+      ).first();
+      await expect(firstFile).toBeVisible({ timeout: 15_000 });
+      await expect(secondFile).toBeVisible({ timeout: 15_000 });
+
       await firstFile.click();
       await expect(page).toHaveURL(/\/dokumantasyon\/dosya\//);
 
       await page.goBack({ waitUntil: "domcontentloaded" });
       await expect(page.locator("[data-dok-shell]")).toBeVisible();
 
-      let alternativeHref = await visibleFileLinks(page).evaluateAll(
-        (links, previous) =>
-          links
-            .map((link) => link.getAttribute("href"))
-            .find((href) => Boolean(href) && href !== previous) ?? null,
-        firstHref,
-      );
-
-      if (!alternativeHref) {
-        await gotoOk(page, baseURL!, "/dokumantasyon");
-        await descendUntilFile(page);
-        alternativeHref = await visibleFileLinks(page).evaluateAll(
-          (links, previous) =>
-            links
-              .map((link) => link.getAttribute("href"))
-              .find((href) => Boolean(href) && href !== previous) ?? null,
-          firstHref,
-        );
-      }
-
-      expect(alternativeHref, "Geri dönüşten sonra açılabilecek ikinci doküman bulunamadı.").toBeTruthy();
-      await page.locator('a[data-testid="dok-file-name"][href="' + alternativeHref + '"]:visible').first().click();
+      const returnedSecondFile = page.locator(
+        '[data-file-id="' + fixture.fileIds[1] + '"] [data-testid="dok-file-name"]:visible',
+      ).first();
+      await expect(returnedSecondFile).toBeVisible({ timeout: 15_000 });
+      await returnedSecondFile.click();
       await expect(page).toHaveURL(/\/dokumantasyon\/dosya\//);
-      expect(page.url()).not.toContain(firstHref ?? "__never__");
+      expect(new URL(page.url()).pathname).toContain(fixture.fileIds[1]);
 
       await expectRuntimeClean(page, probe, "Senaryo B");
     } finally {
@@ -679,7 +664,7 @@ test.describe("Sadeleştirme Aşama 6 — accessibility ve runtime", () => {
     expect(baseURL).toBeTruthy();
 
     const touchContext = await createContext(browser, VIEWPORT_MATRIX[3]);
-    await loginDokumantasyon(touchContext, baseURL!);
+    await seedDokumantasyonFixture(touchContext, baseURL!);
     const touchPage = await touchContext.newPage();
 
     try {
