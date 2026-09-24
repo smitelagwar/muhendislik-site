@@ -175,11 +175,30 @@ pass("85 rehber arama index'i ve sitemap üzerinden discoverable");
 // 7) Stage 6/7 test zinciri ve paket bütünlüğü.
 const pkg = JSON.parse(source("package.json")) as {
   scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 };
+const lock = JSON.parse(source("package-lock.json")) as {
+  packages?: Record<string, {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  }>;
+};
+assert.deepEqual(
+  lock.packages?.[""]?.dependencies ?? {},
+  pkg.dependencies ?? {},
+  "package-lock runtime dependencies package.json ile eşleşmiyor.",
+);
+assert.deepEqual(
+  lock.packages?.[""]?.devDependencies ?? {},
+  pkg.devDependencies ?? {},
+  "package-lock devDependencies package.json ile eşleşmiyor.",
+);
 assert.ok(pkg.scripts?.["check:simplification-stage6"], "Stage 6 kabul komutu eksik.");
 assert.ok(pkg.scripts?.["check:simplification-stage7"], "Stage 7 release komutu eksik.");
+assert.ok(pkg.scripts?.["check:simplification-stage7:clean"], "Clean Stage 7 release komutu eksik.");
 assert.ok(exists("tests/site-audit/simplification-stage6.spec.ts"), "Stage 6 browser spec'i eksik.");
-pass("Stage 6 + Stage 7 release komut zinciri kayıtlı");
+pass("Package/lock install integrity ve Stage 6 + Stage 7 komut zinciri kayıtlı");
 
 console.log("============================================================");
 console.log(`AŞAMA 7 STATİK GATE: ${checks.length}/${checks.length} kontrol geçti.`);
