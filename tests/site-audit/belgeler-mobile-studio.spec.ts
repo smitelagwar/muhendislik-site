@@ -30,22 +30,35 @@ function requireMobile390(testInfo: TestInfo) {
   );
 }
 
+function getVisibleStudio(page: Page) {
+  return page.locator('[data-studio-locked="true"]:visible').last();
+}
+
 async function gotoStudio(page: Page, path: string, width = 390, height = 844) {
   await page.setViewportSize({ width, height });
   await page.goto(path, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
-  await expect(page.getByTestId("belge-studio-form-scroll")).toBeVisible();
+  const studio = getVisibleStudio(page);
+  await expect(studio).toBeVisible();
+  await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible();
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
-  const metrics = await page.evaluate(() => ({
-    documentScrollWidth: document.documentElement.scrollWidth,
-    viewportWidth: window.innerWidth,
-    studioScrollWidth:
-      document.querySelector<HTMLElement>('[data-studio-locked="true"]')?.scrollWidth ?? 0,
-    studioClientWidth:
-      document.querySelector<HTMLElement>('[data-studio-locked="true"]')?.clientWidth ?? 0,
-  }));
+  const metrics = await page.evaluate(() => {
+    const studio = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-studio-locked="true"]')
+    ).find((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+    });
+
+    return {
+      documentScrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      studioScrollWidth: studio?.scrollWidth ?? 0,
+      studioClientWidth: studio?.clientWidth ?? 0,
+    };
+  });
 
   expect(
     metrics.documentScrollWidth,
@@ -59,7 +72,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function expectEditableFieldContract(page: Page, expectedCount: number) {
-  const editors = page
+  const editors = getVisibleStudio(page)
     .getByTestId("belge-studio-form-scroll")
     .locator("input:visible, textarea:visible, select:visible");
 
@@ -83,12 +96,13 @@ async function expectEditableFieldContract(page: Page, expectedCount: number) {
 }
 
 async function expectPreviewCanvas(page: Page) {
-  const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+  const studio = getVisibleStudio(page);
+  const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
   await previewTab.click();
   await expect(previewTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+  await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
 
-  const canvas = page.locator("canvas").first();
+  const canvas = studio.locator("canvas").first();
   await expect(canvas).toBeVisible();
 
   await expect
@@ -257,6 +271,22 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     await expectNoHorizontalOverflow(page);
 
     await page.setViewportSize({ width: 844, height: 390 });
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const value = document.documentElement.style.getPropertyValue("--belge-studio-visual-height");
+          return Number.parseFloat(value) || 0;
+        })
+      )
+      .toBeGreaterThanOrEqual(388);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const value = document.documentElement.style.getPropertyValue("--belge-studio-visual-height");
+          return Number.parseFloat(value) || 0;
+        })
+      )
+      .toBeLessThanOrEqual(392);
     await previewTab.click();
     await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -337,7 +367,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
       await search.fill("kesinlikle-bulunmayacak-belge-xyz");
       await expect(page.getByText("Eşleşen belge bulunamadı")).toBeVisible();
-      await page.getByRole("button", { name: "Aramayı temizle" }).click();
+      await page.getByLabel("Aramayı temizle").click();
 
       const unfocusedStyle = await search.evaluate((element) => {
         const style = window.getComputedStyle(element);
@@ -532,7 +562,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
           waitUntil: "domcontentloaded",
           timeout: 30_000,
         });
-        await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+        await expect(getVisibleStudio(page)).toBeVisible();
         await expectEditableFieldContract(page, route.fields);
         await expectPreviewCanvas(page);
         await expectNoHorizontalOverflow(page);
