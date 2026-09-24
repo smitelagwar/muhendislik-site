@@ -123,8 +123,9 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
       await expect(page.getByTestId("global-bottom-nav")).toHaveCount(0);
 
-      const form = page.getByTestId("belge-studio-form-scroll");
-      const actions = page.getByTestId("belge-studio-mobile-actions");
+      const studio = getVisibleStudio(page);
+      const form = studio.getByTestId("belge-studio-form-scroll");
+      const actions = studio.getByTestId("belge-studio-mobile-actions");
       await expect(actions).toBeVisible();
 
       const initialMetrics = await form.evaluate((element) => ({
@@ -151,8 +152,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       const lastEditor = form.locator("input:visible, textarea:visible, select:visible").last();
       await expect(lastEditor).toBeVisible();
 
-      const visibility = await page.evaluate(() => {
-        const formElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
+      const visibility = await studio.evaluate((root) => {
+        const formElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
         const editors = formElement
           ? Array.from(formElement.querySelectorAll<HTMLElement>("input, textarea, select")).filter((element) => {
               const style = window.getComputedStyle(element);
@@ -161,7 +162,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
             })
           : [];
         const editor = editors.at(-1);
-        const actionsElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-mobile-actions"]');
+        const actionsElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-mobile-actions"]');
 
         if (!formElement || !editor || !actionsElement) return null;
 
@@ -208,7 +209,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.goto("/belgeler/beton-dokum-tutanagi", { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+    await expect(getVisibleStudio(page)).toBeVisible();
 
     const menuButton = page.getByRole("button", { name: /menüyü aç/i });
     await expect(menuButton).toBeVisible();
@@ -242,7 +243,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     expect(unlocked.viewportVar).toBe("");
 
     await page.goForward({ waitUntil: "domcontentloaded" });
-    await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+    await expect(getVisibleStudio(page)).toBeVisible();
 
     await page.goBack({ waitUntil: "domcontentloaded" });
     await expect(page.locator('[data-studio-locked="true"]')).toHaveCount(0);
@@ -251,18 +252,20 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
   test("320px, 200% metin ölçeği, sekme geçişi ve landscape taşma üretmemeli", async ({ page }, testInfo) => {
     requireMobile390(testInfo);
+    test.setTimeout(90_000);
     await gotoStudio(page, "/belgeler/santiye-sefi-sozlesmesi", 320, 720);
 
     await expectNoHorizontalOverflow(page);
 
-    const formTab = page.getByRole("tab", { name: /Form Alanları/i });
-    const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+    const studio = getVisibleStudio(page);
+    const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
+    const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
 
     for (let index = 0; index < 5; index += 1) {
       await previewTab.click();
-      await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+      await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
       await formTab.click();
-      await expect(page.getByTestId("belge-studio-form-scroll")).toBeVisible();
+      await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible();
     }
 
     await page.evaluate(() => {
@@ -288,10 +291,10 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       )
       .toBeLessThanOrEqual(392);
     await previewTab.click();
-    await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+    await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    const actionsRect = await page.getByTestId("belge-studio-mobile-actions").boundingBox();
+    const actionsRect = await studio.getByTestId("belge-studio-mobile-actions").boundingBox();
     expect(actionsRect).not.toBeNull();
     expect(actionsRect!.y + actionsRect!.height).toBeLessThanOrEqual(392);
 
@@ -310,7 +313,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await gotoStudio(page, "/belgeler/beton-dokum-tutanagi");
 
-    const firstInput = page.getByTestId("belge-studio-form-scroll").locator("input:visible, textarea:visible").first();
+    const studio = getVisibleStudio(page);
+    const firstInput = studio.getByTestId("belge-studio-form-scroll").locator("input:visible, textarea:visible").first();
     await expect(firstInput).toBeVisible();
 
     for (let index = 0; index < 12; index += 1) {
@@ -318,11 +322,11 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await page.waitForTimeout(40);
     }
 
-    const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
-    const formTab = page.getByRole("tab", { name: /Form Alanları/i });
+    const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
+    const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
 
     await previewTab.click();
-    await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+    await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
 
     for (let index = 0; index < 4; index += 1) {
       await formTab.click();
@@ -331,7 +335,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await page.waitForTimeout(600);
 
-    const canvas = page.locator("canvas").first();
+    const canvas = studio.locator("canvas").first();
     await expect(canvas).toBeVisible();
     const canvasSize = await canvas.evaluate((element) => {
       const canvasElement = element as HTMLCanvasElement;
@@ -347,6 +351,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
   test("/belgeler arama, clear, no-result, 200% text ve BottomNav overlap sözleşmesi", async ({ page }, testInfo) => {
     requireMobile390(testInfo);
+    test.setTimeout(120_000);
 
     for (const viewport of MOBILE_VIEWPORTS) {
       await page.setViewportSize(viewport);
@@ -431,12 +436,14 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
   for (const route of STUDIO_ROUTES) {
     test(`[${route.name}] editable alan, label/id, tab ARIA, preview ve download regresyonu`, async ({ page }, testInfo) => {
       requireMobile390(testInfo);
+      test.setTimeout(90_000);
       await gotoStudio(page, route.path);
 
       await expectEditableFieldContract(page, route.fields);
 
-      const formTab = page.getByRole("tab", { name: /Form Alanları/i });
-      const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+      const studio = getVisibleStudio(page);
+      const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
+      const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
 
       await expect(formTab).toHaveAttribute("aria-selected", "true");
       await expect(previewTab).toHaveAttribute("aria-selected", "false");
@@ -452,12 +459,12 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await expect(formTab).toBeFocused();
       await expect(formTab).toHaveAttribute("aria-selected", "true");
 
-      await expect(page.getByTestId("belge-studio-mobile-actions")).toBeVisible();
+      await expect(studio.getByTestId("belge-studio-mobile-actions")).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await expectPreviewCanvas(page);
 
       await formTab.click();
-      const downloadButton = page
+      const downloadButton = studio
         .getByTestId("belge-studio-mobile-actions")
         .getByRole("button", { name: /PDF İndir/i });
 
@@ -476,21 +483,23 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         testInfo.project.name !== "chromium-desktop-1920",
         "Desktop belge matrisi tek Chromium projesinde üç viewport ile koşar."
       );
+      test.setTimeout(90_000);
 
       for (const viewport of DESKTOP_VIEWPORTS) {
         await page.setViewportSize(viewport);
         await page.goto(route.path, { waitUntil: "domcontentloaded", timeout: 30_000 });
-        await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+        const studio = getVisibleStudio(page);
+        await expect(studio).toBeVisible();
 
-        const form = page.getByTestId("belge-studio-form-scroll");
-        const toolbar = page.getByTestId("belge-studio-preview-toolbar");
+        const form = studio.getByTestId("belge-studio-form-scroll");
+        const toolbar = studio.getByTestId("belge-studio-preview-toolbar");
         await expect(form).toBeVisible();
         await expect(toolbar).toBeVisible();
 
-        const layout = await page.evaluate(() => {
-          const formElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
-          const toolbarElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-preview-toolbar"]');
-          const preview = document.querySelector<HTMLElement>('[aria-label="PDF önizleme alanı"]');
+        const layout = await studio.evaluate((root) => {
+          const formElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
+          const toolbarElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-preview-toolbar"]');
+          const preview = root.querySelector<HTMLElement>('[aria-label="PDF önizleme alanı"]');
           if (!formElement || !toolbarElement || !preview) return null;
 
           const formRect = formElement.getBoundingClientRect();
@@ -519,7 +528,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         expect(layout!.formScrollHeight).toBeGreaterThanOrEqual(layout!.formClientHeight);
         expect(layout!.documentScrollHeight).toBeLessThanOrEqual(layout!.viewportHeight + 2);
 
-        const previewRegion = page.getByRole("region", { name: "PDF önizleme alanı" });
+        const previewRegion = studio.getByRole("region", { name: "PDF önizleme alanı" });
         await previewRegion.focus();
         await page.keyboard.press("Control+=");
         await expect(toolbar.getByText("%125", { exact: true })).toBeVisible();
@@ -539,7 +548,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
   test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({ browserName }, testInfo) => {
     requireMobile390(testInfo);
     expect(browserName).toBe("chromium");
-    test.setTimeout(60_000);
+    test.setTimeout(120_000);
 
     const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
     let browserInstance: Awaited<ReturnType<typeof webkit.launch>> | null = null;

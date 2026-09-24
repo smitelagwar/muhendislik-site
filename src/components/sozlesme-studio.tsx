@@ -125,11 +125,13 @@ export function SozlesmeStudio({
     const nextTab = currentTab === "form" ? "preview" : "form";
     setActiveTabMobile(nextTab);
 
+    const tabList = event.currentTarget.closest('[role="tablist"]');
+    const nextTabId =
+      nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab;
+
     window.requestAnimationFrame(() => {
-      document
-        .getElementById(
-          nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab
-        )
+      tabList
+        ?.querySelector<HTMLButtonElement>(`#${nextTabId}`)
         ?.focus();
     });
   };
@@ -414,6 +416,33 @@ export function SozlesmeStudio({
   }, [activeTabMobile, renderPdfPage]);
 
   // Ctrl/Cmd + Wheel and keyboard PDF zoom — scoped only to the focused preview.
+  const handlePreviewKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!(event.ctrlKey || event.metaKey)) return;
+
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      (target.matches("input, textarea, select, [contenteditable='true']") ||
+        target.closest("[contenteditable='true']") !== null)
+    ) {
+      return;
+    }
+
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      event.stopPropagation();
+      setZoomLevel((prev) => Math.min(250, prev + 25));
+    } else if (event.key === "-") {
+      event.preventDefault();
+      event.stopPropagation();
+      setZoomLevel((prev) => Math.max(50, prev - 25));
+    } else if (event.key === "0") {
+      event.preventDefault();
+      event.stopPropagation();
+      setZoomLevel(100);
+    }
+  };
+
   useEffect(() => {
     const container = previewContainerRef.current;
     if (!container) return;
@@ -421,11 +450,6 @@ export function SozlesmeStudio({
     const isPreviewVisible = () =>
       container.getClientRects().length > 0 &&
       window.getComputedStyle(container).visibility !== "hidden";
-
-    const isEditableTarget = (target: EventTarget | null) =>
-      target instanceof HTMLElement &&
-      (target.matches("input, textarea, select, [contenteditable='true']") ||
-        target.closest("[contenteditable='true']") !== null);
 
     const handleWheel = (event: WheelEvent) => {
       if (!(event.ctrlKey || event.metaKey) || !isPreviewVisible()) return;
@@ -440,29 +464,10 @@ export function SozlesmeStudio({
       }
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || !isPreviewVisible()) return;
-      if (isEditableTarget(event.target)) return;
-      if (!container.contains(document.activeElement)) return;
-
-      if (event.key === "+" || event.key === "=") {
-        event.preventDefault();
-        setZoomLevel((prev) => Math.min(250, prev + 25));
-      } else if (event.key === "-") {
-        event.preventDefault();
-        setZoomLevel((prev) => Math.max(50, prev - 25));
-      } else if (event.key === "0") {
-        event.preventDefault();
-        setZoomLevel(100);
-      }
-    };
-
     container.addEventListener("wheel", handleWheel, { passive: false });
-    container.addEventListener("keydown", handleKeyDown);
 
     return () => {
       container.removeEventListener("wheel", handleWheel);
-      container.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -1161,6 +1166,7 @@ export function SozlesmeStudio({
           {/* Canvas Viewport Container */}
           <div
             ref={previewContainerRef}
+            onKeyDown={handlePreviewKeyDown}
             role="region"
             tabIndex={0}
             aria-label="PDF önizleme alanı"
