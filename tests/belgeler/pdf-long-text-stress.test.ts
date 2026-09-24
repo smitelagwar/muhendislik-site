@@ -32,8 +32,8 @@ const turkishStress =
 type StressCase = {
   id: string;
   expectedPages: number;
-  data: Record<string, string | undefined>;
-  generate: (data: Record<string, string | undefined>) => Promise<Uint8Array>;
+  data: object;
+  generate: (data: object) => Promise<Uint8Array>;
 };
 
 const cases: StressCase[] = [

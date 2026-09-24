@@ -28,8 +28,8 @@ type RegressionCase = {
   id: string;
   templatePath: string;
   expectedPages: number;
-  defaults: Record<string, string | undefined>;
-  generate: (data: Record<string, string | undefined>) => Promise<Uint8Array>;
+  defaults: object;
+  generate: (data: object) => Promise<Uint8Array>;
 };
 
 const cases: RegressionCase[] = [
