@@ -506,7 +506,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     });
   }
 
-  test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({}, testInfo) => {
+  test("WebKit kritik /belgeler + 5 stüdyo akışı", async (fixtures, testInfo) => {
+    void fixtures;
     requireMobile390(testInfo);
     test.setTimeout(60_000);
 
