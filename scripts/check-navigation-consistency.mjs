@@ -194,7 +194,7 @@ try {
     guideBackHref === "/rehber/proje-hazirlik",
     "Nested technical guide header back should point to its canonical logical parent."
   );
-  const duplicateGuideBackCount = await page.$eval(
+  const duplicateGuideBackCount = await page.$$eval(
     '[data-testid="page-context-back-link"]',
     (elements) => elements.length
   );
