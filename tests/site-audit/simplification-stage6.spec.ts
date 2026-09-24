@@ -734,7 +734,13 @@ test.describe("Sadeleştirme Aşama 6 — accessibility ve runtime", () => {
 
       expect(motionState.wrapperAnimation).toBe("none");
       expect(motionState.planetAnimation).toBe("none");
-      expect(["0s", "0.01ms"]).toContain(motionState.toggleTransition);
+      const transitionDurations = motionState.toggleTransition
+        .split(",")
+        .map((value) => value.trim());
+      expect(
+        transitionDurations.every((value) => value === "0s" || value === "0.01ms"),
+        `Reduced-motion transition süresi beklenmedik: ${motionState.toggleTransition}`,
+      ).toBe(true);
     } finally {
       await reducedContext.close();
     }
