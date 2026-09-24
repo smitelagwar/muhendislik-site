@@ -113,6 +113,7 @@ muhendislik-site/
 - Dokümantasyon liste/kart seçim, yıldız ve işlem kontrolleri minimum 40 px dokunma alanı korur.
 - Tema anahtarının sürekli RGB/gezegen animasyonları `prefers-reduced-motion: reduce` altında kapanır.
 - Yerel kabul komutu: `npm run check:simplification-stage6`. Bu aşamada production veya preview deploy yapılmaz.
+- Aşama 7 release gate komutu: `npm run check:simplification-stage7`; typecheck + lint + production build + site quality/navigation/homepage/smoke + genel a11y/e2e + Aşama 6 gerçek kullanıcı kabulü + 85/85 rehber ve final navigasyon statik gate zinciridir.
 
 ---
 
