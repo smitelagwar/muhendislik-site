@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PDFDocument } from "pdf-lib";
 import {
   DOCUMENT_EDITABLE_FIELDS,
   DOCUMENT_PDF_ONLY_FIELDS,
@@ -18,26 +19,31 @@ const pdfEngineSource = readFileSync(
 
 const contracts = {
   "beton-dokum-tutanagi": {
+    templatePath: "public/belgeler/beton-dokum-tutanagi.pdf",
     defaultConstant: "BETON_DOKUM_DEFAULT_DATA",
     specConstant: "BETON_DOKUM_FIELD_SPECS",
     componentPath: "src/components/beton-dokum-studio.tsx",
   },
   "insaat-ruhsati-dilekcesi": {
+    templatePath: "public/belgeler/insaat-ruhsati-dilekcesi.pdf",
     defaultConstant: "INSAAT_RUHSATI_DEFAULT_DATA",
     specConstant: "INSAAT_RUHSATI_FIELD_SPECS",
     componentPath: "src/components/insaat-ruhsati-studio.tsx",
   },
   "santiye-sefi-istifa-dilekcesi": {
+    templatePath: "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
     defaultConstant: "ISTIFA_DILEKCESI_DEFAULT_DATA",
     specConstant: "ISTIFA_FIELD_SPECS",
     componentPath: "src/components/istifa-studio.tsx",
   },
   "santiye-sefi-sozlesmesi": {
+    templatePath: "public/belgeler/santiye-sefi-sozlesmesi.pdf",
     defaultConstant: "SOZLESME_DEFAULT_DATA",
     specConstant: "SOZLESME_FIELD_SPECS",
     componentPath: "src/components/sozlesme-studio.tsx",
   },
   "santiye-sefi-taahhutnamesi": {
+    templatePath: "public/belgeler/santiye-sefi-taahhutnamesi.pdf",
     defaultConstant: "TAAHHUTNAME_DEFAULT_DATA",
     specConstant: "TAAHHUTNAME_FIELD_SPECS",
     componentPath: "src/components/taahhutname-studio.tsx",
@@ -156,4 +162,40 @@ for (const [documentId, contract] of Object.entries(contracts)) {
   );
 }
 
-console.log("Belge field contract testi başarılı.");
+async function assertPdfTemplateContracts() {
+  for (const [documentId, contract] of Object.entries(contracts)) {
+    const id = documentId as keyof typeof DOCUMENT_EDITABLE_FIELDS;
+    const expectedPdfFields = [
+      ...DOCUMENT_EDITABLE_FIELDS[id],
+      ...DOCUMENT_PDF_ONLY_FIELDS[id],
+    ];
+
+    const templateBytes = readFileSync(resolve(repoRoot, contract.templatePath));
+    const pdfDocument = await PDFDocument.load(templateBytes);
+    const templateFieldNames = pdfDocument
+      .getForm()
+      .getFields()
+      .map((field) => field.getName());
+
+    assert.equal(
+      unique(templateFieldNames).length,
+      templateFieldNames.length,
+      `${documentId}: gerçek PDF template içinde tekrarlı field adı var`
+    );
+
+    assertSameMembers(
+      templateFieldNames,
+      expectedPdfFields,
+      `${documentId}: gerçek PDF template field isimleri field contract ile eşleşmiyor`
+    );
+  }
+}
+
+assertPdfTemplateContracts()
+  .then(() => {
+    console.log("Belge field + gerçek PDF template contract testi başarılı.");
+  })
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
