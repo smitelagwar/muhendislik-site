@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -167,7 +167,7 @@ export function InsaatRuhsatiStudio({
   } as const;
 
   const handleMobileTabKeyDown = (
-    event: KeyboardEvent<HTMLButtonElement>,
+    event: ReactKeyboardEvent<HTMLButtonElement>,
     currentTab: "form" | "preview"
   ) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -451,42 +451,56 @@ export function InsaatRuhsatiStudio({
     }
   }, [activeTabMobile, renderPdfPage]);
 
-  // Ctrl + Mouse Wheel (or Trackpad Pinch) Zoom & Keyboard Zoom (+ / - / 0)
+  // Ctrl/Cmd + Wheel and keyboard PDF zoom — scoped only to the focused preview.
   useEffect(() => {
     const container = previewContainerRef.current;
     if (!container) return;
 
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.deltaY < 0) {
-          setZoomLevel((prev) => Math.min(250, prev + 25));
-        } else if (e.deltaY > 0) {
-          setZoomLevel((prev) => Math.max(50, prev - 25));
-        }
+    const isPreviewVisible = () =>
+      container.getClientRects().length > 0 &&
+      window.getComputedStyle(container).visibility !== "hidden";
+
+    const isEditableTarget = (target: EventTarget | null) =>
+      target instanceof HTMLElement &&
+      (target.matches("input, textarea, select, [contenteditable='true']") ||
+        target.closest("[contenteditable='true']") !== null);
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !isPreviewVisible()) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.deltaY < 0) {
+        setZoomLevel((prev) => Math.min(250, prev + 25));
+      } else if (event.deltaY > 0) {
+        setZoomLevel((prev) => Math.max(50, prev - 25));
       }
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
-        e.preventDefault();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !isPreviewVisible()) return;
+      if (isEditableTarget(event.target)) return;
+      if (!container.contains(document.activeElement)) return;
+
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
         setZoomLevel((prev) => Math.min(250, prev + 25));
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
-        e.preventDefault();
+      } else if (event.key === "-") {
+        event.preventDefault();
         setZoomLevel((prev) => Math.max(50, prev - 25));
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
-        e.preventDefault();
+      } else if (event.key === "0") {
+        event.preventDefault();
         setZoomLevel(100);
       }
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("keydown", handleKeyDown);
+    container.addEventListener("keydown", handleKeyDown);
 
     return () => {
       container.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("keydown", handleKeyDown);
+      container.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -1023,6 +1037,7 @@ export function InsaatRuhsatiStudio({
           <div
             ref={previewContainerRef}
             role="region"
+            tabIndex={0}
             aria-label="PDF önizleme alanı"
             className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${
               zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
