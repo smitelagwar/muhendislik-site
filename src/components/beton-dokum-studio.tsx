@@ -142,6 +142,9 @@ export function BetonDokumStudio({
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [syncStatus, setSyncStatus] = useState<"synced" | "updating" | "error">("updating");
   const [hasRenderedOnce, setHasRenderedOnce] = useState<boolean>(false);
+  const [previewStatusMessage, setPreviewStatusMessage] = useState(
+    "PDF önizlemesi hazırlanıyor."
+  );
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   const studioRootRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +153,7 @@ export function BetonDokumStudio({
   const renderTaskRef = useRef<any>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const generationRequestRef = useRef<number>(0);
+  const previewAnnouncementStateRef = useRef<"loading" | "ready" | "error">("loading");
   const renderRequestRef = useRef<number>(0);
   const activeBlobUrlRef = useRef<string | null>(null);
   const latestPdfBytesRef = useRef<Uint8Array | null>(null);
@@ -333,12 +337,20 @@ export function BetonDokumStudio({
 
         if (generationRequestId !== generationRequestRef.current) return;
 
+        if (previewAnnouncementStateRef.current !== "ready") {
+          previewAnnouncementStateRef.current = "ready";
+          setPreviewStatusMessage("PDF önizlemesi hazır.");
+        }
         setSyncStatus("synced");
         setIsGenerating(false);
       } catch (error) {
         if (generationRequestId !== generationRequestRef.current) return;
 
         console.error("PDF generation failure:", error);
+        if (previewAnnouncementStateRef.current !== "error") {
+          previewAnnouncementStateRef.current = "error";
+          setPreviewStatusMessage("PDF önizlemesi oluşturulamadı.");
+        }
         setSyncStatus("error");
         setIsGenerating(false);
       }
@@ -545,6 +557,10 @@ export function BetonDokumStudio({
         : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
         }`}
     >
+      <span role="status" aria-live="polite" className="sr-only">
+        {previewStatusMessage}
+      </span>
+
       {/* Modal Top Header (Visible in quick preview modal) */}
       {isModal && (
         <div className="flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-2 shrink-0">
@@ -895,6 +911,7 @@ export function BetonDokumStudio({
                 variant="outline"
                 size="sm"
                 onClick={handlePrint}
+                aria-label="Yazdır"
                 className="h-8 px-1 text-[11px] font-semibold"
                 title="Yazdır"
               >
@@ -929,6 +946,8 @@ export function BetonDokumStudio({
         >
           {/* Top Mini Control Bar (Zoom, Fit, Open) */}
           <div
+            role="toolbar"
+            aria-label="PDF önizleme araçları"
             data-testid="belge-studio-preview-toolbar"
             className="flex items-center justify-between mb-1 px-1 shrink-0"
           >
@@ -946,6 +965,7 @@ export function BetonDokumStudio({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
+                aria-label="Sığdır"
                 onClick={() => setZoomLevel(100)}
                 className="rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
                 title="Genişliğe ve yüksekliğe tam sığdır (%100)"
@@ -956,6 +976,7 @@ export function BetonDokumStudio({
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
+                  aria-label="Uzaklaştır"
                   onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
                   className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   title="Uzaklaştır"
@@ -967,6 +988,7 @@ export function BetonDokumStudio({
                 </span>
                 <button
                   type="button"
+                  aria-label="Yakınlaştır"
                   onClick={() => setZoomLevel((z) => Math.min(250, z + 25))}
                   className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   title="Yakınlaştır"
@@ -978,6 +1000,7 @@ export function BetonDokumStudio({
               {blobUrl && (
                 <a
                   href={blobUrl}
+                  aria-label="PDF'yi yeni sekmede aç"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -993,6 +1016,8 @@ export function BetonDokumStudio({
           {/* Canvas Viewport Container: Maximized vertical area, local internal scroll when zoomed */}
           <div
             ref={previewContainerRef}
+            role="region"
+            aria-label="PDF önizleme alanı"
             className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
               }`}
           >
