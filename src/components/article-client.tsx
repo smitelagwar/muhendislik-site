@@ -31,6 +31,7 @@ import { type CalloutTone, type ParsedBlock } from "@/lib/article-blocks";
 import { getArticleAuthorPresentation } from "@/lib/content-author";
 import { getDepremSeriesForArticle } from "@/lib/deprem-series";
 import { getSiteSectionForArticle, getSiteSectionHrefForArticle } from "@/lib/site-sections";
+import { resolveRouteMetadata } from "@/lib/route-metadata";
 import { TOOLS_HUB_HREF } from "@/lib/tools-data";
 
 interface ArticleClientProps {
@@ -615,6 +616,7 @@ export default function ArticleClient({
   const section = getSiteSectionForArticle(article);
   const sectionHref = getSiteSectionHrefForArticle(article);
   const authorPresentation = getArticleAuthorPresentation(article);
+  const hasGlobalBack = Boolean(resolveRouteMetadata(`/${article.slug}`));
 
   useEffect(() => {
     const sectionElements = parsedSections
@@ -664,7 +666,7 @@ export default function ArticleClient({
             breadcrumbs={breadcrumbItems}
             backHref={backLink?.href}
             backLabel={backLink?.title}
-            showBackLink={false}
+            showBackLink={!hasGlobalBack}
           />
 
           <header className="mb-10 border-b border-border pb-10">
