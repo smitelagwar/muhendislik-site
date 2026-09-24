@@ -5,7 +5,8 @@
   "buildCommand": "npm run build",
   "git": {
     "deploymentEnabled": {
-      "internal-dok-mobile-plan-no-deploy": false
+      "internal-dok-mobile-plan-no-deploy": false,
+      "internal-site-release-gate-20260924": false
     }
   }
 }

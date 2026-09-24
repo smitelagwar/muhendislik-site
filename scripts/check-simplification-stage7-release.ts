@@ -198,7 +198,29 @@ assert.ok(pkg.scripts?.["check:simplification-stage6"], "Stage 6 kabul komutu ek
 assert.ok(pkg.scripts?.["check:simplification-stage7"], "Stage 7 release komutu eksik.");
 assert.ok(pkg.scripts?.["check:simplification-stage7:clean"], "Clean Stage 7 release komutu eksik.");
 assert.ok(exists("tests/site-audit/simplification-stage6.spec.ts"), "Stage 6 browser spec'i eksik.");
-pass("Package/lock install integrity ve Stage 6 + Stage 7 komut zinciri kayıtlı");
+
+const vercelConfig = JSON.parse(source("vercel.json")) as {
+  git?: { deploymentEnabled?: Record<string, boolean> };
+};
+assert.equal(
+  vercelConfig.git?.deploymentEnabled?.["internal-site-release-gate-20260924"],
+  false,
+  "Release-check branch Vercel otomatik deployment'tan kapalı olmalı.",
+);
+assert.ok(
+  exists(".github/workflows/site-simplification-release-gate.yml"),
+  "Stage 7 GitHub Actions release workflow'u eksik.",
+);
+const releaseWorkflow = source(".github/workflows/site-simplification-release-gate.yml");
+assert.ok(
+  releaseWorkflow.includes("internal-site-release-gate-20260924"),
+  "Release workflow doğru branch'i dinlemiyor.",
+);
+assert.ok(
+  releaseWorkflow.includes("npm run check:simplification-stage7"),
+  "Release workflow Stage 7 gate'i çalıştırmıyor.",
+);
+pass("Package/lock bütünlüğü, deploysuz release branch'i ve Stage 6 + Stage 7 CI zinciri kayıtlı");
 
 console.log("============================================================");
 console.log(`AŞAMA 7 STATİK GATE: ${checks.length}/${checks.length} kontrol geçti.`);

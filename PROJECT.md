@@ -114,6 +114,7 @@ muhendislik-site/
 - Tema anahtarının sürekli RGB/gezegen animasyonları `prefers-reduced-motion: reduce` altında kapanır.
 - Yerel kabul komutu: `npm run check:simplification-stage6`. Bu aşamada production veya preview deploy yapılmaz.
 - Aşama 7 release gate komutu: `npm run check:simplification-stage7`; typecheck + lint + production build + site quality/navigation/homepage/smoke + genel a11y/e2e + Aşama 6 gerçek kullanıcı kabulü + 85/85 rehber ve final navigasyon statik gate zinciridir. Temiz kurulum doğrulaması için `npm run check:simplification-stage7:clean` önce `npm ci` çalıştırır.
+- Deploysuz CI doğrulaması yalnız `internal-site-release-gate-20260924` branch'inde çalışır; bu branch `vercel.json > git.deploymentEnabled` altında `false` olduğu için Aşama 7 boyunca Vercel deployment tetiklememelidir.
 
 ---
 

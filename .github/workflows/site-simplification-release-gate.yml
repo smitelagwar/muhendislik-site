@@ -1,0 +1,72 @@
+name: site-simplification-release-gate
+
+on:
+  push:
+    branches:
+      - internal-site-release-gate-20260924
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-simplification-release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gate:
+    name: Site simplification release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DOK_ALLOW_LOCAL_STORAGE: "true"
+      DOK_PRODUCTION_RUNTIME_TEST: "true"
+      DOK_LOCAL_DATA_DIR: ".test-data/site-simplification-release"
+
+    steps:
+      - name: Checkout exact release candidate
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Clean install
+        run: npm ci
+
+      - name: Install Chromium system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify Puppeteer browser
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const puppeteer = require("puppeteer");
+          const executable = puppeteer.executablePath();
+          if (!executable || !fs.existsSync(executable)) {
+            throw new Error("Puppeteer browser executable bulunamadı: " + executable);
+          }
+          console.log("Puppeteer executable:", executable);
+          NODE
+
+      - name: Run Stage 7 release gate
+        run: npm run check:simplification-stage7
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: site-simplification-release-evidence-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
