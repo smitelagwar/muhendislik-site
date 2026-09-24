@@ -70,7 +70,7 @@ export function NavbarActions() {
       <div className="flex items-center gap-2.5">
         <ModeToggle />
         <div className="xl:hidden">
-          <MobileMenu />
+          <MobileMenu key={pathname} />
         </div>
       </div>
 

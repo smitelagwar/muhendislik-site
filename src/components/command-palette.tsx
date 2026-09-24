@@ -12,7 +12,7 @@ import {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BarChart3, Calculator, Command, FileDown, FileText, Layers, Map, Search, X, type LucideIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CALCULATIONS_HUB_HREF } from "@/lib/calculation-pages";
 import { normalizeSearchValue } from "@/lib/search-utils";
 import type { SearchIndexItem, SearchItemType } from "@/lib/search-types";
@@ -180,7 +180,6 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
   const handledOpenSignalRef = useRef(0);
   const handledToggleSignalRef = useRef(0);
   const router = useRouter();
-  const pathname = usePathname();
   const deferredQuery = useDeferredValue(query);
 
   const openPalette = useCallback(() => {
@@ -236,9 +235,6 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
     queueMicrotask(openPalette);
   }, [closePalette, isOpen, openPalette, toggleSignal]);
 
-  useEffect(() => {
-    closePalette();
-  }, [closePalette, pathname]);
 
   useEffect(() => {
     if (!isOpen) {

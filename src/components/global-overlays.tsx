@@ -17,7 +17,7 @@ export function GlobalOverlays() {
     <>
       {!isImmersiveWorkspace && <BottomNav />}
       {!isImmersiveWorkspace && <BackToTop />}
-      <DeferredCommandPalette />
+      <DeferredCommandPalette key={pathname} />
       <div id="dok-overlay-root" />
     </>
   );
