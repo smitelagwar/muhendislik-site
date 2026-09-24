@@ -105,6 +105,15 @@ muhendislik-site/
 - Breadcrumb desktop'ta tam yolu gösterir; mobilde parent + mevcut sayfa tutulur, daha eski atalar ellipsis ile sıkıştırılır.
 - Makale etiketleri mobilde gizlenir; desktop'ta en fazla dört etiket gösterilir.
 
+### UX Doğrulama — Aşama 6
+- Gerçek görev kabul testi: hesaplama, Dokümantasyon, Belgeler, global arama ve Mevzuat akışları `tests/site-audit/simplification-stage6.spec.ts` içinde tanımlıdır.
+- Responsive kabul matrisi: **320 / 390 / 430 / 768 / 1024 / 1366 / 1920 px**.
+- Kaldırılmış Konu Haritası, Yapı/Şantiye/Bina Aşamaları ana yüzeyleri ve Kaydedilenler doğrudan 404; eski Bina çocuk URL'leri canonical `/rehber/...` yönlendirmesini korur.
+- Aşama 6 runtime probu console error, React/hydration warning, pageerror, failed request ve HTTP >=400 cevaplarını gerçek görev akışlarında hata kabul eder.
+- Dokümantasyon liste/kart seçim, yıldız ve işlem kontrolleri minimum 40 px dokunma alanı korur.
+- Tema anahtarının sürekli RGB/gezegen animasyonları `prefers-reduced-motion: reduce` altında kapanır.
+- Yerel kabul komutu: `npm run check:simplification-stage6`. Bu aşamada production veya preview deploy yapılmaz.
+
 ---
 
 ## Aktif Workstream'ler

@@ -6,6 +6,8 @@ const MOBILE_TARGET_ROUTES = [
   "/kategori/araclar",
   "/belgeler",
   "/hesaplamalar/hizli-metraj",
+  "/rehber/proje-hazirlik",
+  "/kategori/deprem-yonetmelik",
 ];
 
 test.describe("Site Geneli — Mobil Dokunmatik Hedef Boyutu (Touch Targets)", () => {

@@ -37,6 +37,7 @@
     "check:site-audit": "npm run check:site-security && npm run check:site-resilience && npm run check:site-seo && npm run check:site-a11y && npm run check:site-e2e",
     "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:homepage": "node scripts/check-homepage.mjs",
+    "check:simplification-stage6": "npx playwright test --config=playwright.site.config.ts tests/site-audit/simplification-stage6.spec.ts --project=chromium-desktop-1366",
     "check:donati-hesabi": "tsx scripts/check-rebar-calculations.ts && node scripts/check-donati-hesabi.mjs",
     "check:tools-inventory": "tsx scripts/check-tools-inventory.ts",
     "check:tools-metadata": "tsx scripts/check-tools-metadata.ts",

@@ -54,7 +54,7 @@ test.describe("Site Geneli — Dark / Light Tema Eşliği ve Kontrast Denetimi",
       expect(lightStyles.isLight).toBe(true);
       // Arka plan rengi veya metin rengi dark ve light arasında farklılaşmalı
       const isDifferentiated =
-        darkStyles.bg !== lightStyles.bg || darkStyles.color !== lightStyles.color || true;
+        darkStyles.bg !== lightStyles.bg || darkStyles.color !== lightStyles.color;
       expect(isDifferentiated).toBe(true);
     });
   }

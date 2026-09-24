@@ -10,8 +10,8 @@ const REPRESENTATIVE_ROUTES = [
   { name: "Araçlar Ana Sayfa", path: "/kategori/araclar" },
   { name: "Donatı Hesabı Aracı", path: "/kategori/araclar/donati-hesabi" },
   { name: "Kolon Ön Boyutlandırma", path: "/kategori/araclar/kolon-on-boyutlandirma" },
-  { name: "Bina Aşamaları", path: "/kategori/bina-asamalari" },
-  { name: "Konu Haritası", path: "/konu-haritasi" },
+  { name: "Teknik Rehber", path: "/rehber/proje-hazirlik" },
+  { name: "Deprem ve Yönetmelikler", path: "/kategori/deprem-yonetmelik" },
   { name: "Belgeler ve Şablonlar", path: "/belgeler" },
   { name: "Beton Döküm Belge Stüdyosu", path: "/belgeler/beton-dokum-tutanagi" },
 ];

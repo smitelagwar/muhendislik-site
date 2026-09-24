@@ -295,6 +295,39 @@ function checkHomepageSimplicityProblems(problems: Problem[]) {
   }
 }
 
+function checkStage6AuditProblems(problems: Problem[]) {
+  const auditFiles = [
+    "tests/site-audit/a11y-wcag.spec.ts",
+    "tests/site-audit/responsive-overflow.spec.ts",
+  ];
+
+  for (const file of auditFiles) {
+    const content = readFile(file);
+    for (const retiredPath of ["/kategori/bina-asamalari", "/konu-haritasi"]) {
+      if (content.includes(retiredPath)) {
+        addProblem(
+          problems,
+          "stage6-audit",
+          `retired route remains in live audit matrix: ${file} -> ${retiredPath}`,
+        );
+      }
+    }
+  }
+
+  const stage6Spec = readFile("tests/site-audit/simplification-stage6.spec.ts");
+  for (const width of ["320", "390", "430", "768", "1024", "1366", "1920"]) {
+    if (!stage6Spec.includes(`width: ${width}`)) {
+      addProblem(problems, "stage6-audit", `responsive width missing from Stage 6 matrix: ${width}`);
+    }
+  }
+
+  for (const scenario of ["Senaryo A", "Senaryo B", "Senaryo C", "Senaryo D", "Senaryo E"]) {
+    if (!stage6Spec.includes(scenario)) {
+      addProblem(problems, "stage6-audit", `real user flow missing: ${scenario}`);
+    }
+  }
+}
+
 function checkNavigationProblems(problems: Problem[]) {
   const expectedNavIds = {
     "primary-nav": ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "belgeler", "dokumantasyon"],
@@ -420,6 +453,7 @@ checkRedirectRoutes(problems);
 checkRemovedAdminSurface(problems);
 checkRetiredSurfaceProblems(problems);
 checkHomepageSimplicityProblems(problems);
+checkStage6AuditProblems(problems);
 checkNavigationProblems(problems);
 checkSectionProblems(problems);
 checkToolsProblems(problems);
