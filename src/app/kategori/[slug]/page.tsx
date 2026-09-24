@@ -324,6 +324,8 @@ function getDepremSeriesPriority(slug: string): number {
   return Number.MAX_SAFE_INTEGER;
 }
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   const articles = getArticleList();
 

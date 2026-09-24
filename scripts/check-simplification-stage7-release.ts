@@ -161,7 +161,11 @@ assert.ok(
   categoryPage.includes("!isUserVisibleSiteSection(section.id)"),
   "Dinamik kategori route'unda hidden-section 404 guard eksik.",
 );
-pass("Yapı / Şantiye / Bina Aşamaları public kategori yüzeyi kapalı");
+assert.ok(
+  categoryPage.includes("export const dynamicParams = false"),
+  "Dinamik kategori route'u generateStaticParams dışındaki slug'larda fallback açmamalı.",
+);
+pass("Yapı / Şantiye / Bina Aşamaları public kategori yüzeyi kapalı ve fallback 404");
 
 // 6) Rehber discoverability: arama ve sitemap canonical rehber kaynağını tüketmeli.
 const searchIndex = source("src/lib/search-index.ts");
