@@ -29,7 +29,7 @@
     "check:security": "node scripts/check-site-security.mjs",
     "check:seo": "node scripts/check-site-seo-content.mjs",
     "check:site-a11y": "npx playwright test --config=playwright.site.config.ts tests/site-audit/a11y-wcag.spec.ts",
-    "check:site-e2e": "npx playwright test --config=playwright.site.config.ts tests/site-audit/responsive-overflow.spec.ts tests/site-audit/touch-targets.spec.ts tests/site-audit/theme-consistency.spec.ts tests/site-audit/modal-dialog-scroll-lock.spec.ts tests/site-audit/form-input-modes.spec.ts tests/site-audit/long-session-performance.spec.ts tests/site-audit/seo-content-integrity.spec.ts tests/site-audit/security-auth-idor.spec.ts tests/site-audit/fault-tolerance-resilience.spec.ts",
+    "check:site-e2e": "npx playwright test --config=playwright.site.config.ts tests/site-audit/responsive-overflow.spec.ts tests/site-audit/touch-targets.spec.ts tests/site-audit/belgeler-mobile-studio.spec.ts tests/site-audit/theme-consistency.spec.ts tests/site-audit/modal-dialog-scroll-lock.spec.ts tests/site-audit/form-input-modes.spec.ts tests/site-audit/long-session-performance.spec.ts tests/site-audit/seo-content-integrity.spec.ts tests/site-audit/security-auth-idor.spec.ts tests/site-audit/fault-tolerance-resilience.spec.ts",
     "check:site-performance": "node scripts/check-site-performance.mjs",
     "check:site-resilience": "node scripts/check-site-resilience.mjs",
     "check:site-security": "node scripts/check-site-security.mjs",

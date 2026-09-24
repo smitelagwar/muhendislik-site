@@ -235,6 +235,7 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
     queueMicrotask(openPalette);
   }, [closePalette, isOpen, openPalette, toggleSignal]);
 
+
   useEffect(() => {
     if (!isOpen) {
       return;

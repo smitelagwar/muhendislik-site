@@ -13,21 +13,21 @@ export const metadata: Metadata = buildSeoMetadata({
 
 export default function InsaatRuhsatiPage() {
   return (
-    <main className="w-full h-full flex-1 min-h-0 overflow-hidden flex flex-col p-1 sm:p-2 box-border">
-      <div className="w-full h-full flex-1 min-h-0 flex flex-col gap-1 overflow-hidden">
+    <main className="w-full max-w-full min-w-0 h-full flex-1 min-h-0 overflow-x-hidden overflow-y-hidden flex flex-col pt-1 pb-1 pl-[max(0.25rem,env(safe-area-inset-left))] pr-[max(0.25rem,env(safe-area-inset-right))] sm:p-2 box-border">
+      <div className="w-full max-w-full min-w-0 h-full flex-1 min-h-0 flex flex-col gap-1 overflow-hidden">
         {/* Back Link */}
         <div className="shrink-0 px-1">
           <Link
             href="/belgeler"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
           >
-            <ArrowLeft className="h-3 w-3" />
+            <ArrowLeft className="h-4 w-4 shrink-0" />
             <span>Tüm Belgelere Dön</span>
           </Link>
         </div>
 
         {/* Viewport Fit Studio */}
-        <div className="flex-1 min-h-0 w-full overflow-hidden">
+        <div className="flex-1 min-h-0 min-w-0 w-full max-w-full overflow-hidden">
           <InsaatRuhsatiStudio isModal={false} />
         </div>
       </div>

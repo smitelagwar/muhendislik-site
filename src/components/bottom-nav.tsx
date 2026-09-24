@@ -32,7 +32,10 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/88 pb-safe shadow-[0_-10px_35px_-24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden">
+    <div
+      data-testid="global-bottom-nav"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/88 pb-safe shadow-[0_-10px_35px_-24px_rgba(0,0,0,0.35)] backdrop-blur-xl md:hidden"
+    >
       <nav className="flex items-center justify-around px-2 py-3">
         {navItems.map((item) => {
           if ("action" in item && item.action === "search") {

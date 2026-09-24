@@ -1252,24 +1252,34 @@ article:nth-child(2) > .home-resource-card-featured {
   }
 }
 
-/* Zero-scroll lock for interactive studio pages */
+/* Full-page document studio viewport contract.
+   CSS is the single owner of page scroll locking; studio components must not
+   mutate html/body overflow themselves. */
 html:has([data-studio-locked="true"]),
 body:has([data-studio-locked="true"]) {
   overflow: hidden !important;
   height: 100vh !important;
+  height: 100dvh !important;
+  height: var(--belge-studio-visual-height, 100dvh) !important;
   max-height: 100vh !important;
+  max-height: 100dvh !important;
+  max-height: var(--belge-studio-visual-height, 100dvh) !important;
+  min-height: 0 !important;
+  overscroll-behavior: none;
 }
 
 body:has([data-studio-locked="true"]) > div.flex.min-h-screen {
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
   min-height: 0 !important;
+  overflow: hidden !important;
 }
 
-body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
-  height: calc(100vh - 68px) !important;
-  max-height: calc(100vh - 68px) !important;
+body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
+  flex: 1 1 0% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1279,6 +1289,53 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > div.flex-grow {
    GLASSMORPHISM — Belgeler Page
    ================================================================ */
 
+/* Mobil belge stüdyosu sağlamlaştırması: dokunma hedefleri, metin ölçeği ve dar ekranlar. */
+@media (max-width: 1023px) {
+  [data-studio-locked="true"] {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  [data-testid="belge-studio-form-scroll"] input:not([type="checkbox"]):not([type="radio"]),
+  [data-testid="belge-studio-form-scroll"] select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  [data-testid="belge-studio-form-scroll"] textarea {
+    min-height: 88px;
+    font-size: 16px;
+  }
+
+  [data-testid="belge-studio-form-scroll"] button {
+    min-height: 44px;
+  }
+
+  [data-testid="belge-studio-preview-toolbar"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  [data-testid="belge-studio-preview-toolbar"] > :first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  [data-testid="belge-studio-preview-toolbar"] > div {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  [data-testid="belge-studio-preview-toolbar"] button,
+  [data-testid="belge-studio-preview-toolbar"] a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
 /* --- Animated Background Orbs --- */
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }

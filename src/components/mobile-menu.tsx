@@ -40,6 +40,7 @@ export function MobileMenu() {
 
   const toggleMenu = () => setIsOpen((current) => !current);
 
+
   return (
     <div>
       <Button
