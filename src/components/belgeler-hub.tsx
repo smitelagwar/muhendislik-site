@@ -193,6 +193,7 @@ export function BelgelerHub() {
 
   return (
     <section aria-label="Belge arama ve listesi">
+      <h1 className="sr-only">Belgeler ve indirilebilir şablonlar</h1>
       <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
         <div className="relative">
           <label htmlFor={searchInputId} className="sr-only">
@@ -205,13 +206,13 @@ export function BelgelerHub() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Belge adı, tutanak, taahhütname veya anahtar kelime ara..."
-            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-11 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-all focus:border-amber-500/60 focus:bg-white focus:shadow-md dark:border-white/15 dark:bg-white/[0.06] dark:focus:bg-white/[0.1] dark:focus:shadow-[0_0_24px_rgba(245,158,11,0.2)]"
+            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-14 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-all focus:border-amber-500/60 focus:bg-white focus:shadow-md focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 dark:border-white/15 dark:bg-white/[0.06] dark:focus:bg-white/[0.1] dark:focus:shadow-[0_0_24px_rgba(245,158,11,0.2)]"
           />
           {searchQuery ? (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10 dark:hover:text-white"
+              className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Aramayı temizle"
             >
               <X className="h-4 w-4" />
