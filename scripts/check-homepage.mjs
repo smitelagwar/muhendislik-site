@@ -102,14 +102,11 @@ try {
       resourceCount: document.querySelectorAll('[data-testid="home-resource-link"]').length,
       leadArticleCount: document.querySelectorAll('[data-testid="home-lead-article"]').length,
       supportingArticleCount: document.querySelectorAll('[data-testid="home-supporting-article"]').length,
-      workflowCount: document.querySelectorAll('[data-testid="home-workflow-step"]').length,
       phaseCount: document.querySelectorAll('[data-testid="home-phase-link"]').length,
       closingLinkCount: document.querySelectorAll('[data-testid="home-closing"] a').length,
+      statusRailCount: document.querySelectorAll(".home-status-rail").length,
+      workflowSectionCount: document.querySelectorAll('[data-testid="home-workflow"]').length,
       floatingLogoCount: document.querySelectorAll('[data-testid="home-scroll-logo"]').length,
-      floatingLogoDisplay: window.getComputedStyle(document.querySelector('[data-testid="home-scroll-logo"]')).display,
-      floatingLogoOpacity: Number.parseFloat(
-        window.getComputedStyle(document.querySelector('[data-testid="home-scroll-logo"]')).opacity,
-      ),
       navbarLogoOpacity: Number.parseFloat(
         window.getComputedStyle(
           document.querySelector("[data-home-navbar-logo]")?.firstElementChild ??
@@ -136,17 +133,13 @@ try {
     assert(result.resourceCount === 5, `${scenario.name}: beş hızlı kaynak bağlantısı bulunmalı.`);
     assert(result.leadArticleCount === 1, `${scenario.name}: bir ana teknik içerik bulunmalı.`);
     assert(result.supportingArticleCount === 2, `${scenario.name}: iki destekleyici içerik bulunmalı.`);
-    assert(result.workflowCount === 4, `${scenario.name}: dört fizibilite adımı bulunmalı.`);
     assert(result.phaseCount === 6, `${scenario.name}: altı bina fazı bulunmalı.`);
     assert(result.closingLinkCount === 0, `${scenario.name}: kapanış yolu kaldırılmış olmalı.`);
-    assert(result.floatingLogoCount === 1, `${scenario.name}: kayan logo bileşeni bulunamadı.`);
+    assert(result.statusRailCount === 0, `${scenario.name}: üst sayaç rayı kaldırılmış olmalı.`);
+    assert(result.workflowSectionCount === 0, `${scenario.name}: tekrarlayan workflow bandı kaldırılmış olmalı.`);
+    assert(result.floatingLogoCount === 0, `${scenario.name}: dekoratif kayan logo kaldırılmış olmalı.`);
 
     assert(result.navbarLogoOpacity > 0.9, `${scenario.name}: navbar logosu görünür değil.`);
-    if (scenario.width < 1720) {
-      assert(result.floatingLogoDisplay === "none", `${scenario.name}: kayan logo dar ekranda alan kaplıyor.`);
-    } else {
-      assert(result.floatingLogoOpacity < 0.1, `${scenario.name}: sayfa tepesinde kayan logo gizli olmalı.`);
-    }
     assert(
       !result.horizontalOverflow,
       `${scenario.name}: yatay taşma oluştu (${JSON.stringify(result.overflowElements)}).`,
@@ -190,20 +183,6 @@ try {
   );
   assert(scanPosition && scanPosition !== "42%", "Hero tarama çizgisi imleci takip etmedi.");
 
-  const workflowHrefs = await interactionPage.$$eval('[data-testid="home-workflow-step"]', (links) =>
-    links.map((link) => link.getAttribute("href")),
-  );
-  assert(
-    JSON.stringify(workflowHrefs) ===
-      JSON.stringify([
-        "/kategori/araclar/imar-hesaplayici",
-        "/hesaplamalar/tahmini-insaat-alani",
-        "/hesaplamalar/insaat-maliyeti",
-        "/rehber/proje-hazirlik",
-      ]),
-    "Ön fizibilite karar yolu beklenen rotalara bağlanmıyor.",
-  );
-
   await interactionPage.keyboard.press("Home");
   await interactionPage.keyboard.press("Tab");
   const focusedElement = await interactionPage.evaluate(() => ({
@@ -215,54 +194,8 @@ try {
     focusedElement.tag === "A" || focusedElement.tag === "BUTTON",
     `Klavye odağı etkileşimli bir öğeye geçmedi (${JSON.stringify(focusedElement)}).`,
   );
-  checks.push("arama, karar yolu ve klavye odağı");
+  checks.push("arama, hero etkileşimi ve klavye odağı");
   await interactionPage.close();
-
-  const scrollLogoPage = await browser.newPage();
-  await scrollLogoPage.setViewport({ width: 1920, height: 1080 });
-  await openHome(scrollLogoPage, baseUrl, "light");
-  await scrollLogoPage.evaluate(() => window.scrollTo(0, 180));
-  await scrollLogoPage.waitForFunction(
-    () => document.documentElement.dataset.homeLogoFloating === "true",
-    { timeout: 10000 },
-  );
-  await new Promise((resolve) => setTimeout(resolve, 460));
-
-  const floatingLogoState = await scrollLogoPage.evaluate(() => {
-    const navbarLogo = document.querySelector("[data-home-navbar-logo]");
-    const floatingLogo = document.querySelector('[data-testid="home-scroll-logo"]');
-    const navbarBounds = navbarLogo?.getBoundingClientRect();
-    const floatingBounds = floatingLogo?.getBoundingClientRect();
-    return {
-      navbarOpacity: Number.parseFloat(
-        window.getComputedStyle(navbarLogo?.firstElementChild ?? navbarLogo).opacity,
-      ),
-      navbarInert: navbarLogo?.inert ?? false,
-      floatingOpacity: Number.parseFloat(window.getComputedStyle(floatingLogo).opacity),
-      floatingPosition: window.getComputedStyle(floatingLogo).position,
-      navbarWidth: navbarBounds?.width ?? 0,
-      floatingWidth: floatingBounds?.width ?? 0,
-    };
-  });
-  assert(floatingLogoState.navbarOpacity < 0.1, "Kaydırmada navbar logosu gizlenmedi.");
-  assert(floatingLogoState.navbarInert, "Gizlenen navbar logosu klavye odağından çıkarılmadı.");
-  assert(floatingLogoState.floatingOpacity > 0.9, "Kaydırmada sol ray logosu görünmedi.");
-  assert(floatingLogoState.floatingPosition === "fixed", "Kayan logo viewport'a sabitlenmedi.");
-  assert(floatingLogoState.floatingWidth > floatingLogoState.navbarWidth, "Kayan logo navbar logosundan büyük değil.");
-
-  await scrollLogoPage.evaluate(() => window.scrollTo(0, 0));
-  await scrollLogoPage.waitForFunction(
-    () => !document.documentElement.dataset.homeLogoFloating,
-    { timeout: 10000 },
-  );
-  await new Promise((resolve) => setTimeout(resolve, 560));
-  const restoredNavbarOpacity = await scrollLogoPage.evaluate(() => {
-    const navbarLogo = document.querySelector("[data-home-navbar-logo]");
-    return Number.parseFloat(window.getComputedStyle(navbarLogo?.firstElementChild ?? navbarLogo).opacity);
-  });
-  assert(restoredNavbarOpacity > 0.9, "Sayfa tepesine dönüldüğünde navbar logosu geri gelmedi.");
-  checks.push("kayan logo geçişi ve geri dönüşü");
-  await scrollLogoPage.close();
 
   const reducedMotionPage = await browser.newPage();
   await reducedMotionPage.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
@@ -270,10 +203,8 @@ try {
   await openHome(reducedMotionPage, baseUrl, "dark");
   const reducedMotionState = await reducedMotionPage.evaluate(() => ({
     scanDisplay: window.getComputedStyle(document.querySelector(".home-hero-scan-line")).display,
-    floatingLogoDisplay: window.getComputedStyle(document.querySelector('[data-testid="home-scroll-logo"]')).display,
   }));
   assert(reducedMotionState.scanDisplay === "none", "Azaltılmış harekette hero tarama çizgisi kapanmadı.");
-  assert(reducedMotionState.floatingLogoDisplay === "none", "Kayan logo dar ekranda alan kaplıyor.");
   checks.push("azaltılmış hareket tercihi");
   await reducedMotionPage.close();
 
