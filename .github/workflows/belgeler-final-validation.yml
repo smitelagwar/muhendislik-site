@@ -43,6 +43,8 @@ jobs:
         continue-on-error: true
       - name: Deployable TypeScript
         run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - name: Build before production-server Playwright gates
+        run: npm run build
       - name: Belgeler targeted Playwright
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-mobile-studio.spec.ts
       - name: Site E2E
