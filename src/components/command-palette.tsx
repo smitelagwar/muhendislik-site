@@ -22,11 +22,9 @@ import { cn } from "@/lib/utils";
 const LISTBOX_ID = "command-palette-listbox";
 
 const SHORTCUT_LINKS: Array<{ label: string; href: string; icon: LucideIcon }> = [
-  { label: "Bina Aşamaları", href: "/kategori/bina-asamalari", icon: Map },
   { label: "Belgeler", href: "/belgeler", icon: FileDown },
   { label: "Araçlar", href: TOOLS_HUB_HREF, icon: Calculator },
   { label: "Hesaplamalar", href: CALCULATIONS_HUB_HREF, icon: BarChart3 },
-  { label: "Konu Haritası", href: "/konu-haritasi", icon: Layers },
 ];
 
 type PaletteEntry =

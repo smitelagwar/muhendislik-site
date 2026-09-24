@@ -142,9 +142,7 @@ function getSectionItems(): SearchIndexItem[] {
   const sectionItems = SITE_SECTIONS.filter(
     (section) =>
       isUserVisibleSiteSection(section.id) &&
-      (section.id === "araclar" ||
-        section.id === "bina-asamalari" ||
-        articles.some((article) => matchesSiteSection(article, section.id))),
+      (section.id === "araclar" || articles.some((article) => matchesSiteSection(article, section.id))),
   ).map((section) =>
     createItem({
       id: `section:${section.id}`,
@@ -175,16 +173,6 @@ function getSectionItems(): SearchIndexItem[] {
         "resmî birim maliyet",
         CALCULATIONS_HUB_HREF,
       ],
-    }),
-    createItem({
-      id: "section:site-map",
-      href: "/konu-haritasi",
-      title: "Konu Haritası",
-      category: "Keşif",
-      description: "Sitedeki kategori ve içerik ağacını tek ekranda inceleyin.",
-      type: "section",
-      priority: 92,
-      searchParts: ["Konu Haritası", "site haritası", "keşif", "kategori ağacı", "/konu-haritasi"],
     }),
     createItem({
       id: "section:tools-hub",

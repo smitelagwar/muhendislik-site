@@ -6,10 +6,6 @@ import { Share2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-const BookmarkButton = dynamic(
-  () => import("@/components/bookmark-button").then((module) => module.BookmarkButton),
-  { ssr: false },
-);
 const LiveSearch = dynamic(
   () => import("@/components/live-search").then((module) => module.LiveSearch),
   { ssr: false },
@@ -42,7 +38,6 @@ export function NavbarActions() {
     pathname.startsWith("/hesaplamalar");
   const isCategory = pathname.startsWith("/kategori") && !isTool;
   const isArticle = pathname !== "/" && !isTool && !isCategory && pathname.length > 1;
-  const pageSlug = pathname.replace(/^\//, "");
 
   return (
     <div className="flex items-center gap-3">
@@ -61,7 +56,6 @@ export function NavbarActions() {
             <Share2 className="h-4 w-4" />
             Paylaş
           </Button>
-          <BookmarkButton slug={pageSlug} className="hidden rounded-md border border-border bg-card px-4 py-2 sm:inline-flex" />
         </div>
       ) : null}
 

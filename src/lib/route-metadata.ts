@@ -1,5 +1,5 @@
 import { CALCULATIONS_HUB_HREF, getCalculationPages } from "@/lib/calculation-pages";
-import { SITE_SECTIONS } from "@/lib/site-sections";
+import { isUserVisibleSiteSection, SITE_SECTIONS } from "@/lib/site-sections";
 import { TOOLS_HUB_HREF, getLiveTools } from "@/lib/tools-data";
 
 export interface RouteBreadcrumb {
@@ -35,19 +35,12 @@ export interface ResolveBackNavigationOptions {
 export const LAST_INTERNAL_PATH_KEY = "muhendislik-site:last-internal-path";
 
 const HOME_BREADCRUMB: RouteBreadcrumb = { title: "Ana Sayfa", href: "/" };
-const SITE_MAP_ROUTE = "/konu-haritasi";
-const SITE_MAP_BREADCRUMB: RouteBreadcrumb = { title: "Konu Haritası", href: SITE_MAP_ROUTE };
 const CALCULATIONS_BREADCRUMB: RouteBreadcrumb = {
   title: "Hesaplamalar",
   href: CALCULATIONS_HUB_HREF,
 };
 const TOOLS_BREADCRUMB: RouteBreadcrumb = { title: "Araçlar", href: TOOLS_HUB_HREF };
-const BINA_ASAMALARI_ROUTE = "/kategori/bina-asamalari";
 const TECHNICAL_GUIDE_ROOT = "/rehber";
-const BINA_ASAMALARI_BREADCRUMB: RouteBreadcrumb = {
-  title: "Bina Aşamaları",
-  href: BINA_ASAMALARI_ROUTE,
-};
 const BELGELER_ROUTE = "/belgeler";
 const BELGELER_BREADCRUMB: RouteBreadcrumb = {
   title: "Belgeler",
@@ -58,7 +51,9 @@ const CALCULATION_PAGE_BY_HREF = new Map(
   getCalculationPages().map((page) => [page.href, page] as const),
 );
 const TOOL_PAGE_BY_HREF = new Map(getLiveTools().map((tool) => [tool.href, tool] as const));
-const SECTION_BY_HREF = new Map(SITE_SECTIONS.map((section) => [section.href, section] as const));
+const SECTION_BY_HREF = new Map(
+  SITE_SECTIONS.filter((section) => isUserVisibleSiteSection(section.id)).map((section) => [section.href, section] as const),
+);
 
 function normalizePathname(pathname: string) {
   if (!pathname || pathname === "/") {
@@ -258,62 +253,7 @@ function resolveTechnicalGuideMetadata(pathname: string) {
   });
 }
 
-function resolveSiteMapMetadata(pathname: string) {
-  if (pathname === SITE_MAP_ROUTE) {
-    return buildMetadata({
-      route: pathname,
-      parentRoute: "/",
-      hubRoute: SITE_MAP_ROUTE,
-      breadcrumbLabel: "Konu Haritası",
-      backLabel: "Ana Sayfa",
-      breadcrumbs: [HOME_BREADCRUMB, SITE_MAP_BREADCRUMB],
-    });
-  }
-
-  if (pathname === BINA_ASAMALARI_ROUTE) {
-    return buildMetadata({
-      route: pathname,
-      parentRoute: SITE_MAP_ROUTE,
-      hubRoute: BINA_ASAMALARI_ROUTE,
-      breadcrumbLabel: "Bina Aşamaları",
-      backLabel: "Konu Haritası",
-      breadcrumbs: [HOME_BREADCRUMB, SITE_MAP_BREADCRUMB, BINA_ASAMALARI_BREADCRUMB],
-    });
-  }
-
-  if (pathname.startsWith(`${BINA_ASAMALARI_ROUTE}/`)) {
-    const slugPath = pathname.slice(BINA_ASAMALARI_ROUTE.length + 1);
-    const slugParts = slugPath.split("/").filter(Boolean);
-    const parentParts = slugParts.slice(0, -1);
-    const parentRoute = parentParts.length
-      ? `${BINA_ASAMALARI_ROUTE}/${parentParts.join("/")}`
-      : BINA_ASAMALARI_ROUTE;
-    const breadcrumbs = [
-      HOME_BREADCRUMB,
-      SITE_MAP_BREADCRUMB,
-      BINA_ASAMALARI_BREADCRUMB,
-      ...slugParts.map((part, index) => ({
-        title: slugToTitle(part),
-        href:
-          index === slugParts.length - 1
-            ? pathname
-            : `${BINA_ASAMALARI_ROUTE}/${slugParts.slice(0, index + 1).join("/")}`,
-      })),
-    ];
-    const parentLabel =
-      parentParts.length > 0 ? slugToTitle(parentParts[parentParts.length - 1]) : "Bina Aşamaları";
-
-    return buildMetadata({
-      route: pathname,
-      parentRoute,
-      hubRoute: BINA_ASAMALARI_ROUTE,
-      breadcrumbLabel: slugToTitle(slugParts[slugParts.length - 1] ?? "Detay"),
-      backLabel: parentLabel,
-      fallbackBehavior: "parent",
-      breadcrumbs,
-    });
-  }
-
+function resolveSectionMetadata(pathname: string) {
   const section = SECTION_BY_HREF.get(pathname);
   if (!section) {
     return null;
@@ -321,11 +261,11 @@ function resolveSiteMapMetadata(pathname: string) {
 
   return buildMetadata({
     route: pathname,
-    parentRoute: SITE_MAP_ROUTE,
+    parentRoute: "/",
     hubRoute: pathname,
     breadcrumbLabel: section.title,
-    backLabel: "Konu Haritası",
-    breadcrumbs: [HOME_BREADCRUMB, SITE_MAP_BREADCRUMB, { title: section.title, href: section.href }],
+    backLabel: "Ana Sayfa",
+    breadcrumbs: [HOME_BREADCRUMB, { title: section.title, href: section.href }],
   });
 }
 
@@ -355,7 +295,7 @@ export function resolveRouteMetadata(pathname: string): RouteMetadata | null {
     resolveToolMetadata(normalizedPath) ??
     resolveBelgelerMetadata(normalizedPath) ??
     resolveTechnicalGuideMetadata(normalizedPath) ??
-    resolveSiteMapMetadata(normalizedPath)
+    resolveSectionMetadata(normalizedPath)
   );
 }
 

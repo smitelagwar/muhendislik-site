@@ -130,7 +130,7 @@ export const SITE_SECTIONS: SiteSection[] = [
   },
 ];
 
-const USER_HIDDEN_SECTION_IDS = new Set<SiteSectionId>(["yapi-tasarimi", "santiye"]);
+const USER_HIDDEN_SECTION_IDS = new Set<SiteSectionId>(["bina-asamalari", "yapi-tasarimi", "santiye"]);
 
 const SECTION_BY_ID = new Map(SITE_SECTIONS.map((section) => [section.id, section] as const));
 const SECTION_ID_BY_CATEGORY = new Map<string, SiteSectionId>(

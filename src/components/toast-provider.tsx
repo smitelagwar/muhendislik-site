@@ -1,9 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { CheckCircle, XCircle, Info, X, Bookmark, Share2, Heart } from "lucide-react";
+import { CheckCircle, XCircle, Info, X, Share2, Heart } from "lucide-react";
 
-type ToastType = "success" | "error" | "info" | "bookmark" | "share" | "like";
+type ToastType = "success" | "error" | "info" | "share" | "like";
 
 interface Toast {
     id: number;
@@ -40,7 +40,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
         error: <XCircle className="w-5 h-5 text-red-500" />,
         info: <Info className="w-5 h-5 text-teal-500" />,
-        bookmark: <Bookmark className="w-5 h-5 text-teal-600" />,
         share: <Share2 className="w-5 h-5 text-sky-500" />,
         like: <Heart className="w-5 h-5 text-rose-500" />,
     };
@@ -49,7 +48,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         success: "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40",
         error: "border-red-500/30 bg-red-50 dark:bg-red-950/40",
         info: "border-teal-500/30 bg-teal-50 dark:bg-teal-950/40",
-        bookmark: "border-teal-600/30 bg-teal-50 dark:bg-teal-950/40",
         share: "border-sky-500/30 bg-sky-50 dark:bg-sky-950/40",
         like: "border-rose-500/30 bg-rose-50 dark:bg-rose-950/40",
     };

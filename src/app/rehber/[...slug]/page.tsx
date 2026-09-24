@@ -3,7 +3,7 @@ import {
   buildBinaGuideMetadata,
   getBinaGuideStaticParams,
   renderBinaGuidePage,
-} from "@/app/kategori/bina-asamalari/guide-page";
+} from "@/app/rehber/guide-page";
 
 interface TechnicalGuidePageProps {
   params: Promise<{ slug: string[] }>;

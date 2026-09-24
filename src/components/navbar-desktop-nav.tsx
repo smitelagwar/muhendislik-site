@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   Calculator,
   FileDown,
   FolderArchive,
@@ -23,7 +22,6 @@ function NavIcon({ iconKey, className }: { iconKey?: string; className?: string 
     case "scale": return <Scale className={cls} />;
     case "calculator": return <Calculator className={cls} />;
     case "wrench": return <Wrench className={cls} />;
-    case "building2": return <Building2 className={cls} />;
     case "file-down": return <FileDown className={cls} />;
     case "folder-archive": return <FolderArchive className={cls} />;
     case "hard-hat": return <HardHat className={cls} />;
@@ -34,7 +32,7 @@ function NavIcon({ iconKey, className }: { iconKey?: string; className?: string 
 export function NavbarDesktopNav() {
   const pathname = usePathname();
   const links = PRIMARY_NAV_ITEMS.filter((item) =>
-    ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "bina-asamalari", "belgeler", "dokumantasyon"].includes(item.id),
+    ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "belgeler", "dokumantasyon"].includes(item.id),
   );
 
   return (
