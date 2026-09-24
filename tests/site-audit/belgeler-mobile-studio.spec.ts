@@ -506,9 +506,9 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     });
   }
 
-  test("WebKit kritik /belgeler + 5 stüdyo akışı", async (fixtures, testInfo) => {
-    void fixtures;
+  test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({ browserName }, testInfo) => {
     requireMobile390(testInfo);
+    expect(browserName).toBe("chromium");
     test.setTimeout(60_000);
 
     const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
