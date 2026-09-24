@@ -1,11 +1,26 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, webkit, type Page, type TestInfo } from "@playwright/test";
 
 const STUDIO_ROUTES = [
-  { name: "Beton Döküm Tutanağı", path: "/belgeler/beton-dokum-tutanagi" },
-  { name: "İnşaat Ruhsatı Dilekçesi", path: "/belgeler/insaat-ruhsati-dilekcesi" },
-  { name: "Şantiye Şefi İstifa Dilekçesi", path: "/belgeler/santiye-sefi-istifa-dilekcesi" },
-  { name: "Şantiye Şefi Hizmet Sözleşmesi", path: "/belgeler/santiye-sefi-sozlesmesi" },
-  { name: "Şantiye Şefi Taahhütnamesi", path: "/belgeler/santiye-sefi-taahhutnamesi" },
+  { name: "Beton Döküm Tutanağı", path: "/belgeler/beton-dokum-tutanagi", fields: 10 },
+  { name: "İnşaat Ruhsatı Dilekçesi", path: "/belgeler/insaat-ruhsati-dilekcesi", fields: 8 },
+  { name: "Şantiye Şefi İstifa Dilekçesi", path: "/belgeler/santiye-sefi-istifa-dilekcesi", fields: 10 },
+  { name: "Şantiye Şefi Hizmet Sözleşmesi", path: "/belgeler/santiye-sefi-sozlesmesi", fields: 14 },
+  { name: "Şantiye Şefi Taahhütnamesi", path: "/belgeler/santiye-sefi-taahhutnamesi", fields: 14 },
+] as const;
+
+const MOBILE_VIEWPORTS = [
+  { width: 320, height: 720 },
+  { width: 360, height: 800 },
+  { width: 390, height: 844 },
+  { width: 414, height: 896 },
+  { width: 844, height: 390 },
+  { width: 768, height: 1024 },
+] as const;
+
+const DESKTOP_VIEWPORTS = [
+  { width: 1920, height: 1080 },
+  { width: 1366, height: 768 },
+  { width: 1024, height: 768 },
 ] as const;
 
 function requireMobile390(testInfo: TestInfo) {
@@ -41,6 +56,49 @@ async function expectNoHorizontalOverflow(page: Page) {
     metrics.studioScrollWidth,
     `Belge stüdyosu kendi sınırları içinde yatay taşıyor: ${JSON.stringify(metrics)}`
   ).toBeLessThanOrEqual(metrics.studioClientWidth + 2);
+}
+
+async function expectEditableFieldContract(page: Page, expectedCount: number) {
+  const editors = page
+    .getByTestId("belge-studio-form-scroll")
+    .locator("input:visible, textarea:visible, select:visible");
+
+  await expect(editors).toHaveCount(expectedCount);
+
+  const relations = await editors.evaluateAll((elements) =>
+    elements.map((element) => {
+      const id = element.id;
+      return {
+        id,
+        hasLabel: Boolean(id && document.querySelector(`label[for="${CSS.escape(id)}"]`)),
+      };
+    })
+  );
+
+  expect(relations).toHaveLength(expectedCount);
+  for (const relation of relations) {
+    expect(relation.id).not.toBe("");
+    expect(relation.hasLabel).toBe(true);
+  }
+}
+
+async function expectPreviewCanvas(page: Page) {
+  const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+  await previewTab.click();
+  await expect(previewTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+
+  const canvas = page.locator("canvas").first();
+  await expect(canvas).toBeVisible();
+
+  await expect
+    .poll(() =>
+      canvas.evaluate((element) => {
+        const target = element as HTMLCanvasElement;
+        return target.width > 0 && target.height > 0;
+      })
+    )
+    .toBe(true);
 }
 
 test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleşmesi", () => {
@@ -183,8 +241,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await expectNoHorizontalOverflow(page);
 
-    const formTab = page.getByRole("button", { name: /Form Alanları/i }).first();
-    const previewTab = page.getByRole("button", { name: /Canlı PDF Önizle/i }).first();
+    const formTab = page.getByRole("tab", { name: /Form Alanları/i });
+    const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
 
     for (let index = 0; index < 5; index += 1) {
       await previewTab.click();
@@ -230,8 +288,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await page.waitForTimeout(40);
     }
 
-    const previewTab = page.getByRole("button", { name: /Canlı PDF Önizle/i }).first();
-    const formTab = page.getByRole("button", { name: /Form Alanları/i }).first();
+    const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+    const formTab = page.getByRole("tab", { name: /Form Alanları/i });
 
     await previewTab.click();
     await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
@@ -255,5 +313,226 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     expect(canvasSize.width).toBeGreaterThan(0);
     expect(canvasSize.height).toBeGreaterThan(0);
     expect(pageErrors).toEqual([]);
+  });
+
+  test("/belgeler arama, clear, no-result, 200% text ve BottomNav overlap sözleşmesi", async ({ page }, testInfo) => {
+    requireMobile390(testInfo);
+
+    for (const viewport of MOBILE_VIEWPORTS) {
+      await page.setViewportSize(viewport);
+      await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
+
+      const search = page.getByRole("searchbox", { name: "Belge veya şablon ara" });
+      await expect(search).toBeVisible();
+
+      await search.fill("beton");
+      await expect(page.getByText("Beton Döküm Tutanağı", { exact: true })).toBeVisible();
+
+      const clear = page.getByRole("button", { name: "Aramayı temizle" });
+      const clearBox = await clear.boundingBox();
+      expect(clearBox).not.toBeNull();
+      expect(clearBox!.width).toBeGreaterThanOrEqual(44);
+      expect(clearBox!.height).toBeGreaterThanOrEqual(44);
+      await clear.click();
+
+      await search.fill("kesinlikle-bulunmayacak-belge-xyz");
+      await expect(page.getByText("Eşleşen belge bulunamadı")).toBeVisible();
+      await page.getByRole("button", { name: "Aramayı temizle" }).click();
+
+      await search.focus();
+      const focusedStyle = await search.evaluate((element) => {
+        const style = window.getComputedStyle(element);
+        return {
+          borderColor: style.borderColor,
+          boxShadow: style.boxShadow,
+        };
+      });
+      expect(focusedStyle.borderColor).not.toBe("");
+      expect(focusedStyle.boxShadow).not.toBe("none");
+
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "200%";
+      });
+      await expectNoHorizontalOverflow(page);
+
+      const lastCta = page.getByRole("link", { name: /Stüdyoda doldur/i }).last();
+      await lastCta.scrollIntoViewIfNeeded();
+      await expect(lastCta).toBeVisible();
+
+      const bottomNav = page.getByTestId("global-bottom-nav");
+      if (await bottomNav.isVisible()) {
+        const overlap = await page.evaluate(() => {
+          const ctas = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href^="/belgeler/"]'))
+            .filter((element) => element.textContent?.includes("Stüdyoda doldur"));
+          const cta = ctas.at(-1);
+          const nav = document.querySelector<HTMLElement>('[data-testid="global-bottom-nav"]');
+          if (!cta || !nav) return null;
+          const ctaRect = cta.getBoundingClientRect();
+          const navRect = nav.getBoundingClientRect();
+          return {
+            ctaBottom: ctaRect.bottom,
+            navTop: navRect.top,
+            overlap: ctaRect.bottom - navRect.top,
+          };
+        });
+        expect(overlap, "BottomNav ölçümü alınamadı").not.toBeNull();
+        expect(
+          overlap!.overlap,
+          `Son kart CTA BottomNav altında kalıyor: ${JSON.stringify(overlap)}`
+        ).toBeLessThanOrEqual(2);
+      }
+
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "";
+      });
+      await expectNoHorizontalOverflow(page);
+    }
+  });
+
+  for (const route of STUDIO_ROUTES) {
+    test(`[${route.name}] editable alan, label/id, tab ARIA, preview ve download regresyonu`, async ({ page }, testInfo) => {
+      requireMobile390(testInfo);
+      await gotoStudio(page, route.path);
+
+      await expectEditableFieldContract(page, route.fields);
+
+      const formTab = page.getByRole("tab", { name: /Form Alanları/i });
+      const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+
+      await expect(formTab).toHaveAttribute("aria-selected", "true");
+      await expect(previewTab).toHaveAttribute("aria-selected", "false");
+      await expect(formTab).toHaveAttribute("aria-controls", /mobile-panel-form/);
+      await expect(previewTab).toHaveAttribute("aria-controls", /mobile-panel-preview/);
+
+      await formTab.focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(previewTab).toBeFocused();
+      await expect(previewTab).toHaveAttribute("aria-selected", "true");
+
+      await page.keyboard.press("ArrowLeft");
+      await expect(formTab).toBeFocused();
+      await expect(formTab).toHaveAttribute("aria-selected", "true");
+
+      await expect(page.getByTestId("belge-studio-mobile-actions")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectPreviewCanvas(page);
+
+      await formTab.click();
+      const downloadButton = page
+        .getByTestId("belge-studio-mobile-actions")
+        .getByRole("button", { name: /PDF İndir/i });
+
+      const downloads: string[] = [];
+      page.on("download", (download) => downloads.push(download.suggestedFilename()));
+
+      await downloadButton.dblclick();
+      await expect.poll(() => downloads.length).toBe(1);
+      expect(downloads[0]).toMatch(/\.pdf$/i);
+    });
+  }
+
+  for (const route of STUDIO_ROUTES) {
+    test(`[${route.name}] desktop split-view, internal scroll, toolbar ve zoom matrisi`, async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "chromium-desktop-1920",
+        "Desktop belge matrisi tek Chromium projesinde üç viewport ile koşar."
+      );
+
+      for (const viewport of DESKTOP_VIEWPORTS) {
+        await page.setViewportSize(viewport);
+        await page.goto(route.path, { waitUntil: "domcontentloaded", timeout: 30_000 });
+        await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+
+        const form = page.getByTestId("belge-studio-form-scroll");
+        const toolbar = page.getByTestId("belge-studio-preview-toolbar");
+        await expect(form).toBeVisible();
+        await expect(toolbar).toBeVisible();
+
+        const layout = await page.evaluate(() => {
+          const formElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
+          const toolbarElement = document.querySelector<HTMLElement>('[data-testid="belge-studio-preview-toolbar"]');
+          const preview = document.querySelector<HTMLElement>('[aria-label="PDF önizleme alanı"]');
+          if (!formElement || !toolbarElement || !preview) return null;
+
+          const formRect = formElement.getBoundingClientRect();
+          const previewRect = preview.getBoundingClientRect();
+          const toolbarRect = toolbarElement.getBoundingClientRect();
+
+          return {
+            formLeft: formRect.left,
+            formRight: formRect.right,
+            previewLeft: previewRect.left,
+            previewRight: previewRect.right,
+            toolbarLeft: toolbarRect.left,
+            toolbarRight: toolbarRect.right,
+            formScrollHeight: formElement.scrollHeight,
+            formClientHeight: formElement.clientHeight,
+            documentScrollHeight: document.documentElement.scrollHeight,
+            viewportHeight: window.innerHeight,
+          };
+        });
+
+        expect(layout, `Desktop layout ölçülemedi: ${route.path}`).not.toBeNull();
+        expect(layout!.formLeft).toBeLessThan(layout!.previewLeft);
+        expect(layout!.formRight).toBeLessThanOrEqual(layout!.previewRight);
+        expect(layout!.toolbarLeft).toBeGreaterThanOrEqual(layout!.previewLeft - 4);
+        expect(layout!.toolbarRight).toBeLessThanOrEqual(layout!.previewRight + 4);
+        expect(layout!.formScrollHeight).toBeGreaterThanOrEqual(layout!.formClientHeight);
+        expect(layout!.documentScrollHeight).toBeLessThanOrEqual(layout!.viewportHeight + 2);
+
+        const previewRegion = page.getByRole("region", { name: "PDF önizleme alanı" });
+        await previewRegion.focus();
+        await page.keyboard.press("Control+=");
+        await expect(toolbar.getByText("%125", { exact: true })).toBeVisible();
+
+        const firstEditor = form.locator("input:visible, textarea:visible, select:visible").first();
+        await firstEditor.focus();
+        await page.keyboard.press("Control+=");
+        await expect(toolbar.getByText("%125", { exact: true })).toBeVisible();
+
+        await toolbar.getByRole("button", { name: "Sığdır" }).click();
+        await expect(toolbar.getByText("%100", { exact: true })).toBeVisible();
+        await expectNoHorizontalOverflow(page);
+      }
+    });
+  }
+
+  test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({}, testInfo) => {
+    requireMobile390(testInfo);
+    test.setTimeout(60_000);
+
+    const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
+    let browserInstance: Awaited<ReturnType<typeof webkit.launch>> | null = null;
+
+    try {
+      browserInstance = await webkit.launch({ headless: true });
+      const context = await browserInstance.newContext({
+        viewport: { width: 390, height: 844 },
+      });
+      const page = await context.newPage();
+
+      await page.goto(`http://127.0.0.1:${port}/belgeler`, {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+      await expect(page.getByRole("searchbox", { name: "Belge veya şablon ara" })).toBeVisible();
+
+      for (const route of STUDIO_ROUTES) {
+        await page.goto(`http://127.0.0.1:${port}${route.path}`, {
+          waitUntil: "domcontentloaded",
+          timeout: 30_000,
+        });
+        await expect(page.locator('[data-studio-locked="true"]')).toBeVisible();
+        await expectEditableFieldContract(page, route.fields);
+        await expectPreviewCanvas(page);
+        await expectNoHorizontalOverflow(page);
+      }
+
+      await context.close();
+    } finally {
+      if (browserInstance) {
+        await browserInstance.close();
+      }
+    }
   });
 });
