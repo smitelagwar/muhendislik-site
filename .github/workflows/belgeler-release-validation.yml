@@ -1,0 +1,123 @@
+name: belgeler-release-validation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/belgeler-release-validation.yml"
+      - "src/components/belgeler-hub.tsx"
+      - "src/components/beton-dokum-studio.tsx"
+      - "src/components/insaat-ruhsati-studio.tsx"
+      - "src/components/istifa-studio.tsx"
+      - "src/components/sozlesme-studio.tsx"
+      - "src/components/taahhutname-studio.tsx"
+      - "src/lib/belge-studio-pdf-actions.ts"
+      - "src/lib/document-field-contracts.ts"
+      - "src/lib/documents-data.ts"
+      - "tests/belgeler/**"
+      - "tests/site-audit/belgeler-mobile-studio.spec.ts"
+      - "playwright.site.config.ts"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: belgeler-release-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Full repository lint baseline
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Belgeler changed-scope lint
+        run: >-
+          npx eslint
+          src/components/belgeler-hub.tsx
+          src/components/beton-dokum-studio.tsx
+          src/components/insaat-ruhsati-studio.tsx
+          src/components/istifa-studio.tsx
+          src/components/sozlesme-studio.tsx
+          src/components/taahhutname-studio.tsx
+          src/lib/belge-studio-pdf-actions.ts
+          src/lib/document-field-contracts.ts
+          src/lib/documents-data.ts
+          tests/belgeler/document-field-contract.test.ts
+          tests/belgeler/pdf-generation-regression.test.ts
+          tests/belgeler/pdf-long-text-stress.test.ts
+          tests/site-audit/belgeler-mobile-studio.spec.ts
+          playwright.site.config.ts
+
+      - name: Full TypeScript baseline
+        run: npx tsc --noEmit --incremental false
+        continue-on-error: true
+
+      - name: Deployable TypeScript
+        run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+
+      - name: PDF field contract
+        run: npx tsx tests/belgeler/document-field-contract.test.ts
+
+      - name: PDF generation regression
+        run: npx tsx tests/belgeler/pdf-generation-regression.test.ts
+
+      - name: PDF long-text stress
+        run: npx tsx tests/belgeler/pdf-long-text-stress.test.ts
+
+      - name: Belgeler targeted Playwright
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-mobile-studio.spec.ts
+
+      - name: Site E2E
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npm run check:site-e2e
+
+      - name: Site accessibility
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npm run check:site-a11y
+
+      - name: Production build
+        run: npm run build
+
+      - name: Smoke
+        run: npm run check:smoke
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-release-evidence-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
