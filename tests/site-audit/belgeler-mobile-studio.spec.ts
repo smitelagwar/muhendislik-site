@@ -245,10 +245,13 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     const canvas = page.locator("canvas").first();
     await expect(canvas).toBeVisible();
-    const canvasSize = await canvas.evaluate((element) => ({
-      width: element.width,
-      height: element.height,
-    }));
+    const canvasSize = await canvas.evaluate((element) => {
+      const canvasElement = element as HTMLCanvasElement;
+      return {
+        width: canvasElement.width,
+        height: canvasElement.height,
+      };
+    });
     expect(canvasSize.width).toBeGreaterThan(0);
     expect(canvasSize.height).toBeGreaterThan(0);
     expect(pageErrors).toEqual([]);
