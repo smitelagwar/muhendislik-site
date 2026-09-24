@@ -176,35 +176,43 @@ const cases: StressCase[] = [
   },
 ];
 
-for (const testCase of cases) {
-  const pdfBytes = await testCase.generate(testCase.data);
-  assert.ok(pdfBytes.byteLength > 0, `${testCase.id}: stres PDF üretilemedi`);
-
-  const pdfDocument = await PDFDocument.load(pdfBytes);
-  assert.equal(
-    pdfDocument.getPageCount(),
-    testCase.expectedPages,
-    `${testCase.id}: stres PDF sayfa sayısı değişti`
-  );
-
-  const form = pdfDocument.getForm();
-
-  for (const [fieldName, expectedValue] of Object.entries(testCase.data)) {
-    if (typeof expectedValue !== "string") continue;
-
-    const field = form.getFieldMaybe(fieldName);
-    if (!(field instanceof PDFTextField)) continue;
-
+async function main() {
+  for (const testCase of cases) {
+    const pdfBytes = await testCase.generate(testCase.data);
+    assert.ok(pdfBytes.byteLength > 0, `${testCase.id}: stres PDF üretilemedi`);
+  
+    const pdfDocument = await PDFDocument.load(pdfBytes);
     assert.equal(
-      field.getText(),
-      expectedValue,
-      `${testCase.id}/${fieldName}: PDF alan değeri sessiz kesildi veya değişti`
+      pdfDocument.getPageCount(),
+      testCase.expectedPages,
+      `${testCase.id}: stres PDF sayfa sayısı değişti`
     );
+  
+    const form = pdfDocument.getForm();
+  
+    for (const [fieldName, expectedValue] of Object.entries(testCase.data)) {
+      if (typeof expectedValue !== "string") continue;
+  
+      const field = form.getFieldMaybe(fieldName);
+      if (!(field instanceof PDFTextField)) continue;
+  
+      assert.equal(
+        field.getText(),
+        expectedValue,
+        `${testCase.id}/${fieldName}: PDF alan değeri sessiz kesildi veya değişti`
+      );
+    }
+  
+    writeFileSync(resolve(outputDir, `${testCase.id}-stress.pdf`), pdfBytes);
   }
-
-  writeFileSync(resolve(outputDir, `${testCase.id}-stress.pdf`), pdfBytes);
+  
+  
+  console.log(
+    `Belge uzun metin stres üretimi başarılı. Görsel taşma kontrolü için çıktılar: ${outputDir}`
+  );
 }
 
-console.log(
-  `Belge uzun metin stres üretimi başarılı. Görsel taşma kontrolü için çıktılar: ${outputDir}`
-);
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
