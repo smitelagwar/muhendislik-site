@@ -1,0 +1,130 @@
+name: belgeler-v2-preflight-temp
+
+on:
+  push:
+    branches:
+      - internal-dok-mobile-plan-no-deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: belgeler-v2-preflight-temp
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - id: install
+        name: Install dependencies
+        run: npm ci
+        continue-on-error: true
+      - id: browsers
+        name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+        continue-on-error: true
+
+      - id: field_contract
+        name: PDF template field contract
+        run: npx tsx tests/belgeler/document-field-contract.test.ts
+        continue-on-error: true
+      - id: pdf_default
+        name: Blank and default PDF regression
+        run: npx tsx tests/belgeler/pdf-generation-regression.test.ts
+        continue-on-error: true
+      - id: pdf_stress
+        name: Long-text PDF stress
+        run: npx tsx tests/belgeler/pdf-long-text-stress.test.ts
+        continue-on-error: true
+
+      - id: lint
+        name: Lint
+        run: npm run lint
+        continue-on-error: true
+      - id: tsc_full
+        name: Full TypeScript check
+        run: npx tsc --noEmit --incremental false
+        continue-on-error: true
+      - id: tsc_runtime
+        name: Deployable runtime TypeScript check
+        run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+        continue-on-error: true
+      - id: build
+        name: Build
+        run: npm run build
+        continue-on-error: true
+
+      - id: targeted
+        name: Belgeler targeted Playwright
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-mobile-studio.spec.ts
+        continue-on-error: true
+      - id: site_e2e
+        name: Full site E2E
+        run: npm run check:site-e2e
+        continue-on-error: true
+      - id: a11y
+        name: Site accessibility
+        run: npm run check:site-a11y
+        continue-on-error: true
+      - id: smoke
+        name: Smoke
+        run: npm run check:smoke
+        continue-on-error: true
+
+      - name: Upload Belgeler stress PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-v2-pdf-stress
+          path: test-results/belgeler-pdf-stress
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-v2-preflight-results
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Final preflight gate
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          BROWSERS: ${{ steps.browsers.outcome }}
+          FIELD_CONTRACT: ${{ steps.field_contract.outcome }}
+          PDF_DEFAULT: ${{ steps.pdf_default.outcome }}
+          PDF_STRESS: ${{ steps.pdf_stress.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          TSC_FULL: ${{ steps.tsc_full.outcome }}
+          TSC_RUNTIME: ${{ steps.tsc_runtime.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          TARGETED: ${{ steps.targeted.outcome }}
+          SITE_E2E: ${{ steps.site_e2e.outcome }}
+          A11Y: ${{ steps.a11y.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+        run: |
+          printf '%-22s %s\n'             install "$INSTALL"             browsers "$BROWSERS"             field_contract "$FIELD_CONTRACT"             pdf_default "$PDF_DEFAULT"             pdf_stress "$PDF_STRESS"             lint "$LINT"             tsc_full "$TSC_FULL"             tsc_runtime "$TSC_RUNTIME"             build "$BUILD"             targeted "$TARGETED"             site_e2e "$SITE_E2E"             a11y "$A11Y"             smoke "$SMOKE"
+          test "$INSTALL" = success
+          test "$BROWSERS" = success
+          test "$FIELD_CONTRACT" = success
+          test "$PDF_DEFAULT" = success
+          test "$PDF_STRESS" = success
+          test "$LINT" = success
+          test "$TSC_FULL" = success
+          test "$TSC_RUNTIME" = success
+          test "$BUILD" = success
+          test "$TARGETED" = success
+          test "$SITE_E2E" = success
+          test "$A11Y" = success
+          test "$SMOKE" = success
