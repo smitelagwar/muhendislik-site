@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
+const productionServer =
+  process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1" ||
+  (process.env.PLAYWRIGHT_PRODUCTION_SERVER !== "0" && fs.existsSync(".next"));
 
 export default defineConfig({
   testDir: "./tests/site-audit",
@@ -9,7 +13,7 @@ export default defineConfig({
   workers: 1,
   timeout: 45_000,
   expect: { timeout: 10_000 },
-  reporter: [["list"], ["html", { outputFolder: "./test-results/site-audit/report", open: "never" }]],
+  reporter: [["list"], ["html", { outputFolder: "./playwright-report/site-audit", open: "never" }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     trace: "on-first-retry",
@@ -65,9 +69,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm start -- --hostname 127.0.0.1 --port ${port}`,
+    command: productionServer
+      ? `npm start -- --hostname 127.0.0.1 --port ${port}`
+      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
     url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });
