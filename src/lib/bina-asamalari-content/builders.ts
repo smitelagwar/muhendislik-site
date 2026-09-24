@@ -669,7 +669,6 @@ export function getBinaGuideBreadcrumbs(slugPath: string): { title: string; href
 
   return [
     { title: "Ana Sayfa", href: "/" },
-    { title: "Bina Aşamaları", href: BINA_ASAMALARI_ROOT_URL },
     ...ancestors.map((item) => ({ title: item.plainLabel, href: item.url })),
     ...(current ? [{ title: current.plainLabel, href: current.url }] : []),
   ];
@@ -712,7 +711,7 @@ export function resolveGuideByPathOrAlias(
 
 export function toBinaGuideArticle(guide: BinaGuideData): ArticleData {
   return {
-    slug: `kategori/bina-asamalari/${guide.slugPath}`,
+    slug: `${BINA_ASAMALARI_ROOT_URL.slice(1)}/${guide.slugPath}`,
     title: guide.title,
     description: guide.description,
     sectionId: "bina-asamalari",
@@ -726,7 +725,7 @@ export function toBinaGuideArticle(guide: BinaGuideData): ArticleData {
     image: guide.image,
     sections: guide.sections,
     quote: guide.quote,
-    relatedSlugs: guide.relatedPaths.map((path) => `kategori/bina-asamalari/${path}`),
+    relatedSlugs: guide.relatedPaths.map((path) => `${BINA_ASAMALARI_ROOT_URL.slice(1)}/${path}`),
     keywords: guide.keywords,
   };
 }

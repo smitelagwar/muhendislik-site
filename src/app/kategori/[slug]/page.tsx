@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { type ArticleData, getArticleList } from "@/lib/articles-data";
 import {
   getSiteSectionById,
+  isUserVisibleSiteSection,
   matchesSiteSection,
   SITE_SECTIONS,
   type SiteSectionId,
@@ -191,7 +192,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const section = getSiteSectionById(slug as SiteSectionId);
 
-  if (!section || section.id === "araclar") {
+  const hasAccessibleContent = section
+    ? getArticleList().some((article) => matchesSiteSection(article, section.id))
+    : false;
+
+  if (!section || section.id === "araclar" || !isUserVisibleSiteSection(section.id) || !hasAccessibleContent) {
     return buildSeoMetadata({
       title: "Kategori bulunamadı",
       description: "Aradığınız kategoriye ulaşılamadı.",
@@ -320,8 +325,14 @@ function getDepremSeriesPriority(slug: string): number {
 }
 
 export function generateStaticParams() {
+  const articles = getArticleList();
+
   return SITE_SECTIONS.filter(
-    (section) => section.id !== "araclar" && section.id !== "bina-asamalari"
+    (section) =>
+      section.id !== "araclar" &&
+      section.id !== "bina-asamalari" &&
+      isUserVisibleSiteSection(section.id) &&
+      articles.some((article) => matchesSiteSection(article, section.id)),
   ).map((section) => ({ slug: section.id }));
 }
 
@@ -334,7 +345,7 @@ export default async function CategoryPage({
   const sectionId = slug as SiteSectionId;
   const section = getSiteSectionById(sectionId);
 
-  if (!section || section.id === "araclar") {
+  if (!section || section.id === "araclar" || !isUserVisibleSiteSection(section.id)) {
     notFound();
   }
 
@@ -354,6 +365,11 @@ export default async function CategoryPage({
 
       return (articleOrder.get(left.slug) ?? 0) - (articleOrder.get(right.slug) ?? 0);
     });
+
+  if (articles.length === 0) {
+    notFound();
+  }
+
   const Icon = SECTION_ICONS[section.id];
   const styles = SECTION_STYLES[section.id];
 
@@ -388,13 +404,6 @@ export default async function CategoryPage({
             <ArticleCard key={article.slug} article={article} />
           ))}
 
-          {articles.length === 0 ? (
-            <div className="py-12 text-center md:col-span-2 lg:col-span-3">
-              <div className="rounded-3xl border-2 border-dashed border-zinc-200 p-10 dark:border-zinc-800">
-                <p className="font-medium text-zinc-500">Bu kategoride henüz içerik bulunmuyor.</p>
-              </div>
-            </div>
-          ) : null}
         </div>
     </SitePageShell>
   );

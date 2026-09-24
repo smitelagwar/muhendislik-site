@@ -20,7 +20,8 @@ export interface IndexedBinaNode {
   childIds: string[];
 }
 
-export const BINA_ASAMALARI_ROOT_URL = "/kategori/bina-asamalari" as const;
+export const BINA_ASAMALARI_LEGACY_HUB_URL = "/kategori/bina-asamalari" as const;
+export const BINA_ASAMALARI_ROOT_URL = "/rehber" as const;
 
 export const BINA_BRANCH_COLORS = {
   "proje-hazirlik": "#6366f1",
@@ -690,7 +691,10 @@ function withResolvedUrls(
 
   return {
     ...node,
-    url: nextSegments.length > 0 ? `${BINA_ASAMALARI_ROOT_URL}/${nextSegments.join("/")}` : BINA_ASAMALARI_ROOT_URL,
+    url:
+      nextSegments.length > 0
+        ? `${BINA_ASAMALARI_ROOT_URL}/${nextSegments.join("/")}`
+        : BINA_ASAMALARI_LEGACY_HUB_URL,
     children: node.children?.map((child) => withResolvedUrls(child, nextSegments)),
   };
 }
@@ -702,6 +706,10 @@ function normalizeLabel(label: string): string {
 }
 
 export function slugPathFromUrl(url: string): string {
+  if (url === BINA_ASAMALARI_LEGACY_HUB_URL) {
+    return "";
+  }
+
   return url.replace(`${BINA_ASAMALARI_ROOT_URL}/`, "").replace(BINA_ASAMALARI_ROOT_URL, "");
 }
 

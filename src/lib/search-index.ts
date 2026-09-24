@@ -2,7 +2,7 @@ import { BINA_ASAMALARI_ROOT_URL } from "./bina-asamalari";
 import { getAllBinaGuidePaths, getBinaGuideBySlugPath } from "./bina-asamalari-content";
 import { CALCULATIONS_HUB_HREF, getCalculationPages } from "./calculation-pages";
 import { getArticleList, getArticlesCacheSignature } from "./articles-data";
-import { SITE_SECTIONS } from "./site-sections";
+import { isUserVisibleSiteSection, matchesSiteSection, SITE_SECTIONS } from "./site-sections";
 import type { SearchIndexItem } from "./search-types";
 import { normalizeSearchValue, stripMarkdownForSearch } from "./search-utils";
 import { getLiveTools, TOOLS_HUB_HREF } from "./tools-data";
@@ -138,7 +138,14 @@ function getCalculationItems(): SearchIndexItem[] {
 }
 
 function getSectionItems(): SearchIndexItem[] {
-  const sectionItems = SITE_SECTIONS.map((section) =>
+  const articles = getArticleList();
+  const sectionItems = SITE_SECTIONS.filter(
+    (section) =>
+      isUserVisibleSiteSection(section.id) &&
+      (section.id === "araclar" ||
+        section.id === "bina-asamalari" ||
+        articles.some((article) => matchesSiteSection(article, section.id))),
+  ).map((section) =>
     createItem({
       id: `section:${section.id}`,
       href: section.href,

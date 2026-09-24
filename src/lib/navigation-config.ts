@@ -52,20 +52,6 @@ export const PRIMARY_NAV_ITEMS: SiteNavigationItem[] = [
     iconKey: "folder-archive",
   },
   {
-    id: "yapi-tasarimi",
-    label: "Yapı",
-    href: "/kategori/yapi-tasarimi",
-    matchPrefixes: ["/kategori/yapi-tasarimi"],
-    iconKey: "hard-hat",
-  },
-  {
-    id: "santiye",
-    label: "Şantiye",
-    href: "/kategori/santiye",
-    matchPrefixes: ["/kategori/santiye"],
-    iconKey: "hard-hat",
-  },
-  {
     id: "konu-haritasi",
     label: "Konu Haritası",
     href: "/konu-haritasi",

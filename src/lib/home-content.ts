@@ -130,7 +130,7 @@ const STANDARDS: HomeStandard[] = [
   { code: "TS 500", label: "Betonarme tasarım", href: "/kategori/araclar" },
   { code: "TBDY 2018", label: "Deprem ve modelleme", href: "/kategori/deprem-yonetmelik" },
   { code: "TS EN 1992-1-1", label: "Detay ve dayanıklılık", href: "/kategori/araclar/pas-payi" },
-  { code: "TS EN 206", label: "Beton performansı", href: "/kategori/santiye" },
+  { code: "TS EN 206", label: "Beton performansı", href: "/beton-dokumu-kontrol-listesi" },
 ];
 
 const WORKFLOW: HomeWorkflowStep[] = [
@@ -156,7 +156,7 @@ const WORKFLOW: HomeWorkflowStep[] = [
     number: "04",
     title: "Hazırlığı planla",
     description: "Disiplinler arası proje ve izin akışına geçin.",
-    href: "/kategori/bina-asamalari/proje-hazirlik",
+    href: "/rehber/proje-hazirlik",
   },
 ];
 

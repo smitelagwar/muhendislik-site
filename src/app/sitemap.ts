@@ -1,10 +1,11 @@
 import { getArticleList } from "@/lib/articles-data";
+import { BINA_ASAMALARI_ROOT_URL } from "@/lib/bina-asamalari";
 import { getAllBinaGuidePaths } from "@/lib/bina-asamalari-content";
 import { PUBLISHED_AT_ISO } from "@/lib/bina-asamalari-content/builders";
 import { getCalculationPages } from "@/lib/calculation-pages";
 import type { MetadataRoute } from "next";
 import { resolveSiteUrl } from "@/lib/site-config";
-import { SITE_SECTIONS } from "@/lib/site-sections";
+import { isUserVisibleSiteSection, matchesSiteSection, SITE_SECTIONS } from "@/lib/site-sections";
 import { parseLocalizedDateToDate } from "@/lib/seo";
 import { getLiveTools } from "@/lib/tools-data";
 
@@ -12,7 +13,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const articles = getArticleList();
   const staticDate = new Date(PUBLISHED_AT_ISO);
   const categoryRoutes = SITE_SECTIONS
-    .filter((section) => !["araclar", "bina-asamalari"].includes(section.id))
+    .filter(
+      (section) =>
+        !["araclar", "bina-asamalari"].includes(section.id) &&
+        isUserVisibleSiteSection(section.id) &&
+        articles.some((article) => matchesSiteSection(article, section.id)),
+    )
     .map((section) => ({
       pathname: section.href,
       changeFrequency: "weekly" as const,
@@ -50,7 +56,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
   const binaGuideEntries: MetadataRoute.Sitemap = getAllBinaGuidePaths().map((slugPath) => ({
-    url: resolveSiteUrl(`/kategori/bina-asamalari/${slugPath}`),
+    url: resolveSiteUrl(`${BINA_ASAMALARI_ROOT_URL}/${slugPath}`),
     lastModified: staticDate,
     changeFrequency: "weekly",
     priority: 0.72,

@@ -69,8 +69,10 @@ async function startLocalServer() {
 }
 
 const contentModule = await import(new URL("../src/lib/bina-asamalari-content/index.ts", import.meta.url));
+const binaModule = await import(new URL("../src/lib/bina-asamalari.ts", import.meta.url));
 const { getFirstWaveBinaGuidePaths } = contentModule;
-const firstWavePaths = getFirstWaveBinaGuidePaths().map((guidePath) => `/kategori/bina-asamalari/${guidePath}`);
+const { BINA_ASAMALARI_LEGACY_HUB_URL, BINA_ASAMALARI_ROOT_URL } = binaModule;
+const firstWavePaths = getFirstWaveBinaGuidePaths().map((guidePath) => `${BINA_ASAMALARI_ROOT_URL}/${guidePath}`);
 
 const localServer = EXTERNAL_BASE_URL ? null : await startLocalServer();
 const baseUrl = EXTERNAL_BASE_URL ?? localServer.baseUrl;
@@ -79,7 +81,7 @@ const page = await browser.newPage();
 const errors = [];
 
 try {
-  const rootResponse = await page.goto(`${baseUrl}/kategori/bina-asamalari`, {
+  const rootResponse = await page.goto(`${baseUrl}${BINA_ASAMALARI_LEGACY_HUB_URL}`, {
     waitUntil: "networkidle2",
     timeout: 60000,
   });
@@ -87,7 +89,7 @@ try {
   if (!rootResponse || rootResponse.status() >= 400) {
     errors.push(`Kök sayfa açılamadı: ${rootResponse?.status() ?? "yanıtsız"}`);
   } else {
-    const rootLinks = await page.$$eval('a[href^="/kategori/bina-asamalari/"]', (anchors) =>
+    const rootLinks = await page.$eval(`a[href^="${BINA_ASAMALARI_ROOT_URL}/"]`, (anchors) =>
       [...new Set(anchors.map((anchor) => anchor.getAttribute("href")).filter(Boolean))],
     );
 
@@ -112,7 +114,7 @@ try {
       const text = document.body.innerText;
       const tocLinks = document.querySelectorAll('aside a[href^="#"]').length;
       const headings = document.querySelectorAll("article h2").length;
-      const backLink = document.querySelector('a[href^="/kategori/bina-asamalari"]');
+      const backLink = document.querySelector('[data-testid="page-context-back-link"]');
 
       return {
         text,
@@ -134,7 +136,8 @@ try {
       errors.push(`Araç promosyonu göründü: ${guidePath}`);
     }
 
-    const minimumHeadings = guidePath.split("/").length === 4 ? 12 : 11;
+    const guideDepth = guidePath.slice(BINA_ASAMALARI_ROOT_URL.length + 1).split("/").length;
+    const minimumHeadings = guideDepth === 1 ? 12 : 11;
     if (snapshot.headings < minimumHeadings) {
       errors.push(`Heading sayısı yetersiz: ${guidePath} -> ${snapshot.headings}`);
     }

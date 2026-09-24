@@ -18,16 +18,28 @@ export interface ContentNavigationContext {
 export function buildArticleNavigation(article: ArticleData): ContentNavigationContext {
   const section = getSiteSectionForArticle(article);
   const sectionHref = getSiteSectionHrefForArticle(article);
-  const sectionTitle = section?.title ?? "Konu Haritası";
+
+  if (!section) {
+    return {
+      breadcrumbs: [
+        { title: "Ana Sayfa", href: "/" },
+        { title: article.title, href: `/${article.slug}` },
+      ],
+      backLink: {
+        title: "Ana Sayfa",
+        href: "/",
+      },
+    };
+  }
 
   return {
     breadcrumbs: [
       { title: "Ana Sayfa", href: "/" },
-      { title: sectionTitle, href: sectionHref },
+      { title: section.title, href: sectionHref },
       { title: article.title, href: `/${article.slug}` },
     ],
     backLink: {
-      title: sectionTitle,
+      title: section.title,
       href: sectionHref,
     },
   };
@@ -36,8 +48,8 @@ export function buildArticleNavigation(article: ArticleData): ContentNavigationC
 export function buildBinaGuideNavigation(guide: BinaGuideData): ContentNavigationContext {
   const breadcrumbs = getBinaGuideBreadcrumbs(guide.slugPath);
   const parentBreadcrumb = breadcrumbs[breadcrumbs.length - 2] ?? {
-    title: "Bina Aşamaları",
-    href: "/kategori/bina-asamalari",
+    title: "Ana Sayfa",
+    href: "/",
   };
 
   return {

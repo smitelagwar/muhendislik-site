@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getArticleList } from "@/lib/articles-data";
 import { buildSeoMetadata } from "@/lib/seo";
 import { resolveSiteUrl } from "@/lib/site-config";
-import { SITE_SECTIONS, matchesSiteSection } from "@/lib/site-sections";
+import { isUserVisibleSiteSection, SITE_SECTIONS, matchesSiteSection } from "@/lib/site-sections";
 import { getLiveTools } from "@/lib/tools-data";
 import { getCalculationPages } from "@/lib/calculation-pages";
 
@@ -35,7 +35,11 @@ export default function TopicMapPage() {
     section,
     articles: section.id === "araclar" ? [] : articles.filter((article) => matchesSiteSection(article, section.id)),
     tools: section.id === "araclar" ? tools : [],
-  }));
+  })).filter(
+    ({ section, articles: sectionArticles, tools: sectionTools }) =>
+      isUserVisibleSiteSection(section.id) &&
+      (section.id === "bina-asamalari" || sectionArticles.length > 0 || sectionTools.length > 0),
+  );
 
   const collectionSchema = {
     "@context": "https://schema.org",
@@ -46,7 +50,7 @@ export default function TopicMapPage() {
     mainEntity: {
       "@type": "ItemList",
       itemListElement: [
-        ...SITE_SECTIONS.map((section, index) => ({
+        ...treeData.map(({ section }, index) => ({
           "@type": "ListItem",
           position: index + 1,
           name: section.title,
@@ -54,7 +58,7 @@ export default function TopicMapPage() {
         })),
         ...calculationPages.map((page, index) => ({
           "@type": "ListItem",
-          position: SITE_SECTIONS.length + index + 1,
+          position: treeData.length + index + 1,
           name: page.title,
           url: resolveSiteUrl(page.href),
         })),

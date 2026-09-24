@@ -43,6 +43,7 @@ const CALCULATIONS_BREADCRUMB: RouteBreadcrumb = {
 };
 const TOOLS_BREADCRUMB: RouteBreadcrumb = { title: "Araçlar", href: TOOLS_HUB_HREF };
 const BINA_ASAMALARI_ROUTE = "/kategori/bina-asamalari";
+const TECHNICAL_GUIDE_ROOT = "/rehber";
 const BINA_ASAMALARI_BREADCRUMB: RouteBreadcrumb = {
   title: "Bina Aşamaları",
   href: BINA_ASAMALARI_ROUTE,
@@ -223,6 +224,40 @@ function resolveToolMetadata(pathname: string) {
   });
 }
 
+function resolveTechnicalGuideMetadata(pathname: string) {
+  if (!pathname.startsWith(`${TECHNICAL_GUIDE_ROOT}/`)) {
+    return null;
+  }
+
+  const slugParts = pathname.slice(TECHNICAL_GUIDE_ROOT.length + 1).split("/").filter(Boolean);
+  if (slugParts.length === 0) {
+    return null;
+  }
+
+  const parentParts = slugParts.slice(0, -1);
+  const parentRoute =
+    parentParts.length > 0 ? `${TECHNICAL_GUIDE_ROOT}/${parentParts.join("/")}` : "/";
+  const breadcrumbs = [
+    HOME_BREADCRUMB,
+    ...slugParts.map((part, index) => ({
+      title: slugToTitle(part),
+      href: `${TECHNICAL_GUIDE_ROOT}/${slugParts.slice(0, index + 1).join("/")}`,
+    })),
+  ];
+
+  return buildMetadata({
+    route: pathname,
+    parentRoute,
+    hubRoute: parentRoute,
+    breadcrumbLabel: slugToTitle(slugParts[slugParts.length - 1] ?? "Rehber"),
+    backLabel:
+      parentParts.length > 0
+        ? slugToTitle(parentParts[parentParts.length - 1])
+        : "Ana Sayfa",
+    breadcrumbs,
+  });
+}
+
 function resolveSiteMapMetadata(pathname: string) {
   if (pathname === SITE_MAP_ROUTE) {
     return buildMetadata({
@@ -319,6 +354,7 @@ export function resolveRouteMetadata(pathname: string): RouteMetadata | null {
     resolveCalculationMetadata(normalizedPath) ??
     resolveToolMetadata(normalizedPath) ??
     resolveBelgelerMetadata(normalizedPath) ??
+    resolveTechnicalGuideMetadata(normalizedPath) ??
     resolveSiteMapMetadata(normalizedPath)
   );
 }

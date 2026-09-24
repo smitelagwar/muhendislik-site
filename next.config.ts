@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/kategori/bina-asamalari/:path+",
+        destination: "/rehber/:path+",
+        permanent: true,
+      },
+      {
         source: "/araclar",
         destination: "/kategori/araclar",
         permanent: true,

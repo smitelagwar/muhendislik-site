@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import ArticleClient from "@/components/article-client";
 import { parseBlocks } from "@/lib/article-blocks";
 import {
@@ -9,6 +9,7 @@ import {
   getRelatedBinaGuides,
   toBinaGuideArticle,
 } from "@/lib/bina-asamalari-content";
+import { BINA_ASAMALARI_ROOT_URL } from "@/lib/bina-asamalari";
 import { buildBinaGuideNavigation } from "@/lib/content-navigation";
 import { SITE_DESCRIPTION, SITE_NAME, resolveMediaUrl, resolveSiteUrl } from "@/lib/site-config";
 
@@ -28,10 +29,10 @@ export async function buildBinaGuideMetadata(slugParts: readonly string[]): Prom
 
   const article = toBinaGuideArticle(guide);
   const articleImage = resolveMediaUrl(article.image);
-  const pathname = `/kategori/bina-asamalari/${guide.slugPath}`;
+  const pathname = `${BINA_ASAMALARI_ROOT_URL}/${guide.slugPath}`;
 
   return {
-    title: `${guide.title} | Bina Aşamaları`,
+    title: `${guide.title} | Teknik Rehber`,
     description: guide.description,
     keywords: guide.keywords,
     alternates: {
@@ -138,7 +139,7 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
   const requestedSlugPath = slugParts.join("/");
 
   if (requestedSlugPath && requestedSlugPath !== guide.slugPath) {
-    redirect(`/kategori/bina-asamalari/${guide.slugPath}`);
+    permanentRedirect(`${BINA_ASAMALARI_ROOT_URL}/${guide.slugPath}`);
   }
 
   const article = toBinaGuideArticle(guide);
@@ -149,7 +150,7 @@ export async function renderBinaGuidePage(slugParts: readonly string[]) {
   }));
   const navigation = buildBinaGuideNavigation(guide);
   const articleImage = resolveMediaUrl(article.image);
-  const pathname = `/kategori/bina-asamalari/${guide.slugPath}`;
+  const pathname = `${BINA_ASAMALARI_ROOT_URL}/${guide.slugPath}`;
 
   const articleSchema = {
     "@context": "https://schema.org",

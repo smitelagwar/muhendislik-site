@@ -130,10 +130,16 @@ export const SITE_SECTIONS: SiteSection[] = [
   },
 ];
 
+const USER_HIDDEN_SECTION_IDS = new Set<SiteSectionId>(["yapi-tasarimi", "santiye"]);
+
 const SECTION_BY_ID = new Map(SITE_SECTIONS.map((section) => [section.id, section] as const));
 const SECTION_ID_BY_CATEGORY = new Map<string, SiteSectionId>(
   SITE_SECTIONS.flatMap((section) => section.categories.map((category) => [category, section.id] as const)),
 );
+
+export function isUserVisibleSiteSection(sectionId: SiteSectionId): boolean {
+  return !USER_HIDDEN_SECTION_IDS.has(sectionId);
+}
 
 export function getSiteSectionById(sectionId: SiteSectionId): SiteSection | undefined {
   return SECTION_BY_ID.get(sectionId);
@@ -145,11 +151,12 @@ export function getSiteSectionByCategory(category: string): SiteSection | undefi
 }
 
 export function getSiteSectionForArticle(article: ArticleSectionLike): SiteSection | undefined {
-  return SECTION_BY_ID.get(article.sectionId) ?? getSiteSectionByCategory(article.category);
+  const section = SECTION_BY_ID.get(article.sectionId) ?? getSiteSectionByCategory(article.category);
+  return section && isUserVisibleSiteSection(section.id) ? section : undefined;
 }
 
 export function getSiteSectionHrefForArticle(article: ArticleSectionLike): string {
-  return getSiteSectionForArticle(article)?.href ?? "/konu-haritasi";
+  return getSiteSectionForArticle(article)?.href ?? "/";
 }
 
 export function matchesSiteSection(article: ArticleSectionLike, sectionId: SiteSectionId): boolean {
