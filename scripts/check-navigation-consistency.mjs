@@ -227,7 +227,7 @@ try {
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await goto(page, `${baseUrl}/beton-dokumu-kontrol-listesi`);
   await page.waitForSelector('[data-testid="navbar-live-search"]', { visible: true });
-  const desktopNavLabels = await page.$eval('[data-testid="desktop-nav-item"]', (items) =>
+  const desktopNavLabels = await page.$$eval('[data-testid="desktop-nav-item"]', (items) =>
     items.map((item) => item.textContent?.trim() ?? "")
   );
   assert(
@@ -235,7 +235,12 @@ try {
       JSON.stringify(["Ana Sayfa", "Mevzuat", "Hesaplamalar", "Araçlar", "Belgeler", "Dokümantasyon"]),
     `Desktop navigation order is wrong: ${JSON.stringify(desktopNavLabels)}`
   );
-  results.push("desktop nav order + article search access");
+  const desktopHeaderOverflow = await page.$eval(
+    "[data-site-header]",
+    (header) => header.scrollWidth > header.clientWidth + 1
+  );
+  assert(!desktopHeaderOverflow, "Desktop header overflows at 1440px.");
+  results.push("desktop nav order + article search access + header fit");
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   await goto(page, `${baseUrl}/kategori/araclar`);
@@ -286,7 +291,7 @@ try {
 
   await page.click('button[aria-controls="mobile-navigation-drawer"]');
   await page.waitForSelector("#mobile-navigation-drawer", { visible: true });
-  const drawerLabels = await page.$eval('[data-testid="mobile-menu-item"]', (items) =>
+  const drawerLabels = await page.$$eval('[data-testid="mobile-menu-item"]', (items) =>
     items.map((item) => item.textContent?.trim() ?? "")
   );
   assert(
@@ -298,7 +303,7 @@ try {
 
   await page.setViewport({ width: 320, height: 720, deviceScaleFactor: 1 });
   await goto(page, `${baseUrl}/`);
-  const compactOverflow = await page.$eval(
+  const compactOverflow = await page.$$eval(
     '[data-testid="global-bottom-nav"] [data-bottom-nav-label]',
     (labels) =>
       labels
@@ -324,6 +329,26 @@ try {
   });
   assert(!floatingOverlap.overlaps, "Back-to-top button overlaps the mobile bottom navigation.");
   results.push("320px labels + floating control clearance");
+
+  await page.setViewport({ width: 768, height: 1024, deviceScaleFactor: 1 });
+  await goto(page, `${baseUrl}/`);
+  const tabletNavigationState = await page.evaluate(() => {
+    const bottomNav = document.querySelector('[data-testid="global-bottom-nav"]');
+    const menuButton = document.querySelector('button[aria-controls="mobile-navigation-drawer"]');
+    return {
+      bottomDisplay: bottomNav ? window.getComputedStyle(bottomNav).display : "missing",
+      menuDisplay: menuButton ? window.getComputedStyle(menuButton).display : "missing",
+    };
+  });
+  assert(
+    tabletNavigationState.bottomDisplay === "none",
+    `Tablet should not show phone bottom nav: ${JSON.stringify(tabletNavigationState)}`
+  );
+  assert(
+    tabletNavigationState.menuDisplay !== "none" && tabletNavigationState.menuDisplay !== "missing",
+    `Tablet should keep hamburger navigation: ${JSON.stringify(tabletNavigationState)}`
+  );
+  results.push("tablet uses drawer without phone bottom bar");
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   await goto(page, `${baseUrl}/hesaplamalar/tahmini-insaat-alani`);

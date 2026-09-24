@@ -54,12 +54,12 @@ export function BottomNav() {
                   aria-label="Ara"
                   aria-haspopup="dialog"
                   aria-controls="command-palette-dialog"
-                  className="relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-1 font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/55"
+                  className="relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-0.5 py-1 font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/55"
                 >
                   {item.icon}
                   <span
                     data-bottom-nav-label
-                    className="max-w-full whitespace-nowrap text-center text-[9.5px] leading-none tracking-[-0.03em] min-[360px]:text-[10px]"
+                    className="block max-w-full whitespace-nowrap text-center text-[9px] leading-none tracking-[-0.04em] min-[360px]:text-[10px]"
                   >
                     {item.label}
                   </span>
@@ -77,7 +77,7 @@ export function BottomNav() {
                 data-bottom-nav-item={item.id}
                 data-active={isActive ? "true" : "false"}
                 aria-current={isActive ? "page" : undefined}
-                className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/55 ${
+                className={`relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-md px-0.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/55 ${
                   isActive
                     ? "bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300"
                     : "font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -92,7 +92,7 @@ export function BottomNav() {
                 {item.icon}
                 <span
                   data-bottom-nav-label
-                  className="max-w-full whitespace-nowrap text-center text-[9.5px] leading-none tracking-[-0.03em] min-[360px]:text-[10px]"
+                  className="block max-w-full whitespace-nowrap text-center text-[9px] leading-none tracking-[-0.04em] min-[360px]:text-[10px]"
                 >
                   {item.label}
                 </span>
