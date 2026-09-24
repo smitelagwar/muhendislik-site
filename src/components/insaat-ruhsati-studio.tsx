@@ -24,6 +24,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   countFilledEditableFields,
   DOCUMENT_EDITABLE_FIELDS,
@@ -193,6 +194,7 @@ export function InsaatRuhsatiStudio({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   const studioRootRef = useRef<HTMLDivElement | null>(null);
+  const downloadInFlightRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<any>(null);
@@ -538,6 +540,9 @@ export function InsaatRuhsatiStudio({
 
   // Download Filled PDF
   const handleDownload = async () => {
+    if (downloadInFlightRef.current) return;
+    downloadInFlightRef.current = true;
+
     try {
       setIsDownloading(true);
       await downloadFilledInsaatRuhsatiPdf(formData);
@@ -545,23 +550,20 @@ export function InsaatRuhsatiStudio({
       console.error("Download failed:", err);
       alert("PDF indirilirken bir sorun oluştu.");
     } finally {
+      downloadInFlightRef.current = false;
       setIsDownloading(false);
     }
   };
 
-  // Direct Print
+  // Print only the generated PDF; never fall back to printing the HTML page.
   const handlePrint = () => {
-    if (!blobUrl) return;
-    const printWindow = window.open(blobUrl, "_blank");
-    if (printWindow) {
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    }
+    printPdfFromBlobUrl({
+      blobUrl,
+      isReady: syncStatus === "synced",
+    });
   };
 
-  // Helper for field headers with local reset buttons
+// Helper for field headers with local reset buttons
   const getFieldId = (fieldKey: keyof InsaatRuhsatiData) =>
     `insaat-ruhsati-${String(fieldKey)}`;
 
@@ -1024,10 +1026,10 @@ export function InsaatRuhsatiStudio({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Yeni sekmede tam ekran aç"
+                  title="PDF'yi yeni sekmede aç"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span className="hidden sm:inline">Tam Ekran</span>
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
                 </a>
               )}
             </div>

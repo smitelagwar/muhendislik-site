@@ -26,6 +26,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   countFilledEditableFields,
   DOCUMENT_EDITABLE_FIELDS,
@@ -147,6 +148,7 @@ export function IstifaStudio({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   const studioRootRef = useRef<HTMLDivElement | null>(null);
+  const downloadInFlightRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<any>(null);
@@ -494,6 +496,9 @@ export function IstifaStudio({
 
   // Handle direct download
   const handleDownload = async () => {
+    if (downloadInFlightRef.current) return;
+    downloadInFlightRef.current = true;
+
     try {
       setIsDownloading(true);
       await downloadFilledIstifaDilekcesiPdf(formData);
@@ -501,6 +506,7 @@ export function IstifaStudio({
       console.error("Download error:", err);
       alert("PDF indirilirken bir sorun oluştu.");
     } finally {
+      downloadInFlightRef.current = false;
       setIsDownloading(false);
     }
   };
@@ -515,19 +521,15 @@ export function IstifaStudio({
     document.body.removeChild(link);
   };
 
-  // Print form
+  // Print only the generated PDF; never fall back to printing the HTML page.
   const handlePrint = () => {
-    if (!blobUrl) return;
-    const printWindow = window.open(blobUrl, "_blank");
-    if (printWindow) {
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    }
+    printPdfFromBlobUrl({
+      blobUrl,
+      isReady: syncStatus === "synced",
+    });
   };
 
-  // Helper for field headers with local reset buttons
+// Helper for field headers with local reset buttons
   const getFieldId = (fieldKey: keyof IstifaDilekcesiData) =>
     `istifa-${String(fieldKey)}`;
 
@@ -1020,10 +1022,10 @@ export function IstifaStudio({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Yeni sekmede tam ekran aç"
+                  title="PDF'yi yeni sekmede aç"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span className="hidden sm:inline">Tam Ekran</span>
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
                 </a>
               )}
             </div>

@@ -20,6 +20,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   countFilledEditableFields,
   DOCUMENT_EDITABLE_FIELDS,
@@ -143,6 +144,7 @@ export function SozlesmeStudio({
   const totalPages = 2;
 
   const studioRootRef = useRef<HTMLDivElement | null>(null);
+  const downloadInFlightRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<any>(null);
@@ -498,6 +500,9 @@ export function SozlesmeStudio({
 
   // Download filled PDF
   const handleDownload = async () => {
+    if (downloadInFlightRef.current) return;
+    downloadInFlightRef.current = true;
+
     try {
       setIsDownloading(true);
       await downloadFilledSozlesmePdf(formData);
@@ -505,23 +510,20 @@ export function SozlesmeStudio({
       console.error("Download failed:", err);
       alert("PDF indirilirken bir sorun oluştu.");
     } finally {
+      downloadInFlightRef.current = false;
       setIsDownloading(false);
     }
   };
 
-  // Direct print
+  // Print only the generated PDF; never fall back to printing the HTML page.
   const handlePrint = () => {
-    if (!blobUrl) return;
-    const printWindow = window.open(blobUrl, "_blank");
-    if (printWindow) {
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    }
+    printPdfFromBlobUrl({
+      blobUrl,
+      isReady: syncStatus === "synced",
+    });
   };
 
-  // Helper for field headers with local reset buttons
+// Helper for field headers with local reset buttons
   const getFieldId = (fieldKey: keyof SozlesmeData) =>
     `sozlesme-${String(fieldKey)}`;
 
@@ -1147,10 +1149,10 @@ export function SozlesmeStudio({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Yeni sekmede tam ekran aç"
+                  title="PDF'yi yeni sekmede aç"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  <span className="hidden sm:inline">Tam Ekran</span>
+                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
                 </a>
               )}
             </div>
