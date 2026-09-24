@@ -39,6 +39,17 @@ export function ModeToggle() {
         .animate-planet {
           animation: planet-spin 15s linear infinite;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .rgb-border-wrapper,
+          .animate-planet {
+            animation: none !important;
+          }
+          [data-testid="theme-toggle"],
+          [data-testid="theme-toggle"] * {
+            transition-duration: 0.01ms !important;
+            transition-delay: 0ms !important;
+          }
+        }
       `}} />
       <div className="rgb-border-wrapper rounded-full p-[2px] inline-flex shadow-[0_0_12px_rgba(255,255,255,0.2)] dark:shadow-[0_0_12px_rgba(255,255,255,0.1)]">
         <button
