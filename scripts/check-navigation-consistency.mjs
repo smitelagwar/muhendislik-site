@@ -189,12 +189,20 @@ try {
   results.push("retired-section article fallback");
 
   await goto(page, `${baseUrl}/rehber/proje-hazirlik/elektrik-projesi`);
-  const guideBackHref = await getHref(page, '[data-testid="page-context-back-link"]');
+  const guideBackHref = await getHref(page, '[data-testid="header-context-back-link"]');
   assert(
     guideBackHref === "/rehber/proje-hazirlik",
-    "Nested technical guide should point back to its canonical logical parent."
+    "Nested technical guide header back should point to its canonical logical parent."
   );
-  results.push("canonical guide parent navigation");
+  const duplicateGuideBackCount = await page.$eval(
+    '[data-testid="page-context-back-link"]',
+    (elements) => elements.length
+  );
+  assert(
+    duplicateGuideBackCount === 0,
+    "Technical guide should not render a second page-level back control when header back exists."
+  );
+  results.push("canonical guide parent navigation without duplicate back");
 
   await page.goto(`${baseUrl}/kategori/bina-asamalari/proje-hazirlik/elektrik-projesi`, {
     waitUntil: "networkidle2",
@@ -351,6 +359,27 @@ try {
   results.push("tablet uses drawer without phone bottom bar");
 
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await goto(page, `${baseUrl}/rehber/proje-hazirlik/elektrik-projesi`);
+  const mobileBreadcrumbState = await page.$eval('nav[aria-label="Sayfa konumu"]', (nav) => {
+    const visibleItems = Array.from(nav.children).filter((item) => {
+      const style = window.getComputedStyle(item);
+      return style.display !== "none" && style.visibility !== "hidden";
+    });
+    return {
+      visibleCount: visibleItems.length,
+      text: visibleItems.map((item) => item.textContent?.trim() ?? ""),
+    };
+  });
+  assert(
+    mobileBreadcrumbState.visibleCount <= 3,
+    `Mobile breadcrumb should stay compact: ${JSON.stringify(mobileBreadcrumbState)}`
+  );
+  assert(
+    mobileBreadcrumbState.text.some((text) => text.includes("Elektrik Projesi")),
+    `Mobile breadcrumb should retain current page: ${JSON.stringify(mobileBreadcrumbState)}`
+  );
+  results.push("mobile breadcrumb compaction");
+
   await goto(page, `${baseUrl}/hesaplamalar/tahmini-insaat-alani`);
   await page.waitForSelector('[data-testid="header-context-back-link"]', {
     visible: true,

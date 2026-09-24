@@ -96,6 +96,15 @@ muhendislik-site/
 - Mobil alt bar `env(safe-area-inset-bottom)` kullanır; akış spacer'ı ve kayan kontrol ofseti içeriğin/barın üst üste binmesini önler.
 - Navigasyon kaynakları `src/lib/navigation-config.ts` üzerinden türetilir; eski Konu Haritası, Kaydedilenler, Yapı/Şantiye/Bina Aşamaları ana yüzeyleri geri eklenmez.
 
+### UX Sadeleştirme — Aşama 5
+- Ana hero'daki hesaplama/araç/içerik sayaç rayı kaldırılmıştır; arama ve ana hesaplama CTA'sı korunur.
+- Tekrarlayan `HomeWorkflowBand` kaldırılmıştır; aynı hedeflere hesap/araç alanı, ana navigasyon ve canonical rehber bağlantılarından erişilmeye devam edilir.
+- Yalnız dekoratif geniş-ekran `HomeScrollLogo` runtime katmanı kaldırılmıştır; normal navbar logosu korunur.
+- Hero ve ana bölüm dikey boşlukları azaltılmış, mobil hero görseli daha kısa oranla sunulmuştur.
+- Geri navigasyonu bağlama göre tekilleştirilir: header güvenli geri hedefi sağlıyorsa içerik içi ikinci geri düğmesi gizlenir; düz makale URL'si doğrudan açıldığında sayfa içi geri yolu korunur.
+- Breadcrumb desktop'ta tam yolu gösterir; mobilde parent + mevcut sayfa tutulur, daha eski atalar ellipsis ile sıkıştırılır.
+- Makale etiketleri mobilde gizlenir; desktop'ta en fazla dört etiket gösterilir.
+
 ---
 
 ## Aktif Workstream'ler

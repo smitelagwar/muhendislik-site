@@ -28,9 +28,7 @@ const PUBLIC_SHELL_FILES = [
   "src/components/home-project-path.tsx",
   "src/components/home-resource-card.tsx",
   "src/components/home-resource-showcase.tsx",
-  "src/components/home-scroll-logo.tsx",
   "src/components/home-search-trigger.tsx",
-  "src/components/home-workflow-band.tsx",
   "src/components/article-client.tsx",
   "src/lib/route-metadata.ts",
   "src/lib/search-index.ts",
@@ -251,6 +249,52 @@ function checkRetiredSurfaceProblems(problems: Problem[]) {
   }
 }
 
+function checkHomepageSimplicityProblems(problems: Problem[]) {
+  const retiredHomepageFiles = [
+    "src/components/home-scroll-logo.tsx",
+    "src/components/home-workflow-band.tsx",
+  ];
+
+  for (const file of retiredHomepageFiles) {
+    if (fileExists(file)) {
+      addProblem(problems, "homepage-simplicity", `retired homepage layer should be removed: ${file}`);
+    }
+  }
+
+  const homePage = readFile("src/app/page.tsx");
+  for (const term of ["HomeScrollLogo", "HomeWorkflowBand", "model.counts", "model.workflow"]) {
+    if (homePage.includes(term)) {
+      addProblem(problems, "homepage-simplicity", `stale homepage layer reference: ${term}`);
+    }
+  }
+
+  const hero = readFile("src/components/home-hero-section.tsx");
+  if (hero.includes("home-status-rail") || hero.includes("HomeCounts")) {
+    addProblem(problems, "homepage-simplicity", "hero status/count layer should stay removed");
+  }
+
+  const homeModel = readFile("src/lib/home-content.ts");
+  for (const term of ["HomeCounts", "HomeWorkflowStep", "workflow: WORKFLOW", "counts: {"]) {
+    if (homeModel.includes(term)) {
+      addProblem(problems, "homepage-simplicity", `stale home model layer: ${term}`);
+    }
+  }
+
+  const articleClient = readFile("src/components/article-client.tsx");
+  if (!articleClient.includes("showBackLink={!hasGlobalBack}")) {
+    addProblem(
+      problems,
+      "homepage-simplicity",
+      "article back control should only render when the global header cannot provide a safe back target",
+    );
+  }
+
+  const contextNavigation = readFile("src/components/page-context-navigation.tsx");
+  if (!contextNavigation.includes("hideOnMobile")) {
+    addProblem(problems, "homepage-simplicity", "mobile breadcrumb compaction is missing");
+  }
+}
+
 function checkNavigationProblems(problems: Problem[]) {
   const expectedNavIds = {
     "primary-nav": ["home", "deprem-yonetmelik", "hesaplamalar", "araclar", "belgeler", "dokumantasyon"],
@@ -375,6 +419,7 @@ checkMetadataCoverage(problems);
 checkRedirectRoutes(problems);
 checkRemovedAdminSurface(problems);
 checkRetiredSurfaceProblems(problems);
+checkHomepageSimplicityProblems(problems);
 checkNavigationProblems(problems);
 checkSectionProblems(problems);
 checkToolsProblems(problems);
