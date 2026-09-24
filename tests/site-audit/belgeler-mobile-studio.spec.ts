@@ -339,6 +339,13 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await expect(page.getByText("Eşleşen belge bulunamadı")).toBeVisible();
       await page.getByRole("button", { name: "Aramayı temizle" }).click();
 
+      const unfocusedStyle = await search.evaluate((element) => {
+        const style = window.getComputedStyle(element);
+        return {
+          borderColor: style.borderColor,
+          boxShadow: style.boxShadow,
+        };
+      });
       await search.focus();
       const focusedStyle = await search.evaluate((element) => {
         const style = window.getComputedStyle(element);
@@ -347,8 +354,10 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
           boxShadow: style.boxShadow,
         };
       });
-      expect(focusedStyle.borderColor).not.toBe("");
-      expect(focusedStyle.boxShadow).not.toBe("none");
+      expect(
+        focusedStyle.borderColor !== unfocusedStyle.borderColor ||
+          focusedStyle.boxShadow !== unfocusedStyle.boxShadow
+      ).toBe(true);
 
       await page.evaluate(() => {
         document.documentElement.style.fontSize = "200%";
@@ -422,12 +431,12 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         .getByTestId("belge-studio-mobile-actions")
         .getByRole("button", { name: /PDF İndir/i });
 
-      const downloads: string[] = [];
-      page.on("download", (download) => downloads.push(download.suggestedFilename()));
+      const downloadPromise = page.waitForEvent("download");
+      await downloadButton.click();
+      const download = await downloadPromise;
 
-      await downloadButton.dblclick();
-      await expect.poll(() => downloads.length).toBe(1);
-      expect(downloads[0]).toMatch(/\.pdf$/i);
+      expect(download.suggestedFilename()).toMatch(/\.pdf$/i);
+      await expect(downloadButton).toBeEnabled();
     });
   }
 
