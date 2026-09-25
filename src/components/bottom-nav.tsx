@@ -59,7 +59,7 @@ export function BottomNav() {
                   {item.icon}
                   <span
                     data-bottom-nav-label
-                    className="block max-w-full whitespace-nowrap text-center text-[9px] leading-none tracking-[-0.04em] min-[360px]:text-[10px]"
+                    className="block max-w-full whitespace-nowrap text-center text-[8px] leading-none tracking-[-0.06em] min-[340px]:text-[9px] min-[360px]:text-[10px]"
                   >
                     {item.label}
                   </span>
@@ -92,7 +92,7 @@ export function BottomNav() {
                 {item.icon}
                 <span
                   data-bottom-nav-label
-                  className="block max-w-full whitespace-nowrap text-center text-[9px] leading-none tracking-[-0.04em] min-[360px]:text-[10px]"
+                  className="block max-w-full whitespace-nowrap text-center text-[8px] leading-none tracking-[-0.06em] min-[340px]:text-[9px] min-[360px]:text-[10px]"
                 >
                   {item.label}
                 </span>
