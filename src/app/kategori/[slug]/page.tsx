@@ -26,6 +26,8 @@ import {
 } from "@/lib/site-sections";
 import { buildSeoMetadata } from "@/lib/seo";
 
+export const dynamicParams = false;
+
 const SECTION_ICONS: Record<SiteSectionId, LucideIcon> = {
   araclar: FileText,
   "bina-asamalari": GitBranchPlus,
