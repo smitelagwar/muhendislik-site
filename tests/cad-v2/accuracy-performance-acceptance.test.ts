@@ -52,6 +52,10 @@ async function runAccuracyPerformanceAcceptanceTests() {
   const manifestData = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
   const realCorpus: FixtureItem[] = manifestData.realCorpus;
 
+  // Acceptance tests must never index or write the user's .data scene store.
+  // Use a per-process isolated directory and inspect only artifacts from this run.
+  const isolatedStorageDir = path.resolve(process.cwd(), "test-output/cad-v2-tmp", `g15-${process.pid}-${Date.now()}`);
+  process.env.CAD_V2_STORAGE_DIR = isolatedStorageDir;
   const service = CadV2DurableService.getInstance();
   const benchmarkResults: BenchmarkResult[] = [];
 
@@ -60,7 +64,7 @@ async function runAccuracyPerformanceAcceptanceTests() {
   // --------------------------------------------------------------------------
   console.log("--- BÖLÜM 1: Gerçek Corpus Doğruluk ve Katman Analizi ---");
 
-  for (const item of realCorpus) {
+  async function verifyCorpusItem(item: FixtureItem) {
     const fullPath = path.join(process.cwd(), item.relativePath);
     assert(fs.existsSync(fullPath), `Corpus dosyası mevcut: ${item.id} (${item.relativePath})`);
 
@@ -89,6 +93,10 @@ async function runAccuracyPerformanceAcceptanceTests() {
     assert(compiled.manifest.layouts[0].bbox.length === 4, `${item.id} Model bbox 4 elemanlı Float64`);
 
     console.log(`     Parse süresi: ${parseTime.toFixed(1)} ms, Varlık: ${entityCount}, Katman: ${layerCount}`);
+  }
+
+  for (const item of realCorpus) {
+    await verifyCorpusItem(item);
   }
 
   // --------------------------------------------------------------------------
@@ -176,7 +184,7 @@ async function runAccuracyPerformanceAcceptanceTests() {
   }
 
   // CLI veya Service üzerinden üretilen R001 sahne manifestini doğrudan doğrula
-  const scenesDir = path.join(process.cwd(), ".data/cad-v2-scenes");
+  const scenesDir = isolatedStorageDir;
   if (fs.existsSync(scenesDir)) {
     const sceneFolders = fs.readdirSync(scenesDir).filter((d) => d.startsWith("scene_"));
     if (sceneFolders.length > 0) {

@@ -34,7 +34,14 @@ import { CadV2LayerPanel } from "./cad-v2-layer-panel";
 import { CadV2ViewSettingsPanel, type CadV2ViewSettings } from "./cad-v2-view-settings-panel";
 import type { CadV2Renderer } from "@/lib/cad-v2/render/cad-v2-renderer";
 import type { CadLayer, CadBBox2D } from "@/lib/cad-v2/canonical/types";
+import type { CadCameraState } from "@/lib/cad-v2/interaction/d3-camera-adapter";
 import { CadV2WorkerClient } from "@/lib/cad-v2/worker/worker-client";
+import { applyCurveRefinementsToChunk } from "@/lib/cad-v2/worker/apply-curve-refinements";
+import type { UnpackedSceneChunk } from "@/workers/cad-v2/cad-v2-scene-worker";
+import {
+  validateSceneManifest,
+  type ValidatedSceneManifest,
+} from "@/lib/cad-v2/protocol/binary-protocol";
 import { formatBytes } from "../ui-helpers";
 
 export interface CadV2HostShellProps {
@@ -60,6 +67,14 @@ export type V2HostPhase =
   | "cancelled"
   | "context-lost"
   | "error";
+
+type CurveRefinementProfile = "transient" | "idle";
+const CURVE_REFINEMENT_ERROR_CSS_PX: Record<CurveRefinementProfile, number> = {
+  transient: 0.75,
+  idle: 0.25,
+};
+const CURVE_REFINEMENT_DEBOUNCE_MS = 120;
+  const CURVE_REFINEMENT_IDLE_DELAY_MS = 600;
 
 export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   accessUrl,
@@ -120,6 +135,17 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   const fitURef = useRef<number | null>(null);
   const currentVersionKeyRef = useRef<string | undefined>(sourceVersionKey);
   const startPrepareFlowRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const refinementChunksRef = useRef<Map<string, UnpackedSceneChunk>>(new Map());
+  const refinementSourceBytesRef = useRef(0);
+  const refinementSourceBudgetExceededRef = useRef(false);
+    const refinedProfilesRef = useRef<Map<string, { bucket: number; attemptedErrorCssPixels: number; displayedErrorWorldUnits: number | null }>>(new Map());
+  const refinementTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refinementEpochRef = useRef(0);
+  const refinementRunningRef = useRef(false);
+  const refinementEnabledRef = useRef(false);
+  const requestedRefinementBucketRef = useRef<number | null>(null);
+  const latestCameraStateRef = useRef<CadCameraState | null>(null);
+  const requestRefinementRef = useRef<(state: CadCameraState) => void>(() => {});
 
   const apiBase = publicToken ? "/api/public/cad-v2" : "/api/dokumantasyon/cad-v2";
   const authHeaders = useMemo<Record<string, string>>(() => {
@@ -160,6 +186,14 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   const startPrepareFlow = useCallback(async () => {
     isCancelledRef.current = false;
     generationRef.current++;
+    refinementEnabledRef.current = false;
+    requestedRefinementBucketRef.current = null;
+    refinementEpochRef.current++;
+    refinementChunksRef.current.clear();
+    refinementSourceBytesRef.current = 0;
+    refinementSourceBudgetExceededRef.current = false;
+    refinedProfilesRef.current.clear();
+    if (refinementTimerRef.current) clearTimeout(refinementTimerRef.current);
     const currentGen = generationRef.current;
 
     if (abortControllerRef.current) {
@@ -253,16 +287,19 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
       if (!manifestRes.ok) {
         throw new Error(`Manifest alınamadı (${manifestRes.status})`);
       }
-      const manifest = await manifestRes.json();
+      const rawManifestJson = await manifestRes.json();
+      // P02 Kuralı: JSON cast yerine katı doğrulayıcı çalıştır
+      const manifest: ValidatedSceneManifest = validateSceneManifest(rawManifestJson);
+      rendererRef.current?.setChunkBounds(manifest.chunks);
 
       // Gerçek katmanları ve paftaları yükle
       if (manifest.layers && Object.keys(manifest.layers).length > 0) {
         setLayers(manifest.layers);
       }
       if (manifest.layouts && manifest.layouts.length > 0) {
-        const normalizedLayouts = manifest.layouts.map((l: any) => ({
+        const normalizedLayouts = manifest.layouts.map((l) => ({
           layoutId: l.layoutId || l.sourceName || "Model",
-          name: l.sourceName || l.name || l.layoutId || "Model",
+          name: l.sourceName || l.layoutId || "Model",
           isModelSpace: l.kind === "model",
           bbox: l.bbox,
         }));
@@ -285,14 +322,25 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
       }
       workerClientRef.current = new CadV2WorkerClient(viewSessionId, manifest.sourceVersionKey || "1");
 
-      // 4. Parçaları (chunks) eşzamanlı indir (concurrency = 6), worker ile unpack et ve renderera ekle
-      const chunks = manifest.chunks || (manifest.indexPages?.[0]?.chunks) || [];
+      // 4. Parçaları (chunks) set tabanlı takip et ve doğrula
+      const chunks = manifest.chunks;
+      const expectedChunkIds = new Set(chunks.map((c) => c.chunkId));
+      const fetchedChunkIds = new Set<string>();
+      const hashVerifiedChunkIds = new Set<string>();
+      const decodedChunkIds = new Set<string>();
+      const rendererAcceptedChunkIds = new Set<string>();
+
       let loadedCount = 0;
       let totalVertices = 0;
 
       if (rendererRef.current) {
         rendererRef.current.clearChunks();
       }
+      refinementChunksRef.current.clear();
+      refinementSourceBytesRef.current = 0;
+      refinementSourceBudgetExceededRef.current = false;
+      refinedProfilesRef.current.clear();
+      requestedRefinementBucketRef.current = null;
 
       if (chunks.length === 0) {
         setPhase(manifest.qualityStatus === "degraded" ? "degraded" : "ready");
@@ -302,39 +350,104 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
       const CHUNK_CONCURRENCY = 6;
       let nextIndex = 0;
 
+      // Yardımcı: SHA-256 doğrulayıcı
+      const computeBufferSha256 = async (buf: ArrayBuffer): Promise<string> => {
+        if (typeof crypto !== "undefined" && crypto.subtle) {
+          const digest = await crypto.subtle.digest("SHA-256", buf);
+          return Array.from(new Uint8Array(digest))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+        }
+        return "";
+      };
+
       const workerTask = async () => {
         while (nextIndex < chunks.length) {
           if (signal.aborted || isCancelledRef.current || currentGen !== generationRef.current) return;
           const idx = nextIndex++;
           const ch = chunks[idx];
 
-          try {
-            const chunkUrl = `${apiBase}/scenes/${sceneId}/chunks/${ch.chunkId}${publicToken ? `?shareToken=${encodeURIComponent(publicToken)}` : ""}`;
-            const chunkRes = await fetch(chunkUrl, { headers: authHeaders, signal });
-            if (!chunkRes.ok) continue;
+          let attempt = 0;
+          let chunkBuf: ArrayBuffer | null = null;
 
-            const chunkBuf = await chunkRes.arrayBuffer();
+          while (attempt < 3 && !chunkBuf) {
             if (signal.aborted || isCancelledRef.current || currentGen !== generationRef.current) return;
-
-            const workerClient = workerClientRef.current;
-            if (!workerClient) return;
-            const unpacked = await workerClient.loadChunk(ch.chunkId, chunkBuf);
-            if (rendererRef.current) {
-              rendererRef.current.addSceneChunk(unpacked);
-              totalVertices += unpacked.vertexCount;
-              setEntityCount(totalVertices);
+            attempt++;
+            try {
+              const chunkUrl = `${apiBase}/scenes/${sceneId}/chunks/${ch.chunkId}${publicToken ? `?shareToken=${encodeURIComponent(publicToken)}` : ""}`;
+              const chunkRes = await fetch(chunkUrl, { headers: authHeaders, signal });
+              if (chunkRes.status === 401 || chunkRes.status === 403) {
+                throw new Error(`Yetki hatası (${chunkRes.status}): ${ch.chunkId}`);
+              }
+              if (chunkRes.status === 404) {
+                throw new Error(`Kritik parça bulunamadı (404): ${ch.chunkId}`);
+              }
+              if (!chunkRes.ok) {
+                if (attempt < 3) {
+                  await new Promise((r) => setTimeout(r, 250 * attempt));
+                  continue;
+                }
+                throw new Error(`Parça indirilemedi (${chunkRes.status}): ${ch.chunkId}`);
+              }
+              chunkBuf = await chunkRes.arrayBuffer();
+            } catch (fetchErr: any) {
+              if (fetchErr.name === "AbortError" || signal.aborted) return;
+              if (attempt >= 3) throw fetchErr;
+              await new Promise((r) => setTimeout(r, 250 * attempt));
             }
-          } catch (err: any) {
-            console.warn(`[CadV2HostShell] Chunk yükleme hatası (${ch.chunkId}):`, err);
+          }
+
+          if (!chunkBuf) {
+            throw new Error(`Parça indirilemedi: ${ch.chunkId}`);
+          }
+          fetchedChunkIds.add(ch.chunkId);
+
+          // Byte length ve Hash doğrulama
+          if (chunkBuf.byteLength !== ch.byteLength) {
+            throw new Error(
+              `[HostShell] Parça boyutu uyuşmazlığı (${ch.chunkId}): beklenen ${ch.byteLength}, alınan ${chunkBuf.byteLength}`
+            );
+          }
+
+          const actualSha = await computeBufferSha256(chunkBuf);
+          if (actualSha && ch.sha256 && actualSha.toLowerCase() !== ch.sha256.toLowerCase()) {
+            throw new Error(
+              `[HostShell] SHA-256 sağlama toplamı uyuşmazlığı (${ch.chunkId}): beklenen ${ch.sha256}, alınan ${actualSha}`
+            );
+          }
+          hashVerifiedChunkIds.add(ch.chunkId);
+
+          if (signal.aborted || isCancelledRef.current || currentGen !== generationRef.current) return;
+
+          const workerClient = workerClientRef.current;
+          if (!workerClient) return;
+
+          const unpacked = await workerClient.loadChunk(ch.chunkId, chunkBuf);
+          decodedChunkIds.add(ch.chunkId);
+
+          if (signal.aborted || isCancelledRef.current || currentGen !== generationRef.current) return;
+
+          if (rendererRef.current) {
+            rendererRef.current.addSceneChunk(unpacked);
+            if (unpacked.curveDataArray && unpacked.meta?.curveSourceRefs?.length) {
+              const metadataBytes = JSON.stringify(unpacked.meta).length * 2;
+              const sourceBytes = unpacked.xyArray.byteLength + (unpacked.trianglesArray?.byteLength ?? 0) +
+                (unpacked.pathDistancesArray?.byteLength ?? 0) + (unpacked.drawRunsArray?.byteLength ?? 0) +
+                unpacked.curveDataArray.byteLength + metadataBytes;
+              if (refinementSourceBytesRef.current + sourceBytes <= 32 * 1024 * 1024) {
+                refinementChunksRef.current.set(ch.chunkId, unpacked);
+                refinementSourceBytesRef.current += sourceBytes;
+              } else {
+                refinementSourceBudgetExceededRef.current = true;
+              }
+            }
+            rendererAcceptedChunkIds.add(ch.chunkId);
+            totalVertices += unpacked.vertexCount;
+            setEntityCount(totalVertices);
           }
 
           loadedCount++;
           setLoadingProgress(`Parçalar aktarılıyor (${loadedCount}/${chunks.length})...`);
-
-          // İlk parça eklendiğinde kanvası aç, devamını progressive akıt
-          if (loadedCount === 1) {
-            setPhase((prev) => (prev === "loading" ? "ready" : prev));
-          }
         }
       };
 
@@ -346,12 +459,27 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
 
       if (signal.aborted || isCancelledRef.current || currentGen !== generationRef.current) return;
 
-      if (manifest.qualityStatus === "degraded") {
-        setDiagnosticsWarning("Çizim bazı uyarılarla açıldı (eksik font veya desteklenmeyen nesneler mevcut).");
+      // P02 Kuralı: Bütün beklenen parçalar doğrulandı mı kontrol et
+      const isComplete = expectedChunkIds.size === rendererAcceptedChunkIds.size &&
+        [...expectedChunkIds].every((id) => rendererAcceptedChunkIds.has(id));
+
+      if (!isComplete) {
+        const missingCount = expectedChunkIds.size - rendererAcceptedChunkIds.size;
+        setDiagnosticsWarning(`Bazı parçalar aktarılamadı (${missingCount} eksik parça). Çizim kısmi görüntülendi.`);
+        setPhase("degraded");
+        return;
+      }
+
+      if (manifest.qualityStatus === "degraded" || refinementSourceBudgetExceededRef.current) {
+        setDiagnosticsWarning(refinementSourceBudgetExceededRef.current
+          ? "Büyük çizim nedeniyle bazı eğriler canlı hassaslaştırma belleği sınırının dışında kaldı; temel çizimleri korunuyor."
+          : "Çizim bazı uyarılarla açıldı (eksik font veya desteklenmeyen nesneler mevcut).");
         setPhase("degraded");
       } else {
         setPhase("ready");
       }
+      refinementEnabledRef.current = true;
+      if (latestCameraStateRef.current) requestRefinementRef.current(latestCameraStateRef.current);
     } catch (err: any) {
       if (signal.aborted || isCancelledRef.current) return;
       setPhase("error");
@@ -364,6 +492,9 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   // Kullanıcı İptali (Cancellation)
   const handleCancel = useCallback(() => {
     isCancelledRef.current = true;
+    refinementEnabledRef.current = false;
+    refinementEpochRef.current++;
+    if (refinementTimerRef.current) clearTimeout(refinementTimerRef.current);
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -399,6 +530,13 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
 
     return () => {
       isCancelledRef.current = true;
+      refinementEnabledRef.current = false;
+      refinementEpochRef.current++;
+      if (refinementTimerRef.current) clearTimeout(refinementTimerRef.current);
+      refinementChunksRef.current.clear();
+      refinementSourceBytesRef.current = 0;
+      refinementSourceBudgetExceededRef.current = false;
+      refinedProfilesRef.current.clear();
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -464,11 +602,124 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   }, []);
 
   const handleCameraChange = useCallback((camState: any) => {
+    if (camState && Number.isFinite(camState.unitsPerCssPixel) && camState.unitsPerCssPixel > 0) {
+      latestCameraStateRef.current = camState as CadCameraState;
+      requestRefinementRef.current(camState as CadCameraState);
+    }
     if (fitURef.current && fitURef.current > 0 && camState?.unitsPerCssPixel > 0) {
       const pct = (fitURef.current / camState.unitsPerCssPixel) * 100;
       setZoomPercent(pct);
     }
   }, []);
+
+  const queueCameraRefinement = useCallback((cameraState: CadCameraState) => {
+    if (!refinementEnabledRef.current || !Number.isFinite(cameraState.unitsPerCssPixel) || cameraState.unitsPerCssPixel <= 0) return;
+    // 1/4 octave buckets: pan is excluded, and small wheel noise is coalesced.
+    const bucket = Math.round(Math.log2(cameraState.unitsPerCssPixel) * 4) / 4;
+    const curveChunks = [...refinementChunksRef.current.entries()].filter(([, chunk]) =>
+      chunk.curveDataArray && chunk.meta?.curveSourceRefs?.length);
+    if (curveChunks.length === 0) return;
+      const bucketChanged = requestedRefinementBucketRef.current !== bucket;
+      if (bucketChanged) {
+        requestedRefinementBucketRef.current = bucket;
+        refinementEpochRef.current++;
+      }
+      if (refinementRunningRef.current) return;
+      if (refinementTimerRef.current) clearTimeout(refinementTimerRef.current);
+      const transientAttempted = curveChunks.every(([chunkId]) => {
+        const state = refinedProfilesRef.current.get(chunkId);
+        return state?.bucket === bucket && state.attemptedErrorCssPixels <= CURVE_REFINEMENT_ERROR_CSS_PX.transient;
+      });
+      const idleAttempted = curveChunks.every(([chunkId]) => {
+        const state = refinedProfilesRef.current.get(chunkId);
+        return state?.bucket === bucket && state.attemptedErrorCssPixels <= CURVE_REFINEMENT_ERROR_CSS_PX.idle;
+      });
+      if (idleAttempted) return;
+      const profile: CurveRefinementProfile = transientAttempted ? "idle" : "transient";
+      const epoch = refinementEpochRef.current;
+
+    const runProfile = async (profile: CurveRefinementProfile): Promise<void> => {
+      if (epoch !== refinementEpochRef.current || !refinementEnabledRef.current || refinementRunningRef.current) return;
+      refinementRunningRef.current = true;
+      const targetErrorCssPixels = CURVE_REFINEMENT_ERROR_CSS_PX[profile];
+      try {
+        const client = workerClientRef.current;
+        const renderer = rendererRef.current;
+        if (!client || !renderer) return;
+        for (const [chunkId, sourceChunk] of curveChunks) {
+          if (epoch !== refinementEpochRef.current || !refinementEnabledRef.current) break;
+          const previous = refinedProfilesRef.current.get(chunkId);
+          if (previous?.bucket === bucket && previous.attemptedErrorCssPixels <= targetErrorCssPixels) continue;
+          const unitsPerCssPixel = 2 ** (bucket + 0.125);
+          const targetErrorWorldUnits = targetErrorCssPixels * unitsPerCssPixel;
+          const result = await client.refineCurves(sourceChunk, {
+            targetErrorCssPixels,
+            // Use the most zoomed-in scale in this bucket so reuse within the bucket stays conservative.
+            unitsPerCssPixel,
+            maxTransformSingularValue: 1,
+          });
+          // A camera bucket change invalidates the in-flight result; retain the last displayed geometry.
+          if (epoch !== refinementEpochRef.current || !refinementEnabledRef.current) break;
+
+            // A capped/partial result is never safe to replace the current whole chunk with:
+            // applying only successful spans would silently restore failed spans to coarse fallback.
+            if (!result.errorBoundMet) {
+              setDiagnosticsWarning("Bazı daire/yay eğrileri çalışma anı hata veya bellek sınırına ulaştı; son geçerli görüntü korunuyor.");
+              setPhase("degraded");
+              refinedProfilesRef.current.set(chunkId, {
+                bucket,
+                attemptedErrorCssPixels: targetErrorCssPixels,
+                displayedErrorWorldUnits: previous?.displayedErrorWorldUnits ?? null,
+              });
+              continue;
+            }
+
+            // Never replace a displayed curve set with a coarser transient result after a zoom.
+            const keepHigherPrecisionDisplay = previous?.displayedErrorWorldUnits !== null &&
+              previous?.displayedErrorWorldUnits !== undefined && previous.displayedErrorWorldUnits <= targetErrorWorldUnits;
+            if (!keepHigherPrecisionDisplay) {
+              const refinedChunk = applyCurveRefinementsToChunk(sourceChunk, result);
+              if (refinedChunk !== sourceChunk) renderer.replaceSceneChunkGeometry(refinedChunk);
+            }
+            const refinedErrorWorldUnits = Math.max(...result.intervals.map((interval) => interval.conservativeErrorCssPixels)) * unitsPerCssPixel;
+            refinedProfilesRef.current.set(chunkId, {
+              bucket,
+              attemptedErrorCssPixels: targetErrorCssPixels,
+              displayedErrorWorldUnits: keepHigherPrecisionDisplay
+                ? previous.displayedErrorWorldUnits
+                : refinedErrorWorldUnits,
+            });
+        }
+      } catch (error) {
+        // Refinement is an enhancement. The validated/current display remains visible.
+        console.warn("[CadV2Host] Eğri hassaslaştırması uygulanamadı; mevcut geometri korunuyor.", error);
+        if (refinementEnabledRef.current && epoch === refinementEpochRef.current) {
+          setDiagnosticsWarning("Canlı eğri hassaslaştırması tamamlanamadı; mevcut çizim korunuyor.");
+          setPhase("degraded");
+        }
+      } finally {
+        refinementRunningRef.current = false;
+        if (!refinementEnabledRef.current) return;
+        if (epoch !== refinementEpochRef.current) {
+          if (latestCameraStateRef.current) requestRefinementRef.current(latestCameraStateRef.current);
+          return;
+        }
+        if (profile === "transient") {
+          refinementTimerRef.current = setTimeout(() => {
+            refinementTimerRef.current = null;
+            void runProfile("idle");
+          }, CURVE_REFINEMENT_IDLE_DELAY_MS);
+        }
+      }
+    };
+
+      const delayMs = profile === "transient" ? CURVE_REFINEMENT_DEBOUNCE_MS : CURVE_REFINEMENT_IDLE_DELAY_MS;
+      refinementTimerRef.current = setTimeout(() => {
+        refinementTimerRef.current = null;
+        void runProfile(profile);
+      }, delayMs);
+  }, []);
+  requestRefinementRef.current = queueCameraRefinement;
 
   const handleZoomIn = () => rendererRef.current?.zoomIn();
   const handleZoomOut = () => rendererRef.current?.zoomOut();
@@ -530,6 +781,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
     const target = layouts.find((l) => l.name === layoutName || l.layoutId === layoutName);
     if (target && rendererRef.current) {
       setActiveLayoutName(target.name);
+      rendererRef.current.setActiveLayout(target.layoutId);
       rendererRef.current.setFitBBox(target.bbox);
       rendererRef.current.fit(target.bbox);
       fitURef.current = rendererRef.current.getCameraAdapter()?.getState()?.unitsPerCssPixel ?? null;

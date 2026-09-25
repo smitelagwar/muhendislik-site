@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "profileVersion": "1.0.0",
+  "generatedAt": "2026-09-20T19:35:00.000Z",
+  "target": "AutoCAD 2D Model-Space Visual Fidelity Contract",
+  "status": "PROVISIONAL_SPECIFICATION",
+  "autoCadOracle": {
+    "status": "NOT_RUN",
+    "blocker": "Fiziksel AutoCAD lisanslı ortamından doğrulanmış raster ve vektör dışa aktarımı henüz sağlanamamıştır. Tüm görsel eşitlik kapıları bağımsız oracle bağlanana kadar NOT_RUN veya BLOCKED olarak işaretlenir."
+  },
+  "coordinateContracts": {
+    "canonicalSpace": "World Coordinate System (WCS) Float64",
+    "displayProjection": "Planar 2D View Projection via Float64 Affine Transform Stack",
+    "pixelTargetTolerance": "Supported zoom levels <= 0.25 CSS px",
+    "unitConvention": "AutoCAD INSUNITS: 0=Unitless, 1=Inches, 2=Feet, 3=Miles, 4=Millimeters, 5=Centimeters, 6=Meters, 7=Kilometers"
+  },
+  "displayContracts": {
+    "colorSpace": "sRGB",
+    "workingSpace": "Three.js r172 Linear-sRGB / Color.setRGB",
+    "colorResolution": {
+      "rules": [
+        "Explicit TrueColor (RGB) doğrudan sRGB renk değerini korur.",
+        "ACI 1-255 renkleri standart AutoCAD ACI renk paletinden çözümlenir.",
+        "ACI 7 semantiği arka plan adaptif rengidir (koyu arka planda beyaz #FFFFFF, açık arka planda siyah #000000).",
+        "Açık renkleri otomatik koyultan 'r,g,b > 0.88' mantığı gerçek RGB beyaz/açık gri geometrilerde yasaktır; ACI 7 ile RGB(255,255,255) birbirinden kesin olarak ayrılır.",
+        "ByLayer: Varlığın ait olduğu katmanın çözümlenmiş rengini alır.",
+        "ByBlock: En yakın parent INSERT'in çözümlenmiş rengini miras alır; recursive blok hiyerarşisinde taşınır."
+      ]
+    },
+    "lineweight": {
+      "displayConversion": "CSS px = mm * (96 / 25.4)",
+      "standardTableMm": [
+        0.00, 0.05, 0.09, 0.13, 0.15, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40,
+        0.50, 0.53, 0.60, 0.70, 0.80, 0.90, 1.00, 1.06, 1.20, 1.40, 1.58, 2.00, 2.11
+      ],
+      "hairlineBehavior": "Lineweight kapalıyken veya 0.00 mm iken 1px hairline olarak çizilir; zoom ile kalınlaşmaz.",
+      "polylineConstantWidth": "Polyline width kaynak koordinat biriminde geometri üretir; ekran piksel lineweight'i ile toplanmaz."
+    },
+    "linetypes": {
+      "contract": "Dash/gap/dot dizileri, PLINEGEN sürekliliği, LTSCALE x CELTSCALE katsayısı.",
+      "phaseContinuity": "Chunk sınırlarında dash fazı sıfırlanmaz; Float64 cumulative path distance korunur."
+    },
+    "hatch": {
+      "fillTypes": ["SOLID", "PATTERN"],
+      "boundaryContract": "boundaryPaths (sayısal edge türleri 1=Line, 2=CircularArc, 3=EllipticArc, 4=Spline; bulge ve isCCW flag'leri)",
+      "topology": "Dış döngü (outer loop), iç adalar (islands), Normal/Outer/Ignore delik stilleri earcut triangulasyonunda doğru çözümlenir."
+    },
+    "text": {
+      "shxFonts": "Stroke-based font engine (@mlightcad/shx-parser)",
+      "truetypeFonts": "Filled glyphs (@mlightcad/data-model / OpenType)",
+      "turkishCharacters": "ĞÜŞİÖÇ ığüşöç (latin-ext zorunluluğu)",
+      "specialCodes": "%%c (çap), %%d (derece), %%p (artı/eksi), %%u (altı çizili)"
+    }
+  },
+  "semanticR001RoiList": [
+    {
+      "id": "ROI-01-PLAN-KAT1",
+      "name": "1. Kat Kalıp/Mimari Planı",
+      "description": "1. Kat ana plan yerleşimi; kolonlar, kirişler, duvarlar, akslar ve dış hatlar.",
+      "worldBBoxEstimate": [-12500, 1800, 500, 5200],
+      "oracleRequirement": "AutoCAD Model Space ekran görüntüsü ve ana kolon köşe koordinatları"
+    },
+    {
+      "id": "ROI-02-PLAN-KAT2",
+      "name": "2. Kat Kalıp/Mimari Planı",
+      "description": "2. Kat ana plan yerleşimi; balkonlar, kat planı detayları ve aks kesişimleri.",
+      "worldBBoxEstimate": [1000, 1800, 13700, 5200],
+      "oracleRequirement": "AutoCAD Model Space ekran görüntüsü ve aks ölçüleri"
+    },
+    {
+      "id": "ROI-03-U317-OUTLIER",
+      "name": "*U317 Anonim Blok Anomalisi",
+      "description": "X=-13988 bölgesindeki *U317 bloğu. 157 child'ın 144'ü isVisible=false olan dinamik/anonim blok içeriğinin elenmesi.",
+      "handles": ["C6BC", "10248"],
+      "worldBBoxEstimate": [-13988, 728, -12000, 3000],
+      "oracleRequirement": "AutoCAD'de bu nesnelerin görünür olup olmadığının tespiti"
+    },
+    {
+      "id": "ROI-04-NEG-Z-INSERTS",
+      "name": "-Z Extrusion (OCS) INSERT Probe'ları",
+      "description": "extrusionDirection=[0,0,-1] olan 36 INSERT'ten seçilen sol bölge probe'ları.",
+      "handles": ["1528D", "1668B", "14FEB", "163E9", "177EE", "189FB"],
+      "worldBBoxEstimate": [-12600, 2800, -11000, 4500],
+      "oracleRequirement": "AutoCAD WCS ve OCS gerçek yerleşim konumları"
+    },
+    {
+      "id": "ROI-05-HATCH-COLUMNS",
+      "name": "Kolon ve Perde HATCH Dolguları",
+      "description": "104 model space HATCH nesnesinin sınır ve solid fill dolgu doğruluğu.",
+      "handles": ["Sample HATCH in Model_Space"],
+      "oracleRequirement": "AutoCAD solid fill kolon taramalarının ekrandaki varlığı ve sınırları"
+    },
+    {
+      "id": "ROI-06-DIM-ANNOTATIONS",
+      "name": "DIMENSION Ölçülendirme ve Oklar",
+      "description": "1814 adet DIMENSION nesnesinin okları, extension line'ları ve ölçü metinleri.",
+      "oracleRequirement": "Ölçü çizgisi, ok ucu geometrisi ve ölçü metninin konumu ve okunabilirliği"
+    },
+    {
+      "id": "ROI-07-TURKISH-TEXT",
+      "name": "Türkçe Karakterli Metinler ve Mahal İsimleri",
+      "description": "Kat, oda, kesit ve eleman isimlerinde Türkçe karakter (Ğ, Ü, Ş, İ, Ö, Ç) doğruluğu.",
+      "oracleRequirement": "AutoCAD metin yerleşimi, font görünümü ve kod sayfası eşliği"
+    },
+    {
+      "id": "ROI-08-LINEWEIGHT-PROFILES",
+      "name": "Çizgi Kalınlıkları Kontrastı",
+      "description": "Taşıyıcı kolon/perde hatları (kalın) ile tarama/aksesuar çizgileri (ince) arasındaki hiyerarşi.",
+      "oracleRequirement": "AutoCAD Lineweight (LWT) açık durumdaki piksel kalınlık oranları"
+    },
+    {
+      "id": "ROI-09-DASHED-LINES",
+      "name": "Aks ve Simetri Kesikli Çizgileri",
+      "description": "DASHED / HIDDEN / CENTER çizgi tiplerinin tire boyu, boşluk ve faz sürekliliği.",
+      "oracleRequirement": "AutoCAD Linetype ölçeği ve köşe faz davranışları"
+    },
+    {
+      "id": "ROI-10-TITLE-BLOCK",
+      "name": "Pafta Anteti ve Başlık Bloğu",
+      "description": "Çizim pafta çerçevesi, mühendislik anteti, ölçek ve revizyon bilgileri.",
+      "oracleRequirement": "AutoCAD pafta çerçevesi ve antet metinlerinin tam okunabilirliği"
+    }
+  ]
+}

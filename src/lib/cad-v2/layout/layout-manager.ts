@@ -154,6 +154,9 @@ export class LayoutManager {
       if (!lyr.visible || lyr.frozen) return false;
     }
 
+    const override = viewport?.layerOverrides?.[layerName];
+    if (override?.visible === false || override?.frozen === true) return false;
+
     if (viewport && Array.isArray(viewport.frozenLayers)) {
       if (viewport.frozenLayers.includes(layerName)) {
         return false;
@@ -175,13 +178,16 @@ export class LayoutManager {
     const adj = new Map<string, string[]>();
 
     for (const ref of xrefs) {
-      // Path traversal kontrolü (.. veya mutlak sistem yolları)
-      if (ref.filePath.includes("..") || /^[a-zA-Z]:[\\\/]/.test(ref.filePath) || ref.filePath.startsWith("/")) {
+      // Graph doğrulaması ile resolver aynı path güvenlik politikasını kullanır.
+      const pathResult = this.resolveXrefAsset(ref.filePath);
+      if (!pathResult.isAllowed) {
         diagnostics.push({
           id: `diag_sec_${ref.id}`,
-          code: "SEC_PATH_TRAVERSAL_DETECTED",
+          code: pathResult.diagnosticCode === "SEC_XREF_REMOTE_URL_FORBIDDEN"
+            ? "SEC_XREF_REMOTE_URL_FORBIDDEN"
+            : "SEC_PATH_TRAVERSAL_DETECTED",
           severity: "error",
-          message: `Güvenlik ihlali: XREF dosya yolu path traversal içeriyor (${ref.filePath})`,
+          message: pathResult.message || `Güvenlik ihlali: XREF dosya yolu geçersiz (${ref.filePath})`,
         });
       }
 
@@ -230,6 +236,199 @@ export class LayoutManager {
     return {
       isValid: diagnostics.filter((d) => d.severity === "error").length === 0,
       diagnostics,
+    };
+  }
+
+  /**
+   * 7. Bir noktanın 2D çokgen içinde olup olmadığını belirler (Ray Casting / Jordan Curve)
+   */
+  public static isPointInPolygon(pt: CadPoint2D, polygon: CadPoint2D[]): boolean {
+    const n = polygon.length;
+    if (n < 3) return false;
+    let inside = false;
+    const x = pt[0];
+    const y = pt[1];
+
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = polygon[i][0];
+      const yi = polygon[i][1];
+      const xj = polygon[j][0];
+      const yj = polygon[j][1];
+
+      // Sınır üzerindeki nokta içeride sayılır; bu, clip segment uçlarında
+      // yatay/dikey ve köşe temaslarının kararlı olmasını sağlar.
+      const cross = (x - xi) * (yj - yi) - (y - yi) * (xj - xi);
+      const scale = Math.max(1, Math.abs(xj - xi), Math.abs(yj - yi));
+      const onSegment = Math.abs(cross) <= 1e-10 * scale &&
+        x >= Math.min(xi, xj) - 1e-10 && x <= Math.max(xi, xj) + 1e-10 &&
+        y >= Math.min(yi, yj) - 1e-10 && y <= Math.max(yi, yj) + 1e-10;
+      if (onSegment) return true;
+
+      const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  /**
+   * 8. Bir çizgi segmentini çokgen sınırına göre kırpar (XCLIP ve Polygon Viewport)
+   * @param p0 Çizgi başlangıç noktası
+   * @param p1 Çizgi bitiş noktası
+   * @param polygon Kırpma çokgeni (kapalı tepe noktaları)
+   * @param isInverted true ise çokgenin DIŞINDA kalan kısımları tutar (Ters XCLIP)
+   * @returns Kırpılmış çizgi segmentleri listesi
+   */
+  public static clipLineToPolygon(
+    p0: CadPoint2D,
+    p1: CadPoint2D,
+    polygon: CadPoint2D[],
+    isInverted = false
+  ): [CadPoint2D, CadPoint2D][] {
+    const n = polygon.length;
+    if (n < 3) {
+      return [[p0, p1]];
+    }
+    if (![...p0, ...p1, ...polygon.flat()].every(Number.isFinite)) return [];
+
+    const dx = p1[0] - p0[0];
+    const dy = p1[1] - p0[1];
+    const segmentLengthSquared = dx * dx + dy * dy;
+    if (segmentLengthSquared <= 1e-24) {
+      const inside = this.isPointInPolygon(p0, polygon);
+      return inside !== isInverted ? [[p0, p1]] : [];
+    }
+    const tValues: number[] = [0.0, 1.0];
+
+    // Çokgenin her kenarı ile segmentin kesişim parametrelerini (t in [0, 1]) bul
+    for (let i = 0; i < n; i++) {
+      const v0 = polygon[i];
+      const v1 = polygon[(i + 1) % n];
+      const edx = v1[0] - v0[0];
+      const edy = v1[1] - v0[1];
+
+      // İki doğrunun kesişimi: p0 + t*(p1-p0) = v0 + u*(v1-v0)
+      const denom = dx * edy - dy * edx;
+      if (Math.abs(denom) > 1e-12) {
+        const t = ((v0[0] - p0[0]) * edy - (v0[1] - p0[1]) * edx) / denom;
+        const u = ((v0[0] - p0[0]) * dy - (v0[1] - p0[1]) * dx) / denom;
+
+        if (t > 1e-6 && t < 1.0 - 1e-6 && u >= -1e-6 && u <= 1.0 + 1e-6) {
+          tValues.push(t);
+        }
+      } else {
+        // Paralel ve eşdoğrusal kenarlar: kenar uçlarını segment parametresine
+        // ekle ki sınır boyunca uzanan segment de doğru aralıklara ayrılsın.
+        const cross = (v0[0] - p0[0]) * dy - (v0[1] - p0[1]) * dx;
+        if (Math.abs(cross) <= 1e-10 * Math.max(1, Math.hypot(dx, dy))) {
+          for (const vertex of [v0, v1]) {
+            const t = ((vertex[0] - p0[0]) * dx + (vertex[1] - p0[1]) * dy) / segmentLengthSquared;
+            if (t > 0 && t < 1) tValues.push(t);
+          }
+        }
+      }
+    }
+
+    // Parametreleri artan sırada sırala ve tekilleştir
+    tValues.sort((a, b) => a - b);
+    const uniqueT: number[] = [];
+    for (const t of tValues) {
+      if (uniqueT.length === 0 || Math.abs(t - uniqueT[uniqueT.length - 1]) > 1e-6) {
+        uniqueT.push(t);
+      }
+    }
+
+    const segments: [CadPoint2D, CadPoint2D][] = [];
+    for (let i = 0; i < uniqueT.length - 1; i++) {
+      const ta = uniqueT[i];
+      const tb = uniqueT[i + 1];
+      const tMid = (ta + tb) / 2;
+      const midPoint: CadPoint2D = [p0[0] + tMid * dx, p0[1] + tMid * dy];
+
+      const isInside = this.isPointInPolygon(midPoint, polygon);
+      const keep = isInverted ? !isInside : isInside;
+
+      if (keep) {
+        const segP0: CadPoint2D = [p0[0] + ta * dx, p0[1] + ta * dy];
+        const segP1: CadPoint2D = [p0[0] + tb * dx, p0[1] + tb * dy];
+        segments.push([segP0, segP1]);
+      }
+    }
+
+    return segments;
+  }
+
+  /**
+   * 9. XREF ve dış bağımlılık yolunu güvenli çözer (Path traversal ve uzak URL koruması)
+   */
+  public static resolveXrefAsset(
+    filePath: string,
+    allowedBaseDirs: string[] = []
+  ): { isAllowed: boolean; resolvedPath?: string; diagnosticCode?: string; message?: string } {
+    if (!filePath || filePath.trim() === "") {
+      return { isAllowed: false, diagnosticCode: "XREF_PATH_EMPTY", message: "XREF dosya yolu boş." };
+    }
+
+    const candidate = filePath.trim();
+
+    // URI schemes (file:, http:, vb.) ve encoded ayraçlar platformdan
+    // bağımsız biçimde reddedilir; bu yardımcı URL fetch veya decode yapmaz.
+    if ((/^[a-z][a-z0-9+.-]*:/i.test(candidate) && !/^[a-z]:[\\/]/i.test(candidate)) || candidate.includes("%")) {
+      return {
+        isAllowed: false,
+        diagnosticCode: "SEC_XREF_REMOTE_URL_FORBIDDEN",
+        message: `URI veya encoded XREF yolu kabul edilmiyor: ${filePath}`,
+      };
+    }
+
+    const normalizedInput = candidate.replace(/\\/g, "/");
+    const segments = normalizedInput.split("/");
+    // Mutlak, UNC, traversal ve kontrol karakterli yollar yükleme sınırını aşabilir.
+    if (
+      /[\u0000-\u001f\u007f]/.test(candidate) ||
+      /^[a-z]:\//i.test(normalizedInput) ||
+      normalizedInput.startsWith("/") ||
+      segments.some((segment) => segment === "..")
+    ) {
+      return {
+        isAllowed: false,
+        diagnosticCode: "SEC_PATH_TRAVERSAL_DETECTED",
+        message: `Güvenlik ihlali: Path traversal tespit edildi: ${filePath}`,
+      };
+    }
+
+    const relativePath = segments.filter((segment) => segment !== "" && segment !== ".").join("/");
+    if (!relativePath) {
+      return { isAllowed: false, diagnosticCode: "XREF_PATH_EMPTY", message: "XREF dosya yolu boş." };
+    }
+
+    if (allowedBaseDirs.length > 0) {
+      const rawBase = allowedBaseDirs[0]?.trim().replace(/\\/g, "/");
+      const baseSegments = rawBase?.split("/") || [];
+      if (
+        !rawBase || /[\u0000-\u001f\u007f]/.test(rawBase) || rawBase.includes("%") ||
+        (/^[a-z][a-z0-9+.-]*:/i.test(rawBase) && !/^[a-z]:\//i.test(rawBase)) ||
+        baseSegments.some((segment) => segment === "..")
+      ) {
+        return {
+          isAllowed: false,
+          diagnosticCode: "SEC_XREF_BASE_DIR_INVALID",
+          message: "XREF için izin verilen temel dizin geçersiz.",
+        };
+      }
+      const base = rawBase.replace(/\/+$/, "");
+      if (!(/^[a-z]:\//i.test(base) || base.startsWith("/"))) {
+        return {
+          isAllowed: false,
+          diagnosticCode: "SEC_XREF_BASE_DIR_INVALID",
+          message: "XREF için izin verilen temel dizin mutlak bir yol olmalıdır.",
+        };
+      }
+      return { isAllowed: true, resolvedPath: `${base}/${relativePath}` };
+    }
+
+    return {
+      isAllowed: true,
+      resolvedPath: relativePath,
     };
   }
 }

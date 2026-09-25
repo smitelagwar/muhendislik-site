@@ -1,0 +1,44 @@
+{
+  "qualityStatus": "degraded",
+  "diagnosticCodes": [
+    "DROPPED_TEXT_IN_BLOCK",
+    "INVISIBLE_BLOCK_CHILDREN",
+    "DIMENSION_CONVERTED_TO_INSERT"
+  ],
+  "provenance": {
+    "rawSupportedCount": 8787,
+    "rawUnsupportedCount": 0,
+    "rawInvalidCount": 0,
+    "canonicalTopCount": 8787,
+    "canonicalInstanceVisits": 8787,
+    "emptyHatchCount": 0,
+    "convertedDimensionCount": 1814,
+    "droppedBlockTextCount": 3673,
+    "invisibleBlockChildrenCount": 3527,
+    "nonDefaultExtrusionsCount": 0,
+    "missingBlockCount": 0,
+    "unsupportedTypeCount": 0,
+    "qualityStatus": "degraded",
+    "diagnosticCodes": [
+      "DROPPED_TEXT_IN_BLOCK",
+      "INVISIBLE_BLOCK_CHILDREN",
+      "DIMENSION_CONVERTED_TO_INSERT"
+    ]
+  },
+  "sceneSummary": {
+    "chunkCount": 31,
+    "totalChunkBytes": 24762344,
+    "bbox": [
+      -12538.173593227872,
+      1832.3571955831321,
+      13671.169671425363,
+      5174.717129812125
+    ],
+    "exactStatusPrevented": true
+  },
+  "auditMetadata": {
+    "timestamp": "2026-09-20T20:05:31.242Z",
+    "gitHead": "ebf244dadd4a18dcc9734cad322142e75ee0868f",
+    "nodeVersion": "v24.15.0"
+  }
+}

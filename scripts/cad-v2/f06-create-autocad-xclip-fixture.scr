@@ -1,0 +1,19 @@
+(defun c:F06XCLIP ()
+  (setvar "FILEDIA" 0)
+  (setvar "CMDECHO" 0)
+  (command "_.-LAYOUT" "_Set" "Model")
+  ;; Core Console may start from a template fixture; remove its model clutter
+  ;; so the XCLIP acceptance drawing contains only the intended test geometry.
+  (setq f06ControlText (ssget "_X" '((0 . "TEXT") (1 . "F06 PAPER SPACE CONTROL"))))
+  (if f06ControlText (command "_.ERASE" f06ControlText ""))
+  (command "_.PLINE" "0,0" "100,0" "100,100" "0,100" "_Close")
+  (command "_.LINE" "0,50" "100,50" "")
+  (command "_.-BLOCK" "F06_XCLIP_BLOCK_CLEAN" "0,0" "_All" "")
+  (command "_.-INSERT" "F06_XCLIP_BLOCK_CLEAN" "0,0" "1" "1" "0")
+  (command "_.XCLIP" "_Last" "" "" "_Polygonal" "20,20" "80,20" "80,80" "20,80" "")
+  (command "_.QSAVE")
+  (princ "\nF06_AUTOCAD_XCLIP_FIXTURE_UPDATED")
+  (princ)
+)
+
+F06XCLIP

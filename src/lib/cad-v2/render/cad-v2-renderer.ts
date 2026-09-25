@@ -9,6 +9,9 @@ import * as THREE from "three";
 import type { CadBBox2D, CadPoint2D } from "../canonical/types";
 import { D3CameraAdapter, type CadCameraState } from "../interaction/d3-camera-adapter";
 import type { UnpackedSceneChunk } from "../../../workers/cad-v2/cad-v2-scene-worker";
+import { createLineStrokeQuad } from "./cad-stroke";
+import { resolveDrawCommandRenderOrder } from "./render-order";
+import { isChunkVisibleInCamera } from "./chunk-visibility";
 
 export interface CadV2RendererOptions {
   canvas: HTMLCanvasElement;
@@ -17,6 +20,16 @@ export interface CadV2RendererOptions {
   onCameraChange?: (state: CadCameraState) => void;
   onPanToolChange?: (active: boolean) => void;
   backgroundColor?: number;
+}
+
+function createThreeColor(r: number, g: number, b: number): THREE.Color {
+  const c = new THREE.Color();
+  (c as any).setRGB(r, g, b, (THREE as any).SRGBColorSpace);
+  return c;
+}
+
+function applyThreeColor(color: THREE.Color, r: number, g: number, b: number): void {
+  (color as any).setRGB(r, g, b, (THREE as any).SRGBColorSpace);
 }
 
 export class CadV2Renderer {
@@ -39,6 +52,8 @@ export class CadV2Renderer {
   private isLineweight = false;
   private backgroundColorHex: number;
   private activeFitBBox: CadBBox2D | null = null;
+  private activeLayoutId = "Model";
+  private chunkBounds = new Map<string, CadBBox2D>();
   private resizeObserver: ResizeObserver | null = null;
   private boundContextLost: (e: Event) => void;
   private boundContextRestored: (e: Event) => void;
@@ -77,7 +92,7 @@ export class CadV2Renderer {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(width, height, false);
-    this.renderer.sortObjects = false; // Painter's order korunur
+    this.renderer.sortObjects = true; // Painter's order korunur (renderOrder sıralaması)
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     (this.renderer as any).toneMapping = (THREE as any).NoToneMapping;
     this.renderer.setClearColor(this.backgroundColorHex, 1);
@@ -98,6 +113,7 @@ export class CadV2Renderer {
       threeCamera: this.camera,
       onCameraChange: (camState) => {
         this.updateCameraRelativeOffset(camState.center);
+        this.updateChunkVisibility(camState);
         if (options.onCameraChange) options.onCameraChange(camState);
       },
       onPanToolChange: options.onPanToolChange,
@@ -170,12 +186,10 @@ export class CadV2Renderer {
    */
   private updateCameraRelativeOffset(cameraCenter: CadPoint2D): void {
     const camOrigin = this.cameraAdapter ? this.cameraAdapter.getState().worldOrigin : this.defaultWorldOrigin;
-    // contentGroup konumu: kamera merkezine göre ters yönde ötelenir
     const dx = -(cameraCenter[0] - camOrigin[0]);
     const dy = -(cameraCenter[1] - camOrigin[1]);
     this.contentGroup.position.set(dx, dy, 0);
 
-    // Her parça (chunk) kendi Float64 orijini ile kamera merkezi arasındaki küçük fark ile ötelenir
     for (const chunk of Array.from(this.loadedChunks.values())) {
       chunk.group.position.set(chunk.origin[0] - cameraCenter[0], chunk.origin[1] - cameraCenter[1], 0);
     }
@@ -189,129 +203,432 @@ export class CadV2Renderer {
       this.removeSceneChunk(chunk.chunkId);
     }
 
-    const count = chunk.xyArray.length / 2;
-    if (count === 0) return;
+    const lineCount = chunk.xyArray ? chunk.xyArray.length / 2 : 0;
+    const triCount = chunk.trianglesArray ? chunk.trianglesArray.length / 2 : 0;
+    if (lineCount === 0 && triCount === 0) return;
 
     const chunkGroup = new THREE.Group();
+    const layoutId = chunk.meta?.layoutId || "Model";
+    chunkGroup.userData.layoutId = layoutId;
     const cameraCenter = this.cameraAdapter.getState().center;
+    chunkGroup.visible = layoutId === this.activeLayoutId && isChunkVisibleInCamera(
+      this.chunkBounds.get(chunk.chunkId),
+      this.cameraAdapter.getState()
+    );
+
     chunkGroup.position.set(chunk.origin[0] - cameraCenter[0], chunk.origin[1] - cameraCenter[1], 0);
 
-    const layerRuns: Array<{
+    // Parça taban renderOrder hesabı (ağ geliş sırasından bağımsız kararlı çizim)
+    const chunkIdx = parseInt(chunk.chunkId.replace(/\D+/g, "") || "0", 10);
+    const baseOrder = chunkIdx * 10000;
+
+    const isLight = this.isLightBackground();
+    const drawCommands: Array<{
+      kind: "line" | "triangle" | "wipeout";
       layer: string;
       color: [number, number, number];
       firstVertex: number;
       vertexCount: number;
-    }> = chunk.meta?.layerRuns || [];
+      order?: number;
+      globalOrderIndex?: number;
+      alpha?: number;
+      isAci7?: boolean;
+      lineweightMm?: number;
+      dashStyle?: { dashSize: number; gapSize: number };
+    }> = chunk.meta?.drawCommands || [];
 
-    if (layerRuns.length > 0) {
-      // (layer, color) çiftine göre gruplayarak 26,000 draw call ve geometry yerine ~1,000 draw call'a düşür
-      const groups = new Map<
-        string,
-        {
+    if (drawCommands.length > 0) {
+      // 1. Birleşik drawCommands: Yalnız bitişik, aynı (kind, layer, color, lineweight) olan komutları birleştir
+      const mergedCommands: Array<{
+        kind: "line" | "triangle" | "wipeout";
+        layer: string;
+        color: [number, number, number];
+        alpha: number;
+        lineweightMm: number;
+        renderOrder: number;
+        totalVertices: number;
+        runs: Array<{ firstVertex: number; vertexCount: number }>;
+        dashStyle?: { dashSize: number; gapSize: number };
+      }> = [];
+
+      for (const cmd of drawCommands) {
+        const last = mergedCommands[mergedCommands.length - 1];
+        const cmdLw = cmd.lineweightMm ?? 0;
+        const commandRenderOrder = resolveDrawCommandRenderOrder(
+          cmd.globalOrderIndex,
+          baseOrder + mergedCommands.length,
+        );
+        if (
+          last &&
+          last.kind === cmd.kind &&
+          last.layer === cmd.layer &&
+          Math.abs(last.lineweightMm - cmdLw) < 1e-4 &&
+          Math.abs(last.color[0] - cmd.color[0]) < 1e-4 &&
+          Math.abs(last.color[1] - cmd.color[1]) < 1e-4 &&
+          Math.abs(last.color[2] - cmd.color[2]) < 1e-4 &&
+          last.dashStyle?.dashSize === cmd.dashStyle?.dashSize &&
+          last.dashStyle?.gapSize === cmd.dashStyle?.gapSize &&
+          cmd.kind !== "wipeout" // Wipeout maskeleri ayrık tutulur
+        ) {
+          last.totalVertices += cmd.vertexCount;
+          last.runs.push({ firstVertex: cmd.firstVertex, vertexCount: cmd.vertexCount });
+        } else {
+          mergedCommands.push({
+            kind: cmd.kind,
+            layer: cmd.layer,
+            color: cmd.color,
+            alpha: cmd.alpha ?? 1,
+            lineweightMm: cmdLw,
+            renderOrder: commandRenderOrder,
+            totalVertices: cmd.vertexCount,
+            runs: [{ firstVertex: cmd.firstVertex, vertexCount: cmd.vertexCount }],
+            ...(cmd.dashStyle ? { dashStyle: cmd.dashStyle } : {}),
+          });
+        }
+      }
+
+      for (let cmdIdx = 0; cmdIdx < mergedCommands.length; cmdIdx++) {
+        const cmd = mergedCommands[cmdIdx];
+        if (cmd.totalVertices === 0) continue;
+
+        let r = cmd.color[0] ?? 0.9;
+        let g = cmd.color[1] ?? 0.9;
+        let b = cmd.color[2] ?? 0.9;
+        const isAci7 = (cmd as any).isAci7 === true;
+
+        if (cmd.kind === "line") {
+          const xy = chunk.xyArray;
+          const pos = new Float32Array(cmd.totalVertices * 3);
+          const lineDistances = cmd.dashStyle ? new Float32Array(cmd.totalVertices) : null;
+          if (lineDistances && (!chunk.pathDistancesArray || chunk.pathDistancesArray.length < xy.length / 2)) {
+            throw new Error(`DASHED draw command in chunk ${chunk.chunkId} requires aligned PATH_DISTANCE values`);
+          }
+          let offset = 0;
+          let pathOffset = 0;
+          for (const rDef of cmd.runs) {
+            const start = rDef.firstVertex * 2;
+            const end = (rDef.firstVertex + rDef.vertexCount) * 2;
+            for (let i = start; i < end; i += 2) {
+              pos[offset++] = xy[i];
+              pos[offset++] = xy[i + 1];
+              pos[offset++] = 0;
+              if (lineDistances) lineDistances[pathOffset++] = chunk.pathDistancesArray![i / 2]!;
+            }
+          }
+
+          if (isLight && !this.isMonochrome && isAci7) {
+            r = 0.08; g = 0.08; b = 0.08;
+          }
+          if (this.isMonochrome) {
+            r = isLight ? 0.08 : 0.95;
+            b = isLight ? 0.08 : 0.95;
+            g = isLight ? 0.08 : 0.95;
+          }
+
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+          if (lineDistances) geom.setAttribute("lineDistance", new THREE.BufferAttribute(lineDistances, 1));
+          const matColor = createThreeColor(r, g, b);
+          const materialOptions = {
+            color: matColor,
+            transparent: cmd.alpha !== undefined && cmd.alpha < 1,
+            opacity: cmd.alpha ?? 1,
+            depthTest: false,
+            depthWrite: false,
+          };
+          const mat = cmd.dashStyle
+            ? new THREE.LineDashedMaterial({
+                ...materialOptions,
+                dashSize: cmd.dashStyle.dashSize,
+                gapSize: cmd.dashStyle.gapSize,
+                scale: 1,
+              })
+            : new THREE.LineBasicMaterial(materialOptions);
+          (mat as any).userData = {
+            originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
+            isAci7,
+            alpha: cmd.alpha ?? 1,
+          };
+
+          const lines = new THREE.LineSegments(geom, mat);
+          (lines as any).frustumCulled = false;
+          lines.name = cmd.layer;
+          lines.renderOrder = cmd.renderOrder;
+          const layerVis = this.layerVisibility.get(cmd.layer) ?? true;
+          lines.visible = layerVis;
+          (lines as any).userData = {
+            isLineCenterline: true,
+            lineweightMm: cmd.lineweightMm,
+            layer: cmd.layer,
+          };
+          chunkGroup.add(lines);
+
+          // Lineweight kalın çizgi quad meşhi (lineweightMm > 0.001 mm ve hairline değilse)
+          if (cmd.lineweightMm > 1e-4) {
+            const quadVerts: number[] = [];
+            const strokeW = cmd.lineweightMm;
+            for (let i = 0; i < pos.length; i += 6) {
+              const p0: [number, number] = [pos[i], pos[i + 1]];
+              const p1: [number, number] = [pos[i + 3], pos[i + 4]];
+              const q = createLineStrokeQuad(p0, p1, strokeW);
+              if (q) {
+                for (let k = 0; k < q.length; k += 2) {
+                  quadVerts.push(q[k], q[k + 1], 0);
+                }
+              }
+            }
+            if (quadVerts.length > 0) {
+              const thickGeom = new THREE.BufferGeometry();
+              thickGeom.setAttribute("position", new THREE.Float32BufferAttribute(quadVerts, 3));
+              const thickMatColor = createThreeColor(r, g, b);
+              const thickMat = new THREE.MeshBasicMaterial({
+                color: thickMatColor,
+                side: THREE.DoubleSide,
+                transparent: cmd.alpha !== undefined && cmd.alpha < 1,
+                opacity: cmd.alpha ?? 1,
+                depthTest: false,
+                depthWrite: false,
+              });
+              (thickMat as any).userData = {
+                originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
+                isAci7,
+                alpha: cmd.alpha ?? 1,
+              };
+              const thickMesh = new THREE.Mesh(thickGeom, thickMat);
+              (thickMesh as any).frustumCulled = false;
+              thickMesh.name = cmd.layer;
+              thickMesh.renderOrder = cmd.renderOrder;
+              thickMesh.visible = this.isLineweight && layerVis;
+              (thickMesh as any).userData = {
+                isLineweightMesh: true,
+                lineweightMm: cmd.lineweightMm,
+                layer: cmd.layer,
+              };
+              chunkGroup.add(thickMesh);
+            }
+          }
+        } else if (cmd.kind === "triangle" && chunk.trianglesArray) {
+          const tri = chunk.trianglesArray;
+          const pos = new Float32Array(cmd.totalVertices * 3);
+          let offset = 0;
+          for (const rDef of cmd.runs) {
+            const start = rDef.firstVertex * 2;
+            const end = (rDef.firstVertex + rDef.vertexCount) * 2;
+            for (let i = start; i < end; i += 2) {
+              pos[offset++] = tri[i];
+              pos[offset++] = tri[i + 1];
+              pos[offset++] = 0;
+            }
+          }
+
+          if (isLight && !this.isMonochrome && isAci7) {
+            r = 0.08; g = 0.08; b = 0.08;
+          }
+          if (this.isMonochrome) {
+            r = isLight ? 0.08 : 0.95;
+            g = isLight ? 0.08 : 0.95;
+            b = isLight ? 0.08 : 0.95;
+          }
+
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+          const matColor = createThreeColor(r, g, b);
+          const mat = new THREE.MeshBasicMaterial({
+            color: matColor,
+            side: THREE.DoubleSide,
+            transparent: cmd.alpha !== undefined && cmd.alpha < 1,
+            opacity: cmd.alpha ?? 1,
+            depthTest: false,
+            depthWrite: false,
+          });
+          (mat as any).userData = {
+            originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
+            isAci7,
+            alpha: cmd.alpha ?? 1,
+          };
+
+          const mesh = new THREE.Mesh(geom, mat);
+          (mesh as any).frustumCulled = false;
+          mesh.name = cmd.layer;
+          mesh.renderOrder = cmd.renderOrder;
+          mesh.visible = this.layerVisibility.get(cmd.layer) ?? true;
+          chunkGroup.add(mesh);
+        } else if (cmd.kind === "wipeout" && chunk.trianglesArray) {
+          const tri = chunk.trianglesArray;
+          const pos = new Float32Array(cmd.totalVertices * 3);
+          let offset = 0;
+          for (const rDef of cmd.runs) {
+            const start = rDef.firstVertex * 2;
+            const end = (rDef.firstVertex + rDef.vertexCount) * 2;
+            for (let i = start; i < end; i += 2) {
+              pos[offset++] = tri[i];
+              pos[offset++] = tri[i + 1];
+              pos[offset++] = 0;
+            }
+          }
+
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+          const mat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(this.backgroundColorHex),
+            side: THREE.DoubleSide,
+            transparent: false,
+            depthTest: false,
+            depthWrite: false,
+          });
+          mat.userData = { isWipeout: true, originalColor: [1, 1, 1] };
+
+          const mesh = new THREE.Mesh(geom, mat);
+          (mesh as any).frustumCulled = false;
+          mesh.userData = { isWipeout: true };
+          mesh.name = cmd.layer;
+          mesh.renderOrder = cmd.renderOrder;
+          mesh.visible = this.layerVisibility.get(cmd.layer) ?? true;
+          chunkGroup.add(mesh);
+        }
+      }
+    } else {
+      // 2. Geriye dönük uyumluluk: layerRuns ile bitişik komutları birleştir
+      const layerRuns: Array<{
+        layer: string;
+        color: [number, number, number];
+        firstVertex: number;
+        vertexCount: number;
+      }> = chunk.meta?.layerRuns || [];
+
+      if (layerRuns.length > 0) {
+        const mergedRuns: Array<{
           layer: string;
           color: [number, number, number];
           totalVertices: number;
           runs: Array<{ firstVertex: number; vertexCount: number }>;
-        }
-      >();
+        }> = [];
 
-      for (const run of layerRuns) {
-        const key = `${run.layer}||${run.color[0].toFixed(3)},${run.color[1].toFixed(3)},${run.color[2].toFixed(3)}`;
-        let g = groups.get(key);
-        if (!g) {
-          g = {
-            layer: run.layer,
-            color: run.color,
-            totalVertices: 0,
-            runs: [],
-          };
-          groups.set(key, g);
-        }
-        g.totalVertices += run.vertexCount;
-        g.runs.push(run);
-      }
-
-      const isLight = this.isLightBackground();
-      const xy = chunk.xyArray;
-
-      for (const group of Array.from(groups.values())) {
-        if (group.totalVertices === 0) continue;
-
-        const groupPos = new Float32Array(group.totalVertices * 3);
-        let offset = 0;
-
-        for (const r of group.runs) {
-          const start = r.firstVertex * 2;
-          const end = (r.firstVertex + r.vertexCount) * 2;
-          for (let i = start; i < end; i += 2) {
-            groupPos[offset++] = xy[i];
-            groupPos[offset++] = xy[i + 1];
-            groupPos[offset++] = 0;
+        for (const run of layerRuns) {
+          const last = mergedRuns[mergedRuns.length - 1];
+          if (
+            last &&
+            last.layer === run.layer &&
+            Math.abs(last.color[0] - run.color[0]) < 1e-4 &&
+            Math.abs(last.color[1] - run.color[1]) < 1e-4 &&
+            Math.abs(last.color[2] - run.color[2]) < 1e-4
+          ) {
+            last.totalVertices += run.vertexCount;
+            last.runs.push(run);
+          } else {
+            mergedRuns.push({
+              layer: run.layer,
+              color: run.color,
+              totalVertices: run.vertexCount,
+              runs: [run],
+            });
           }
         }
 
-        let r = group.color[0] ?? 0.9;
-        let g = group.color[1] ?? 0.9;
-        let b = group.color[2] ?? 0.9;
+        const xy = chunk.xyArray;
+        for (let rIdx = 0; rIdx < mergedRuns.length; rIdx++) {
+          const group = mergedRuns[rIdx];
+          if (group.totalVertices === 0) continue;
 
-        // ACI 7 / Beyaz Çizgi Kuralı: Açık arka planda saf beyaz çizgiler siyah/koyu mürekkeple çizilir
-        if (isLight && !this.isMonochrome && r > 0.88 && g > 0.88 && b > 0.88) {
-          r = 0.08;
-          g = 0.08;
-          b = 0.08;
+          const groupPos = new Float32Array(group.totalVertices * 3);
+          let offset = 0;
+          for (const rDef of group.runs) {
+            const start = rDef.firstVertex * 2;
+            const end = (rDef.firstVertex + rDef.vertexCount) * 2;
+            for (let i = start; i < end; i += 2) {
+              groupPos[offset++] = xy[i];
+              groupPos[offset++] = xy[i + 1];
+              groupPos[offset++] = 0;
+            }
+          }
+
+          let r = group.color[0] ?? 0.9;
+          let g = group.color[1] ?? 0.9;
+          let b = group.color[2] ?? 0.9;
+          const isAci7 = (group as any).isAci7 === true;
+
+          if (isLight && !this.isMonochrome && isAci7) {
+            r = 0.08; g = 0.08; b = 0.08;
+          }
+          if (this.isMonochrome) {
+            r = isLight ? 0.08 : 0.95;
+            g = isLight ? 0.08 : 0.95;
+            b = isLight ? 0.08 : 0.95;
+          }
+
+          const subGeom = new THREE.BufferGeometry();
+          subGeom.setAttribute("position", new THREE.BufferAttribute(groupPos, 3));
+
+          const subMatColor = createThreeColor(r, g, b);
+          const subMat = new THREE.LineBasicMaterial({
+            color: subMatColor,
+            transparent: true,
+            opacity: 1,
+            depthTest: false,
+            depthWrite: false,
+          });
+          (subMat as any).userData = {
+            originalColor: [group.color[0] ?? 0.9, group.color[1] ?? 0.9, group.color[2] ?? 0.9],
+            isAci7,
+          };
+
+          const subLines = new THREE.LineSegments(subGeom, subMat);
+          (subLines as any).frustumCulled = false;
+          subLines.name = group.layer;
+          subLines.renderOrder = baseOrder + rIdx;
+          subLines.visible = this.layerVisibility.get(group.layer) ?? true;
+          chunkGroup.add(subLines);
+        }
+      } else if (lineCount > 0) {
+        const pos3D = new Float32Array(lineCount * 3);
+        for (let i = 0; i < lineCount; i++) {
+          pos3D[i * 3] = chunk.xyArray[i * 2];
+          pos3D[i * 3 + 1] = chunk.xyArray[i * 2 + 1];
+          pos3D[i * 3 + 2] = 0;
         }
 
-        if (this.isMonochrome) {
-          r = isLight ? 0.08 : 0.95;
-          g = isLight ? 0.08 : 0.95;
-          b = isLight ? 0.08 : 0.95;
-        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(pos3D, 3));
 
-        const subGeom = new THREE.BufferGeometry();
-        subGeom.setAttribute("position", new THREE.BufferAttribute(groupPos, 3));
-
-        const subMat = new THREE.LineBasicMaterial({
-          color: new THREE.Color(r, g, b),
+        const material = new THREE.LineBasicMaterial({
+          color: 0xffffff,
           transparent: true,
           opacity: 1,
           depthTest: false,
           depthWrite: false,
         });
-        (subMat as any).userData = {
-          originalColor: [group.color[0] ?? 0.9, group.color[1] ?? 0.9, group.color[2] ?? 0.9],
-        };
+        (material as any).userData = { originalColor: [1, 1, 1] };
 
-        const subLines = new THREE.LineSegments(subGeom, subMat);
-        (subLines as any).frustumCulled = false; // 18M+ vertex için CPU bounding sphere hesaplamasını atla
-        subLines.name = group.layer;
-        subLines.visible = this.layerVisibility.get(group.layer) ?? true;
-        chunkGroup.add(subLines);
-      }
-    } else {
-      // 2D Float32 (x, y) -> 3D Float32 (x, y, 0) koordinat dizisi
-      const pos3D = new Float32Array(count * 3);
-      for (let i = 0; i < count; i++) {
-        pos3D[i * 3] = chunk.xyArray[i * 2];
-        pos3D[i * 3 + 1] = chunk.xyArray[i * 2 + 1];
-        pos3D[i * 3 + 2] = 0;
+        const lineSegments = new THREE.LineSegments(geometry, material);
+        (lineSegments as any).frustumCulled = false;
+        lineSegments.name = "0";
+        lineSegments.renderOrder = baseOrder;
+        chunkGroup.add(lineSegments);
       }
 
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(pos3D, 3));
-
-      const material = new THREE.LineBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 1,
-        depthTest: false,
-        depthWrite: false,
-      });
-      (material as any).userData = { originalColor: [1, 1, 1] };
-
-      const lineSegments = new THREE.LineSegments(geometry, material);
-      (lineSegments as any).frustumCulled = false;
-      lineSegments.name = "0";
-      chunkGroup.add(lineSegments);
+      // Varsa üçgenleri de ekle
+      if (chunk.trianglesArray && chunk.trianglesArray.length > 0) {
+        const triGeom = new THREE.BufferGeometry();
+        const triPos = new Float32Array((chunk.trianglesArray.length / 2) * 3);
+        let tOffset = 0;
+        for (let i = 0; i < chunk.trianglesArray.length; i += 2) {
+          triPos[tOffset++] = chunk.trianglesArray[i];
+          triPos[tOffset++] = chunk.trianglesArray[i + 1];
+          triPos[tOffset++] = 0;
+        }
+        triGeom.setAttribute("position", new THREE.BufferAttribute(triPos, 3));
+        const triMat = new THREE.MeshBasicMaterial({
+          color: 0xcccccc,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 1,
+          depthTest: false,
+          depthWrite: false,
+        });
+        const triMesh = new THREE.Mesh(triGeom, triMat);
+        triMesh.renderOrder = baseOrder + 5000;
+        chunkGroup.add(triMesh);
+      }
     }
 
     this.scene.add(chunkGroup);
@@ -330,19 +647,105 @@ export class CadV2Renderer {
 
     this.scene.remove(item.group);
     for (const child of item.group.children) {
-      if (child instanceof THREE.LineSegments) {
-        child.geometry.dispose();
-        (child.material as THREE.Material).dispose();
+      if ((child as any).geometry) {
+        (child as any).geometry.dispose();
+      }
+      if ((child as any).material) {
+        const mat = (child as any).material;
+        if (Array.isArray(mat)) {
+          mat.forEach((m: any) => m.dispose());
+        } else {
+          mat.dispose();
+        }
       }
     }
     this.loadedChunks.delete(chunkId);
     this.invalidate();
   }
 
+  /** Rebuilds a chunk while keeping its current draw alive until the replacement is complete. */
+  public replaceSceneChunkGeometry(chunk: UnpackedSceneChunk): boolean {
+    const previous = this.loadedChunks.get(chunk.chunkId);
+    if (!previous) return false;
+
+    // addSceneChunk removes an existing map entry. Keep the old group attached to the scene,
+    // build the replacement synchronously, then retire the old group before the next RAF.
+    this.loadedChunks.delete(chunk.chunkId);
+    try {
+      this.addSceneChunk(chunk);
+      const replacement = this.loadedChunks.get(chunk.chunkId);
+      if (!replacement) {
+        this.loadedChunks.set(chunk.chunkId, previous);
+        return false;
+      }
+      this.disposeChunkGroup(previous.group);
+      this.invalidate();
+      return true;
+    } catch (error) {
+      const partial = this.loadedChunks.get(chunk.chunkId);
+      if (partial && partial !== previous) this.removeSceneChunk(chunk.chunkId);
+      if (!this.loadedChunks.has(chunk.chunkId)) this.loadedChunks.set(chunk.chunkId, previous);
+      throw error;
+    }
+  }
+
+  private disposeChunkGroup(group: THREE.Group): void {
+    this.scene.remove(group);
+    for (const child of group.children) {
+      if ((child as any).geometry) (child as any).geometry.dispose();
+      if ((child as any).material) {
+        const material = (child as any).material;
+        if (Array.isArray(material)) material.forEach((item: THREE.Material) => item.dispose());
+        else material.dispose();
+      }
+    }
+  }
+
   public clearChunks(): void {
     for (const chunkId of Array.from(this.loadedChunks.keys())) {
       this.removeSceneChunk(chunkId);
     }
+  }
+
+  public hasChunk(chunkId: string): boolean {
+    return this.loadedChunks.has(chunkId);
+  }
+
+  public getLoadedChunkIds(): Set<string> {
+    return new Set(this.loadedChunks.keys());
+  }
+
+  /**
+   * F06: Aktif paftayı (Layout) değiştirir ve sadece o paftaya ait parçaları görünür kılar.
+   */
+  public setActiveLayout(layoutId: string): void {
+    this.activeLayoutId = layoutId;
+    this.updateChunkVisibility(this.cameraAdapter.getState());
+    this.invalidate();
+  }
+
+  /** Manifest dünya bbox'larını renderer'a aktarır; legacy boundsız chunk'lar görünür tutulur. */
+  public setChunkBounds(chunks: Array<{ chunkId: string; bbox?: CadBBox2D }>): void {
+    this.chunkBounds.clear();
+    for (const chunk of chunks) {
+      if (chunk.bbox) this.chunkBounds.set(chunk.chunkId, [...chunk.bbox]);
+    }
+    this.updateChunkVisibility(this.cameraAdapter.getState());
+    this.invalidate();
+  }
+
+  private updateChunkVisibility(camera: CadCameraState): void {
+    for (const [chunkId, item] of this.loadedChunks) {
+      const chunkLayout = item.group.userData.layoutId || "Model";
+      item.group.visible = chunkLayout === this.activeLayoutId && isChunkVisibleInCamera(
+        this.chunkBounds.get(chunkId),
+        camera
+      );
+    }
+  }
+
+  public getActiveLayout(): string {
+    return this.activeLayoutId;
   }
 
   /**
@@ -395,7 +798,12 @@ export class CadV2Renderer {
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
         if (child.name === layerId) {
-          child.visible = visible;
+          const u = (child as any).userData;
+          if (u?.isLineweightMesh) {
+            child.visible = visible && this.isLineweight;
+          } else {
+            child.visible = visible;
+          }
         }
       }
     }
@@ -420,22 +828,25 @@ export class CadV2Renderer {
 
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
-        if (child instanceof THREE.LineSegments && child.material instanceof THREE.LineBasicMaterial) {
+        if ((child as any).userData?.isWipeout) {
+          // Wipeout maskeleri monokrom mürekkep rengine dönüşmez
+          continue;
+        }
+        if ((child as any).material && (child as any).material.color) {
           if (enabled) {
-            child.material.color.setHex(monoHex);
+            (child as any).material.color.setHex(monoHex);
           } else {
-            const orig = (child.material as any).userData?.originalColor || [0.9, 0.9, 0.9];
+            const orig = (child as any).userData?.originalColor || [0.9, 0.9, 0.9];
+            const isAci7 = (child as any).userData?.isAci7 === true;
             let [r, g, b] = orig;
-            if (isLight && r > 0.88 && g > 0.88 && b > 0.88) {
+            if (isLight && isAci7) {
               r = 0.08;
               g = 0.08;
               b = 0.08;
             }
-            child.material.color.r = r;
-            child.material.color.g = g;
-            child.material.color.b = b;
+            applyThreeColor((child as any).material.color, r, g, b);
           }
-          child.material.needsUpdate = true;
+          (child as any).material.needsUpdate = true;
         }
       }
     }
@@ -443,11 +854,24 @@ export class CadV2Renderer {
   }
 
   /**
-   * Çizgi kalınlığı modunu aç/kapat
+   * Çizgi kalınlığı modunu aç/kapat (LWT Toggle)
    */
   public setLineweight(enabled: boolean): void {
     this.isLineweight = enabled;
+    for (const chunk of Array.from(this.loadedChunks.values())) {
+      for (const child of chunk.group.children) {
+        const u = (child as any).userData;
+        if (u?.isLineweightMesh) {
+          const layerVis = this.layerVisibility.get(child.name) ?? true;
+          child.visible = enabled && layerVis;
+        }
+      }
+    }
     this.invalidate();
+  }
+
+  public getLineweight(): boolean {
+    return this.isLineweight;
   }
 
   /**
@@ -480,26 +904,32 @@ export class CadV2Renderer {
     this.renderer.setClearColor(colorHex, 1);
     const isLight = this.isLightBackground();
 
-    if (wasLight !== isLight || this.isMonochrome) {
-      const monoHex = isLight ? 0x111111 : 0xffffff;
-      for (const chunk of Array.from(this.loadedChunks.values())) {
-        for (const child of chunk.group.children) {
-          if (child instanceof THREE.LineSegments && child.material instanceof THREE.LineBasicMaterial) {
+    for (const chunk of Array.from(this.loadedChunks.values())) {
+      for (const child of chunk.group.children) {
+        // Wipeout maskeleri arka plan rengiyle güncellenir
+        if ((child as any).userData?.isWipeout && (child as any).material) {
+          ((child as any).material as THREE.MeshBasicMaterial).color.setHex(colorHex);
+          ((child as any).material as THREE.MeshBasicMaterial).needsUpdate = true;
+          continue;
+        }
+
+        if (wasLight !== isLight || this.isMonochrome) {
+          const monoHex = isLight ? 0x111111 : 0xffffff;
+          if ((child as any).material && (child as any).material.color) {
             if (this.isMonochrome) {
-              child.material.color.setHex(monoHex);
+              (child as any).material.color.setHex(monoHex);
             } else {
-              const orig = (child.material as any).userData?.originalColor || [0.9, 0.9, 0.9];
+              const orig = (child as any).userData?.originalColor || [0.9, 0.9, 0.9];
+              const isAci7 = (child as any).userData?.isAci7 === true;
               let [r, g, b] = orig;
-              if (isLight && r > 0.88 && g > 0.88 && b > 0.88) {
+              if (isLight && isAci7) {
                 r = 0.08;
                 g = 0.08;
                 b = 0.08;
               }
-              child.material.color.r = r;
-              child.material.color.g = g;
-              child.material.color.b = b;
+              applyThreeColor((child as any).material.color, r, g, b);
             }
-            child.material.needsUpdate = true;
+            (child as any).material.needsUpdate = true;
           }
         }
       }

@@ -9,6 +9,9 @@ import {
   SpatialChunkScheduler,
   type ChunkMetadata,
 } from "../../src/lib/cad-v2/cache/chunk-spatial-scheduler";
+import type { CadCanonicalDocument, CadLineEntity } from "../../src/lib/cad-v2/canonical/types";
+import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-compiler";
+import { validateSceneManifest } from "../../src/lib/cad-v2/protocol/binary-protocol";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -70,6 +73,47 @@ async function runChunkSchedulerCacheTests() {
   assert(!res1.visibleChunkIds.includes("c_north"), "Kuzey parça kamera dışında");
   assert(!res1.visibleChunkIds.includes("c_far"), "Uzak parça kamera dışında");
   assert(res1.enqueuedCount >= 1, "Görünür parça kuyruğa alındı");
+
+  console.log("\n[Test 3b] Derlenmiş chunk bbox'larının manifest ve scheduler hattı:");
+  const spatialDocument: CadCanonicalDocument = {
+    sourceVersionKey: "spatial-chunk-bounds-v1",
+    sourceSha256: "spatial-chunk-bounds-v1",
+    acadVersion: "AC1032",
+    codepage: "UTF-8",
+    units: 4,
+    measurement: 1,
+    layers: {
+      "0": { id: "0", name: "0", visible: true, frozen: false, locked: false,
+        color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
+    },
+    linetypes: {}, textStyles: {}, blocks: {}, layouts: {}, viewports: {}, paperSpaceEntities: {}, diagnostics: [],
+    modelSpaceEntities: [
+      { type: "LINE", handle: "SPATIAL_NEAR", layer: "0", order: BigInt(1), start: [0, 0], end: [10, 5] } as CadLineEntity,
+      { type: "LINE", handle: "SPATIAL_FAR", layer: "0", order: BigInt(2), start: [10_000, 20_000], end: [10_030, 20_040] } as CadLineEntity,
+    ],
+  };
+  const spatialScene = compileCanonicalToScene(spatialDocument, {
+    sceneId: "scene_spatial_chunk_bounds", maxPrimitivesPerChunk: 1,
+  });
+  assert(spatialScene.manifest.chunks.length === 2, "İki uzaktaki çizgi ayrı spatial chunk'lara derlendi");
+  assert(JSON.stringify(spatialScene.manifest.chunks[0]!.bbox) === JSON.stringify([-0.125, -0.125, 10.125, 5.125]),
+    "Yakın chunk bbox'ı lineweight stroke extents dahil gerçek geometri sınırını taşıyor");
+  assert(JSON.stringify(spatialScene.manifest.chunks[1]!.bbox) === JSON.stringify([9_999.875, 19_999.875, 10_030.125, 20_040.125]),
+    "Uzak chunk bbox'ı lineweight stroke extents dahil gerçek geometri sınırını taşıyor");
+  const indexPage = spatialScene.manifest.indexPages[0]!;
+  const indexContent = JSON.parse(spatialScene.indexFiles!.get(indexPage.indexId)!);
+  assert(indexContent.chunks.every((chunk: { bbox?: number[] }) => Array.isArray(chunk.bbox) && chunk.bbox.length === 4),
+    "Chunk bbox'ları hash'li index sayfasına da yazılıyor");
+  const validatedSpatialManifest = validateSceneManifest(spatialScene.manifest);
+  const indexedChunks: ChunkMetadata[] = validatedSpatialManifest.chunks.map((chunk) => {
+    assert(Array.isArray(chunk.bbox), `Validator '${chunk.chunkId}' bbox'ını koruyor`);
+    return { ...chunk, bbox: chunk.bbox! };
+  });
+  const compiledScheduler = new SpatialChunkScheduler(testCapacity);
+  compiledScheduler.registerChunks(indexedChunks);
+  const compiledVisible = compiledScheduler.updateViewport([-5, -5, 15, 10]);
+  assert(compiledVisible.visibleChunkIds.length === 1 && compiledVisible.visibleChunkIds[0] === spatialScene.manifest.chunks[0]!.chunkId,
+    "Derlenmiş manifest bbox'ı görünür chunk'ı doğru seçiyor ve uzaktakini eliyor");
 
   // 4. En Fazla 4 Eşzamanlı İstek (Throttle & Queue) (R28, C03)
   console.log("\n[Test 4] Eşzamanlı İstek Limiti (En Fazla 4 Fetch):");

@@ -1,0 +1,12 @@
+; Run ONLY against a disposable copy of f06-autocad-xclip.dwg.
+; XCLIP > New Boundary > confirm deletion of old boundary > Invert Clip
+; > Polygonal recreates the same 20..80 boundary in inverted mode.
+; AutoCAD LT 2027 Core Console reported "Inside mode" and saved an 11-vertex
+; compound SPATIAL_FILTER boundary; do not infer inversion from frame visibility.
+(setvar "FILEDIA" 0)
+(setvar "CMDECHO" 1)
+(command "_.XCLIP" "_Last" "" "" "_Yes" "_Invert" "_Polygonal"
+         "20,20" "80,20" "80,80" "20,80" "")
+(command "_.QSAVE")
+(princ "\nF06_AUTOCAD_INVERTED_XCLIP_FIXTURE_SAVED")
+(princ)

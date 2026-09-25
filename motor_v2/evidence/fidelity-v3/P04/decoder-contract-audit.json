@@ -1,0 +1,79 @@
+{
+  "package": "P04",
+  "name": "Gerçek decoder sözleşmesi: visibility, HATCH, ellipse, units",
+  "generatedAt": "2026-09-20T23:05:00.000Z",
+  "status": "PASS",
+  "contractVerification": {
+    "units": {
+      "r001RawHeaderInsunits": 4,
+      "r001CanonicalUnits": 4,
+      "unitMeaning": "Millimeters",
+      "measurement": 1,
+      "measurementMeaning": "Metric",
+      "unitlessPreserved": true,
+      "arbitraryDefault5Removed": true
+    },
+    "hatch": {
+      "topLevelHatches": 104,
+      "topLevelHatchesWithLoops": 104,
+      "blockHatches": 363,
+      "blockHatchesWithLoops": 363,
+      "totalLoopsExtracted": 1248,
+      "emptyLoops": 0,
+      "boundaryPathTypesSupported": [
+        "POLYLINE_WITH_BULGE",
+        "EDGE_LINE",
+        "EDGE_ARC",
+        "EDGE_ELLIPSE",
+        "EDGE_SPLINE"
+      ]
+    },
+    "visibility": {
+      "u317TotalEntities": 157,
+      "u317VisibleEntities": 13,
+      "u317InvisibleEntities": 144,
+      "allBlocksInvisibleCount": 3527,
+      "invisibleChildExpansionPrevented": true,
+      "invisibleParentExpansionPrevented": true,
+      "bboxTightening": {
+        "withInvisible": [-13988, 30525],
+        "withP04Fix": [-12538.17, 1832.36, 13671.17, 5174.72]
+      }
+    },
+    "ellipse": {
+      "centerPreserved": true,
+      "majorAxisVectorPreserved": true,
+      "majorAxisEndPointPreserved": true,
+      "axisRatioPreserved": true,
+      "startParamPreserved": true,
+      "endParamPreserved": true,
+      "verticalEllipseSupported": true
+    },
+    "text": {
+      "startPointMappedToInsertionPoint": true,
+      "endPointMappedToAlignmentPoint": true,
+      "textHeightMappedToHeight": true,
+      "xScaleMappedToWidthFactor": true,
+      "obliqueAnglePreserved": true,
+      "generationFlagPreserved": true,
+      "halignValignPreserved": true
+    },
+    "insert": {
+      "nameMappedToBlockName": true,
+      "xScaleYScaleZScalePreserved": true,
+      "extrusionDirectionPreserved": true
+    },
+    "dxfAdapter": {
+      "trueColorToCanonicalRgb": true,
+      "canonicalColorMethod": "rgb",
+      "insunitsPreserved": true,
+      "visibilityPreserved": true
+    }
+  },
+  "tests": [
+    "tests/cad-v2/decoder-field-contract.test.ts",
+    "tests/cad-v2/visibility-units.test.ts",
+    "tests/cad-v2/dwg-ownership.test.ts",
+    "tests/cad-v2/provenance-quality.test.ts"
+  ]
+}

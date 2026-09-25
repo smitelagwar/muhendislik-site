@@ -1,0 +1,99 @@
+{
+  "package": "P02",
+  "name": "Transfer, manifest, worker ve host state doğruluğu",
+  "generatedAt": "2026-09-20T22:47:15.000Z",
+  "status": "PASS",
+  "tests": [
+    "tests/cad-v2/manifest-validation.test.ts",
+    "tests/cad-v2/chunk-completeness.test.ts",
+    "tests/cad-v2/worker-generation.test.ts"
+  ],
+  "scenarios": [
+    {
+      "id": "SCENARIO_01_INVALID_SCHEMA_VERSION",
+      "category": "Manifest Validation",
+      "faultInjected": "Manifest with schemaVersion: 99",
+      "expectedBehavior": "validateSceneManifest throws 'Desteklenmeyen veya eksik schemaVersion'",
+      "actualBehavior": "Caught and rejected as CadError with INVALID_SCENE_MANIFEST",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_02_NON_FINITE_BBOX",
+      "category": "Manifest Validation",
+      "faultInjected": "Manifest with min: [NaN, -100] or reversed minX > maxX",
+      "expectedBehavior": "validateSceneManifest throws 'Geçersiz veya sonlu olmayan sahne sınırlayıcı kutusu'",
+      "actualBehavior": "Caught and rejected with detailed bbox error",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_03_DUPLICATE_CHUNK_ID",
+      "category": "Manifest Validation",
+      "faultInjected": "Manifest chunks array containing duplicated chunk ID 'chunk_01'",
+      "expectedBehavior": "validateSceneManifest throws 'Tekrarlanan chunk kimliği'",
+      "actualBehavior": "Caught and rejected duplicate chunk identifier",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_04_INVALID_SHA256_FORMAT",
+      "category": "Manifest Validation",
+      "faultInjected": "Manifest chunk entry with malformed sha256 checksum 'not-a-valid-hash'",
+      "expectedBehavior": "validateSceneManifest throws 'Geçersiz sha256 karma'",
+      "actualBehavior": "Caught and rejected non-64-hex SHA-256 hash",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_05_FLAT_VS_INDEX_PARITY_MISMATCH",
+      "category": "Manifest Validation",
+      "faultInjected": "Manifest has flat chunks ['chunk_01'] but indexPages has ['chunk_02']",
+      "expectedBehavior": "validateSceneManifest throws 'chunks ve indexPages parça kimlikleri çelişiyor'",
+      "actualBehavior": "Caught and rejected parity discrepancy",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_06_INCOMPLETE_CHUNK_SET",
+      "category": "Host State & Completeness",
+      "faultInjected": "Host receives 9 out of 10 declared chunks in manifest",
+      "expectedBehavior": "Host stays in loading state; does NOT prematurely transition to ready (loadedCount === 1 bug removed)",
+      "actualBehavior": "isComplete returns false, expectedChunkIds vs loadedChunkIds set discrepancy correctly identified",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_07_CORRUPT_TRUNCATED_BINARY_HEADER",
+      "category": "Binary Protocol Integrity",
+      "faultInjected": "ArrayBuffer truncated to 32 bytes (less than 64-byte CAD2 header)",
+      "expectedBehavior": "decodeBinaryChunk throws 'Parça başlığı çok kısa'",
+      "actualBehavior": "Caught and rejected truncated buffer without crashing process",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_08_NON_FINITE_COORDINATES_IN_VERTEX",
+      "category": "Geometry Data Integrity",
+      "faultInjected": "Vertex buffer with NaN or Infinity float32 coordinates",
+      "expectedBehavior": "validateBinaryChunkGeometry returns false / error for non-finite coordinates",
+      "actualBehavior": "Detected non-finite vertex data and prevented corrupted geometry feeding renderer",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_09_DRAW_RUNS_OUT_OF_BOUNDS",
+      "category": "Binary Protocol Bounds",
+      "faultInjected": "Draw run with firstVertexIndex: 100, vertexCount: 50 when total vertices is 100",
+      "expectedBehavior": "validateBinaryChunkGeometry returns false / bounds violation",
+      "actualBehavior": "Bounds violation caught (100 + 50 > 100)",
+      "status": "PASS"
+    },
+    {
+      "id": "SCENARIO_10_SHA256_PAYLOAD_HASH_MISMATCH",
+      "category": "Transfer & Hash Verification",
+      "faultInjected": "Chunk buffer bytes modified after manifest generation (checksum mismatch)",
+      "expectedBehavior": "Host verifies payload sha256 against manifest before sending to worker/renderer; drops corrupt chunk with non-retryable error",
+      "actualBehavior": "SHA-256 validation correctly flags mismatch and aborts processing",
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "totalScenarios": 10,
+    "passedScenarios": 10,
+    "failedScenarios": 0,
+    "allPassed": true
+  }
+}

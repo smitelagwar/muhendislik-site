@@ -12,6 +12,7 @@ export interface CadColor {
   aci?: number;
   rgb?: [number, number, number]; // [0..255, 0..255, 0..255]
   alpha?: number; // 0..1
+  isAci7?: boolean;
 }
 
 export interface CadLayer {
@@ -62,7 +63,9 @@ export type CadPrimitiveType =
   | "INSERT"
   | "DIMENSION"
   | "LEADER"
-  | "WIPEOUT";
+  | "WIPEOUT"
+  | "ATTDEF"
+  | "ATTRIB";
 
 export interface CadBaseEntity {
   handle: string;
@@ -70,6 +73,7 @@ export interface CadBaseEntity {
   layer: string;
   color?: CadColor;
   linetype?: string;
+  linetypeScale?: number;
   lineweightMm?: number;
   visible?: boolean;
   order: bigint; // authoritative global source order
@@ -100,6 +104,7 @@ export interface CadEllipseEntity extends CadBaseEntity {
   type: "ELLIPSE";
   center: CadPoint2D;
   majorAxisVector: CadPoint2D;
+  majorAxisEndPoint?: CadPoint2D;
   axisRatio: number; // minor / major
   startParam: number; // 0..2pi
   endParam: number; // 0..2pi
@@ -118,6 +123,7 @@ export interface CadLwPolylineEntity extends CadBaseEntity {
   vertices: CadLwPolylineVertex[];
   isClosed: boolean;
   constantWidth?: number;
+  plinegen?: boolean;
 }
 
 export interface CadSplineEntity extends CadBaseEntity {
@@ -133,18 +139,27 @@ export interface CadSplineEntity extends CadBaseEntity {
 export interface CadHatchLoop {
   isPolyline: boolean;
   vertices?: CadPoint2D[];
+  bulges?: number[];
   edges?: Array<
     | { type: "LINE"; start: CadPoint2D; end: CadPoint2D }
     | { type: "ARC"; center: CadPoint2D; radius: number; startAngleRad: number; endAngleRad: number; ccw: boolean }
+    | { type: "ELLIPSE"; center: CadPoint2D; majorAxisVector: CadPoint2D; axisRatio: number; startParam: number; endParam: number; ccw: boolean }
+    | { type: "SPLINE"; degree: number; controlPoints: CadPoint2D[]; knots: number[]; weights?: number[]; isPeriodic?: boolean; isRational?: boolean }
   >;
+  boundaryPathTypeFlag?: number;
+  hasBulge?: boolean;
+  isClosed?: boolean;
 }
 
 export interface CadHatchEntity extends CadBaseEntity {
   type: "HATCH";
   patternName: string;
   isSolid: boolean;
+  solidFill?: boolean;
   patternScale?: number;
   patternAngleDeg?: number;
+  hatchStyle?: number;
+  patternType?: number;
   loops: CadHatchLoop[];
 }
 
@@ -160,6 +175,7 @@ export interface CadTextEntity extends CadBaseEntity {
   styleName: string;
   horizontalMode?: number;
   verticalMode?: number;
+  generationFlag?: number;
 }
 
 export interface CadMTextEntity extends CadBaseEntity {
@@ -173,6 +189,13 @@ export interface CadMTextEntity extends CadBaseEntity {
   drawingDirection?: number;
   lineSpacingFactor?: number;
   styleName: string;
+  backgroundMask?: boolean;
+}
+
+export interface CadClipBoundary {
+  isClippingEnabled?: boolean;
+  isInverted?: boolean;
+  boundaryVertices: CadPoint2D[];
 }
 
 export interface CadInsertEntity extends CadBaseEntity {
@@ -185,6 +208,9 @@ export interface CadInsertEntity extends CadBaseEntity {
   rowCount?: number;
   columnSpacing?: number;
   rowSpacing?: number;
+  extrusionDirection?: [number, number, number];
+  attributes?: Record<string, string>;
+  clipBoundary?: CadClipBoundary;
 }
 
 export interface CadDimensionEntity extends CadBaseEntity {
@@ -199,11 +225,62 @@ export interface CadDimensionEntity extends CadBaseEntity {
   line2Start?: CadPoint2D;
   line2End?: CadPoint2D;
   anonymousBlockName?: string;
+  insertionPoint?: CadPoint2D;
+  rotationRad?: number;
+  scale?: [number, number, number];
+  measurement?: number;
+  dimScale?: number;
+  arrowSize?: number;
 }
 
 export interface CadWipeoutEntity extends CadBaseEntity {
   type: "WIPEOUT";
   vertices: CadPoint2D[];
+}
+
+export interface CadAttDefEntity extends CadBaseEntity {
+  type: "ATTDEF";
+  tag: string;
+  prompt?: string;
+  defaultText?: string;
+  insertionPoint: CadPoint2D;
+  alignmentPoint?: CadPoint2D;
+  height: number;
+  rotationRad: number;
+  widthFactor: number;
+  obliqueRad: number;
+  styleName: string;
+  horizontalMode?: number;
+  verticalMode?: number;
+  isInvisible?: boolean;
+  isConstant?: boolean;
+}
+
+export interface CadAttribEntity extends CadBaseEntity {
+  type: "ATTRIB";
+  tag: string;
+  text: string;
+  insertionPoint: CadPoint2D;
+  alignmentPoint?: CadPoint2D;
+  height: number;
+  rotationRad: number;
+  widthFactor: number;
+  obliqueRad: number;
+  styleName: string;
+  horizontalMode?: number;
+  verticalMode?: number;
+  isInvisible?: boolean;
+  isConstant?: boolean;
+}
+
+export interface CadLeaderEntity extends CadBaseEntity {
+  type: "LEADER";
+  vertices: CadPoint2D[];
+  hasArrowhead?: boolean;
+  arrowheadSize?: number;
+  text?: string;
+  annotationType?: number;
+  annotatedEntityHandle?: string;
 }
 
 export type CadEntity =
@@ -218,7 +295,10 @@ export type CadEntity =
   | CadMTextEntity
   | CadInsertEntity
   | CadDimensionEntity
-  | CadWipeoutEntity;
+  | CadWipeoutEntity
+  | CadAttDefEntity
+  | CadAttribEntity
+  | CadLeaderEntity;
 
 export interface CadBlockDefinition {
   name: string;
@@ -226,6 +306,7 @@ export interface CadBlockDefinition {
   entities: CadEntity[];
   isAnonymous?: boolean;
   isXref?: boolean;
+  xrefPath?: string;
 }
 
 export interface CadLayout {
@@ -233,18 +314,29 @@ export interface CadLayout {
   name: string;
   isModelSpace: boolean;
   bbox: CadBBox2D;
+  blockRecordName?: string;
   viewportIds?: string[];
+  tabOrder?: number;
 }
 
 export interface CadViewport {
   id: string;
   layoutId: string;
+  /** DXF group 69 / DWG viewportId; paper-space id 1 is the system viewport, not a model projection. */
+  viewportNumber?: number;
+  order?: bigint;
   center: CadPoint2D;
   width: number;
   height: number;
   viewCenter: CadPoint2D;
+  viewDirection?: CadPoint3D;
+  perspective?: boolean;
   viewHeight: number;
+  twistAngleRad?: number;
   frozenLayers: string[];
+  clipPolygon?: CadPoint2D[];
+  clipBoundaryObjectId?: string;
+  layerOverrides?: Record<string, Partial<CadLayer>>;
 }
 
 export interface CadDiagnostic {
@@ -269,5 +361,12 @@ export interface CadCanonicalDocument {
   layouts: Record<string, CadLayout>;
   viewports: Record<string, CadViewport>;
   modelSpaceEntities: CadEntity[];
+  paperSpaceEntities?: Record<string, CadEntity[]>;
   diagnostics: CadDiagnostic[];
+  provenanceSummary?: any;
+  rawStats?: {
+    rawHeaderInsunits?: number;
+    rawEntitiesCount?: number;
+    rawTableCounts?: Record<string, number>;
+  };
 }

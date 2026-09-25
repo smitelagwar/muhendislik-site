@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
 import {
   CadV2DurableService,
   type PrepareRequest,
@@ -23,7 +24,8 @@ function assert(condition: boolean, message: string) {
 async function runDurableServiceTests() {
   console.log("=== DWG/DXF Motor V2 - G11 Durable Servis ve Hazırlama Testi ===");
 
-  const tempStorage = path.resolve(process.cwd(), ".data/test-cad-v2-storage");
+  // Keep integration-test writes away from the user's persistent .data store.
+  const tempStorage = path.join(os.tmpdir(), `cad-v2-durable-test-${process.pid}-${crypto.randomUUID()}`);
   const service = new CadV2DurableService(tempStorage);
 
   // [Test 1] Idempotent Prepare & clientRequestId Retry (R18, C07)
@@ -141,7 +143,7 @@ EOF
   const manifest = service.getManifest(prepReady.sceneId!);
   assert(manifest !== null, "getManifest sahne manifestini döndürdü");
   assert(manifest.schemaVersion === 1, "Manifest schemaVersion === 1");
-  assert(manifest.renderAbi === "three172-cad2d-v1", "Manifest renderAbi === three172-cad2d-v1");
+  assert(manifest.renderAbi === "three172-cad2d-v2", "Manifest renderAbi === three172-cad2d-v2");
   assert(manifest.indexPages.length > 0, "Manifest en az 1 indexPage içeriyor");
 
   // Chunk doğrulaması

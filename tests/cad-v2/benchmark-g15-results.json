@@ -1,34 +1,34 @@
 {
-  "timestamp": "2026-09-20T07:53:36.869Z",
+  "timestamp": "2026-09-23T21:34:45.847Z",
   "benchmarkResults": [
     {
       "fileId": "R001",
       "format": "DWG",
       "sizeBytes": 3444087,
       "usageClass": "<=30MB",
-      "coldPrepareMs": 1961.4219000000012,
+      "coldPrepareMs": 2781.8683999999994,
       "warmIterations": 30,
-      "warmMedianMs": 0.004899999999906868,
-      "warmMeanMs": 0.012413333333218665,
-      "warmMinMs": 0.002899999999499414,
-      "warmMaxMs": 0.1555000000007567,
-      "speedImprovementPercent": 99.99975018123332
+      "warmMedianMs": 0.010900000001129229,
+      "warmMeanMs": 0.012663333332845165,
+      "warmMinMs": 0.004899999999906868,
+      "warmMaxMs": 0.04280000000289874,
+      "speedImprovementPercent": 99.9996081770079
     },
     {
       "fileId": "R002",
       "format": "DWG",
       "sizeBytes": 2139550,
       "usageClass": "<=30MB",
-      "coldPrepareMs": 1530.582699999999,
+      "coldPrepareMs": 3994.5241000000024,
       "warmIterations": 30,
-      "warmMedianMs": 0.002599999999802094,
-      "warmMeanMs": 0.0036333333331034132,
-      "warmMinMs": 0.0023999999975785613,
-      "warmMaxMs": 0.01989999999932479,
-      "speedImprovementPercent": 99.9998301300544
+      "warmMedianMs": 0.007799999999406282,
+      "warmMeanMs": 0.009856666666989138,
+      "warmMinMs": 0.005199999999604188,
+      "warmMaxMs": 0.046600000001490116,
+      "speedImprovementPercent": 99.99980473268394
     }
   ],
-  "verifiedChunksCount": 35,
+  "verifiedChunksCount": 95,
   "corpusCovered": [
     {
       "id": "R001",

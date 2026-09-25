@@ -1,0 +1,5 @@
+(setvar "FILEDIA" 0)
+(setvar "CMDECHO" 0)
+(command "_.DXFOUT" "C:/Users/hsyn/Desktop/muhendis-mimar-portali/tests/fixtures/cad-preview-v2/f06-autocad-xclip-transformed-clean.dxf" "")
+(princ "\nF06_AUTOCAD_XCLIP_TRANSFORMED_DXF_EXPORTED")
+(princ)

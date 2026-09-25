@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-09-25T10:45:13.376Z",
+  "package": "P05",
+  "status": "PASS",
+  "sourceFile": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+  "modelBBox": [
+    -12678.173593008141,
+    1832.3571955831321,
+    13671.169671425363,
+    5174.717129812125
+  ],
+  "extremaProvenance": {
+    "minX": {
+      "handle": "1528D",
+      "type": "INSERT(*U28)",
+      "val": -12678.173593008141
+    },
+    "maxX": {
+      "handle": "12759",
+      "type": "INSERT(IDE941Entity3927)",
+      "val": 13616.037693773284
+    },
+    "minY": {
+      "handle": "1250F",
+      "type": "LINE",
+      "val": 1832.3571955831321
+    },
+    "maxY": {
+      "handle": "1A10E",
+      "type": "LINE",
+      "val": 5174.717129812125
+    }
+  },
+  "dynamicLayerFrozenBBox": [
+    2778.2973326404535,
+    1832.3571955831321,
+    13671.169671425363,
+    5174.717129812125
+  ]
+}

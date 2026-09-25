@@ -53,7 +53,7 @@ async function runRealSceneRenderTests() {
   const compiled = compileCanonicalToScene(canonicalDoc);
 
   assert(compiled.manifest.schemaVersion === SCENE_SCHEMA_VERSION, `Manifest şema sürümü: ${compiled.manifest.schemaVersion}`);
-  assert(compiled.manifest.renderAbi === "three172-cad2d-v1", `Render ABI eşleşti: ${compiled.manifest.renderAbi}`);
+  assert(compiled.manifest.renderAbi === "three172-cad2d-v2", `Render ABI eşleşti: ${compiled.manifest.renderAbi}`);
   assert(compiled.manifest.layouts.length > 0, "En az bir pafta/model alanı tanımlandı");
   assert(compiled.chunks.size > 0, `İkili parça sayısı: ${compiled.chunks.size}`);
 

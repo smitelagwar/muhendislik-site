@@ -1,0 +1,13 @@
+;; Run ONLY on a disposable copy of f06-autocad-xclip.dwg.
+;; This creates the AutoCAD LT 2027 XCLIP Off oracle; never target the source fixture.
+(defun c:F06XCLIPOFF ()
+(setvar "FILEDIA" 0)
+(setvar "CMDECHO" 0)
+(command "_.-LAYOUT" "_Set" "Model")
+(command "_.XCLIP" "_Last" "" "_Off")
+(command "_.QSAVE")
+(princ "\nF06_XCLIP_OFF_ORACLE_SAVED")
+(princ)
+)
+
+F06XCLIPOFF
