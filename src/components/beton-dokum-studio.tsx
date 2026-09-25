@@ -682,12 +682,14 @@ export function BetonDokumStudio({
             }`}
         >
           {/* Top Title & Sync Status (Desktop compact inline) */}
-          <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
+          <div className={`${isModal ? "hidden lg:flex" : "flex"} items-center justify-between gap-2 pb-1 border-b border-border/60`}>
             <div className="flex items-center gap-1.5">
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
-              <h2 className="text-xs font-bold text-foreground">
-                Beton Döküm Tutanağı
-              </h2>
+              {isModal ? (
+                <h2 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h2>
+              ) : (
+                <h1 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h1>
+              )}
             </div>
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">

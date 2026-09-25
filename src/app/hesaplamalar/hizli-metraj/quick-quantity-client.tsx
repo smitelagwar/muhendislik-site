@@ -349,7 +349,7 @@ function buildQueryString(form: QuickQuantityFormState): string {
     defaultValue: DEFAULT_QUICK_QUANTITY_FORM.normalKatSayisi,
   });
   setParamIfMeaningful(params, "bodrumKat", bodrumKat !== null ? String(bodrumKat) : null, {
-    defaultValue: "0",
+    defaultValue: DEFAULT_QUICK_QUANTITY_FORM.bodrumKatSayisi,
   });
   setParamIfMeaningful(
     params,

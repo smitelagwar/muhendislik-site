@@ -47,7 +47,7 @@ export async function cleanupUploadedCadFixtures(page?: Page): Promise<void> {
 export async function signInAdmin(page: Page) {
   await page.goto("/dokumantasyon");
   const username = page.locator("input#username");
-  const workspaceTitle = page.locator("h1:has-text('Dökümantasyon Modülü')");
+  const workspaceTitle = page.locator("h1:has-text('Dokümantasyon Modülü')");
 
   await expect.poll(async () => {
     if (await username.isVisible()) return "login";

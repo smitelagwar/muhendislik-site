@@ -95,7 +95,7 @@ export function ShareResultModal({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: result.title || "Dökümantasyon Paylaşım Bağlantısı",
+          title: result.title || "Dokümantasyon Paylaşım Bağlantısı",
           text: "Dosyaları indirmek için aşağıdaki bağlantıyı kullanabilirsiniz:",
           url: result.shareUrl,
         });

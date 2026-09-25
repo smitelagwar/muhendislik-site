@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { mockMixedExplorerData } from "./explorer-fixture";
 import { DRIVE_GRID_MIN_CARD_WIDTH } from "../../src/components/dokumantasyon/drive-v3/drive-metrics";
 
-test.describe("Dökümantasyon grid kartı görsel kabul", () => {
+test.describe("Dokümantasyon grid kartı görsel kabul", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await mockMixedExplorerData(page);

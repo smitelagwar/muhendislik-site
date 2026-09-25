@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     if (!hasBlobAccessConfiguration()) {
-      return NextResponse.json({ error: "Dökümantasyon kalıcı dosya depolama yapılandırılmamış.", code: "BLOB_NOT_CONFIGURED" }, { status: 503 });
+      return NextResponse.json({ error: "Dokümantasyon kalıcı dosya depolama yapılandırılmamış.", code: "BLOB_NOT_CONFIGURED" }, { status: 503 });
     }
     if (!process.env.BLOB_WEBHOOK_PUBLIC_KEY) {
       return NextResponse.json({ error: "Blob upload callback doğrulaması yapılandırılmamış.", code: "BLOB_WEBHOOK_KEY_MISSING" }, { status: 503 });

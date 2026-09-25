@@ -104,7 +104,7 @@ test.describe("Stage 4 — Worker Readiness & Source Fetch Overlap", () => {
 
     // Navigate back to file list
     await page.goto("/dokumantasyon");
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')").first()).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')").first()).toBeVisible();
 
     // Reopen same file
     await page.goto(`/dokumantasyon/dosya/${fileId}`);

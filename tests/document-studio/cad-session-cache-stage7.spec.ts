@@ -189,7 +189,7 @@ test.describe("Stage 7 — Memory-Safe Bounded Session Source Cache Suite", () =
     await backBtn.click();
 
     // Wait for explorer title to be visible without full page reload
-    const workspaceTitle = page.locator("h1:has-text('Dökümantasyon Modülü')");
+    const workspaceTitle = page.locator("h1:has-text('Dokümantasyon Modülü')");
     await expect(workspaceTitle).toBeVisible({ timeout: 15_000 });
 
     // Track stream requests on second open

@@ -267,6 +267,12 @@ test.describe("Sadeleştirme Aşama 6 — gerçek kullanıcı akışları", () =
       const context = await createContext(browser, viewport);
       const page = await context.newPage();
       const probe = attachRuntimeProbe(page);
+      let searchIndexRequestCount = 0;
+      page.on("request", (request) => {
+        if (new URL(request.url()).pathname === "/api/search") {
+          searchIndexRequestCount += 1;
+        }
+      });
 
       try {
         await gotoOk(page, baseURL!, "/");
@@ -288,6 +294,7 @@ test.describe("Sadeleştirme Aşama 6 — gerçek kullanıcı akışları", () =
         await option.click();
         await expect(dialog).toBeHidden();
         expect(new URL(page.url()).pathname).not.toBe("/");
+        expect(searchIndexRequestCount, "Senaryo D / " + viewport.name + " tek arama dizini isteği").toBe(1);
 
         await expectRuntimeClean(page, probe, "Senaryo D / " + viewport.name);
       } finally {
@@ -684,10 +691,15 @@ test.describe("Sadeleştirme Aşama 6 — accessibility ve runtime", () => {
       expect(motionState.planetAnimation).toBe("none");
       const transitionDurations = motionState.toggleTransition
         .split(",")
-        .map((value) => value.trim());
+        .map((value) => {
+          const match = value.trim().match(/^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(ms|s)$/i);
+          if (!match) return Number.NaN;
+          const milliseconds = Number(match[1]);
+          return match[2].toLowerCase() === "s" ? milliseconds * 1_000 : milliseconds;
+        });
       expect(
-        transitionDurations.every((value) => value === "0s" || value === "0.01ms"),
-        `Reduced-motion transition süresi beklenmedik: ${motionState.toggleTransition}`,
+        transitionDurations.every((value) => Number.isFinite(value) && value >= 0 && value <= 0.01),
+        `Reduced-motion transition süresi 0.01ms sınırını aşıyor: ${motionState.toggleTransition}`,
       ).toBe(true);
     } finally {
       await reducedContext.close();

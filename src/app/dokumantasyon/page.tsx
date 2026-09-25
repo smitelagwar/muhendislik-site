@@ -8,7 +8,7 @@ import { DokumantasyonAdminShell } from "@/components/dokumantasyon/admin-shell"
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Dökümantasyon — Yönetim Paneli",
+  title: "Dokümantasyon — Yönetim Paneli",
   description: "Mühendislik ve mimarlık projeleri için özel dosya depolama ve paylaşım modülü.",
   robots: {
     index: false,

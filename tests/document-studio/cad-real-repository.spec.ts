@@ -91,7 +91,7 @@ async function visibleCadCanvas(page: Page) {
   return page.getByTestId("cad-dxf-canvas").first().locator("canvas").first();
 }
 
-test("repo gerçek DWG ve DXF dosyaları render kanıtından sonra Dökümantasyon upload→viewer zincirine hatasız bağlanır", async ({ page }) => {
+test("repo gerçek DWG ve DXF dosyaları render kanıtından sonra Dokümantasyon upload→viewer zincirine hatasız bağlanır", async ({ page }) => {
   test.setTimeout(8 * 60_000);
   test.skip(!fixtureDir, "CAD_REAL_REPO_FIXTURE_DIR tanımlı değil.");
   await signIn(page);

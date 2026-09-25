@@ -17,10 +17,19 @@ test.describe("Hata Toleransı, Dayanıklılık ve Unmount Testleri", () => {
     });
 
     // Yükleme tamamlanmadan hızlıca ardışık sayfalar arasında geçiş
-    page.goto("/kategori/araclar/kolon-on-boyutlandirma").catch(() => {});
+    const navigations = [
+      page.goto("/kategori/araclar/kolon-on-boyutlandirma").catch(() => null),
+    ];
     await page.waitForTimeout(50);
-    page.goto("/hesaplamalar/hizli-metraj").catch(() => {});
+    navigations.push(page.goto("/hesaplamalar/hizli-metraj").catch(() => null));
     await page.waitForTimeout(50);
+    navigations.push(
+      page.goto("/rehber/proje-hazirlik", { waitUntil: "networkidle" }).catch(() => null)
+    );
+    await Promise.all(navigations);
+
+    // Concurrent page.goto calls may interrupt the last request too. Settle the race,
+    // then establish the route whose rendering and runtime errors this test verifies.
     await page.goto("/rehber/proje-hazirlik", { waitUntil: "networkidle" });
 
     // Sayfa sağlıklı bir şekilde yüklenmiş olmalıdır

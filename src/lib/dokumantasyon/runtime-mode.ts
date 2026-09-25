@@ -8,8 +8,8 @@ export class DokRuntimeConfigError extends Error {
 
   constructor(code: "DATABASE_NOT_CONFIGURED" | "BLOB_NOT_CONFIGURED" | "LOCAL_STORAGE_FORBIDDEN", message?: string) {
     const defaultMessages = {
-      DATABASE_NOT_CONFIGURED: "Dökümantasyon kalıcı veritabanı (Neon Postgres) yapılandırılmamış.",
-      BLOB_NOT_CONFIGURED: "Dökümantasyon kalıcı dosya depolama (Vercel Private Blob) yapılandırılmamış.",
+      DATABASE_NOT_CONFIGURED: "Dokümantasyon kalıcı veritabanı (Neon Postgres) yapılandırılmamış.",
+      BLOB_NOT_CONFIGURED: "Dokümantasyon kalıcı dosya depolama (Vercel Private Blob) yapılandırılmamış.",
       LOCAL_STORAGE_FORBIDDEN: "Vercel üretim ortamında yerel dosya depolama ve /tmp kullanımı yasaktır.",
     };
 

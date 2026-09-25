@@ -54,7 +54,7 @@ export function DokumantasyonAdminShell({ username, children }: AdminShellProps)
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-base font-bold tracking-tight text-foreground sm:text-lg">
-                  Dökümantasyon Modülü
+                  Dokümantasyon Modülü
                 </h1>
                 <span data-admin-meta className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
                   Admin

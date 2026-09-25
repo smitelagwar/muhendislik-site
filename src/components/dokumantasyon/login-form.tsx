@@ -67,7 +67,7 @@ export function DokumantasyonLoginForm() {
             <span>Güvenli Yönetici Alanı</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Dökümantasyon Modülü
+            Dokümantasyon Modülü
           </h1>
           <p className="text-sm text-muted-foreground">
             Dosya ve süreli paylaşım yönetimi için lütfen oturum açın.

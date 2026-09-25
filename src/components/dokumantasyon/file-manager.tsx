@@ -1951,19 +1951,22 @@ function DokumantasyonFileManagerInner() {
             )}
 
             <div className={`${isMobileExplorer && isMobileSelectionMode ? "hidden" : "flex"} min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:gap-2`}>
-            {/* Seçilenleri Sil Butonu (Seçim Varsa Görünür) */}
-            {selectedIds.size > 0 && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => void executeCommand("trash")}
-                className="h-10 gap-1.5 px-3 text-xs font-bold rounded-xl shadow-md animate-in fade-in bg-red-600 hover:bg-red-500 text-white"
-                title="Seçili öğeleri çöp kutusuna taşı"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Seçilenleri Sil ({selectedIds.size})</span>
-              </Button>
-            )}
+            {/* Keep the action slot mounted so selecting a row cannot move it before a double-click. */}
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={selectedIds.size === 0}
+              aria-hidden={selectedIds.size === 0}
+              aria-label={`Seçilenleri Sil (${selectedIds.size})`}
+              onClick={() => void executeCommand("trash")}
+              className={`relative h-10 w-10 shrink-0 justify-center rounded-xl p-0 shadow-md bg-red-600 hover:bg-red-500 text-white ${selectedIds.size === 0 ? "invisible pointer-events-none" : "animate-in fade-in"}`}
+              title={selectedIds.size > 0 ? `Seçili öğeleri çöp kutusuna taşı (${selectedIds.size})` : "Silmek için öğe seçin"}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span aria-hidden="true" className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-background bg-red-700 px-1 text-[9px] font-bold leading-none tabular-nums">
+                {selectedIds.size}
+              </span>
+            </Button>
 
             {/* Sıralama Açılır Menüsü */}
             <DropdownMenu>

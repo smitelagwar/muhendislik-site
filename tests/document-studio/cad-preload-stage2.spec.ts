@@ -37,7 +37,7 @@ test.describe("Stage 2 — CAD Code Pre-warming & Zero Early WebGL Initializatio
 
     // Navigate to file list where CAD file is present
     await page.goto("/dokumantasyon");
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')").first()).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')").first()).toBeVisible();
 
     // Verify CAD row is visible
     const cadRow = page.locator(`[data-testid="dok-file-row"][data-file-id="${fileId}"]`);
@@ -65,7 +65,7 @@ test.describe("Stage 2 — CAD Code Pre-warming & Zero Early WebGL Initializatio
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
 
     await page.goto("/dokumantasyon");
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')").first()).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')").first()).toBeVisible();
 
     // Trigger pre-warm via intent hover
     const cadRow = page.locator(`[data-testid="dok-file-row"][data-file-id="${fileId}"]`);

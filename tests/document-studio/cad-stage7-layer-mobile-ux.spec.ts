@@ -145,7 +145,7 @@ test.describe("CAD Preview V2 — Aşama 7/8 Katman, Mobil Sheet, Erişilebilirl
     const { fileId } = await uploadCadPreviewV2Fixture(page, "layers-frozen-locked-zero");
 
     await page.goto("/dokumantasyon");
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')")).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')")).toBeVisible();
 
     const fileRow = page.locator(`[data-testid="dok-file-row"][data-file-id="${fileId}"]`).first();
     await expect(fileRow).toBeVisible({ timeout: 10_000 });
@@ -159,7 +159,7 @@ test.describe("CAD Preview V2 — Aşama 7/8 Katman, Mobil Sheet, Erişilebilirl
 
     await page.goBack();
     await expect(page).toHaveURL(/\/dokumantasyon(?:\?.*)?$/);
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')")).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')")).toBeVisible();
 
     const fileRowAfterBack = page.locator(`[data-testid="dok-file-row"][data-file-id="${fileId}"]`).first();
     await expect(fileRowAfterBack).toBeVisible();
@@ -168,7 +168,7 @@ test.describe("CAD Preview V2 — Aşama 7/8 Katman, Mobil Sheet, Erişilebilirl
   test("Bounded DOM: Sayfalama ve dilimleme ile DOM düğüm sayısı sınırda tutulur", async ({ page }) => {
     await signInAdmin(page);
     await page.goto("/dokumantasyon");
-    await expect(page.locator("h1:has-text('Dökümantasyon Modülü')")).toBeVisible();
+    await expect(page.locator("h1:has-text('Dokümantasyon Modülü')")).toBeVisible();
 
     const renderedRows = await page.locator('[data-testid="dok-file-row"]').count();
     expect(renderedRows).toBeLessThanOrEqual(100);

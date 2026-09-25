@@ -28,7 +28,7 @@ export async function recordDokActivity(event: Omit<DokActivityEvent, "id" | "cr
     `;
   } catch (error) {
     // Etkinlik kaydı ana işlemi bozmaz; veri işlemi kendi güvenlik sözleşmesini korur.
-    console.warn("Dökümantasyon etkinlik kaydı yazılamadı:", error);
+    console.warn("Dokümantasyon etkinlik kaydı yazılamadı:", error);
   }
 }
 

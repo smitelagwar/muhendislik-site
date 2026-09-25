@@ -297,7 +297,7 @@ test.describe("Stage 9 — MTEXT Worker Canary Experiment & Parity Benchmark", (
 
       // Navigate away to trigger complete teardown
       await page.goto("/dokumantasyon");
-      await expect(page.locator("h1:has-text('Dökümantasyon Modülü')")).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator("h1:has-text('Dokümantasyon Modülü')")).toBeVisible({ timeout: 15_000 });
     }
   });
 });

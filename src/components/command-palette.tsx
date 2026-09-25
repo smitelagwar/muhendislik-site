@@ -268,7 +268,7 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || items.length > 0 || (loadFailed && !isLoading)) {
+    if (!isOpen || items.length > 0 || loadFailed) {
       return;
     }
 
@@ -301,7 +301,7 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
       });
 
     return () => controller.abort();
-  }, [isLoading, isOpen, items.length, loadFailed]);
+  }, [isOpen, items.length, loadFailed]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(deferredQuery);
