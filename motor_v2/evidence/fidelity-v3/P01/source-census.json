@@ -1,0 +1,70 @@
+{
+  "source": {
+    "file": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+    "bytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "acadVersion": "AC1032",
+    "units": 4,
+    "rawHeaderInsunits": 4
+  },
+  "topLevel": {
+    "count": 8787,
+    "types": {
+      "TEXT": 1321,
+      "CIRCLE": 230,
+      "HATCH": 104,
+      "LINE": 1804,
+      "LWPOLYLINE": 1214,
+      "INSERT": 3736,
+      "MTEXT": 378
+    }
+  },
+  "blockDefinitions": {
+    "blockCount": 3233,
+    "totalEntities": 21328,
+    "types": {
+      "LINE": 5286,
+      "LWPOLYLINE": 3227,
+      "INSERT": 7510,
+      "ARC": 591,
+      "TEXT": 763,
+      "CIRCLE": 567,
+      "HATCH": 363,
+      "ELLIPSE": 108,
+      "SPLINE": 3,
+      "MTEXT": 2910
+    },
+    "invisibleEntitiesCount": 3527
+  },
+  "instanceReachable": {
+    "totalVisits": 78455,
+    "maxDepth": 2,
+    "typeVisits": {
+      "TEXT": 1965,
+      "CIRCLE": 3394,
+      "HATCH": 3062,
+      "LINE": 18704,
+      "LWPOLYLINE": 34990,
+      "INSERT": 7504,
+      "MTEXT": 2192,
+      "ARC": 5372,
+      "ELLIPSE": 1248,
+      "SPLINE": 24
+    }
+  },
+  "hatchCensus": {
+    "topHatchCount": 104,
+    "topHatchWithLoops": 104,
+    "blockHatchCount": 363,
+    "blockHatchWithLoops": 363
+  },
+  "dimensionConversion": {
+    "topDimensionsInCanonical": 0,
+    "anonymousDimensionInserts": 1814
+  },
+  "auditMetadata": {
+    "timestamp": "2026-09-20T20:05:31.242Z",
+    "gitHead": "ebf244dadd4a18dcc9734cad322142e75ee0868f",
+    "nodeVersion": "v24.15.0"
+  }
+}

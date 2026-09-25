@@ -1,0 +1,84 @@
+{
+  "package": "P03",
+  "name": "Kaynak/scene kimliği, bütünlük ve publish transaction",
+  "generatedAt": "2026-09-20T22:57:30.000Z",
+  "status": "PASS",
+  "versions": {
+    "schemaVersion": 1,
+    "compilerRevision": "cad-v2-compiler-2026.09-v3",
+    "pipelineRevision": "fidelity-v3-p03",
+    "renderAbi": "three172-cad2d-v1",
+    "qualityProfile": "cad-v2-2d-v1",
+    "fontDigest": "system-bundled-v1"
+  },
+  "tests": [
+    "tests/cad-v2/cache-identity.test.ts",
+    "tests/cad-v2/publish-atomicity.test.ts",
+    "tests/cad-v2/durable-service.test.ts"
+  ],
+  "identityDeterminismMatrix": [
+    {
+      "test": "IDENTICAL_PARAMS",
+      "description": "Same inputs produce identical sceneId and exactCacheKey across multiple calls",
+      "result": "PASS"
+    },
+    {
+      "test": "DIFFERENT_SHA256",
+      "description": "Different source SHA-256 produces unique sceneId",
+      "result": "PASS"
+    },
+    {
+      "test": "DIFFERENT_REVISION",
+      "description": "Different authoritative revision produces unique sceneId",
+      "result": "PASS"
+    },
+    {
+      "test": "COMPILER_SCHEMA_FONT_CHANGE",
+      "description": "Any change in compiler revision, schema version, or font digest forces new sceneId",
+      "result": "PASS"
+    },
+    {
+      "test": "TENANT_SCOPE_ISOLATION",
+      "description": "Different tenant scope produces unique sceneId and cache key",
+      "result": "PASS"
+    },
+    {
+      "test": "LOOSE_REVISION_REJECTION",
+      "description": "Rejects empty string, whitespace, and ':latest' loose aliases",
+      "result": "PASS"
+    }
+  ],
+  "publishTransactionIntegrity": [
+    {
+      "feature": "STAGING_DIRECTORY_ISOLATION",
+      "behavior": "Intermediate writes take place in staging/<jobId> directory; target scene directory not exposed until full verification",
+      "result": "PASS"
+    },
+    {
+      "feature": "PRE_PUBLISH_FENCE_VERIFICATION",
+      "behavior": "Fencing token mismatch or job cancellation aborts transaction and purges staging directory",
+      "result": "PASS"
+    },
+    {
+      "feature": "ATOMIC_COMMIT_MOVE",
+      "behavior": "Staging directory files atomically committed to destination; memory maps registered strictly after disk write",
+      "result": "PASS"
+    },
+    {
+      "feature": "UTF8_BYTE_LENGTH_ACCURACY",
+      "behavior": "Multi-byte UTF-8 Turkish layer names calculate exact byte length via Buffer.byteLength rather than character length",
+      "result": "PASS"
+    },
+    {
+      "feature": "COLD_PROCESS_DISASTER_RECOVERY",
+      "behavior": "Cold process with empty RAM cache successfully reads manifest, binary chunks, index pages, and metadata pages from disk",
+      "result": "PASS"
+    }
+  ],
+  "summary": {
+    "allSuitesPassed": true,
+    "unitTestSuites": 12,
+    "integrationTestSuites": 7,
+    "typescriptErrors": 0
+  }
+}

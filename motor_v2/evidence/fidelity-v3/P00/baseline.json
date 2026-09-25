@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "baselineVersion": "v3-P00",
+  "generatedAt": "2026-09-20T19:35:00.000Z",
+  "git": {
+    "head": "ebf244dadd4a18dcc9734cad322142e75ee0868f",
+    "branch": "main",
+    "workingTreeClean": true,
+    "rollbackRef": "ebf244dadd4a18dcc9734cad322142e75ee0868f",
+    "legacyGoldenCommit": "909c59cb9dcac8e722b3bda4c66fd9d8a25755c8",
+    "legacyRestoreCommit": "afbc121923f2de1313801f884f428535334a40cf"
+  },
+  "environment": {
+    "nodeVersion": "v24.15.0",
+    "packageJsonSha256": "fabee4f427316f6e0e4ebbaad95ab0cb9391f130300ada2ac74ffc3cede14ef1",
+    "packageLockSha256": "a50f471eca80a0277e60525d36d1f97b82438beff186f7f967f9659e8a953f6a",
+    "auditScriptSha256": "8b41b106a66c768a040770f9c3552e9e918687b86f08d621f524f10d3b29bca2",
+    "planV3Sha256": "51f51d9fc5cedd52100e156d5a2043ed22246d1c4d92f9a47e4e539113ced199"
+  },
+  "lockedPackages": {
+    "@mlightcad/libredwg-web": "0.7.10",
+    "@mlightcad/data-model": "1.14.2",
+    "@mlightcad/mtext-parser": "1.5.0",
+    "@mlightcad/shx-parser": "1.4.5",
+    "three": "0.172.0"
+  },
+  "sourceCorpus": {
+    "R001": {
+      "path": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+      "format": "DWG",
+      "version": "AC1032",
+      "bytes": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+      "status": "MEASURED_AUDITED"
+    },
+    "R002": {
+      "path": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+      "format": "DWG",
+      "version": "AC1032",
+      "bytes": 2139550,
+      "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+      "status": "NOT_RUN"
+    },
+    "R003": {
+      "path": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+      "format": "DWG",
+      "version": "AC1032",
+      "bytes": 16084252,
+      "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+      "status": "NOT_RUN"
+    },
+    "R004": {
+      "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+      "format": "DXF",
+      "version": "AC1021",
+      "bytes": 55259742,
+      "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+      "status": "NOT_RUN"
+    }
+  },
+  "r001MeasuredAudit": {
+    "rawTopEntitiesCount": 8787,
+    "canonicalTopEntitiesCount": 8787,
+    "rawHeader": {
+      "INSUNITS": 4,
+      "MEASUREMENT": 1
+    },
+    "canonicalUnits": 5,
+    "unitsDefect": {
+      "codeDefect": true,
+      "description": "rawHeader.INSUNITS=4 (mm) iken dwg-adapter rawDb.header?.insunits alanını küçük harfle aramakta; undefined dönünce '|| 5' fallback'i ile 5 (cm) atamakta ve 5'i yanlışlıkla 'meters' olarak etiketlemektedir.",
+      "sourceFile": "src/lib/cad-v2/decode/dwg-adapter.ts",
+      "line": 365
+    },
+    "rawTopTypes": {
+      "TEXT": 1321,
+      "CIRCLE": 230,
+      "HATCH": 104,
+      "LINE": 1804,
+      "LWPOLYLINE": 1214,
+      "INSERT": 1922,
+      "DIMENSION": 1814,
+      "MTEXT": 378
+    },
+    "canonicalTopTypes": {
+      "TEXT": 1321,
+      "CIRCLE": 230,
+      "HATCH": 104,
+      "LINE": 1804,
+      "LWPOLYLINE": 1214,
+      "INSERT": 3736,
+      "MTEXT": 378
+    },
+    "dimensionTransformation": {
+      "rawTopDimensions": 1814,
+      "canonicalTopDimensions": 0,
+      "convertedToInsert": 1814,
+      "canonicalTopInsertsTotal": 3736,
+      "note": "1814 üst DIMENSION, dwg-adapter.ts içinde anonymous block (*D...) INSERT'e dönüştürülmektedir."
+    },
+    "spacePartition": {
+      "modelSpaceEntities": 8787,
+      "paperSpaceEntities": 0,
+      "paperSpace0Entities": 0,
+      "paperSpaceLeakFound": false
+    },
+    "blockCensus": {
+      "totalBlockRecords": 224,
+      "nonSpaceBlocks": 221,
+      "rawBlockEntitiesTotal": 31317,
+      "rawInvisibleBlockChildren": 3973,
+      "rawBlockHatchCount": 363,
+      "allHatchWithBoundaryPaths": 467,
+      "nonSpaceOverlapCount": 0,
+      "note": "Normal blok tanımları ile model space koleksiyonu arasında handle çakışması (sızıntı) 0'dır."
+    },
+    "hatchDefect": {
+      "rawModelSpaceHatch": 104,
+      "canonicalModelSpaceHatch": 104,
+      "canonicalHatchWithLoops": 0,
+      "codeDefect": true,
+      "description": "dwg-adapter.ts ent.loops veya ent.boundaryLoops alanını aramaktadır. Kilitli @mlightcad/libredwg-web paketinde gerçek alan boundaryPaths'tir. Bu sebeple 104 HATCH'in tamamında loops=[] boş kalmaktadır.",
+      "sourceFile": "src/lib/cad-v2/decode/dwg-adapter.ts",
+      "line": 260
+    },
+    "visibilityDefect": {
+      "codeDefect": true,
+      "description": "dwg-adapter.ts görünürlüğü '!ent.off && !ent.isInvisible' ile kurmaktadır; kilitli pakette gerçek alan 'isVisible'dir. Ayrıca block-transformer.ts satır 128'de child işlerken child.visible kontrolü yapmamaktadır.",
+      "sourceFiles": [
+        "src/lib/cad-v2/decode/dwg-adapter.ts#L95",
+        "src/lib/cad-v2/compile/block-transformer.ts#L128"
+      ],
+      "outlierBlock": {
+        "name": "*U317",
+        "totalEntities": 157,
+        "invisibleEntities": 144,
+        "visibleEntities": 13,
+        "parentInsertHandles": ["C6BC", "10248"],
+        "effectOnBounds": "144 görünmez child geometriye dahil edilerek X aralığı [-13988.176, 21822.055] noktasına fırlamaktadır."
+      }
+    },
+    "blockTextLossDefect": {
+      "codeDefect": true,
+      "description": "SceneCompiler top-level TEXT ve MTEXT'i işlerken, BlockTransformer expandInsert içinde TEXT ve MTEXT için switch case'i bulunmamakta ve 'default: break' ile atlanmaktadır. Blok içi 763 TEXT ve 2910 MTEXT render edilememektedir.",
+      "sourceFile": "src/lib/cad-v2/compile/block-transformer.ts",
+      "line": 340
+    },
+    "ocsExtrusionAudit": {
+      "insertNonDefaultExtrusion": 36,
+      "description": "R001 içinde extrusionDirection [0,0,-1] olan 36 INSERT vardır. Bu OCS düzlemi canonical belgeye taşınmamakta ve 2D transformda yok sayılmaktadır. Probe handle'ları: 1528D, 1668B, 14FEB, 163E9, 177EE, 189FB."
+    },
+    "disprovenOldHypotheses": {
+      "nonUniformScaleInsert": {
+        "count": 0,
+        "status": "DISPROVEN_FOR_R001",
+        "note": "R001 içinde non-uniform scale (|xScale| != |yScale|) INSERT sayısı 0'dır."
+      },
+      "expansionLimitExceeded": {
+        "count": 69668,
+        "limit": 500000,
+        "status": "DISPROVEN_FOR_R001",
+        "note": "Genişletme sayacı 69.668 olup 500.000 limitinin çok altındadır."
+      },
+      "blockDefinitionLeakToModel": {
+        "count": 0,
+        "status": "DISPROVEN_FOR_R001",
+        "note": "Model space ile normal blok tanımları arasında handle çakışması 0'dır."
+      },
+      "paperSpaceLeak": {
+        "count": 0,
+        "status": "DISPROVEN_FOR_R001",
+        "note": "Paper space koleksiyonları boştur."
+      }
+    },
+    "compilationOutcome": {
+      "currentCompilation": {
+        "chunks": 35,
+        "qualityStatus": "exact",
+        "diagnostics": {
+          "missingBlocks": 0,
+          "unsupportedEntities": 0,
+          "silentDrops": 0
+        },
+        "bbox": [
+          -13988.176214041005,
+          728.805877843878,
+          30525.925484831616,
+          6581.663183556272
+        ],
+        "chunkMaxBytes": 842752
+      },
+      "visibilityOnlyCounterfactual": {
+        "note": "Yalnız bellekte görünmez blok child'ları elenerek yapılan simülasyon (kaynak ve kod değiştirilmemiştir).",
+        "chunks": 31,
+        "bbox": [
+          -12538.173593227872,
+          1832.3571955831321,
+          13671.169671425363,
+          5174.717129812125
+        ]
+      }
+    }
+  },
+  "entrypointIsolation": {
+    "legacyEngine": {
+      "entrypoints": [
+        "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+        "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+        "src/components/dokumantasyon/preview/cad-viewer.tsx",
+        "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+        "src/lib/dokumantasyon/cad-upstream/**"
+      ],
+      "status": "PROTECTED_READ_ONLY",
+      "goldenCommit": "909c59cb9dcac8e722b3bda4c66fd9d8a25755c8",
+      "testScript": "check:cad-preview-v2"
+    },
+    "v2Engine": {
+      "entrypoints": [
+        "src/components/dokumantasyon/cad-v2/cad-v2-host-shell.tsx",
+        "src/components/dokumantasyon/cad-v2/cad-v2-canvas.tsx",
+        "src/lib/cad-v2/**",
+        "src/workers/cad-v2/cad-v2-scene-worker.ts",
+        "src/app/api/dokumantasyon/cad-v2/**"
+      ],
+      "route": "/dokumantasyon/dosya/[fileId]?cadEngine=v2",
+      "testScripts": [
+        "check:cad-v2:unit",
+        "check:cad-v2:integration",
+        "check:cad-v2:ui",
+        "check:cad-v2:release"
+      ]
+    },
+    "testNamingAmbiguityWarning": "package.json içindeki 'check:cad-preview-v2' scripti tests/document-studio/*.spec.ts dosyalarını çalıştırmakta olup legacy CAD preview motorunun sözleşme testidir. Bu testin geçmesi yeni src/lib/cad-v2 motorunun çalıştığını veya korunduğunu göstermez."
+  },
+  "liveObservation": {
+    "route": "/dokumantasyon/dosya/009efcbd-06fb-4843-8bb7-7fb19d4d8b75?cadEngine=v2",
+    "observedStatusBarLabel": "Varlık: 1916176",
+    "observedStatusMeaning": "CadV2HostShell içindeki totalVertices değeridir (Three.js BufferGeometry vertex sayısı), kaynak entity sayısı değildir.",
+    "liveVsLocalStatus": "Canlı sunucu manifest SHA'sı, font ortamı ve deployment revizyonu yakalanmadığı için yerel 35 chunk ile canlı arasındaki vertex farkından chunk kaybı sonucu çıkarılamaz."
+  },
+  "autoCadOracle": {
+    "status": "NOT_RUN",
+    "reason": "Bu aşamada bağımsız AutoCAD ortamı ve yetkili export/render oracle'ı mevcut değildir. Hayali golden üretilmemiştir."
+  },
+  "testOutputIsolationPolicy": {
+    "isolatedDirectory": "test-output/cad-v2-tmp",
+    "prohibition": "Mevcut .data/cad-v2-scenes dizinindeki kullanıcı verileri ve üretim Blob depolama alanı test amaçlı kullanılamaz veya üzerine yazılamaz."
+  }
+}

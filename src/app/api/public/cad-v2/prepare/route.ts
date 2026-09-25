@@ -72,9 +72,7 @@ export async function POST(request: Request) {
     const isRevisionMatch =
       !expectedSourceVersionKey ||
       expectedSourceVersionKey === actualRevisionKey ||
-      expectedSourceVersionKey === legacyRevisionKey ||
-      expectedSourceVersionKey.startsWith(`${file.id}_`) ||
-      expectedSourceVersionKey.startsWith(`${file.id}:`);
+      expectedSourceVersionKey === legacyRevisionKey;
 
     if (!isRevisionMatch) {
       return NextResponse.json(

@@ -1,0 +1,18 @@
+(defun c:F06MAKE ()
+  (setvar "FILEDIA" 0)
+  (setvar "CMDECHO" 0)
+  (command "_.LINE" "0,0" "100,0" "")
+  (command "_.LINE" "0,0" "0,100" "")
+  (command "_.-LAYOUT" "_New" "F06_SHEET")
+  (command "_.-LAYOUT" "_Set" "F06_SHEET")
+  (command "_.MVIEW" "10,10" "190,130")
+  (command "_.MSPACE")
+  (command "_.ZOOM" "_W" "0,0" "100,100")
+  (command "_.PSPACE")
+  (command "_.TEXT" "20,20" "3" "0" "F06 PAPER SPACE CONTROL")
+  (command "_.QSAVE" "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\tests\\fixtures\\cad-preview-v2\\f06-autocad-layout-viewport.dwg")
+  (princ "\nF06_AUTOCAD_FIXTURE_CREATED")
+  (princ)
+)
+
+F06MAKE

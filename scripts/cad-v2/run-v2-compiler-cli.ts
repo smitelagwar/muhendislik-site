@@ -79,7 +79,17 @@ export async function runCompilerCli(options: CliOptions): Promise<{
 
   // 2. Sahneye derle (DV2SCN01)
   console.log(`-> Sahne derleyicisi çalıştırılıyor (DV2SCN01 ikili formatı)...`);
-  const compiled = compileCanonicalToScene(canonicalDoc);
+  const { computeSceneIdentity } = await import("../../src/lib/cad-v2/service/scene-identity");
+  const idResult = computeSceneIdentity({
+    fileId: fileName,
+    sourceSha256: fileHash,
+    authoritativeRevision: fileName,
+  });
+  const compiled = compileCanonicalToScene(canonicalDoc, {
+    sceneId: idResult.sceneId,
+    authoritativeRevision: fileName,
+    fileId: fileName,
+  });
 
   // 3. Çıktı dizinine kaydet
   const targetSceneDir = path.join(options.outputDir, compiled.manifest.sceneId);
@@ -88,6 +98,17 @@ export async function runCompilerCli(options: CliOptions): Promise<{
   const manifestPath = path.join(targetSceneDir, "manifest.json");
   fs.writeFileSync(manifestPath, JSON.stringify(compiled.manifest, null, 2), "utf-8");
   console.log(`-> Manifest yazıldı: ${manifestPath}`);
+
+  if (compiled.indexFiles) {
+    for (const [idxId, idxContent] of compiled.indexFiles.entries()) {
+      fs.writeFileSync(path.join(targetSceneDir, `index_${idxId}.json`), idxContent, "utf-8");
+    }
+  }
+  if (compiled.metadataFiles) {
+    for (const [metaId, metaContent] of compiled.metadataFiles.entries()) {
+      fs.writeFileSync(path.join(targetSceneDir, `meta_${metaId}.json`), metaContent, "utf-8");
+    }
+  }
 
   const chunkPaths: string[] = [];
   for (const [chunkId, chunkBytes] of compiled.chunks.entries()) {

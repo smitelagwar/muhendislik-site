@@ -76,6 +76,8 @@ scratch/
 .data/
 .test-data/
 .gorsel-cikti-ham/
+$cacheRoot/
+test-output/
 
 .vercel
 .env*

@@ -1,0 +1,289 @@
+{
+  "timestamp": "2026-09-25T10:45:07.205Z",
+  "package": "P05",
+  "status": "PASS",
+  "sourceFile": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+  "totalProbesAudited": 10,
+  "probes": [
+    {
+      "handle": "C6BC",
+      "blockName": "*U317",
+      "visible": true,
+      "insertionPoint": [
+        3916.939397866372,
+        3822.2343490366475
+      ],
+      "scale": [
+        -1,
+        1,
+        1
+      ],
+      "rotationRad": 3.141592653589793,
+      "extrusionDirection": [
+        0,
+        0,
+        1
+      ],
+      "segmentsGenerated": 57,
+      "worldBBox": [
+        3879.439397866423,
+        3797.2343490366475,
+        3965.4393978664084,
+        3847.2343490367102
+      ],
+      "provenance": "R001:INSERT:C6BC:*U317"
+    },
+    {
+      "handle": "10248",
+      "blockName": "*U317",
+      "visible": true,
+      "insertionPoint": [
+        4896.73821065505,
+        3458.2343490366475
+      ],
+      "scale": [
+        -1,
+        1,
+        1
+      ],
+      "rotationRad": 0,
+      "extrusionDirection": [
+        0,
+        0,
+        1
+      ],
+      "segmentsGenerated": 57,
+      "worldBBox": [
+        4848.238210655014,
+        3433.2343490365847,
+        4934.238210654999,
+        3483.2343490366475
+      ],
+      "provenance": "R001:INSERT:10248:*U317"
+    },
+    {
+      "handle": "1528D",
+      "blockName": "*U28",
+      "visible": true,
+      "insertionPoint": [
+        -12538.171632216778,
+        2933.415126197855
+      ],
+      "scale": [
+        100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 3.141536624701363,
+      "extrusionDirection": [
+        8.522093448125838e-14,
+        -1.682515437721059e-13,
+        -1
+      ],
+      "segmentsGenerated": 19,
+      "worldBBox": [
+        -12678.173593008141,
+        2868.34318601164,
+        -12538.169671205684,
+        2998.4795671970514
+      ],
+      "provenance": "R001:INSERT:1528D:*U28"
+    },
+    {
+      "handle": "1668B",
+      "blockName": "*U28",
+      "visible": true,
+      "insertionPoint": [
+        -12538.171632216778,
+        4377.0535718753235
+      ],
+      "scale": [
+        -100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 0.00005602888843049736,
+      "extrusionDirection": [
+        8.522093448125855e-14,
+        1.6825154377210534e-13,
+        -1
+      ],
+      "segmentsGenerated": 19,
+      "worldBBox": [
+        -12678.173593008141,
+        4311.989130876127,
+        -12538.169671205684,
+        4442.125512061539
+      ],
+      "provenance": "R001:INSERT:1668B:*U28"
+    },
+    {
+      "handle": "14FEB",
+      "blockName": "*U37",
+      "visible": true,
+      "insertionPoint": [
+        -12159.80875450396,
+        2616.385331447469
+      ],
+      "scale": [
+        100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 3.141536624701363,
+      "extrusionDirection": [
+        8.522093448125838e-14,
+        -1.682515437721059e-13,
+        -1
+      ],
+      "segmentsGenerated": 27,
+      "worldBBox": [
+        -12329.875091634724,
+        2551.313391261254,
+        -12129.742352436924,
+        2681.4497724466655
+      ],
+      "provenance": "R001:INSERT:14FEB:*U37"
+    },
+    {
+      "handle": "163E9",
+      "blockName": "*U37",
+      "visible": true,
+      "insertionPoint": [
+        -12159.80875450396,
+        4694.0833666257095
+      ],
+      "scale": [
+        -100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 0.00005602888843049736,
+      "extrusionDirection": [
+        8.522093448125855e-14,
+        1.6825154377210534e-13,
+        -1
+      ],
+      "segmentsGenerated": 27,
+      "worldBBox": [
+        -12329.875091634724,
+        4629.018925626513,
+        -12129.742352436924,
+        4759.155306811925
+      ],
+      "provenance": "R001:INSERT:163E9:*U37"
+    },
+    {
+      "handle": "177EE",
+      "blockName": "*U37",
+      "visible": true,
+      "insertionPoint": [
+        -11819.192681820132,
+        2741.627657764184
+      ],
+      "scale": [
+        100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 3.1415366247013625,
+      "extrusionDirection": [
+        8.522093448125853e-14,
+        -1.6825154377210545e-13,
+        -1
+      ],
+      "segmentsGenerated": 27,
+      "worldBBox": [
+        -11989.259018950896,
+        2676.5557175779686,
+        -11789.126279753096,
+        2806.6920987633803
+      ],
+      "provenance": "R001:INSERT:177EE:*U37"
+    },
+    {
+      "handle": "189FB",
+      "blockName": "*U37",
+      "visible": true,
+      "insertionPoint": [
+        -11819.192681819899,
+        4568.841040309344
+      ],
+      "scale": [
+        -100.0000000000112,
+        100.0000000000112,
+        -100.0000000000112
+      ],
+      "rotationRad": 0.00005602888843049736,
+      "extrusionDirection": [
+        8.522093448125855e-14,
+        1.6825154377210534e-13,
+        -1
+      ],
+      "segmentsGenerated": 27,
+      "worldBBox": [
+        -11989.259018950663,
+        4503.7765993101475,
+        -11789.126279752863,
+        4633.912980495559
+      ],
+      "provenance": "R001:INSERT:189FB:*U37"
+    },
+    {
+      "handle": "A9E7",
+      "blockName": "IDE242Entity364",
+      "visible": true,
+      "insertionPoint": [
+        3151.579690305749,
+        2490.2343490368803
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotationRad": 0,
+      "extrusionDirection": [
+        0,
+        0,
+        1
+      ],
+      "segmentsGenerated": 4,
+      "worldBBox": [
+        3151.5796903059804,
+        2715.234349036879,
+        3176.5796903059804,
+        2865.2343490368803
+      ],
+      "provenance": "R001:INSERT:A9E7:IDE242Entity364"
+    },
+    {
+      "handle": "A9E8",
+      "blockName": "IDE242Entity365",
+      "visible": true,
+      "insertionPoint": [
+        3151.579690305749,
+        2490.2343490368803
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "rotationRad": 0,
+      "extrusionDirection": [
+        0,
+        0,
+        1
+      ],
+      "segmentsGenerated": 1,
+      "worldBBox": [
+        3151.5796903059804,
+        2715.234349036879,
+        3176.5796903059804,
+        2715.234349036879
+      ],
+      "provenance": "R001:INSERT:A9E8:IDE242Entity365"
+    }
+  ]
+}

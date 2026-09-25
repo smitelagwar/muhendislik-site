@@ -1,10 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
-import fs from "node:fs";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
-const productionServer =
-  process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1" ||
-  (process.env.PLAYWRIGHT_PRODUCTION_SERVER !== "0" && fs.existsSync(".next"));
+// Default to a live source build. Existing `.next` output may belong to another
+// checkout/revision; production acceptance must opt in explicitly after `next build`.
+const productionServer = process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/document-studio",

@@ -1,0 +1,94 @@
+{
+  "timestamp": "2026-09-20T23:54:30.000Z",
+  "pipelineRevision": "fidelity-v3-p07",
+  "package": "P07",
+  "status": "PASS",
+  "gateResults": {
+    "paintersOrder": {
+      "status": "PASS",
+      "test": "tests/cad-v2/painter-order.test.ts",
+      "consecutiveMergeEvidence": {
+        "inputSequence": ["Red A (order 10)", "White B (order 20)", "Red C (order 30)"],
+        "producedDrawCommands": 3,
+        "isGloballyCollapsed": false,
+        "detail": "Adjacent-only run merging preserves distinct execution blocks when identical layers/colors are separated by intervening draw runs."
+      },
+      "interleavedWipeoutEvidence": {
+        "inputSequence": ["Line Stroke (order 100)", "Wipeout Mask (order 200)", "Text Glyphs (order 300)"],
+        "producedCommands": [
+          { "order": 0, "kind": "line", "layer": "0" },
+          { "order": 1, "kind": "wipeout", "layer": "0", "isWipeout": true },
+          { "order": 2, "kind": "line", "layer": "0" }
+        ],
+        "detail": "Interleaved line and triangle primitives maintain strict drawing order without bypassing."
+      },
+      "renderOrderInvariance": {
+        "status": "PASS",
+        "formula": "renderOrder = chunkIndex * 10000 + commandIndex",
+        "detail": "Chunk arrival out-of-order over network produces deterministic z-ordering independent of download sequence."
+      }
+    },
+    "hatchTopology": {
+      "status": "PASS",
+      "test": "tests/cad-v2/hatch-topology.test.ts",
+      "reverseLoopOrder": {
+        "input": "Hole loop at index 0, Outer loop at index 1",
+        "computedArea": 9600,
+        "expectedArea": 9600,
+        "verified": true
+      },
+      "nestedIslands": {
+        "outerLoopArea": 10000,
+        "holeArea": 6400,
+        "islandArea": 1600,
+        "hatchStyleNormal": { "area": 5200, "verified": true },
+        "hatchStyleOuter": { "area": 3600, "verified": true },
+        "hatchStyleIgnore": { "area": 10000, "verified": true }
+      },
+      "bulgeBoundary": {
+        "input": "Polyline boundary containing bulge arc",
+        "triangulatedMeshVertices": 90,
+        "computedArea": 8901.8,
+        "verified": true
+      },
+      "degenerateContour": {
+        "input": "Collinear degenerate ring",
+        "gracefulFallback": true,
+        "crashFree": true
+      }
+    },
+    "binaryProtocolRoundtrip": {
+      "status": "PASS",
+      "test": "tests/cad-v2/primitive-roundtrip.test.ts",
+      "wireLayoutValidation": {
+        "magic": "DV2SCN01",
+        "schemaVersion": 1,
+        "sections": ["ORIGIN", "XY", "TRIANGLES", "DRAW_RUNS", "META"],
+        "numericalParity": true
+      },
+      "chunkEquivalence": {
+        "singleChunkVertices": 120,
+        "multiChunkTotalVertices": 120,
+        "parity": true
+      },
+      "fuzzingAndRejection": {
+        "badMagicRejected": true,
+        "unknownSchemaRejected": true,
+        "nanCoordinateRejected": true
+      }
+    }
+  },
+  "unitTestSummary": {
+    "totalSuites": 22,
+    "passedSuites": 22,
+    "failedSuites": 0,
+    "status": "ALL_PASS"
+  },
+  "integrationTestSummary": {
+    "realCorpusTested": ["R001", "R002", "R003", "R004"],
+    "durableService": "PASS",
+    "publicShareAuth": "PASS",
+    "cliCompiler": "PASS",
+    "status": "ALL_PASS"
+  }
+}

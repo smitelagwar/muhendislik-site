@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-09-25T10:45:14.026Z",
+  "package": "P06",
+  "status": "PASS",
+  "tests": [
+    "missing_block_definition",
+    "cyclic_block_reference_and_ancestor_path",
+    "max_depth_exceeded",
+    "bounded_termination_off_by_one_budget",
+    "compiler_reset_between_calls"
+  ]
+}

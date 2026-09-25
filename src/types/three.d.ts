@@ -25,6 +25,8 @@ declare module "three" {
     remove(...object: any[]): this;
     position: Vector3;
     children: any[];
+    userData: Record<string, any>;
+    visible: boolean;
   }
 
   export class OrthographicCamera {
@@ -124,6 +126,23 @@ declare module "three" {
     dispose(): void;
   }
 
+  export class LineDashedMaterial extends LineBasicMaterial {
+    constructor(parameters?: {
+      color?: number | Color;
+      linewidth?: number;
+      transparent?: boolean;
+      opacity?: number;
+      depthTest?: boolean;
+      depthWrite?: boolean;
+      dashSize?: number;
+      gapSize?: number;
+      scale?: number;
+    });
+    dashSize: number;
+    gapSize: number;
+    scale: number;
+  }
+
   export class LineSegments {
     constructor(geometry?: BufferGeometry, material?: LineBasicMaterial | Material);
     position: Vector3;
@@ -131,7 +150,39 @@ declare module "three" {
     visible: boolean;
     geometry: BufferGeometry;
     material: LineBasicMaterial | Material;
+    renderOrder: number;
+    userData: Record<string, any>;
   }
 
+  export class MeshBasicMaterial extends Material {
+    constructor(parameters?: {
+      color?: number | Color;
+      side?: number;
+      transparent?: boolean;
+      opacity?: number;
+      depthTest?: boolean;
+      depthWrite?: boolean;
+    });
+    color: Color;
+    side?: number;
+    transparent?: boolean;
+    opacity?: number;
+    needsUpdate?: boolean;
+    userData?: Record<string, any>;
+    dispose(): void;
+  }
+
+  export class Mesh {
+    constructor(geometry?: BufferGeometry, material?: Material);
+    position: Vector3;
+    name: string;
+    visible: boolean;
+    geometry: BufferGeometry;
+    material: Material;
+    renderOrder: number;
+    userData: Record<string, any>;
+  }
+
+  export const DoubleSide: number;
   export const SRGBColorSpace: string;
 }

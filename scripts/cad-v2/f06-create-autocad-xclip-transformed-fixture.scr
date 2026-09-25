@@ -1,0 +1,20 @@
+(defun c:F06XCLIPTRANSFORMED ()
+  (setvar "FILEDIA" 0)
+  (setvar "CMDECHO" 0)
+  (command "_.-LAYOUT" "_Set" "Model")
+  ;; Remove any template entities so the transformed-clip fixture is isolated.
+  (setq f06ControlText (ssget "_X" '((0 . "TEXT") (1 . "F06 PAPER SPACE CONTROL"))))
+  (if f06ControlText (command "_.ERASE" f06ControlText ""))
+  (command "_.PLINE" "0,0" "100,0" "100,100" "0,100" "_Close")
+  (command "_.LINE" "0,50" "100,50" "")
+  (command "_.-BLOCK" "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN" "0,0" "_All" "")
+  (command "_.-INSERT" "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN" "200,300" "1" "1" "30")
+  (command "_.XCLIP" "_Last" "" "" "_Polygonal"
+    "207.320508,327.320508" "259.282032,357.320508"
+    "229.282032,409.282032" "177.320508,379.282032" "")
+  (command "_.QSAVE")
+  (princ "\nF06_AUTOCAD_XCLIP_TRANSFORMED_FIXTURE_CREATED")
+  (princ)
+)
+
+F06XCLIPTRANSFORMED

@@ -124,8 +124,8 @@ async function runGeometryCurvesHatchTests() {
   };
   const thickRes = GeometryCompiler.expandLwPolyline(thickPolyline);
   assert(thickRes.thickTriangles !== null, "Kalın polyline için üçgenler üretildi");
-  // 2 segment x 2 üçgen x 3 köşe = 12 köşe (24 float)
-  assert(thickRes.thickTriangles!.vertices.length === 24, `Üçgen köşe sayısı doğru: ${thickRes.thickTriangles!.vertices.length}`);
+  // 2 segment (24 float) + köşe birleşimi (miter/bevel join, 12 float) = 36 float
+  assert(thickRes.thickTriangles!.vertices.length === 36, `Üçgen köşe sayısı doğru: ${thickRes.thickTriangles!.vertices.length}`);
 
   // 5. B-Spline / NURBS De Boor Algoritması (R07, V07)
   console.log("\n[Test 5] B-Spline De Boor Algoritması:");
@@ -143,8 +143,10 @@ async function runGeometryCurvesHatchTests() {
     ],
     knots: [0, 0, 0, 0, 1, 1, 1, 1], // Clamped B-spline
   };
-  const splinePts = GeometryCompiler.tessellateSpline(testSpline);
-  assert(splinePts.length >= 32, `B-spline noktaları üretildi: ${splinePts.length} nokta`);
+  const splineResult = GeometryCompiler.tessellateSplineWithBudget(testSpline, 0.25);
+  const splinePts = splineResult.points;
+  assert(splineResult.errorBoundMet && splineResult.maxSagittaWorld <= 0.25, "B-spline measured control-hull error bound is within 0.25 units");
+  assert(splinePts.length >= 8, `B-spline adaptive noktaları üretildi: ${splinePts.length} nokta`);
   assert(approxEqual(splinePts[0][0], 0) && approxEqual(splinePts[0][1], 0), "B-spline başlangıç kontrol noktası doğru");
   assert(
     approxEqual(splinePts[splinePts.length - 1][0], 60) && approxEqual(splinePts[splinePts.length - 1][1], 0),
