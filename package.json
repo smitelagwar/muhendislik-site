@@ -38,7 +38,7 @@
     "check:smoke": "node scripts/site-smoke-test.mjs",
     "check:homepage": "node scripts/check-homepage.mjs",
     "check:simplification-stage6": "npx playwright test --config=playwright.site.config.ts tests/site-audit/simplification-stage6.spec.ts --project=chromium-desktop-1366",
-    "check:simplification-stage7": "npx tsc --noEmit --incremental false && npm run lint && npm run build && npm run check:site-quality && npm run check:navigation && npm run check:homepage && npm run check:smoke && npm run check:site-a11y && npm run check:site-e2e && npm run check:simplification-stage6 && tsx scripts/check-simplification-stage7-release.ts",
+    "check:simplification-stage7": "npx tsc -p tsconfig.next.json --noEmit --incremental false && node scripts/check-simplification-stage7-lint.mjs && npm run build && npm run check:site-quality && npm run check:navigation && npm run check:homepage && npm run check:smoke && npm run check:site-a11y && npm run check:site-e2e && npm run check:simplification-stage6 && tsx scripts/check-simplification-stage7-release.ts",
     "check:simplification-stage7:clean": "npm ci && npm run check:simplification-stage7",
     "check:donati-hesabi": "tsx scripts/check-rebar-calculations.ts && node scripts/check-donati-hesabi.mjs",
     "check:tools-inventory": "tsx scripts/check-tools-inventory.ts",
