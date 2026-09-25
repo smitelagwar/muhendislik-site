@@ -1304,6 +1304,13 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
     min-height: 44px;
   }
 }
+
+/* Kısa yatay ekranda belge stüdyosuna dikey alan bırak. */
+@media screen and (max-width: 1023px) and (orientation: landscape) and (max-height: 430px) {
+  body:has([data-testid="belge-studio-mobile-actions"]) [data-site-header] {
+    display: none;
+  }
+}
 /* --- Animated Background Orbs --- */
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }

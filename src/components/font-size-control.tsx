@@ -18,7 +18,7 @@ export function FontSizeControl() {
       <button
         type="button"
         onClick={() => applySize(Math.max(14, size - 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
         aria-label="Yazıyı küçült"
       >
         A-
@@ -26,7 +26,7 @@ export function FontSizeControl() {
       <button
         type="button"
         onClick={() => applySize(DEFAULT_SIZE)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
         aria-label="Yazı boyutunu sıfırla"
         title="Varsayılan boyut"
       >
@@ -35,7 +35,7 @@ export function FontSizeControl() {
       <button
         type="button"
         onClick={() => applySize(Math.min(22, size + 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-100 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
         aria-label="Yazıyı büyüt"
       >
         A+

@@ -1061,8 +1061,8 @@ export function SozlesmeStudio({
           id={mobileTabIds.previewPanel}
           role="tabpanel"
           aria-labelledby={mobileTabIds.previewTab}
-          className={`flex-1 h-full min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
-            activeTabMobile === "preview" ? "block" : "hidden lg:flex"
+          className={`flex-1 min-h-0 min-w-0 flex flex-col justify-between bg-zinc-900/10 dark:bg-zinc-950/40 p-2 sm:p-2.5 overflow-hidden ${
+            activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Top Mini Control Bar (Zoom, Fit, Open, Multi-Page Switcher) */}

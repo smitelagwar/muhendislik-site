@@ -60,7 +60,7 @@ export default function Iletisim() {
               </a>
             </Button>
             <Button asChild variant="outline" size="lg" className="w-full text-base">
-              <Link href="/konu-haritasi">Önce içerikleri incele</Link>
+              <Link href="/hesaplamalar">Önce hesaplamaları incele</Link>
             </Button>
           </div>
         </div>

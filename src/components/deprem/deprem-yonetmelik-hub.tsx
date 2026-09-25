@@ -183,7 +183,7 @@ function DepremArticleCard({ article }: { article: DepremArticleSummary }) {
       className="group flex min-h-52 flex-col rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-5 transition-colors hover:border-amber-500/55 hover:bg-[var(--home-surface-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)]"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className="border-none bg-[var(--home-fg)] text-[10px] font-black uppercase text-[var(--home-bg)]">{article.seriesLabel}</Badge>
+        <Badge variant="secondary" className="border-none bg-[var(--home-fg)] text-[10px] font-black uppercase text-[var(--home-bg)] dark:bg-[var(--home-fg)] dark:text-[var(--home-bg)]">{article.seriesLabel}</Badge>
         {article.badgeLabel ? <Badge variant="outline" className="border-[var(--home-border)] text-[10px] text-[var(--home-muted)]">{article.badgeLabel}</Badge> : null}
       </div>
       <h3 className="mt-4 text-lg font-black leading-snug text-[var(--home-fg)] transition-colors group-hover:text-[var(--home-accent)]">{article.title}</h3>

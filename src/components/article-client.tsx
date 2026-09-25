@@ -91,7 +91,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
           {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4 text-sm text-zinc-300">
+      <pre tabIndex={0} role="region" aria-label={`${lang || "Kod"} bloğu`} className="overflow-x-auto p-4 text-sm text-zinc-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-700">
         <code>{code}</code>
       </pre>
     </div>
@@ -316,7 +316,7 @@ function TableViewer({ content }: { content: string }) {
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">{table}</div>
+        <div className="overflow-x-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[color:var(--table-border)]" tabIndex={0} role="region" aria-label="Veri tablosu">{table}</div>
       </div>
 
       {fullscreen ? (
@@ -327,7 +327,7 @@ function TableViewer({ content }: { content: string }) {
               <X className="h-5 w-5" />
             </Button>
           </div>
-          <div className="flex-1 overflow-auto rounded-2xl border border-[color:var(--table-border)] bg-[var(--table-surface)]">{table}</div>
+          <div className="flex-1 overflow-auto rounded-2xl border border-[color:var(--table-border)] bg-[var(--table-surface)] focus-visible:outline-none" tabIndex={0} role="region" aria-label="Tablo görünümü">{table}</div>
         </div>
       ) : null}
     </>

@@ -206,7 +206,7 @@ export function BelgelerHub() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Belge adı, tutanak, taahhütname veya anahtar kelime ara..."
-            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-14 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-all focus:border-amber-500/60 focus:bg-white focus:shadow-md focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 dark:border-white/15 dark:bg-white/[0.06] dark:focus:bg-white/[0.1] dark:focus:shadow-[0_0_24px_rgba(245,158,11,0.2)]"
+            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-14 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-[background-color] focus:border-amber-500 focus:bg-white focus:shadow-md focus:ring-2 focus:ring-amber-500/40 dark:border-white/15 dark:bg-white/[0.06] dark:focus:border-amber-400 dark:focus:bg-white/[0.1] dark:focus:ring-2 dark:focus:ring-amber-400/40"
           />
           {searchQuery ? (
             <button

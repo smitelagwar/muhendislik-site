@@ -21,11 +21,11 @@ test.describe("Hata Toleransı, Dayanıklılık ve Unmount Testleri", () => {
     await page.waitForTimeout(50);
     page.goto("/hesaplamalar/hizli-metraj").catch(() => {});
     await page.waitForTimeout(50);
-    await page.goto("/kategori/bina-asamalari", { waitUntil: "networkidle" });
+    await page.goto("/rehber/proje-hazirlik", { waitUntil: "networkidle" });
 
     // Sayfa sağlıklı bir şekilde yüklenmiş olmalıdır
     const title = await page.title();
-    expect(title).toContain("Bina Aşamaları");
+    expect(title).toContain("Teknik Rehber");
     expect(errors.filter((e) => !e.includes("ResizeObserver")), "Beklenmeyen sayfa hatası oluştu").toEqual([]);
   });
 
