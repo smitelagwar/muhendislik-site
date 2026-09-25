@@ -262,3 +262,9 @@ const font = localFont({
 
 *Son güncelleme: Ağustos 2026*
 *Bu dosyayı güncel tutmak senin sorumluluğun — değişiklik yapınca ilgili bölümü güncelle.*
+
+
+### Sadeleştirme Release Candidate CI
+- Release branch: `internal-site-release-gate-20260925`.
+- GitHub Actions: `.github/workflows/simplification-release-gate.yml`.
+- Bu branch yalnız final clean install/build/test doğrulaması içindir; tüm gate'ler yeşil olmadan main/production'a taşınmaz.
