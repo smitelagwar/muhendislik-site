@@ -176,6 +176,11 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - Telefon workspace güncellemesi (12 Eylül 2026): tek başlık, liste/iki sütunlu kart, ölçülen grup sanallaştırması, Radix paneller, geri/arama konumu ve layout içinde kalıcı yükleme kuyruğu. Yayın öncesi 214 Drive testi ve production bundle üzerinde 8 mobil kabul testi geçti. Fiziksel POCO kabulü ayrı ve beklemede; kapsam/kanıt: `docs/DOK_PHONE_WORKSPACE_2026-09-11.md`.
 - Release Kapısı: `npm run check:cad-real-user-release`
 
+### 6. Belgeler PDF Stüdyoları
+- `/belgeler` belge önizlemeleri, `pdfjs-dist` 6.x self-hosted ESM core ve worker modüllerini `public/vendor/pdfjs/` altında kullanır; CMap, standart font, image decoder ve WASM varlıkları da aynı yerel ağaçtan yüklenir.
+- Beş belge stüdyosu `src/lib/pdfjs-client.ts` ortak yükleyicisini kullanır. PDF.js loading task'leri yeni önizleme açılırken ve stüdyo kapanırken kapatılır. CDN fallback kullanılmaz.
+- Vendor dağıtımında PDF.js Apache lisansı ve ilgili font/CMap/WASM lisans dosyaları korunur.
+
 ---
 
 ## Mühendislik Standartları (Domain)

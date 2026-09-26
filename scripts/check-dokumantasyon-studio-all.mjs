@@ -5,14 +5,18 @@
 import assert from "node:assert";
 import crypto from "crypto";
 import fs from "fs";
+import os from "node:os";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
+const TEST_DATA_PREFIX = "dokumantasyon-studio-all-";
+const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), TEST_DATA_PREFIX));
 process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
 process.env.NODE_ENV = "test";
+process.env.DOK_LOCAL_DATA_DIR = testDataDir;
 
 console.log("======================================================================");
 console.log("DÖKÜMANTASYON MODÜLÜ — MASTER E2E VE REGRESYON KAPISI (AŞAMA 7/8)");
@@ -107,17 +111,19 @@ async function runMasterE2ETests() {
     "src/lib/dokumantasyon/studio/pdf/pdfjs-loader.ts"
   );
   const pdfLoaderContent = fs.readFileSync(pdfjsLoaderPath, "utf-8");
+  const pdfjsClientPath = path.join(ROOT, "src/lib/pdfjs-client.ts");
+  const pdfjsClientContent = fs.readFileSync(pdfjsClientPath, "utf-8");
   assert(
-    pdfLoaderContent.includes("isEvalSupported: false"),
-    "PDF.js eval execution kesinlikle engellenmelidir."
+    pdfjsClientContent.includes("/vendor/pdfjs/pdf.min.mjs"),
+    "PDF.js patched ESM build self-hosted olarak yüklenmelidir."
   );
   assert(
-    pdfLoaderContent.includes("enableScripting: false"),
-    "PDF.js scripting kesinlikle engellenmelidir."
+    pdfLoaderContent.includes("pdfjs.getDocument"),
+    "PDF dosyaları yalnız PDF.js core renderer ile açılmalıdır."
   );
   assert(
-    pdfLoaderContent.includes("/vendor/pdfjs/pdf.min.js"),
-    "PDF.js self-hosted yerel kütüphaneden yüklenmelidir."
+    pdfLoaderContent.includes("loadBrowserPdfJs"),
+    "PDF.js self-hosted ortak modül yükleyicisinden yüklenmelidir."
   );
 
   // Türkçe Karakter Arama Testi
@@ -307,7 +313,22 @@ async function runMasterE2ETests() {
   console.log("======================================================================\n");
 }
 
-runMasterE2ETests().catch((err) => {
-  console.error("\n❌ AŞAMA 7 MASTER E2E HATASI:", err);
-  process.exit(1);
-});
+runMasterE2ETests()
+  .catch((err) => {
+    console.error("\n❌ AŞAMA 7 MASTER E2E HATASI:", err);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    const resolvedTempDir = path.resolve(testDataDir);
+    const resolvedTempRoot = path.resolve(os.tmpdir());
+    if (
+      path.dirname(resolvedTempDir) !== resolvedTempRoot ||
+      !path.basename(resolvedTempDir).startsWith(TEST_DATA_PREFIX)
+    ) {
+      console.error("\n❌ Güvenli Dokümantasyon test dizini temizlenemedi:", resolvedTempDir);
+      process.exitCode = 1;
+      return;
+    }
+
+    fs.rmSync(resolvedTempDir, { recursive: true, force: true });
+  });

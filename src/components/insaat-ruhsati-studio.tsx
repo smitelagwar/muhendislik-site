@@ -24,6 +24,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { loadBrowserPdfJs } from "@/lib/pdfjs-client";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   countFilledEditableFields,
@@ -96,56 +97,6 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
     tel: "Tel: 0566 666 66 66",
   },
 ];
-
-// Safely load PDF.js in browser
-async function loadBrowserPdfJs(): Promise<any> {
-  if (typeof window === "undefined") return null;
-  if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
-
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById("pdfjs-dist-script");
-    if (existing) {
-      const check = setInterval(() => {
-        if ((window as any).pdfjsLib) {
-          clearInterval(check);
-          resolve((window as any).pdfjsLib);
-        }
-      }, 50);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "pdfjs-dist-script";
-    script.src = "/vendor/pdfjs/pdf.min.js";
-    script.onload = () => {
-      const pdfjs = (window as any).pdfjsLib;
-      if (pdfjs) {
-        pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.js";
-        resolve(pdfjs);
-      } else {
-        reject(new Error("pdfjsLib not available"));
-      }
-    };
-    script.onerror = () => {
-      const cdnScript = document.createElement("script");
-      cdnScript.src =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-      cdnScript.onload = () => {
-        const cdnPdfjs = (window as any).pdfjsLib;
-        if (cdnPdfjs) {
-          cdnPdfjs.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          resolve(cdnPdfjs);
-        } else {
-          reject(new Error("CDN pdfjs failed"));
-        }
-      };
-      cdnScript.onerror = reject;
-      document.head.appendChild(cdnScript);
-    };
-    document.head.appendChild(script);
-  });
-}
 
 export function InsaatRuhsatiStudio({
   initialData,
@@ -371,21 +322,22 @@ export function InsaatRuhsatiStudio({
 
           const loadingTask = pdfjs.getDocument({
             data: clonedBytes,
-            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+            cMapUrl: "/vendor/pdfjs/cmaps/",
+            standardFontDataUrl: "/vendor/pdfjs/standard_fonts/",
             cMapPacked: true,
-            isEvalSupported: false,
           });
           const pdf = await loadingTask.promise;
           if (generationRequestId !== generationRequestRef.current) {
-            if (typeof pdf?.destroy === "function") {
-              void pdf.destroy();
-            }
+            void loadingTask.destroy();
             return;
           }
 
+          const previousPdf = cachedPdfDocRef.current;
           cachedPdfDocRef.current = pdf;
-
           await renderPdfPage(pdf, zoomLevelRef.current);
+          if (previousPdf && previousPdf !== pdf) {
+            void previousPdf.loadingTask.destroy();
+          }
         }
 
         if (generationRequestId !== generationRequestRef.current) return;
@@ -532,8 +484,8 @@ export function InsaatRuhsatiStudio({
 
       const cachedPdf = cachedPdfDocRef.current;
       cachedPdfDocRef.current = null;
-      if (cachedPdf && typeof cachedPdf.destroy === "function") {
-        void cachedPdf.destroy();
+      if (cachedPdf?.loadingTask) {
+        void cachedPdf.loadingTask.destroy();
       }
 
       if (activeBlobUrlRef.current) {

@@ -66,12 +66,14 @@ test.describe("SEO, Metadata ve İçerik Bütünlüğü Testleri", () => {
 
       // Türkçe karakterli arama terimi ("donatı")
       await searchInput.fill("donatı");
-      await page.waitForTimeout(300);
 
-      // Sonuçların listelenmesini doğrula
-      const results = page.locator('[role="dialog"] a, [role="listbox"] [role="option"]');
-      const count = await results.count();
-      expect(count).toBeGreaterThan(0);
+      // Search index is fetched on demand; wait for its result instead of
+      // sampling the list while the loading status is still visible.
+      const results = page
+        .getByRole("dialog")
+        .getByRole("listbox", { name: "Arama sonuçları ve kısayollar" })
+        .getByRole("option");
+      await expect(results.first()).toBeVisible();
     }
   });
 

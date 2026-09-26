@@ -4,14 +4,18 @@
 
 import assert from "node:assert";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
+const TEST_DATA_PREFIX = "dokumantasyon-studio-stage3-v3-";
+const testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), TEST_DATA_PREFIX));
 process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
 process.env.NODE_ENV = "test";
+process.env.DOK_LOCAL_DATA_DIR = testDataDir;
 
 function logStep(msg) {
   console.log(`\n▶ ${msg}`);
@@ -174,18 +178,31 @@ async function runStage3Tests() {
   );
 
   const cadApsModule = await import(pathToFileURL(cadApsPath).href);
-  const statusRes = await cadApsModule.resolveCadPreviewStatus("test-file-id", ".dwg");
+  const statusRes = await cadApsModule.resolveCadPreviewStatus({
+    id: "test-file-id",
+    folder_id: null,
+    display_name: "test.dwg",
+    blob_pathname: "dok_storage/test.dwg",
+    blob_url: "local:test.dwg",
+    size_bytes: 1,
+    mime_type: "application/acad",
+    extension: ".dwg",
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+    deleted_at: null,
+  });
 
   assert.strictEqual(
     statusRes.status,
-    "unconfigured",
-    "APS anahtarları yokken CAD durumu 'unconfigured' (BLOCKED_EXTERNAL_DEPENDENCY) olmalıdır."
+    "failed",
+    "APS anahtarları yokken CAD durumu kontrollü 'failed' (APS_NOT_CONFIGURED) olmalıdır."
   );
   assert.strictEqual(
     statusRes.isAvailable,
     false,
     "APS anahtarları yokken isAvailable = false olmalıdır."
   );
+  assert.strictEqual(statusRes.errorCode, "APS_NOT_CONFIGURED");
   logSuccess("CAD dürüst durum yönetimi ve sahte URN izolasyonu doğrulandı.");
 
   // -------------------------------------------------------------------
@@ -225,7 +242,22 @@ async function runStage3Tests() {
   console.log("======================================================================\n");
 }
 
-runStage3Tests().catch((err) => {
-  console.error("\n❌ AŞAMA 3/3 TEST HATASI:", err);
-  process.exit(1);
-});
+runStage3Tests()
+  .catch((err) => {
+    console.error("\n❌ AŞAMA 3/3 TEST HATASI:", err);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    const resolvedTempDir = path.resolve(testDataDir);
+    const resolvedTempRoot = path.resolve(os.tmpdir());
+    if (
+      path.dirname(resolvedTempDir) !== resolvedTempRoot ||
+      !path.basename(resolvedTempDir).startsWith(TEST_DATA_PREFIX)
+    ) {
+      console.error("\n❌ Güvenli Dokümantasyon test dizini temizlenemedi:", resolvedTempDir);
+      process.exitCode = 1;
+      return;
+    }
+
+    fs.rmSync(resolvedTempDir, { recursive: true, force: true });
+  });

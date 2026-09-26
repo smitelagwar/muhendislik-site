@@ -1,16 +1,16 @@
-import { readFileSync } from 'fs';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
+import { readFileSync } from 'node:fs';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 async function extractText() {
-  const pdfjsLib = require('pdfjs-dist');
-  // Disable worker for node.js usage
-  pdfjsLib.GlobalWorkerOptions.workerSrc = false;
   const pdfPath = './eklediklerim/pdfler/ŞANTİYE ŞEFİ SÖZLEŞMESİ.pdf';
   const data = new Uint8Array(readFileSync(pdfPath));
 
-  const doc = await pdfjsLib.getDocument({ data, useSystemFonts: true }).promise;
+  const doc = await pdfjsLib.getDocument({
+    data,
+    useSystemFonts: true,
+    isEvalSupported: false,
+    enableScripting: false,
+  }).promise;
   console.log('Total pages:', doc.numPages);
 
   for (let p = 1; p <= doc.numPages; p++) {

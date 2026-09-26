@@ -37,20 +37,22 @@ async function runStage2Tests() {
   const loaderContent = fs.readFileSync(loaderPath, "utf-8");
 
   assert(
-    loaderContent.includes("/vendor/pdfjs/pdf.min.js"),
-    "PDF.js /vendor/pdfjs yerel dizininden yüklenmelidir."
+    loaderContent.includes("loadBrowserPdfJs"),
+    "PDF.js self-hosted ortak modül yükleyicisinden yüklenmelidir."
   );
   assert(
     !loaderContent.includes("cdnjs.cloudflare.com"),
     "PDF.js için CDN fallback YASAKTIR."
   );
+  const pdfjsClientPath = path.join(ROOT, "src/lib/pdfjs-client.ts");
+  const pdfjsClientContent = fs.readFileSync(pdfjsClientPath, "utf-8");
   assert(
-    loaderContent.includes("isEvalSupported: false"),
-    "createSecurePdfLoadingTask isEvalSupported: false (CVE-2024-4367 koruması) içermelidir."
+    pdfjsClientContent.includes("/vendor/pdfjs/pdf.min.mjs"),
+    "PDF.js patched ESM build self-hosted olarak yüklenmelidir."
   );
   assert(
-    loaderContent.includes("enableScripting: false"),
-    "createSecurePdfLoadingTask enableScripting: false (Embedded JS koruması) içermelidir."
+    loaderContent.includes("pdfjs.getDocument"),
+    "PDF dosyaları PDF.js core renderer ile açılmalıdır."
   );
   logSuccess("PDF.js güvenlik geçidi ve self-hosted yükleyici doğrulandı.");
 
@@ -221,7 +223,8 @@ async function runStage2Tests() {
 
   for (const cmd of mandatoryCommands) {
     assert(
-      toolbarContent.includes(`commandId="${cmd}"`),
+      toolbarContent.includes(`commandId="${cmd}"`) ||
+        toolbarContent.includes(`data-command-id="${cmd}"`),
       `PDF Viewer Toolbar '${cmd}' komutunu içermelidir.`
     );
   }

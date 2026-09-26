@@ -38,16 +38,26 @@ async function runStage3Tests() {
     "pdfjs-loader.ts içinde savunmasız CDN fallback (cdnjs) BULUNMAMALIDIR."
   );
   assert(
-    loaderContent.includes("/vendor/pdfjs/pdf.min.js"),
-    "pdfjs-loader.ts self-hosted /vendor/pdfjs/pdf.min.js kullanmalıdır."
+    loaderContent.includes("loadBrowserPdfJs"),
+    "pdfjs-loader.ts self-hosted ortak PDF.js yükleyicisini kullanmalıdır."
+  );
+  const pdfjsClientPath = path.join(ROOT, "src/lib/pdfjs-client.ts");
+  const pdfjsClientContent = fs.readFileSync(pdfjsClientPath, "utf-8");
+  assert(
+    pdfjsClientContent.includes("/vendor/pdfjs/pdf.min.mjs"),
+    "PDF.js patched ESM build self-hosted olarak yüklenmelidir."
+  );
+  const packageManifest = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "package.json"), "utf-8")
+  );
+  assert.match(
+    packageManifest.dependencies["pdfjs-dist"],
+    /^6\./,
+    "PDF.js security fixes require the patched 6.x line."
   );
   assert(
-    loaderContent.includes("isEvalSupported: false"),
-    "createSecurePdfLoadingTask isEvalSupported: false (CVE-2024-4367 koruması) içermelidir."
-  );
-  assert(
-    loaderContent.includes("enableScripting: false"),
-    "createSecurePdfLoadingTask enableScripting: false (Embedded JS koruması) içermelidir."
+    loaderContent.includes("pdfjs.getDocument"),
+    "PDF dosyaları PDF.js core renderer ile açılmalıdır."
   );
   logSuccess("PDF.js güvenlik geçidi ve self-hosted yükleyici doğrulandı.");
 

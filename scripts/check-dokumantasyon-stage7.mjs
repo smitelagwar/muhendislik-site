@@ -46,8 +46,10 @@ async function runStage7Tests() {
     "file-manager.tsx Liste/Kart (Grid) görünüm modlarını içermelidir."
   );
   assert(
-    fileManagerCode.includes("starredIds") && fileManagerCode.includes("toggleStar"),
-    "file-manager.tsx Yıldızlı (Starred) dosya desteği içermelidir."
+    fileManagerCode.includes("starredCount") &&
+      fileManagerCode.includes("toggleStar") &&
+      fileManagerCode.includes("starred_at"),
+    "file-manager.tsx sunucu tabanlı Yıldızlı (Starred) dosya desteği içermelidir."
   );
   assert(
     fileManagerCode.includes("DriveDetailsDrawer"),

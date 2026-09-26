@@ -42,8 +42,15 @@ function scanCodebaseForSecrets(dirPath, relativeRoot = "") {
     } else if (entry.isFile()) {
       try {
         const content = fs.readFileSync(fullPath, "utf8");
+        // Showcase HTML embeds large image payloads as base64 data URIs. Scan
+        // the surrounding source text without interpreting arbitrary image
+        // bytes as credential-shaped strings.
+        const searchableContent = content.replace(
+          /data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+/gi,
+          "",
+        );
         for (const pattern of SUSPICIOUS_SECRET_PATTERNS) {
-          if (pattern.regex.test(content)) {
+          if (pattern.regex.test(searchableContent)) {
             // .env.example içindeki placeholder'ları filtrele
             if (entry.name === ".env.example" && content.includes("CHANGE_ME")) {
               continue;
