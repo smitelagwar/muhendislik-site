@@ -36,25 +36,31 @@ type GesturePoint = {
   y: number;
 };
 
+type CameraState = {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+};
+
 type GestureState =
   | { mode: "idle" }
   | {
       mode: "pan";
       pointerId: number;
       startPoint: GesturePoint;
-      startScrollLeft: number;
-      startScrollTop: number;
+      startCamera: CameraState;
     }
   | {
       mode: "pinch";
       startDistance: number;
       startMidpoint: GesturePoint;
-      startScale: number;
-      startScrollLeft: number;
-      startScrollTop: number;
+      startCamera: CameraState;
     };
 
-const MIN_SCALE = 0.1;
+// Büyük mühendislik görsellerinin gerçekten ekrana sığabilmesi için düşük
+// ölçeklere izin veriyoruz. Üst sınır Aşama 5 performans ölçümleriyle tekrar
+// değerlendirilecek.
+const MIN_SCALE = 0.02;
 const MAX_SCALE = 5;
 
 function clampScale(value: number): number {
@@ -76,7 +82,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  const [scale, setScale] = useState<number>(1);
+  const [camera, setCamera] = useState<CameraState>({ scale: 1, offsetX: 0, offsetY: 0 });
+  const scale = camera.scale;
   const [isFitMode, setIsFitMode] = useState<boolean>(true);
   const [rotation, setRotation] = useState<number>(0);
   const [flipH, setFlipH] = useState<boolean>(false);
@@ -92,8 +99,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const activePointersRef = useRef<Map<number, GesturePoint>>(new Map());
   const gestureRef = useRef<GestureState>({ mode: "idle" });
-  const scaleRef = useRef(scale);
-  const pinchScrollFrameRef = useRef<number | null>(null);
+  const cameraRef = useRef<CameraState>(camera);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -108,26 +114,57 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   useEffect(() => {
-    scaleRef.current = scale;
-  }, [scale]);
+    cameraRef.current = camera;
+  }, [camera]);
 
   useEffect(() => {
     return () => {
-      if (pinchScrollFrameRef.current !== null) {
-        cancelAnimationFrame(pinchScrollFrameRef.current);
-      }
       activePointersRef.current.clear();
       gestureRef.current = { mode: "idle" };
     };
   }, []);
 
+  const commitCamera = useCallback((nextCamera: CameraState) => {
+    cameraRef.current = nextCamera;
+    setCamera(nextCamera);
+  }, []);
+
+  const clampCamera = useCallback(
+    (candidate: CameraState, rotationValue = rotation): CameraState => {
+      const container = containerRef.current;
+      if (!container || !naturalSize) {
+        return {
+          ...candidate,
+          scale: clampScale(candidate.scale),
+        };
+      }
+
+      const safeScale = clampScale(candidate.scale);
+      const isQuarterTurn = rotationValue % 180 !== 0;
+      const displayWidth = (isQuarterTurn ? naturalSize.height : naturalSize.width) * safeScale;
+      const displayHeight = (isQuarterTurn ? naturalSize.width : naturalSize.height) * safeScale;
+
+      const maxOffsetX = Math.max(0, (displayWidth - container.clientWidth) / 2);
+      const maxOffsetY = Math.max(0, (displayHeight - container.clientHeight) / 2);
+
+      return {
+        scale: safeScale,
+        offsetX: Math.min(Math.max(candidate.offsetX, -maxOffsetX), maxOffsetX),
+        offsetY: Math.min(Math.max(candidate.offsetY, -maxOffsetY), maxOffsetY),
+      };
+    },
+    [naturalSize, rotation]
+  );
+
   // Zoom to Fit
   const handleFitScreen = useCallback(() => {
-    if (!containerRef.current || !naturalSize) return;
-    const compactViewport = containerRef.current.clientWidth < 640;
+    const container = containerRef.current;
+    if (!container || !naturalSize) return;
+
+    const compactViewport = container.clientWidth < 640;
     const padding = compactViewport ? 32 : 64;
-    const containerWidth = Math.max(containerRef.current.clientWidth - padding, 1);
-    const containerHeight = Math.max(containerRef.current.clientHeight - padding, 1);
+    const containerWidth = Math.max(container.clientWidth - padding, 1);
+    const containerHeight = Math.max(container.clientHeight - padding, 1);
     const isQuarterTurn = rotation % 180 !== 0;
     const imageWidth = isQuarterTurn ? naturalSize.height : naturalSize.width;
     const imageHeight = isQuarterTurn ? naturalSize.width : naturalSize.height;
@@ -135,11 +172,10 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     const widthRatio = containerWidth / imageWidth;
     const heightRatio = containerHeight / imageHeight;
     const fitRatio = Math.min(widthRatio, heightRatio, 1);
-    const nextScale = parseFloat(Math.max(fitRatio, 0.2).toFixed(2));
+    const nextScale = parseFloat(clampScale(fitRatio).toFixed(3));
 
-    scaleRef.current = nextScale;
-    setScale(nextScale);
-  }, [naturalSize, rotation]);
+    commitCamera({ scale: nextScale, offsetX: 0, offsetY: 0 });
+  }, [commitCamera, naturalSize, rotation]);
 
   useEffect(() => {
     if (naturalSize && isFitMode) {
@@ -150,21 +186,62 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !naturalSize) return;
+
     const observer = new ResizeObserver(() => {
-      if (isFitMode) handleFitScreen();
+      if (isFitMode) {
+        handleFitScreen();
+      } else {
+        commitCamera(clampCamera(cameraRef.current));
+      }
     });
+
     observer.observe(container);
     return () => observer.disconnect();
-  }, [handleFitScreen, isFitMode, naturalSize]);
+  }, [clampCamera, commitCamera, handleFitScreen, isFitMode, naturalSize]);
 
-  const setCustomScale = useCallback((updater: (current: number) => number) => {
-    setIsFitMode(false);
-    setScale((current) => {
-      const nextScale = parseFloat(clampScale(updater(current)).toFixed(2));
-      scaleRef.current = nextScale;
-      return nextScale;
-    });
-  }, []);
+  useEffect(() => {
+    if (!naturalSize || isFitMode) return;
+    commitCamera(clampCamera(cameraRef.current, rotation));
+  }, [clampCamera, commitCamera, isFitMode, naturalSize, rotation]);
+
+  const zoomCameraAroundClientPoint = useCallback(
+    (targetScale: number, clientPoint?: GesturePoint) => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const current = cameraRef.current;
+      const nextScale = parseFloat(clampScale(targetScale).toFixed(3));
+      if (Math.abs(nextScale - current.scale) < 0.0005) return;
+
+      const rect = container.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const localX = clientPoint ? clientPoint.x - rect.left : centerX;
+      const localY = clientPoint ? clientPoint.y - rect.top : centerY;
+      const scaleRatio = nextScale / current.scale;
+
+      const anchorFromCameraX = localX - centerX - current.offsetX;
+      const anchorFromCameraY = localY - centerY - current.offsetY;
+
+      const nextCamera = clampCamera({
+        scale: nextScale,
+        offsetX: localX - centerX - anchorFromCameraX * scaleRatio,
+        offsetY: localY - centerY - anchorFromCameraY * scaleRatio,
+      });
+
+      setIsFitMode(false);
+      commitCamera(nextCamera);
+    },
+    [clampCamera, commitCamera]
+  );
+
+  const setCustomScale = useCallback(
+    (updater: (current: number) => number) => {
+      const current = cameraRef.current;
+      zoomCameraAroundClientPoint(updater(current.scale));
+    },
+    [zoomCameraAroundClientPoint]
+  );
 
   const rotate = (direction: 1 | -1) => {
     setRotation((current) => (current + direction * 90 + 360) % 360);
@@ -172,15 +249,10 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
   const resetView = () => {
     setIsFitMode(false);
-    scaleRef.current = 1;
-    setScale(1);
+    commitCamera({ scale: 1, offsetX: 0, offsetY: 0 });
     setRotation(0);
     setFlipH(false);
     setFlipV(false);
-    if (containerRef.current) {
-      containerRef.current.scrollLeft = 0;
-      containerRef.current.scrollTop = 0;
-    }
   };
 
   const retryLoad = () => {
@@ -189,41 +261,39 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     setLoadAttempt((attempt) => attempt + 1);
   };
 
-  // Ctrl + Wheel Zoom
+  // Ctrl/Cmd + Wheel: mouse imlecinin altındaki görüntü noktasını koruyarak zoom.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.15 : -0.15;
-        setCustomScale((current) => current + delta);
-      }
+      if (!e.ctrlKey && !e.metaKey) return;
+
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.15 : -0.15;
+      zoomCameraAroundClientPoint(cameraRef.current.scale + delta, {
+        x: e.clientX,
+        y: e.clientY,
+      });
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [setCustomScale]);
+  }, [zoomCameraAroundClientPoint]);
 
   const startPanGesture = useCallback((pointerId: number, point: GesturePoint) => {
-    const container = containerRef.current;
-    if (!container) return;
-
     gestureRef.current = {
       mode: "pan",
       pointerId,
       startPoint: point,
-      startScrollLeft: container.scrollLeft,
-      startScrollTop: container.scrollTop,
+      startCamera: cameraRef.current,
     };
     setIsDragging(true);
   }, []);
 
   const startPinchGesture = useCallback(() => {
-    const container = containerRef.current;
     const points = Array.from(activePointersRef.current.values());
-    if (!container || points.length < 2) return;
+    if (points.length < 2) return;
 
     const [first, second] = points;
     const startDistance = getPointerDistance(first, second);
@@ -233,10 +303,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       mode: "pinch",
       startDistance,
       startMidpoint: getPointerMidpoint(first, second),
-      startScale: scaleRef.current,
-      startScrollLeft: container.scrollLeft,
-      startScrollTop: container.scrollTop,
+      startCamera: cameraRef.current,
     };
+
     setIsFitMode(false);
     setIsDragging(true);
   }, []);
@@ -259,7 +328,6 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     setIsDragging(false);
   }, [startPanGesture, startPinchGesture]);
 
-  // Tek pointer pan + iki pointer pinch/pan gesture motoru.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -294,8 +362,14 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (gesture.mode === "pan") {
       if (gesture.pointerId !== e.pointerId || activePointers.size !== 1) return;
 
-      container.scrollLeft = gesture.startScrollLeft - (point.x - gesture.startPoint.x);
-      container.scrollTop = gesture.startScrollTop - (point.y - gesture.startPoint.y);
+      setIsFitMode(false);
+      commitCamera(
+        clampCamera({
+          ...gesture.startCamera,
+          offsetX: gesture.startCamera.offsetX + (point.x - gesture.startPoint.x),
+          offsetY: gesture.startCamera.offsetY + (point.y - gesture.startPoint.y),
+        })
+      );
       return;
     }
 
@@ -311,32 +385,34 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
     const currentMidpoint = getPointerMidpoint(first, second);
     const nextScale = parseFloat(
-      clampScale(gesture.startScale * (currentDistance / gesture.startDistance)).toFixed(3)
+      clampScale(
+        gesture.startCamera.scale * (currentDistance / gesture.startDistance)
+      ).toFixed(3)
     );
-    const scaleRatio = nextScale / gesture.startScale;
-    const viewportRect = container.getBoundingClientRect();
+    const scaleRatio = nextScale / gesture.startCamera.scale;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
-    const startLocalX = gesture.startMidpoint.x - viewportRect.left;
-    const startLocalY = gesture.startMidpoint.y - viewportRect.top;
-    const currentLocalX = currentMidpoint.x - viewportRect.left;
-    const currentLocalY = currentMidpoint.y - viewportRect.top;
+    const startLocalX = gesture.startMidpoint.x - rect.left;
+    const startLocalY = gesture.startMidpoint.y - rect.top;
+    const currentLocalX = currentMidpoint.x - rect.left;
+    const currentLocalY = currentMidpoint.y - rect.top;
 
-    const nextScrollLeft =
-      (gesture.startScrollLeft + startLocalX) * scaleRatio - currentLocalX;
-    const nextScrollTop =
-      (gesture.startScrollTop + startLocalY) * scaleRatio - currentLocalY;
+    const anchorFromCameraX =
+      startLocalX - centerX - gesture.startCamera.offsetX;
+    const anchorFromCameraY =
+      startLocalY - centerY - gesture.startCamera.offsetY;
 
-    scaleRef.current = nextScale;
-    setScale(nextScale);
-
-    if (pinchScrollFrameRef.current !== null) {
-      cancelAnimationFrame(pinchScrollFrameRef.current);
-    }
-    pinchScrollFrameRef.current = requestAnimationFrame(() => {
-      container.scrollLeft = nextScrollLeft;
-      container.scrollTop = nextScrollTop;
-      pinchScrollFrameRef.current = null;
-    });
+    commitCamera(
+      clampCamera({
+        scale: nextScale,
+        offsetX:
+          currentLocalX - centerX - anchorFromCameraX * scaleRatio,
+        offsetY:
+          currentLocalY - centerY - anchorFromCameraY * scaleRatio,
+      })
+    );
   };
 
   const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -345,11 +421,6 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
     activePointers.delete(e.pointerId);
 
-    if (pinchScrollFrameRef.current !== null) {
-      cancelAnimationFrame(pinchScrollFrameRef.current);
-      pinchScrollFrameRef.current = null;
-    }
-
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
@@ -357,17 +428,31 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     rebaseGestureFromActivePointers();
   };
 
-  // CSS Transform Hesabı
-  const scaledWidth = naturalSize ? naturalSize.width * scale : 0;
-  const scaledHeight = naturalSize ? naturalSize.height * scale : 0;
-  const isQuarterTurn = rotation % 180 !== 0;
-  const transformStyle = {
-    transform: `rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
-    transition: isDragging ? "none" : "transform 0.15s ease-out",
-  };
+  // CSS Transform Hesabı — pan/zoom layout ölçülerini büyütmek yerine
+  // tek kamera transform'u üzerinden uygulanır.
+  const transformStyle: React.CSSProperties = naturalSize
+    ? {
+        left: "50%",
+        top: "50%",
+        width: naturalSize.width,
+        height: naturalSize.height,
+        marginLeft: -naturalSize.width / 2,
+        marginTop: -naturalSize.height / 2,
+        transform: `translate3d(${camera.offsetX}px, ${camera.offsetY}px, 0) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1}) scale(${scale})`,
+        transformOrigin: "center center",
+        transition: isDragging ? "none" : "transform 0.15s ease-out",
+      }
+    : undefined;
 
   return (
-    <div data-zoom-mode={isFitMode ? "fit" : "custom"} data-rotation={rotation} className="flex h-full w-full flex-col bg-background text-foreground select-none">
+    <div
+      data-zoom-mode={isFitMode ? "fit" : "custom"}
+      data-rotation={rotation}
+      data-scale={scale.toFixed(3)}
+      data-camera-x={camera.offsetX.toFixed(2)}
+      data-camera-y={camera.offsetY.toFixed(2)}
+      className="flex h-full w-full flex-col bg-background text-foreground select-none"
+    >
       {/* Görsel Araç Çubuğu (Toolbar) */}
       <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-3 text-xs backdrop-blur-md">
         {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
@@ -497,7 +582,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onLostPointerCapture={handlePointerEnd}
-        className={`relative flex flex-1 touch-none items-start justify-start overflow-auto p-4 sm:p-8 ${
+        className={`relative flex flex-1 touch-none items-center justify-center overflow-hidden p-4 sm:p-8 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           showCheckerboard
@@ -522,10 +607,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         )}
 
         {naturalSize && (
-          <div
-            className="relative m-auto shrink-0"
-            style={{ width: isQuarterTurn ? scaledHeight : scaledWidth, height: isQuarterTurn ? scaledWidth : scaledHeight }}
-          >
+          <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imageRef}
@@ -534,10 +616,11 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
               alt={displayName}
               onLoad={handleImageLoad}
               onError={handleImageError}
-              style={{ ...transformStyle, width: scaledWidth, height: scaledHeight }}
-              className={`absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 origin-center rounded shadow-2xl transition-opacity duration-200 pointer-events-none select-none ${loading ? "opacity-0" : "opacity-100"}`}
+              style={transformStyle}
+              draggable={false}
+              className={`absolute max-w-none rounded shadow-2xl transition-opacity duration-200 pointer-events-none select-none ${loading ? "opacity-0" : "opacity-100"}`}
             />
-          </div>
+          </>
         )}
         {!naturalSize && (
           // eslint-disable-next-line @next/next/no-img-element
