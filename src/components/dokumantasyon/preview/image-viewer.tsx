@@ -545,9 +545,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       {/* Görsel Araç Çubuğu (Toolbar) */}
       <div className="z-30 flex min-h-12 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 px-2 text-xs backdrop-blur-md sm:px-3">
         {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-xs text-muted-foreground">
           {naturalSize ? (
-            <span className="font-mono text-[11px] font-bold text-foreground">
+            <span className="block truncate font-mono text-[10px] font-bold text-foreground min-[390px]:text-[11px]">
               {naturalSize.width} × {naturalSize.height} px
             </span>
           ) : (
