@@ -528,7 +528,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
   // CSS Transform Hesabı — pan/zoom layout ölçülerini büyütmek yerine
   // tek kamera transform'u üzerinden uygulanır.
-  const transformStyle: React.CSSProperties = naturalSize
+  const transformStyle: React.CSSProperties | undefined = naturalSize
     ? {
         left: "50%",
         top: "50%",
