@@ -1,9 +1,25 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { deflateSync } from "node:zlib";
 
-async function login(page: Page) {
-  await page.goto("/dokumantasyon");
-  await page.getByLabel("Kullanıcı Adı").fill("admin");
+async function ensureAuthenticated(page: Page) {
+  await page.goto("/dokumantasyon", { waitUntil: "domcontentloaded" });
+
+  const username = page.getByLabel("Kullanıcı Adı");
+  const loginVisible = await username
+    .waitFor({ state: "visible", timeout: 1500 })
+    .then(() => true)
+    .catch(() => false);
+
+  // Production runtime test modunda fixture ortamı admin oturumunu doğrudan
+  // sağlayabilir. Login formu yalnız gerçekten görünüyorsa kimlik doğrula.
+  if (!loginVisible) {
+    await expect(page.getByRole("heading", { name: "Dokümantasyon Modülü" })).toBeVisible({
+      timeout: 8000,
+    });
+    return;
+  }
+
+  await username.fill("admin");
   await page.locator("input#password").fill("admin");
   const responsePromise = page.waitForResponse(
     (response) =>
@@ -123,7 +139,7 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobil pinch acceptance only runs on the Pixel 7 project.");
   test.setTimeout(120_000);
 
-  await login(page);
+  await ensureAuthenticated(page);
   const imageId = await uploadImage(
     page,
     "image-viewer-large-4344x5792.png",
@@ -250,7 +266,7 @@ test("desktop image viewer regression: toolbar, wheel, mouse pan and transforms"
   test.skip(testInfo.project.name !== "chromium", "Desktop regression runs only on Desktop Chromium.");
   test.setTimeout(90_000);
 
-  await login(page);
+  await ensureAuthenticated(page);
   const imageId = await uploadImage(
     page,
     "image-viewer-desktop-1600x1200.png",
