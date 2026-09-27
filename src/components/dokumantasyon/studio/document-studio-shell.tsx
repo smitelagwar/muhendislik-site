@@ -397,6 +397,16 @@ export function DocumentStudioShell({
       data-mobile-landscape={isMobileLandscape ? "true" : "false"}
       data-mobile-landscape-hidden={isMobileLandscape && isLandscapeBarsHidden ? "true" : "false"}
       className="fixed inset-0 z-[200] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden overscroll-none bg-background text-foreground select-none"
+      style={
+        isFullscreen
+          ? {
+              paddingTop: "env(safe-area-inset-top)",
+              paddingRight: "env(safe-area-inset-right)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+              paddingLeft: "env(safe-area-inset-left)",
+            }
+          : undefined
+      }
     >
       {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor kendi tam entegre üst çubuğuna sahiptir) */}
       {cadEngine !== "v2" && (
@@ -423,12 +433,16 @@ export function DocumentStudioShell({
       {isMobileLandscape && isLandscapeBarsHidden && (
         <div
           data-testid="mobile-landscape-quick-controls"
-          className="fixed top-2.5 right-2.5 z-[250] flex items-center gap-1.5 rounded-full bg-card/90 border border-border/80 p-1 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2"
+          className="fixed z-[250] flex items-center gap-1.5 rounded-full bg-card/90 border border-border/80 p-1 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2"
+          style={{
+            top: "max(0.625rem, env(safe-area-inset-top))",
+            right: "max(0.625rem, env(safe-area-inset-right))",
+          }}
         >
           <button
             type="button"
             onClick={handleBack}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
             title="Geri Dön"
             aria-label="Geri Dön"
           >
@@ -438,7 +452,7 @@ export function DocumentStudioShell({
           <button
             type="button"
             onClick={() => setIsLandscapeBarsHidden(false)}
-            className="flex h-8 items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 text-xs font-bold text-amber-500 hover:bg-amber-500/25 transition-colors cursor-pointer shadow-sm"
+            className="flex h-10 items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 text-xs font-bold text-amber-500 hover:bg-amber-500/25 transition-colors cursor-pointer shadow-sm"
             title="Üst araç çubuğunu ve başlığı geçici olarak göster"
             aria-label="Araçları Göster"
           >
@@ -449,7 +463,7 @@ export function DocumentStudioShell({
           <button
             type="button"
             onClick={handleToggleFullscreen}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
             title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
             aria-label="Tam Ekran"
           >
