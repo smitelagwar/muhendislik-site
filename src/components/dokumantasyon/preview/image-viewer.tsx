@@ -49,6 +49,7 @@ type GestureState =
       pointerId: number;
       startPoint: GesturePoint;
       startCamera: CameraState;
+      activated: boolean;
     }
   | {
       mode: "pinch";
@@ -62,6 +63,10 @@ type GestureState =
 // değerlendirilecek.
 const MIN_SCALE = 0.02;
 const MAX_SCALE = 5;
+const PAN_START_THRESHOLD_PX = 5;
+const DOUBLE_TAP_MAX_DELAY_MS = 300;
+const DOUBLE_TAP_MAX_DISTANCE_PX = 28;
+const GESTURE_HINT_SESSION_KEY = "dok-image-viewer-gesture-hint-seen";
 
 function clampScale(value: number): number {
   return Math.min(Math.max(value, MIN_SCALE), MAX_SCALE);
@@ -94,12 +99,14 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [showGestureHint, setShowGestureHint] = useState(false);
 
   // Mobil/masaüstü işaretçi (pointer) ve gesture durumu.
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const activePointersRef = useRef<Map<number, GesturePoint>>(new Map());
   const gestureRef = useRef<GestureState>({ mode: "idle" });
   const cameraRef = useRef<CameraState>(camera);
+  const lastTapRef = useRef<{ time: number; point: GesturePoint } | null>(null);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -121,8 +128,35 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     return () => {
       activePointersRef.current.clear();
       gestureRef.current = { mode: "idle" };
+      lastTapRef.current = null;
     };
   }, []);
+
+  const dismissGestureHint = useCallback(() => {
+    setShowGestureHint(false);
+    try {
+      window.sessionStorage.setItem(GESTURE_HINT_SESSION_KEY, "1");
+    } catch {
+      // Depolama kapalıysa ipucu yalnız mevcut oturum belleğinde kapanır.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const coarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+    if (!coarsePointer) return;
+
+    try {
+      if (window.sessionStorage.getItem(GESTURE_HINT_SESSION_KEY) === "1") return;
+    } catch {
+      // sessionStorage kullanılamıyorsa yine de tek seferlik ipucu gösterilebilir.
+    }
+
+    setShowGestureHint(true);
+    const timeoutId = window.setTimeout(() => dismissGestureHint(), 4500);
+    return () => window.clearTimeout(timeoutId);
+  }, [dismissGestureHint]);
 
   const commitCamera = useCallback((nextCamera: CameraState) => {
     cameraRef.current = nextCamera;
@@ -287,6 +321,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       pointerId,
       startPoint: point,
       startCamera: cameraRef.current,
+      activated: false,
     };
     setIsDragging(true);
   }, []);
@@ -333,6 +368,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     e.preventDefault();
+    if (e.pointerType === "touch") {
+      dismissGestureHint();
+    }
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     try {
@@ -362,12 +400,24 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (gesture.mode === "pan") {
       if (gesture.pointerId !== e.pointerId || activePointers.size !== 1) return;
 
+      const deltaX = point.x - gesture.startPoint.x;
+      const deltaY = point.y - gesture.startPoint.y;
+      const movement = Math.hypot(deltaX, deltaY);
+
+      if (!gesture.activated && movement < PAN_START_THRESHOLD_PX) {
+        return;
+      }
+
+      if (!gesture.activated) {
+        gestureRef.current = { ...gesture, activated: true };
+      }
+
       setIsFitMode(false);
       commitCamera(
         clampCamera({
           ...gesture.startCamera,
-          offsetX: gesture.startCamera.offsetX + (point.x - gesture.startPoint.x),
-          offsetY: gesture.startCamera.offsetY + (point.y - gesture.startPoint.y),
+          offsetX: gesture.startCamera.offsetX + deltaX,
+          offsetY: gesture.startCamera.offsetY + deltaY,
         })
       );
       return;
@@ -419,6 +469,15 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     const activePointers = activePointersRef.current;
     if (!activePointers.has(e.pointerId)) return;
 
+    const gestureBeforeEnd = gestureRef.current;
+    const wasTapCandidate =
+      e.type === "pointerup" &&
+      e.pointerType === "touch" &&
+      activePointers.size === 1 &&
+      gestureBeforeEnd.mode === "pan" &&
+      gestureBeforeEnd.pointerId === e.pointerId &&
+      !gestureBeforeEnd.activated;
+
     activePointers.delete(e.pointerId);
 
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
@@ -426,6 +485,36 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     }
 
     rebaseGestureFromActivePointers();
+
+    if (!wasTapCandidate) {
+      if (gestureBeforeEnd.mode !== "pan" || gestureBeforeEnd.activated) {
+        lastTapRef.current = null;
+      }
+      return;
+    }
+
+    const now = performance.now();
+    const point = { x: e.clientX, y: e.clientY };
+    const previousTap = lastTapRef.current;
+
+    if (
+      previousTap &&
+      now - previousTap.time <= DOUBLE_TAP_MAX_DELAY_MS &&
+      getPointerDistance(previousTap.point, point) <= DOUBLE_TAP_MAX_DISTANCE_PX
+    ) {
+      lastTapRef.current = null;
+
+      if (isFitMode) {
+        const targetScale = Math.min(1, cameraRef.current.scale * 2);
+        zoomCameraAroundClientPoint(targetScale, point);
+      } else {
+        setIsFitMode(true);
+        handleFitScreen();
+      }
+      return;
+    }
+
+    lastTapRef.current = { time: now, point };
   };
 
   // CSS Transform Hesabı — pan/zoom layout ölçülerini büyütmek yerine
@@ -454,7 +543,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       className="flex h-full w-full flex-col bg-background text-foreground select-none"
     >
       {/* Görsel Araç Çubuğu (Toolbar) */}
-      <div className="z-30 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 px-3 text-xs backdrop-blur-md">
+      <div className="z-30 flex min-h-12 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 px-2 text-xs backdrop-blur-md sm:px-3">
         {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {naturalSize ? (
@@ -473,14 +562,14 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.zoom.out"
             onClick={() => setCustomScale((current) => current - 0.2)}
             showLabel={false}
-            className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-8 sm:w-8"
             icon={<ZoomOut className="h-3.5 w-3.5" />}
           />
 
           <StudioCommandButton
             commandId="image.zoom.100"
             onClick={resetView}
-            className="h-7 px-2 text-[11px] font-mono font-bold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="h-10 min-w-[46px] px-2 text-[11px] font-mono font-bold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-7 sm:min-w-0"
             label={`${Math.round(scale * 100)}%`}
           />
 
@@ -488,7 +577,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.zoom.in"
             onClick={() => setCustomScale((current) => current + 0.2)}
             showLabel={false}
-            className="h-8 w-8 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-8 sm:w-8"
             icon={<ZoomIn className="h-3.5 w-3.5" />}
           />
 
@@ -498,24 +587,24 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
               setIsFitMode(true);
               handleFitScreen();
             }}
-            className="inline-flex h-7 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors"
+            className="inline-flex h-10 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-7"
             label="Sığdır"
           />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
+              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/60" />
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -590,6 +679,17 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             : "bg-zinc-950"
         }`}
       >
+        {showGestureHint && naturalSize && !loading && !error && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/10 bg-zinc-950/85 px-3 py-2 text-[11px] font-medium text-zinc-100 shadow-xl backdrop-blur-md"
+            style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
+            İki parmakla yakınlaştır • Sürükleyerek gez
+          </div>
+        )}
+
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
             <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
