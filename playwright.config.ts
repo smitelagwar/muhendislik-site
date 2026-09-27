@@ -57,6 +57,7 @@ export default defineConfig({
         "**/cad-stage7-layer-mobile-ux.spec.ts",
         "**/cad-perf-baseline.spec.ts",
         "**/markdown-reader.spec.ts",
+        "**/image-viewer-mobile.spec.ts",
       ],
       use: { ...devices["Pixel 7"] },
     },

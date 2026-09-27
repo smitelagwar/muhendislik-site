@@ -133,6 +133,10 @@
     "check:cad-v2:integration": "tsx tests/cad-v2/publish-atomicity.test.ts && tsx tests/cad-v2/durable-service.test.ts && tsx tests/cad-v2/admin-menu-routing.test.ts && tsx tests/cad-v2/public-share-auth.test.ts && node --max-old-space-size=8192 --import tsx tests/cad-v2/accuracy-performance-acceptance.test.ts && tsx scripts/cad-v2/check-cad-v2-g00-baseline.ts && tsx scripts/cad-v2/run-v2-compiler-cli.ts --input \"eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg\" --output \"test-output/cad-v2-tmp/compiler-cli\"",
     "check:cad-v2:ui": "node scripts/build-dwg-dxf-worker.mjs && tsx tests/cad-v2/camera-interaction.test.ts && tsx tests/cad-v2/real-scene-render.test.ts && tsx tests/cad-v2/worker-refinement-browser.test.ts && tsx tests/cad-v2/host-lifecycle-cancellation.test.ts && tsx tests/cad-v2/ui-quality-acceptance.test.ts && playwright test tests/document-studio/cad-v2-layout-viewport.spec.ts --project=chromium",
     "check:cad-v2:release": "npm run check:cad-v2:unit && npm run check:cad-v2:integration && npm run check:cad-v2:ui",
+    "check:image-viewer:geometry": "tsx tests/image-viewer-geometry.test.ts",
+    "check:image-viewer:ui": "playwright test --config=playwright.config.ts tests/document-studio/image-viewer-mobile.spec.ts --project=chromium --project=mobile-chromium",
+    "check:image-viewer": "npm run check:image-viewer:geometry && npm run check:image-viewer:ui",
+    "check:image-viewer:release": "npx tsc -p tsconfig.next.json --noEmit --incremental false && npm run check:image-viewer:geometry && npm run build",
     "check:markdown-reader": "playwright test --config=playwright.config.ts tests/document-studio/markdown-reader.spec.ts --project=chromium --project=mobile-chromium"
   },
   "dependencies": {

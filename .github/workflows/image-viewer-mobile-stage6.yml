@@ -1,0 +1,55 @@
+name: image-viewer-mobile-stage6
+
+on:
+  push:
+    branches:
+      - internal-dok-mobile-plan-no-deploy
+    paths:
+      - "src/components/dokumantasyon/preview/image-viewer.tsx"
+      - "src/components/dokumantasyon/preview/image-viewer-geometry.ts"
+      - "src/components/dokumantasyon/studio/document-studio-shell.tsx"
+      - "tests/image-viewer-geometry.test.ts"
+      - "tests/document-studio/image-viewer-mobile.spec.ts"
+      - "playwright.config.ts"
+      - "package*.json"
+      - ".github/workflows/image-viewer-mobile-stage6.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-viewer-mobile-stage6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Geometry contract
+        run: npm run check:image-viewer:geometry
+      - name: Runtime typecheck
+        run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile image viewer acceptance
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+        run: npm run check:image-viewer:ui
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: image-viewer-stage6-test-results
+          path: |
+            test-results
+            playwright-report
+          retention-days: 7

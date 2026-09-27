@@ -25,22 +25,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  clampImageCamera,
+  computeImageFitScale,
+  getImagePointerDistance,
+  getImagePointerMidpoint,
+  zoomImageCameraBetweenPoints,
+  type ImageViewerCamera as CameraState,
+  type ImageViewerPoint as GesturePoint,
+} from "./image-viewer-geometry";
 
 interface DokImageViewerProps {
   accessUrl: string;
   displayName: string;
 }
-
-type GesturePoint = {
-  x: number;
-  y: number;
-};
-
-type CameraState = {
-  scale: number;
-  offsetX: number;
-  offsetY: number;
-};
 
 type GestureState =
   | { mode: "idle" }
@@ -58,30 +56,10 @@ type GestureState =
       startCamera: CameraState;
     };
 
-// Büyük mühendislik görsellerinin gerçekten ekrana sığabilmesi için düşük
-// ölçeklere izin veriyoruz. Üst sınır Aşama 5 performans ölçümleriyle tekrar
-// değerlendirilecek.
-const MIN_SCALE = 0.02;
-const MAX_SCALE = 5;
 const PAN_START_THRESHOLD_PX = 5;
 const DOUBLE_TAP_MAX_DELAY_MS = 300;
 const DOUBLE_TAP_MAX_DISTANCE_PX = 28;
 const GESTURE_HINT_SESSION_KEY = "dok-image-viewer-gesture-hint-seen";
-
-function clampScale(value: number): number {
-  return Math.min(Math.max(value, MIN_SCALE), MAX_SCALE);
-}
-
-function getPointerDistance(first: GesturePoint, second: GesturePoint): number {
-  return Math.hypot(second.x - first.x, second.y - first.y);
-}
-
-function getPointerMidpoint(first: GesturePoint, second: GesturePoint): GesturePoint {
-  return {
-    x: (first.x + second.x) / 2,
-    y: (first.y + second.y) / 2,
-  };
-}
 
 export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -206,26 +184,14 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const clampCamera = useCallback(
     (candidate: CameraState, rotationValue = rotation): CameraState => {
       const container = containerRef.current;
-      if (!container || !naturalSize) {
-        return {
-          ...candidate,
-          scale: clampScale(candidate.scale),
-        };
-      }
+      if (!container || !naturalSize) return candidate;
 
-      const safeScale = clampScale(candidate.scale);
-      const isQuarterTurn = rotationValue % 180 !== 0;
-      const displayWidth = (isQuarterTurn ? naturalSize.height : naturalSize.width) * safeScale;
-      const displayHeight = (isQuarterTurn ? naturalSize.width : naturalSize.height) * safeScale;
-
-      const maxOffsetX = Math.max(0, (displayWidth - container.clientWidth) / 2);
-      const maxOffsetY = Math.max(0, (displayHeight - container.clientHeight) / 2);
-
-      return {
-        scale: safeScale,
-        offsetX: Math.min(Math.max(candidate.offsetX, -maxOffsetX), maxOffsetX),
-        offsetY: Math.min(Math.max(candidate.offsetY, -maxOffsetY), maxOffsetY),
-      };
+      return clampImageCamera(
+        candidate,
+        { width: container.clientWidth, height: container.clientHeight },
+        naturalSize,
+        rotationValue
+      );
     },
     [naturalSize, rotation]
   );
@@ -237,16 +203,12 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
     const compactViewport = container.clientWidth < 640;
     const padding = compactViewport ? 32 : 64;
-    const containerWidth = Math.max(container.clientWidth - padding, 1);
-    const containerHeight = Math.max(container.clientHeight - padding, 1);
-    const isQuarterTurn = rotation % 180 !== 0;
-    const imageWidth = isQuarterTurn ? naturalSize.height : naturalSize.width;
-    const imageHeight = isQuarterTurn ? naturalSize.width : naturalSize.height;
-
-    const widthRatio = containerWidth / imageWidth;
-    const heightRatio = containerHeight / imageHeight;
-    const fitRatio = Math.min(widthRatio, heightRatio, 1);
-    const nextScale = parseFloat(clampScale(fitRatio).toFixed(3));
+    const nextScale = computeImageFitScale(
+      { width: container.clientWidth, height: container.clientHeight },
+      naturalSize,
+      rotation,
+      padding
+    );
 
     commitCamera({ scale: nextScale, offsetX: 0, offsetY: 0 });
   }, [commitCamera, naturalSize, rotation]);
@@ -283,30 +245,31 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       const container = containerRef.current;
       if (!container) return;
 
+      if (!naturalSize) return;
+
       const current = cameraRef.current;
-      const nextScale = parseFloat(clampScale(targetScale).toFixed(3));
-      if (Math.abs(nextScale - current.scale) < 0.0005) return;
-
       const rect = container.getBoundingClientRect();
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const localX = clientPoint ? clientPoint.x - rect.left : centerX;
-      const localY = clientPoint ? clientPoint.y - rect.top : centerY;
-      const scaleRatio = nextScale / current.scale;
+      const centerPoint = { x: rect.width / 2, y: rect.height / 2 };
+      const localPoint = clientPoint
+        ? { x: clientPoint.x - rect.left, y: clientPoint.y - rect.top }
+        : centerPoint;
 
-      const anchorFromCameraX = localX - centerX - current.offsetX;
-      const anchorFromCameraY = localY - centerY - current.offsetY;
+      const nextCamera = zoomImageCameraBetweenPoints(
+        current,
+        targetScale,
+        localPoint,
+        localPoint,
+        { width: rect.width, height: rect.height },
+        naturalSize,
+        rotation
+      );
 
-      const nextCamera = clampCamera({
-        scale: nextScale,
-        offsetX: localX - centerX - anchorFromCameraX * scaleRatio,
-        offsetY: localY - centerY - anchorFromCameraY * scaleRatio,
-      });
+      if (Math.abs(nextCamera.scale - current.scale) < 0.0005) return;
 
       setIsFitMode(false);
       commitCamera(nextCamera);
     },
-    [clampCamera, commitCamera]
+    [commitCamera, naturalSize, rotation]
   );
 
   const setCustomScale = useCallback(
@@ -371,13 +334,13 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (points.length < 2) return;
 
     const [first, second] = points;
-    const startDistance = getPointerDistance(first, second);
+    const startDistance = getImagePointerDistance(first, second);
     if (startDistance <= 0) return;
 
     gestureRef.current = {
       mode: "pinch",
       startDistance,
-      startMidpoint: getPointerMidpoint(first, second),
+      startMidpoint: getImagePointerMidpoint(first, second),
       startCamera: cameraRef.current,
     };
 
@@ -477,38 +440,32 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
     const first = pointerEntries[0][1];
     const second = pointerEntries[1][1];
-    const currentDistance = getPointerDistance(first, second);
+    const currentDistance = getImagePointerDistance(first, second);
     if (currentDistance <= 0 || gesture.startDistance <= 0) return;
 
-    const currentMidpoint = getPointerMidpoint(first, second);
-    const nextScale = parseFloat(
-      clampScale(
-        gesture.startCamera.scale * (currentDistance / gesture.startDistance)
-      ).toFixed(3)
-    );
-    const scaleRatio = nextScale / gesture.startCamera.scale;
+    const currentMidpoint = getImagePointerMidpoint(first, second);
+    if (!naturalSize) return;
+
     const rect = container.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const startLocalX = gesture.startMidpoint.x - rect.left;
-    const startLocalY = gesture.startMidpoint.y - rect.top;
-    const currentLocalX = currentMidpoint.x - rect.left;
-    const currentLocalY = currentMidpoint.y - rect.top;
-
-    const anchorFromCameraX =
-      startLocalX - centerX - gesture.startCamera.offsetX;
-    const anchorFromCameraY =
-      startLocalY - centerY - gesture.startCamera.offsetY;
+    const nextScale =
+      gesture.startCamera.scale * (currentDistance / gesture.startDistance);
 
     scheduleCamera(
-      clampCamera({
-        scale: nextScale,
-        offsetX:
-          currentLocalX - centerX - anchorFromCameraX * scaleRatio,
-        offsetY:
-          currentLocalY - centerY - anchorFromCameraY * scaleRatio,
-      })
+      zoomImageCameraBetweenPoints(
+        gesture.startCamera,
+        nextScale,
+        {
+          x: gesture.startMidpoint.x - rect.left,
+          y: gesture.startMidpoint.y - rect.top,
+        },
+        {
+          x: currentMidpoint.x - rect.left,
+          y: currentMidpoint.y - rect.top,
+        },
+        { width: rect.width, height: rect.height },
+        naturalSize,
+        rotation
+      )
     );
   };
 
@@ -552,7 +509,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (
       previousTap &&
       now - previousTap.time <= DOUBLE_TAP_MAX_DELAY_MS &&
-      getPointerDistance(previousTap.point, point) <= DOUBLE_TAP_MAX_DISTANCE_PX
+      getImagePointerDistance(previousTap.point, point) <= DOUBLE_TAP_MAX_DISTANCE_PX
     ) {
       lastTapRef.current = null;
 
@@ -591,6 +548,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     <div
       data-zoom-mode={isFitMode ? "fit" : "custom"}
       data-rotation={rotation}
+      data-flip-h={flipH ? "true" : "false"}
+      data-flip-v={flipV ? "true" : "false"}
       data-scale={scale.toFixed(3)}
       data-camera-x={camera.offsetX.toFixed(2)}
       data-camera-y={camera.offsetY.toFixed(2)}
