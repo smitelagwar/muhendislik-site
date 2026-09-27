@@ -106,6 +106,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const activePointersRef = useRef<Map<number, GesturePoint>>(new Map());
   const gestureRef = useRef<GestureState>({ mode: "idle" });
   const cameraRef = useRef<CameraState>(camera);
+  const pendingCameraRef = useRef<CameraState | null>(null);
+  const cameraFrameRef = useRef<number | null>(null);
   const lastTapRef = useRef<{ time: number; point: GesturePoint } | null>(null);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -126,6 +128,11 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
   useEffect(() => {
     return () => {
+      if (cameraFrameRef.current !== null) {
+        cancelAnimationFrame(cameraFrameRef.current);
+      }
+      cameraFrameRef.current = null;
+      pendingCameraRef.current = null;
       activePointersRef.current.clear();
       gestureRef.current = { mode: "idle" };
       lastTapRef.current = null;
@@ -159,8 +166,31 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   }, [dismissGestureHint]);
 
   const commitCamera = useCallback((nextCamera: CameraState) => {
+    if (cameraFrameRef.current !== null) {
+      cancelAnimationFrame(cameraFrameRef.current);
+      cameraFrameRef.current = null;
+    }
+    pendingCameraRef.current = null;
     cameraRef.current = nextCamera;
     setCamera(nextCamera);
+  }, []);
+
+  // Pointermove çok yüksek frekansta gelebilir. Kamera ref'i anında güncellenir,
+  // React state ise frame başına en fazla bir kez commit edilir.
+  const scheduleCamera = useCallback((nextCamera: CameraState) => {
+    cameraRef.current = nextCamera;
+    pendingCameraRef.current = nextCamera;
+
+    if (cameraFrameRef.current !== null) return;
+
+    cameraFrameRef.current = requestAnimationFrame(() => {
+      cameraFrameRef.current = null;
+      const pendingCamera = pendingCameraRef.current;
+      pendingCameraRef.current = null;
+      if (pendingCamera) {
+        setCamera(pendingCamera);
+      }
+    });
   }, []);
 
   const clampCamera = useCallback(
@@ -368,6 +398,13 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     e.preventDefault();
+
+    // Pinch motoru ilk iki aktif pointer ile deterministik çalışır.
+    // Üçüncü ve sonraki pointer'lar gesture geometrisine dahil edilmez.
+    if (activePointersRef.current.size >= 2) {
+      return;
+    }
+
     if (e.pointerType === "touch") {
       dismissGestureHint();
     }
@@ -413,7 +450,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       }
 
       setIsFitMode(false);
-      commitCamera(
+      scheduleCamera(
         clampCamera({
           ...gesture.startCamera,
           offsetX: gesture.startCamera.offsetX + deltaX,
@@ -454,7 +491,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     const anchorFromCameraY =
       startLocalY - centerY - gesture.startCamera.offsetY;
 
-    commitCamera(
+    scheduleCamera(
       clampCamera({
         scale: nextScale,
         offsetX:
@@ -530,6 +567,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         transform: `translate3d(${camera.offsetX}px, ${camera.offsetY}px, 0) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1}) scale(${scale})`,
         transformOrigin: "center center",
         transition: isDragging ? "none" : "transform 0.15s ease-out",
+        willChange: isDragging ? "transform" : "auto",
+        backfaceVisibility: "hidden",
       }
     : undefined;
 
@@ -671,7 +710,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onLostPointerCapture={handlePointerEnd}
-        className={`relative flex flex-1 touch-none items-center justify-center overflow-hidden p-4 sm:p-8 ${
+        className={`relative flex flex-1 touch-none overscroll-contain items-center justify-center overflow-hidden p-4 sm:p-8 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           showCheckerboard
@@ -706,26 +745,22 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
           </div>
         )}
 
-        {naturalSize && (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={imageRef}
-              key={loadAttempt}
-              src={accessUrl}
-              alt={displayName}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              style={transformStyle}
-              draggable={false}
-              className={`absolute max-w-none rounded shadow-2xl transition-opacity duration-200 pointer-events-none select-none ${loading ? "opacity-0" : "opacity-100"}`}
-            />
-          </>
-        )}
-        {!naturalSize && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img ref={imageRef} key={loadAttempt} src={accessUrl} alt={displayName} onLoad={handleImageLoad} onError={handleImageError} className="hidden" />
-        )}
+        {/* Görsel tek DOM düğümü olarak yaşamaya devam eder. Zoom/pan/rotate
+            sırasında src veya key değişmediği için yeniden request/decode tetiklenmez. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          ref={imageRef}
+          key={loadAttempt}
+          data-testid="image-viewer-image"
+          src={accessUrl}
+          alt={displayName}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          style={transformStyle}
+          draggable={false}
+          decoding="async"
+          className={`absolute max-w-none rounded shadow-2xl transition-opacity duration-200 pointer-events-none select-none ${loading || !naturalSize ? "opacity-0" : "opacity-100"}`}
+        />
       </div>
     </div>
   );
