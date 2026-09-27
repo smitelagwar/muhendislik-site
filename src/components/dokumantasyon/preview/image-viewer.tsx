@@ -31,6 +31,47 @@ interface DokImageViewerProps {
   displayName: string;
 }
 
+type GesturePoint = {
+  x: number;
+  y: number;
+};
+
+type GestureState =
+  | { mode: "idle" }
+  | {
+      mode: "pan";
+      pointerId: number;
+      startPoint: GesturePoint;
+      startScrollLeft: number;
+      startScrollTop: number;
+    }
+  | {
+      mode: "pinch";
+      startDistance: number;
+      startMidpoint: GesturePoint;
+      startScale: number;
+      startScrollLeft: number;
+      startScrollTop: number;
+    };
+
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 5;
+
+function clampScale(value: number): number {
+  return Math.min(Math.max(value, MIN_SCALE), MAX_SCALE);
+}
+
+function getPointerDistance(first: GesturePoint, second: GesturePoint): number {
+  return Math.hypot(second.x - first.x, second.y - first.y);
+}
+
+function getPointerMidpoint(first: GesturePoint, second: GesturePoint): GesturePoint {
+  return {
+    x: (first.x + second.x) / 2,
+    y: (first.y + second.y) / 2,
+  };
+}
+
 export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -47,9 +88,12 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
-  // Sürükleme (Pan) Durumu
+  // Mobil/masaüstü işaretçi (pointer) ve gesture durumu.
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const activePointersRef = useRef<Map<number, GesturePoint>>(new Map());
+  const gestureRef = useRef<GestureState>({ mode: "idle" });
+  const scaleRef = useRef(scale);
+  const pinchScrollFrameRef = useRef<number | null>(null);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -62,6 +106,20 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     setError("Görsel yüklenirken bir hata oluştu veya bağlantı süresi doldu.");
     setLoading(false);
   };
+
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
+
+  useEffect(() => {
+    return () => {
+      if (pinchScrollFrameRef.current !== null) {
+        cancelAnimationFrame(pinchScrollFrameRef.current);
+      }
+      activePointersRef.current.clear();
+      gestureRef.current = { mode: "idle" };
+    };
+  }, []);
 
   // Zoom to Fit
   const handleFitScreen = useCallback(() => {
@@ -77,8 +135,10 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     const widthRatio = containerWidth / imageWidth;
     const heightRatio = containerHeight / imageHeight;
     const fitRatio = Math.min(widthRatio, heightRatio, 1);
+    const nextScale = parseFloat(Math.max(fitRatio, 0.2).toFixed(2));
 
-    setScale(parseFloat(Math.max(fitRatio, 0.2).toFixed(2)));
+    scaleRef.current = nextScale;
+    setScale(nextScale);
   }, [naturalSize, rotation]);
 
   useEffect(() => {
@@ -99,7 +159,11 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
   const setCustomScale = useCallback((updater: (current: number) => number) => {
     setIsFitMode(false);
-    setScale((current) => parseFloat(Math.min(Math.max(updater(current), 0.1), 5).toFixed(2)));
+    setScale((current) => {
+      const nextScale = parseFloat(clampScale(updater(current)).toFixed(2));
+      scaleRef.current = nextScale;
+      return nextScale;
+    });
   }, []);
 
   const rotate = (direction: 1 | -1) => {
@@ -108,6 +172,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
 
   const resetView = () => {
     setIsFitMode(false);
+    scaleRef.current = 1;
     setScale(1);
     setRotation(0);
     setFlipH(false);
@@ -141,29 +206,155 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     return () => container.removeEventListener("wheel", handleWheel);
   }, [setCustomScale]);
 
-  // Pan (Sürükleme) Olayları
+  const startPanGesture = useCallback((pointerId: number, point: GesturePoint) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    gestureRef.current = {
+      mode: "pan",
+      pointerId,
+      startPoint: point,
+      startScrollLeft: container.scrollLeft,
+      startScrollTop: container.scrollTop,
+    };
+    setIsDragging(true);
+  }, []);
+
+  const startPinchGesture = useCallback(() => {
+    const container = containerRef.current;
+    const points = Array.from(activePointersRef.current.values());
+    if (!container || points.length < 2) return;
+
+    const [first, second] = points;
+    const startDistance = getPointerDistance(first, second);
+    if (startDistance <= 0) return;
+
+    gestureRef.current = {
+      mode: "pinch",
+      startDistance,
+      startMidpoint: getPointerMidpoint(first, second),
+      startScale: scaleRef.current,
+      startScrollLeft: container.scrollLeft,
+      startScrollTop: container.scrollTop,
+    };
+    setIsFitMode(false);
+    setIsDragging(true);
+  }, []);
+
+  const rebaseGestureFromActivePointers = useCallback(() => {
+    const pointers = Array.from(activePointersRef.current.entries());
+
+    if (pointers.length >= 2) {
+      startPinchGesture();
+      return;
+    }
+
+    if (pointers.length === 1) {
+      const [pointerId, point] = pointers[0];
+      startPanGesture(pointerId, point);
+      return;
+    }
+
+    gestureRef.current = { mode: "idle" };
+    setIsDragging(false);
+  }, [startPanGesture, startPinchGesture]);
+
+  // Tek pointer pan + iki pointer pinch/pan gesture motoru.
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX + containerRef.current.scrollLeft,
-      y: e.clientY + containerRef.current.scrollTop,
-    });
+
+    e.preventDefault();
+    activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Pointer capture desteklenmese bile gesture mevcut koordinatlarla devam edebilir.
+    }
+
+    if (activePointersRef.current.size === 1) {
+      startPanGesture(e.pointerId, { x: e.clientX, y: e.clientY });
+    } else if (activePointersRef.current.size === 2) {
+      startPinchGesture();
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !containerRef.current) return;
-    containerRef.current.scrollLeft = dragStart.x - e.clientX;
-    containerRef.current.scrollTop = dragStart.y - e.clientY;
+    const container = containerRef.current;
+    const activePointers = activePointersRef.current;
+    if (!container || !activePointers.has(e.pointerId)) return;
+
+    e.preventDefault();
+    const point = { x: e.clientX, y: e.clientY };
+    activePointers.set(e.pointerId, point);
+
+    const gesture = gestureRef.current;
+
+    if (gesture.mode === "pan") {
+      if (gesture.pointerId !== e.pointerId || activePointers.size !== 1) return;
+
+      container.scrollLeft = gesture.startScrollLeft - (point.x - gesture.startPoint.x);
+      container.scrollTop = gesture.startScrollTop - (point.y - gesture.startPoint.y);
+      return;
+    }
+
+    if (gesture.mode !== "pinch" || activePointers.size < 2) return;
+
+    const pointerEntries = Array.from(activePointers.entries()).slice(0, 2);
+    if (!pointerEntries.some(([pointerId]) => pointerId === e.pointerId)) return;
+
+    const first = pointerEntries[0][1];
+    const second = pointerEntries[1][1];
+    const currentDistance = getPointerDistance(first, second);
+    if (currentDistance <= 0 || gesture.startDistance <= 0) return;
+
+    const currentMidpoint = getPointerMidpoint(first, second);
+    const nextScale = parseFloat(
+      clampScale(gesture.startScale * (currentDistance / gesture.startDistance)).toFixed(3)
+    );
+    const scaleRatio = nextScale / gesture.startScale;
+    const viewportRect = container.getBoundingClientRect();
+
+    const startLocalX = gesture.startMidpoint.x - viewportRect.left;
+    const startLocalY = gesture.startMidpoint.y - viewportRect.top;
+    const currentLocalX = currentMidpoint.x - viewportRect.left;
+    const currentLocalY = currentMidpoint.y - viewportRect.top;
+
+    const nextScrollLeft =
+      (gesture.startScrollLeft + startLocalX) * scaleRatio - currentLocalX;
+    const nextScrollTop =
+      (gesture.startScrollTop + startLocalY) * scaleRatio - currentLocalY;
+
+    scaleRef.current = nextScale;
+    setScale(nextScale);
+
+    if (pinchScrollFrameRef.current !== null) {
+      cancelAnimationFrame(pinchScrollFrameRef.current);
+    }
+    pinchScrollFrameRef.current = requestAnimationFrame(() => {
+      container.scrollLeft = nextScrollLeft;
+      container.scrollTop = nextScrollTop;
+      pinchScrollFrameRef.current = null;
+    });
   };
 
   const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const activePointers = activePointersRef.current;
+    if (!activePointers.has(e.pointerId)) return;
+
+    activePointers.delete(e.pointerId);
+
+    if (pinchScrollFrameRef.current !== null) {
+      cancelAnimationFrame(pinchScrollFrameRef.current);
+      pinchScrollFrameRef.current = null;
+    }
+
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
-    setIsDragging(false);
+
+    rebaseGestureFromActivePointers();
   };
 
   // CSS Transform Hesabı
@@ -305,6 +496,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
+        onLostPointerCapture={handlePointerEnd}
         className={`relative flex flex-1 touch-none items-start justify-start overflow-auto p-4 sm:p-8 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
