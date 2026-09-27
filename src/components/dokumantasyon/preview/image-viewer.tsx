@@ -123,10 +123,6 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   useEffect(() => {
-    cameraRef.current = camera;
-  }, [camera]);
-
-  useEffect(() => {
     return () => {
       if (cameraFrameRef.current !== null) {
         cancelAnimationFrame(cameraFrameRef.current);
@@ -191,6 +187,20 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         setCamera(pendingCamera);
       }
     });
+  }, []);
+
+  const flushScheduledCamera = useCallback(() => {
+    const pendingCamera = pendingCameraRef.current;
+    if (!pendingCamera) return;
+
+    if (cameraFrameRef.current !== null) {
+      cancelAnimationFrame(cameraFrameRef.current);
+      cameraFrameRef.current = null;
+    }
+
+    pendingCameraRef.current = null;
+    cameraRef.current = pendingCamera;
+    setCamera(pendingCamera);
   }, []);
 
   const clampCamera = useCallback(
@@ -505,6 +515,11 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
     const activePointers = activePointersRef.current;
     if (!activePointers.has(e.pointerId)) return;
+
+    // Son pointermove aynı frame içinde kuyruğa alınmış olabilir. Pointer
+    // bırakılırken kamera state/ref farkını sıfırla; böylece pinch→pan geçişi
+    // eski bir frame'den başlamaz.
+    flushScheduledCamera();
 
     const gestureBeforeEnd = gestureRef.current;
     const wasTapCandidate =
