@@ -33,6 +33,14 @@ jobs:
           node-version: "22.13.0"
           cache: npm
       - run: npm ci
+      - name: Changed image viewer lint
+        run: >-
+          npx eslint
+          src/components/dokumantasyon/preview/image-viewer.tsx
+          src/components/dokumantasyon/preview/image-viewer-geometry.ts
+          tests/document-studio/image-viewer-mobile.spec.ts
+          tests/image-viewer-geometry.test.ts
+          playwright.config.ts
       - name: Geometry contract
         run: npm run check:image-viewer:geometry
       - name: Runtime typecheck

@@ -101,13 +101,15 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   useEffect(() => {
+    const activePointers = activePointersRef.current;
+
     return () => {
       if (cameraFrameRef.current !== null) {
         cancelAnimationFrame(cameraFrameRef.current);
       }
       cameraFrameRef.current = null;
       pendingCameraRef.current = null;
-      activePointersRef.current.clear();
+      activePointers.clear();
       gestureRef.current = { mode: "idle" };
       lastTapRef.current = null;
     };
@@ -134,9 +136,19 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       // sessionStorage kullanılamıyorsa yine de tek seferlik ipucu gösterilebilir.
     }
 
-    setShowGestureHint(true);
-    const timeoutId = window.setTimeout(() => dismissGestureHint(), 4500);
-    return () => window.clearTimeout(timeoutId);
+    // React Hooks lint kuralına göre effect gövdesinde senkron state değişimi
+    // yapmıyoruz. İlk paint/hydration tamamlandıktan sonra ipucunu göster.
+    const revealTimeoutId = window.setTimeout(() => {
+      setShowGestureHint(true);
+    }, 0);
+    const hideTimeoutId = window.setTimeout(() => {
+      dismissGestureHint();
+    }, 4500);
+
+    return () => {
+      window.clearTimeout(revealTimeoutId);
+      window.clearTimeout(hideTimeoutId);
+    };
   }, [dismissGestureHint]);
 
   const commitCamera = useCallback((nextCamera: CameraState) => {
