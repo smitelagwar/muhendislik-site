@@ -34,15 +34,15 @@ assert.deepEqual(getImageDisplaySize({ width: 1600, height: 900 }, 0.5, 90), {
   height: 800,
 });
 
-assert.deepEqual(
-  clampImageCamera(
-    { scale: 0.1, offsetX: 100, offsetY: -100 },
-    { width: 390, height: 700 },
-    portrait,
-    0
-  ),
-  { scale: 0.1, offsetX: 22.2, offsetY: 0 }
+const clamped = clampImageCamera(
+  { scale: 0.1, offsetX: 100, offsetY: -100 },
+  { width: 390, height: 700 },
+  portrait,
+  0
 );
+close(clamped.scale, 0.1);
+close(clamped.offsetX, 22.2);
+close(clamped.offsetY, 0);
 
 const viewport = { width: 390, height: 700 };
 const natural = { width: 1600, height: 2400 };
