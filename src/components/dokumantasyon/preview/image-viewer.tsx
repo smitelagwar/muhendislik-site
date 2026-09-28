@@ -28,11 +28,13 @@ import {
 import {
   clampImageCamera,
   computeImageFitScale,
+  getImageViewerScaleLimits,
   getImagePointerDistance,
   getImagePointerMidpoint,
   zoomImageCameraBetweenPoints,
   type ImageViewerCamera as CameraState,
   type ImageViewerPoint as GesturePoint,
+  type ImageViewerSize,
 } from "./image-viewer-geometry";
 
 interface DokImageViewerProps {
@@ -60,12 +62,16 @@ const PAN_START_THRESHOLD_PX = 5;
 const DOUBLE_TAP_MAX_DELAY_MS = 300;
 const DOUBLE_TAP_MAX_DISTANCE_PX = 28;
 const GESTURE_HINT_SESSION_KEY = "dok-image-viewer-gesture-hint-seen";
+const BUTTON_ZOOM_FACTOR = 1.25;
+const WHEEL_ZOOM_SENSITIVITY = 0.0015;
+const MAX_NORMALIZED_WHEEL_DELTA = 300;
 
 export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
   const [camera, setCamera] = useState<CameraState>({ scale: 1, offsetX: 0, offsetY: 0 });
+  const [viewportSize, setViewportSize] = useState<ImageViewerSize | null>(null);
   const scale = camera.scale;
   const [isFitMode, setIsFitMode] = useState<boolean>(true);
   const [rotation, setRotation] = useState<number>(0);
@@ -78,6 +84,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const [error, setError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [showGestureHint, setShowGestureHint] = useState(false);
+  const [isWheelZooming, setIsWheelZooming] = useState(false);
 
   // Mobil/masaüstü işaretçi (pointer) ve gesture durumu.
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -86,6 +93,7 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const cameraRef = useRef<CameraState>(camera);
   const pendingCameraRef = useRef<CameraState | null>(null);
   const cameraFrameRef = useRef<number | null>(null);
+  const wheelIdleTimeoutRef = useRef<number | null>(null);
   const lastTapRef = useRef<{ time: number; point: GesturePoint } | null>(null);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -106,6 +114,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     return () => {
       if (cameraFrameRef.current !== null) {
         cancelAnimationFrame(cameraFrameRef.current);
+      }
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
       }
       cameraFrameRef.current = null;
       pendingCameraRef.current = null;
@@ -193,19 +204,35 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     setCamera(pendingCamera);
   }, []);
 
+  const getScaleLimits = useCallback(
+    (viewport: ImageViewerSize, rotationValue = rotation) => {
+      if (!naturalSize) {
+        return getImageViewerScaleLimits(1);
+      }
+
+      const padding = viewport.width < 640 ? 32 : 64;
+      const fitScale = computeImageFitScale(viewport, naturalSize, rotationValue, padding);
+      return getImageViewerScaleLimits(fitScale);
+    },
+    [naturalSize, rotation]
+  );
+
   const clampCamera = useCallback(
     (candidate: CameraState, rotationValue = rotation): CameraState => {
       const container = containerRef.current;
       if (!container || !naturalSize) return candidate;
 
+      const viewport = { width: container.clientWidth, height: container.clientHeight };
+
       return clampImageCamera(
         candidate,
-        { width: container.clientWidth, height: container.clientHeight },
+        viewport,
         naturalSize,
-        rotationValue
+        rotationValue,
+        getScaleLimits(viewport, rotationValue)
       );
     },
-    [naturalSize, rotation]
+    [getScaleLimits, naturalSize, rotation]
   );
 
   // Zoom to Fit
@@ -236,6 +263,16 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     if (!container || !naturalSize) return;
 
     const observer = new ResizeObserver(() => {
+      const nextViewport = {
+        width: container.clientWidth,
+        height: container.clientHeight,
+      };
+      setViewportSize((current) =>
+        current?.width === nextViewport.width && current.height === nextViewport.height
+          ? current
+          : nextViewport
+      );
+
       if (isFitMode) {
         handleFitScreen();
       } else {
@@ -273,15 +310,16 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         localPoint,
         { width: rect.width, height: rect.height },
         naturalSize,
-        rotation
+        rotation,
+        getScaleLimits({ width: rect.width, height: rect.height })
       );
 
       if (Math.abs(nextCamera.scale - current.scale) < 0.0005) return;
 
       setIsFitMode(false);
-      commitCamera(nextCamera);
+      scheduleCamera(nextCamera);
     },
-    [commitCamera, naturalSize, rotation]
+    [getScaleLimits, naturalSize, rotation, scheduleCamera]
   );
 
   const setCustomScale = useCallback(
@@ -297,11 +335,18 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   };
 
   const resetView = () => {
-    setIsFitMode(false);
-    commitCamera({ scale: 1, offsetX: 0, offsetY: 0 });
+    const container = containerRef.current;
+    setIsFitMode(true);
     setRotation(0);
     setFlipH(false);
     setFlipV(false);
+
+    if (!container || !naturalSize) return;
+
+    const viewport = { width: container.clientWidth, height: container.clientHeight };
+    const padding = viewport.width < 640 ? 32 : 64;
+    const fitScale = computeImageFitScale(viewport, naturalSize, 0, padding);
+    commitCamera({ scale: fitScale, offsetX: 0, offsetY: 0 });
   };
 
   const retryLoad = () => {
@@ -310,20 +355,42 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
     setLoadAttempt((attempt) => attempt + 1);
   };
 
-  // Ctrl/Cmd + Wheel: mouse imlecinin altındaki görüntü noktasını koruyarak zoom.
+  // Tekerlek ve trackpad yakınlaştırması pointer odağını korur.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-
       e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.15 : -0.15;
-      zoomCameraAroundClientPoint(cameraRef.current.scale + delta, {
+      if (!Number.isFinite(e.deltaY) || e.deltaY === 0) return;
+
+      const deltaMultiplier =
+        e.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? container.clientHeight
+            : 1;
+      const normalizedDelta = Math.min(
+        Math.max(e.deltaY * deltaMultiplier, -MAX_NORMALIZED_WHEEL_DELTA),
+        MAX_NORMALIZED_WHEEL_DELTA
+      );
+
+      setIsWheelZooming(true);
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
+      }
+      wheelIdleTimeoutRef.current = window.setTimeout(() => {
+        wheelIdleTimeoutRef.current = null;
+        setIsWheelZooming(false);
+      }, 180);
+
+      zoomCameraAroundClientPoint(
+        cameraRef.current.scale * Math.exp(-normalizedDelta * WHEEL_ZOOM_SENSITIVITY),
+        {
         x: e.clientX,
         y: e.clientY,
-      });
+        }
+      );
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
@@ -430,6 +497,15 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         return;
       }
 
+      const limits = getScaleLimits({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+      if (gesture.startCamera.scale <= limits.minScale + 0.0005) {
+        gestureRef.current = { ...gesture, activated: true };
+        return;
+      }
+
       if (!gesture.activated) {
         gestureRef.current = { ...gesture, activated: true };
       }
@@ -476,7 +552,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         },
         { width: rect.width, height: rect.height },
         naturalSize,
-        rotation
+        rotation,
+        getScaleLimits({ width: rect.width, height: rect.height })
       )
     );
   };
@@ -526,7 +603,11 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       lastTapRef.current = null;
 
       if (isFitMode) {
-        const targetScale = Math.min(1, cameraRef.current.scale * 2);
+        const container = containerRef.current;
+        const limits = container
+          ? getScaleLimits({ width: container.clientWidth, height: container.clientHeight })
+          : getImageViewerScaleLimits(cameraRef.current.scale);
+        const targetScale = Math.min(limits.maxScale, limits.minScale * 2);
         zoomCameraAroundClientPoint(targetScale, point);
       } else {
         setIsFitMode(true);
@@ -550,11 +631,22 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
         marginTop: -naturalSize.height / 2,
         transform: `translate3d(${camera.offsetX}px, ${camera.offsetY}px, 0) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1}) scale(${scale})`,
         transformOrigin: "center center",
-        transition: isDragging ? "none" : "transform 0.15s ease-out",
-        willChange: isDragging ? "transform" : "auto",
+        transition: isDragging || isWheelZooming ? "none" : "transform 0.15s ease-out",
+        willChange: isDragging || isWheelZooming ? "transform" : "auto",
         backfaceVisibility: "hidden",
       }
     : undefined;
+
+  const fitScale =
+    naturalSize && viewportSize
+      ? computeImageFitScale(
+          viewportSize,
+          naturalSize,
+          rotation,
+          viewportSize.width < 640 ? 32 : 64
+        )
+      : scale;
+  const zoomPercent = Math.round((scale / Math.max(fitScale, 0.02)) * 100);
 
   return (
     <div
@@ -562,7 +654,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       data-rotation={rotation}
       data-flip-h={flipH ? "true" : "false"}
       data-flip-v={flipV ? "true" : "false"}
-      data-scale={scale.toFixed(3)}
+      data-zoom={String(scale / Math.max(fitScale, 0.02))}
+      data-fit-scale={String(fitScale)}
+      data-scale={String(scale)}
       data-camera-x={camera.offsetX.toFixed(2)}
       data-camera-y={camera.offsetY.toFixed(2)}
       className="flex h-full w-full flex-col bg-background text-foreground select-none"
@@ -585,24 +679,28 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
           {/* Zoom Kontrolleri */}
           <StudioCommandButton
             commandId="image.zoom.out"
-            onClick={() => setCustomScale((current) => current - 0.2)}
+            onClick={() => setCustomScale((current) => current / BUTTON_ZOOM_FACTOR)}
             showLabel={false}
-            className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-8 sm:w-8"
+            label="Uzaklaştır"
+            className="h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-8 lg:w-8"
             icon={<ZoomOut className="h-3.5 w-3.5" />}
           />
 
           <StudioCommandButton
             commandId="image.zoom.100"
             onClick={resetView}
-            className="h-10 min-w-[46px] px-2 text-[11px] font-mono font-bold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-7 sm:min-w-0"
-            label={`${Math.round(scale * 100)}%`}
+            aria-label={`Görünümü sıfırla, yakınlaştırma yüzde ${zoomPercent}`}
+            title={`Görünümü sıfırla · ${zoomPercent}%`}
+            className="min-w-12 rounded-lg px-2 text-[11px] font-mono font-bold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground h-11 lg:h-7 lg:min-w-0"
+            label={`${zoomPercent}%`}
           />
 
           <StudioCommandButton
             commandId="image.zoom.in"
-            onClick={() => setCustomScale((current) => current + 0.2)}
+            onClick={() => setCustomScale((current) => current * BUTTON_ZOOM_FACTOR)}
             showLabel={false}
-            className="h-10 w-10 p-0 text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-8 sm:w-8"
+            label="Yakınlaştır"
+            className="h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-8 lg:w-8"
             icon={<ZoomIn className="h-3.5 w-3.5" />}
           />
 
@@ -612,24 +710,24 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
               setIsFitMode(true);
               handleFitScreen();
             }}
-            className="inline-flex h-10 px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground rounded-lg transition-colors sm:h-7"
+            className="inline-flex h-11 rounded-lg px-2.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-7"
             label="Sığdır"
           />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
+              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/60" />
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-10 cursor-pointer text-xs rounded-lg sm:min-h-0" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
+              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -640,7 +738,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.rotate.ccw"
             onClick={() => rotate(-1)}
             showLabel={false}
-            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            label="Saat yönünün tersine döndür"
+            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
             icon={<RotateCcw className="h-3.5 w-3.5" />}
           />
 
@@ -648,7 +747,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             commandId="image.rotate.cw"
             onClick={() => rotate(1)}
             showLabel={false}
-            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            label="Saat yönünde döndür"
+            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
             icon={<RotateCw className="h-3.5 w-3.5" />}
           />
 
@@ -660,7 +760,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setFlipH((value) => !value)}
             active={flipH}
             showLabel={false}
-            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            label="Yatay aynala"
+            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
             icon={<FlipHorizontal className="h-3.5 w-3.5" />}
           />
 
@@ -669,7 +770,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setFlipV((value) => !value)}
             active={flipV}
             showLabel={false}
-            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            label="Dikey aynala"
+            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
             icon={<FlipVertical className="h-3.5 w-3.5" />}
           />
 
@@ -681,7 +783,8 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setShowCheckerboard((value) => !value)}
             active={showCheckerboard}
             showLabel={false}
-            className="hidden h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            label="Şeffaflık ızgarasını aç veya kapat"
+            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
             icon={<Grid className="h-3.5 w-3.5" />}
           />
         </div>

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   clampImageCamera,
   computeImageFitScale,
+  getImageViewerScaleLimits,
   getImageDisplaySize,
   getImagePointerDistance,
   getImagePointerMidpoint,
@@ -25,6 +26,9 @@ const portrait = { width: 4344, height: 5792 };
 const mobileViewport = { width: 390, height: 700 };
 const fit0 = computeImageFitScale(mobileViewport, portrait, 0, 32);
 close(fit0, 0.082, 0.001);
+const portraitLimits = getImageViewerScaleLimits(fit0);
+close(portraitLimits.minScale, fit0);
+close(portraitLimits.maxScale, Math.min(5, fit0 * 8));
 
 const fit90 = computeImageFitScale(mobileViewport, portrait, 90, 32);
 close(fit90, 0.062, 0.001);
@@ -44,6 +48,24 @@ close(clamped.scale, 0.1);
 close(clamped.offsetX, 22.2);
 close(clamped.offsetY, 0);
 
+const fitClamped = clampImageCamera(
+  { scale: fit0 / 2, offsetX: 0, offsetY: 0 },
+  mobileViewport,
+  portrait,
+  0,
+  portraitLimits
+);
+close(fitClamped.scale, fit0);
+
+const maxZoomClamped = clampImageCamera(
+  { scale: portraitLimits.maxScale * 2, offsetX: 0, offsetY: 0 },
+  mobileViewport,
+  portrait,
+  0,
+  portraitLimits
+);
+close(maxZoomClamped.scale, portraitLimits.maxScale);
+
 const viewport = { width: 390, height: 700 };
 const natural = { width: 1600, height: 2400 };
 const startCamera: ImageViewerCamera = {
@@ -60,7 +82,8 @@ const zoomed = zoomImageCameraBetweenPoints(
   anchor,
   viewport,
   natural,
-  0
+  0,
+  getImageViewerScaleLimits(startCamera.scale)
 );
 
 const beforeVector = {
@@ -82,7 +105,8 @@ const pinchAndPan = zoomImageCameraBetweenPoints(
   movedTarget,
   viewport,
   natural,
-  0
+  0,
+  getImageViewerScaleLimits(startCamera.scale)
 );
 const movedVector = {
   x:
@@ -94,5 +118,35 @@ const movedVector = {
 };
 close(movedVector.x, beforeVector.x);
 close(movedVector.y, beforeVector.y);
+
+const belowFit = zoomImageCameraBetweenPoints(
+  startCamera,
+  startCamera.scale / 2,
+  anchor,
+  anchor,
+  viewport,
+  natural,
+  0,
+  getImageViewerScaleLimits(startCamera.scale)
+);
+close(belowFit.scale, startCamera.scale);
+
+const invalidFit = computeImageFitScale(
+  { width: 0, height: 0 },
+  { width: 0, height: Number.NaN },
+  0,
+  64
+);
+assert.ok(Number.isFinite(invalidFit));
+
+const invalidCamera = clampImageCamera(
+  { scale: Number.NaN, offsetX: Number.NaN, offsetY: Number.POSITIVE_INFINITY },
+  viewport,
+  natural,
+  0
+);
+assert.ok(Number.isFinite(invalidCamera.scale));
+assert.ok(Number.isFinite(invalidCamera.offsetX));
+assert.ok(Number.isFinite(invalidCamera.offsetY));
 
 console.log("✅ Image viewer geometry tests passed.");

@@ -135,6 +135,59 @@ async function dispatchTouchPointer(
   });
 }
 
+async function dispatchTouchTap(page: Page, pointerId: number, x: number, y: number) {
+  await page.getByTestId("image-viewer-viewport").evaluate(
+    (viewport, point) => {
+      const pointerInit = {
+        pointerId: point.pointerId,
+        pointerType: "touch",
+        isPrimary: true,
+        clientX: point.x,
+        clientY: point.y,
+        button: 0,
+        buttons: 1,
+        bubbles: true,
+      };
+      viewport.dispatchEvent(new PointerEvent("pointerdown", pointerInit));
+      viewport.dispatchEvent(
+        new PointerEvent("pointerup", { ...pointerInit, buttons: 0 })
+      );
+    },
+    { pointerId, x, y }
+  );
+}
+
+async function dispatchTouchSequence(
+  page: Page,
+  sequence: Array<{
+    type: "pointerdown" | "pointermove" | "pointerup";
+    pointerId: number;
+    x: number;
+    y: number;
+    isPrimary: boolean;
+  }>
+) {
+  await page.getByTestId("image-viewer-viewport").evaluate(
+    (viewport, actions) => {
+      for (const action of actions) {
+        viewport.dispatchEvent(
+          new PointerEvent(action.type, {
+            pointerId: action.pointerId,
+            pointerType: "touch",
+            isPrimary: action.isPrimary,
+            clientX: action.x,
+            clientY: action.y,
+            button: 0,
+            buttons: action.type === "pointerup" ? 0 : 1,
+            bubbles: true,
+          })
+        );
+      }
+    },
+    sequence
+  );
+}
+
 test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and request stability", async ({ page }, testInfo: TestInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobil pinch acceptance only runs on the Pixel 7 project.");
   test.setTimeout(120_000);
@@ -152,6 +205,11 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
   await expect(viewport).toBeVisible();
   await expect(image).toBeVisible();
   await expect(page.getByText("4344 × 5792 px", { exact: true })).toBeVisible();
+
+  const zoomOutBox = await page
+    .locator('[data-command-id="image.zoom.out"]')
+    .boundingBox();
+  expect(zoomOutBox?.height).toBeGreaterThanOrEqual(44);
 
   const imageSrc = await image.getAttribute("src");
   expect(imageSrc).toBeTruthy();
@@ -180,10 +238,12 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
   const p1Start = { x: midpoint.x - 40, y: midpoint.y };
   const p2Start = { x: midpoint.x + 40, y: midpoint.y };
 
-  await dispatchTouchPointer(page, "pointerdown", 101, p1Start.x, p1Start.y, true);
-  await dispatchTouchPointer(page, "pointerdown", 102, p2Start.x, p2Start.y, false);
-  await dispatchTouchPointer(page, "pointermove", 101, midpoint.x - 80, midpoint.y, true);
-  await dispatchTouchPointer(page, "pointermove", 102, midpoint.x + 80, midpoint.y, false);
+  await dispatchTouchSequence(page, [
+    { type: "pointerdown", pointerId: 101, x: p1Start.x, y: p1Start.y, isPrimary: true },
+    { type: "pointerdown", pointerId: 102, x: p2Start.x, y: p2Start.y, isPrimary: false },
+    { type: "pointermove", pointerId: 101, x: midpoint.x - 80, y: midpoint.y, isPrimary: true },
+    { type: "pointermove", pointerId: 102, x: midpoint.x + 80, y: midpoint.y, isPrimary: false },
+  ]);
   await page.waitForTimeout(50);
 
   const afterPinch = await readCamera(page);
@@ -219,8 +279,7 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
 
   // Custom zoom durumunda double tap tekrar fit'e dönmeli.
   for (const pointerId of [201, 202]) {
-    await dispatchTouchPointer(page, "pointerdown", pointerId, midpoint.x, midpoint.y, true);
-    await dispatchTouchPointer(page, "pointerup", pointerId, midpoint.x, midpoint.y, true);
+    await dispatchTouchTap(page, pointerId, midpoint.x, midpoint.y);
     await page.waitForTimeout(70);
   }
   await expect(page.locator("[data-zoom-mode='fit']").first()).toBeVisible();
@@ -234,10 +293,12 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
   await expect(page.locator("[data-flip-h='true']").first()).toBeVisible();
 
   const rotatedStart = await readCamera(page);
-  await dispatchTouchPointer(page, "pointerdown", 301, midpoint.x - 35, midpoint.y, true);
-  await dispatchTouchPointer(page, "pointerdown", 302, midpoint.x + 35, midpoint.y, false);
-  await dispatchTouchPointer(page, "pointermove", 301, midpoint.x - 70, midpoint.y, true);
-  await dispatchTouchPointer(page, "pointermove", 302, midpoint.x + 70, midpoint.y, false);
+  await dispatchTouchSequence(page, [
+    { type: "pointerdown", pointerId: 301, x: midpoint.x - 35, y: midpoint.y, isPrimary: true },
+    { type: "pointerdown", pointerId: 302, x: midpoint.x + 35, y: midpoint.y, isPrimary: false },
+    { type: "pointermove", pointerId: 301, x: midpoint.x - 70, y: midpoint.y, isPrimary: true },
+    { type: "pointermove", pointerId: 302, x: midpoint.x + 70, y: midpoint.y, isPrimary: false },
+  ]);
   await page.waitForTimeout(50);
   const rotatedPinch = await readCamera(page);
   expect(rotatedPinch.scale).toBeGreaterThan(rotatedStart.scale * 1.5);
@@ -253,6 +314,13 @@ test("mobile image viewer: pinch focal point, pinch→pan, rotate/flip and reque
     client: document.documentElement.clientWidth,
   }));
   expect(overflow.width).toBeLessThanOrEqual(overflow.client);
+
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.waitForTimeout(100);
+  const tabletZoomOutBox = await page
+    .locator('[data-command-id="image.zoom.out"]')
+    .boundingBox();
+  expect(tabletZoomOutBox?.height).toBeGreaterThanOrEqual(44);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(100);
@@ -282,16 +350,32 @@ test("desktop image viewer regression: toolbar, wheel, mouse pan and transforms"
   await page.locator('[data-command-id="image.zoom.in"]').click();
   const buttonZoom = await readCamera(page);
   expect(buttonZoom.scale).toBeGreaterThan(initial.scale);
+  expect(buttonZoom.scale / initial.scale).toBeCloseTo(1.25, 2);
 
   const box = await viewport.boundingBox();
   if (!box) throw new Error("Desktop image viewport box unavailable.");
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.keyboard.down("Control");
+  const anchorLocal = { x: box.width / 2, y: box.height * 0.35 };
+  const anchorClient = { x: box.x + anchorLocal.x, y: box.y + anchorLocal.y };
+  const imagePointBeforeWheel = {
+    x: (anchorLocal.x - box.width / 2 - buttonZoom.x) / buttonZoom.scale,
+    y: (anchorLocal.y - box.height / 2 - buttonZoom.y) / buttonZoom.scale,
+  };
+  const pageScrollBeforeWheel = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(anchorClient.x, anchorClient.y);
   await page.mouse.wheel(0, -120);
-  await page.keyboard.up("Control");
   await page.waitForTimeout(50);
   const wheelZoom = await readCamera(page);
   expect(wheelZoom.scale).toBeGreaterThan(buttonZoom.scale);
+  expect(await page.evaluate(() => window.scrollY)).toBe(pageScrollBeforeWheel);
+  const imagePointAfterWheel = {
+    x: (anchorLocal.x - box.width / 2 - wheelZoom.x) / wheelZoom.scale,
+    y: (anchorLocal.y - box.height / 2 - wheelZoom.y) / wheelZoom.scale,
+  };
+  const wheelAnchorDriftPx = Math.hypot(
+    (imagePointAfterWheel.x - imagePointBeforeWheel.x) * wheelZoom.scale,
+    (imagePointAfterWheel.y - imagePointBeforeWheel.y) * wheelZoom.scale
+  );
+  expect(wheelAnchorDriftPx).toBeLessThanOrEqual(1.5);
 
   const beforePan = await readCamera(page);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -313,7 +397,8 @@ test("desktop image viewer regression: toolbar, wheel, mouse pan and transforms"
 
   await page.locator('[data-command-id="image.zoom.100"]').click();
   const reset = await readCamera(page);
-  expect(reset.scale).toBe(1);
+  expect(reset.mode).toBe("fit");
+  expect(reset.scale).toBeCloseTo(initial.scale, 3);
   expect(reset.rotation).toBe(0);
   expect(reset.flipH).toBe("false");
   expect(reset.flipV).toBe("false");

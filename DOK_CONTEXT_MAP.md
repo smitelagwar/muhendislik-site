@@ -79,6 +79,8 @@ Bulk move item bazlı partial-failure sözleşmesini kullanır. Klasör yükleme
 
 Aktif dosya görüntüleme route'u `DocumentStudioShell` kullanır. PDF, image, CAD ve diğer preview bileşenleri `src/components/dokumantasyon/studio/` ve `src/components/dokumantasyon/preview/` altında bulunur.
 
+Görsel önizleme `preview/image-viewer.tsx` içinde tek bir kamera (`scale`, `offsetX`, `offsetY`) kullanır; saf zoom/pan geometrisi `preview/image-viewer-geometry.ts` içindedir. Kamera ölçeği görüntünün doğal ölçüsüne göredir, toolbar yüzdesi ise fit seviyesini `%100` kabul eder. Fare tekerleği ve trackpad zoom'u imleç noktasına sabitler; mobil pinch iki pointer'ın midpoint'ini korur. Zoom sınırları fit ölçeğinin 1–8 katıdır (mutlak üst sınır 5); etkileşim hareketleri `requestAnimationFrame` ile kare başına bir kamera güncellemesine birleştirilir. Mobil ve tablet toolbar hedefleri en az 44 px'tir.
+
 Document Studio bir full-viewport shell'dir. CAD upstream host'u üst barın altında kalan içerik alanının **tam genişlik ve tam yüksekliğini** kullanır; sabit `vh` minimumlarıyla yarım ekran oluşturulmamalıdır. `Gerçek Renk`, `Siyah-Beyaz` ve `Lineweight` kontrolleri Document Studio üst barındaki `cad-studio-toolbar-slot` içine portal edilir ve çizim canvas'ını kapatmaz. Topbar olmayan CAD yüzeylerinde küçük floating fallback kontrolü kullanılabilir. Bu mevcut UX sözleşmesi ileride değiştirilebilir; değişirse bu bölüm de aynı görevde güncellenir.
 
 Bu full-viewport/topbar düzeni PR `#22` ile kabul testlerinden geçirilerek `main`e alınmıştır. Squash merge SHA `da0b5eb5de1bf9798bd3f4668af9354dcbdfd8a9` tarihsel cutover referansıdır; ileride normal geliştirmelerle `main` SHA'nın değişmesi beklenir.

@@ -20,12 +20,32 @@ export type ImageViewerSize = {
 
 export const IMAGE_VIEWER_MIN_SCALE = 0.02;
 export const IMAGE_VIEWER_MAX_SCALE = 5;
+export const IMAGE_VIEWER_MAX_ZOOM = 8;
+
+export type ImageViewerScaleLimits = {
+  minScale: number;
+  maxScale: number;
+};
 
 export function clampImageScale(value: number): number {
+  if (!Number.isFinite(value)) return IMAGE_VIEWER_MIN_SCALE;
+
   return Math.min(
     Math.max(value, IMAGE_VIEWER_MIN_SCALE),
     IMAGE_VIEWER_MAX_SCALE
   );
+}
+
+export function getImageViewerScaleLimits(fitScale: number): ImageViewerScaleLimits {
+  const minScale = clampImageScale(fitScale);
+
+  return {
+    minScale,
+    maxScale: Math.max(
+      minScale,
+      Math.min(IMAGE_VIEWER_MAX_SCALE, minScale * IMAGE_VIEWER_MAX_ZOOM)
+    ),
+  };
 }
 
 export function getImagePointerDistance(
@@ -53,9 +73,16 @@ export function getImageDisplaySize(
   const safeScale = clampImageScale(scale);
   const isQuarterTurn = rotation % 180 !== 0;
 
+  const width = Number.isFinite(naturalSize.width) && naturalSize.width > 0
+    ? naturalSize.width
+    : 0;
+  const height = Number.isFinite(naturalSize.height) && naturalSize.height > 0
+    ? naturalSize.height
+    : 0;
+
   return {
-    width: (isQuarterTurn ? naturalSize.height : naturalSize.width) * safeScale,
-    height: (isQuarterTurn ? naturalSize.width : naturalSize.height) * safeScale,
+    width: (isQuarterTurn ? height : width) * safeScale,
+    height: (isQuarterTurn ? width : height) * safeScale,
   };
 }
 
@@ -63,17 +90,29 @@ export function clampImageCamera(
   candidate: ImageViewerCamera,
   viewport: ImageViewerSize,
   naturalSize: ImageViewerSize,
-  rotation: number
+  rotation: number,
+  scaleLimits: ImageViewerScaleLimits = {
+    minScale: IMAGE_VIEWER_MIN_SCALE,
+    maxScale: IMAGE_VIEWER_MAX_SCALE,
+  }
 ): ImageViewerCamera {
-  const scale = clampImageScale(candidate.scale);
+  const minScale = clampImageScale(scaleLimits.minScale);
+  const maxScale = Math.max(minScale, clampImageScale(scaleLimits.maxScale));
+  const scale = Math.min(Math.max(clampImageScale(candidate.scale), minScale), maxScale);
   const displaySize = getImageDisplaySize(naturalSize, scale, rotation);
-  const maxOffsetX = Math.max(0, (displaySize.width - viewport.width) / 2);
-  const maxOffsetY = Math.max(0, (displaySize.height - viewport.height) / 2);
+  const viewportWidth = Number.isFinite(viewport.width) && viewport.width > 0 ? viewport.width : 0;
+  const viewportHeight = Number.isFinite(viewport.height) && viewport.height > 0 ? viewport.height : 0;
+  const maxOffsetX = Math.max(0, (displaySize.width - viewportWidth) / 2);
+  const maxOffsetY = Math.max(0, (displaySize.height - viewportHeight) / 2);
 
   return {
     scale,
-    offsetX: Math.min(Math.max(candidate.offsetX, -maxOffsetX), maxOffsetX),
-    offsetY: Math.min(Math.max(candidate.offsetY, -maxOffsetY), maxOffsetY),
+    offsetX: Number.isFinite(candidate.offsetX)
+      ? Math.min(Math.max(candidate.offsetX, -maxOffsetX), maxOffsetX)
+      : 0,
+    offsetY: Number.isFinite(candidate.offsetY)
+      ? Math.min(Math.max(candidate.offsetY, -maxOffsetY), maxOffsetY)
+      : 0,
   };
 }
 
@@ -83,18 +122,28 @@ export function computeImageFitScale(
   rotation: number,
   padding: number
 ): number {
-  const availableWidth = Math.max(viewport.width - padding, 1);
-  const availableHeight = Math.max(viewport.height - padding, 1);
+  const naturalWidth = Number.isFinite(naturalSize.width) && naturalSize.width > 0
+    ? naturalSize.width
+    : 0;
+  const naturalHeight = Number.isFinite(naturalSize.height) && naturalSize.height > 0
+    ? naturalSize.height
+    : 0;
+  if (naturalWidth === 0 || naturalHeight === 0) return 1;
+
+  const viewportWidth = Number.isFinite(viewport.width) && viewport.width > 0 ? viewport.width : 1;
+  const viewportHeight = Number.isFinite(viewport.height) && viewport.height > 0 ? viewport.height : 1;
+  const availableWidth = Math.max(viewportWidth - padding, 1);
+  const availableHeight = Math.max(viewportHeight - padding, 1);
   const isQuarterTurn = rotation % 180 !== 0;
-  const imageWidth = isQuarterTurn ? naturalSize.height : naturalSize.width;
-  const imageHeight = isQuarterTurn ? naturalSize.width : naturalSize.height;
+  const imageWidth = isQuarterTurn ? naturalHeight : naturalWidth;
+  const imageHeight = isQuarterTurn ? naturalWidth : naturalHeight;
   const fitRatio = Math.min(
     availableWidth / imageWidth,
     availableHeight / imageHeight,
     1
   );
 
-  return parseFloat(clampImageScale(fitRatio).toFixed(3));
+  return clampImageScale(fitRatio);
 }
 
 export function zoomImageCameraBetweenPoints(
@@ -104,10 +153,16 @@ export function zoomImageCameraBetweenPoints(
   targetPoint: ImageViewerPoint,
   viewport: ImageViewerSize,
   naturalSize: ImageViewerSize,
-  rotation: number
+  rotation: number,
+  scaleLimits: ImageViewerScaleLimits = {
+    minScale: IMAGE_VIEWER_MIN_SCALE,
+    maxScale: IMAGE_VIEWER_MAX_SCALE,
+  }
 ): ImageViewerCamera {
-  const safeStartScale = clampImageScale(startCamera.scale);
-  const safeTargetScale = clampImageScale(targetScale);
+  const minScale = clampImageScale(scaleLimits.minScale);
+  const maxScale = Math.max(minScale, clampImageScale(scaleLimits.maxScale));
+  const safeStartScale = Math.min(Math.max(clampImageScale(startCamera.scale), minScale), maxScale);
+  const safeTargetScale = Math.min(Math.max(clampImageScale(targetScale), minScale), maxScale);
   const scaleRatio = safeTargetScale / safeStartScale;
   const centerX = viewport.width / 2;
   const centerY = viewport.height / 2;
@@ -125,6 +180,7 @@ export function zoomImageCameraBetweenPoints(
     },
     viewport,
     naturalSize,
-    rotation
+    rotation,
+    { minScale, maxScale }
   );
 }
