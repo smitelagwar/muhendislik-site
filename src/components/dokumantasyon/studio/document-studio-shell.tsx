@@ -314,6 +314,10 @@ export function DocumentStudioShell({
           <DokImageViewer
             accessUrl={currentLease.url}
             displayName={file.display_name}
+            fileId={file.id}
+            versionNo={currentVersionNo}
+            onBack={handleBack}
+            onShare={() => setIsCreateShareOpen(true)}
           />
         );
 
@@ -408,8 +412,8 @@ export function DocumentStudioShell({
           : undefined
       }
     >
-      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor kendi tam entegre üst çubuğuna sahiptir) */}
-      {cadEngine !== "v2" && (
+      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor ve Görsel Önizleme kendi entegre tekil çubuğuna sahiptir) */}
+      {cadEngine !== "v2" && previewKind !== "image" && (
         <StudioTopbar
           file={file}
           previewKind={previewKind}

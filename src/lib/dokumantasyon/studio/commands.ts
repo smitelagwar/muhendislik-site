@@ -339,6 +339,22 @@ export const STUDIO_COMMANDS: Record<string, StudioCommandDefinition> = {
     description: "Görseli stüdyo görünüm alanına tam sığdırır.",
     defaultEnabled: true,
   },
+  "image.clipboard.copy": {
+    id: "image.clipboard.copy",
+    category: "image",
+    name: "Panoya Kopyala",
+    description: "Görseli mevcut döndürme ve aynalama haliyle panoya kopyalar.",
+    shortcut: "Ctrl+C",
+    defaultEnabled: true,
+  },
+  "image.download": {
+    id: "image.download",
+    category: "image",
+    name: "Görseli İndir",
+    description: "Görseli cihaza indirir.",
+    shortcut: "Ctrl+S",
+    defaultEnabled: true,
+  },
   "text.copy": {
     id: "text.copy",
     category: "text",

@@ -6,6 +6,8 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
+  ArrowLeft,
+  Share2,
   ZoomIn,
   ZoomOut,
   RotateCw,
@@ -16,7 +18,11 @@ import {
   MoreHorizontal,
   Loader2,
   AlertCircle,
+  Copy,
+  Download,
+  Check,
 } from "lucide-react";
+import { ModeToggle } from "@/components/mode-toggle";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import {
   DropdownMenu,
@@ -40,6 +46,57 @@ import {
 interface DokImageViewerProps {
   accessUrl: string;
   displayName: string;
+  fileId?: string;
+  versionNo?: number;
+  onBack?: () => void;
+  onShare?: () => void;
+}
+
+async function renderTransformedBlob(
+  sourceUrl: string,
+  naturalWidth: number,
+  naturalHeight: number,
+  rotation: number,
+  flipH: boolean,
+  flipV: boolean
+): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  const isPerpendicular = (Math.abs(rotation) / 90) % 2 === 1;
+  canvas.width = isPerpendicular ? naturalHeight : naturalWidth;
+  canvas.height = isPerpendicular ? naturalWidth : naturalHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context alınamadı");
+
+  let img: HTMLImageElement;
+  try {
+    img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.crossOrigin = "anonymous";
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("CORS hatası"));
+      el.src = sourceUrl;
+    });
+  } catch {
+    img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = (err) => reject(err);
+      el.src = sourceUrl;
+    });
+  }
+
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+  ctx.drawImage(img, -naturalWidth / 2, -naturalHeight / 2);
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Canvas blob üretilemedi"))),
+      "image/png"
+    );
+  });
 }
 
 type GestureState =
@@ -66,7 +123,14 @@ const BUTTON_ZOOM_FACTOR = 1.25;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 const MAX_NORMALIZED_WHEEL_DELTA = 300;
 
-export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) {
+export function DokImageViewer({
+  accessUrl,
+  displayName,
+  fileId,
+  versionNo,
+  onBack,
+  onShare,
+}: DokImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -86,6 +150,12 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const [showGestureHint, setShowGestureHint] = useState(false);
   const [isWheelZooming, setIsWheelZooming] = useState(false);
 
+  // Kopyalama & İndirme Durumları
+  const [copyState, setCopyState] = useState<"idle" | "copying" | "copied" | "error">("idle");
+  const [downloadState, setDownloadState] = useState<"idle" | "downloading" | "done" | "error">("idle");
+  const copyFeedbackTimerRef = useRef<number | null>(null);
+  const downloadFeedbackTimerRef = useRef<number | null>(null);
+
   // Mobil/masaüstü işaretçi (pointer) ve gesture durumu.
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const activePointersRef = useRef<Map<number, GesturePoint>>(new Map());
@@ -95,6 +165,79 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
   const cameraFrameRef = useRef<number | null>(null);
   const wheelIdleTimeoutRef = useRef<number | null>(null);
   const lastTapRef = useRef<{ time: number; point: GesturePoint } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimerRef.current) window.clearTimeout(copyFeedbackTimerRef.current);
+      if (downloadFeedbackTimerRef.current) window.clearTimeout(downloadFeedbackTimerRef.current);
+    };
+  }, []);
+
+  const handleCopyToClipboard = useCallback(async () => {
+    if (!naturalSize || copyState === "copying") return;
+    setCopyState("copying");
+    try {
+      const blob = await renderTransformedBlob(
+        accessUrl,
+        naturalSize.width,
+        naturalSize.height,
+        rotation,
+        flipH,
+        flipV
+      );
+      if (typeof navigator !== "undefined" && navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new window.ClipboardItem({
+            [blob.type]: blob,
+          }),
+        ]);
+        setCopyState("copied");
+      } else {
+        throw new Error("Tarayıcı panoya görsel yazmayı desteklemiyor");
+      }
+    } catch (err) {
+      console.error("Panoya kopyalama hatası:", err);
+      setCopyState("error");
+    } finally {
+      if (copyFeedbackTimerRef.current) window.clearTimeout(copyFeedbackTimerRef.current);
+      copyFeedbackTimerRef.current = window.setTimeout(() => {
+        setCopyState("idle");
+      }, 2000);
+    }
+  }, [accessUrl, naturalSize, rotation, flipH, flipV, copyState]);
+
+  const handleDownload = useCallback(async () => {
+    if (!naturalSize || downloadState === "downloading") return;
+    setDownloadState("downloading");
+    try {
+      const blob = await renderTransformedBlob(
+        accessUrl,
+        naturalSize.width,
+        naturalSize.height,
+        rotation,
+        flipH,
+        flipV
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const baseName = displayName.replace(/\.[^/.]+$/, "");
+      a.download = `${baseName}_duzenlenmis.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadState("done");
+    } catch (err) {
+      console.error("Görsel indirme hatası:", err);
+      setDownloadState("error");
+    } finally {
+      if (downloadFeedbackTimerRef.current) window.clearTimeout(downloadFeedbackTimerRef.current);
+      downloadFeedbackTimerRef.current = window.setTimeout(() => {
+        setDownloadState("idle");
+      }, 2000);
+    }
+  }, [accessUrl, naturalSize, rotation, flipH, flipV, displayName, downloadState]);
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
@@ -661,98 +804,248 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
       data-camera-y={camera.offsetY.toFixed(2)}
       className="flex h-full w-full flex-col bg-background text-foreground select-none"
     >
-      {/* Görsel Araç Çubuğu (Toolbar) */}
-      <div className="z-30 flex min-h-12 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 px-2 text-xs backdrop-blur-md sm:px-3">
-        {/* Sol Alan: Çözünürlük ve Piksel Bilgisi */}
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-xs text-muted-foreground">
-          {naturalSize ? (
-            <span className="block truncate font-mono text-[10px] font-bold text-foreground min-[390px]:text-[11px]">
-              {naturalSize.width} × {naturalSize.height} px
-            </span>
-          ) : (
-            <span>Görsel Yükleniyor...</span>
+      {/* Görsel Araç Çubuğu (Toolbar) — Tekil & Modern Stüdyo Çubuğu */}
+      <div
+        data-testid="image-viewer-toolbar"
+        role="group"
+        aria-label="Görsel stüdyo araç çubuğu"
+        className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs backdrop-blur-2xl shadow-sm sm:h-16 sm:px-4"
+      >
+        {/* Sol Ada: Navigasyon, Dosya Kimliği & Çözünürlük HUD */}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {onBack && (
+            <StudioCommandButton
+              commandId="studio.back"
+              onClick={onBack}
+              size="sm"
+              variant="ghost"
+              showLabel={false}
+              title="Dosya Yöneticisine Dön"
+              aria-label="Dosya Yöneticisine Dön"
+              className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200 sm:h-10 sm:w-10"
+              icon={<ArrowLeft className="h-4.5 w-4.5" />}
+            />
           )}
+
+          {onBack && <div className="hidden h-5 w-px bg-border/60 sm:block" />}
+
+          <div className="flex min-w-0 items-center gap-2">
+            <h1
+              title={displayName}
+              className="truncate font-semibold text-sm tracking-tight text-foreground/90 max-w-[130px] min-[380px]:max-w-[190px] sm:max-w-[280px] md:max-w-[380px]"
+            >
+              {displayName}
+            </h1>
+
+            {versionNo != null && (
+              <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
+                v{versionNo}
+              </span>
+            )}
+
+            {naturalSize && (
+              <span className="hidden items-center gap-1 rounded-md bg-secondary/50 border border-border/40 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground md:inline-flex shrink-0">
+                {naturalSize.width} × {naturalSize.height} px
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Sağ Alan: Zoom, Döndürme, Aynalama, Zemin */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
-          {/* Zoom Kontrolleri */}
-          <StudioCommandButton
-            commandId="image.zoom.out"
-            onClick={() => setCustomScale((current) => current / BUTTON_ZOOM_FACTOR)}
-            showLabel={false}
-            label="Uzaklaştır"
-            className="h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-8 lg:w-8"
-            icon={<ZoomOut className="h-3.5 w-3.5" />}
-          />
+        {/* Sağ Alan: Büyütülmüş Zoom Kapsülü, Aksiyonlar & Dönüşüm Kontrolleri */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          {/* Zoom Segmentli Kapsülü */}
+          <div className="flex items-center rounded-xl bg-secondary/50 border border-border/60 p-0.5 shadow-inner">
+            <StudioCommandButton
+              commandId="image.zoom.out"
+              onClick={() => setCustomScale((current) => current / BUTTON_ZOOM_FACTOR)}
+              aria-label="Uzaklaştır"
+              showLabel={false}
+              title="Uzaklaştır"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              icon={<ZoomOut className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
+            />
 
-          <StudioCommandButton
-            commandId="image.zoom.100"
-            onClick={resetView}
-            aria-label={`Görünümü sıfırla, yakınlaştırma yüzde ${zoomPercent}`}
-            title={`Görünümü sıfırla · ${zoomPercent}%`}
-            className="min-w-12 rounded-lg px-2 text-[11px] font-mono font-bold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground h-11 lg:h-7 lg:min-w-0"
-            label={`${zoomPercent}%`}
-          />
+            <StudioCommandButton
+              commandId="image.zoom.100"
+              onClick={resetView}
+              aria-label={`Görünümü sıfırla, yakınlaştırma yüzde ${zoomPercent}`}
+              title={`Görünümü sıfırla · ${zoomPercent}%`}
+              className="h-8 px-2 sm:h-9 sm:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              label={`${zoomPercent}%`}
+            />
 
-          <StudioCommandButton
-            commandId="image.zoom.in"
-            onClick={() => setCustomScale((current) => current * BUTTON_ZOOM_FACTOR)}
-            showLabel={false}
-            label="Yakınlaştır"
-            className="h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-8 lg:w-8"
-            icon={<ZoomIn className="h-3.5 w-3.5" />}
-          />
+            <StudioCommandButton
+              commandId="image.zoom.in"
+              onClick={() => setCustomScale((current) => current * BUTTON_ZOOM_FACTOR)}
+              aria-label="Yakınlaştır"
+              showLabel={false}
+              title="Yakınlaştır"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              icon={<ZoomIn className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
+            />
 
-          <StudioCommandButton
-            commandId="image.zoom.fit"
-            onClick={() => {
-              setIsFitMode(true);
-              handleFitScreen();
-            }}
-            className="inline-flex h-11 rounded-lg px-2.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-7"
-            label="Sığdır"
-          />
+            <div className="h-4 w-px bg-border/60 mx-0.5" />
+
+            <StudioCommandButton
+              commandId="image.zoom.fit"
+              onClick={() => {
+                setIsFitMode(true);
+                handleFitScreen();
+              }}
+              aria-label="Görseli ekrana sığdır"
+              className="h-8 px-2.5 sm:h-9 sm:px-3 rounded-lg text-xs font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors"
+              label="Sığdır"
+            />
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden">
-                <MoreHorizontal className="h-4 w-4" />
+              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:hidden">
+                <MoreHorizontal className="h-4.5 w-4.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-52 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/60" />
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
-              <DropdownMenuItem className="min-h-11 cursor-pointer text-xs rounded-lg lg:min-h-0" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border/60" />
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                disabled={!naturalSize || copyState === "copying"}
+                onClick={handleCopyToClipboard}
+              >
+                <span>Panoya kopyala</span>
+                {copyState === "copied" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                {copyState === "copying" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                disabled={!naturalSize || downloadState === "downloading"}
+                onClick={handleDownload}
+              >
+                <span>Görseli indir</span>
+                {downloadState === "done" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                {downloadState === "downloading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              </DropdownMenuItem>
+              {onShare && (
+                <>
+                  <DropdownMenuSeparator className="bg-border/60" />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                    onClick={onShare}
+                  >
+                    <span>Paylaşım bağlantısı oluştur</span>
+                    <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
+
+          {/* Panoya Kopyala */}
+          <StudioCommandButton
+            commandId="image.clipboard.copy"
+            onClick={handleCopyToClipboard}
+            disabled={!naturalSize || copyState === "copying"}
+            aria-label={
+              copyState === "copied"
+                ? "Panoya kopyalandı"
+                : copyState === "error"
+                  ? "Kopyalama başarısız"
+                  : "Panoya kopyala"
+            }
+            showLabel={false}
+            title={
+              copyState === "copied"
+                ? "Panoya Kopyalandı!"
+                : copyState === "error"
+                  ? "Kopyalama başarısız"
+                  : "Panoya Kopyala (Ctrl+C)"
+            }
+            className={`hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 transition-all sm:inline-flex ${
+              copyState === "copied"
+                ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
+                : copyState === "error"
+                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+            icon={
+              copyState === "copying" ? (
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+              ) : copyState === "copied" ? (
+                <Check className="h-4.5 w-4.5 text-emerald-400" />
+              ) : (
+                <Copy className="h-4.5 w-4.5" />
+              )
+            }
+          />
+
+          {/* Görseli İndir */}
+          <StudioCommandButton
+            commandId="image.download"
+            onClick={handleDownload}
+            disabled={!naturalSize || downloadState === "downloading"}
+            aria-label={
+              downloadState === "done"
+                ? "Görsel indirildi"
+                : downloadState === "error"
+                  ? "İndirme başarısız"
+                  : "Görseli indir"
+            }
+            showLabel={false}
+            title={
+              downloadState === "done"
+                ? "Görsel İndirildi!"
+                : downloadState === "error"
+                  ? "İndirme başarısız"
+                  : "Görseli İndir (Ctrl+S)"
+            }
+            className={`hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 transition-all sm:inline-flex ${
+              downloadState === "done"
+                ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
+                : downloadState === "error"
+                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+            icon={
+              downloadState === "downloading" ? (
+                <Loader2 className="h-4.5 w-4.5 animate-spin" />
+              ) : downloadState === "done" ? (
+                <Check className="h-4.5 w-4.5 text-emerald-400" />
+              ) : (
+                <Download className="h-4.5 w-4.5" />
+              )
+            }
+          />
+
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
           {/* Döndürme */}
           <StudioCommandButton
             commandId="image.rotate.ccw"
             onClick={() => rotate(-1)}
             showLabel={false}
-            label="Saat yönünün tersine döndür"
-            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
-            icon={<RotateCcw className="h-3.5 w-3.5" />}
+            title="Saat Yönü Tersine Döndür (Shift+R)"
+            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<RotateCcw className="h-4.5 w-4.5" />}
           />
 
           <StudioCommandButton
             commandId="image.rotate.cw"
             onClick={() => rotate(1)}
             showLabel={false}
-            label="Saat yönünde döndür"
-            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
-            icon={<RotateCw className="h-3.5 w-3.5" />}
+            title="Saat Yönünde Döndür (R)"
+            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<RotateCw className="h-4.5 w-4.5" />}
           />
 
-          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
           {/* Aynalama */}
           <StudioCommandButton
@@ -760,9 +1053,9 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setFlipH((value) => !value)}
             active={flipH}
             showLabel={false}
-            label="Yatay aynala"
-            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
-            icon={<FlipHorizontal className="h-3.5 w-3.5" />}
+            title="Yatay Aynala"
+            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<FlipHorizontal className="h-4.5 w-4.5" />}
           />
 
           <StudioCommandButton
@@ -770,12 +1063,12 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setFlipV((value) => !value)}
             active={flipV}
             showLabel={false}
-            label="Dikey aynala"
-            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
-            icon={<FlipVertical className="h-3.5 w-3.5" />}
+            title="Dikey Aynala"
+            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<FlipVertical className="h-4.5 w-4.5" />}
           />
 
-          <div className="hidden h-4 w-px bg-border/80 sm:mx-1 sm:block" />
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
           {/* Şeffaflık Arkaplan Izgarası */}
           <StudioCommandButton
@@ -783,10 +1076,31 @@ export function DokImageViewer({ accessUrl, displayName }: DokImageViewerProps) 
             onClick={() => setShowCheckerboard((value) => !value)}
             active={showCheckerboard}
             showLabel={false}
-            label="Şeffaflık ızgarasını aç veya kapat"
-            className="hidden h-11 w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-8 lg:w-8"
-            icon={<Grid className="h-3.5 w-3.5" />}
+            title="Şeffaflık Izgarasını Aç/Kapat"
+            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<Grid className="h-4.5 w-4.5" />}
           />
+
+          {/* Paylaşım & Tema Ayırıcı */}
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
+
+          {/* Paylaşım Bağlantısı Oluştur */}
+          {onShare && (
+            <StudioCommandButton
+              commandId="studio.share"
+              onClick={onShare}
+              showLabel={false}
+              title="Paylaşım Bağlantısı Oluştur (Ctrl+Shift+S)"
+              aria-label="Paylaşım Bağlantısı Oluştur"
+              className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+              icon={<Share2 className="h-4.5 w-4.5" />}
+            />
+          )}
+
+          {/* Ay / Güneş Tema Değiştirici (ModeToggle) */}
+          <div className="flex items-center shrink-0 pl-0.5">
+            <ModeToggle />
+          </div>
         </div>
       </div>
 
