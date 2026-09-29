@@ -318,6 +318,13 @@ export function DocumentStudioShell({
             versionNo={currentVersionNo}
             onBack={handleBack}
             onShare={() => setIsCreateShareOpen(true)}
+            sizeBytes={file.size_bytes}
+            extension={file.extension}
+            createdAt={file.created_at}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
+            onRename={() => setIsRenameOpen(true)}
+            onDelete={() => setIsDeleteOpen(true)}
           />
         );
 

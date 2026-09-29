@@ -311,22 +311,22 @@ export const STUDIO_COMMANDS: Record<string, StudioCommandDefinition> = {
     description: "Görseli yatay eksende aynalar.",
     defaultEnabled: true,
   },
-  "image.flip.h": {
-    id: "image.flip.h",
+  "image.flip.horizontal": {
+    id: "image.flip.horizontal",
     category: "image",
     name: "Yatay Aynala",
     description: "Görseli yatay eksende simetrik aynalar.",
     defaultEnabled: true,
   },
-  "image.flip.v": {
-    id: "image.flip.v",
+  "image.flip.vertical": {
+    id: "image.flip.vertical",
     category: "image",
     name: "Dikey Aynala",
     description: "Görseli dikey eksende simetrik aynalar.",
     defaultEnabled: true,
   },
-  "image.checkerboard": {
-    id: "image.checkerboard",
+  "image.checkerboard.toggle": {
+    id: "image.checkerboard.toggle",
     category: "image",
     name: "Şeffaflık Izgarası Aç/Kapat",
     description: "PNG/WebP şeffaf arka plan dama tahtası ızgarasını gösterir veya gizler.",

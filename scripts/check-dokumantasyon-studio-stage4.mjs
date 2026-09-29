@@ -85,9 +85,9 @@ async function runStage4Tests() {
     "image.zoom.fit",
     "image.rotate.ccw",
     "image.rotate.cw",
-    "image.flip.h",
-    "image.flip.v",
-    "image.checkerboard",
+    "image.flip.horizontal",
+    "image.flip.vertical",
+    "image.checkerboard.toggle",
   ];
 
   for (const cmd of expectedImageCommands) {

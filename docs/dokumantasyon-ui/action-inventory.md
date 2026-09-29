@@ -55,3 +55,24 @@ Bu doküman, `/dokumantasyon` modülü ve Document Studio içindeki tüm görün
 | **Yeniden Adlandır** | `studio.rename` | `setIsRenameOpen(true)` | Dosya adını günceller. |
 | **Çöp Kutusuna At** | `studio.delete` | `setIsDeleteOpen(true)` | Dosyayı siler ve klasöre yönlendirir. |
 | **Tema Değiştirici**| Tema Toggle | `ModeToggle` | Light/Dark temayı değiştirir (Canvas içeriğini bozmaz). |
+
+---
+
+### 3a. Görsel Stüdyosu Eylemleri (`image-viewer.tsx`) — Kendi Tekil Toolbar'ı
+
+Görsel dosyalarda `StudioTopbar` render edilmez; aşağıdaki eylemler `DokImageViewer`'ın kendi araç çubuğunda birleşiktir.
+
+| Buton / Kontrol | Komut ID | Kaynak Prop | Not |
+|---|---|---|---|
+| Geri Dön | `studio.back` | `onBack` | Studio'da klasöre döner; Public'te modalı kapatır. |
+| Yakınlaştır/Uzaklaştır/Sığdır | `image.zoom.*` | dahili state | Geometri dokunulmaz. |
+| Döndür | `image.rotate.ccw/cw` | dahili state | — |
+| Aynala | `image.flip.horizontal/vertical` | dahili state | — |
+| Izgara | `image.checkerboard.toggle` | dahili state | — |
+| Panoya Kopyala | `image.clipboard.copy` | dahili | — |
+| İndir | `image.download` | dahili | Dönüştürülmüş görsel. |
+| Tam Ekran | `studio.fullscreen` | `onToggleFullscreen` | Yalnızca Studio'da. |
+| Yeniden Adlandır | `studio.rename` | `onRename` | Yalnızca Studio'da. |
+| Çöp Kutusuna At | `studio.delete` | `onDelete` | Yalnızca Studio'da. |
+| Paylaş | `studio.share` | `onShare` | Studio'da var; Public'te yok. |
+| Tema | — | `ModeToggle` | Her yerde var. |

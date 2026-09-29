@@ -41,7 +41,7 @@ export function PublicPreviewModal({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -68,60 +68,68 @@ export function PublicPreviewModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-md animate-in fade-in"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-2 sm:p-4 backdrop-blur-md animate-in fade-in"
     >
       <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-border/80 bg-card/95 shadow-2xl overflow-hidden text-foreground backdrop-blur-xl">
         {/* Üst Bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 px-4 backdrop-blur-md">
-          <div className="flex items-center gap-3 min-w-0 pr-2">
-            <span className="truncate text-xs sm:text-sm font-bold text-foreground max-w-sm sm:max-w-md">
-              {item.snapshot_name}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase font-mono">
-              {ext}
-            </span>
-            <span className="hidden sm:inline text-xs text-muted-foreground font-mono">
-              {formatBytes(item.snapshot_size_bytes)}
-            </span>
-          </div>
+        {previewKind !== "image" && (
+          <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 px-4 backdrop-blur-md">
+            <div className="flex items-center gap-3 min-w-0 pr-2">
+              <span className="truncate text-xs sm:text-sm font-bold text-foreground max-w-sm sm:max-w-md">
+                {item.snapshot_name}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase font-mono">
+                {ext}
+              </span>
+              <span className="hidden sm:inline text-xs text-muted-foreground font-mono">
+                {formatBytes(item.snapshot_size_bytes)}
+              </span>
+            </div>
 
-          <div className="flex items-center gap-2">
-            {previewKind === "cad" && (
+            <div className="flex items-center gap-2">
+              {previewKind === "cad" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCadEngine((prev) => (prev === "v2" ? "legacy" : "v2"))}
+                  className="h-8 text-xs border-border/80 bg-secondary/50 hover:bg-secondary rounded-xl"
+                >
+                  {cadEngine === "v2" ? "Klasik Motora Geç" : "Motor V2'ye Geç"}
+                </Button>
+              )}
+
               <Button
                 size="sm"
-                variant="outline"
-                onClick={() => setCadEngine((prev) => (prev === "v2" ? "legacy" : "v2"))}
-                className="h-8 text-xs border-border/80 bg-secondary/50 hover:bg-secondary rounded-xl"
+                onClick={handleDownload}
+                className="gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-9 px-3.5 shadow-sm"
               >
-                {cadEngine === "v2" ? "Klasik Motora Geç" : "Motor V2'ye Geç"}
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">İndir</span>
               </Button>
-            )}
 
-            <Button
-              size="sm"
-              onClick={handleDownload}
-              className="gap-1.5 bg-amber-500 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl h-9 px-3.5 shadow-sm"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">İndir</span>
-            </Button>
-
-            <button
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              aria-label="Kapat"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </header>
+              <button
+                onClick={onClose}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* Ana İçerik */}
         <main className="relative flex-1 overflow-hidden bg-background flex flex-col">
           {previewKind === "pdf" ? (
             <DokPdfViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
           ) : previewKind === "image" ? (
-            <DokImageViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
+            <DokImageViewer
+              accessUrl={accessUrl}
+              displayName={item.snapshot_name}
+              sizeBytes={Number(item.snapshot_size_bytes)}
+              extension={ext}
+              onBack={onClose}
+            />
           ) : previewKind === "markdown" ? (
             <DokMarkdownViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
           ) : previewKind === "cad" ? (

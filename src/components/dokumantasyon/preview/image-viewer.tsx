@@ -21,8 +21,15 @@ import {
   Copy,
   Download,
   Check,
+  Maximize2,
+  Minimize2,
+  Edit3,
+  Trash2,
+  FileText,
+  MoreVertical,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
+import { formatBytes, formatDate } from "../ui-helpers";
 import { StudioCommandButton } from "../studio/studio-command-button";
 import {
   DropdownMenu,
@@ -50,6 +57,14 @@ interface DokImageViewerProps {
   versionNo?: number;
   onBack?: () => void;
   onShare?: () => void;
+  // --- YENİ: Toolbar birleştirmesi için eklenen prop'lar ---
+  sizeBytes?: number;
+  extension?: string;
+  createdAt?: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 }
 
 async function renderTransformedBlob(
@@ -130,6 +145,13 @@ export function DokImageViewer({
   versionNo,
   onBack,
   onShare,
+  sizeBytes,
+  extension,
+  createdAt,
+  isFullscreen,
+  onToggleFullscreen,
+  onRename,
+  onDelete,
 }: DokImageViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -829,25 +851,34 @@ export function DokImageViewer({
 
           {onBack && <div className="hidden h-5 w-px bg-border/60 sm:block" />}
 
-          <div className="flex min-w-0 items-center gap-2">
-            <h1
-              title={displayName}
-              className="truncate font-semibold text-sm tracking-tight text-foreground/90 max-w-[130px] min-[380px]:max-w-[190px] sm:max-w-[280px] md:max-w-[380px]"
-            >
-              {displayName}
-            </h1>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1
+                title={displayName}
+                className="truncate font-semibold text-sm tracking-tight text-foreground/90 max-w-[130px] min-[380px]:max-w-[190px] sm:max-w-[280px] md:max-w-[380px]"
+              >
+                {displayName}
+              </h1>
 
-            {versionNo != null && (
-              <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
-                v{versionNo}
-              </span>
-            )}
-
-            {naturalSize && (
-              <span className="hidden items-center gap-1 rounded-md bg-secondary/50 border border-border/40 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground md:inline-flex shrink-0">
-                {naturalSize.width} × {naturalSize.height} px
-              </span>
-            )}
+              {versionNo != null && (
+                <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
+                  v{versionNo}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
+              {sizeBytes != null && extension && <span>•</span>}
+              {extension && (
+                <span className="uppercase font-bold text-amber-500/90 font-mono">
+                  {extension.replace(".", "")}
+                </span>
+              )}
+              {(sizeBytes != null || extension) && naturalSize && <span>•</span>}
+              {naturalSize && (
+                <span className="font-mono">{naturalSize.width} × {naturalSize.height} px</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -861,7 +892,7 @@ export function DokImageViewer({
               aria-label="Uzaklaştır"
               showLabel={false}
               title="Uzaklaştır"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
               icon={<ZoomOut className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
             />
 
@@ -870,7 +901,7 @@ export function DokImageViewer({
               onClick={resetView}
               aria-label={`Görünümü sıfırla, yakınlaştırma yüzde ${zoomPercent}`}
               title={`Görünümü sıfırla · ${zoomPercent}%`}
-              className="h-8 px-2 sm:h-9 sm:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              className="h-11 min-h-11 px-2 lg:h-9 lg:min-h-9 lg:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
               label={`${zoomPercent}%`}
             />
 
@@ -880,7 +911,7 @@ export function DokImageViewer({
               aria-label="Yakınlaştır"
               showLabel={false}
               title="Yakınlaştır"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
               icon={<ZoomIn className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
             />
 
@@ -893,14 +924,14 @@ export function DokImageViewer({
                 handleFitScreen();
               }}
               aria-label="Görseli ekrana sığdır"
-              className="h-8 px-2.5 sm:h-9 sm:px-3 rounded-lg text-xs font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors"
+              className="h-11 min-h-11 px-2.5 lg:h-9 lg:min-h-9 lg:px-3 rounded-lg text-xs font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors"
               label="Sığdır"
             />
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:hidden">
+              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:hidden">
                 <MoreHorizontal className="h-4.5 w-4.5" />
               </button>
             </DropdownMenuTrigger>
@@ -931,6 +962,33 @@ export function DokImageViewer({
                 {downloadState === "done" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
                 {downloadState === "downloading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               </DropdownMenuItem>
+              {(onToggleFullscreen || onRename || onDelete) && (
+                <DropdownMenuSeparator className="bg-border/60" />
+              )}
+
+              {onToggleFullscreen && (
+                <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={onToggleFullscreen}>
+                  {isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+                </DropdownMenuItem>
+              )}
+
+              {onRename && (
+                <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={onRename}>
+                  Yeniden Adlandır
+                </DropdownMenuItem>
+              )}
+
+              {onDelete && (
+                <>
+                  <DropdownMenuSeparator className="bg-border/60" />
+                  <DropdownMenuItem
+                    className="cursor-pointer text-xs rounded-lg text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                    onClick={onDelete}
+                  >
+                    Çöp Kutusuna At
+                  </DropdownMenuItem>
+                </>
+              )}
               {onShare && (
                 <>
                   <DropdownMenuSeparator className="bg-border/60" />
@@ -1080,6 +1138,70 @@ export function DokImageViewer({
             className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<Grid className="h-4.5 w-4.5" />}
           />
+
+          <div className="hidden h-5 w-px bg-border/60 sm:block" />
+
+          {/* Tam Ekran */}
+          {onToggleFullscreen && (
+            <StudioCommandButton
+              commandId="studio.fullscreen"
+              onClick={onToggleFullscreen}
+              showLabel={false}
+              title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+              aria-label={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+              data-testid="image-viewer-fullscreen-toggle"
+              className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+              icon={isFullscreen ? <Minimize2 className="h-4.5 w-4.5" /> : <Maximize2 className="h-4.5 w-4.5" />}
+            />
+          )}
+
+          {/* Masaüstü "Daha Fazla" Menüsü */}
+          {(onRename || onDelete) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Daha Fazla İşlem"
+                  data-testid="image-viewer-more-menu-trigger"
+                  className="hidden h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:inline-flex"
+                >
+                  <MoreVertical className="h-4.5 w-4.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1.5">
+                {onRename && (
+                  <DropdownMenuItem onClick={onRename} className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2">
+                    <Edit3 className="h-3.5 w-3.5 text-blue-500" />
+                    <span>Yeniden Adlandır</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
+                <div className="px-2 py-1.5 text-[11px] text-muted-foreground flex flex-col gap-0.5 select-text">
+                  <div className="flex items-center gap-1.5 font-medium text-foreground truncate">
+                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="truncate">{displayName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
+                    {extension && <span className="uppercase font-bold text-amber-500/90 font-mono">{extension.replace(".", "")}</span>}
+                    {createdAt && <span>{formatDate(createdAt)}</span>}
+                  </div>
+                </div>
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator className="bg-border/60 my-1" />
+                    <DropdownMenuItem
+                      onClick={onDelete}
+                      className="flex items-center gap-2.5 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg py-2 font-medium"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      <span>Çöp Kutusuna At</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Paylaşım & Tema Ayırıcı */}
           <div className="hidden h-5 w-px bg-border/60 sm:block" />

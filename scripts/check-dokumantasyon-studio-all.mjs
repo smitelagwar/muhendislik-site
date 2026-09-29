@@ -89,8 +89,8 @@ async function runMasterE2ETests() {
     "pdf.search.open",
     "cad.download",
     "image.rotate.cw",
-    "image.flip.h",
-    "image.checkerboard",
+    "image.flip.horizontal",
+    "image.checkerboard.toggle",
     "text.copy",
     "text.wrap",
   ];
