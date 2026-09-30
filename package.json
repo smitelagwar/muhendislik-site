@@ -139,9 +139,10 @@
     "check:image-viewer:release": "npx tsc -p tsconfig.next.json --noEmit --incremental false && npm run check:image-viewer:geometry && npm run build",
     "check:markdown-reader": "playwright test --config=playwright.config.ts tests/document-studio/markdown-reader.spec.ts --project=chromium --project=mobile-chromium",
     "generate:pdf-fixtures": "node scripts/generate-pdf-fixtures.mjs",
-    "check:pdf-v2:unit": "tsx tests/pdf-v2/normalization.test.ts",
+    "check:pdf-v2:unit": "tsx tests/pdf-v2/normalization.test.ts && tsx tests/pdf-v2/loading-pipeline.test.ts",
     "check:pdf-v2:e2e": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v2.spec.ts --project=chromium",
-    "test:pdf-v2": "npm run generate:pdf-fixtures && npm run check:pdf-v2:unit && npm run check:pdf-v2:e2e"
+    "check:pdf-v2:e2e:faz-b": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v2-faz-b.spec.ts --project=chromium",
+    "test:pdf-v2": "npm run generate:pdf-fixtures && npm run check:pdf-v2:unit && npm run check:pdf-v2:e2e:faz-b"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^3.1.0",

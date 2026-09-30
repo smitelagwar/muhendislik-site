@@ -346,6 +346,7 @@ export function PdfPageView({
       {/* 1. Canvas Katmanı */}
       <canvas
         ref={canvasRef}
+        data-testid={`pdf-page-canvas-${pageNumber}`}
         className="absolute inset-0 block origin-top-left"
         style={{
           width: `${renderedWidth}px`,

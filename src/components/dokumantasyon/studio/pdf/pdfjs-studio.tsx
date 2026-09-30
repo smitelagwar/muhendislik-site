@@ -15,6 +15,7 @@ import { PdfSearchBar } from "./pdf-search-bar";
 import { PdfSearchResultsPanel } from "./pdf-search-results-panel";
 import { PdfPageScrubber } from "./pdf-page-scrubber";
 import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
+import { PdfPasswordModal } from "./pdf-password-modal";
 
 interface PdfJsStudioProps {
   accessUrl: string;
@@ -94,7 +95,15 @@ export function PdfJsStudio({
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | null>(null);
+  const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [isRefreshingAccess, setIsRefreshingAccess] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
+  const [passwordReason, setPasswordReason] = useState<number | null>(null);
+  const passwordCallbackRef = useRef<((password: string) => void) | null>(null);
+  const [reloadKey, setReloadKey] = useState<number>(0);
+  const preservedStateRef = useRef<{ page: number; scrollRatio: number; scale: number } | null>(null);
+  const currentPageRef = useRef<number>(1);
 
   // Pan / Hand Tool Durumu
   const [isHandTool, setIsHandTool] = useState<boolean>(false);
@@ -305,15 +314,60 @@ export function PdfJsStudio({
     container.scrollTop = Math.max(logicalY * scale - activeAnchor.viewportY, 0);
   }, [scale]);
 
-  // 1. PDF Dokümanını Yükle, Otomatik Retry ve Yaşam Döngüsü (Faz 8, Faz 10)
+  const handlePasswordSubmit = useCallback((password: string) => {
+    if (passwordCallbackRef.current) {
+      const cb = passwordCallbackRef.current;
+      passwordCallbackRef.current = null;
+      cb(password);
+    }
+  }, []);
+
+  const handlePasswordCancel = useCallback(() => {
+    if (passwordCallbackRef.current) {
+      const cb = passwordCallbackRef.current;
+      passwordCallbackRef.current = null;
+      try {
+        cb("");
+      } catch {}
+    }
+    setIsPasswordModalOpen(false);
+    setErrorType("password");
+    setError("Bu belge parola korumalıdır. Açmak için lütfen geçerli bir parola girin.");
+    setLoading(false);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    retryCountRef.current = 0;
+    setError(null);
+    setErrorType(null);
+    setLoading(true);
+    setReloadKey((prev) => prev + 1);
+  }, []);
+
+  // 1. PDF Dokümanını Yükle, Otomatik Retry ve Yaşam Döngüsü (Faz B)
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
     setError(null);
+    setErrorType(null);
+    setLoadProgress(null);
 
     async function init() {
       try {
-        const task = await createSecurePdfLoadingTask(accessUrl);
+        const task = await createSecurePdfLoadingTask(accessUrl, {
+          onProgress: ({ loaded, total }) => {
+            if (isMounted) {
+              setLoadProgress({ loaded, total });
+            }
+          },
+          onPassword: (callback, reason) => {
+            if (!isMounted) return;
+            passwordCallbackRef.current = callback;
+            setPasswordReason(reason);
+            setIsPasswordModalOpen(true);
+            setLoading(false);
+          },
+        });
         loadingTaskRef.current = task;
 
         const doc = await task.promise;
@@ -322,8 +376,11 @@ export function PdfJsStudio({
         setPdfDoc(doc);
         pdfDocRef.current = doc;
         setNumPages(doc.numPages);
-        setCurrentPage(1);
         retryCountRef.current = 0; // Başarılı yüklemede retry sıfırla
+        setIsPasswordModalOpen(false);
+        setPasswordReason(null);
+        setErrorType(null);
+        setError(null);
 
         try {
           const firstPage = await doc.getPage(1);
@@ -333,37 +390,65 @@ export function PdfJsStudio({
           setFirstPageSize({ width: 595, height: 842 });
         }
 
-        // Faz 10: Son okunan konumu geri yükle
-        if (fileId) {
-          const savedPage = getPdfReadingPosition(fileId);
-          if (savedPage && savedPage > 1 && savedPage <= doc.numPages) {
-            setTimeout(() => {
-              if (isMounted) {
-                const pageEl = document.getElementById(`pdf-page-${savedPage}`);
-                const container = scrollContainerRef.current;
-                if (pageEl && container) {
-                  setCurrentPage(savedPage);
-                  container.scrollTo({
-                    top: Math.max(pageEl.offsetTop - 16, 0),
-                    behavior: "smooth",
-                  });
-                }
+        // Faz B & Faz 10: URL yenilendiğinde veya son okunan konumda sayfa ve scroll konumunu koru
+        const savedPage = preservedStateRef.current?.page || (fileId ? getPdfReadingPosition(fileId) : 1) || 1;
+        const targetPage = Math.min(Math.max(savedPage, 1), doc.numPages);
+        setCurrentPage(targetPage);
+        currentPageRef.current = targetPage;
+
+        if (targetPage > 1) {
+          setTimeout(() => {
+            if (isMounted) {
+              const pageEl = document.getElementById(`pdf-page-${targetPage}`);
+              const container = scrollContainerRef.current;
+              if (pageEl && container) {
+                container.scrollTo({
+                  top: Math.max(pageEl.offsetTop - 16, 0),
+                  behavior: "auto",
+                });
               }
-            }, 150);
-          }
+            }
+          }, 100);
         }
 
         setLoading(false);
       } catch (err: unknown) {
         if (!isMounted) return;
+        if ((err as { name?: string })?.name === "AbortException") return;
+
+        const errName = (err as { name?: string })?.name || "";
+        const errMessage = err instanceof Error ? err.message : "";
         const httpStatus = typeof (err as { status?: unknown })?.status === "number"
           ? (err as { status: number }).status
           : null;
-        const isExpiredAccess = httpStatus === 401 || httpStatus === 403 || /(?:401|403|unauthorized|forbidden)/i.test(
-          err instanceof Error ? err.message : ""
-        );
+        const isExpiredAccess = httpStatus === 401 || httpStatus === 403 || /(?:401|403|unauthorized|forbidden)/i.test(errMessage);
 
-        // Faz 8: Üstel geri çekilme (exponential backoff) ile 3 kez otomatik yenileme
+        // Faz B: Hata Sınıflandırması
+        // 1. Bozuk / Geçersiz PDF: retry yok, doğrudan hata ekranı + indir butonu
+        if (errName === "InvalidPDFException" || /invalid pdf/i.test(errMessage)) {
+          setErrorType("corrupt");
+          setError("PDF dosyası bozuk veya geçersiz bir formatta.");
+          setLoading(false);
+          return;
+        }
+
+        // 2. Eksik / Bulunamayan PDF (404): retry yok
+        if (httpStatus === 404 || errName === "MissingPDFException" || /missing pdf|not found/i.test(errMessage)) {
+          setErrorType("missing");
+          setError("PDF dosyası sunucuda veya depolama alanında bulunamadı.");
+          setLoading(false);
+          return;
+        }
+
+        // 3. Parola İptal Edildi veya Hata:
+        if (errName === "PasswordException") {
+          setErrorType("password");
+          setError("Bu belge parola korumalıdır. Açmak için lütfen geçerli bir parola girin.");
+          setLoading(false);
+          return;
+        }
+
+        // 4. Süresi dolmuş URL (401/403): Üstel geri çekilme ile 3 kez otomatik yenileme
         if (isExpiredAccess && onAccessExpired && retryCountRef.current < 3) {
           retryCountRef.current += 1;
           setIsRefreshingAccess(true);
@@ -375,6 +460,7 @@ export function PdfJsStudio({
           } catch (refreshError) {
             console.warn(`PDF access URL refresh failed (attempt ${retryCountRef.current}):`, refreshError);
             if (retryCountRef.current >= 3) {
+              setErrorType("network");
               setError("PDF erişim bağlantısı yenilenemedi. Lütfen sayfayı yenileyin.");
             }
           } finally {
@@ -386,7 +472,9 @@ export function PdfJsStudio({
           return;
         }
 
+        // 5. Ağ veya diğer beklenmeyen hatalar:
         console.error("PDF yükleme hatası:", err);
+        setErrorType("network");
         setError(
           err instanceof Error
             ? err.message
@@ -413,7 +501,7 @@ export function PdfJsStudio({
         pdfDocRef.current = null;
       }
     };
-  }, [accessUrl, onAccessExpired, fileId]);
+  }, [accessUrl, onAccessExpired, fileId, reloadKey]);
 
   // Scroll viewport mount edildikten sonra aktif fit modunu koru
   useEffect(() => {
@@ -441,6 +529,7 @@ export function PdfJsStudio({
   const scrollToPage = useCallback((pageNum: number) => {
     if (pageNum < 1 || pageNum > numPages) return;
     setCurrentPage(pageNum);
+    currentPageRef.current = pageNum;
 
     if (fileId) {
       savePdfReadingPosition(fileId, pageNum);
@@ -453,12 +542,28 @@ export function PdfJsStudio({
         top: Math.max(pageEl.offsetTop - 16, 0),
         behavior: "smooth",
       });
+      if (container.scrollHeight > 0) {
+        preservedStateRef.current = {
+          page: pageNum,
+          scrollRatio: container.scrollTop / container.scrollHeight,
+          scale: zoomRef.current.scale,
+        };
+      }
     }
   }, [numPages, fileId]);
 
   // Sayfa görünür olduğunda okuma konumunu güncelle
   const handlePageVisible = useCallback((visiblePage: number) => {
     setCurrentPage(visiblePage);
+    currentPageRef.current = visiblePage;
+    const container = scrollContainerRef.current;
+    if (container && container.scrollHeight > 0) {
+      preservedStateRef.current = {
+        page: visiblePage,
+        scrollRatio: container.scrollTop / container.scrollHeight,
+        scale: zoomRef.current.scale,
+      };
+    }
     if (fileId) {
       savePdfReadingPosition(fileId, visiblePage);
     }
@@ -859,22 +964,80 @@ export function PdfJsStudio({
           onClose={() => setIsSnippetPanelOpen(false)}
         />
 
-        {/* Yükleniyor ve Hata Durumları */}
+        {/* Yükleniyor ve İlerleme Çubuğu (Faz B) */}
         {loading && (
           <div data-testid="pdf-viewer-status" role="status" className="flex flex-1 flex-col items-center justify-center py-20 text-zinc-400">
             <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
             <span className="text-sm font-medium text-zinc-300">
-              {isRefreshingAccess ? "PDF erişim bağlantısı yenileniyor..." : "PDF dokümanı ve katmanlar hazırlanıyor..."}
+              {isRefreshingAccess
+                ? "PDF erişim bağlantısı yenileniyor..."
+                : loadProgress && loadProgress.total > 0
+                ? `PDF dokümanı yükleniyor (%${Math.min(Math.round((loadProgress.loaded / loadProgress.total) * 100), 100)})...`
+                : "PDF dokümanı ve katmanlar hazırlanıyor..."}
             </span>
+            {loadProgress && loadProgress.total > 0 && (
+              <div className="w-56 h-1.5 bg-zinc-800 rounded-full mt-3 overflow-hidden border border-zinc-700/40">
+                <div
+                  className="bg-amber-500 h-full transition-all duration-150 rounded-full"
+                  style={{ width: `${Math.min(Math.round((loadProgress.loaded / loadProgress.total) * 100), 100)}%` }}
+                />
+              </div>
+            )}
           </div>
         )}
 
+        {/* Hata Ekranı ve İyileştirme Aksiyonları (Faz B) */}
         {error && (
           <div className="flex flex-1 items-center justify-center p-6">
             <div className="mx-auto max-w-md rounded-2xl border border-red-500/30 bg-red-950/30 p-6 text-center text-red-400 shadow-2xl backdrop-blur-md">
               <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
-              <h3 className="text-sm font-bold text-red-200">PDF Yükleme Hatası</h3>
+              <h3 className="text-sm font-bold text-red-200">
+                {errorType === "corrupt"
+                  ? "Bozuk veya Geçersiz Dosya"
+                  : errorType === "missing"
+                  ? "Dosya Bulunamadı"
+                  : errorType === "password"
+                  ? "Parola Korumalı Belge"
+                  : "PDF Yükleme Hatası"}
+              </h3>
               <p className="mt-1 text-xs text-zinc-400">{error}</p>
+
+              <div className="mt-4 flex items-center justify-center gap-2">
+                {errorType === "corrupt" && onDownload && (
+                  <button
+                    type="button"
+                    onClick={onDownload}
+                    data-testid="pdf-download-corrupt-btn"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 border border-zinc-700 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
+                  >
+                    Dosyayı İndir
+                  </button>
+                )}
+                {errorType === "password" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setLoading(true);
+                      setReloadKey((prev) => prev + 1);
+                    }}
+                    data-testid="pdf-reopen-password-btn"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400 transition-colors"
+                  >
+                    Parola Gir
+                  </button>
+                )}
+                {errorType === "network" && (
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    data-testid="pdf-retry-btn"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 border border-zinc-700 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
+                  >
+                    Yeniden Dene
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -897,6 +1060,16 @@ export function PdfJsStudio({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerEnd}
               onPointerCancel={handlePointerEnd}
+              onScroll={() => {
+                const c = scrollContainerRef.current;
+                if (c && c.scrollHeight > 0) {
+                  preservedStateRef.current = {
+                    page: currentPageRef.current,
+                    scrollRatio: c.scrollTop / c.scrollHeight,
+                    scale: zoomRef.current.scale,
+                  };
+                }
+              }}
               className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] bg-muted/50 p-4 sm:p-8 dark:bg-zinc-900/60 ${
                 isHandTool
                   ? isDragging
@@ -925,6 +1098,14 @@ export function PdfJsStudio({
             </div>
           </div>
         )}
+
+        {/* Parola İletişim Kutusu (Modal) (Faz B) */}
+        <PdfPasswordModal
+          isOpen={isPasswordModalOpen}
+          reason={passwordReason}
+          onSubmit={handlePasswordSubmit}
+          onCancel={handlePasswordCancel}
+        />
       </div>
     </div>
   );

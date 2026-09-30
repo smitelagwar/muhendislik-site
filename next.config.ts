@@ -98,6 +98,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/vendor/pdfjs/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/(.*)\\.(ico|png|jpg|jpeg|svg|webp|avif)",
         headers: [
           {
