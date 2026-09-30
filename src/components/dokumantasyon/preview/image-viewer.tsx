@@ -185,6 +185,9 @@ export function DokImageViewer({
   const cameraRef = useRef<CameraState>(camera);
   const pendingCameraRef = useRef<CameraState | null>(null);
   const cameraFrameRef = useRef<number | null>(null);
+  const targetScaleRef = useRef<number>(camera.scale);
+  const zoomAnimFrameRef = useRef<number | null>(null);
+  const zoomAnchorRef = useRef<GesturePoint | null>(null);
   const wheelIdleTimeoutRef = useRef<number | null>(null);
   const lastTapRef = useRef<{ time: number; point: GesturePoint } | null>(null);
 
@@ -280,10 +283,14 @@ export function DokImageViewer({
       if (cameraFrameRef.current !== null) {
         cancelAnimationFrame(cameraFrameRef.current);
       }
+      if (zoomAnimFrameRef.current !== null) {
+        cancelAnimationFrame(zoomAnimFrameRef.current);
+      }
       if (wheelIdleTimeoutRef.current !== null) {
         window.clearTimeout(wheelIdleTimeoutRef.current);
       }
       cameraFrameRef.current = null;
+      zoomAnimFrameRef.current = null;
       pendingCameraRef.current = null;
       activePointers.clear();
       gestureRef.current = { mode: "idle" };
@@ -332,6 +339,11 @@ export function DokImageViewer({
       cancelAnimationFrame(cameraFrameRef.current);
       cameraFrameRef.current = null;
     }
+    if (zoomAnimFrameRef.current !== null) {
+      cancelAnimationFrame(zoomAnimFrameRef.current);
+      zoomAnimFrameRef.current = null;
+    }
+    targetScaleRef.current = nextCamera.scale;
     pendingCameraRef.current = null;
     cameraRef.current = nextCamera;
     setCamera(nextCamera);
@@ -487,10 +499,64 @@ export function DokImageViewer({
     [getScaleLimits, naturalSize, rotation, scheduleCamera]
   );
 
+  const startSmoothCameraZoom = useCallback(() => {
+    if (zoomAnimFrameRef.current !== null) return;
+
+    const tick = () => {
+      const targetScale = targetScaleRef.current;
+      const current = cameraRef.current;
+      const diff = targetScale - current.scale;
+
+      if (Math.abs(diff) < 0.001) {
+        zoomCameraAroundClientPoint(targetScale, zoomAnchorRef.current ?? undefined);
+        zoomAnimFrameRef.current = null;
+        return;
+      }
+
+      // 60 FPS seri ve pürüzsüz lerp geçişi
+      const nextScale = current.scale + diff * 0.3;
+      zoomCameraAroundClientPoint(nextScale, zoomAnchorRef.current ?? undefined);
+
+      zoomAnimFrameRef.current = requestAnimationFrame(tick);
+    };
+
+    zoomAnimFrameRef.current = requestAnimationFrame(tick);
+  }, [zoomCameraAroundClientPoint]);
+
+  const smoothButtonZoom = useCallback(
+    (factor: number) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const limits = getScaleLimits({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+      const currentTarget = targetScaleRef.current ?? cameraRef.current.scale;
+      const nextTarget = Math.min(Math.max(currentTarget * factor, limits.minScale), limits.maxScale);
+      targetScaleRef.current = nextTarget;
+      const rect = container.getBoundingClientRect();
+      zoomAnchorRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
+      setIsWheelZooming(true);
+      if (wheelIdleTimeoutRef.current !== null) {
+        window.clearTimeout(wheelIdleTimeoutRef.current);
+      }
+      wheelIdleTimeoutRef.current = window.setTimeout(() => {
+        wheelIdleTimeoutRef.current = null;
+        setIsWheelZooming(false);
+      }, 250);
+
+      startSmoothCameraZoom();
+    },
+    [getScaleLimits, startSmoothCameraZoom]
+  );
+
   const setCustomScale = useCallback(
     (updater: (current: number) => number) => {
       const current = cameraRef.current;
-      zoomCameraAroundClientPoint(updater(current.scale));
+      const nextScale = updater(current.scale);
+      targetScaleRef.current = nextScale;
+      zoomCameraAroundClientPoint(nextScale);
     },
     [zoomCameraAroundClientPoint]
   );
@@ -501,6 +567,10 @@ export function DokImageViewer({
 
   const resetView = () => {
     const container = containerRef.current;
+    if (zoomAnimFrameRef.current !== null) {
+      cancelAnimationFrame(zoomAnimFrameRef.current);
+      zoomAnimFrameRef.current = null;
+    }
     setIsFitMode(true);
     setRotation(0);
     setFlipH(false);
@@ -511,6 +581,7 @@ export function DokImageViewer({
     const viewport = { width: container.clientWidth, height: container.clientHeight };
     const padding = viewport.width < 640 ? 32 : 64;
     const fitScale = computeImageFitScale(viewport, naturalSize, 0, padding);
+    targetScaleRef.current = fitScale;
     commitCamera({ scale: fitScale, offsetX: 0, offsetY: 0 });
   };
 
@@ -540,6 +611,16 @@ export function DokImageViewer({
         MAX_NORMALIZED_WHEEL_DELTA
       );
 
+      const limits = getScaleLimits({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+      const factor = Math.exp(-normalizedDelta * WHEEL_ZOOM_SENSITIVITY);
+      const currentTarget = targetScaleRef.current ?? cameraRef.current.scale;
+      const nextTarget = Math.min(Math.max(currentTarget * factor, limits.minScale), limits.maxScale);
+      targetScaleRef.current = nextTarget;
+      zoomAnchorRef.current = { x: e.clientX, y: e.clientY };
+
       setIsWheelZooming(true);
       if (wheelIdleTimeoutRef.current !== null) {
         window.clearTimeout(wheelIdleTimeoutRef.current);
@@ -547,20 +628,14 @@ export function DokImageViewer({
       wheelIdleTimeoutRef.current = window.setTimeout(() => {
         wheelIdleTimeoutRef.current = null;
         setIsWheelZooming(false);
-      }, 180);
+      }, 200);
 
-      zoomCameraAroundClientPoint(
-        cameraRef.current.scale * Math.exp(-normalizedDelta * WHEEL_ZOOM_SENSITIVITY),
-        {
-        x: e.clientX,
-        y: e.clientY,
-        }
-      );
+      startSmoothCameraZoom();
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [zoomCameraAroundClientPoint]);
+  }, [getScaleLimits, startSmoothCameraZoom]);
 
   const startPanGesture = useCallback((pointerId: number, point: GesturePoint) => {
     gestureRef.current = {
@@ -613,6 +688,12 @@ export function DokImageViewer({
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    if (zoomAnimFrameRef.current !== null) {
+      cancelAnimationFrame(zoomAnimFrameRef.current);
+      zoomAnimFrameRef.current = null;
+    }
+    targetScaleRef.current = cameraRef.current.scale;
 
     e.preventDefault();
 
@@ -888,7 +969,7 @@ export function DokImageViewer({
           <div className="flex items-center rounded-xl bg-secondary/50 border border-border/60 p-0.5 shadow-inner">
             <StudioCommandButton
               commandId="image.zoom.out"
-              onClick={() => setCustomScale((current) => current / BUTTON_ZOOM_FACTOR)}
+              onClick={() => smoothButtonZoom(1 / BUTTON_ZOOM_FACTOR)}
               aria-label="Uzaklaştır"
               showLabel={false}
               title="Uzaklaştır"
@@ -907,7 +988,7 @@ export function DokImageViewer({
 
             <StudioCommandButton
               commandId="image.zoom.in"
-              onClick={() => setCustomScale((current) => current * BUTTON_ZOOM_FACTOR)}
+              onClick={() => smoothButtonZoom(BUTTON_ZOOM_FACTOR)}
               aria-label="Yakınlaştır"
               showLabel={false}
               title="Yakınlaştır"

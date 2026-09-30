@@ -90,6 +90,7 @@ export function PdfJsStudio({
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<ZoomState>({ mode: "fit-width", scale: 1.2 });
+  const [renderedScale, setRenderedScale] = useState<number>(1.2);
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,9 +117,70 @@ export function PdfJsStudio({
   const [firstPageSize, setFirstPageSize] = useState<{ width: number; height: number } | null>(null);
   const scale = zoom.scale;
 
+  const targetScaleRef = useRef<number>(zoom.scale);
+  const activeAnchorRef = useRef<ZoomAnchor | null>(null);
+  const zoomAnimFrameRef = useRef<number | null>(null);
+  const debouncedRenderTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     zoomRef.current = zoom;
   }, [zoom]);
+
+  const scheduleRenderedScaleCommit = useCallback((target: number) => {
+    if (debouncedRenderTimerRef.current !== null) {
+      window.clearTimeout(debouncedRenderTimerRef.current);
+    }
+    debouncedRenderTimerRef.current = window.setTimeout(() => {
+      debouncedRenderTimerRef.current = null;
+      setRenderedScale(Number(target.toFixed(3)));
+    }, 220);
+  }, []);
+
+  const startSmoothZoomAnimation = useCallback(() => {
+    if (zoomAnimFrameRef.current !== null) return;
+
+    const animate = () => {
+      const container = scrollContainerRef.current;
+      if (!container) {
+        zoomAnimFrameRef.current = null;
+        return;
+      }
+
+      const currentScale = zoomRef.current.scale;
+      const targetScale = targetScaleRef.current;
+      const diff = targetScale - currentScale;
+
+      if (Math.abs(diff) < 0.002) {
+        if (activeAnchorRef.current && currentScale > 0) {
+          pendingZoomAnchorRef.current = {
+            ...activeAnchorRef.current,
+            sourceScale: currentScale,
+            targetScale,
+          };
+        }
+        setZoom({ mode: "custom", scale: targetScale });
+        zoomAnimFrameRef.current = null;
+        activeAnchorRef.current = null;
+        scheduleRenderedScaleCommit(targetScale);
+        return;
+      }
+
+      const nextScale = clampScale(currentScale + diff * 0.3);
+      if (activeAnchorRef.current && currentScale > 0) {
+        pendingZoomAnchorRef.current = {
+          ...activeAnchorRef.current,
+          sourceScale: currentScale,
+          targetScale: nextScale,
+        };
+      }
+      setZoom({ mode: "custom", scale: Number(nextScale.toFixed(4)) });
+      scheduleRenderedScaleCommit(targetScale);
+
+      zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
+    };
+
+    zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
+  }, [scheduleRenderedScaleCommit]);
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
@@ -142,64 +204,74 @@ export function PdfJsStudio({
     const targetScale = getFitScale(mode);
     if (targetScale === null) return;
 
-    setZoom((current) => (
-      current.mode === mode && current.scale === targetScale
-        ? current
-        : { mode, scale: targetScale }
-    ));
-  }, [getFitScale]);
+    if (zoomAnimFrameRef.current !== null) {
+      window.cancelAnimationFrame(zoomAnimFrameRef.current);
+      zoomAnimFrameRef.current = null;
+    }
+    targetScaleRef.current = targetScale;
+    activeAnchorRef.current = null;
+    setZoom({ mode, scale: targetScale });
+    scheduleRenderedScaleCommit(targetScale);
+  }, [getFitScale, scheduleRenderedScaleCommit]);
 
   const adjustCustomZoom = useCallback((delta: number, anchor?: ZoomAnchor) => {
-    setZoom((current) => {
-      const targetScale = Number(clampScale(current.scale + delta).toFixed(2));
-      if (anchor && targetScale !== current.scale) {
-        pendingZoomAnchorRef.current = {
-          ...anchor,
-          sourceScale: current.scale,
-          targetScale,
-        };
-      }
-      return current.mode === "custom" && current.scale === targetScale
-        ? current
-        : { mode: "custom", scale: targetScale };
-    });
-  }, []);
+    const container = scrollContainerRef.current;
+    const currentTarget = targetScaleRef.current;
+    const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
+    targetScaleRef.current = nextTarget;
+    activeAnchorRef.current = anchor || (container ? {
+      viewportX: container.clientWidth / 2,
+      viewportY: container.clientHeight / 2,
+    } : null);
+    startSmoothZoomAnimation();
+  }, [startSmoothZoomAnimation]);
+
+  const handleZoomIn = useCallback(() => {
+    const container = scrollContainerRef.current;
+    const currentTarget = targetScaleRef.current;
+    const nextTarget = clampScale(Number((currentTarget * 1.25).toFixed(2)));
+    targetScaleRef.current = nextTarget;
+    activeAnchorRef.current = container ? {
+      viewportX: container.clientWidth / 2,
+      viewportY: container.clientHeight / 2,
+    } : null;
+    startSmoothZoomAnimation();
+  }, [startSmoothZoomAnimation]);
+
+  const handleZoomOut = useCallback(() => {
+    const container = scrollContainerRef.current;
+    const currentTarget = targetScaleRef.current;
+    const nextTarget = clampScale(Number((currentTarget / 1.25).toFixed(2)));
+    targetScaleRef.current = nextTarget;
+    activeAnchorRef.current = container ? {
+      viewportX: container.clientWidth / 2,
+      viewportY: container.clientHeight / 2,
+    } : null;
+    startSmoothZoomAnimation();
+  }, [startSmoothZoomAnimation]);
 
   const setActualSize = useCallback(() => {
-    setZoom((current) => (
-      current.mode === "actual-size" && current.scale === 1
-        ? current
-        : { mode: "actual-size", scale: 1 }
-    ));
-  }, []);
+    const container = scrollContainerRef.current;
+    targetScaleRef.current = 1;
+    activeAnchorRef.current = container ? {
+      viewportX: container.clientWidth / 2,
+      viewportY: container.clientHeight / 2,
+    } : null;
+    startSmoothZoomAnimation();
+  }, [startSmoothZoomAnimation]);
 
   // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç
   // altındaki belge noktasını aynı viewport koordinatında tut.
   useLayoutEffect(() => {
     const pendingAnchor = pendingZoomAnchorRef.current;
     const container = scrollContainerRef.current;
-    if (!pendingAnchor || !container || pendingAnchor.targetScale !== scale) return;
+    if (!pendingAnchor || !container) return;
 
     pendingZoomAnchorRef.current = null;
-    const applyAnchor = () => {
-      const currentContainer = scrollContainerRef.current;
-      if (!currentContainer) return;
-      const logicalX = (currentContainer.scrollLeft + pendingAnchor.viewportX) / pendingAnchor.sourceScale;
-      const logicalY = (currentContainer.scrollTop + pendingAnchor.viewportY) / pendingAnchor.sourceScale;
-      currentContainer.scrollLeft = Math.max(logicalX * pendingAnchor.targetScale - pendingAnchor.viewportX, 0);
-      currentContainer.scrollTop = Math.max(logicalY * pendingAnchor.targetScale - pendingAnchor.viewportY, 0);
-    };
-
-    anchorFrameRef.current = window.requestAnimationFrame(() => {
-      anchorFrameRef.current = window.requestAnimationFrame(applyAnchor);
-    });
-
-    return () => {
-      if (anchorFrameRef.current !== null) {
-        window.cancelAnimationFrame(anchorFrameRef.current);
-        anchorFrameRef.current = null;
-      }
-    };
+    const logicalX = (container.scrollLeft + pendingAnchor.viewportX) / pendingAnchor.sourceScale;
+    const logicalY = (container.scrollTop + pendingAnchor.viewportY) / pendingAnchor.sourceScale;
+    container.scrollLeft = Math.max(logicalX * pendingAnchor.targetScale - pendingAnchor.viewportX, 0);
+    container.scrollTop = Math.max(logicalY * pendingAnchor.targetScale - pendingAnchor.viewportY, 0);
   }, [scale]);
 
   // 1. PDF Dokümanını Yükle ve Güvenli Yaşam Döngüsü Başlat
@@ -378,33 +450,44 @@ export function PdfJsStudio({
 
       e.preventDefault();
       const rect = container.getBoundingClientRect();
-      wheelDeltaRef.current += e.deltaY;
-      wheelAnchorRef.current = {
+      const anchor: ZoomAnchor = {
         viewportX: e.clientX - rect.left,
         viewportY: e.clientY - rect.top,
       };
+      activeAnchorRef.current = anchor;
 
-      if (wheelFrameRef.current !== null) return;
-      wheelFrameRef.current = window.requestAnimationFrame(() => {
-        const delta = wheelDeltaRef.current;
-        const anchor = wheelAnchorRef.current ?? undefined;
-        wheelDeltaRef.current = 0;
-        wheelAnchorRef.current = null;
-        wheelFrameRef.current = null;
-        const steps = Math.min(Math.max(Math.round(Math.abs(delta) / 100), 1), 4);
-        adjustCustomZoom((delta < 0 ? 1 : -1) * ZOOM_STEP * steps, anchor);
-      });
+      const deltaMultiplier =
+        e.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? container.clientHeight
+            : 1;
+      const normalizedDelta = Math.min(
+        Math.max(e.deltaY * deltaMultiplier, -250),
+        250
+      );
+
+      // Tekerlek ivmesine duyarlı pürüzsüz sürekli yakınlaştırma
+      const zoomFactor = Math.exp(-normalizedDelta * 0.002);
+      const currentTarget = targetScaleRef.current;
+      targetScaleRef.current = clampScale(currentTarget * zoomFactor);
+
+      startSmoothZoomAnimation();
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => {
       container.removeEventListener("wheel", handleWheel);
-      if (wheelFrameRef.current !== null) {
-        window.cancelAnimationFrame(wheelFrameRef.current);
-        wheelFrameRef.current = null;
+      if (zoomAnimFrameRef.current !== null) {
+        window.cancelAnimationFrame(zoomAnimFrameRef.current);
+        zoomAnimFrameRef.current = null;
+      }
+      if (debouncedRenderTimerRef.current !== null) {
+        window.clearTimeout(debouncedRenderTimerRef.current);
+        debouncedRenderTimerRef.current = null;
       }
     };
-  }, [adjustCustomZoom, loading, pdfDoc]);
+  }, [loading, pdfDoc, startSmoothZoomAnimation]);
 
   const defaultDownload = useCallback(() => {
     const a = document.createElement("a");
@@ -550,8 +633,8 @@ export function PdfJsStudio({
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
         onPageChange={scrollToPage}
         onSetHandTool={setIsHandTool}
-        onZoomIn={() => adjustCustomZoom(ZOOM_STEP)}
-        onZoomOut={() => adjustCustomZoom(-ZOOM_STEP)}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
         onZoom100={setActualSize}
         onFitWidth={handleFitWidth}
         onFitPage={handleFitPage}
@@ -641,6 +724,7 @@ export function PdfJsStudio({
                   pdfDoc={pdfDoc}
                   pageNumber={pageNum}
                   scale={scale}
+                  renderedScale={renderedScale}
                   rotation={rotation}
                   isHandTool={isHandTool}
                   searchQuery={isSearchOpen ? searchQuery : ""}

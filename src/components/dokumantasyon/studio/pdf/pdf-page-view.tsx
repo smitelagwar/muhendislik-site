@@ -26,6 +26,7 @@ interface PdfPageViewProps {
   searchQuery?: string;
   isCurrentMatchPage?: boolean;
   onPageVisible?: (pageNumber: number) => void;
+  renderedScale?: number;
 }
 
 const MAX_DEVICE_PIXEL_RATIO = 2.5;
@@ -40,6 +41,7 @@ export function PdfPageView({
   searchQuery = "",
   isCurrentMatchPage = false,
   onPageVisible,
+  renderedScale,
 }: PdfPageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -76,6 +78,8 @@ export function PdfPageView({
     return () => observer.disconnect();
   }, [pageNumber, onPageVisible]);
 
+  const effectiveRenderedScale = renderedScale ?? scale;
+
   // 2. PDF Sayfasını ve Temel Viewport'unu Al
   useEffect(() => {
     let active = true;
@@ -84,7 +88,7 @@ export function PdfPageView({
     pdfDoc.getPage(pageNumber).then((p: any) => {
       if (!active) return;
       setPage(p);
-      const vp = p.getViewport({ scale, rotation });
+      const vp = p.getViewport({ scale: effectiveRenderedScale, rotation });
       setViewport(vp);
 
       // Text Layer için metin içeriğini al
@@ -103,7 +107,7 @@ export function PdfPageView({
     return () => {
       active = false;
     };
-  }, [pdfDoc, pageNumber, scale, rotation]);
+  }, [pdfDoc, pageNumber, effectiveRenderedScale, rotation]);
 
   // 3. Canvas Render
   useEffect(() => {
@@ -181,8 +185,21 @@ export function PdfPageView({
     );
   };
 
-  const width = viewport ? Math.floor(viewport.width) : 600;
-  const height = viewport ? Math.floor(viewport.height) : 800;
+  // Temel ölçüler (scale 1.0 için)
+  const baseWidth = viewport ? viewport.width / effectiveRenderedScale : 600;
+  const baseHeight = viewport ? viewport.height / effectiveRenderedScale : 800;
+
+  // Canlı layout ölçüleri (scroll container geometrisi ve sayfa çerçevesi için)
+  const currentWidth = Math.floor(baseWidth * scale);
+  const currentHeight = Math.floor(baseHeight * scale);
+
+  // Render edilmiş tuval ölçüleri
+  const renderedWidth = viewport ? Math.floor(viewport.width) : currentWidth;
+  const renderedHeight = viewport ? Math.floor(viewport.height) : currentHeight;
+
+  // Zoom esnasında GPU donanım hızlandırmalı CSS transform ara ölçekleme oranı
+  const visualRatio = renderedWidth > 0 ? currentWidth / renderedWidth : 1;
+  const hasVisualTransform = Math.abs(visualRatio - 1) > 0.001;
 
   return (
     <div
@@ -193,33 +210,40 @@ export function PdfPageView({
         isCurrentMatchPage ? "ring-2 ring-amber-500 shadow-amber-500/20" : ""
       }`}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
+        width: `${currentWidth}px`,
+        height: `${currentHeight}px`,
       }}
     >
-      {/* 1. Canvas Katmanı */}
+      {/* 1. Canvas Katmanı (GPU composited CSS transform during zoom, razor sharp when rendered) */}
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 block"
-        style={{ width: `${width}px`, height: `${height}px` }}
+        className="absolute inset-0 block origin-top-left"
+        style={{
+          width: `${renderedWidth}px`,
+          height: `${renderedHeight}px`,
+          transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
+          transformOrigin: "0 0",
+        }}
       />
 
       {/* 2. Doğal Metin Katmanı (HTML Text Layer & Arama Vurgusu) */}
       <div
-        className={`absolute inset-0 overflow-hidden leading-none select-text ${
+        className={`absolute inset-0 overflow-hidden leading-none select-text origin-top-left ${
           isHandTool ? "pointer-events-none" : "pointer-events-auto"
         }`}
         style={{
-          width: `${width}px`,
-          height: `${height}px`,
+          width: `${renderedWidth}px`,
+          height: `${renderedHeight}px`,
+          transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
+          transformOrigin: "0 0",
         }}
       >
         {textItems.map((item, idx) => {
           if (!viewport || !item.transform) return null;
 
-          // PDF.js koordinat dönüşümü
+          // PDF.js koordinat dönüşümü (effectiveRenderedScale'e göre)
           const tx = item.transform;
-          const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) * scale;
+          const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) * effectiveRenderedScale;
           const [x, y] = viewport.convertToViewportPoint(tx[4], tx[5]);
 
           return (
@@ -240,30 +264,41 @@ export function PdfPageView({
         })}
       </div>
 
-      {annotations.map((annotation, index) => {
-        if (annotation.subtype !== "Link" || !annotation.rect || !viewport) return null;
-        const [x1, y1] = viewport.convertToViewportPoint(annotation.rect[0], annotation.rect[1]);
-        const [x2, y2] = viewport.convertToViewportPoint(annotation.rect[2], annotation.rect[3]);
-        const left = Math.min(x1, x2);
-        const top = Math.min(y1, y2);
-        const annotationWidth = Math.abs(x2 - x1);
-        const annotationHeight = Math.abs(y2 - y1);
-        const href = typeof annotation.url === "string" ? annotation.url : null;
+      {/* 3. Linkler Katmanı */}
+      <div
+        className="absolute inset-0 pointer-events-none origin-top-left"
+        style={{
+          width: `${renderedWidth}px`,
+          height: `${renderedHeight}px`,
+          transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
+          transformOrigin: "0 0",
+        }}
+      >
+        {annotations.map((annotation, index) => {
+          if (annotation.subtype !== "Link" || !annotation.rect || !viewport) return null;
+          const [x1, y1] = viewport.convertToViewportPoint(annotation.rect[0], annotation.rect[1]);
+          const [x2, y2] = viewport.convertToViewportPoint(annotation.rect[2], annotation.rect[3]);
+          const left = Math.min(x1, x2);
+          const top = Math.min(y1, y2);
+          const annotationWidth = Math.abs(x2 - x1);
+          const annotationHeight = Math.abs(y2 - y1);
+          const href = typeof annotation.url === "string" ? annotation.url : null;
 
-        if (!href || annotationWidth < 1 || annotationHeight < 1) return null;
+          if (!href || annotationWidth < 1 || annotationHeight < 1) return null;
 
-        return (
-          <a
-            key={`${annotation.id || index}-${href}`}
-            href={href}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="absolute z-10 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-            style={{ left, top, width: annotationWidth, height: annotationHeight }}
-            aria-label={annotation.title || "PDF bağlantısını aç"}
-          />
-        );
-      })}
+          return (
+            <a
+              key={`${annotation.id || index}-${href}`}
+              href={href}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="absolute z-10 pointer-events-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              style={{ left, top, width: annotationWidth, height: annotationHeight }}
+              aria-label={annotation.title || "PDF bağlantısını aç"}
+            />
+          );
+        })}
+      </div>
 
       {/* Sayfa Numarası Rozeti */}
       <div className="absolute bottom-2 right-2 rounded bg-zinc-900/60 px-1.5 py-0.5 text-[9px] font-mono font-bold text-zinc-300 backdrop-blur-xs pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
