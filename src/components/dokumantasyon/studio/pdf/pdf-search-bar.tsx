@@ -59,7 +59,7 @@ export function PdfSearchBar({
   return (
     <div
       data-command-id="pdf.search.open"
-      className="absolute top-14 right-4 z-40 flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 select-none"
+      className="absolute top-14 sm:top-16 right-4 z-40 flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2 select-none print:hidden"
     >
       <div className="relative flex items-center">
         <Search className="absolute left-2.5 h-3.5 w-3.5 text-zinc-400" />

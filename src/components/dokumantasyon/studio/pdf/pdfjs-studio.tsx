@@ -406,6 +406,18 @@ export function PdfJsStudio({
     };
   }, [adjustCustomZoom, loading, pdfDoc]);
 
+  const defaultDownload = useCallback(() => {
+    const a = document.createElement("a");
+    a.href = accessUrl;
+    const name = displayName || "dokuman.pdf";
+    a.download = name.toLowerCase().endsWith(".pdf") ? name : `${name}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [accessUrl, displayName]);
+
+  const handleDownloadAction = onDownload || defaultDownload;
+
   // 5. Klavye Kısayolları (Shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -445,6 +457,17 @@ export function PdfJsStudio({
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
         e.preventDefault();
         handlePrint();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setIsSidebarOpen((prev) => !prev);
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        handleDownloadAction();
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s") {
+        if (onShare) {
+          e.preventDefault();
+          onShare();
+        }
       } else if (e.key === "PageUp") {
         e.preventDefault();
         scrollToPage(Math.max(currentPage - 1, 1));
@@ -458,13 +481,17 @@ export function PdfJsStudio({
         e.preventDefault();
         scrollToPage(numPages);
       } else if (e.key === "Escape") {
-        setIsSearchOpen(false);
+        if (isSearchOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsSearchOpen(false);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [adjustCustomZoom, applyFitMode, currentPage, numPages, scrollToPage, setActualSize]);
+  }, [adjustCustomZoom, applyFitMode, currentPage, numPages, scrollToPage, setActualSize, isSearchOpen, handleDownloadAction, onShare]);
 
   // 6. Genişliğe / Sayfaya Sığdırma Hesaplamaları
   const handleFitWidth = () => {
@@ -507,16 +534,6 @@ export function PdfJsStudio({
     setIsDragging(false);
   };
 
-  const defaultDownload = useCallback(() => {
-    const a = document.createElement("a");
-    a.href = accessUrl;
-    a.download = displayName || "dokuman.pdf";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }, [accessUrl, displayName]);
-
-  const handleDownloadAction = onDownload || defaultDownload;
   const currentMatch = searchResult.matches[currentMatchIndex];
 
   return (
@@ -526,6 +543,7 @@ export function PdfJsStudio({
         numPages={numPages}
         currentPage={currentPage}
         scale={scale}
+        zoomMode={zoom.mode}
         isSidebarOpen={isSidebarOpen}
         isHandTool={isHandTool}
         isSearchOpen={isSearchOpen}

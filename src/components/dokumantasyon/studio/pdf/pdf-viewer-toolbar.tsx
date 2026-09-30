@@ -4,7 +4,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sidebar,
   ChevronsLeft,
@@ -27,6 +27,7 @@ import {
   FileText,
   MoreVertical,
   Share2,
+  Check,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
@@ -43,6 +44,7 @@ interface PdfViewerToolbarProps {
   numPages: number;
   currentPage: number;
   scale: number;
+  zoomMode?: "custom" | "actual-size" | "fit-width" | "fit-page";
   isSidebarOpen: boolean;
   isHandTool: boolean;
   isSearchOpen: boolean;
@@ -76,6 +78,7 @@ export function PdfViewerToolbar({
   numPages,
   currentPage,
   scale,
+  zoomMode,
   isSidebarOpen,
   isHandTool,
   isSearchOpen,
@@ -104,13 +107,27 @@ export function PdfViewerToolbar({
   onDelete,
 }: PdfViewerToolbarProps) {
   const zoomPercent = Math.round(scale * 100);
+  const [pageInputVal, setPageInputVal] = useState(String(currentPage));
+
+  useEffect(() => {
+    setPageInputVal(String(currentPage));
+  }, [currentPage]);
+
+  const commitPageInput = () => {
+    const val = parseInt(pageInputVal, 10);
+    if (!isNaN(val) && val >= 1 && val <= numPages) {
+      onPageChange(val);
+    } else {
+      setPageInputVal(String(currentPage));
+    }
+  };
 
   return (
     <div
       data-testid="pdf-viewer-toolbar"
       role="group"
       aria-label="PDF stüdyo araç çubuğu"
-      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3"
+      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 print:hidden"
     >
       {/* 1. Sol Alan: Geri Dönüş, Dosya Kimliği ve Sayfa Gezintisi */}
       <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
@@ -193,17 +210,19 @@ export function PdfViewerToolbar({
 
           <div className="flex shrink-0 items-center gap-1 px-0.5 text-xs font-medium">
             <input
-              type="number"
-              min={1}
-              max={numPages || 1}
-              value={currentPage}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val >= 1 && val <= numPages) {
-                  onPageChange(val);
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pageInputVal}
+              disabled={numPages <= 0}
+              onChange={(e) => setPageInputVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
                 }
               }}
-              className="h-8 w-11 rounded-lg border border-input bg-background/80 px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner"
+              onBlur={commitPageInput}
+              className="h-8 w-11 rounded-lg border border-input bg-background/80 px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
               aria-label="Geçerli Sayfa"
             />
             <span className="font-semibold text-muted-foreground font-mono text-[11px]">/ {numPages || "—"}</span>
@@ -284,6 +303,7 @@ export function PdfViewerToolbar({
           <StudioCommandButton
             commandId="pdf.zoom.100"
             onClick={onZoom100}
+            active={zoomMode === "actual-size" || zoomPercent === 100}
             title={`Orijinal Boyut · ${zoomPercent}%`}
             aria-label={`Ölçeği sıfırla, yüzde ${zoomPercent}`}
             className="h-11 min-h-11 px-2 lg:h-9 lg:min-h-9 lg:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
@@ -305,6 +325,7 @@ export function PdfViewerToolbar({
           <StudioCommandButton
             commandId="pdf.zoom.fitWidth"
             onClick={onFitWidth}
+            active={zoomMode === "fit-width"}
             showLabel={true}
             title="Genişliğe Sığdır (Ctrl+2)"
             className="hidden h-9 px-2 rounded-lg text-[11px] font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors min-[1100px]:inline-flex"
@@ -314,6 +335,7 @@ export function PdfViewerToolbar({
           <StudioCommandButton
             commandId="pdf.zoom.fitPage"
             onClick={onFitPage}
+            active={zoomMode === "fit-page"}
             showLabel={true}
             title="Sayfaya Sığdır (Ctrl+0)"
             className="hidden h-9 px-2 rounded-lg text-[11px] font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors min-[1250px]:inline-flex"
@@ -321,7 +343,7 @@ export function PdfViewerToolbar({
           />
         </div>
 
-        <div className="hidden h-5 w-px bg-border/60 md:block" />
+        <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
         {/* Görünümü Döndür */}
         <StudioCommandButton
@@ -383,43 +405,111 @@ export function PdfViewerToolbar({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="z-[210] w-56 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1.5">
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg min-[1100px]:hidden" data-command-id="pdf.zoom.fitWidth" onClick={onFitWidth}>
-              Genişliğe sığdır
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
+              data-command-id="pdf.sidebar.toggle"
+              onClick={onToggleSidebar}
+            >
+              <span>Sayfa küçük resimleri</span>
+              {isSidebarOpen && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg min-[1250px]:hidden" data-command-id="pdf.zoom.fitPage" onClick={onFitPage}>
-              Sayfaya sığdır
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[1100px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.fitWidth"
+              onClick={onFitWidth}
+            >
+              <span>Genişliğe sığdır</span>
+              {zoomMode === "fit-width" && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg md:hidden" data-command-id="pdf.rotateView" onClick={onRotateView}>
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[1250px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.fitPage"
+              onClick={onFitPage}
+            >
+              <span>Sayfaya sığdır</span>
+              {zoomMode === "fit-page" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg md:hidden"
+              data-command-id="pdf.rotateView"
+              onClick={onRotateView}
+            >
               Görünümü döndür
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg lg:hidden" data-command-id="pdf.tool.select" onClick={() => onSetHandTool(false)}>
-              Metin seçim imleci
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg lg:hidden flex items-center justify-between"
+              data-command-id="pdf.tool.select"
+              onClick={() => onSetHandTool(false)}
+            >
+              <span>Metin seçim imleci</span>
+              {!isHandTool && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg lg:hidden" data-command-id="pdf.tool.hand" onClick={() => onSetHandTool(true)}>
-              Kaydırma / el aracı
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg lg:hidden flex items-center justify-between"
+              data-command-id="pdf.tool.hand"
+              onClick={() => onSetHandTool(true)}
+            >
+              <span>Kaydırma / el aracı</span>
+              {isHandTool && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-xs rounded-lg lg:hidden" data-command-id="pdf.print" onClick={onPrint}>
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg lg:hidden"
+              data-command-id="pdf.print"
+              onClick={onPrint}
+            >
               PDF yazdır
             </DropdownMenuItem>
+
             {onDownload && (
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg sm:hidden" onClick={onDownload}>
-                PDF indir
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
+                data-command-id="studio.download"
+                onClick={onDownload}
+              >
+                <span>PDF indir</span>
+                <Download className="h-3.5 w-3.5 text-muted-foreground" />
               </DropdownMenuItem>
             )}
 
-            {(onRename || onDelete || onToggleFullscreen || onShare) && (
-              <DropdownMenuSeparator className="bg-border/60 my-1" />
+            {onToggleFullscreen && (
+              <DropdownMenuItem
+                onClick={onToggleFullscreen}
+                data-command-id="studio.fullscreen"
+                className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
+              >
+                <span>{isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}</span>
+                {isFullscreen ? <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" /> : <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />}
+              </DropdownMenuItem>
+            )}
+
+            {onShare && (
+              <DropdownMenuItem
+                onClick={onShare}
+                data-command-id="studio.share"
+                className="flex items-center justify-between cursor-pointer text-xs rounded-lg sm:hidden"
+              >
+                <span>Paylaşım bağlantısı oluştur</span>
+                <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </DropdownMenuItem>
             )}
 
             {onRename && (
-              <DropdownMenuItem onClick={onRename} className="flex items-center gap-2 cursor-pointer text-xs rounded-lg py-1.5">
-                <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                <span>Yeniden Adlandır</span>
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
+                <DropdownMenuItem
+                  onClick={onRename}
+                  data-command-id="studio.rename"
+                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg py-1.5"
+                >
+                  <Edit3 className="h-3.5 w-3.5 text-blue-500" />
+                  <span>Yeniden Adlandır</span>
+                </DropdownMenuItem>
+              </>
             )}
 
             {displayName && (
               <>
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
                 <div className="px-2 py-1.5 text-[11px] text-muted-foreground flex flex-col gap-0.5 select-text">
                   <div className="flex items-center gap-1.5 font-medium text-foreground truncate">
                     <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -435,24 +525,12 @@ export function PdfViewerToolbar({
               </>
             )}
 
-            {onToggleFullscreen && (
-              <DropdownMenuItem onClick={onToggleFullscreen} className="cursor-pointer text-xs rounded-lg sm:hidden">
-                {isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
-              </DropdownMenuItem>
-            )}
-
-            {onShare && (
-              <DropdownMenuItem onClick={onShare} className="flex items-center justify-between cursor-pointer text-xs rounded-lg sm:hidden">
-                <span>Paylaşım bağlantısı oluştur</span>
-                <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-              </DropdownMenuItem>
-            )}
-
             {onDelete && (
               <>
                 <DropdownMenuSeparator className="bg-border/60 my-1" />
                 <DropdownMenuItem
                   onClick={onDelete}
+                  data-command-id="studio.delete"
                   className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg py-1.5 font-medium"
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />

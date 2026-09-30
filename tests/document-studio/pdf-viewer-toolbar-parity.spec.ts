@@ -71,10 +71,45 @@ test.describe.serial("PDF Viewer Toolbar Parity", () => {
     // Tam ekran butonu masaüstünde görünür
     await expect(page.getByTestId("pdf-viewer-fullscreen-toggle")).toBeVisible();
 
+    // Kenar çubuğu (thumbnails) açılıp kapatılabilmeli (hem toggle hem kapatma butonu)
+    const sidebarToggle = page.locator('[data-command-id="pdf.sidebar.toggle"]').first();
+    await sidebarToggle.click();
+    await expect(page.getByText("Sayfalar (1)")).toBeVisible();
+    const sidebarClose = page.getByRole("button", { name: "Kenar çubuğunu kapat" });
+    await expect(sidebarClose).toBeVisible();
+    await sidebarClose.click();
+    await expect(page.getByText("Sayfalar (1)")).toBeHidden();
+
+    // Arama çubuğu açılabilmeli ve Escape ile kapatılabilmeli
+    const searchToggle = page.locator('[data-command-id="pdf.search.open"]').first();
+    await searchToggle.click();
+    const searchInput = page.getByPlaceholder("Dokümanda ara...");
+    await expect(searchInput).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(searchInput).toBeHidden();
+
+    // İmleç modları (Metin seçim ve El aracı)
+    const handToolBtn = page.locator('[data-command-id="pdf.tool.hand"]').first();
+    const selectToolBtn = page.locator('[data-command-id="pdf.tool.select"]').first();
+    await handToolBtn.click();
+    await expect(page.getByTestId("pdf-scroll-viewport")).toHaveClass(/cursor-grab/);
+    await selectToolBtn.click();
+    await expect(page.getByTestId("pdf-scroll-viewport")).toHaveClass(/cursor-default/);
+
+    // Sayfa input değeri
+    const pageInput = page.getByLabel("Geçerli Sayfa");
+    await expect(pageInput).toHaveValue("1");
+
+    // Zoom butonları
+    const zoomInBtn = page.locator('[data-command-id="pdf.zoom.in"]').first();
+    await zoomInBtn.click();
+    const zoom100Btn = page.locator('[data-command-id="pdf.zoom.100"]').first();
+    await zoom100Btn.click();
+
     // Yeniden adlandır ve çöp kutusu menüsü açılabilmeli
     await page.getByTestId("pdf-viewer-more-menu-trigger").click();
-    await expect(page.getByText("Yeniden Adlandır", { exact: true })).toBeVisible();
-    await expect(page.getByText("Çöp Kutusuna At", { exact: true })).toBeVisible();
+    await expect(page.locator('[data-command-id="studio.rename"]')).toBeVisible();
+    await expect(page.locator('[data-command-id="studio.delete"]')).toBeVisible();
     await page.keyboard.press("Escape");
 
     // Meta bilgi satırı (PDF rozeti)

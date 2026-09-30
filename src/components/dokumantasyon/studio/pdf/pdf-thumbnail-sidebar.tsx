@@ -5,7 +5,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Loader2, FileText, ChevronRight } from "lucide-react";
+import { Loader2, FileText, ChevronRight, X } from "lucide-react";
 
 interface PdfThumbnailSidebarProps {
   pdfDoc: any;
@@ -122,6 +122,15 @@ export function PdfThumbnailSidebar({
           <FileText className="h-4 w-4 text-amber-500" />
           <span className="text-xs font-bold text-foreground">Sayfalar ({numPages})</span>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          aria-label="Kenar çubuğunu kapat"
+          title="Kapat"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-2">
