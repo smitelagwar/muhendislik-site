@@ -72,7 +72,7 @@ export function PublicPreviewModal({
     >
       <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-border/80 bg-card/95 shadow-2xl overflow-hidden text-foreground backdrop-blur-xl">
         {/* Üst Bar */}
-        {previewKind !== "image" && (
+        {previewKind !== "image" && previewKind !== "pdf" && (
           <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/70 bg-card/85 px-4 backdrop-blur-md">
             <div className="flex items-center gap-3 min-w-0 pr-2">
               <span className="truncate text-xs sm:text-sm font-bold text-foreground max-w-sm sm:max-w-md">
@@ -121,7 +121,14 @@ export function PublicPreviewModal({
         {/* Ana İçerik */}
         <main className="relative flex-1 overflow-hidden bg-background flex flex-col">
           {previewKind === "pdf" ? (
-            <DokPdfViewer accessUrl={accessUrl} displayName={item.snapshot_name} />
+            <DokPdfViewer
+              accessUrl={accessUrl}
+              displayName={item.snapshot_name}
+              sizeBytes={Number(item.snapshot_size_bytes)}
+              extension={ext}
+              onBack={onClose}
+              onDownload={handleDownload}
+            />
           ) : previewKind === "image" ? (
             <DokImageViewer
               accessUrl={accessUrl}

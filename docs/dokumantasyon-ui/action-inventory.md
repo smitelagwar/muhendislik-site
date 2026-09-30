@@ -76,3 +76,36 @@ Görsel dosyalarda `StudioTopbar` render edilmez; aşağıdaki eylemler `DokImag
 | Çöp Kutusuna At | `studio.delete` | `onDelete` | Yalnızca Studio'da. |
 | Paylaş | `studio.share` | `onShare` | Studio'da var; Public'te yok. |
 | Tema | — | `ModeToggle` | Her yerde var. |
+
+---
+
+### 3b. PDF Stüdyosu Eylemleri (`pdf-viewer-toolbar.tsx`) — PDFgear Tekil Toolbar'ı
+
+PDF dosyalarında `StudioTopbar` render edilmez; aşağıdaki eylemler `DokPdfViewer` ve `PdfViewerToolbar` içinde tekil çubukta toplanmıştır.
+
+| Buton / Kontrol | Komut ID | Kaynak Prop / Handler | Not |
+|---|---|---|---|
+| Geri Dön | `studio.back` | `onBack` | Studio'da klasöre döner; Public'te modalı kapatır. |
+| Küçük Resim Paneli | `pdf.sidebar.toggle` | `onToggleSidebar` | Sol küçük resim çekmecesini açıp kapatır. |
+| İlk Sayfa | `pdf.page.first` | `onPageChange(1)` | Sayfa 1'e gider. |
+| Önceki Sayfa | `pdf.page.previous` | `onPageChange(currentPage - 1)` | Önceki sayfaya gider. |
+| Sayfa Girişi | — | `onPageChange(val)` | Sayfa numarası inputu ile doğrudan atlama. |
+| Sonraki Sayfa | `pdf.page.next` | `onPageChange(currentPage + 1)` | Sonraki sayfaya gider. |
+| Son Sayfa | `pdf.page.last` | `onPageChange(numPages)` | Son sayfaya gider. |
+| Belgede Ara | `pdf.search.open` | `onToggleSearch` | PDF.js dahili arama çubuğunu açar (Ctrl+F). |
+| Metin Seçim İmleci | `pdf.tool.select` | `onSetHandTool(false)` | Metin seçim modunu etkinleştirir (V). |
+| El (Kaydırma) İmleci | `pdf.tool.hand` | `onSetHandTool(true)` | Kaydırma (pan) modunu etkinleştirir (H). |
+| Uzaklaştır | `pdf.zoom.out` | `onZoomOut` | PDF zoom oranını küçültür (Ctrl+-). |
+| %100 Orijinal Boyut | `pdf.zoom.100` | `onZoom100` | %100 ölçeğe sıfırlar (Ctrl+1). |
+| Yakınlaştır | `pdf.zoom.in` | `onZoomIn` | PDF zoom oranını büyütür (Ctrl++). |
+| Genişliğe Sığdır | `pdf.zoom.fitWidth` | `onFitWidth` | Sayfayı panel genişliğine uydurur (Ctrl+2). |
+| Sayfayı Sığdır | `pdf.zoom.fitPage` | `onFitPage` | Sayfanın tamamını görünüme sığdırır (Ctrl+0). |
+| Saat Yönünde Döndür | `pdf.rotateView` | `onRotateView` | 90 derece sağa döndürür (Ctrl+R). |
+| Yazdır | `pdf.print` | `onPrint` | PDF yazdırma diyaloğunu açar (Ctrl+P). |
+| İndir | `studio.download` | `onDownload` | Orijinal PDF dosyasını indirir. |
+| Tam Ekran | `studio.fullscreen` | `onToggleFullscreen` | Yalnızca Studio'da aktiftir. |
+| Yeniden Adlandır | `studio.rename` | `onRename` | Yalnızca Studio'da aktiftir. |
+| Çöp Kutusuna At | `studio.delete` | `onDelete` | Yalnızca Studio'da aktiftir. |
+| Paylaş | `studio.share` | `onShare` | Studio'da link oluşturma modalı açar. |
+| Tema | — | `ModeToggle` | Light/Dark tema değiştirici. |
+

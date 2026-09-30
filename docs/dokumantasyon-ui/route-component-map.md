@@ -29,8 +29,9 @@ Bu doküman, `/dokumantasyon` modülü içindeki aktif üretim rotalarını, ren
 - **Son Açılanlar Tetikleyicisi:** `markFileOpened(fileId)` (`src/lib/dokumantasyon/files.ts`)
 - **Kabuk Bileşeni:** `DocumentStudioShell` (`src/components/dokumantasyon/studio/document-studio-shell.tsx`)
   - **Viewport Boyutu:** `100dvw × 100dvh` (İzole tam ekran, site navbar/footer gizlenir)
-  - **Üst Çubuk:** `StudioTopbar` (`src/components/dokumantasyon/studio/studio-topbar.tsx`) — `previewKind === "image"` ve `cadEngine === "v2"` durumlarında render edilmez.
+  - **Üst Çubuk:** `StudioTopbar` (`src/components/dokumantasyon/studio/studio-topbar.tsx`) — `previewKind === "image"`, `previewKind === "pdf"` ve `cadEngine === "v2"` durumlarında render edilmez.
     - **Görsel dosyalar için:** `DokImageViewer` kendi tekil toolbar'ını render eder (geri/kimlik/zoom/döndür/çevir/ızgara/kopyala/indir/tam ekran/yeniden adlandır/sil/paylaş/tema).
+    - **PDF dosyaları için:** `DokPdfViewer` kendi tekil PDFgear toolbar'ını render eder (geri/kimlik/sayfa gezinme/zoom/ara/el-seçim/döndür/yazdır/indir/tam ekran/yeniden adlandır/sil/paylaş/tema).
   - **Geri Dönüş Davranışı:** `router.push('/dokumantasyon?folderId=' + file.folder_id)`
   - **Görüntüleyici Motorları (Dinamik Yükleme):**
     - **PDF:** `DokPdfViewer` (`src/components/dokumantasyon/preview/pdf-viewer.tsx` -> `studio/pdf/pdfjs-studio.tsx`)
@@ -49,7 +50,7 @@ Bu doküman, `/dokumantasyon` modülü içindeki aktif üretim rotalarını, ren
 - **Şifreli Bağlantı:** `SharePasswordScreen` (`src/components/dokumantasyon/public/password-screen.tsx`)
 - **İndirme Arayüzü:** `PublicShareDownloadView` (`src/components/dokumantasyon/public/download-view.tsx`)
 - **Public Önizleme:** `PublicPreviewModal` (`src/components/dokumantasyon/public/public-preview-modal.tsx`)
-  - **Görsel Önizleme Notu:** `PublicPreviewModal`, `previewKind === "image"` durumunda kendi `<header>` bloğunu render etmez; `DokImageViewer`'ın tekil toolbar'ı (yeniden adlandırma/silme/tam ekran olmadan) kullanılır.
+  - **Görsel ve PDF Önizleme Notu:** `PublicPreviewModal`, `previewKind === "image"` veya `previewKind === "pdf"` durumunda kendi `<header>` bloğunu render etmez; `DokImageViewer` ve `DokPdfViewer`'ın tekil toolbar'ı (yeniden adlandırma/silme/tam ekran olmadan) kullanılır.
 
 ---
 

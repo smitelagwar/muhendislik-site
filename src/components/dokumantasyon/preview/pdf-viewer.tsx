@@ -11,8 +11,20 @@ interface DokPdfViewerProps {
   accessUrl: string;
   displayName: string;
   onAccessExpired?: () => Promise<unknown>;
+  fileId?: string;
+  versionNo?: number;
+  sizeBytes?: number;
+  extension?: string;
+  createdAt?: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onBack?: () => void;
+  onShare?: () => void;
+  onDownload?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 }
 
-export function DokPdfViewer({ accessUrl, displayName, onAccessExpired }: DokPdfViewerProps) {
-  return <PdfJsStudio accessUrl={accessUrl} displayName={displayName} onAccessExpired={onAccessExpired} />;
+export function DokPdfViewer(props: DokPdfViewerProps) {
+  return <PdfJsStudio {...props} />;
 }

@@ -17,6 +17,19 @@ interface PdfJsStudioProps {
   accessUrl: string;
   displayName: string;
   onAccessExpired?: () => Promise<unknown>;
+  // --- YENİ: Toolbar birleştirmesi ---
+  fileId?: string;
+  versionNo?: number;
+  sizeBytes?: number;
+  extension?: string;
+  createdAt?: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+  onBack?: () => void;
+  onShare?: () => void;
+  onDownload?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 }
 
 type ZoomMode = "custom" | "actual-size" | "fit-width" | "fit-page";
@@ -44,7 +57,23 @@ function clampScale(scale: number) {
   return Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
 }
 
-export function PdfJsStudio({ accessUrl, displayName, onAccessExpired }: PdfJsStudioProps) {
+export function PdfJsStudio({
+  accessUrl,
+  displayName,
+  onAccessExpired,
+  fileId,
+  versionNo,
+  sizeBytes,
+  extension,
+  createdAt,
+  isFullscreen,
+  onToggleFullscreen,
+  onBack,
+  onShare,
+  onDownload,
+  onRename,
+  onDelete,
+}: PdfJsStudioProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<any>(null);
   const zoomRef = useRef<ZoomState>({ mode: "fit-width", scale: 1.2 });
@@ -401,6 +430,15 @@ export function PdfJsStudio({ accessUrl, displayName, onAccessExpired }: PdfJsSt
       } else if ((e.ctrlKey || e.metaKey) && e.key === "1") {
         e.preventDefault();
         setActualSize();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "2") {
+        e.preventDefault();
+        applyFitMode("fit-width");
+      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        setIsHandTool(true);
+      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "v") {
+        e.preventDefault();
+        setIsHandTool(false);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
         e.preventDefault();
         setRotation((r) => (r + 90) % 360);
@@ -469,6 +507,16 @@ export function PdfJsStudio({ accessUrl, displayName, onAccessExpired }: PdfJsSt
     setIsDragging(false);
   };
 
+  const defaultDownload = useCallback(() => {
+    const a = document.createElement("a");
+    a.href = accessUrl;
+    a.download = displayName || "dokuman.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [accessUrl, displayName]);
+
+  const handleDownloadAction = onDownload || defaultDownload;
   const currentMatch = searchResult.matches[currentMatchIndex];
 
   return (
@@ -492,6 +540,18 @@ export function PdfJsStudio({ accessUrl, displayName, onAccessExpired }: PdfJsSt
         onRotateView={() => setRotation((r) => (r + 90) % 360)}
         onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
         onPrint={handlePrint}
+        displayName={displayName}
+        sizeBytes={sizeBytes}
+        extension={extension}
+        versionNo={versionNo}
+        createdAt={createdAt}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={onToggleFullscreen}
+        onBack={onBack}
+        onShare={onShare}
+        onDownload={handleDownloadAction}
+        onRename={onRename}
+        onDelete={onDelete}
       />
 
       {/* 2. Doküman İçi Arama Çubuğu */}

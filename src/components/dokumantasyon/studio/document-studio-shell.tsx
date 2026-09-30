@@ -305,6 +305,18 @@ export function DocumentStudioShell({
           <DokPdfViewer
             accessUrl={currentLease.url}
             displayName={file.display_name}
+            fileId={file.id}
+            versionNo={currentVersionNo}
+            sizeBytes={file.size_bytes}
+            extension={file.extension}
+            createdAt={file.created_at}
+            onBack={handleBack}
+            onShare={() => setIsCreateShareOpen(true)}
+            onDownload={handleDownload}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={handleToggleFullscreen}
+            onRename={() => setIsRenameOpen(true)}
+            onDelete={() => setIsDeleteOpen(true)}
             onAccessExpired={refreshCurrentLease}
           />
         );
@@ -419,8 +431,8 @@ export function DocumentStudioShell({
           : undefined
       }
     >
-      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor ve Görsel Önizleme kendi entegre tekil çubuğuna sahiptir) */}
-      {cadEngine !== "v2" && previewKind !== "image" && (
+      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor, Görsel ve PDF Önizleme kendi entegre tekil çubuğuna sahiptir) */}
+      {cadEngine !== "v2" && previewKind !== "image" && previewKind !== "pdf" && (
         <StudioTopbar
           file={file}
           previewKind={previewKind}
