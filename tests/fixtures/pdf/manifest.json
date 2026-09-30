@@ -1,0 +1,310 @@
+{
+  "generatedAt": "2026-09-30T12:36:04.961Z",
+  "generator": "scripts/generate-pdf-fixtures.mjs",
+  "fixtures": {
+    "tr-metin.pdf": {
+      "description": "Türkçe karakter ve arama vurgu hizalama test belgesi",
+      "pageCount": 2,
+      "words": {
+        "araştırma": {
+          "total": 8,
+          "page1": 6,
+          "page2": 2
+        },
+        "araçları": {
+          "total": 3,
+          "page1": 2,
+          "page2": 1
+        },
+        "arasında": {
+          "total": 2,
+          "page1": 2,
+          "page2": 0
+        },
+        "İSTANBUL": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "ığdır": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "Isparta": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "İzmir": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "ÇIĞ": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "şeker": {
+          "total": 1,
+          "page1": 1,
+          "page2": 0
+        },
+        "ÖĞRENCİ": {
+          "total": 3,
+          "page1": 2,
+          "page2": 1
+        }
+      },
+      "groundTruthBoxes": [
+        {
+          "word": "araştırma",
+          "page": 1,
+          "pdfX": 89.087890625,
+          "pdfY": 694,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "araçları",
+          "page": 1,
+          "pdfX": 270.576904296875,
+          "pdfY": 694,
+          "width": 35.011962890625,
+          "height": 10.5
+        },
+        {
+          "word": "arasında",
+          "page": 1,
+          "pdfX": 193.590576171875,
+          "pdfY": 676,
+          "width": 40.86181640625,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 1,
+          "pdfX": 128.80126953125,
+          "pdfY": 658,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "arasında",
+          "page": 1,
+          "pdfX": 191.2373046875,
+          "pdfY": 607,
+          "width": 40.86181640625,
+          "height": 10.5
+        },
+        {
+          "word": "İSTANBUL",
+          "page": 1,
+          "pdfX": 50,
+          "pdfY": 589,
+          "width": 51.346435546875,
+          "height": 10.5
+        },
+        {
+          "word": "ığdır",
+          "page": 1,
+          "pdfX": 173.18017578125,
+          "pdfY": 571,
+          "width": 21.01025390625,
+          "height": 10.5
+        },
+        {
+          "word": "Isparta",
+          "page": 1,
+          "pdfX": 211.114501953125,
+          "pdfY": 571,
+          "width": 32.099853515625,
+          "height": 10.5
+        },
+        {
+          "word": "İzmir",
+          "page": 1,
+          "pdfX": 50,
+          "pdfY": 553,
+          "width": 22.7431640625,
+          "height": 10.5
+        },
+        {
+          "word": "ÇIĞ",
+          "page": 1,
+          "pdfX": 198.820068359375,
+          "pdfY": 535,
+          "width": 18.667236328125,
+          "height": 10.5
+        },
+        {
+          "word": "şeker",
+          "page": 1,
+          "pdfX": 50,
+          "pdfY": 517,
+          "width": 25.67578125,
+          "height": 10.5
+        },
+        {
+          "word": "ÖĞRENCİ",
+          "page": 1,
+          "pdfX": 181.921630859375,
+          "pdfY": 484,
+          "width": 49.00341796875,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 1,
+          "pdfX": 234.995849609375,
+          "pdfY": 448,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "ÖĞRENCİ",
+          "page": 1,
+          "pdfX": 50,
+          "pdfY": 448,
+          "width": 49.00341796875,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 1,
+          "pdfX": 114.204833984375,
+          "pdfY": 412,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "araçları",
+          "page": 1,
+          "pdfX": 161.465087890625,
+          "pdfY": 412,
+          "width": 35.011962890625,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 1,
+          "pdfX": 92.015380859375,
+          "pdfY": 394,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 2,
+          "pdfX": 177.24072265625,
+          "pdfY": 760,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "araçları",
+          "page": 2,
+          "pdfX": 319.621337890625,
+          "pdfY": 760,
+          "width": 35.011962890625,
+          "height": 10.5
+        },
+        {
+          "word": "araştırma",
+          "page": 2,
+          "pdfX": 213.3857421875,
+          "pdfY": 724,
+          "width": 44.343017578125,
+          "height": 10.5
+        },
+        {
+          "word": "ÖĞRENCİ",
+          "page": 2,
+          "pdfX": 50,
+          "pdfY": 724,
+          "width": 49.00341796875,
+          "height": 10.5
+        }
+      ]
+    },
+    "satir-sonu-tire.pdf": {
+      "description": "Satır sonunda kelime bölünmesi (tireleme) test belgesi",
+      "pageCount": 1,
+      "hyphenatedPairs": [
+        {
+          "part1": "araştır-",
+          "part2": "ma",
+          "combined": "araştırma"
+        },
+        {
+          "part1": "değerlen-",
+          "part2": "dirme",
+          "combined": "değerlendirme"
+        },
+        {
+          "part1": "karşılaş-",
+          "part2": "tırma",
+          "combined": "karşılaştırma"
+        }
+      ]
+    },
+    "iki-kolon.pdf": {
+      "description": "İki kolonlu paralel metin akışı test belgesi",
+      "pageCount": 1,
+      "columns": 2
+    },
+    "dondurulmus-90.pdf": {
+      "description": "Rotate=90 derece döndürülmüş sayfa test belgesi",
+      "pageCount": 1,
+      "rotation": 90
+    },
+    "karisik-boyut.pdf": {
+      "description": "Farklı sayfa boyutları içeren test belgesi (A4 Dikey + A3 Yatay + A4 Dikey)",
+      "pageCount": 3,
+      "pages": [
+        {
+          "page": 1,
+          "width": 595.28,
+          "height": 841.89,
+          "format": "A4 Dikey"
+        },
+        {
+          "page": 2,
+          "width": 1190.55,
+          "height": 841.89,
+          "format": "A3 Yatay"
+        },
+        {
+          "page": 3,
+          "width": 595.28,
+          "height": 841.89,
+          "format": "A4 Dikey"
+        }
+      ]
+    },
+    "uzun-300.pdf": {
+      "description": "300 sayfalık hafif bellek ve pencereleme test belgesi",
+      "pageCount": 300,
+      "checkpointPages": [
+        1,
+        150,
+        250,
+        300
+      ]
+    },
+    "linkli.pdf": {
+      "description": "İç bağlantı, dış bağlantı ve outline yer imi hiyerarşisi içeren test belgesi",
+      "pageCount": 3,
+      "outlines": [
+        "İçindekiler",
+        "Bölüm 1 — Yapısal Analizler",
+        "Bölüm 2 — Dinamik Simülasyonlar"
+      ],
+      "externalLinks": [
+        "https://example.com/muhendislik"
+      ]
+    }
+  },
+  "manualCorpusDir": "tests/fixtures/pdf/manual"
+}

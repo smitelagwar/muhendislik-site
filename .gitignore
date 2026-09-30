@@ -24,6 +24,10 @@
 !/tests/private-dwg-corpus/README.md
 !/tests/private-dwg-corpus/manifest.example.json
 
+# manual PDF test fixtures; README is safe to commit, user provided files are not
+/tests/fixtures/pdf/manual/*
+!/tests/fixtures/pdf/manual/README.md
+
 # next.js
 /.next*/
 /out/
