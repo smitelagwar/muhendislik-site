@@ -305,12 +305,31 @@ export function PdfPageView({
     });
   }, [searchQuery, isCurrentMatchPage, activeMatchIndexInPage]);
 
-  // 5. Resmi PDF.js TextLayer Render & Arama Eşlemesi
+  // 5. Resmi PDF.js TextLayer Render & Arama Eşlemesi (Faz D)
   useEffect(() => {
     if (!page || !viewport || !textLayerContainerRef.current || !isWithinWindow || !isPageRendered) return;
 
     let active = true;
     const container = textLayerContainerRef.current;
+
+    // Faz D: Resmi CSS değişkenlerini ata
+    container.style.setProperty("--scale-factor", `${effectiveRenderedScale}`);
+    container.style.setProperty("--total-scale-factor", `${effectiveRenderedScale}`);
+    container.style.setProperty("--scale-round-x", "1px");
+    container.style.setProperty("--scale-round-y", "1px");
+    container.style.setProperty("--min-font-size", "1");
+
+    // Faz D: Eğer textLayer daha önce render edildiyse, DOM'u silmeden güncelle (update)
+    if (textLayerInstanceRef.current?.update) {
+      try {
+        textLayerInstanceRef.current.update({ viewport });
+        applySearchHighlights();
+        return;
+      } catch (err) {
+        console.warn(`TextLayer update hatası (sayfa ${pageNumber}), yeniden çiziliyor:`, err);
+      }
+    }
+
     container.innerHTML = "";
 
     loadSecurePdfJs().then((pdfjs) => {
@@ -329,10 +348,17 @@ export function PdfPageView({
           .render()
           .then(() => {
             if (!active) return;
+            // Faz D: Boşluğa sürüklemede seçimin sayfa sonuna sıçramaması için .endOfContent div'i ekle
+            if (!container.querySelector(".endOfContent")) {
+              const endDiv = document.createElement("div");
+              endDiv.className = "endOfContent";
+              container.appendChild(endDiv);
+            }
             applySearchHighlights();
           })
           .catch((err: unknown) => {
-            if ((err as any)?.name !== "RenderingCancelledException") {
+            const errName = (err as { name?: string } | null | undefined)?.name;
+            if (errName !== "RenderingCancelledException" && errName !== "AbortException") {
               console.warn(`TextLayer sayfa ${pageNumber} hatası:`, err);
             }
           });
@@ -350,7 +376,30 @@ export function PdfPageView({
         textLayerInstanceRef.current = null;
       }
     };
-  }, [page, viewport, isWithinWindow, isPageRendered, pageNumber, applySearchHighlights]);
+  }, [page, viewport, isWithinWindow, isPageRendered, pageNumber, effectiveRenderedScale, applySearchHighlights]);
+
+  // Faz D: Seçim davranışı için .selecting sınıfı yönetimi
+  useEffect(() => {
+    const container = textLayerContainerRef.current;
+    if (!container) return;
+
+    const onPointerDown = () => {
+      container.classList.add("selecting");
+    };
+    const onPointerUp = () => {
+      container.classList.remove("selecting");
+    };
+
+    container.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+
+    return () => {
+      container.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, []);
 
   // Arama sorgusu veya aktif eşleşme değiştiğinde sadece highlight'ları güncelle
   useEffect(() => {
@@ -421,7 +470,7 @@ export function PdfPageView({
       {/* 2. Resmi PDF.js Text Layer */}
       <div
         ref={textLayerContainerRef}
-        className={`pdf-text-layer select-text cursor-text origin-top-left ${
+        className={`pdf-text-layer textLayer select-text cursor-text origin-top-left ${
           isHandTool ? "pointer-events-none" : "pointer-events-auto"
         }`}
         style={{
