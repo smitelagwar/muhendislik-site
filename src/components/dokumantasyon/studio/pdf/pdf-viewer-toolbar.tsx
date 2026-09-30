@@ -28,6 +28,7 @@ import {
   MoreVertical,
   Share2,
   Check,
+  Keyboard,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
@@ -60,6 +61,7 @@ interface PdfViewerToolbarProps {
   onRotateView: () => void;
   onToggleSearch: () => void;
   onPrint: () => void;
+  onOpenShortcuts?: () => void;
   // --- Tekil Toolbar Propları ---
   displayName?: string;
   sizeBytes?: number;
@@ -94,6 +96,7 @@ export function PdfViewerToolbar({
   onRotateView,
   onToggleSearch,
   onPrint,
+  onOpenShortcuts,
   displayName,
   sizeBytes,
   extension,
@@ -547,6 +550,23 @@ export function PdfViewerToolbar({
                 <span className="text-[10px] text-muted-foreground">Kapalı</span>
               )}
             </DropdownMenuItem>
+
+            {onOpenShortcuts && (
+              <>
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
+                <DropdownMenuItem
+                  onClick={onOpenShortcuts}
+                  data-command-id="pdf.shortcuts"
+                  className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+                >
+                  <span className="flex items-center gap-2">
+                    <Keyboard className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Klavye kısayolları</span>
+                  </span>
+                  <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border">?</kbd>
+                </DropdownMenuItem>
+              </>
+            )}
 
             {onDelete && (
               <>
