@@ -44,11 +44,6 @@ interface ZoomAnchor {
   viewportY: number;
 }
 
-interface PendingZoomAnchor extends ZoomAnchor {
-  sourceScale: number;
-  targetScale: number;
-}
-
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 5;
 const ZOOM_STEP = 0.2;
@@ -77,11 +72,7 @@ export function PdfJsStudio({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<any>(null);
   const zoomRef = useRef<ZoomState>({ mode: "fit-width", scale: 1.2 });
-  const pendingZoomAnchorRef = useRef<PendingZoomAnchor | null>(null);
-  const wheelFrameRef = useRef<number | null>(null);
-  const wheelDeltaRef = useRef(0);
-  const wheelAnchorRef = useRef<ZoomAnchor | null>(null);
-  const anchorFrameRef = useRef<number | null>(null);
+  const lastCommittedScaleRef = useRef<number>(1.2);
   const dragOriginRef = useRef({ x: 0, y: 0 });
   const activePointerIdRef = useRef<number | null>(null);
   const recoveredAccessUrlRef = useRef<string | null>(null);
@@ -122,9 +113,10 @@ export function PdfJsStudio({
   const zoomAnimFrameRef = useRef<number | null>(null);
   const debouncedRenderTimerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
+  const updateZoomState = useCallback((nextZoom: ZoomState) => {
+    zoomRef.current = nextZoom;
+    setZoom(nextZoom);
+  }, []);
 
   const scheduleRenderedScaleCommit = useCallback((target: number) => {
     if (debouncedRenderTimerRef.current !== null) {
@@ -151,14 +143,7 @@ export function PdfJsStudio({
       const diff = targetScale - currentScale;
 
       if (Math.abs(diff) < 0.002) {
-        if (activeAnchorRef.current && currentScale > 0) {
-          pendingZoomAnchorRef.current = {
-            ...activeAnchorRef.current,
-            sourceScale: currentScale,
-            targetScale,
-          };
-        }
-        setZoom({ mode: "custom", scale: targetScale });
+        updateZoomState({ mode: "custom", scale: targetScale });
         zoomAnimFrameRef.current = null;
         activeAnchorRef.current = null;
         scheduleRenderedScaleCommit(targetScale);
@@ -166,21 +151,14 @@ export function PdfJsStudio({
       }
 
       const nextScale = clampScale(currentScale + diff * 0.3);
-      if (activeAnchorRef.current && currentScale > 0) {
-        pendingZoomAnchorRef.current = {
-          ...activeAnchorRef.current,
-          sourceScale: currentScale,
-          targetScale: nextScale,
-        };
-      }
-      setZoom({ mode: "custom", scale: Number(nextScale.toFixed(4)) });
+      updateZoomState({ mode: "custom", scale: Number(nextScale.toFixed(4)) });
       scheduleRenderedScaleCommit(targetScale);
 
       zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
     };
 
     zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
-  }, [scheduleRenderedScaleCommit]);
+  }, [scheduleRenderedScaleCommit, updateZoomState]);
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
@@ -208,15 +186,22 @@ export function PdfJsStudio({
       window.cancelAnimationFrame(zoomAnimFrameRef.current);
       zoomAnimFrameRef.current = null;
     }
+    if (debouncedRenderTimerRef.current !== null) {
+      window.clearTimeout(debouncedRenderTimerRef.current);
+      debouncedRenderTimerRef.current = null;
+    }
     targetScaleRef.current = targetScale;
     activeAnchorRef.current = null;
-    setZoom({ mode, scale: targetScale });
-    scheduleRenderedScaleCommit(targetScale);
-  }, [getFitScale, scheduleRenderedScaleCommit]);
+    updateZoomState({ mode, scale: targetScale });
+    setRenderedScale(targetScale);
+  }, [getFitScale, updateZoomState]);
 
   const adjustCustomZoom = useCallback((delta: number, anchor?: ZoomAnchor) => {
     const container = scrollContainerRef.current;
-    const currentTarget = targetScaleRef.current;
+    const currentTarget =
+      zoomAnimFrameRef.current !== null
+        ? targetScaleRef.current
+        : zoomRef.current.scale;
     const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
     targetScaleRef.current = nextTarget;
     activeAnchorRef.current = anchor || (container ? {
@@ -228,7 +213,10 @@ export function PdfJsStudio({
 
   const handleZoomIn = useCallback(() => {
     const container = scrollContainerRef.current;
-    const currentTarget = targetScaleRef.current;
+    const currentTarget =
+      zoomAnimFrameRef.current !== null
+        ? targetScaleRef.current
+        : zoomRef.current.scale;
     const nextTarget = clampScale(Number((currentTarget * 1.25).toFixed(2)));
     targetScaleRef.current = nextTarget;
     activeAnchorRef.current = container ? {
@@ -240,7 +228,10 @@ export function PdfJsStudio({
 
   const handleZoomOut = useCallback(() => {
     const container = scrollContainerRef.current;
-    const currentTarget = targetScaleRef.current;
+    const currentTarget =
+      zoomAnimFrameRef.current !== null
+        ? targetScaleRef.current
+        : zoomRef.current.scale;
     const nextTarget = clampScale(Number((currentTarget / 1.25).toFixed(2)));
     targetScaleRef.current = nextTarget;
     activeAnchorRef.current = container ? {
@@ -263,15 +254,17 @@ export function PdfJsStudio({
   // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç
   // altındaki belge noktasını aynı viewport koordinatında tut.
   useLayoutEffect(() => {
-    const pendingAnchor = pendingZoomAnchorRef.current;
-    const container = scrollContainerRef.current;
-    if (!pendingAnchor || !container) return;
+    const prevScale = lastCommittedScaleRef.current;
+    lastCommittedScaleRef.current = scale;
 
-    pendingZoomAnchorRef.current = null;
-    const logicalX = (container.scrollLeft + pendingAnchor.viewportX) / pendingAnchor.sourceScale;
-    const logicalY = (container.scrollTop + pendingAnchor.viewportY) / pendingAnchor.sourceScale;
-    container.scrollLeft = Math.max(logicalX * pendingAnchor.targetScale - pendingAnchor.viewportX, 0);
-    container.scrollTop = Math.max(logicalY * pendingAnchor.targetScale - pendingAnchor.viewportY, 0);
+    const activeAnchor = activeAnchorRef.current;
+    const container = scrollContainerRef.current;
+    if (!activeAnchor || !container || prevScale <= 0 || prevScale === scale) return;
+
+    const logicalX = (container.scrollLeft + activeAnchor.viewportX) / prevScale;
+    const logicalY = (container.scrollTop + activeAnchor.viewportY) / prevScale;
+    container.scrollLeft = Math.max(logicalX * scale - activeAnchor.viewportX, 0);
+    container.scrollTop = Math.max(logicalY * scale - activeAnchor.viewportY, 0);
   }, [scale]);
 
   // 1. PDF Dokümanını Yükle ve Güvenli Yaşam Döngüsü Başlat
@@ -469,7 +462,10 @@ export function PdfJsStudio({
 
       // Tekerlek ivmesine duyarlı pürüzsüz sürekli yakınlaştırma
       const zoomFactor = Math.exp(-normalizedDelta * 0.002);
-      const currentTarget = targetScaleRef.current;
+      const currentTarget =
+        zoomAnimFrameRef.current !== null
+          ? targetScaleRef.current
+          : zoomRef.current.scale;
       targetScaleRef.current = clampScale(currentTarget * zoomFactor);
 
       startSmoothZoomAnimation();
@@ -592,6 +588,11 @@ export function PdfJsStudio({
   // 7. Pan / Fare ile Kaydırma (Hand Tool)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isHandTool || !scrollContainerRef.current) return;
+    if (zoomAnimFrameRef.current !== null) {
+      window.cancelAnimationFrame(zoomAnimFrameRef.current);
+      zoomAnimFrameRef.current = null;
+    }
+    activeAnchorRef.current = null;
     const container = scrollContainerRef.current;
     activePointerIdRef.current = e.pointerId;
     container.setPointerCapture(e.pointerId);

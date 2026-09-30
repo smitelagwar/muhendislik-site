@@ -206,7 +206,7 @@ export function PdfPageView({
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
-      className={`relative mx-auto my-3 transition-shadow bg-white shadow-xl rounded-sm ${
+      className={`relative mx-auto my-3 overflow-hidden transition-shadow bg-white shadow-xl rounded-sm ${
         isCurrentMatchPage ? "ring-2 ring-amber-500 shadow-amber-500/20" : ""
       }`}
       style={{

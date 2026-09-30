@@ -467,7 +467,7 @@ export function DokImageViewer({
   }, [clampCamera, commitCamera, isFitMode, naturalSize, rotation]);
 
   const zoomCameraAroundClientPoint = useCallback(
-    (targetScale: number, clientPoint?: GesturePoint) => {
+    (targetScale: number, clientPoint?: GesturePoint, force?: boolean) => {
       const container = containerRef.current;
       if (!container) return;
 
@@ -491,7 +491,7 @@ export function DokImageViewer({
         getScaleLimits({ width: rect.width, height: rect.height })
       );
 
-      if (Math.abs(nextCamera.scale - current.scale) < 0.0005) return;
+      if (!force && Math.abs(nextCamera.scale - current.scale) < 0.0001) return;
 
       setIsFitMode(false);
       scheduleCamera(nextCamera);
@@ -508,8 +508,9 @@ export function DokImageViewer({
       const diff = targetScale - current.scale;
 
       if (Math.abs(diff) < 0.001) {
-        zoomCameraAroundClientPoint(targetScale, zoomAnchorRef.current ?? undefined);
+        zoomCameraAroundClientPoint(targetScale, zoomAnchorRef.current ?? undefined, true);
         zoomAnimFrameRef.current = null;
+        targetScaleRef.current = targetScale;
         return;
       }
 
@@ -531,7 +532,10 @@ export function DokImageViewer({
         width: container.clientWidth,
         height: container.clientHeight,
       });
-      const currentTarget = targetScaleRef.current ?? cameraRef.current.scale;
+      const currentTarget =
+        zoomAnimFrameRef.current !== null
+          ? targetScaleRef.current
+          : cameraRef.current.scale;
       const nextTarget = Math.min(Math.max(currentTarget * factor, limits.minScale), limits.maxScale);
       targetScaleRef.current = nextTarget;
       const rect = container.getBoundingClientRect();
@@ -616,7 +620,10 @@ export function DokImageViewer({
         height: container.clientHeight,
       });
       const factor = Math.exp(-normalizedDelta * WHEEL_ZOOM_SENSITIVITY);
-      const currentTarget = targetScaleRef.current ?? cameraRef.current.scale;
+      const currentTarget =
+        zoomAnimFrameRef.current !== null
+          ? targetScaleRef.current
+          : cameraRef.current.scale;
       const nextTarget = Math.min(Math.max(currentTarget * factor, limits.minScale), limits.maxScale);
       targetScaleRef.current = nextTarget;
       zoomAnchorRef.current = { x: e.clientX, y: e.clientY };
@@ -812,6 +819,7 @@ export function DokImageViewer({
     // bırakılırken kamera state/ref farkını sıfırla; böylece pinch→pan geçişi
     // eski bir frame'den başlamaz.
     flushScheduledCamera();
+    targetScaleRef.current = cameraRef.current.scale;
 
     const gestureBeforeEnd = gestureRef.current;
     const wasTapCandidate =
@@ -854,7 +862,8 @@ export function DokImageViewer({
           ? getScaleLimits({ width: container.clientWidth, height: container.clientHeight })
           : getImageViewerScaleLimits(cameraRef.current.scale);
         const targetScale = Math.min(limits.maxScale, limits.minScale * 2);
-        zoomCameraAroundClientPoint(targetScale, point);
+        targetScaleRef.current = targetScale;
+        zoomCameraAroundClientPoint(targetScale, point, true);
       } else {
         setIsFitMode(true);
         handleFitScreen();
