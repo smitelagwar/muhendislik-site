@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T12:36:04.961Z",
+  "generatedAt": "2026-09-30T12:51:41.326Z",
   "generator": "scripts/generate-pdf-fixtures.mjs",
   "fixtures": {
     "tr-metin.pdf": {
@@ -7,8 +7,8 @@
       "pageCount": 2,
       "words": {
         "araştırma": {
-          "total": 8,
-          "page1": 6,
+          "total": 7,
+          "page1": 5,
           "page2": 2
         },
         "araçları": {

@@ -629,6 +629,14 @@ async function generateLinkli() {
 }
 
 function writeManifest(trWordBoxes = []) {
+  const targetWords = ["araştırma", "araçları", "arasında", "İSTANBUL", "ığdır", "Isparta", "İzmir", "ÇIĞ", "şeker", "ÖĞRENCİ"];
+  const wordsStats = {};
+  for (const tw of targetWords) {
+    const p1Count = trWordBoxes.filter((b) => b.word === tw && b.page === 1).length;
+    const p2Count = trWordBoxes.filter((b) => b.word === tw && b.page === 2).length;
+    wordsStats[tw] = { total: p1Count + p2Count, page1: p1Count, page2: p2Count };
+  }
+
   const manifest = {
     generatedAt: new Date().toISOString(),
     generator: "scripts/generate-pdf-fixtures.mjs",
@@ -636,18 +644,7 @@ function writeManifest(trWordBoxes = []) {
       "tr-metin.pdf": {
         description: "Türkçe karakter ve arama vurgu hizalama test belgesi",
         pageCount: 2,
-        words: {
-          "araştırma": { total: 8, page1: 6, page2: 2 },
-          "araçları": { total: 3, page1: 2, page2: 1 },
-          "arasında": { total: 2, page1: 2, page2: 0 },
-          "İSTANBUL": { total: 1, page1: 1, page2: 0 },
-          "ığdır": { total: 1, page1: 1, page2: 0 },
-          "Isparta": { total: 1, page1: 1, page2: 0 },
-          "İzmir": { total: 1, page1: 1, page2: 0 },
-          "ÇIĞ": { total: 1, page1: 1, page2: 0 },
-          "şeker": { total: 1, page1: 1, page2: 0 },
-          "ÖĞRENCİ": { total: 3, page1: 2, page2: 1 },
-        },
+        words: wordsStats,
         groundTruthBoxes: trWordBoxes,
       },
       "satir-sonu-tire.pdf": {

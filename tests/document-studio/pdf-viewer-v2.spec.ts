@@ -142,38 +142,33 @@ test.describe("PDF Görüntüleyici v2 Test Altyapısı (Faz A1)", () => {
 
         let maxDelta = 0;
 
-        marks.forEach((mark, i) => {
+        const markDetails = marks.map((mark, i) => {
           const markRect = mark.getBoundingClientRect();
           const actualLeft = markRect.left - canvasRect.left;
           const actualTop = markRect.top - canvasRect.top;
 
-          // Eğer ground truth kutusu varsa glif koordinatıyla kıyasla
+          let diffX = 999;
+          let diffY = 999;
+          let expLeft = -1;
+          let expTop = -1;
+
           if (expectedBoxes && expectedBoxes[i]) {
             const exp = expectedBoxes[i];
-            const expectedLeft = exp.pdfX * currentScale;
-            const expectedTop = (pageHeightPdf - exp.pdfY) * currentScale - exp.height * currentScale;
-
-            const diffX = Math.abs(actualLeft - expectedLeft);
-            const diffY = Math.abs(actualTop - expectedTop);
-            const drift = Math.max(diffX, diffY);
-            if (drift > maxDelta) maxDelta = drift;
-          } else {
-            // Alternatif: Range.getClientRects() ile mark kutusunu kıyasla
-            const range = document.createRange();
-            range.selectNodeContents(mark);
-            const rects = range.getClientRects();
-            if (rects.length > 0) {
-              const r = rects[0];
-              const drift = Math.max(Math.abs(markRect.left - r.left), Math.abs(markRect.top - r.top));
-              if (drift > maxDelta) maxDelta = drift;
-            }
+            expLeft = exp.pdfX * currentScale;
+            expTop = (pageHeightPdf - exp.pdfY) * currentScale - exp.height * currentScale;
+            diffX = Math.abs(actualLeft - expLeft);
+            diffY = Math.abs(actualTop - expTop);
           }
+          const drift = Math.max(diffX, diffY);
+          if (drift > maxDelta) maxDelta = drift;
+          return { i, actualLeft, actualTop, expLeft, expTop, diffX, diffY, drift };
         });
 
-        return { maxDrift: maxDelta, markCount: marks.length };
+        return { maxDrift: maxDelta, markCount: marks.length, markDetails };
       }, { expectedBoxes: groundTruthBoxes });
 
       console.log(`[HİZALAMA ÖLÇÜMÜ] Zoom ${zl.name}: Tespit edilen maksimum sapma = ${driftResult.maxDrift.toFixed(2)} css px (Vurgu adedi: ${driftResult.markCount})`);
+      console.log(`[HİZALAMA DETAYLARI ${zl.name}]:`, JSON.stringify(driftResult.markDetails, null, 2));
       alignmentReport.push({
         zoom: zl.name,
         maxDriftPx: driftResult.maxDrift,
@@ -190,6 +185,12 @@ test.describe("PDF Görüntüleyici v2 Test Altyapısı (Faz A1)", () => {
     if (hasDriftExceeded) {
       console.warn(">>> [V1 KUSURU DOĞRULANDI] Vurgu hizalaması 2px toleransını aştı (Faz D/E çözümü bekleniyor).");
     }
+
+    // Hedef v2 sözleşmesi: Her 3 zoom seviyesinde de maksimum sapma ≤ 2.0 css px olmalıdır.
+    // v1'de TextLayer'da --scale-factor CSS değişkenleri eksik olduğundan ve span DOM düğümleri
+    // <mark> ile parçalandığından sapma 96.99 css px'e ulaşmakta ve bu test FAIL olmaktadır
+    // (v1 vurgu hizalama kusurunun otomatik kanıtı — Faz D ve Faz E'de çözülecek).
+    expect(hasDriftExceeded).toBe(false);
   });
 
   // --------------------------------------------------------------------------
