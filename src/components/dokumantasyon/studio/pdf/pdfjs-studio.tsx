@@ -16,6 +16,7 @@ import { PdfSearchResultsPanel } from "./pdf-search-results-panel";
 import { PdfPageScrubber } from "./pdf-page-scrubber";
 import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
 import { PdfPasswordModal } from "./pdf-password-modal";
+import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 
 interface PdfJsStudioProps {
   accessUrl: string;
@@ -50,6 +51,7 @@ interface ZoomAnchor {
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 5;
 const ZOOM_STEP = 0.2;
+const PAGE_WINDOW_N = 5; // Faz C: Bellek penceresi [görünür - 5, görünür + 5]
 
 function clampScale(scale: number) {
   return Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
@@ -125,6 +127,7 @@ export function PdfJsStudio({
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [firstPageSize, setFirstPageSize] = useState<{ width: number; height: number } | null>(null);
+  const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({});
   const scale = zoom.scale;
 
   const targetScaleRef = useRef<number>(zoom.scale);
@@ -181,11 +184,12 @@ export function PdfJsStudio({
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
-    if (!container || !firstPageSize) return null;
+    const currentSize = pageDimensions[currentPageRef.current] || firstPageSize;
+    if (!container || !currentSize) return null;
 
     const isQuarterTurn = rotation % 180 !== 0;
-    const pageWidth = isQuarterTurn ? firstPageSize.height : firstPageSize.width;
-    const pageHeight = isQuarterTurn ? firstPageSize.width : firstPageSize.height;
+    const pageWidth = isQuarterTurn ? currentSize.height : currentSize.width;
+    const pageHeight = isQuarterTurn ? currentSize.width : currentSize.height;
     const horizontalPadding = container.clientWidth < 640 ? 32 : 64;
     const verticalPadding = container.clientHeight < 640 ? 32 : 64;
     const availableWidth = Math.max(container.clientWidth - horizontalPadding, 1);
@@ -195,7 +199,7 @@ export function PdfJsStudio({
       : Math.min(availableWidth / pageWidth, availableHeight / pageHeight);
 
     return Number(clampScale(targetScale).toFixed(2));
-  }, [firstPageSize, rotation]);
+  }, [firstPageSize, pageDimensions, rotation]);
 
   const applyFitMode = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const targetScale = getFitScale(mode);
@@ -382,9 +386,12 @@ export function PdfJsStudio({
         setErrorType(null);
         setError(null);
 
+        setPageDimensions({});
+        pdfRenderQueue.clear();
+
         try {
           const firstPage = await doc.getPage(1);
-          const vp = firstPage.getViewport({ scale: 1.0 });
+          const vp = firstPage.getViewport({ scale: 1.0, rotation: firstPage.rotate || 0 });
           setFirstPageSize({ width: vp.width || 595, height: vp.height || 842 });
         } catch {
           setFirstPageSize({ width: 595, height: 842 });
@@ -568,6 +575,47 @@ export function PdfJsStudio({
       savePdfReadingPosition(fileId, visiblePage);
     }
   }, [fileId]);
+
+  // Faz C: Render kuyruğu önceliğini görünür sayfaya göre güncelle
+  useEffect(() => {
+    pdfRenderQueue.setCurrentPage(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    return () => {
+      pdfRenderQueue.clear();
+    };
+  }, []);
+
+  // Faz C: Scroll Anchoring ve dinamik sayfa ölçümü
+  const handleDimensionsMeasured = useCallback(
+    (measuredPageNum: number, width: number, height: number) => {
+      setPageDimensions((prev) => {
+        const existing = prev[measuredPageNum];
+        if (existing && existing.width === width && existing.height === height) {
+          return prev;
+        }
+
+        // Scroll Anchoring: Eğer ölçülen sayfa şu anki aktif sayfanın yukarısındaysa,
+        // yükseklik farkı kadar scroll'u kaydır ki görünüm zıplamasın!
+        if (existing && measuredPageNum < currentPageRef.current) {
+          const deltaH = height - existing.height;
+          if (Math.abs(deltaH) > 1) {
+            const container = scrollContainerRef.current;
+            if (container) {
+              container.scrollTop += deltaH * zoomRef.current.scale;
+            }
+          }
+        }
+
+        return {
+          ...prev,
+          [measuredPageNum]: { width, height },
+        };
+      });
+    },
+    []
+  );
 
   // 3. Arama İşlevi (Faz 2 Snippet Panel Entegrasyonu)
   useEffect(() => {
@@ -1092,6 +1140,9 @@ export function PdfJsStudio({
                     isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
                     activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}
                     onPageVisible={handlePageVisible}
+                    isWithinWindow={Math.abs(pageNum - currentPage) <= PAGE_WINDOW_N}
+                    initialDimensions={pageDimensions[pageNum] || firstPageSize || undefined}
+                    onDimensionsMeasured={handleDimensionsMeasured}
                   />
                 ))}
               </div>
