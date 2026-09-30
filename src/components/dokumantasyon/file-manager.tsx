@@ -105,6 +105,7 @@ import { MOBILE_EXPLORER_QUERY, resolveExplorerActivation, type ItemActivationSo
 
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
 import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
+import { preloadPdfJsAssets } from "@/lib/dokumantasyon/studio/pdf/pdfjs-preload";
 import styles from "./dok-workspace.module.css";
 import mobileStyles from "./mobile-workspace.module.css";
 import { usePhonePresentation } from "./drive-v3/use-phone-presentation";
@@ -247,6 +248,10 @@ function DokumantasyonFileManagerInner() {
     const cleanup = scheduleIdleCadPreload({ minDelayMs: 1500 });
     return cleanup;
   }, [hasCadFiles, isMobileExplorer]);
+
+  useEffect(() => {
+    preloadPdfJsAssets();
+  }, []);
 
   // Single Scroll Container Ref (Unified for Virtualization, Marquee, Keyboard, Auto-scroll)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);

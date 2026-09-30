@@ -16,9 +16,10 @@ export interface PdfSearchResult {
 }
 
 /**
- * Türkçe karakter uyumlu normalizasyon
+ * Türkçe karakter uyumlu normalizasyon (karakter uzunluğunu 1:1 korur)
  */
 export function normalizeTurkishText(str: string): string {
+  if (!str) return "";
   return str
     .replace(/İ/g, "i")
     .replace(/I/g, "ı")
@@ -27,8 +28,7 @@ export function normalizeTurkishText(str: string): string {
     .replace(/Ş/g, "ş")
     .replace(/Ö/g, "ö")
     .replace(/Ç/g, "ç")
-    .toLowerCase()
-    .trim();
+    .toLocaleLowerCase("tr-TR");
 }
 
 /**
@@ -38,7 +38,8 @@ export async function searchInPdfDocument(
   pdfDoc: any,
   query: string
 ): Promise<PdfSearchResult> {
-  const normalizedQuery = normalizeTurkishText(query);
+  const trimmedQuery = query.trim();
+  const normalizedQuery = normalizeTurkishText(trimmedQuery);
   if (!pdfDoc || !normalizedQuery) {
     return { query, totalMatches: 0, matches: [], pageMatchCounts: {} };
   }

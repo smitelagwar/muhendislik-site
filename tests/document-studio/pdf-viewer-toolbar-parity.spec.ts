@@ -110,6 +110,7 @@ test.describe.serial("PDF Viewer Toolbar Parity", () => {
     await page.getByTestId("pdf-viewer-more-menu-trigger").click();
     await expect(page.locator('[data-command-id="studio.rename"]')).toBeVisible();
     await expect(page.locator('[data-command-id="studio.delete"]')).toBeVisible();
+    await expect(page.locator('[data-command-id="pdf.settings.rememberPosition"]')).toBeVisible();
     await page.keyboard.press("Escape");
 
     // Meta bilgi satırı (PDF rozeti)

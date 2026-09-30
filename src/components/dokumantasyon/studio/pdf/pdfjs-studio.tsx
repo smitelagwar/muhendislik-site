@@ -8,16 +8,18 @@ import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from
 import { Loader2, AlertCircle } from "lucide-react";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import { searchInPdfDocument, PdfSearchResult } from "@/lib/dokumantasyon/studio/pdf/pdf-search";
+import { getPdfReadingPosition, savePdfReadingPosition } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
 import { PdfPageView } from "./pdf-page-view";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
 import { PdfSearchBar } from "./pdf-search-bar";
+import { PdfSearchResultsPanel } from "./pdf-search-results-panel";
+import { PdfPageScrubber } from "./pdf-page-scrubber";
 import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
 
 interface PdfJsStudioProps {
   accessUrl: string;
   displayName: string;
   onAccessExpired?: () => Promise<unknown>;
-  // --- YENİ: Toolbar birleştirmesi ---
   fileId?: string;
   versionNo?: number;
   sizeBytes?: number;
@@ -71,11 +73,18 @@ export function PdfJsStudio({
 }: PdfJsStudioProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<any>(null);
+  const pdfDocRef = useRef<any>(null);
+  const retryCountRef = useRef<number>(0);
   const zoomRef = useRef<ZoomState>({ mode: "fit-width", scale: 1.2 });
   const lastCommittedScaleRef = useRef<number>(1.2);
   const dragOriginRef = useRef({ x: 0, y: 0 });
   const activePointerIdRef = useRef<number | null>(null);
-  const recoveredAccessUrlRef = useRef<string | null>(null);
+
+  // Çoklu Dokunma (Touch Pinch-to-Zoom) ve Çift Tıklama Takibi
+  const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchStartDistRef = useRef<number | null>(null);
+  const pinchStartScaleRef = useRef<number>(1.2);
+  const lastTouchTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(0);
@@ -91,8 +100,9 @@ export function PdfJsStudio({
   const [isHandTool, setIsHandTool] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // Kenar Çubuğu
+  // Kenar Çubuğu ve Arama Snippet Paneli
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [isSnippetPanelOpen, setIsSnippetPanelOpen] = useState<boolean>(false);
 
   // Arama Durumu
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -251,8 +261,36 @@ export function PdfJsStudio({
     startSmoothZoomAnimation();
   }, [startSmoothZoomAnimation]);
 
-  // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç
-  // altındaki belge noktasını aynı viewport koordinatında tut.
+  // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4)
+  const handleSmartZoom = useCallback((point: { clientX: number; clientY: number }) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const fitScale = getFitScale("fit-width") ?? 1.2;
+    const isNearFit = Math.abs(zoomRef.current.scale - fitScale) < 0.08 || zoomRef.current.mode === "fit-width";
+
+    const rect = container.getBoundingClientRect();
+    const anchor: ZoomAnchor = {
+      viewportX: point.clientX - rect.left,
+      viewportY: point.clientY - rect.top,
+    };
+    activeAnchorRef.current = anchor;
+
+    if (isNearFit) {
+      // Genişliğe sığdırılmışsa tıklanan noktayı odaklayıp %150'ye zoom yap
+      targetScaleRef.current = 1.5;
+      startSmoothZoomAnimation();
+    } else {
+      // Zaten zoomlanmışsa tek hamlede genişliğe sığdır moduna dön
+      applyFitMode("fit-width");
+    }
+  }, [getFitScale, applyFitMode, startSmoothZoomAnimation]);
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    handleSmartZoom({ clientX: e.clientX, clientY: e.clientY });
+  };
+
+  // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç altındaki belge noktasını koru
   useLayoutEffect(() => {
     const prevScale = lastCommittedScaleRef.current;
     lastCommittedScaleRef.current = scale;
@@ -267,7 +305,7 @@ export function PdfJsStudio({
     container.scrollTop = Math.max(logicalY * scale - activeAnchor.viewportY, 0);
   }, [scale]);
 
-  // 1. PDF Dokümanını Yükle ve Güvenli Yaşam Döngüsü Başlat
+  // 1. PDF Dokümanını Yükle, Otomatik Retry ve Yaşam Döngüsü (Faz 8, Faz 10)
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -282,8 +320,10 @@ export function PdfJsStudio({
         if (!isMounted) return;
 
         setPdfDoc(doc);
+        pdfDocRef.current = doc;
         setNumPages(doc.numPages);
         setCurrentPage(1);
+        retryCountRef.current = 0; // Başarılı yüklemede retry sıfırla
 
         try {
           const firstPage = await doc.getPage(1);
@@ -291,6 +331,26 @@ export function PdfJsStudio({
           setFirstPageSize({ width: vp.width || 595, height: vp.height || 842 });
         } catch {
           setFirstPageSize({ width: 595, height: 842 });
+        }
+
+        // Faz 10: Son okunan konumu geri yükle
+        if (fileId) {
+          const savedPage = getPdfReadingPosition(fileId);
+          if (savedPage && savedPage > 1 && savedPage <= doc.numPages) {
+            setTimeout(() => {
+              if (isMounted) {
+                const pageEl = document.getElementById(`pdf-page-${savedPage}`);
+                const container = scrollContainerRef.current;
+                if (pageEl && container) {
+                  setCurrentPage(savedPage);
+                  container.scrollTo({
+                    top: Math.max(pageEl.offsetTop - 16, 0),
+                    behavior: "smooth",
+                  });
+                }
+              }
+            }, 150);
+          }
         }
 
         setLoading(false);
@@ -303,19 +363,24 @@ export function PdfJsStudio({
           err instanceof Error ? err.message : ""
         );
 
-        if (isExpiredAccess && onAccessExpired && recoveredAccessUrlRef.current !== accessUrl) {
-          recoveredAccessUrlRef.current = accessUrl;
+        // Faz 8: Üstel geri çekilme (exponential backoff) ile 3 kez otomatik yenileme
+        if (isExpiredAccess && onAccessExpired && retryCountRef.current < 3) {
+          retryCountRef.current += 1;
           setIsRefreshingAccess(true);
+          const backoffDelay = Math.pow(2, retryCountRef.current - 1) * 1000;
+          await new Promise((resolve) => setTimeout(resolve, backoffDelay));
           try {
             await onAccessExpired();
             return;
           } catch (refreshError) {
-            console.warn("PDF access URL refresh failed:", refreshError);
-            setError("PDF erişim bağlantısı yenilenemedi. Lütfen yeniden deneyin.");
+            console.warn(`PDF access URL refresh failed (attempt ${retryCountRef.current}):`, refreshError);
+            if (retryCountRef.current >= 3) {
+              setError("PDF erişim bağlantısı yenilenemedi. Lütfen sayfayı yenileyin.");
+            }
           } finally {
             if (isMounted) {
               setIsRefreshingAccess(false);
-              setLoading(false);
+              if (retryCountRef.current >= 3) setLoading(false);
             }
           }
           return;
@@ -339,16 +404,18 @@ export function PdfJsStudio({
         try {
           loadingTaskRef.current.destroy?.();
         } catch {}
+        loadingTaskRef.current = null;
       }
-      if (pdfDoc) {
+      if (pdfDocRef.current) {
         try {
-          pdfDoc.destroy?.();
+          pdfDocRef.current.destroy?.();
         } catch {}
+        pdfDocRef.current = null;
       }
     };
-  }, [accessUrl, onAccessExpired]);
+  }, [accessUrl, onAccessExpired, fileId]);
 
-  // Scroll viewport mount edildikten sonra aktif fit modunu koru.
+  // Scroll viewport mount edildikten sonra aktif fit modunu koru
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (loading || !container || !firstPageSize) return;
@@ -370,10 +437,14 @@ export function PdfJsStudio({
     };
   }, [applyFitMode, firstPageSize, loading, rotation]);
 
-  // 2. Sayfaya Kaydırma (Scroll to Page)
+  // 2. Sayfaya Kaydırma (Scroll to Page) ve Konum Kaydetme (Faz 10)
   const scrollToPage = useCallback((pageNum: number) => {
     if (pageNum < 1 || pageNum > numPages) return;
     setCurrentPage(pageNum);
+
+    if (fileId) {
+      savePdfReadingPosition(fileId, pageNum);
+    }
 
     const pageEl = document.getElementById(`pdf-page-${pageNum}`);
     const container = scrollContainerRef.current;
@@ -383,9 +454,17 @@ export function PdfJsStudio({
         behavior: "smooth",
       });
     }
-  }, [numPages]);
+  }, [numPages, fileId]);
 
-  // 3. Arama İşlevi
+  // Sayfa görünür olduğunda okuma konumunu güncelle
+  const handlePageVisible = useCallback((visiblePage: number) => {
+    setCurrentPage(visiblePage);
+    if (fileId) {
+      savePdfReadingPosition(fileId, visiblePage);
+    }
+  }, [fileId]);
+
+  // 3. Arama İşlevi (Faz 2 Snippet Panel Entegrasyonu)
   useEffect(() => {
     if (!pdfDoc || !searchQuery.trim() || !isSearchOpen) {
       setSearchResult({ query: "", totalMatches: 0, matches: [], pageMatchCounts: {} });
@@ -433,7 +512,7 @@ export function PdfJsStudio({
     scrollToPage(searchResult.matches[prevIdx].pageNumber);
   };
 
-  // 4. Ctrl + Wheel / trackpad pinch: yalnızca gerçek PDF viewport'unda zoom.
+  // 4. Ctrl + Wheel / trackpad pinch: yalnızca gerçek PDF viewport'unda zoom
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (loading || !pdfDoc || !container) return;
@@ -460,7 +539,6 @@ export function PdfJsStudio({
         250
       );
 
-      // Tekerlek ivmesine duyarlı pürüzsüz sürekli yakınlaştırma
       const zoomFactor = Math.exp(-normalizedDelta * 0.002);
       const currentTarget =
         zoomAnimFrameRef.current !== null
@@ -500,7 +578,6 @@ export function PdfJsStudio({
   // 5. Klavye Kısayolları (Shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Eğer bir input veya textarea içindeyse ele geçirme
       const target = e.target as HTMLElement;
       if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") {
         return;
@@ -539,6 +616,7 @@ export function PdfJsStudio({
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
         setIsSidebarOpen((prev) => !prev);
+        setIsSnippetPanelOpen(false);
       } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "d") {
         e.preventDefault();
         handleDownloadAction();
@@ -564,6 +642,7 @@ export function PdfJsStudio({
           e.preventDefault();
           e.stopPropagation();
           setIsSearchOpen(false);
+          setIsSnippetPanelOpen(false);
         }
       }
     };
@@ -572,7 +651,6 @@ export function PdfJsStudio({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [adjustCustomZoom, applyFitMode, currentPage, numPages, scrollToPage, setActualSize, isSearchOpen, handleDownloadAction, onShare]);
 
-  // 6. Genişliğe / Sayfaya Sığdırma Hesaplamaları
   const handleFitWidth = () => {
     applyFitMode("fit-width");
   };
@@ -585,34 +663,111 @@ export function PdfJsStudio({
     window.print();
   };
 
-  // 7. Pan / Fare ile Kaydırma (Hand Tool)
+  // 6. Pan / El Aracı ve Dokunmatik Pinch-to-Zoom (Faz 3 & Faz 4)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isHandTool || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (e.pointerType === "touch") {
+      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // İki parmak algılandı: Pinch gesture başlat
+      if (activePointersRef.current.size === 2) {
+        setIsDragging(false);
+        activePointerIdRef.current = null;
+        const pointers = Array.from(activePointersRef.current.values());
+        pinchStartDistRef.current = Math.hypot(
+          pointers[0].x - pointers[1].x,
+          pointers[0].y - pointers[1].y
+        );
+        pinchStartScaleRef.current = zoomRef.current.scale;
+        return;
+      }
+    }
+
+    if (!isHandTool) return;
+
     if (zoomAnimFrameRef.current !== null) {
       window.cancelAnimationFrame(zoomAnimFrameRef.current);
       zoomAnimFrameRef.current = null;
     }
     activeAnchorRef.current = null;
-    const container = scrollContainerRef.current;
     activePointerIdRef.current = e.pointerId;
-    container.setPointerCapture(e.pointerId);
+    try {
+      container.setPointerCapture(e.pointerId);
+    } catch {}
     setIsDragging(true);
     dragOriginRef.current = {
-      x: e.clientX + scrollContainerRef.current.scrollLeft,
-      y: e.clientY + scrollContainerRef.current.scrollTop,
+      x: e.clientX + container.scrollLeft,
+      y: e.clientY + container.scrollTop,
     };
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isHandTool || activePointerIdRef.current !== e.pointerId || !scrollContainerRef.current) return;
-    scrollContainerRef.current.scrollLeft = dragOriginRef.current.x - e.clientX;
-    scrollContainerRef.current.scrollTop = dragOriginRef.current.y - e.clientY;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Dokunmatik Pinch Zoom (İki Parmak)
+    if (e.pointerType === "touch" && activePointersRef.current.has(e.pointerId)) {
+      activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointersRef.current.size === 2 && pinchStartDistRef.current) {
+        const pointers = Array.from(activePointersRef.current.values());
+        const currentDist = Math.hypot(
+          pointers[0].x - pointers[1].x,
+          pointers[0].y - pointers[1].y
+        );
+        if (currentDist > 5 && pinchStartDistRef.current > 5) {
+          const ratio = currentDist / pinchStartDistRef.current;
+          const rect = container.getBoundingClientRect();
+          const midpoint = {
+            viewportX: (pointers[0].x + pointers[1].x) / 2 - rect.left,
+            viewportY: (pointers[0].y + pointers[1].y) / 2 - rect.top,
+          };
+          activeAnchorRef.current = midpoint;
+          targetScaleRef.current = clampScale(pinchStartScaleRef.current * ratio);
+          startSmoothZoomAnimation();
+        }
+        return;
+      }
+    }
+
+    // El Aracı Tek Parmak / Fareyle Kaydırma
+    if (!isHandTool || activePointerIdRef.current !== e.pointerId) return;
+    container.scrollLeft = dragOriginRef.current.x - e.clientX;
+    container.scrollTop = dragOriginRef.current.y - e.clientY;
   };
 
   const handlePointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch") {
+      activePointersRef.current.delete(e.pointerId);
+      if (activePointersRef.current.size < 2 && pinchStartDistRef.current !== null) {
+        pinchStartDistRef.current = null;
+        scheduleRenderedScaleCommit(targetScaleRef.current);
+      }
+
+      // Dokunmatik Çift Dokunma (Double Tap Smart Zoom)
+      if (activePointersRef.current.size === 0 && !isDragging) {
+        const now = performance.now();
+        const prevTap = lastTouchTapRef.current;
+        if (
+          prevTap &&
+          now - prevTap.time <= 350 &&
+          Math.hypot(e.clientX - prevTap.x, e.clientY - prevTap.y) <= 24
+        ) {
+          lastTouchTapRef.current = null;
+          handleSmartZoom({ clientX: e.clientX, clientY: e.clientY });
+          return;
+        }
+        lastTouchTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+      }
+    }
+
     if (activePointerIdRef.current !== e.pointerId) return;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
     }
     activePointerIdRef.current = null;
     setIsDragging(false);
@@ -631,7 +786,10 @@ export function PdfJsStudio({
         isSidebarOpen={isSidebarOpen}
         isHandTool={isHandTool}
         isSearchOpen={isSearchOpen}
-        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        onToggleSidebar={() => {
+          setIsSidebarOpen((prev) => !prev);
+          setIsSnippetPanelOpen(false);
+        }}
         onPageChange={scrollToPage}
         onSetHandTool={setIsHandTool}
         onZoomIn={handleZoomIn}
@@ -640,7 +798,10 @@ export function PdfJsStudio({
         onFitWidth={handleFitWidth}
         onFitPage={handleFitPage}
         onRotateView={() => setRotation((r) => (r + 90) % 360)}
-        onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
+        onToggleSearch={() => {
+          setIsSearchOpen((prev) => !prev);
+          if (isSearchOpen) setIsSnippetPanelOpen(false);
+        }}
         onPrint={handlePrint}
         displayName={displayName}
         sizeBytes={sizeBytes}
@@ -663,22 +824,39 @@ export function PdfJsStudio({
         totalMatches={searchResult.totalMatches}
         currentMatchIndex={currentMatchIndex}
         isSearching={isSearching}
+        isSnippetPanelOpen={isSnippetPanelOpen}
         onQueryChange={setSearchQuery}
         onNextMatch={handleNextMatch}
         onPrevMatch={handlePrevMatch}
-        onClose={() => setIsSearchOpen(false)}
+        onToggleSnippetPanel={() => setIsSnippetPanelOpen((prev) => !prev)}
+        onClose={() => {
+          setIsSearchOpen(false);
+          setIsSnippetPanelOpen(false);
+        }}
       />
 
-      {/* 3. Ana Çalışma Alanı (Kenar Çubuğu + Sürekli Dikey Kaydırma Sayfaları) */}
+      {/* 3. Ana Çalışma Alanı (Kenar Çubukları + Dikey Kaydırma Sayfaları) */}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
         {/* Sol Kenar Çubuğu (Thumbnails) */}
         <PdfThumbnailSidebar
           pdfDoc={pdfDoc}
           numPages={numPages}
           currentPage={currentPage}
-          isOpen={isSidebarOpen}
+          isOpen={isSidebarOpen && !isSnippetPanelOpen}
           onSelectPage={scrollToPage}
           onClose={() => setIsSidebarOpen(false)}
+        />
+
+        {/* Sol Kenar Arama Snippet Listesi Paneli (Faz 2) */}
+        <PdfSearchResultsPanel
+          isOpen={isSearchOpen && isSnippetPanelOpen}
+          searchResult={searchResult}
+          currentMatchIndex={currentMatchIndex}
+          onSelectMatch={(globalIdx) => {
+            setCurrentMatchIndex(globalIdx);
+            scrollToPage(searchResult.matches[globalIdx].pageNumber);
+          }}
+          onClose={() => setIsSnippetPanelOpen(false)}
         />
 
         {/* Yükleniyor ve Hata Durumları */}
@@ -703,38 +881,47 @@ export function PdfJsStudio({
 
         {/* Sürekli Dikey Kaydırma (Continuous Vertical Scroll Workspace) */}
         {!loading && !error && pdfDoc && (
-          <div
-            ref={scrollContainerRef}
-            data-testid="pdf-scroll-viewport"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerEnd}
-            onPointerCancel={handlePointerEnd}
-            className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] bg-muted/50 p-4 sm:p-8 dark:bg-zinc-900/60 ${
-              isHandTool
-                ? isDragging
-                  ? "cursor-grabbing touch-none"
-                  : "cursor-grab touch-none"
-                : "cursor-default"
-            }`}
-          >
-            <div className="flex min-w-full w-max flex-col items-center py-2">
-              {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
-                <PdfPageView
-                  key={pageNum}
-                  pdfDoc={pdfDoc}
-                  pageNumber={pageNum}
-                  scale={scale}
-                  renderedScale={renderedScale}
-                  rotation={rotation}
-                  isHandTool={isHandTool}
-                  searchQuery={isSearchOpen ? searchQuery : ""}
-                  isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
-                  onPageVisible={(visiblePage) => {
-                    setCurrentPage(visiblePage);
-                  }}
-                />
-              ))}
+          <div className="relative flex-1 min-h-0 min-w-0 flex overflow-hidden">
+            {/* Dikey Sayfa Gezinti Çubuğu (Minimap / Scrubber) (Faz 9) */}
+            <PdfPageScrubber
+              numPages={numPages}
+              currentPage={currentPage}
+              onPageChange={scrollToPage}
+            />
+
+            <div
+              ref={scrollContainerRef}
+              data-testid="pdf-scroll-viewport"
+              onDoubleClick={handleDoubleClick}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerEnd}
+              onPointerCancel={handlePointerEnd}
+              className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] bg-muted/50 p-4 sm:p-8 dark:bg-zinc-900/60 ${
+                isHandTool
+                  ? isDragging
+                    ? "cursor-grabbing touch-none"
+                    : "cursor-grab touch-none"
+                  : "cursor-default"
+              }`}
+            >
+              <div className="flex min-w-full w-max flex-col items-center py-2">
+                {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+                  <PdfPageView
+                    key={pageNum}
+                    pdfDoc={pdfDoc}
+                    pageNumber={pageNum}
+                    scale={scale}
+                    renderedScale={renderedScale}
+                    rotation={rotation}
+                    isHandTool={isHandTool}
+                    searchQuery={isSearchOpen ? searchQuery : ""}
+                    isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
+                    activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}
+                    onPageVisible={handlePageVisible}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         )}

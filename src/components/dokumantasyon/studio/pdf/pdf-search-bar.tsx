@@ -15,9 +15,11 @@ interface PdfSearchBarProps {
   totalMatches: number;
   currentMatchIndex: number;
   isSearching: boolean;
+  isSnippetPanelOpen?: boolean;
   onQueryChange: (q: string) => void;
   onNextMatch: () => void;
   onPrevMatch: () => void;
+  onToggleSnippetPanel?: () => void;
   onClose: () => void;
 }
 
@@ -27,9 +29,11 @@ export function PdfSearchBar({
   totalMatches,
   currentMatchIndex,
   isSearching,
+  isSnippetPanelOpen,
   onQueryChange,
   onNextMatch,
   onPrevMatch,
+  onToggleSnippetPanel,
   onClose,
 }: PdfSearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,6 +115,22 @@ export function PdfSearchBar({
       >
         <ChevronDown className="h-4 w-4" />
       </Button>
+
+      {onToggleSnippetPanel && (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={totalMatches === 0}
+          onClick={onToggleSnippetPanel}
+          className={`h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 rounded-md ${
+            isSnippetPanelOpen ? "text-amber-500 bg-amber-500/15 hover:bg-amber-500/20" : ""
+          }`}
+          title="Tüm Sonuçları Listele"
+          aria-label="Sonuç Listesi"
+        >
+          <Search className="h-3.5 w-3.5" />
+        </Button>
+      )}
 
       <div className="h-4 w-px bg-zinc-800 mx-0.5" />
 

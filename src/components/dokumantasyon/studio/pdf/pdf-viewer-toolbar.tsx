@@ -32,6 +32,7 @@ import {
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
 import { StudioCommandButton } from "../studio-command-button";
+import { getPdfRememberSettings, setPdfRememberSettings } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +109,11 @@ export function PdfViewerToolbar({
 }: PdfViewerToolbarProps) {
   const zoomPercent = Math.round(scale * 100);
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
+  const [rememberPosition, setRememberPosition] = useState<boolean>(true);
+
+  useEffect(() => {
+    setRememberPosition(getPdfRememberSettings());
+  }, []);
 
   useEffect(() => {
     setPageInputVal(String(currentPage));
@@ -524,6 +530,23 @@ export function PdfViewerToolbar({
                 </div>
               </>
             )}
+            <DropdownMenuSeparator className="bg-border/60 my-1" />
+            <DropdownMenuItem
+              onClick={() => {
+                const next = !rememberPosition;
+                setRememberPosition(next);
+                setPdfRememberSettings(next);
+              }}
+              data-command-id="pdf.settings.rememberPosition"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span>Son okunan konumu hatırla</span>
+              {rememberPosition ? (
+                <Check className="h-3.5 w-3.5 text-amber-500" />
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Kapalı</span>
+              )}
+            </DropdownMenuItem>
 
             {onDelete && (
               <>

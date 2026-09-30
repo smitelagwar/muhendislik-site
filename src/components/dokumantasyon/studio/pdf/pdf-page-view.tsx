@@ -4,18 +4,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { normalizeTurkishText } from "@/lib/dokumantasyon/studio/pdf/pdf-search";
-
-interface TextItem {
-  str: string;
-  dir?: string;
-  width: number;
-  height: number;
-  transform: number[];
-  fontName?: string;
-  hasEOL?: boolean;
-}
+import { loadSecurePdfJs } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 
 interface PdfPageViewProps {
   pdfDoc: any;
@@ -25,6 +16,7 @@ interface PdfPageViewProps {
   isHandTool: boolean;
   searchQuery?: string;
   isCurrentMatchPage?: boolean;
+  activeMatchIndexInPage?: number;
   onPageVisible?: (pageNumber: number) => void;
   renderedScale?: number;
 }
@@ -40,20 +32,24 @@ export function PdfPageView({
   isHandTool,
   searchQuery = "",
   isCurrentMatchPage = false,
+  activeMatchIndexInPage = -1,
   onPageVisible,
   renderedScale,
 }: PdfPageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerContainerRef = useRef<HTMLDivElement>(null);
   const renderTaskRef = useRef<any>(null);
+  const textLayerInstanceRef = useRef<any>(null);
 
   const [page, setPage] = useState<any>(null);
   const [viewport, setViewport] = useState<any>(null);
-  const [textItems, setTextItems] = useState<TextItem[]>([]);
   const [annotations, setAnnotations] = useState<any[]>([]);
+  // Faz 5: 10 sayfalık hafıza penceresi (off-screen sayfalarda canvas'ı serbest bırak)
   const [isVisible, setIsVisible] = useState<boolean>(pageNumber <= 2);
+  const isVisibleRef = useRef<boolean>(pageNumber <= 2);
 
-  // 1. IntersectionObserver — Yalnızca Ekrana Yaklaşan Sayfaları Render Et
+  // 1. IntersectionObserver — 10 Sayfalık Bellek Penceresi (~5 sayfa yukarı, ~5 sayfa aşağı)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -61,16 +57,31 @@ export function PdfPageView({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry.isIntersecting) {
-          setIsVisible(true);
+        const inView = entry.isIntersecting;
+        isVisibleRef.current = inView;
+        setIsVisible(inView);
+
+        if (inView) {
           onPageVisible?.(pageNumber);
         } else {
-          // Çok uzaktaysa belleği korumak için görünürlüğü kapatabilir
+          // Sayfa pencere dışına çıktığında GPU ve canvas belleğini serbest bırak
+          if (canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+              canvas.width = 1;
+              canvas.height = 1;
+            }
+          }
+          if (textLayerContainerRef.current) {
+            textLayerContainerRef.current.innerHTML = "";
+          }
         }
       },
       {
-        rootMargin: "600px 0px 600px 0px", // 600px öncesinden önceden yükle
-        threshold: 0.1,
+        rootMargin: "1500px 0px 1500px 0px", // ~5 sayfa yukarı + ~5 sayfa aşağı = 10 sayfa pencere
+        threshold: 0.01,
       }
     );
 
@@ -90,12 +101,6 @@ export function PdfPageView({
       setPage(p);
       const vp = p.getViewport({ scale: effectiveRenderedScale, rotation });
       setViewport(vp);
-
-      // Text Layer için metin içeriğini al
-      p.getTextContent().then((tc: any) => {
-        if (!active) return;
-        setTextItems(tc.items || []);
-      }).catch(() => {});
 
       p.getAnnotations({ intent: "display" }).then((items: any[]) => {
         if (active) setAnnotations(items || []);
@@ -160,30 +165,154 @@ export function PdfPageView({
     };
   }, [page, viewport, isVisible, pageNumber]);
 
-  // Arama vurgulama metni üretimi
-  const renderHighlightedText = (text: string) => {
-    if (!searchQuery.trim()) return text;
+  // 4. Arama Vurgusu Uygulama Yardımcısı (DOM Text Node Splitting)
+  const applySearchHighlights = useCallback(() => {
+    const container = textLayerContainerRef.current;
+    if (!container) return;
 
-    const normQuery = normalizeTurkishText(searchQuery);
-    const normText = normalizeTurkishText(text);
-    const matchIdx = normText.indexOf(normQuery);
+    // Önceki tüm mark elemanlarını temizle
+    const existingMarks = container.querySelectorAll("mark.pdf-search-mark");
+    existingMarks.forEach((mark) => {
+      const parent = mark.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(mark.textContent || ""), mark);
+        parent.normalize();
+      }
+    });
 
-    if (matchIdx === -1) return text;
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
 
-    const before = text.substring(0, matchIdx);
-    const match = text.substring(matchIdx, matchIdx + searchQuery.length);
-    const after = text.substring(matchIdx + searchQuery.length);
+    const normalizedQuery = normalizeTurkishText(trimmedQuery);
+    if (!normalizedQuery) return;
 
-    return (
-      <>
-        {before}
-        <mark className="bg-amber-400/70 text-transparent rounded-xs shadow-xs">
-          {match}
-        </mark>
-        {after}
-      </>
-    );
-  };
+    let matchCounter = 0;
+    const spans = container.querySelectorAll("span");
+
+    spans.forEach((span) => {
+      const originalText = span.textContent || "";
+      if (!originalText) return;
+
+      const normalizedText = normalizeTurkishText(originalText);
+      let startIdx = 0;
+      const matchesInSpan: { start: number; end: number }[] = [];
+
+      while (startIdx < normalizedText.length) {
+        const found = normalizedText.indexOf(normalizedQuery, startIdx);
+        if (found === -1) break;
+
+        matchesInSpan.push({
+          start: found,
+          end: found + normalizedQuery.length,
+        });
+        startIdx = found + normalizedQuery.length;
+      }
+
+      if (matchesInSpan.length === 0) return;
+
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+
+      matchesInSpan.forEach((m) => {
+        if (m.start > lastIndex) {
+          fragment.appendChild(
+            document.createTextNode(originalText.substring(lastIndex, m.start))
+          );
+        }
+
+        // <mark className="pdf-search-mark"> eşleşme vurgusu
+        const mark = document.createElement("mark");
+        const isCurrent = isCurrentMatchPage && matchCounter === activeMatchIndexInPage;
+        mark.className = isCurrent
+          ? "pdf-search-mark pdf-search-mark-active"
+          : "pdf-search-mark";
+        mark.dataset.matchIndex = String(matchCounter);
+        mark.textContent = originalText.substring(m.start, m.end);
+
+        fragment.appendChild(mark);
+
+        if (isCurrent) {
+          setTimeout(() => {
+            mark.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+          }, 30);
+        }
+
+        matchCounter++;
+        lastIndex = m.end;
+      });
+
+      if (lastIndex < originalText.length) {
+        fragment.appendChild(
+          document.createTextNode(originalText.substring(lastIndex))
+        );
+      }
+
+      span.textContent = "";
+      span.appendChild(fragment);
+    });
+  }, [searchQuery, isCurrentMatchPage, activeMatchIndexInPage]);
+
+  // 5. Resmi PDF.js TextLayer Render & Arama Eşlemesi
+  useEffect(() => {
+    if (!page || !viewport || !textLayerContainerRef.current || !isVisible) return;
+
+    let active = true;
+    const container = textLayerContainerRef.current;
+
+    async function renderTextLayer() {
+      try {
+        const pdfjs = await loadSecurePdfJs();
+        if (!active || !pdfjs || !textLayerContainerRef.current) return;
+
+        if (textLayerInstanceRef.current) {
+          try {
+            textLayerInstanceRef.current.cancel();
+          } catch {}
+          textLayerInstanceRef.current = null;
+        }
+
+        container.innerHTML = "";
+
+        const textContent = await page.getTextContent();
+        if (!active) return;
+
+        const textLayer = new pdfjs.TextLayer({
+          textContentSource: textContent,
+          container: container,
+          viewport: viewport,
+        });
+
+        textLayerInstanceRef.current = textLayer;
+        await textLayer.render();
+
+        if (active) {
+          applySearchHighlights();
+        }
+      } catch (err: any) {
+        if (err?.name !== "AbortException" && err?.message !== "TextLayer task cancelled.") {
+          console.warn(`Sayfa ${pageNumber} text layer hatası:`, err);
+        }
+      }
+    }
+
+    renderTextLayer();
+
+    return () => {
+      active = false;
+      if (textLayerInstanceRef.current) {
+        try {
+          textLayerInstanceRef.current.cancel();
+        } catch {}
+        textLayerInstanceRef.current = null;
+      }
+    };
+  }, [page, viewport, isVisible, pageNumber, applySearchHighlights]);
+
+  // Arama sorgusu veya aktif eşleşme değiştiğinde sadece highlight'ları güncelle
+  useEffect(() => {
+    if (!isVisible || !textLayerContainerRef.current) return;
+    applySearchHighlights();
+  }, [searchQuery, isCurrentMatchPage, activeMatchIndexInPage, isVisible, applySearchHighlights]);
 
   // Temel ölçüler (scale 1.0 için)
   const baseWidth = viewport ? viewport.width / effectiveRenderedScale : 600;
@@ -214,7 +343,7 @@ export function PdfPageView({
         height: `${currentHeight}px`,
       }}
     >
-      {/* 1. Canvas Katmanı (GPU composited CSS transform during zoom, razor sharp when rendered) */}
+      {/* 1. Canvas Katmanı */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 block origin-top-left"
@@ -226,9 +355,10 @@ export function PdfPageView({
         }}
       />
 
-      {/* 2. Doğal Metin Katmanı (HTML Text Layer & Arama Vurgusu) */}
+      {/* 2. Resmi PDF.js Text Layer (Canvas ile Piksel Piksel Tam Eşleşen Metin Katmanı) */}
       <div
-        className={`absolute inset-0 overflow-hidden leading-none select-text origin-top-left ${
+        ref={textLayerContainerRef}
+        className={`pdf-text-layer select-text cursor-text origin-top-left ${
           isHandTool ? "pointer-events-none" : "pointer-events-auto"
         }`}
         style={{
@@ -237,32 +367,7 @@ export function PdfPageView({
           transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
           transformOrigin: "0 0",
         }}
-      >
-        {textItems.map((item, idx) => {
-          if (!viewport || !item.transform) return null;
-
-          // PDF.js koordinat dönüşümü (effectiveRenderedScale'e göre)
-          const tx = item.transform;
-          const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]) * effectiveRenderedScale;
-          const [x, y] = viewport.convertToViewportPoint(tx[4], tx[5]);
-
-          return (
-            <span
-              key={idx}
-              className="absolute whitespace-pre text-transparent origin-top-left cursor-text"
-              style={{
-                left: `${x}px`,
-                top: `${y - fontHeight}px`,
-                fontSize: `${fontHeight}px`,
-                fontFamily: "sans-serif",
-                lineHeight: 1,
-              }}
-            >
-              {renderHighlightedText(item.str)}
-            </span>
-          );
-        })}
-      </div>
+      />
 
       {/* 3. Linkler Katmanı */}
       <div

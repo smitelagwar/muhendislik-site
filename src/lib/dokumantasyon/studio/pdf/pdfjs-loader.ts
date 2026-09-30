@@ -24,5 +24,9 @@ export async function createSecurePdfLoadingTask(
     cMapUrl: "/vendor/pdfjs/cmaps/",
     cMapPacked: true,
     standardFontDataUrl: "/vendor/pdfjs/standard_fonts/",
+    disableRange: false,
+    disableStream: false,
+    disableAutoFetch: true,
+    rangeChunkSize: 131072, // 128 KB
   });
 }

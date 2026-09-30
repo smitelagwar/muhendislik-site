@@ -1626,3 +1626,65 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   [data-dok-shell] [data-testid=dok-mobile-selection-dock] { padding:6px 10px max(6px,env(safe-area-inset-bottom)); min-height:56px; background:var(--card); backdrop-filter:none; }
   [data-dok-shell] [data-testid=dok-mobile-selection-dock] button { font-size:.75rem; }
 }
+
+/* ============================================================================
+   DÖKÜMANTASYON PDF — TEXT LAYER & SEARCH HIGHLIGHT ANIMASYONLARI
+   ============================================================================ */
+
+.pdf-text-layer {
+  position: absolute;
+  text-align: initial;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: transparent;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.pdf-text-layer ::selection {
+  background-color: rgba(245, 158, 11, 0.35);
+  color: transparent;
+}
+
+/* Standart arama eşleşmesi (sarı yarı saydam) */
+.pdf-search-mark {
+  background-color: rgba(251, 191, 36, 0.45);
+  color: transparent;
+  border-radius: 2px;
+}
+
+/* Aktif arama eşleşmesi: Altın sarısı canlı yanıp sönen (pulse) animasyon */
+@keyframes pdf-match-pulse {
+  0%, 100% {
+    background-color: rgb(245 158 11);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.9);
+  }
+  50% {
+    background-color: rgba(245, 158, 11, 0.25);
+    box-shadow: none;
+  }
+}
+
+.pdf-search-mark-active {
+  background-color: rgb(245 158 11) !important;
+  animation: pdf-match-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 2px;
+}
+
