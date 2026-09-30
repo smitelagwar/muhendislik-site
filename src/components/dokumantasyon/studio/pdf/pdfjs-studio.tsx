@@ -4,10 +4,15 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
-import { searchInPdfDocument, PdfSearchResult } from "@/lib/dokumantasyon/studio/pdf/pdf-search";
+import {
+  SearchProgress,
+  SearchMatch,
+  SearchOpts,
+  searchPdfDocumentIncremental,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
 import { getPdfReadingPosition, savePdfReadingPosition } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
 import { PdfPageView } from "./pdf-page-view";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
@@ -115,17 +120,42 @@ export function PdfJsStudio({
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSnippetPanelOpen, setIsSnippetPanelOpen] = useState<boolean>(false);
 
-  // Arama Durumu
+  // Arama Durumu (Faz E)
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResult, setSearchResult] = useState<PdfSearchResult>({
+  const [searchOpts, setSearchOpts] = useState<SearchOpts>({
+    caseSensitive: false,
+    matchDiacritics: false,
+    wholeWord: false,
+  });
+  const [searchResult, setSearchResult] = useState<SearchProgress>({
     query: "",
     totalMatches: 0,
     matches: [],
     pageMatchCounts: {},
+    scannedPages: 0,
+    totalPages: 0,
+    isComplete: false,
+    isScannedPdf: false,
+    overflow: false,
   });
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  // Faz E: Sayfa numarasına göre gruplanmış eşleşmeler (O(1) erişim)
+  const matchesByPage = useMemo(() => {
+    const map = new Map<number, SearchMatch[]>();
+    for (const m of searchResult.matches) {
+      let arr = map.get(m.pageNumber);
+      if (!arr) {
+        arr = [];
+        map.set(m.pageNumber, arr);
+      }
+      arr.push(m);
+    }
+    return map;
+  }, [searchResult.matches]);
   const [firstPageSize, setFirstPageSize] = useState<{ width: number; height: number } | null>(null);
   const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({});
   const scale = zoom.scale;
@@ -617,44 +647,75 @@ export function PdfJsStudio({
     []
   );
 
-  // 3. Arama İşlevi (Faz 2 Snippet Panel Entegrasyonu)
+  // 3. Arama İşlevi (Faz E: Artımlı Dilimleme, İptal, Türkçe Katlama ve Öncelikli Gezinme)
   useEffect(() => {
-    if (!pdfDoc || !searchQuery.trim() || !isSearchOpen) {
-      setSearchResult({ query: "", totalMatches: 0, matches: [], pageMatchCounts: {} });
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
+
+    if (!pdfDoc || !searchQuery.trim() || !isSearchOpen || searchQuery.trim().length < 2) {
+      setSearchResult({
+        query: "",
+        totalMatches: 0,
+        matches: [],
+        pageMatchCounts: {},
+        scannedPages: 0,
+        totalPages: numPages,
+        isComplete: false,
+        isScannedPdf: false,
+        overflow: false,
+      });
       setCurrentMatchIndex(0);
+      setIsSearching(false);
       return;
     }
 
-    let isCurrent = true;
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
     setIsSearching(true);
 
     const timer = setTimeout(async () => {
       try {
-        const res = await searchInPdfDocument(pdfDoc, searchQuery);
-        if (!isCurrent) return;
-
-        setSearchResult(res);
-        setCurrentMatchIndex(0);
-
-        if (res.matches.length > 0) {
-          scrollToPage(res.matches[0].pageNumber);
-        }
+        let firstMatchNavigated = false;
+        await searchPdfDocumentIncremental(
+          pdfDoc,
+          searchQuery,
+          currentPageRef.current,
+          searchOpts,
+          controller.signal,
+          (progress) => {
+            if (controller.signal.aborted) return;
+            setSearchResult(progress);
+            if (!firstMatchNavigated && progress.matches.length > 0) {
+              firstMatchNavigated = true;
+              setCurrentMatchIndex(0);
+              const first = progress.matches[0];
+              pdfRenderQueue.setCurrentPage(first.pageNumber);
+              scrollToPage(first.pageNumber);
+            }
+          }
+        );
       } finally {
-        if (isCurrent) setIsSearching(false);
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
       }
     }, 200);
 
     return () => {
-      isCurrent = false;
       clearTimeout(timer);
+      controller.abort();
     };
-  }, [pdfDoc, searchQuery, isSearchOpen, scrollToPage]);
+  }, [pdfDoc, searchQuery, isSearchOpen, searchOpts, numPages, scrollToPage]);
 
   const handleNextMatch = () => {
     if (searchResult.totalMatches === 0) return;
     const nextIdx = (currentMatchIndex + 1) % searchResult.totalMatches;
     setCurrentMatchIndex(nextIdx);
-    scrollToPage(searchResult.matches[nextIdx].pageNumber);
+    const targetPage = searchResult.matches[nextIdx].pageNumber;
+    pdfRenderQueue.setCurrentPage(targetPage);
+    scrollToPage(targetPage);
   };
 
   const handlePrevMatch = () => {
@@ -662,7 +723,9 @@ export function PdfJsStudio({
     const prevIdx =
       (currentMatchIndex - 1 + searchResult.totalMatches) % searchResult.totalMatches;
     setCurrentMatchIndex(prevIdx);
-    scrollToPage(searchResult.matches[prevIdx].pageNumber);
+    const targetPage = searchResult.matches[prevIdx].pageNumber;
+    pdfRenderQueue.setCurrentPage(targetPage);
+    scrollToPage(targetPage);
   };
 
   // 4. Ctrl + Wheel / trackpad pinch: yalnızca gerçek PDF viewport'unda zoom
@@ -978,6 +1041,10 @@ export function PdfJsStudio({
         currentMatchIndex={currentMatchIndex}
         isSearching={isSearching}
         isSnippetPanelOpen={isSnippetPanelOpen}
+        isScannedPdf={searchResult.isScannedPdf}
+        overflow={searchResult.overflow}
+        searchOpts={searchOpts}
+        onSearchOptsChange={setSearchOpts}
         onQueryChange={setSearchQuery}
         onNextMatch={handleNextMatch}
         onPrevMatch={handlePrevMatch}
@@ -1000,14 +1067,16 @@ export function PdfJsStudio({
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Sol Kenar Arama Snippet Listesi Paneli (Faz 2) */}
+        {/* Sol Kenar Arama Snippet Listesi Paneli (Faz 2 & Faz E) */}
         <PdfSearchResultsPanel
           isOpen={isSearchOpen && isSnippetPanelOpen}
           searchResult={searchResult}
           currentMatchIndex={currentMatchIndex}
           onSelectMatch={(globalIdx) => {
             setCurrentMatchIndex(globalIdx);
-            scrollToPage(searchResult.matches[globalIdx].pageNumber);
+            const targetPage = searchResult.matches[globalIdx].pageNumber;
+            pdfRenderQueue.setCurrentPage(targetPage);
+            scrollToPage(targetPage);
           }}
           onClose={() => setIsSnippetPanelOpen(false)}
         />
@@ -1143,6 +1212,8 @@ export function PdfJsStudio({
                     isWithinWindow={Math.abs(pageNum - currentPage) <= PAGE_WINDOW_N}
                     initialDimensions={pageDimensions[pageNum] || firstPageSize || undefined}
                     onDimensionsMeasured={handleDimensionsMeasured}
+                    searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
+                    searchOpts={searchOpts}
                   />
                 ))}
               </div>

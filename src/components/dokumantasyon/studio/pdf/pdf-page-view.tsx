@@ -4,10 +4,11 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { normalizeTurkishText } from "@/lib/dokumantasyon/studio/pdf/pdf-search";
+import React, { useState, useEffect, useRef } from "react";
+import { SearchMatch, SearchOpts } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
 import { loadSecurePdfJs } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
+import { PdfHighlightLayer } from "./pdf-highlight-layer";
 
 interface PdfPageViewProps {
   pdfDoc: any;
@@ -16,6 +17,7 @@ interface PdfPageViewProps {
   rotation: number;
   isHandTool: boolean;
   searchQuery?: string;
+  searchOpts?: SearchOpts;
   isCurrentMatchPage?: boolean;
   activeMatchIndexInPage?: number;
   onPageVisible?: (pageNumber: number) => void;
@@ -23,6 +25,7 @@ interface PdfPageViewProps {
   isWithinWindow?: boolean; // Faz C: [görünür - 5, görünür + 5] penceresi
   initialDimensions?: { width: number; height: number };
   onDimensionsMeasured?: (pageNumber: number, width: number, height: number) => void;
+  searchMatches?: SearchMatch[]; // Faz E
 }
 
 export const PDF_LAYER_Z_INDEX = {
@@ -40,7 +43,8 @@ export function PdfPageView({
   scale,
   rotation,
   isHandTool,
-  searchQuery = "",
+  searchQuery,
+  searchOpts,
   isCurrentMatchPage = false,
   activeMatchIndexInPage = -1,
   onPageVisible,
@@ -48,6 +52,7 @@ export function PdfPageView({
   isWithinWindow = true,
   initialDimensions,
   onDimensionsMeasured,
+  searchMatches,
 }: PdfPageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,6 +66,7 @@ export function PdfPageView({
   // Faz C: Çift Tampon (Double Buffering) Durumu
   const [lastRenderedScale, setLastRenderedScale] = useState<number>(renderedScale ?? scale);
   const [isPageRendered, setIsPageRendered] = useState<boolean>(false);
+  const effectivePageRendered = isWithinWindow && isPageRendered;
 
   // IntersectionObserver: Görünür olduğunda ana bileşene bildir
   useEffect(() => {
@@ -161,8 +167,6 @@ export function PdfPageView({
         page.cleanup();
       } catch {}
     }
-
-    setIsPageRendered(false);
   }, [isWithinWindow, page, pageNumber]);
 
   // 3. Çift Tamponlu Canvas Render ve Kuyruk Yönetimi (Faz C)
@@ -235,79 +239,9 @@ export function PdfPageView({
     };
   }, [page, viewport, isWithinWindow, pageNumber, effectiveRenderedScale]);
 
-  // 4. Arama Vurgusu Uygulama Yardımcısı
-  const applySearchHighlights = useCallback(() => {
-    const container = textLayerContainerRef.current;
-    if (!container) return;
-
-    // Önceki tüm mark elemanlarını temizle
-    const existingMarks = container.querySelectorAll("mark.pdf-search-mark");
-    existingMarks.forEach((mark) => {
-      const parent = mark.parentNode;
-      if (parent) {
-        parent.replaceChild(document.createTextNode(mark.textContent || ""), mark);
-        parent.normalize();
-      }
-    });
-
-    const trimmedQuery = searchQuery.trim();
-    if (!trimmedQuery) return;
-
-    const normalizedQuery = normalizeTurkishText(trimmedQuery);
-    if (!normalizedQuery) return;
-
-    let matchCounter = 0;
-    const spans = container.querySelectorAll("span");
-
-    spans.forEach((span) => {
-      const originalText = span.textContent || "";
-      if (!originalText) return;
-
-      const normalizedText = normalizeTurkishText(originalText);
-      let searchIdx = normalizedText.indexOf(normalizedQuery);
-
-      if (searchIdx === -1) return;
-
-      const fragment = document.createDocumentFragment();
-      let lastIdx = 0;
-
-      while (searchIdx !== -1) {
-        if (searchIdx > lastIdx) {
-          fragment.appendChild(
-            document.createTextNode(originalText.slice(lastIdx, searchIdx))
-          );
-        }
-
-        const mark = document.createElement("mark");
-        const isCurrent = isCurrentMatchPage && matchCounter === activeMatchIndexInPage;
-        mark.className = isCurrent
-          ? "pdf-search-mark pdf-search-mark-active bg-amber-400 text-zinc-950 font-bold rounded-xs px-0.5 ring-2 ring-amber-600 shadow-sm animate-pulse"
-          : "pdf-search-mark bg-amber-200/80 text-zinc-900 rounded-xs px-0.5";
-        mark.textContent = originalText.slice(
-          searchIdx,
-          searchIdx + trimmedQuery.length
-        );
-        fragment.appendChild(mark);
-
-        matchCounter++;
-        lastIdx = searchIdx + trimmedQuery.length;
-        searchIdx = normalizedText.indexOf(normalizedQuery, lastIdx);
-      }
-
-      if (lastIdx < originalText.length) {
-        fragment.appendChild(
-          document.createTextNode(originalText.slice(lastIdx))
-        );
-      }
-
-      span.textContent = "";
-      span.appendChild(fragment);
-    });
-  }, [searchQuery, isCurrentMatchPage, activeMatchIndexInPage]);
-
-  // 5. Resmi PDF.js TextLayer Render & Arama Eşlemesi (Faz D)
+  // 5. Resmi PDF.js TextLayer Render (Faz D & E: Saf DOM, TextLayer spanları bozulmaz)
   useEffect(() => {
-    if (!page || !viewport || !textLayerContainerRef.current || !isWithinWindow || !isPageRendered) return;
+    if (!page || !viewport || !textLayerContainerRef.current || !isWithinWindow) return;
 
     let active = true;
     const container = textLayerContainerRef.current;
@@ -323,7 +257,6 @@ export function PdfPageView({
     if (textLayerInstanceRef.current?.update) {
       try {
         textLayerInstanceRef.current.update({ viewport });
-        applySearchHighlights();
         return;
       } catch (err) {
         console.warn(`TextLayer update hatası (sayfa ${pageNumber}), yeniden çiziliyor:`, err);
@@ -354,7 +287,6 @@ export function PdfPageView({
               endDiv.className = "endOfContent";
               container.appendChild(endDiv);
             }
-            applySearchHighlights();
           })
           .catch((err: unknown) => {
             const errName = (err as { name?: string } | null | undefined)?.name;
@@ -376,7 +308,7 @@ export function PdfPageView({
         textLayerInstanceRef.current = null;
       }
     };
-  }, [page, viewport, isWithinWindow, isPageRendered, pageNumber, effectiveRenderedScale, applySearchHighlights]);
+  }, [page, viewport, isWithinWindow, pageNumber, effectiveRenderedScale]);
 
   // Faz D: Seçim davranışı için .selecting sınıfı yönetimi
   useEffect(() => {
@@ -400,12 +332,6 @@ export function PdfPageView({
       window.removeEventListener("pointercancel", onPointerUp);
     };
   }, []);
-
-  // Arama sorgusu veya aktif eşleşme değiştiğinde sadece highlight'ları güncelle
-  useEffect(() => {
-    if (!isWithinWindow || !textLayerContainerRef.current) return;
-    applySearchHighlights();
-  }, [searchQuery, isCurrentMatchPage, activeMatchIndexInPage, isWithinWindow, applySearchHighlights]);
 
   // Sayfa Boyutlandırma Geometrisi
   const baseWidth = viewport
@@ -439,7 +365,7 @@ export function PdfPageView({
       }}
     >
       {/* 0. Yer Tutucu İskelet (Placeholder) */}
-      {!isPageRendered && (
+      {!effectivePageRendered && (
         <div
           data-testid={`pdf-page-placeholder-${pageNumber}`}
           className="absolute inset-0 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
@@ -456,7 +382,7 @@ export function PdfPageView({
         ref={canvasRef}
         data-testid={`pdf-page-canvas-${pageNumber}`}
         className={`absolute inset-0 block origin-top-left ${
-          isPageRendered ? "opacity-100" : "opacity-0 pointer-events-none"
+          effectivePageRendered ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         style={{
           zIndex: PDF_LAYER_Z_INDEX.CANVAS,
@@ -482,6 +408,21 @@ export function PdfPageView({
           transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
           transformOrigin: "0 0",
         }}
+      />
+
+      {/* 2.5. Vurgu Overlay Katmanı (Faz E: TextLayer DOM'unu bozmadan bağımsız render) */}
+      <PdfHighlightLayer
+        pageNumber={pageNumber}
+        matches={searchMatches || []}
+        activeMatchIndexInPage={isCurrentMatchPage ? activeMatchIndexInPage : -1}
+        containerRef={textLayerContainerRef}
+        isPageRendered={effectivePageRendered}
+        query={searchQuery}
+        searchOpts={searchOpts}
+        renderedWidth={renderedWidth}
+        renderedHeight={renderedHeight}
+        visualRatio={visualRatio}
+        hasVisualTransform={hasVisualTransform}
       />
 
       {/* 3. Linkler ve Ek Açıklamalar Katmanı */}

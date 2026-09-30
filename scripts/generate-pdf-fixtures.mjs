@@ -729,6 +729,33 @@ Dosyalar **repoya commit edilmez** (\`.gitignore\` kapsamındadır).
   fs.writeFileSync(path.join(manualDir, "README.md"), manualReadmeContent, "utf-8");
 }
 
+async function generateTaranmisMetinsiz() {
+  const doc = await PDFDocument.create();
+  // 2 sayfa oluştur, hiçbir metin (drawText) ekleme. Yalnızca şekil ve arka plan çiz.
+  const p1 = doc.addPage(A4_PORTRAIT);
+  p1.drawRectangle({
+    x: 50,
+    y: 50,
+    width: 495,
+    height: 742,
+    color: rgb(0.95, 0.95, 0.95),
+    borderColor: rgb(0.8, 0.8, 0.8),
+    borderWidth: 1,
+  });
+
+  const p2 = doc.addPage(A4_PORTRAIT);
+  p2.drawRectangle({
+    x: 50,
+    y: 50,
+    width: 495,
+    height: 742,
+    color: rgb(0.92, 0.92, 0.92),
+  });
+
+  const bytes = await doc.save();
+  fs.writeFileSync(path.join(fixturesDir, "taranmis-metinsiz.pdf"), bytes);
+}
+
 async function main() {
   if (!fs.existsSync(fixturesDir)) {
     fs.mkdirSync(fixturesDir, { recursive: true });
@@ -757,6 +784,9 @@ async function main() {
 
   await generateLinkli();
   console.log("  ✓ linkli.pdf üretildi");
+
+  await generateTaranmisMetinsiz();
+  console.log("  ✓ taranmis-metinsiz.pdf üretildi");
 
   writeManifest(trWordBoxes);
   console.log("  ✓ manifest.json yazıldı");
