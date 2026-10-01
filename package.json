@@ -143,9 +143,10 @@
     "check:pdf-v2:e2e": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v2.spec.ts --project=chromium",
     "check:pdf-v2:e2e:faz-b": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v2-faz-b.spec.ts --project=chromium",
     "test:pdf-v2": "npm run generate:pdf-fixtures && npm run check:pdf-v2:unit && npm run check:pdf-v2:e2e:faz-b",
-    "check:pdf-v3:unit": "tsx tests/pdf-v3/text-quality.test.ts",
+    "check:pdf-v3:unit": "tsx tests/pdf-v3/geometry.test.ts && tsx tests/pdf-v3/text-repair.test.ts && tsx tests/pdf-v3/text-quality.test.ts",
     "check:pdf-v3:invariants": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v3-invariants.spec.ts --project=chromium",
-    "test:pdf-v3": "npm run check:pdf-v3:unit && npm run check:pdf-v3:invariants"
+    "check:pdf-v3:real-docs": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v3-real-docs.spec.ts --project=chromium",
+    "test:pdf-v3": "npm run check:pdf-v3:unit && npm run check:pdf-v3:invariants && npm run check:pdf-v3:real-docs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^3.1.0",
