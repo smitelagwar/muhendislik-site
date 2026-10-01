@@ -31,6 +31,9 @@ import {
   Keyboard,
   Bookmark,
   ArrowLeftCircle,
+  Moon,
+  Layout,
+  Gauge,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
@@ -71,6 +74,15 @@ interface PdfViewerToolbarProps {
   onToggleOutline?: () => void;
   canNavigateBack?: boolean;
   onNavigateBack?: () => void;
+  // --- Faz H: Okuma Konumu ve Ayarlar Propları ---
+  nightMode?: boolean;
+  onToggleNightMode?: () => void;
+  defaultViewMode?: "fit-width" | "fit-page";
+  onChangeDefaultViewMode?: (mode: "fit-width" | "fit-page") => void;
+  reduceMotion?: "system" | "on" | "off";
+  onChangeReduceMotion?: (mode: "system" | "on" | "off") => void;
+  rememberPosition?: boolean;
+  onToggleRememberPosition?: () => void;
   // --- Tekil Toolbar Propları ---
   displayName?: string;
   sizeBytes?: number;
@@ -111,6 +123,14 @@ export function PdfViewerToolbar({
   onToggleOutline,
   canNavigateBack,
   onNavigateBack,
+  nightMode = false,
+  onToggleNightMode,
+  defaultViewMode = "fit-width",
+  onChangeDefaultViewMode,
+  reduceMotion = "system",
+  onChangeReduceMotion,
+  rememberPosition: rememberPositionProp,
+  onToggleRememberPosition,
   displayName,
   sizeBytes,
   extension,
@@ -126,14 +146,17 @@ export function PdfViewerToolbar({
 }: PdfViewerToolbarProps) {
   const zoomPercent = Math.round(scale * 100);
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
-  const [rememberPosition, setRememberPosition] = useState<boolean>(true);
+  const [internalRememberPosition, setInternalRememberPosition] = useState<boolean>(true);
+
+  const effectiveRememberPosition =
+    typeof rememberPositionProp === "boolean" ? rememberPositionProp : internalRememberPosition;
 
   const currentLabel =
     pageLabels && pageLabels[currentPage - 1] ? pageLabels[currentPage - 1] : null;
   const showLabelBadge = Boolean(currentLabel && currentLabel !== String(currentPage));
 
   useEffect(() => {
-    setRememberPosition(getPdfRememberSettings());
+    setInternalRememberPosition(getPdfRememberSettings());
   }, []);
 
   useEffect(() => {
@@ -617,21 +640,86 @@ export function PdfViewerToolbar({
               </>
             )}
             <DropdownMenuSeparator className="bg-border/60 my-1" />
+            
+            {/* 1. Son okunan konumu hatırla */}
             <DropdownMenuItem
               onClick={() => {
-                const next = !rememberPosition;
-                setRememberPosition(next);
-                setPdfRememberSettings(next);
+                if (onToggleRememberPosition) {
+                  onToggleRememberPosition();
+                } else {
+                  const next = !internalRememberPosition;
+                  setInternalRememberPosition(next);
+                  setPdfRememberSettings(next);
+                }
               }}
               data-command-id="pdf.settings.rememberPosition"
+              data-testid="pdf-remember-position-toggle"
               className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
             >
               <span>Son okunan konumu hatırla</span>
-              {rememberPosition ? (
+              {effectiveRememberPosition ? (
                 <Check className="h-3.5 w-3.5 text-amber-500" />
               ) : (
                 <span className="text-[10px] text-muted-foreground">Kapalı</span>
               )}
+            </DropdownMenuItem>
+
+            {/* 2. Gece modu */}
+            <DropdownMenuItem
+              onClick={onToggleNightMode}
+              data-command-id="pdf.settings.nightMode"
+              data-testid="pdf-night-mode-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Moon className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Gece modu</span>
+              </span>
+              {nightMode ? (
+                <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">Açık</span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Kapalı</span>
+              )}
+            </DropdownMenuItem>
+
+            {/* 3. Varsayılan görünüm */}
+            <DropdownMenuItem
+              onClick={() => {
+                const nextMode = defaultViewMode === "fit-page" ? "fit-width" : "fit-page";
+                onChangeDefaultViewMode?.(nextMode);
+              }}
+              data-command-id="pdf.settings.defaultViewMode"
+              data-testid="pdf-default-view-mode-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Layout className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Varsayılan görünüm</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {defaultViewMode === "fit-page" ? "Sayfaya Sığdır" : "Genişliğe Sığdır"}
+              </span>
+            </DropdownMenuItem>
+
+            {/* 4. Hareketleri azalt */}
+            <DropdownMenuItem
+              onClick={() => {
+                const modes: ("system" | "on" | "off")[] = ["system", "on", "off"];
+                const currentIdx = modes.indexOf(reduceMotion || "system");
+                const nextMode = modes[(currentIdx + 1) % modes.length];
+                onChangeReduceMotion?.(nextMode);
+              }}
+              data-command-id="pdf.settings.reduceMotion"
+              data-testid="pdf-reduce-motion-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Hareketleri azalt</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {reduceMotion === "on" ? "Açık" : reduceMotion === "off" ? "Kapalı" : "Sistem"}
+              </span>
             </DropdownMenuItem>
 
             {onOpenShortcuts && (
@@ -640,6 +728,7 @@ export function PdfViewerToolbar({
                 <DropdownMenuItem
                   onClick={onOpenShortcuts}
                   data-command-id="pdf.shortcuts"
+                  data-testid="pdf-shortcuts-btn"
                   className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
                 >
                   <span className="flex items-center gap-2">

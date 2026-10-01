@@ -1,82 +1,155 @@
 // ============================================================================
-// DÖKÜMANTASYON MODÜLÜ — PDF SON OKUNAN KONUMU HATIRLAMA YÖNETİCİSİ
+// DÖKÜMANTASYON MODÜLÜ — PDF OKUMA KONUMU VE AYARLAR YÖNETİCİSİ (FAZ H)
+// dok-pdf-reading-position:v2 & dok-pdf-settings:v2
 // ============================================================================
 
-const STORAGE_KEY = "dok-pdf-reading-positions:v1";
-const SETTINGS_KEY = "dok-pdf-reader-settings:v1";
+export const STORAGE_KEY_V2 = "dok-pdf-reading-position:v2";
+export const SETTINGS_KEY_V2 = "dok-pdf-settings:v2";
 
-interface PositionRecord {
+export interface PdfViewerSettings {
+  rememberPosition: boolean; // Son konumdan devam et (varsayılan: true)
+  defaultViewMode: "fit-width" | "fit-page"; // Varsayılan görünüm modu
+  reduceMotion: "system" | "on" | "off"; // Hareketleri azalt
+  nightMode: boolean; // Gece modu (varsayılan: false)
+}
+
+export interface PdfReadingPositionRecord {
   page: number;
-  timestamp: number;
+  offsetRatio: number; // Sayfa içi dikey kaydırma oranı (0 - 1)
+  scaleMode?: "custom" | "actual-size" | "fit-width" | "fit-page";
+  scale?: number;
+  fileVersion?: string; // updatedAt / boyut / etag bileşimi
+  updatedAt: number;
 }
 
-interface ReaderSettings {
-  rememberPosition: boolean;
-}
+const DEFAULT_SETTINGS: PdfViewerSettings = {
+  rememberPosition: true,
+  defaultViewMode: "fit-width",
+  reduceMotion: "system",
+  nightMode: false,
+};
 
-export function getPdfRememberSettings(): boolean {
-  if (typeof window === "undefined") return true;
+// ----------------------------------------------------------------------------
+// AYARLAR (SETTINGS) YÖNETİMİ
+// ----------------------------------------------------------------------------
+
+export function getPdfSettings(): PdfViewerSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return true; // Varsayılan: AÇIK
-    const parsed: ReaderSettings = JSON.parse(raw);
-    return parsed.rememberPosition !== false;
+    const raw = localStorage.getItem(SETTINGS_KEY_V2);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw);
+    return {
+      rememberPosition: typeof parsed.rememberPosition === "boolean" ? parsed.rememberPosition : DEFAULT_SETTINGS.rememberPosition,
+      defaultViewMode: parsed.defaultViewMode === "fit-page" ? "fit-page" : "fit-width",
+      reduceMotion: parsed.reduceMotion === "on" || parsed.reduceMotion === "off" ? parsed.reduceMotion : "system",
+      nightMode: typeof parsed.nightMode === "boolean" ? parsed.nightMode : DEFAULT_SETTINGS.nightMode,
+    };
   } catch {
-    return true;
+    return DEFAULT_SETTINGS;
   }
+}
+
+export function setPdfSettings(partial: Partial<PdfViewerSettings>): PdfViewerSettings {
+  const current = getPdfSettings();
+  const next: PdfViewerSettings = { ...current, ...partial };
+  if (typeof window === "undefined") return next;
+  try {
+    localStorage.setItem(SETTINGS_KEY_V2, JSON.stringify(next));
+  } catch (err) {
+    console.warn("[pdf-settings] Ayarlar localStorage'a kaydedilemedi:", err);
+  }
+  return next;
+}
+
+// Geriye dönük uyumluluk köprüleri
+export function getPdfRememberSettings(): boolean {
+  return getPdfSettings().rememberPosition;
 }
 
 export function setPdfRememberSettings(enabled: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    const settings: ReaderSettings = { rememberPosition: enabled };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch (err) {
-    console.warn("PDF ayarları kaydedilemedi:", err);
-  }
+  setPdfSettings({ rememberPosition: enabled });
 }
 
-export function getPdfReadingPosition(fileId: string): number | null {
+// ----------------------------------------------------------------------------
+// OKUMA KONUMU (READING POSITION) YÖNETİMİ
+// ----------------------------------------------------------------------------
+
+export function getPdfReadingPosition(
+  fileId: string,
+  currentFileVersion?: string
+): PdfReadingPositionRecord | null {
   if (typeof window === "undefined" || !fileId) return null;
-  if (!getPdfRememberSettings()) return null;
+  const settings = getPdfSettings();
+  if (!settings.rememberPosition) return null;
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY_V2);
     if (!raw) return null;
-    const positions: Record<string, PositionRecord> = JSON.parse(raw);
+    const positions: Record<string, PdfReadingPositionRecord> = JSON.parse(raw);
     const record = positions[fileId];
-    if (record && typeof record.page === "number" && record.page >= 1) {
-      return record.page;
+    if (!record || typeof record.page !== "number" || record.page < 1) {
+      return null;
     }
-    return null;
+
+    // Dosya sürümü değişmişse konumu geçersiz say (yanlış yere atlamayı engelle)
+    if (
+      record.fileVersion &&
+      currentFileVersion &&
+      record.fileVersion !== currentFileVersion
+    ) {
+      return null;
+    }
+
+    return record;
   } catch {
     return null;
   }
 }
 
-export function savePdfReadingPosition(fileId: string, page: number): void {
-  if (typeof window === "undefined" || !fileId || page < 1) return;
-  if (!getPdfRememberSettings()) return;
+export function savePdfReadingPosition(
+  fileId: string,
+  record: {
+    page: number;
+    offsetRatio?: number;
+    scaleMode?: "custom" | "actual-size" | "fit-width" | "fit-page";
+    scale?: number;
+    fileVersion?: string;
+    updatedAt?: number;
+  }
+): void {
+  if (typeof window === "undefined" || !fileId || record.page < 1) return;
+  const settings = getPdfSettings();
+  if (!settings.rememberPosition) return;
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const positions: Record<string, PositionRecord> = raw ? JSON.parse(raw) : {};
+    const raw = localStorage.getItem(STORAGE_KEY_V2);
+    const positions: Record<string, PdfReadingPositionRecord> = raw ? JSON.parse(raw) : {};
+
+    const cleanRatio =
+      typeof record.offsetRatio === "number" && !isNaN(record.offsetRatio)
+        ? Math.min(Math.max(record.offsetRatio, 0), 1)
+        : 0;
 
     positions[fileId] = {
-      page,
-      timestamp: Date.now(),
+      page: record.page,
+      offsetRatio: cleanRatio,
+      scaleMode: record.scaleMode,
+      scale: record.scale,
+      fileVersion: record.fileVersion,
+      updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : Date.now(),
     };
 
-    // Bellekte en fazla 50 dosya tut, daha eskileri temizle
+    // Bellekte en fazla 50 dosya tut, daha eskileri temizle (Plandaki kural)
     const entries = Object.entries(positions);
     if (entries.length > 50) {
-      entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+      entries.sort((a, b) => b[1].updatedAt - a[1].updatedAt);
       const trimmed = Object.fromEntries(entries.slice(0, 50));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(trimmed));
     } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+      localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(positions));
     }
   } catch (err) {
-    console.warn("PDF okuma konumu kaydedilemedi:", err);
+    console.warn("[pdf-reading-position] Okuma konumu kaydedilemedi:", err);
   }
 }

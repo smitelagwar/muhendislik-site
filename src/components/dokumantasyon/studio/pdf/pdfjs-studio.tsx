@@ -13,7 +13,13 @@ import {
   SearchOpts,
   searchPdfDocumentIncremental,
 } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
-import { getPdfReadingPosition, savePdfReadingPosition } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
+import {
+  getPdfReadingPosition,
+  savePdfReadingPosition,
+  getPdfSettings,
+  setPdfSettings,
+  PdfViewerSettings,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
 import { PdfPageView } from "./pdf-page-view";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
 import { PdfSearchBar } from "./pdf-search-bar";
@@ -165,6 +171,80 @@ export function PdfJsStudio({
   const [firstPageSize, setFirstPageSize] = useState<{ width: number; height: number } | null>(null);
   const [pageDimensions, setPageDimensions] = useState<Record<number, { width: number; height: number }>>({});
   const scale = zoom.scale;
+
+  // Faz H: Okuma Konumu ve Ayarlar (Settings & Reading Position)
+  const [settings, setSettings] = useState<PdfViewerSettings>(() => getPdfSettings());
+  const [nightMode, setNightMode] = useState<boolean>(() => getPdfSettings().nightMode);
+  const saveDebounceTimerRef = useRef<number | null>(null);
+
+  const currentFileVersion = useMemo(() => {
+    return `${versionNo ?? 1}-${sizeBytes ?? 0}-${createdAt ?? ""}`;
+  }, [versionNo, sizeBytes, createdAt]);
+
+  const isReducedMotion = useMemo(() => {
+    if (settings.reduceMotion === "on") return true;
+    if (settings.reduceMotion === "off") return false;
+    if (typeof window !== "undefined" && window.matchMedia) {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    return false;
+  }, [settings.reduceMotion]);
+
+  const performSave = useCallback(() => {
+    if (!fileId) return;
+    const container = scrollContainerRef.current;
+    const activePage = currentPageRef.current;
+    const pageEl = document.getElementById(`pdf-page-${activePage}`);
+    let offsetRatio = 0;
+    if (container && pageEl && pageEl.clientHeight > 0) {
+      const relativeTop = container.scrollTop - pageEl.offsetTop + 16;
+      offsetRatio = Math.min(Math.max(relativeTop / pageEl.clientHeight, 0), 1);
+    }
+    savePdfReadingPosition(fileId, {
+      page: activePage,
+      offsetRatio,
+      scaleMode: zoomRef.current.mode,
+      scale: zoomRef.current.scale,
+      fileVersion: currentFileVersion,
+    });
+  }, [fileId, currentFileVersion]);
+
+  const triggerDebouncedSave = useCallback(() => {
+    if (saveDebounceTimerRef.current !== null) {
+      window.clearTimeout(saveDebounceTimerRef.current);
+    }
+    saveDebounceTimerRef.current = window.setTimeout(() => {
+      saveDebounceTimerRef.current = null;
+      performSave();
+    }, 500);
+  }, [performSave]);
+
+  useEffect(() => {
+    const handleFlushSave = () => {
+      if (saveDebounceTimerRef.current !== null) {
+        window.clearTimeout(saveDebounceTimerRef.current);
+        saveDebounceTimerRef.current = null;
+      }
+      performSave();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        handleFlushSave();
+      }
+    };
+
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handleFlushSave);
+    window.addEventListener("beforeunload", handleFlushSave);
+
+    return () => {
+      handleFlushSave();
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handleFlushSave);
+      window.removeEventListener("beforeunload", handleFlushSave);
+    };
+  }, [performSave]);
 
   const targetScaleRef = useRef<number>(zoom.scale);
   const activeAnchorRef = useRef<ZoomAnchor | null>(null);
@@ -460,25 +540,46 @@ export function PdfJsStudio({
           if (isMounted) setPageLabels(null);
         }
 
-        // Faz B & Faz 10: URL yenilendiğinde veya son okunan konumda sayfa ve scroll konumunu koru
-        const savedPage = preservedStateRef.current?.page || (fileId ? getPdfReadingPosition(fileId) : 1) || 1;
-        const targetPage = Math.min(Math.max(savedPage, 1), doc.numPages);
+        // Faz B & Faz H: URL (#page=...) > Kayıtlı Konum > İlk Sayfa Önceliği
+        let urlHashPage: number | null = null;
+        if (typeof window !== "undefined" && window.location.hash) {
+          const match = window.location.hash.match(/#page=(\d+)/i);
+          if (match) {
+            const parsed = parseInt(match[1], 10);
+            if (!isNaN(parsed) && parsed >= 1 && parsed <= doc.numPages) {
+              urlHashPage = parsed;
+            }
+          }
+        }
+
+        const savedRecord = fileId ? getPdfReadingPosition(fileId, currentFileVersion) : null;
+        const targetPage = urlHashPage ?? (savedRecord?.page ? Math.min(Math.max(savedRecord.page, 1), doc.numPages) : 1);
+        const targetOffsetRatio = urlHashPage ? 0 : (savedRecord?.offsetRatio ?? 0);
+
         setCurrentPage(targetPage);
         currentPageRef.current = targetPage;
 
-        if (targetPage > 1) {
-          setTimeout(() => {
-            if (isMounted) {
-              const pageEl = document.getElementById(`pdf-page-${targetPage}`);
-              const container = scrollContainerRef.current;
-              if (pageEl && container) {
-                container.scrollTo({
-                  top: Math.max(pageEl.offsetTop - 16, 0),
-                  behavior: "auto",
-                });
+        // Sayfa boyutları ve ilk yerleşim hesaplandıktan sonra iki aşamalı mikro-düzeltme (Faz H)
+        if (urlHashPage !== null || targetPage > 1 || targetOffsetRatio > 0) {
+          const restorePosition = (attempt = 1) => {
+            if (!isMounted) return;
+            const pageEl = document.getElementById(`pdf-page-${targetPage}`);
+            const container = scrollContainerRef.current;
+            if (pageEl && container) {
+              const pageTop = pageEl.offsetTop;
+              const offsetInPage = targetOffsetRatio > 0 ? targetOffsetRatio * pageEl.clientHeight : 0;
+              container.scrollTo({
+                top: Math.max(pageTop + offsetInPage - 16, 0),
+                behavior: "auto",
+              });
+              if (attempt === 1) {
+                setTimeout(() => restorePosition(2), 150);
               }
+            } else if (attempt < 4) {
+              setTimeout(() => restorePosition(attempt + 1), 100);
             }
-          }, 100);
+          };
+          setTimeout(() => restorePosition(1), 80);
         }
 
         setLoading(false);
@@ -571,7 +672,7 @@ export function PdfJsStudio({
         pdfDocRef.current = null;
       }
     };
-  }, [accessUrl, onAccessExpired, fileId, reloadKey]);
+  }, [accessUrl, onAccessExpired, fileId, reloadKey, currentFileVersion]);
 
   const applyFitModeRef = useRef(applyFitMode);
   applyFitModeRef.current = applyFitMode;
@@ -649,22 +750,20 @@ export function PdfJsStudio({
     };
   }, [firstPageSize, loading, rotation]);
 
-  // 2. Sayfaya Kaydırma (Scroll to Page) ve Konum Kaydetme (Faz 10)
+  // 2. Sayfaya Kaydırma (Scroll to Page) ve Konum Kaydetme (Faz H)
   const scrollToPage = useCallback((pageNum: number) => {
     if (pageNum < 1 || pageNum > numPages) return;
     setCurrentPage(pageNum);
     currentPageRef.current = pageNum;
 
-    if (fileId) {
-      savePdfReadingPosition(fileId, pageNum);
-    }
+    triggerDebouncedSave();
 
     const pageEl = document.getElementById(`pdf-page-${pageNum}`);
     const container = scrollContainerRef.current;
     if (pageEl && container) {
       container.scrollTo({
         top: Math.max(pageEl.offsetTop - 16, 0),
-        behavior: "smooth",
+        behavior: isReducedMotion ? "auto" : "smooth",
       });
       if (container.scrollHeight > 0) {
         preservedStateRef.current = {
@@ -674,7 +773,23 @@ export function PdfJsStudio({
         };
       }
     }
-  }, [numPages, fileId]);
+  }, [numPages, isReducedMotion, triggerDebouncedSave]);
+
+  // Faz H: URL (#page=...) dinamik hash değişikliklerini izle
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window === "undefined") return;
+      const match = window.location.hash.match(/#page=(\d+)/i);
+      if (match) {
+        const p = parseInt(match[1], 10);
+        if (!isNaN(p) && p >= 1 && p <= numPages) {
+          scrollToPage(p);
+        }
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [numPages, scrollToPage]);
 
   // Faz G: Gezinme Geçmişi (History) ve Hedefe Atlama (Destination Jump)
   const handleNavigateDestination = useCallback(
@@ -779,7 +894,7 @@ export function PdfJsStudio({
     [scrollToPage]
   );
 
-  // Sayfa görünür olduğunda okuma konumunu güncelle
+  // Sayfa görünür olduğunda okuma konumunu güncelle (Faz H)
   const handlePageVisible = useCallback((visiblePage: number) => {
     setCurrentPage(visiblePage);
     currentPageRef.current = visiblePage;
@@ -791,10 +906,8 @@ export function PdfJsStudio({
         scale: zoomRef.current.scale,
       };
     }
-    if (fileId) {
-      savePdfReadingPosition(fileId, visiblePage);
-    }
-  }, [fileId]);
+    triggerDebouncedSave();
+  }, [triggerDebouncedSave]);
 
   // Faz C: Render kuyruğu önceliğini görünür sayfaya göre güncelle
   useEffect(() => {
@@ -931,6 +1044,36 @@ export function PdfJsStudio({
 
   const handleDownloadAction = onDownload || defaultDownload;
 
+  // 5. Yazdır / İndir (Faz H) — Orijinal PDF URL'sini gizli iframe ile yazdır
+  const handlePrint = useCallback(() => {
+    try {
+      let printFrame = document.getElementById("pdf-print-iframe") as HTMLIFrameElement | null;
+      if (!printFrame) {
+        printFrame = document.createElement("iframe");
+        printFrame.id = "pdf-print-iframe";
+        printFrame.style.position = "fixed";
+        printFrame.style.right = "0";
+        printFrame.style.bottom = "0";
+        printFrame.style.width = "0";
+        printFrame.style.height = "0";
+        printFrame.style.border = "0";
+        printFrame.style.visibility = "hidden";
+        document.body.appendChild(printFrame);
+      }
+      printFrame.onload = () => {
+        try {
+          printFrame?.contentWindow?.focus();
+          printFrame?.contentWindow?.print();
+        } catch {
+          window.print();
+        }
+      };
+      printFrame.src = accessUrl;
+    } catch {
+      window.print();
+    }
+  }, [accessUrl]);
+
   // 5. Klavye Kısayolları (Shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1035,7 +1178,22 @@ export function PdfJsStudio({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [adjustCustomZoom, applyFitMode, currentPage, handleZoomIn, handleZoomOut, numPages, scrollToPage, setActualSize, isSearchOpen, isSidebarOpen, isShortcutsModalOpen, handleDownloadAction, onShare]);
+  }, [
+    adjustCustomZoom,
+    applyFitMode,
+    currentPage,
+    handleZoomIn,
+    handleZoomOut,
+    numPages,
+    scrollToPage,
+    setActualSize,
+    isSearchOpen,
+    isSidebarOpen,
+    isShortcutsModalOpen,
+    handleDownloadAction,
+    handlePrint,
+    onShare,
+  ]);
 
   const handleFitWidth = () => {
     applyFitMode("fit-width");
@@ -1045,9 +1203,41 @@ export function PdfJsStudio({
     applyFitMode("fit-page");
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  // Faz H: Ayarlar Menüsü Aksiyonları
+  const handleToggleNightMode = useCallback(() => {
+    setNightMode((prev) => {
+      const next = !prev;
+      setPdfSettings({ nightMode: next });
+      setSettings((s) => ({ ...s, nightMode: next }));
+      return next;
+    });
+  }, []);
+
+  const handleToggleRememberPosition = useCallback(() => {
+    setSettings((prev) => {
+      const next = !prev.rememberPosition;
+      setPdfSettings({ rememberPosition: next });
+      return { ...prev, rememberPosition: next };
+    });
+  }, []);
+
+  const handleChangeDefaultViewMode = useCallback(
+    (mode: "fit-width" | "fit-page") => {
+      setSettings((prev) => {
+        setPdfSettings({ defaultViewMode: mode });
+        return { ...prev, defaultViewMode: mode };
+      });
+      applyFitMode(mode);
+    },
+    [applyFitMode]
+  );
+
+  const handleChangeReduceMotion = useCallback((mode: "system" | "on" | "off") => {
+    setSettings((prev) => {
+      setPdfSettings({ reduceMotion: mode });
+      return { ...prev, reduceMotion: mode };
+    });
+  }, []);
 
   // 6. Pan / El Aracı ve Dokunmatik Pinch-to-Zoom (Faz F — Unified Gesture Core)
   const {
@@ -1117,6 +1307,14 @@ export function PdfJsStudio({
         }}
         onPrint={handlePrint}
         onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+        nightMode={nightMode}
+        onToggleNightMode={handleToggleNightMode}
+        defaultViewMode={settings.defaultViewMode}
+        onChangeDefaultViewMode={handleChangeDefaultViewMode}
+        reduceMotion={settings.reduceMotion}
+        onChangeReduceMotion={handleChangeReduceMotion}
+        rememberPosition={settings.rememberPosition}
+        onToggleRememberPosition={handleToggleRememberPosition}
         displayName={displayName}
         sizeBytes={sizeBytes}
         extension={extension}
@@ -1302,8 +1500,11 @@ export function PdfJsStudio({
                     scale: zoomRef.current.scale,
                   };
                 }
+                triggerDebouncedSave();
               }}
-              className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] bg-muted/50 p-4 sm:p-8 dark:bg-zinc-900/60 [touch-action:pan-x_pan-y] ${
+              className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] ${
+                nightMode ? "bg-zinc-950" : "bg-muted/50 dark:bg-zinc-900/60"
+              } p-4 sm:p-8 [touch-action:pan-x_pan-y] ${
                 isHandTool
                   ? isDragging
                     ? "cursor-grabbing touch-none"
@@ -1331,6 +1532,7 @@ export function PdfJsStudio({
                     searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
                     searchOpts={searchOpts}
                     onNavigateDestination={handleNavigateDestination}
+                    nightMode={nightMode}
                   />
                 ))}
               </div>

@@ -28,6 +28,7 @@ interface PdfPageViewProps {
   onDimensionsMeasured?: (pageNumber: number, width: number, height: number) => void;
   searchMatches?: SearchMatch[]; // Faz E
   onNavigateDestination?: (dest: any) => void; // Faz G: PDF içi bağlantılara atlama
+  nightMode?: boolean; // Faz H: Gece Modu
 }
 
 export const PDF_LAYER_Z_INDEX = {
@@ -56,6 +57,7 @@ export function PdfPageView({
   onDimensionsMeasured,
   searchMatches,
   onNavigateDestination,
+  nightMode = false,
 }: PdfPageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -359,7 +361,9 @@ export function PdfPageView({
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
-      className={`relative mx-auto my-3 overflow-hidden transition-shadow bg-white shadow-xl rounded-sm ${
+      className={`relative mx-auto my-3 overflow-hidden transition-shadow ${
+        nightMode ? "bg-zinc-950 shadow-black/60 shadow-xl" : "bg-white shadow-xl"
+      } rounded-sm ${
         isCurrentMatchPage ? "ring-2 ring-amber-500 shadow-amber-500/20" : ""
       }`}
       style={{
@@ -371,10 +375,18 @@ export function PdfPageView({
       {!effectivePageRendered && (
         <div
           data-testid={`pdf-page-placeholder-${pageNumber}`}
-          className="absolute inset-0 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+          className={`absolute inset-0 flex items-center justify-center ${
+            nightMode
+              ? "bg-zinc-950 border-zinc-800"
+              : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+          } border`}
           style={{ zIndex: PDF_LAYER_Z_INDEX.PLACEHOLDER }}
         >
-          <span className="text-xs font-mono font-medium text-zinc-400 dark:text-zinc-600">
+          <span
+            className={`text-xs font-mono font-medium ${
+              nightMode ? "text-zinc-600" : "text-zinc-400 dark:text-zinc-600"
+            }`}
+          >
             Sayfa {pageNumber}
           </span>
         </div>
@@ -393,6 +405,7 @@ export function PdfPageView({
           height: `${renderedHeight}px`,
           transform: hasVisualTransform ? `scale(${visualRatio})` : undefined,
           transformOrigin: "0 0",
+          filter: nightMode ? "invert(1) hue-rotate(180deg)" : undefined,
         }}
       />
 
