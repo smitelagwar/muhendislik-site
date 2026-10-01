@@ -6,6 +6,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { SearchMatch, SearchOpts, foldTurkish } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
+import { MappingRule, repairExtractedText } from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
 import { PDF_LAYER_Z_INDEX } from "./pdf-page-view";
 
 export interface HighlightRect {
@@ -27,6 +28,7 @@ interface PdfHighlightLayerProps {
   isPageRendered: boolean;
   query?: string;
   searchOpts?: SearchOpts;
+  repairRules?: MappingRule[];
   renderedWidth?: number;
   renderedHeight?: number;
   visualRatio?: number;
@@ -41,6 +43,7 @@ export function PdfHighlightLayer({
   isPageRendered,
   query,
   searchOpts,
+  repairRules,
   renderedWidth,
   renderedHeight,
   visualRatio,
@@ -93,8 +96,12 @@ export function PdfHighlightLayer({
     const effectiveQuery = (query || "").trim();
 
     if (effectiveQuery) {
+      const effectiveLayerText = repairRules && repairRules.length > 0
+        ? repairExtractedText(layerText, repairRules)
+        : layerText;
+
       // 1. Birincil ve en hassas yöntem: Türkçe normalizasyonlu layerText taraması
-      const { folded: foldedLayer, toOrig } = foldTurkish(layerText, {
+      const { folded: foldedLayer, toOrig } = foldTurkish(effectiveLayerText, {
         diacritics: searchOpts?.matchDiacritics ?? false,
         caseSensitive: searchOpts?.caseSensitive ?? false,
       });
@@ -187,6 +194,7 @@ export function PdfHighlightLayer({
     pageNumber,
     query,
     searchOpts,
+    repairRules,
   ]);
 
   return (

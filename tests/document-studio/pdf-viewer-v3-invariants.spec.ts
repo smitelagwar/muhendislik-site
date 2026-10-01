@@ -287,4 +287,103 @@ test.describe("PDF Görüntüleyici v3 Değişmezler ve Regresyon Test Paketi", 
     m = await measurePage1Invariants(page);
     expect(m.widthDiff).toBeLessThanOrEqual(1.5);
   });
+
+  test("TEST-I7 & TEST-I8: Bozuk CMap (Ĝ -> i) otomatik onarılmalı, arama ('ilişki', 'değişken') çalışmalı ve kopyalama doğru olmalı", async ({ page }) => {
+    // 1. Rozet kontrolü: Bozuk font eşlemesi saptanınca rozet görünmelidir
+    const badge = page.locator("[data-testid='pdf-text-repaired-badge']").first();
+    await expect(badge).toBeVisible({ timeout: 10000 });
+
+    // 2. Arama Aç ve 'ilişki' ara (Eski sistemde 'ĜlĜşkĜ' olduğu için 0 sonuç veriyordu!)
+    const searchBtn = page.locator("[data-command-id='pdf.search']").first();
+    if (await searchBtn.isVisible()) {
+      await searchBtn.click();
+    } else {
+      await page.keyboard.press("Control+f");
+    }
+
+    const searchInput = page.locator("input[placeholder*='ara'], input[placeholder*='Ara']").first();
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill("ilişki");
+    await page.waitForTimeout(1000);
+
+    // Eşleşme bulundu mu?
+    const matchCountBadge = page.locator("[data-testid='pdf-search-match-count'], .pdf-search-mark").first();
+    await expect(matchCountBadge).toBeVisible({ timeout: 10000 });
+
+    // Vurgu katmanında eşleşme kutusu (mark) var mı?
+    const searchMarks = page.locator(".pdf-search-mark");
+    const count = await searchMarks.count();
+    expect(count, "Arama 'ilişki' kelimesi için en az 1 eşleşme bulmalıdır").toBeGreaterThan(0);
+
+    // Kanıt ekran görüntüsü: Arama ve Vurgu
+    const page1 = page.locator("[data-page-number='1']").first();
+    await page1.screenshot({ path: "docs/pdf-viewer-v3/kanit/r3-search-iliski-highlight.png" });
+
+    // 3. Kopyalama Olayı Doğrulaması (H4: 'Ĝ' yerine 'i' yapışmalı)
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => {});
+
+    const copyResult = await page.evaluate(async () => {
+      const page1El = document.querySelector("[data-page-number='1']");
+      const textLayer = page1El?.querySelector(".textLayer");
+      if (!textLayer) return { success: false, text: "no-textLayer", hasRawG: false, hasIliski: false, hasG: false };
+
+      // İlk paragrafı veya textLayer'ı seç
+      const range = document.createRange();
+      range.selectNodeContents(textLayer);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+
+      const rawText = sel?.toString() || "";
+      let capturedData = "";
+
+      // DataTransfer.prototype.setData'yı izle (çünkü copy listener setData çağırır)
+      const originalSetData = DataTransfer.prototype.setData;
+      DataTransfer.prototype.setData = function (format: string, data: string) {
+        if (format === "text/plain") {
+          capturedData = data;
+        }
+        return originalSetData.apply(this, [format, data] as any);
+      };
+
+      try {
+        document.execCommand("copy");
+      } catch {}
+
+      DataTransfer.prototype.setData = originalSetData;
+
+      // Eğer execCommand engellendiyse sentetik ClipboardEvent ile doğrula
+      if (!capturedData) {
+        const dt = new DataTransfer();
+        const copyEv = new ClipboardEvent("copy", {
+          clipboardData: dt,
+          bubbles: true,
+          cancelable: true,
+        });
+        window.dispatchEvent(copyEv);
+        capturedData = dt.getData("text/plain");
+      }
+
+      return {
+        success: true,
+        rawTextLength: rawText.length,
+        hasRawG: rawText.includes("\u011c"),
+        text: capturedData,
+        hasIliski: capturedData.includes("ilişki") || capturedData.includes("ilişkinin"),
+        hasG: capturedData.includes("\u011c"),
+      };
+    });
+
+    console.log("[TEST-I8 Kopyalama Testi Çıktısı]:", {
+      success: copyResult.success,
+      hasRawG: copyResult.hasRawG,
+      hasIliski: copyResult.hasIliski,
+      hasG: copyResult.hasG,
+      sample: copyResult.text.slice(0, 100),
+    });
+
+    expect(copyResult.hasRawG, "Orijinal seçilen metin bozuk U+011C ('Ĝ') içermelidir").toBe(true);
+    expect(copyResult.hasIliski, "Kopyalanan metin 'ilişki' veya 'ilişkinin' içermelidir (Ĝ yerine i)").toBe(true);
+    expect(copyResult.hasG, "Kopyalanan metinde bozuk U+011C ('Ĝ') bulunmamalıdır").toBe(false);
+  });
 });

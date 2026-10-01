@@ -11,6 +11,7 @@ import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue"
 import { isSafePdfUrl } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import { PdfHighlightLayer } from "./pdf-highlight-layer";
 import { computePageGeometry } from "@/lib/dokumantasyon/studio/pdf/pdf-geometry";
+import { MappingRule } from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
 
 interface PdfPageViewProps {
   pdfDoc: any;
@@ -20,6 +21,7 @@ interface PdfPageViewProps {
   isHandTool: boolean;
   searchQuery?: string;
   searchOpts?: SearchOpts;
+  repairRules?: MappingRule[];
   isCurrentMatchPage?: boolean;
   activeMatchIndexInPage?: number;
   onPageVisible?: (pageNumber: number) => void;
@@ -49,6 +51,7 @@ export function PdfPageView({
   isHandTool,
   searchQuery,
   searchOpts,
+  repairRules,
   isCurrentMatchPage = false,
   activeMatchIndexInPage = -1,
   onPageVisible,
@@ -471,6 +474,7 @@ export function PdfPageView({
         isPageRendered={effectivePageRendered}
         query={searchQuery}
         searchOpts={searchOpts}
+        repairRules={repairRules}
         renderedWidth={renderedWidth}
         renderedHeight={renderedHeight}
         visualRatio={visualRatio}

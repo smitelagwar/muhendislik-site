@@ -2,6 +2,8 @@
 // DÖKÜMANTASYON MODÜLÜ — PDF SEARCH ENGINE (FAZ E)
 // ============================================================================
 
+import { MappingRule, repairExtractedText } from "./pdf-text-repair";
+
 export interface TextItemLike {
   str: string;
   hasEOL?: boolean;
@@ -208,7 +210,11 @@ export function foldTurkish(
 /**
  * Sayfadaki textContent.items öğelerinden birleştirilmiş metin ve arama indeksi üretir
  */
-export function buildPageIndex(items: TextItemLike[], pageNumber: number): PageSearchIndex {
+export function buildPageIndex(
+  items: TextItemLike[],
+  pageNumber: number,
+  repairRules?: MappingRule[]
+): PageSearchIndex {
   let fullText = "";
   const itemMap: { start: number; end: number; itemIndex: number }[] = [];
 
@@ -216,7 +222,11 @@ export function buildPageIndex(items: TextItemLike[], pageNumber: number): PageS
     const item = items[i];
     const rawStr = item.str || "";
     // NBSP -> normal boşluk
-    const str = rawStr.replace(/\u00A0/g, " ");
+    let str = rawStr.replace(/\u00A0/g, " ");
+
+    if (repairRules && repairRules.length > 0) {
+      str = repairExtractedText(str, repairRules);
+    }
 
     const start = fullText.length;
     fullText += str;
@@ -391,7 +401,8 @@ export async function searchPdfDocumentIncremental(
   options: SearchOpts,
   signal: AbortSignal,
   onProgress: (progress: SearchProgress) => void,
-  cache = globalPageIndexCache
+  cache = globalPageIndexCache,
+  repairRules?: MappingRule[]
 ): Promise<SearchProgress> {
   const trimmed = query.trim();
   const numPages = pdfDoc?.numPages || 0;
@@ -436,7 +447,7 @@ export async function searchPdfDocumentIncremental(
       if (!pageIndex) {
         const page = await pdfDoc.getPage(pageNum);
         const textContent = await page.getTextContent();
-        pageIndex = buildPageIndex((textContent.items || []) as TextItemLike[], pageNum);
+        pageIndex = buildPageIndex((textContent.items || []) as TextItemLike[], pageNum, repairRules);
         cache.set(pageNum, pageIndex);
       }
 

@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import {
+  detectBrokenMapping,
+  repairExtractedText,
+} from "../../src/lib/dokumantasyon/studio/pdf/pdf-text-repair";
 
 async function runTextQualityTests() {
   console.log("=== FAZ R1: Metin Kalitesi ve Değişmez Testleri (I7, I8) ===\n");
@@ -47,30 +51,37 @@ async function runTextQualityTests() {
   console.log(`İlk 3 sayfa analizi: Toplam karakter: ${totalChars}, Ĝ: ${gCount} (%${gRatio.toFixed(2)}), i: ${iCount} (%${iRatio.toFixed(2)})`);
 
   // I7: Bozuk ToUnicode Eşlemesi İmzası Tespiti
-  const isBrokenMapping = gRatio >= 1.0 && iRatio < 0.5;
+  const rules = detectBrokenMapping(page1String);
+  const isBrokenMapping = rules.length > 0;
   console.log(`[I7 Tespiti] Bozuk Harf Eşlemesi İmzası Saptandı mı? ${isBrokenMapping ? "EVET (Bozuk Belge)" : "HAYIR"}`);
   assert.ok(isBrokenMapping, "Copilot - korelasyon.pdf bozuk ToUnicode imzası taşımalıdır (Ĝ >= %1 ve i < %0.5)");
+  assert.equal(rules[0].from, "\u011c");
+  assert.equal(rules[0].to, "i");
 
-  // Kabul Kriteri: Henüz onarım modülü (Faz R3) yazılmadığı için metin ham PDF'ten 'ĜlĜşkĜnĜn' olarak çıkar.
-  // Bu test HEAD'de kırık olmalı (KIRMIZI) ve R3 uygulandığında YEŞİL olmalıdır!
-  console.log("\n[TEST: Doğru Çıkarılmış Metin ve Kopyalama Kalitesi]");
-  console.log(`Sayfa 1 örnek metin kesiti: "${page1String.slice(0, 120)}..."`);
+  // I8: Metin Onarımı ve Kopyalama Kalitesi Testi
+  console.log("\n[TEST: Doğru Çıkarılmış Metin ve Kopyalama Kalitesi (I8)]");
+  const repairedString = repairExtractedText(page1String, rules);
+  console.log(`Sayfa 1 örnek metin kesiti: "${repairedString.slice(0, 120)}..."`);
 
-  // Assert expected repaired text
   assert.ok(
-    page1String.includes("ilişkinin"),
-    `HATA (H4/H5 Regresyonu): Metin 'ilişkinin' içermelidir, ancak ham bozuk ToUnicode nedeniyle 'ĜlĜşkĜnĜn' içeriyor. Sayfa 1: ${page1String.slice(0, 100)}`
+    repairedString.includes("ilişkinin"),
+    `HATA (H4/H5 Regresyonu): Onarılmış metin 'ilişkinin' içermelidir.`
   );
   assert.ok(
-    !page1String.includes("\u011c"),
+    !repairedString.includes("\u011c"),
     `HATA (H4 Regresyonu): Çıkarılan metinde U+011C ('Ĝ') bulunmamalıdır, ancak bulundu.`
   );
+  assert.equal(
+    repairedString.length,
+    page1String.length,
+    "1:1 Uzunluk değişmezi: Karakter ofsetleri korunmalıdır."
+  );
 
-  console.log("[PASS] Metin kalitesi değişmezi başarıyla sağlandı.");
+  console.log("[PASS] Metin kalitesi ve 1:1 onarım değişmezi başarıyla sağlandı.");
 }
 
 runTextQualityTests().catch((err) => {
-  console.error("\n>>> [BEKLENEN KIRMIZI TEST BAŞARISIZLIĞI (FAZ R1)]:");
+  console.error("\n>>> [TEST BAŞARISIZLIĞI]:");
   console.error(err.message);
   process.exit(1);
 });

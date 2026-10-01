@@ -34,6 +34,7 @@ import {
   Moon,
   Layout,
   Gauge,
+  Sparkles,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
@@ -83,6 +84,10 @@ interface PdfViewerToolbarProps {
   onChangeReduceMotion?: (mode: "system" | "on" | "off") => void;
   rememberPosition?: boolean;
   onToggleRememberPosition?: () => void;
+  // --- Faz R3: Bozuk Harf Eşleme Onarım Propları ---
+  isTextRepaired?: boolean;
+  autoRepairText?: boolean;
+  onToggleAutoRepairText?: () => void;
   // --- Tekil Toolbar Propları ---
   displayName?: string;
   sizeBytes?: number;
@@ -131,6 +136,9 @@ export function PdfViewerToolbar({
   onChangeReduceMotion,
   rememberPosition: rememberPositionProp,
   onToggleRememberPosition,
+  isTextRepaired = false,
+  autoRepairText = true,
+  onToggleAutoRepairText,
   displayName,
   sizeBytes,
   extension,
@@ -443,6 +451,18 @@ export function PdfViewerToolbar({
 
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
+        {/* Faz R3: Metin Onarım Bilgi Rozeti */}
+        {isTextRepaired && (
+          <div
+            data-testid="pdf-text-repaired-badge"
+            className="hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 xl:inline-flex"
+            title="Bozuk font harf eşlemesi (Ĝ -> i) kopyalama ve aramada otomatik onarıldı"
+          >
+            <Sparkles className="h-3 w-3 text-amber-500" />
+            <span>Metin onarıldı</span>
+          </div>
+        )}
+
         {/* Görünümü Döndür */}
         <StudioCommandButton
           commandId="pdf.rotateView"
@@ -739,6 +759,20 @@ export function PdfViewerToolbar({
               <span className="text-[10px] text-muted-foreground font-mono">
                 {reduceMotion === "on" ? "Açık" : reduceMotion === "off" ? "Kapalı" : "Sistem"}
               </span>
+            </DropdownMenuItem>
+
+            {/* 5. Bozuk Harf Eşlemesini Otomatik Onar (Faz R3) */}
+            <DropdownMenuItem
+              onClick={onToggleAutoRepairText}
+              data-command-id="pdf.settings.autoRepairText"
+              data-testid="pdf-auto-repair-text-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <span>Bozuk harf onarımı (Ĝ &rarr; i)</span>
+              </span>
+              {autoRepairText && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
 
             {onOpenShortcuts && (
