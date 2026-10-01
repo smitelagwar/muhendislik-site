@@ -29,11 +29,14 @@ import {
   Share2,
   Check,
   Keyboard,
+  Bookmark,
+  ArrowLeftCircle,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
 import { StudioCommandButton } from "../studio-command-button";
 import { getPdfRememberSettings, setPdfRememberSettings } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
+import { getPageFromLabel } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +65,12 @@ interface PdfViewerToolbarProps {
   onToggleSearch: () => void;
   onPrint: () => void;
   onOpenShortcuts?: () => void;
+  // --- Faz G: Gezinme, Sayfa Etiketleri, İçindekiler ve Geçmiş Propları ---
+  pageLabels?: (string | null | undefined)[] | null;
+  hasOutline?: boolean;
+  onToggleOutline?: () => void;
+  canNavigateBack?: boolean;
+  onNavigateBack?: () => void;
   // --- Tekil Toolbar Propları ---
   displayName?: string;
   sizeBytes?: number;
@@ -97,6 +106,11 @@ export function PdfViewerToolbar({
   onToggleSearch,
   onPrint,
   onOpenShortcuts,
+  pageLabels,
+  hasOutline,
+  onToggleOutline,
+  canNavigateBack,
+  onNavigateBack,
   displayName,
   sizeBytes,
   extension,
@@ -114,6 +128,10 @@ export function PdfViewerToolbar({
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
   const [rememberPosition, setRememberPosition] = useState<boolean>(true);
 
+  const currentLabel =
+    pageLabels && pageLabels[currentPage - 1] ? pageLabels[currentPage - 1] : null;
+  const showLabelBadge = Boolean(currentLabel && currentLabel !== String(currentPage));
+
   useEffect(() => {
     setRememberPosition(getPdfRememberSettings());
   }, []);
@@ -123,6 +141,14 @@ export function PdfViewerToolbar({
   }, [currentPage]);
 
   const commitPageInput = () => {
+    // 1. Sayfa etiketleri arasında tam/büyük-küçük harf eşleşmesi kontrol et (örn: "iv", "A-3")
+    const matchedFromLabel = getPageFromLabel(pageLabels, pageInputVal);
+    if (matchedFromLabel !== null && matchedFromLabel >= 1 && matchedFromLabel <= numPages) {
+      onPageChange(matchedFromLabel);
+      return;
+    }
+
+    // 2. Normal sayısal sayfa numarası girişi
     const val = parseInt(pageInputVal, 10);
     if (!isNaN(val) && val >= 1 && val <= numPages) {
       onPageChange(val);
@@ -195,6 +221,35 @@ export function PdfViewerToolbar({
           icon={<Sidebar className="h-4 w-4" />}
         />
 
+        {/* İçindekiler / Yer İmleri Butonu (Yalnızca Outline Varsa Görünür, Yoksa Gizli) */}
+        {hasOutline && onToggleOutline && (
+          <StudioCommandButton
+            commandId="pdf.outline.toggle"
+            onClick={onToggleOutline}
+            active={isSidebarOpen}
+            showLabel={false}
+            title="İçindekiler / Yer İmleri"
+            aria-label="İçindekiler"
+            data-testid="pdf-outline-toggle-btn"
+            className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<Bookmark className="h-4 w-4" />}
+          />
+        )}
+
+        {/* Gezinme Geçmişi: Önceki Konuma Dön (Geri) */}
+        {canNavigateBack && onNavigateBack && (
+          <StudioCommandButton
+            commandId="pdf.navigation.back"
+            onClick={onNavigateBack}
+            showLabel={false}
+            title="Önceki Konuma Dön"
+            aria-label="Önceki konuma dön"
+            data-testid="pdf-nav-back-btn"
+            className="h-9 w-9 rounded-xl p-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors animate-in fade-in"
+            icon={<ArrowLeftCircle className="h-4 w-4" />}
+          />
+        )}
+
         {/* Sayfa Gezinti Kümesi */}
         <div className="flex items-center gap-0.5">
           <StudioCommandButton
@@ -218,10 +273,18 @@ export function PdfViewerToolbar({
           />
 
           <div className="flex shrink-0 items-center gap-1 px-0.5 text-xs font-medium">
+            {showLabelBadge && (
+              <span
+                data-testid="pdf-page-label-badge"
+                className="shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 font-mono text-[10px] font-bold text-amber-500"
+                title={`Sayfa Etiketi: ${currentLabel}`}
+              >
+                {currentLabel}
+              </span>
+            )}
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="text"
               value={pageInputVal}
               disabled={numPages <= 0}
               onChange={(e) => setPageInputVal(e.target.value)}
@@ -422,6 +485,26 @@ export function PdfViewerToolbar({
               <span>Sayfa küçük resimleri</span>
               {isSidebarOpen && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
+            {hasOutline && onToggleOutline && (
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
+                data-command-id="pdf.outline.toggle"
+                onClick={onToggleOutline}
+              >
+                <span>İçindekiler / Yer İmleri</span>
+                <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+              </DropdownMenuItem>
+            )}
+            {canNavigateBack && onNavigateBack && (
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between text-amber-500 font-medium"
+                data-command-id="pdf.navigation.back"
+                onClick={onNavigateBack}
+              >
+                <span>Önceki konuma dön</span>
+                <ArrowLeftCircle className="h-3.5 w-3.5" />
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               className="cursor-pointer text-xs rounded-lg min-[1100px]:hidden flex items-center justify-between"
               data-command-id="pdf.zoom.fitWidth"

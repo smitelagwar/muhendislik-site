@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SearchMatch, SearchOpts } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
 import { loadSecurePdfJs } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
+import { isSafePdfUrl } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import { PdfHighlightLayer } from "./pdf-highlight-layer";
 
 interface PdfPageViewProps {
@@ -26,6 +27,7 @@ interface PdfPageViewProps {
   initialDimensions?: { width: number; height: number };
   onDimensionsMeasured?: (pageNumber: number, width: number, height: number) => void;
   searchMatches?: SearchMatch[]; // Faz E
+  onNavigateDestination?: (dest: any) => void; // Faz G: PDF içi bağlantılara atlama
 }
 
 export const PDF_LAYER_Z_INDEX = {
@@ -53,6 +55,7 @@ export function PdfPageView({
   initialDimensions,
   onDimensionsMeasured,
   searchMatches,
+  onNavigateDestination,
 }: PdfPageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -425,8 +428,9 @@ export function PdfPageView({
         hasVisualTransform={hasVisualTransform}
       />
 
-      {/* 3. Linkler ve Ek Açıklamalar Katmanı */}
+      {/* 3. Linkler ve Ek Açıklamalar Katmanı (Faz G: İç/Dış Bağlantılar) */}
       <div
+        data-testid={`pdf-annotation-layer-${pageNumber}`}
         className="absolute inset-0 pointer-events-none origin-top-left"
         style={{
           zIndex: PDF_LAYER_Z_INDEX.ANNOTATION_LAYER,
@@ -436,30 +440,75 @@ export function PdfPageView({
           transformOrigin: "0 0",
         }}
       >
-        {annotations
-          .filter((a) => a.subtype === "Link" && a.rect)
-          .map((annotation, idx) => {
-            const [x1, y1, x2, y2] = annotation.rect;
-            const left = Math.min(x1, x2) * effectiveRenderedScale;
-            const top = (viewport?.rawDims?.pageHeight ? viewport.rawDims.pageHeight - Math.max(y1, y2) : Math.min(y1, y2)) * effectiveRenderedScale;
-            const annotationWidth = Math.abs(x2 - x1) * effectiveRenderedScale;
-            const annotationHeight = Math.abs(y2 - y1) * effectiveRenderedScale;
+        {viewport &&
+          annotations
+            .filter((a) => a.subtype === "Link" && a.rect)
+            .map((annotation, idx) => {
+              let left = 0;
+              let top = 0;
+              let annotationWidth = 0;
+              let annotationHeight = 0;
 
-            const href = annotation.url || (annotation.dest ? `#page=${annotation.dest}` : undefined);
-            if (!href) return null;
+              try {
+                if (typeof viewport.convertToViewportRectangle === "function") {
+                  const vRect = viewport.convertToViewportRectangle(annotation.rect);
+                  left = Math.min(vRect[0], vRect[2]);
+                  top = Math.min(vRect[1], vRect[3]);
+                  annotationWidth = Math.abs(vRect[2] - vRect[0]);
+                  annotationHeight = Math.abs(vRect[3] - vRect[1]);
+                } else {
+                  const [x1, y1, x2, y2] = annotation.rect;
+                  left = Math.min(x1, x2) * effectiveRenderedScale;
+                  top = Math.min(y1, y2) * effectiveRenderedScale;
+                  annotationWidth = Math.abs(x2 - x1) * effectiveRenderedScale;
+                  annotationHeight = Math.abs(y2 - y1) * effectiveRenderedScale;
+                }
+              } catch {
+                return null;
+              }
 
-            return (
-              <a
-                key={idx}
-                href={href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="absolute pointer-events-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                style={{ left, top, width: annotationWidth, height: annotationHeight }}
-                aria-label={annotation.title || "PDF bağlantısını aç"}
-              />
-            );
-          })}
+              const isInternal = Boolean(annotation.dest);
+              const rawUrl = annotation.url || "";
+              const isExternal = Boolean(rawUrl && isSafePdfUrl(rawUrl));
+
+              if (!isInternal && !isExternal) return null;
+
+              if (isInternal) {
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    data-testid={`pdf-link-internal-${pageNumber}-${idx}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onNavigateDestination?.(annotation.dest);
+                    }}
+                    className="absolute pointer-events-auto rounded-xs outline-none bg-amber-500/10 hover:bg-amber-500/25 focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors cursor-pointer border border-transparent hover:border-amber-500/40"
+                    style={{ left, top, width: annotationWidth, height: annotationHeight }}
+                    aria-label={annotation.title || "PDF içi bağlantıya git"}
+                    title={annotation.title || "Sayfa bağlantısı"}
+                  />
+                );
+              }
+
+              return (
+                <a
+                  key={idx}
+                  href={rawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid={`pdf-link-external-${pageNumber}-${idx}`}
+                  className="absolute pointer-events-auto rounded-xs outline-none bg-blue-500/10 hover:bg-blue-500/25 focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer border border-transparent hover:border-blue-500/40"
+                  style={{ left, top, width: annotationWidth, height: annotationHeight }}
+                  aria-label={annotation.title || `Harici bağlantıyı aç: ${rawUrl}`}
+                  title={rawUrl}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                />
+              );
+            })}
       </div>
 
       {/* Sayfa Numarası Rozeti */}

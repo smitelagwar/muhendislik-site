@@ -24,6 +24,12 @@ import { PdfPasswordModal } from "./pdf-password-modal";
 import { PdfShortcutsModal } from "./pdf-shortcuts-modal";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import { usePdfGestures, clampPdfScale, MIN_PDF_SCALE, MAX_PDF_SCALE } from "@/lib/dokumantasyon/studio/pdf/pdf-gesture-engine";
+import {
+  OutlineItemNode,
+  NavigationHistoryEntry,
+  resolvePdfDestination,
+  pushNavigationHistory,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 
 interface PdfJsStudioProps {
   accessUrl: string;
@@ -111,6 +117,12 @@ export function PdfJsStudio({
 
   // Kenar Çubuğu ve Arama Snippet Paneli
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+  const [sidebarTab, setSidebarTab] = useState<"thumbnails" | "outline">("thumbnails");
+  const [outline, setOutline] = useState<OutlineItemNode[] | null>(null);
+  const [pageLabels, setPageLabels] = useState<(string | null | undefined)[] | null>(null);
+  const [navHistory, setNavHistory] = useState<NavigationHistoryEntry[]>([]);
+  const [isScrubbingParent, setIsScrubbingParent] = useState<boolean>(false);
+  const isScrubbingRef = useRef<boolean>(false);
   const [isSnippetPanelOpen, setIsSnippetPanelOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
 
@@ -429,6 +441,25 @@ export function PdfJsStudio({
           setFirstPageSize({ width: 595, height: 842 });
         }
 
+        // Faz G: Outline (İçindekiler) ve Page Labels yükleme
+        try {
+          const outlineData = await doc.getOutline();
+          if (isMounted) {
+            setOutline(outlineData && outlineData.length > 0 ? (outlineData as OutlineItemNode[]) : null);
+          }
+        } catch {
+          if (isMounted) setOutline(null);
+        }
+
+        try {
+          const labels = await doc.getPageLabels();
+          if (isMounted) {
+            setPageLabels(labels && labels.length > 0 ? labels : null);
+          }
+        } catch {
+          if (isMounted) setPageLabels(null);
+        }
+
         // Faz B & Faz 10: URL yenilendiğinde veya son okunan konumda sayfa ve scroll konumunu koru
         const savedPage = preservedStateRef.current?.page || (fileId ? getPdfReadingPosition(fileId) : 1) || 1;
         const targetPage = Math.min(Math.max(savedPage, 1), doc.numPages);
@@ -644,6 +675,109 @@ export function PdfJsStudio({
       }
     }
   }, [numPages, fileId]);
+
+  // Faz G: Gezinme Geçmişi (History) ve Hedefe Atlama (Destination Jump)
+  const handleNavigateDestination = useCallback(
+    async (dest: any) => {
+      if (!pdfDoc) return;
+      const container = scrollContainerRef.current;
+      if (container) {
+        setNavHistory((prev) =>
+          pushNavigationHistory(prev, {
+            page: currentPageRef.current,
+            scrollTop: container.scrollTop,
+          })
+        );
+      }
+
+      const targetPage = await resolvePdfDestination(pdfDoc, dest);
+      if (targetPage !== null && targetPage >= 1 && targetPage <= numPages) {
+        pdfRenderQueue.setCurrentPage(targetPage);
+        scrollToPage(targetPage);
+      }
+    },
+    [pdfDoc, numPages, scrollToPage]
+  );
+
+  const handleNavigateBack = useCallback(() => {
+    setNavHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const nextHistory = [...prev];
+      const target = nextHistory.pop()!;
+      const container = scrollContainerRef.current;
+      if (container) {
+        currentPageRef.current = target.page;
+        setCurrentPage(target.page);
+        pdfRenderQueue.setCurrentPage(target.page);
+        container.scrollTo({
+          top: target.scrollTop,
+          behavior: "smooth",
+        });
+      }
+      return nextHistory;
+    });
+  }, []);
+
+  const handleSelectOutlineItem = useCallback(
+    (item: OutlineItemNode) => {
+      if (item.dest) {
+        handleNavigateDestination(item.dest);
+      }
+    },
+    [handleNavigateDestination]
+  );
+
+  const handleToggleOutline = useCallback(() => {
+    if (isSidebarOpen && sidebarTab === "outline") {
+      setIsSidebarOpen(false);
+    } else {
+      setSidebarTab("outline");
+      setIsSidebarOpen(true);
+      setIsSnippetPanelOpen(false);
+    }
+  }, [isSidebarOpen, sidebarTab]);
+
+  const handleToggleSidebar = useCallback(() => {
+    if (isSidebarOpen && sidebarTab === "thumbnails") {
+      setIsSidebarOpen(false);
+    } else {
+      setSidebarTab("thumbnails");
+      setIsSidebarOpen(true);
+      setIsSnippetPanelOpen(false);
+    }
+  }, [isSidebarOpen, sidebarTab]);
+
+  // Faz G: Scrubber Render Kuyruğu Koruması
+  // Sürükleme esnasında sadece viewport kaydırılır; ağır renderlar sadece bırakınca tetiklenir
+  const handleScrubMove = useCallback((targetPage: number) => {
+    isScrubbingRef.current = true;
+    const pageEl = document.getElementById(`pdf-page-${targetPage}`);
+    const container = scrollContainerRef.current;
+    if (pageEl && container) {
+      container.scrollTo({
+        top: Math.max(pageEl.offsetTop - 16, 0),
+        behavior: "auto",
+      });
+    }
+  }, []);
+
+  const handleScrubEnd = useCallback(
+    (finalPage: number) => {
+      isScrubbingRef.current = false;
+      const container = scrollContainerRef.current;
+      if (container && Math.abs(finalPage - currentPageRef.current) >= 10) {
+        setNavHistory((prev) =>
+          pushNavigationHistory(prev, {
+            page: currentPageRef.current,
+            scrollTop: container.scrollTop,
+          })
+        );
+      }
+      pdfRenderQueue.setCurrentPage(finalPage);
+      scrollToPage(finalPage);
+    },
+    [scrollToPage]
+  );
 
   // Sayfa görünür olduğunda okuma konumunu güncelle
   const handlePageVisible = useCallback((visiblePage: number) => {
@@ -963,10 +1097,12 @@ export function PdfJsStudio({
         isSidebarOpen={isSidebarOpen}
         isHandTool={isHandTool}
         isSearchOpen={isSearchOpen}
-        onToggleSidebar={() => {
-          setIsSidebarOpen((prev) => !prev);
-          setIsSnippetPanelOpen(false);
-        }}
+        onToggleSidebar={handleToggleSidebar}
+        pageLabels={pageLabels}
+        hasOutline={Boolean(outline && outline.length > 0)}
+        onToggleOutline={handleToggleOutline}
+        canNavigateBack={navHistory.length > 0}
+        onNavigateBack={handleNavigateBack}
         onPageChange={scrollToPage}
         onSetHandTool={setIsHandTool}
         onZoomIn={handleZoomIn}
@@ -1019,13 +1155,17 @@ export function PdfJsStudio({
 
       {/* 3. Ana Çalışma Alanı (Kenar Çubukları + Dikey Kaydırma Sayfaları) */}
       <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
-        {/* Sol Kenar Çubuğu (Thumbnails) */}
+        {/* Sol Kenar Çubuğu (Thumbnails & Outline) */}
         <PdfThumbnailSidebar
           pdfDoc={pdfDoc}
           numPages={numPages}
           currentPage={currentPage}
           isOpen={isSidebarOpen && !isSnippetPanelOpen}
+          activeTab={sidebarTab}
+          onTabChange={setSidebarTab}
+          outline={outline}
           onSelectPage={scrollToPage}
+          onSelectOutlineItem={handleSelectOutlineItem}
           onClose={() => setIsSidebarOpen(false)}
         />
 
@@ -1037,6 +1177,15 @@ export function PdfJsStudio({
           onSelectMatch={(globalIdx) => {
             setCurrentMatchIndex(globalIdx);
             const targetPage = searchResult.matches[globalIdx].pageNumber;
+            const container = scrollContainerRef.current;
+            if (container && targetPage !== currentPageRef.current) {
+              setNavHistory((prev) =>
+                pushNavigationHistory(prev, {
+                  page: currentPageRef.current,
+                  scrollTop: container.scrollTop,
+                })
+              );
+            }
             pdfRenderQueue.setCurrentPage(targetPage);
             scrollToPage(targetPage);
           }}
@@ -1124,11 +1273,13 @@ export function PdfJsStudio({
         {/* Sürekli Dikey Kaydırma (Continuous Vertical Scroll Workspace) */}
         {!loading && !error && pdfDoc && (
           <div className="relative flex-1 min-h-0 min-w-0 flex overflow-hidden">
-            {/* Dikey Sayfa Gezinti Çubuğu (Minimap / Scrubber) (Faz 9) */}
+            {/* Dikey Sayfa Gezinti Çubuğu (Minimap / Scrubber) (Faz 9 & Faz G) */}
             <PdfPageScrubber
               numPages={numPages}
               currentPage={currentPage}
-              onPageChange={scrollToPage}
+              onPageChange={handleScrubEnd}
+              onScrubMove={handleScrubMove}
+              isScrollingParent={isScrubbingParent}
             />
 
             <div
@@ -1142,6 +1293,7 @@ export function PdfJsStudio({
               onPointerCancel={handlePointerCancel}
               onScroll={() => {
                 if (isResizingRef.current) return;
+                setIsScrubbingParent(true);
                 const c = scrollContainerRef.current;
                 if (c && c.scrollHeight > 0) {
                   preservedStateRef.current = {
@@ -1178,6 +1330,7 @@ export function PdfJsStudio({
                     onDimensionsMeasured={handleDimensionsMeasured}
                     searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
                     searchOpts={searchOpts}
+                    onNavigateDestination={handleNavigateDestination}
                   />
                 ))}
               </div>
