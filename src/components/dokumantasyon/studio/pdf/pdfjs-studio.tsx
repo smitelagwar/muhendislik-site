@@ -36,7 +36,14 @@ import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
 import { PdfPasswordModal } from "./pdf-password-modal";
 import { PdfShortcutsModal } from "./pdf-shortcuts-modal";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
-import { usePdfGestures, clampPdfScale, MIN_PDF_SCALE, MAX_PDF_SCALE } from "@/lib/dokumantasyon/studio/pdf/pdf-gesture-engine";
+import {
+  usePdfGestures,
+  clampPdfScale,
+  MIN_PDF_SCALE,
+  MAX_PDF_SCALE,
+  getNextAcrobatZoomIn,
+  getNextAcrobatZoomOut,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-gesture-engine";
 import {
   OutlineItemNode,
   NavigationHistoryEntry,
@@ -444,7 +451,7 @@ export function PdfJsStudio({
       zoomAnimFrameRef.current !== null
         ? targetScaleRef.current
         : zoomRef.current.scale;
-    const nextTarget = clampScale(Number((currentTarget * 1.25).toFixed(2)));
+    const nextTarget = getNextAcrobatZoomIn(currentTarget);
     updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
     targetScaleRef.current = nextTarget;
     activeAnchorRef.current = container ? {
@@ -460,7 +467,7 @@ export function PdfJsStudio({
       zoomAnimFrameRef.current !== null
         ? targetScaleRef.current
         : zoomRef.current.scale;
-    const nextTarget = clampScale(Number((currentTarget / 1.25).toFixed(2)));
+    const nextTarget = getNextAcrobatZoomOut(currentTarget);
     updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
     targetScaleRef.current = nextTarget;
     activeAnchorRef.current = container ? {

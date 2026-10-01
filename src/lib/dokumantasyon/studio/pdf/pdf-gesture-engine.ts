@@ -9,6 +9,33 @@ export const MAX_PDF_SCALE = 5.0;
 export const DEFAULT_ZOOM_STEP = 0.2;
 
 /**
+ * Adobe Acrobat standart kademeli zoom basamakları merdiveni.
+ * Öngörülebilir, yumuşak ve endüstri standardı ölçekleme adımları.
+ */
+export const ACROBAT_ZOOM_PRESETS = [
+  0.25, 0.333, 0.50, 0.667, 0.75, 1.00, 1.25, 1.50, 2.00, 3.00, 4.00, 5.00
+] as const;
+
+/**
+ * Adobe Acrobat mantığında bir sonraki Zoom In basamağını hesaplar.
+ * Mevcut ölçekten büyük olan ilk preset basamağını seçer.
+ */
+export function getNextAcrobatZoomIn(currentScale: number): number {
+  const next = ACROBAT_ZOOM_PRESETS.find((preset) => preset > currentScale + 0.01);
+  return clampPdfScale(next ?? MAX_PDF_SCALE);
+}
+
+/**
+ * Adobe Acrobat mantığında bir sonraki Zoom Out basamağını hesaplar.
+ * Mevcut ölçekten küçük olan en büyük preset basamağını seçer.
+ */
+export function getNextAcrobatZoomOut(currentScale: number): number {
+  const reversed = [...ACROBAT_ZOOM_PRESETS].reverse();
+  const prev = reversed.find((preset) => preset < currentScale - 0.01);
+  return clampPdfScale(prev ?? MIN_PDF_SCALE);
+}
+
+/**
  * Ölçeği min-max sınırları arasında sertçe keser (lastik payı yok).
  */
 export function clampPdfScale(

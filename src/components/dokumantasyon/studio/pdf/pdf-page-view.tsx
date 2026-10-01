@@ -43,6 +43,51 @@ export const PDF_LAYER_Z_INDEX = {
   BADGE: 5,
 } as const;
 
+/**
+ * PDF koordinat sistemindeki [x1, y1, x2, y2] dikdörtgenini
+ * viewport ekran koordinatlarına (left, top, width, height) dönüştürür.
+ * Y-ekseni tersliği, sayfa rotasyonu ve viewBox ofsetini tam olarak hesaba katar.
+ */
+export function convertPdfRectToViewport(
+  viewport: any,
+  rect: [number, number, number, number] | number[]
+): { left: number; top: number; width: number; height: number } {
+  if (!viewport || !rect || rect.length < 4) {
+    return { left: 0, top: 0, width: 0, height: 0 };
+  }
+
+  // 1. pdfjs-dist PageViewport API: convertToViewportPoint (resmi ve rotasyon/offset duyarlı)
+  if (typeof viewport.convertToViewportPoint === "function") {
+    const p1 = viewport.convertToViewportPoint(rect[0], rect[1]);
+    const p2 = viewport.convertToViewportPoint(rect[2], rect[3]);
+    const left = Math.min(p1[0], p2[0]);
+    const top = Math.min(p1[1], p2[1]);
+    const width = Math.abs(p2[0] - p1[0]);
+    const height = Math.abs(p2[1] - p1[1]);
+    return { left, top, width, height };
+  }
+
+  // 2. Eski pdfjs-dist API: convertToViewportRectangle
+  if (typeof viewport.convertToViewportRectangle === "function") {
+    const vRect = viewport.convertToViewportRectangle(rect);
+    const left = Math.min(vRect[0], vRect[2]);
+    const top = Math.min(vRect[1], vRect[3]);
+    const width = Math.abs(vRect[2] - vRect[0]);
+    const height = Math.abs(vRect[3] - vRect[1]);
+    return { left, top, width, height };
+  }
+
+  // 3. Fallback: Manuel Y-ekseni ters çevirme
+  const scale = typeof viewport.scale === "number" ? viewport.scale : 1;
+  const vpHeight = typeof viewport.height === "number" ? viewport.height : 842;
+  const left = Math.min(rect[0], rect[2]) * scale;
+  const bottom = Math.min(rect[1], rect[3]) * scale;
+  const width = Math.abs(rect[2] - rect[0]) * scale;
+  const height = Math.abs(rect[3] - rect[1]) * scale;
+  const top = Math.max(0, vpHeight - bottom - height);
+  return { left, top, width, height };
+}
+
 export function PdfPageView({
   pdfDoc,
   pageNumber,
@@ -179,6 +224,11 @@ export function PdfPageView({
         page.cleanup();
       } catch {}
     }
+
+    // Sayfa pencere dışına çıkıp canvas temizlendiğinde render durumunu sıfırla
+    // Böylece kullanıcı sayfaya geri döndüğünde tekrar eksiksiz çizilir (boş sayfa kalmaz)
+    setIsPageRendered(false);
+    lastRenderedJobKeyRef.current = "";
   }, [isWithinWindow, page, pageNumber]);
 
   // 3. Çift Tamponlu Canvas Render ve Kuyruk Yönetimi (Faz C + Faz R2)
@@ -397,6 +447,7 @@ export function PdfPageView({
     <div
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
+      data-testid={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
       data-page-state={effectivePageRendered ? "rendered" : "rendering"}
       data-render-scale={effectiveRenderedScale}
@@ -493,7 +544,8 @@ export function PdfPageView({
           transformOrigin: "0 0",
         }}
       >
-        {viewport &&
+        {effectivePageRendered &&
+          viewport &&
           annotations
             .filter((a) => a.subtype === "Link" && a.rect)
             .map((annotation, idx) => {
@@ -503,22 +555,16 @@ export function PdfPageView({
               let annotationHeight = 0;
 
               try {
-                if (typeof viewport.convertToViewportRectangle === "function") {
-                  const vRect = viewport.convertToViewportRectangle(annotation.rect);
-                  left = Math.min(vRect[0], vRect[2]);
-                  top = Math.min(vRect[1], vRect[3]);
-                  annotationWidth = Math.abs(vRect[2] - vRect[0]);
-                  annotationHeight = Math.abs(vRect[3] - vRect[1]);
-                } else {
-                  const [x1, y1, x2, y2] = annotation.rect;
-                  left = Math.min(x1, x2) * effectiveRenderedScale;
-                  top = Math.min(y1, y2) * effectiveRenderedScale;
-                  annotationWidth = Math.abs(x2 - x1) * effectiveRenderedScale;
-                  annotationHeight = Math.abs(y2 - y1) * effectiveRenderedScale;
-                }
+                const geom = convertPdfRectToViewport(viewport, annotation.rect);
+                left = geom.left;
+                top = geom.top;
+                annotationWidth = geom.width;
+                annotationHeight = geom.height;
               } catch {
                 return null;
               }
+
+              if (annotationWidth <= 0 || annotationHeight <= 0) return null;
 
               const isInternal = Boolean(annotation.dest);
               const rawUrl = annotation.url || "";
