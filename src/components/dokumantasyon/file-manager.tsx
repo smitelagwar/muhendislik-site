@@ -105,7 +105,7 @@ import { MOBILE_EXPLORER_QUERY, resolveExplorerActivation, type ItemActivationSo
 
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
 import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
-import { preloadPdfJsAssets } from "@/lib/dokumantasyon/studio/pdf/pdfjs-preload";
+import { scheduleIdlePdfPreload, triggerPdfIntentPreload } from "@/lib/dokumantasyon/studio/pdf/pdfjs-preload";
 import styles from "./dok-workspace.module.css";
 import mobileStyles from "./mobile-workspace.module.css";
 import { usePhonePresentation } from "./drive-v3/use-phone-presentation";
@@ -250,7 +250,8 @@ function DokumantasyonFileManagerInner() {
   }, [hasCadFiles, isMobileExplorer]);
 
   useEffect(() => {
-    preloadPdfJsAssets();
+    const cleanup = scheduleIdlePdfPreload({ minDelayMs: 1500 });
+    return cleanup;
   }, []);
 
   // Single Scroll Container Ref (Unified for Virtualization, Marquee, Keyboard, Auto-scroll)
@@ -1116,6 +1117,7 @@ function DokumantasyonFileManagerInner() {
       if ("parent_id" in item) navigateToFolder(item.id);
       else {
         triggerCadIntentPreload(item.extension);
+        triggerPdfIntentPreload(item.extension);
         if (action === "open") router.push(`/dokumantasyon/dosya/${item.id}`);
       }
     }
@@ -1264,8 +1266,8 @@ function DokumantasyonFileManagerInner() {
         onClick={(e) => activateItem(file, "body", e)}
         onDoubleClick={(e) => activateItem(file, "double", e)}
         onContextMenu={(e) => activateItem(file, "context", e)}
-        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
-        onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
+        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
+        onFocus={() => { if (!isMobileExplorer) { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
         style={style}
         className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
           isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
@@ -1569,8 +1571,8 @@ function DokumantasyonFileManagerInner() {
         onClick={(e) => activateItem(file, "body", e)}
         onDoubleClick={(e) => activateItem(file, "double", e)}
         onContextMenu={(e) => activateItem(file, "context", e)}
-        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") triggerCadIntentPreload(file.extension); }}
-        onFocus={() => { if (!isMobileExplorer) triggerCadIntentPreload(file.extension); }}
+        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
+        onFocus={() => { if (!isMobileExplorer) { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
         style={style}
         className={`group relative flex min-h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
           isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""

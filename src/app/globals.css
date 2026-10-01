@@ -1631,6 +1631,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
    DÖKÜMANTASYON PDF — TEXT LAYER & SEARCH HIGHLIGHT ANIMASYONLARI
    ============================================================================ */
 
+.textLayer,
 .pdf-text-layer {
   position: absolute;
   text-align: initial;
@@ -1641,44 +1642,104 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   overflow: hidden;
   opacity: 1;
   line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
   text-size-adjust: none;
   forced-color-adjust: none;
   transform-origin: 0 0;
   caret-color: transparent;
   user-select: text;
   -webkit-user-select: text;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor, var(--scale-factor, 1)) * var(--min-font-size, 1));
+  --min-font-size-inv: calc(1 / var(--min-font-size, 1));
 }
 
-.pdf-text-layer span,
-.pdf-text-layer br {
+.textLayer :is(span, br),
+.pdf-text-layer :is(span, br) {
   color: transparent;
   position: absolute;
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent),
+.pdf-text-layer > :not(.markedContent),
+.pdf-text-layer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent,
+.pdf-text-layer .markedContent {
+  display: contents;
+}
+
+.textLayer span[role="img"],
+.pdf-text-layer span[role="img"] {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+.textLayer .endOfContent,
+.pdf-text-layer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.textLayer.selecting .endOfContent,
+.pdf-text-layer.selecting .endOfContent {
+  top: 0;
+}
+
+.textLayer ::-moz-selection,
+.pdf-text-layer ::-moz-selection,
+.textLayer ::selection,
 .pdf-text-layer ::selection {
   background-color: rgba(245, 158, 11, 0.35);
   color: transparent;
 }
 
-/* Standart arama eşleşmesi (sarı yarı saydam) */
+.textLayer br::-moz-selection,
+.pdf-text-layer br::-moz-selection,
+.textLayer br::selection,
+.pdf-text-layer br::selection {
+  background: transparent;
+}
+
+/* Standart arama eşleşmesi (amber yarı saydam, yüksek kontrastlı kenarlık) */
 .pdf-search-mark {
   background-color: rgba(251, 191, 36, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.5);
   color: transparent;
   border-radius: 2px;
 }
 
-/* Aktif arama eşleşmesi: Altın sarısı canlı yanıp sönen (pulse) animasyon */
+/* Aktif arama eşleşmesi: Canlı amber yanıp sönme (pulse) animasyonu */
 @keyframes pdf-match-pulse {
   0%, 100% {
     background-color: rgb(245 158 11);
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.9);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.9), inset 0 0 0 1px rgb(180 83 9);
   }
   50% {
-    background-color: rgba(245, 158, 11, 0.25);
-    box-shadow: none;
+    background-color: rgba(245, 158, 11, 0.3);
+    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.6);
   }
 }
 
@@ -1686,5 +1747,20 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   background-color: rgb(245 158 11) !important;
   animation: pdf-match-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   border-radius: 2px;
+}
+
+/* Faz I: Erişilebilirlik ve Hareketleri Azaltma (prefers-reduced-motion & .reduce-motion) */
+@media (prefers-reduced-motion: reduce) {
+  .pdf-search-mark-active {
+    animation: none !important;
+    background-color: rgb(245 158 11) !important;
+    box-shadow: 0 0 0 2px rgb(217 119 6) !important;
+  }
+}
+
+.reduce-motion .pdf-search-mark-active {
+  animation: none !important;
+  background-color: rgb(245 158 11) !important;
+  box-shadow: 0 0 0 2px rgb(217 119 6) !important;
 }
 

@@ -28,11 +28,18 @@ import {
   MoreVertical,
   Share2,
   Check,
+  Keyboard,
+  Bookmark,
+  ArrowLeftCircle,
+  Moon,
+  Layout,
+  Gauge,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
 import { StudioCommandButton } from "../studio-command-button";
 import { getPdfRememberSettings, setPdfRememberSettings } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
+import { getPageFromLabel } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +67,22 @@ interface PdfViewerToolbarProps {
   onRotateView: () => void;
   onToggleSearch: () => void;
   onPrint: () => void;
+  onOpenShortcuts?: () => void;
+  // --- Faz G: Gezinme, Sayfa Etiketleri, İçindekiler ve Geçmiş Propları ---
+  pageLabels?: (string | null | undefined)[] | null;
+  hasOutline?: boolean;
+  onToggleOutline?: () => void;
+  canNavigateBack?: boolean;
+  onNavigateBack?: () => void;
+  // --- Faz H: Okuma Konumu ve Ayarlar Propları ---
+  nightMode?: boolean;
+  onToggleNightMode?: () => void;
+  defaultViewMode?: "fit-width" | "fit-page";
+  onChangeDefaultViewMode?: (mode: "fit-width" | "fit-page") => void;
+  reduceMotion?: "system" | "on" | "off";
+  onChangeReduceMotion?: (mode: "system" | "on" | "off") => void;
+  rememberPosition?: boolean;
+  onToggleRememberPosition?: () => void;
   // --- Tekil Toolbar Propları ---
   displayName?: string;
   sizeBytes?: number;
@@ -94,6 +117,20 @@ export function PdfViewerToolbar({
   onRotateView,
   onToggleSearch,
   onPrint,
+  onOpenShortcuts,
+  pageLabels,
+  hasOutline,
+  onToggleOutline,
+  canNavigateBack,
+  onNavigateBack,
+  nightMode = false,
+  onToggleNightMode,
+  defaultViewMode = "fit-width",
+  onChangeDefaultViewMode,
+  reduceMotion = "system",
+  onChangeReduceMotion,
+  rememberPosition: rememberPositionProp,
+  onToggleRememberPosition,
   displayName,
   sizeBytes,
   extension,
@@ -109,10 +146,17 @@ export function PdfViewerToolbar({
 }: PdfViewerToolbarProps) {
   const zoomPercent = Math.round(scale * 100);
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
-  const [rememberPosition, setRememberPosition] = useState<boolean>(true);
+  const [internalRememberPosition, setInternalRememberPosition] = useState<boolean>(true);
+
+  const effectiveRememberPosition =
+    typeof rememberPositionProp === "boolean" ? rememberPositionProp : internalRememberPosition;
+
+  const currentLabel =
+    pageLabels && pageLabels[currentPage - 1] ? pageLabels[currentPage - 1] : null;
+  const showLabelBadge = Boolean(currentLabel && currentLabel !== String(currentPage));
 
   useEffect(() => {
-    setRememberPosition(getPdfRememberSettings());
+    setInternalRememberPosition(getPdfRememberSettings());
   }, []);
 
   useEffect(() => {
@@ -120,6 +164,14 @@ export function PdfViewerToolbar({
   }, [currentPage]);
 
   const commitPageInput = () => {
+    // 1. Sayfa etiketleri arasında tam/büyük-küçük harf eşleşmesi kontrol et (örn: "iv", "A-3")
+    const matchedFromLabel = getPageFromLabel(pageLabels, pageInputVal);
+    if (matchedFromLabel !== null && matchedFromLabel >= 1 && matchedFromLabel <= numPages) {
+      onPageChange(matchedFromLabel);
+      return;
+    }
+
+    // 2. Normal sayısal sayfa numarası girişi
     const val = parseInt(pageInputVal, 10);
     if (!isNaN(val) && val >= 1 && val <= numPages) {
       onPageChange(val);
@@ -131,12 +183,12 @@ export function PdfViewerToolbar({
   return (
     <div
       data-testid="pdf-viewer-toolbar"
-      role="group"
+      role="toolbar"
       aria-label="PDF stüdyo araç çubuğu"
-      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 print:hidden"
+      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b border-border/70 bg-card/85 pl-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 sm:gap-1.5 print:hidden"
     >
       {/* 1. Sol Alan: Geri Dönüş, Dosya Kimliği ve Sayfa Gezintisi */}
-      <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
         {onBack && (
           <>
             <StudioCommandButton
@@ -147,16 +199,16 @@ export function PdfViewerToolbar({
               showLabel={false}
               title="Dosya Yöneticisine Dön"
               aria-label="Dosya Yöneticisine Dön"
-              className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200 sm:h-10 sm:w-10"
+              className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
               icon={<ArrowLeft className="h-4.5 w-4.5" />}
             />
             <div className="hidden h-5 w-px bg-border/60 sm:block" />
           </>
         )}
 
-        {/* Dosya Kimlik Bloğu */}
+        {/* Dosya Kimlik Bloğu — Mobilde (< 480px) taşmayı önlemek için '⋮' menüsünde gösterilir */}
         {displayName && (
-          <div className="flex flex-col min-w-0 pr-1">
+          <div className="hidden min-[480px]:flex flex-col min-w-0 pr-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-semibold text-xs sm:text-sm tracking-tight text-foreground/90 truncate max-w-[110px] min-[380px]:max-w-[160px] sm:max-w-[220px] md:max-w-[320px]" title={displayName}>
                 {displayName}
@@ -192,6 +244,35 @@ export function PdfViewerToolbar({
           icon={<Sidebar className="h-4 w-4" />}
         />
 
+        {/* İçindekiler / Yer İmleri Butonu (Yalnızca Outline Varsa Görünür, Yoksa Gizli) */}
+        {hasOutline && onToggleOutline && (
+          <StudioCommandButton
+            commandId="pdf.outline.toggle"
+            onClick={onToggleOutline}
+            active={isSidebarOpen}
+            showLabel={false}
+            title="İçindekiler / Yer İmleri"
+            aria-label="İçindekiler"
+            data-testid="pdf-outline-toggle-btn"
+            className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
+            icon={<Bookmark className="h-4 w-4" />}
+          />
+        )}
+
+        {/* Gezinme Geçmişi: Önceki Konuma Dön (Geri) */}
+        {canNavigateBack && onNavigateBack && (
+          <StudioCommandButton
+            commandId="pdf.navigation.back"
+            onClick={onNavigateBack}
+            showLabel={false}
+            title="Önceki Konuma Dön"
+            aria-label="Önceki konuma dön"
+            data-testid="pdf-nav-back-btn"
+            className="hidden sm:inline-flex h-9 w-9 rounded-xl p-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors animate-in fade-in"
+            icon={<ArrowLeftCircle className="h-4 w-4" />}
+          />
+        )}
+
         {/* Sayfa Gezinti Kümesi */}
         <div className="flex items-center gap-0.5">
           <StudioCommandButton
@@ -210,15 +291,24 @@ export function PdfViewerToolbar({
             disabled={currentPage <= 1}
             showLabel={false}
             title="Önceki Sayfa"
-            className="h-9 w-9 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
+            aria-label="Önceki Sayfa"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronLeft className="h-4 w-4" />}
           />
 
-          <div className="flex shrink-0 items-center gap-1 px-0.5 text-xs font-medium">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 px-0.5 text-xs font-medium">
+            {showLabelBadge && (
+              <span
+                data-testid="pdf-page-label-badge"
+                className="hidden min-[420px]:inline-block shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 font-mono text-[10px] font-bold text-amber-500"
+                title={`Sayfa Etiketi: ${currentLabel}`}
+              >
+                {currentLabel}
+              </span>
+            )}
             <input
               type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
+              inputMode="text"
               value={pageInputVal}
               disabled={numPages <= 0}
               onChange={(e) => setPageInputVal(e.target.value)}
@@ -228,10 +318,10 @@ export function PdfViewerToolbar({
                 }
               }}
               onBlur={commitPageInput}
-              className="h-8 w-11 rounded-lg border border-input bg-background/80 px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
+              className="h-9 w-8 sm:h-8 sm:w-11 rounded-lg border border-input bg-background/80 px-0.5 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
               aria-label="Geçerli Sayfa"
             />
-            <span className="font-semibold text-muted-foreground font-mono text-[11px]">/ {numPages || "—"}</span>
+            <span className="font-semibold text-muted-foreground font-mono text-[10px] sm:text-[11px]">/ {numPages || "—"}</span>
           </div>
 
           <StudioCommandButton
@@ -240,7 +330,8 @@ export function PdfViewerToolbar({
             disabled={currentPage >= numPages}
             showLabel={false}
             title="Sonraki Sayfa"
-            className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
+            aria-label="Sonraki Sayfa"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronRight className="h-4 w-4" />}
           />
 
@@ -265,7 +356,8 @@ export function PdfViewerToolbar({
           active={isSearchOpen}
           showLabel={false}
           title="Dokümanda Ara (Ctrl+F)"
-          className="h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          aria-label="Dokümanda Ara"
+          className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<Search className="h-4 w-4" />}
         />
 
@@ -302,7 +394,7 @@ export function PdfViewerToolbar({
             showLabel={false}
             title="Uzaklaştır (Ctrl+-)"
             aria-label="Uzaklaştır"
-            className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="hidden min-[420px]:inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomOut className="h-4 w-4" />}
           />
 
@@ -312,7 +404,7 @@ export function PdfViewerToolbar({
             active={zoomMode === "actual-size" || zoomPercent === 100}
             title={`Orijinal Boyut · ${zoomPercent}%`}
             aria-label={`Ölçeği sıfırla, yüzde ${zoomPercent}`}
-            className="h-11 min-h-11 px-2 lg:h-9 lg:min-h-9 lg:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="hidden min-[380px]:inline-flex h-11 min-h-11 px-1.5 sm:px-2.5 sm:h-9 sm:min-h-9 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             label={`${zoomPercent}%`}
           />
 
@@ -322,7 +414,7 @@ export function PdfViewerToolbar({
             showLabel={false}
             title="Yakınlaştır (Ctrl++)"
             aria-label="Yakınlaştır"
-            className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomIn className="h-4 w-4" />}
           />
 
@@ -418,6 +510,42 @@ export function PdfViewerToolbar({
             >
               <span>Sayfa küçük resimleri</span>
               {isSidebarOpen && <Check className="h-3.5 w-3.5 text-amber-500" />}
+            </DropdownMenuItem>
+            {hasOutline && onToggleOutline && (
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
+                data-command-id="pdf.outline.toggle"
+                onClick={onToggleOutline}
+              >
+                <span>İçindekiler / Yer İmleri</span>
+                <Bookmark className="h-3.5 w-3.5 text-amber-500" />
+              </DropdownMenuItem>
+            )}
+            {canNavigateBack && onNavigateBack && (
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between text-amber-500 font-medium"
+                data-command-id="pdf.navigation.back"
+                onClick={onNavigateBack}
+              >
+                <span>Önceki konuma dön</span>
+                <ArrowLeftCircle className="h-3.5 w-3.5" />
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[420px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.out"
+              onClick={onZoomOut}
+            >
+              <span>Uzaklaştır</span>
+              <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[380px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.100"
+              onClick={onZoom100}
+            >
+              <span>Orijinal boyut (%100)</span>
+              {zoomPercent === 100 && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer text-xs rounded-lg min-[1100px]:hidden flex items-center justify-between"
@@ -531,22 +659,105 @@ export function PdfViewerToolbar({
               </>
             )}
             <DropdownMenuSeparator className="bg-border/60 my-1" />
+            
+            {/* 1. Son okunan konumu hatırla */}
             <DropdownMenuItem
               onClick={() => {
-                const next = !rememberPosition;
-                setRememberPosition(next);
-                setPdfRememberSettings(next);
+                if (onToggleRememberPosition) {
+                  onToggleRememberPosition();
+                } else {
+                  const next = !internalRememberPosition;
+                  setInternalRememberPosition(next);
+                  setPdfRememberSettings(next);
+                }
               }}
               data-command-id="pdf.settings.rememberPosition"
+              data-testid="pdf-remember-position-toggle"
               className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
             >
               <span>Son okunan konumu hatırla</span>
-              {rememberPosition ? (
+              {effectiveRememberPosition ? (
                 <Check className="h-3.5 w-3.5 text-amber-500" />
               ) : (
                 <span className="text-[10px] text-muted-foreground">Kapalı</span>
               )}
             </DropdownMenuItem>
+
+            {/* 2. Gece modu */}
+            <DropdownMenuItem
+              onClick={onToggleNightMode}
+              data-command-id="pdf.settings.nightMode"
+              data-testid="pdf-night-mode-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Moon className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Gece modu</span>
+              </span>
+              {nightMode ? (
+                <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">Açık</span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Kapalı</span>
+              )}
+            </DropdownMenuItem>
+
+            {/* 3. Varsayılan görünüm */}
+            <DropdownMenuItem
+              onClick={() => {
+                const nextMode = defaultViewMode === "fit-page" ? "fit-width" : "fit-page";
+                onChangeDefaultViewMode?.(nextMode);
+              }}
+              data-command-id="pdf.settings.defaultViewMode"
+              data-testid="pdf-default-view-mode-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Layout className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Varsayılan görünüm</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {defaultViewMode === "fit-page" ? "Sayfaya Sığdır" : "Genişliğe Sığdır"}
+              </span>
+            </DropdownMenuItem>
+
+            {/* 4. Hareketleri azalt */}
+            <DropdownMenuItem
+              onClick={() => {
+                const modes: ("system" | "on" | "off")[] = ["system", "on", "off"];
+                const currentIdx = modes.indexOf(reduceMotion || "system");
+                const nextMode = modes[(currentIdx + 1) % modes.length];
+                onChangeReduceMotion?.(nextMode);
+              }}
+              data-command-id="pdf.settings.reduceMotion"
+              data-testid="pdf-reduce-motion-toggle"
+              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+            >
+              <span className="flex items-center gap-2">
+                <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Hareketleri azalt</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {reduceMotion === "on" ? "Açık" : reduceMotion === "off" ? "Kapalı" : "Sistem"}
+              </span>
+            </DropdownMenuItem>
+
+            {onOpenShortcuts && (
+              <>
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
+                <DropdownMenuItem
+                  onClick={onOpenShortcuts}
+                  data-command-id="pdf.shortcuts"
+                  data-testid="pdf-shortcuts-btn"
+                  className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+                >
+                  <span className="flex items-center gap-2">
+                    <Keyboard className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Klavye kısayolları</span>
+                  </span>
+                  <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border">?</kbd>
+                </DropdownMenuItem>
+              </>
+            )}
 
             {onDelete && (
               <>
@@ -579,8 +790,8 @@ export function PdfViewerToolbar({
           />
         )}
 
-        {/* Tema Seçici */}
-        <div className="flex items-center shrink-0 pl-0.5">
+        {/* Tema Seçici — Mobilde gece modu '⋮' menüsünden kontrol edilir */}
+        <div className="hidden sm:flex items-center shrink-0 pl-0.5">
           <ModeToggle />
         </div>
       </div>

@@ -91,7 +91,7 @@ async function runStage2Tests() {
   const pageViewContent = fs.readFileSync(pageViewPath, "utf-8");
 
   assert(
-    pageViewContent.includes("getTextContent"),
+    pageViewContent.includes("getTextContent") || pageViewContent.includes("streamTextContent"),
     "PdfPageView text content katmanını PDF.js üzerinden çekmelidir."
   );
   assert(
@@ -99,8 +99,8 @@ async function runStage2Tests() {
     "PdfPageView TextLayer span'ları seçilebilir metin (select-text / cursor-text) sunmalıdır."
   );
   assert(
-    pageViewContent.includes("<mark"),
-    "PdfPageView arama eşleşmelerini TextLayer üzerinde <mark> ile vurgulamalıdır."
+    pageViewContent.includes("<mark") || pageViewContent.includes("PdfHighlightLayer"),
+    "PdfPageView arama eşleşmelerini TextLayer üzerinde veya bağımsız PdfHighlightLayer ile vurgulamalıdır."
   );
   logSuccess("TextLayer doğal metin seçimi ve HTML span haritalaması doğrulandı.");
 
@@ -186,14 +186,23 @@ async function runStage2Tests() {
   // -------------------------------------------------------------------
   logStep("TEST 6: Wheel Zoom ve PDF Toolbar Komut Eşleşmesi");
 
+  const gestureEnginePath = path.join(
+    ROOT,
+    "src/lib/dokumantasyon/studio/pdf/pdf-gesture-engine.ts"
+  );
+  const gestureEngineContent = fs.existsSync(gestureEnginePath)
+    ? fs.readFileSync(gestureEnginePath, "utf-8")
+    : "";
+  const combinedGestureContent = studioViewerContent + gestureEngineContent;
+
   assert(
-    studioViewerContent.includes("addEventListener(\"wheel\", handleWheel, { passive: false })"),
-    "pdfjs-studio.tsx passive: false ile wheel event dinleyicisi bağlamalıdır."
+    combinedGestureContent.includes('addEventListener("wheel", handleWheel, { passive: false })'),
+    "pdfjs-studio veya pdf-gesture-engine passive: false ile wheel event dinleyicisi bağlamalıdır."
   );
   assert(
-    studioViewerContent.includes("e.ctrlKey || e.metaKey") &&
-    studioViewerContent.includes("e.preventDefault()"),
-    "pdfjs-studio.tsx Ctrl+Wheel yakalayıp tarayıcı zoom'unu engelleyerek iç zoom yapmalıdır."
+    combinedGestureContent.includes("e.ctrlKey || e.metaKey") &&
+    combinedGestureContent.includes("e.preventDefault()"),
+    "pdfjs-studio veya pdf-gesture-engine Ctrl+Wheel yakalayıp tarayıcı zoom'unu engelleyerek iç zoom yapmalıdır."
   );
 
   // Toolbar Komutları
