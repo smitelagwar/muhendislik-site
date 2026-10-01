@@ -105,8 +105,15 @@ export function PdfJsStudio({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<ZoomState>({ mode: "fit-width", scale: 1.2 });
   const [renderedScale, setRenderedScale] = useState<number>(1.2);
+  const [isQueueIdle, setIsQueueIdle] = useState<boolean>(true);
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    return pdfRenderQueue.subscribe((idle) => {
+      setIsQueueIdle(idle);
+    });
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | null>(null);
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
@@ -1298,10 +1305,16 @@ export function PdfJsStudio({
   });
 
   const currentMatch = searchResult.matches[currentMatchIndex];
+  const viewerState: "idle" | "loading" | "rendering" = loading
+    ? "loading"
+    : !isQueueIdle || debouncedRenderTimerRef.current !== null
+    ? "rendering"
+    : "idle";
 
   return (
     <div
       data-zoom-mode={zoom.mode}
+      data-pdf-viewer-state={viewerState}
       className={cn(
         "flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none",
         isReducedMotion && "reduce-motion"

@@ -361,6 +361,8 @@ export function PdfPageView({
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
+      data-page-state={effectivePageRendered ? "rendered" : "rendering"}
+      data-render-scale={effectiveRenderedScale}
       className={`relative mx-auto my-3 overflow-hidden transition-shadow ${
         nightMode ? "bg-zinc-950 shadow-black/60 shadow-xl" : "bg-white shadow-xl"
       } rounded-sm ${

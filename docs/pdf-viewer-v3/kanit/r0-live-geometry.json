@@ -1,0 +1,632 @@
+[
+  {
+    "step": "1-initial",
+    "zoomText": "229%",
+    "pages": [
+      {
+        "step": "1-initial",
+        "pageNum": "1",
+        "pageBox": {
+          "x": 32,
+          "y": 116,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 116,
+          "w": 714,
+          "h": 1010
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 116,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1207.5,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "(bĜrlĜkte değĜşĜmĜn)",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "714px",
+          "1010px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "1-initial",
+        "pageNum": "2",
+        "pageBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 714,
+          "h": 1010
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1218.9,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "ormansındakĜ değĜşĜm",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "714px",
+          "1010px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "1-initial",
+        "pageNum": "3",
+        "pageBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1228.8,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "a çok kullanışlıdır.",
+        "bitmap": [
+          1363,
+          1927
+        ],
+        "cssStyle": [
+          "1363px",
+          "1927px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      }
+    ]
+  },
+  {
+    "step": "2-sayfa-fit-page",
+    "zoomText": "92%",
+    "pages": [
+      {
+        "step": "2-sayfa-fit-page",
+        "pageNum": "1",
+        "pageBox": {
+          "x": 439,
+          "y": 116,
+          "w": 547,
+          "h": 774
+        },
+        "canvasBox": {
+          "x": 439,
+          "y": 116,
+          "w": 219.8,
+          "h": 311
+        },
+        "textLayerBox": {
+          "x": 439,
+          "y": 116,
+          "w": 219.8,
+          "h": 311
+        },
+        "maxSpanRight": 628.6,
+        "pageRightEdge": 986,
+        "textClippedPx": 0,
+        "rightmostSample": "(bĜrlĜkte değĜşĜmĜn)",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "547px",
+          "774px"
+        ],
+        "bitmapPerCssPx": 3.248,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "92%",
+        "hasTransform": true,
+        "transform": "scale(0.401747)"
+      },
+      {
+        "step": "2-sayfa-fit-page",
+        "pageNum": "2",
+        "pageBox": {
+          "x": 439,
+          "y": 914,
+          "w": 547,
+          "h": 774
+        },
+        "canvasBox": {
+          "x": 439,
+          "y": 914,
+          "w": 219.8,
+          "h": 311
+        },
+        "textLayerBox": {
+          "x": 439,
+          "y": 914,
+          "w": 219.8,
+          "h": 311
+        },
+        "maxSpanRight": 630.4,
+        "pageRightEdge": 986,
+        "textClippedPx": 0,
+        "rightmostSample": "ormansındakĜ değĜşĜm",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "547px",
+          "774px"
+        ],
+        "bitmapPerCssPx": 3.248,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "92%",
+        "hasTransform": true,
+        "transform": "scale(0.401747)"
+      },
+      {
+        "step": "2-sayfa-fit-page",
+        "pageNum": "3",
+        "pageBox": {
+          "x": 439,
+          "y": 1712,
+          "w": 547,
+          "h": 774
+        },
+        "canvasBox": {
+          "x": 439,
+          "y": 1712,
+          "w": 219.8,
+          "h": 311
+        },
+        "textLayerBox": {
+          "x": 439,
+          "y": 1712,
+          "w": 219.8,
+          "h": 311
+        },
+        "maxSpanRight": 632.1,
+        "pageRightEdge": 986,
+        "textClippedPx": 0,
+        "rightmostSample": "a çok kullanışlıdır.",
+        "bitmap": [
+          1363,
+          1927
+        ],
+        "cssStyle": [
+          "547px",
+          "774px"
+        ],
+        "bitmapPerCssPx": 6.201,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "92%",
+        "hasTransform": true,
+        "transform": "scale(0.401747)"
+      }
+    ]
+  },
+  {
+    "step": "3-genislik-fit-width",
+    "zoomText": "229%",
+    "pages": [
+      {
+        "step": "3-genislik-fit-width",
+        "pageNum": "1",
+        "pageBox": {
+          "x": 32,
+          "y": 116,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 116,
+          "w": 1363,
+          "h": 1927
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 116,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1207.5,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "(bĜrlĜkte değĜşĜmĜn)",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "1363px",
+          "1927px"
+        ],
+        "bitmapPerCssPx": 0.524,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "3-genislik-fit-width",
+        "pageNum": "2",
+        "pageBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 1363,
+          "h": 1927
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 2067,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1218.9,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "ormansındakĜ değĜşĜm",
+        "bitmap": [
+          714,
+          1010
+        ],
+        "cssStyle": [
+          "1363px",
+          "1927px"
+        ],
+        "bitmapPerCssPx": 0.524,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "3-genislik-fit-width",
+        "pageNum": "3",
+        "pageBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "canvasBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "textLayerBox": {
+          "x": 32,
+          "y": 4018,
+          "w": 1363,
+          "h": 1927
+        },
+        "maxSpanRight": 1228.8,
+        "pageRightEdge": 1395,
+        "textClippedPx": 0,
+        "rightmostSample": "a çok kullanışlıdır.",
+        "bitmap": [
+          1363,
+          1927
+        ],
+        "cssStyle": [
+          "1363px",
+          "1927px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "229%",
+        "hasTransform": false,
+        "transform": "none"
+      }
+    ]
+  },
+  {
+    "step": "4-zoom-100",
+    "zoomText": "100%",
+    "pages": [
+      {
+        "step": "4-zoom-100",
+        "pageNum": "1",
+        "pageBox": {
+          "x": 415,
+          "y": 116,
+          "w": 595,
+          "h": 841
+        },
+        "canvasBox": {
+          "x": 415,
+          "y": 116,
+          "w": 595,
+          "h": 841
+        },
+        "textLayerBox": {
+          "x": 415,
+          "y": 116,
+          "w": 595,
+          "h": 841
+        },
+        "maxSpanRight": 928.2,
+        "pageRightEdge": 1010,
+        "textClippedPx": 0,
+        "rightmostSample": "(bĜrlĜkte değĜşĜmĜn)",
+        "bitmap": [
+          595,
+          841
+        ],
+        "cssStyle": [
+          "595px",
+          "841px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "100%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "4-zoom-100",
+        "pageNum": "2",
+        "pageBox": {
+          "x": 415,
+          "y": 981,
+          "w": 595,
+          "h": 841
+        },
+        "canvasBox": {
+          "x": 415,
+          "y": 981,
+          "w": 595,
+          "h": 841
+        },
+        "textLayerBox": {
+          "x": 415,
+          "y": 981,
+          "w": 595,
+          "h": 841
+        },
+        "maxSpanRight": 933.2,
+        "pageRightEdge": 1010,
+        "textClippedPx": 0,
+        "rightmostSample": "ormansındakĜ değĜşĜm",
+        "bitmap": [
+          595,
+          841
+        ],
+        "cssStyle": [
+          "595px",
+          "841px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "100%",
+        "hasTransform": false,
+        "transform": "none"
+      },
+      {
+        "step": "4-zoom-100",
+        "pageNum": "3",
+        "pageBox": {
+          "x": 415,
+          "y": 1846,
+          "w": 595,
+          "h": 841
+        },
+        "canvasBox": {
+          "x": 415,
+          "y": 1846,
+          "w": 595,
+          "h": 841
+        },
+        "textLayerBox": {
+          "x": 415,
+          "y": 1846,
+          "w": 595,
+          "h": 841
+        },
+        "maxSpanRight": 937.6,
+        "pageRightEdge": 1010,
+        "textClippedPx": 0,
+        "rightmostSample": "a çok kullanışlıdır.",
+        "bitmap": [
+          595,
+          841
+        ],
+        "cssStyle": [
+          "595px",
+          "841px"
+        ],
+        "bitmapPerCssPx": 1,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "100%",
+        "hasTransform": false,
+        "transform": "none"
+      }
+    ]
+  },
+  {
+    "step": "5-zoom-custom",
+    "zoomText": "195%",
+    "pages": [
+      {
+        "step": "5-zoom-custom",
+        "pageNum": "1",
+        "pageBox": {
+          "x": 132.5,
+          "y": -279,
+          "w": 1160,
+          "h": 1641
+        },
+        "canvasBox": {
+          "x": 132.5,
+          "y": -279,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "textLayerBox": {
+          "x": 132.5,
+          "y": -279,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "maxSpanRight": 1383.2,
+        "pageRightEdge": 1292.5,
+        "textClippedPx": 90.7,
+        "rightmostSample": "(bĜrlĜkte değĜşĜmĜn)",
+        "bitmap": [
+          928,
+          1313
+        ],
+        "cssStyle": [
+          "1160px",
+          "1641px"
+        ],
+        "bitmapPerCssPx": 0.64,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "195%",
+        "hasTransform": true,
+        "transform": "scale(1.25)"
+      },
+      {
+        "step": "5-zoom-custom",
+        "pageNum": "2",
+        "pageBox": {
+          "x": 132.5,
+          "y": 1386,
+          "w": 1160,
+          "h": 1641
+        },
+        "canvasBox": {
+          "x": 132.5,
+          "y": 1386,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "textLayerBox": {
+          "x": 132.5,
+          "y": 1386,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "maxSpanRight": 1395.5,
+        "pageRightEdge": 1292.5,
+        "textClippedPx": 103,
+        "rightmostSample": "ormansındakĜ değĜşĜm",
+        "bitmap": [
+          928,
+          1313
+        ],
+        "cssStyle": [
+          "1160px",
+          "1641px"
+        ],
+        "bitmapPerCssPx": 0.64,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "195%",
+        "hasTransform": true,
+        "transform": "scale(1.25)"
+      },
+      {
+        "step": "5-zoom-custom",
+        "pageNum": "3",
+        "pageBox": {
+          "x": 132.5,
+          "y": 3051,
+          "w": 1160,
+          "h": 1641
+        },
+        "canvasBox": {
+          "x": 132.5,
+          "y": 3051,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "textLayerBox": {
+          "x": 132.5,
+          "y": 3051,
+          "w": 1450,
+          "h": 2051.3
+        },
+        "maxSpanRight": 1406.2,
+        "pageRightEdge": 1292.5,
+        "textClippedPx": 113.7,
+        "rightmostSample": "a çok kullanışlıdır.",
+        "bitmap": [
+          928,
+          1313
+        ],
+        "cssStyle": [
+          "1160px",
+          "1641px"
+        ],
+        "bitmapPerCssPx": 0.64,
+        "dpr": 1,
+        "pageOverflow": "hidden",
+        "zoomDisplay": "195%",
+        "hasTransform": true,
+        "transform": "scale(1.25)"
+      }
+    ]
+  }
+]
