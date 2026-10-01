@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import {
   SearchProgress,
@@ -267,6 +268,14 @@ export function PdfJsStudio({
   }, []);
 
   const startSmoothZoomAnimation = useCallback(() => {
+    if (isReducedMotion) {
+      const targetScale = targetScaleRef.current;
+      updateZoomState({ mode: "custom", scale: targetScale });
+      activeAnchorRef.current = null;
+      scheduleRenderedScaleCommit(targetScale);
+      return;
+    }
+
     if (zoomAnimFrameRef.current !== null) return;
 
     const animate = () => {
@@ -296,7 +305,7 @@ export function PdfJsStudio({
     };
 
     zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
-  }, [scheduleRenderedScaleCommit, updateZoomState]);
+  }, [isReducedMotion, scheduleRenderedScaleCommit, updateZoomState]);
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
@@ -1164,14 +1173,28 @@ export function PdfJsStudio({
         if (isShortcutsModalOpen) {
           e.preventDefault();
           setIsShortcutsModalOpen(false);
+          setTimeout(() => {
+            const trigger =
+              document.querySelector<HTMLElement>('[data-testid="pdf-shortcuts-btn"]') ||
+              document.querySelector<HTMLElement>('[data-testid="pdf-viewer-more-menu-trigger"]');
+            trigger?.focus();
+          }, 0);
         } else if (isSearchOpen) {
           e.preventDefault();
           e.stopPropagation();
           setIsSearchOpen(false);
           setIsSnippetPanelOpen(false);
+          setTimeout(() => {
+            const searchBtn = document.querySelector<HTMLElement>('button[data-command-id="pdf.search.open"]');
+            searchBtn?.focus();
+          }, 0);
         } else if (isSidebarOpen) {
           e.preventDefault();
           setIsSidebarOpen(false);
+          setTimeout(() => {
+            const sidebarBtn = document.querySelector<HTMLElement>('button[data-command-id="pdf.sidebar.toggle"]');
+            sidebarBtn?.focus();
+          }, 0);
         }
       }
     };
@@ -1277,7 +1300,13 @@ export function PdfJsStudio({
   const currentMatch = searchResult.matches[currentMatchIndex];
 
   return (
-    <div data-zoom-mode={zoom.mode} className="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none">
+    <div
+      data-zoom-mode={zoom.mode}
+      className={cn(
+        "flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none",
+        isReducedMotion && "reduce-motion"
+      )}
+    >
       {/* 1. PDF Studio Toolbar */}
       <PdfViewerToolbar
         numPages={numPages}

@@ -5,7 +5,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   FileText,
   ChevronRight,
@@ -196,6 +196,26 @@ export function PdfThumbnailSidebar({
   onSelectOutlineItem,
   onClose,
 }: PdfThumbnailSidebarProps) {
+  const handleClose = useCallback(() => {
+    onClose();
+    setTimeout(() => {
+      const trigger = document.querySelector<HTMLElement>('button[data-command-id="pdf.sidebar.toggle"]');
+      trigger?.focus();
+    }, 0);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
+
   // Panel kapalıyken hiçbir iş yapmaz, DOM üretmez (Performans bütçesi kuralı)
   if (!isOpen) return null;
 
@@ -247,7 +267,7 @@ export function PdfThumbnailSidebar({
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
           aria-label="Kenar çubuğunu kapat"
           title="Kapat"

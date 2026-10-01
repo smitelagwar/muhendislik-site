@@ -58,6 +58,10 @@ export function PdfSearchBar({
   const handleClose = () => {
     setShowOpts(false);
     onClose();
+    setTimeout(() => {
+      const searchTrigger = document.querySelector<HTMLElement>('button[data-command-id="pdf.search.open"]');
+      searchTrigger?.focus();
+    }, 0);
   };
 
   if (!isOpen) return null;
@@ -92,7 +96,7 @@ export function PdfSearchBar({
     <div
       role="search"
       aria-label="Doküman içi metin arama"
-      data-command-id="pdf.search.open"
+      data-testid="pdf-search-bar"
       className="absolute top-14 sm:top-16 right-4 z-40 flex flex-col items-end gap-1.5 select-none print:hidden"
     >
       {/* Taranmış PDF Uyarısı (Faz E Kriteri) */}
@@ -119,23 +123,35 @@ export function PdfSearchBar({
             className="h-8 w-44 sm:w-56 pl-8 pr-16 text-xs bg-zinc-950/80 border-zinc-800 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-amber-500 rounded-lg"
           />
 
-          {/* Eşleşme Sayısı / Arama İlerlemesi */}
+          {/* Eşleşme Sayısı / Arama İlerlemesi (Faz I: aria-live polite) */}
           <div
             className="absolute right-2 text-[10px] font-mono text-zinc-400 pointer-events-none"
             aria-live="polite"
+            aria-atomic="true"
           >
-            {isSearching ? (
-              <span className="flex items-center gap-1 text-amber-500">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {totalMatches > 0 && `${totalMatches}+`}
-              </span>
-            ) : searchQuery.trim() ? (
-              totalMatches > 0 ? (
-                `${currentMatchIndex + 1}/${totalMatches}${overflow ? "+" : ""}`
-              ) : (
-                "0/0"
-              )
-            ) : null}
+            <span className="sr-only">
+              {isSearching
+                ? "Aranıyor..."
+                : searchQuery.trim()
+                ? totalMatches > 0
+                  ? `${totalMatches} eşleşmeden ${currentMatchIndex + 1}. gösteriliyor`
+                  : "Eşleşme bulunamadı"
+                : ""}
+            </span>
+            <span aria-hidden="true">
+              {isSearching ? (
+                <span className="flex items-center gap-1 text-amber-500">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {totalMatches > 0 && `${totalMatches}+`}
+                </span>
+              ) : searchQuery.trim() ? (
+                totalMatches > 0 ? (
+                  `${currentMatchIndex + 1}/${totalMatches}${overflow ? "+" : ""}`
+                ) : (
+                  "0/0"
+                )
+              ) : null}
+            </span>
           </div>
         </div>
 

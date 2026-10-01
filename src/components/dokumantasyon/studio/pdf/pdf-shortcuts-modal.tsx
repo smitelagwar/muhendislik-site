@@ -4,7 +4,7 @@
 // DÖKÜMANTASYON MODÜLÜ — PDF KLAVYE KISAYOLLARI MODALI (FAZ F)
 // ============================================================================
 
-import React from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Keyboard, X } from "lucide-react";
 
 interface PdfShortcutsModalProps {
@@ -58,6 +58,59 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
 ];
 
 export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    onClose();
+    setTimeout(() => {
+      const trigger =
+        document.querySelector<HTMLElement>('[data-testid="pdf-shortcuts-btn"]') ||
+        document.querySelector<HTMLElement>('[data-testid="pdf-viewer-more-menu-trigger"]');
+      trigger?.focus();
+    }, 0);
+  }, [onClose]);
+
+  // Faz I: Odak Tuzağı (Focus Trap) ve Klavye Erişilebilirliği
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const focusable = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    first?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        handleClose();
+        return;
+      }
+
+      if (e.key !== "Tab") return;
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -68,15 +121,18 @@ export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
       data-testid="pdf-shortcuts-modal"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className="relative w-full max-w-lg rounded-2xl border border-zinc-700/60 bg-zinc-900/95 p-6 shadow-2xl backdrop-blur-xl text-zinc-100 max-h-[90vh] overflow-y-auto">
+      <div
+        ref={modalRef}
+        className="relative w-full max-w-lg rounded-2xl border border-zinc-700/60 bg-zinc-900/95 p-6 shadow-2xl backdrop-blur-xl text-zinc-100 max-h-[90vh] overflow-y-auto"
+      >
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Kapat"
-          className="absolute right-4 top-4 rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+          className="absolute right-4 top-4 rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-500 outline-none"
         >
           <X className="h-4 w-4" />
         </button>

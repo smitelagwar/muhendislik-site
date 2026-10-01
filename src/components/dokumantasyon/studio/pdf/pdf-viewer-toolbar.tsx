@@ -183,12 +183,12 @@ export function PdfViewerToolbar({
   return (
     <div
       data-testid="pdf-viewer-toolbar"
-      role="group"
+      role="toolbar"
       aria-label="PDF stüdyo araç çubuğu"
-      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1.5 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 print:hidden"
+      className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b border-border/70 bg-card/85 pl-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 sm:gap-1.5 print:hidden"
     >
       {/* 1. Sol Alan: Geri Dönüş, Dosya Kimliği ve Sayfa Gezintisi */}
-      <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+      <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
         {onBack && (
           <>
             <StudioCommandButton
@@ -199,16 +199,16 @@ export function PdfViewerToolbar({
               showLabel={false}
               title="Dosya Yöneticisine Dön"
               aria-label="Dosya Yöneticisine Dön"
-              className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200 sm:h-10 sm:w-10"
+              className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
               icon={<ArrowLeft className="h-4.5 w-4.5" />}
             />
             <div className="hidden h-5 w-px bg-border/60 sm:block" />
           </>
         )}
 
-        {/* Dosya Kimlik Bloğu */}
+        {/* Dosya Kimlik Bloğu — Mobilde (< 480px) taşmayı önlemek için '⋮' menüsünde gösterilir */}
         {displayName && (
-          <div className="flex flex-col min-w-0 pr-1">
+          <div className="hidden min-[480px]:flex flex-col min-w-0 pr-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-semibold text-xs sm:text-sm tracking-tight text-foreground/90 truncate max-w-[110px] min-[380px]:max-w-[160px] sm:max-w-[220px] md:max-w-[320px]" title={displayName}>
                 {displayName}
@@ -268,7 +268,7 @@ export function PdfViewerToolbar({
             title="Önceki Konuma Dön"
             aria-label="Önceki konuma dön"
             data-testid="pdf-nav-back-btn"
-            className="h-9 w-9 rounded-xl p-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors animate-in fade-in"
+            className="hidden sm:inline-flex h-9 w-9 rounded-xl p-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors animate-in fade-in"
             icon={<ArrowLeftCircle className="h-4 w-4" />}
           />
         )}
@@ -291,15 +291,16 @@ export function PdfViewerToolbar({
             disabled={currentPage <= 1}
             showLabel={false}
             title="Önceki Sayfa"
-            className="h-9 w-9 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
+            aria-label="Önceki Sayfa"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronLeft className="h-4 w-4" />}
           />
 
-          <div className="flex shrink-0 items-center gap-1 px-0.5 text-xs font-medium">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 px-0.5 text-xs font-medium">
             {showLabelBadge && (
               <span
                 data-testid="pdf-page-label-badge"
-                className="shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 font-mono text-[10px] font-bold text-amber-500"
+                className="hidden min-[420px]:inline-block shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 font-mono text-[10px] font-bold text-amber-500"
                 title={`Sayfa Etiketi: ${currentLabel}`}
               >
                 {currentLabel}
@@ -317,10 +318,10 @@ export function PdfViewerToolbar({
                 }
               }}
               onBlur={commitPageInput}
-              className="h-8 w-11 rounded-lg border border-input bg-background/80 px-1 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
+              className="h-9 w-8 sm:h-8 sm:w-11 rounded-lg border border-input bg-background/80 px-0.5 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
               aria-label="Geçerli Sayfa"
             />
-            <span className="font-semibold text-muted-foreground font-mono text-[11px]">/ {numPages || "—"}</span>
+            <span className="font-semibold text-muted-foreground font-mono text-[10px] sm:text-[11px]">/ {numPages || "—"}</span>
           </div>
 
           <StudioCommandButton
@@ -329,7 +330,8 @@ export function PdfViewerToolbar({
             disabled={currentPage >= numPages}
             showLabel={false}
             title="Sonraki Sayfa"
-            className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
+            aria-label="Sonraki Sayfa"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronRight className="h-4 w-4" />}
           />
 
@@ -354,7 +356,8 @@ export function PdfViewerToolbar({
           active={isSearchOpen}
           showLabel={false}
           title="Dokümanda Ara (Ctrl+F)"
-          className="h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          aria-label="Dokümanda Ara"
+          className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<Search className="h-4 w-4" />}
         />
 
@@ -391,7 +394,7 @@ export function PdfViewerToolbar({
             showLabel={false}
             title="Uzaklaştır (Ctrl+-)"
             aria-label="Uzaklaştır"
-            className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="hidden min-[420px]:inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomOut className="h-4 w-4" />}
           />
 
@@ -401,7 +404,7 @@ export function PdfViewerToolbar({
             active={zoomMode === "actual-size" || zoomPercent === 100}
             title={`Orijinal Boyut · ${zoomPercent}%`}
             aria-label={`Ölçeği sıfırla, yüzde ${zoomPercent}`}
-            className="h-11 min-h-11 px-2 lg:h-9 lg:min-h-9 lg:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="hidden min-[380px]:inline-flex h-11 min-h-11 px-1.5 sm:px-2.5 sm:h-9 sm:min-h-9 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             label={`${zoomPercent}%`}
           />
 
@@ -411,7 +414,7 @@ export function PdfViewerToolbar({
             showLabel={false}
             title="Yakınlaştır (Ctrl++)"
             aria-label="Yakınlaştır"
-            className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomIn className="h-4 w-4" />}
           />
 
@@ -528,6 +531,22 @@ export function PdfViewerToolbar({
                 <ArrowLeftCircle className="h-3.5 w-3.5" />
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[420px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.out"
+              onClick={onZoomOut}
+            >
+              <span>Uzaklaştır</span>
+              <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-xs rounded-lg min-[380px]:hidden flex items-center justify-between"
+              data-command-id="pdf.zoom.100"
+              onClick={onZoom100}
+            >
+              <span>Orijinal boyut (%100)</span>
+              {zoomPercent === 100 && <Check className="h-3.5 w-3.5 text-amber-500" />}
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer text-xs rounded-lg min-[1100px]:hidden flex items-center justify-between"
               data-command-id="pdf.zoom.fitWidth"
@@ -771,8 +790,8 @@ export function PdfViewerToolbar({
           />
         )}
 
-        {/* Tema Seçici */}
-        <div className="flex items-center shrink-0 pl-0.5">
+        {/* Tema Seçici — Mobilde gece modu '⋮' menüsünden kontrol edilir */}
+        <div className="hidden sm:flex items-center shrink-0 pl-0.5">
           <ModeToggle />
         </div>
       </div>

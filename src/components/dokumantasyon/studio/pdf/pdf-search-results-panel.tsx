@@ -4,7 +4,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { Search, X, ChevronRight, FileText, AlertCircle } from "lucide-react";
 import { SearchProgress, SearchMatch } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
 
@@ -23,6 +23,26 @@ export function PdfSearchResultsPanel({
   onSelectMatch,
   onClose,
 }: PdfSearchResultsPanelProps) {
+  const handleClose = useCallback(() => {
+    onClose();
+    setTimeout(() => {
+      const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="ara"]');
+      searchInput?.focus();
+    }, 0);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -30,7 +50,7 @@ export function PdfSearchResultsPanel({
       {/* Mobil Backdrop */}
       <div
         className="fixed inset-0 bg-black/40 z-30 sm:hidden backdrop-blur-xs animate-in fade-in"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
