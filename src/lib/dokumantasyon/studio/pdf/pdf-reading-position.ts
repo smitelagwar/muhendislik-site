@@ -11,6 +11,7 @@ export interface PdfViewerSettings {
   defaultViewMode: "fit-width" | "fit-page"; // Varsayılan görünüm modu
   reduceMotion: "system" | "on" | "off"; // Hareketleri azalt
   nightMode: boolean; // Gece modu (varsayılan: false)
+  autoRepairText: boolean; // Bozuk harf eşlemesini otomatik onar (varsayılan: true)
 }
 
 export interface PdfReadingPositionRecord {
@@ -27,6 +28,7 @@ const DEFAULT_SETTINGS: PdfViewerSettings = {
   defaultViewMode: "fit-width",
   reduceMotion: "system",
   nightMode: false,
+  autoRepairText: true,
 };
 
 // ----------------------------------------------------------------------------
@@ -44,6 +46,7 @@ export function getPdfSettings(): PdfViewerSettings {
       defaultViewMode: parsed.defaultViewMode === "fit-page" ? "fit-page" : "fit-width",
       reduceMotion: parsed.reduceMotion === "on" || parsed.reduceMotion === "off" ? parsed.reduceMotion : "system",
       nightMode: typeof parsed.nightMode === "boolean" ? parsed.nightMode : DEFAULT_SETTINGS.nightMode,
+      autoRepairText: typeof parsed.autoRepairText === "boolean" ? parsed.autoRepairText : DEFAULT_SETTINGS.autoRepairText,
     };
   } catch {
     return DEFAULT_SETTINGS;

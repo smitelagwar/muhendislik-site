@@ -10,6 +10,8 @@ import { loadSecurePdfJs } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import { isSafePdfUrl } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import { PdfHighlightLayer } from "./pdf-highlight-layer";
+import { computePageGeometry } from "@/lib/dokumantasyon/studio/pdf/pdf-geometry";
+import { MappingRule } from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
 
 interface PdfPageViewProps {
   pdfDoc: any;
@@ -19,6 +21,7 @@ interface PdfPageViewProps {
   isHandTool: boolean;
   searchQuery?: string;
   searchOpts?: SearchOpts;
+  repairRules?: MappingRule[];
   isCurrentMatchPage?: boolean;
   activeMatchIndexInPage?: number;
   onPageVisible?: (pageNumber: number) => void;
@@ -48,6 +51,7 @@ export function PdfPageView({
   isHandTool,
   searchQuery,
   searchOpts,
+  repairRules,
   isCurrentMatchPage = false,
   activeMatchIndexInPage = -1,
   onPageVisible,
@@ -68,7 +72,9 @@ export function PdfPageView({
   const [viewport, setViewport] = useState<any>(null);
   const [annotations, setAnnotations] = useState<any[]>([]);
 
-  // Faz C: Çift Tampon (Double Buffering) Durumu
+  // Faz C & Faz R2: Çift Tampon ve Tek Doğruluk Kaynaklı Boyutlar
+  const lastRenderedJobKeyRef = useRef<string>("");
+  const [renderedDimensions, setRenderedDimensions] = useState<{ width: number; height: number } | null>(null);
   const [lastRenderedScale, setLastRenderedScale] = useState<number>(renderedScale ?? scale);
   const [isPageRendered, setIsPageRendered] = useState<boolean>(false);
   const effectivePageRendered = isWithinWindow && isPageRendered;
@@ -114,11 +120,12 @@ export function PdfPageView({
         setViewport(vp);
 
         // Scroll Anchoring için ölçülen boyutları üst bileşene bildir
-        if (vp.width && vp.height) {
+        const unscaledVp = p.getViewport({ scale: 1, rotation: finalRotation });
+        if (unscaledVp.width && unscaledVp.height) {
           onDimensionsMeasured?.(
             pageNumber,
-            Math.floor(vp.width / effectiveRenderedScale),
-            Math.floor(vp.height / effectiveRenderedScale)
+            Math.floor(unscaledVp.width),
+            Math.floor(unscaledVp.height)
           );
         }
 
@@ -174,36 +181,50 @@ export function PdfPageView({
     }
   }, [isWithinWindow, page, pageNumber]);
 
-  // 3. Çift Tamponlu Canvas Render ve Kuyruk Yönetimi (Faz C)
+  // 3. Çift Tamponlu Canvas Render ve Kuyruk Yönetimi (Faz C + Faz R2)
   useEffect(() => {
     if (!page || !viewport || !isWithinWindow) return;
 
     const visibleCanvas = canvasRef.current;
     if (!visibleCanvas) return;
 
-    // Mimari Karar 7: Piksel Bütçesi ve devicePixelRatio tavanı
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches;
-    const MAX_CANVAS_PIXELS = isMobile ? 16_000_000 : 32_000_000;
-    const dprCap = isMobile ? Math.min(window.devicePixelRatio || 1, 2) : Math.min(window.devicePixelRatio || 1, 2);
+    const finalRotation = ((page.rotate || 0) + (rotation || 0)) % 360;
+    const currentJobKey = `${pageNumber}-${effectiveRenderedScale}-${finalRotation}`;
 
-    let outputScale = dprCap;
-    const totalPixels = viewport.width * viewport.height * outputScale * outputScale;
-    if (totalPixels > MAX_CANVAS_PIXELS) {
-      outputScale = Math.sqrt(MAX_CANVAS_PIXELS / (viewport.width * viewport.height));
+    // Zaten bu ölçek ve açıda başarıyla render edilmişse gereksiz tekrar çizimi engelle
+    if (lastRenderedJobKeyRef.current === currentJobKey && isPageRendered) {
+      return;
     }
 
-    const renderWidthPx = Math.max(1, Math.floor(viewport.width * outputScale));
-    const renderHeightPx = Math.max(1, Math.floor(viewport.height * outputScale));
-    const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+    const unscaledVp = page.getViewport({ scale: 1, rotation: finalRotation });
+    const baseW = unscaledVp.width || initialDimensions?.width || 595.275;
+    const baseH = unscaledVp.height || initialDimensions?.height || 841.889;
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+
+    // Tek doğruluk kaynağı ile render geometrisi
+    const renderGeom = computePageGeometry({
+      pageWidthPt: baseW,
+      pageHeightPt: baseH,
+      scale: effectiveRenderedScale,
+      dpr,
+    });
+
+    const renderViewport = page.getViewport({
+      scale: effectiveRenderedScale,
+      rotation: finalRotation,
+    });
 
     // Çift Tampon: Her render işlemi için izole bir arka plan tampon canvas'ı oluştur
-    // Bu sayede önceki iptal edilen görevlerle canvas çakışması (PDF.js concurrency error) %100 önlenir
     const bufferCanvas = document.createElement("canvas");
-    bufferCanvas.width = renderWidthPx;
-    bufferCanvas.height = renderHeightPx;
+    bufferCanvas.width = renderGeom.bitmapWidth;
+    bufferCanvas.height = renderGeom.bitmapHeight;
 
     const bufferCtx = bufferCanvas.getContext("2d");
     if (!bufferCtx) return;
+
+    const transform = renderGeom.outputScale !== 1
+      ? [renderGeom.outputScale, 0, 0, renderGeom.outputScale, 0, 0]
+      : undefined;
 
     const cancelEnqueue = pdfRenderQueue.enqueue(
       `page-${pageNumber}`,
@@ -212,17 +233,17 @@ export function PdfPageView({
         return page.render({
           canvasContext: bufferCtx,
           transform,
-          viewport,
+          viewport: renderViewport,
         });
       },
       () => {
         // Çizim arka tamponda tamamlandı!
         // Şimdi tek bir senkron adımda görünür canvas'a aktar (sıfır beyaz flaş!)
         if (visibleCanvas && bufferCanvas) {
-          visibleCanvas.width = renderWidthPx;
-          visibleCanvas.height = renderHeightPx;
-          visibleCanvas.style.width = `${Math.floor(viewport.width)}px`;
-          visibleCanvas.style.height = `${Math.floor(viewport.height)}px`;
+          visibleCanvas.width = renderGeom.bitmapWidth;
+          visibleCanvas.height = renderGeom.bitmapHeight;
+          visibleCanvas.style.width = `${renderGeom.cssWidth}px`;
+          visibleCanvas.style.height = `${renderGeom.cssHeight}px`;
           const visibleCtx = visibleCanvas.getContext("2d");
           visibleCtx?.drawImage(bufferCanvas, 0, 0);
 
@@ -231,6 +252,8 @@ export function PdfPageView({
           bufferCanvas.height = 1;
         }
 
+        lastRenderedJobKeyRef.current = currentJobKey;
+        setRenderedDimensions({ width: renderGeom.cssWidth, height: renderGeom.cssHeight });
         setLastRenderedScale(effectiveRenderedScale);
         setIsPageRendered(true);
       },
@@ -242,7 +265,7 @@ export function PdfPageView({
     return () => {
       cancelEnqueue();
     };
-  }, [page, viewport, isWithinWindow, pageNumber, effectiveRenderedScale]);
+  }, [page, viewport, isWithinWindow, pageNumber, effectiveRenderedScale, rotation]);
 
   // 5. Resmi PDF.js TextLayer Render (Faz D & E: Saf DOM, TextLayer spanları bozulmaz)
   useEffect(() => {
@@ -338,22 +361,36 @@ export function PdfPageView({
     };
   }, []);
 
-  // Sayfa Boyutlandırma Geometrisi
-  const baseWidth = viewport
-    ? viewport.width / effectiveRenderedScale
-    : initialDimensions?.width || 595;
-  const baseHeight = viewport
-    ? viewport.height / effectiveRenderedScale
-    : initialDimensions?.height || 842;
+  // Sayfa Boyutlandırma Geometrisi — Tek Doğruluk Kaynağı (Faz R2)
+  const finalRotation = page ? ((page.rotate || 0) + (rotation || 0)) % 360 : (rotation || 0) % 360;
+  let baseWidthPt = initialDimensions?.width || 595.275;
+  let baseHeightPt = initialDimensions?.height || 841.889;
 
-  const currentWidth = Math.floor(baseWidth * scale);
-  const currentHeight = Math.floor(baseHeight * scale);
+  if (page) {
+    const unscaledVp = page.getViewport({ scale: 1, rotation: finalRotation });
+    baseWidthPt = unscaledVp.width;
+    baseHeightPt = unscaledVp.height;
+  }
 
-  const renderedWidth = viewport ? Math.floor(viewport.width) : currentWidth;
-  const renderedHeight = viewport ? Math.floor(viewport.height) : currentHeight;
+  const currentDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+
+  // Hedef kapsayıcı boyutu (Single source of truth)
+  const containerGeom = computePageGeometry({
+    pageWidthPt: baseWidthPt,
+    pageHeightPt: baseHeightPt,
+    scale,
+    dpr: currentDpr,
+  });
+  const currentWidth = containerGeom.cssWidth;
+  const currentHeight = containerGeom.cssHeight;
+
+  // Halihazırda tuvale çizilmiş olan boyutlar
+  const renderedWidth = renderedDimensions?.width || currentWidth;
+  const renderedHeight = renderedDimensions?.height || currentHeight;
 
   // Zoom esnasında GPU donanım hızlandırmalı CSS transform ara ölçekleme oranı
-  const visualRatio = lastRenderedScale > 0 ? scale / lastRenderedScale : 1;
+  // renderedWidth * visualRatio === currentWidth olmak zorundadır. Çifte ölçekleme ve taşma imkansızdır.
+  const visualRatio = renderedWidth > 0 ? currentWidth / renderedWidth : 1;
   const hasVisualTransform = Math.abs(visualRatio - 1) > 0.001;
 
   return (
@@ -361,6 +398,8 @@ export function PdfPageView({
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-page-number={pageNumber}
+      data-page-state={effectivePageRendered ? "rendered" : "rendering"}
+      data-render-scale={effectiveRenderedScale}
       className={`relative mx-auto my-3 overflow-hidden transition-shadow ${
         nightMode ? "bg-zinc-950 shadow-black/60 shadow-xl" : "bg-white shadow-xl"
       } rounded-sm ${
@@ -435,6 +474,7 @@ export function PdfPageView({
         isPageRendered={effectivePageRendered}
         query={searchQuery}
         searchOpts={searchOpts}
+        repairRules={repairRules}
         renderedWidth={renderedWidth}
         renderedHeight={renderedHeight}
         visualRatio={visualRatio}

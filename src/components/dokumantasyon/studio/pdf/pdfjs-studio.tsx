@@ -9,11 +9,17 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import {
+  globalPageIndexCache,
   SearchProgress,
   SearchMatch,
   SearchOpts,
   searchPdfDocumentIncremental,
 } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
+import {
+  MappingRule,
+  repairExtractedText,
+  detectBrokenMappingFromDoc,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
 import {
   getPdfReadingPosition,
   savePdfReadingPosition,
@@ -105,8 +111,15 @@ export function PdfJsStudio({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoom, setZoom] = useState<ZoomState>({ mode: "fit-width", scale: 1.2 });
   const [renderedScale, setRenderedScale] = useState<number>(1.2);
+  const [isQueueIdle, setIsQueueIdle] = useState<boolean>(true);
   const [rotation, setRotation] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    return pdfRenderQueue.subscribe((idle) => {
+      setIsQueueIdle(idle);
+    });
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | null>(null);
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
@@ -177,6 +190,71 @@ export function PdfJsStudio({
   const [settings, setSettings] = useState<PdfViewerSettings>(() => getPdfSettings());
   const [nightMode, setNightMode] = useState<boolean>(() => getPdfSettings().nightMode);
   const saveDebounceTimerRef = useRef<number | null>(null);
+
+  // Faz R3: Bozuk Harf Eşleme Onarımı (CMap Repair)
+  const [autoRepairText, setAutoRepairText] = useState<boolean>(() => getPdfSettings().autoRepairText);
+  const [textRepairRules, setTextRepairRules] = useState<MappingRule[]>([]);
+
+  const handleToggleAutoRepairText = useCallback(() => {
+    setAutoRepairText((prev) => {
+      const next = !prev;
+      setSettings((s) => ({ ...s, autoRepairText: next }));
+      setPdfSettings({ autoRepairText: next });
+      globalPageIndexCache.clear();
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!pdfDoc) {
+      setTextRepairRules([]);
+      return;
+    }
+    let active = true;
+    detectBrokenMappingFromDoc(pdfDoc).then((rules) => {
+      if (active) {
+        setTextRepairRules(rules);
+        if (rules.length > 0) {
+          globalPageIndexCache.clear();
+        }
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [pdfDoc]);
+
+  // Faz R3: Seçim kopyalama olayını dinle ve bozuk ToUnicode karakterlerini (Ĝ -> i) 1:1 onar
+  useEffect(() => {
+    const handleCopy = (e: ClipboardEvent) => {
+      if (!autoRepairText || textRepairRules.length === 0) return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const anchorNode = selection.anchorNode;
+      const focusNode = selection.focusNode;
+      const isInside =
+        (anchorNode && container.contains(anchorNode)) ||
+        (focusNode && container.contains(focusNode));
+      if (!isInside) return;
+
+      const rawText = selection.toString();
+      if (!rawText) return;
+
+      const repaired = repairExtractedText(rawText, textRepairRules);
+      if (repaired && repaired !== rawText) {
+        e.clipboardData?.setData("text/plain", repaired);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("copy", handleCopy);
+    return () => window.removeEventListener("copy", handleCopy);
+  }, [autoRepairText, textRepairRules]);
 
   const currentFileVersion = useMemo(() => {
     return `${versionNo ?? 1}-${sizeBytes ?? 0}-${createdAt ?? ""}`;
@@ -1006,7 +1084,9 @@ export function PdfJsStudio({
               pdfRenderQueue.setCurrentPage(first.pageNumber);
               scrollToPage(first.pageNumber);
             }
-          }
+          },
+          globalPageIndexCache,
+          autoRepairText ? textRepairRules : undefined
         );
       } finally {
         if (!controller.signal.aborted) {
@@ -1019,7 +1099,7 @@ export function PdfJsStudio({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [pdfDoc, searchQuery, isSearchOpen, searchOpts, numPages, scrollToPage]);
+  }, [pdfDoc, searchQuery, isSearchOpen, searchOpts, numPages, scrollToPage, autoRepairText, textRepairRules]);
 
   const handleNextMatch = () => {
     if (searchResult.totalMatches === 0) return;
@@ -1298,10 +1378,16 @@ export function PdfJsStudio({
   });
 
   const currentMatch = searchResult.matches[currentMatchIndex];
+  const viewerState: "idle" | "loading" | "rendering" = loading
+    ? "loading"
+    : !isQueueIdle || debouncedRenderTimerRef.current !== null
+    ? "rendering"
+    : "idle";
 
   return (
     <div
       data-zoom-mode={zoom.mode}
+      data-pdf-viewer-state={viewerState}
       className={cn(
         "flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none",
         isReducedMotion && "reduce-motion"
@@ -1344,6 +1430,9 @@ export function PdfJsStudio({
         onChangeReduceMotion={handleChangeReduceMotion}
         rememberPosition={settings.rememberPosition}
         onToggleRememberPosition={handleToggleRememberPosition}
+        isTextRepaired={autoRepairText && textRepairRules.length > 0}
+        autoRepairText={autoRepairText}
+        onToggleAutoRepairText={handleToggleAutoRepairText}
         displayName={displayName}
         sizeBytes={sizeBytes}
         extension={extension}
@@ -1551,6 +1640,7 @@ export function PdfJsStudio({
                     renderedScale={renderedScale}
                     rotation={rotation}
                     isHandTool={isHandTool}
+                    repairRules={autoRepairText ? textRepairRules : undefined}
                     searchQuery={isSearchOpen ? searchQuery : ""}
                     isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
                     activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}

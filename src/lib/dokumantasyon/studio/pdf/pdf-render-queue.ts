@@ -22,6 +22,28 @@ class PdfRenderQueueManager {
   private activeJobs = new Map<string, { job: QueuedRenderJob; handle: RenderTaskHandle }>();
   private pendingQueue: QueuedRenderJob[] = [];
   private currentPage = 1;
+  private listeners = new Set<(isIdle: boolean) => void>();
+
+  public isIdle(): boolean {
+    return this.activeJobs.size === 0 && this.pendingQueue.length === 0;
+  }
+
+  public subscribe(listener: (isIdle: boolean) => void): () => void {
+    this.listeners.add(listener);
+    listener(this.isIdle());
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyListeners(): void {
+    const idle = this.isIdle();
+    for (const listener of this.listeners) {
+      try {
+        listener(idle);
+      } catch {}
+    }
+  }
 
   public setCurrentPage(page: number): void {
     this.currentPage = page;
@@ -81,6 +103,7 @@ class PdfRenderQueueManager {
       this.activeJobs.delete(id);
       this.processNext();
     }
+    this.notifyListeners();
   }
 
   public clear(): void {
@@ -91,6 +114,7 @@ class PdfRenderQueueManager {
     }
     this.activeJobs.clear();
     this.pendingQueue = [];
+    this.notifyListeners();
   }
 
   public getActiveCount(): number {
@@ -102,6 +126,7 @@ class PdfRenderQueueManager {
   }
 
   private processNext(): void {
+    this.notifyListeners();
     while (this.activeJobs.size < MAX_CONCURRENT_RENDERS && this.pendingQueue.length > 0) {
       const job = this.pendingQueue.shift();
       if (!job) break;
@@ -109,17 +134,20 @@ class PdfRenderQueueManager {
       try {
         const handle = job.renderFn();
         this.activeJobs.set(job.id, { job, handle });
+        this.notifyListeners();
 
         handle.promise
           .then(() => {
-            if (this.activeJobs.has(job.id)) {
+            const current = this.activeJobs.get(job.id);
+            if (current && current.job === job) {
               this.activeJobs.delete(job.id);
               job.onSuccess?.();
               this.processNext();
             }
           })
           .catch((err: unknown) => {
-            if (this.activeJobs.has(job.id)) {
+            const current = this.activeJobs.get(job.id);
+            if (current && current.job === job) {
               this.activeJobs.delete(job.id);
               const errName = (err as { name?: string })?.name || "";
               if (errName === "RenderingCancelledException") {
@@ -131,7 +159,10 @@ class PdfRenderQueueManager {
             }
           });
       } catch (err: unknown) {
-        this.activeJobs.delete(job.id);
+        const current = this.activeJobs.get(job.id);
+        if (current && current.job === job) {
+          this.activeJobs.delete(job.id);
+        }
         const errName = (err as { name?: string })?.name || "";
         if (errName !== "RenderingCancelledException") {
           job.onError?.(err);
@@ -139,6 +170,7 @@ class PdfRenderQueueManager {
         this.processNext();
       }
     }
+    this.notifyListeners();
   }
 }
 
