@@ -138,14 +138,16 @@ class PdfRenderQueueManager {
 
         handle.promise
           .then(() => {
-            if (this.activeJobs.has(job.id)) {
+            const current = this.activeJobs.get(job.id);
+            if (current && current.job === job) {
               this.activeJobs.delete(job.id);
               job.onSuccess?.();
               this.processNext();
             }
           })
           .catch((err: unknown) => {
-            if (this.activeJobs.has(job.id)) {
+            const current = this.activeJobs.get(job.id);
+            if (current && current.job === job) {
               this.activeJobs.delete(job.id);
               const errName = (err as { name?: string })?.name || "";
               if (errName === "RenderingCancelledException") {
@@ -157,7 +159,10 @@ class PdfRenderQueueManager {
             }
           });
       } catch (err: unknown) {
-        this.activeJobs.delete(job.id);
+        const current = this.activeJobs.get(job.id);
+        if (current && current.job === job) {
+          this.activeJobs.delete(job.id);
+        }
         const errName = (err as { name?: string })?.name || "";
         if (errName !== "RenderingCancelledException") {
           job.onError?.(err);

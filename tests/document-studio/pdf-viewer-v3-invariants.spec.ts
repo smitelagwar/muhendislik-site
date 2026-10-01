@@ -88,6 +88,7 @@ interface InvariantMetrics {
 async function measurePage1Invariants(page: Page): Promise<InvariantMetrics> {
   // Faz R1 test kancası: render bitene kadar bekle
   await page.waitForSelector('[data-pdf-viewer-state="idle"]', { timeout: 15000 }).catch(() => {});
+  await page.waitForSelector('[data-page-number="1"][data-page-state="rendered"]', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(500);
 
   return await page.evaluate(() => {
@@ -204,6 +205,10 @@ test.describe("PDF Görüntüleyici v3 Değişmezler ve Regresyon Test Paketi", 
     // HEAD'de bu test ÇÖKER çünkü canvas scale(0.40) ile 219px'e büzülüyor (widthDiff ~ 327px)!
     expect(m.widthDiff, `I1 Hatası: Canvas genişliği (${m.canvasWidth}px) ile Sayfa kutusu (${m.pageWidth}px) uyuşmuyor!`).toBeLessThanOrEqual(1.5);
     expect(m.heightDiff, `I1 Hatası: Canvas yüksekliği (${m.canvasHeight}px) ile Sayfa kutusu (${m.pageHeight}px) uyuşmuyor!`).toBeLessThanOrEqual(1.5);
+
+    // Kanıt ekran görüntüsü: Sayfa Modu
+    const page1Sayfa = page.locator("[data-page-number='1']").first();
+    await page1Sayfa.screenshot({ path: "docs/pdf-viewer-v3/kanit/r2-after-h1-fixed-sayfa.png" });
   });
 
   test("TEST-I1 & TEST-I3: Zoom In (%137-%195) esnasında H1 Sağ Kenar Kırpılması (Clipping) olmamalı", async ({ page }) => {
@@ -227,6 +232,10 @@ test.describe("PDF Görüntüleyici v3 Değişmezler ve Regresyon Test Paketi", 
 
     const m = await measurePage1Invariants(page);
     console.log("[TEST-I3 Zoom In Kırpılma Ölçümü]:", JSON.stringify(m, null, 2));
+
+    // Kanıt ekran görüntüsü: %138 Zoom In (Kırpılma Olmadığının Görsel Kanıtı)
+    const page1Zoom = page.locator("[data-page-number='1']").first();
+    await page1Zoom.screenshot({ path: "docs/pdf-viewer-v3/kanit/r2-after-h1-fixed-138.png" });
 
     // I3 Değişmezi: Metin katmanındaki harfler beyaz sayfa kutusundan taşmamalıdır
     // HEAD'de bu test ÇÖKER çünkü metin 90.7px sağ kenardan taşıp overflow: hidden ile kesilmektedir (H1)!
