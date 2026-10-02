@@ -6,6 +6,7 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import { Keyboard, X } from "lucide-react";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfShortcutsModalProps {
   isOpen: boolean;
@@ -24,35 +25,35 @@ interface ShortcutCategory {
 
 const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
-    category: "Zoom ve Ölçek",
+    category: pdfViewerStrings.shortcutsZoomCategory,
     items: [
       { keys: ["Ctrl", "+"], description: "Yakınlaştır" },
       { keys: ["Ctrl", "-"], description: "Uzaklaştır" },
-      { keys: ["Ctrl", "0"], description: "Sayfaya Sığdır" },
-      { keys: ["Ctrl", "1"], description: "Orijinal Boyut (%100)" },
-      { keys: ["Ctrl", "2"], description: "Genişliğe Sığdır" },
+      { keys: ["Ctrl", "0"], description: pdfViewerStrings.fitPageName },
+      { keys: ["Ctrl", "1"], description: pdfViewerStrings.originalSize },
+      { keys: ["Ctrl", "2"], description: pdfViewerStrings.fitWidthName },
       { keys: ["Ctrl", "Tekerlek"], description: "İmleç Odaklı Yakınlaştırma" },
     ],
   },
   {
-    category: "Sayfa Gezinimi",
+    category: pdfViewerStrings.shortcutsPageCategory,
     items: [
-      { keys: ["PageDown", "veya", "→"], description: "Sonraki Sayfa" },
-      { keys: ["PageUp", "veya", "←"], description: "Önceki Sayfa" },
-      { keys: ["Home"], description: "İlk Sayfaya Git" },
-      { keys: ["End"], description: "Son Sayfaya Git" },
+      { keys: ["→"], description: pdfViewerStrings.shortcutNextPage },
+      { keys: ["←"], description: pdfViewerStrings.shortcutPreviousPage },
+      { keys: ["Home"], description: pdfViewerStrings.shortcutFirstPage },
+      { keys: ["End"], description: pdfViewerStrings.shortcutLastPage },
     ],
   },
   {
-    category: "Araçlar ve Paneller",
+    category: pdfViewerStrings.shortcutsToolsCategory,
     items: [
-      { keys: ["Ctrl", "F"], description: "Dokümanda Ara" },
-      { keys: ["H"], description: "El Aracı (Sayfayı Kaydır / Pan)" },
-      { keys: ["V"], description: "Metin Seçim İmleci" },
-      { keys: ["B"], description: "Küçük Resimler Kenar Çubuğu" },
-      { keys: ["Ctrl", "R"], description: "90° Sağa Döndür" },
-      { keys: ["Esc"], description: "Arama / Panelleri Kapat" },
-      { keys: ["?"], description: "Klavye Kısayolları (Bu Menü)" },
+      { keys: ["Ctrl", "F"], description: pdfViewerStrings.shortcutFind },
+      { keys: ["H"], description: pdfViewerStrings.shortcutHandTool },
+      { keys: ["V"], description: pdfViewerStrings.shortcutTextSelection },
+      { keys: ["B"], description: pdfViewerStrings.shortcutSidebar },
+      { keys: ["Ctrl", "R"], description: pdfViewerStrings.shortcutRotate },
+      { keys: ["Esc"], description: pdfViewerStrings.shortcutEscape },
+      { keys: ["?"], description: pdfViewerStrings.shortcutHelp },
     ],
   },
 ];
@@ -131,7 +132,7 @@ export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
         <button
           type="button"
           onClick={handleClose}
-          aria-label="Kapat"
+          aria-label={pdfViewerStrings.close}
           className="absolute right-4 top-4 rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors focus-visible:ring-2 focus-visible:ring-amber-500 outline-none"
         >
           <X className="h-4 w-4" />
@@ -143,10 +144,10 @@ export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
           </div>
           <div>
             <h2 id="shortcuts-modal-title" className="text-base font-semibold text-zinc-100">
-              Klavye Kısayolları
+              {pdfViewerStrings.shortcutsTitle}
             </h2>
             <p className="text-xs text-zinc-400">
-              PDF stüdyosunda hızlı kullanım için desteklenen klavye kısayolları
+              {pdfViewerStrings.shortcutsDescription}
             </p>
           </div>
         </div>
@@ -168,7 +169,7 @@ export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
                       {item.keys.map((k, kIdx) =>
                         k === "veya" ? (
                           <span key={kIdx} className="text-[10px] text-zinc-500 px-0.5">
-                            veya
+                          {pdfViewerStrings.shortcutOr}
                           </span>
                         ) : (
                           <kbd
@@ -193,7 +194,7 @@ export function PdfShortcutsModal({ isOpen, onClose }: PdfShortcutsModalProps) {
             onClick={onClose}
             className="rounded-xl bg-zinc-800 border border-zinc-700 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
           >
-            Anladım
+            {pdfViewerStrings.understood}
           </button>
         </div>
       </div>

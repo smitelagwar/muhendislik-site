@@ -1784,7 +1784,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   align-items: center;
   width: max-content;
   min-width: 100%;
-  padding: 12px 0;
+  box-sizing: border-box;
   transform-origin: 0 0;
 }
 

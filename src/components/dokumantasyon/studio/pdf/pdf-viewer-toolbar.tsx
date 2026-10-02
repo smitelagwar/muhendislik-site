@@ -32,6 +32,7 @@ import {
   Keyboard,
   Bookmark,
   ArrowLeftCircle,
+  ArrowRightCircle,
   Moon,
   Layout,
   Gauge,
@@ -42,6 +43,8 @@ import { formatBytes, formatDate } from "../../ui-helpers";
 import { StudioCommandButton } from "../studio-command-button";
 import { getPdfRememberSettings, setPdfRememberSettings } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
 import { getPageFromLabel } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
+import { getMaxPdfScale, pdfScaleToZoom, PDF_ZOOM_STEPS, zoomToPdfScale } from "@/lib/dokumantasyon/studio/pdf/pdf-zoom-math";
+import { pdfViewerStrings } from "./strings";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,6 +80,8 @@ interface PdfViewerToolbarProps {
   onToggleOutline?: () => void;
   canNavigateBack?: boolean;
   onNavigateBack?: () => void;
+  canNavigateForward?: boolean;
+  onNavigateForward?: () => void;
   // --- Faz H: Okuma Konumu ve Ayarlar Propları ---
   nightMode?: boolean;
   onToggleNightMode?: () => void;
@@ -131,6 +136,8 @@ export function PdfViewerToolbar({
   onToggleOutline,
   canNavigateBack,
   onNavigateBack,
+  canNavigateForward,
+  onNavigateForward,
   nightMode = false,
   onToggleNightMode,
   defaultViewMode = "fit-width",
@@ -155,9 +162,11 @@ export function PdfViewerToolbar({
   onRename,
   onDelete,
 }: PdfViewerToolbarProps) {
-  const zoomPercent = Math.round(scale * 100);
+  const zoomPercent = Math.round(pdfScaleToZoom(scale) * 100);
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
   const [internalRememberPosition, setInternalRememberPosition] = useState<boolean>(true);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  const maxZoomPercent = Math.round(pdfScaleToZoom(getMaxPdfScale(isCoarsePointer)) * 100);
 
   const effectiveRememberPosition =
     typeof rememberPositionProp === "boolean" ? rememberPositionProp : internalRememberPosition;
@@ -168,6 +177,14 @@ export function PdfViewerToolbar({
 
   useEffect(() => {
     setInternalRememberPosition(getPdfRememberSettings());
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    const update = () => setIsCoarsePointer(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
   }, []);
 
   useEffect(() => {
@@ -195,7 +212,7 @@ export function PdfViewerToolbar({
     <div
       data-testid="pdf-viewer-toolbar"
       role="toolbar"
-      aria-label="PDF stüdyo araç çubuğu"
+      aria-label={pdfViewerStrings.toolbar}
       className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b border-border/70 bg-card/85 pl-[max(0.375rem,env(safe-area-inset-left))] pr-[max(0.375rem,env(safe-area-inset-right))] text-xs text-foreground backdrop-blur-2xl shadow-sm select-none sm:h-16 sm:px-3 sm:gap-1.5 print:hidden"
     >
       {/* 1. Sol Alan: Geri Dönüş, Dosya Kimliği ve Sayfa Gezintisi */}
@@ -208,8 +225,8 @@ export function PdfViewerToolbar({
               size="sm"
               variant="ghost"
               showLabel={false}
-              title="Dosya Yöneticisine Dön"
-              aria-label="Dosya Yöneticisine Dön"
+              title={pdfViewerStrings.backToManager}
+              aria-label={pdfViewerStrings.backToManager}
               className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
               icon={<ArrowLeft className="h-4.5 w-4.5" />}
             />
@@ -237,7 +254,7 @@ export function PdfViewerToolbar({
                 {extension ? extension.replace(".", "") : "PDF"}
               </span>
               {numPages > 0 && <span>•</span>}
-              {numPages > 0 && <span className="font-mono">{numPages} Sayfa</span>}
+              {numPages > 0 && <span className="font-mono">{pdfViewerStrings.pageCount(numPages)}</span>}
             </div>
           </div>
         )}
@@ -250,7 +267,7 @@ export function PdfViewerToolbar({
           onClick={onToggleSidebar}
           active={isSidebarOpen}
           showLabel={false}
-          title="Kenar Çubuğunu Aç/Kapat"
+          title={pdfViewerStrings.sidebarToggle}
           className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
           icon={<Sidebar className="h-4 w-4" />}
         />
@@ -262,8 +279,8 @@ export function PdfViewerToolbar({
             onClick={onToggleOutline}
             active={isSidebarOpen}
             showLabel={false}
-            title="İçindekiler / Yer İmleri"
-            aria-label="İçindekiler"
+            title={pdfViewerStrings.outlineBookmarks}
+            aria-label={pdfViewerStrings.outline}
             data-testid="pdf-outline-toggle-btn"
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<Bookmark className="h-4 w-4" />}
@@ -276,11 +293,24 @@ export function PdfViewerToolbar({
             commandId="pdf.navigation.back"
             onClick={onNavigateBack}
             showLabel={false}
-            title="Önceki Konuma Dön"
-            aria-label="Önceki konuma dön"
+            title={pdfViewerStrings.historyBack}
+            aria-label={pdfViewerStrings.historyBackLower}
             data-testid="pdf-nav-back-btn"
             className="hidden sm:inline-flex h-9 w-9 rounded-xl p-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 transition-colors animate-in fade-in"
             icon={<ArrowLeftCircle className="h-4 w-4" />}
+          />
+        )}
+
+        {canNavigateForward && onNavigateForward && (
+          <StudioCommandButton
+            commandId="pdf.navigation.forward"
+            onClick={onNavigateForward}
+            showLabel={false}
+            title={pdfViewerStrings.historyForward}
+            aria-label={pdfViewerStrings.historyForward}
+            data-testid="pdf-nav-forward-btn"
+            className="hidden sm:inline-flex h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            icon={<ArrowRightCircle className="h-4 w-4" />}
           />
         )}
 
@@ -291,7 +321,7 @@ export function PdfViewerToolbar({
             onClick={() => onPageChange(1)}
             disabled={currentPage <= 1}
             showLabel={false}
-            title="İlk Sayfaya Git"
+            title={pdfViewerStrings.firstPageTitle}
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground disabled:opacity-30 md:inline-flex"
             icon={<ChevronsLeft className="h-4 w-4" />}
           />
@@ -301,8 +331,8 @@ export function PdfViewerToolbar({
             onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
             disabled={currentPage <= 1}
             showLabel={false}
-            title="Önceki Sayfa"
-            aria-label="Önceki Sayfa"
+            title={pdfViewerStrings.previousPageTitle}
+            aria-label={pdfViewerStrings.previousPage}
             className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronLeft className="h-4 w-4" />}
           />
@@ -312,7 +342,7 @@ export function PdfViewerToolbar({
               <span
                 data-testid="pdf-page-label-badge"
                 className="hidden min-[420px]:inline-block shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.5 font-mono text-[10px] font-bold text-amber-500"
-                title={`Sayfa Etiketi: ${currentLabel}`}
+                title={pdfViewerStrings.pageLabel(currentLabel ?? "")}
               >
                 {currentLabel}
               </span>
@@ -330,7 +360,7 @@ export function PdfViewerToolbar({
               }}
               onBlur={commitPageInput}
               className="h-9 w-8 sm:h-8 sm:w-11 rounded-lg border border-input bg-background/80 px-0.5 text-center font-mono text-xs text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-inner disabled:opacity-50"
-              aria-label="Geçerli Sayfa"
+              aria-label={pdfViewerStrings.currentPage}
             />
             <span className="font-semibold text-muted-foreground font-mono text-[10px] sm:text-[11px]">/ {numPages || "—"}</span>
           </div>
@@ -340,8 +370,8 @@ export function PdfViewerToolbar({
             onClick={() => onPageChange(Math.min(currentPage + 1, numPages))}
             disabled={currentPage >= numPages}
             showLabel={false}
-            title="Sonraki Sayfa"
-            aria-label="Sonraki Sayfa"
+            title={pdfViewerStrings.nextPageTitle}
+            aria-label={pdfViewerStrings.nextPage}
             className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground disabled:opacity-30"
             icon={<ChevronRight className="h-4 w-4" />}
           />
@@ -351,7 +381,7 @@ export function PdfViewerToolbar({
             onClick={() => onPageChange(numPages)}
             disabled={currentPage >= numPages}
             showLabel={false}
-            title="Son Sayfaya Git"
+            title={pdfViewerStrings.lastPageTitle}
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground disabled:opacity-30 md:inline-flex"
             icon={<ChevronsRight className="h-4 w-4" />}
           />
@@ -366,8 +396,8 @@ export function PdfViewerToolbar({
           onClick={onToggleSearch}
           active={isSearchOpen}
           showLabel={false}
-          title="Dokümanda Ara (Ctrl+F)"
-          aria-label="Dokümanda Ara"
+          title={pdfViewerStrings.searchDocumentShortcut}
+          aria-label={pdfViewerStrings.searchDocument}
           className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           icon={<Search className="h-4 w-4" />}
         />
@@ -380,7 +410,7 @@ export function PdfViewerToolbar({
           onClick={() => onSetHandTool(false)}
           active={!isHandTool}
           showLabel={false}
-          title="Metin Seçim İmleci (V)"
+          title={pdfViewerStrings.textSelectionToolShortcut}
           className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors lg:inline-flex"
           icon={<MousePointer className="h-3.5 w-3.5" />}
         />
@@ -390,7 +420,7 @@ export function PdfViewerToolbar({
           onClick={() => onSetHandTool(true)}
           active={isHandTool}
           showLabel={false}
-          title="Kaydırma / El Aracı (H)"
+          title={pdfViewerStrings.handToolShortcut}
           className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors lg:inline-flex"
           icon={<Hand className="h-3.5 w-3.5" />}
         />
@@ -403,8 +433,8 @@ export function PdfViewerToolbar({
             commandId="pdf.zoom.out"
             onClick={onZoomOut}
             showLabel={false}
-            title="Uzaklaştır (Ctrl+-)"
-            aria-label="Uzaklaştır"
+            title={pdfViewerStrings.zoomOutShortcut}
+            aria-label={pdfViewerStrings.zoomOut}
             className="hidden min-[420px]:inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomOut className="h-4 w-4" />}
           />
@@ -414,8 +444,8 @@ export function PdfViewerToolbar({
               <button
                 type="button"
                 data-command-id="pdf.zoom.100"
-                title={`Ölçek Menüsü · ${zoomPercent}%`}
-                aria-label={`Ölçek Menüsü, yüzde ${zoomPercent}`}
+                title={pdfViewerStrings.zoomMenuTitle(zoomPercent)}
+                aria-label={pdfViewerStrings.zoomMenuLabel(zoomPercent)}
                 className="hidden min-[380px]:inline-flex items-center gap-1 h-11 min-h-11 px-1.5 sm:px-2 sm:h-9 sm:min-h-9 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors select-none outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
               >
                 <span>{zoomPercent}%</span>
@@ -430,33 +460,35 @@ export function PdfViewerToolbar({
                 className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
                 onClick={onFitWidth}
               >
-                <span>Genişliğe Sığdır</span>
+                <span>{pdfViewerStrings.fitWidth}</span>
                 {zoomMode === "fit-width" && <Check className="h-3.5 w-3.5 text-amber-500" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
                 onClick={onFitPage}
               >
-                <span>Sayfaya Sığdır</span>
+                <span>{pdfViewerStrings.fitPage}</span>
                 {zoomMode === "fit-page" && <Check className="h-3.5 w-3.5 text-amber-500" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
                 onClick={onZoom100}
               >
-                <span>Gerçek Boyut (%100)</span>
+                <span>{pdfViewerStrings.actualSize}</span>
                 {(zoomMode === "actual-size" || (zoomMode === "custom" && zoomPercent === 100)) && (
                   <Check className="h-3.5 w-3.5 text-amber-500" />
                 )}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {[50, 75, 100, 125, 150, 200, 300, 400, 500].map((stepPct) => (
+              {PDF_ZOOM_STEPS.filter((stepZoom) => stepZoom * 100 <= maxZoomPercent).map((stepZoom) => {
+                const stepPct = Math.round(stepZoom * 100);
+                return (
                 <DropdownMenuItem
                   key={stepPct}
                   className="cursor-pointer text-xs font-mono rounded-lg flex items-center justify-between"
                   onClick={() => {
                     if (onZoomSelect) {
-                      onZoomSelect(stepPct / 100);
+                    onZoomSelect(zoomToPdfScale(stepZoom));
                     } else if (stepPct === 100) {
                       onZoom100();
                     }
@@ -467,7 +499,8 @@ export function PdfViewerToolbar({
                     <Check className="h-3.5 w-3.5 text-amber-500" />
                   )}
                 </DropdownMenuItem>
-              ))}
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -475,8 +508,8 @@ export function PdfViewerToolbar({
             commandId="pdf.zoom.in"
             onClick={onZoomIn}
             showLabel={false}
-            title="Yakınlaştır (Ctrl++)"
-            aria-label="Yakınlaştır"
+            title={pdfViewerStrings.zoomInShortcut}
+            aria-label={pdfViewerStrings.zoomIn}
             className="h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
             icon={<ZoomIn className="h-4 w-4" />}
           />
@@ -488,7 +521,7 @@ export function PdfViewerToolbar({
             onClick={onFitWidth}
             active={zoomMode === "fit-width"}
             showLabel={true}
-            title="Genişliğe Sığdır (Ctrl+2)"
+            title={pdfViewerStrings.fitWidthTitle}
             className="hidden h-9 px-2 rounded-lg text-[11px] font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors min-[1100px]:inline-flex"
             label="Genişlik"
           />
@@ -498,9 +531,9 @@ export function PdfViewerToolbar({
             onClick={onFitPage}
             active={zoomMode === "fit-page"}
             showLabel={true}
-            title="Sayfaya Sığdır (Ctrl+0)"
+            title={pdfViewerStrings.fitPageTitle}
             className="hidden h-9 px-2 rounded-lg text-[11px] font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors min-[1250px]:inline-flex"
-            label="Sayfa"
+            label={pdfViewerStrings.page}
           />
         </div>
 
@@ -511,10 +544,10 @@ export function PdfViewerToolbar({
           <div
             data-testid="pdf-text-repaired-badge"
             className="hidden items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 xl:inline-flex"
-            title="Bozuk font harf eşlemesi (Ĝ -> i) kopyalama ve aramada otomatik onarıldı"
+            title={pdfViewerStrings.textRepairTooltip}
           >
             <Sparkles className="h-3 w-3 text-amber-500" />
-            <span>Metin onarıldı</span>
+            <span>{pdfViewerStrings.textRepaired}</span>
           </div>
         )}
 
@@ -523,7 +556,7 @@ export function PdfViewerToolbar({
           commandId="pdf.rotateView"
           onClick={onRotateView}
           showLabel={false}
-          title="Görünümü Saat Yönünde Döndür (Ctrl+R)"
+          title={pdfViewerStrings.rotateClockwise}
           className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors md:inline-flex"
           icon={<RotateCw className="h-4 w-4" />}
         />
@@ -533,7 +566,7 @@ export function PdfViewerToolbar({
           commandId="pdf.print"
           onClick={onPrint}
           showLabel={false}
-          title="PDF Yazdır (Ctrl+P)"
+          title={pdfViewerStrings.printPdf}
           className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors lg:inline-flex"
           icon={<Printer className="h-4 w-4" />}
         />
@@ -544,8 +577,8 @@ export function PdfViewerToolbar({
             commandId="studio.download"
             onClick={onDownload}
             showLabel={false}
-            title="PDF İndir (Ctrl+D)"
-            aria-label="PDF İndir"
+            title={pdfViewerStrings.downloadPdfShortcut}
+            aria-label={pdfViewerStrings.downloadPdf}
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<Download className="h-4 w-4" />}
           />
@@ -557,8 +590,8 @@ export function PdfViewerToolbar({
             commandId="studio.fullscreen"
             onClick={onToggleFullscreen}
             showLabel={false}
-            title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
-            aria-label={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+            title={isFullscreen ? pdfViewerStrings.fullscreenExit : pdfViewerStrings.fullscreenEnter}
+            aria-label={isFullscreen ? pdfViewerStrings.fullscreenExit : pdfViewerStrings.fullscreenEnter}
             data-testid="pdf-viewer-fullscreen-toggle"
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -570,7 +603,7 @@ export function PdfViewerToolbar({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="PDF ek işlemleri"
+              aria-label={pdfViewerStrings.morePdfActions}
               data-testid="pdf-viewer-more-menu-trigger"
               className="inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-9 sm:w-9 sm:min-h-9 sm:min-w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors"
             >
@@ -583,7 +616,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.sidebar.toggle"
               onClick={onToggleSidebar}
             >
-              <span>Sayfa küçük resimleri</span>
+              <span>{pdfViewerStrings.pageThumbnails}</span>
               {isSidebarOpen && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             {hasOutline && onToggleOutline && (
@@ -592,7 +625,7 @@ export function PdfViewerToolbar({
                 data-command-id="pdf.outline.toggle"
                 onClick={onToggleOutline}
               >
-                <span>İçindekiler / Yer İmleri</span>
+                <span>{pdfViewerStrings.outlineBookmarks}</span>
                 <Bookmark className="h-3.5 w-3.5 text-amber-500" />
               </DropdownMenuItem>
             )}
@@ -602,8 +635,18 @@ export function PdfViewerToolbar({
                 data-command-id="pdf.navigation.back"
                 onClick={onNavigateBack}
               >
-                <span>Önceki konuma dön</span>
+                <span>{pdfViewerStrings.historyBackLower}</span>
                 <ArrowLeftCircle className="h-3.5 w-3.5" />
+              </DropdownMenuItem>
+            )}
+            {canNavigateForward && onNavigateForward && (
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                data-command-id="pdf.navigation.forward"
+                onClick={onNavigateForward}
+              >
+                <span>{pdfViewerStrings.historyForward}</span>
+                <ArrowRightCircle className="h-3.5 w-3.5" />
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -611,7 +654,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.zoom.out"
               onClick={onZoomOut}
             >
-              <span>Uzaklaştır</span>
+              <span>{pdfViewerStrings.zoomOut}</span>
               <ZoomOut className="h-3.5 w-3.5 text-muted-foreground" />
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -619,7 +662,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.zoom.100"
               onClick={onZoom100}
             >
-              <span>Orijinal boyut (%100)</span>
+              <span>{pdfViewerStrings.originalSize}</span>
               {zoomPercent === 100 && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -627,7 +670,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.zoom.fitWidth"
               onClick={onFitWidth}
             >
-              <span>Genişliğe sığdır</span>
+              <span>{pdfViewerStrings.fitWidth}</span>
               {zoomMode === "fit-width" && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -635,7 +678,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.zoom.fitPage"
               onClick={onFitPage}
             >
-              <span>Sayfaya sığdır</span>
+              <span>{pdfViewerStrings.fitPage}</span>
               {zoomMode === "fit-page" && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -643,14 +686,14 @@ export function PdfViewerToolbar({
               data-command-id="pdf.rotateView"
               onClick={onRotateView}
             >
-              Görünümü döndür
+              {pdfViewerStrings.rotateView}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer text-xs rounded-lg lg:hidden flex items-center justify-between"
               data-command-id="pdf.tool.select"
               onClick={() => onSetHandTool(false)}
             >
-              <span>Metin seçim imleci</span>
+              <span>{pdfViewerStrings.textSelectionTool}</span>
               {!isHandTool && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -658,7 +701,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.tool.hand"
               onClick={() => onSetHandTool(true)}
             >
-              <span>Kaydırma / el aracı</span>
+              <span>{pdfViewerStrings.handTool}</span>
               {isHandTool && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -666,7 +709,7 @@ export function PdfViewerToolbar({
               data-command-id="pdf.print"
               onClick={onPrint}
             >
-              PDF yazdır
+              {pdfViewerStrings.printPdf}
             </DropdownMenuItem>
 
             {onDownload && (
@@ -675,7 +718,7 @@ export function PdfViewerToolbar({
                 data-command-id="studio.download"
                 onClick={onDownload}
               >
-                <span>PDF indir</span>
+                <span>{pdfViewerStrings.downloadPdf}</span>
                 <Download className="h-3.5 w-3.5 text-muted-foreground" />
               </DropdownMenuItem>
             )}
@@ -686,7 +729,7 @@ export function PdfViewerToolbar({
                 data-command-id="studio.fullscreen"
                 className="cursor-pointer text-xs rounded-lg sm:hidden flex items-center justify-between"
               >
-                <span>{isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}</span>
+                <span>{isFullscreen ? pdfViewerStrings.fullscreenExit : pdfViewerStrings.fullscreenEnter}</span>
                 {isFullscreen ? <Minimize2 className="h-3.5 w-3.5 text-muted-foreground" /> : <Maximize2 className="h-3.5 w-3.5 text-muted-foreground" />}
               </DropdownMenuItem>
             )}
@@ -697,7 +740,7 @@ export function PdfViewerToolbar({
                 data-command-id="studio.share"
                 className="flex items-center justify-between cursor-pointer text-xs rounded-lg sm:hidden"
               >
-                <span>Paylaşım bağlantısı oluştur</span>
+                <span>{pdfViewerStrings.shareLink}</span>
                 <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
               </DropdownMenuItem>
             )}
@@ -711,7 +754,7 @@ export function PdfViewerToolbar({
                   className="flex items-center gap-2 cursor-pointer text-xs rounded-lg py-1.5"
                 >
                   <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                  <span>Yeniden Adlandır</span>
+                  <span>{pdfViewerStrings.rename}</span>
                 </DropdownMenuItem>
               </>
             )}
@@ -727,7 +770,7 @@ export function PdfViewerToolbar({
                   <div className="flex items-center gap-2 text-[10px]">
                     {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
                     <span className="uppercase font-bold text-rose-500/90 font-mono">PDF</span>
-                    {numPages > 0 && <span>{numPages} Sayfa</span>}
+                    {numPages > 0 && <span>{pdfViewerStrings.pageCount(numPages)}</span>}
                   </div>
                   {createdAt && <div className="text-[10px] text-muted-foreground/80">{formatDate(createdAt)}</div>}
                 </div>
@@ -750,11 +793,11 @@ export function PdfViewerToolbar({
               data-testid="pdf-remember-position-toggle"
               className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
             >
-              <span>Son okunan konumu hatırla</span>
+              <span>{pdfViewerStrings.rememberPosition}</span>
               {effectiveRememberPosition ? (
                 <Check className="h-3.5 w-3.5 text-amber-500" />
               ) : (
-                <span className="text-[10px] text-muted-foreground">Kapalı</span>
+                <span className="text-[10px] text-muted-foreground">{pdfViewerStrings.off}</span>
               )}
             </DropdownMenuItem>
 
@@ -767,12 +810,12 @@ export function PdfViewerToolbar({
             >
               <span className="flex items-center gap-2">
                 <Moon className="h-3.5 w-3.5 text-indigo-400" />
-                <span>Gece modu</span>
+                <span>{pdfViewerStrings.nightMode}</span>
               </span>
               {nightMode ? (
-                <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">Açık</span>
+                <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">{pdfViewerStrings.on}</span>
               ) : (
-                <span className="text-[10px] text-muted-foreground">Kapalı</span>
+                <span className="text-[10px] text-muted-foreground">{pdfViewerStrings.off}</span>
               )}
             </DropdownMenuItem>
 
@@ -788,10 +831,10 @@ export function PdfViewerToolbar({
             >
               <span className="flex items-center gap-2">
                 <Layout className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Varsayılan görünüm</span>
+                <span>{pdfViewerStrings.defaultView}</span>
               </span>
               <span className="text-[10px] text-muted-foreground font-mono">
-                {defaultViewMode === "fit-page" ? "Sayfaya Sığdır" : "Genişliğe Sığdır"}
+                {defaultViewMode === "fit-page" ? pdfViewerStrings.fitPageName : pdfViewerStrings.fitWidthName}
               </span>
             </DropdownMenuItem>
 
@@ -809,10 +852,10 @@ export function PdfViewerToolbar({
             >
               <span className="flex items-center gap-2">
                 <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Hareketleri azalt</span>
+                <span>{pdfViewerStrings.reduceMotion}</span>
               </span>
               <span className="text-[10px] text-muted-foreground font-mono">
-                {reduceMotion === "on" ? "Açık" : reduceMotion === "off" ? "Kapalı" : "Sistem"}
+                {reduceMotion === "on" ? pdfViewerStrings.on : reduceMotion === "off" ? pdfViewerStrings.off : pdfViewerStrings.system}
               </span>
             </DropdownMenuItem>
 
@@ -825,7 +868,7 @@ export function PdfViewerToolbar({
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span>Bozuk harf onarımı (Ĝ &rarr; i)</span>
+                <span>{pdfViewerStrings.repairBrokenText}</span>
               </span>
               {autoRepairText && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
@@ -841,7 +884,7 @@ export function PdfViewerToolbar({
                 >
                   <span className="flex items-center gap-2">
                     <Keyboard className="h-3.5 w-3.5 text-amber-500" />
-                    <span>Klavye kısayolları</span>
+                    <span>{pdfViewerStrings.keyboardShortcuts}</span>
                   </span>
                   <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border">?</kbd>
                 </DropdownMenuItem>
@@ -857,7 +900,7 @@ export function PdfViewerToolbar({
                   className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg py-1.5 font-medium"
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  <span>Çöp Kutusuna At</span>
+                  <span>{pdfViewerStrings.moveToTrash}</span>
                 </DropdownMenuItem>
               </>
             )}
@@ -872,8 +915,8 @@ export function PdfViewerToolbar({
             commandId="studio.share"
             onClick={onShare}
             showLabel={false}
-            title="Paylaşım Bağlantısı Oluştur (Ctrl+Shift+S)"
-            aria-label="Paylaşım Bağlantısı Oluştur"
+            title={pdfViewerStrings.shareLinkShortcut}
+            aria-label={pdfViewerStrings.shareLink}
             className="hidden h-9 w-9 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
             icon={<Share2 className="h-4 w-4" />}
           />

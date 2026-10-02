@@ -5,14 +5,16 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, type RefObject } from "react";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfPageScrubberProps {
   numPages: number;
   currentPage: number;
   onPageChange: (pageNum: number) => void;
   onScrubMove?: (pageNum: number) => void;
-  isScrollingParent?: boolean;
+  scrollElementRef: RefObject<HTMLDivElement | null>;
+  ready: boolean;
 }
 
 export function PdfPageScrubber({
@@ -20,37 +22,38 @@ export function PdfPageScrubber({
   currentPage,
   onPageChange,
   onScrubMove,
-  isScrollingParent = false,
+  scrollElementRef,
+  ready,
 }: PdfPageScrubberProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [hoverPage, setHoverPage] = useState<number | null>(null);
   const [isRecentlyActive, setIsRecentlyActive] = useState(false);
+  const [pageJumpOpen, setPageJumpOpen] = useState(false);
+  const [pageDraft, setPageDraft] = useState(String(currentPage));
   const activeTimerRef = useRef<number | null>(null);
 
-  // Sayfa kaydırıldığında mobilde scrubber'ı kısa süre görünür kıl
+  // Kaydırma sırasında tutacağı ve geçerli sayfa rozetini görünür tut.
   useEffect(() => {
-    if (!isScrollingParent) return;
-
-    const showTimer = window.setTimeout(() => {
+    const scrollElement = scrollElementRef.current;
+    if (!ready || !scrollElement) return;
+    const handleScroll = () => {
       setIsRecentlyActive(true);
-    }, 0);
-
-    if (activeTimerRef.current !== null) {
-      window.clearTimeout(activeTimerRef.current);
-    }
-    activeTimerRef.current = window.setTimeout(() => {
-      setIsRecentlyActive(false);
-      activeTimerRef.current = null;
-    }, 1500);
-
+      if (activeTimerRef.current !== null) window.clearTimeout(activeTimerRef.current);
+      activeTimerRef.current = window.setTimeout(() => {
+        setIsRecentlyActive(false);
+        activeTimerRef.current = null;
+      }, 1200);
+    };
+    scrollElement.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      window.clearTimeout(showTimer);
+      scrollElement.removeEventListener("scroll", handleScroll);
       if (activeTimerRef.current !== null) {
         window.clearTimeout(activeTimerRef.current);
+        activeTimerRef.current = null;
       }
     };
-  }, [isScrollingParent]);
+  }, [ready, scrollElementRef]);
 
   useEffect(() => {
     return () => {
@@ -115,6 +118,17 @@ export function PdfPageScrubber({
     onPageChange(finalPage);
   };
 
+  const commitPageJump = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const requested = Number.parseInt(pageDraft, 10);
+    if (Number.isFinite(requested) && requested >= 1 && requested <= numPages) {
+      onPageChange(requested);
+      setPageJumpOpen(false);
+    } else {
+      setPageDraft(String(currentPage));
+    }
+  };
+
   // İlerleme yüzdesi (0 - 100)
   const displayPage = hoverPage ?? currentPage;
   const currentFraction = numPages > 1 ? (displayPage - 1) / (numPages - 1) : 0;
@@ -126,6 +140,7 @@ export function PdfPageScrubber({
   return (
     <div
       data-testid="pdf-page-scrubber"
+      data-no-tap
       className={`absolute right-[max(0.375rem,env(safe-area-inset-right))] top-16 bottom-16 z-20 flex items-center justify-center select-none print:hidden pointer-events-auto transition-opacity duration-200 ${
         isVisible ? "opacity-100" : "opacity-35 hover:opacity-100"
       }`}
@@ -140,7 +155,39 @@ export function PdfPageScrubber({
           className="absolute right-9 z-30 -translate-y-1/2 rounded-lg border border-border/80 bg-zinc-900/95 px-2.5 py-1 font-mono text-[11px] font-bold text-zinc-100 shadow-xl backdrop-blur-md transition-all duration-75 pointer-events-none whitespace-nowrap"
           style={{ top: `${activePercent}%` }}
         >
-          Sayfa {displayPage} / {numPages}
+          {pdfViewerStrings.pagePosition(displayPage, numPages)}
+        </div>
+      )}
+
+      {(isVisible || pageJumpOpen) && (
+        <div className="absolute bottom-0 right-9 z-30 flex flex-col items-end gap-1.5" data-no-tap>
+          {pageJumpOpen && (
+            <form onSubmit={commitPageJump} className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5 shadow-xl">
+              <input
+                autoFocus
+                type="text"
+                inputMode="numeric"
+                aria-label={pdfViewerStrings.pageJump}
+                value={pageDraft}
+                onChange={(event) => setPageDraft(event.target.value.replace(/\D/g, ""))}
+                onKeyDown={(event) => { if (event.key === "Escape") setPageJumpOpen(false); }}
+                className="h-9 w-14 rounded-lg border border-input bg-background text-center font-mono text-xs"
+              />
+              <span className="pr-1 text-[11px] text-muted-foreground">/ {numPages}</span>
+            </form>
+          )}
+          <button
+            type="button"
+            data-no-tap
+            aria-label={pdfViewerStrings.pageJumpAction(displayPage, numPages)}
+            onClick={() => {
+              setPageDraft(String(currentPage));
+              setPageJumpOpen((open) => !open);
+            }}
+            className="rounded-full border border-border/70 bg-card/95 px-3 py-1.5 font-mono text-[11px] font-semibold text-foreground shadow-lg backdrop-blur"
+          >
+            {displayPage} / {numPages}
+          </button>
         </div>
       )}
 
@@ -148,14 +195,15 @@ export function PdfPageScrubber({
       <div
         ref={trackRef}
         data-testid="pdf-scrubber-track"
+        data-no-tap
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         style={{ touchAction: "none" }}
         className="group relative flex h-full w-7 sm:w-8 min-w-[28px] cursor-pointer items-center justify-center py-2"
-        title={`Sayfa ${currentPage} / ${numPages}`}
-        aria-label="Sayfa hızlı kaydırma çubuğu"
+        title={pdfViewerStrings.pagePosition(currentPage, numPages)}
+        aria-label={pdfViewerStrings.pageScrubber}
       >
         {/* İnce Görsel Ray (Visual Track) */}
         <div

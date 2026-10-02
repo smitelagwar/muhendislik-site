@@ -15,10 +15,10 @@ console.log("=== FAZ F: Gesture ve Zoom Birim Testleri ===");
 
 // 1. Sınır (Clamping) Testleri (Faz F, Madde 4)
 {
-  assert.equal(clampPdfScale(0.1), MIN_PDF_SCALE, "Min sınır 0.25 altına inemez");
-  assert.equal(clampPdfScale(5.8), MAX_PDF_SCALE, "Max sınır 5.0 üstüne çıkamaz");
+  assert.equal(clampPdfScale(MIN_PDF_SCALE - 0.1), MIN_PDF_SCALE, "Min sınır %25 zoom altına inemez");
+  assert.equal(clampPdfScale(MAX_PDF_SCALE + 0.8), MAX_PDF_SCALE, "Max sınır %500 zoom üstüne çıkamaz");
   assert.equal(clampPdfScale(1.5), 1.5, "Geçerli aralıktaki ölçek korunmalı");
-  console.log("[PASS 1.1] Clamping (0.25 - 5.0) sınır koruması doğrulandı.");
+  console.log("[PASS 1.1] Clamping (%25 - %500) sınır koruması doğrulandı.");
 }
 
 // 2. Wheel Zoom Çarpanı Testleri (Faz F, Madde 2)

@@ -6,6 +6,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   FileText,
   ChevronRight,
@@ -15,6 +16,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { OutlineItemNode } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfThumbnailSidebarProps {
   pdfDoc: any;
@@ -41,7 +43,7 @@ function ThumbnailItem({
   onClick: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
   const [rendered, setRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -90,11 +92,14 @@ function ThumbnailItem({
   }, [isVisible, rendered, pdfDoc, pageNumber]);
 
   return (
-    <div
+    <button
+      type="button"
       ref={containerRef}
       onClick={onClick}
       data-testid={`pdf-thumbnail-${pageNumber}`}
-      className={`group flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer transition-all ${
+      aria-label={pdfViewerStrings.pageNumber(pageNumber)}
+      aria-current={isActive ? "page" : undefined}
+      className={`group flex w-full flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer transition-all ${
         isActive
           ? "bg-amber-500/15 border-2 border-amber-500 shadow-md shadow-amber-500/10"
           : "border-2 border-transparent hover:bg-muted"
@@ -115,7 +120,7 @@ function ThumbnailItem({
       >
         Sayfa {pageNumber}
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -134,7 +139,7 @@ function OutlineTreeNode({
   return (
     <div className="flex flex-col select-none">
       <div
-        className="flex items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-secondary/70 transition-colors text-xs text-foreground/90 group"
+          className="flex min-h-10 items-center gap-1 py-1 px-1.5 rounded-lg hover:bg-secondary/70 transition-colors text-xs text-foreground/90 group"
         style={{ paddingLeft: `${depth * 12 + 6}px` }}
       >
         {hasChildren ? (
@@ -144,8 +149,8 @@ function OutlineTreeNode({
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
-            aria-label={isExpanded ? "Daralt" : "Genişlet"}
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+            aria-label={isExpanded ? pdfViewerStrings.collapse : pdfViewerStrings.expand}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
           >
             {isExpanded ? (
               <ChevronDown className="h-3.5 w-3.5" />
@@ -161,7 +166,7 @@ function OutlineTreeNode({
           type="button"
           onClick={() => onSelect(item)}
           data-testid="pdf-outline-item"
-          className="flex-1 text-left truncate font-medium text-xs hover:text-amber-500 transition-colors py-0.5"
+          className="flex min-h-9 flex-1 items-center text-left truncate font-medium text-xs hover:text-amber-500 transition-colors py-0.5"
           title={item.title}
         >
           {item.title}
@@ -196,6 +201,16 @@ export function PdfThumbnailSidebar({
   onSelectOutlineItem,
   onClose,
 }: PdfThumbnailSidebarProps) {
+  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+  const thumbnailVirtualizer = useVirtualizer({
+    count: numPages,
+    getScrollElement: () => thumbnailScrollRef.current,
+    estimateSize: () => 160,
+    overscan: 4,
+  });
+  const hasOutline = Boolean(outline && outline.length > 0);
+  const currentTab = hasOutline ? activeTab : "thumbnails";
+
   const handleClose = useCallback(() => {
     onClose();
     setTimeout(() => {
@@ -205,27 +220,31 @@ export function PdfThumbnailSidebar({
   }, [onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleClose]);
+    if (isOpen && currentTab === "thumbnails" && currentPage > 0) {
+      thumbnailVirtualizer.scrollToIndex(currentPage - 1, { align: "auto" });
+    }
+  }, [currentPage, currentTab, isOpen, thumbnailVirtualizer]);
 
   // Panel kapalıyken hiçbir iş yapmaz, DOM üretmez (Performans bütçesi kuralı)
   if (!isOpen) return null;
 
-  const hasOutline = Boolean(outline && outline.length > 0);
-  const currentTab = hasOutline ? activeTab : "thumbnails";
-
   return (
+    <>
+    <button
+      type="button"
+      aria-label={pdfViewerStrings.closeSidebar}
+      onClick={handleClose}
+      className="fixed inset-0 z-[59] bg-black/45 backdrop-blur-[1px] min-[720px]:hidden"
+    />
     <aside
       data-testid="pdf-navigation-sidebar"
-      className="relative z-20 flex min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r border-border bg-card/95 backdrop-blur-md select-none"
+      onKeyDownCapture={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          handleClose();
+        }
+      }}
+      className="relative z-20 flex min-h-0 w-56 shrink-0 flex-col overflow-hidden border-r border-border bg-card/95 backdrop-blur-md select-none max-[719px]:fixed max-[719px]:inset-y-0 max-[719px]:left-0 max-[719px]:z-[60] max-[719px]:w-[min(85vw,320px)] max-[719px]:shadow-2xl"
     >
       {/* Üst Başlık & Sekme Seçici */}
       <div className="flex h-12 items-center justify-between border-b border-border px-3 gap-2">
@@ -242,7 +261,7 @@ export function PdfThumbnailSidebar({
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Sayfalar</span>
+              <span>{pdfViewerStrings.pages}</span>
             </button>
             <button
               type="button"
@@ -255,13 +274,13 @@ export function PdfThumbnailSidebar({
               }`}
             >
               <Bookmark className="h-3.5 w-3.5" />
-              <span>İçindekiler</span>
+              <span>{pdfViewerStrings.outline}</span>
             </button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-amber-500" />
-            <span className="text-xs font-bold text-foreground">Sayfalar ({numPages})</span>
+          <span className="text-xs font-bold text-foreground">{pdfViewerStrings.pageList(numPages)}</span>
           </div>
         )}
 
@@ -269,26 +288,35 @@ export function PdfThumbnailSidebar({
           type="button"
           onClick={handleClose}
           className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
-          aria-label="Kenar çubuğunu kapat"
-          title="Kapat"
+          aria-label={pdfViewerStrings.closeSidebar}
+          title={pdfViewerStrings.close}
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Sekme İçerikleri */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
+      <div ref={thumbnailScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
         {currentTab === "thumbnails" ? (
-          <div className="space-y-2">
-            {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+          <div className="relative w-full" style={{ height: `${thumbnailVirtualizer.getTotalSize()}px` }}>
+            {thumbnailVirtualizer.getVirtualItems().map((virtualRow) => {
+              const pageNum = virtualRow.index + 1;
+              return (
+              <div
+                key={virtualRow.key}
+                ref={thumbnailVirtualizer.measureElement}
+                data-index={virtualRow.index}
+                className="absolute left-0 top-0 w-full pb-2"
+                style={{ transform: `translateY(${virtualRow.start}px)` }}
+              >
               <ThumbnailItem
-                key={pageNum}
                 pdfDoc={pdfDoc}
                 pageNumber={pageNum}
                 isActive={pageNum === currentPage}
                 onClick={() => onSelectPage(pageNum)}
               />
-            ))}
+              </div>
+            );})}
           </div>
         ) : (
           <div className="py-1 space-y-0.5" data-testid="pdf-outline-tree">
@@ -303,12 +331,13 @@ export function PdfThumbnailSidebar({
               ))
             ) : (
               <div className="p-4 text-center text-xs text-muted-foreground">
-                Bu dokümanda içindekiler bulunmuyor.
+              {pdfViewerStrings.outlineEmpty}
               </div>
             )}
           </div>
         )}
       </div>
     </aside>
+    </>
   );
 }

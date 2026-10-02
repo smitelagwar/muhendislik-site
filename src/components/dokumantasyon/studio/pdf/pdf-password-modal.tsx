@@ -6,6 +6,7 @@
 
 import React, { useState } from "react";
 import { Lock, AlertCircle, KeyRound, X } from "lucide-react";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfPasswordModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ export function PdfPasswordModal({
         <button
           type="button"
           onClick={onCancel}
-          aria-label="Kapat"
+          aria-label={pdfViewerStrings.close}
           className="absolute right-4 top-4 rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
         >
           <X className="h-4 w-4" />
@@ -56,10 +57,10 @@ export function PdfPasswordModal({
           </div>
           <div>
             <h2 id="password-modal-title" className="text-sm font-semibold text-zinc-100">
-              Parola Korumalı Belge
+              {pdfViewerStrings.passwordProtectedTitle}
             </h2>
             <p className="text-xs text-zinc-400">
-              Bu PDF dokümanını görüntülemek için parola gereklidir.
+              {pdfViewerStrings.passwordProtectedDescription}
             </p>
           </div>
         </div>
@@ -71,7 +72,7 @@ export function PdfPasswordModal({
             className="mb-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400"
           >
             <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-            <span>Hatalı parola. Lütfen tekrar deneyin.</span>
+            <span>{pdfViewerStrings.loadingPasswordError}</span>
           </div>
         )}
 
@@ -81,7 +82,7 @@ export function PdfPasswordModal({
               htmlFor="pdf-password-input"
               className="block text-xs font-medium text-zinc-300 mb-1.5"
             >
-              Belge Parolası
+              {pdfViewerStrings.documentPassword}
             </label>
             <div className="relative">
               <input
@@ -91,7 +92,7 @@ export function PdfPasswordModal({
                 autoFocus
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Parolayı girin..."
+                placeholder={pdfViewerStrings.enterPassword}
                 className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
             </div>
@@ -103,7 +104,7 @@ export function PdfPasswordModal({
               onClick={onCancel}
               className="rounded-xl px-4 py-2 text-xs font-medium text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
             >
-              Vazgeç
+              {pdfViewerStrings.cancel}
             </button>
             <button
               type="submit"
@@ -112,7 +113,7 @@ export function PdfPasswordModal({
               className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <KeyRound className="h-3.5 w-3.5" />
-              <span>Belgeyi Aç</span>
+              <span>{pdfViewerStrings.openDocument}</span>
             </button>
           </div>
         </form>

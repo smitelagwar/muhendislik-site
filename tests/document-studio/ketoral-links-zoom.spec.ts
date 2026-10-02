@@ -6,24 +6,25 @@ import {
   getNextAcrobatZoomIn,
   getNextAcrobatZoomOut,
 } from "../../src/lib/dokumantasyon/studio/pdf/pdf-gesture-engine";
+import { zoomToPdfScale } from "../../src/lib/dokumantasyon/studio/pdf/pdf-zoom-math";
 
 test.describe("Ketoral Link Alignment, Windowing Re-render & Acrobat Zoom", () => {
   test("Acrobat zoom helper functions calculate correct ladder steps", async () => {
     // 1. Zoom Out from fit-page (~70%): should be 66.7%, then 50%, then 33.3%, then 25%
-    expect(getNextAcrobatZoomOut(0.70)).toBe(0.667);
-    expect(getNextAcrobatZoomOut(0.667)).toBe(0.50);
-    expect(getNextAcrobatZoomOut(0.50)).toBe(0.333);
-    expect(getNextAcrobatZoomOut(0.333)).toBe(0.25);
-    expect(getNextAcrobatZoomOut(0.25)).toBe(0.25); // Clamped at min
+    expect(getNextAcrobatZoomOut(zoomToPdfScale(0.70))).toBeCloseTo(zoomToPdfScale(2 / 3), 4);
+    expect(getNextAcrobatZoomOut(zoomToPdfScale(2 / 3))).toBeCloseTo(zoomToPdfScale(0.5), 4);
+    expect(getNextAcrobatZoomOut(zoomToPdfScale(0.50))).toBeCloseTo(zoomToPdfScale(1 / 3), 4);
+    expect(getNextAcrobatZoomOut(zoomToPdfScale(1 / 3))).toBeCloseTo(zoomToPdfScale(0.25), 4);
+    expect(getNextAcrobatZoomOut(zoomToPdfScale(0.25))).toBeCloseTo(zoomToPdfScale(0.25), 4); // Alt sınır
 
     // 2. Zoom In from fit-page (~70%): should be 75%, then 100%, then 125%, then 150%
-    expect(getNextAcrobatZoomIn(0.70)).toBe(0.75);
-    expect(getNextAcrobatZoomIn(0.75)).toBe(1.00);
-    expect(getNextAcrobatZoomIn(1.00)).toBe(1.25);
-    expect(getNextAcrobatZoomIn(1.25)).toBe(1.50);
-    expect(getNextAcrobatZoomIn(1.50)).toBe(2.00);
-    expect(getNextAcrobatZoomIn(4.00)).toBe(5.00);
-    expect(getNextAcrobatZoomIn(5.00)).toBe(5.00); // Clamped at max
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(0.70))).toBeCloseTo(zoomToPdfScale(0.75), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(0.75))).toBeCloseTo(zoomToPdfScale(1), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(1))).toBeCloseTo(zoomToPdfScale(1.25), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(1.25))).toBeCloseTo(zoomToPdfScale(1.5), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(1.5))).toBeCloseTo(zoomToPdfScale(2), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(4))).toBeCloseTo(zoomToPdfScale(5), 4);
+    expect(getNextAcrobatZoomIn(zoomToPdfScale(5))).toBeCloseTo(zoomToPdfScale(5), 4); // Üst sınır
   });
 
   test("Ketoral PDF link alignment and re-render on scroll return", async ({ page }) => {

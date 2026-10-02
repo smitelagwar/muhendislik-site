@@ -4,7 +4,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
@@ -35,16 +35,24 @@ import { PdfPageScrubber } from "./pdf-page-scrubber";
 import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
 import { PdfPasswordModal } from "./pdf-password-modal";
 import { PdfShortcutsModal } from "./pdf-shortcuts-modal";
+import { pdfViewerStrings } from "./strings";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import {
   usePdfGestures,
   useZoomGestures,
   clampPdfScale,
   MIN_PDF_SCALE,
-  MAX_PDF_SCALE,
   getNextAcrobatZoomIn,
   getNextAcrobatZoomOut,
 } from "@/lib/dokumantasyon/studio/pdf/pdf-gesture-engine";
+import {
+  computePdfFitScale,
+  getMaxPdfScale,
+  PDF_PAGE_GAP,
+  PDF_PAGE_PADDING,
+  rotatePdfPageSize,
+  zoomToPdfScale,
+} from "@/lib/dokumantasyon/studio/pdf/pdf-zoom-math";
 import {
   OutlineItemNode,
   NavigationHistoryEntry,
@@ -78,11 +86,10 @@ interface ZoomState {
 }
 
 const MIN_SCALE = MIN_PDF_SCALE;
-const MAX_SCALE = MAX_PDF_SCALE;
 const PAGE_WINDOW_N = 5; // Faz C: Bellek penceresi [görünür - 5, görünür + 5]
 
-function clampScale(scale: number) {
-  return clampPdfScale(scale, MIN_SCALE, MAX_SCALE);
+function clampScale(scale: number, max = getMaxPdfScale()) {
+  return clampPdfScale(scale, MIN_SCALE, max);
 }
 
 export function PdfJsStudio({
@@ -102,6 +109,8 @@ export function PdfJsStudio({
   onRename,
   onDelete,
 }: PdfJsStudioProps) {
+  const viewerRootRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<any>(null);
@@ -117,6 +126,15 @@ export function PdfJsStudio({
   const [renderedScale, setRenderedScale] = useState<number>(1.2);
   const [isQueueIdle, setIsQueueIdle] = useState<boolean>(true);
   const [rotation, setRotation] = useState<number>(0);
+  const rotationRef = useRef<number>(0);
+  rotationRef.current = rotation;
+  const [spaceDown, setSpaceDown] = useState(false);
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [isChromeHidden, setIsChromeHidden] = useState(false);
+  const [toolbarHeight, setToolbarHeight] = useState(56);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
+  const [nativeFullscreen, setNativeFullscreen] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -138,6 +156,7 @@ export function PdfJsStudio({
 
   // Pan / Hand Tool Durumu
   const [isHandTool, setIsHandTool] = useState<boolean>(false);
+  const isHandToolEffective = isHandTool || spaceDown;
 
   // Kenar Çubuğu ve Arama Snippet Paneli
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
@@ -145,7 +164,7 @@ export function PdfJsStudio({
   const [outline, setOutline] = useState<OutlineItemNode[] | null>(null);
   const [pageLabels, setPageLabels] = useState<(string | null | undefined)[] | null>(null);
   const [navHistory, setNavHistory] = useState<NavigationHistoryEntry[]>([]);
-  const [isScrubbingParent, setIsScrubbingParent] = useState<boolean>(false);
+  const [navForwardHistory, setNavForwardHistory] = useState<NavigationHistoryEntry[]>([]);
   const isScrubbingRef = useRef<boolean>(false);
   const [isSnippetPanelOpen, setIsSnippetPanelOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
@@ -194,6 +213,47 @@ export function PdfJsStudio({
   const [settings, setSettings] = useState<PdfViewerSettings>(() => getPdfSettings());
   const [nightMode, setNightMode] = useState<boolean>(() => getPdfSettings().nightMode);
   const saveDebounceTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    const update = () => setIsCoarsePointer(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 719px)");
+    const update = () => setIsMobileLayout(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    const update = () => setNativeFullscreen(document.fullscreenElement === viewerRootRef.current);
+    document.addEventListener("fullscreenchange", update);
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, []);
+
+  useEffect(() => {
+    const toolbar = toolbarRef.current;
+    if (!toolbar) return;
+    const update = () => setToolbarHeight(Math.ceil(toolbar.getBoundingClientRect().height));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(toolbar);
+    return () => observer.disconnect();
+  }, []);
+
+  // Desktop keyboard shortcuts work as soon as the opened PDF is ready; keep mobile focus untouched.
+  useEffect(() => {
+    if (!pdfDoc || loading || isMobileLayout) return;
+    const frame = window.requestAnimationFrame(() => {
+      viewerRootRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [pdfDoc, loading, isMobileLayout]);
 
   // Faz R3: Bozuk Harf Eşleme Onarımı (CMap Repair)
   const [autoRepairText, setAutoRepairText] = useState<boolean>(() => getPdfSettings().autoRepairText);
@@ -288,9 +348,14 @@ export function PdfJsStudio({
       offsetRatio,
       scaleMode: zoomRef.current.mode,
       scale: zoomRef.current.scale,
+      rotation: rotationRef.current as 0 | 90 | 180 | 270,
+      sidebarOpen: isSidebarOpen,
+      sidebarTab,
+      handTool: isHandTool,
+      nightMode,
       fileVersion: currentFileVersion,
     });
-  }, [fileId, currentFileVersion]);
+  }, [fileId, currentFileVersion, isHandTool, isSidebarOpen, nightMode, sidebarTab]);
 
   const triggerDebouncedSave = useCallback(() => {
     if (saveDebounceTimerRef.current !== null) {
@@ -301,6 +366,11 @@ export function PdfJsStudio({
       performSave();
     }, 500);
   }, [performSave]);
+
+  useEffect(() => {
+    if (loading || !pdfDoc) return;
+    triggerDebouncedSave();
+  }, [pdfDoc, loading, zoom, rotation, isSidebarOpen, sidebarTab, isHandTool, nightMode, triggerDebouncedSave]);
 
   useEffect(() => {
     const handleFlushSave = () => {
@@ -341,25 +411,29 @@ export function PdfJsStudio({
     const currentSize = pageDimensions[currentPageRef.current] || firstPageSize;
     if (!container || !currentSize) return null;
 
-    const isQuarterTurn = rotation % 180 !== 0;
-    const pageWidth = isQuarterTurn ? currentSize.height : currentSize.width;
-    const pageHeight = isQuarterTurn ? currentSize.width : currentSize.height;
-    const horizontalPadding = container.clientWidth < 640 ? 32 : 64;
-    const verticalPadding = container.clientHeight < 640 ? 32 : 64;
-    const availableWidth = Math.max(container.clientWidth - horizontalPadding, 1);
-    const availableHeight = Math.max(container.clientHeight - verticalPadding, 1);
-    const targetScale = mode === "fit-width"
-      ? availableWidth / pageWidth
-      : Math.min(availableWidth / pageWidth, availableHeight / pageHeight);
+    const pageSize = rotatePdfPageSize(currentSize, rotation);
+    const targetScale = computePdfFitScale({
+      mode,
+      containerWidth: container.clientWidth,
+      containerHeight: container.clientHeight,
+      pageWidth: pageSize.width,
+      pageHeight: pageSize.height,
+      topInset: isMobileLayout ? toolbarHeight : 0,
+    });
 
-    return Number(clampScale(targetScale).toFixed(2));
-  }, [firstPageSize, pageDimensions, rotation]);
+    return clampScale(targetScale);
+  }, [firstPageSize, isMobileLayout, pageDimensions, rotation, toolbarHeight]);
 
   const zoomToRef = useRef<((n: number, o?: any) => void) | null>(null);
-  const pendingModeRef = useRef<ZoomMode | null>(null);
   const handleSmartZoomRef = useRef<
     ((point: { clientX: number; clientY: number }, target?: EventTarget | null) => void) | null
   >(null);
+  const handleViewerTap = useCallback((_: number, __: number, target: EventTarget | null) => {
+    if (!isCoarsePointer || isSearchOpen) return;
+    if ((target as Element | null)?.closest?.("a, button, input, select, [data-no-tap]")) return;
+    if (typeof window !== "undefined" && window.getSelection()?.isCollapsed === false) return;
+    setIsChromeHidden((hidden) => !hidden);
+  }, [isCoarsePointer, isSearchOpen]);
 
   const applyFitMode = useCallback(
     (mode: Extract<ZoomMode, "fit-width" | "fit-page">, animate = false) => {
@@ -367,14 +441,20 @@ export function PdfJsStudio({
       if (targetScale === null) return;
 
       targetScaleRef.current = targetScale;
-      if (animate && zoomToRef.current) {
-        pendingModeRef.current = mode;
-        zoomToRef.current(targetScale, { animate: true });
-        updateZoomState({ mode, scale: targetScale });
-      } else {
-        pendingModeRef.current = null;
+      if (Math.abs(zoomRef.current.scale - targetScale) < 1e-4) {
         updateZoomState({ mode, scale: targetScale });
         setRenderedScale(targetScale);
+        return;
+      }
+      if (animate && zoomToRef.current) {
+        zoomToRef.current(targetScale, { animate: true, mode });
+      } else {
+        if (zoomToRef.current) {
+          zoomToRef.current(targetScale, { animate: false, mode });
+        } else {
+          updateZoomState({ mode, scale: targetScale });
+          setRenderedScale(targetScale);
+        }
       }
     },
     [getFitScale, updateZoomState]
@@ -384,45 +464,55 @@ export function PdfJsStudio({
   const zoomTo = useZoomGestures(scrollContainerRef, contentRef, {
     scale: zoom.scale,
     min: MIN_SCALE,
-    max: MAX_SCALE,
-    onCommit: (nextScale) => {
-      const nextMode = pendingModeRef.current ?? "custom";
-      pendingModeRef.current = null;
+    max: getMaxPdfScale(),
+    onCommit: (nextScale, mode, hasQueuedZoom) => {
+      if (!hasQueuedZoom) targetScaleRef.current = nextScale;
+      const nextMode = mode ?? "custom";
       updateZoomState({ mode: nextMode, scale: nextScale });
       setRenderedScale(nextScale);
     },
     onDoubleTap: (clientX, clientY, target) => {
       handleSmartZoomRef.current?.({ clientX, clientY }, target);
     },
+    onTap: handleViewerTap,
     disabled: loading || !pdfDoc,
   });
   zoomToRef.current = zoomTo;
 
-  const adjustCustomZoom = useCallback(
-    (delta: number) => {
-      const currentTarget = zoomRef.current.scale;
-      const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
-      zoomTo(nextTarget, { animate: true });
-    },
-    [zoomTo]
-  );
-
   const handleZoomIn = useCallback(() => {
-    const currentTarget = zoomRef.current.scale;
+    const currentTarget = targetScaleRef.current;
     const nextTarget = getNextAcrobatZoomIn(currentTarget);
-    zoomTo(nextTarget, { animate: true });
+    targetScaleRef.current = nextTarget;
+    zoomTo(nextTarget, { animate: true, mode: "custom" });
   }, [zoomTo]);
 
   const handleZoomOut = useCallback(() => {
-    const currentTarget = zoomRef.current.scale;
+    const currentTarget = targetScaleRef.current;
     const nextTarget = getNextAcrobatZoomOut(currentTarget);
-    zoomTo(nextTarget, { animate: true });
+    targetScaleRef.current = nextTarget;
+    zoomTo(nextTarget, { animate: true, mode: "custom" });
   }, [zoomTo]);
 
   const setActualSize = useCallback(() => {
-    pendingModeRef.current = "actual-size";
-    zoomTo(1, { animate: true });
-  }, [zoomTo]);
+    const actualScale = zoomToPdfScale(1);
+    targetScaleRef.current = actualScale;
+    if (Math.abs(zoomRef.current.scale - actualScale) < 1e-4) {
+      updateZoomState({ mode: "actual-size", scale: actualScale });
+      setRenderedScale(actualScale);
+      return;
+    }
+    zoomTo(actualScale, { animate: true, mode: "actual-size" });
+  }, [updateZoomState, zoomTo]);
+
+  const handlePresetZoom = useCallback((targetScale: number) => {
+    targetScaleRef.current = targetScale;
+    if (Math.abs(zoomRef.current.scale - targetScale) < 1e-4) {
+      updateZoomState({ mode: "custom", scale: targetScale });
+      setRenderedScale(targetScale);
+      return;
+    }
+    zoomTo(targetScale, { animate: true, mode: "custom" });
+  }, [updateZoomState, zoomTo]);
 
   // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4 & v3 Acrobat)
   const handleSmartZoom = useCallback(
@@ -441,22 +531,20 @@ export function PdfJsStudio({
       }
 
       const fitScale = getFitScale("fit-width") ?? 1.2;
-      const isZoomedIn = zoomRef.current.scale > fitScale * 1.15;
+      const isZoomedIn = targetScaleRef.current > fitScale * 1.15;
 
       if (isZoomedIn) {
         // Zaten zoomlanmışsa odaklı animasyonla genişliğe sığdır moduna dön
-        pendingModeRef.current = "fit-width";
-        zoomTo(fitScale, { x: point.clientX, y: point.clientY, animate: true });
-        updateZoomState({ mode: "fit-width", scale: fitScale });
+        targetScaleRef.current = fitScale;
+        zoomTo(fitScale, { x: point.clientX, y: point.clientY, animate: true, mode: "fit-width" });
       } else {
         // Dokunulan / tıklanan noktaya odaklanarak 2.2x akıllı zoom yap
         const targetZoom = clampScale(Number((fitScale * 2.2).toFixed(2)));
-        pendingModeRef.current = "custom";
-        zoomTo(targetZoom, { x: point.clientX, y: point.clientY, animate: true });
-        updateZoomState({ mode: "custom", scale: targetZoom });
+        targetScaleRef.current = targetZoom;
+        zoomTo(targetZoom, { x: point.clientX, y: point.clientY, animate: true, mode: "custom" });
       }
     },
-    [getFitScale, zoomTo, updateZoomState]
+    [getFitScale, zoomTo]
   );
   handleSmartZoomRef.current = handleSmartZoom;
 
@@ -478,7 +566,7 @@ export function PdfJsStudio({
     }
     setIsPasswordModalOpen(false);
     setErrorType("password");
-    setError("Bu belge parola korumalıdır. Açmak için lütfen geçerli bir parola girin.");
+    setError(pdfViewerStrings.passwordError);
     setLoading(false);
   }, []);
 
@@ -529,6 +617,8 @@ export function PdfJsStudio({
         setError(null);
 
         setPageDimensions({});
+        setNavHistory([]);
+        setNavForwardHistory([]);
         pdfRenderQueue.clear();
 
         try {
@@ -571,6 +661,21 @@ export function PdfJsStudio({
         }
 
         const savedRecord = fileId ? getPdfReadingPosition(fileId, currentFileVersion) : null;
+        const restoredMode: ZoomMode = savedRecord?.scaleMode ?? getPdfSettings().defaultViewMode;
+        const restoredScale = restoredMode === "actual-size"
+          ? zoomToPdfScale(1)
+          : restoredMode === "custom" && savedRecord?.scale
+          ? clampScale(savedRecord.scale)
+          : savedRecord?.scale ?? zoomRef.current.scale;
+        targetScaleRef.current = restoredScale;
+        updateZoomState({ mode: restoredMode, scale: restoredScale });
+        setRenderedScale(restoredScale);
+        setRotation(savedRecord?.rotation ?? 0);
+        setIsSidebarOpen(savedRecord?.sidebarOpen ?? false);
+        setSidebarTab(savedRecord?.sidebarTab ?? "thumbnails");
+        setIsHandTool(savedRecord?.handTool ?? false);
+        setNightMode(savedRecord?.nightMode ?? getPdfSettings().nightMode);
+        setIsChromeHidden(false);
         const targetPage = urlHashPage ?? (savedRecord?.page ? Math.min(Math.max(savedRecord.page, 1), doc.numPages) : 1);
         const targetOffsetRatio = urlHashPage ? 0 : (savedRecord?.offsetRatio ?? 0);
 
@@ -616,7 +721,7 @@ export function PdfJsStudio({
         // 1. Bozuk / Geçersiz PDF: retry yok, doğrudan hata ekranı + indir butonu
         if (errName === "InvalidPDFException" || /invalid pdf/i.test(errMessage)) {
           setErrorType("corrupt");
-          setError("PDF dosyası bozuk veya geçersiz bir formatta.");
+          setError(pdfViewerStrings.corruptPdf);
           setLoading(false);
           return;
         }
@@ -624,7 +729,7 @@ export function PdfJsStudio({
         // 2. Eksik / Bulunamayan PDF (404): retry yok
         if (httpStatus === 404 || errName === "MissingPDFException" || /missing pdf|not found/i.test(errMessage)) {
           setErrorType("missing");
-          setError("PDF dosyası sunucuda veya depolama alanında bulunamadı.");
+          setError(pdfViewerStrings.missingPdf);
           setLoading(false);
           return;
         }
@@ -632,7 +737,7 @@ export function PdfJsStudio({
         // 3. Parola İptal Edildi veya Hata:
         if (errName === "PasswordException") {
           setErrorType("password");
-          setError("Bu belge parola korumalıdır. Açmak için lütfen geçerli bir parola girin.");
+          setError(pdfViewerStrings.passwordError);
           setLoading(false);
           return;
         }
@@ -650,7 +755,7 @@ export function PdfJsStudio({
             console.warn(`PDF access URL refresh failed (attempt ${retryCountRef.current}):`, refreshError);
             if (retryCountRef.current >= 3) {
               setErrorType("network");
-              setError("PDF erişim bağlantısı yenilenemedi. Lütfen sayfayı yenileyin.");
+              setError(pdfViewerStrings.accessRefreshError);
             }
           } finally {
             if (isMounted) {
@@ -667,7 +772,7 @@ export function PdfJsStudio({
         setError(
           err instanceof Error
             ? err.message
-            : "PDF dokümanı yüklenirken bir hata oluştu."
+            : pdfViewerStrings.genericLoadError
         );
         setLoading(false);
       }
@@ -690,10 +795,22 @@ export function PdfJsStudio({
         pdfDocRef.current = null;
       }
     };
-  }, [accessUrl, onAccessExpired, fileId, reloadKey, currentFileVersion]);
+  }, [accessUrl, onAccessExpired, fileId, reloadKey, currentFileVersion, updateZoomState]);
 
   const applyFitModeRef = useRef(applyFitMode);
   applyFitModeRef.current = applyFitMode;
+
+  // Fit modunda etkin sayfanın boyutuna uyum sağla (karışık A4/A3 paftalar).
+  const activePageSize = pageDimensions[currentPage] || firstPageSize;
+  useEffect(() => {
+    if (loading || !pdfDoc || !activePageSize) return;
+    const mode = zoomRef.current.mode;
+    if (mode !== "fit-width" && mode !== "fit-page") return;
+    const frame = window.requestAnimationFrame(() => {
+      if (zoomRef.current.mode === mode) applyFitModeRef.current(mode);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activePageSize?.width, activePageSize?.height, currentPage, isMobileLayout, loading, pdfDoc, rotation, toolbarHeight]);
 
   // Ekran boyutu değiştiğinde veya yön döndürüldüğünde (orientation change)
   // ara scroll olaylarının kayıtlı okuma oranını (scrollRatio) ezmesini engelle
@@ -790,11 +907,12 @@ export function PdfJsStudio({
       }
       observer.disconnect();
     };
-  }, [firstPageSize, loading, rotation]);
+  }, [firstPageSize, isMobileLayout, loading, rotation, toolbarHeight]);
 
   // 2. Sayfaya Kaydırma (Scroll to Page) ve Konum Kaydetme (Faz H)
   const scrollToPage = useCallback((pageNum: number) => {
     if (pageNum < 1 || pageNum > numPages) return;
+    setNavForwardHistory([]);
     setCurrentPage(pageNum);
     currentPageRef.current = pageNum;
 
@@ -845,6 +963,7 @@ export function PdfJsStudio({
             scrollTop: container.scrollTop,
           })
         );
+        setNavForwardHistory([]);
       }
 
       const targetPage = await resolvePdfDestination(pdfDoc, dest);
@@ -857,31 +976,54 @@ export function PdfJsStudio({
   );
 
   const handleNavigateBack = useCallback(() => {
-    setNavHistory((prev) => {
-      if (prev.length === 0) return prev;
-      const nextHistory = [...prev];
-      const target = nextHistory.pop()!;
-      const container = scrollContainerRef.current;
-      if (container) {
-        currentPageRef.current = target.page;
-        setCurrentPage(target.page);
-        pdfRenderQueue.setCurrentPage(target.page);
-        container.scrollTo({
-          top: target.scrollTop,
-          behavior: "smooth",
-        });
-      }
-      return nextHistory;
-    });
-  }, []);
+    const target = navHistory[navHistory.length - 1];
+    const container = scrollContainerRef.current;
+    if (!target || !container) return;
+    setNavHistory((prev) => prev.slice(0, -1));
+    setNavForwardHistory((prev) =>
+      pushNavigationHistory(prev, { page: currentPageRef.current, scrollTop: container.scrollTop })
+    );
+    currentPageRef.current = target.page;
+    setCurrentPage(target.page);
+    pdfRenderQueue.setCurrentPage(target.page);
+    container.scrollTo({ top: target.scrollTop, behavior: "smooth" });
+  }, [navHistory]);
+
+  const handleNavigateForward = useCallback(() => {
+    const target = navForwardHistory[navForwardHistory.length - 1];
+    const container = scrollContainerRef.current;
+    if (!target || !container) return;
+    setNavForwardHistory((prev) => prev.slice(0, -1));
+    setNavHistory((prev) =>
+      pushNavigationHistory(prev, { page: currentPageRef.current, scrollTop: container.scrollTop })
+    );
+    currentPageRef.current = target.page;
+    setCurrentPage(target.page);
+    pdfRenderQueue.setCurrentPage(target.page);
+    container.scrollTo({ top: target.scrollTop, behavior: "smooth" });
+  }, [navForwardHistory]);
+
+  const handleSidebarSelectPage = useCallback((page: number) => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      setNavHistory((prev) => pushNavigationHistory(prev, {
+        page: currentPageRef.current,
+        scrollTop: container.scrollTop,
+      }));
+      setNavForwardHistory([]);
+    }
+    scrollToPage(page);
+    if (isCoarsePointer) setIsSidebarOpen(false);
+  }, [isCoarsePointer, scrollToPage]);
 
   const handleSelectOutlineItem = useCallback(
     (item: OutlineItemNode) => {
       if (item.dest) {
         handleNavigateDestination(item.dest);
+        if (isCoarsePointer) setIsSidebarOpen(false);
       }
     },
-    [handleNavigateDestination]
+    [handleNavigateDestination, isCoarsePointer]
   );
 
   const handleToggleOutline = useCallback(() => {
@@ -890,6 +1032,7 @@ export function PdfJsStudio({
     } else {
       setSidebarTab("outline");
       setIsSidebarOpen(true);
+      setIsChromeHidden(false);
       setIsSnippetPanelOpen(false);
     }
   }, [isSidebarOpen, sidebarTab]);
@@ -900,6 +1043,7 @@ export function PdfJsStudio({
     } else {
       setSidebarTab("thumbnails");
       setIsSidebarOpen(true);
+      setIsChromeHidden(false);
       setIsSnippetPanelOpen(false);
     }
   }, [isSidebarOpen, sidebarTab]);
@@ -974,7 +1118,9 @@ export function PdfJsStudio({
         // Scroll Anchoring: Eğer ölçülen sayfa şu anki aktif sayfanın yukarısındaysa,
         // yükseklik farkı kadar scroll'u kaydır ki görünüm zıplamasın!
         if (existing && measuredPageNum < currentPageRef.current) {
-          const deltaH = height - existing.height;
+          const previousHeight = rotatePdfPageSize(existing, rotationRef.current).height;
+          const nextHeight = rotatePdfPageSize({ width, height }, rotationRef.current).height;
+          const deltaH = nextHeight - previousHeight;
           if (Math.abs(deltaH) > 1) {
             const container = scrollContainerRef.current;
             if (container) {
@@ -1088,6 +1234,27 @@ export function PdfJsStudio({
 
   const handleDownloadAction = onDownload || defaultDownload;
 
+  const handleToggleViewerFullscreen = useCallback(() => {
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
+      return;
+    }
+    const root = viewerRootRef.current;
+    if (document.fullscreenElement === root) {
+      void document.exitFullscreen().catch(() => setPseudoFullscreen(false));
+      return;
+    }
+    if (pseudoFullscreen) {
+      setPseudoFullscreen(false);
+      return;
+    }
+    if (root?.requestFullscreen) {
+      void root.requestFullscreen().catch(() => setPseudoFullscreen(true));
+    } else {
+      setPseudoFullscreen(true);
+    }
+  }, [onToggleFullscreen, pseudoFullscreen]);
+
   // 5. Yazdır / İndir (Faz H) — Orijinal PDF URL'sini gizli iframe ile yazdır
   const handlePrint = useCallback(() => {
     try {
@@ -1118,87 +1285,113 @@ export function PdfJsStudio({
     }
   }, [accessUrl]);
 
-  // 5. Klavye Kısayolları (Shortcuts)
+  // Kısayollar yalnızca PDF stüdyosu odaktayken çalışır; sayfa kaydırma tuşları tarayıcıya bırakılır.
   useEffect(() => {
+    const root = viewerRootRef.current;
+    if (!root) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") {
+      const activeElement = document.activeElement;
+      if (activeElement !== document.body && activeElement !== root && !root.contains(activeElement)) return;
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      const editable = !!target?.closest("input, textarea, select, [contenteditable='true']");
+      const interactive = !!target?.closest("button, a, input, textarea, select, [contenteditable='true']");
+      const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      if (e.code === "Space" && !mod && !e.altKey && !editable && !interactive) {
+        e.preventDefault();
+        setSpaceDown(true);
         return;
       }
+      if (editable && !mod && e.key !== "Escape") return;
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+      if (e.altKey && e.key === "ArrowLeft") {
         e.preventDefault();
-        setIsSearchOpen((prev) => !prev);
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "=")) {
+        handleNavigateBack();
+      } else if (e.altKey && e.key === "ArrowRight") {
         e.preventDefault();
-        handleZoomIn();
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key === "+" || e.key === "=")) {
+        handleNavigateForward();
+      } else if (mod && key === "f") {
         e.preventDefault();
-        handleZoomIn();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        setIsSearchOpen(true);
+        setIsChromeHidden(false);
+        requestAnimationFrame(() => root.querySelector<HTMLInputElement>("[data-testid='pdf-search-bar'] input")?.focus());
+      } else if (mod && key === "g") {
         e.preventDefault();
-        handleZoomOut();
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "-") {
+        if (e.shiftKey) handlePrevMatch();
+        else handleNextMatch();
+      } else if (e.key === "F4") {
         e.preventDefault();
-        handleZoomOut();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
-        e.preventDefault();
-        applyFitMode("fit-page", true);
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "0") {
-        e.preventDefault();
-        applyFitMode("fit-page", true);
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "1") {
-        e.preventDefault();
-        setActualSize();
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "1") {
-        e.preventDefault();
-        setActualSize();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "2") {
-        e.preventDefault();
-        applyFitMode("fit-width", true);
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "2") {
-        e.preventDefault();
-        applyFitMode("fit-width", true);
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "h") {
-        e.preventDefault();
-        setIsHandTool(true);
-      } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "v") {
-        e.preventDefault();
-        setIsHandTool(false);
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
+        handleToggleSidebar();
+      } else if (mod && e.shiftKey && (e.key === "+" || e.key === "=")) {
         e.preventDefault();
         setRotation((r) => (r + 90) % 360);
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+      } else if (mod && e.shiftKey && e.key === "-") {
+        e.preventDefault();
+        setRotation((r) => (r + 270) % 360);
+      } else if (mod && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if (mod && e.key === "-") {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (mod && e.key === "0") {
+        e.preventDefault();
+        applyFitMode("fit-page", true);
+      } else if (mod && e.key === "1") {
+        e.preventDefault();
+        setActualSize();
+      } else if (mod && e.key === "2") {
+        e.preventDefault();
+        applyFitMode("fit-width", true);
+      } else if (mod && key === "l") {
+        e.preventDefault();
+        handleToggleViewerFullscreen();
+      } else if (mod && key === "r") {
+        e.preventDefault();
+        setRotation((r) => (r + 90) % 360);
+      } else if (mod && key === "p") {
         e.preventDefault();
         handlePrint();
-      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      } else if (mod && key === "b") {
         e.preventDefault();
         setIsSidebarOpen((prev) => !prev);
         setIsSnippetPanelOpen(false);
-      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "d") {
+      } else if (mod && !e.shiftKey && key === "d") {
         e.preventDefault();
         handleDownloadAction();
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s") {
-        if (onShare) {
+      } else if (mod && e.shiftKey && key === "s" && onShare) {
+        e.preventDefault();
+        onShare();
+      } else if (!mod && !e.altKey && !interactive && (e.key === "+" || e.key === "=")) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if (!mod && !e.altKey && !interactive && e.key === "-") {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (!mod && !e.altKey && !interactive && key === "h") {
+        e.preventDefault();
+        setIsHandTool(true);
+      } else if (!mod && !e.altKey && !interactive && key === "v") {
+        e.preventDefault();
+        setIsHandTool(false);
+      } else if (!mod && !e.altKey && !interactive && e.key === "ArrowLeft") {
+        const scroll = scrollContainerRef.current;
+        if (scroll && scroll.scrollWidth <= scroll.clientWidth + 1) {
           e.preventDefault();
-          onShare();
+          scrollToPage(Math.max(currentPageRef.current - 1, 1));
         }
-      } else if (e.key === "PageUp") {
-        e.preventDefault();
-        scrollToPage(Math.max(currentPageRef.current - 1, 1));
-      } else if (e.key === "PageDown") {
-        e.preventDefault();
-        scrollToPage(Math.min(currentPageRef.current + 1, numPages));
-      } else if (e.key === "ArrowLeft" && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        scrollToPage(Math.max(currentPageRef.current - 1, 1));
-      } else if (e.key === "ArrowRight" && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        e.preventDefault();
-        scrollToPage(Math.min(currentPageRef.current + 1, numPages));
-      } else if (e.key === "Home") {
+      } else if (!mod && !e.altKey && !interactive && e.key === "ArrowRight") {
+        const scroll = scrollContainerRef.current;
+        if (scroll && scroll.scrollWidth <= scroll.clientWidth + 1) {
+          e.preventDefault();
+          scrollToPage(Math.min(currentPageRef.current + 1, numPages));
+        }
+      } else if (!mod && !e.altKey && !interactive && e.key === "Home") {
         e.preventDefault();
         scrollToPage(1);
-      } else if (e.key === "End") {
+      } else if (!mod && !e.altKey && !interactive && e.key === "End") {
         e.preventDefault();
         scrollToPage(numPages);
       } else if (e.key === "?" || (e.shiftKey && e.key === "/")) {
@@ -1208,49 +1401,58 @@ export function PdfJsStudio({
         if (isShortcutsModalOpen) {
           e.preventDefault();
           setIsShortcutsModalOpen(false);
-          setTimeout(() => {
-            const trigger =
-              document.querySelector<HTMLElement>('[data-testid="pdf-shortcuts-btn"]') ||
-              document.querySelector<HTMLElement>('[data-testid="pdf-viewer-more-menu-trigger"]');
-            trigger?.focus();
-          }, 0);
         } else if (isSearchOpen) {
           e.preventDefault();
-          e.stopPropagation();
           setIsSearchOpen(false);
           setIsSnippetPanelOpen(false);
-          setTimeout(() => {
-            const searchBtn = document.querySelector<HTMLElement>('button[data-command-id="pdf.search.open"]');
-            searchBtn?.focus();
-          }, 0);
         } else if (isSidebarOpen) {
           e.preventDefault();
           setIsSidebarOpen(false);
-          setTimeout(() => {
-            const sidebarBtn = document.querySelector<HTMLElement>('button[data-command-id="pdf.sidebar.toggle"]');
-            sidebarBtn?.focus();
-          }, 0);
+        } else if (isHandTool) {
+          e.preventDefault();
+          setIsHandTool(false);
+        } else if (pseudoFullscreen) {
+          e.preventDefault();
+          setPseudoFullscreen(false);
+        } else {
+          setIsChromeHidden(false);
         }
       }
     };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") setSpaceDown(false);
+    };
+    const handleWindowBlur = () => setSpaceDown(false);
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleWindowBlur);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleWindowBlur);
+    };
   }, [
-    adjustCustomZoom,
     applyFitMode,
-    currentPage,
+    handleDownloadAction,
+    handleNavigateBack,
+    handleNavigateForward,
+    handleNextMatch,
+    handlePrevMatch,
+    handlePrint,
+    handleToggleSidebar,
+    handleToggleViewerFullscreen,
     handleZoomIn,
     handleZoomOut,
+    isHandTool,
+    isSearchOpen,
+    isShortcutsModalOpen,
+    isSidebarOpen,
     numPages,
+    onShare,
+    pseudoFullscreen,
     scrollToPage,
     setActualSize,
-    isSearchOpen,
-    isSidebarOpen,
-    isShortcutsModalOpen,
-    handleDownloadAction,
-    handlePrint,
-    onShare,
   ]);
 
   const handleFitWidth = () => {
@@ -1307,7 +1509,7 @@ export function PdfJsStudio({
     handlePointerCancel,
   } = usePdfGestures({
     containerRef: scrollContainerRef,
-    isHandTool,
+    isHandTool: isHandToolEffective,
     scale: zoom.scale,
     onSmartZoom: handleSmartZoom,
     disabled: loading || !pdfDoc,
@@ -1324,21 +1526,38 @@ export function PdfJsStudio({
 
   return (
     <div
+      ref={viewerRootRef}
+      tabIndex={0}
       data-zoom-mode={zoom.mode}
+      data-tool={isHandToolEffective ? "hand" : "select"}
+      data-night={nightMode || undefined}
+      data-pseudo-fs={pseudoFullscreen || undefined}
       data-pdf-viewer-state={viewerState}
+      aria-label={pdfViewerStrings.viewer}
+      onPointerDownCapture={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest("button, a, input, textarea, select, [contenteditable='true']")) return;
+        viewerRootRef.current?.focus({ preventScroll: true });
+      }}
       className={cn(
-        "flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none",
-        isReducedMotion && "reduce-motion"
+        "relative flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden bg-background text-foreground select-none",
+        isReducedMotion && "reduce-motion",
+        pseudoFullscreen && "fixed inset-0 z-[9999] h-[100dvh]"
       )}
     >
       {/* 1. PDF Studio Toolbar */}
+      <div ref={toolbarRef} className={cn(
+        "z-30 shrink-0 transition-transform duration-200",
+        isMobileLayout ? "absolute inset-x-0 top-0" : "relative",
+        isMobileLayout && isChromeHidden && "-translate-y-full pointer-events-none"
+      )}>
       <PdfViewerToolbar
         numPages={numPages}
         currentPage={currentPage}
         scale={scale}
         zoomMode={zoom.mode}
         isSidebarOpen={isSidebarOpen}
-        isHandTool={isHandTool}
+        isHandTool={isHandToolEffective}
         isSearchOpen={isSearchOpen}
         onToggleSidebar={handleToggleSidebar}
         pageLabels={pageLabels}
@@ -1346,6 +1565,8 @@ export function PdfJsStudio({
         onToggleOutline={handleToggleOutline}
         canNavigateBack={navHistory.length > 0}
         onNavigateBack={handleNavigateBack}
+        canNavigateForward={navForwardHistory.length > 0}
+        onNavigateForward={handleNavigateForward}
         onPageChange={scrollToPage}
         onSetHandTool={setIsHandTool}
         onZoomIn={handleZoomIn}
@@ -1353,10 +1574,11 @@ export function PdfJsStudio({
         onZoom100={setActualSize}
         onFitWidth={handleFitWidth}
         onFitPage={handleFitPage}
-        onZoomSelect={(targetScale) => zoomTo(targetScale, { animate: true })}
+        onZoomSelect={handlePresetZoom}
         onRotateView={() => setRotation((r) => (r + 90) % 360)}
         onToggleSearch={() => {
           setIsSearchOpen((prev) => !prev);
+          setIsChromeHidden(false);
           if (isSearchOpen) setIsSnippetPanelOpen(false);
         }}
         onPrint={handlePrint}
@@ -1377,14 +1599,15 @@ export function PdfJsStudio({
         extension={extension}
         versionNo={versionNo}
         createdAt={createdAt}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={onToggleFullscreen}
+        isFullscreen={isFullscreen || pseudoFullscreen || nativeFullscreen}
+        onToggleFullscreen={handleToggleViewerFullscreen}
         onBack={onBack}
         onShare={onShare}
         onDownload={handleDownloadAction}
         onRename={onRename}
         onDelete={onDelete}
       />
+      </div>
 
       {/* 2. Doküman İçi Arama Çubuğu */}
       <PdfSearchBar
@@ -1419,7 +1642,7 @@ export function PdfJsStudio({
           activeTab={sidebarTab}
           onTabChange={setSidebarTab}
           outline={outline}
-          onSelectPage={scrollToPage}
+          onSelectPage={handleSidebarSelectPage}
           onSelectOutlineItem={handleSelectOutlineItem}
           onClose={() => setIsSidebarOpen(false)}
         />
@@ -1453,10 +1676,10 @@ export function PdfJsStudio({
             <Loader2 className="h-9 w-9 animate-spin text-amber-500 mb-3" />
             <span className="text-sm font-medium text-zinc-300">
               {isRefreshingAccess
-                ? "PDF erişim bağlantısı yenileniyor..."
+                ? pdfViewerStrings.refreshingAccess
                 : loadProgress && loadProgress.total > 0
-                ? `PDF dokümanı yükleniyor (%${Math.min(Math.round((loadProgress.loaded / loadProgress.total) * 100), 100)})...`
-                : "PDF dokümanı ve katmanlar hazırlanıyor..."}
+                ? pdfViewerStrings.loadingPdfPercent(Math.min(Math.round((loadProgress.loaded / loadProgress.total) * 100), 100))
+                : pdfViewerStrings.preparingPdf}
             </span>
             {loadProgress && loadProgress.total > 0 && (
               <div className="w-56 h-1.5 bg-zinc-800 rounded-full mt-3 overflow-hidden border border-zinc-700/40">
@@ -1476,12 +1699,12 @@ export function PdfJsStudio({
               <AlertCircle className="mx-auto h-9 w-9 text-red-500 mb-2" />
               <h3 className="text-sm font-bold text-red-200">
                 {errorType === "corrupt"
-                  ? "Bozuk veya Geçersiz Dosya"
+                  ? pdfViewerStrings.corruptTitle
                   : errorType === "missing"
-                  ? "Dosya Bulunamadı"
+                  ? pdfViewerStrings.missingTitle
                   : errorType === "password"
-                  ? "Parola Korumalı Belge"
-                  : "PDF Yükleme Hatası"}
+                  ? pdfViewerStrings.passwordProtectedTitle
+                  : pdfViewerStrings.loadErrorTitle}
               </h3>
               <p className="mt-1 text-xs text-zinc-400">{error}</p>
 
@@ -1493,7 +1716,7 @@ export function PdfJsStudio({
                     data-testid="pdf-download-corrupt-btn"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 border border-zinc-700 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
                   >
-                    Dosyayı İndir
+                    {pdfViewerStrings.downloadFile}
                   </button>
                 )}
                 {errorType === "password" && (
@@ -1507,7 +1730,7 @@ export function PdfJsStudio({
                     data-testid="pdf-reopen-password-btn"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400 transition-colors"
                   >
-                    Parola Gir
+                    {pdfViewerStrings.enterPasswordButton}
                   </button>
                 )}
                 {errorType === "network" && (
@@ -1517,7 +1740,7 @@ export function PdfJsStudio({
                     data-testid="pdf-retry-btn"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 border border-zinc-700 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
                   >
-                    Yeniden Dene
+                    {pdfViewerStrings.retryButton}
                   </button>
                 )}
               </div>
@@ -1534,7 +1757,8 @@ export function PdfJsStudio({
               currentPage={currentPage}
               onPageChange={handleScrubEnd}
               onScrubMove={handleScrubMove}
-              isScrollingParent={isScrubbingParent}
+              scrollElementRef={scrollContainerRef}
+              ready={!loading && !!pdfDoc}
             />
 
             <div
@@ -1548,7 +1772,6 @@ export function PdfJsStudio({
               onPointerCancel={handlePointerCancel}
               onScroll={() => {
                 if (isResizingRef.current) return;
-                setIsScrubbingParent(true);
                 const c = scrollContainerRef.current;
                 if (c && c.scrollHeight > 0) {
                   preservedStateRef.current = {
@@ -1561,15 +1784,20 @@ export function PdfJsStudio({
               }}
               className={`pdf-scroll min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] ${
                 nightMode ? "bg-zinc-950" : "bg-muted/50 dark:bg-zinc-900/60"
-              } p-4 sm:p-8 [touch-action:pan-x_pan-y] ${
-                isHandTool
+              } [touch-action:pan-x_pan-y] ${
+                isHandToolEffective
                   ? isDragging
                     ? "cursor-grabbing touch-none"
                     : "cursor-grab touch-none"
                   : "cursor-default"
               }`}
+              style={isMobileLayout ? { paddingTop: `${toolbarHeight + PDF_PAGE_PADDING}px` } : undefined}
             >
-              <div ref={contentRef} className="pdf-content flex min-w-full w-max flex-col items-center py-2">
+              <div
+                ref={contentRef}
+                className="pdf-content flex min-w-full w-max flex-col items-center"
+                style={{ gap: `${PDF_PAGE_GAP}px`, padding: `${PDF_PAGE_PADDING}px` }}
+              >
                 {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
                   <PdfPageView
                     key={pageNum}
@@ -1578,14 +1806,18 @@ export function PdfJsStudio({
                     scale={scale}
                     renderedScale={renderedScale}
                     rotation={rotation}
-                    isHandTool={isHandTool}
+                    isHandTool={isHandToolEffective}
                     repairRules={autoRepairText ? textRepairRules : undefined}
                     searchQuery={isSearchOpen ? searchQuery : ""}
                     isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
                     activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}
                     onPageVisible={handlePageVisible}
                     isWithinWindow={Math.abs(pageNum - currentPage) <= PAGE_WINDOW_N}
-                    initialDimensions={pageDimensions[pageNum] || firstPageSize || undefined}
+                    initialDimensions={
+                      (pageDimensions[pageNum] || firstPageSize)
+                        ? rotatePdfPageSize(pageDimensions[pageNum] || firstPageSize!, rotation)
+                        : undefined
+                    }
                     onDimensionsMeasured={handleDimensionsMeasured}
                     searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
                     searchOpts={searchOpts}

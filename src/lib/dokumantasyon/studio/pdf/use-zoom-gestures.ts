@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 type Anchor = { el: HTMLElement; fx: number; fy: number };
+export type ZoomCommitMode = "custom" | "actual-size" | "fit-width" | "fit-page";
 
 type Live = {
   r: number;
@@ -12,6 +13,7 @@ type Live = {
   originX: number;      // transform-origin, content'e göre (px)
   originY: number;
   anchor: Anchor | null;
+  mode?: ZoomCommitMode;
 };
 
 export type ZoomOpts = {
@@ -20,13 +22,14 @@ export type ZoomOpts = {
   dx?: number;
   dy?: number;
   animate?: boolean;
+  mode?: ZoomCommitMode;
 };
 
 export interface ZoomGestureOptions {
   scale: number;
   min: number;
   max: number;
-  onCommit: (next: number) => void;
+  onCommit: (next: number, mode?: ZoomCommitMode, hasQueuedZoom?: boolean) => void;
   disabled?: boolean;
   onTap?: (x: number, y: number, target: EventTarget | null) => void;
   onDoubleTap?: (x: number, y: number, target: EventTarget | null) => void;
@@ -42,14 +45,18 @@ export function useZoomGestures(
   const live = useRef<Live>({ ...EMPTY });
   const pending = useRef<Live | null>(null);
   const scaleRef = useRef(scale);
-  scaleRef.current = scale;
   const commitCb = useRef(onCommit);
-  commitCb.current = onCommit;
   const optsRef = useRef({ onTap, onDoubleTap });
-  optsRef.current = { onTap, onDoubleTap };
   const api = useRef<((n: number, o?: ZoomOpts) => void) | null>(null);
+  const queuedZoom = useRef<{ scale: number; options: ZoomOpts } | null>(null);
 
-  const clearStyles = () => {
+  useLayoutEffect(() => {
+    scaleRef.current = scale;
+    commitCb.current = onCommit;
+    optsRef.current = { onTap, onDoubleTap };
+  }, [scale, onCommit, onTap, onDoubleTap]);
+
+  const clearStyles = useCallback(() => {
     const c = contentRef.current;
     const s = scrollRef.current;
     if (c) {
@@ -59,7 +66,7 @@ export function useZoomGestures(
       c.style.transition = "";
     }
     s?.removeAttribute("data-zooming");
-  };
+  }, [contentRef, scrollRef]);
 
   // Commit sonrası (boyamadan önce): transform'u kaldır, sayfa-uzayı çıpasına göre scroll'u düzelt
   useLayoutEffect(() => {
@@ -76,7 +83,12 @@ export function useZoomGestures(
       s.scrollTop += r.top + a.fy * r.height - (sr.top + p.oy);
     }
     live.current = { ...EMPTY };
-  }, [scale, scrollRef, contentRef]);
+    const queued = queuedZoom.current;
+    queuedZoom.current = null;
+    if (queued) {
+      requestAnimationFrame(() => api.current?.(queued.scale, queued.options));
+    }
+  }, [scale, scrollRef, contentRef, clearStyles]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -85,6 +97,7 @@ export function useZoomGestures(
 
     let raf = 0;
     let timer = 0;
+    let animationTimer = 0;
     let d0 = 0;
     let r0 = 1;
     let g0 = 1;
@@ -153,18 +166,32 @@ export function useZoomGestures(
       if (next === scaleRef.current) {
         clearStyles();
         live.current = { ...EMPTY };
+        const queued = queuedZoom.current;
+        queuedZoom.current = null;
+        if (queued) window.setTimeout(() => api.current?.(queued.scale, queued.options), 0);
         return;
       }
       pending.current = { ...l };
-      commitCb.current(next);
+      commitCb.current(next, l.mode, queuedZoom.current !== null);
     };
 
     // Toolbar butonları ve programatik zoom için: odak korumalı ve animasyonlu zoom (Acrobat v3)
     let animating = false;
     api.current = (n: number, o: ZoomOpts = {}) => {
-      if (pending.current || animating) return;
+      if (pending.current || animating) {
+        queuedZoom.current = { scale: n, options: o };
+        if (animating) {
+          window.clearTimeout(animationTimer);
+          animationTimer = 0;
+          content.style.transition = "";
+          animating = false;
+          commit();
+        }
+        return;
+      }
       const rect = el.getBoundingClientRect();
       begin(o.x ?? rect.left + rect.width / 2, o.y ?? rect.top + rect.height / 2);
+      live.current.mode = o.mode;
       if (o.dx != null && o.dy != null) {
         live.current.ox = o.dx - rect.left;
         live.current.oy = o.dy - rect.top;
@@ -184,9 +211,10 @@ export function useZoomGestures(
       content.getBoundingClientRect(); // reflow: geçiş başlangıcı
       content.style.transition = "transform 180ms cubic-bezier(.2,.8,.2,1)";
       content.style.transform = `scale(${l.r})`;
-      window.setTimeout(() => {
+      animationTimer = window.setTimeout(() => {
         content.style.transition = "";
         animating = false;
+        animationTimer = 0;
         commit();
       }, 190);
     };
@@ -306,11 +334,12 @@ export function useZoomGestures(
       el.removeEventListener("gesturechange", gChange as EventListener);
       el.removeEventListener("gestureend", gEnd as EventListener);
       clearTimeout(timer);
+      window.clearTimeout(animationTimer);
       window.clearTimeout(tapTimer);
       if (raf) cancelAnimationFrame(raf);
       api.current = null;
     };
-  }, [min, max, scrollRef, contentRef, disabled]);
+  }, [min, max, scrollRef, contentRef, disabled, clearStyles]);
 
   return useCallback((n: number, o?: ZoomOpts) => api.current?.(n, o), []); // zoomTo
 }

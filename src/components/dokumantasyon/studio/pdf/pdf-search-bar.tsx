@@ -9,6 +9,7 @@ import { Search, ChevronUp, ChevronDown, X, Loader2, SlidersHorizontal, AlertCir
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchOpts } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfSearchBarProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export function PdfSearchBar({
   return (
     <div
       role="search"
-      aria-label="Doküman içi metin arama"
+      aria-label={pdfViewerStrings.searchBar}
       data-testid="pdf-search-bar"
       className="absolute top-14 sm:top-16 right-4 z-40 flex flex-col items-end gap-1.5 select-none print:hidden"
     >
@@ -103,7 +104,7 @@ export function PdfSearchBar({
       {isScannedPdf && (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-500/40 bg-zinc-900/95 text-amber-400 text-xs shadow-xl backdrop-blur-md animate-in fade-in">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
-          <span>Bu PDF taranmış görüntü içeriyor, metin araması yapılamaz.</span>
+          <span>{pdfViewerStrings.scannedPdf}</span>
         </div>
       )}
 
@@ -115,8 +116,8 @@ export function PdfSearchBar({
             ref={inputRef}
             type="text"
             role="searchbox"
-            aria-label="Dokümanda ara"
-            placeholder="Dokümanda ara..."
+            aria-label={pdfViewerStrings.searchInput}
+            placeholder={pdfViewerStrings.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -131,11 +132,11 @@ export function PdfSearchBar({
           >
             <span className="sr-only">
               {isSearching
-                ? "Aranıyor..."
+                ? pdfViewerStrings.searching
                 : searchQuery.trim()
                 ? totalMatches > 0
-                  ? `${totalMatches} eşleşmeden ${currentMatchIndex + 1}. gösteriliyor`
-                  : "Eşleşme bulunamadı"
+                  ? pdfViewerStrings.matchCount(totalMatches, currentMatchIndex + 1)
+                  : pdfViewerStrings.matchNotFound
                 : ""}
             </span>
             <span aria-hidden="true">
@@ -166,8 +167,8 @@ export function PdfSearchBar({
                 ? "text-amber-500 bg-amber-500/10"
                 : ""
             }`}
-            title="Arama Seçenekleri"
-            aria-label="Arama Seçenekleri"
+            title={pdfViewerStrings.searchOptions}
+            aria-label={pdfViewerStrings.searchOptions}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
           </Button>
@@ -181,8 +182,8 @@ export function PdfSearchBar({
           onClick={onPrevMatch}
           data-command-id="pdf.search.prev"
           className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 rounded-md"
-          title="Önceki Eşleşme (Shift+Enter)"
-          aria-label="Önceki Eşleşme"
+          title={pdfViewerStrings.previousMatchShortcut}
+          aria-label={pdfViewerStrings.previousMatch}
         >
           <ChevronUp className="h-4 w-4" />
         </Button>
@@ -194,8 +195,8 @@ export function PdfSearchBar({
           onClick={onNextMatch}
           data-command-id="pdf.search.next"
           className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 rounded-md"
-          title="Sonraki Eşleşme (Enter)"
-          aria-label="Sonraki Eşleşme"
+          title={pdfViewerStrings.nextMatchShortcut}
+          aria-label={pdfViewerStrings.nextMatch}
         >
           <ChevronDown className="h-4 w-4" />
         </Button>
@@ -209,8 +210,8 @@ export function PdfSearchBar({
             className={`h-7 w-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 disabled:opacity-30 rounded-md ${
               isSnippetPanelOpen ? "text-amber-500 bg-amber-500/15 hover:bg-amber-500/20" : ""
             }`}
-            title="Tüm Sonuçları Listele"
-            aria-label="Sonuç Listesi"
+            title={pdfViewerStrings.allResults}
+            aria-label={pdfViewerStrings.resultList}
           >
             <Search className="h-3.5 w-3.5" />
           </Button>
@@ -223,8 +224,8 @@ export function PdfSearchBar({
           variant="ghost"
           onClick={handleClose}
           className="h-7 w-7 p-0 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-md"
-          title="Kapat (Esc)"
-          aria-label="Aramayı Kapat"
+          title={pdfViewerStrings.closeSearchShortcut}
+          aria-label={pdfViewerStrings.closeSearch}
         >
           <X className="h-3.5 w-3.5" />
         </Button>
@@ -234,7 +235,7 @@ export function PdfSearchBar({
       {showOpts && onSearchOptsChange && (
         <div className="flex flex-col gap-1.5 p-2 rounded-xl border border-zinc-700 bg-zinc-900/95 shadow-2xl backdrop-blur-md text-xs text-zinc-200 animate-in fade-in slide-in-from-top-1 w-56">
           <label className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-800/60 cursor-pointer">
-            <span>Büyük/küçük harf duyarlı</span>
+            <span>{pdfViewerStrings.caseSensitive}</span>
             <input
               type="checkbox"
               checked={!!searchOpts.caseSensitive}
@@ -243,7 +244,7 @@ export function PdfSearchBar({
             />
           </label>
           <label className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-800/60 cursor-pointer">
-            <span>Türkçe harflere duyarlı (I ≠ İ)</span>
+            <span>{pdfViewerStrings.turkishLetterSensitive}</span>
             <input
               type="checkbox"
               checked={!!searchOpts.matchDiacritics}
@@ -252,7 +253,7 @@ export function PdfSearchBar({
             />
           </label>
           <label className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-800/60 cursor-pointer">
-            <span>Tam kelime</span>
+            <span>{pdfViewerStrings.wholeWord}</span>
             <input
               type="checkbox"
               checked={!!searchOpts.wholeWord}

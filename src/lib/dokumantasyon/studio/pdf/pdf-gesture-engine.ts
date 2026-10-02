@@ -3,26 +3,31 @@
 // ============================================================================
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import {
+  CSS_UNITS,
+  getNextPdfScale,
+  MAX_PDF_ZOOM,
+  MIN_PDF_ZOOM,
+  PDF_ZOOM_STEPS,
+  zoomToPdfScale,
+} from "./pdf-zoom-math";
 
-export const MIN_PDF_SCALE = 0.25;
-export const MAX_PDF_SCALE = 5.0;
-export const DEFAULT_ZOOM_STEP = 0.2;
+export const MIN_PDF_SCALE = zoomToPdfScale(MIN_PDF_ZOOM);
+export const MAX_PDF_SCALE = zoomToPdfScale(MAX_PDF_ZOOM);
+export const DEFAULT_ZOOM_STEP = CSS_UNITS * 0.2;
 
 /**
  * Adobe Acrobat standart kademeli zoom basamakları merdiveni.
  * Öngörülebilir, yumuşak ve endüstri standardı ölçekleme adımları.
  */
-export const ACROBAT_ZOOM_PRESETS = [
-  0.25, 0.333, 0.50, 0.667, 0.75, 1.00, 1.25, 1.50, 2.00, 3.00, 4.00, 5.00
-] as const;
+export const ACROBAT_ZOOM_PRESETS = PDF_ZOOM_STEPS.map(zoomToPdfScale);
 
 /**
  * Adobe Acrobat mantığında bir sonraki Zoom In basamağını hesaplar.
  * Mevcut ölçekten büyük olan ilk preset basamağını seçer.
  */
 export function getNextAcrobatZoomIn(currentScale: number): number {
-  const next = ACROBAT_ZOOM_PRESETS.find((preset) => preset > currentScale + 0.01);
-  return clampPdfScale(next ?? MAX_PDF_SCALE);
+  return clampPdfScale(getNextPdfScale(currentScale, 1));
 }
 
 /**
@@ -30,9 +35,7 @@ export function getNextAcrobatZoomIn(currentScale: number): number {
  * Mevcut ölçekten küçük olan en büyük preset basamağını seçer.
  */
 export function getNextAcrobatZoomOut(currentScale: number): number {
-  const reversed = [...ACROBAT_ZOOM_PRESETS].reverse();
-  const prev = reversed.find((preset) => preset < currentScale - 0.01);
-  return clampPdfScale(prev ?? MIN_PDF_SCALE);
+  return clampPdfScale(getNextPdfScale(currentScale, -1));
 }
 
 /**
@@ -149,7 +152,7 @@ export interface UsePdfGesturesResult {
 /**
  * PDF El Aracı (Pan) ve Akıllı Zoom Çekirdeği:
  * - El aracı (pan) sürükleme
- * - Çift dokunma (mobilde) ve çift tıklama (masaüstünde kelime seçimini bozmadan) akıllı zoom
+ * - Çift tıklama (masaüstünde kelime seçimini bozmadan) akıllı zoom
  * (Wheel ve iki-parmak pinch-to-zoom donanım hızlandırmalı useZoomGestures tarafından yönetilir)
  */
 export function usePdfGestures({
@@ -168,7 +171,6 @@ export function usePdfGestures({
     scale,
     dragOrigin: { x: 0, y: 0 },
     activePointerId: null as number | null,
-    lastTap: { time: 0, x: 0, y: 0 },
   });
 
   // Güncel ölçeği ref ile senkronize tut
@@ -184,23 +186,6 @@ export function usePdfGestures({
       if (!container || disabled) return;
 
       const state = gestureStateRef.current;
-
-      // Çift dokunma algılayıcı (≤ 300 ms, ≤ 24 px) (Faz F, Madde 5)
-      if (e.pointerType === "touch") {
-        const now = Date.now();
-        const distFromLastTap = Math.hypot(
-          e.clientX - state.lastTap.x,
-          e.clientY - state.lastTap.y
-        );
-
-        if (now - state.lastTap.time <= 300 && distFromLastTap <= 24) {
-          state.lastTap = { time: 0, x: 0, y: 0 };
-          onSmartZoom({ clientX: e.clientX, clientY: e.clientY });
-          return;
-        }
-
-        state.lastTap = { time: now, x: e.clientX, y: e.clientY };
-      }
 
       // El Aracı Pan Başlatma (Masaüstü veya tek parmak el aracı açıkken)
       if (!isHandTool) return;
@@ -259,6 +244,7 @@ export function usePdfGestures({
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (disabled) return;
+      if (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches) return;
 
       // El aracı kapalıyken metin düğmesine tıklandıysa veya kelime seçimi varsa akıllı zoom yapma (kelime seçimini koru)
       if (!isHandTool) {

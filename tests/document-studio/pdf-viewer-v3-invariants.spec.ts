@@ -12,7 +12,7 @@ import path from "node:path";
  * - I1: Canvas kutusu == sayfa kutusu (fark <= 1 px)
  * - I2: Netlik: bitmap / CSS oranı >= 0.95 * min(DPR, 2)
  * - I3: Kırpma yok: text layer span'ları sayfa kutusundan taşmaz (clipped <= 0 px)
- * - I4: Araç çubuğu % = pageBox.width / sayfaGenişliğiPt (+/- %1)
+ * - I4: Araç çubuğu % = pageBox.width / sayfaGenişliğiPt / (96/72) (+/- %1)
  * - I5: Mod geçiş dizisi: Genişlik -> Sayfa -> %100 -> Zoom In -> Zoom Out
  * - I6: Çoklu çözünürlük ve mobil uyumluluk
  * - I7: Bozuk ToUnicode CMap tespiti

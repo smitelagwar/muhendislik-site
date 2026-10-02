@@ -12,6 +12,7 @@ import { isSafePdfUrl } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import { PdfHighlightLayer } from "./pdf-highlight-layer";
 import { computePageGeometry, DEFAULT_PIXEL_BUDGET } from "@/lib/dokumantasyon/studio/pdf/pdf-geometry";
 import { MappingRule } from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
+import { pdfViewerStrings } from "./strings";
 
 const isCoarsePointer = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 const getSafePixelBudget = () => (isCoarsePointer() ? 6_000_000 : DEFAULT_PIXEL_BUDGET);
@@ -123,9 +124,8 @@ export function PdfPageView({
   // Faz C & Faz R2: Çift Tampon ve Tek Doğruluk Kaynaklı Boyutlar
   const lastRenderedJobKeyRef = useRef<string>("");
   const [renderedDimensions, setRenderedDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [lastRenderedScale, setLastRenderedScale] = useState<number>(renderedScale ?? scale);
   const [isPageRendered, setIsPageRendered] = useState<boolean>(false);
-  const effectivePageRendered = isWithinWindow && isPageRendered;
+  const effectivePageRendered = isWithinWindow && isPageRendered && renderedDimensions !== null;
 
   // Katman düşünce canvas belleğini hemen serbest bırak (Safari sızıntısını önler)
   useEffect(() => () => {
@@ -177,7 +177,8 @@ export function PdfPageView({
         setViewport(vp);
 
         // Scroll Anchoring için ölçülen boyutları üst bileşene bildir
-        const unscaledVp = p.getViewport({ scale: 1, rotation: finalRotation });
+        // Üst bileşen kullanıcı rotasyonunu ayrıca uygular; burada intrinsic ölçüyü bildir.
+        const unscaledVp = p.getViewport({ scale: 1, rotation: p.rotate || 0 });
         if (unscaledVp.width && unscaledVp.height) {
           onDimensionsMeasured?.(
             pageNumber,
@@ -235,11 +236,15 @@ export function PdfPageView({
       } catch {}
     }
 
+    // Canvas dışındaki React durumu da boşalt; mikrogörev, pencereleme efektinde senkron render üretmez.
+    if (renderedDimensions !== null) {
+      queueMicrotask(() => setRenderedDimensions(null));
+    }
+
     // Sayfa pencere dışına çıkıp canvas temizlendiğinde render durumunu sıfırla
     // Böylece kullanıcı sayfaya geri döndüğünde tekrar eksiksiz çizilir (boş sayfa kalmaz)
-    setIsPageRendered(false);
     lastRenderedJobKeyRef.current = "";
-  }, [isWithinWindow, page, pageNumber]);
+  }, [isWithinWindow, page, pageNumber, renderedDimensions]);
 
   // 3. Çift Tamponlu Canvas Render ve Kuyruk Yönetimi (Faz C + Faz R2)
   useEffect(() => {
@@ -317,7 +322,6 @@ export function PdfPageView({
 
         lastRenderedJobKeyRef.current = currentJobKey;
         setRenderedDimensions({ width: renderGeom.cssWidth, height: renderGeom.cssHeight });
-        setLastRenderedScale(effectiveRenderedScale);
         setIsPageRendered(true);
       },
       (err) => {
@@ -466,7 +470,7 @@ export function PdfPageView({
       data-page-number={pageNumber}
       data-page-state={effectivePageRendered ? "rendered" : "rendering"}
       data-render-scale={effectiveRenderedScale}
-      className={`relative my-3 overflow-hidden transition-shadow ${
+      className={`relative m-0 overflow-hidden transition-shadow ${
         nightMode ? "bg-zinc-950 shadow-black/60 shadow-xl" : "bg-white shadow-xl"
       } rounded-sm ${
         isCurrentMatchPage ? "ring-2 ring-amber-500 shadow-amber-500/20" : ""
@@ -601,8 +605,8 @@ export function PdfPageView({
                     }}
                     className="absolute pointer-events-auto rounded-xs outline-none bg-amber-500/10 hover:bg-amber-500/25 focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors cursor-pointer border border-transparent hover:border-amber-500/40"
                     style={{ left, top, width: annotationWidth, height: annotationHeight }}
-                    aria-label={annotation.title || "PDF içi bağlantıya git"}
-                    title={annotation.title || "Sayfa bağlantısı"}
+                    aria-label={annotation.title || pdfViewerStrings.pageLink}
+                    title={annotation.title || pdfViewerStrings.pageLinkTitle}
                   />
                 );
               }
@@ -616,7 +620,7 @@ export function PdfPageView({
                   data-testid={`pdf-link-external-${pageNumber}-${idx}`}
                   className="absolute pointer-events-auto rounded-xs outline-none bg-blue-500/10 hover:bg-blue-500/25 focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer border border-transparent hover:border-blue-500/40"
                   style={{ left, top, width: annotationWidth, height: annotationHeight }}
-                  aria-label={annotation.title || `Harici bağlantıyı aç: ${rawUrl}`}
+                  aria-label={annotation.title || pdfViewerStrings.externalLink(rawUrl)}
                   title={rawUrl}
                   onClick={(e) => {
                     e.stopPropagation();

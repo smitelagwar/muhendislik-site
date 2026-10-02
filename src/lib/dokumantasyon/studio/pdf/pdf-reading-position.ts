@@ -19,6 +19,11 @@ export interface PdfReadingPositionRecord {
   offsetRatio: number; // Sayfa içi dikey kaydırma oranı (0 - 1)
   scaleMode?: "custom" | "actual-size" | "fit-width" | "fit-page";
   scale?: number;
+  rotation?: 0 | 90 | 180 | 270;
+  sidebarOpen?: boolean;
+  sidebarTab?: "thumbnails" | "outline";
+  handTool?: boolean;
+  nightMode?: boolean;
   fileVersion?: string; // updatedAt / boyut / etag bileşimi
   updatedAt: number;
 }
@@ -104,7 +109,28 @@ export function getPdfReadingPosition(
       return null;
     }
 
-    return record;
+    const validMode =
+      record.scaleMode === "custom" ||
+      record.scaleMode === "actual-size" ||
+      record.scaleMode === "fit-width" ||
+      record.scaleMode === "fit-page";
+    const validRotation =
+      record.rotation === 0 ||
+      record.rotation === 90 ||
+      record.rotation === 180 ||
+      record.rotation === 270;
+    return {
+      ...record,
+      scaleMode: validMode ? record.scaleMode : undefined,
+      scale: typeof record.scale === "number" && Number.isFinite(record.scale) && record.scale > 0 && record.scale < 8
+        ? record.scale
+        : undefined,
+      rotation: validRotation ? record.rotation : undefined,
+      sidebarOpen: typeof record.sidebarOpen === "boolean" ? record.sidebarOpen : undefined,
+      sidebarTab: record.sidebarTab === "outline" ? "outline" : record.sidebarTab === "thumbnails" ? "thumbnails" : undefined,
+      handTool: typeof record.handTool === "boolean" ? record.handTool : undefined,
+      nightMode: typeof record.nightMode === "boolean" ? record.nightMode : undefined,
+    };
   } catch {
     return null;
   }
@@ -117,6 +143,11 @@ export function savePdfReadingPosition(
     offsetRatio?: number;
     scaleMode?: "custom" | "actual-size" | "fit-width" | "fit-page";
     scale?: number;
+    rotation?: 0 | 90 | 180 | 270;
+    sidebarOpen?: boolean;
+    sidebarTab?: "thumbnails" | "outline";
+    handTool?: boolean;
+    nightMode?: boolean;
     fileVersion?: string;
     updatedAt?: number;
   }
@@ -139,6 +170,11 @@ export function savePdfReadingPosition(
       offsetRatio: cleanRatio,
       scaleMode: record.scaleMode,
       scale: record.scale,
+      rotation: record.rotation,
+      sidebarOpen: record.sidebarOpen,
+      sidebarTab: record.sidebarTab,
+      handTool: record.handTool,
+      nightMode: record.nightMode,
       fileVersion: record.fileVersion,
       updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : Date.now(),
     };

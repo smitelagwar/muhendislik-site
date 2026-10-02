@@ -7,6 +7,7 @@
 import React, { useEffect, useCallback } from "react";
 import { Search, X, ChevronRight, FileText, AlertCircle } from "lucide-react";
 import { SearchProgress, SearchMatch } from "@/lib/dokumantasyon/studio/pdf/pdf-search-engine";
+import { pdfViewerStrings } from "./strings";
 
 interface PdfSearchResultsPanelProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export function PdfSearchResultsPanel({
 
       <aside
         role="region"
-        aria-label="Arama sonuçları listesi"
+        aria-label={pdfViewerStrings.searchResultsList}
         className="fixed inset-x-0 bottom-0 max-h-[55vh] z-40 sm:relative sm:inset-auto sm:max-h-full sm:z-20 flex w-full sm:w-72 shrink-0 flex-col overflow-hidden border-t sm:border-t-0 sm:border-r border-border bg-card/95 backdrop-blur-md select-none text-foreground rounded-t-2xl sm:rounded-none shadow-2xl sm:shadow-none animate-in slide-in-from-bottom sm:slide-in-from-left duration-200"
       >
         {/* Mobil Çekme Çubuğu */}
@@ -69,16 +70,15 @@ export function PdfSearchResultsPanel({
           <div className="flex items-center gap-2 min-w-0">
             <Search className="h-4 w-4 text-amber-500 shrink-0" />
             <span className="text-xs font-bold truncate">
-              Arama Sonuçları ({searchResult.totalMatches}
-              {searchResult.overflow ? "+" : ""})
+              {pdfViewerStrings.searchResultsCount(searchResult.totalMatches, searchResult.overflow ?? false)}
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors shrink-0"
-            aria-label="Arama panelini kapat"
-            title="Kapat"
+            aria-label={pdfViewerStrings.closeSearchPanel}
+            title={pdfViewerStrings.close}
           >
             <X className="h-4 w-4" />
           </button>
@@ -88,7 +88,7 @@ export function PdfSearchResultsPanel({
         {searchResult.query && (
           <div className="px-3 py-1.5 bg-muted/40 border-b border-border/50 text-[11px] text-muted-foreground flex items-center justify-between">
             <span className="truncate">
-              Aranan: &ldquo;<strong className="text-foreground">{searchResult.query}</strong>&rdquo;
+              {pdfViewerStrings.searchedFor} &ldquo;<strong className="text-foreground">{searchResult.query}</strong>&rdquo;
             </span>
             <span className="font-mono text-[10px] shrink-0 text-amber-500 font-bold ml-2">
               {searchResult.totalMatches > 0
@@ -102,7 +102,7 @@ export function PdfSearchResultsPanel({
         {searchResult.isScannedPdf && (
           <div className="flex items-start gap-2 m-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Bu PDF taranmış görüntü içeriyor, metin araması yapılamaz.</span>
+            <span>{pdfViewerStrings.scannedPdf}</span>
           </div>
         )}
 
@@ -111,8 +111,8 @@ export function PdfSearchResultsPanel({
           {searchResult.totalMatches === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center text-muted-foreground">
               <Search className="h-8 w-8 mb-2 opacity-25" />
-              <p className="text-xs font-medium">Eşleşen sonuç bulunamadı.</p>
-              <p className="text-[11px] opacity-70 mt-1">Farklı bir kelime deneyebilirsiniz.</p>
+              <p className="text-xs font-medium">{pdfViewerStrings.noMatches}</p>
+              <p className="text-[11px] opacity-70 mt-1">{pdfViewerStrings.tryAnotherWord}</p>
             </div>
           ) : (
             searchResult.matches.map((match: SearchMatch, idx: number) => {
@@ -139,7 +139,7 @@ export function PdfSearchResultsPanel({
                     <div className="flex items-center gap-1.5">
                       <FileText className={`h-3 w-3 ${isActive ? "text-amber-500" : "text-muted-foreground"}`} />
                       <span className={`text-[11px] font-mono font-bold ${isActive ? "text-amber-500" : "text-foreground"}`}>
-                        Sayfa {match.pageNumber}
+                        {pdfViewerStrings.pageNumber(match.pageNumber)}
                       </span>
                     </div>
                     <ChevronRight className={`h-3 w-3 transition-transform ${isActive ? "text-amber-500 translate-x-0.5" : "text-muted-foreground opacity-0 group-hover:opacity-100"}`} />
