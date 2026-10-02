@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 import fs from "node:fs";
 import path from "node:path";
@@ -163,7 +163,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await expect(outlineToggleBtn).toHaveCount(0);
   });
 
-  test("5. 300 sayfalı PDF'de her sayfa için çizgi olmalı ve hit alanı korunmalı", async ({ page }) => {
+  test("5. 300 sayfalı PDF'de kompakt gezgin tam sayfa aralığına eşlenmeli", async ({ page }, testInfo: TestInfo) => {
     const fileId = await uploadFixturePdf(page, "uzun-300.pdf");
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
 
@@ -176,9 +176,14 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     // Scrubber track dokunma hedefi (hit target) kontrolleri
     const track = page.getByTestId("pdf-scrubber-track");
     await expect(track).toBeVisible();
-    await expect(page.getByTestId("pdf-scrubber-tick")).toHaveCount(300);
+    await expect(track).toHaveAttribute("data-tick-count", "11");
+    await expect(page.getByTestId("pdf-scrubber-tick")).toHaveCount(11);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="1"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="300"]')).toHaveCount(1);
+    const tickPages = await page.getByTestId("pdf-scrubber-tick").evaluateAll((ticks) =>
+      ticks.map((tick) => Number(tick.getAttribute("data-page")))
+    );
+    expect(tickPages).toEqual([...tickPages].sort((left, right) => left - right));
 
     const box = await track.boundingBox();
     expect(box).not.toBeNull();
@@ -188,6 +193,24 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     // Kenar jestleriyle çakışmaması için touch-action: none olmalı
     const touchAction = await track.evaluate((el) => window.getComputedStyle(el).touchAction);
     expect(touchAction).toBe("none");
+
+    // Seyrek işaretler görsel rehberdir; ara noktalara tıklamak yine tam sayfaya gider.
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    const pageInput = page.getByRole("textbox", { name: "Geçerli Sayfa" });
+    await expect(pageInput).toHaveValue("151");
+    await expect(track).toHaveAttribute("aria-valuenow", "151");
+    await page.screenshot({ path: testInfo.outputPath("pdf-sayfa-gezgini-masaustu.png") });
+
+    // Dar ekranda da kısa çubuk, sayfa etiketi ve dokunma alanı korunmalı.
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileBox = await track.boundingBox();
+    expect(mobileBox).not.toBeNull();
+    expect(mobileBox!.width).toBeGreaterThanOrEqual(44);
+    expect(mobileBox!.height).toBeGreaterThanOrEqual(192);
+    expect(mobileBox!.height).toBeLessThanOrEqual(360);
+    await page.mouse.move(mobileBox!.x + mobileBox!.width / 2, mobileBox!.y + mobileBox!.height / 2);
+    await expect(page.getByTestId("pdf-scrubber-page-button")).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("pdf-sayfa-gezgini-mobil.png") });
   });
 
   test("6. İki sayfalı PDF'de her iki sayfa da çizgiyle seçilebilmeli", async ({ page }) => {
@@ -199,6 +222,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
 
     const track = page.getByTestId("pdf-scrubber-track");
     await expect(track).toBeVisible({ timeout: 8000 });
+    await expect(track).toHaveAttribute("data-tick-count", "2");
     await expect(page.getByTestId("pdf-scrubber-tick")).toHaveCount(2);
     await expect(track).toHaveAttribute("aria-valuemin", "1");
     await expect(track).toHaveAttribute("aria-valuemax", "2");
@@ -211,6 +235,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
 
     const track = page.getByTestId("pdf-scrubber-track");
     await expect(track).toBeVisible({ timeout: 8000 });
+    await expect(track).toHaveAttribute("data-tick-count", "15");
     await expect(page.getByTestId("pdf-scrubber-tick")).toHaveCount(15);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="1"]')).toHaveAttribute("style", /top: 0%/);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="15"]')).toHaveAttribute("style", /top: 100%/);
@@ -297,6 +322,16 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await expect(track).toHaveAttribute("aria-valuenow", "6");
     await track.press("Home");
     await expect(track).toHaveAttribute("aria-valuetext", "Sayfa 1 / 15");
+
+    await page.getByTestId("pdf-scrubber-page-button").click();
+    const scrubberJump = page.getByRole("textbox", { name: "Sayfaya git" });
+    await expect(scrubberJump).toBeFocused();
+    await scrubberJump.press("ArrowUp");
+    await expect(track).toHaveAttribute("aria-valuenow", "1");
+    await scrubberJump.fill("10");
+    await scrubberJump.press("Enter");
+    await expect(track).toHaveAttribute("aria-valuenow", "10");
+    await expect(track).toBeFocused();
   });
 
   test("10. Araç çubuğu sayfa girişi (Enter ile gitme)", async ({ page }) => {

@@ -26,12 +26,15 @@ export function PdfPageScrubber({
   ready,
 }: PdfPageScrubberProps) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const isScrubbingRef = useRef(false);
   const [hoverPage, setHoverPage] = useState<number | null>(null);
   const lastScrubbedPageRef = useRef<number | null>(null);
   const [isRecentlyActive, setIsRecentlyActive] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isPointerOver, setIsPointerOver] = useState(false);
+  const [isPageControlHovered, setIsPageControlHovered] = useState(false);
   const [pageJumpOpen, setPageJumpOpen] = useState(false);
   const [pageDraft, setPageDraft] = useState(String(currentPage));
   const activeTimerRef = useRef<number | null>(null);
@@ -70,8 +73,8 @@ export function PdfPageScrubber({
   if (numPages < 2) return null;
 
   const calculatePageFromClientY = (clientY: number): number => {
-    if (!trackRef.current) return currentPage;
-    const rect = trackRef.current.getBoundingClientRect();
+    if (!railRef.current) return currentPage;
+    const rect = railRef.current.getBoundingClientRect();
     const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
     const fraction = rect.height > 0 ? relativeY / rect.height : 0;
     return Math.min(Math.max(Math.round(fraction * (numPages - 1)) + 1, 1), numPages);
@@ -183,6 +186,7 @@ export function PdfPageScrubber({
     if (Number.isFinite(requested) && requested >= 1 && requested <= numPages) {
       onPageChange(requested);
       setPageJumpOpen(false);
+      trackRef.current?.focus();
     } else {
       setPageDraft(String(currentPage));
     }
@@ -192,69 +196,33 @@ export function PdfPageScrubber({
   const displayPage = hoverPage ?? currentPage;
   const currentFraction = numPages > 1 ? (displayPage - 1) / (numPages - 1) : 0;
   const activePercent = Math.min(Math.max(currentFraction * 100, 0), 100);
+  const tickCount = numPages <= 24 ? numPages : 11;
+  const tickPages = Array.from({ length: tickCount }, (_, index) =>
+    Math.round((index / (tickCount - 1)) * (numPages - 1)) + 1
+  );
 
-  // Görünürlük durumu: Hover esnasında, sürüklemede veya mobilde kaydırma anında belirgin
-  const isVisible = isScrubbing || isRecentlyActive || isFocused;
+  // Görünürlük durumu: etkileşim sırasında belirgin, boşta iken hafifçe görünür.
+  const isVisible = isScrubbing || isRecentlyActive || isFocused || isPointerOver || isPageControlHovered || pageJumpOpen;
 
   return (
     <div
       data-testid="pdf-page-scrubber"
       data-no-tap
-      className={`absolute right-[max(0.375rem,env(safe-area-inset-right))] top-16 bottom-16 z-20 flex items-center justify-center select-none print:hidden pointer-events-auto transition-opacity duration-200 ${
-        isVisible ? "opacity-100" : "opacity-35 hover:opacity-100"
-      }`}
+      onPointerEnter={() => setIsPointerOver(true)}
       onPointerLeave={() => {
+        setIsPointerOver(false);
         if (!isScrubbingRef.current && !isFocused) setHoverPage(null);
       }}
+      className={`group pointer-events-none absolute right-[max(0.375rem,env(safe-area-inset-right))] top-1/2 z-20 flex h-[min(42dvh,22.5rem)] min-h-48 w-12 max-h-[22.5rem] -translate-y-1/2 items-center justify-center rounded-full border border-zinc-700/75 bg-zinc-950/75 shadow-lg shadow-black/20 backdrop-blur-md select-none print:hidden transition-[opacity,background-color] duration-200 hover:bg-zinc-900/90 ${
+        isVisible ? "opacity-100" : "opacity-55"
+      }`}
     >
-      {/* Tooltip (Absolute yerleşim: Viewport'a fixed değil, Scrubber kapsayıcısına göre) */}
-      {(hoverPage !== null || isScrubbing || isFocused) && (
-        <div
-          data-testid="pdf-scrubber-tooltip"
-          className="absolute right-9 z-30 -translate-y-1/2 rounded-lg border border-border/80 bg-zinc-900/95 px-2.5 py-1 font-mono text-[11px] font-bold text-zinc-100 shadow-xl backdrop-blur-md transition-all duration-75 pointer-events-none whitespace-nowrap"
-          style={{ top: `${activePercent}%` }}
-        >
-          {pdfViewerStrings.pagePosition(displayPage, numPages)}
-        </div>
-      )}
-
-      {(isVisible || pageJumpOpen) && (
-        <div className="absolute bottom-0 right-9 z-30 flex flex-col items-end gap-1.5" data-no-tap>
-          {pageJumpOpen && (
-            <form onSubmit={commitPageJump} className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5 shadow-xl">
-              <input
-                autoFocus
-                type="text"
-                inputMode="numeric"
-                aria-label={pdfViewerStrings.pageJump}
-                value={pageDraft}
-                onChange={(event) => setPageDraft(event.target.value.replace(/\D/g, ""))}
-                onKeyDown={(event) => { if (event.key === "Escape") setPageJumpOpen(false); }}
-                className="h-9 w-14 rounded-lg border border-input bg-background text-center font-mono text-xs"
-              />
-              <span className="pr-1 text-[11px] text-muted-foreground">/ {numPages}</span>
-            </form>
-          )}
-          <button
-            type="button"
-            data-no-tap
-            aria-label={pdfViewerStrings.pageJumpAction(displayPage, numPages)}
-            onClick={() => {
-              setPageDraft(String(currentPage));
-              setPageJumpOpen((open) => !open);
-            }}
-            className="rounded-full border border-border/70 bg-card/95 px-3 py-1.5 font-mono text-[11px] font-semibold text-foreground shadow-lg backdrop-blur"
-          >
-            {displayPage} / {numPages}
-          </button>
-        </div>
-      )}
-
-      {/* Sayfa başına bir çizgi; geniş hit area çizgiler arasında da en yakın sayfayı seçer. */}
+      {/* Tam uzunluktaki hit alanı kısa rayı sarar; her tıklama ve sürükleme yine tüm sayfa aralığına eşlenir. */}
       <div
         ref={trackRef}
         data-testid="pdf-scrubber-track"
         data-page-count={numPages}
+        data-tick-count={tickCount}
         data-scrubbing={isScrubbing}
         data-no-tap
         role="slider"
@@ -277,31 +245,84 @@ export function PdfPageScrubber({
           setHoverPage(null);
         }}
         style={{ touchAction: "none" }}
-        className="group relative flex h-full w-7 min-w-[28px] cursor-pointer items-center justify-center rounded-sm py-2 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:w-8"
+        className="pointer-events-auto absolute inset-0 z-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title={pdfViewerStrings.pagePosition(currentPage, numPages)}
-      >
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {Array.from({ length: numPages }, (_, index) => {
-            const page = index + 1;
+      />
+      <div className="pointer-events-none absolute inset-x-2 top-3 bottom-3 z-10" ref={railRef}>
+        <div aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-zinc-600/75" />
+          {tickPages.map((page) => {
+            const fraction = (page - 1) / (numPages - 1);
             const isSelected = page === displayPage;
-            const isMajor = page % 10 === 0;
             return (
               <span
                 key={page}
                 data-testid="pdf-scrubber-tick"
                 data-page={page}
+              aria-hidden="true"
                 className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,background-color] duration-100 ${
                   isSelected
-                    ? "h-0.5 w-4 bg-amber-500 shadow-sm shadow-amber-500/60"
-                    : isMajor
-                      ? "h-px w-3 bg-zinc-400/80 group-hover:bg-zinc-300"
-                      : "h-px w-2 bg-zinc-500/60 group-hover:bg-zinc-400/90"
+                    ? "h-0.5 w-3 bg-amber-400 shadow-sm shadow-amber-500/60"
+                    : "h-px w-2 bg-zinc-400/80 group-hover:bg-zinc-200"
                 }`}
-                style={{ top: `${(index / (numPages - 1)) * 100}%` }}
+                style={{ top: `${fraction * 100}%` }}
               />
             );
           })}
-        </div>
+        <span
+          data-testid="pdf-scrubber-thumb"
+          aria-hidden="true"
+          className="absolute left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-zinc-950 bg-amber-400 shadow-[0_0_0_2px_rgba(251,191,36,0.35)]"
+          style={{ top: `${activePercent}%` }}
+        />
+        {isVisible && (
+          <div
+            className="pointer-events-auto absolute right-[calc(100%+0.5rem)] z-20 -translate-y-1/2"
+            onPointerEnter={() => setIsPageControlHovered(true)}
+            onPointerLeave={() => setIsPageControlHovered(false)}
+            style={{ top: `${activePercent}%` }}
+          >
+            {pageJumpOpen ? (
+              <form
+                onSubmit={commitPageJump}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-950/95 p-1.5 shadow-xl backdrop-blur-md"
+              >
+                <input
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  aria-label={pdfViewerStrings.pageJump}
+                  value={pageDraft}
+                  onChange={(event) => setPageDraft(event.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setPageJumpOpen(false);
+                      trackRef.current?.focus();
+                    }
+                  }}
+                  className="h-8 w-12 rounded-lg border border-zinc-700 bg-zinc-900 text-center font-mono text-xs text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                />
+                <span className="pr-1 text-[11px] text-zinc-300">/ {numPages}</span>
+              </form>
+            ) : (
+              <button
+                type="button"
+                data-no-tap
+                data-testid="pdf-scrubber-page-button"
+                aria-label={pdfViewerStrings.pageJumpAction(displayPage, numPages)}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => {
+                  setPageDraft(String(currentPage));
+                  setPageJumpOpen(true);
+                }}
+                className="whitespace-nowrap rounded-full border border-zinc-700/80 bg-zinc-950/95 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-zinc-100 shadow-lg backdrop-blur-md hover:border-amber-400/70"
+              >
+                {pdfViewerStrings.pagePosition(displayPage, numPages)}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
