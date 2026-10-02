@@ -124,12 +124,15 @@ export function isTextElement(target: EventTarget | null): boolean {
   );
 }
 
+export { useZoomGestures } from "./use-zoom-gestures";
+export type { ZoomGestureOptions } from "./use-zoom-gestures";
+
 export interface UsePdfGesturesOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
   isHandTool: boolean;
   scale: number;
-  onScaleChange: (newScale: number, anchor?: { clientX: number; clientY: number }) => void;
-  onCommitScale: (committedScale: number) => void;
+  onScaleChange?: (newScale: number, anchor?: { clientX: number; clientY: number }) => void;
+  onCommitScale?: (committedScale: number) => void;
   onSmartZoom: (point: { clientX: number; clientY: number }) => void;
   disabled?: boolean;
 }
@@ -144,12 +147,10 @@ export interface UsePdfGesturesResult {
 }
 
 /**
- * Tek Jest Çekirdeği (Unified Gesture Core — Faz F):
- * - Masaüstü Ctrl+Wheel ve trackpad pinch odak koruması
- * - Mobil 2 parmak pinch, anlık ölçekleme ve Faz C çift tampon tetikleme
- * - iOS Safari gesturestart/change/end engellemesi (tüm sayfanın yakınlaşmasını önler)
- * - Çift dokunma (mobilde) ve çift tıklama (masaüstünde kelime seçimini bozmadan) akıllı zoom
+ * PDF El Aracı (Pan) ve Akıllı Zoom Çekirdeği:
  * - El aracı (pan) sürükleme
+ * - Çift dokunma (mobilde) ve çift tıklama (masaüstünde kelime seçimini bozmadan) akıllı zoom
+ * (Wheel ve iki-parmak pinch-to-zoom donanım hızlandırmalı useZoomGestures tarafından yönetilir)
  */
 export function usePdfGestures({
   containerRef,
@@ -165,10 +166,6 @@ export function usePdfGestures({
   // Jest durumunu tek bir ref nesnesinde sakla (Faz F, Madde 1)
   const gestureStateRef = useRef({
     scale,
-    activePointers: new Map<number, { x: number; y: number }>(),
-    pinchStartDist: 0,
-    pinchStartScale: scale,
-    pinchAnchor: { clientX: 0, clientY: 0 },
     dragOrigin: { x: 0, y: 0 },
     activePointerId: null as number | null,
     lastTap: { time: 0, x: 0, y: 0 },
@@ -179,84 +176,8 @@ export function usePdfGestures({
     gestureStateRef.current.scale = scale;
   }, [scale]);
 
-  // 1. Masaüstü: Ctrl + Tekerlek / Trackpad Pinch (Faz F, Madde 2)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || disabled) return;
 
-    const handleWheel = (e: WheelEvent) => {
-      // Yalnızca Ctrl veya Meta basılıyken (zoom jesti) tarayıcı zoom'unu engelle ve PDF'i yakınlaştır
-      if (!e.ctrlKey && !e.metaKey) return;
-
-      e.preventDefault();
-
-      const state = gestureStateRef.current;
-      const rect = container.getBoundingClientRect();
-      const factor = calculateWheelZoomFactor(
-        e.deltaY,
-        e.deltaMode,
-        container.clientHeight
-      );
-
-      const targetScale = clampPdfScale(
-        Number((state.scale * factor).toFixed(3))
-      );
-      if (Math.abs(targetScale - state.scale) < 0.005) return;
-
-      // Odak koruma: imleç konumu
-      const anchor = { clientX: e.clientX, clientY: e.clientY };
-      const scrollPos = calculateAnchorScroll({
-        scrollLeft: container.scrollLeft,
-        scrollTop: container.scrollTop,
-        anchorX: anchor.clientX,
-        anchorY: anchor.clientY,
-        containerLeft: rect.left,
-        containerTop: rect.top,
-        currentScale: state.scale,
-        newScale: targetScale,
-      });
-
-      state.scale = targetScale;
-      onScaleChange(targetScale, anchor);
-
-      container.scrollLeft = scrollPos.scrollLeft;
-      container.scrollTop = scrollPos.scrollTop;
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-    };
-  }, [containerRef, disabled, onScaleChange]);
-
-  // 2. iOS Safari: gesturestart, gesturechange, gestureend engellemesi (Faz F, Madde 3)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || disabled) return;
-
-    const handleSafariGesture = (e: Event) => {
-      // iOS Safari'nin sitenin tamamını büyütmesini engelle
-      e.preventDefault();
-    };
-
-    container.addEventListener("gesturestart", handleSafariGesture, {
-      passive: false,
-    });
-    container.addEventListener("gesturechange", handleSafariGesture, {
-      passive: false,
-    });
-    container.addEventListener("gestureend", handleSafariGesture, {
-      passive: false,
-    });
-
-    return () => {
-      container.removeEventListener("gesturestart", handleSafariGesture);
-      container.removeEventListener("gesturechange", handleSafariGesture);
-      container.removeEventListener("gestureend", handleSafariGesture);
-    };
-  }, [containerRef, disabled]);
-
-  // 3. Pointer Olayları: El Aracı (Pan) ve İki Parmak Pinch (Faz F, Madde 3)
+  // 3. Pointer Olayları: El Aracı (Pan) ve Çift Dokunma Akıllı Zoom
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const container = containerRef.current;
@@ -264,45 +185,21 @@ export function usePdfGestures({
 
       const state = gestureStateRef.current;
 
-      // Dokunmatik olaylarda parmak takibi
+      // Çift dokunma algılayıcı (≤ 300 ms, ≤ 24 px) (Faz F, Madde 5)
       if (e.pointerType === "touch") {
-        state.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-        // Çift dokunma algılayıcı (≤ 300 ms, ≤ 24 px) (Faz F, Madde 5)
         const now = Date.now();
         const distFromLastTap = Math.hypot(
           e.clientX - state.lastTap.x,
           e.clientY - state.lastTap.y
         );
 
-        if (
-          state.activePointers.size === 1 &&
-          now - state.lastTap.time <= 300 &&
-          distFromLastTap <= 24
-        ) {
+        if (now - state.lastTap.time <= 300 && distFromLastTap <= 24) {
           state.lastTap = { time: 0, x: 0, y: 0 };
           onSmartZoom({ clientX: e.clientX, clientY: e.clientY });
           return;
         }
 
         state.lastTap = { time: now, x: e.clientX, y: e.clientY };
-
-        // İki parmak algılandı: Pinch gesture başlat
-        if (state.activePointers.size === 2) {
-          setIsDragging(false);
-          state.activePointerId = null;
-          const ptrs = Array.from(state.activePointers.values());
-          state.pinchStartDist = Math.hypot(
-            ptrs[0].x - ptrs[1].x,
-            ptrs[0].y - ptrs[1].y
-          );
-          state.pinchStartScale = state.scale;
-          state.pinchAnchor = {
-            clientX: (ptrs[0].x + ptrs[1].x) / 2,
-            clientY: (ptrs[0].y + ptrs[1].y) / 2,
-          };
-          return;
-        }
       }
 
       // El Aracı Pan Başlatma (Masaüstü veya tek parmak el aracı açıkken)
@@ -328,81 +225,21 @@ export function usePdfGestures({
 
       const state = gestureStateRef.current;
 
-      // İki parmak pinch hareketi
-      if (
-        e.pointerType === "touch" &&
-        state.activePointers.has(e.pointerId)
-      ) {
-        state.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-        if (state.activePointers.size === 2 && state.pinchStartDist > 10) {
-          const ptrs = Array.from(state.activePointers.values());
-          const currentDist = Math.hypot(
-            ptrs[0].x - ptrs[1].x,
-            ptrs[0].y - ptrs[1].y
-          );
-
-          if (currentDist > 10) {
-            const ratio = currentDist / state.pinchStartDist;
-            const newScale = clampPdfScale(
-              Number((state.pinchStartScale * ratio).toFixed(3))
-            );
-
-            const midX = (ptrs[0].x + ptrs[1].x) / 2;
-            const midY = (ptrs[0].y + ptrs[1].y) / 2;
-            const rect = container.getBoundingClientRect();
-
-            // Plandaki odak koruma formülü
-            const contentX =
-              (container.scrollLeft + midX - rect.left) / state.pinchStartScale;
-            const contentY =
-              (container.scrollTop + midY - rect.top) / state.pinchStartScale;
-
-            state.scale = newScale;
-            onScaleChange(newScale, { clientX: midX, clientY: midY });
-
-            container.scrollLeft = Math.max(
-              0,
-              Math.round(contentX * newScale - (midX - rect.left))
-            );
-            container.scrollTop = Math.max(
-              0,
-              Math.round(contentY * newScale - (midY - rect.top))
-            );
-          }
-          return;
-        }
-      }
-
       // El aracı ile sürükleme (Pan)
-      if (
-        !isHandTool ||
-        state.activePointerId !== e.pointerId ||
-        state.activePointers.size > 1
-      ) {
+      if (!isHandTool || state.activePointerId !== e.pointerId) {
         return;
       }
 
       container.scrollLeft = Math.max(0, state.dragOrigin.x - e.clientX);
       container.scrollTop = Math.max(0, state.dragOrigin.y - e.clientY);
     },
-    [containerRef, disabled, isHandTool, onScaleChange]
+    [containerRef, disabled, isHandTool]
   );
 
   const handlePointerEnd = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       const container = containerRef.current;
       const state = gestureStateRef.current;
-
-      if (e.pointerType === "touch") {
-        state.activePointers.delete(e.pointerId);
-
-        // İki parmak bittiğinde ölçeği commit et (Faz C çift tampon render tetiklemesi)
-        if (state.activePointers.size < 2 && state.pinchStartDist > 0) {
-          state.pinchStartDist = 0;
-          onCommitScale(state.scale);
-        }
-      }
 
       if (state.activePointerId === e.pointerId) {
         state.activePointerId = null;
@@ -414,7 +251,7 @@ export function usePdfGestures({
         }
       }
     },
-    [containerRef, onCommitScale]
+    [containerRef]
   );
 
   // 4. Masaüstü Çift Tıklama (Faz F, Madde 5):

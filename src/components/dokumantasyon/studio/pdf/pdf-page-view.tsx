@@ -290,6 +290,8 @@ export function PdfPageView({
         // Çizim arka tamponda tamamlandı!
         // Şimdi tek bir senkron adımda görünür canvas'a aktar (sıfır beyaz flaş!)
         if (visibleCanvas && bufferCanvas) {
+          // ASSUMPTION: Synchronously reset interim CSS transform to prevent double-scaling jump when new render completes
+          visibleCanvas.style.transform = "";
           visibleCanvas.width = renderGeom.bitmapWidth;
           visibleCanvas.height = renderGeom.bitmapHeight;
           visibleCanvas.style.width = `${renderGeom.cssWidth}px`;

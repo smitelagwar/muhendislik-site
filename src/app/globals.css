@@ -1764,3 +1764,15 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   box-shadow: 0 0 0 2px rgb(217 119 6) !important;
 }
 
+/* PDF Görüntüleyici Zoom & Scroll Konteyneri (Adım 3) */
+.pdf-scroll {
+  overflow: auto;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.pdf-content {
+  transform-origin: 0 0;
+}
+
+

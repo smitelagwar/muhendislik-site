@@ -38,6 +38,7 @@ import { PdfShortcutsModal } from "./pdf-shortcuts-modal";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import {
   usePdfGestures,
+  useZoomGestures,
   clampPdfScale,
   MIN_PDF_SCALE,
   MAX_PDF_SCALE,
@@ -107,6 +108,7 @@ export function PdfJsStudio({
   onDelete,
 }: PdfJsStudioProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<any>(null);
   const pdfDocRef = useRef<any>(null);
   const retryCountRef = useRef<number>(0);
@@ -334,63 +336,15 @@ export function PdfJsStudio({
 
   const targetScaleRef = useRef<number>(zoom.scale);
   const activeAnchorRef = useRef<ZoomAnchor | null>(null);
-  const zoomAnimFrameRef = useRef<number | null>(null);
-  const debouncedRenderTimerRef = useRef<number | null>(null);
 
   const updateZoomState = useCallback((nextZoom: ZoomState) => {
     zoomRef.current = nextZoom;
     setZoom(nextZoom);
   }, []);
 
-  const scheduleRenderedScaleCommit = useCallback((target: number) => {
-    if (debouncedRenderTimerRef.current !== null) {
-      window.clearTimeout(debouncedRenderTimerRef.current);
-    }
-    debouncedRenderTimerRef.current = window.setTimeout(() => {
-      debouncedRenderTimerRef.current = null;
-      setRenderedScale(Number(target.toFixed(3)));
-    }, 220);
-  }, []);
 
-  const startSmoothZoomAnimation = useCallback(() => {
-    if (isReducedMotion) {
-      const targetScale = targetScaleRef.current;
-      updateZoomState({ mode: "custom", scale: targetScale });
-      activeAnchorRef.current = null;
-      scheduleRenderedScaleCommit(targetScale);
-      return;
-    }
 
-    if (zoomAnimFrameRef.current !== null) return;
 
-    const animate = () => {
-      const container = scrollContainerRef.current;
-      if (!container) {
-        zoomAnimFrameRef.current = null;
-        return;
-      }
-
-      const currentScale = zoomRef.current.scale;
-      const targetScale = targetScaleRef.current;
-      const diff = targetScale - currentScale;
-
-      if (Math.abs(diff) < 0.002) {
-        updateZoomState({ mode: "custom", scale: targetScale });
-        zoomAnimFrameRef.current = null;
-        activeAnchorRef.current = null;
-        scheduleRenderedScaleCommit(targetScale);
-        return;
-      }
-
-      const nextScale = clampScale(currentScale + diff * 0.3);
-      updateZoomState({ mode: "custom", scale: Number(nextScale.toFixed(4)) });
-      scheduleRenderedScaleCommit(targetScale);
-
-      zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
-    };
-
-    zoomAnimFrameRef.current = window.requestAnimationFrame(animate);
-  }, [isReducedMotion, scheduleRenderedScaleCommit, updateZoomState]);
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
@@ -415,78 +369,37 @@ export function PdfJsStudio({
     const targetScale = getFitScale(mode);
     if (targetScale === null) return;
 
-    if (zoomAnimFrameRef.current !== null) {
-      window.cancelAnimationFrame(zoomAnimFrameRef.current);
-      zoomAnimFrameRef.current = null;
-    }
-    if (debouncedRenderTimerRef.current !== null) {
-      window.clearTimeout(debouncedRenderTimerRef.current);
-      debouncedRenderTimerRef.current = null;
-    }
     targetScaleRef.current = targetScale;
     activeAnchorRef.current = null;
     updateZoomState({ mode, scale: targetScale });
     setRenderedScale(targetScale);
   }, [getFitScale, updateZoomState]);
 
-  const adjustCustomZoom = useCallback((delta: number, anchor?: ZoomAnchor) => {
-    const container = scrollContainerRef.current;
-    const currentTarget =
-      zoomAnimFrameRef.current !== null
-        ? targetScaleRef.current
-        : zoomRef.current.scale;
+  const adjustCustomZoom = useCallback((delta: number) => {
+    const currentTarget = zoomRef.current.scale;
     const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
-    updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
-    targetScaleRef.current = nextTarget;
-    activeAnchorRef.current = anchor || (container ? {
-      viewportX: container.clientWidth / 2,
-      viewportY: container.clientHeight / 2,
-    } : null);
-    startSmoothZoomAnimation();
-  }, [startSmoothZoomAnimation, updateZoomState]);
+    updateZoomState({ mode: "custom", scale: nextTarget });
+    setRenderedScale(nextTarget);
+  }, [updateZoomState]);
 
   const handleZoomIn = useCallback(() => {
-    const container = scrollContainerRef.current;
-    const currentTarget =
-      zoomAnimFrameRef.current !== null
-        ? targetScaleRef.current
-        : zoomRef.current.scale;
+    const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomIn(currentTarget);
-    updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
-    targetScaleRef.current = nextTarget;
-    activeAnchorRef.current = container ? {
-      viewportX: container.clientWidth / 2,
-      viewportY: container.clientHeight / 2,
-    } : null;
-    startSmoothZoomAnimation();
-  }, [startSmoothZoomAnimation, updateZoomState]);
+    updateZoomState({ mode: "custom", scale: nextTarget });
+    setRenderedScale(nextTarget);
+  }, [updateZoomState]);
 
   const handleZoomOut = useCallback(() => {
-    const container = scrollContainerRef.current;
-    const currentTarget =
-      zoomAnimFrameRef.current !== null
-        ? targetScaleRef.current
-        : zoomRef.current.scale;
+    const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomOut(currentTarget);
-    updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
-    targetScaleRef.current = nextTarget;
-    activeAnchorRef.current = container ? {
-      viewportX: container.clientWidth / 2,
-      viewportY: container.clientHeight / 2,
-    } : null;
-    startSmoothZoomAnimation();
-  }, [startSmoothZoomAnimation, updateZoomState]);
+    updateZoomState({ mode: "custom", scale: nextTarget });
+    setRenderedScale(nextTarget);
+  }, [updateZoomState]);
 
   const setActualSize = useCallback(() => {
-    const container = scrollContainerRef.current;
-    updateZoomState({ mode: "custom", scale: zoomRef.current.scale });
-    targetScaleRef.current = 1;
-    activeAnchorRef.current = container ? {
-      viewportX: container.clientWidth / 2,
-      viewportY: container.clientHeight / 2,
-    } : null;
-    startSmoothZoomAnimation();
-  }, [startSmoothZoomAnimation, updateZoomState]);
+    updateZoomState({ mode: "actual-size", scale: 1 });
+    setRenderedScale(1);
+  }, [updateZoomState]);
 
   // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4)
   const handleSmartZoom = useCallback((point: { clientX: number; clientY: number }) => {
@@ -496,22 +409,16 @@ export function PdfJsStudio({
     const fitScale = getFitScale("fit-width") ?? 1.2;
     const isNearFit = Math.abs(zoomRef.current.scale - fitScale) < 0.08 || zoomRef.current.mode === "fit-width";
 
-    const rect = container.getBoundingClientRect();
-    const anchor: ZoomAnchor = {
-      viewportX: point.clientX - rect.left,
-      viewportY: point.clientY - rect.top,
-    };
-    activeAnchorRef.current = anchor;
-
     if (isNearFit) {
-      // Genişliğe sığdırılmışsa tıklanan noktayı odaklayıp %150'ye zoom yap
+      // Genişliğe sığdırılmışsa %150'ye zoom yap
       targetScaleRef.current = 1.5;
-      startSmoothZoomAnimation();
+      updateZoomState({ mode: "custom", scale: 1.5 });
+      setRenderedScale(1.5);
     } else {
       // Zaten zoomlanmışsa tek hamlede genişliğe sığdır moduna dön
       applyFitMode("fit-width");
     }
-  }, [getFitScale, applyFitMode, startSmoothZoomAnimation]);
+  }, [getFitScale, applyFitMode, updateZoomState]);
 
   // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç altındaki belge noktasını koru
   useLayoutEffect(() => {
@@ -1361,33 +1268,26 @@ export function PdfJsStudio({
     containerRef: scrollContainerRef,
     isHandTool,
     scale: zoom.scale,
-    onScaleChange: (newScale, anchor) => {
-      if (zoomAnimFrameRef.current !== null) {
-        window.cancelAnimationFrame(zoomAnimFrameRef.current);
-        zoomAnimFrameRef.current = null;
-      }
-      targetScaleRef.current = newScale;
-      if (anchor && scrollContainerRef.current) {
-        const rect = scrollContainerRef.current.getBoundingClientRect();
-        activeAnchorRef.current = {
-          viewportX: anchor.clientX - rect.left,
-          viewportY: anchor.clientY - rect.top,
-        };
-      }
-      updateZoomState({ mode: "custom", scale: newScale });
-      scheduleRenderedScaleCommit(newScale);
-    },
-    onCommitScale: (committedScale) => {
-      scheduleRenderedScaleCommit(committedScale);
-    },
     onSmartZoom: handleSmartZoom,
+    disabled: loading || !pdfDoc,
+  });
+
+  // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri (Adım 4 & Adım 5)
+  useZoomGestures(scrollContainerRef, contentRef, {
+    scale: zoom.scale,
+    min: MIN_SCALE,
+    max: MAX_SCALE,
+    onCommit: (nextScale) => {
+      updateZoomState({ mode: "custom", scale: nextScale });
+      setRenderedScale(nextScale);
+    },
     disabled: loading || !pdfDoc,
   });
 
   const currentMatch = searchResult.matches[currentMatchIndex];
   const viewerState: "idle" | "loading" | "rendering" = loading
     ? "loading"
-    : !isQueueIdle || debouncedRenderTimerRef.current !== null
+    : !isQueueIdle
     ? "rendering"
     : "idle";
 
@@ -1627,7 +1527,7 @@ export function PdfJsStudio({
                 }
                 triggerDebouncedSave();
               }}
-              className={`min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] ${
+              className={`pdf-scroll min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain [scrollbar-gutter:stable] ${
                 nightMode ? "bg-zinc-950" : "bg-muted/50 dark:bg-zinc-900/60"
               } p-4 sm:p-8 [touch-action:pan-x_pan-y] ${
                 isHandTool
@@ -1637,7 +1537,7 @@ export function PdfJsStudio({
                   : "cursor-default"
               }`}
             >
-              <div className="flex min-w-full w-max flex-col items-center py-2">
+              <div ref={contentRef} className="pdf-content flex min-w-full w-max flex-col items-center py-2">
                 {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
                   <PdfPageView
                     key={pageNum}
