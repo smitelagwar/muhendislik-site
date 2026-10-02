@@ -27,8 +27,11 @@ export function PdfPageScrubber({
 }: PdfPageScrubberProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const isScrubbingRef = useRef(false);
   const [hoverPage, setHoverPage] = useState<number | null>(null);
+  const lastScrubbedPageRef = useRef<number | null>(null);
   const [isRecentlyActive, setIsRecentlyActive] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [pageJumpOpen, setPageJumpOpen] = useState(false);
   const [pageDraft, setPageDraft] = useState(String(currentPage));
   const activeTimerRef = useRef<number | null>(null);
@@ -63,8 +66,8 @@ export function PdfPageScrubber({
     };
   }, []);
 
-  // 10'dan az sayfa varsa dikey scrubber gösterme (Plandaki kural)
-  if (numPages < 10) return null;
+  // Tek sayfada gezinti gerekmediği için kontrol yalnızca çok sayfalı PDF'lerde görünür.
+  if (numPages < 2) return null;
 
   const calculatePageFromClientY = (clientY: number): number => {
     if (!trackRef.current) return currentPage;
@@ -75,8 +78,10 @@ export function PdfPageScrubber({
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !e.isPrimary) return;
     e.preventDefault();
     e.stopPropagation();
+    isScrubbingRef.current = true;
     setIsScrubbing(true);
 
     try {
@@ -84,6 +89,7 @@ export function PdfPageScrubber({
     } catch {}
 
     const page = calculatePageFromClientY(e.clientY);
+    lastScrubbedPageRef.current = page;
     setHoverPage(page);
     if (onScrubMove) {
       onScrubMove(page);
@@ -95,9 +101,10 @@ export function PdfPageScrubber({
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
     const page = calculatePageFromClientY(e.clientY);
-    setHoverPage(page);
+    setHoverPage((previous) => previous === page ? previous : page);
 
-    if (isScrubbing) {
+    if (isScrubbingRef.current && lastScrubbedPageRef.current !== page) {
+      lastScrubbedPageRef.current = page;
       if (onScrubMove) {
         onScrubMove(page);
       } else {
@@ -107,15 +114,67 @@ export function PdfPageScrubber({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch {}
     }
     const finalPage = calculatePageFromClientY(e.clientY);
+    isScrubbingRef.current = false;
+    lastScrubbedPageRef.current = finalPage;
     setIsScrubbing(false);
     setHoverPage(null);
     onPageChange(finalPage);
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+    // Pointer iptalinde tarayıcı koordinatı 0,0 gönderebilir. Görüntülenen son sayfayı tamamla.
+    const finalPage = lastScrubbedPageRef.current ?? currentPage;
+    isScrubbingRef.current = false;
+    setIsScrubbing(false);
+    setHoverPage(null);
+    onPageChange(finalPage);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const page = hoverPage ?? currentPage;
+    let targetPage: number | null = null;
+
+    switch (e.key) {
+      case "ArrowUp":
+        targetPage = page - 1;
+        break;
+      case "ArrowDown":
+        targetPage = page + 1;
+        break;
+      case "PageUp":
+        targetPage = page - 10;
+        break;
+      case "PageDown":
+        targetPage = page + 10;
+        break;
+      case "Home":
+        targetPage = 1;
+        break;
+      case "End":
+        targetPage = numPages;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    const nextPage = Math.min(Math.max(targetPage, 1), numPages);
+    setHoverPage(nextPage);
+    onPageChange(nextPage);
   };
 
   const commitPageJump = (event: React.FormEvent<HTMLFormElement>) => {
@@ -135,7 +194,7 @@ export function PdfPageScrubber({
   const activePercent = Math.min(Math.max(currentFraction * 100, 0), 100);
 
   // Görünürlük durumu: Hover esnasında, sürüklemede veya mobilde kaydırma anında belirgin
-  const isVisible = isScrubbing || isRecentlyActive;
+  const isVisible = isScrubbing || isRecentlyActive || isFocused;
 
   return (
     <div
@@ -145,11 +204,11 @@ export function PdfPageScrubber({
         isVisible ? "opacity-100" : "opacity-35 hover:opacity-100"
       }`}
       onPointerLeave={() => {
-        if (!isScrubbing) setHoverPage(null);
+        if (!isScrubbingRef.current && !isFocused) setHoverPage(null);
       }}
     >
       {/* Tooltip (Absolute yerleşim: Viewport'a fixed değil, Scrubber kapsayıcısına göre) */}
-      {(hoverPage !== null || isScrubbing) && (
+      {(hoverPage !== null || isScrubbing || isFocused) && (
         <div
           data-testid="pdf-scrubber-tooltip"
           className="absolute right-9 z-30 -translate-y-1/2 rounded-lg border border-border/80 bg-zinc-900/95 px-2.5 py-1 font-mono text-[11px] font-bold text-zinc-100 shadow-xl backdrop-blur-md transition-all duration-75 pointer-events-none whitespace-nowrap"
@@ -191,43 +250,57 @@ export function PdfPageScrubber({
         </div>
       )}
 
-      {/* Dokunma Hedefi (Hit Target: >= 24px dokunma genişliği ve touch-action: none) */}
+      {/* Sayfa başına bir çizgi; geniş hit area çizgiler arasında da en yakın sayfayı seçer. */}
       <div
         ref={trackRef}
         data-testid="pdf-scrubber-track"
+        data-page-count={numPages}
+        data-scrubbing={isScrubbing}
         data-no-tap
+        role="slider"
+        tabIndex={0}
+        aria-label={pdfViewerStrings.pageScrubber}
+        aria-orientation="vertical"
+        aria-valuemin={1}
+        aria-valuemax={numPages}
+        aria-valuenow={displayPage}
+        aria-valuetext={pdfViewerStrings.pagePosition(displayPage, numPages)}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => {
+          setIsFocused(false);
+          setHoverPage(null);
+        }}
         style={{ touchAction: "none" }}
-        className="group relative flex h-full w-7 sm:w-8 min-w-[28px] cursor-pointer items-center justify-center py-2"
+        className="group relative flex h-full w-7 min-w-[28px] cursor-pointer items-center justify-center rounded-sm py-2 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:w-8"
         title={pdfViewerStrings.pagePosition(currentPage, numPages)}
-        aria-label={pdfViewerStrings.pageScrubber}
       >
-        {/* İnce Görsel Ray (Visual Track) */}
-        <div
-          className={`relative h-full w-1 sm:w-1.5 rounded-full transition-all duration-200 ${
-            isScrubbing
-              ? "w-2 bg-zinc-800 shadow-md ring-1 ring-amber-500/50"
-              : "bg-zinc-500/25 group-hover:w-1.5 group-hover:bg-zinc-700/50 dark:bg-zinc-600/30"
-          }`}
-        >
-          {/* Dolu İlerleme Hattı */}
-          <div
-            className="absolute top-0 w-full rounded-full bg-amber-500/40 transition-all"
-            style={{ height: `${activePercent}%` }}
-          />
-
-          {/* Aktif İmleç (Thumb Indicator) */}
-          <div
-            className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-75 ${
-              isScrubbing
-                ? "h-4 w-4 bg-amber-500 shadow-lg shadow-amber-500/50 scale-110"
-                : "h-3 w-3 bg-amber-500/90 shadow-sm group-hover:scale-125"
-            }`}
-            style={{ top: `${activePercent}%` }}
-          />
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          {Array.from({ length: numPages }, (_, index) => {
+            const page = index + 1;
+            const isSelected = page === displayPage;
+            const isMajor = page % 10 === 0;
+            return (
+              <span
+                key={page}
+                data-testid="pdf-scrubber-tick"
+                data-page={page}
+                className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,background-color] duration-100 ${
+                  isSelected
+                    ? "h-0.5 w-4 bg-amber-500 shadow-sm shadow-amber-500/60"
+                    : isMajor
+                      ? "h-px w-3 bg-zinc-400/80 group-hover:bg-zinc-300"
+                      : "h-px w-2 bg-zinc-500/60 group-hover:bg-zinc-400/90"
+                }`}
+                style={{ top: `${(index / (numPages - 1)) * 100}%` }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
