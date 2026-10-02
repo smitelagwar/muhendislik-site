@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
+  ChevronDown,
   MousePointer,
   Hand,
   ZoomIn,
@@ -65,6 +66,7 @@ interface PdfViewerToolbarProps {
   onZoom100: () => void;
   onFitWidth: () => void;
   onFitPage: () => void;
+  onZoomSelect?: (targetScale: number) => void;
   onRotateView: () => void;
   onToggleSearch: () => void;
   onPrint: () => void;
@@ -119,6 +121,7 @@ export function PdfViewerToolbar({
   onZoom100,
   onFitWidth,
   onFitPage,
+  onZoomSelect,
   onRotateView,
   onToggleSearch,
   onPrint,
@@ -406,15 +409,67 @@ export function PdfViewerToolbar({
             icon={<ZoomOut className="h-4 w-4" />}
           />
 
-          <StudioCommandButton
-            commandId="pdf.zoom.100"
-            onClick={onZoom100}
-            active={zoomMode === "actual-size" || zoomPercent === 100}
-            title={`Orijinal Boyut · ${zoomPercent}%`}
-            aria-label={`Ölçeği sıfırla, yüzde ${zoomPercent}`}
-            className="hidden min-[380px]:inline-flex h-11 min-h-11 px-1.5 sm:px-2.5 sm:h-9 sm:min-h-9 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
-            label={`${zoomPercent}%`}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                data-command-id="pdf.zoom.100"
+                title={`Ölçek Menüsü · ${zoomPercent}%`}
+                aria-label={`Ölçek Menüsü, yüzde ${zoomPercent}`}
+                className="hidden min-[380px]:inline-flex items-center gap-1 h-11 min-h-11 px-1.5 sm:px-2 sm:h-9 sm:min-h-9 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors select-none outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
+              >
+                <span>{zoomPercent}%</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="center"
+              className="z-[220] w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1 font-sans"
+            >
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                onClick={onFitWidth}
+              >
+                <span>Genişliğe Sığdır</span>
+                {zoomMode === "fit-width" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                onClick={onFitPage}
+              >
+                <span>Sayfaya Sığdır</span>
+                {zoomMode === "fit-page" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
+                onClick={onZoom100}
+              >
+                <span>Gerçek Boyut (%100)</span>
+                {(zoomMode === "actual-size" || (zoomMode === "custom" && zoomPercent === 100)) && (
+                  <Check className="h-3.5 w-3.5 text-amber-500" />
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {[50, 75, 100, 125, 150, 200, 300, 400, 500].map((stepPct) => (
+                <DropdownMenuItem
+                  key={stepPct}
+                  className="cursor-pointer text-xs font-mono rounded-lg flex items-center justify-between"
+                  onClick={() => {
+                    if (onZoomSelect) {
+                      onZoomSelect(stepPct / 100);
+                    } else if (stepPct === 100) {
+                      onZoom100();
+                    }
+                  }}
+                >
+                  <span>%{stepPct}</span>
+                  {zoomPercent === stepPct && zoomMode === "custom" && (
+                    <Check className="h-3.5 w-3.5 text-amber-500" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <StudioCommandButton
             commandId="pdf.zoom.in"

@@ -355,65 +355,110 @@ export function PdfJsStudio({
     return Number(clampScale(targetScale).toFixed(2));
   }, [firstPageSize, pageDimensions, rotation]);
 
-  const applyFitMode = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
-    const targetScale = getFitScale(mode);
-    if (targetScale === null) return;
+  const zoomToRef = useRef<((n: number, o?: any) => void) | null>(null);
+  const pendingModeRef = useRef<ZoomMode | null>(null);
+  const handleSmartZoomRef = useRef<
+    ((point: { clientX: number; clientY: number }, target?: EventTarget | null) => void) | null
+  >(null);
 
-    targetScaleRef.current = targetScale;
-    updateZoomState({ mode, scale: targetScale });
-    setRenderedScale(targetScale);
-  }, [getFitScale, updateZoomState]);
+  const applyFitMode = useCallback(
+    (mode: Extract<ZoomMode, "fit-width" | "fit-page">, animate = false) => {
+      const targetScale = getFitScale(mode);
+      if (targetScale === null) return;
 
-  // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri ve Odak Korumalı Zoom API'si (v2 Yama)
+      targetScaleRef.current = targetScale;
+      if (animate && zoomToRef.current) {
+        pendingModeRef.current = mode;
+        zoomToRef.current(targetScale, { animate: true });
+        updateZoomState({ mode, scale: targetScale });
+      } else {
+        pendingModeRef.current = null;
+        updateZoomState({ mode, scale: targetScale });
+        setRenderedScale(targetScale);
+      }
+    },
+    [getFitScale, updateZoomState]
+  );
+
+  // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri ve Odak Korumalı Zoom API'si (v2 + v3 Acrobat)
   const zoomTo = useZoomGestures(scrollContainerRef, contentRef, {
     scale: zoom.scale,
     min: MIN_SCALE,
     max: MAX_SCALE,
     onCommit: (nextScale) => {
-      updateZoomState({ mode: "custom", scale: nextScale });
+      const nextMode = pendingModeRef.current ?? "custom";
+      pendingModeRef.current = null;
+      updateZoomState({ mode: nextMode, scale: nextScale });
       setRenderedScale(nextScale);
+    },
+    onDoubleTap: (clientX, clientY, target) => {
+      handleSmartZoomRef.current?.({ clientX, clientY }, target);
     },
     disabled: loading || !pdfDoc,
   });
+  zoomToRef.current = zoomTo;
 
-  const adjustCustomZoom = useCallback((delta: number) => {
-    const currentTarget = zoomRef.current.scale;
-    const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
-    zoomTo(nextTarget);
-  }, [zoomTo]);
+  const adjustCustomZoom = useCallback(
+    (delta: number) => {
+      const currentTarget = zoomRef.current.scale;
+      const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
+      zoomTo(nextTarget, { animate: true });
+    },
+    [zoomTo]
+  );
 
   const handleZoomIn = useCallback(() => {
     const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomIn(currentTarget);
-    zoomTo(nextTarget);
+    zoomTo(nextTarget, { animate: true });
   }, [zoomTo]);
 
   const handleZoomOut = useCallback(() => {
     const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomOut(currentTarget);
-    zoomTo(nextTarget);
+    zoomTo(nextTarget, { animate: true });
   }, [zoomTo]);
 
   const setActualSize = useCallback(() => {
-    zoomTo(1);
+    pendingModeRef.current = "actual-size";
+    zoomTo(1, { animate: true });
   }, [zoomTo]);
 
-  // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4)
-  const handleSmartZoom = useCallback((point: { clientX: number; clientY: number }) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4 & v3 Acrobat)
+  const handleSmartZoom = useCallback(
+    (point: { clientX: number; clientY: number }, target?: EventTarget | null) => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
 
-    const fitScale = getFitScale("fit-width") ?? 1.2;
-    const isNearFit = Math.abs(zoomRef.current.scale - fitScale) < 0.08 || zoomRef.current.mode === "fit-width";
+      if (typeof window !== "undefined") {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+          return;
+        }
+      }
+      if ((target as Element | null)?.closest?.("a, button, input, select, [data-no-tap]")) {
+        return;
+      }
 
-    if (isNearFit) {
-      // Genişliğe sığdırılmışsa %150'ye odak korumalı zoom yap
-      zoomTo(1.5);
-    } else {
-      // Zaten zoomlanmışsa tek hamlede genişliğe sığdır moduna dön
-      applyFitMode("fit-width");
-    }
-  }, [getFitScale, applyFitMode, zoomTo]);
+      const fitScale = getFitScale("fit-width") ?? 1.2;
+      const isZoomedIn = zoomRef.current.scale > fitScale * 1.15;
+
+      if (isZoomedIn) {
+        // Zaten zoomlanmışsa odaklı animasyonla genişliğe sığdır moduna dön
+        pendingModeRef.current = "fit-width";
+        zoomTo(fitScale, { x: point.clientX, y: point.clientY, animate: true });
+        updateZoomState({ mode: "fit-width", scale: fitScale });
+      } else {
+        // Dokunulan / tıklanan noktaya odaklanarak 2.2x akıllı zoom yap
+        const targetZoom = clampScale(Number((fitScale * 2.2).toFixed(2)));
+        pendingModeRef.current = "custom";
+        zoomTo(targetZoom, { x: point.clientX, y: point.clientY, animate: true });
+        updateZoomState({ mode: "custom", scale: targetZoom });
+      }
+    },
+    [getFitScale, zoomTo, updateZoomState]
+  );
+  handleSmartZoomRef.current = handleSmartZoom;
 
   const handlePasswordSubmit = useCallback((password: string) => {
     if (passwordCallbackRef.current) {
@@ -1098,10 +1143,10 @@ export function PdfJsStudio({
         handleZoomOut();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
         e.preventDefault();
-        applyFitMode("fit-page");
+        applyFitMode("fit-page", true);
       } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "0") {
         e.preventDefault();
-        applyFitMode("fit-page");
+        applyFitMode("fit-page", true);
       } else if ((e.ctrlKey || e.metaKey) && e.key === "1") {
         e.preventDefault();
         setActualSize();
@@ -1110,10 +1155,10 @@ export function PdfJsStudio({
         setActualSize();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "2") {
         e.preventDefault();
-        applyFitMode("fit-width");
+        applyFitMode("fit-width", true);
       } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key === "2") {
         e.preventDefault();
-        applyFitMode("fit-width");
+        applyFitMode("fit-width", true);
       } else if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "h") {
         e.preventDefault();
         setIsHandTool(true);
@@ -1209,11 +1254,11 @@ export function PdfJsStudio({
   ]);
 
   const handleFitWidth = () => {
-    applyFitMode("fit-width");
+    applyFitMode("fit-width", true);
   };
 
   const handleFitPage = () => {
-    applyFitMode("fit-page");
+    applyFitMode("fit-page", true);
   };
 
   // Faz H: Ayarlar Menüsü Aksiyonları
@@ -1308,6 +1353,7 @@ export function PdfJsStudio({
         onZoom100={setActualSize}
         onFitWidth={handleFitWidth}
         onFitPage={handleFitPage}
+        onZoomSelect={(targetScale) => zoomTo(targetScale, { animate: true })}
         onRotateView={() => setRotation((r) => (r + 90) % 360)}
         onToggleSearch={() => {
           setIsSearchOpen((prev) => !prev);

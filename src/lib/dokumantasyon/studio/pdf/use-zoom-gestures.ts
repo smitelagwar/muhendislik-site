@@ -14,12 +14,22 @@ type Live = {
   anchor: Anchor | null;
 };
 
+export type ZoomOpts = {
+  x?: number;
+  y?: number;
+  dx?: number;
+  dy?: number;
+  animate?: boolean;
+};
+
 export interface ZoomGestureOptions {
   scale: number;
   min: number;
   max: number;
   onCommit: (next: number) => void;
   disabled?: boolean;
+  onTap?: (x: number, y: number, target: EventTarget | null) => void;
+  onDoubleTap?: (x: number, y: number, target: EventTarget | null) => void;
 }
 
 const EMPTY: Live = { r: 1, active: false, ox: 0, oy: 0, originX: 0, originY: 0, anchor: null };
@@ -27,7 +37,7 @@ const EMPTY: Live = { r: 1, active: false, ox: 0, oy: 0, originX: 0, originY: 0,
 export function useZoomGestures(
   scrollRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
-  { scale, min, max, onCommit, disabled = false }: ZoomGestureOptions
+  { scale, min, max, onCommit, disabled = false, onTap, onDoubleTap }: ZoomGestureOptions
 ) {
   const live = useRef<Live>({ ...EMPTY });
   const pending = useRef<Live | null>(null);
@@ -35,7 +45,9 @@ export function useZoomGestures(
   scaleRef.current = scale;
   const commitCb = useRef(onCommit);
   commitCb.current = onCommit;
-  const api = useRef<((n: number) => void) | null>(null);
+  const optsRef = useRef({ onTap, onDoubleTap });
+  optsRef.current = { onTap, onDoubleTap };
+  const api = useRef<((n: number, o?: ZoomOpts) => void) | null>(null);
 
   const clearStyles = () => {
     const c = contentRef.current;
@@ -44,6 +56,7 @@ export function useZoomGestures(
       c.style.transform = "";
       c.style.transformOrigin = "";
       c.style.willChange = "";
+      c.style.transition = "";
     }
     s?.removeAttribute("data-zooming");
   };
@@ -136,7 +149,7 @@ export function useZoomGestures(
         cancelAnimationFrame(raf);
         raf = 0;
       }
-      const next = Math.round(Math.min(max, Math.max(min, scaleRef.current * l.r)) * 100) / 100;
+      const next = Math.round(Math.min(max, Math.max(min, scaleRef.current * l.r)) * 1e4) / 1e4;
       if (next === scaleRef.current) {
         clearStyles();
         live.current = { ...EMPTY };
@@ -146,19 +159,43 @@ export function useZoomGestures(
       commitCb.current(next);
     };
 
-    // Toolbar butonları için: viewport merkezine göre zoom
-    api.current = (n: number) => {
+    // Toolbar butonları ve programatik zoom için: odak korumalı ve animasyonlu zoom (Acrobat v3)
+    let animating = false;
+    api.current = (n: number, o: ZoomOpts = {}) => {
+      if (pending.current || animating) return;
       const rect = el.getBoundingClientRect();
-      begin(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      begin(o.x ?? rect.left + rect.width / 2, o.y ?? rect.top + rect.height / 2);
+      if (o.dx != null && o.dy != null) {
+        live.current.ox = o.dx - rect.left;
+        live.current.oy = o.dy - rect.top;
+      }
       live.current.r = clampR(n / scaleRef.current);
-      commit();
+      const reduce =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (!o.animate || reduce) {
+        commit();
+        return;
+      }
+      const l = live.current;
+      animating = true;
+      content.style.transformOrigin = `${l.originX}px ${l.originY}px`;
+      content.style.willChange = "transform";
+      content.getBoundingClientRect(); // reflow: geçiş başlangıcı
+      content.style.transition = "transform 180ms cubic-bezier(.2,.8,.2,1)";
+      content.style.transform = `scale(${l.r})`;
+      window.setTimeout(() => {
+        content.style.transition = "";
+        animating = false;
+        commit();
+      }, 190);
     };
 
     // --- Masaüstü: ctrl/cmd + tekerlek, Chrome/Firefox trackpad pinch (ctrlKey=true) ---
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      if (pending.current) return;
+      if (pending.current || animating) return;
       begin(e.clientX, e.clientY);
       const raw = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       const dy = Math.max(-30, Math.min(30, raw)); // mouse çentiği fırlamasın
@@ -171,25 +208,34 @@ export function useZoomGestures(
     // --- Safari masaüstü trackpad pinch (gesture olayları). Dokunmatik cihazda touch kullanılır ---
     const gStart = (e: any) => {
       e.preventDefault();
-      if (isTouchDevice || pending.current) return;
+      if (isTouchDevice || pending.current || animating) return;
       begin(e.clientX, e.clientY);
       g0 = live.current.r;
     };
     const gChange = (e: any) => {
       e.preventDefault();
-      if (isTouchDevice || !live.current.active) return;
+      if (isTouchDevice || !live.current.active || animating) return;
       live.current.r = clampR(g0 * e.scale);
       schedule();
     };
     const gEnd = (e: any) => {
       e.preventDefault();
-      if (!isTouchDevice) commit();
+      if (!isTouchDevice && !animating) commit();
     };
 
-    // --- Mobil: iki parmak pinch ---
+    // --- Mobil: iki parmak pinch & tek/çift dokunma (Acrobat v3) ---
+    let t0: { x: number; y: number; t: number } | null = null;
+    let lastTap: { x: number; y: number; t: number } | null = null;
+    let tapTimer = 0;
+
     const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
     const onTouchStart = (e: TouchEvent) => {
+      if (animating) return;
+      t0 =
+        e.touches.length === 1
+          ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+          : null;
       if (e.touches.length !== 2 || pending.current) return;
       d0 = dist(e.touches);
       begin(
@@ -200,6 +246,14 @@ export function useZoomGestures(
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      if (animating) return;
+      if (
+        t0 &&
+        e.touches.length === 1 &&
+        Math.hypot(e.touches[0].clientX - t0.x, e.touches[0].clientY - t0.y) > 10
+      ) {
+        t0 = null;
+      }
       if (e.touches.length !== 2 || !d0) return;
       if (e.cancelable) e.preventDefault();
       live.current.r = clampR(r0 * (dist(e.touches) / d0));
@@ -207,6 +261,26 @@ export function useZoomGestures(
     };
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (t0 && e.touches.length === 0 && Date.now() - t0.t < 250) {
+        const c = e.changedTouches[0];
+        const tgt = e.target;
+        if (
+          lastTap &&
+          Date.now() - lastTap.t < 300 &&
+          Math.hypot(c.clientX - lastTap.x, c.clientY - lastTap.y) < 30
+        ) {
+          window.clearTimeout(tapTimer);
+          lastTap = null;
+          optsRef.current.onDoubleTap?.(c.clientX, c.clientY, tgt);
+        } else {
+          lastTap = { x: c.clientX, y: c.clientY, t: Date.now() };
+          tapTimer = window.setTimeout(() => {
+            lastTap = null;
+            optsRef.current.onTap?.(c.clientX, c.clientY, tgt);
+          }, 300);
+        }
+      }
+      t0 = null;
       if (d0 && e.touches.length < 2) {
         d0 = 0;
         commit();
@@ -232,10 +306,11 @@ export function useZoomGestures(
       el.removeEventListener("gesturechange", gChange as EventListener);
       el.removeEventListener("gestureend", gEnd as EventListener);
       clearTimeout(timer);
+      window.clearTimeout(tapTimer);
       if (raf) cancelAnimationFrame(raf);
       api.current = null;
     };
   }, [min, max, scrollRef, contentRef, disabled]);
 
-  return useCallback((n: number) => api.current?.(n), []); // zoomTo
+  return useCallback((n: number, o?: ZoomOpts) => api.current?.(n, o), []); // zoomTo
 }

@@ -10,8 +10,11 @@ import { loadSecurePdfJs } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import { isSafePdfUrl } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 import { PdfHighlightLayer } from "./pdf-highlight-layer";
-import { computePageGeometry } from "@/lib/dokumantasyon/studio/pdf/pdf-geometry";
+import { computePageGeometry, DEFAULT_PIXEL_BUDGET } from "@/lib/dokumantasyon/studio/pdf/pdf-geometry";
 import { MappingRule } from "@/lib/dokumantasyon/studio/pdf/pdf-text-repair";
+
+const isCoarsePointer = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+const getSafePixelBudget = () => (isCoarsePointer() ? 6_000_000 : DEFAULT_PIXEL_BUDGET);
 
 interface PdfPageViewProps {
   pdfDoc: any;
@@ -264,6 +267,7 @@ export function PdfPageView({
       pageHeightPt: baseH,
       scale: effectiveRenderedScale,
       dpr,
+      maxPixelBudget: getSafePixelBudget(),
     });
 
     const renderViewport = page.getViewport({
@@ -439,6 +443,7 @@ export function PdfPageView({
     pageHeightPt: baseHeightPt,
     scale,
     dpr: currentDpr,
+    maxPixelBudget: getSafePixelBudget(),
   });
   const currentWidth = containerGeom.cssWidth;
   const currentHeight = containerGeom.cssHeight;
@@ -461,7 +466,7 @@ export function PdfPageView({
       data-page-number={pageNumber}
       data-page-state={effectivePageRendered ? "rendered" : "rendering"}
       data-render-scale={effectiveRenderedScale}
-      className={`relative mx-auto my-3 overflow-hidden transition-shadow ${
+      className={`relative my-3 overflow-hidden transition-shadow ${
         nightMode ? "bg-zinc-950 shadow-black/60 shadow-xl" : "bg-white shadow-xl"
       } rounded-sm ${
         isCurrentMatchPage ? "ring-2 ring-amber-500 shadow-amber-500/20" : ""

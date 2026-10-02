@@ -125,7 +125,7 @@ export function isTextElement(target: EventTarget | null): boolean {
 }
 
 export { useZoomGestures } from "./use-zoom-gestures";
-export type { ZoomGestureOptions } from "./use-zoom-gestures";
+export type { ZoomGestureOptions, ZoomOpts } from "./use-zoom-gestures";
 
 export interface UsePdfGesturesOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
