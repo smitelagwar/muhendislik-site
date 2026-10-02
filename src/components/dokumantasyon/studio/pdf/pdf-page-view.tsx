@@ -124,6 +124,15 @@ export function PdfPageView({
   const [isPageRendered, setIsPageRendered] = useState<boolean>(false);
   const effectivePageRendered = isWithinWindow && isPageRendered;
 
+  // Katman düşünce canvas belleğini hemen serbest bırak (Safari sızıntısını önler)
+  useEffect(() => () => {
+    const c = canvasRef.current;
+    if (c) {
+      c.width = 0;
+      c.height = 0;
+    }
+  }, []);
+
   // IntersectionObserver: Görünür olduğunda ana bileşene bildir
   useEffect(() => {
     const el = containerRef.current;
@@ -198,13 +207,11 @@ export function PdfPageView({
     // Pencere dışına çıktı: kuyruk görevini iptal et
     pdfRenderQueue.cancel(`page-${pageNumber}`);
 
-    // Canvas'ı 1x1 piksele küçült ve temizle
+    // Canvas'ı 0x0 piksele küçült ve Safari belleğini hemen serbest bırak
     const c = canvasRef.current;
     if (c) {
-      c.width = 1;
-      c.height = 1;
-      const ctx = c.getContext("2d");
-      ctx?.clearRect(0, 0, 1, 1);
+      c.width = 0;
+      c.height = 0;
     }
 
     // TextLayer DOM'unu boşalt
@@ -299,9 +306,9 @@ export function PdfPageView({
           const visibleCtx = visibleCanvas.getContext("2d");
           visibleCtx?.drawImage(bufferCanvas, 0, 0);
 
-          // Arka plan tamponunu boşaltarak belleği koru
-          bufferCanvas.width = 1;
-          bufferCanvas.height = 1;
+          // Arka plan tamponunu boşaltarak belleği koru (Safari bellek serbest bırakma)
+          bufferCanvas.width = 0;
+          bufferCanvas.height = 0;
         }
 
         lastRenderedJobKeyRef.current = currentJobKey;
@@ -450,6 +457,7 @@ export function PdfPageView({
       ref={containerRef}
       id={`pdf-page-${pageNumber}`}
       data-testid={`pdf-page-${pageNumber}`}
+      data-page={pageNumber}
       data-page-number={pageNumber}
       data-page-state={effectivePageRendered ? "rendered" : "rendering"}
       data-render-scale={effectiveRenderedScale}
@@ -461,6 +469,7 @@ export function PdfPageView({
       style={{
         width: `${currentWidth}px`,
         height: `${currentHeight}px`,
+        contain: "layout paint",
       }}
     >
       {/* 0. Yer Tutucu İskelet (Placeholder) */}

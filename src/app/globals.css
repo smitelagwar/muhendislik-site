@@ -1764,14 +1764,27 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   box-shadow: 0 0 0 2px rgb(217 119 6) !important;
 }
 
-/* PDF Görüntüleyici Zoom & Scroll Konteyneri (Adım 3) */
+/* PDF Görüntüleyici Zoom & Scroll Konteyneri (v2 YAMA) */
 .pdf-scroll {
+  position: relative;
+  height: 100%;
   overflow: auto;
   touch-action: pan-x pan-y;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+.pdf-scroll[data-zooming] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .pdf-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+  padding: 12px 0;
   transform-origin: 0 0;
 }
 

@@ -77,11 +77,6 @@ interface ZoomState {
   scale: number;
 }
 
-interface ZoomAnchor {
-  viewportX: number;
-  viewportY: number;
-}
-
 const MIN_SCALE = MIN_PDF_SCALE;
 const MAX_SCALE = MAX_PDF_SCALE;
 const PAGE_WINDOW_N = 5; // Faz C: Bellek penceresi [görünür - 5, görünür + 5]
@@ -113,7 +108,7 @@ export function PdfJsStudio({
   const pdfDocRef = useRef<any>(null);
   const retryCountRef = useRef<number>(0);
   const zoomRef = useRef<ZoomState>({ mode: "fit-width", scale: 1.2 });
-  const lastCommittedScaleRef = useRef<number>(1.2);
+  const lastContainerWidthRef = useRef<number>(0);
 
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(0);
@@ -335,16 +330,11 @@ export function PdfJsStudio({
   }, [performSave]);
 
   const targetScaleRef = useRef<number>(zoom.scale);
-  const activeAnchorRef = useRef<ZoomAnchor | null>(null);
 
   const updateZoomState = useCallback((nextZoom: ZoomState) => {
     zoomRef.current = nextZoom;
     setZoom(nextZoom);
   }, []);
-
-
-
-
 
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
@@ -370,36 +360,43 @@ export function PdfJsStudio({
     if (targetScale === null) return;
 
     targetScaleRef.current = targetScale;
-    activeAnchorRef.current = null;
     updateZoomState({ mode, scale: targetScale });
     setRenderedScale(targetScale);
   }, [getFitScale, updateZoomState]);
 
+  // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri ve Odak Korumalı Zoom API'si (v2 Yama)
+  const zoomTo = useZoomGestures(scrollContainerRef, contentRef, {
+    scale: zoom.scale,
+    min: MIN_SCALE,
+    max: MAX_SCALE,
+    onCommit: (nextScale) => {
+      updateZoomState({ mode: "custom", scale: nextScale });
+      setRenderedScale(nextScale);
+    },
+    disabled: loading || !pdfDoc,
+  });
+
   const adjustCustomZoom = useCallback((delta: number) => {
     const currentTarget = zoomRef.current.scale;
     const nextTarget = clampScale(Number((currentTarget + delta).toFixed(2)));
-    updateZoomState({ mode: "custom", scale: nextTarget });
-    setRenderedScale(nextTarget);
-  }, [updateZoomState]);
+    zoomTo(nextTarget);
+  }, [zoomTo]);
 
   const handleZoomIn = useCallback(() => {
     const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomIn(currentTarget);
-    updateZoomState({ mode: "custom", scale: nextTarget });
-    setRenderedScale(nextTarget);
-  }, [updateZoomState]);
+    zoomTo(nextTarget);
+  }, [zoomTo]);
 
   const handleZoomOut = useCallback(() => {
     const currentTarget = zoomRef.current.scale;
     const nextTarget = getNextAcrobatZoomOut(currentTarget);
-    updateZoomState({ mode: "custom", scale: nextTarget });
-    setRenderedScale(nextTarget);
-  }, [updateZoomState]);
+    zoomTo(nextTarget);
+  }, [zoomTo]);
 
   const setActualSize = useCallback(() => {
-    updateZoomState({ mode: "actual-size", scale: 1 });
-    setRenderedScale(1);
-  }, [updateZoomState]);
+    zoomTo(1);
+  }, [zoomTo]);
 
   // Çift Tıklama / Çift Dokunma ile Akıllı Zoom (Faz 4)
   const handleSmartZoom = useCallback((point: { clientX: number; clientY: number }) => {
@@ -410,38 +407,13 @@ export function PdfJsStudio({
     const isNearFit = Math.abs(zoomRef.current.scale - fitScale) < 0.08 || zoomRef.current.mode === "fit-width";
 
     if (isNearFit) {
-      // Genişliğe sığdırılmışsa %150'ye zoom yap
-      targetScaleRef.current = 1.5;
-      updateZoomState({ mode: "custom", scale: 1.5 });
-      setRenderedScale(1.5);
+      // Genişliğe sığdırılmışsa %150'ye odak korumalı zoom yap
+      zoomTo(1.5);
     } else {
       // Zaten zoomlanmışsa tek hamlede genişliğe sığdır moduna dön
       applyFitMode("fit-width");
     }
-  }, [getFitScale, applyFitMode, updateZoomState]);
-
-  // Sayfa boyutu React ve PDF.js tarafından commit edildikten sonra imleç altındaki belge noktasını koru
-  useLayoutEffect(() => {
-    const prevScale = lastCommittedScaleRef.current;
-    lastCommittedScaleRef.current = scale;
-
-    const activeAnchor = activeAnchorRef.current;
-    const container = scrollContainerRef.current;
-    if (!container || prevScale <= 0 || prevScale === scale) return;
-
-    if (activeAnchor) {
-      const logicalX = (container.scrollLeft + activeAnchor.viewportX) / prevScale;
-      const logicalY = (container.scrollTop + activeAnchor.viewportY) / prevScale;
-      container.scrollLeft = Math.max(logicalX * scale - activeAnchor.viewportX, 0);
-      container.scrollTop = Math.max(logicalY * scale - activeAnchor.viewportY, 0);
-    } else {
-      container.scrollTop = Math.round(container.scrollTop * (scale / prevScale));
-      container.scrollLeft = Math.round(container.scrollLeft * (scale / prevScale));
-      if (preservedStateRef.current && container.scrollHeight > 0) {
-        preservedStateRef.current.scrollRatio = container.scrollTop / container.scrollHeight;
-      }
-    }
-  }, [scale]);
+  }, [getFitScale, applyFitMode, zoomTo]);
 
   const handlePasswordSubmit = useCallback((password: string) => {
     if (passwordCallbackRef.current) {
@@ -707,46 +679,70 @@ export function PdfJsStudio({
     };
   }, []);
 
-  // Scroll viewport mount edildikten sonra aktif fit modunu koru
+  // Scroll viewport mount edildikten sonra aktif fit modunu koru (v2: genişlik >= 2px, debounce 150ms, data-zooming koruması)
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (loading || !container || !firstPageSize) return;
 
+    let resizeTimer: number | null = null;
     const updateFitMode = () => {
-      const mode = zoomRef.current.mode;
-      const currentScrollRatio =
-        container.scrollHeight > 0 ? container.scrollTop / container.scrollHeight : 0;
-      const savedRatio =
-        preservedStateRef.current?.scrollRatio && preservedStateRef.current.scrollRatio > 0
-          ? preservedStateRef.current.scrollRatio
-          : currentScrollRatio;
-
-      isResizingRef.current = true;
-      if (preservedStateRef.current) {
-        preservedStateRef.current.scrollRatio = savedRatio;
-      } else {
-        preservedStateRef.current = {
-          page: currentPageRef.current,
-          scrollRatio: savedRatio,
-          scale: zoomRef.current.scale,
-        };
+      if (container.hasAttribute("data-zooming")) return;
+      const currentWidth = container.clientWidth;
+      if (lastContainerWidthRef.current > 0 && Math.abs(currentWidth - lastContainerWidthRef.current) < 2) {
+        return; // Dikey yükseklik değişimini (mobil adres çubuğu vb.) yok say, zoom sıfırlanmasın
       }
+      lastContainerWidthRef.current = currentWidth;
 
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer);
+      }
+      resizeTimer = window.setTimeout(() => {
+        resizeTimer = null;
+        if (container.hasAttribute("data-zooming")) return;
+        const mode = zoomRef.current.mode;
+        const currentScrollRatio =
+          container.scrollHeight > 0 ? container.scrollTop / container.scrollHeight : 0;
+        const savedRatio =
+          preservedStateRef.current?.scrollRatio && preservedStateRef.current.scrollRatio > 0
+            ? preservedStateRef.current.scrollRatio
+            : currentScrollRatio;
+
+        isResizingRef.current = true;
+        if (preservedStateRef.current) {
+          preservedStateRef.current.scrollRatio = savedRatio;
+        } else {
+          preservedStateRef.current = {
+            page: currentPageRef.current,
+            scrollRatio: savedRatio,
+            scale: zoomRef.current.scale,
+          };
+        }
+
+        if (mode === "fit-width" || mode === "fit-page") {
+          applyFitModeRef.current(mode);
+        }
+
+        setTimeout(() => {
+          isResizingRef.current = false;
+        }, 100);
+      }, 150);
+    };
+
+    const frame = window.requestAnimationFrame(() => {
+      lastContainerWidthRef.current = container.clientWidth;
+      const mode = zoomRef.current.mode;
       if (mode === "fit-width" || mode === "fit-page") {
         applyFitModeRef.current(mode);
       }
-
-      setTimeout(() => {
-        isResizingRef.current = false;
-      }, 100);
-    };
-
-    const frame = window.requestAnimationFrame(updateFitMode);
+    });
     const observer = new ResizeObserver(updateFitMode);
     observer.observe(container);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer);
+      }
       observer.disconnect();
     };
   }, [firstPageSize, loading, rotation]);
@@ -1272,17 +1268,7 @@ export function PdfJsStudio({
     disabled: loading || !pdfDoc,
   });
 
-  // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri (Adım 4 & Adım 5)
-  useZoomGestures(scrollContainerRef, contentRef, {
-    scale: zoom.scale,
-    min: MIN_SCALE,
-    max: MAX_SCALE,
-    onCommit: (nextScale) => {
-      updateZoomState({ mode: "custom", scale: nextScale });
-      setRenderedScale(nextScale);
-    },
-    disabled: loading || !pdfDoc,
-  });
+
 
   const currentMatch = searchResult.matches[currentMatchIndex];
   const viewerState: "idle" | "loading" | "rendering" = loading
