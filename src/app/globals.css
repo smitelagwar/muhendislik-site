@@ -1723,45 +1723,18 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   background: transparent;
 }
 
-/* Standart arama eşleşmesi (amber yarı saydam, yüksek kontrastlı kenarlık) */
+/* Arama vurgusu metni örtmez; PDF glifleri alttan okunabilir kalır. */
 .pdf-search-mark {
-  background-color: rgba(251, 191, 36, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.5);
+  background-color: rgba(251, 191, 36, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.38);
   color: transparent;
-  border-radius: 2px;
-}
-
-/* Aktif arama eşleşmesi: Canlı amber yanıp sönme (pulse) animasyonu */
-@keyframes pdf-match-pulse {
-  0%, 100% {
-    background-color: rgb(245 158 11);
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.9), inset 0 0 0 1px rgb(180 83 9);
-  }
-  50% {
-    background-color: rgba(245, 158, 11, 0.3);
-    box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.6);
-  }
+  border-radius: 1px;
 }
 
 .pdf-search-mark-active {
-  background-color: rgb(245 158 11) !important;
-  animation: pdf-match-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border-radius: 2px;
-}
-
-/* Faz I: Erişilebilirlik ve Hareketleri Azaltma (prefers-reduced-motion & .reduce-motion) */
-@media (prefers-reduced-motion: reduce) {
-  .pdf-search-mark-active {
-    animation: none !important;
-    background-color: rgb(245 158 11) !important;
-    box-shadow: 0 0 0 2px rgb(217 119 6) !important;
-  }
-}
-
-.reduce-motion .pdf-search-mark-active {
-  animation: none !important;
-  background-color: rgb(245 158 11) !important;
-  box-shadow: 0 0 0 2px rgb(217 119 6) !important;
+  background-color: rgba(245, 158, 11, 0.34) !important;
+  box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.76), 0 0 0 1px rgba(245, 158, 11, 0.28);
+  border-radius: 1px;
 }
 
 /* PDF Görüntüleyici Zoom & Scroll Konteyneri (v2 YAMA) */

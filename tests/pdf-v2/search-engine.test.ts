@@ -75,6 +75,26 @@ console.log("=== FAZ E: PDF Search Engine Birim Testleri ===");
 }
 
 // ----------------------------------------------------------------------------
+// 3.2: NFC sonrası kaynak aralığı (ayrık Türkçe diakritikler)
+// ----------------------------------------------------------------------------
+{
+  const decomposed = "Başlıkta sa" + "c\u0327" + " aranıyor.";
+  const index = buildPageIndex([{ str: decomposed }], 1);
+  const [match] = findInPage(index, "saç");
+
+  assert.ok(match, "Ayrık cedilla içeren saç kelimesi bulunmalı");
+  assert.equal(match.snippet.hit, "sac\u0327", "Eşleşme kaynak metindeki birleştirici işareti de kapsamalı");
+  assert.equal(decomposed.slice(match.start, match.end), match.snippet.hit);
+
+  const jamo = "\u1100\u1161";
+  const normalizedJamo = foldTurkish(jamo);
+  assert.equal(normalizedJamo.folded, "가");
+  assert.equal(normalizedJamo.toOrig[0], 0);
+  assert.equal(normalizedJamo.toOrigEnd[0], jamo.length);
+  console.log("[PASS 3.2] NFC katlama birleştirilmiş karakterlerin UTF-16 kaynak aralığını koruyor");
+}
+
+// ----------------------------------------------------------------------------
 // 4. Satır Sonu Tire Birleştirme (Hyphenation at Line Break)
 // ----------------------------------------------------------------------------
 {

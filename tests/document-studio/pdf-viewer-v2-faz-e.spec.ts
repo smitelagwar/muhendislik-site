@@ -85,6 +85,66 @@ test.describe("PDF Görüntüleyici v2 — FAZ E Arama Motoru ve Vurgulama", () 
     const activeMark = page.locator("mark.pdf-search-mark-active").first();
     await expect(activeMark).toBeVisible({ timeout: 10_000 });
 
+    const markStyle = await activeMark.evaluate((mark) => {
+      const style = getComputedStyle(mark);
+      const alpha = style.backgroundColor.match(/[\s,/]([\d.]+)\)$/);
+      return { alpha: alpha ? Number(alpha[1]) : 1, animationName: style.animationName };
+    });
+    expect(markStyle.alpha).toBeGreaterThan(0.2);
+    expect(markStyle.alpha).toBeLessThan(0.5);
+    expect(markStyle.animationName).toBe("none");
+
+    // The selected word must map back to exactly the PDF.js text Range, including
+    // UTF-16 characters that changed width during Turkish normalization.
+    const markGeometry = await activeMark.evaluate((mark) => {
+      const pageRoot = mark.parentElement?.parentElement;
+      if (!pageRoot) return null;
+      const textNodes: { node: Text; start: number; end: number }[] = [];
+      let fullText = "";
+      const walker = document.createTreeWalker(pageRoot, NodeFilter.SHOW_TEXT);
+      let current = walker.nextNode();
+      while (current) {
+        const node = current as Text;
+        if (!node.parentElement?.classList.contains("endOfContent")) {
+          const start = fullText.length;
+          fullText += node.nodeValue || "";
+          textNodes.push({ node, start, end: fullText.length });
+        }
+        current = walker.nextNode();
+      }
+
+      const matchStart = fullText.toLocaleLowerCase("tr-TR").indexOf("araştırma");
+      if (matchStart < 0) return { foundText: false };
+      const rects: DOMRect[] = [];
+      for (const entry of textNodes) {
+        const start = Math.max(matchStart, entry.start);
+        const end = Math.min(matchStart + "araştırma".length, entry.end);
+        if (end <= start) continue;
+        const range = document.createRange();
+        range.setStart(entry.node, start - entry.start);
+        range.setEnd(entry.node, end - entry.start);
+        rects.push(...Array.from(range.getClientRects()));
+      }
+
+      const actual = mark.getBoundingClientRect();
+      const expected = rects[0];
+      if (!expected) return { foundText: true, foundRange: false };
+      return {
+        foundText: true,
+        foundRange: true,
+        leftDelta: Math.abs(actual.left - expected.left),
+        topDelta: Math.abs(actual.top - expected.top),
+        widthDelta: Math.abs(actual.width - expected.width),
+        heightDelta: Math.abs(actual.height - expected.height),
+      };
+    });
+    expect(markGeometry?.foundText).toBe(true);
+    expect(markGeometry?.foundRange).toBe(true);
+    expect(markGeometry?.leftDelta).toBeLessThan(1.5);
+    expect(markGeometry?.topDelta).toBeLessThan(1.5);
+    expect(markGeometry?.widthDelta).toBeLessThan(1.5);
+    expect(markGeometry?.heightDelta).toBeLessThan(1.5);
+
     // Sonraki eşleşmeye geç (Enter veya Sonraki düğmesi)
     const nextBtn = page.locator('[data-command-id="pdf.search.next"]').first();
     await nextBtn.click();
