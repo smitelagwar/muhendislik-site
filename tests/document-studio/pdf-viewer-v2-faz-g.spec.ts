@@ -228,7 +228,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await expect(track).toHaveAttribute("aria-valuemax", "2");
   });
 
-  test("7. 15 sayfada 15 çizgi olur; tıklama sayfaya gider ve zoom modu korunur", async ({ page }) => {
+  test("7. 15 sayfada 15 çizgi olur; sürekli gezinme ve zoom modu korunur", async ({ page }) => {
     const fileId = await uploadBlankPdf(page, 15);
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     await expect(page.getByTestId("pdf-scroll-viewport")).toBeVisible({ timeout: 15000 });
@@ -236,15 +236,31 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     const track = page.getByTestId("pdf-scrubber-track");
     await expect(track).toBeVisible({ timeout: 8000 });
     await expect(track).toHaveAttribute("data-tick-count", "15");
+    await expect(track).toHaveAttribute("data-scroll-mode", "continuous");
     await expect(page.getByTestId("pdf-scrubber-tick")).toHaveCount(15);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="1"]')).toHaveAttribute("style", /top: 0%/);
     await expect(page.locator('[data-testid="pdf-scrubber-tick"][data-page="15"]')).toHaveAttribute("style", /top: 100%/);
 
     const box = await track.boundingBox();
     expect(box).not.toBeNull();
+    const railBox = await page.getByTestId("pdf-scrubber-rail").boundingBox();
+    const viewportBox = await page.getByTestId("pdf-scroll-viewport").boundingBox();
+    expect(railBox).not.toBeNull();
+    expect(viewportBox).not.toBeNull();
+    expect(railBox!.x).toBeLessThan(viewportBox!.x + 100);
+    const pageBadge = page.getByTestId("pdf-scrubber-page-button");
+    await expect(pageBadge).toBeVisible();
+    await expect(pageBadge).toContainText("/ 15");
+    await expect(pageBadge).toHaveClass(/bg-zinc-950\/75/);
+
     await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
     const pageInput = page.getByRole("textbox", { name: "Geçerli Sayfa" });
     await expect(pageInput).toHaveValue("8");
+    const middleScrollFraction = await page.getByTestId("pdf-scroll-viewport").evaluate((element) => {
+      const maxScrollTop = element.scrollHeight - element.clientHeight;
+      return maxScrollTop > 0 ? element.scrollTop / maxScrollTop : 0;
+    });
+    expect(middleScrollFraction).toBeCloseTo(0.5, 2);
 
     await page.locator('[data-command-id="pdf.zoom.in"]').first().click();
     const viewer = page.locator("[data-zoom-mode]").first();
@@ -259,7 +275,70 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await expect(viewer).toHaveAttribute("data-zoom-mode", "custom");
   });
 
-  test("8. Sürükleme pointer capture ile iki yönde çalışır; iptal scrubbing durumunu temizler", async ({ page }) => {
+  test("8. 99 sayfadan az PDF'de sürükleme sayfa içi konumu kaybetmeden akar", async ({ page }, testInfo: TestInfo) => {
+    const fileId = await uploadBlankPdf(page, 15);
+    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+    const viewport = page.getByTestId("pdf-scroll-viewport");
+    await expect(viewport).toBeVisible({ timeout: 15000 });
+
+    const track = page.getByTestId("pdf-scrubber-track");
+    const rail = page.getByTestId("pdf-scrubber-rail");
+    await expect(track).toHaveAttribute("data-scroll-mode", "continuous");
+    const railBox = await rail.boundingBox();
+    expect(railBox).not.toBeNull();
+
+    const target = await page.evaluate(() => {
+      const scrollElement = document.querySelector<HTMLElement>('[data-testid="pdf-scroll-viewport"]');
+      const pageEight = document.querySelector<HTMLElement>('[data-testid="pdf-page-8"]');
+      if (!scrollElement || !pageEight) throw new Error("PDF sayfa/scroll geometrisi yüklenmedi");
+      const viewportRect = scrollElement.getBoundingClientRect();
+      const pageRect = pageEight.getBoundingClientRect();
+      const pageContentTop = pageRect.top - viewportRect.top + scrollElement.scrollTop;
+      const desiredScrollTop = pageContentTop + pageRect.height * 0.68;
+      const maxScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight;
+      return {
+        pageContentTop,
+        pageHeight: pageRect.height,
+        desiredScrollTop,
+        fraction: desiredScrollTop / maxScrollTop,
+        maxScrollTop,
+      };
+    });
+    expect(target.maxScrollTop).toBeGreaterThan(0);
+    expect(target.fraction).toBeGreaterThan(0);
+    expect(target.fraction).toBeLessThan(1);
+
+    const x = railBox!.x + railBox!.width / 2;
+    const startY = railBox!.y + railBox!.height * (target.fraction - 0.04);
+    const targetY = railBox!.y + railBox!.height * target.fraction;
+    await page.mouse.move(x, startY);
+    await page.mouse.down();
+    await expect(track).toHaveAttribute("data-scrubbing", "true");
+    await page.mouse.move(x, targetY, { steps: 8 });
+    await page.mouse.up();
+    await expect(track).toHaveAttribute("data-scrubbing", "false");
+
+    const finalPosition = await viewport.evaluate((element) => {
+      const pageEight = element.querySelector<HTMLElement>('[data-testid="pdf-page-8"]');
+      if (!pageEight) throw new Error("8. sayfa bulunamadı");
+      const elementRect = element.getBoundingClientRect();
+      const pageRect = pageEight.getBoundingClientRect();
+      const pageContentTop = pageRect.top - elementRect.top + element.scrollTop;
+      return {
+        scrollTop: element.scrollTop,
+        pageContentTop,
+        pageHeight: pageRect.height,
+        fraction: element.scrollTop / (element.scrollHeight - element.clientHeight),
+      };
+    });
+    expect(finalPosition.fraction).toBeCloseTo(target.fraction, 2);
+    const pageEightOffset = (finalPosition.scrollTop - finalPosition.pageContentTop) / finalPosition.pageHeight;
+    expect(pageEightOffset).toBeGreaterThan(0.62);
+    expect(pageEightOffset).toBeLessThan(0.74);
+    await page.screenshot({ path: testInfo.outputPath("pdf-sayfa-8-surekli-kaydirma.png") });
+  });
+
+  test("9. Sürükleme pointer capture ile iki yönde çalışır; iptal scrubbing durumunu temizler", async ({ page }) => {
     const fileId = await uploadBlankPdf(page, 15);
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     await expect(page.getByTestId("pdf-scroll-viewport")).toBeVisible({ timeout: 15000 });
@@ -306,7 +385,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await page.mouse.up();
   });
 
-  test("9. Klavye ile çizgi gezgininde birer ve onar sayfa gezilebilmeli", async ({ page }) => {
+  test("10. Klavye ile çizgi gezgininde birer ve onar sayfa gezilebilmeli", async ({ page }) => {
     const fileId = await uploadBlankPdf(page, 15);
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
     await expect(page.getByTestId("pdf-scroll-viewport")).toBeVisible({ timeout: 15000 });
@@ -334,7 +413,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ G Gezinme Kabul Testleri", () => 
     await expect(track).toBeFocused();
   });
 
-  test("10. Araç çubuğu sayfa girişi (Enter ile gitme)", async ({ page }) => {
+  test("11. Araç çubuğu sayfa girişi (Enter ile gitme)", async ({ page }) => {
     const fileId = await uploadFixturePdf(page, "linkli.pdf");
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
 

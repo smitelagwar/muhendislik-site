@@ -13,6 +13,10 @@ interface PdfPageScrubberProps {
   currentPage: number;
   onPageChange: (pageNum: number) => void;
   onScrubMove?: (pageNum: number) => void;
+  onContinuousScrubEnd?: (
+    pageNum: number,
+    startPosition: { page: number; scrollTop: number }
+  ) => void;
   scrollElementRef: RefObject<HTMLDivElement | null>;
   ready: boolean;
 }
@@ -22,15 +26,26 @@ export function PdfPageScrubber({
   currentPage,
   onPageChange,
   onScrubMove,
+  onContinuousScrubEnd,
   scrollElementRef,
   ready,
 }: PdfPageScrubberProps) {
+  const usesContinuousScroll = numPages < 100;
   const trackRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
+  const pageControlRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const isScrubbingRef = useRef(false);
   const [hoverPage, setHoverPage] = useState<number | null>(null);
   const lastScrubbedPageRef = useRef<number | null>(null);
+  const lastPointerYRef = useRef<number | null>(null);
+  const pendingScrollFractionRef = useRef<number | null>(null);
+  const continuousScrollFrameRef = useRef<number | null>(null);
+  const continuousScrubStartRef = useRef<{ page: number; scrollTop: number }>({
+    page: currentPage,
+    scrollTop: 0,
+  });
   const [isRecentlyActive, setIsRecentlyActive] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isPointerOver, setIsPointerOver] = useState(false);
@@ -39,12 +54,90 @@ export function PdfPageScrubber({
   const [pageDraft, setPageDraft] = useState(String(currentPage));
   const activeTimerRef = useRef<number | null>(null);
 
+  const updateContinuousIndicator = (fraction: number) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const y = `${Math.min(Math.max(fraction, 0), 1) * rail.clientHeight}px`;
+    thumbRef.current?.style.setProperty("translate", `0 ${y}`);
+    pageControlRef.current?.style.setProperty("translate", `0 ${y}`);
+  };
+
+  const getScrollFraction = (scrollElement: HTMLDivElement) => {
+    const maxScrollTop = Math.max(scrollElement.scrollHeight - scrollElement.clientHeight, 0);
+    return maxScrollTop > 0 ? scrollElement.scrollTop / maxScrollTop : 0;
+  };
+
+  const scrollToFraction = (fraction: number) => {
+    const scrollElement = scrollElementRef.current;
+    const clampedFraction = Math.min(Math.max(fraction, 0), 1);
+    if (scrollElement) {
+      const maxScrollTop = Math.max(scrollElement.scrollHeight - scrollElement.clientHeight, 0);
+      scrollElement.scrollTop = clampedFraction * maxScrollTop;
+    }
+    updateContinuousIndicator(clampedFraction);
+  };
+
+  const flushContinuousScroll = (clientY?: number) => {
+    if (clientY !== undefined) {
+      pendingScrollFractionRef.current = calculateFractionFromClientY(clientY);
+    }
+    if (continuousScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(continuousScrollFrameRef.current);
+      continuousScrollFrameRef.current = null;
+    }
+    const fraction = pendingScrollFractionRef.current;
+    pendingScrollFractionRef.current = null;
+    if (fraction !== null) scrollToFraction(fraction);
+  };
+
+  const queueContinuousScroll = (clientY: number) => {
+    pendingScrollFractionRef.current = calculateFractionFromClientY(clientY);
+    if (continuousScrollFrameRef.current !== null) return;
+    continuousScrollFrameRef.current = window.requestAnimationFrame(() => {
+      continuousScrollFrameRef.current = null;
+      const fraction = pendingScrollFractionRef.current;
+      pendingScrollFractionRef.current = null;
+      if (fraction !== null) scrollToFraction(fraction);
+    });
+  };
+
+  const getPageAtViewportCenter = () => {
+    const scrollElement = scrollElementRef.current;
+    if (!scrollElement) return currentPage;
+
+    const viewport = scrollElement.getBoundingClientRect();
+    const centerY = viewport.top + scrollElement.clientHeight / 2;
+    const pages = scrollElement.querySelectorAll<HTMLElement>("[data-page-number]");
+    let closestPage = currentPage;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    for (const page of pages) {
+      const rect = page.getBoundingClientRect();
+      if (centerY >= rect.top && centerY <= rect.bottom) {
+        return Number(page.dataset.pageNumber) || currentPage;
+      }
+      const distance = centerY < rect.top ? rect.top - centerY : centerY - rect.bottom;
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestPage = Number(page.dataset.pageNumber) || currentPage;
+      }
+    }
+
+    return closestPage;
+  };
+
   // Kaydırma sırasında tutacağı ve geçerli sayfa rozetini görünür tut.
   useEffect(() => {
     const scrollElement = scrollElementRef.current;
+    if (!usesContinuousScroll) {
+      thumbRef.current?.style.removeProperty("translate");
+      pageControlRef.current?.style.removeProperty("translate");
+    }
     if (!ready || !scrollElement) return;
+    if (usesContinuousScroll) updateContinuousIndicator(getScrollFraction(scrollElement));
     const handleScroll = () => {
       setIsRecentlyActive(true);
+      if (usesContinuousScroll) updateContinuousIndicator(getScrollFraction(scrollElement));
       if (activeTimerRef.current !== null) window.clearTimeout(activeTimerRef.current);
       activeTimerRef.current = window.setTimeout(() => {
         setIsRecentlyActive(false);
@@ -59,12 +152,15 @@ export function PdfPageScrubber({
         activeTimerRef.current = null;
       }
     };
-  }, [ready, scrollElementRef]);
+  }, [ready, scrollElementRef, usesContinuousScroll]);
 
   useEffect(() => {
     return () => {
       if (activeTimerRef.current !== null) {
         window.clearTimeout(activeTimerRef.current);
+      }
+      if (continuousScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(continuousScrollFrameRef.current);
       }
     };
   }, []);
@@ -72,18 +168,30 @@ export function PdfPageScrubber({
   // Tek sayfada gezinti gerekmediği için kontrol yalnızca çok sayfalı PDF'lerde görünür.
   if (numPages < 2) return null;
 
-  const calculatePageFromClientY = (clientY: number): number => {
-    if (!railRef.current) return currentPage;
+  const calculateFractionFromClientY = (clientY: number): number => {
+    if (!railRef.current) return 0;
     const rect = railRef.current.getBoundingClientRect();
     const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
-    const fraction = rect.height > 0 ? relativeY / rect.height : 0;
+    return rect.height > 0 ? relativeY / rect.height : 0;
+  };
+
+  const calculatePageFromFraction = (fraction: number): number => {
     return Math.min(Math.max(Math.round(fraction * (numPages - 1)) + 1, 1), numPages);
+  };
+
+  const calculatePageFromClientY = (clientY: number): number => {
+    return calculatePageFromFraction(calculateFractionFromClientY(clientY));
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !e.isPrimary) return;
     e.preventDefault();
     e.stopPropagation();
+    const scrollElement = scrollElementRef.current;
+    continuousScrubStartRef.current = {
+      page: currentPage,
+      scrollTop: scrollElement?.scrollTop ?? 0,
+    };
     isScrubbingRef.current = true;
     setIsScrubbing(true);
 
@@ -91,18 +199,27 @@ export function PdfPageScrubber({
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
 
+    lastPointerYRef.current = e.clientY;
+    if (usesContinuousScroll) flushContinuousScroll(e.clientY);
     const page = calculatePageFromClientY(e.clientY);
     lastScrubbedPageRef.current = page;
-    setHoverPage(page);
-    if (onScrubMove) {
-      onScrubMove(page);
-    } else {
-      onPageChange(page);
+    if (!usesContinuousScroll) {
+      setHoverPage(page);
+      if (onScrubMove) {
+        onScrubMove(page);
+      } else {
+        onPageChange(page);
+      }
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
+    if (isScrubbingRef.current && usesContinuousScroll) {
+      lastPointerYRef.current = e.clientY;
+      queueContinuousScroll(e.clientY);
+      return;
+    }
     const page = calculatePageFromClientY(e.clientY);
     setHoverPage((previous) => previous === page ? previous : page);
 
@@ -118,6 +235,8 @@ export function PdfPageScrubber({
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isScrubbingRef.current) return;
+    lastPointerYRef.current = e.clientY;
+    if (usesContinuousScroll) flushContinuousScroll(e.clientY);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -128,11 +247,16 @@ export function PdfPageScrubber({
     lastScrubbedPageRef.current = finalPage;
     setIsScrubbing(false);
     setHoverPage(null);
-    onPageChange(finalPage);
+    if (usesContinuousScroll) {
+      onContinuousScrubEnd?.(getPageAtViewportCenter(), continuousScrubStartRef.current);
+    } else {
+      onPageChange(finalPage);
+    }
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isScrubbingRef.current) return;
+    if (usesContinuousScroll) flushContinuousScroll(lastPointerYRef.current ?? undefined);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -143,7 +267,11 @@ export function PdfPageScrubber({
     isScrubbingRef.current = false;
     setIsScrubbing(false);
     setHoverPage(null);
-    onPageChange(finalPage);
+    if (usesContinuousScroll) {
+      onContinuousScrubEnd?.(getPageAtViewportCenter(), continuousScrubStartRef.current);
+    } else {
+      onPageChange(finalPage);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -193,7 +321,7 @@ export function PdfPageScrubber({
   };
 
   // İlerleme yüzdesi (0 - 100)
-  const displayPage = hoverPage ?? currentPage;
+  const displayPage = usesContinuousScroll ? currentPage : hoverPage ?? currentPage;
   const currentFraction = numPages > 1 ? (displayPage - 1) / (numPages - 1) : 0;
   const activePercent = Math.min(Math.max(currentFraction * 100, 0), 100);
   const tickCount = numPages <= 24 ? numPages : 11;
@@ -207,14 +335,15 @@ export function PdfPageScrubber({
   return (
     <div
       data-testid="pdf-page-scrubber"
+      data-continuous-scroll={usesContinuousScroll}
       data-no-tap
       onPointerEnter={() => setIsPointerOver(true)}
       onPointerLeave={() => {
         setIsPointerOver(false);
         if (!isScrubbingRef.current && !isFocused) setHoverPage(null);
       }}
-      className={`group pointer-events-none absolute right-[max(0.375rem,env(safe-area-inset-right))] top-1/2 z-20 flex h-[min(42dvh,22.5rem)] min-h-48 w-12 max-h-[22.5rem] -translate-y-1/2 items-center justify-center rounded-full border border-zinc-700/75 bg-zinc-950/75 shadow-lg shadow-black/20 backdrop-blur-md select-none print:hidden transition-[opacity,background-color] duration-200 hover:bg-zinc-900/90 ${
-        isVisible ? "opacity-100" : "opacity-55"
+      className={`group pointer-events-none absolute left-[max(0.375rem,env(safe-area-inset-left))] top-1/2 z-20 flex h-[min(42dvh,22.5rem)] min-h-48 w-12 max-h-[22.5rem] -translate-y-1/2 items-center justify-center rounded-full border border-zinc-700/75 bg-zinc-950/75 shadow-lg shadow-black/20 backdrop-blur-md select-none print:hidden transition-[opacity,background-color] duration-200 hover:bg-zinc-900/90 ${
+        isVisible ? "opacity-100" : "opacity-70"
       }`}
     >
       {/* Tam uzunluktaki hit alanı kısa rayı sarar; her tıklama ve sürükleme yine tüm sayfa aralığına eşlenir. */}
@@ -223,6 +352,7 @@ export function PdfPageScrubber({
         data-testid="pdf-scrubber-track"
         data-page-count={numPages}
         data-tick-count={tickCount}
+        data-scroll-mode={usesContinuousScroll ? "continuous" : "page"}
         data-scrubbing={isScrubbing}
         data-no-tap
         role="slider"
@@ -248,38 +378,44 @@ export function PdfPageScrubber({
         className="pointer-events-auto absolute inset-0 z-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title={pdfViewerStrings.pagePosition(currentPage, numPages)}
       />
-      <div className="pointer-events-none absolute inset-x-2 top-3 bottom-3 z-10" ref={railRef}>
+      <div
+        className="pointer-events-none absolute inset-x-2 top-3 bottom-3 z-10"
+        data-testid="pdf-scrubber-rail"
+        ref={railRef}
+      >
         <div aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-zinc-600/75" />
-          {tickPages.map((page) => {
-            const fraction = (page - 1) / (numPages - 1);
-            const isSelected = page === displayPage;
-            return (
-              <span
-                key={page}
-                data-testid="pdf-scrubber-tick"
-                data-page={page}
+        {tickPages.map((page) => {
+          const fraction = (page - 1) / (numPages - 1);
+          const isSelected = page === displayPage;
+          return (
+            <span
+              key={page}
+              data-testid="pdf-scrubber-tick"
+              data-page={page}
               aria-hidden="true"
-                className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,background-color] duration-100 ${
-                  isSelected
-                    ? "h-0.5 w-3 bg-amber-400 shadow-sm shadow-amber-500/60"
-                    : "h-px w-2 bg-zinc-400/80 group-hover:bg-zinc-200"
-                }`}
-                style={{ top: `${fraction * 100}%` }}
-              />
-            );
-          })}
+              className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,background-color] duration-100 ${
+                isSelected
+                  ? "h-0.5 w-3 bg-amber-400 shadow-sm shadow-amber-500/60"
+                  : "h-px w-2 bg-zinc-400/80 group-hover:bg-zinc-200"
+              }`}
+              style={{ top: `${fraction * 100}%` }}
+            />
+          );
+        })}
         <span
+          ref={thumbRef}
           data-testid="pdf-scrubber-thumb"
           aria-hidden="true"
           className="absolute left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-zinc-950 bg-amber-400 shadow-[0_0_0_2px_rgba(251,191,36,0.35)]"
-          style={{ top: `${activePercent}%` }}
+          style={{ top: usesContinuousScroll ? "0%" : `${activePercent}%` }}
         />
-        {isVisible && (
+        {(isVisible || usesContinuousScroll) && (
           <div
-            className="pointer-events-auto absolute right-[calc(100%+0.5rem)] z-20 -translate-y-1/2"
+            ref={pageControlRef}
+            className="pointer-events-auto absolute left-[calc(100%+0.5rem)] z-20 -translate-y-1/2"
             onPointerEnter={() => setIsPageControlHovered(true)}
             onPointerLeave={() => setIsPageControlHovered(false)}
-            style={{ top: `${activePercent}%` }}
+            style={{ top: usesContinuousScroll ? "0%" : `${activePercent}%` }}
           >
             {pageJumpOpen ? (
               <form
@@ -316,7 +452,7 @@ export function PdfPageScrubber({
                   setPageDraft(String(currentPage));
                   setPageJumpOpen(true);
                 }}
-                className="whitespace-nowrap rounded-full border border-zinc-700/80 bg-zinc-950/95 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-zinc-100 shadow-lg backdrop-blur-md hover:border-amber-400/70"
+                className="whitespace-nowrap rounded-full border border-zinc-700/70 bg-zinc-950/75 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-zinc-100/90 shadow-lg backdrop-blur-md hover:border-amber-400/70"
               >
                 {pdfViewerStrings.pagePosition(displayPage, numPages)}
               </button>
