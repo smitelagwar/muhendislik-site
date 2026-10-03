@@ -512,20 +512,18 @@ export async function searchPdfDocumentIncremental(
       const pageMatches = findInPage(pageIndex, trimmed, options, result.matches.length);
 
       if (pageMatches.length > 0) {
-        for (const m of pageMatches) {
-          if (result.matches.length < MAX_MATCHES) {
-            result.matches.push(m);
-          } else {
-            result.overflow = true;
-            break;
-          }
-        }
+        const remainingCapacity = MAX_MATCHES - result.matches.length;
+        const acceptedMatches = pageMatches.slice(0, remainingCapacity);
+        // React consumers derive page highlight maps from the matches array. Replace it
+        // per result page so memoized selectors observe every incremental match.
+        result.matches = result.matches.concat(acceptedMatches);
+        if (acceptedMatches.length < pageMatches.length) result.overflow = true;
         result.totalMatches = result.matches.length;
         result.pageMatchCounts[pageNum] = pageMatches.length;
       }
 
       result.scannedPages = i + 1;
-      onProgress({ ...result });
+      onProgress({ ...result, pageMatchCounts: { ...result.pageMatchCounts } });
 
       if (result.overflow) break;
 
@@ -539,6 +537,6 @@ export async function searchPdfDocumentIncremental(
   }
 
   result.isComplete = !signal.aborted;
-  onProgress({ ...result });
+  onProgress({ ...result, pageMatchCounts: { ...result.pageMatchCounts } });
   return result;
 }

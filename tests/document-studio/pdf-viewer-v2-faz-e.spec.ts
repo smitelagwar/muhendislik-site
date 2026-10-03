@@ -211,7 +211,7 @@ test.describe("PDF Görüntüleyici v2 — FAZ E Arama Motoru ve Vurgulama", () 
   // --------------------------------------------------------------------------
   // TEST 4: uzun-300.pdf Artımlı Arama ve Yanıt Verme
   // --------------------------------------------------------------------------
-  test("4. 300 Sayfa Artımlı Arama: Arama oturumu arka planda parça parça taranmalı ve ana iş parçacığını kilitlememeli", async ({ page }) => {
+  test("4. 300 Sayfa Arama: Tarama tamamlanınca son sayfada da eşleşme vurgulanmalı", async ({ page }) => {
     test.setTimeout(120_000);
     const fileId = await uploadFixturePdf(page, "uzun-300.pdf");
     await page.goto(`/dokumantasyon/dosya/${fileId}`);
@@ -223,12 +223,14 @@ test.describe("PDF Görüntüleyici v2 — FAZ E Arama Motoru ve Vurgulama", () 
     const searchInput = page.getByPlaceholder("Dokümanda ara...");
 
     const startTime = Date.now();
-    await searchInput.fill("rapor");
+    await searchInput.fill("sayfa");
     await page.keyboard.press("Enter");
 
-    // İlk sonuçlar hemen gelmeli
-    const firstHit = page.locator("text=/\\d+\\s*\\/\\s*\\d+/").first();
-    await expect(firstHit).toBeVisible({ timeout: 15_000 });
+    // 300-page fixture repeats “Sayfa” once on every page. Observe the actual
+    // search spinner instead of matching the toolbar's “page / 300” label.
+    const searchBar = page.getByTestId("pdf-search-bar");
+    const spinner = searchBar.locator(".animate-spin");
+    await expect(spinner).toBeVisible({ timeout: 15_000 });
     const initialLatency = Date.now() - startTime;
     console.log(`[FAZ E TEST 4] 300 sayfalık belgede ilk sonuç gecikmesi: ${initialLatency} ms`);
 
@@ -238,8 +240,20 @@ test.describe("PDF Görüntüleyici v2 — FAZ E Arama Motoru ve Vurgulama", () 
     await zoomInBtn.click();
 
     // Arama sonuç sayacının artması veya tamamlanması
-    await page.waitForTimeout(3000);
-    const matchText = await page.locator(".font-mono.font-bold").first().textContent();
+    await expect(spinner).toBeHidden({ timeout: 60_000 });
+    const searchCounter = searchBar.locator('[aria-live="polite"] > span[aria-hidden="true"]');
+    await expect(searchCounter).toBeVisible();
+    const searchCountText = (await searchCounter.textContent())?.trim() ?? "";
+    const totalMatches = Number(searchCountText.split("/").at(-1));
+    expect(totalMatches, "300 sayfanın tamamında arama sayacı beklenenden düşük: " + searchCountText).toBeGreaterThanOrEqual(300);
+
+    const pageInput = page.locator('input[aria-label="Geçerli Sayfa"]');
+    await pageInput.fill("300");
+    await pageInput.press("Enter");
+    const lastPage = page.getByTestId("pdf-page-300");
+    await expect(lastPage).toBeVisible({ timeout: 20_000 });
+    await expect(lastPage.locator("mark.pdf-search-mark").first()).toBeVisible({ timeout: 20_000 });
+    const matchText = searchCountText;
     console.log(`[FAZ E TEST 4] Arama sayacı: ${matchText}`);
   });
 });
