@@ -322,7 +322,7 @@ export function compileCanonicalToScene(
   const entities = layoutId === "Model" ? doc.modelSpaceEntities : (doc.paperSpaceEntities?.[layoutId] || []);
   for (const ent of entities) {
     if (ent.visible === false) continue;
-    if (doc.layers && doc.layers[ent.layer]?.frozen) continue;
+    if (doc.layers && (doc.layers[ent.layer]?.frozen || doc.layers[ent.layer]?.visible === false)) continue;
     const style = resolveCadStyle(ent, doc.layers || {});
     const entColor = style.rgb;
     const entIsAci7 = style.isAci7;
@@ -842,7 +842,8 @@ export function compileCanonicalToScene(
         const hatchRes = GeometryCompiler.triangulateHatch(ent, maxCurveSegments, maxCurveErrorWorld);
         if (hatchRes.refinementLimitReached) curveRefinementLimitReached = true;
         if (hatchRes.invalidCurveGeometry) invalidCurveGeometry = true;
-        if (hatchRes.mesh && hatchRes.mesh.vertices.length > 0) {
+        const isSolidHatch = ent.isSolid === true || ent.solidFill === true || ent.patternName?.toUpperCase() === "SOLID";
+        if (isSolidHatch && hatchRes.mesh && hatchRes.mesh.vertices.length > 0) {
           allPrimitives.push({
             kind: "triangle",
             vertices: hatchRes.mesh.vertices,
@@ -1082,10 +1083,89 @@ export function compileCanonicalToScene(
   const Oy = (minY + maxY) / 2;
   const modelBBox: CadBBox2D = [minX, minY, maxX, maxY];
 
-  // 2. Bounded Binary Chunk Bölümleme (<= 2 MiB HTTP Tavanı Uyumu)
+  // Robust model bounding box: Filter out isolated extreme outliers (e.g. coordinates > 2M away from main drawing mass)
+  let robustModelBBox = modelBBox;
+  if (allPrimitives.length > 50) {
+    const sampleSize = Math.min(allPrimitives.length, 5000);
+    const step = Math.max(1, Math.floor(allPrimitives.length / sampleSize));
+    const sampleX: number[] = [];
+    const sampleY: number[] = [];
+    for (let i = 0; i < allPrimitives.length; i += step) {
+      const p = allPrimitives[i];
+      if (!p) continue;
+      if (p.kind === "line") {
+        sampleX.push(p.x0, p.x1);
+        sampleY.push(p.y0, p.y1);
+      } else if (p.vertices && p.vertices.length >= 2) {
+        sampleX.push(p.vertices[0]!, p.vertices[2] ?? p.vertices[0]!);
+        sampleY.push(p.vertices[1]!, p.vertices[3] ?? p.vertices[1]!);
+      }
+    }
+
+    if (sampleX.length >= 20) {
+      sampleX.sort((a, b) => a - b);
+      sampleY.sort((a, b) => a - b);
+      const nX = sampleX.length;
+      const nY = sampleY.length;
+      const p02_x = sampleX[Math.floor(nX * 0.02)]!;
+      const p98_x = sampleX[Math.floor(nX * 0.98)]!;
+      const spanX = p98_x - p02_x;
+
+      const p02_y = sampleY[Math.floor(nY * 0.02)]!;
+      const p98_y = sampleY[Math.floor(nY * 0.98)]!;
+      const spanY = p98_y - p02_y;
+
+      if (spanX > 0 && spanY > 0) {
+        // Tolerans: Ana kütlenin %96'sının dışındaki izole aşırı uzak referans noktalarını kırp
+        // Yalnızca ana kütleden en az 2.5 kat daha uzakta izole edilmiş aşırı sapmaları (extreme outliers) eler
+        const thresholdRatio = 2.5;
+        const effSpanX = Math.max(spanX, 10);
+        const effSpanY = Math.max(spanY, 10);
+
+        const isOutlierMinX = (p02_x - minX) > effSpanX * thresholdRatio;
+        const isOutlierMaxX = (maxX - p98_x) > effSpanX * thresholdRatio;
+        const isOutlierMinY = (p02_y - minY) > effSpanY * thresholdRatio;
+        const isOutlierMaxY = (maxY - p98_y) > effSpanY * thresholdRatio;
+
+        if (isOutlierMinX || isOutlierMaxX || isOutlierMinY || isOutlierMaxY) {
+          const validMinX = isOutlierMinX ? p02_x - effSpanX * 1.5 : -Infinity;
+          const validMaxX = isOutlierMaxX ? p98_x + effSpanX * 1.5 : Infinity;
+          const validMinY = isOutlierMinY ? p02_y - effSpanY * 1.5 : -Infinity;
+          const validMaxY = isOutlierMaxY ? p98_y + effSpanY * 1.5 : Infinity;
+
+          let robMinX = isOutlierMinX ? Infinity : minX;
+          let robMinY = isOutlierMinY ? Infinity : minY;
+          let robMaxX = isOutlierMaxX ? -Infinity : maxX;
+          let robMaxY = isOutlierMaxY ? -Infinity : maxY;
+
+          for (let i = 0; i < sampleX.length; i++) {
+            const x = sampleX[i]!;
+            const y = sampleY[i]!;
+            if (x >= validMinX && x <= validMaxX) {
+              if (isOutlierMinX) robMinX = Math.min(robMinX, x);
+              if (isOutlierMaxX) robMaxX = Math.max(robMaxX, x);
+            }
+            if (y >= validMinY && y <= validMaxY) {
+              if (isOutlierMinY) robMinY = Math.min(robMinY, y);
+              if (isOutlierMaxY) robMaxY = Math.max(robMaxY, y);
+            }
+          }
+
+          robustModelBBox = [
+            Number.isFinite(robMinX) ? robMinX : minX,
+            Number.isFinite(robMinY) ? robMinY : minY,
+            Number.isFinite(robMaxX) ? robMaxX : maxX,
+            Number.isFinite(robMaxY) ? robMaxY : maxY,
+          ];
+        }
+      }
+    }
+  }
+
+  // 2. Bounded Binary Chunk Bölümleme (<= 2 MiB HTTP Tavanı Uyumu, 15k segment dengesi)
   const MAX_SEGMENTS_PER_CHUNK = Number.isFinite(options.maxPrimitivesPerChunk)
-    ? Math.min(50_000, Math.max(1, Math.floor(options.maxPrimitivesPerChunk!)))
-    : 50_000;
+    ? Math.min(15_000, Math.max(1, Math.floor(options.maxPrimitivesPerChunk!)))
+    : 15_000;
   const chunkCount = Math.max(1, Math.ceil(allPrimitives.length / MAX_SEGMENTS_PER_CHUNK));
   const manifestChunks: Array<{
     chunkId: string;
@@ -1694,7 +1774,7 @@ export function compileCanonicalToScene(
       layoutId,
       sourceName: layoutId === "Model" ? "Model" : (doc.layouts?.[layoutId]?.name || layoutId),
       kind: layoutId === "Model" || doc.layouts?.[layoutId]?.isModelSpace ? "model" as const : "paper" as const,
-      bbox: layoutId === "Model" ? modelBBox : (doc.layouts?.[layoutId]?.bbox || modelBBox),
+      bbox: layoutId === "Model" ? robustModelBBox : (doc.layouts?.[layoutId]?.bbox || robustModelBBox),
       units: typeof doc.units === "number" ? doc.units : 0,
     },
   ];

@@ -2,7 +2,7 @@
 // DWG/DXF MOTOR V2 — DWG DECODE ADAPTER (@mlightcad/libredwg-web 0.7.10)
 // ============================================================================
 
-import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadLayout, CadViewport, CadBBox2D, CadDiagnostic } from "../canonical/types";
+import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle } from "../canonical/types";
 import { resolveDwgInsertSpatialFilter } from "./dwg-spatial-filter";
 
 let libreDwgInstance: any = null;
@@ -15,6 +15,21 @@ async function getLibreDwg() {
     libreDwgInstance = await LibreDwg.create();
   }
   return libreDwgInstance;
+}
+
+const AUTOCAD_LWS_MM: readonly number[] = [
+  0.0, 0.05, 0.09, 0.13, 0.15, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50,
+  0.53, 0.60, 0.70, 0.80, 0.90, 1.00, 1.06, 1.20, 1.40, 1.58, 2.00, 2.11,
+];
+
+export function normalizeLineweightMm(rawLw: number | undefined | null): number | undefined {
+  if (rawLw == null || typeof rawLw !== "number" || !Number.isFinite(rawLw)) return undefined;
+  if (rawLw < 0) return rawLw; // -1 BYLAYER, -2 BYBLOCK, -3 DEFAULT
+  if (rawLw > 23) return rawLw / 100; // Hundredths of mm (e.g. 25 -> 0.25 mm)
+  if (Number.isInteger(rawLw) && rawLw >= 0 && rawLw <= 23) {
+    return AUTOCAD_LWS_MM[rawLw] ?? 0;
+  }
+  return rawLw;
 }
 
 export interface DwgParseOptions {
@@ -85,25 +100,100 @@ export async function parseDwgToCanonical(
   if (Array.isArray(rawLayerEntries)) {
     for (const lyr of rawLayerEntries) {
       const name = lyr.name || "0";
+      const rawCol = lyr.colorIndex != null ? lyr.colorIndex : lyr.color;
+      const numCol = typeof rawCol === "number" ? rawCol : (typeof lyr.color?.index === "number" ? lyr.color.index : undefined);
+
+      // AutoCAD kuralı: Negatif renk indeksi katmanın kapalı (OFF) olduğunu belirtir
+      const isNegativeColor = typeof numCol === "number" && numCol < 0;
+      const absCol = typeof numCol === "number" ? Math.abs(numCol) : undefined;
+      const isLayerOff = !!lyr.off || !!lyr.isOff || isNegativeColor;
+      const isLayerFrozen = !!lyr.frozen || !!lyr.isFrozen || (typeof lyr.flag === "number" && (lyr.flag & 1) !== 0);
+
+      let colorMethod: "rgb" | "aci" | "byLayer" = "byLayer";
+      let colorAci: number = 7;
+      let colorRgb: [number, number, number] | undefined = undefined;
+
+      if (Array.isArray(lyr.rgb) && lyr.rgb.length === 3) {
+        colorMethod = "rgb";
+        colorRgb = [lyr.rgb[0], lyr.rgb[1], lyr.rgb[2]];
+      } else if (typeof lyr.color === "object" && lyr.color?.rgb && Array.isArray(lyr.color.rgb)) {
+        colorMethod = "rgb";
+        colorRgb = [lyr.color.rgb[0], lyr.color.rgb[1], lyr.color.rgb[2]];
+      } else if (typeof absCol === "number") {
+        if (absCol > 0 && absCol <= 255) {
+          // 1 - 255 Standart AutoCAD Color Index (ACI)
+          colorMethod = "aci";
+          colorAci = absCol;
+        } else if (absCol > 255) {
+          // 24-bit TrueColor (0x00RRGGBB)
+          colorMethod = "rgb";
+          colorRgb = [
+            (absCol >> 16) & 255,
+            (absCol >> 8) & 255,
+            absCol & 255,
+          ];
+        } else if (absCol === 0) {
+          colorMethod = "aci";
+          colorAci = 7;
+        }
+      }
+
       layers[name] = {
         id: name,
         name,
-        visible: !lyr.off && !lyr.isOff,
-        frozen: !!lyr.frozen || !!lyr.isFrozen,
+        visible: !isLayerOff,
+        frozen: isLayerFrozen,
         locked: !!lyr.locked || !!lyr.isLocked,
         color: {
-          method: lyr.color != null && typeof lyr.color === "number" && lyr.color > 0 ? "rgb" : (lyr.colorIndex != null ? "aci" : "byLayer"),
-          aci: typeof lyr.colorIndex === "number" ? lyr.colorIndex : 7,
-          rgb: lyr.color != null && typeof lyr.color === "number" && lyr.color > 0 ? [
-            (lyr.color >> 16) & 255,
-            (lyr.color >> 8) & 255,
-            lyr.color & 255,
-          ] : undefined,
+          method: colorMethod,
+          aci: colorAci,
+          ...(colorRgb ? { rgb: colorRgb } : {}),
         },
-        lineweightMm: typeof lyr.lineweight === "number"
-          ? (lyr.lineweight >= 0 ? (lyr.lineweight > 10 ? lyr.lineweight / 100 : lyr.lineweight) : lyr.lineweight)
-          : (typeof lyr.lineweightMm === "number" ? lyr.lineweightMm : undefined),
+        lineweightMm: normalizeLineweightMm(
+          typeof lyr.lineweight === "number" ? lyr.lineweight : lyr.lineweightMm
+        ) ?? 0,
         linetypeName: lyr.lineType || lyr.linetype || "Continuous",
+      };
+    }
+  }
+
+  // 1b. Çizgi Tiplerini çözümle
+  const linetypes: Record<string, CadLinetype> = {};
+  const rawLtypeEntries = rawDb.tables?.LTYPE?.entries || [];
+  if (Array.isArray(rawLtypeEntries)) {
+    for (const lt of rawLtypeEntries) {
+      const name = lt.name || "Continuous";
+      const pat = Array.isArray(lt.pattern)
+        ? lt.pattern.map((p: any) => (typeof p === "number" ? p : typeof p?.length === "number" ? p.length : 0))
+        : [];
+      linetypes[name] = {
+        id: name,
+        name,
+        description: lt.description || "",
+        pattern: pat,
+        totalLength: typeof lt.totalPatternLength === "number" ? lt.totalPatternLength : 0,
+      };
+    }
+  }
+  if (!linetypes["Continuous"]) {
+    linetypes["Continuous"] = { id: "Continuous", name: "Continuous", pattern: [], totalLength: 0 };
+  }
+
+  // 1c. Yazı Stillerini (STYLE) çözümle
+  const textStyles: Record<string, CadTextStyle> = {};
+  const rawStyleEntries = rawDb.tables?.STYLE?.entries || [];
+  if (Array.isArray(rawStyleEntries)) {
+    for (const st of rawStyleEntries) {
+      const name = st.name || "STANDARD";
+      textStyles[name] = {
+        id: name,
+        name,
+        fontFileName: st.font || st.fontName || "",
+        bigFontFileName: st.bigFont || "",
+        height: typeof st.fixedTextHeight === "number" ? st.fixedTextHeight : (typeof st.height === "number" ? st.height : 0),
+        widthFactor: typeof st.widthFactor === "number" && st.widthFactor > 0 ? st.widthFactor : 1,
+        obliqueAngleDeg: typeof st.obliqueAngle === "number" ? (st.obliqueAngle * 180 / Math.PI) : 0,
+        isVertical: Boolean((st.standardFlag ?? 0) & 4),
       };
     }
   }
@@ -125,35 +215,38 @@ export async function parseDwgToCanonical(
     }
 
     let color: CadColor | undefined = undefined;
-    if (ent.color != null && typeof ent.color === "number" && ent.color > 0) {
-      color = {
-        method: "rgb",
-        rgb: [
-          (ent.color >> 16) & 255,
-          (ent.color >> 8) & 255,
-          ent.color & 255,
-        ],
-        aci: typeof ent.colorIndex === "number" ? ent.colorIndex : undefined,
-        alpha,
-      };
-    } else if (typeof ent.colorIndex === "number") {
-      color = {
-        method: ent.colorIndex === 256 ? "byLayer" : (ent.colorIndex === 0 ? "byBlock" : "aci"),
-        aci: ent.colorIndex,
-        alpha,
-      };
+    const rawEntityCol = ent.colorIndex != null ? ent.colorIndex : ent.color;
+    const numEntityCol = typeof rawEntityCol === "number" ? rawEntityCol : (typeof ent.color?.index === "number" ? ent.color.index : undefined);
+
+    if (Array.isArray(ent.rgb) && ent.rgb.length === 3) {
+      color = { method: "rgb", rgb: [ent.rgb[0], ent.rgb[1], ent.rgb[2]], alpha };
+    } else if (typeof ent.color === "object" && ent.color?.rgb && Array.isArray(ent.color.rgb)) {
+      color = { method: "rgb", rgb: [ent.color.rgb[0], ent.color.rgb[1], ent.color.rgb[2]], alpha };
+    } else if (typeof numEntityCol === "number") {
+      const absCol = Math.abs(numEntityCol);
+      if (absCol === 256) {
+        color = { method: "byLayer", alpha };
+      } else if (absCol === 0) {
+        color = { method: "byBlock", alpha };
+      } else if (absCol > 0 && absCol <= 255) {
+        color = { method: "aci", aci: absCol, alpha };
+      } else if (absCol > 255) {
+        color = {
+          method: "rgb",
+          rgb: [
+            (absCol >> 16) & 255,
+            (absCol >> 8) & 255,
+            absCol & 255,
+          ],
+          alpha,
+        };
+      }
     } else if (alpha !== undefined) {
       color = { method: "byLayer", alpha };
     }
 
-    let lineweightMm: number | undefined = undefined;
-    if (typeof ent.lineweight === "number") {
-      lineweightMm = ent.lineweight >= 0
-        ? (ent.lineweight > 10 ? ent.lineweight / 100 : ent.lineweight)
-        : ent.lineweight;
-    } else if (typeof ent.lineweightMm === "number") {
-      lineweightMm = ent.lineweightMm;
-    }
+    const rawLw = typeof ent.lineweight === "number" ? ent.lineweight : ent.lineweightMm;
+    const lineweightMm = normalizeLineweightMm(rawLw);
 
     const linetype = ent.lineType || ent.linetype || undefined;
     const linetypeScale = typeof ent.lineTypeScale === "number" ? ent.lineTypeScale : (typeof ent.linetypeScale === "number" ? ent.linetypeScale : undefined);
@@ -462,12 +555,14 @@ export async function parseDwgToCanonical(
           }
           loops.push(loop);
         }
+        const pName = (ent.patternName || "").trim();
+        const isSolidHatch = pName.toUpperCase() === "SOLID" || ent.solidFill === true || ent.isSolid === true;
         return {
           ...base,
           type: "HATCH",
-          patternName: ent.patternName || "SOLID",
-          isSolid: ent.solidFill !== false && ent.isSolid !== false,
-          solidFill: ent.solidFill != null ? Boolean(ent.solidFill) : (ent.isSolid !== false),
+          patternName: pName || (isSolidHatch ? "SOLID" : "USER"),
+          isSolid: isSolidHatch,
+          solidFill: isSolidHatch,
           patternScale: ent.patternScale ?? 1,
           patternAngleDeg: ent.patternAngle ?? 0,
           hatchStyle: typeof ent.hatchStyle === "number" ? ent.hatchStyle : undefined,
@@ -797,8 +892,8 @@ export async function parseDwgToCanonical(
     units: docUnits,
     measurement: docMeasurement,
     layers,
-    linetypes: {},
-    textStyles: {},
+    linetypes,
+    textStyles,
     blocks,
     layouts,
     viewports,

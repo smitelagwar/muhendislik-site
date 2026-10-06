@@ -249,6 +249,7 @@ export class CadV2Renderer {
         totalVertices: number;
         runs: Array<{ firstVertex: number; vertexCount: number }>;
         dashStyle?: { dashSize: number; gapSize: number };
+        isAci7?: boolean;
       }> = [];
 
       for (const cmd of drawCommands) {
@@ -262,6 +263,7 @@ export class CadV2Renderer {
           last &&
           last.kind === cmd.kind &&
           last.layer === cmd.layer &&
+          (last.isAci7 ?? false) === (cmd.isAci7 ?? false) &&
           Math.abs(last.lineweightMm - cmdLw) < 1e-4 &&
           Math.abs(last.color[0] - cmd.color[0]) < 1e-4 &&
           Math.abs(last.color[1] - cmd.color[1]) < 1e-4 &&
@@ -282,6 +284,7 @@ export class CadV2Renderer {
             renderOrder: commandRenderOrder,
             totalVertices: cmd.vertexCount,
             runs: [{ firstVertex: cmd.firstVertex, vertexCount: cmd.vertexCount }],
+            isAci7: cmd.isAci7,
             ...(cmd.dashStyle ? { dashStyle: cmd.dashStyle } : {}),
           });
         }

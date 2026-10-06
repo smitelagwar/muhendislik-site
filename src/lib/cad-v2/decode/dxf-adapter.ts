@@ -2,8 +2,9 @@
 // DWG/DXF MOTOR V2 — DXF DECODE ADAPTER (@mlightcad/data-model 1.14.2)
 // ============================================================================
 
-import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadBlockDefinition, CadLayout, CadViewport, CadBBox2D, CadDiagnostic } from "../canonical/types";
+import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadBlockDefinition, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle } from "../canonical/types";
 import { parseDxfSplines, parseDxfXclips } from "./dxf-xclip-pairs";
+import { normalizeLineweightMm } from "./dwg-adapter";
 
 export interface DxfParseOptions {
   sourceVersionKey?: string;
@@ -74,9 +75,7 @@ export async function parseDxfToCanonical(
             method: "aci",
             aci: typeof rec.color?.colorIndex === "number" ? rec.color.colorIndex : 7,
           },
-          lineweightMm: typeof rec.lineWeight === "number"
-            ? (rec.lineWeight >= 0 ? (rec.lineWeight > 10 ? rec.lineWeight / 100 : rec.lineWeight) : rec.lineWeight)
-            : (typeof rec.lineweight === "number" ? (rec.lineweight >= 0 ? (rec.lineweight > 10 ? rec.lineweight / 100 : rec.lineweight) : rec.lineweight) : undefined),
+          lineweightMm: normalizeLineweightMm(rec.lineWeight ?? rec.lineweight) ?? 0,
           linetypeName: rec.linetype || rec.lineType || "Continuous",
         };
       }
@@ -97,6 +96,55 @@ export async function parseDxfToCanonical(
       lineweightMm: 0,
       linetypeName: "Continuous",
     };
+  }
+
+  // 1b. DXF Çizgi Tiplerini çözümle
+  const linetypes: Record<string, CadLinetype> = {};
+  if (db.tables?.linetypeTable) {
+    try {
+      const ltypeTable = db.tables.linetypeTable as any;
+      const records = ltypeTable.newIterator ? ltypeTable.newIterator().toArray() : (ltypeTable.records || []);
+      for (const rec of records) {
+        const name = rec.name || "Continuous";
+        const pat = Array.isArray(rec.pattern) ? rec.pattern : (Array.isArray(rec.dashes) ? rec.dashes : []);
+        linetypes[name] = {
+          id: name,
+          name,
+          description: rec.description || "",
+          pattern: pat,
+          totalLength: typeof rec.patternLength === "number" ? rec.patternLength : 0,
+        };
+      }
+    } catch (err) {
+      console.warn("[DxfAdapter] Çizgi tipi tablosu okunurken uyarı:", err);
+    }
+  }
+  if (!linetypes["Continuous"]) {
+    linetypes["Continuous"] = { id: "Continuous", name: "Continuous", pattern: [], totalLength: 0 };
+  }
+
+  // 1c. DXF Yazı Stillerini (STYLE) çözümle
+  const textStyles: Record<string, CadTextStyle> = {};
+  if (db.tables?.textStyleTable) {
+    try {
+      const styleTable = db.tables.textStyleTable as any;
+      const records = styleTable.newIterator ? styleTable.newIterator().toArray() : (styleTable.records || []);
+      for (const rec of records) {
+        const name = rec.name || "STANDARD";
+        textStyles[name] = {
+          id: name,
+          name,
+          fontFileName: rec.fileName || rec.fontFileName || rec.font || "",
+          bigFontFileName: rec.bigFontFileName || rec.bigFont || "",
+          height: typeof rec.textSize === "number" ? rec.textSize : 0,
+          widthFactor: typeof rec.xScale === "number" && rec.xScale > 0 ? rec.xScale : 1,
+          obliqueAngleDeg: typeof rec.obliquingAngle === "number" ? (rec.obliquingAngle * 180 / Math.PI) : 0,
+          isVertical: Boolean(rec.isVertical),
+        };
+      }
+    } catch (err) {
+      console.warn("[DxfAdapter] Yazı stili tablosu okunurken uyarı:", err);
+    }
   }
 
   // 2. DXF Varlık Çevirici Yardımcı Fonksiyon
@@ -158,11 +206,7 @@ export async function parseDxfToCanonical(
       color = { method: "byLayer", alpha };
     }
 
-    let lineweightMm: number | undefined = undefined;
-    const lwRaw = ent.lineWeight ?? ent.lineweight ?? ent._lineWeight;
-    if (typeof lwRaw === "number") {
-      lineweightMm = lwRaw >= 0 ? (lwRaw > 10 ? lwRaw / 100 : lwRaw) : lwRaw;
-    }
+    const lineweightMm = normalizeLineweightMm(ent.lineWeight ?? ent.lineweight ?? ent._lineWeight);
 
     const linetype = ent.lineType || ent.linetype || ent._lineType || undefined;
     const linetypeScale = typeof ent.lineTypeScale === "number" ? ent.lineTypeScale : (typeof ent.linetypeScale === "number" ? ent.linetypeScale : undefined);
@@ -180,8 +224,8 @@ export async function parseDxfToCanonical(
 
     switch (type) {
       case "LINE": {
-        const start = ent.startPoint || ent.start;
-        const end = ent.endPoint || ent.end;
+        const start = ent.startPoint || ent.start || ent._geo?._start;
+        const end = ent.endPoint || ent.end || ent._geo?._end;
         if (start && end) {
           return {
             ...base,
@@ -194,8 +238,8 @@ export async function parseDxfToCanonical(
       }
 
       case "CIRCLE": {
-        const center = ent.center;
-        const radius = typeof ent.radius === "number" ? ent.radius : 0;
+        const center = ent.center || ent._geo?._center;
+        const radius = typeof ent.radius === "number" ? ent.radius : (typeof ent._geo?._radius === "number" ? ent._geo._radius : 0);
         if (center) {
           return {
             ...base,
@@ -208,16 +252,16 @@ export async function parseDxfToCanonical(
       }
 
       case "ARC": {
-        const center = ent.center;
-        const radius = typeof ent.radius === "number" ? ent.radius : 0;
+        const center = ent.center || ent._geo?._center;
+        const radius = typeof ent.radius === "number" ? ent.radius : (typeof ent._geo?._radius === "number" ? ent._geo._radius : 0);
         if (center) {
           return {
             ...base,
             type: "ARC",
             center: [center.x || 0, center.y || 0],
             radius,
-            startAngleRad: ent.startAngle || 0,
-            endAngleRad: ent.endAngle || Math.PI * 2,
+            startAngleRad: ent.startAngle ?? ent._geo?._startAngle ?? 0,
+            endAngleRad: ent.endAngle ?? ent._geo?._endAngle ?? Math.PI * 2,
             isClockwise: !!ent.isClockwise,
           };
         }
@@ -243,25 +287,46 @@ export async function parseDxfToCanonical(
       }
 
       case "LWPOLYLINE": {
+        const rawVerts = (Array.isArray(ent.vertices) && ent.vertices.length > 0)
+          ? ent.vertices
+          : (Array.isArray(ent._geo?._vertices) && ent._geo._vertices.length > 0)
+          ? ent._geo._vertices
+          : (typeof ent._geo?.vertices === "function" ? ent._geo.vertices() : undefined) || [];
+
         const vertices: Array<{ x: number; y: number; bulge?: number; startWidth?: number; endWidth?: number }> = [];
-        if (Array.isArray(ent.vertices)) {
-          for (const v of ent.vertices) {
+        if (Array.isArray(rawVerts) && rawVerts.length > 0) {
+          for (const v of rawVerts) {
             vertices.push({
-              x: v.x || 0,
-              y: v.y || 0,
+              x: typeof v.x === "number" ? v.x : (Array.isArray(v) ? v[0] : 0),
+              y: typeof v.y === "number" ? v.y : (Array.isArray(v) ? v[1] : 0),
               bulge: typeof v.bulge === "number" ? v.bulge : undefined,
               startWidth: typeof v.startWidth === "number" ? v.startWidth : undefined,
               endWidth: typeof v.endWidth === "number" ? v.endWidth : undefined,
             });
           }
+        } else if (typeof ent.numberOfVertices === "function" && typeof ent.getPoint2dAt === "function") {
+          const num = ent.numberOfVertices();
+          for (let i = 0; i < num; i++) {
+            const pt = ent.getPoint2dAt(i);
+            const bulge = typeof ent.getBulgeAt === "function" ? ent.getBulgeAt(i) : undefined;
+            const w = typeof ent.getWidthsAt === "function" ? ent.getWidthsAt(i) : undefined;
+            vertices.push({
+              x: pt?.x || 0,
+              y: pt?.y || 0,
+              bulge: typeof bulge === "number" ? bulge : undefined,
+              startWidth: w?.startWidth,
+              endWidth: w?.endWidth,
+            });
+          }
         }
+        const isClosed = ent._geo?._closed ?? (typeof ent.closed === "function" ? ent.closed() : ent.closed) ?? !!ent.isClosed;
         const constantWidth = typeof ent.constantWidth === "number" ? ent.constantWidth : (typeof ent.width === "number" ? ent.width : undefined);
         const plinegen = typeof ent.plinegen === "boolean" ? ent.plinegen : (typeof ent.flags === "number" ? !!(ent.flags & 128) : undefined);
         return {
           ...base,
           type: "LWPOLYLINE",
           vertices,
-          isClosed: !!ent.isClosed,
+          isClosed: Boolean(isClosed),
           ...(constantWidth !== undefined ? { constantWidth } : {}),
           ...(plinegen !== undefined ? { plinegen } : {}),
         };
@@ -288,14 +353,14 @@ export async function parseDxfToCanonical(
       }
 
       case "MTEXT": {
-        const pos = ent.position || ent._position || ent.insertionPoint || { x: 0, y: 0 };
+        const pos = ent.position || ent._position || ent.location || ent._location || ent.insertionPoint || { x: 0, y: 0 };
         return {
           ...base,
           type: "MTEXT",
-          text: ent.textString || ent._textString || ent.contents || ent.text || "",
+          text: ent.textString || ent._textString || ent.contents || ent._contents || ent.text || "",
           insertionPoint: [pos.x || 0, pos.y || 0],
           height: ent.height || ent._height || 2.5,
-          referenceWidth: ent.width || ent._referenceWidth || 0,
+          referenceWidth: ent.width || ent._width || ent._referenceWidth || 0,
           rotationRad: ent.rotation || ent._rotation || 0,
           attachmentPoint: typeof ent.attachmentPoint === "number" ? ent.attachmentPoint : (typeof ent._attachmentPoint === "number" ? ent._attachmentPoint : 1),
           drawingDirection: typeof ent.drawingDirection === "number" ? ent.drawingDirection : undefined,
@@ -306,7 +371,7 @@ export async function parseDxfToCanonical(
       }
 
       case "INSERT": {
-        const pos = ent.position || ent._position || { x: 0, y: 0 };
+        const pos = ent.position || ent._position || ent.location || ent._location || ent.insertionPoint || { x: 0, y: 0 };
         const blockName = ent.blockName || ent._blockName || ent.name || ent.blockTableRecordName || "";
         return {
           ...base,
@@ -360,20 +425,21 @@ export async function parseDxfToCanonical(
 
       case "HATCH": {
         const loops: any[] = [];
-        const rawLoops = ent.boundaryLoops || ent.boundaryPaths || ent.loops || [];
+        const rawLoops = ent.boundaryLoops || ent.boundaryPaths || ent.loops || ent._geo?._loops || [];
         for (const rl of rawLoops) {
-          const isPoly = rl.isPolyline != null ? !!rl.isPolyline : (Array.isArray(rl.vertices) && rl.vertices.length > 0);
+          const rawVerts = rl.vertices || rl._vertices || (typeof rl.vertices === "function" ? rl.vertices() : undefined);
+          const isPoly = rl.isPolyline != null ? !!rl.isPolyline : (Array.isArray(rawVerts) && rawVerts.length > 0);
           const loop: any = {
             isPolyline: isPoly,
             boundaryPathTypeFlag: typeof rl.boundaryPathTypeFlag === "number" ? rl.boundaryPathTypeFlag : undefined,
             hasBulge: rl.hasBulge != null ? Boolean(rl.hasBulge) : undefined,
-            isClosed: rl.isClosed != null ? Boolean(rl.isClosed) : true,
+            isClosed: rl.isClosed != null ? Boolean(rl.isClosed) : (rl._closed != null ? Boolean(rl._closed) : true),
           };
-          if (isPoly && Array.isArray(rl.vertices)) {
+          if (isPoly && Array.isArray(rawVerts)) {
             const verts: [number, number][] = [];
             const bulges: number[] = [];
             let hasAnyBulge = false;
-            for (const v of rl.vertices) {
+            for (const v of rawVerts) {
               const vx = Array.isArray(v) ? (v[0] || 0) : (v.x || 0);
               const vy = Array.isArray(v) ? (v[1] || 0) : (v.y || 0);
               verts.push([vx, vy]);
@@ -436,12 +502,14 @@ export async function parseDxfToCanonical(
           }
           loops.push(loop);
         }
+        const pName = (ent.patternName || "").trim();
+        const isSolidHatch = pName.toUpperCase() === "SOLID" || ent.solidFill === true || ent.isSolid === true;
         return {
           ...base,
           type: "HATCH",
-          patternName: ent.patternName || "SOLID",
-          isSolid: ent.solidFill !== false && ent.isSolid !== false,
-          solidFill: ent.solidFill != null ? Boolean(ent.solidFill) : (ent.isSolid !== false),
+          patternName: pName || (isSolidHatch ? "SOLID" : "USER"),
+          isSolid: isSolidHatch,
+          solidFill: isSolidHatch,
           patternScale: ent.patternScale ?? 1,
           patternAngleDeg: ent.patternAngle ?? 0,
           hatchStyle: typeof ent.hatchStyle === "number" ? ent.hatchStyle : undefined,
@@ -753,8 +821,8 @@ export async function parseDxfToCanonical(
     units: typeof db.insunits === "number" ? db.insunits : 0,
     measurement: typeof db.measurement === "number" ? db.measurement : 1,
     layers,
-    linetypes: {},
-    textStyles: {},
+    linetypes,
+    textStyles,
     blocks,
     layouts,
     viewports,

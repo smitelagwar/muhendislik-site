@@ -2,7 +2,7 @@
 
 import React, { useEffect, useId, useRef } from "react";
 import Link from "next/link";
-import { Download, Edit3, Eye, Share2, Trash2, X } from "lucide-react";
+import { Download, Edit3, Eye, Share2, Trash2, X, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
 import { formatBytes, formatDate } from "./ui-helpers";
@@ -65,6 +65,7 @@ export function MobileDetailsSheet({ selectedItem, onClose, onShare, onRename, o
 
   if (!selectedItem) return null;
   const isFile = selectedItem.type === "file" && !!selectedItem.file;
+  const isCad = isFile && (selectedItem.file?.extension.toLowerCase() === ".dwg" || selectedItem.file?.extension.toLowerCase() === ".dxf");
   const file = selectedItem.file;
   const folder = selectedItem.folder;
   const id = isFile ? file!.id : folder!.id;
@@ -122,11 +123,26 @@ export function MobileDetailsSheet({ selectedItem, onClose, onShare, onRename, o
         <div className="mt-5 grid grid-cols-2 gap-2.5">
           {isFile && (
             <>
-              <Button asChild className="h-11 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm">
-                <Link href={`/dokumantasyon/dosya/${file!.id}`}><Eye className="h-4 w-4" />Önizle</Link>
-              </Button>
+              {isCad ? (
+                <>
+                  <Button asChild className="col-span-1 h-11 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm">
+                    <Link href={`/dokumantasyon/dosya/${file!.id}?cadEngine=v2`} onClick={onClose}>
+                      <Layers className="h-4 w-4" />Motor V2 ile Aç
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="col-span-1 h-11 rounded-xl font-semibold border-border/80">
+                    <Link href={`/dokumantasyon/dosya/${file!.id}`} onClick={onClose}>
+                      <Eye className="h-4 w-4" />Klasik (V1)
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <Button asChild className="h-11 bg-amber-500 font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm">
+                  <Link href={`/dokumantasyon/dosya/${file!.id}`} onClick={onClose}><Eye className="h-4 w-4" />Önizle</Link>
+                </Button>
+              )}
               {onDownload && (
-                <Button variant="outline" className="h-11 rounded-xl font-semibold border-border/80" onClick={() => { onDownload(file!); onClose(); }}>
+                <Button variant="outline" className={`h-11 rounded-xl font-semibold border-border/80 ${isCad ? "col-span-2" : ""}`} onClick={() => { onDownload(file!); onClose(); }}>
                   <Download className="h-4 w-4" />İndir
                 </Button>
               )}

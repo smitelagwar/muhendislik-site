@@ -4,7 +4,7 @@
 // Sözleşme: motor_v2/25_SABIT_VERI_VE_API_SOZLESMELERI.md, Fidelity v3 Planı P03
 
 export const CAD_V2_SCHEMA_VERSION = 1;
-export const CAD_V2_COMPILER_REVISION = "cad-v2-compiler-2026.09-v30";
+export const CAD_V2_COMPILER_REVISION = "cad-v2-compiler-2026.09-v33";
 export const CAD_V2_PIPELINE_REVISION = "fidelity-v3-p08";
 export const CAD_V2_RENDER_ABI = "three172-cad2d-v2";
 export const CAD_V2_QUALITY_PROFILE = "cad-v2-2d-v1" as const;

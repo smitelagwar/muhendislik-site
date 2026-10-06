@@ -2834,6 +2834,7 @@ function DokumantasyonFileManagerInner() {
           const folder = "parent_id" in item;
           const target = { id:item.id, name:folder ? item.name : item.display_name, type:folder ? "folder" as const : "file" as const, parentId:folder ? item.parent_id : item.folder_id };
           if(action==="open") { if(folder) navigateToFolder(item.id); else router.push(`/dokumantasyon/dosya/${item.id}`); }
+          else if(action==="open-v2") { router.push(`/dokumantasyon/dosya/${item.id}?cadEngine=v2`); }
           else if(action==="download" && !folder) void handleDownload(item as DokFile);
           else if(action==="share") handleOpenShareSingle(target);
           else if(action==="rename") setRenameItem(target);

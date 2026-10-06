@@ -199,9 +199,9 @@ export class EntityVisitor {
       ? this.maxCurveErrorWorld / combinedCurveScale
       : Number.MAX_VALUE;
 
-    // 2. Katman donukluk kontrolü
+    // 2. Katman donukluk ve görünürlük kontrolü
     const layerDef = this.layers[ctx.effectiveLayer];
-    if (layerDef && layerDef.frozen) {
+    if (layerDef && (layerDef.frozen || layerDef.visible === false)) {
       return;
     }
 

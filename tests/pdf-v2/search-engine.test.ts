@@ -5,6 +5,8 @@ import {
   findInPage,
   TextItemLike,
   PageIndexCache,
+  SearchProgress,
+  searchPdfDocumentIncremental,
 } from "../../src/lib/dokumantasyon/studio/pdf/pdf-search-engine";
 
 console.log("=== FAZ E: PDF Search Engine Birim Testleri ===");
@@ -75,6 +77,26 @@ console.log("=== FAZ E: PDF Search Engine Birim Testleri ===");
 }
 
 // ----------------------------------------------------------------------------
+// 3.2: NFC sonrası kaynak aralığı (ayrık Türkçe diakritikler)
+// ----------------------------------------------------------------------------
+{
+  const decomposed = "Başlıkta sa" + "c\u0327" + " aranıyor.";
+  const index = buildPageIndex([{ str: decomposed }], 1);
+  const [match] = findInPage(index, "saç");
+
+  assert.ok(match, "Ayrık cedilla içeren saç kelimesi bulunmalı");
+  assert.equal(match.snippet.hit, "sac\u0327", "Eşleşme kaynak metindeki birleştirici işareti de kapsamalı");
+  assert.equal(decomposed.slice(match.start, match.end), match.snippet.hit);
+
+  const jamo = "\u1100\u1161";
+  const normalizedJamo = foldTurkish(jamo);
+  assert.equal(normalizedJamo.folded, "가");
+  assert.equal(normalizedJamo.toOrig[0], 0);
+  assert.equal(normalizedJamo.toOrigEnd[0], jamo.length);
+  console.log("[PASS 3.2] NFC katlama birleştirilmiş karakterlerin UTF-16 kaynak aralığını koruyor");
+}
+
+// ----------------------------------------------------------------------------
 // 4. Satır Sonu Tire Birleştirme (Hyphenation at Line Break)
 // ----------------------------------------------------------------------------
 {
@@ -132,4 +154,38 @@ console.log("=== FAZ E: PDF Search Engine Birim Testleri ===");
   console.log("[PASS 6.1] PageIndexCache LRU tahliye mekanizması");
 }
 
-console.log("\n>>> Faz E Arama Motoru Birim Testleri Başarıyla Tamamlandı.");
+// ----------------------------------------------------------------------------
+// 7. Incremental progress snapshots stay stable as later pages are scanned
+// ----------------------------------------------------------------------------
+async function verifyIncrementalProgressSnapshots() {
+  const pages = ["hedef ilk sayfa", "eşleşme yok", "hedef son sayfa"];
+  const progressSnapshots: SearchProgress[] = [];
+
+  await searchPdfDocumentIncremental(
+    {
+      numPages: pages.length,
+      getPage: async (pageNumber) => ({
+        getTextContent: async () => ({ items: [{ str: pages[pageNumber - 1] }] }),
+      }),
+    },
+    "hedef",
+    1,
+    {},
+    new AbortController().signal,
+    (progress) => progressSnapshots.push(progress),
+    new PageIndexCache(10),
+  );
+
+  assert.equal(progressSnapshots[0].matches.length, 1, "ilk sayfa snapshot'ı sonraki eşleşmelerle değişmemeli");
+  assert.equal(progressSnapshots.at(-1)?.matches.length, 2, "son snapshot iki sayfadaki eşleşmeleri içermeli");
+  assert.notEqual(progressSnapshots[0].matches, progressSnapshots.at(-1)?.matches);
+  assert.equal(progressSnapshots[0].pageMatchCounts[3], undefined, "önceki sayaç snapshot'ı sonraki sayfa bilgilerini almamalı");
+  console.log("[PASS 7.1] Artımlı arama sonuçları sayfa ilerledikçe sabit snapshot'lar olarak aktarılıyor");
+}
+
+verifyIncrementalProgressSnapshots()
+  .then(() => console.log("\n>>> Faz E PDF arama motoru birim testleri tamamlandı."))
+  .catch((error) => {
+    console.error("[FAIL 7.1] Artımlı arama snapshot testi başarısız:", error);
+    process.exitCode = 1;
+  });

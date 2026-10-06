@@ -101,7 +101,7 @@ export function PdfHighlightLayer({
         : layerText;
 
       // 1. Birincil ve en hassas yöntem: Türkçe normalizasyonlu layerText taraması
-      const { folded: foldedLayer, toOrig } = foldTurkish(effectiveLayerText, {
+      const { folded: foldedLayer, toOrig, toOrigEnd } = foldTurkish(effectiveLayerText, {
         diacritics: searchOpts?.matchDiacritics ?? false,
         caseSensitive: searchOpts?.caseSensitive ?? false,
       });
@@ -129,7 +129,7 @@ export function PdfHighlightLayer({
 
           if (isWordBoundary(foundIdx, qLen)) {
             const origStart = toOrig[foundIdx];
-            const origEnd = toOrig[foundIdx + qLen - 1] + 1;
+            const origEnd = toOrigEnd[foundIdx + qLen - 1];
             const isActive = matchIdx === activeMatchIndexInPage;
 
             for (const tn of textNodes) {

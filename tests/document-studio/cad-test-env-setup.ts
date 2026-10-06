@@ -14,6 +14,16 @@ export default async function globalSetup(): Promise<void> {
   const pointerFile = path.join(testBaseDir, "active-test-dir.txt");
   fs.writeFileSync(pointerFile, runDataDir, "utf8");
 
+  // Seeded test veritabanını test klasörüne kopyala
+  const sourceDb = path.resolve(process.cwd(), ".data/dok_db.json");
+  const sourceStorage = path.resolve(process.cwd(), ".data/dok_storage");
+  if (fs.existsSync(sourceDb)) {
+    fs.copyFileSync(sourceDb, path.join(runDataDir, "dok_db.json"));
+  }
+  if (fs.existsSync(sourceStorage)) {
+    fs.cpSync(sourceStorage, path.join(runDataDir, "dok_storage"), { recursive: true });
+  }
+
   const lockFile = path.resolve(process.cwd(), ".next-playwright/dev/lock");
   if (fs.existsSync(lockFile)) {
     try {

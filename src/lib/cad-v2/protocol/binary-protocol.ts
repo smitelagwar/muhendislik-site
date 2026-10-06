@@ -9,8 +9,8 @@ export const SCENE_MAGIC = "DV2SCN01";
 export const SCENE_SCHEMA_VERSION = 1;
 export const HEADER_BYTE_LENGTH = 32;
 export const SECTION_ENTRY_BYTE_LENGTH = 32;
-export const MAX_CHUNK_BYTE_LENGTH = 2 * 1024 * 1024; // 2 MiB HTTP tavanı
-export const MAX_DECODED_ALLOCATION_BYTES = 8 * 1024 * 1024; // 8 MiB savunma sınırı
+export const MAX_CHUNK_BYTE_LENGTH = 4 * 1024 * 1024; // 4 MiB HTTP tavanı
+export const MAX_DECODED_ALLOCATION_BYTES = 16 * 1024 * 1024; // 16 MiB savunma sınırı
 
 export enum SceneScalarType {
   U8 = 1,

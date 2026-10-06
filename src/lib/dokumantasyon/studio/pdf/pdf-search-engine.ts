@@ -14,6 +14,7 @@ export interface PageSearchIndex {
   text: string;                 // Orijinal birleştirilmiş metin
   folded: string;               // Arama için katlanmış metin
   toOrig: Int32Array;           // folded[i] -> text içindeki indeks
+  toOrigEnd: Int32Array;       // folded[i] karakterinin text içindeki exclusive bitiş indeksi
   items: { start: number; end: number; itemIndex: number }[];
 }
 
@@ -52,36 +53,79 @@ export interface SearchProgress {
 export function foldTurkish(
   input: string,
   opts?: { diacritics?: boolean; caseSensitive?: boolean }
-): { folded: string; toOrig: Int32Array } {
+): { folded: string; toOrig: Int32Array; toOrigEnd: Int32Array } {
   if (!input) {
-    return { folded: "", toOrig: new Int32Array(0) };
+    return { folded: "", toOrig: new Int32Array(0), toOrigEnd: new Int32Array(0) };
   }
 
-  // Standart Unicode NFC normalizasyonu (ayrık diakritikleri birleştirir)
-  const normalized = input.normalize("NFC");
+  // NFC bazı UTF-16 karakter çiftlerini tek karaktere dönüştürür (örn. c + cedilla -> ç).
+  // Her normalize edilmiş kod birimini kaynak metindeki tam aralığına bağla ki PDF text
+  // layer'ındaki Range hesapları diakritiklerden sonra kaymasın ve son birleştirici işareti de kapsasın.
+  let normalized = "";
+  const normalizedSourceStarts: number[] = [];
+  const normalizedSourceEnds: number[] = [];
+  if (input.normalize("NFC") === input) {
+    // PDF.js metninin çoğu zaten NFC'dir. Bu hızlı yol tek bir normalizasyon taramasıyla
+    // eski maliyeti korur; eşleştirme tablosu UTF-16 surrogate çiftlerini de kapsar.
+    normalized = input;
+    for (let sourceStart = 0; sourceStart < input.length;) {
+      const codePoint = String.fromCodePoint(input.codePointAt(sourceStart)!);
+      const sourceEnd = sourceStart + codePoint.length;
+      for (let i = 0; i < codePoint.length; i++) {
+        normalizedSourceStarts.push(sourceStart);
+        normalizedSourceEnds.push(sourceEnd);
+      }
+      sourceStart = sourceEnd;
+    }
+  } else {
+    // Yalnız kaynak metin normalize değilse grapheme segmentlerini kullan. Bu, Türkçe
+    // birleştirici işaretlerin yanında Hangul gibi NFC bileşimlerini de kaynak aralığına bağlar.
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    for (const { segment, index: sourceStart } of segmenter.segment(input)) {
+      const sourceEnd = sourceStart + segment.length;
+      const normalizedCluster = segment.normalize("NFC");
+      normalized += normalizedCluster;
+      for (let i = 0; i < normalizedCluster.length; i++) {
+        normalizedSourceStarts.push(sourceStart);
+        normalizedSourceEnds.push(sourceEnd);
+      }
+    }
+  }
+
   const matchDiacritics = opts?.diacritics ?? false;
   const caseSensitive = opts?.caseSensitive ?? false;
 
   const toOrigArray: number[] = [];
+  const toOrigEndArray: number[] = [];
   let folded = "";
 
-  for (let i = 0; i < normalized.length; i++) {
-    const ch = normalized[i];
+  const appendFolded = (value: string, sourceStart: number, sourceEnd: number) => {
+    folded += value;
+    // Katlama bazı Unicode harflerini birden fazla UTF-16 birimine açabilir. Her çıktı
+    // birimi aynı kaynak aralığına bağlanır; arama sonuçları yine doğru orijinal metni keser.
+    for (let i = 0; i < value.length; i++) {
+      toOrigArray.push(sourceStart);
+      toOrigEndArray.push(sourceEnd);
+    }
+  };
+
+  for (let i = 0; i < normalized.length;) {
+    const ch = String.fromCodePoint(normalized.codePointAt(i)!);
+    const normalizedLength = ch.length;
+    const sourceStart = normalizedSourceStarts[i];
+    const sourceEnd = normalizedSourceEnds[i + normalizedLength - 1];
 
     // Satır sonu tire birleştirme: '-' karakterinden hemen sonra (veya boşluk/satır sonu sonrası) küçük harf geliyorsa
     // tire atlanır ve toOrig haritası bir sonraki karaktere bağlanır
     if (ch === "-") {
-      const rest = normalized.slice(i + 1);
+      const rest = normalized.slice(i + normalizedLength);
       const match = rest.match(/^(\s*)([a-zğüşıöç])/);
       if (match) {
         // Tire ve aradaki boşluk atlanır, kelime birleştirilir
-        const skipLen = 1 + match[1].length;
-        i += skipLen - 1; // loop increment ile tam match[2]'ye geçer
+        i += normalizedLength + match[1].length;
         continue;
       }
     }
-
-    toOrigArray.push(i);
 
     if (caseSensitive) {
       if (!matchDiacritics) {
@@ -89,49 +133,50 @@ export function foldTurkish(
         switch (ch) {
           case "İ":
           case "I":
-            folded += "I";
+            appendFolded("I", sourceStart, sourceEnd);
             break;
           case "ı":
           case "i":
-            folded += "i";
+            appendFolded("i", sourceStart, sourceEnd);
             break;
           case "Ş":
-            folded += "S";
+            appendFolded("S", sourceStart, sourceEnd);
             break;
           case "ş":
-            folded += "s";
+            appendFolded("s", sourceStart, sourceEnd);
             break;
           case "Ğ":
-            folded += "G";
+            appendFolded("G", sourceStart, sourceEnd);
             break;
           case "ğ":
-            folded += "g";
+            appendFolded("g", sourceStart, sourceEnd);
             break;
           case "Ü":
-            folded += "U";
+            appendFolded("U", sourceStart, sourceEnd);
             break;
           case "ü":
-            folded += "u";
+            appendFolded("u", sourceStart, sourceEnd);
             break;
           case "Ö":
-            folded += "O";
+            appendFolded("O", sourceStart, sourceEnd);
             break;
           case "ö":
-            folded += "o";
+            appendFolded("o", sourceStart, sourceEnd);
             break;
           case "Ç":
-            folded += "C";
+            appendFolded("C", sourceStart, sourceEnd);
             break;
           case "ç":
-            folded += "c";
+            appendFolded("c", sourceStart, sourceEnd);
             break;
           default:
-            folded += ch;
+            appendFolded(ch, sourceStart, sourceEnd);
             break;
         }
       } else {
-        folded += ch;
+        appendFolded(ch, sourceStart, sourceEnd);
       }
+      i += normalizedLength;
       continue;
     }
 
@@ -140,28 +185,28 @@ export function foldTurkish(
       // Türkçe harflere duyarlı (I != İ), yalnız büyük/küçük harf katlanır
       switch (ch) {
         case "İ":
-          folded += "i";
+          appendFolded("i", sourceStart, sourceEnd);
           break;
         case "I":
-          folded += "ı";
+          appendFolded("ı", sourceStart, sourceEnd);
           break;
         case "Ş":
-          folded += "ş";
+          appendFolded("ş", sourceStart, sourceEnd);
           break;
         case "Ğ":
-          folded += "ğ";
+          appendFolded("ğ", sourceStart, sourceEnd);
           break;
         case "Ü":
-          folded += "ü";
+          appendFolded("ü", sourceStart, sourceEnd);
           break;
         case "Ö":
-          folded += "ö";
+          appendFolded("ö", sourceStart, sourceEnd);
           break;
         case "Ç":
-          folded += "ç";
+          appendFolded("ç", sourceStart, sourceEnd);
           break;
         default:
-          folded += ch.toLowerCase();
+          appendFolded(ch.toLowerCase(), sourceStart, sourceEnd);
           break;
       }
     } else {
@@ -172,38 +217,40 @@ export function foldTurkish(
         case "I":
         case "ı":
         case "i":
-          folded += "i";
+          appendFolded("i", sourceStart, sourceEnd);
           break;
         case "Ş":
         case "ş":
-          folded += "s";
+          appendFolded("s", sourceStart, sourceEnd);
           break;
         case "Ğ":
         case "ğ":
-          folded += "g";
+          appendFolded("g", sourceStart, sourceEnd);
           break;
         case "Ü":
         case "ü":
-          folded += "u";
+          appendFolded("u", sourceStart, sourceEnd);
           break;
         case "Ö":
         case "ö":
-          folded += "o";
+          appendFolded("o", sourceStart, sourceEnd);
           break;
         case "Ç":
         case "ç":
-          folded += "c";
+          appendFolded("c", sourceStart, sourceEnd);
           break;
         default:
-          folded += ch.toLowerCase();
+          appendFolded(ch.toLowerCase(), sourceStart, sourceEnd);
           break;
       }
     }
+    i += normalizedLength;
   }
 
   return {
     folded,
     toOrig: new Int32Array(toOrigArray),
+    toOrigEnd: new Int32Array(toOrigEndArray),
   };
 }
 
@@ -242,13 +289,14 @@ export function buildPageIndex(
   }
 
   // Varsayılan gevşek katlama ile indeks oluştur
-  const { folded, toOrig } = foldTurkish(fullText, { diacritics: false, caseSensitive: false });
+  const { folded, toOrig, toOrigEnd } = foldTurkish(fullText, { diacritics: false, caseSensitive: false });
 
   return {
     pageNumber,
     text: fullText,
     folded,
     toOrig,
+    toOrigEnd,
     items: itemMap,
   };
 }
@@ -275,6 +323,7 @@ export function findInPage(
   // Eğer sayfa varsayılan moddan farklı bir modda aranıyorsa geçici katlama yap
   let searchFolded = index.folded;
   let searchToOrig = index.toOrig;
+  let searchToOrigEnd = index.toOrigEnd;
   if (opts?.matchDiacritics || opts?.caseSensitive) {
     const custom = foldTurkish(index.text, {
       diacritics: opts?.matchDiacritics,
@@ -282,6 +331,7 @@ export function findInPage(
     });
     searchFolded = custom.folded;
     searchToOrig = custom.toOrig;
+    searchToOrigEnd = custom.toOrigEnd;
   }
 
   const matches: SearchMatch[] = [];
@@ -303,7 +353,7 @@ export function findInPage(
 
     if (isWordBoundary(foundIdx, qLen)) {
       const origStart = searchToOrig[foundIdx];
-      const origEnd = searchToOrig[foundIdx + qLen - 1] + 1;
+      const origEnd = searchToOrigEnd[foundIdx + qLen - 1];
 
       // Hangi span/item'larla kesiştiğini tespit et
       let itemStart = -1;
@@ -462,20 +512,18 @@ export async function searchPdfDocumentIncremental(
       const pageMatches = findInPage(pageIndex, trimmed, options, result.matches.length);
 
       if (pageMatches.length > 0) {
-        for (const m of pageMatches) {
-          if (result.matches.length < MAX_MATCHES) {
-            result.matches.push(m);
-          } else {
-            result.overflow = true;
-            break;
-          }
-        }
+        const remainingCapacity = MAX_MATCHES - result.matches.length;
+        const acceptedMatches = pageMatches.slice(0, remainingCapacity);
+        // React consumers derive page highlight maps from the matches array. Replace it
+        // per result page so memoized selectors observe every incremental match.
+        result.matches = result.matches.concat(acceptedMatches);
+        if (acceptedMatches.length < pageMatches.length) result.overflow = true;
         result.totalMatches = result.matches.length;
         result.pageMatchCounts[pageNum] = pageMatches.length;
       }
 
       result.scannedPages = i + 1;
-      onProgress({ ...result });
+      onProgress({ ...result, pageMatchCounts: { ...result.pageMatchCounts } });
 
       if (result.overflow) break;
 
@@ -489,6 +537,6 @@ export async function searchPdfDocumentIncremental(
   }
 
   result.isComplete = !signal.aborted;
-  onProgress({ ...result });
+  onProgress({ ...result, pageMatchCounts: { ...result.pageMatchCounts } });
   return result;
 }

@@ -56,6 +56,8 @@ export interface CadV2HostShellProps {
   onDownload?: () => void;
   onShare?: () => void;
   onFallbackToLegacy?: () => void;
+  onCompare?: () => void;
+  isCompareMode?: boolean;
 }
 
 export type V2HostPhase =
@@ -88,6 +90,8 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   onDownload,
   onShare,
   onFallbackToLegacy,
+  onCompare,
+  isCompareMode,
 }) => {
   const [phase, setPhase] = useState<V2HostPhase>("preparing");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -250,7 +254,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
         let isDone = false;
         let attempts = 0;
 
-        while (!isDone && attempts < 30) {
+        while (!isDone && attempts < 120) {
           if (signal.aborted || isCancelledRef.current) return;
           await new Promise((r) => setTimeout(r, 1000));
           attempts++;
@@ -272,7 +276,7 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
         }
 
         if (!sceneId) {
-          throw new Error("Çizim hazırlama zaman aşımına uğradı (30s).");
+          throw new Error("Çizim hazırlama zaman aşımına uğradı (120s).");
         }
       }
 
@@ -478,6 +482,15 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
       } else {
         setPhase("ready");
       }
+
+      if (rendererRef.current && manifest.layouts?.[0]?.bbox) {
+        const targetBBox = manifest.layouts[0].bbox;
+        rendererRef.current.setFitBBox(targetBBox);
+        rendererRef.current.fit(targetBBox);
+        fitURef.current = rendererRef.current.getCameraAdapter()?.getState()?.unitsPerCssPixel ?? null;
+        setZoomPercent(100);
+      }
+
       refinementEnabledRef.current = true;
       if (latestCameraStateRef.current) requestRefinementRef.current(latestCameraStateRef.current);
     } catch (err: any) {
@@ -599,6 +612,9 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
 
   const handleRendererReady = useCallback((renderer: CadV2Renderer) => {
     rendererRef.current = renderer;
+    if (typeof window !== "undefined") {
+      (window as any).__cadRenderer = renderer;
+    }
   }, []);
 
   const handleCameraChange = useCallback((camState: any) => {
@@ -829,109 +845,127 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   return (
     <div
       ref={containerRef}
+      data-cad-v2-host="true"
+      data-v2-phase={phase}
       className={`relative w-full h-full flex flex-col overflow-hidden bg-neutral-950 text-neutral-200 select-none ${
         isFocusMode ? "fixed inset-0 z-50 bg-neutral-950" : ""
       }`}
     >
       {/* 1. Üst Çubuk (Topbar - motor_v2/21_ARAYUZ_TASARIM_SISTEMI Sözleşmesi) */}
-      <header
-        data-testid="document-studio-topbar"
-        className="h-12 border-b border-neutral-800/80 bg-neutral-900/90 flex items-center justify-between px-3 z-10 backdrop-blur-xl shrink-0"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          {onBack && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onBack}
-              title="Geri Dön"
-              className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
+      {!isCompareMode && (
+        <header
+          data-testid="document-studio-topbar"
+          className="h-12 border-b border-neutral-800/80 bg-neutral-900/90 flex items-center justify-between px-3 z-10 backdrop-blur-xl shrink-0"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {onBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onBack}
+                title="Geri Dön"
+                className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
 
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-semibold text-xs sm:text-sm text-neutral-100 truncate" title={displayName}>
-              {displayName}
-            </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-              V2
-            </span>
-            <span className="text-[11px] text-neutral-500 hidden sm:inline">
-              ({formatBytes(sizeBytes)})
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-semibold text-xs sm:text-sm text-neutral-100 truncate" title={displayName}>
+                {displayName}
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                V2
+              </span>
+              <span className="text-[11px] text-neutral-500 hidden sm:inline">
+                ({formatBytes(sizeBytes)})
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {diagnosticsWarning && (
-            <span className="text-[11px] text-amber-400 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 hidden lg:flex">
-              <AlertTriangle className="h-3 w-3" /> Uyarılar Mevcut
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {diagnosticsWarning && (
+              <span className="text-[11px] text-amber-400 flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 hidden lg:flex">
+                <AlertTriangle className="h-3 w-3" /> Uyarılar Mevcut
+              </span>
+            )}
 
-          {/* UI Teması Değiştirme */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer hidden sm:flex"
-            title={resolvedTheme === "dark" ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
-          >
-            {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-
-          {/* Tam Ekran / Odak Görünümü (F20) */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleToggleFullscreen}
-            className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer"
-            title={isFullscreen || isFocusMode ? "Tam Ekrandan Çık (Esc)" : "Tam Ekran / Odak Görünümü"}
-          >
-            {isFullscreen || isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-
-          {/* Paylaş */}
-          {onShare && (
+            {/* UI Teması Değiştirme */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={onShare}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer hidden sm:flex"
-              title="Paylaş"
+              title={resolvedTheme === "dark" ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
             >
-              <Share2 className="h-4 w-4" />
+              {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-          )}
 
-          {/* İndir */}
-          {onDownload && (
+            {/* Tam Ekran / Odak Görünümü (F20) */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={onDownload}
-              className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer hidden sm:flex"
-              title="İndir"
+              onClick={handleToggleFullscreen}
+              className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer"
+              title={isFullscreen || isFocusMode ? "Tam Ekrandan Çık (Esc)" : "Tam Ekran / Odak Görünümü"}
             >
-              <Download className="h-4 w-4" />
+              {isFullscreen || isFocusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
-          )}
 
-          {/* Mevcut Görüntüleyiciyle Aç (Legacy Fallback - F17) */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleFallbackToLegacy}
-            className="h-7 text-xs border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-lg px-2 sm:px-2.5"
-            title="Mevcut Görüntüleyiciyle Aç"
-          >
-            <span className="hidden sm:inline">Mevcut Motorla Aç</span>
-            <span className="sm:hidden text-[11px]">Mevcut Motor</span>
-          </Button>
-        </div>
-      </header>
+            {/* Paylaş */}
+            {onShare && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onShare}
+                className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer hidden sm:flex"
+                title="Paylaş"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* İndir */}
+            {onDownload && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDownload}
+                className="h-8 w-8 text-neutral-400 hover:text-white rounded-lg cursor-pointer hidden sm:flex"
+                title="İndir"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Mevcut Görüntüleyiciyle Aç (Legacy Fallback - F17) */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFallbackToLegacy}
+              className="h-7 text-xs border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-white hover:bg-neutral-800 rounded-lg px-2 sm:px-2.5 cursor-pointer"
+              title="Mevcut Görüntüleyiciyle Aç"
+            >
+              <span className="hidden sm:inline">Mevcut Motorla Aç</span>
+              <span className="sm:hidden text-[11px]">Mevcut Motor</span>
+            </Button>
+
+            {/* V1 / V2 Karşılaştır (Split View) */}
+            {onCompare && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCompare}
+                className="h-7 text-xs border-amber-500/40 bg-amber-500/10 text-amber-400 hover:text-white hover:bg-amber-500/20 rounded-lg px-2 sm:px-2.5 cursor-pointer"
+                title="V1 ve V2 Motorunu Yan Yana Karşılaştır"
+              >
+                <span className="hidden sm:inline">V1 / V2 Karşılaştır</span>
+                <span className="sm:hidden text-[11px]">Karşılaştır</span>
+              </Button>
+            )}
+          </div>
+        </header>
+      )}
 
       {/* 2. Ana Çizim Alanı */}
       <main className="relative flex-1 w-full h-full overflow-hidden">

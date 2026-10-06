@@ -13,6 +13,10 @@ interface PdfPageScrubberProps {
   currentPage: number;
   onPageChange: (pageNum: number) => void;
   onScrubMove?: (pageNum: number) => void;
+  onContinuousScrubEnd?: (
+    pageNum: number,
+    startPosition: { page: number; scrollTop: number }
+  ) => void;
   scrollElementRef: RefObject<HTMLDivElement | null>;
   ready: boolean;
 }
@@ -22,23 +26,118 @@ export function PdfPageScrubber({
   currentPage,
   onPageChange,
   onScrubMove,
+  onContinuousScrubEnd,
   scrollElementRef,
   ready,
 }: PdfPageScrubberProps) {
+  const usesContinuousScroll = numPages < 100;
   const trackRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLSpanElement>(null);
+  const pageControlRef = useRef<HTMLDivElement>(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const isScrubbingRef = useRef(false);
   const [hoverPage, setHoverPage] = useState<number | null>(null);
+  const lastScrubbedPageRef = useRef<number | null>(null);
+  const lastPointerYRef = useRef<number | null>(null);
+  const pendingScrollFractionRef = useRef<number | null>(null);
+  const continuousScrollFrameRef = useRef<number | null>(null);
+  const continuousScrubStartRef = useRef<{ page: number; scrollTop: number }>({
+    page: currentPage,
+    scrollTop: 0,
+  });
   const [isRecentlyActive, setIsRecentlyActive] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [isPointerOver, setIsPointerOver] = useState(false);
+  const [isPageControlHovered, setIsPageControlHovered] = useState(false);
   const [pageJumpOpen, setPageJumpOpen] = useState(false);
   const [pageDraft, setPageDraft] = useState(String(currentPage));
   const activeTimerRef = useRef<number | null>(null);
 
+  const updateContinuousIndicator = (fraction: number) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const y = `${Math.min(Math.max(fraction, 0), 1) * rail.clientHeight}px`;
+    thumbRef.current?.style.setProperty("translate", `0 ${y}`);
+    pageControlRef.current?.style.setProperty("translate", `0 ${y}`);
+  };
+
+  const getScrollFraction = (scrollElement: HTMLDivElement) => {
+    const maxScrollTop = Math.max(scrollElement.scrollHeight - scrollElement.clientHeight, 0);
+    return maxScrollTop > 0 ? scrollElement.scrollTop / maxScrollTop : 0;
+  };
+
+  const scrollToFraction = (fraction: number) => {
+    const scrollElement = scrollElementRef.current;
+    const clampedFraction = Math.min(Math.max(fraction, 0), 1);
+    if (scrollElement) {
+      const maxScrollTop = Math.max(scrollElement.scrollHeight - scrollElement.clientHeight, 0);
+      scrollElement.scrollTop = clampedFraction * maxScrollTop;
+    }
+    updateContinuousIndicator(clampedFraction);
+  };
+
+  const flushContinuousScroll = (clientY?: number) => {
+    if (clientY !== undefined) {
+      pendingScrollFractionRef.current = calculateFractionFromClientY(clientY);
+    }
+    if (continuousScrollFrameRef.current !== null) {
+      window.cancelAnimationFrame(continuousScrollFrameRef.current);
+      continuousScrollFrameRef.current = null;
+    }
+    const fraction = pendingScrollFractionRef.current;
+    pendingScrollFractionRef.current = null;
+    if (fraction !== null) scrollToFraction(fraction);
+  };
+
+  const queueContinuousScroll = (clientY: number) => {
+    pendingScrollFractionRef.current = calculateFractionFromClientY(clientY);
+    if (continuousScrollFrameRef.current !== null) return;
+    continuousScrollFrameRef.current = window.requestAnimationFrame(() => {
+      continuousScrollFrameRef.current = null;
+      const fraction = pendingScrollFractionRef.current;
+      pendingScrollFractionRef.current = null;
+      if (fraction !== null) scrollToFraction(fraction);
+    });
+  };
+
+  const getPageAtViewportCenter = () => {
+    const scrollElement = scrollElementRef.current;
+    if (!scrollElement) return currentPage;
+
+    const viewport = scrollElement.getBoundingClientRect();
+    const centerY = viewport.top + scrollElement.clientHeight / 2;
+    const pages = scrollElement.querySelectorAll<HTMLElement>("[data-page-number]");
+    let closestPage = currentPage;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    for (const page of pages) {
+      const rect = page.getBoundingClientRect();
+      if (centerY >= rect.top && centerY <= rect.bottom) {
+        return Number(page.dataset.pageNumber) || currentPage;
+      }
+      const distance = centerY < rect.top ? rect.top - centerY : centerY - rect.bottom;
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestPage = Number(page.dataset.pageNumber) || currentPage;
+      }
+    }
+
+    return closestPage;
+  };
+
   // Kaydırma sırasında tutacağı ve geçerli sayfa rozetini görünür tut.
   useEffect(() => {
     const scrollElement = scrollElementRef.current;
+    if (!usesContinuousScroll) {
+      thumbRef.current?.style.removeProperty("translate");
+      pageControlRef.current?.style.removeProperty("translate");
+    }
     if (!ready || !scrollElement) return;
+    if (usesContinuousScroll) updateContinuousIndicator(getScrollFraction(scrollElement));
     const handleScroll = () => {
       setIsRecentlyActive(true);
+      if (usesContinuousScroll) updateContinuousIndicator(getScrollFraction(scrollElement));
       if (activeTimerRef.current !== null) window.clearTimeout(activeTimerRef.current);
       activeTimerRef.current = window.setTimeout(() => {
         setIsRecentlyActive(false);
@@ -53,51 +152,79 @@ export function PdfPageScrubber({
         activeTimerRef.current = null;
       }
     };
-  }, [ready, scrollElementRef]);
+  }, [ready, scrollElementRef, usesContinuousScroll]);
 
   useEffect(() => {
     return () => {
       if (activeTimerRef.current !== null) {
         window.clearTimeout(activeTimerRef.current);
       }
+      if (continuousScrollFrameRef.current !== null) {
+        window.cancelAnimationFrame(continuousScrollFrameRef.current);
+      }
     };
   }, []);
 
-  // 10'dan az sayfa varsa dikey scrubber gösterme (Plandaki kural)
-  if (numPages < 10) return null;
+  // Tek sayfada gezinti gerekmediği için kontrol yalnızca çok sayfalı PDF'lerde görünür.
+  if (numPages < 2) return null;
 
-  const calculatePageFromClientY = (clientY: number): number => {
-    if (!trackRef.current) return currentPage;
-    const rect = trackRef.current.getBoundingClientRect();
+  const calculateFractionFromClientY = (clientY: number): number => {
+    if (!railRef.current) return 0;
+    const rect = railRef.current.getBoundingClientRect();
     const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
-    const fraction = rect.height > 0 ? relativeY / rect.height : 0;
+    return rect.height > 0 ? relativeY / rect.height : 0;
+  };
+
+  const calculatePageFromFraction = (fraction: number): number => {
     return Math.min(Math.max(Math.round(fraction * (numPages - 1)) + 1, 1), numPages);
   };
 
+  const calculatePageFromClientY = (clientY: number): number => {
+    return calculatePageFromFraction(calculateFractionFromClientY(clientY));
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || !e.isPrimary) return;
     e.preventDefault();
     e.stopPropagation();
+    const scrollElement = scrollElementRef.current;
+    continuousScrubStartRef.current = {
+      page: currentPage,
+      scrollTop: scrollElement?.scrollTop ?? 0,
+    };
+    isScrubbingRef.current = true;
     setIsScrubbing(true);
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
 
+    lastPointerYRef.current = e.clientY;
+    if (usesContinuousScroll) flushContinuousScroll(e.clientY);
     const page = calculatePageFromClientY(e.clientY);
-    setHoverPage(page);
-    if (onScrubMove) {
-      onScrubMove(page);
-    } else {
-      onPageChange(page);
+    lastScrubbedPageRef.current = page;
+    if (!usesContinuousScroll) {
+      setHoverPage(page);
+      if (onScrubMove) {
+        onScrubMove(page);
+      } else {
+        onPageChange(page);
+      }
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
+    if (isScrubbingRef.current && usesContinuousScroll) {
+      lastPointerYRef.current = e.clientY;
+      queueContinuousScroll(e.clientY);
+      return;
+    }
     const page = calculatePageFromClientY(e.clientY);
-    setHoverPage(page);
+    setHoverPage((previous) => previous === page ? previous : page);
 
-    if (isScrubbing) {
+    if (isScrubbingRef.current && lastScrubbedPageRef.current !== page) {
+      lastScrubbedPageRef.current = page;
       if (onScrubMove) {
         onScrubMove(page);
       } else {
@@ -107,15 +234,78 @@ export function PdfPageScrubber({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    lastPointerYRef.current = e.clientY;
+    if (usesContinuousScroll) flushContinuousScroll(e.clientY);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
       } catch {}
     }
     const finalPage = calculatePageFromClientY(e.clientY);
+    isScrubbingRef.current = false;
+    lastScrubbedPageRef.current = finalPage;
     setIsScrubbing(false);
     setHoverPage(null);
-    onPageChange(finalPage);
+    if (usesContinuousScroll) {
+      onContinuousScrubEnd?.(getPageAtViewportCenter(), continuousScrubStartRef.current);
+    } else {
+      onPageChange(finalPage);
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    if (usesContinuousScroll) flushContinuousScroll(lastPointerYRef.current ?? undefined);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+    // Pointer iptalinde tarayıcı koordinatı 0,0 gönderebilir. Görüntülenen son sayfayı tamamla.
+    const finalPage = lastScrubbedPageRef.current ?? currentPage;
+    isScrubbingRef.current = false;
+    setIsScrubbing(false);
+    setHoverPage(null);
+    if (usesContinuousScroll) {
+      onContinuousScrubEnd?.(getPageAtViewportCenter(), continuousScrubStartRef.current);
+    } else {
+      onPageChange(finalPage);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const page = hoverPage ?? currentPage;
+    let targetPage: number | null = null;
+
+    switch (e.key) {
+      case "ArrowUp":
+        targetPage = page - 1;
+        break;
+      case "ArrowDown":
+        targetPage = page + 1;
+        break;
+      case "PageUp":
+        targetPage = page - 10;
+        break;
+      case "PageDown":
+        targetPage = page + 10;
+        break;
+      case "Home":
+        targetPage = 1;
+        break;
+      case "End":
+        targetPage = numPages;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    const nextPage = Math.min(Math.max(targetPage, 1), numPages);
+    setHoverPage(nextPage);
+    onPageChange(nextPage);
   };
 
   const commitPageJump = (event: React.FormEvent<HTMLFormElement>) => {
@@ -124,111 +314,151 @@ export function PdfPageScrubber({
     if (Number.isFinite(requested) && requested >= 1 && requested <= numPages) {
       onPageChange(requested);
       setPageJumpOpen(false);
+      trackRef.current?.focus();
     } else {
       setPageDraft(String(currentPage));
     }
   };
 
   // İlerleme yüzdesi (0 - 100)
-  const displayPage = hoverPage ?? currentPage;
+  const displayPage = usesContinuousScroll ? currentPage : hoverPage ?? currentPage;
   const currentFraction = numPages > 1 ? (displayPage - 1) / (numPages - 1) : 0;
   const activePercent = Math.min(Math.max(currentFraction * 100, 0), 100);
+  const tickCount = numPages <= 24 ? numPages : 11;
+  const tickPages = Array.from({ length: tickCount }, (_, index) =>
+    Math.round((index / (tickCount - 1)) * (numPages - 1)) + 1
+  );
 
-  // Görünürlük durumu: Hover esnasında, sürüklemede veya mobilde kaydırma anında belirgin
-  const isVisible = isScrubbing || isRecentlyActive;
+  // Görünürlük durumu: etkileşim sırasında belirgin, boşta iken hafifçe görünür.
+  const isVisible = isScrubbing || isRecentlyActive || isFocused || isPointerOver || isPageControlHovered || pageJumpOpen;
 
   return (
     <div
       data-testid="pdf-page-scrubber"
+      data-continuous-scroll={usesContinuousScroll}
       data-no-tap
-      className={`absolute right-[max(0.375rem,env(safe-area-inset-right))] top-16 bottom-16 z-20 flex items-center justify-center select-none print:hidden pointer-events-auto transition-opacity duration-200 ${
-        isVisible ? "opacity-100" : "opacity-35 hover:opacity-100"
-      }`}
+      onPointerEnter={() => setIsPointerOver(true)}
       onPointerLeave={() => {
-        if (!isScrubbing) setHoverPage(null);
+        setIsPointerOver(false);
+        if (!isScrubbingRef.current && !isFocused) setHoverPage(null);
       }}
+      className={`group pointer-events-none absolute left-[max(0.375rem,env(safe-area-inset-left))] top-1/2 z-20 flex h-[min(42dvh,22.5rem)] min-h-48 w-12 max-h-[22.5rem] -translate-y-1/2 items-center justify-center rounded-full border border-zinc-700/75 bg-zinc-950/75 shadow-lg shadow-black/20 backdrop-blur-md select-none print:hidden transition-[opacity,background-color] duration-200 hover:bg-zinc-900/90 ${
+        isVisible ? "opacity-100" : "opacity-70"
+      }`}
     >
-      {/* Tooltip (Absolute yerleşim: Viewport'a fixed değil, Scrubber kapsayıcısına göre) */}
-      {(hoverPage !== null || isScrubbing) && (
-        <div
-          data-testid="pdf-scrubber-tooltip"
-          className="absolute right-9 z-30 -translate-y-1/2 rounded-lg border border-border/80 bg-zinc-900/95 px-2.5 py-1 font-mono text-[11px] font-bold text-zinc-100 shadow-xl backdrop-blur-md transition-all duration-75 pointer-events-none whitespace-nowrap"
-          style={{ top: `${activePercent}%` }}
-        >
-          {pdfViewerStrings.pagePosition(displayPage, numPages)}
-        </div>
-      )}
-
-      {(isVisible || pageJumpOpen) && (
-        <div className="absolute bottom-0 right-9 z-30 flex flex-col items-end gap-1.5" data-no-tap>
-          {pageJumpOpen && (
-            <form onSubmit={commitPageJump} className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5 shadow-xl">
-              <input
-                autoFocus
-                type="text"
-                inputMode="numeric"
-                aria-label={pdfViewerStrings.pageJump}
-                value={pageDraft}
-                onChange={(event) => setPageDraft(event.target.value.replace(/\D/g, ""))}
-                onKeyDown={(event) => { if (event.key === "Escape") setPageJumpOpen(false); }}
-                className="h-9 w-14 rounded-lg border border-input bg-background text-center font-mono text-xs"
-              />
-              <span className="pr-1 text-[11px] text-muted-foreground">/ {numPages}</span>
-            </form>
-          )}
-          <button
-            type="button"
-            data-no-tap
-            aria-label={pdfViewerStrings.pageJumpAction(displayPage, numPages)}
-            onClick={() => {
-              setPageDraft(String(currentPage));
-              setPageJumpOpen((open) => !open);
-            }}
-            className="rounded-full border border-border/70 bg-card/95 px-3 py-1.5 font-mono text-[11px] font-semibold text-foreground shadow-lg backdrop-blur"
-          >
-            {displayPage} / {numPages}
-          </button>
-        </div>
-      )}
-
-      {/* Dokunma Hedefi (Hit Target: >= 24px dokunma genişliği ve touch-action: none) */}
+      {/* Tam uzunluktaki hit alanı kısa rayı sarar; her tıklama ve sürükleme yine tüm sayfa aralığına eşlenir. */}
       <div
         ref={trackRef}
         data-testid="pdf-scrubber-track"
+        data-page-count={numPages}
+        data-tick-count={tickCount}
+        data-scroll-mode={usesContinuousScroll ? "continuous" : "page"}
+        data-scrubbing={isScrubbing}
         data-no-tap
+        role="slider"
+        tabIndex={0}
+        aria-label={pdfViewerStrings.pageScrubber}
+        aria-orientation="vertical"
+        aria-valuemin={1}
+        aria-valuemax={numPages}
+        aria-valuenow={displayPage}
+        aria-valuetext={pdfViewerStrings.pagePosition(displayPage, numPages)}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => {
+          setIsFocused(false);
+          setHoverPage(null);
+        }}
         style={{ touchAction: "none" }}
-        className="group relative flex h-full w-7 sm:w-8 min-w-[28px] cursor-pointer items-center justify-center py-2"
+        className="pointer-events-auto absolute inset-0 z-0 cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         title={pdfViewerStrings.pagePosition(currentPage, numPages)}
-        aria-label={pdfViewerStrings.pageScrubber}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-2 top-3 bottom-3 z-10"
+        data-testid="pdf-scrubber-rail"
+        ref={railRef}
       >
-        {/* İnce Görsel Ray (Visual Track) */}
-        <div
-          className={`relative h-full w-1 sm:w-1.5 rounded-full transition-all duration-200 ${
-            isScrubbing
-              ? "w-2 bg-zinc-800 shadow-md ring-1 ring-amber-500/50"
-              : "bg-zinc-500/25 group-hover:w-1.5 group-hover:bg-zinc-700/50 dark:bg-zinc-600/30"
-          }`}
-        >
-          {/* Dolu İlerleme Hattı */}
+        <div aria-hidden="true" className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 rounded-full bg-zinc-600/75" />
+        {tickPages.map((page) => {
+          const fraction = (page - 1) / (numPages - 1);
+          const isSelected = page === displayPage;
+          return (
+            <span
+              key={page}
+              data-testid="pdf-scrubber-tick"
+              data-page={page}
+              aria-hidden="true"
+              className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[width,background-color] duration-100 ${
+                isSelected
+                  ? "h-0.5 w-3 bg-amber-400 shadow-sm shadow-amber-500/60"
+                  : "h-px w-2 bg-zinc-400/80 group-hover:bg-zinc-200"
+              }`}
+              style={{ top: `${fraction * 100}%` }}
+            />
+          );
+        })}
+        <span
+          ref={thumbRef}
+          data-testid="pdf-scrubber-thumb"
+          aria-hidden="true"
+          className="absolute left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-zinc-950 bg-amber-400 shadow-[0_0_0_2px_rgba(251,191,36,0.35)]"
+          style={{ top: usesContinuousScroll ? "0%" : `${activePercent}%` }}
+        />
+        {(isVisible || usesContinuousScroll) && (
           <div
-            className="absolute top-0 w-full rounded-full bg-amber-500/40 transition-all"
-            style={{ height: `${activePercent}%` }}
-          />
-
-          {/* Aktif İmleç (Thumb Indicator) */}
-          <div
-            className={`absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-75 ${
-              isScrubbing
-                ? "h-4 w-4 bg-amber-500 shadow-lg shadow-amber-500/50 scale-110"
-                : "h-3 w-3 bg-amber-500/90 shadow-sm group-hover:scale-125"
-            }`}
-            style={{ top: `${activePercent}%` }}
-          />
-        </div>
+            ref={pageControlRef}
+            className="pointer-events-auto absolute left-[calc(100%+0.5rem)] z-20 -translate-y-1/2"
+            onPointerEnter={() => setIsPageControlHovered(true)}
+            onPointerLeave={() => setIsPageControlHovered(false)}
+            style={{ top: usesContinuousScroll ? "0%" : `${activePercent}%` }}
+          >
+            {pageJumpOpen ? (
+              <form
+                onSubmit={commitPageJump}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-950/95 p-1.5 shadow-xl backdrop-blur-md"
+              >
+                <input
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  aria-label={pdfViewerStrings.pageJump}
+                  value={pageDraft}
+                  onChange={(event) => setPageDraft(event.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setPageJumpOpen(false);
+                      trackRef.current?.focus();
+                    }
+                  }}
+                  className="h-8 w-12 rounded-lg border border-zinc-700 bg-zinc-900 text-center font-mono text-xs text-zinc-100 outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                />
+                <span className="pr-1 text-[11px] text-zinc-300">/ {numPages}</span>
+              </form>
+            ) : (
+              <button
+                type="button"
+                data-no-tap
+                data-testid="pdf-scrubber-page-button"
+                aria-label={pdfViewerStrings.pageJumpAction(displayPage, numPages)}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => {
+                  setPageDraft(String(currentPage));
+                  setPageJumpOpen(true);
+                }}
+                className="whitespace-nowrap rounded-full border border-zinc-700/70 bg-zinc-950/75 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-zinc-100/90 shadow-lg backdrop-blur-md hover:border-amber-400/70"
+              >
+                {pdfViewerStrings.pagePosition(displayPage, numPages)}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

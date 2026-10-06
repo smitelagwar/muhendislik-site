@@ -12,6 +12,7 @@ import { parseDwgToCanonical } from "../decode/dwg-adapter";
 import { parseDxfToCanonical } from "../decode/dxf-adapter";
 import { compileCanonicalToScene, type CompiledSceneOutput } from "../compile/scene-compiler";
 import { computeSceneIdentity, validateAuthoritativeRevision } from "./scene-identity";
+import { CAD_V2_COMPILER_REVISION } from "../version";
 
 export type CadV2JobStatus = "queued" | "running" | "ready" | "degraded" | "failed" | "cancelled";
 
@@ -96,7 +97,7 @@ export class CadV2DurableService {
         if (fs.existsSync(manifestPath)) {
           try {
             const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-            if (manifest.sceneId) {
+            if (manifest.sceneId && manifest.compilerVersion === CAD_V2_COMPILER_REVISION) {
               if (manifest.sourceVersionKey) {
                 const fileIdPart = manifest.sourceVersionKey.split("_")[0] || manifest.sourceVersionKey;
                 const exactCacheKey = `global:${fileIdPart}:${manifest.sourceVersionKey}`;
@@ -114,9 +115,14 @@ export class CadV2DurableService {
   }
 
   public static getInstance(): CadV2DurableService {
+    const globalObj = globalThis as any;
+    if (globalObj.__cadV2DurableServiceInstance) {
+      return globalObj.__cadV2DurableServiceInstance;
+    }
     if (!this.instance) {
       this.instance = new CadV2DurableService();
     }
+    globalObj.__cadV2DurableServiceInstance = this.instance;
     return this.instance;
   }
 
@@ -193,6 +199,7 @@ export class CadV2DurableService {
       if (
         existingManifest &&
         existingManifest.sourceVersionKey === versionKey &&
+        existingManifest.compilerVersion === CAD_V2_COMPILER_REVISION &&
         (!sourceSha || existingManifest.sourceSha256 === sourceSha)
       ) {
         this.fileSceneMap.set(cacheKey, candidateSceneId);

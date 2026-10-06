@@ -19,6 +19,10 @@ import {
   Moon,
   PanelTopClose,
   FileText,
+  Check,
+  Layers,
+  Zap,
+  Columns,
 } from "lucide-react";
 import { formatBytes, formatDate, getFileIcon } from "../ui-helpers";
 import { StudioCommandButton } from "./studio-command-button";
@@ -56,6 +60,8 @@ interface StudioTopbarProps {
   onRename?: () => void;
   onDelete?: () => void;
   actionsSlot?: React.ReactNode;
+  cadMode?: "v1" | "v2" | "split";
+  onCadModeChange?: (mode: "v1" | "v2" | "split") => void;
 }
 
 export function StudioTopbar({
@@ -75,6 +81,8 @@ export function StudioTopbar({
   onSave,
   isSaving = false,
   actionsSlot,
+  cadMode = "v1",
+  onCadModeChange,
 }: StudioTopbarProps & { onSave?: () => void; isSaving?: boolean }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
@@ -144,6 +152,21 @@ export function StudioTopbar({
             <span className="uppercase font-bold text-amber-500/90 font-mono">
               {file.extension.replace(".", "") || previewKind}
             </span>
+            {previewKind === "cad" && onCadModeChange && (
+              <>
+                <span>•</span>
+                <button
+                  type="button"
+                  data-testid="cad-engine-mobile-toggle"
+                  onClick={() => onCadModeChange(cadMode === "v2" ? "v1" : "v2")}
+                  className="inline-flex sm:hidden items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                  title="CAD Motorunu Değiştir"
+                >
+                  <Layers className="h-2.5 w-2.5" />
+                  <span>{cadMode === "v2" ? "V2 (Yeni)" : "V1 (Klasik)"}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -157,7 +180,7 @@ export function StudioTopbar({
 
       {/* Orta Alan: Format Özel Slot (varsa) */}
       {actionsSlot && (
-        <div className="hidden md:flex items-center gap-1.5 shrink-0 px-2">
+        <div className="hidden sm:flex items-center gap-1.5 shrink-0 px-2">
           {actionsSlot}
         </div>
       )}
@@ -249,6 +272,55 @@ export function StudioTopbar({
             container={portalContainer}
             className="z-[300] w-60 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1.5"
           >
+{/* CAD Motor Seçimi */}
+            {previewKind === "cad" && onCadModeChange && (
+              <>
+                <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  CAD Görüntüleme Motoru
+                </div>
+                <DropdownMenuItem
+                  data-command-id="cad.engine.v1"
+                  onClick={() => onCadModeChange("v1")}
+                  className={`flex items-center justify-between text-xs rounded-lg py-2 cursor-pointer ${
+                    cadMode === "v1" ? "bg-amber-500/15 text-amber-500 font-bold" : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5 text-amber-500" />
+                    <span>V1 Motoru (Klasik)</span>
+                  </span>
+                  {cadMode === "v1" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-command-id="cad.engine.v2"
+                  onClick={() => onCadModeChange("v2")}
+                  className={`flex items-center justify-between text-xs rounded-lg py-2 cursor-pointer ${
+                    cadMode === "v2" ? "bg-amber-500/15 text-amber-500 font-bold" : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Zap className="h-3.5 w-3.5 text-amber-500" />
+                    <span>V2 Motoru (Yeni Hızlı)</span>
+                  </span>
+                  {cadMode === "v2" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-command-id="cad.engine.split"
+                  onClick={() => onCadModeChange("split")}
+                  className={`flex items-center justify-between text-xs rounded-lg py-2 cursor-pointer ${
+                    cadMode === "split" ? "bg-amber-500/15 text-amber-500 font-bold" : ""
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Columns className="h-3.5 w-3.5 text-amber-500" />
+                    <span>V1 / V2 Karşılaştır</span>
+                  </span>
+                  {cadMode === "split" && <Check className="h-3.5 w-3.5 text-amber-500" />}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border/60 my-1" />
+              </>
+            )}
+
             {/* 1. Paylaşım Linki */}
             <DropdownMenuItem
               data-command-id="studio.share"

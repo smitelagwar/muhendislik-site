@@ -875,7 +875,7 @@ export class FontLayoutEngine {
           }
 
           case "Q": {
-            const steps = 4;
+            const steps = 2;
             const x1 = cmd.x1 ?? cmd.x;
             const y1 = cmd.y1 ?? cmd.y;
             let prevP = transformLocalPoint(currX, -currY);
@@ -903,7 +903,7 @@ export class FontLayoutEngine {
           }
 
           case "C": {
-            const steps = 6;
+            const steps = 3;
             const x1 = cmd.x1 ?? cmd.x;
             const y1 = cmd.y1 ?? cmd.y;
             const x2 = cmd.x2 ?? cmd.x;
@@ -1579,7 +1579,7 @@ export class FontLayoutEngine {
         }
 
         case "Q": {
-          const steps = 4;
+          const steps = 2;
           const x1 = cmd.x1 ?? cmd.x;
           const y1 = cmd.y1 ?? cmd.y;
           let prevP = transformFn(currX, -currY);
@@ -1607,7 +1607,7 @@ export class FontLayoutEngine {
         }
 
         case "C": {
-          const steps = 6;
+          const steps = 3;
           const x1 = cmd.x1 ?? cmd.x;
           const y1 = cmd.y1 ?? cmd.y;
           const x2 = cmd.x2 ?? cmd.x;

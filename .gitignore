@@ -82,6 +82,9 @@ scratch/
 .gorsel-cikti-ham/
 $cacheRoot/
 test-output/
+scripts/cad-v2/
+tests/visual-inspection/
+docs/pdf-zoom-v2-screenshots/
 
 .vercel
 .env*

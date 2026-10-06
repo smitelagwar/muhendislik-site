@@ -14,7 +14,7 @@ export const pdfViewerStrings = {
   pageLabel: (label: string) => `Sayfa Etiketi: ${label}`,
   pageJump: "Sayfaya git",
   pageJumpAction: (page: number, total: number) => `Sayfa ${page} / ${total}; sayfaya gitmek için etkinleştir`,
-  pageScrubber: "Sayfa hızlı kaydırma çubuğu",
+  pageScrubber: "PDF sayfa gezgini",
   close: "Kapat",
   closeSidebar: "Kenar çubuğunu kapat",
   sidebarToggle: "Kenar Çubuğunu Aç/Kapat",

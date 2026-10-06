@@ -9,7 +9,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
 import {
-  globalPageIndexCache,
+  PageIndexCache,
   SearchProgress,
   SearchMatch,
   SearchOpts,
@@ -191,6 +191,9 @@ export function PdfJsStudio({
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(0);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const searchAbortRef = useRef<AbortController | null>(null);
+  const searchIndexCacheRef = useRef<PageIndexCache | null>(null);
+  if (!searchIndexCacheRef.current) searchIndexCacheRef.current = new PageIndexCache(50);
+  const searchIndexCache = searchIndexCacheRef.current;
 
   // Faz E: Sayfa numarasına göre gruplanmış eşleşmeler (O(1) erişim)
   const matchesByPage = useMemo(() => {
@@ -264,12 +267,14 @@ export function PdfJsStudio({
       const next = !prev;
       setSettings((s) => ({ ...s, autoRepairText: next }));
       setPdfSettings({ autoRepairText: next });
-      globalPageIndexCache.clear();
+      searchIndexCache.clear();
       return next;
     });
-  }, []);
+  }, [searchIndexCache]);
 
   useEffect(() => {
+    // Page-number cache entries must not bleed from a previously opened PDF.
+    searchIndexCache.clear();
     if (!pdfDoc) {
       setTextRepairRules([]);
       return;
@@ -278,15 +283,13 @@ export function PdfJsStudio({
     detectBrokenMappingFromDoc(pdfDoc).then((rules) => {
       if (active) {
         setTextRepairRules(rules);
-        if (rules.length > 0) {
-          globalPageIndexCache.clear();
-        }
+        searchIndexCache.clear();
       }
     });
     return () => {
       active = false;
     };
-  }, [pdfDoc]);
+  }, [pdfDoc, searchIndexCache]);
 
   // Faz R3: Seçim kopyalama olayını dinle ve bozuk ToUnicode karakterlerini (Ĝ -> i) 1:1 onar
   useEffect(() => {
@@ -1080,6 +1083,37 @@ export function PdfJsStudio({
     [scrollToPage]
   );
 
+  const handleContinuousScrubEnd = useCallback(
+    (requestedPage: number, startPosition: { page: number; scrollTop: number }) => {
+      isScrubbingRef.current = false;
+      const container = scrollContainerRef.current;
+      const finalPage = Math.min(Math.max(Math.round(requestedPage), 1), numPages);
+
+      if (container && Math.abs(finalPage - startPosition.page) >= 10) {
+        setNavHistory((prev) =>
+          pushNavigationHistory(prev, {
+            page: startPosition.page,
+            scrollTop: startPosition.scrollTop,
+          })
+        );
+      }
+      setNavForwardHistory([]);
+      setCurrentPage(finalPage);
+      currentPageRef.current = finalPage;
+      pdfRenderQueue.setCurrentPage(finalPage);
+
+      if (container && container.scrollHeight > 0) {
+        preservedStateRef.current = {
+          page: finalPage,
+          scrollRatio: container.scrollTop / container.scrollHeight,
+          scale: zoomRef.current.scale,
+        };
+      }
+      triggerDebouncedSave();
+    },
+    [numPages, triggerDebouncedSave]
+  );
+
   // Sayfa görünür olduğunda okuma konumunu güncelle (Faz H)
   const handlePageVisible = useCallback((visiblePage: number) => {
     setCurrentPage(visiblePage);
@@ -1186,7 +1220,7 @@ export function PdfJsStudio({
               scrollToPage(first.pageNumber);
             }
           },
-          globalPageIndexCache,
+          searchIndexCache,
           autoRepairText ? textRepairRules : undefined
         );
       } finally {
@@ -1200,7 +1234,7 @@ export function PdfJsStudio({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [pdfDoc, searchQuery, isSearchOpen, searchOpts, numPages, scrollToPage, autoRepairText, textRepairRules]);
+  }, [pdfDoc, searchQuery, isSearchOpen, searchOpts, numPages, scrollToPage, autoRepairText, textRepairRules, searchIndexCache]);
 
   const handleNextMatch = () => {
     if (searchResult.totalMatches === 0) return;
@@ -1757,6 +1791,7 @@ export function PdfJsStudio({
               currentPage={currentPage}
               onPageChange={handleScrubEnd}
               onScrubMove={handleScrubMove}
+              onContinuousScrubEnd={handleContinuousScrubEnd}
               scrollElementRef={scrollContainerRef}
               ready={!loading && !!pdfDoc}
             />

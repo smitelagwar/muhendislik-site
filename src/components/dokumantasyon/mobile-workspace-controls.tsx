@@ -23,6 +23,7 @@ import {
   Star,
   Trash2,
   Info,
+  Layers,
 } from "lucide-react";
 import { OverlayPortal } from "./drive-v3/overlay-portal";
 import type {
@@ -398,10 +399,16 @@ export function MobileItemPanel({
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   if (!item) return null;
-  const name = "parent_id" in item ? item.name : item.display_name;
+  const isFolder = "parent_id" in item;
+  const name = isFolder ? item.name : item.display_name;
+  const extension = !isFolder && item.extension ? item.extension.toLowerCase() : "";
+  const isCad = !isFolder && (extension === ".dwg" || extension === ".dxf");
+  const cadLabel = extension === ".dwg" ? "DWG Motor V2 ile aç" : "DXF Motor V2 ile aç";
+
   const actions = [
     { id: "open", label: "Aç", icon: Eye },
-    ...("parent_id" in item
+    ...(isCad ? [{ id: "open-v2", label: cadLabel, icon: Layers, highlight: true }] : []),
+    ...(isFolder
       ? []
       : [{ id: "download", label: "İndir", icon: Download }]),
     { id: "share", label: "Paylaş", icon: Share2 },
@@ -431,7 +438,7 @@ export function MobileItemPanel({
         {actions.map((a) => (
           <button
             key={a.id}
-            className={`${s.action} ${a.id === "trash" ? s.danger : ""}`}
+            className={`${s.action} ${a.id === "trash" ? s.danger : ""} ${"highlight" in a && a.highlight ? "text-amber-500 font-semibold" : ""}`}
             onClick={() => {
               onClose();
               onAction(a.id, item);

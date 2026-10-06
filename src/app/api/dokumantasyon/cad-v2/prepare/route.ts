@@ -154,6 +154,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (err: any) {
+    console.error("[CAD-V2 Prepare API Error]", err);
     if (err?.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }

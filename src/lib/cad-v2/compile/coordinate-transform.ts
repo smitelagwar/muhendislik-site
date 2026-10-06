@@ -302,11 +302,13 @@ export function computeInsertMatrix(params: InsertTransformParams): Matrix4x4 {
   // 5. T(insertion)
   const mPos = createTranslationMatrix(ix, iy, iz);
 
-  // Sırayla çarp: T(pos) * B_OCS * Rz(rot) * S(scale) * T(-base)
+  // Sırayla çarp: B_OCS * T(pos) * Rz(rot) * S(scale) * T(-base)
+  // AutoCAD & MLightCAD kuralı: INSERT varlığının insertionPoint'i de OCS (Nesne Koordinat Sistemi)
+  // içindedir. Dolayısıyla B_OCS dönüşümü T(pos)'u da kapsayacak şekilde en dıştan uygulanmalıdır.
   const m1 = multiplyMatrix4x4(mScale, mNegBase);
   const m2 = multiplyMatrix4x4(mRot, m1);
-  const m3 = multiplyMatrix4x4(mOcs, m2);
-  const mFinal = multiplyMatrix4x4(mPos, m3);
+  const m3 = multiplyMatrix4x4(mPos, m2);
+  const mFinal = multiplyMatrix4x4(mOcs, m3);
 
   return mFinal;
 }

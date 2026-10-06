@@ -86,6 +86,13 @@ export function DocumentStudioShell({
   const [currentVersionNo, setCurrentVersionNo] = useState<number>(versionNo);
   const [isSaving, setIsSaving] = useState(false);
 
+  // CAD Görünüm Modu: "v1" (MLightCAD klasik), "v2" (yeni motor), "split" (yan yana karşılaştırma)
+  const [cadMode, setCadMode] = useState<"v1" | "v2" | "split">(() => {
+    if (cadEngine === "split") return "split";
+    if (cadEngine === "v2") return "v2";
+    return "v1";
+  });
+
   // Mobil Yatay (Landscape) Modu Takibi
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isLandscapeBarsHidden, setIsLandscapeBarsHidden] = useState(true);
@@ -366,7 +373,71 @@ export function DocumentStudioShell({
         );
 
       case "cad":
-        if (cadEngine === "v2") {
+        if (cadMode === "split") {
+          return (
+            <div
+              data-testid="cad-split-view"
+              className="grid grid-cols-1 lg:grid-cols-2 h-full w-full divide-y lg:divide-y-0 lg:divide-x divide-border bg-background overflow-hidden"
+            >
+              {/* Sol: V1 Referans Motoru */}
+              <div className="relative flex flex-col h-full w-full min-h-0 min-w-0 overflow-hidden">
+                <div className="h-8 bg-neutral-900 border-b border-neutral-800 px-3 flex items-center justify-between shrink-0 select-none">
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="font-semibold text-neutral-200">V1 Referans Motoru</span>
+                    <span className="text-[10px] text-neutral-400 font-mono hidden sm:inline">(MLightCAD Upstream)</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30 font-mono font-bold">
+                    KLASİK
+                  </span>
+                </div>
+                <div className="relative flex-1 min-h-0 min-w-0">
+                  <DokCadViewer
+                    accessUrl={currentLease.url}
+                    displayName={file.display_name}
+                    fileId={file.id}
+                    extension={file.extension}
+                    sizeBytes={file.size_bytes}
+                    sourceVersionKey={`${file.id}:${file.current_version_number || currentVersionNo || 1}:${file.updated_at || file.created_at}:${file.size_bytes}`}
+                    dwgFastPreviewHint={dwgFastPreviewHint}
+                  />
+                </div>
+              </div>
+
+              {/* Sağ: V2 Yeni Motor */}
+              <div className="relative flex flex-col h-full w-full min-h-0 min-w-0 overflow-hidden">
+                <div className="h-8 bg-neutral-900 border-b border-neutral-800 px-3 flex items-center justify-between shrink-0 select-none">
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-300 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="font-semibold text-amber-300">V2 Yeni Motor</span>
+                    <span className="text-[10px] text-neutral-400 font-mono hidden sm:inline">(DV2SCN01 WebGL2)</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold">
+                    YENİ V2
+                  </span>
+                </div>
+                <div className="relative flex-1 min-h-0 min-w-0">
+                  <DokCadV2Viewer
+                    accessUrl={currentLease.url}
+                    displayName={file.display_name}
+                    fileId={file.id}
+                    extension={file.extension}
+                    sizeBytes={file.size_bytes}
+                    sourceVersionKey={`${file.id}_${file.updated_at || file.current_version_number || currentVersionNo || "1"}`}
+                    onBack={handleBack}
+                    onDownload={handleDownload}
+                    onShare={() => setIsCreateShareOpen(true)}
+                    onFallbackToLegacy={() => setCadMode("v1")}
+                    onCompare={() => setCadMode("v2")}
+                    isCompareMode={true}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        if (cadMode === "v2") {
           return (
             <DokCadV2Viewer
               accessUrl={currentLease.url}
@@ -378,7 +449,9 @@ export function DocumentStudioShell({
               onBack={handleBack}
               onDownload={handleDownload}
               onShare={() => setIsCreateShareOpen(true)}
-              onFallbackToLegacy={() => router.push(`/dokumantasyon/dosya/${file.id}`)}
+              onFallbackToLegacy={() => setCadMode("v1")}
+              onCompare={() => setCadMode("split")}
+              isCompareMode={false}
             />
           );
         }
@@ -431,8 +504,8 @@ export function DocumentStudioShell({
           : undefined
       }
     >
-      {/* 1. Minimal Stüdyo Üst Çubuğu (V2 motor, Görsel ve PDF Önizleme kendi entegre tekil çubuğuna sahiptir) */}
-      {cadEngine !== "v2" && previewKind !== "image" && previewKind !== "pdf" && (
+      {/* 1. Minimal Stüdyo Üst Çubuğu (Tek başına V2 motor tam görünümdeyken kendi entegre tekil çubuğuna sahiptir; V1 ve Split modlarında Stüdyo çubuğu kullanılır) */}
+      {!(previewKind === "cad" && cadMode === "v2") && previewKind !== "image" && previewKind !== "pdf" && (
         <StudioTopbar
           file={file}
           previewKind={previewKind}
@@ -449,6 +522,53 @@ export function DocumentStudioShell({
           onDelete={() => setIsDeleteOpen(true)}
           onSave={isEditableKind ? handleSaveVersion : undefined}
           isSaving={isSaving}
+          cadMode={cadMode}
+          onCadModeChange={setCadMode}
+          actionsSlot={
+            previewKind === "cad" ? (
+              <div
+                data-testid="cad-engine-switcher"
+                className="flex items-center p-0.5 bg-muted/80 rounded-lg border border-border text-xs"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCadMode("v1")}
+                  className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    cadMode === "v1"
+                      ? "bg-card text-foreground shadow-sm font-bold"
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                  title="Klasik V1 Görüntüleyici"
+                >
+                  V1 (Klasik)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCadMode("split")}
+                  className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    cadMode === "split"
+                      ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+                      : "text-amber-500 hover:text-amber-400 font-semibold"
+                  }`}
+                  title="V1 ve V2 Motorunu Yan Yana Karşılaştır"
+                >
+                  V1/V2 Karşılaştır
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCadMode("v2")}
+                  className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
+                    cadMode === "v2"
+                      ? "bg-card text-foreground shadow-sm font-bold"
+                      : "text-muted-foreground hover:text-foreground font-medium"
+                  }`}
+                  title="Yeni V2 Motoru"
+                >
+                  V2 (Yeni)
+                </button>
+              </div>
+            ) : undefined
+          }
         />
       )}
 
