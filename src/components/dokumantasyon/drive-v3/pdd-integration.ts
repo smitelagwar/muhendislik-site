@@ -21,22 +21,28 @@ export function registerDraggableItem({
   item,
   selectedIds,
   allSelectedItems,
+  getSelectedIds,
+  getAllSelectedItems,
   onSelectSingle,
 }: {
   element: HTMLElement;
   item: BulkItem;
-  selectedIds: Set<string>;
-  allSelectedItems: BulkItem[];
+  selectedIds?: Set<string>;
+  allSelectedItems?: BulkItem[];
+  getSelectedIds?: () => Set<string>;
+  getAllSelectedItems?: () => BulkItem[];
   onSelectSingle?: (id: string) => void;
 }): () => void {
   return draggable({
     element,
     getInitialData: (): DraggedItemData => {
-      const isSelected = selectedIds.has(item.id);
-      if (isSelected && allSelectedItems.length > 0) {
+      const activeSelectedIds = getSelectedIds ? getSelectedIds() : (selectedIds || new Set());
+      const activeAllSelected = getAllSelectedItems ? getAllSelectedItems() : (allSelectedItems || []);
+      const isSelected = activeSelectedIds.has(item.id);
+      if (isSelected && activeAllSelected.length > 0) {
         return {
           type: "drive-items",
-          items: allSelectedItems,
+          items: activeAllSelected,
           primaryId: item.id,
         };
       }

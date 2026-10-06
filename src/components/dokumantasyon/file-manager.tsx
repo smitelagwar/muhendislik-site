@@ -104,8 +104,8 @@ import { useMobileExplorer } from "./drive-v3/use-mobile-explorer";
 import { MOBILE_EXPLORER_QUERY, resolveExplorerActivation, type ItemActivationSource } from "./drive-v3/explorer-activation";
 
 import { CommandRegistry, CommandId, CommandContext, CommandTargetItem } from "./drive-v3/command-registry";
-import { scheduleIdleCadPreload, triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
-import { scheduleIdlePdfPreload, triggerPdfIntentPreload } from "@/lib/dokumantasyon/studio/pdf/pdfjs-preload";
+import { triggerCadIntentPreload } from "@/lib/dokumantasyon/cad-runtime/preload";
+import { triggerPdfIntentPreload } from "@/lib/dokumantasyon/studio/pdf/pdfjs-preload";
 import styles from "./dok-workspace.module.css";
 import mobileStyles from "./mobile-workspace.module.css";
 import { usePhonePresentation } from "./drive-v3/use-phone-presentation";
@@ -235,24 +235,7 @@ function DokumantasyonFileManagerInner() {
     );
   }, [folders, files, sortBy, sortOrder, groupBy, activeFilter, workspaceFilters]);
 
-  // CAD Pre-warming (Arka planda idle ön ısıtma — WebGL ve Document başlatmaz)
-  const hasCadFiles = useMemo(() => {
-    return displayedFiles.some((f) => {
-      const ext = (f.extension || "").toLowerCase().replace(/^\./, "");
-      return ext === "dwg" || ext === "dxf";
-    });
-  }, [displayedFiles]);
-
-  useEffect(() => {
-    if (!hasCadFiles || isMobileExplorer) return;
-    const cleanup = scheduleIdleCadPreload({ minDelayMs: 1500 });
-    return cleanup;
-  }, [hasCadFiles, isMobileExplorer]);
-
-  useEffect(() => {
-    const cleanup = scheduleIdlePdfPreload({ minDelayMs: 1500 });
-    return cleanup;
-  }, []);
+  // Otomatik agresif preload kaldırıldı — Kullanıcı niyetine (hover/touch) bağlı intent preload korunur.
 
   // Single Scroll Container Ref (Unified for Virtualization, Marquee, Keyboard, Auto-scroll)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -524,22 +507,33 @@ function DokumantasyonFileManagerInner() {
     });
   }, [selectedIds, folders, files]);
 
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+  const allSelectedItemsRef = useRef(allSelectedItems);
+  allSelectedItemsRef.current = allSelectedItems;
+
+  const pddNodesRef = useRef<Map<string, HTMLElement>>(new Map());
   const pddCleanupsRef = useRef<Map<string, () => void>>(new Map());
 
   const setFolderNodeRef = useCallback(
     (node: HTMLElement | null, folder: DokFolder) => {
+      const currentNode = pddNodesRef.current.get(folder.id);
+      if (currentNode === node) return;
+
       const existing = pddCleanupsRef.current.get(folder.id);
       if (existing) {
         existing();
         pddCleanupsRef.current.delete(folder.id);
+        pddNodesRef.current.delete(folder.id);
       }
       if (!node || isMobileExplorer) return;
 
+      pddNodesRef.current.set(folder.id, node);
       const cleanupDraggable = registerDraggableItem({
         element: node,
         item: { id: folder.id, type: "folder" },
-        selectedIds,
-        allSelectedItems,
+        getSelectedIds: () => selectedIdsRef.current,
+        getAllSelectedItems: () => allSelectedItemsRef.current,
         onSelectSingle: (id) => replaceSelection([id]),
       });
 
@@ -557,35 +551,41 @@ function DokumantasyonFileManagerInner() {
         cleanupDrop();
       });
     },
-    [selectedIds, allSelectedItems, replaceSelection, handleDropOnFolder, isMobileExplorer]
+    [replaceSelection, handleDropOnFolder, isMobileExplorer]
   );
 
   const setFileNodeRef = useCallback(
     (node: HTMLElement | null, file: DokFile) => {
+      const currentNode = pddNodesRef.current.get(file.id);
+      if (currentNode === node) return;
+
       const existing = pddCleanupsRef.current.get(file.id);
       if (existing) {
         existing();
         pddCleanupsRef.current.delete(file.id);
+        pddNodesRef.current.delete(file.id);
       }
       if (!node || isMobileExplorer) return;
 
+      pddNodesRef.current.set(file.id, node);
       const cleanupDraggable = registerDraggableItem({
         element: node,
         item: { id: file.id, type: "file" },
-        selectedIds,
-        allSelectedItems,
+        getSelectedIds: () => selectedIdsRef.current,
+        getAllSelectedItems: () => allSelectedItemsRef.current,
         onSelectSingle: (id) => replaceSelection([id]),
       });
 
       pddCleanupsRef.current.set(file.id, cleanupDraggable);
     },
-    [selectedIds, allSelectedItems, replaceSelection, isMobileExplorer]
+    [replaceSelection, isMobileExplorer]
   );
 
   useEffect(() => {
     return () => {
       pddCleanupsRef.current.forEach((c) => c());
       pddCleanupsRef.current.clear();
+      pddNodesRef.current.clear();
     };
   }, []);
 

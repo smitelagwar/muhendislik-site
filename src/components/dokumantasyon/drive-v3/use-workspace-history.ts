@@ -15,7 +15,7 @@ export function useWorkspaceHistory<T>(
   const initialized = useRef(false);
   const applying = useRef(false);
   const pendingClose = useRef<{ snapshot: T; depth: number } | null>(null);
-  const signature = JSON.stringify(snapshot);
+  const signature = enabled ? JSON.stringify(snapshot) : "";
   useEffect(() => {
     if (!enabled) return;
     const current = window.history.state?.dokWorkspace as

@@ -53,8 +53,8 @@
     radial-gradient(circle at 10% 4%, rgba(245, 158, 11, 0.16), transparent 30rem),
     radial-gradient(circle at 92% 95%, rgba(251, 146, 60, 0.12), transparent 32rem),
     linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.40) 100%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   box-shadow: 0 20px 50px -12px rgba(245, 158, 11, 0.12),
               0 0 0 1px rgba(255, 255, 255, 0.4),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.85);
@@ -81,8 +81,8 @@
 .workspaceHeader {
   border: 1px solid rgba(255, 255, 255, 0.8);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.06),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
 }
@@ -113,8 +113,8 @@
 .sidebar {
   border-right: 1px solid rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.45);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  /* GPU performans optimizasyonu: nested blur kaldirildi */
+  contain: paint;
 }
 
 :global(.dark) .sidebar {
@@ -141,8 +141,7 @@
 .list {
   border: 1px solid rgba(255, 255, 255, 0.7);
   background: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  contain: paint;
   box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.04),
               inset 0 1px 1px 0 rgba(255, 255, 255, 0.8);
 }
@@ -162,8 +161,8 @@
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.92), transparent 46%),
     rgba(255, 255, 255, 0.68);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
-  backdrop-filter: blur(18px) saturate(165%);
+  /* GPU performans optimizasyonu: kart ici nested blur kaldirildi */
+  contain: content;
   box-shadow:
     0 12px 30px -10px rgba(15, 23, 42, 0.12),
     0 1px 3px rgba(15, 23, 42, 0.04),
