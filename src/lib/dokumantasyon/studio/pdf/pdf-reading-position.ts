@@ -192,3 +192,37 @@ export function savePdfReadingPosition(
     console.warn("[pdf-reading-position] Okuma konumu kaydedilemedi:", err);
   }
 }
+
+/** Kayıtlı okuma konumunu siler (W4: 'Baştan başla' için) */
+export function clearPdfReadingPosition(fileId: string): void {
+  if (typeof window === "undefined" || !fileId) return;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_V2);
+    if (!raw) return;
+    const positions: Record<string, PdfReadingPositionRecord> = JSON.parse(raw);
+    delete positions[fileId];
+    localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(positions));
+  } catch (err) {
+    console.warn("[pdf-reading-position] Okuma konumu silinemedi:", err);
+  }
+}
+
+/** Sekme yenilenmesi ve çökme koruması için senkron sessionStorage yazımı (Plan 05 W2) */
+export function saveSessionReadingPosition(fileId: string, page: number, offsetRatio = 0): void {
+  if (typeof window === "undefined" || !fileId) return;
+  try {
+    sessionStorage.setItem(`dok:pos:${fileId}`, JSON.stringify({ page, offsetRatio, t: Date.now() }));
+  } catch {}
+}
+
+/** sessionStorage'dan son konumu okur (Plan 05 W2) */
+export function getSessionReadingPosition(fileId: string): { page: number; offsetRatio: number } | null {
+  if (typeof window === "undefined" || !fileId) return null;
+  try {
+    const raw = sessionStorage.getItem(`dok:pos:${fileId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}

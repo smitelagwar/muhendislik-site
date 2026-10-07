@@ -14,6 +14,17 @@ export const FULL_FETCH_LIMIT_BYTES = 24 * 1024 * 1024; // bunun altı: tamamen 
 export const HARD_LIMIT_BYTES = 256 * 1024 * 1024; // Range desteği yoksa bunun üstü reddedilir
 export const PROBE_BYTES = 64 * 1024; // ilk istek: 0..64KB-1
 
+/** Yavaş ağda (saveData, 2g/3g) tam indirme eşiğini 12MB'a düşürür (Plan 05 W1.5) */
+export function getFullFetchLimitBytes(): number {
+  if (typeof navigator !== "undefined") {
+    const conn = (navigator as unknown as { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
+    if (conn && (conn.saveData || conn.effectiveType === "2g" || conn.effectiveType === "3g")) {
+      return 12 * 1024 * 1024;
+    }
+  }
+  return FULL_FETCH_LIMIT_BYTES;
+}
+
 export interface PdfSourceCallbacks {
   /** Her çağrıda GÜNCEL lease URL'ini döndürür (ref üzerinden okur). */
   getUrl: () => string;
@@ -186,7 +197,7 @@ export async function openPdfSource<T extends RangeTransportLike>(
     return { kind: "data", data: await readBody(full, Number(full.headers.get("content-length") ?? 0), cb) };
   }
 
-  if (total <= FULL_FETCH_LIMIT_BYTES || !Transport) {
+  if (total <= getFullFetchLimitBytes() || !Transport) {
     if (total > HARD_LIMIT_BYTES) throw new PdfSourceError("PDF çok büyük", "too-large");
     cb.onProgress?.({ loaded: first.length, total });
     const rest = await fetchRange(`bytes=${first.length}-`);

@@ -1,6 +1,7 @@
 // ASSUMPTION: useZoomGestures v2 implements page-space anchor tracking (Anchor { el, fx, fy }), wheel delta normalization, macOS Safari gesture events, e.cancelable verification, data-zooming attribute, and viewport-centered zoomTo API.
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { wheelZoomFactor } from "./pdf-zoom-math";
 
 type Anchor = { el: HTMLElement; fx: number; fy: number };
 export type ZoomCommitMode = "custom" | "actual-size" | "fit-width" | "fit-page";
@@ -101,7 +102,7 @@ export function useZoomGestures(
     let d0 = 0;
     let r0 = 1;
     let g0 = 1;
-    const isTouchDevice = typeof window !== "undefined" && "ontouchstart" in window;
+    let touchPinch = false;
 
     const clampR = (r: number) =>
       Math.min(max / scaleRef.current, Math.max(min / scaleRef.current, r));
@@ -226,30 +227,28 @@ export function useZoomGestures(
       e.preventDefault();
       if (pending.current || animating) return;
       begin(e.clientX, e.clientY);
-      const raw = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-      const dy = Math.max(-30, Math.min(30, raw)); // mouse çentiği fırlamasın
-      live.current.r = clampR(live.current.r * Math.exp(-dy * 0.01));
+      live.current.r = clampR(live.current.r * wheelZoomFactor(e));
       schedule();
       clearTimeout(timer);
       timer = window.setTimeout(commit, 180);
     };
 
-    // --- Safari masaüstü trackpad pinch (gesture olayları). Dokunmatik cihazda touch kullanılır ---
+    // --- Safari masaüstü ve iPad trackpad pinch (gesture olayları) (D9) ---
     const gStart = (e: any) => {
       e.preventDefault();
-      if (isTouchDevice || pending.current || animating) return;
+      if (touchPinch || pending.current || animating) return;
       begin(e.clientX, e.clientY);
       g0 = live.current.r;
     };
     const gChange = (e: any) => {
       e.preventDefault();
-      if (isTouchDevice || !live.current.active || animating) return;
+      if (touchPinch || !live.current.active || animating) return;
       live.current.r = clampR(g0 * e.scale);
       schedule();
     };
     const gEnd = (e: any) => {
       e.preventDefault();
-      if (!isTouchDevice && !animating) commit();
+      if (!touchPinch && !animating) commit();
     };
 
     // --- Mobil: iki parmak pinch & tek/çift dokunma (Acrobat v3) ---
@@ -266,6 +265,7 @@ export function useZoomGestures(
           ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
           : null;
       if (e.touches.length !== 2 || pending.current) return;
+      touchPinch = true;
       d0 = dist(e.touches);
       begin(
         (e.touches[0].clientX + e.touches[1].clientX) / 2,
@@ -311,6 +311,7 @@ export function useZoomGestures(
       }
       t0 = null;
       if (d0 && e.touches.length < 2) {
+        touchPinch = false;
         d0 = 0;
         commit();
       }

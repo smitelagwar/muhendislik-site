@@ -132,6 +132,8 @@ export async function createPdfLoadingTaskFromLease(
     wasmUrl: PDFJS_WASM,
     iccUrl: PDFJS_ICCS,
     isEvalSupported: false,
+    enableScripting: false,
+    stopAtErrors: false,
     disableAutoFetch: options?.disableAutoFetch ?? true,
     ...(worker ? { worker } : {}),
   };

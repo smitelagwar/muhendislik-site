@@ -37,6 +37,7 @@ import {
   Layout,
   Gauge,
   Sparkles,
+  Terminal,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { formatBytes, formatDate } from "../../ui-helpers";
@@ -108,6 +109,7 @@ interface PdfViewerToolbarProps {
   onDownload?: () => void;
   onRename?: () => void;
   onDelete?: () => void;
+  onCopyDiagnostics?: () => void;
 }
 
 export function PdfViewerToolbar({
@@ -131,6 +133,7 @@ export function PdfViewerToolbar({
   onToggleSearch,
   onPrint,
   onOpenShortcuts,
+  onCopyDiagnostics,
   pageLabels,
   hasOutline,
   onToggleOutline,
@@ -872,6 +875,20 @@ export function PdfViewerToolbar({
               </span>
               {autoRepairText && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
+
+            {onCopyDiagnostics && (
+              <DropdownMenuItem
+                onClick={onCopyDiagnostics}
+                data-command-id="pdf.diagnostics.copy"
+                data-testid="pdf-copy-diagnostics-btn"
+                className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+              >
+                <span className="flex items-center gap-2">
+                  <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Tanılama bilgisini kopyala</span>
+                </span>
+              </DropdownMenuItem>
+            )}
 
             {onOpenShortcuts && (
               <>

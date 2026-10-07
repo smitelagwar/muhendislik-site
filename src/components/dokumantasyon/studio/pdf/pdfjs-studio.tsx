@@ -26,10 +26,18 @@ import {
 import {
   getPdfReadingPosition,
   savePdfReadingPosition,
+  clearPdfReadingPosition,
+  saveSessionReadingPosition,
+  getSessionReadingPosition,
   getPdfSettings,
   setPdfSettings,
   PdfViewerSettings,
 } from "@/lib/dokumantasyon/studio/pdf/pdf-reading-position";
+import { computeMonotonicProgress } from "@/lib/dokumantasyon/studio/pdf/pdf-progress";
+import { classifyPdfError, PdfErrorKind } from "@/lib/dokumantasyon/studio/pdf/pdf-error-classifier";
+import { recordPdfError, collectPdfDiagnostics } from "@/lib/dokumantasyon/studio/pdf/pdf-diagnostics";
+import { printPdfBytes } from "@/lib/dokumantasyon/studio/pdf/pdf-print";
+import { PdfViewerErrorBoundary } from "./pdf-error-boundary";
 import { PdfPageView } from "./pdf-page-view";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
 import { PdfSearchBar } from "./pdf-search-bar";
@@ -112,7 +120,7 @@ async function readPageSizes(
   return out;
 }
 
-export function PdfJsStudio({
+function PdfJsStudioInternal({
   accessUrl,
   displayName,
   onAccessExpired,
@@ -166,8 +174,16 @@ export function PdfJsStudio({
     });
   }, []);
   const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | "unsupported" | null>(null);
+  const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | "unsupported" | "expired" | "memory" | null>(null);
   const [compatWarning, setCompatWarning] = useState<boolean>(false);
+  const [showResumeBanner, setShowResumeBanner] = useState<boolean>(false);
+  const [resumedPage, setResumedPage] = useState<number | null>(null);
+  const floatingPageIndicatorRef = useRef<HTMLDivElement>(null);
+  const floatingHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastScrollTopRef = useRef<number>(0);
+  const lastScrollTimeRef = useRef<number>(0);
+  const [liveAnnouncement, setLiveAnnouncement] = useState<string>("");
+  const liveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -445,9 +461,12 @@ export function PdfJsStudio({
     setZoom(nextZoom);
   }, []);
 
+  const fitRefPageRef = useRef<number>(1);
+
   const getFitScale = useCallback((mode: Extract<ZoomMode, "fit-width" | "fit-page">) => {
     const container = scrollContainerRef.current;
-    const currentSize = pageDimensions[currentPageRef.current] || firstPageSize;
+    const refPage = fitRefPageRef.current || currentPageRef.current || 1;
+    const currentSize = pageDimensions[refPage] || firstPageSize;
     if (!container || !currentSize) return null;
 
     const pageSize = rotatePdfPageSize(currentSize, rotation);
@@ -476,6 +495,7 @@ export function PdfJsStudio({
 
   const applyFitMode = useCallback(
     (mode: Extract<ZoomMode, "fit-width" | "fit-page">, animate = false) => {
+      fitRefPageRef.current = currentPageRef.current || 1;
       const targetScale = getFitScale(mode);
       if (targetScale === null) return;
 
@@ -641,7 +661,7 @@ export function PdfJsStudio({
             refresh: () => onAccessExpiredRef.current?.() ?? Promise.resolve(null),
             onProgress: ({ loaded, total }) => {
               if (isMounted && loaded >= 0) {
-                setLoadProgress({ loaded, total });
+                setLoadProgress((prev) => computeMonotonicProgress(prev, { loaded, total }));
               }
             },
             onRefreshing: (active) => {
@@ -725,7 +745,10 @@ export function PdfJsStudio({
           }
         }
 
+        const sessionRecord = fileId ? getSessionReadingPosition(fileId) : null;
         const savedRecord = fileId ? getPdfReadingPosition(fileId, currentFileVersion) : null;
+        const restoredPage = sessionRecord?.page ?? savedRecord?.page ?? 1;
+        const restoredOffsetRatio = sessionRecord?.offsetRatio ?? savedRecord?.offsetRatio ?? 0;
         const restoredMode: ZoomMode = savedRecord?.scaleMode ?? getPdfSettings().defaultViewMode;
         const restoredScale = restoredMode === "actual-size"
           ? zoomToPdfScale(1)
@@ -741,11 +764,28 @@ export function PdfJsStudio({
         setIsHandTool(savedRecord?.handTool ?? false);
         setNightMode(savedRecord?.nightMode ?? getPdfSettings().nightMode);
         setIsChromeHidden(false);
-        const targetPage = urlHashPage ?? (savedRecord?.page ? Math.min(Math.max(savedRecord.page, 1), doc.numPages) : 1);
-        const targetOffsetRatio = urlHashPage ? 0 : (savedRecord?.offsetRatio ?? 0);
+        const targetPage = urlHashPage ?? (restoredPage > 1 ? Math.min(Math.max(restoredPage, 1), doc.numPages) : 1);
+        const targetOffsetRatio = urlHashPage ? 0 : (restoredOffsetRatio ?? 0);
 
         setCurrentPage(targetPage);
         currentPageRef.current = targetPage;
+
+        // W4: Kaldığın yerden devam bildirimi
+        if (targetPage > 1 && fileId && typeof window !== "undefined") {
+          const sessionKey = `dok:resumed:${fileId}`;
+          if (!sessionStorage.getItem(sessionKey)) {
+            try {
+              sessionStorage.setItem(sessionKey, "1");
+            } catch {}
+            setShowResumeBanner(true);
+            setResumedPage(targetPage);
+            setTimeout(() => {
+              setShowResumeBanner(false);
+            }, 5000);
+            if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+            setLiveAnnouncement(`Sayfa ${targetPage}'den devam ediliyor`);
+          }
+        }
 
         // Belge açılışında kayıtlı konumu deterministik geri yükleme için sayfa boyutlarını topla (K3)
         if (targetPage > 1 || targetOffsetRatio > 0) {
@@ -763,73 +803,59 @@ export function PdfJsStudio({
         if (!isMounted) return;
         if ((err as { name?: string })?.name === "AbortException") return;
 
-        if (err instanceof PdfSourceError) {
-          if (err.kind === "aborted") return;
-          if (err.kind === "http" && err.status === 404) {
-            setErrorType("missing");
-            setError(pdfViewerStrings.missingPdf);
-            setLoading(false);
-            return;
-          }
-          if (err.kind === "http") {
-            setErrorType("network");
-            setError(pdfViewerStrings.accessRefreshError);
-            setLoading(false);
-            return;
-          }
-          if (err.kind === "too-large") {
-            setErrorType("network");
-            setError("PDF dosyası çok büyük (doğrudan açma sınırı aşıldı).");
-            setLoading(false);
-            return;
-          }
-        }
+        if (err instanceof PdfSourceError && err.kind === "aborted") return;
 
-        const errName = (err as { name?: string })?.name || "";
-        const errMessage = err instanceof Error ? err.message : "";
         const httpStatus = typeof (err as { status?: unknown })?.status === "number"
           ? (err as { status: number }).status
-          : null;
+          : (err instanceof PdfSourceError && typeof err.status === "number")
+          ? err.status
+          : undefined;
 
-        // Faz B: Hata Sınıflandırması
-        // 0. Uyumsuz Tarayıcı / Modül Yükleme Hatası (K1): retry yok
-        if (
-          err instanceof SyntaxError ||
-          errName === "SyntaxError" ||
-          /Failed to fetch dynamically imported module/i.test(errMessage) ||
-          /is not a function|is not defined|not async iterable/i.test(errMessage)
-        ) {
+        const kind = classifyPdfError(err, httpStatus);
+        recordPdfError(kind, err);
+
+        if (kind === "unsupported") {
           setErrorType("unsupported");
-          setError(pdfViewerStrings.unsupportedBrowser);
+          setError(pdfViewerStrings.unsupportedBrowser || "Bu tarayıcı PDF'yi güvenli çizemiyor.");
           setLoading(false);
           return;
         }
 
-        // 1. Bozuk / Geçersiz PDF: retry yok, doğrudan hata ekranı + indir butonu
-        if (errName === "InvalidPDFException" || /invalid pdf/i.test(errMessage)) {
+        if (kind === "corrupt") {
           setErrorType("corrupt");
           setError(pdfViewerStrings.corruptPdf);
           setLoading(false);
           return;
         }
 
-        // 2. Eksik / Bulunamayan PDF (404): retry yok
-        if (httpStatus === 404 || errName === "MissingPDFException" || /missing pdf|not found/i.test(errMessage)) {
-          setErrorType("missing");
-          setError(pdfViewerStrings.missingPdf);
-          setLoading(false);
-          return;
-        }
-
-        // 3. Parola İptal Edildi veya Hata:
-        if (errName === "PasswordException") {
+        if (kind === "password") {
           setErrorType("password");
           setError(pdfViewerStrings.passwordError);
           setLoading(false);
           return;
         }
 
-        // 4. Ağ veya diğer beklenmeyen hatalar:
+        if (kind === "expired") {
+          setErrorType("expired");
+          setError("Oturum süresi doldu, yenileniyor…");
+          setLoading(false);
+          return;
+        }
+
+        if (kind === "memory") {
+          setErrorType("memory");
+          setError("Bu cihazda belge çok büyük. Yakınlaştırmayı azalttık.");
+          setLoading(false);
+          return;
+        }
+
+        if (httpStatus === 404 || (err as { name?: string })?.name === "MissingPDFException") {
+          setErrorType("missing");
+          setError(pdfViewerStrings.missingPdf);
+          setLoading(false);
+          return;
+        }
+
         console.error("PDF yükleme hatası:", err);
         setErrorType("network");
         setError(
@@ -860,6 +886,65 @@ export function PdfJsStudio({
       }
     };
   }, [fileId, reloadKey, currentFileVersion]);
+
+  // Çevrimdışı / Çevrimiçi otomatik kurtarma (Plan 05 W2)
+  useEffect(() => {
+    const handleOnline = () => {
+      if (errorType === "network") {
+        setError(null);
+        setErrorType(null);
+        setReloadKey((prev) => prev + 1);
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [errorType]);
+
+  // Beklenmeyen pencere hatalarını halka tamponuna kaydetme (Plan 05 W2, W6)
+  useEffect(() => {
+    const handleRejection = (e: PromiseRejectionEvent) => {
+      const reason = e.reason;
+      const name = (reason && typeof reason === "object" ? (reason as { name?: string }).name : "") || "";
+      if (name === "AbortException" || name === "RenderingCancelledException") {
+        return;
+      }
+      recordPdfError("unhandledrejection", reason);
+    };
+    const handleWindowError = (e: ErrorEvent) => {
+      recordPdfError("window-error", e.error || e.message);
+    };
+    window.addEventListener("unhandledrejection", handleRejection);
+    window.addEventListener("error", handleWindowError);
+    return () => {
+      window.removeEventListener("unhandledrejection", handleRejection);
+      window.removeEventListener("error", handleWindowError);
+    };
+  }, []);
+
+  // Sekme kapama, yenileme veya iOS arka plana atma anında senkron konum saklama (Plan 05 W2)
+  useEffect(() => {
+    if (!fileId) return;
+    const saveSync = () => {
+      const p = currentPageRef.current;
+      if (p >= 1) {
+        saveSessionReadingPosition(fileId, p);
+        savePdfReadingPosition(fileId, { page: p });
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        saveSync();
+      }
+    };
+    window.addEventListener("pagehide", saveSync);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("pagehide", saveSync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [fileId]);
 
   // İlk fit ölçeği hesaplanana kadar PdfPageView listesini mount etme (viewReady kapısı - K3)
   useEffect(() => {
@@ -925,17 +1010,26 @@ export function PdfJsStudio({
   const applyFitModeRef = useRef(applyFitMode);
   applyFitModeRef.current = applyFitMode;
 
-  // Fit modunda etkin sayfanın boyutuna uyum sağla (karışık A4/A3 paftalar).
-  const activePageSize = pageDimensions[currentPage] || firstPageSize;
+  // Fit modunda sabit referans sayfa boyutu ile uyum sağla (D6 - Plan 04 A3)
   useEffect(() => {
-    if (loading || !pdfDoc || !activePageSize) return;
+    if (loading || !pdfDoc || !firstPageSize) return;
     const mode = zoomRef.current.mode;
     if (mode !== "fit-width" && mode !== "fit-page") return;
     const frame = window.requestAnimationFrame(() => {
       if (zoomRef.current.mode === mode) applyFitModeRef.current(mode);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [activePageSize?.width, activePageSize?.height, currentPage, isMobileLayout, loading, pdfDoc, rotation, toolbarHeight]);
+  }, [
+    isMobileLayout,
+    loading,
+    pdfDoc,
+    rotation,
+    toolbarHeight,
+    firstPageSize?.width,
+    firstPageSize?.height,
+    pageDimensions[fitRefPageRef.current]?.width,
+    pageDimensions[fitRefPageRef.current]?.height,
+  ]);
 
   // Ekran boyutu değiştiğinde veya yön döndürüldüğünde (orientation change)
   // ara scroll olaylarının kayıtlı okuma oranını (scrollRatio) ezmesini engelle
@@ -1411,35 +1505,62 @@ export function PdfJsStudio({
     }
   }, [onToggleFullscreen, pseudoFullscreen]);
 
-  // 5. Yazdır / İndir (Faz H) — Orijinal PDF URL'sini gizli iframe ile yazdır
-  const handlePrint = useCallback(() => {
+  // 5. Yazdır / İndir (Faz H & Plan 05 W3) — Baytlardan Blob URL ile güvenli ve iOS uyumlu yazdırma
+  const handlePrint = useCallback(async () => {
     try {
-      let printFrame = document.getElementById("pdf-print-iframe") as HTMLIFrameElement | null;
-      if (!printFrame) {
-        printFrame = document.createElement("iframe");
-        printFrame.id = "pdf-print-iframe";
-        printFrame.style.position = "fixed";
-        printFrame.style.right = "0";
-        printFrame.style.bottom = "0";
-        printFrame.style.width = "0";
-        printFrame.style.height = "0";
-        printFrame.style.border = "0";
-        printFrame.style.visibility = "hidden";
-        document.body.appendChild(printFrame);
-      }
-      printFrame.onload = () => {
-        try {
-          printFrame?.contentWindow?.focus();
-          printFrame?.contentWindow?.print();
-        } catch {
-          window.print();
+      await printPdfBytes(async () => {
+        let url = accessUrlRef.current;
+        let res = await fetch(url);
+        if ((res.status === 401 || res.status === 403) && onAccessExpiredRef.current) {
+          const refreshed = await onAccessExpiredRef.current();
+          if (typeof refreshed === "string") url = refreshed;
+          else if (refreshed && typeof refreshed === "object" && "url" in (refreshed as any)) {
+            url = (refreshed as any).url;
+          } else {
+            url = accessUrlRef.current;
+          }
+          res = await fetch(url);
         }
-      };
-      printFrame.src = accessUrl;
-    } catch {
-      window.print();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = await res.arrayBuffer();
+        return new Uint8Array(buf);
+      });
+    } catch (err) {
+      console.error("Yazdırma hatası:", err);
+      recordPdfError("print", err);
+      window.open(accessUrlRef.current, "_blank", "noopener");
     }
-  }, [accessUrl]);
+  }, []);
+
+  // Tanılama Bilgisini Kopyala (Plan 05 W6)
+  const handleCopyDiagnostics = useCallback(async () => {
+    try {
+      const diag = collectPdfDiagnostics({
+        numPages: numPages || undefined,
+        rotation,
+        scale: zoomRef.current.scale,
+      });
+      const text = JSON.stringify(diag, null, 2);
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch (err) {
+      console.error("Tanılama kopyalama hatası:", err);
+      recordPdfError("diagnostics", err);
+    }
+  }, [numPages, rotation]);
+
+  // W4: Kaldığın yerden devam "Baştan başla" işleyicisi
+  const handleStartFromBeginning = useCallback(() => {
+    if (fileId) {
+      clearPdfReadingPosition(fileId);
+      try {
+        sessionStorage.removeItem(`dok:pos:${fileId}`);
+      } catch {}
+    }
+    setShowResumeBanner(false);
+    scrollToPage(1);
+  }, [fileId, scrollToPage]);
 
   // Kısayollar yalnızca PDF stüdyosu odaktayken çalışır; sayfa kaydırma tuşları tarayıcıya bırakılır.
   useEffect(() => {
@@ -1750,8 +1871,41 @@ export function PdfJsStudio({
         onDownload={handleDownloadAction}
         onRename={onRename}
         onDelete={onDelete}
+        onCopyDiagnostics={handleCopyDiagnostics}
       />
       </div>
+
+      {/* W4: Kaldığın Yerden Devam Bildirimi */}
+      {showResumeBanner && resumedPage && (
+        <div
+          role="status"
+          data-testid="pdf-resume-banner"
+          className="z-30 flex items-center justify-between gap-3 bg-amber-500/15 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-200 shrink-0 animate-in fade-in"
+        >
+          <div className="flex items-center gap-2">
+            <span>
+              <strong className="text-amber-400 font-semibold">Sayfa {resumedPage}</strong>&apos;den devam ediliyor.
+            </span>
+            <span className="text-zinc-500">·</span>
+            <button
+              type="button"
+              onClick={handleStartFromBeginning}
+              data-testid="pdf-resume-restart-btn"
+              className="text-amber-400 hover:text-amber-300 font-medium underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              Baştan başla
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowResumeBanner(false)}
+            className="text-zinc-400 hover:text-zinc-200 p-0.5"
+            aria-label="Kapat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Kanarya Uyarı Şeridi (K1) */}
       {compatWarning && (
@@ -1951,6 +2105,27 @@ export function PdfJsStudio({
         {/* Sürekli Dikey Kaydırma (Continuous Vertical Scroll Workspace) */}
         {!loading && !error && pdfDoc && (
           <div className="relative flex-1 min-h-0 min-w-0 flex overflow-hidden">
+            {/* W5: Kayan Sayfa Göstergesi (Floating Page Indicator) */}
+            <div
+              ref={floatingPageIndicatorRef}
+              data-testid="pdf-floating-page-indicator"
+              aria-hidden="true"
+              className="pointer-events-none fixed top-16 left-1/2 -translate-x-1/2 z-30 transition-opacity duration-150 rounded-full bg-zinc-900/85 backdrop-blur-sm border border-zinc-700/60 px-3.5 py-1 text-xs font-semibold text-zinc-100 shadow-lg opacity-0"
+            >
+              {currentPage} / {numPages}
+            </div>
+
+            {/* W7: Erişilebilirlik Ekran Okuyucu Canlı Bölgesi (Screen Reader Live Region) */}
+            <div
+              role="region"
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+              data-testid="pdf-a11y-live-region"
+            >
+              {liveAnnouncement}
+            </div>
+
             {/* Dikey Sayfa Gezinti Çubuğu (Minimap / Scrubber) (Faz 9 & Faz G) */}
             <PdfPageScrubber
               numPages={numPages}
@@ -1965,6 +2140,8 @@ export function PdfJsStudio({
             <div
               ref={scrollContainerRef}
               data-testid="pdf-scroll-viewport"
+              role="document"
+              aria-label={pdfViewerStrings.viewer || "PDF Belgesi"}
               tabIndex={0}
               onWheel={() => {
                 pendingRestoreRef.current = null;
@@ -1989,6 +2166,17 @@ export function PdfJsStudio({
                     scrollRatio: c.scrollTop / c.scrollHeight,
                     scale: zoomRef.current.scale,
                   };
+                  // W5: Kayan sayfa göstergesi güncelleme (React re-render'sız doğrudan DOM)
+                  if (floatingPageIndicatorRef.current) {
+                    floatingPageIndicatorRef.current.textContent = `${currentPageRef.current} / ${numPages}`;
+                    floatingPageIndicatorRef.current.style.opacity = "1";
+                    if (floatingHideTimeoutRef.current) clearTimeout(floatingHideTimeoutRef.current);
+                    floatingHideTimeoutRef.current = setTimeout(() => {
+                      if (floatingPageIndicatorRef.current) {
+                        floatingPageIndicatorRef.current.style.opacity = "0";
+                      }
+                    }, 800);
+                  }
                 }
                 triggerDebouncedSave();
               }}
@@ -2067,5 +2255,19 @@ export function PdfJsStudio({
       </div>
       {debugHud && <PdfDebugHud />}
     </div>
+  );
+}
+
+export function PdfJsStudio(props: PdfJsStudioProps) {
+  const [resetKey, setResetKey] = useState(0);
+  return (
+    <PdfViewerErrorBoundary
+      key={resetKey}
+      fileId={props.fileId}
+      onReset={() => setResetKey((k) => k + 1)}
+      onDownload={props.onDownload}
+    >
+      <PdfJsStudioInternal {...props} />
+    </PdfViewerErrorBoundary>
   );
 }

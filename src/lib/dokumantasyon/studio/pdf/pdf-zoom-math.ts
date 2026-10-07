@@ -68,3 +68,20 @@ export function computePdfFitScale(options: {
   const scale = options.mode === "fit-width" ? widthScale : pageScale;
   return Math.floor(scale * 1e4) / 1e4;
 }
+
+export interface WheelLike { deltaY: number; deltaMode: number }
+export const WHEEL_NOTCH_FACTOR = 1.1;      // bir fare çentiği = %10 (S3 ölçütü 1,05–1,15)
+export const WHEEL_TRACKPAD_K = 0.01;       // trackpad pinch: exp(-deltaY·k)
+export const WHEEL_TRACKPAD_CLAMP = 40;     // tek olayda en fazla ±40 px eşdeğeri
+
+/** Fare çentiği mi? deltaMode=1 (satır) veya piksel modunda tamsayı ve |deltaY|≥50 (Chrome/Edge ±100, bazı sürücüler ±120). */
+export function isWheelNotch(e: WheelLike): boolean {
+  return e.deltaMode === 1 || (e.deltaMode === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 50);
+}
+
+export function wheelZoomFactor(e: WheelLike): number {
+  if (isWheelNotch(e)) return Math.pow(WHEEL_NOTCH_FACTOR, -Math.sign(e.deltaY || 1));
+  const px = e.deltaMode === 2 ? e.deltaY * 100 : e.deltaY;       // sayfa modu (nadir)
+  const d = Math.max(-WHEEL_TRACKPAD_CLAMP, Math.min(WHEEL_TRACKPAD_CLAMP, px));
+  return Math.exp(-d * WHEEL_TRACKPAD_K);
+}

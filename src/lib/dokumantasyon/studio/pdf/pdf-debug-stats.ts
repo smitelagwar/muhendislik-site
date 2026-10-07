@@ -7,6 +7,9 @@ export const pdfStats = {
   set(key: string, value: StatValue): void {
     store.set(key, value);
   },
+  get(key: string): StatValue | undefined {
+    return store.get(key);
+  },
   add(key: string, delta = 1): void {
     const v = store.get(key);
     store.set(key, (typeof v === "number" ? v : 0) + delta);

@@ -10,6 +10,7 @@ import {
   MIN_PDF_ZOOM,
   PDF_ZOOM_STEPS,
   zoomToPdfScale,
+  wheelZoomFactor,
 } from "./pdf-zoom-math";
 
 export const MIN_PDF_SCALE = zoomToPdfScale(MIN_PDF_ZOOM);
@@ -51,27 +52,13 @@ export function clampPdfScale(
 
 /**
  * Tekerlek / trackpad pinch için ölçek çarpanı hesaplar.
- * Formül (Faz F sözleşmesi): Math.exp(-deltaY * 0.01)
+ * Formül (Plan 04 D11): wheelZoomFactor delegasyonu.
  */
 export function calculateWheelZoomFactor(
   deltaY: number,
-  deltaMode = 0,
-  clientHeight = 800
+  deltaMode = 0
 ): number {
-  const deltaMultiplier =
-    deltaMode === 1 // DOM_DELTA_LINE
-      ? 16
-      : deltaMode === 2 // DOM_DELTA_PAGE
-      ? clientHeight
-      : 1;
-
-  const normalizedDelta = Math.min(
-    Math.max(deltaY * deltaMultiplier, -200),
-    200
-  );
-
-  // Hassas ve kararlı tekerlek/trackpad ölçek çarpanı
-  return Math.exp(-normalizedDelta * 0.0035);
+  return wheelZoomFactor({ deltaY, deltaMode });
 }
 
 /**
