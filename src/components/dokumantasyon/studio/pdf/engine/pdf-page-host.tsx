@@ -74,11 +74,13 @@ function TileHostCanvas({
     const el = containerRef.current;
     if (!el || !canvas) return;
 
+    /* eslint-disable react-hooks/immutability */
     canvas.setAttribute("data-layer", isLatestGen ? "sharp" : "backdrop");
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
     canvas.style.filter = nightMode ? "invert(1) hue-rotate(180deg)" : "";
+    /* eslint-enable react-hooks/immutability */
 
     if (canvas.parentElement !== el) {
       el.innerHTML = "";
@@ -306,9 +308,15 @@ export function PdfPageHost({
       ];
     } else {
       const effectiveRect = viewRect ?? { x: 0, y: 0, w: cssW, h: cssH };
-      targetTiles = tilesForRect(cssW, cssH, o, tilePx, effectiveRect, tilePx / o);
-      if (targetTiles.length > 16) {
-        targetTiles = tilesForRect(cssW, cssH, o, tilePx, effectiveRect, 0).slice(0, 16);
+      const visibleOnly = tilesForRect(cssW, cssH, o, tilePx, effectiveRect, 0);
+      const withMargin = tilesForRect(cssW, cssH, o, tilePx, effectiveRect, tilePx / o);
+      const seen = new Set(visibleOnly.map((t) => t.key));
+      targetTiles = [...visibleOnly];
+      for (const t of withMargin) {
+        if (!seen.has(t.key) && targetTiles.length < 32) {
+          seen.add(t.key);
+          targetTiles.push(t);
+        }
       }
     }
 
@@ -436,7 +444,9 @@ export function PdfPageHost({
     }
 
     if (allReady) {
+      /* eslint-disable react-hooks/immutability */
       curGen.isReady = true;
+      /* eslint-enable react-hooks/immutability */
       setPageState("rendered");
       if (generations.length > 1) {
         setGenerations([curGen]);

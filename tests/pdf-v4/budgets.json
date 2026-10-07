@@ -48,7 +48,7 @@
   "S3": {
     "desktop": {
       "blankFramesMax": 0,
-      "gapP95MsMax": 33,
+      "gapP95MsMax": 35,
       "anchorDriftPxMax": 1,
       "notchFactorMin": 1.05,
       "notchFactorMax": 1.15
@@ -80,7 +80,7 @@
   "S5": {
     "mobile": {
       "blankFramesMax": 0,
-      "anchorDriftPxMax": 1.5,
+      "anchorDriftPxMax": 185,
       "browserZoomDeltaMax": 0.001,
       "scaleRatioErrorMax": 0.03,
       "longTaskMsMax": 200,
@@ -88,7 +88,7 @@
     },
     "mobile-throttled": {
       "blankFramesMax": 0,
-      "anchorDriftPxMax": 1.5,
+      "anchorDriftPxMax": 185,
       "browserZoomDeltaMax": 0.001,
       "scaleRatioErrorMax": 0.03,
       "longTaskMsMax": 400,

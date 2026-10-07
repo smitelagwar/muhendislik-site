@@ -19,7 +19,7 @@ import {
   type DocAnchor,
 } from "./layout";
 import { MIN_PDF_SCALE, clampPdfScale } from "../pdf-gesture-engine";
-import { getMaxPdfScale } from "../pdf-zoom-math";
+import { getMaxPdfScale, PDF_PAGE_GAP, PDF_PAGE_PADDING } from "../pdf-zoom-math";
 
 export interface EngineOptions {
   scroller: HTMLElement;
@@ -96,8 +96,8 @@ export class PdfEngine {
   constructor(opts: EngineOptions) {
     this.scroller = opts.scroller;
     this.sizer = opts.sizer;
-    this.gap = opts.gap ?? 16;
-    this.padding = opts.padding ?? 16;
+    this.gap = opts.gap ?? PDF_PAGE_GAP;
+    this.padding = opts.padding ?? PDF_PAGE_PADDING;
     if (typeof opts.initialScale === "number") {
       this.scale = opts.initialScale;
       this.renderScale = opts.initialScale;
@@ -156,9 +156,14 @@ export class PdfEngine {
 
   setViewport(w: number, h: number): void {
     if (Math.abs(this.viewW - w) < 1 && Math.abs(this.viewH - h) < 1) return;
+    const widthChanged = Math.abs(this.viewW - w) >= 2;
     this.viewW = Math.max(1, w);
     this.viewH = Math.max(1, h);
-    this.applyLayoutChange("viewport");
+    if (widthChanged) {
+      this.applyLayoutChange("viewport");
+    } else {
+      this.updateRange();
+    }
   }
 
   // --- Ölçek ve Zoom ---
@@ -172,7 +177,7 @@ export class PdfEngine {
   }
 
   minScale(): number {
-    return MIN_PDF_SCALE;
+    return Math.min(MIN_PDF_SCALE, 0.2);
   }
 
   maxScale(): number {
@@ -436,6 +441,7 @@ export class PdfEngine {
 
   setInteraction(s: "idle" | "scrolling" | "gesture"): void {
     this.interaction = s;
+    this.scheduler.setInteraction(s);
   }
 
   getRange(): { first: number; last: number } {

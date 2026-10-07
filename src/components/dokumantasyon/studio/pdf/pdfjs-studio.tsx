@@ -43,6 +43,7 @@ import { readPdfEngineFlag, type PdfEngineFlag } from "@/lib/dokumantasyon/studi
 import { PdfEngine } from "@/lib/dokumantasyon/studio/pdf/engine/engine";
 import { anchorFromPoint, type DocAnchor } from "@/lib/dokumantasyon/studio/pdf/engine/layout";
 import { readAllSizes } from "@/lib/dokumantasyon/studio/pdf/engine/page-sizes";
+import { useInputController } from "@/lib/dokumantasyon/studio/pdf/engine/input-controller";
 import { PdfVirtualPages } from "./engine/pdf-virtual-pages";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
 import { PdfSearchBar } from "./pdf-search-bar";
@@ -548,8 +549,25 @@ function PdfJsStudioInternal({
     };
   }, []);
 
+  const v4Input = useInputController(
+    engineFlag === "v4" ? engineInstance : null,
+    scrollContainerRef,
+    {
+      onTap: handleViewerTap,
+      onDoubleTap: (clientX, clientY, target) => {
+        handleSmartZoomRef.current?.({ clientX, clientY }, target);
+      },
+      onSettle: (nextScale, mode) => {
+        targetScaleRef.current = nextScale;
+        updateZoomState({ mode: (mode as any) || "custom", scale: nextScale });
+        setRenderedScale(nextScale);
+      },
+      disabled: loading || !pdfDoc || engineFlag !== "v4",
+    }
+  );
+
   // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri ve Odak Korumalı Zoom API'si (v2 + v3 Acrobat)
-  const zoomTo = useZoomGestures(scrollContainerRef, contentRef, {
+  const v3ZoomTo = useZoomGestures(scrollContainerRef, contentRef, {
     scale: zoom.scale,
     min: MIN_SCALE,
     max: getMaxPdfScale(),
@@ -564,8 +582,18 @@ function PdfJsStudioInternal({
       handleSmartZoomRef.current?.({ clientX, clientY }, target);
     },
     onTap: handleViewerTap,
-    disabled: loading || !pdfDoc,
+    disabled: loading || !pdfDoc || engineFlag === "v4",
   });
+
+  const zoomTo = useCallback(
+    (n: number, o?: any) => {
+      if (engineFlag === "v4" && v4Input) {
+        return v4Input.zoomTo(n, o);
+      }
+      return v3ZoomTo(n, o);
+    },
+    [engineFlag, v4Input, v3ZoomTo]
+  );
   zoomToRef.current = zoomTo;
 
   const handleZoomIn = useCallback(() => {
@@ -1130,6 +1158,8 @@ function PdfJsStudioInternal({
       const eng = new PdfEngine({
         scroller,
         sizer,
+        gap: PDF_PAGE_GAP,
+        padding: PDF_PAGE_PADDING,
         initialScale: zoomRef.current.scale,
         initialRotation: rotation,
         paddingTopExtra: () => (isMobileLayout ? toolbarHeight + PDF_PAGE_PADDING : 0),
@@ -1143,6 +1173,7 @@ function PdfJsStudioInternal({
           scrollToPage: (n: number) => eng.scrollToPage(n),
           getRange: () => eng.getRange(),
           getLayout: () => eng.getLayout(),
+          applyFitMode: (m: any) => applyFitModeRef.current(m, false),
           engine: eng,
         };
       }

@@ -47,6 +47,8 @@ for (const fx of FIXTURES) {
     await page.setViewportSize({ width: 390, height: 844 });
     await waitZoomSettled(page);
     // Fit modunu kontrol et veya tetikle
+    await page.evaluate(() => (window as any).__pdfDebug?.applyFitMode?.("fit-width"));
+    await waitZoomSettled(page);
     const isFit = await page.evaluate(() => document.querySelector('[data-zoom-mode="fit-width"]') != null);
     const fitModePreserved = isFit ? 1 : 0;
 

@@ -101,24 +101,27 @@ export async function viewInfo(page: Page): Promise<ViewInfo> {
 /** Ekran noktasının sayfa-uzayı çıpası. */
 export interface Anchor { page: number; fx: number; fy: number }
 export async function anchorAt(page: Page, x: number, y: number): Promise<Anchor> {
-  const a = await page.evaluate(([px, py]) => {
-    for (const p of document.querySelectorAll<HTMLElement>("[data-page]")) {
+  const a = await page.evaluate(([px, py, SEL]) => {
+    const sc = document.querySelector(SEL);
+    if (!sc) return null;
+    for (const p of sc.querySelectorAll<HTMLElement>("[data-page]")) {
       const r = p.getBoundingClientRect();
       if (px >= r.left && px <= r.right && py >= r.top && py <= r.bottom)
         return { page: Number(p.dataset.page), fx: (px - r.left) / r.width, fy: (py - r.top) / r.height };
     }
     return null;
-  }, [x, y] as [number, number]);
+  }, [x, y, SCROLL] as [number, number, string]);
   if (!a) throw new Error(`(${x},${y}) noktasında sayfa yok; çıpa alınamadı`);
   return a;
 }
 export async function anchorDrift(page: Page, a: Anchor, x: number, y: number): Promise<number> {
-  const s = await page.evaluate((an) => {
-    const p = document.querySelector<HTMLElement>(`[data-page="${an.page}"]`);
+  const s = await page.evaluate(([an, SEL]) => {
+    const sc = document.querySelector(SEL);
+    const p = (sc?.querySelector(`[data-page="${an.page}"]`) ?? document.querySelector(`[data-page-state][data-page="${an.page}"]`)) as HTMLElement | null;
     if (!p) return null;
     const r = p.getBoundingClientRect();
     return { x: r.left + an.fx * r.width, y: r.top + an.fy * r.height };
-  }, a);
+  }, [a, SCROLL] as any);
   if (!s) return Number.POSITIVE_INFINITY; // çıpa sayfası DOM'dan kaybolmuş = kayma sonsuz
   return Math.round(Math.hypot(s.x - x, s.y - y) * 100) / 100;
 }
