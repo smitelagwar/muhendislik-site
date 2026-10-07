@@ -184,7 +184,7 @@ test.describe("PDF Görüntüleyici v3 Değişmezler ve Regresyon Test Paketi", 
   test.beforeEach(async ({ page }) => {
     test.skip(!fileId, "Copilot - korelasyon.pdf fixture yuklenemedigi icin test atlandi.");
     await login(page);
-    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+    await page.goto(`/dokumantasyon/dosya/${fileId}?pdfEngine=v3`);
     await page.waitForSelector("canvas[data-testid='pdf-page-canvas-1']", { timeout: 30000 });
   });
 

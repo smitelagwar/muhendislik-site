@@ -149,6 +149,8 @@
     "check:pdf-v3:invariants": "playwright test --config=playwright.config.ts tests/document-studio/pdf-viewer-v3-invariants.spec.ts --project=chromium",
     "test:pdf-v3": "npm run check:pdf-v3:unit && npm run check:pdf-v3:invariants && npm run check:pdf-v3:real-docs",
     "generate:pdf-fixtures-v4": "node scripts/generate-pdf-fixtures-v4.mjs",
+    "check:pdf-v4:unit": "tsx tests/pdf-v4/unit/diagnostics.test.ts && tsx tests/pdf-v4/unit/document-source.test.ts && tsx tests/pdf-v4/unit/engine.test.ts && tsx tests/pdf-v4/unit/error-classifier.test.ts && tsx tests/pdf-v4/unit/input-math.test.ts && tsx tests/pdf-v4/unit/layout.test.ts && tsx tests/pdf-v4/unit/lru.test.ts && tsx tests/pdf-v4/unit/page-sizes.test.ts && tsx tests/pdf-v4/unit/progress.test.ts && tsx tests/pdf-v4/unit/rubber.test.ts && tsx tests/pdf-v4/unit/scheduler.test.ts && tsx tests/pdf-v4/unit/tiles.test.ts && tsx tests/pdf-v4/unit/zoom-animator.test.ts && tsx tests/pdf-v4/unit/zoom-math.test.ts",
+    "test:pdf-v4": "npm run check:pdf-v4:unit && npm run check:pdf-v4:gate",
     "check:pdf-v4:baseline": "node scripts/pdf-v4-run.mjs baseline --prod",
     "check:pdf-v4:gate": "node scripts/pdf-v4-run.mjs gate",
     "check:pdf-v4:gate:mobile-slow": "node scripts/pdf-v4-run.mjs gate --cpu=4 --project=mobile",

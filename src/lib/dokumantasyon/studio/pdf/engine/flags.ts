@@ -3,7 +3,7 @@ export type PdfEngineFlag = "v3" | "v4";
 export function readPdfEngineFlag(): PdfEngineFlag {
   try {
     if (typeof window === "undefined") {
-      return process.env.NEXT_PUBLIC_PDF_ENGINE === "v4" ? "v4" : "v3";
+      return process.env.NEXT_PUBLIC_PDF_ENGINE === "v3" ? "v3" : "v4";
     }
     const q = new URLSearchParams(window.location.search).get("pdfEngine");
     if (q === "v4" || q === "v3") {
@@ -17,7 +17,7 @@ export function readPdfEngineFlag(): PdfEngineFlag {
   } catch {
     /* gizli pencere veya depolama kısıtları */
   }
-  return process.env.NEXT_PUBLIC_PDF_ENGINE === "v4" ? "v4" : "v3";
+  return process.env.NEXT_PUBLIC_PDF_ENGINE === "v3" ? "v3" : "v4";
 }
 
 export function setPdfEngineFlag(flag: PdfEngineFlag): void {
