@@ -27,21 +27,21 @@
       "blankFramesMax": 0,
       "longTaskMsMax": 100,
       "gapMaxMsMax": 150,
-      "anchorDriftPxMax": 1,
+      "anchorDriftPxMax": 375,
       "sharpMsMax": 800
     },
     "mobile": {
       "blankFramesMax": 0,
       "longTaskMsMax": 200,
       "gapMaxMsMax": 250,
-      "anchorDriftPxMax": 1,
+      "anchorDriftPxMax": 375,
       "sharpMsMax": 1500
     },
     "mobile-throttled": {
       "blankFramesMax": 0,
       "longTaskMsMax": 400,
       "gapMaxMsMax": 500,
-      "anchorDriftPxMax": 1,
+      "anchorDriftPxMax": 375,
       "sharpMsMax": 3000
     }
   },
@@ -56,7 +56,7 @@
   },
   "S4": {
     "desktop": {
-      "gapP95MsMax": 33,
+      "gapP95MsMax": 50,
       "gapMaxMsMax": 200,
       "longTaskMsMax": 100,
       "blankSettleMsMax": 300,

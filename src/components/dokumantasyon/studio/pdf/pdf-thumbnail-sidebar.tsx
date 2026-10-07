@@ -68,6 +68,63 @@ function ThumbnailItem({
     if (!isVisible || rendered || !pdfDoc || !canvasRef.current) return;
 
     let active = true;
+
+    // v4 D15: Backdrop önbelleği varsa doğrudan drawImage ile küçült (render kuyruğunu yormaz)
+    const eng = typeof window !== "undefined" ? (window as any).__pdfEngine : null;
+    const docId = pdfDoc?.fingerprints?.[0] || pdfDoc?.fingerprint || "doc";
+    const backdropKey = `b:${docId}:${pageNumber}`;
+    const cachedBackdrop = eng?.governor?.backdrop?.get(backdropKey);
+
+    if (cachedBackdrop && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const targetW = 140;
+      const aspect = cachedBackdrop.height / Math.max(cachedBackdrop.width, 1);
+      canvas.width = targetW;
+      canvas.height = Math.round(targetW * aspect);
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(cachedBackdrop, 0, 0, canvas.width, canvas.height);
+        setRendered(true);
+        return;
+      }
+    }
+
+    // v4: Scheduler sınıf 5 ile arka planda çalıştır
+    if (eng?.scheduler) {
+      const jobId = `th:${docId}:${pageNumber}`;
+      eng.scheduler.enqueue({
+        id: jobId,
+        cls: 5,
+        dist: Math.abs(pageNumber - (eng.getCurrentPage?.() || 1)),
+        run: async (signal: AbortSignal) => {
+          if (signal.aborted || !active || !canvasRef.current) return;
+          const page = await pdfDoc.getPage(pageNumber);
+          if (signal.aborted || !active || !canvasRef.current) return;
+          const viewport = page.getViewport({ scale: 0.25 });
+          const canvas = canvasRef.current;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          const task = page.render({ canvasContext: ctx, viewport });
+          signal.addEventListener("abort", () => {
+            try {
+              task.cancel();
+            } catch {}
+          });
+          try {
+            await task.promise;
+            if (active) setRendered(true);
+          } catch {}
+        },
+      });
+      return () => {
+        active = false;
+        eng.scheduler.cancel(jobId);
+      };
+    }
+
+    // v3 Fallback yolu
     pdfDoc.getPage(pageNumber).then(async (page: any) => {
       if (!active || !canvasRef.current) return;
 

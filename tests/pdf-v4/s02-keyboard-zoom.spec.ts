@@ -48,7 +48,8 @@ for (const fx of FIXTURES) {
     for (const [dir, n] of [["in", 3], ["out", 6], ["in", 3]] as const) {
       await keyZoom(page, dir, n, 150);
       await waitZoomSettled(page);
-      drifts.push(await anchorDrift(page, anchor, cx, cy));
+      const d = await anchorDrift(page, anchor, cx, cy);
+      drifts.push(d);
     }
     const s = await samplerStop(page);
     const sharpMs = await waitSharp(page);

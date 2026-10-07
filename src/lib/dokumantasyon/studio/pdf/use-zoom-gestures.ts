@@ -30,7 +30,12 @@ export interface ZoomGestureOptions {
   scale: number;
   min: number;
   max: number;
-  onCommit: (next: number, mode?: ZoomCommitMode, hasQueuedZoom?: boolean) => void;
+  onCommit: (
+    next: number,
+    mode?: ZoomCommitMode,
+    hasQueuedZoom?: boolean,
+    focus?: { vx: number; vy: number }
+  ) => void;
   disabled?: boolean;
   onTap?: (x: number, y: number, target: EventTarget | null) => void;
   onDoubleTap?: (x: number, y: number, target: EventTarget | null) => void;
@@ -75,7 +80,16 @@ export function useZoomGestures(
     const s = scrollRef.current;
     if (!p || !s) return;
     pending.current = null;
-    clearStyles();
+    if (s.getAttribute("data-pdf-engine") === "v4") {
+      clearStyles();
+      live.current = { ...EMPTY };
+      const queued = queuedZoom.current;
+      queuedZoom.current = null;
+      if (queued) {
+        requestAnimationFrame(() => api.current?.(queued.scale, queued.options));
+      }
+      return;
+    }
     const a = p.anchor;
     if (a && a.el.isConnected) {
       const r = a.el.getBoundingClientRect();
@@ -173,7 +187,7 @@ export function useZoomGestures(
         return;
       }
       pending.current = { ...l };
-      commitCb.current(next, l.mode, queuedZoom.current !== null);
+      commitCb.current(next, l.mode, queuedZoom.current !== null, { vx: l.ox, vy: l.oy });
     };
 
     // Toolbar butonları ve programatik zoom için: odak korumalı ve animasyonlu zoom (Acrobat v3)
@@ -199,6 +213,11 @@ export function useZoomGestures(
         live.current.oy = o.dy - rect.top;
       }
       live.current.r = clampR(n / scaleRef.current);
+      if (el.getAttribute("data-pdf-engine") === "v4") {
+        clearStyles();
+        commit();
+        return;
+      }
       const reduce =
         typeof window !== "undefined" &&
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

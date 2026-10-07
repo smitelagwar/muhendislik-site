@@ -10,6 +10,12 @@ import type { Profile } from "./budgets";
  */
 export const test = base.extend<{ cdp: CDPSession | null; profile: Profile }>({
   page: async ({ page }, use) => {
+    const engineFlag = process.env.PDF_ENGINE || "v4";
+    await page.addInitScript((flag) => {
+      try {
+        window.localStorage.setItem("dok:pdfEngine", flag);
+      } catch {}
+    }, engineFlag);
     await page.addInitScript(SAMPLER_INIT);
     await use(page);
   },

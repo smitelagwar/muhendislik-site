@@ -66,7 +66,8 @@ export async function openPdf(page: Page, name: Fixture): Promise<{ fileId: stri
   await signIn(page);
   const fileId = await uploadPdf(page, name);
   const t0 = Date.now();
-  await page.goto(`/dokumantasyon/dosya/${fileId}`, { waitUntil: "domcontentloaded" });
+  const engineParam = process.env.PDF_ENGINE ? `?pdfEngine=${process.env.PDF_ENGINE}` : "?pdfEngine=v4";
+  await page.goto(`/dokumantasyon/dosya/${fileId}${engineParam}`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(`${SCROLL} [data-page-state="rendered"]`, { timeout: 90_000 });
   return { fileId, ttfrMs: Date.now() - t0 };
 }

@@ -39,6 +39,11 @@ import { recordPdfError, collectPdfDiagnostics } from "@/lib/dokumantasyon/studi
 import { printPdfBytes } from "@/lib/dokumantasyon/studio/pdf/pdf-print";
 import { PdfViewerErrorBoundary } from "./pdf-error-boundary";
 import { PdfPageView } from "./pdf-page-view";
+import { readPdfEngineFlag, type PdfEngineFlag } from "@/lib/dokumantasyon/studio/pdf/engine/flags";
+import { PdfEngine } from "@/lib/dokumantasyon/studio/pdf/engine/engine";
+import { anchorFromPoint, type DocAnchor } from "@/lib/dokumantasyon/studio/pdf/engine/layout";
+import { readAllSizes } from "@/lib/dokumantasyon/studio/pdf/engine/page-sizes";
+import { PdfVirtualPages } from "./engine/pdf-virtual-pages";
 import { PdfThumbnailSidebar } from "./pdf-thumbnail-sidebar";
 import { PdfSearchBar } from "./pdf-search-bar";
 import { PdfSearchResultsPanel } from "./pdf-search-results-panel";
@@ -167,6 +172,13 @@ function PdfJsStudioInternal({
   const [loading, setLoading] = useState<boolean>(true);
   const [viewReady, setViewReady] = useState<boolean>(false);
   const pendingRestoreRef = useRef<{ page: number; ratio: number } | null>(null);
+  const [engineFlag, setEngineFlag] = useState<PdfEngineFlag>(() => readPdfEngineFlag());
+  const [engineInstance, setEngineInstance] = useState<PdfEngine | null>(null);
+  const engineRef = useRef<PdfEngine | null>(null);
+
+  useEffect(() => {
+    setEngineFlag(readPdfEngineFlag());
+  }, []);
 
   useEffect(() => {
     return pdfRenderQueue.subscribe((idle) => {
@@ -519,13 +531,31 @@ function PdfJsStudioInternal({
     [getFitScale, updateZoomState]
   );
 
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const activeAnchorRef = useRef<(DocAnchor & { vx: number; vy: number }) | null>(null);
+  const pendingFocusRef = useRef<(DocAnchor & { vx: number; vy: number }) | { vx: number; vy: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      activeAnchorRef.current = null;
+    };
+    window.addEventListener("mousemove", onMove, { passive: true, capture: true });
+    window.addEventListener("pointermove", onMove, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove, { capture: true });
+      window.removeEventListener("pointermove", onMove, { capture: true });
+    };
+  }, []);
+
   // Donanım Hızlandırmalı CSS Transform Zoom & Pinch Jestleri ve Odak Korumalı Zoom API'si (v2 + v3 Acrobat)
   const zoomTo = useZoomGestures(scrollContainerRef, contentRef, {
     scale: zoom.scale,
     min: MIN_SCALE,
     max: getMaxPdfScale(),
-    onCommit: (nextScale, mode, hasQueuedZoom) => {
+    onCommit: (nextScale, mode, hasQueuedZoom, focus) => {
       if (!hasQueuedZoom) targetScaleRef.current = nextScale;
+      pendingFocusRef.current = (engineFlag === "v4" && activeAnchorRef.current) ? activeAnchorRef.current : (focus ?? null);
       const nextMode = mode ?? "custom";
       updateZoomState({ mode: nextMode, scale: nextScale });
       setRenderedScale(nextScale);
@@ -542,15 +572,89 @@ function PdfJsStudioInternal({
     const currentTarget = targetScaleRef.current;
     const nextTarget = getNextAcrobatZoomIn(currentTarget);
     targetScaleRef.current = nextTarget;
-    zoomTo(nextTarget, { animate: true, mode: "custom" });
-  }, [zoomTo]);
+
+    const eng = engineInstance;
+    const scroller = scrollContainerRef.current;
+    const pt = lastPointerRef.current;
+
+    if (engineFlag === "v4" && eng && scroller && pt) {
+      const rect = scroller.getBoundingClientRect();
+      const isInside = pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom;
+      if (isInside) {
+        if (!activeAnchorRef.current) {
+          const vx = pt.x - rect.left;
+          const vy = pt.y - rect.top;
+          const el = (document.elementFromPoint(pt.x, pt.y)?.closest("[data-page]") ??
+            scroller.querySelector(`[data-page="${eng.getCurrentPage()}"]`)) as HTMLElement | null;
+          if (el && el.dataset.page) {
+            const r = el.getBoundingClientRect();
+            const pageIndex = Number(el.dataset.page) - 1;
+            const fx = (pt.x - r.left) / r.width;
+            const fy = (pt.y - r.top) / r.height;
+            activeAnchorRef.current = { page: pageIndex, fx, fy, vx, vy };
+          } else {
+            const docX = scroller.scrollLeft + vx;
+            const docY = scroller.scrollTop + vy;
+            activeAnchorRef.current = {
+              ...anchorFromPoint(eng.getLayout(), docX, docY),
+              vx,
+              vy,
+            };
+          }
+        }
+        pendingFocusRef.current = activeAnchorRef.current;
+        zoomTo(nextTarget, { animate: false, mode: "custom", x: pt.x, y: pt.y });
+        return;
+      }
+    }
+
+    activeAnchorRef.current = null;
+    zoomTo(nextTarget, { animate: true, mode: "custom", x: pt?.x, y: pt?.y });
+  }, [zoomTo, engineFlag, engineInstance]);
 
   const handleZoomOut = useCallback(() => {
     const currentTarget = targetScaleRef.current;
     const nextTarget = getNextAcrobatZoomOut(currentTarget);
     targetScaleRef.current = nextTarget;
-    zoomTo(nextTarget, { animate: true, mode: "custom" });
-  }, [zoomTo]);
+
+    const eng = engineInstance;
+    const scroller = scrollContainerRef.current;
+    const pt = lastPointerRef.current;
+
+    if (engineFlag === "v4" && eng && scroller && pt) {
+      const rect = scroller.getBoundingClientRect();
+      const isInside = pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom;
+      if (isInside) {
+        if (!activeAnchorRef.current) {
+          const vx = pt.x - rect.left;
+          const vy = pt.y - rect.top;
+          const el = (document.elementFromPoint(pt.x, pt.y)?.closest("[data-page]") ??
+            scroller.querySelector(`[data-page="${eng.getCurrentPage()}"]`)) as HTMLElement | null;
+          if (el && el.dataset.page) {
+            const r = el.getBoundingClientRect();
+            const pageIndex = Number(el.dataset.page) - 1;
+            const fx = (pt.x - r.left) / r.width;
+            const fy = (pt.y - r.top) / r.height;
+            activeAnchorRef.current = { page: pageIndex, fx, fy, vx, vy };
+          } else {
+            const docX = scroller.scrollLeft + vx;
+            const docY = scroller.scrollTop + vy;
+            activeAnchorRef.current = {
+              ...anchorFromPoint(eng.getLayout(), docX, docY),
+              vx,
+              vy,
+            };
+          }
+        }
+        pendingFocusRef.current = activeAnchorRef.current;
+        zoomTo(nextTarget, { animate: false, mode: "custom", x: pt.x, y: pt.y });
+        return;
+      }
+    }
+
+    activeAnchorRef.current = null;
+    zoomTo(nextTarget, { animate: true, mode: "custom", x: pt?.x, y: pt?.y });
+  }, [zoomTo, engineFlag, engineInstance]);
 
   const setActualSize = useCallback(() => {
     const actualScale = zoomToPdfScale(1);
@@ -1004,8 +1108,107 @@ function PdfJsStudioInternal({
 
   useEffect(() => {
     if (!viewReady || !pendingRestoreRef.current) return;
+    if (engineFlag === "v4" && engineRef.current) {
+      engineRef.current.restorePosition({
+        page: pendingRestoreRef.current.page,
+        fy: pendingRestoreRef.current.ratio,
+      });
+      pendingRestoreRef.current = null;
+      return;
+    }
     applyRestore(0, -1);
-  }, [viewReady, applyRestore]);
+  }, [viewReady, applyRestore, engineFlag]);
+
+  // PDF v4 Motor Entegrasyonu (Plan 03 P3.6)
+  useEffect(() => {
+    if (engineFlag !== "v4" || !pdfDoc || loading) return;
+    const scroller = scrollContainerRef.current;
+    const sizer = contentRef.current;
+    if (!scroller || !sizer) return;
+
+    if (!engineRef.current) {
+      const eng = new PdfEngine({
+        scroller,
+        sizer,
+        initialScale: zoomRef.current.scale,
+        initialRotation: rotation,
+        paddingTopExtra: () => (isMobileLayout ? toolbarHeight + PDF_PAGE_PADDING : 0),
+      });
+      engineRef.current = eng;
+      setEngineInstance(eng);
+
+      if (typeof window !== "undefined") {
+        (window as any).__pdfEngine = eng;
+        (window as any).__pdfDebug = {
+          scrollToPage: (n: number) => eng.scrollToPage(n),
+          getRange: () => eng.getRange(),
+          getLayout: () => eng.getLayout(),
+          engine: eng,
+        };
+      }
+    }
+
+    return () => {
+      if (engineRef.current) {
+        engineRef.current.dispose();
+        engineRef.current = null;
+        setEngineInstance(null);
+        if (typeof window !== "undefined") {
+          delete (window as any).__pdfEngine;
+          delete (window as any).__pdfDebug;
+        }
+      }
+    };
+  }, [engineFlag, pdfDoc, loading, isMobileLayout, rotation, toolbarHeight]);
+
+  // v4: Kademeli Sayfa Boyutları (page-sizes.ts)
+  useEffect(() => {
+    if (engineFlag !== "v4" || !pdfDoc || !engineInstance) return;
+    const ac = new AbortController();
+    void readAllSizes(pdfDoc, ac.signal, (from, batch) => {
+      engineInstance.setSizes(from, batch);
+      if (from === 1 && batch.length > 0) {
+        setViewReady(true);
+      }
+    });
+    return () => {
+      ac.abort();
+    };
+  }, [engineFlag, pdfDoc, engineInstance]);
+
+  // v4: Motor Olayları (Sayfa ve Ölçek Abonelikleri)
+  useEffect(() => {
+    const eng = engineInstance;
+    if (engineFlag !== "v4" || !eng) return;
+    const unsubPage = eng.subscribe("page", () => {
+      const cp = eng.getCurrentPage();
+      setCurrentPage(cp);
+      currentPageRef.current = cp;
+    });
+    const unsubScale = eng.subscribe("scale", () => {
+      setRenderedScale(eng.getRenderScale());
+    });
+    return () => {
+      unsubPage();
+      unsubScale();
+    };
+  }, [engineFlag, engineInstance]);
+
+  // v4: Rotasyon Değişimi
+  useEffect(() => {
+    if (engineFlag === "v4" && engineInstance) {
+      engineInstance.setRotation(rotation);
+    }
+  }, [engineFlag, engineInstance, rotation]);
+
+  // v4: Ölçek Değişimi
+  useEffect(() => {
+    if (engineFlag === "v4" && engineInstance) {
+      const focus = pendingFocusRef.current;
+      pendingFocusRef.current = null;
+      engineInstance.setScale(zoom.scale, focus ?? undefined);
+    }
+  }, [engineFlag, engineInstance, zoom.scale]);
 
   const applyFitModeRef = useRef(applyFitMode);
   applyFitModeRef.current = applyFitMode;
@@ -1099,6 +1302,10 @@ function PdfJsStudioInternal({
           };
         }
 
+        if (engineFlag === "v4" && engineRef.current) {
+          engineRef.current.setViewport(container.clientWidth, container.clientHeight);
+        }
+
         if (mode === "fit-width" || mode === "fit-page") {
           applyFitModeRef.current(mode);
         }
@@ -1111,6 +1318,9 @@ function PdfJsStudioInternal({
 
     const frame = window.requestAnimationFrame(() => {
       lastContainerWidthRef.current = container.clientWidth;
+      if (engineFlag === "v4" && engineRef.current) {
+        engineRef.current.setViewport(container.clientWidth, container.clientHeight);
+      }
       const mode = zoomRef.current.mode;
       if (mode === "fit-width" || mode === "fit-page") {
         applyFitModeRef.current(mode);
@@ -1126,7 +1336,7 @@ function PdfJsStudioInternal({
       }
       observer.disconnect();
     };
-  }, [firstPageSize, isMobileLayout, loading, rotation, toolbarHeight]);
+  }, [firstPageSize, isMobileLayout, loading, rotation, toolbarHeight, engineFlag]);
 
   // 2. Sayfaya Kaydırma (Scroll to Page) ve Konum Kaydetme (Faz H)
   const scrollToPage = useCallback((pageNum: number) => {
@@ -1136,6 +1346,11 @@ function PdfJsStudioInternal({
     currentPageRef.current = pageNum;
 
     triggerDebouncedSave();
+
+    if (engineFlag === "v4" && engineRef.current) {
+      engineRef.current.scrollToPage(pageNum, 0, isReducedMotion ? "auto" : "smooth");
+      return;
+    }
 
     const pageEl = document.getElementById(`pdf-page-${pageNum}`);
     const container = scrollContainerRef.current;
@@ -1152,7 +1367,7 @@ function PdfJsStudioInternal({
         };
       }
     }
-  }, [numPages, isReducedMotion, triggerDebouncedSave]);
+  }, [numPages, isReducedMotion, triggerDebouncedSave, engineFlag]);
 
   // Faz H: URL (#page=...) dinamik hash değişikliklerini izle
   useEffect(() => {
@@ -2140,6 +2355,7 @@ function PdfJsStudioInternal({
             <div
               ref={scrollContainerRef}
               data-testid="pdf-scroll-viewport"
+              data-pdf-engine={engineFlag}
               role="document"
               aria-label={pdfViewerStrings.viewer || "PDF Belgesi"}
               tabIndex={0}
@@ -2154,7 +2370,10 @@ function PdfJsStudioInternal({
                 pendingRestoreRef.current = null;
                 handlePointerDown(e);
               }}
-              onPointerMove={handlePointerMove}
+              onPointerMove={(e) => {
+                lastPointerRef.current = { x: e.clientX, y: e.clientY };
+                handlePointerMove(e);
+              }}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
               onScroll={() => {
@@ -2189,12 +2408,27 @@ function PdfJsStudioInternal({
                     : "cursor-grab touch-none"
                   : "cursor-default"
               }`}
-              style={isMobileLayout ? { paddingTop: `${toolbarHeight + PDF_PAGE_PADDING}px` } : undefined}
+              style={
+                engineFlag === "v4"
+                  ? undefined
+                  : isMobileLayout
+                  ? { paddingTop: `${toolbarHeight + PDF_PAGE_PADDING}px` }
+                  : undefined
+              }
             >
               <div
                 ref={contentRef}
-                className="pdf-content flex min-w-full w-max flex-col items-center"
-                style={{ gap: `${PDF_PAGE_GAP}px`, padding: `${PDF_PAGE_PADDING}px` }}
+                className={`pdf-content ${
+                  engineFlag === "v4"
+                    ? "relative w-full"
+                    : "flex min-w-full w-max flex-col items-center"
+                }`}
+                style={
+                  engineFlag === "v4"
+                    ? { overflowAnchor: "none" }
+                    : { gap: `${PDF_PAGE_GAP}px`, padding: `${PDF_PAGE_PADDING}px` }
+                }
+                data-testid="pdf-content"
               >
                 {!viewReady ? (
                   <div
@@ -2205,6 +2439,25 @@ function PdfJsStudioInternal({
                       minHeight: "200px",
                     }}
                   />
+                ) : engineFlag === "v4" ? (
+                  engineInstance ? (
+                    <PdfVirtualPages
+                      engine={engineInstance}
+                      pdfDoc={pdfDoc}
+                      nightMode={nightMode}
+                      overlayProps={(pageNum) => ({
+                        searchMatches: isSearchOpen ? matchesByPage.get(pageNum) : undefined,
+                        searchOpts,
+                        searchQuery: isSearchOpen ? searchQuery : "",
+                        isCurrentMatchPage: currentMatch?.pageNumber === pageNum,
+                        activeMatchIndexInPage:
+                          currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1,
+                        repairRules: autoRepairText ? textRepairRules : undefined,
+                        onNavigateDestination: handleNavigateDestination,
+                        isHandTool: isHandToolEffective,
+                      })}
+                    />
+                  ) : null
                 ) : (
                   Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
                     <PdfPageView
