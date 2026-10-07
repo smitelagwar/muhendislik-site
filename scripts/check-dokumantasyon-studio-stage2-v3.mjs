@@ -47,7 +47,7 @@ async function runStage2Tests() {
   const pdfjsClientPath = path.join(ROOT, "src/lib/pdfjs-client.ts");
   const pdfjsClientContent = fs.readFileSync(pdfjsClientPath, "utf-8");
   assert(
-    pdfjsClientContent.includes("/vendor/pdfjs/pdf.min.mjs"),
+    pdfjsClientContent.includes("PDFJS_MAIN") && fs.readFileSync(path.join(ROOT, "src/lib/pdfjs-paths.ts"), "utf-8").includes("/vendor/pdfjs/v"),
     "PDF.js patched ESM build self-hosted olarak yüklenmelidir."
   );
   assert(

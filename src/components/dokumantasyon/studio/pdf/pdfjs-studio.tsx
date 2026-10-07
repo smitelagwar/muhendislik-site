@@ -5,9 +5,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
+import { runPdfCanary } from "@/lib/dokumantasyon/studio/pdf/pdf-canary";
+import { pdfStats } from "@/lib/dokumantasyon/studio/pdf/pdf-debug-stats";
+import { createPdfLoadingTaskFromLease, createSecurePdfLoadingTask } from "@/lib/dokumantasyon/studio/pdf/pdfjs-loader";
+import { PdfSourceError } from "@/lib/dokumantasyon/studio/pdf/pdf-document-source";
 import {
   PageIndexCache,
   SearchProgress,
@@ -93,6 +96,22 @@ function clampScale(scale: number, max = getMaxPdfScale()) {
   return clampPdfScale(scale, MIN_SCALE, max);
 }
 
+async function readPageSizes(
+  doc: { getPage: (n: number) => Promise<any> },
+  upTo: number
+): Promise<Record<number, { width: number; height: number }>> {
+  const out: Record<number, { width: number; height: number }> = {};
+  for (let i = 1; i <= upTo; i += 40) {
+    const batch = Array.from({ length: Math.min(40, upTo - i + 1) }, (_, k) => i + k);
+    const pages = await Promise.all(batch.map((n) => doc.getPage(n)));
+    pages.forEach((p: any, k: number) => {
+      const v = p.getViewport({ scale: 1, rotation: p.rotate || 0 });
+      out[batch[k]] = { width: v.width, height: v.height };
+    });
+  }
+  return out;
+}
+
 export function PdfJsStudio({
   accessUrl,
   displayName,
@@ -138,6 +157,8 @@ export function PdfJsStudio({
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const [nativeFullscreen, setNativeFullscreen] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [viewReady, setViewReady] = useState<boolean>(false);
+  const pendingRestoreRef = useRef<{ page: number; ratio: number } | null>(null);
 
   useEffect(() => {
     return pdfRenderQueue.subscribe((idle) => {
@@ -145,7 +166,20 @@ export function PdfJsStudio({
     });
   }, []);
   const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | null>(null);
+  const [errorType, setErrorType] = useState<"corrupt" | "missing" | "password" | "network" | "unsupported" | null>(null);
+  const [compatWarning, setCompatWarning] = useState<boolean>(false);
+
+  useEffect(() => {
+    let alive = true;
+    void runPdfCanary().then((r) => {
+      if (!alive) return;
+      if (!r.ok) setCompatWarning(true);
+      pdfStats.set("canary", r.ok ? "ok" : "FAIL:" + (r.error ?? r.ink));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [loadProgress, setLoadProgress] = useState<{ loaded: number; total: number } | null>(null);
   const [isRefreshingAccess, setIsRefreshingAccess] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
@@ -583,9 +617,17 @@ export function PdfJsStudio({
     setReloadKey((prev) => prev + 1);
   }, []);
 
+  const accessUrlRef = useRef(accessUrl);
+  accessUrlRef.current = accessUrl;
+  const onAccessExpiredRef = useRef(onAccessExpired);
+  onAccessExpiredRef.current = onAccessExpired;
+  const updateZoomStateRef = useRef(updateZoomState);
+  updateZoomStateRef.current = updateZoomState;
+
   // 1. PDF Dokümanını Yükle, Otomatik Retry ve Yaşam Döngüsü (Faz B)
   useEffect(() => {
     let isMounted = true;
+    const abort = new AbortController();
     setLoading(true);
     setError(null);
     setErrorType(null);
@@ -593,20 +635,38 @@ export function PdfJsStudio({
 
     async function init() {
       try {
-        const task = await createSecurePdfLoadingTask(accessUrl, {
-          onProgress: ({ loaded, total }) => {
-            if (isMounted) {
-              setLoadProgress({ loaded, total });
-            }
+        const task = await createPdfLoadingTaskFromLease(
+          {
+            getUrl: () => accessUrlRef.current,
+            refresh: () => onAccessExpiredRef.current?.() ?? Promise.resolve(null),
+            onProgress: ({ loaded, total }) => {
+              if (isMounted && loaded >= 0) {
+                setLoadProgress({ loaded, total });
+              }
+            },
+            onRefreshing: (active) => {
+              if (isMounted) {
+                setIsRefreshingAccess(active);
+              }
+            },
+            onFatal: (err) => {
+              if (isMounted) {
+                setErrorType("network");
+                setError(err instanceof Error ? err.message : pdfViewerStrings.genericLoadError);
+              }
+            },
+            signal: abort.signal,
           },
-          onPassword: (callback, reason) => {
-            if (!isMounted) return;
-            passwordCallbackRef.current = callback;
-            setPasswordReason(reason);
-            setIsPasswordModalOpen(true);
-            setLoading(false);
-          },
-        });
+          {
+            onPassword: (callback, reason) => {
+              if (!isMounted) return;
+              passwordCallbackRef.current = callback;
+              setPasswordReason(reason);
+              setIsPasswordModalOpen(true);
+              setLoading(false);
+            },
+          }
+        );
         loadingTaskRef.current = task;
 
         const doc = await task.promise;
@@ -673,7 +733,7 @@ export function PdfJsStudio({
           ? clampScale(savedRecord.scale)
           : savedRecord?.scale ?? zoomRef.current.scale;
         targetScaleRef.current = restoredScale;
-        updateZoomState({ mode: restoredMode, scale: restoredScale });
+        updateZoomStateRef.current({ mode: restoredMode, scale: restoredScale });
         setRenderedScale(restoredScale);
         setRotation(savedRecord?.rotation ?? 0);
         setIsSidebarOpen(savedRecord?.sidebarOpen ?? false);
@@ -687,27 +747,15 @@ export function PdfJsStudio({
         setCurrentPage(targetPage);
         currentPageRef.current = targetPage;
 
-        // Sayfa boyutları ve ilk yerleşim hesaplandıktan sonra iki aşamalı mikro-düzeltme (Faz H)
-        if (urlHashPage !== null || targetPage > 1 || targetOffsetRatio > 0) {
-          const restorePosition = (attempt = 1) => {
-            if (!isMounted) return;
-            const pageEl = document.getElementById(`pdf-page-${targetPage}`);
-            const container = scrollContainerRef.current;
-            if (pageEl && container) {
-              const pageTop = pageEl.offsetTop;
-              const offsetInPage = targetOffsetRatio > 0 ? targetOffsetRatio * pageEl.clientHeight : 0;
-              container.scrollTo({
-                top: Math.max(pageTop + offsetInPage - 16, 0),
-                behavior: "auto",
-              });
-              if (attempt === 1) {
-                setTimeout(() => restorePosition(2), 150);
-              }
-            } else if (attempt < 4) {
-              setTimeout(() => restorePosition(attempt + 1), 100);
-            }
-          };
-          setTimeout(() => restorePosition(1), 80);
+        // Belge açılışında kayıtlı konumu deterministik geri yükleme için sayfa boyutlarını topla (K3)
+        if (targetPage > 1 || targetOffsetRatio > 0) {
+          const dims = await readPageSizes(doc, targetPage);
+          if (isMounted) {
+            setPageDimensions((prev) => ({ ...prev, ...dims }));
+            pendingRestoreRef.current = { page: targetPage, ratio: targetOffsetRatio };
+          }
+        } else {
+          pendingRestoreRef.current = null;
         }
 
         setLoading(false);
@@ -715,14 +763,48 @@ export function PdfJsStudio({
         if (!isMounted) return;
         if ((err as { name?: string })?.name === "AbortException") return;
 
+        if (err instanceof PdfSourceError) {
+          if (err.kind === "aborted") return;
+          if (err.kind === "http" && err.status === 404) {
+            setErrorType("missing");
+            setError(pdfViewerStrings.missingPdf);
+            setLoading(false);
+            return;
+          }
+          if (err.kind === "http") {
+            setErrorType("network");
+            setError(pdfViewerStrings.accessRefreshError);
+            setLoading(false);
+            return;
+          }
+          if (err.kind === "too-large") {
+            setErrorType("network");
+            setError("PDF dosyası çok büyük (doğrudan açma sınırı aşıldı).");
+            setLoading(false);
+            return;
+          }
+        }
+
         const errName = (err as { name?: string })?.name || "";
         const errMessage = err instanceof Error ? err.message : "";
         const httpStatus = typeof (err as { status?: unknown })?.status === "number"
           ? (err as { status: number }).status
           : null;
-        const isExpiredAccess = httpStatus === 401 || httpStatus === 403 || /(?:401|403|unauthorized|forbidden)/i.test(errMessage);
 
         // Faz B: Hata Sınıflandırması
+        // 0. Uyumsuz Tarayıcı / Modül Yükleme Hatası (K1): retry yok
+        if (
+          err instanceof SyntaxError ||
+          errName === "SyntaxError" ||
+          /Failed to fetch dynamically imported module/i.test(errMessage) ||
+          /is not a function|is not defined|not async iterable/i.test(errMessage)
+        ) {
+          setErrorType("unsupported");
+          setError(pdfViewerStrings.unsupportedBrowser);
+          setLoading(false);
+          return;
+        }
+
         // 1. Bozuk / Geçersiz PDF: retry yok, doğrudan hata ekranı + indir butonu
         if (errName === "InvalidPDFException" || /invalid pdf/i.test(errMessage)) {
           setErrorType("corrupt");
@@ -747,31 +829,7 @@ export function PdfJsStudio({
           return;
         }
 
-        // 4. Süresi dolmuş URL (401/403): Üstel geri çekilme ile 3 kez otomatik yenileme
-        if (isExpiredAccess && onAccessExpired && retryCountRef.current < 3) {
-          retryCountRef.current += 1;
-          setIsRefreshingAccess(true);
-          const backoffDelay = Math.pow(2, retryCountRef.current - 1) * 1000;
-          await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-          try {
-            await onAccessExpired();
-            return;
-          } catch (refreshError) {
-            console.warn(`PDF access URL refresh failed (attempt ${retryCountRef.current}):`, refreshError);
-            if (retryCountRef.current >= 3) {
-              setErrorType("network");
-              setError(pdfViewerStrings.accessRefreshError);
-            }
-          } finally {
-            if (isMounted) {
-              setIsRefreshingAccess(false);
-              if (retryCountRef.current >= 3) setLoading(false);
-            }
-          }
-          return;
-        }
-
-        // 5. Ağ veya diğer beklenmeyen hatalar:
+        // 4. Ağ veya diğer beklenmeyen hatalar:
         console.error("PDF yükleme hatası:", err);
         setErrorType("network");
         setError(
@@ -787,6 +845,7 @@ export function PdfJsStudio({
 
     return () => {
       isMounted = false;
+      abort.abort();
       if (loadingTaskRef.current) {
         try {
           loadingTaskRef.current.destroy?.();
@@ -800,7 +859,68 @@ export function PdfJsStudio({
         pdfDocRef.current = null;
       }
     };
-  }, [accessUrl, onAccessExpired, fileId, reloadKey, currentFileVersion, updateZoomState]);
+  }, [fileId, reloadKey, currentFileVersion]);
+
+  // İlk fit ölçeği hesaplanana kadar PdfPageView listesini mount etme (viewReady kapısı - K3)
+  useEffect(() => {
+    if (loading || !pdfDoc || viewReady) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const checkFit = () => {
+      if (container.clientWidth < 2) return false;
+      const restoredMode = zoomRef.current.mode;
+      if (restoredMode === "fit-width" || restoredMode === "fit-page") {
+        const target = getFitScale(restoredMode);
+        if (target !== null) {
+          targetScaleRef.current = target;
+          updateZoomStateRef.current({ mode: restoredMode, scale: target });
+          setRenderedScale(target);
+          setViewReady(true);
+          return true;
+        }
+      } else {
+        setViewReady(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (checkFit()) return;
+
+    let rafId = 0;
+    const loop = () => {
+      if (!checkFit()) {
+        rafId = requestAnimationFrame(loop);
+      }
+    };
+    rafId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId);
+  }, [loading, pdfDoc, viewReady, getFitScale]);
+
+  // Konum geri yükleme (deterministik RAF zinciri - K3)
+  const applyRestore = useCallback((frame = 0, lastTop = -1) => {
+    const r = pendingRestoreRef.current;
+    const c = scrollContainerRef.current;
+    if (!r || !c) return;
+    const el = document.getElementById(`pdf-page-${r.page}`);
+    if (el) {
+      const top = Math.max(el.offsetTop + r.ratio * el.clientHeight - 16, 0);
+      c.scrollTo({ top, behavior: "auto" });
+      if (Math.abs(top - lastTop) < 1 || frame >= 10) {
+        pendingRestoreRef.current = null;
+        return;
+      }
+      requestAnimationFrame(() => applyRestore(frame + 1, top));
+    } else if (frame < 10) {
+      requestAnimationFrame(() => applyRestore(frame + 1, lastTop));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!viewReady || !pendingRestoreRef.current) return;
+    applyRestore(0, -1);
+  }, [viewReady, applyRestore]);
 
   const applyFitModeRef = useRef(applyFitMode);
   applyFitModeRef.current = applyFitMode;
@@ -1381,22 +1501,9 @@ export function PdfJsStudio({
       } else if (mod && e.key === "2") {
         e.preventDefault();
         applyFitMode("fit-width", true);
-      } else if (mod && key === "l") {
-        e.preventDefault();
-        handleToggleViewerFullscreen();
-      } else if (mod && key === "r") {
-        e.preventDefault();
-        setRotation((r) => (r + 90) % 360);
       } else if (mod && key === "p") {
         e.preventDefault();
         handlePrint();
-      } else if (mod && key === "b") {
-        e.preventDefault();
-        setIsSidebarOpen((prev) => !prev);
-        setIsSnippetPanelOpen(false);
-      } else if (mod && !e.shiftKey && key === "d") {
-        e.preventDefault();
-        handleDownloadAction();
       } else if (mod && e.shiftKey && key === "s" && onShare) {
         e.preventDefault();
         onShare();
@@ -1646,6 +1753,38 @@ export function PdfJsStudio({
       />
       </div>
 
+      {/* Kanarya Uyarı Şeridi (K1) */}
+      {compatWarning && (
+        <div
+          data-testid="pdf-compat-warning"
+          className="z-20 flex items-center justify-between gap-3 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-200 shrink-0"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
+            <span>Bu tarayıcıda metin eksik görünebilir. Sorun yaşarsanız dosyayı indirin.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {onDownload && (
+              <button
+                type="button"
+                onClick={onDownload}
+                className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300 hover:bg-amber-500/30"
+              >
+                {pdfViewerStrings.downloadFile}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setCompatWarning(false)}
+              className="text-zinc-400 hover:text-zinc-200 p-0.5"
+              aria-label={pdfViewerStrings.close}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. Doküman İçi Arama Çubuğu */}
       <PdfSearchBar
         isOpen={isSearchOpen}
@@ -1741,11 +1880,35 @@ export function PdfJsStudio({
                   ? pdfViewerStrings.missingTitle
                   : errorType === "password"
                   ? pdfViewerStrings.passwordProtectedTitle
+                  : errorType === "unsupported"
+                  ? pdfViewerStrings.unsupportedTitle
                   : pdfViewerStrings.loadErrorTitle}
               </h3>
               <p className="mt-1 text-xs text-zinc-400">{error}</p>
 
               <div className="mt-4 flex items-center justify-center gap-2">
+                {errorType === "unsupported" && (
+                  <>
+                    {onDownload && (
+                      <button
+                        type="button"
+                        onClick={onDownload}
+                        data-testid="pdf-download-unsupported-btn"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-800 border border-zinc-700 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
+                      >
+                        {pdfViewerStrings.downloadFile}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => window.open(accessUrl, "_blank", "noopener")}
+                      data-testid="pdf-open-new-tab-btn"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400 transition-colors"
+                    >
+                      {pdfViewerStrings.openNewTab}
+                    </button>
+                  </>
+                )}
                 {errorType === "corrupt" && onDownload && (
                   <button
                     type="button"
@@ -1803,8 +1966,17 @@ export function PdfJsStudio({
               ref={scrollContainerRef}
               data-testid="pdf-scroll-viewport"
               tabIndex={0}
+              onWheel={() => {
+                pendingRestoreRef.current = null;
+              }}
+              onTouchStart={() => {
+                pendingRestoreRef.current = null;
+              }}
               onDoubleClick={handleDoubleClick}
-              onPointerDown={handlePointerDown}
+              onPointerDown={(e) => {
+                pendingRestoreRef.current = null;
+                handlePointerDown(e);
+              }}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
@@ -1836,33 +2008,44 @@ export function PdfJsStudio({
                 className="pdf-content flex min-w-full w-max flex-col items-center"
                 style={{ gap: `${PDF_PAGE_GAP}px`, padding: `${PDF_PAGE_PADDING}px` }}
               >
-                {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
-                  <PdfPageView
-                    key={pageNum}
-                    pdfDoc={pdfDoc}
-                    pageNumber={pageNum}
-                    scale={scale}
-                    renderedScale={renderedScale}
-                    rotation={rotation}
-                    isHandTool={isHandToolEffective}
-                    repairRules={autoRepairText ? textRepairRules : undefined}
-                    searchQuery={isSearchOpen ? searchQuery : ""}
-                    isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
-                    activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}
-                    onPageVisible={handlePageVisible}
-                    isWithinWindow={Math.abs(pageNum - currentPage) <= PAGE_WINDOW_N}
-                    initialDimensions={
-                      (pageDimensions[pageNum] || firstPageSize)
-                        ? rotatePdfPageSize(pageDimensions[pageNum] || firstPageSize!, rotation)
-                        : undefined
-                    }
-                    onDimensionsMeasured={handleDimensionsMeasured}
-                    searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
-                    searchOpts={searchOpts}
-                    onNavigateDestination={handleNavigateDestination}
-                    nightMode={nightMode}
+                {!viewReady ? (
+                  <div
+                    data-testid="pdf-view-placeholder"
+                    className="w-full flex flex-col items-center"
+                    style={{
+                      height: firstPageSize ? `${numPages * (firstPageSize.height * scale + PDF_PAGE_GAP)}px` : "100%",
+                      minHeight: "200px",
+                    }}
                   />
-                ))}
+                ) : (
+                  Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+                    <PdfPageView
+                      key={pageNum}
+                      pdfDoc={pdfDoc}
+                      pageNumber={pageNum}
+                      scale={scale}
+                      renderedScale={renderedScale}
+                      rotation={rotation}
+                      isHandTool={isHandToolEffective}
+                      repairRules={autoRepairText ? textRepairRules : undefined}
+                      searchQuery={isSearchOpen ? searchQuery : ""}
+                      isCurrentMatchPage={currentMatch?.pageNumber === pageNum}
+                      activeMatchIndexInPage={currentMatch?.pageNumber === pageNum ? currentMatch.matchIndexInPage : -1}
+                      onPageVisible={handlePageVisible}
+                      isWithinWindow={Math.abs(pageNum - currentPage) <= PAGE_WINDOW_N}
+                      initialDimensions={
+                        (pageDimensions[pageNum] || firstPageSize)
+                          ? rotatePdfPageSize(pageDimensions[pageNum] || firstPageSize!, rotation)
+                          : undefined
+                      }
+                      onDimensionsMeasured={handleDimensionsMeasured}
+                      searchMatches={isSearchOpen ? matchesByPage.get(pageNum) : undefined}
+                      searchOpts={searchOpts}
+                      onNavigateDestination={handleNavigateDestination}
+                      nightMode={nightMode}
+                    />
+                  ))
+                )}
               </div>
             </div>
           </div>

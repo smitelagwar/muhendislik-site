@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { PDFJS_MAIN } from "../../src/lib/pdfjs-paths";
 
 /**
  * FAZ B — Playwright Kabul Testleri (Tarayıcı Seviyesi)
@@ -66,16 +67,21 @@ test.describe("PDF Görüntüleyici v2 — FAZ B Yükleme Hattı ve Güvenlik", 
   // --------------------------------------------------------------------------
   // TEST 1: Cache-Control Immutable Başlığı (/vendor/pdfjs/*)
   // --------------------------------------------------------------------------
-  test("1. Cache-Control Başlığı: /vendor/pdfjs/pdf.min.mjs immutable olarak sunulmalı", async ({ request }) => {
-    const response = await request.get("/vendor/pdfjs/pdf.min.mjs");
+  test("1. Cache-Control Başlığı: versioned PDFJS_MAIN immutable olarak sunulmalı", async ({ request }) => {
+    const response = await request.get(PDFJS_MAIN);
     expect(response.status()).toBe(200);
 
     const cacheControl = response.headers()["cache-control"] || "";
-    console.log("`/vendor/pdfjs/pdf.min.mjs` Cache-Control:", cacheControl);
+    console.log(`\`${PDFJS_MAIN}\` Cache-Control:`, cacheControl);
 
     // Faz B Kabul Kriteri: curl -I ile /vendor/pdfjs/... immutable görünür
     expect(cacheControl).toContain("immutable");
     expect(cacheControl).toContain("max-age=31536000");
+  });
+
+  test("1b. Eski yol /vendor/pdfjs/pdf.min.mjs 404 dönmeli", async ({ request }) => {
+    const response = await request.get("/vendor/pdfjs/pdf.min.mjs");
+    expect(response.status()).toBe(404);
   });
 
   // --------------------------------------------------------------------------

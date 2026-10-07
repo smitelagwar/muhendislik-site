@@ -190,7 +190,8 @@ export function useZoomGestures(
         return;
       }
       const rect = el.getBoundingClientRect();
-      begin(o.x ?? rect.left + rect.width / 2, o.y ?? rect.top + rect.height / 2);
+      const atTop = el.scrollTop <= 1 && o.x == null && o.y == null; // varsayılan (merkez) çıpa yalnızca belge ortasındayken
+      begin(o.x ?? rect.left + rect.width / 2, o.y ?? (atTop ? rect.top : rect.top + rect.height / 2));
       live.current.mode = o.mode;
       if (o.dx != null && o.dy != null) {
         live.current.ox = o.dx - rect.left;

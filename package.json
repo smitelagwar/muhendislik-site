@@ -5,7 +5,8 @@
   "scripts": {
     "predev": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "dev": "next dev --webpack",
-    "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
+    "sync:pdfjs": "node scripts/sync-pdfjs-vendor.mjs",
+    "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs && node scripts/sync-pdfjs-vendor.mjs --check",
     "build": "next build --webpack",
     "prestart": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "start": "next start",

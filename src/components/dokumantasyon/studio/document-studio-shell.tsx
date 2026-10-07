@@ -202,7 +202,9 @@ export function DocumentStudioShell({
   }, []);
 
   const refreshCurrentLease = useCallback(async () => {
-    if (isLocal) throw new Error("Yerel dosya erişim bağlantısı yenilenemez.");
+    if (isLocal && (typeof window === "undefined" || localStorage.getItem("dok:testHooks") !== "1")) {
+      throw new Error("Yerel dosya erişim bağlantısı yenilenemez.");
+    }
     if (!leaseRefreshPromiseRef.current) {
       leaseRefreshPromiseRef.current = refreshDocumentAccessLease(file.id)
         .then((freshLease) => {
@@ -215,6 +217,11 @@ export function DocumentStudioShell({
     }
     return leaseRefreshPromiseRef.current;
   }, [file.id, isLocal]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || localStorage.getItem("dok:testHooks") !== "1") return;
+    (window as unknown as { __dokRefreshLease?: () => Promise<unknown> }).__dokRefreshLease = () => refreshCurrentLease();
+  }, [refreshCurrentLease]);
 
   // Erişim Kiralama Süresini Arka Planda İzleme ve Gerekirse Yenileme
   useEffect(() => {

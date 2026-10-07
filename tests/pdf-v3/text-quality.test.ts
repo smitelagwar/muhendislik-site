@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { PDFJS_VERSION } from "../../src/lib/pdfjs-paths";
 import {
   detectBrokenMapping,
   repairExtractedText,
@@ -19,7 +20,7 @@ async function runTextQualityTests() {
   const data = new Uint8Array(fs.readFileSync(fixturePath));
   const doc = await getDocument({
     data,
-    standardFontDataUrl: path.resolve("public/vendor/pdfjs/standard_fonts") + "/",
+    standardFontDataUrl: path.resolve(`public/vendor/pdfjs/v${PDFJS_VERSION}/standard_fonts`) + "/",
   }).promise;
 
   let totalChars = 0;

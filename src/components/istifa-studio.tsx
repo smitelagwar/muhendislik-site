@@ -1,5 +1,6 @@
 "use client";
 
+import { PDFJS_CMAPS, PDFJS_FONTS } from "@/lib/pdfjs-paths";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
   ArrowLeft,
@@ -274,8 +275,8 @@ export function IstifaStudio({
 
           const loadingTask = pdfjs.getDocument({
             data: clonedBytes,
-            cMapUrl: "/vendor/pdfjs/cmaps/",
-            standardFontDataUrl: "/vendor/pdfjs/standard_fonts/",
+            cMapUrl: PDFJS_CMAPS,
+            standardFontDataUrl: PDFJS_FONTS,
             cMapPacked: true,
           });
 

@@ -47,9 +47,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     if (rangeHeader) {
       const parts = rangeHeader.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const end = parts[1] ? Math.min(parseInt(parts[1], 10), fileSize - 1) : fileSize - 1;
 
-      if (start >= fileSize || end >= fileSize) {
+      if (start >= fileSize || start < 0 || start > end) {
         return new NextResponse("İstenen aralık dosya boyutunu aşıyor.", {
           status: 416,
           headers: {

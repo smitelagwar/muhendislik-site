@@ -24,7 +24,6 @@ async function testPasswordProtectedPdf() {
 
   const task = pdfjs.getDocument({
     data,
-    isEvalSupported: false,
   });
 
   task.onPassword = (callback: (pwd: string) => void, reason: number) => {
@@ -63,7 +62,6 @@ async function testCorruptPdf() {
 
   const task = pdfjs.getDocument({
     data,
-    isEvalSupported: false,
     stopAtErrors: true,
   });
 
@@ -153,7 +151,6 @@ async function testRangeChunkSizeBenchmark() {
       rangeChunkSize: size,
       disableAutoFetch: true,
       disableRange: false,
-      isEvalSupported: false,
     });
     const doc = await task.promise;
     await doc.getPage(1);
@@ -193,7 +190,6 @@ async function testConsecutiveOpenClose() {
     const task = pdfjs.getDocument({
       data: fileBytes.slice(0),
       worker,
-      isEvalSupported: false,
     });
     const doc = await task.promise;
     assert.strictEqual(doc.numPages, 2);

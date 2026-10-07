@@ -163,6 +163,14 @@ export async function openPdfSource<T extends RangeTransportLike>(
     if (len > HARD_LIMIT_BYTES) throw new PdfSourceError("PDF çok büyük", "too-large");
     return { kind: "data", data: await readBody(probe, len, cb) };
   }
+  // 416 Range Not Satisfiable: dosya 64KB'dan küçük olabilir veya Range desteklenmiyor; tüm dosyayı çekmeyi dene
+  if (probe.status === 416) {
+    const full = await fetchRange(null);
+    if (!full.ok) throw new PdfSourceError(`HTTP ${full.status}`, "http", full.status);
+    const len = Number(full.headers.get("content-length") ?? 0);
+    if (len > HARD_LIMIT_BYTES) throw new PdfSourceError("PDF çok büyük", "too-large");
+    return { kind: "data", data: await readBody(full, len, cb) };
+  }
   if (probe.status !== 206) throw new PdfSourceError(`HTTP ${probe.status}`, "http", probe.status);
 
   const total = parseContentRangeTotal(probe.headers.get("content-range"));

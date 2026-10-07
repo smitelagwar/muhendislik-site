@@ -1,3 +1,5 @@
+import { PDFJS_MAIN, PDFJS_POLYFILLS, PDFJS_WORKER } from "@/lib/pdfjs-paths";
+
 export type BrowserPdfJs = typeof import("pdfjs-dist");
 
 declare global {
@@ -16,17 +18,16 @@ export async function loadBrowserPdfJs(): Promise<BrowserPdfJs | null> {
   if (current) return current;
 
   if (!pdfJsPromise) {
-    const moduleUrl = "/vendor/pdfjs/pdf.min.mjs";
-    pdfJsPromise = (import(/* webpackIgnore: true */ moduleUrl) as Promise<BrowserPdfJs>)
-      .then((pdfjs) => {
-        pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.mjs";
-        window.pdfjsLib = pdfjs;
-        return pdfjs;
-      })
-      .catch((error) => {
-        pdfJsPromise = null;
-        throw error;
-      });
+    pdfJsPromise = (async () => {
+      await import(/* webpackIgnore: true */ PDFJS_POLYFILLS);
+      const pdfjs = (await import(/* webpackIgnore: true */ PDFJS_MAIN)) as BrowserPdfJs;
+      pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      window.pdfjsLib = pdfjs;
+      return pdfjs;
+    })().catch((error) => {
+      pdfJsPromise = null;
+      throw error;
+    });
   }
 
   return pdfJsPromise;
