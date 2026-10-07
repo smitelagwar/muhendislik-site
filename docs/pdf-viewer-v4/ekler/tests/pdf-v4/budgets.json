@@ -1,0 +1,181 @@
+{
+  "S1": {
+    "desktop": {
+      "scrollTopPxMax": 1,
+      "ttfrMsMax": 2500,
+      "sharpMsMax": 1500,
+      "longTaskMsMax": 150,
+      "canvasMaxMPMax": 16
+    },
+    "mobile": {
+      "scrollTopPxMax": 1,
+      "ttfrMsMax": 3500,
+      "sharpMsMax": 2500,
+      "longTaskMsMax": 250,
+      "canvasMaxMPMax": 16
+    },
+    "mobile-throttled": {
+      "scrollTopPxMax": 1,
+      "ttfrMsMax": 6000,
+      "sharpMsMax": 5000,
+      "longTaskMsMax": 600,
+      "canvasMaxMPMax": 16
+    }
+  },
+  "S2": {
+    "desktop": {
+      "blankFramesMax": 0,
+      "longTaskMsMax": 100,
+      "gapMaxMsMax": 150,
+      "anchorDriftPxMax": 1,
+      "sharpMsMax": 800
+    },
+    "mobile": {
+      "blankFramesMax": 0,
+      "longTaskMsMax": 200,
+      "gapMaxMsMax": 250,
+      "anchorDriftPxMax": 1,
+      "sharpMsMax": 1500
+    },
+    "mobile-throttled": {
+      "blankFramesMax": 0,
+      "longTaskMsMax": 400,
+      "gapMaxMsMax": 500,
+      "anchorDriftPxMax": 1,
+      "sharpMsMax": 3000
+    }
+  },
+  "S3": {
+    "desktop": {
+      "blankFramesMax": 0,
+      "gapP95MsMax": 33,
+      "anchorDriftPxMax": 1,
+      "notchFactorMin": 1.05,
+      "notchFactorMax": 1.15
+    }
+  },
+  "S4": {
+    "desktop": {
+      "gapP95MsMax": 33,
+      "gapMaxMsMax": 200,
+      "longTaskMsMax": 100,
+      "blankSettleMsMax": 300,
+      "mountedPagesMax": 9
+    },
+    "mobile": {
+      "gapP95MsMax": 50,
+      "gapMaxMsMax": 300,
+      "longTaskMsMax": 200,
+      "blankSettleMsMax": 500,
+      "mountedPagesMax": 9
+    },
+    "mobile-throttled": {
+      "gapP95MsMax": 100,
+      "gapMaxMsMax": 600,
+      "longTaskMsMax": 400,
+      "blankSettleMsMax": 1200,
+      "mountedPagesMax": 9
+    }
+  },
+  "S5": {
+    "mobile": {
+      "blankFramesMax": 0,
+      "anchorDriftPxMax": 1.5,
+      "browserZoomDeltaMax": 0.001,
+      "scaleRatioErrorMax": 0.03,
+      "longTaskMsMax": 200,
+      "sharpMsMax": 1500
+    },
+    "mobile-throttled": {
+      "blankFramesMax": 0,
+      "anchorDriftPxMax": 1.5,
+      "browserZoomDeltaMax": 0.001,
+      "scaleRatioErrorMax": 0.03,
+      "longTaskMsMax": 400,
+      "sharpMsMax": 3000
+    }
+  },
+  "S6": {
+    "mobile": {
+      "anchorDriftPxMax": 1.5,
+      "blankFramesMax": 0,
+      "fitReturnErrorPxMax": 1
+    }
+  },
+  "S7": {
+    "desktop": {
+      "canvasMaxMPMax": 16,
+      "canvasBytesMBMax": 160,
+      "sharpRatioMin": 0.95,
+      "sharpMsMax": 1500,
+      "blankFramesMax": 0
+    },
+    "mobile": {
+      "canvasMaxMPMax": 16,
+      "canvasBytesMBMax": 80,
+      "sharpRatioMin": 0.95,
+      "sharpMsMax": 2500,
+      "blankFramesMax": 0
+    }
+  },
+  "S8": {
+    "desktop": {
+      "heapGrowthMBMax": 30,
+      "canvasBytesMBMax": 160,
+      "mountedPagesMax": 9
+    },
+    "mobile": {
+      "heapGrowthMBMax": 30,
+      "canvasBytesMBMax": 80,
+      "mountedPagesMax": 9
+    }
+  },
+  "S9": {
+    "desktop": {
+      "reloadsMax": 0,
+      "scrollDriftPxMax": 1,
+      "blankFramesMax": 0
+    }
+  },
+  "S10": {
+    "desktop": {
+      "firstPageRenderedMin": 1,
+      "inkPixelsMin": 3000,
+      "pageErrorsMax": 0,
+      "workerPreludeSeenMin": 1
+    }
+  },
+  "S11": {
+    "mobile": {
+      "topAnchorFyDeltaMax": 0.02,
+      "customZoomPercentChangeMax": 0,
+      "fitModePreservedMin": 1
+    }
+  },
+  "S12": {
+    "desktop": {
+      "zoomPercentChangesMax": 0
+    },
+    "mobile": {
+      "zoomPercentChangesMax": 0
+    }
+  },
+  "S13": {
+    "desktop": {
+      "canvasBytesMBHiddenMax": 24
+    },
+    "mobile": {
+      "canvasBytesMBHiddenMax": 16
+    }
+  },
+  "S14": {
+    "desktop": {
+      "gapP95MsMax": 40,
+      "gapMaxMsMax": 250
+    },
+    "mobile": {
+      "gapP95MsMax": 60,
+      "gapMaxMsMax": 350
+    }
+  }
+}

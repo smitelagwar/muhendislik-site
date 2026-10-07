@@ -1,0 +1,1005 @@
+{
+  "writtenAt": "2026-10-07T11:11:53.552Z",
+  "rows": {
+    "S1|desktop|tr-metin|desktop": {
+      "metrics": {
+        "scrollTopPx": 306,
+        "ttfrMs": 883,
+        "sharpMs": 12,
+        "longTaskMs": 0,
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 76,
+        "mountedPages": 2,
+        "domNodes": 293
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:04.698Z"
+    },
+    "S1|desktop|karisik-60|desktop": {
+      "metrics": {
+        "scrollTopPx": 306,
+        "ttfrMs": 1376,
+        "sharpMs": 6,
+        "longTaskMs": 129,
+        "canvasMaxMP": 20,
+        "canvasBytesMB": 292.1,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:06.783Z"
+    },
+    "S1|desktop|metin-1000|desktop": {
+      "metrics": {
+        "scrollTopPx": 305,
+        "ttfrMs": 6047,
+        "sharpMs": 2,
+        "longTaskMs": 95,
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 228,
+        "mountedPages": 1000,
+        "domNodes": 8814
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:13.436Z"
+    },
+    "S1|desktop|a0-vektor|desktop": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 1408,
+        "sharpMs": 2,
+        "longTaskMs": 0,
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 38,
+        "mountedPages": 1,
+        "domNodes": 1027
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:15.427Z"
+    },
+    "S1|desktop|tarama-a3|desktop": {
+      "metrics": {
+        "scrollTopPx": 112,
+        "ttfrMs": 1018,
+        "sharpMs": 1,
+        "longTaskMs": 114,
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 228.3,
+        "mountedPages": 6,
+        "domNodes": 276
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:17.137Z"
+    },
+    "S2|desktop|karisik-60|desktop": {
+      "metrics": {
+        "blankFrames": 42,
+        "longTaskMs": 317,
+        "gapMaxMs": 550,
+        "gapP95Ms": 300,
+        "jank50": 43,
+        "anchorDriftPx": 398.98,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:50:47.824Z"
+    },
+    "S2|desktop|metin-1000|desktop": {
+      "metrics": {
+        "blankFrames": 0,
+        "longTaskMs": 681,
+        "gapMaxMs": 699.9,
+        "gapP95Ms": 516.7,
+        "jank50": 184,
+        "anchorDriftPx": 399.11,
+        "sharpMs": 12
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:51:37.264Z"
+    },
+    "S3|desktop|karisik-60|desktop": {
+      "metrics": {
+        "blankFrames": 201,
+        "gapP95Ms": 50,
+        "anchorDriftPx": 659.57,
+        "notchFactor": 1.35
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:51:54.260Z"
+    },
+    "S4|desktop|metin-1000|desktop": {
+      "metrics": {
+        "gapP95Ms": 183.4,
+        "gapMaxMs": 200,
+        "jank50": 68,
+        "longTaskMs": 66,
+        "blankSettleMs": 15,
+        "blankFramesDuringScroll": 0,
+        "mountedPages": 1000,
+        "domNodes": 9200
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:52:11.085Z"
+    },
+    "S4|desktop|karisik-60|desktop": {
+      "metrics": {
+        "gapP95Ms": 233.4,
+        "gapMaxMs": 283.2,
+        "jank50": 60,
+        "longTaskMs": 173,
+        "blankSettleMs": 146,
+        "blankFramesDuringScroll": 2,
+        "mountedPages": 60,
+        "domNodes": 982
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:52:23.805Z"
+    },
+    "S7|desktop|a0-vektor|desktop": {
+      "metrics": {
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 38,
+        "sharpRatio": 1,
+        "sharpMs": 11,
+        "blankFrames": 0,
+        "maxZoomPercent": 42,
+        "levels": "[{\"zoom\":42,\"sharpMs\":11,\"ratio\":1,\"mp\":10,\"mb\":38}]"
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:52:26.162Z"
+    },
+    "S7|desktop|tarama-a3|desktop": {
+      "metrics": {
+        "canvasMaxMP": 10,
+        "canvasBytesMB": 228.3,
+        "sharpRatio": 1,
+        "sharpMs": 5,
+        "blankFrames": 0,
+        "maxZoomPercent": 118,
+        "levels": "[{\"zoom\":118,\"sharpMs\":5,\"ratio\":1,\"mp\":10,\"mb\":228.3}]"
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:52:27.617Z"
+    },
+    "S8|desktop|karisik-60|desktop": {
+      "metrics": {
+        "heapGrowthMB": 0.7,
+        "canvasBytesMB": 277.9,
+        "mountedPages": 60
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:53:33.189Z"
+    },
+    "S9|desktop|karisik-60|desktop": {
+      "metrics": {
+        "reloads": 1,
+        "scrollDriftPx": 0,
+        "blankFrames": 0
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:53:35.076Z"
+    },
+    "S12|desktop|karisik-60|desktop": {
+      "metrics": {
+        "zoomPercentChanges": 3
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:53:43.464Z"
+    },
+    "S13|desktop|karisik-60|desktop": {
+      "metrics": {
+        "canvasBytesMBHidden": 292.1
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:53:46.815Z"
+    },
+    "S14|desktop|metin-1000|desktop": {
+      "metrics": {
+        "gapP95Ms": 183.5,
+        "gapMaxMs": 216.7
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:03.619Z"
+    },
+    "S1|mobile|tr-metin|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 880,
+        "sharpMs": 2,
+        "longTaskMs": 0,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 5.8,
+        "mountedPages": 2,
+        "domNodes": 293
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:05.282Z"
+    },
+    "S1|mobile|karisik-60|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 882,
+        "sharpMs": 14,
+        "longTaskMs": 0,
+        "canvasMaxMP": 6,
+        "canvasBytesMB": 40.2,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:06.749Z"
+    },
+    "S1|mobile|metin-1000|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 5585,
+        "sharpMs": 17,
+        "longTaskMs": 80,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 20.2,
+        "mountedPages": 1000,
+        "domNodes": 8910
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:12.796Z"
+    },
+    "S1|mobile|a0-vektor|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 1389,
+        "sharpMs": 2,
+        "longTaskMs": 0,
+        "canvasMaxMP": 3.6,
+        "canvasBytesMB": 13.6,
+        "mountedPages": 1,
+        "domNodes": 1027
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:14.681Z"
+    },
+    "S1|mobile|tarama-a3|mobile": {
+      "metrics": {
+        "scrollTopPx": 1,
+        "ttfrMs": 880,
+        "sharpMs": 2,
+        "longTaskMs": 0,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 17.4,
+        "mountedPages": 6,
+        "domNodes": 276
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:16.115Z"
+    },
+    "S2|mobile|karisik-60|mobile": {
+      "metrics": {
+        "blankFrames": 56,
+        "longTaskMs": 60,
+        "gapMaxMs": 150,
+        "gapP95Ms": 133.3,
+        "jank50": 19,
+        "anchorDriftPx": 259.28,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:54:41.647Z"
+    },
+    "S2|mobile|metin-1000|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "longTaskMs": 439,
+        "gapMaxMs": 583.3,
+        "gapP95Ms": 383.3,
+        "jank50": 135,
+        "anchorDriftPx": 189.19,
+        "sharpMs": 11
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:16.712Z"
+    },
+    "S4|mobile|metin-1000|mobile": {
+      "metrics": {
+        "gapP95Ms": 116.6,
+        "gapMaxMs": 150.1,
+        "jank50": 30,
+        "longTaskMs": 71,
+        "blankSettleMs": 99999,
+        "blankFramesDuringScroll": 461,
+        "mountedPages": 1000,
+        "domNodes": 9294
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:35.141Z"
+    },
+    "S4|mobile|karisik-60|mobile": {
+      "metrics": {
+        "gapP95Ms": 33.3,
+        "gapMaxMs": 83.3,
+        "jank50": 1,
+        "longTaskMs": 0,
+        "blankSettleMs": 612,
+        "blankFramesDuringScroll": 141,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:39.283Z"
+    },
+    "S5|mobile|tr-metin:out|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 183.91,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 0,
+        "gapMaxMs": 33.4,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:51.650Z"
+    },
+    "S5|mobile|tr-metin:in|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 183.91,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.352,
+        "longTaskMs": 0,
+        "gapMaxMs": 16.8,
+        "sharpMs": 16
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:53.999Z"
+    },
+    "S5|mobile|tr-metin:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 166.36,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 0,
+        "gapMaxMs": 33.4,
+        "sharpMs": 13
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:55:56.385Z"
+    },
+    "S5|mobile|karisik-60:out|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 0.65,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 138,
+        "gapMaxMs": 183.4,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:56:09.748Z"
+    },
+    "S5|mobile|karisik-60:in|mobile": {
+      "metrics": {
+        "blankFrames": 31,
+        "anchorDriftPx": 86.56,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.355,
+        "longTaskMs": 0,
+        "gapMaxMs": 133.2,
+        "sharpMs": 4
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:56:12.582Z"
+    },
+    "S5|mobile|karisik-60:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 59.98,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 95,
+        "gapMaxMs": 100,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:56:25.682Z"
+    },
+    "S5|mobile|metin-1000:out|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 0.52,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 118,
+        "gapMaxMs": 200,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:56:49.349Z"
+    },
+    "S5|mobile|metin-1000:in|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 0.24,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.352,
+        "longTaskMs": 112,
+        "gapMaxMs": 166.7,
+        "sharpMs": 9
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:03.065Z"
+    },
+    "S5|mobile|metin-1000:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 59.6,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 120,
+        "gapMaxMs": 200,
+        "sharpMs": 5
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:16.561Z"
+    },
+    "S6|mobile|tr-metin|mobile": {
+      "metrics": {
+        "anchorDriftPx": 231.29,
+        "blankFrames": 0,
+        "fitReturnErrorPx": 0
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:19.061Z"
+    },
+    "S7|mobile|a0-vektor|mobile": {
+      "metrics": {
+        "canvasMaxMP": 3.6,
+        "canvasBytesMB": 13.6,
+        "sharpRatio": 1,
+        "sharpMs": 11,
+        "blankFrames": 0,
+        "maxZoomPercent": 25,
+        "levels": "[{\"zoom\":25,\"sharpMs\":11,\"ratio\":1,\"mp\":3.6,\"mb\":13.6}]"
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:20.856Z"
+    },
+    "S7|mobile|tarama-a3|mobile": {
+      "metrics": {
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 17.4,
+        "sharpRatio": 1,
+        "sharpMs": 13,
+        "blankFrames": 0,
+        "maxZoomPercent": 33,
+        "levels": "[{\"zoom\":33,\"sharpMs\":13,\"ratio\":1,\"mp\":0.8,\"mb\":17.4}]"
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:22.116Z"
+    },
+    "S8|mobile|karisik-60|mobile": {
+      "metrics": {
+        "heapGrowthMB": 3.2,
+        "canvasBytesMB": 40.8,
+        "mountedPages": 60
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:49.832Z"
+    },
+    "S11|mobile|karisik-60|mobile": {
+      "metrics": {
+        "topAnchorFyDelta": 0.091,
+        "customZoomPercentChange": 0,
+        "fitModePreserved": 0
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:52.507Z"
+    },
+    "S12|mobile|karisik-60|mobile": {
+      "metrics": {
+        "zoomPercentChanges": 11
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:57:59.303Z"
+    },
+    "S13|mobile|karisik-60|mobile": {
+      "metrics": {
+        "canvasBytesMBHidden": 43.1
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:58:02.057Z"
+    },
+    "S10|desktop|tr-metin|compat": {
+      "metrics": {
+        "firstPageRendered": 0,
+        "inkPixels": 0,
+        "pageErrors": 1,
+        "workerPreludeSeen": 0,
+        "firstError": "PDF yükleme hatası: TypeError: Promise.withResolvers is not a function\n    at <instance_members_initializer> (http://127.0.0.1:3000/vendor/pdfjs/pdf.min.mjs:26:252173)\n    at new PDFDocumentLoadingTask (http://127.0.0.1:3000/vendor/pdfjs/pdf.min.mjs:26:252112)\n    at Module.getDocument (http://127.0.0.1:3000/vendor/pdfjs/pdf.min.mjs:26:247745)\n    at l (http://127.0.0.1:3000/_next/static/chunks/248.2437dc99cb27f084.js:1:908)\n    at async http://127.0.0.1:3000/_next/static/chunks/7112.76b6294db3bb0729.js:1:97364"
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:36.838Z"
+    },
+    "S1|desktop|tr-metin|webkit": {
+      "metrics": {
+        "scrollTopPx": 239,
+        "ttfrMs": 889,
+        "sharpMs": 57,
+        "longTaskMs": 0,
+        "canvasMaxMP": 8.9,
+        "canvasBytesMB": 68.1,
+        "mountedPages": 2,
+        "domNodes": 293
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:39.394Z"
+    },
+    "S1|desktop|karisik-60|webkit": {
+      "metrics": {
+        "scrollTopPx": 239,
+        "ttfrMs": 910,
+        "sharpMs": 118,
+        "longTaskMs": 0,
+        "canvasMaxMP": 8.9,
+        "canvasBytesMB": 68.8,
+        "mountedPages": 60,
+        "domNodes": 1080
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:41.203Z"
+    },
+    "S1|desktop|metin-1000|webkit": {
+      "metrics": {
+        "scrollTopPx": 239,
+        "ttfrMs": 3034,
+        "sharpMs": 16,
+        "longTaskMs": 0,
+        "canvasMaxMP": 8.9,
+        "canvasBytesMB": 136.6,
+        "mountedPages": 1000,
+        "domNodes": 8236
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:44.987Z"
+    },
+    "S1|desktop|a0-vektor|webkit": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 1931,
+        "sharpMs": 63,
+        "longTaskMs": 0,
+        "canvasMaxMP": 8.9,
+        "canvasBytesMB": 34,
+        "mountedPages": 1,
+        "domNodes": 1027
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:47.662Z"
+    },
+    "S1|desktop|tarama-a3|webkit": {
+      "metrics": {
+        "scrollTopPx": 77,
+        "ttfrMs": 1799,
+        "sharpMs": 855,
+        "longTaskMs": 0,
+        "canvasMaxMP": 8.9,
+        "canvasBytesMB": 136.7,
+        "mountedPages": 6,
+        "domNodes": 284
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T10:59:51.029Z"
+    },
+    "S4|desktop|metin-1000|webkit": {
+      "metrics": {
+        "gapP95Ms": 189,
+        "gapMaxMs": 253,
+        "jank50": 41,
+        "longTaskMs": 0,
+        "blankSettleMs": 110,
+        "blankFramesDuringScroll": 0,
+        "mountedPages": 1000,
+        "domNodes": 9296
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T11:00:02.247Z"
+    },
+    "S4|desktop|karisik-60|webkit": {
+      "metrics": {
+        "gapP95Ms": 128,
+        "gapMaxMs": 212,
+        "jank50": 111,
+        "longTaskMs": 0,
+        "blankSettleMs": 99999,
+        "blankFramesDuringScroll": 96,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 1,
+      "ts": "2026-10-07T11:00:15.879Z"
+    },
+    "S1|mobile-throttled|tr-metin|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 894,
+        "sharpMs": 13,
+        "longTaskMs": 0,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 5.8,
+        "mountedPages": 2,
+        "domNodes": 293
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:01:37.546Z"
+    },
+    "S1|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 874,
+        "sharpMs": 15,
+        "longTaskMs": 0,
+        "canvasMaxMP": 6,
+        "canvasBytesMB": 40.2,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:01:39.081Z"
+    },
+    "S1|mobile-throttled|metin-1000|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 6104,
+        "sharpMs": 2,
+        "longTaskMs": 85,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 17.3,
+        "mountedPages": 1000,
+        "domNodes": 8814
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:01:45.654Z"
+    },
+    "S1|mobile-throttled|a0-vektor|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 1391,
+        "sharpMs": 1,
+        "longTaskMs": 0,
+        "canvasMaxMP": 3.6,
+        "canvasBytesMB": 13.6,
+        "mountedPages": 1,
+        "domNodes": 1027
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:01:47.563Z"
+    },
+    "S1|mobile-throttled|tarama-a3|mobile": {
+      "metrics": {
+        "scrollTopPx": 0,
+        "ttfrMs": 888,
+        "sharpMs": 12,
+        "longTaskMs": 0,
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 17.4,
+        "mountedPages": 6,
+        "domNodes": 276
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:01:49.097Z"
+    },
+    "S2|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "blankFrames": 53,
+        "longTaskMs": 61,
+        "gapMaxMs": 150,
+        "gapP95Ms": 133.3,
+        "jank50": 19,
+        "anchorDriftPx": 259.28,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:02:14.896Z"
+    },
+    "S2|mobile-throttled|metin-1000|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "longTaskMs": 438,
+        "gapMaxMs": 583.3,
+        "gapP95Ms": 316.6,
+        "jank50": 130,
+        "anchorDriftPx": 189.19,
+        "sharpMs": 11
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:02:51.266Z"
+    },
+    "S4|mobile-throttled|metin-1000|mobile": {
+      "metrics": {
+        "gapP95Ms": 150,
+        "gapMaxMs": 166.7,
+        "jank50": 52,
+        "longTaskMs": 61,
+        "blankSettleMs": 2852,
+        "blankFramesDuringScroll": 147,
+        "mountedPages": 1000,
+        "domNodes": 9300
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:06.408Z"
+    },
+    "S4|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "gapP95Ms": 33.3,
+        "gapMaxMs": 50,
+        "jank50": 0,
+        "longTaskMs": 0,
+        "blankSettleMs": 8,
+        "blankFramesDuringScroll": 116,
+        "mountedPages": 60,
+        "domNodes": 1072
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:09.893Z"
+    },
+    "S5|mobile-throttled|tr-metin:out|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 183.91,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 196,
+        "gapMaxMs": 266.6,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:23.549Z"
+    },
+    "S5|mobile-throttled|tr-metin:in|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 183.91,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.352,
+        "longTaskMs": 53,
+        "gapMaxMs": 116.6,
+        "sharpMs": 1
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:26.864Z"
+    },
+    "S5|mobile-throttled|tr-metin:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 166.36,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 194,
+        "gapMaxMs": 266.6,
+        "sharpMs": 1
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:30.429Z"
+    },
+    "S5|mobile-throttled|karisik-60:out|mobile": {
+      "metrics": {
+        "blankFrames": 5,
+        "anchorDriftPx": 0.65,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 419,
+        "gapMaxMs": 533.3,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:03:52.633Z"
+    },
+    "S5|mobile-throttled|karisik-60:in|mobile": {
+      "metrics": {
+        "blankFrames": 5,
+        "anchorDriftPx": 0.61,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.355,
+        "longTaskMs": 100,
+        "gapMaxMs": 166.8,
+        "sharpMs": 34
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:04:05.551Z"
+    },
+    "S5|mobile-throttled|karisik-60:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 5,
+        "anchorDriftPx": 59.98,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 324,
+        "gapMaxMs": 416.7,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:04:27.614Z"
+    },
+    "S5|mobile-throttled|metin-1000:out|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 0.52,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 955,
+        "gapMaxMs": 1200,
+        "sharpMs": 99999
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:06:13.024Z"
+    },
+    "S5|mobile-throttled|metin-1000:in|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 0.24,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0.352,
+        "longTaskMs": 1029,
+        "gapMaxMs": 1116.6,
+        "sharpMs": 61
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:07:51.307Z"
+    },
+    "S5|mobile-throttled|metin-1000:diag-pan|mobile": {
+      "metrics": {
+        "blankFrames": 0,
+        "anchorDriftPx": 59.6,
+        "browserZoomDelta": 0,
+        "scaleRatioError": 0,
+        "longTaskMs": 1279,
+        "gapMaxMs": 1233.2,
+        "sharpMs": 57
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:09:32.266Z"
+    },
+    "S6|mobile-throttled|tr-metin|mobile": {
+      "metrics": {
+        "anchorDriftPx": 231.29,
+        "blankFrames": 0,
+        "fitReturnErrorPx": 0
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:09:34.782Z"
+    },
+    "S7|mobile-throttled|a0-vektor|mobile": {
+      "metrics": {
+        "canvasMaxMP": 3.6,
+        "canvasBytesMB": 13.6,
+        "sharpRatio": 1,
+        "sharpMs": 10,
+        "blankFrames": 0,
+        "maxZoomPercent": 25,
+        "levels": "[{\"zoom\":25,\"sharpMs\":10,\"ratio\":1,\"mp\":3.6,\"mb\":13.6}]"
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:09:37.084Z"
+    },
+    "S7|mobile-throttled|tarama-a3|mobile": {
+      "metrics": {
+        "canvasMaxMP": 0.8,
+        "canvasBytesMB": 17.4,
+        "sharpRatio": 1,
+        "sharpMs": 13,
+        "blankFrames": 0,
+        "maxZoomPercent": 33,
+        "levels": "[{\"zoom\":33,\"sharpMs\":13,\"ratio\":1,\"mp\":0.8,\"mb\":17.4}]"
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:09:38.346Z"
+    },
+    "S8|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "heapGrowthMB": 3.8,
+        "canvasBytesMB": 28.7,
+        "mountedPages": 60
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:11:26.372Z"
+    },
+    "S11|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "topAnchorFyDelta": 0.091,
+        "customZoomPercentChange": 0,
+        "fitModePreserved": 0
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:11:28.843Z"
+    },
+    "S12|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "zoomPercentChanges": 8
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:11:35.495Z"
+    },
+    "S13|mobile-throttled|karisik-60|mobile": {
+      "metrics": {
+        "canvasBytesMBHidden": 40.2
+      },
+      "build": "prod",
+      "cpu": 4,
+      "ts": "2026-10-07T11:11:38.206Z"
+    }
+  }
+}

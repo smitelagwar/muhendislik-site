@@ -35,6 +35,7 @@ import { PdfPageScrubber } from "./pdf-page-scrubber";
 import { PdfViewerToolbar } from "./pdf-viewer-toolbar";
 import { PdfPasswordModal } from "./pdf-password-modal";
 import { PdfShortcutsModal } from "./pdf-shortcuts-modal";
+import { PdfDebugHud, usePdfDebugFlag } from "./pdf-debug-hud";
 import { pdfViewerStrings } from "./strings";
 import { pdfRenderQueue } from "@/lib/dokumantasyon/studio/pdf/pdf-render-queue";
 import {
@@ -109,6 +110,7 @@ export function PdfJsStudio({
   onRename,
   onDelete,
 }: PdfJsStudioProps) {
+  const debugHud = usePdfDebugFlag();
   const viewerRootRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1567,6 +1569,7 @@ export function PdfJsStudio({
       data-night={nightMode || undefined}
       data-pseudo-fs={pseudoFullscreen || undefined}
       data-pdf-viewer-state={viewerState}
+      data-pdf-engine="v3"
       aria-label={pdfViewerStrings.viewer}
       onPointerDownCapture={(event) => {
         const target = event.target as HTMLElement;
@@ -1879,6 +1882,7 @@ export function PdfJsStudio({
           onClose={() => setIsShortcutsModalOpen(false)}
         />
       </div>
+      {debugHud && <PdfDebugHud />}
     </div>
   );
 }
