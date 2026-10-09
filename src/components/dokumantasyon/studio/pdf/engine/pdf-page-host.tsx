@@ -176,8 +176,12 @@ export function PdfPageHost({
       if (bCanvas) {
         bCanvas.width = cached.width;
         bCanvas.height = cached.height;
-        const ctx = bCanvas.getContext("2d", { alpha: false });
-        if (ctx) ctx.drawImage(cached, 0, 0);
+        const ctx = bCanvas.getContext("2d");
+        if (ctx) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.clearRect(0, 0, cached.width, cached.height);
+          ctx.drawImage(cached, 0, 0);
+        }
         setHasBackdrop(true);
       }
       return;
@@ -201,7 +205,7 @@ export function PdfPageHost({
         const bCanvas = document.createElement("canvas");
         bCanvas.width = Math.max(1, Math.ceil(bVp.width));
         bCanvas.height = Math.max(1, Math.ceil(bVp.height));
-        const bCtx = bCanvas.getContext("2d", { alpha: false });
+        const bCtx = bCanvas.getContext("2d");
         if (!bCtx) return;
 
         const renderTask = pageProxy.render({
@@ -227,8 +231,12 @@ export function PdfPageHost({
           if (target) {
             target.width = bCanvas.width;
             target.height = bCanvas.height;
-            const ctx = target.getContext("2d", { alpha: false });
-            if (ctx) ctx.drawImage(bCanvas, 0, 0);
+            const ctx = target.getContext("2d");
+            if (ctx) {
+              ctx.setTransform(1, 0, 0, 1, 0, 0);
+              ctx.clearRect(0, 0, bCanvas.width, bCanvas.height);
+              ctx.drawImage(bCanvas, 0, 0);
+            }
             setHasBackdrop(true);
           }
         } catch (e: any) {
@@ -355,12 +363,14 @@ export function PdfPageHost({
           const bufW = tile.w + 2 * g;
           const bufH = tile.h + 2 * g;
           const buf = engine.pool.acquire(bufW, bufH);
-          const bufCtx = buf.getContext("2d", { alpha: false });
+          const bufCtx = buf.getContext("2d");
           if (!bufCtx) {
             engine.pool.release(buf);
             engine.governor.onAllocFailure();
             return;
           }
+          bufCtx.setTransform(1, 0, 0, 1, 0, 0);
+          bufCtx.clearRect(0, 0, bufW, bufH);
 
           const vp = pageProxy.getViewport({ scale: genScale, rotation });
           const transform = [o, 0, 0, o, -(tile.x - g), -(tile.y - g)];
@@ -390,7 +400,7 @@ export function PdfPageHost({
             const tCanvas = document.createElement("canvas");
             tCanvas.width = tile.w;
             tCanvas.height = tile.h;
-            const tCtx = tCanvas.getContext("2d", { alpha: false });
+            const tCtx = tCanvas.getContext("2d");
             if (tCtx) {
               tCtx.drawImage(buf, g, g, tile.w, tile.h, 0, 0, tile.w, tile.h);
             }
@@ -506,6 +516,8 @@ export function PdfPageHost({
           width: "100%",
           height: "100%",
           zIndex: 1,
+          opacity: hasBackdrop ? 1 : 0,
+          pointerEvents: "none",
           filter: nightMode ? "invert(1) hue-rotate(180deg)" : undefined,
         }}
       />
