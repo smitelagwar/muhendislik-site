@@ -180,6 +180,10 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - `/belgeler` belge önizlemeleri, `pdfjs-dist` 6.x self-hosted ESM core ve worker modüllerini `public/vendor/pdfjs/` altında kullanır; CMap, standart font, image decoder ve WASM varlıkları da aynı yerel ağaçtan yüklenir.
 - Beş belge stüdyosu `src/lib/pdfjs-client.ts` ortak yükleyicisini kullanır. PDF.js loading task'leri yeni önizleme açılırken ve stüdyo kapanırken kapatılır. CDN fallback kullanılmaz.
 - Vendor dağıtımında PDF.js Apache lisansı ve ilgili font/CMap/WASM lisans dosyaları korunur.
+- Dokümantasyon PDF Stüdyosu v4 motoru (`src/lib/dokumantasyon/studio/pdf/engine/`) `setPageKeys` ile görünür backdrop/sharp tile anahtarlarını `Governor` tahliyesinden korur; sekme dönüşünde (`visibilitychange`) bütçeyi `%100`'e döndürüp `refresh` olayıyla sıfırlanmış tuvaller yeniden çizilir.
+- Yüksek yakınlaştırmada (`tiles` modu) `view` olayı ve `viewTick` ile sayfa içi kaydırmada yeni görünür tile'lar dinamik seçilir; `maxScale` hesabı `sizesVersion` ile önbelleklenir ve düşük ölçekte mount edilen sayfa aralığı üst sınırla (`cap = 14 / 30`) tutulur.
+- Sayfa döndürme (`setRotation`) ve mobil üst bar yüksekliği (`refreshPaddingTop`) motoru yeniden yaratmadan yerinde uygulanır; `getFitScale` v4'te etkin sayfanın gerçek boyutunu (`getPageSize`) kullanır ve `PdfPageHost` dinamik DPR değişimini (`useDpr`) izler.
+- Klavye kısayolları (`Ctrl+Shift+-`, `PageUp/PageDown/Space/Home/End/Oklar`, `Space` basılı tutma el aracı, `F4` kenar çubuğu, imleç çıpalı `Ctrl+±` zoom) ve mobil dokunmatik ayrımı (`data-chrome-hidden`, kaydırma vs tek/çift dokunma, pinch lastik bant, jest sırasında 400 ms kalkan ve jest sonrası 250 ms programatik kaydırma koruması) `tests/pdf-v4/v5*` paketiyle doğrulanır.
 
 ---
 

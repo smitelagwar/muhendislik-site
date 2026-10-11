@@ -181,7 +181,7 @@ export function PdfHighlightLayer({
     layer.innerHTML = computedRects
       .map(
         (r) =>
-          `<mark data-match-active="${r.isActive ? "true" : "false"}" class="absolute pointer-events-none transition-colors duration-150 rounded-xs ${
+          `<mark data-match-active="${r.isActive ? "true" : "false"}"${r.isActive ? ' data-active-match="true"' : ""} class="absolute pointer-events-none transition-colors duration-150 rounded-xs ${
             r.isActive ? "pdf-search-mark pdf-search-mark-active z-10" : "pdf-search-mark z-0"
           }" style="left:${(r.leftRatio * 100).toFixed(3)}%;top:${(r.topRatio * 100).toFixed(3)}%;width:${(r.widthRatio * 100).toFixed(3)}%;height:${(r.heightRatio * 100).toFixed(3)}%;"></mark>`
       )

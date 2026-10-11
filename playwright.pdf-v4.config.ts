@@ -28,12 +28,12 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: ["**/s05-*", "**/s06-*", "**/s11-*", "**/s10-*"],
+      testIgnore: ["**/s05-*", "**/s06-*", "**/s11-*", "**/s10-*", "**/v5m-*"],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 800 }, deviceScaleFactor: 2 },
     },
     {
       name: "mobile",
-      testMatch: ["**/s01-*", "**/s02-*", "**/s04-*", "**/s05-*", "**/s06-*", "**/s07-*", "**/s08-*", "**/s11-*", "**/s12-*", "**/s13-*"],
+      testMatch: ["**/s01-*", "**/s02-*", "**/s04-*", "**/s05-*", "**/s06-*", "**/s07-*", "**/s08-*", "**/s11-*", "**/s12-*", "**/s13-*", "**/v5m-*"],
       use: {
         // Chromium + CDP dokunma (Safari davranışı ayrı "webkit" projesinde duman olarak).
         // Uygulamada UA koklaması yok; iPhone 13 ölçüleri (390x844, DPR3) kullanılır.

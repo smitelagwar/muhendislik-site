@@ -31,13 +31,19 @@ export async function printPdfBytes(
   f.setAttribute("data-testid", "pdf-print-iframe");
   Object.assign(f.style, {
     position: "fixed",
-    right: "0",
-    bottom: "0",
-    width: "0",
-    height: "0",
+    left: "-10000px",
+    top: "0",
+    width: "210mm",
+    height: "297mm",
     border: "0",
-    visibility: "hidden",
+    opacity: "0",
+    pointerEvents: "none",
   });
+
+  const cleanup = () => {
+    f.remove();
+    URL.revokeObjectURL(url);
+  };
 
   f.onload = () => {
     try {
@@ -51,11 +57,9 @@ export async function printPdfBytes(
   f.src = url;
   document.body.appendChild(f);
 
-  const cleanup = () => {
-    f.remove();
-    URL.revokeObjectURL(url);
-  };
-
   window.addEventListener("afterprint", cleanup, { once: true });
-  setTimeout(cleanup, 5 * 60_000);
+  try {
+    f.contentWindow?.addEventListener("afterprint", cleanup, { once: true });
+  } catch {}
+  setTimeout(cleanup, 20 * 60_000);
 }

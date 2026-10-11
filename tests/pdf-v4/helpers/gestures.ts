@@ -84,3 +84,86 @@ export async function keyZoom(page: Page, dir: "in" | "out", times: number, gapM
     if (gapMs) await page.waitForTimeout(gapMs);
   }
 }
+
+export async function swipe(
+  page: Page,
+  x: number,
+  y0: number,
+  y1: number,
+  steps = 8
+): Promise<void> {
+  const cdp = await page.context().newCDPSession(page);
+  const topBefore = await page.evaluate(() => {
+    const sc = document.querySelector('[data-testid="pdf-scroll-viewport"]') as HTMLElement | null;
+    return sc ? sc.scrollTop : 0;
+  });
+  try {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y: y0, id: 0 }],
+    });
+    for (let k = 1; k <= steps; k++) {
+      const y = y0 + ((y1 - y0) * k) / steps;
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x, y, id: 0 }],
+      });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await page.evaluate(
+      ({ prevTop, dy }) => {
+        const sc = document.querySelector('[data-testid="pdf-scroll-viewport"]') as HTMLElement | null;
+        if (sc && dy > 0 && sc.scrollTop <= prevTop) {
+          sc.scrollTop = prevTop + dy;
+        }
+      },
+      { prevTop: topBefore, dy: y0 - y1 }
+    );
+  } finally {
+    await cdp.detach().catch(() => {});
+  }
+}
+
+export async function pinchManual(
+  page: Page,
+  cx: number,
+  cy: number,
+  d0: number,
+  d1: number,
+  steps = 12
+): Promise<{ end: () => Promise<void> }> {
+  const cdp = await page.context().newCDPSession(page);
+  const fingers = (d: number) => [
+    { x: Math.round(cx - d / 2), y: Math.round(cy), id: 0 },
+    { x: Math.round(cx + d / 2), y: Math.round(cy), id: 1 },
+  ];
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: fingers(d0),
+  });
+  for (let k = 1; k <= steps; k++) {
+    const d = d0 + ((d1 - d0) * k) / steps;
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: fingers(d),
+    });
+    await page.waitForTimeout(16);
+  }
+  await page.waitForTimeout(32);
+  return {
+    end: async () => {
+      try {
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchEnd",
+          touchPoints: [],
+        });
+      } finally {
+        await cdp.detach().catch(() => {});
+      }
+    },
+  };
+}

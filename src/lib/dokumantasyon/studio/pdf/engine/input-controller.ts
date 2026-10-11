@@ -99,7 +99,7 @@ export function useInputController(
 
   // Dokunma ve jest durumları
   const suppressTapsUntilRef = useRef<number>(0);
-  const lockTimerRef = useRef<any>(null);
+  const lockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize animator & scroll tracker
   useEffect(() => {
@@ -132,9 +132,9 @@ export function useInputController(
     if (!animator) return;
 
     let pendingTarget: number | null = null;
-    let notchTimer: any = null;
+    let notchTimer: ReturnType<typeof setTimeout> | null = null;
     let liveTarget: number | null = null;
-    let settleTimer: any = null;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
     let activeWheelAnchor: { anchor: DocAnchor; vx: number; vy: number } | null = null;
     let coalesceRaf = 0;
 
@@ -167,6 +167,7 @@ export function useInputController(
         }, 200);
       } else {
         // Trackpad sürekli jest: animasyonsuz doğrudan canlı ölçek
+        animator.stop();
         liveTarget = engine.clampScale((liveTarget ?? engine.getScale()) * f);
         engine.setInteraction("gesture");
 
@@ -250,7 +251,7 @@ export function useInputController(
       }
 
       if (anchor) {
-        engine.setLiveScale(latestState.s, anchor, latestState.vx, latestState.vy);
+        engine.setLiveScale(latestState.s, anchor, latestState.vx, latestState.vy, true);
       }
 
       const curScale = engine.getScale();
@@ -268,6 +269,8 @@ export function useInputController(
         optsRef.current.onSettle?.(engine.getScale());
         scroller.removeAttribute("data-zooming");
       } else {
+        engine.settleScale();
+        engine.setInteraction("idle");
         scroller.removeAttribute("data-zooming");
       }
     };
@@ -286,6 +289,7 @@ export function useInputController(
         // Girdi kutusunda başlamışsa karışma
         const target = e.target as HTMLElement | null;
         if (target?.closest("input, textarea, select")) return;
+        if (e.cancelable) e.preventDefault();
 
         lockScroll();
         animator.stop();
@@ -311,6 +315,7 @@ export function useInputController(
 
     const onTouchMove = (e: TouchEvent) => {
       if (!active || e.touches.length !== 2 || !anchor) return;
+      if (e.cancelable) e.preventDefault();
 
       const [t1, t2] = [e.touches[0], e.touches[1]];
       const d = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY) || 1;
@@ -326,7 +331,7 @@ export function useInputController(
       if (coalesceRaf) cancelAnimationFrame(coalesceRaf);
       coalesceRaf = requestAnimationFrame(() => {
         coalesceRaf = 0;
-        engine.setLiveScale(latestState.s, anchor!, latestState.vx, latestState.vy);
+        engine.setLiveScale(latestState.s, anchor!, latestState.vx, latestState.vy, true);
       });
     };
 
@@ -350,8 +355,8 @@ export function useInputController(
       unlockScroll();
     };
 
-    scroller.addEventListener("touchstart", onTouchStart, { passive: true });
-    scroller.addEventListener("touchmove", onTouchMove, { passive: true });
+    scroller.addEventListener("touchstart", onTouchStart, { passive: false });
+    scroller.addEventListener("touchmove", onTouchMove, { passive: false });
     scroller.addEventListener("touchend", onTouchEnd, { passive: true });
     scroller.addEventListener("touchcancel", onTouchCancel, { passive: true });
     window.addEventListener("touchcancel", onTouchCancel, { passive: true });
@@ -376,9 +381,50 @@ export function useInputController(
 
     let lastTapTime = 0;
     let lastTapPos = { x: 0, y: 0 };
-    let tapTimer: any = null;
+    let tapTimer: ReturnType<typeof setTimeout> | null = null;
+    let start: { x: number; y: number; t: number } | null = null;
+    let moved = false;
+    let multi = false;
+    const MOVE_PX = 10;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        multi = true;
+        return;
+      }
+      start = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        t: performance.now(),
+      };
+      moved = false;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!start || e.touches.length !== 1) return;
+      if (
+        Math.hypot(e.touches[0].clientX - start.x, e.touches[0].clientY - start.y) >
+        MOVE_PX
+      ) {
+        moved = true;
+      }
+    };
 
     const onTouchEnd = (e: TouchEvent) => {
+      const wasMulti = multi;
+      if (e.touches.length === 0) multi = false;
+      if (wasMulti || moved || !start || performance.now() - start.t > 350) {
+        // kaydırma/uzun basış/çok parmak: dokunma değildir ve çift dokunma dizisini bozar
+        lastTapTime = 0;
+        if (tapTimer) {
+          clearTimeout(tapTimer);
+          tapTimer = null;
+        }
+        start = null;
+        return;
+      }
+      start = null;
+
       if (optsRef.current.disabled) return;
       if (performance.now() < suppressTapsUntilRef.current) return;
       if (e.changedTouches.length !== 1) return;
@@ -406,12 +452,16 @@ export function useInputController(
       }
     };
 
+    scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroller.addEventListener("touchmove", onTouchMove, { passive: true });
     scroller.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
+      scroller.removeEventListener("touchstart", onTouchStart);
+      scroller.removeEventListener("touchmove", onTouchMove);
       scroller.removeEventListener("touchend", onTouchEnd);
       if (tapTimer) clearTimeout(tapTimer);
     };
-  }, [scrollContainerRef]);
+  }, [engine, scrollContainerRef]);
 
   // Programatik zoomTo API'si (v3 imza adaptörü)
   const zoomTo = useCallback(

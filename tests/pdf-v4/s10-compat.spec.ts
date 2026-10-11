@@ -16,7 +16,8 @@ test("S10 uyumluluk — silinmiş API'lerle PDF açılır", async ({ page, conte
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 
   let rendered = 1;
-  try { await openPdf(page, "tr-metin"); await waitSharp(page); } catch { rendered = 0; }
+  let openError: string | null = null;
+  try { await openPdf(page, "tr-metin"); await waitSharp(page); } catch (error) { rendered = 0; openError = String(error); }
   // "rendered" ama BEYAZ olabilir: legacy build'de transferToFixedLength yoksa glifler sessizce çizilmez.
   const ink = rendered ? await inkPixels(page, 1) : 0;
 
@@ -24,7 +25,7 @@ test("S10 uyumluluk — silinmiş API'lerle PDF açılır", async ({ page, conte
   try {
     await expect.poll(() => page.workers().length, { timeout: 4_000 }).toBeGreaterThan(0);
     for (const w of page.workers()) {
-      if (await w.evaluate(() => (globalThis as any).__COMPAT_PRELUDE_RAN === true).catch(() => false)) preludeSeen = 1;
+      if (await w.evaluate(() => (globalThis as typeof globalThis & { __COMPAT_PRELUDE_RAN?: boolean }).__COMPAT_PRELUDE_RAN === true).catch(() => false)) preludeSeen = 1;
     }
   } catch {
     // Modern build'de silinmiş API'lerle worker başlatılamadı veya çöktü
@@ -35,6 +36,6 @@ test("S10 uyumluluk — silinmiş API'lerle PDF açılır", async ({ page, conte
     inkPixels: ink,
     pageErrors: fatal.length,
     workerPreludeSeen: preludeSeen, // 0 ise testin kendisi çalışmıyor demektir: worker'a ön ek enjekte edilemedi
-    firstError: fatal[0] ?? null,
+    firstError: fatal[0] ?? openError,
   });
 });

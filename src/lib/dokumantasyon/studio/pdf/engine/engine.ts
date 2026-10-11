@@ -8,11 +8,9 @@
 
 import {
   computeLayout,
-  pageAtY,
   visibleRange,
   currentPageOf,
   anchorFromPoint,
-  pointFromAnchor,
   scrollForAnchor,
   type Layout,
   type PageSizePt,
@@ -70,6 +68,10 @@ export class PdfEngine {
 
   private rawSizes: PageSizePt[] = [];
   private rotatedSizes: PageSizePt[] = [];
+  private sizesVersion = 0;
+  private maxScaleCache: { hCap: number; ver: number } | null = null;
+  private readonly isCoarse =
+    typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
   private rotation: number = 0;
   private viewW: number = 800;
   private viewH: number = 600;
@@ -80,18 +82,22 @@ export class PdfEngine {
   private range: { first: number; last: number } = { first: 1, last: 1 };
   private currentPage: number = 1;
   private interaction: "idle" | "scrolling" | "gesture" = "idle";
+  private gestureAt = 0;
 
   private pages = new Map<number, HTMLElement>();
+  private pageKeys = new Map<number, Set<string>>();
   private listeners = new Map<string, Set<() => void>>([
     ["range", new Set()],
     ["page", new Set()],
     ["scale", new Set()],
     ["layout", new Set()],
+    ["refresh", new Set()],
+    ["view", new Set()],
   ]);
 
   private rafScroll: number = 0;
   private animId: number = 0;
-  private zoomingTimer: any = null;
+  private zoomingTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(opts: EngineOptions) {
     this.scroller = opts.scroller;
@@ -112,7 +118,7 @@ export class PdfEngine {
     this.nowFn = opts.now ?? (() => performance.now());
 
     this.scheduler = new Scheduler(2);
-    this.governor = new Governor();
+    this.governor = new Governor(getDefaultGovernorConfig(this.isCoarse));
     this.pool = new CanvasPool();
 
     this.layout = computeLayout({
@@ -136,14 +142,20 @@ export class PdfEngine {
     return this.rotation;
   }
 
+  getPageSize(page1: number): { w: number; h: number } | null {
+    return this.rawSizes[page1 - 1] ?? null;
+  }
+
   setSizes(from: number, sizes: PageSizePt[]): void {
     const next = [...this.rawSizes];
     for (let i = 0; i < sizes.length; i++) {
       next[from - 1 + i] = sizes[i];
     }
     this.rawSizes = next;
+    this.sizesVersion++;
+    this.maxScaleCache = null;
     this.applyRotationToSizes();
-    this.applyLayoutChange("sizes");
+    this.applyLayoutChange();
   }
 
   setRotation(deg: number): void {
@@ -151,7 +163,7 @@ export class PdfEngine {
     if (this.rotation === rot) return;
     this.rotation = rot;
     this.applyRotationToSizes();
-    this.applyLayoutChange("rotation");
+    this.applyLayoutChange();
   }
 
   setViewport(w: number, h: number): void {
@@ -160,10 +172,15 @@ export class PdfEngine {
     this.viewW = Math.max(1, w);
     this.viewH = Math.max(1, h);
     if (widthChanged) {
-      this.applyLayoutChange("viewport");
+      this.applyLayoutChange();
     } else {
       this.updateRange();
     }
+  }
+
+  /** Mobil araç çubuğu yüksekliği veya yerleşim modu değişince üst boşluğu yeniden uygular (motor yeniden yaratılmaz). */
+  refreshPaddingTop(): void {
+    this.applyLayoutChange();
   }
 
   // --- Ölçek ve Zoom ---
@@ -181,8 +198,13 @@ export class PdfEngine {
   }
 
   maxScale(): number {
-    const hCap = maxScaleForHeight(this.rotatedSizes, this.gap, this.padding);
-    return Math.min(getMaxPdfScale(), hCap);
+    if (!this.maxScaleCache || this.maxScaleCache.ver !== this.sizesVersion) {
+      this.maxScaleCache = {
+        hCap: maxScaleForHeight(this.rotatedSizes, this.gap, this.padding),
+        ver: this.sizesVersion,
+      };
+    }
+    return Math.min(getMaxPdfScale(), this.maxScaleCache.hCap);
   }
 
   clampScale(s: number): number {
@@ -248,13 +270,17 @@ export class PdfEngine {
     this.updateRange();
     this.updateCurrent();
     this.emit("scale");
+    this.emit("view");
   }
 
   /**
    * Tek karelik senkron ölçekleme. Gesture veya animatör tarafından her rAF'ta çağrılır.
    */
-  setLiveScale(scale: number, anchor: DocAnchor, vx: number, vy: number): void {
-    this.scale = this.clampScale(scale);
+  setLiveScale(scale: number, anchor: DocAnchor, vx: number, vy: number, overshoot = false): void {
+    this.gestureAt = this.nowFn();
+    this.scale = overshoot
+      ? Math.min(Math.max(scale, this.minScale() * 0.8), this.maxScale() * 1.25)
+      : this.clampScale(scale);
 
     // data-zooming işaretini yerleştir
     this.scroller.setAttribute("data-zooming", "true");
@@ -293,7 +319,9 @@ export class PdfEngine {
    * Zoom durduğunda çağrılır: render ölçeğini terfi ettirir, data-zooming kaldırılır.
    */
   settleScale(): void {
+    this.gestureAt = this.nowFn();
     this.renderScale = this.scale;
+    this.setInteraction("idle", true);
     if (this.zoomingTimer) clearTimeout(this.zoomingTimer);
     this.zoomingTimer = setTimeout(() => {
       this.scroller.removeAttribute("data-zooming");
@@ -303,6 +331,7 @@ export class PdfEngine {
       this.applyBox(p1, el);
     }
     this.emit("scale");
+    this.emit("view");
   }
 
   async animateScale(
@@ -439,7 +468,11 @@ export class PdfEngine {
 
   // --- Durum ve Sorgular ---
 
-  setInteraction(s: "idle" | "scrolling" | "gesture"): void {
+  setInteraction(s: "idle" | "scrolling" | "gesture", force = false): void {
+    const now = this.nowFn();
+    if (s === "gesture") this.gestureAt = now;
+    else if (!force && this.interaction === "gesture" && now - this.gestureAt < 400) return; // jest sürerken scroll olayı durumu ezemez
+    else if (!force && s === "scrolling" && now - this.gestureAt < 250) return; // jest bitimindeki programatik scroll durumu bozamaz
     this.interaction = s;
     this.scheduler.setInteraction(s);
   }
@@ -458,11 +491,26 @@ export class PdfEngine {
 
   // --- Olaylar ---
 
-  subscribe(kind: "range" | "page" | "scale" | "layout", cb: () => void): () => void {
+  subscribe(kind: "range" | "page" | "scale" | "layout" | "refresh" | "view", cb: () => void): () => void {
     const set = this.listeners.get(kind);
     if (!set) return () => {};
     set.add(cb);
     return () => set.delete(cb);
+  }
+
+  /** Sayfanın ekranda tutulması gereken tile/backdrop anahtarlarını bildirir; governor bunları tahliye etmez. */
+  setPageKeys(page: number, keys: Iterable<string>): void {
+    this.pageKeys.set(page, new Set(keys));
+    const all = new Set<string>();
+    for (const s of this.pageKeys.values()) for (const k of s) all.add(k);
+    this.governor.setVisible(all);
+  }
+
+  clearPageKeys(page: number): void {
+    if (!this.pageKeys.delete(page)) return;
+    const all = new Set<string>();
+    for (const s of this.pageKeys.values()) for (const k of s) all.add(k);
+    this.governor.setVisible(all);
   }
 
   registerPage(page1: number, el: HTMLElement): () => void {
@@ -473,7 +521,7 @@ export class PdfEngine {
     };
   }
 
-  private scrollTimer: any = null;
+  private scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   dispose(): void {
     this.scroller.removeEventListener("scroll", this.onScroll);
@@ -494,22 +542,33 @@ export class PdfEngine {
     if (typeof document === "undefined") return;
     if (document.hidden) {
       this.scheduler.setInteraction("gesture");
-      this.governor.trimTo(0);
+      this.governor.setVisible([]);
+      this.governor.trimTo(0.25);
       this.pool.clear();
     } else {
+      const all = new Set<string>();
+      for (const s of this.pageKeys.values()) for (const k of s) all.add(k);
+      this.governor.setVisible(all);
+      this.governor.trimTo(1);
       this.scheduler.setInteraction("idle");
       this.emit("range");
+      this.emit("refresh");
     }
   };
 
   private onScroll = (): void => {
-    this.scheduler.setInteraction("scrolling");
-    if (this.scrollTimer) clearTimeout(this.scrollTimer);
-    this.scrollTimer = setTimeout(() => {
-      this.scheduler.setInteraction("idle");
-    }, 80);
+    if (this.nowFn() - this.gestureAt >= 250) {
+      this.setInteraction("scrolling");
+      if (this.scrollTimer) clearTimeout(this.scrollTimer);
+      this.scrollTimer = setTimeout(() => {
+        this.setInteraction("idle");
+        this.emit("view");
+      }, 80);
+    }
 
     if (this.rafScroll) return;
+    this.updateRange();
+    this.updateCurrent();
     this.rafScroll = requestAnimationFrame(() => {
       this.rafScroll = 0;
       this.updateRange();
@@ -518,10 +577,15 @@ export class PdfEngine {
   };
 
   private updateRange(): void {
-    const r = visibleRange(this.layout, this.scroller.scrollTop, this.viewH, this.overscanFn());
+    const strict = visibleRange(this.layout, this.scroller.scrollTop, this.viewH, 0);
+    const wide = visibleRange(this.layout, this.scroller.scrollTop, this.viewH, this.overscanFn());
+    const cap = this.isCoarse ? 14 : 30;
+    const extra = Math.max(0, cap - (strict.last - strict.first + 1));
+    const first = Math.max(wide.first, strict.first - Math.ceil(extra / 2));
+    const last = Math.min(wide.last, strict.last + Math.floor(extra / 2));
     // 1-tabanlı
-    const first1 = r.first + 1;
-    const last1 = r.last + 1;
+    const first1 = first + 1;
+    const last1 = last + 1;
     if (first1 !== this.range.first || last1 !== this.range.last) {
       this.range = { first: first1, last: last1 };
       this.emit("range");
@@ -539,11 +603,14 @@ export class PdfEngine {
   private applyRotationToSizes(): void {
     const isSwap = this.rotation === 90 || this.rotation === 270;
     this.rotatedSizes = this.rawSizes.map((s) => (isSwap ? { w: s.h, h: s.w } : { w: s.w, h: s.h }));
+    this.sizesVersion++;
+    this.maxScaleCache = null;
   }
 
-  private applyLayoutChange(kind: "sizes" | "rotation" | "viewport"): void {
+  private applyLayoutChange(): void {
     const isAtTop = this.scroller.scrollTop <= 1;
     const anchor = this.captureTopAnchor();
+    const prevN = this.layout.n;
 
     this.layout = computeLayout({
       sizes: this.rotatedSizes,
@@ -557,12 +624,14 @@ export class PdfEngine {
     this.sizer.style.width = `${this.layout.contentWidth}px`;
     this.sizer.style.height = `${this.layout.totalHeight}px`;
 
-    if (isAtTop) {
+    if (prevN === 0 && this.layout.n > 0) {
+      // ilk sizes: 1. sayfayı yatayda ortala
+      this.scroller.scrollLeft = Math.max(0, this.layout.lefts[0] + this.layout.widths[0] / 2 - this.viewW / 2);
       this.scroller.scrollTop = 0;
     } else {
       const s = scrollForAnchor(this.layout, anchor, anchor.vx, 0, this.viewW, this.viewH);
       this.scroller.scrollLeft = s.left;
-      this.scroller.scrollTop = s.top;
+      this.scroller.scrollTop = isAtTop ? 0 : s.top;
     }
 
     this.updateRange();
@@ -573,6 +642,7 @@ export class PdfEngine {
     }
 
     this.emit("layout");
+    this.emit("view");
   }
 
   private applyBox(p1: number, el: HTMLElement): void {
@@ -592,7 +662,7 @@ export class PdfEngine {
     }
   }
 
-  private emit(kind: "range" | "page" | "scale" | "layout"): void {
+  private emit(kind: "range" | "page" | "scale" | "layout" | "refresh" | "view"): void {
     const set = this.listeners.get(kind);
     if (set) {
       for (const cb of set) cb();

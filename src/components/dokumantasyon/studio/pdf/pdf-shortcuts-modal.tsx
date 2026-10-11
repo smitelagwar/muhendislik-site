@@ -40,6 +40,9 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     items: [
       { keys: ["→"], description: pdfViewerStrings.shortcutNextPage },
       { keys: ["←"], description: pdfViewerStrings.shortcutPreviousPage },
+      { keys: ["Boşluk", "Shift+Boşluk"], description: "Sayfa aşağı/yukarı" },
+      { keys: ["PageUp", "PageDown"], description: "Sayfa aşağı/yukarı" },
+      { keys: ["↑", "↓"], description: "Satır kaydır" },
       { keys: ["Home"], description: pdfViewerStrings.shortcutFirstPage },
       { keys: ["End"], description: pdfViewerStrings.shortcutLastPage },
     ],
@@ -52,6 +55,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
       { keys: ["V"], description: pdfViewerStrings.shortcutTextSelection },
       { keys: ["F4"], description: pdfViewerStrings.shortcutSidebar },
       { keys: ["Ctrl", "Shift", "+"], description: pdfViewerStrings.shortcutRotate },
+      { keys: ["Ctrl", "Shift", "-"], description: "Sola döndür" },
       { keys: ["Esc"], description: pdfViewerStrings.shortcutEscape },
       { keys: ["?"], description: pdfViewerStrings.shortcutHelp },
     ],

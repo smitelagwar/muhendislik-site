@@ -90,3 +90,19 @@ export function useEngineLayout(engine: PdfEngine | null): Layout | null {
 
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }
+
+export function useEngineRotation(engine: PdfEngine | null): number {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!engine) return () => {};
+      return engine.subscribe("layout", onStoreChange);
+    },
+    [engine]
+  );
+
+  const getSnapshot = useCallback(() => {
+    return engine ? engine.getRotation() : 0;
+  }, [engine]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => 0);
+}

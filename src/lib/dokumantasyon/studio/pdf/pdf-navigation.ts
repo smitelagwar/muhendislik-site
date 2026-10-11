@@ -6,6 +6,7 @@
 export interface NavigationHistoryEntry {
   page: number;
   scrollTop: number;
+  fy?: number;
   timestamp?: number;
 }
 
@@ -131,8 +132,15 @@ export function pushNavigationHistory(
   }
 
   // Son kayıt ile aynı sayfaysa tekrar ekleme
-  if (stack.length > 0 && stack[stack.length - 1].page === newEntry.page) {
-    return stack;
+  if (stack.length > 0) {
+    const last = stack[stack.length - 1];
+    const samePos =
+      typeof last.fy === "number" && typeof newEntry.fy === "number"
+        ? last.page === newEntry.page && Math.abs(last.fy - newEntry.fy) <= 0.01
+        : last.page === newEntry.page;
+    if (samePos) {
+      return stack;
+    }
   }
 
   const updated = [...stack, { ...newEntry, timestamp: Date.now() }];
