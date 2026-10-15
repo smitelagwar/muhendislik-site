@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // DELETE /api/public/cad-v2/view-sessions/[viewSessionId] (G14)
 // ============================================================================
@@ -30,9 +31,9 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       status: 204,
       headers: { "Cache-Control": "private, no-store" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { code: "INTERNAL_ERROR", message: err?.message || "Sunucu hatası." },
+      { code: "INTERNAL_ERROR", message: getErrorMessage(err) || "Sunucu hatası." },
       { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }

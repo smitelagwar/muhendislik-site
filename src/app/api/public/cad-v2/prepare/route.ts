@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // POST /api/public/cad-v2/prepare — PUBLIC CAD V2 HAZIRLAMA İSTEĞİ (G14)
 // ============================================================================
@@ -105,11 +106,17 @@ export async function POST(request: Request) {
           });
           if (getResult?.stream) {
             buffer = Buffer.from(await new Response(getResult.stream).arrayBuffer());
-          } else if (typeof (getResult as any)?.arrayBuffer === "function") {
-            buffer = Buffer.from(await (getResult as any).arrayBuffer());
-          } else if (typeof (getResult as any)?.blob === "function") {
-            const blobObj = await (getResult as any).blob();
-            buffer = Buffer.from(await blobObj.arrayBuffer());
+          } else {
+            const compatibleBlobResult = getResult as unknown as {
+              arrayBuffer?: () => Promise<ArrayBuffer>;
+              blob?: () => Promise<Blob>;
+            };
+            if (typeof compatibleBlobResult.arrayBuffer === "function") {
+              buffer = Buffer.from(await compatibleBlobResult.arrayBuffer());
+            } else if (typeof compatibleBlobResult.blob === "function") {
+              const blobObj = await compatibleBlobResult.blob();
+              buffer = Buffer.from(await blobObj.arrayBuffer());
+            }
           }
         }
       } catch (e) {
@@ -153,9 +160,9 @@ export async function POST(request: Request) {
       status: statusCode,
       headers: { "Cache-Control": "private, no-store" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { code: "INTERNAL_ERROR", message: err?.message || "Sunucu hatası." },
+      { code: "INTERNAL_ERROR", message: getErrorMessage(err) || "Sunucu hatası." },
       { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }

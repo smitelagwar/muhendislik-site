@@ -603,11 +603,12 @@ function clearSessionRefinementSources(viewSessionId) {
 }
 __name(clearSessionRefinementSources, "clearSessionRefinementSources");
 function validateSceneManifest(manifest) {
-  if (!manifest || typeof manifest !== "object") return false;
-  if (manifest.schemaVersion !== 1) return false;
-  if (!manifest.sceneId || typeof manifest.sceneId !== "string") return false;
-  if (!manifest.sourceVersionKey || !manifest.sourceSha256) return false;
-  if (!Array.isArray(manifest.layouts) || manifest.layouts.length === 0) return false;
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return false;
+  const record = manifest;
+  if (record.schemaVersion !== 1) return false;
+  if (typeof record.sceneId !== "string" || record.sceneId.length === 0) return false;
+  if (typeof record.sourceVersionKey !== "string" || typeof record.sourceSha256 !== "string") return false;
+  if (!Array.isArray(record.layouts) || record.layouts.length === 0) return false;
   return true;
 }
 __name(validateSceneManifest, "validateSceneManifest");
@@ -640,7 +641,10 @@ function unpackSceneChunk(chunkId, buffer) {
   if (metaSection && metaSection.data instanceof Uint8Array) {
     try {
       const jsonStr = new TextDecoder().decode(metaSection.data);
-      meta = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        meta = parsed;
+      }
     } catch {
       meta = null;
     }
@@ -761,7 +765,7 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: { error: err.message || "Bilinmeyen worker ayr\u0131\u015Ft\u0131rma hatas\u0131" }
+            payload: { error: err instanceof Error ? err.message : "Bilinmeyen worker ayr\u0131\u015Ft\u0131rma hatas\u0131" }
           };
           self.postMessage(errResponse);
         }
@@ -812,7 +816,10 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: { requestId: msg.payload?.requestId, error: err.message || "Curve refinement ba\u015Far\u0131s\u0131z" }
+            payload: {
+              requestId: msg.payload?.requestId,
+              error: err instanceof Error ? err.message : "Curve refinement ba\u015Far\u0131s\u0131z"
+            }
           };
           self.postMessage(errResponse);
         }

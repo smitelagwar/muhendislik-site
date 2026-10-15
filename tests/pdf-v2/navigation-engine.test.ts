@@ -4,6 +4,7 @@ import {
   resolvePdfDestination,
   getPageFromLabel,
   pushNavigationHistory,
+  type NavigationHistoryEntry,
 } from "../../src/lib/dokumantasyon/studio/pdf/pdf-navigation";
 
 async function runTests() {
@@ -21,8 +22,8 @@ async function runTests() {
   assert.equal(isSafePdfUrl("vbscript:msgbox(1)"), false, "vbscript reddedilmeli");
   assert.equal(isSafePdfUrl("file:///C:/Windows/system.ini"), false, "file URI reddedilmeli");
   assert.equal(isSafePdfUrl(""), false, "boş string reddedilmeli");
-  assert.equal(isSafePdfUrl(null as any), false, "null reddedilmeli");
-  assert.equal(isSafePdfUrl(undefined as any), false, "undefined reddedilmeli");
+  assert.equal(isSafePdfUrl(null), false, "null reddedilmeli");
+  assert.equal(isSafePdfUrl(undefined), false, "undefined reddedilmeli");
   assert.equal(isSafePdfUrl("not a valid url"), false, "geçersiz metin reddedilmeli");
   console.log("✓ URL Güvenlik Testleri Başarılı");
 
@@ -33,9 +34,9 @@ async function runTests() {
       if (name === "section2") return [4, { name: "XYZ" }]; // doğrudan sayfa indeksi 4
       return null;
     },
-    getPageIndex: async (ref: any) => {
-      if (ref && ref.num === 10) return 2; // 0-tabanlı indeks 2 -> Sayfa 3
-      if (ref && ref.num === 20) return 0; // 0-tabanlı indeks 0 -> Sayfa 1
+    getPageIndex: async (ref: unknown) => {
+      if (typeof ref === "object" && ref !== null && "num" in ref && ref.num === 10) return 2; // 0-tabanlı indeks 2 -> Sayfa 3
+      if (typeof ref === "object" && ref !== null && "num" in ref && ref.num === 20) return 0; // 0-tabanlı indeks 0 -> Sayfa 1
       throw new Error("Unknown ref");
     },
   };
@@ -64,7 +65,7 @@ async function runTests() {
   console.log("✓ Sayfa Etiketleri Testleri Başarılı");
 
   // 4. Gezinme Geçmişi (pushNavigationHistory)
-  let history: any[] = [];
+  let history: NavigationHistoryEntry[] = [];
   history = pushNavigationHistory(history, { page: 1, scrollTop: 0 });
   assert.equal(history.length, 1);
   assert.equal(history[0].page, 1);
@@ -78,7 +79,7 @@ async function runTests() {
   assert.equal(history[1].page, 10);
 
   // Üst sınır (maxEntries = 3 testi)
-  let capped: any[] = [];
+  let capped: NavigationHistoryEntry[] = [];
   for (let p = 1; p <= 5; p++) {
     capped = pushNavigationHistory(capped, { page: p, scrollTop: p * 100 }, 3);
   }

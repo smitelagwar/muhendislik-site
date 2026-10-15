@@ -343,7 +343,7 @@ test.describe("PDF Görüntüleyici v3 Değişmezler ve Regresyon Test Paketi", 
         if (format === "text/plain") {
           capturedData = data;
         }
-        return originalSetData.apply(this, [format, data] as any);
+        return originalSetData.call(this, format, data);
       };
 
       try {

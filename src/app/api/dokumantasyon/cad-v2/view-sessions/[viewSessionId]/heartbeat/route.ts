@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // POST /api/dokumantasyon/cad-v2/view-sessions/[viewSessionId]/heartbeat (G11)
 // ============================================================================
@@ -34,18 +35,18 @@ export async function POST(_request: Request, { params }: RouteParams) {
       status: 200,
       headers: { "Cache-Control": "private, no-store" },
     });
-  } catch (err: any) {
-    if (err?.message === "UNAUTHORIZED") {
+  } catch (err: unknown) {
+    if (getErrorMessage(err) === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
-    if (err?.message?.includes("VIEW_SESSION_EXPIRED")) {
+    if (getErrorMessage(err)?.includes("VIEW_SESSION_EXPIRED")) {
       return NextResponse.json(
         { code: "VIEW_SESSION_EXPIRED", message: "Oturum süresi doldu veya bulunamadı." },
         { status: 410, headers: { "Cache-Control": "private, no-store" } }
       );
     }
     return NextResponse.json(
-      { code: "INTERNAL_ERROR", message: err?.message || "Sunucu hatası." },
+      { code: "INTERNAL_ERROR", message: getErrorMessage(err) || "Sunucu hatası." },
       { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { ShaderMaterial } from "three";
 import type {
   AcApDocManager,
   AcApOpenDatabaseOptions,
@@ -567,12 +568,11 @@ async function initializeCadEngineEnhancements(Viewer: CadSimpleViewerModule): P
       ) {
         const mat = origGetFillMaterial.call(this, traits as never, rebaseOffset as never, gradientBounds as never);
         if (
-          mat &&
-          (mat as { fragmentShader?: string }).fragmentShader &&
-          (mat as { fragmentShader: string }).fragmentShader.includes("gl_FragColor = vec4(u_color * total, 1.0);")
+          mat instanceof ShaderMaterial &&
+          mat.fragmentShader.includes("gl_FragColor = vec4(u_color * total, 1.0);")
         ) {
           mat.transparent = true;
-          (mat as { fragmentShader: string }).fragmentShader = (mat as { fragmentShader: string }).fragmentShader.replace(
+          mat.fragmentShader = mat.fragmentShader.replace(
             "gl_FragColor = vec4(u_color * total, 1.0);",
             "gl_FragColor = vec4(u_color, total * 0.70);"
           );

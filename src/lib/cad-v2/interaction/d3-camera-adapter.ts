@@ -113,7 +113,7 @@ export class D3CameraAdapter {
       });
 
     // 28_PAN_ZOOM_FIT_SOZLESMESI (N02): Tanımlı wheel dönüşümü
-    this.zoomBehavior.wheelDelta((event: any) => {
+    this.zoomBehavior.wheelDelta((event) => {
       const deltaPx =
         (event.deltaY || 0) * (event.deltaMode === 0 ? 1 : event.deltaMode === 1 ? 16 : this.state.height);
       const factor = -deltaPx * 0.002 * (event.ctrlKey ? 10 : 1);
@@ -412,7 +412,7 @@ export class D3CameraAdapter {
 
     if (this.inputElement) {
       if (this.boundWheelGuard) {
-        this.inputElement.removeEventListener("wheel", this.boundWheelGuard, { capture: true } as any);
+        this.inputElement.removeEventListener("wheel", this.boundWheelGuard, true);
       }
       if (this.boundMouseDown) {
         this.inputElement.removeEventListener("mousedown", this.boundMouseDown);

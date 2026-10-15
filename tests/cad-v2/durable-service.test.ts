@@ -71,9 +71,9 @@ async function runDurableServiceTests() {
   let expiredErrorCaught = false;
   try {
     service.heartbeatViewSession("non_existent_session");
-  } catch (err: any) {
+  } catch (err: unknown) {
     expiredErrorCaught = true;
-    assert(err.message.includes("VIEW_SESSION_EXPIRED"), "Olmayan veya süresi dolan oturum VIEW_SESSION_EXPIRED hatası verdi");
+    assert(err instanceof Error && err.message.includes("VIEW_SESSION_EXPIRED"), "Olmayan veya süresi dolan oturum VIEW_SESSION_EXPIRED hatası verdi");
   }
   assert(expiredErrorCaught, "Geçersiz oturum için heartbeat reddedildi");
 
@@ -160,7 +160,7 @@ EOF
 
   // [Test 5] Fencing İhlali Negatif Kontrolü (C09)
   console.log("\n[Test 5] Fencing İhlali Negatif Kontrolü (C09):");
-  const dummyJob: any = {
+  const dummyJob: import("../../src/lib/cad-v2/service/cad-v2-durable-service").CadV2Job = {
     jobId: "job_fenced",
     fileId: "file_fenced",
     sourceVersionKey: "v_fenced",

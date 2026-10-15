@@ -1,4 +1,5 @@
 import { test } from "./helpers/test";
+import type { Page } from "@playwright/test";
 import { assertServerMode, recordAndGate } from "./helpers/budgets";
 import { keyZoom } from "./helpers/gestures";
 import { openPdf, readZoomPercent, waitSharp, waitZoomSettled, SCROLL, type Fixture } from "./helpers/viewer";
@@ -8,7 +9,7 @@ const FIXTURES: Fixture[] = ["karisik-60"];
 
 test.beforeAll(assertServerMode);
 
-async function getTopAnchor(page: any): Promise<{ page: number; fy: number } | null> {
+async function getTopAnchor(page: Page): Promise<{ page: number; fy: number } | null> {
   return page.evaluate((SEL: string) => {
     const sc = document.querySelector(SEL) as HTMLElement | null;
     if (!sc) return null;
@@ -47,7 +48,10 @@ for (const fx of FIXTURES) {
     await page.setViewportSize({ width: 390, height: 844 });
     await waitZoomSettled(page);
     // Fit modunu kontrol et veya tetikle
-    await page.evaluate(() => (window as any).__pdfDebug?.applyFitMode?.("fit-width"));
+    await page.evaluate(() => {
+      const pdfDebug = (window as Window & { __pdfDebug?: { applyFitMode?: (mode: string) => void } }).__pdfDebug;
+      pdfDebug?.applyFitMode?.("fit-width");
+    });
     await waitZoomSettled(page);
     const isFit = await page.evaluate(() => document.querySelector('[data-zoom-mode="fit-width"]') != null);
     const fitModePreserved = isFit ? 1 : 0;

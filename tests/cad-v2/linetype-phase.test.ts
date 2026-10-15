@@ -26,6 +26,8 @@ import type {
   CadLwPolylineEntity,
   CadInsertEntity,
   CadBlockDefinition,
+  CadLayer,
+  CadLinetype,
 } from "../../src/lib/cad-v2/canonical/types";
 import {
   STANDARD_AUTOCAD_LINETYPES,
@@ -85,9 +87,9 @@ console.log("  Gate 1: Standard AutoCAD Linetype Palette doğrulanıyor...");
 // ----------------------------------------------------------------------------
 console.log("  Gate 2: ByLayer Linetype Resolution doğrulanıyor...");
 {
-  const layers: any = {
-    "CENTER_LAYER": { id: "CENTER_LAYER", name: "CENTER_LAYER", linetypeName: "CENTER", colorAci: 1, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 1 }, lineweightMm: 0.25 },
-    "DEFAULT_LAYER": { id: "DEFAULT_LAYER", name: "DEFAULT_LAYER", colorAci: 7, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
+  const layers: Record<string, CadLayer> = {
+    "CENTER_LAYER": { id: "CENTER_LAYER", name: "CENTER_LAYER", linetypeName: "CENTER", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 1 }, lineweightMm: 0.25 },
+    "DEFAULT_LAYER": { id: "DEFAULT_LAYER", name: "DEFAULT_LAYER", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
   };
 
   const lineByLayer: CadLineEntity = {
@@ -134,8 +136,8 @@ console.log("  Gate 2: ByLayer Linetype Resolution doğrulanıyor...");
 // ----------------------------------------------------------------------------
 console.log("  Gate 3: ByBlock Linetype Resolution doğrulanıyor...");
 {
-  const layers: any = {
-    "0": { id: "0", name: "0", colorAci: 7, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
+  const layers: Record<string, CadLayer> = {
+    "0": { id: "0", name: "0", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
   };
 
   const lineByBlock: CadLineEntity = {
@@ -197,7 +199,7 @@ console.log("  Gate 3: ByBlock Linetype Resolution doğrulanıyor...");
 // ----------------------------------------------------------------------------
 console.log("  Gate 4: Explicit & Custom Document Linetypes doğrulanıyor...");
 {
-  const customLinetypes: any = {
+  const customLinetypes: Record<string, CadLinetype> = {
     "CUSTOM_GAS": {
       id: "CUSTOM_GAS",
       name: "CUSTOM_GAS",
@@ -437,7 +439,7 @@ console.log("  Gate 11: Chunk Boundary & Cumulative Distance doğrulanıyor...")
 // ----------------------------------------------------------------------------
 console.log("  Gate 12: Binary Protocol & Scene Compiler Integration doğrulanıyor...");
 {
-  const doc: any = {
+  const doc: CadCanonicalDocument = {
     sourceSha256: "aabbccddeeff11223344556677889900aabbccddeeff11223344556677889900",
     sourceVersionKey: "LINETYPE_FIDELITY_TEST_REV1",
     acadVersion: "AC1032",
@@ -445,9 +447,9 @@ console.log("  Gate 12: Binary Protocol & Scene Compiler Integration doğrulanı
     units: 4,
     measurement: 1,
     layers: {
-      "0": { id: "0", name: "0", colorAci: 7, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
-      "HIDDEN_LAYER": { id: "HIDDEN_LAYER", name: "HIDDEN_LAYER", linetype: "HIDDEN", colorAci: 1, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 1 }, lineweightMm: 0.25 },
-      "CENTER_LAYER": { id: "CENTER_LAYER", name: "CENTER_LAYER", linetype: "CENTER", colorAci: 3, visible: true, frozen: false, locked: false, color: { method: "aci", aci: 3 }, lineweightMm: 0.25 },
+      "0": { id: "0", name: "0", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 0.25, linetypeName: "CONTINUOUS" },
+      "HIDDEN_LAYER": { id: "HIDDEN_LAYER", name: "HIDDEN_LAYER", linetypeName: "HIDDEN", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 1 }, lineweightMm: 0.25 },
+      "CENTER_LAYER": { id: "CENTER_LAYER", name: "CENTER_LAYER", linetypeName: "CENTER", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 3 }, lineweightMm: 0.25 },
     },
     linetypes: {
       CUSTOM_DASHDOT: {
@@ -457,6 +459,10 @@ console.log("  Gate 12: Binary Protocol & Scene Compiler Integration doğrulanı
         totalLength: 14,
       },
     },
+    textStyles: {},
+    blocks: {},
+    layouts: {},
+    viewports: {},
     modelSpaceEntities: [
       // 1. Düz çizgi (HIDDEN linetype)
       {
@@ -493,6 +499,8 @@ console.log("  Gate 12: Binary Protocol & Scene Compiler Integration doğrulanı
         order: BigInt(3),
       },
     ],
+    paperSpaceEntities: {},
+    diagnostics: [],
   };
 
   const compiled = compileCanonicalToScene(doc, { sceneId: "test_linetype_scene" });

@@ -84,8 +84,12 @@ function ThumbnailItem({
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(cachedBackdrop, 0, 0, canvas.width, canvas.height);
-        setRendered(true);
-        return;
+        requestAnimationFrame(() => {
+          if (active) setRendered(true);
+        });
+        return () => {
+          active = false;
+        };
       }
     }
 

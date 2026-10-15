@@ -1,12 +1,5 @@
-import type { UnpackedSceneChunk } from "../../../workers/cad-v2/cad-v2-scene-worker";
+import type { SceneDrawCommand, UnpackedSceneChunk } from "../../../workers/cad-v2/cad-v2-scene-worker";
 import type { CurveRefinementResult, RefinedCurveInterval } from "./curve-refinement";
-
-type DrawCommand = {
-  kind: "line" | "triangle" | "wipeout";
-  firstVertex: number;
-  vertexCount: number;
-  [key: string]: unknown;
-};
 
 /** Builds a fresh fallback-compatible chunk. The input is never mutated. */
 export function applyCurveRefinementsToChunk(
@@ -19,7 +12,7 @@ export function applyCurveRefinementsToChunk(
     .sort((a, b) => a.firstVertex - b.firstVertex);
   if (refinements.length === 0) return source;
 
-  const commands = (source.meta?.drawCommands ?? []) as DrawCommand[];
+  const commands: SceneDrawCommand[] = source.meta?.drawCommands ?? [];
   const sourceVertexCount = source.xyArray.length / 2;
   let previousEnd = 0;
   for (const item of refinements) {

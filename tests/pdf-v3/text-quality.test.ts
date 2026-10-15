@@ -29,7 +29,7 @@ async function runTextQualityTests() {
   const page1 = await doc.getPage(1);
   const textContent = await page1.getTextContent();
   const page1String = textContent.items
-    .map((item: any) => ("str" in item ? item.str : ""))
+    .map((item) => ("str" in item ? item.str : ""))
     .join(" ");
 
   for (let pageNum = 1; pageNum <= Math.min(doc.numPages, 3); pageNum++) {

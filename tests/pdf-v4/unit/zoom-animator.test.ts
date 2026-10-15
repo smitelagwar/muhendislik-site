@@ -53,7 +53,8 @@ function flushRaf(deltaMs: number) {
 }
 
 async function runTests() {
-  const engine = new MockEngine() as unknown as PdfEngine;
+  const mockEngine = new MockEngine();
+  const engine = mockEngine as unknown as PdfEngine;
 
   // 1. Reduced motion: anında bitiş
   const reducedAnimator = new ZoomAnimator(engine, {
@@ -64,12 +65,12 @@ async function runTests() {
   });
 
   await reducedAnimator.animate(2.0, { page: 0, fx: 0.5, fy: 0.5 }, 200, 200, 160);
-  assert.equal((engine as any).scale, 2.0);
-  assert.equal((engine as any).settled, true);
+  assert.equal(mockEngine.scale, 2.0);
+  assert.equal(mockEngine.settled, true);
 
   // 2. Normal animasyon ve monoton artış
-  (engine as any).scale = 1.0;
-  (engine as any).settled = false;
+  mockEngine.scale = 1.0;
+  mockEngine.settled = false;
 
   const animator = new ZoomAnimator(engine, {
     reduced: () => false,
@@ -84,35 +85,35 @@ async function runTests() {
     promiseDone = true;
   });
 
-  assert.equal((engine as any).interaction, "gesture");
+  assert.equal(mockEngine.interaction, "gesture");
 
   // Step 1: 50 ms
   flushRaf(50);
-  const s1 = (engine as any).liveScale;
+  const s1 = mockEngine.liveScale;
   assert.ok(s1 > 1.0 && s1 < 2.0, `s1=${s1} ara değerde olmalı`);
 
   // Step 2: 50 ms daha (100 ms)
   flushRaf(50);
-  const s2 = (engine as any).liveScale;
+  const s2 = mockEngine.liveScale;
   assert.ok(s2 > s1 && s2 < 2.0, `s2=${s2} s1=${s1}'den büyük olmalı`);
 
   // Step 3: Retarget: 2.0 yerine 3.0 hedefine yönlendir
   animator.animate(3.0, anchor, 200, 200, 160);
   // Ani sıçrama olmamalı, mevcut s2'den devam etmeli
-  assert.equal((engine as any).liveScale, s2);
+  assert.equal(mockEngine.liveScale, s2);
 
   // Birkaç kare ilerlet
   flushRaf(80);
-  const s3 = (engine as any).liveScale;
+  const s3 = mockEngine.liveScale;
   assert.ok(s3 > s2, `s3=${s3} s2=${s2}'den büyük olmalı`);
 
   // Animasyonu tamamla (kalan süre + marj)
   flushRaf(120);
   await Promise.resolve(); // microtasks
 
-  assert.ok(Math.abs((engine as any).liveScale - 3.0) < 1e-4, `Son ölçek 3.0 olmalı, alınan: ${(engine as any).liveScale}`);
-  assert.equal((engine as any).interaction, "idle");
-  assert.equal((engine as any).settled, true);
+  assert.ok(Math.abs(mockEngine.liveScale - 3.0) < 1e-4, `Son ölçek 3.0 olmalı, alınan: ${mockEngine.liveScale}`);
+  assert.equal(mockEngine.interaction, "idle");
+  assert.equal(mockEngine.settled, true);
 
   console.log("zoom-animator: birim testleri (reduced-motion, retarget, logaritmik interpolasyon) başarıyla geçti");
 }

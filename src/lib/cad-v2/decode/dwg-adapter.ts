@@ -2,15 +2,254 @@
 // DWG/DXF MOTOR V2 — DWG DECODE ADAPTER (@mlightcad/libredwg-web 0.7.10)
 // ============================================================================
 
-import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle } from "../canonical/types";
-import { resolveDwgInsertSpatialFilter } from "./dwg-spatial-filter";
+import type { DwgDatabase, DwgEntity, DwgLineTypeElement, DwgBlockRecordTableEntry } from "@mlightcad/libredwg-web";
+import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle, CadBlockDefinition, CadHatchLoop } from "../canonical/types";
+import {
+  resolveDwgInsertSpatialFilter,
+  type DwgDictionaryRecord,
+  type DwgSpatialFilterRecord,
+} from "./dwg-spatial-filter";
 
-let libreDwgInstance: any = null;
+type LibreDwgInstance = Awaited<ReturnType<typeof import("@mlightcad/libredwg-web").LibreDwg.create>>;
 
-async function getLibreDwg() {
+type DwgCompatPoint = { x?: number; y?: number; z?: number };
+type DwgCompatVertex = (DwgCompatPoint & { bulge?: number; startWidth?: number; endWidth?: number; sw?: number; ew?: number }) | [number, number, number?];
+type DwgCompatColor = number | { index?: number; rgb?: number[] };
+type DwgCompatScale = DwgCompatPoint | [number, number, number?];
+
+interface DwgCompatHatchEdge {
+  type?: string | number;
+  startPoint?: DwgCompatPoint;
+  endPoint?: DwgCompatPoint;
+  start?: DwgCompatPoint;
+  end?: DwgCompatPoint;
+  center?: DwgCompatPoint;
+  radius?: number;
+  startAngle?: number;
+  endAngle?: number;
+  isCCW?: boolean;
+  ccw?: boolean;
+  majorAxisEndPoint?: DwgCompatPoint;
+  majorAxisVector?: DwgCompatPoint;
+  majorAxis?: DwgCompatPoint;
+  axisRatio?: number;
+  minorToMajorRatio?: number;
+  ratio?: number;
+  startParam?: number;
+  endParam?: number;
+  controlPoints?: DwgCompatPoint[];
+  degree?: number;
+  knots?: number[];
+  weights?: number[];
+  isPeriodic?: boolean;
+  isRational?: boolean;
+}
+
+interface DwgCompatHatchLoop {
+  isPolyline?: boolean;
+  boundaryPathTypeFlag?: number;
+  hasBulge?: boolean;
+  isClosed?: boolean;
+  vertices?: DwgCompatVertex[];
+  edges?: DwgCompatHatchEdge[];
+}
+
+/**
+ * LibreDWG's public DwgEntity is intentionally a common base and omits
+ * entity-specific DXF fields. Keep those version-dependent fields explicit at
+ * this adapter boundary so the canonical converter remains statically typed.
+ */
+interface DwgAdapterEntity {
+  type?: string;
+  handle?: string | number;
+  layer?: string;
+  isVisible?: boolean;
+  visible?: boolean;
+  off?: boolean;
+  isInvisible?: boolean;
+  transparency?: number;
+  alpha?: number;
+  colorIndex?: number;
+  color?: DwgCompatColor;
+  rgb?: number[];
+  lineweight?: number;
+  lineweightMm?: number;
+  lineType?: string;
+  linetype?: string;
+  lineTypeScale?: number;
+  linetypeScale?: number;
+  startPoint?: DwgCompatPoint;
+  endPoint?: DwgCompatPoint;
+  start?: DwgCompatPoint;
+  end?: DwgCompatPoint;
+  center?: DwgCompatPoint;
+  point?: DwgCompatPoint;
+  position?: DwgCompatPoint;
+  radius?: number;
+  startAngle?: number;
+  endAngle?: number;
+  isClockwise?: boolean;
+  majorAxisVector?: DwgCompatPoint;
+  majorAxis?: DwgCompatPoint;
+  majorAxisEndPoint?: DwgCompatPoint;
+  endpoint?: DwgCompatPoint;
+  axisRatio?: number;
+  minorAxisRatio?: number;
+  ratio?: number;
+  startParam?: number;
+  endParam?: number;
+  vertices?: DwgCompatVertex[];
+  constantWidth?: number;
+  width?: number;
+  plinegen?: boolean;
+  flags?: number;
+  isClosed?: boolean;
+  insertionPoint?: DwgCompatPoint;
+  alignmentPoint?: DwgCompatPoint;
+  secondAlignmentPoint?: DwgCompatPoint;
+  text?: string;
+  textString?: string;
+  value?: string;
+  textHeight?: number;
+  height?: number;
+  rotation?: number;
+  xScale?: number;
+  widthFactor?: number;
+  obliqueAngle?: number;
+  oblique?: number;
+  styleName?: string;
+  style?: string;
+  halign?: number;
+  horizontalMode?: number;
+  valign?: number;
+  verticalMode?: number;
+  generationFlag?: number;
+  rectWidth?: number;
+  referenceWidth?: number;
+  attachmentPoint?: number;
+  drawingDirection?: number;
+  lineSpacing?: number;
+  backgroundMask?: boolean;
+  boxFlag?: boolean;
+  backgroundFill?: boolean;
+  name?: string;
+  blockName?: string;
+  scale?: DwgCompatScale;
+  yScale?: number;
+  zScale?: number;
+  extrusionDirection?: DwgCompatPoint;
+  columnCount?: number;
+  rowCount?: number;
+  columnSpacing?: number;
+  rowSpacing?: number;
+  ins_pt?: DwgCompatPoint;
+  block?: string;
+  block_name?: string;
+  anonymousBlockName?: string;
+  definitionPoint?: DwgCompatPoint;
+  defPoint?: DwgCompatPoint;
+  def_pt?: DwgCompatPoint;
+  textPoint?: DwgCompatPoint;
+  textMidpoint?: DwgCompatPoint;
+  text_midpt?: DwgCompatPoint;
+  line1Start?: DwgCompatPoint;
+  xline1_pt?: DwgCompatPoint;
+  defPoint2?: DwgCompatPoint;
+  line1End?: DwgCompatPoint;
+  xline2_pt?: DwgCompatPoint;
+  defPoint3?: DwgCompatPoint;
+  line2Start?: DwgCompatPoint;
+  defPoint4?: DwgCompatPoint;
+  line2End?: DwgCompatPoint;
+  dimensionType?: number;
+  dimType?: number;
+  user_text?: string;
+  dimstyle?: string;
+  angle?: number;
+  actualMeasurement?: number;
+  actual_measurement?: number;
+  measurement?: number;
+  dimScale?: number;
+  dimscale?: number;
+  arrowSize?: number;
+  arrow_size?: number;
+  controlPoints?: DwgCompatPoint[];
+  degree?: number;
+  knots?: number[];
+  weights?: number[];
+  isPeriodic?: boolean;
+  isRational?: boolean;
+  boundaryPaths?: DwgCompatHatchLoop[];
+  loops?: DwgCompatHatchLoop[];
+  boundaryLoops?: DwgCompatHatchLoop[];
+  patternName?: string;
+  solidFill?: boolean;
+  isSolid?: boolean;
+  patternScale?: number;
+  patternAngle?: number;
+  hatchStyle?: number;
+  patternType?: number;
+  points?: DwgCompatVertex[];
+  tag?: string;
+  prompt?: string;
+  defaultText?: string;
+  annotationText?: string;
+  isConstant?: boolean;
+  arrowheadFlag?: number;
+  hasArrowhead?: boolean;
+  arrowheadSize?: number;
+  annotationType?: number;
+  annotatedEntityHandle?: string;
+  annotationHandle?: string;
+  viewportId?: number;
+  number?: number;
+  viewportCenter?: DwgCompatPoint;
+  centerPoint?: DwgCompatPoint;
+  displayCenter?: DwgCompatPoint;
+  viewCenter?: DwgCompatPoint;
+  viewTwistAngle?: number;
+  twistAngleRad?: number;
+  twistAngle?: number;
+  targetPoint?: DwgCompatPoint;
+  viewTarget?: DwgCompatPoint;
+  target?: DwgCompatPoint;
+  frozenLayerIds?: string[];
+  frozenLayers?: string[];
+  frozenLayerNames?: string[];
+  clippingBoundaryId?: string;
+  clipPolygon?: DwgCompatVertex[];
+  statusBitFlags?: number;
+  viewDirectionFromTarget?: DwgCompatPoint;
+  viewDirection?: DwgCompatPoint;
+  viewHeight?: number;
+  layerOverrides?: Record<string, Partial<CadLayer>>;
+}
+
+interface DwgAdapterBlockRecord extends DwgBlockRecordTableEntry {
+  isXref?: boolean;
+  blockTypeFlags?: number;
+  pathName?: string;
+  xrefPath?: string;
+}
+
+function asDwgAdapterEntity(entity: DwgEntity): DwgAdapterEntity {
+  return entity as unknown as DwgAdapterEntity;
+}
+
+function toDwgPoint2D(point: DwgCompatVertex | DwgCompatPoint): [number, number] {
+  if (Array.isArray(point)) {
+    const tuple = point as [number, number, number?];
+    return [tuple[0] || 0, tuple[1] || 0];
+  }
+  const coordinates = point as DwgCompatPoint;
+  return [coordinates.x || 0, coordinates.y || 0];
+}
+
+let libreDwgInstance: LibreDwgInstance | null = null;
+
+async function getLibreDwg(): Promise<LibreDwgInstance> {
   if (!libreDwgInstance) {
     // ESM import of libredwg-web
-    // @ts-ignore
     const { LibreDwg } = await import("@mlightcad/libredwg-web");
     libreDwgInstance = await LibreDwg.create();
   }
@@ -42,14 +281,14 @@ export async function parseDwgToCanonical(
   options: DwgParseOptions = {}
 ): Promise<CadCanonicalDocument> {
   const dwg = await getLibreDwg();
-  // @ts-ignore
   const { Dwg_File_Type } = await import("@mlightcad/libredwg-web");
 
   let ptr: number | null = null;
-  let rawDb: any = null;
+  let rawDb: DwgDatabase | null = null;
 
   try {
-    ptr = dwg.dwg_read_data(dwgBuffer, Dwg_File_Type.DWG);
+    const fileContent = Uint8Array.from(dwgBuffer).buffer as ArrayBuffer;
+    ptr = dwg.dwg_read_data(fileContent, Dwg_File_Type.DWG) ?? null;
     if (!ptr) {
       throw new Error("[DwgAdapter] dwg_read_data başarısız oldu (null pointer döndü)");
     }
@@ -63,7 +302,6 @@ export async function parseDwgToCanonical(
     if (!rawDb) {
       throw new Error("[DwgAdapter] dwg.convert başarısız oldu (boş veritabanı)");
     }
-    rawDb.versionInfo = versionInfo;
   } finally {
     if (ptr) {
       try {
@@ -74,20 +312,22 @@ export async function parseDwgToCanonical(
     }
   }
 
+  if (!rawDb) throw new Error("[DwgAdapter] DWG veritabanı oluşturulamadı");
+
   // Canonical belgeye dönüştür
   // 1. Katmanları dönüştür
   const layers: Record<string, CadLayer> = {};
-  const rawLayerEntries = rawDb.tables?.LAYER?.entries || rawDb.tables?.layers || [];
+  const rawLayerEntries = rawDb.tables.LAYER.entries;
   const diagnostics: CadDiagnostic[] = [];
-  const rawDictionaryByHandle = new Map<string, any>();
+  const rawDictionaryByHandle = new Map<string, DwgDictionaryRecord>();
   for (const dictionary of rawDb.objects?.DICTIONARY || []) {
     if (dictionary?.handle) rawDictionaryByHandle.set(String(dictionary.handle).toUpperCase(), dictionary);
   }
-  const spatialFilterByHandle = new Map<string, any>();
+  const spatialFilterByHandle = new Map<string, DwgSpatialFilterRecord>();
   for (const filter of rawDb.objects?.SPATIAL_FILTER || []) {
     if (filter?.handle) spatialFilterByHandle.set(String(filter.handle).toUpperCase(), filter);
   }
-  const rawBlockEntries = rawDb.tables?.BLOCK_RECORD?.entries || [];
+  const rawBlockEntries = rawDb.tables.BLOCK_RECORD.entries;
   const paperSpaceEntityHandles = new Set<string>();
   if (Array.isArray(rawBlockEntries)) {
     for (const blockRecord of rawBlockEntries) {
@@ -100,26 +340,19 @@ export async function parseDwgToCanonical(
   if (Array.isArray(rawLayerEntries)) {
     for (const lyr of rawLayerEntries) {
       const name = lyr.name || "0";
-      const rawCol = lyr.colorIndex != null ? lyr.colorIndex : lyr.color;
-      const numCol = typeof rawCol === "number" ? rawCol : (typeof lyr.color?.index === "number" ? lyr.color.index : undefined);
+      const numCol = lyr.colorIndex;
 
       // AutoCAD kuralı: Negatif renk indeksi katmanın kapalı (OFF) olduğunu belirtir
       const isNegativeColor = typeof numCol === "number" && numCol < 0;
       const absCol = typeof numCol === "number" ? Math.abs(numCol) : undefined;
-      const isLayerOff = !!lyr.off || !!lyr.isOff || isNegativeColor;
-      const isLayerFrozen = !!lyr.frozen || !!lyr.isFrozen || (typeof lyr.flag === "number" && (lyr.flag & 1) !== 0);
+      const isLayerOff = lyr.off || isNegativeColor;
+      const isLayerFrozen = lyr.frozen;
 
       let colorMethod: "rgb" | "aci" | "byLayer" = "byLayer";
       let colorAci: number = 7;
       let colorRgb: [number, number, number] | undefined = undefined;
 
-      if (Array.isArray(lyr.rgb) && lyr.rgb.length === 3) {
-        colorMethod = "rgb";
-        colorRgb = [lyr.rgb[0], lyr.rgb[1], lyr.rgb[2]];
-      } else if (typeof lyr.color === "object" && lyr.color?.rgb && Array.isArray(lyr.color.rgb)) {
-        colorMethod = "rgb";
-        colorRgb = [lyr.color.rgb[0], lyr.color.rgb[1], lyr.color.rgb[2]];
-      } else if (typeof absCol === "number") {
+      if (typeof absCol === "number") {
         if (absCol > 0 && absCol <= 255) {
           // 1 - 255 Standart AutoCAD Color Index (ACI)
           colorMethod = "aci";
@@ -143,28 +376,26 @@ export async function parseDwgToCanonical(
         name,
         visible: !isLayerOff,
         frozen: isLayerFrozen,
-        locked: !!lyr.locked || !!lyr.isLocked,
+        locked: lyr.locked,
         color: {
           method: colorMethod,
           aci: colorAci,
           ...(colorRgb ? { rgb: colorRgb } : {}),
         },
-        lineweightMm: normalizeLineweightMm(
-          typeof lyr.lineweight === "number" ? lyr.lineweight : lyr.lineweightMm
-        ) ?? 0,
-        linetypeName: lyr.lineType || lyr.linetype || "Continuous",
+        lineweightMm: normalizeLineweightMm(lyr.lineweight) ?? 0,
+        linetypeName: lyr.lineType || "Continuous",
       };
     }
   }
 
   // 1b. Çizgi Tiplerini çözümle
   const linetypes: Record<string, CadLinetype> = {};
-  const rawLtypeEntries = rawDb.tables?.LTYPE?.entries || [];
+  const rawLtypeEntries = rawDb.tables.LTYPE.entries;
   if (Array.isArray(rawLtypeEntries)) {
     for (const lt of rawLtypeEntries) {
       const name = lt.name || "Continuous";
       const pat = Array.isArray(lt.pattern)
-        ? lt.pattern.map((p: any) => (typeof p === "number" ? p : typeof p?.length === "number" ? p.length : 0))
+        ? lt.pattern.map((p: DwgLineTypeElement) => p.elementLength)
         : [];
       linetypes[name] = {
         id: name,
@@ -181,16 +412,16 @@ export async function parseDwgToCanonical(
 
   // 1c. Yazı Stillerini (STYLE) çözümle
   const textStyles: Record<string, CadTextStyle> = {};
-  const rawStyleEntries = rawDb.tables?.STYLE?.entries || [];
+  const rawStyleEntries = rawDb.tables.STYLE.entries;
   if (Array.isArray(rawStyleEntries)) {
     for (const st of rawStyleEntries) {
       const name = st.name || "STANDARD";
       textStyles[name] = {
         id: name,
         name,
-        fontFileName: st.font || st.fontName || "",
+        fontFileName: st.font || "",
         bigFontFileName: st.bigFont || "",
-        height: typeof st.fixedTextHeight === "number" ? st.fixedTextHeight : (typeof st.height === "number" ? st.height : 0),
+        height: st.fixedTextHeight,
         widthFactor: typeof st.widthFactor === "number" && st.widthFactor > 0 ? st.widthFactor : 1,
         obliqueAngleDeg: typeof st.obliqueAngle === "number" ? (st.obliqueAngle * 180 / Math.PI) : 0,
         isVertical: Boolean((st.standardFlag ?? 0) & 4),
@@ -199,7 +430,8 @@ export async function parseDwgToCanonical(
   }
 
   // Yardımcı: Raw entity -> CadEntity dönüştürücü
-  function convertRawEntity(ent: any, orderVal: bigint): CadEntity | null {
+  function convertRawEntity(rawEntity: DwgEntity, orderVal: bigint): CadEntity | null {
+    const ent = asDwgAdapterEntity(rawEntity);
     const type = (ent.type || "").toUpperCase();
     const isVisible = ent.isVisible !== false && ent.visible !== false && !ent.off && !ent.isInvisible;
 
@@ -216,7 +448,11 @@ export async function parseDwgToCanonical(
 
     let color: CadColor | undefined = undefined;
     const rawEntityCol = ent.colorIndex != null ? ent.colorIndex : ent.color;
-    const numEntityCol = typeof rawEntityCol === "number" ? rawEntityCol : (typeof ent.color?.index === "number" ? ent.color.index : undefined);
+    const numEntityCol = typeof rawEntityCol === "number"
+      ? rawEntityCol
+      : typeof ent.color === "object" && ent.color !== null && typeof ent.color.index === "number"
+        ? ent.color.index
+        : undefined;
 
     if (Array.isArray(ent.rgb) && ent.rgb.length === 3) {
       color = { method: "rgb", rgb: [ent.rgb[0], ent.rgb[1], ent.rgb[2]], alpha };
@@ -332,14 +568,16 @@ export async function parseDwgToCanonical(
         const verts: Array<{ x: number; y: number; bulge?: number; startWidth?: number; endWidth?: number }> = [];
         if (Array.isArray(ent.vertices)) {
           for (const rawV of ent.vertices) {
-            const vx = rawV.x != null ? rawV.x : (rawV[0] != null ? rawV[0] : 0);
-            const vy = rawV.y != null ? rawV.y : (rawV[1] != null ? rawV[1] : 0);
+            const vertex = Array.isArray(rawV) ? undefined : rawV as Exclude<DwgCompatVertex, [number, number, number?]>;
+            const tuple = Array.isArray(rawV) ? rawV as [number, number, number?] : undefined;
+            const vx = vertex?.x ?? tuple?.[0] ?? 0;
+            const vy = vertex?.y ?? tuple?.[1] ?? 0;
             verts.push({
               x: vx,
               y: vy,
-              bulge: rawV.bulge || (rawV[2] != null ? rawV[2] : undefined),
-              startWidth: rawV.startWidth ?? rawV.sw,
-              endWidth: rawV.endWidth ?? rawV.ew,
+              bulge: vertex?.bulge || tuple?.[2],
+              startWidth: vertex?.startWidth ?? vertex?.sw,
+              endWidth: vertex?.endWidth ?? vertex?.ew,
             });
           }
         }
@@ -398,9 +636,11 @@ export async function parseDwgToCanonical(
 
       case "INSERT": {
         const pos = ent.insertionPoint || ent.point || ent.position || { x: 0, y: 0 };
-        const sx = ent.xScale ?? ent.scale?.x ?? (Array.isArray(ent.scale) ? ent.scale[0] : 1);
-        const sy = ent.yScale ?? ent.scale?.y ?? (Array.isArray(ent.scale) ? ent.scale[1] : 1);
-        const sz = ent.zScale ?? ent.scale?.z ?? (Array.isArray(ent.scale) ? ent.scale[2] : 1);
+        const scaleTuple = Array.isArray(ent.scale) ? ent.scale as [number, number, number?] : undefined;
+        const scalePoint = ent.scale && !Array.isArray(ent.scale) ? ent.scale as DwgCompatPoint : undefined;
+        const sx = ent.xScale ?? scalePoint?.x ?? scaleTuple?.[0] ?? 1;
+        const sy = ent.yScale ?? scalePoint?.y ?? scaleTuple?.[1] ?? 1;
+        const sz = ent.zScale ?? scalePoint?.z ?? scaleTuple?.[2] ?? 1;
         const ext = ent.extrusionDirection;
         return {
           ...base,
@@ -464,7 +704,7 @@ export async function parseDwgToCanonical(
       }
 
       case "SPLINE": {
-        const cp = (ent.controlPoints || []).map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
+        const cp = (ent.controlPoints || []).map(toDwgPoint2D);
         return {
           ...base,
           type: "SPLINE",
@@ -478,11 +718,11 @@ export async function parseDwgToCanonical(
       }
 
       case "HATCH": {
-        const loops: any[] = [];
+        const loops: CadHatchLoop[] = [];
         const rawPaths = ent.boundaryPaths || ent.loops || ent.boundaryLoops || [];
         for (const rp of rawPaths) {
           const isPoly = rp.isPolyline != null ? !!rp.isPolyline : (Array.isArray(rp.vertices) && rp.vertices.length > 0);
-          const loop: any = {
+          const loop: CadHatchLoop = {
             isPolyline: isPoly,
             boundaryPathTypeFlag: typeof rp.boundaryPathTypeFlag === "number" ? rp.boundaryPathTypeFlag : undefined,
             hasBulge: rp.hasBulge != null ? Boolean(rp.hasBulge) : undefined,
@@ -493,9 +733,7 @@ export async function parseDwgToCanonical(
             const bulges: number[] = [];
             let hasAnyBulge = false;
             for (const v of rp.vertices) {
-              const vx = Array.isArray(v) ? (v[0] || 0) : (v.x || 0);
-              const vy = Array.isArray(v) ? (v[1] || 0) : (v.y || 0);
-              verts.push([vx, vy]);
+              verts.push(toDwgPoint2D(v));
               const b = (!Array.isArray(v) && typeof v.bulge === "number") ? v.bulge : 0;
               bulges.push(b);
               if (b !== 0) hasAnyBulge = true;
@@ -505,7 +743,7 @@ export async function parseDwgToCanonical(
               loop.bulges = bulges;
             }
           } else if (Array.isArray(rp.edges)) {
-            const edges: any[] = [];
+            const edges: NonNullable<CadHatchLoop["edges"]> = [];
             for (const ed of rp.edges) {
               const edgeType = typeof ed.type === "number" ? ed.type : (ed.type || "").toUpperCase();
               if (edgeType === 1 || edgeType === "LINE" || (ed.startPoint && ed.endPoint)) {
@@ -539,7 +777,7 @@ export async function parseDwgToCanonical(
                   ccw: ed.isCCW != null ? Boolean(ed.isCCW) : ed.ccw !== false,
                 });
               } else if (edgeType === 4 || edgeType === "SPLINE") {
-                const cp = (ed.controlPoints || []).map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
+                const cp = (ed.controlPoints || []).map(toDwgPoint2D);
                 edges.push({
                   type: "SPLINE",
                   degree: ed.degree || 3,
@@ -572,7 +810,7 @@ export async function parseDwgToCanonical(
       }
 
       case "WIPEOUT": {
-        const vertices = (ent.vertices || []).map((v: any) => [v.x || 0, v.y || 0] as [number, number]);
+        const vertices = (ent.vertices || []).map(toDwgPoint2D);
         return {
           ...base,
           type: "WIPEOUT",
@@ -628,10 +866,7 @@ export async function parseDwgToCanonical(
       }
 
       case "LEADER": {
-        const vertices: [number, number][] = (ent.vertices || ent.points || []).map((p: any) => [
-          p.x || (Array.isArray(p) ? p[0] : 0),
-          p.y || (Array.isArray(p) ? p[1] : 0),
-        ]);
+        const vertices: [number, number][] = (ent.vertices || ent.points || []).map(toDwgPoint2D);
         return {
           ...base,
           type: "LEADER",
@@ -672,15 +907,20 @@ export async function parseDwgToCanonical(
             converted.visible = false;
             diagnostics.push({ id: `diag_xclip_reference_${converted.handle || "insert"}`, code: "UNRESOLVED_XCLIP_REFERENCE", severity: "warning", message: "INSERT references an XCLIP SPATIAL_FILTER that could not be resolved or whose owner dictionary does not match; the INSERT is withheld instead of rendered without its clip.", entityHandle: converted.handle });
           } else if (spatialFilter) {
-            const vertices = Array.isArray(spatialFilter.vertices) ? spatialFilter.vertices : [];
+            const vertices = Array.isArray(spatialFilter.vertices)
+              ? spatialFilter.vertices as Array<{ x: number; y: number }>
+              : [];
             const identity4x3 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
-            const isIdentityMatrix = (value: unknown) => Array.isArray(value) && value.length === 12 && value.every((n, i) => typeof n === "number" && Math.abs(n - identity4x3[i]) < 1e-10);
+            const isIdentityMatrix = (value: unknown) =>
+              Array.isArray(value) &&
+              value.length === 12 &&
+              value.every((n: unknown, i: number) => typeof n === "number" && Math.abs(n - identity4x3[i]) < 1e-10);
             const origin = spatialFilter.origin || { x: 0, y: 0, z: 0 };
             const normal = spatialFilter.extrusionDirection || { x: 0, y: 0, z: 1 };
             const isTopOcs = Math.abs(normal.x || 0) < 1e-10 && Math.abs(normal.y || 0) < 1e-10 && Math.abs((normal.z ?? 1) - 1) < 1e-10;
             const hasOrigin = Math.abs(origin.x || 0) < 1e-10 && Math.abs(origin.y || 0) < 1e-10 && Math.abs(origin.z || 0) < 1e-10;
             const clipIsInverted = spatialFilter.isInverted ?? spatialFilter.inverted;
-            const validVertices = vertices.length >= 3 && vertices.every((point: any) => Number.isFinite(point?.x) && Number.isFinite(point?.y));
+            const validVertices = vertices.length >= 3 && vertices.every((point) => Number.isFinite(point?.x) && Number.isFinite(point?.y));
             const supportedPlanes = !spatialFilter.frontClippingPlaneFlag && !spatialFilter.backClippingPlaneFlag;
             // `invertBlockMatrix` represents the INSERT's own inverse transform.
             // Block geometry is transformed to WCS by the compiler before clipping,
@@ -688,14 +928,14 @@ export async function parseDwgToCanonical(
             // Requiring the INSERT matrix to be identity incorrectly drops ordinary
             // translated/rotated inserts even when the filter matrix is identity.
             if (validVertices && isTopOcs && hasOrigin && isIdentityMatrix(spatialFilter.matrix) && supportedPlanes) {
-              (converted as any).clipBoundary = {
+              converted.clipBoundary = {
                 // AutoCAD LT 2027's XCLIP Off oracle persists the inactive
                 // state as SPATIAL_FILTER.clipBoundaryVisible=false (DXF 71=0).
                 // A separate XCLIPFRAME=0 oracle leaves this value true and
                 // clipping active, so the global frame toggle is not this flag.
                 isClippingEnabled: spatialFilter.clipBoundaryVisible !== false,
                 isInverted: clipIsInverted === true || clipIsInverted === 1,
-                boundaryVertices: vertices.map((point: any) => [point.x, point.y]),
+                boundaryVertices: vertices.map((point) => [point.x, point.y]),
               };
             } else {
               // Never silently render the unclipped block when we cannot map its
@@ -724,25 +964,19 @@ export async function parseDwgToCanonical(
   };
   const viewports: Record<string, CadViewport> = {};
   const paperSpaceEntities: Record<string, CadEntity[]> = {};
-  const rawLayoutEntries = rawDb.objects?.LAYOUT || rawDb.tables?.LAYOUT?.entries || rawDb.layouts || [];
+  const rawLayoutEntries = rawDb.objects.LAYOUT;
   if (Array.isArray(rawLayoutEntries)) {
     for (let lIdx = 0; lIdx < rawLayoutEntries.length; lIdx++) {
       const rl = rawLayoutEntries[lIdx];
-      const name = rl.layoutName || rl.name || `Layout${lIdx + 1}`;
-      const associatedBlock = rawBlockEntries.find((block: any) => block.layout === rl.handle || block.handle === rl.paperSpaceTableId);
-      const isModel = rl.isModelSpace != null ? Boolean(rl.isModelSpace) : (name === "Model" || associatedBlock?.name === "*Model_Space");
+      const name = rl.layoutName || `Layout${lIdx + 1}`;
+      const associatedBlock = rawBlockEntries.find((block: DwgBlockRecordTableEntry) => block.layout === rl.handle || block.handle === rl.paperSpaceTableId);
+      const isModel = name === "Model" || associatedBlock?.name === "*Model_Space";
       const id = isModel ? "Model" : name;
-      const bName = associatedBlock?.name || rl.blockRecordName || (isModel ? "*Model_Space" : (name === "Model" ? "*Model_Space" : `*Paper_Space${lIdx > 1 ? lIdx - 1 : ""}`));
+      const bName = associatedBlock?.name || (isModel ? "*Model_Space" : `*Paper_Space${lIdx > 1 ? lIdx - 1 : ""}`);
 
       let bbox: CadBBox2D = [0, 0, 1000, 1000];
-      if (Array.isArray(rl.extents) && rl.extents.length === 4) {
-        bbox = rl.extents;
-      } else if (rl.minExtent && rl.maxExtent && [rl.minExtent.x, rl.minExtent.y, rl.maxExtent.x, rl.maxExtent.y].every(Number.isFinite) && rl.maxExtent.x > rl.minExtent.x && rl.maxExtent.y > rl.minExtent.y) {
+      if ([rl.minExtent.x, rl.minExtent.y, rl.maxExtent.x, rl.maxExtent.y].every(Number.isFinite) && rl.maxExtent.x > rl.minExtent.x && rl.maxExtent.y > rl.minExtent.y) {
         bbox = [rl.minExtent.x, rl.minExtent.y, rl.maxExtent.x, rl.maxExtent.y];
-      } else if (rl.limmin && rl.limmax) {
-        if ([rl.limmin.x, rl.limmin.y, rl.limmax.x, rl.limmax.y].every(Number.isFinite) && rl.limmax.x > rl.limmin.x && rl.limmax.y > rl.limmin.y) {
-          bbox = [rl.limmin.x, rl.limmin.y, rl.limmax.x, rl.limmax.y];
-        }
       }
 
       layouts[id] = {
@@ -758,11 +992,12 @@ export async function parseDwgToCanonical(
   }
 
   // 4. Blok tanımlarını (BLOCK_RECORD) dönüştür
-  const blocks: Record<string, any> = {};
+  const blocks: Record<string, CadBlockDefinition> = {};
   const blockEntries = rawBlockEntries;
   if (Array.isArray(blockEntries)) {
     let blockOrder = BigInt(1);
-    for (const b of blockEntries) {
+    for (const rawBlock of blockEntries) {
+      const b = rawBlock as unknown as DwgAdapterBlockRecord;
       const name = b.name || "";
       if (!name || name.startsWith("*Model_Space")) {
         continue;
@@ -781,7 +1016,8 @@ export async function parseDwgToCanonical(
 
       const bEntities: CadEntity[] = [];
       if (Array.isArray(b.entities)) {
-        for (const ent of b.entities) {
+        for (const rawEntity of b.entities) {
+          const ent = asDwgAdapterEntity(rawEntity);
           const o = blockOrder;
           blockOrder += BigInt(1);
 
@@ -808,12 +1044,15 @@ export async function parseDwgToCanonical(
             const layerNameById = new Map<string, string>();
             for (const layer of rawLayerEntries) {
               if (layer.handle) layerNameById.set(String(layer.handle).toUpperCase(), layer.name);
-              if (layer.objectId) layerNameById.set(String(layer.objectId).toUpperCase(), layer.name);
             }
             const frozenLayers = Array.isArray(ent.frozenLayerIds)
               ? ent.frozenLayerIds.map((layerId: string) => layerNameById.get(String(layerId).toUpperCase()) || String(layerId))
               : (Array.isArray(ent.frozenLayers) ? ent.frozenLayers : (Array.isArray(ent.frozenLayerNames) ? ent.frozenLayerNames : []));
             const clipBoundaryObjectId = ent.clippingBoundaryId ? String(ent.clippingBoundaryId) : undefined;
+            const rawViewDirection = ent.viewDirectionFromTarget || ent.viewDirection;
+            const viewDirection = rawViewDirection
+              ? [rawViewDirection.x || 0, rawViewDirection.y || 0, rawViewDirection.z ?? 1] as [number, number, number]
+              : undefined;
             if (clipBoundaryObjectId && !Array.isArray(ent.clipPolygon)) {
               diagnostics.push({ id: `diag_vp_clip_${vpId}`, code: "UNRESOLVED_VIEWPORT_CLIP_BOUNDARY", severity: "warning", message: "Viewport clipping boundary object is present, but its polygon has not been resolved into canonical coordinates.", entityHandle: vpId });
             }
@@ -827,12 +1066,12 @@ export async function parseDwgToCanonical(
               width: typeof ent.width === "number" && ent.width > 0 ? ent.width : 200,
               height: typeof ent.height === "number" && ent.height > 0 ? ent.height : 150,
               viewCenter: [vpViewCenter.x || 0, vpViewCenter.y || 0],
-              viewDirection: ent.viewDirectionFromTarget || ent.viewDirection ? [(ent.viewDirectionFromTarget || ent.viewDirection).x || 0, (ent.viewDirectionFromTarget || ent.viewDirection).y || 0, (ent.viewDirectionFromTarget || ent.viewDirection).z ?? 1] : undefined,
+              viewDirection,
               perspective: Boolean((ent.statusBitFlags || 0) & 1),
               viewHeight: typeof ent.viewHeight === "number" && ent.viewHeight > 0 ? ent.viewHeight : 100,
               twistAngleRad,
               frozenLayers,
-              clipPolygon: Array.isArray(ent.clipPolygon) ? ent.clipPolygon.map((p: any) => [p.x ?? p[0] ?? 0, p.y ?? p[1] ?? 0] as [number, number]) : undefined,
+              clipPolygon: Array.isArray(ent.clipPolygon) ? ent.clipPolygon.map(toDwgPoint2D) : undefined,
               clipBoundaryObjectId,
               layerOverrides: ent.layerOverrides,
             };
@@ -848,7 +1087,7 @@ export async function parseDwgToCanonical(
             continue;
           }
 
-          const converted = convertRawEntity(ent, o);
+          const converted = convertRawEntity(rawEntity, o);
           if (converted) {
             bEntities.push(converted);
           }
@@ -858,19 +1097,20 @@ export async function parseDwgToCanonical(
       if (isPaperBlock) {
         paperSpaceEntities[matchedLayoutId] = (paperSpaceEntities[matchedLayoutId] || []).concat(bEntities);
       } else {
+        const xrefPath = b.pathName || b.xrefPath;
         blocks[name] = {
           name,
           basePoint: [b.basePoint?.x || 0, b.basePoint?.y || 0],
           entities: bEntities,
           isXref: Boolean(b.isXref || (((b.flags ?? b.blockTypeFlags ?? 0) & 4) !== 0)),
-          xrefPath: typeof (b.pathName || b.xrefPath) === "string" && (b.pathName || b.xrefPath).length > 0 ? (b.pathName || b.xrefPath) : undefined,
+          xrefPath: typeof xrefPath === "string" && xrefPath.length > 0 ? xrefPath : undefined,
         };
       }
     }
   }
 
-  const rawHeaderInsunits = rawDb.header?.INSUNITS ?? rawDb.header?.insunits;
-  const rawHeaderMeasurement = rawDb.header?.MEASUREMENT ?? rawDb.header?.measurement;
+  const rawHeaderInsunits = rawDb.header.INSUNITS;
+  const rawHeaderMeasurement = rawDb.header.MEASUREMENT;
 
   const docUnits = typeof rawHeaderInsunits === "number" ? rawHeaderInsunits : 0;
   const docMeasurement = typeof rawHeaderMeasurement === "number" ? rawHeaderMeasurement : 1;
@@ -887,8 +1127,8 @@ export async function parseDwgToCanonical(
   return {
     sourceVersionKey: options.sourceVersionKey || "dwg-v1",
     sourceSha256: options.sourceSha256 || "",
-    acadVersion: rawDb.header?.version || "AC1032",
-    codepage: rawDb.header?.codepage || "ANSI_1254",
+    acadVersion: rawDb.header.ACADVER || "AC1032",
+    codepage: rawDb.header.DWGCODEPAGE || "ANSI_1254",
     units: docUnits,
     measurement: docMeasurement,
     layers,

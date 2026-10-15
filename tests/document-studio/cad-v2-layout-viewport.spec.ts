@@ -626,7 +626,7 @@ function makeBrowserVisibleDashScenes() {
   const compiled = JSON.parse(output) as {
     scenes: Array<{
       sceneId: string;
-      manifest: Record<string, any>;
+      manifest: { chunks: Array<{ chunkId: string; layoutId: string }> };
       chunks: Array<{ chunkId: string; chunkBase64: string }>;
     }>;
   };

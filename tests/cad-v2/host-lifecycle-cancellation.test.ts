@@ -7,7 +7,7 @@
 import { CadV2WorkerClient } from "../../src/lib/cad-v2/worker/worker-client";
 import { CadV2DurableService } from "../../src/lib/cad-v2/service/cad-v2-durable-service";
 
-function assert(condition: any, message: string): asserts condition {
+function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
     console.error(`FAIL: ${message}`);
     process.exit(1);
@@ -23,7 +23,7 @@ async function runHostLifecycleTests() {
   // [Test 1] Host State Machine Durum Geçişleri (R23, R26)
   console.log("\n[Test 1] Host State Machine Durum Geçişleri:");
   type Phase = "authorizing" | "preparing" | "loading" | "ready" | "degraded" | "cancelled" | "context-lost" | "error";
-  let currentPhase: any = "preparing";
+  let currentPhase: Phase = "preparing";
 
   const transitionTo = (next: Phase) => {
     currentPhase = next;
@@ -52,7 +52,7 @@ async function runHostLifecycleTests() {
   });
 
   assert(Boolean(prep.viewSessionId), "Oturum oluşturuldu");
-  const job: any = service.getJob(prep.jobId!);
+  const job = service.getJob(prep.jobId!);
   assert(job !== null && job.status === "running", "İş çalışıyor durumda");
 
   // İptal tetikle
@@ -69,9 +69,9 @@ async function runHostLifecycleTests() {
   let disposeErrorCaught = false;
   try {
     await workerClient.loadChunk("chunk_01", new ArrayBuffer(64));
-  } catch (err: any) {
+  } catch (err: unknown) {
     disposeErrorCaught = true;
-    assert(err.message.includes("İstemci sonlandırılmış"), "Disposed worker client yeni istekleri reddetti");
+    assert(err instanceof Error && err.message.includes("İstemci sonlandırılmış"), "Disposed worker client yeni istekleri reddetti");
   }
   assert(disposeErrorCaught, "Dispose sonrası çağrı güvenle engellendi");
 

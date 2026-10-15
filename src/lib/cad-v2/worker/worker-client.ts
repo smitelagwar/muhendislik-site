@@ -30,7 +30,7 @@ export class CadV2WorkerClient {
     string,
     {
       resolve: (chunk: UnpackedSceneChunk) => void;
-      reject: (err: any) => void;
+      reject: (err: unknown) => void;
       generation: number;
     }
   >();
@@ -88,7 +88,7 @@ export class CadV2WorkerClient {
           viewSessionId: this.viewSessionId,
           generation: this.generation,
           sourceVersionKey: this.sourceVersionKey,
-          kind: "ping" as any,
+          kind: "ping",
         });
       } catch (err) {
         console.warn("[CadV2WorkerClient] Web Worker başlatılamadı, senkron mod devrede:", err);
@@ -105,7 +105,7 @@ export class CadV2WorkerClient {
   private handleWorkerMessage(msg: WorkerToHostMessage): void {
     if (!msg || msg.protocolVersion !== 1) return;
 
-    if (msg.kind === ("ready" as any)) {
+    if (msg.kind === "ready") {
       this.isWorkerReady = true;
       if (this.readyResolve) {
         this.readyResolve(true);
@@ -120,29 +120,32 @@ export class CadV2WorkerClient {
     }
 
     if (msg.kind === "chunk") {
-      const chunkId = msg.payload?.chunkId;
-      if (chunkId && this.pendingRequests.has(chunkId)) {
+      const chunkId = msg.payload.chunkId;
+      if (this.pendingRequests.has(chunkId)) {
         const req = this.pendingRequests.get(chunkId)!;
         this.pendingRequests.delete(chunkId);
-        req.resolve(msg.payload as UnpackedSceneChunk);
+        req.resolve(msg.payload);
       }
     } else if (msg.kind === "refined-curves") {
-      const requestId = msg.payload?.requestId;
-      const pending = typeof requestId === "string" ? this.pendingRefinements.get(requestId) : undefined;
+      const requestId = msg.payload.requestId;
+      if (typeof requestId !== "string") return;
+      const pending = this.pendingRefinements.get(requestId);
       if (pending && pending.generation === msg.generation) {
         clearTimeout(pending.timer);
         this.pendingRefinements.delete(requestId);
-        pending.resolve(msg.payload.result as CurveRefinementResult);
+        pending.resolve(msg.payload.result);
       }
     } else if (msg.kind === "error") {
-      const errorMsg = msg.payload?.error || "Bilinmeyen worker hatası";
-      const requestId = msg.payload?.requestId;
-      const refinement = typeof requestId === "string" ? this.pendingRefinements.get(requestId) : undefined;
-      if (refinement && refinement.generation === msg.generation) {
-        clearTimeout(refinement.timer);
-        this.pendingRefinements.delete(requestId);
-        refinement.reject(new Error(errorMsg));
-        return;
+      const errorMsg = msg.payload.error || "Bilinmeyen worker hatası";
+      const requestId = msg.payload.requestId;
+      if (typeof requestId === "string") {
+        const refinement = this.pendingRefinements.get(requestId);
+        if (refinement && refinement.generation === msg.generation) {
+          clearTimeout(refinement.timer);
+          this.pendingRefinements.delete(requestId);
+          refinement.reject(new Error(errorMsg));
+          return;
+        }
       }
       for (const [chunkId, req] of Array.from(this.pendingRequests.entries())) {
         if (req.generation === msg.generation) {
@@ -170,7 +173,7 @@ export class CadV2WorkerClient {
     if (this.worker && this.isWorkerReady) {
       return new Promise<UnpackedSceneChunk>((resolve, reject) => {
         const gen = this.generation;
-        let timer: any = null;
+        let timer: ReturnType<typeof setTimeout> | null = null;
 
         const cleanup = () => {
           if (timer) clearTimeout(timer);

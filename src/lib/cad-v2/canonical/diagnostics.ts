@@ -89,10 +89,10 @@ export function evaluateDocumentQuality(
   let convertedDimensionCount = 0;
   let droppedBlockTextCount = 0;
   let invisibleBlockChildrenCount = 0;
-  let nonDefaultExtrusionsCount = 0;
+  const nonDefaultExtrusionsCount = 0;
   let missingBlockCount = 0;
   let unresolvedXrefCount = 0;
-  let unsupportedTypeCount = 0;
+  const unsupportedTypeCount = 0;
 
   // 1. Üst seviye model alanı varlıklarını denetle
   const topEntities = doc.modelSpaceEntities || [];

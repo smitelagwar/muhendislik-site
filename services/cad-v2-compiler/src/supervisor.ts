@@ -14,20 +14,27 @@ export interface CompileJobTask {
   attempt?: number;
 }
 
+type CompileJobResult = { success: boolean; outputPath?: string; error?: string };
+
+interface QueuedCompileJob extends CompileJobTask {
+  attempt: number;
+  resolve: (result: CompileJobResult) => void;
+}
+
 export class CompilerSupervisor {
   private currentProcess: ChildProcess | null = null;
-  private queue: CompileJobTask[] = [];
+  private queue: QueuedCompileJob[] = [];
   private isProcessing = false;
   private timeoutMs = 300_000; // 300 saniye (D09)
 
-  public enqueue(task: CompileJobTask): Promise<{ success: boolean; outputPath?: string; error?: string }> {
+  public enqueue(task: CompileJobTask): Promise<CompileJobResult> {
     return new Promise((resolve) => {
       const wrappedTask = {
         ...task,
         attempt: task.attempt || 1,
-        _resolve: resolve,
+        resolve,
       };
-      this.queue.push(wrappedTask as any);
+      this.queue.push(wrappedTask);
       this.processNext();
     });
   }
@@ -36,7 +43,11 @@ export class CompilerSupervisor {
     if (this.isProcessing || this.queue.length === 0) return;
     this.isProcessing = true;
 
-    const task: any = this.queue.shift();
+    const task = this.queue.shift();
+    if (!task) {
+      this.isProcessing = false;
+      return;
+    }
     let isFinished = false;
 
     const childScript = path.resolve(import.meta.dirname || process.cwd(), "compiler-child.js");
@@ -57,9 +68,9 @@ export class CompilerSupervisor {
         }
         if (task.attempt < 2) {
           console.log(`[Supervisor] Tekrar deneniyor (attempt ${task.attempt + 1}): ${task.id}`);
-          this.enqueue({ ...task, attempt: task.attempt + 1 }).then(task._resolve);
+          this.enqueue({ ...task, attempt: task.attempt + 1 }).then(task.resolve);
         } else {
-          task._resolve({ success: false, error: "TIMEOUT_AFTER_RETRIES" });
+          task.resolve({ success: false, error: "TIMEOUT_AFTER_RETRIES" });
         }
         this.currentProcess = null;
         this.isProcessing = false;
@@ -79,9 +90,9 @@ export class CompilerSupervisor {
       } else {
         if (task.attempt < 2) {
           console.log(`[Supervisor] Başarısız iş tekrar deneniyor: ${task.id}`);
-          this.enqueue({ ...task, attempt: task.attempt + 1 }).then(task._resolve);
+          this.enqueue({ ...task, attempt: task.attempt + 1 }).then(task.resolve);
         } else {
-          task._resolve({ success: false, error: `CHILD_EXIT_CODE_${code}` });
+          task.resolve({ success: false, error: `CHILD_EXIT_CODE_${code}` });
         }
       }
       this.processNext();
@@ -93,7 +104,7 @@ export class CompilerSupervisor {
       clearTimeout(timer);
       this.currentProcess = null;
       this.isProcessing = false;
-      task._resolve({ success: false, error: err.message });
+      task.resolve({ success: false, error: err.message });
       this.processNext();
     });
   }

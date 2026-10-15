@@ -359,10 +359,10 @@ export class GeometryCompiler {
       const nextIdx = (i + 1) % v.length;
       const vNext = v[nextIdx];
 
-      const pxCurr = typeof vCurr.x === "number" ? vCurr.x : (vCurr as any).point?.[0] ?? 0;
-      const pyCurr = typeof vCurr.y === "number" ? vCurr.y : (vCurr as any).point?.[1] ?? 0;
-      const pxNext = typeof vNext.x === "number" ? vNext.x : (vNext as any).point?.[0] ?? 0;
-      const pyNext = typeof vNext.y === "number" ? vNext.y : (vNext as any).point?.[1] ?? 0;
+      const pxCurr = typeof vCurr.x === "number" ? vCurr.x : vCurr.point?.[0] ?? 0;
+      const pyCurr = typeof vCurr.y === "number" ? vCurr.y : vCurr.point?.[1] ?? 0;
+      const pxNext = typeof vNext.x === "number" ? vNext.x : vNext.point?.[0] ?? 0;
+      const pyNext = typeof vNext.y === "number" ? vNext.y : vNext.point?.[1] ?? 0;
       const pCurrent: CadPoint2D = [pxCurr, pyCurr];
       const pNext: CadPoint2D = [pxNext, pyNext];
       const bulge = vCurr.bulge || 0;
@@ -614,7 +614,7 @@ export class GeometryCompiler {
         sourceFitErrorBySpan.push(fitError + fitNoiseAllowance);
       }
     } else {
-      let refinedKnots = [...knots];
+      const refinedKnots = [...knots];
       let refinedControls = homogeneousControls;
       const internalValues = [...new Set(knots.filter((knot) => knot > domainStart && knot < domainEnd))];
 

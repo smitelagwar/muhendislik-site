@@ -6,32 +6,32 @@ import { NavbarChrome } from "@/components/navbar-chrome";
 import { NavbarDesktopNav } from "@/components/navbar-desktop-nav";
 import { NavbarLeading } from "@/components/navbar-leading";
 import { NavbarRouteTracker } from "@/components/navbar-route-tracker";
+import { isBelgeStudioRoute } from "@/lib/belge-studio-routes";
 
 export function Navbar() {
   const pathname = usePathname();
-
-  // Document Studio tam ekran rotasında site navbar'ını gizle
-  if (pathname?.startsWith("/dokumantasyon/dosya/")) {
-    return null;
-  }
+  const hideSiteHeader =
+    pathname?.startsWith("/dokumantasyon/dosya/") || isBelgeStudioRoute(pathname);
 
   return (
     <>
       <NavbarRouteTracker />
-      <NavbarChrome documentWorkspace={pathname === "/dokumantasyon"}>
-        <div className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-blue-500" />
+      {hideSiteHeader ? null : (
+        <NavbarChrome documentWorkspace={pathname === "/dokumantasyon"}>
+          <div className="h-[3px] w-full bg-gradient-to-r from-amber-400 via-amber-500 to-blue-500" />
 
-        <div className="mx-auto max-w-screen-2xl px-2 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
-          <div className="flex items-center justify-between py-3.5 sm:py-4">
-            <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 xl:gap-6 2xl:gap-8">
-              <NavbarLeading />
-              <NavbarDesktopNav />
+          <div className="mx-auto max-w-screen-2xl px-2 sm:px-6 lg:px-8 xl:px-10 2xl:px-16">
+            <div className="flex items-center justify-between py-3.5 sm:py-4">
+              <div className="flex flex-shrink-0 items-center gap-2 sm:gap-4 xl:gap-6 2xl:gap-8">
+                <NavbarLeading />
+                <NavbarDesktopNav />
+              </div>
+
+              <NavbarActions />
             </div>
-
-            <NavbarActions />
           </div>
-        </div>
-      </NavbarChrome>
+        </NavbarChrome>
+      )}
     </>
   );
 }

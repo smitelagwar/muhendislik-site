@@ -31,7 +31,8 @@ async function runBoundsProvenanceTests() {
   // 1. TAM MODEL SAHNESİNİ DERLE VE BOUNDS DOĞRULA
   const compiled = compileCanonicalToScene(doc);
   const modelLayout = compiled.manifest.layouts.find((l) => l.layoutId === "Model" || l.kind === "model");
-  const bbox = modelLayout ? modelLayout.bbox : (compiled.manifest as any).modelBBox;
+  const bbox = modelLayout?.bbox;
+  if (!bbox) throw new Error("Model layout manifest'i model bbox içermeli");
 
   console.log("  Model Alanı BBox:", bbox);
 
@@ -126,7 +127,8 @@ async function runBoundsProvenanceTests() {
 
   const modifiedCompiled = compileCanonicalToScene(clonedDoc);
   const modifiedLayout = modifiedCompiled.manifest.layouts.find((l) => l.layoutId === "Model" || l.kind === "model");
-  const modifiedBbox = modifiedLayout ? modifiedLayout.bbox : (modifiedCompiled.manifest as any).modelBBox;
+  const modifiedBbox = modifiedLayout?.bbox;
+  if (!modifiedBbox) throw new Error("Güncellenmiş model layout manifest'i bbox içermeli");
 
   console.log(`  Katman '${targetEntity.layer}' dondurulduktan sonra yeni BBox:`, modifiedBbox);
   // Katman dondurulduğunda BBox dinamik olarak güncellenmelidir (sabit kalmamalıdır)

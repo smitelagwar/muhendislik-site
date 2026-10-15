@@ -5,7 +5,8 @@
   "buildCommand": "npm run build",
   "git": {
     "deploymentEnabled": {
-      "internal-dok-mobile-plan-no-deploy": false
+      "internal-*": false,
+      "chatgpt-*": false
     }
   },
   "headers": [

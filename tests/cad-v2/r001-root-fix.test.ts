@@ -94,9 +94,9 @@ async function runR001RootFixTests() {
   // 4. HATCH Loops ve Triangulation Doğrulaması
   // --------------------------------------------------------------------------
   console.log("\n[KAPU 4] HATCH Loops ve Triangulation...");
-  const hatchEntities = doc.modelSpaceEntities.filter((e) => e.type === "HATCH");
+  const hatchEntities = doc.modelSpaceEntities.filter((entity): entity is Extract<typeof entity, { type: "HATCH" }> => entity.type === "HATCH");
   assert.strictEqual(hatchEntities.length, 104, `R001 içinde 104 adet HATCH olmalı, bulunan: ${hatchEntities.length}`);
-  const hatchesWithLoops = hatchEntities.filter((h: any) => Array.isArray(h.loops) && h.loops.length > 0).length;
+  const hatchesWithLoops = hatchEntities.filter((hatch) => hatch.loops.length > 0).length;
   assert.strictEqual(hatchesWithLoops, 104, `104 HATCH'in tamamı dolu loops taşımalı (Eski hatalı: 0, Bulunan: ${hatchesWithLoops})`);
   console.log(`  ✓ 104/104 HATCH nesnesi dolu boundaryPaths / loops taşıyor PASS`);
 

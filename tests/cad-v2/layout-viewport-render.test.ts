@@ -2,7 +2,7 @@
 // exact per-layout geometry/style/visibility contract consumed by the renderer.
 import assert from "node:assert/strict";
 import { CadV2Renderer } from "../../src/lib/cad-v2/render/cad-v2-renderer";
-import type { CadCanonicalDocument, CadEntity } from "../../src/lib/cad-v2/canonical/types";
+import type { CadBBox2D, CadCanonicalDocument, CadEntity } from "../../src/lib/cad-v2/canonical/types";
 import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-compiler";
 import { parseSceneChunk, SceneTag } from "../../src/lib/cad-v2/protocol/binary-protocol";
 import { getCameraWorldViewportBBox, isChunkVisibleInCamera } from "../../src/lib/cad-v2/render/chunk-visibility";
@@ -15,6 +15,23 @@ function check(condition: boolean, message: string): void {
 
 function near(a: number, b: number, tolerance = 2e-4): boolean {
   return Math.abs(a - b) <= tolerance;
+}
+
+interface LayoutTestChunkGroup {
+  userData: { layoutId: string };
+  visible: boolean;
+}
+
+interface RendererLayoutTestSurface {
+  activeLayoutId: string;
+  loadedChunks: Map<string, { group: LayoutTestChunkGroup }>;
+  chunkBounds: Map<string, CadBBox2D>;
+  cameraAdapter: { getState: () => CadCameraState };
+  invalidate: () => void;
+  setChunkBounds(chunks: Array<{ chunkId: string; bbox?: CadBBox2D }>): void;
+  setActiveLayout(layoutId: string): void;
+  getActiveLayout(): string;
+  updateChunkVisibility(camera: CadCameraState): void;
 }
 
 function segmentsForLayout(scene: ReturnType<typeof compileCanonicalToScene>, layoutId: string) {
@@ -125,7 +142,7 @@ check(isChunkVisibleInCamera(undefined, { ...visibilityCamera, center: [0, 0], w
 
 // Exercise the production layout switch method without constructing WebGL.
 // It only needs the actual renderer's chunk groups and invalidation callback.
-const renderer = Object.create(CadV2Renderer.prototype) as any;
+const renderer = Object.create(CadV2Renderer.prototype) as unknown as RendererLayoutTestSurface;
 let invalidations = 0;
 renderer.activeLayoutId = "Model";
 renderer.loadedChunks = new Map<string, { group: { userData: { layoutId: string }; visible: boolean } }>();
@@ -139,27 +156,27 @@ renderer.setChunkBounds(scene.manifest.chunks);
 invalidations = 0;
 renderer.setActiveLayout("SHEET_B");
 check(renderer.getActiveLayout() === "SHEET_B", "Renderer pafta seçiminde active layout kimliğini günceller");
-check([...renderer.loadedChunks.values()].every((chunk: any) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_B")), "Renderer yalnız seçili paftanın scene chunk'larını görünür tutar");
+check([...renderer.loadedChunks.values()].every((chunk) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_B")), "Renderer yalnız seçili paftanın scene chunk'larını görünür tutar");
 renderer.setActiveLayout("SHEET_A");
-check([...renderer.loadedChunks.values()].every((chunk: any) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_A")), "Layout değişimi önceki layout görünürlüğünü tamamen kapatır");
+check([...renderer.loadedChunks.values()].every((chunk) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_A")), "Layout değişimi önceki layout görünürlüğünü tamamen kapatır");
 check(invalidations === 2, "Her layout değişimi render invalidation üretir");
 
 visibilityCamera.center = [0, 0];
 visibilityCamera.width = 20;
 visibilityCamera.height = 20;
 renderer.setActiveLayout("Model");
-check([...renderer.loadedChunks.values()].every((chunk: any) => chunk.group.visible === (chunk.group.userData.layoutId === "Model")),
+check([...renderer.loadedChunks.values()].every((chunk) => chunk.group.visible === (chunk.group.userData.layoutId === "Model")),
   "Renderer manifest bbox ve aktif kamera kesişimine göre Model chunk'larını culler");
 visibilityCamera.center = [50, 50];
 renderer.updateChunkVisibility(visibilityCamera);
-check([...renderer.loadedChunks.values()].filter((chunk: any) => chunk.group.userData.layoutId === "Model").every((chunk: any) => !chunk.group.visible),
+check([...renderer.loadedChunks.values()].filter((chunk) => chunk.group.userData.layoutId === "Model").every((chunk) => !chunk.group.visible),
   "Pan kamera callback'i aynı layout'un önceki görünüm dışı chunk'ını kapatır");
 renderer.setActiveLayout("SHEET_A");
-check([...renderer.loadedChunks.values()].every((chunk: any) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_A")),
+check([...renderer.loadedChunks.values()].every((chunk) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_A")),
   "Pan sonrası aynı layout'un chunk görünürlüğü kamera ile güncellenir");
 visibilityCamera.center = [250, 50];
 renderer.setActiveLayout("SHEET_B");
-check([...renderer.loadedChunks.values()].every((chunk: any) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_B")),
+check([...renderer.loadedChunks.values()].every((chunk) => chunk.group.visible === (chunk.group.userData.layoutId === "SHEET_B")),
   "Renderer pafta görünürlüğü ile spatial culling'i birlikte uygular");
 
 console.log("=== F06 layout/viewport acceptance PASS ===");

@@ -87,29 +87,35 @@ PDF şablonları AcroForm alanları içerir. Geliştirme sürecinde karşılaş�
 
 Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunmalıdır:
 
-### 3.1. Dış Sayfa Kaydırmasız Düzen (Zero Outer Scroll / 100vh Fit)
+### 3.1. Bağımsız Stüdyo Navigasyonu ve Başlığı
+* `/belgeler` belge kataloğudur; arama/kartlar, genel site başlığı ve uygun ekranlarda ana navigasyon burada görünür.
+* Beş belge stüdyosu katalogdan kendi rotasına açılır: `/belgeler/beton-dokum-tutanagi`, `/belgeler/insaat-ruhsati-dilekcesi`, `/belgeler/santiye-sefi-istifa-dilekcesi`, `/belgeler/santiye-sefi-sozlesmesi` ve `/belgeler/santiye-sefi-taahhutnamesi`. Bu rotalarda genel site header'ı gizlenir; `BelgeStudioPageShell` tek satırlı belge başlığını ve `/belgeler` hedefine dönen erişilebilir bağlantıyı sağlar. Rota eşlemesi `src/lib/belge-studio-routes.ts` içinde tutulur.
+* Mobil görünümde form ve PDF önizlemesi tek ekranda üst üste bindirilmez; form/PDF sekmeleri ve alttaki belge eylemleri kullanılır. Stüdyo içinde genel hamburger bulunmaz. `Ctrl+K` komut paleti davranışı korunur.
+* Belgeler kataloğu şu anda `StudioPreview` modalı kullanmaz. Kartlardaki stüdyo eylemleri bağımsız belge rotasına gider; yeni belge eklerken olmayan bir modalı `belgeler-hub.tsx` içine bağlamayın.
+
+### 3.2. Dış Sayfa Kaydırmasız Düzen (Zero Outer Scroll / 100vh Fit)
 * Masaüstü ekranlarda stüdyo açıldığında ana tarayıcı penceresinde **dış kaydırma çubuğu (outer scrollbar) kesinlikle çıkmamalıdır.**
 * Stüdyo `h-[calc(100vh-...)]` veya tam ekran düzenine oturmalı; sol form paneli bağımsız olarak kendi içinde (`overflow-y-auto`) kaymalı, sağdaki canlı PDF önizleme paneli ise dikeyde tam sayfaya otomatik sığmalıdır (`scaleToFit`).
 
-### 3.2. Yüksek Performanslı Anlık Yakınlaştırma (Instant 60fps Zoom)
+### 3.3. Yüksek Performanslı Anlık Yakınlaştırma (Instant 60fps Zoom)
 * **Önemli İlke:** Zoom seviyesi değiştirildiğinde (Zoom In/Out butonları, `Ctrl + Mouse Wheel`, `Ctrl + +`, `Ctrl + -`, `Ctrl + 0`) PDF motoru (`pdf-lib`) **kesinlikle yeniden derlenmemelidir** ve durum `"Derleniyor"` moduna düşmemelidir.
 * **Uygulama:**
   - `formData` değiştiğinde PDF bir kez derlenir, `pdfjs.getDocument()` ile parse edilir ve `cachedPdfDocRef.current` içine kaydedilir.
   - Zoom değiştiğinde sadece `renderPdfPage(cachedPdfDocRef.current, newZoom)` çağrılarak canvas anında (<5ms) yeniden çizilir.
   - Zoom > %100 olduğunda PDF önizleme kapsayıcısında iç kaydırma (`overflow: auto`) devreye girmeli, dış sayfa asla oynamamalıdır.
 
-### 3.3. Alan Bazlı Yerel Sıfırlama Butonu (Per-Field Reset)
+### 3.4. Alan Bazlı Yerel Sıfırlama Butonu (Per-Field Reset)
 * Her form alanının başlığında, o alan varsayılan şablon değerinden farklı bir değere getirildiği anda beliren küçük bir `↺ Sıfırla` butonu yer alır.
 * Kullanıcı alanı varsayılan değerine geri döndürdüğünde bu buton otomatik olarak kaybolmalıdır.
 
-### 3.4. Esnek Doğrulama ve Uyarı Mantığı (Validations)
+### 3.5. Esnek Doğrulama ve Uyarı Mantığı (Validations)
 * **Altın Kural:** Bir alanda format veya hane kısıtı varsa (örneğin Yapı Denetim YİBF No için 7 hane kuralı), **kullanıcının yazması ASLA engellenmemelidir.**
 * Belirlenen kural aşıldığında:
   1. Input kenarlığı ve metin kırmızıya dönmeli (`border-red-500 text-red-600`),
   2. Başlığın hemen yanında açık ve anlaşılır bir uyarı metni belirmelidir: `(YİBF No normalde 7 hanelidir, kontrol ediniz)`.
   3. Kullanıcı isterse fazladan yazmaya devam edebilmeli veya `Sıfırla` butonuyla düzeltebilmelidir.
 
-### 3.5. Standart Aksiyon Butonları
+### 3.6. Standart Aksiyon Butonları
 Her stüdyonun sol panelinin altında şu 5 aksiyon butonu standarttır:
 1. **Sıfırla (`Undo2`):** Formu resmi örnek değerlerle doldurur.
 2. **Temizle (`Trash2`):** Tüm form kutucuklarını boşaltır (bembeyaz boş şablon).
@@ -117,7 +123,7 @@ Her stüdyonun sol panelinin altında şu 5 aksiyon butonu standarttır:
 4. **Yazdır (`Printer`):** Önizleme blob'unu doğrudan tarayıcı yazdırma penceresine gönderir.
 5. **Doldurulmuş PDF'i İndir (`FileDown` - Vurgulu Amber Buton):** Kullanıcının doldurduğu güncel verilerle PDF dosyasını indirir.
 
-### 3.6. Mobil Uyumluluk (Mobile Segmented Tab Switcher)
+### 3.7. Mobil Uyumluluk (Mobile Segmented Tab Switcher)
 * Mobil ekranlarda (`< lg`) ekran ikiye bölünmez. Üstte iki sekmeli bir geçiş kontrolü bulunur:
   - **Form Alanları (`FileEdit`):** Inputların doldurulduğu alan (Kaç alanın dolu olduğu sayacıyla örn: `8/10`).
   - **Canlı PDF Önizle (`Eye`):** Sayfaya tam oturan mobil canvas önizlemesi.
@@ -157,8 +163,9 @@ Yeni belgenin `id` değerini rota eşleştirmesine ekleyin, böylece istemci şa
 - Form kontrolleri, canlı Canvas senkronizasyonu, zoom kontrolleri, yerel sıfırlama butonları ve mobil tab yapısını kurun.
 
 ### Adım 6: Sayfa Rotalarını Bağlama
-1. `src/app/belgeler/[belge-slug]/page.tsx` rotasını oluşturup stüdyo bileşenini yerleştirin.
-2. `src/components/belgeler-hub.tsx` içindeki `StudioPreview` bileşenine yeni belgenin modal durumunu bağlayın.
+1. `src/app/belgeler/[belge-slug]/page.tsx` rotasını oluşturup stüdyo bileşenini yerleştirin; sayfa başlığı ve katalog dönüşü için `BelgeStudioPageShell` kullanın.
+2. Yeni rotayı `src/lib/belge-studio-routes.ts` içindeki tam rota listesine ekleyin ve `src/lib/documents-data.ts` kaydındaki katalog bağlantısını aynı rotaya yönlendirin.
+3. Katalogda modal önizleme mevcut değildir. Modal giriş noktası ürün gereksinimiyle ayrıca eklenmedikçe `StudioPreview` bağlaması varsaymayın.
 
 ---
 

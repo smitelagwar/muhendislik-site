@@ -43,7 +43,7 @@ export class LayoutManager {
 
     // Ölçek: Paper Height / Model View Height
     const scale = viewport.viewHeight > 1e-9 ? viewport.height / viewport.viewHeight : 1.0;
-    const twist = (viewport as any).twistAngleRad || 0;
+    const twist = viewport.twistAngleRad || 0;
 
     const cosT = Math.cos(twist);
     const sinT = Math.sin(twist);

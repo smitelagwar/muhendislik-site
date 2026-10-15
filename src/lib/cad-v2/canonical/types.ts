@@ -113,6 +113,8 @@ export interface CadEllipseEntity extends CadBaseEntity {
 export interface CadLwPolylineVertex {
   x: number;
   y: number;
+  /** Legacy decoder representation retained for compatibility at the compile boundary. */
+  point?: CadPoint2D;
   bulge?: number;
   startWidth?: number;
   endWidth?: number;
@@ -363,7 +365,7 @@ export interface CadCanonicalDocument {
   modelSpaceEntities: CadEntity[];
   paperSpaceEntities?: Record<string, CadEntity[]>;
   diagnostics: CadDiagnostic[];
-  provenanceSummary?: any;
+  provenanceSummary?: Record<string, unknown>;
   rawStats?: {
     rawHeaderInsunits?: number;
     rawEntitiesCount?: number;

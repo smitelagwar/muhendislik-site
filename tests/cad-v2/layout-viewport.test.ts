@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { LayoutManager } from "../../src/lib/cad-v2/layout/layout-manager";
-import type { CadViewport, CadLayer, CadPoint2D, CadCanonicalDocument } from "../../src/lib/cad-v2/canonical/types";
+import type { CadViewport, CadLayer, CadPoint2D, CadCanonicalDocument, CadEntity } from "../../src/lib/cad-v2/canonical/types";
 import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-compiler";
 import { parseSceneChunk, SceneTag } from "../../src/lib/cad-v2/protocol/binary-protocol";
 import { parseDxfToCanonical } from "../../src/lib/cad-v2/decode/dxf-adapter";
@@ -21,6 +21,14 @@ function assert(condition: boolean, message: string) {
     process.exit(1);
   }
   console.log(`PASS: ${message}`);
+}
+
+type CadInsertEntity = Extract<CadEntity, { type: "INSERT" }>;
+
+function findInsertByBlockName(document: CadCanonicalDocument, blockName: string): CadInsertEntity | undefined {
+  return document.modelSpaceEntities.find(
+    (entity): entity is CadInsertEntity => entity.type === "INSERT" && entity.blockName === blockName
+  );
 }
 
 function approxEqual(a: number, b: number, eps = 1e-4): boolean {
@@ -109,7 +117,7 @@ async function runLayoutViewportTests() {
     ...testViewport,
     id: "VP_TWIST",
     // 90 derece saat yönünün tersi twist
-    ...( { twistAngleRad: Math.PI / 2 } as any ),
+    twistAngleRad: Math.PI / 2,
   };
   const twistMat = LayoutManager.computeModelToPaper(twistedViewport);
   // Twist varken model dY (+750) -> kağıt dX (+75) olmalı
@@ -321,7 +329,7 @@ async function runLayoutViewportTests() {
   const autoCADLayout = Object.values(decodedAutoCAD.layouts).find((layout) => layout.name === "F06_SHEET");
   assert(Boolean(autoCADLayout && !autoCADLayout.isModelSpace), "AutoCAD DWG fixture named paper layout'ı çözümlendi");
   assert(Boolean(decodedAutoCAD.paperSpaceEntities?.[autoCADLayout!.id]?.some((entity) => entity.type === "TEXT")), "AutoCAD DWG paper TEXT doğru layout block'una bağlandı");
-  assert(!decodedAutoCAD.modelSpaceEntities.some((entity) => entity.type === "TEXT" && (entity as any).text === "F06 PAPER SPACE CONTROL"), "Aynı paper TEXT modelSpaceEntities içine kopyalanmıyor");
+  assert(!decodedAutoCAD.modelSpaceEntities.some((entity) => entity.type === "TEXT" && entity.text === "F06 PAPER SPACE CONTROL"), "Aynı paper TEXT modelSpaceEntities içine kopyalanmıyor");
   const autoCADViewports = Object.values(decodedAutoCAD.viewports).filter((viewport) => viewport.layoutId === autoCADLayout!.id);
   assert(autoCADViewports.length === 2, `Sistem viewport'u elenip iki aktif model viewport'u kaldı (${autoCADViewports.length})`);
   assert(autoCADViewports.map((viewport) => viewport.viewportNumber).sort().join(",") === "2,3", "AutoCAD aktif viewport numaraları 2 ve 3 korunuyor");
@@ -332,11 +340,11 @@ async function runLayoutViewportTests() {
   const autoCADXclipFixture = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip.dwg");
   assert(fs.existsSync(autoCADXclipFixture), "AutoCAD tarafından üretilen gerçek DWG XCLIP fixture repoda mevcut");
   const decodedAutoCADXclip = await parseDwgToCanonical(fs.readFileSync(autoCADXclipFixture));
-  const xclippedInsert = decodedAutoCADXclip.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const xclippedInsert = findInsertByBlockName(decodedAutoCADXclip, "F06_XCLIP_BLOCK_CLEAN");
   assert(decodedAutoCADXclip.modelSpaceEntities.length === 1, "AutoCAD XCLIP fixture model space contains only the intended INSERT, no un-clipped control geometry");
-  const xclip = (xclippedInsert as any)?.clipBoundary;
+  const xclip = xclippedInsert?.clipBoundary;
   assert(Boolean(xclip && xclip.boundaryVertices.length === 4), "SPATIAL_FILTER owner-dictionary zinciri DWG INSERT'e bağlandı");
-  assert(xclip?.boundaryVertices.map((point: [number, number]) => point.join(",")).join(";") === "20,20;80,20;80,80;20,80", "Identity OCS/matrix XCLIP sınırı kayıpsız world clip polygon'a çevrildi");
+  assert(xclip?.boundaryVertices.map(point => point.join(",")).join(";") === "20,20;80,20;80,80;20,80", "Identity OCS/matrix XCLIP sınırı kayıpsız world clip polygon'a çevrildi");
   const xclipScene = compileCanonicalToScene(decodedAutoCADXclip, { sceneId: "scene_f06_autocad_xclip" });
   const xclipModelChunkRef = xclipScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
   const xclipModelChunk = parseSceneChunk(xclipScene.chunks.get(xclipModelChunkRef!.chunkId)!);
@@ -352,7 +360,7 @@ async function runLayoutViewportTests() {
   const xclipOffDwgPath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-off.dwg");
   assert(fs.existsSync(xclipOffDwgPath), "AutoCAD-generated XCLIP Off DWG oracle fixture exists");
   const xclipOffDwg = await parseDwgToCanonical(fs.readFileSync(xclipOffDwgPath));
-  const xclipOffDwgInsert = xclipOffDwg.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const xclipOffDwgInsert = findInsertByBlockName(xclipOffDwg, "F06_XCLIP_BLOCK_CLEAN");
   assert(xclipOffDwgInsert?.clipBoundary?.isClippingEnabled === false, "DWG group-71 disabled clip state is retained as isClippingEnabled=false");
   const xclipOffDwgScene = compileCanonicalToScene(xclipOffDwg, { sceneId: "scene_f06_autocad_xclip_off_dwg" });
   const xclipOffDwgChunkRef = xclipOffDwgScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -364,7 +372,7 @@ async function runLayoutViewportTests() {
 
   const xclipFrameHiddenPath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-frame-hidden.dwg");
   const xclipFrameHidden = await parseDwgToCanonical(fs.readFileSync(xclipFrameHiddenPath));
-  const xclipFrameHiddenInsert = xclipFrameHidden.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const xclipFrameHiddenInsert = findInsertByBlockName(xclipFrameHidden, "F06_XCLIP_BLOCK_CLEAN");
   assert(xclipFrameHiddenInsert?.clipBoundary?.isClippingEnabled === true, "XCLIPFRAME=0 is distinguished from XCLIP Off; filter clipping remains enabled");
   const xclipFrameHiddenScene = compileCanonicalToScene(xclipFrameHidden, { sceneId: "scene_f06_autocad_xclip_frame_hidden" });
   const xclipFrameHiddenChunkRef = xclipFrameHiddenScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -374,9 +382,9 @@ async function runLayoutViewportTests() {
   const autoCADXclipDxfFixture = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-clean.dxf");
   assert(fs.existsSync(autoCADXclipDxfFixture), "AutoCAD DWG'den dışa aktarılan gerçek ASCII DXF XCLIP fixture repoda mevcut");
   const decodedAutoCADXclipDxf = await parseDxfToCanonical(fs.readFileSync(autoCADXclipDxfFixture));
-  const dxfXclipInsert = decodedAutoCADXclipDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const dxfXclipInsert = findInsertByBlockName(decodedAutoCADXclipDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(dxfXclipInsert?.clipBoundary && dxfXclipInsert.visible !== false), "DXF INSERT extension dictionary zincirinden SPATIAL_FILTER clip'i çözümlendi");
-  assert(dxfXclipInsert?.clipBoundary?.boundaryVertices.map((point: [number, number]) => point.join(",")).join(";") === "20,20;80,20;80,80;20,80", "AutoCAD ASCII DXF OCS clip sınırı canonical WCS polygon'a aktarıldı");
+  assert(dxfXclipInsert?.clipBoundary?.boundaryVertices.map(point => point.join(",")).join(";") === "20,20;80,20;80,80;20,80", "AutoCAD ASCII DXF OCS clip sınırı canonical WCS polygon'a aktarıldı");
   const xclipDxfScene = compileCanonicalToScene(decodedAutoCADXclipDxf, { sceneId: "scene_f06_autocad_xclip_dxf" });
   const xclipDxfChunkRef = xclipDxfScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
   const xclipDxfChunk = parseSceneChunk(xclipDxfScene.chunks.get(xclipDxfChunkRef!.chunkId)!);
@@ -389,7 +397,7 @@ async function runLayoutViewportTests() {
   const xclipOffDxfPath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-off.dxf");
   assert(fs.existsSync(xclipOffDxfPath), "AutoCAD DXFOUT ASCII XCLIP Off oracle fixture exists");
   const xclipOffDxf = await parseDxfToCanonical(fs.readFileSync(xclipOffDxfPath));
-  const xclipOffDxfInsert = xclipOffDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const xclipOffDxfInsert = findInsertByBlockName(xclipOffDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(xclipOffDxfInsert?.clipBoundary?.isClippingEnabled === false, "ASCII DXF group 71=0 is not misread as an active XCLIP");
   const xclipOffDxfScene = compileCanonicalToScene(xclipOffDxf, { sceneId: "scene_f06_autocad_xclip_off_dxf" });
   const xclipOffDxfChunkRef = xclipOffDxfScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -408,14 +416,14 @@ async function runLayoutViewportTests() {
   const binaryDxfBytes = encodeBinaryDxf(fs.readFileSync(autoCADXclipDxfFixture));
   assert(Buffer.from(binaryDxfBytes.subarray(0, 22)).toString("binary") === "AutoCAD Binary DXF\r\n\u001a\u0000", "AutoCAD ASCII fixture converted to a binary DXF stream with the official sentinel");
   const xclipOffBinaryDxf = await parseDxfToCanonical(encodeBinaryDxf(fs.readFileSync(xclipOffDxfPath)));
-  const xclipOffBinaryInsert = xclipOffBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const xclipOffBinaryInsert = findInsertByBlockName(xclipOffBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(xclipOffBinaryInsert?.clipBoundary?.isClippingEnabled === false, "Binary DXF pair reader preserves AutoCAD XCLIP Off state");
   const xclipOffBinaryScene = compileCanonicalToScene(xclipOffBinaryDxf, { sceneId: "scene_f06_autocad_xclip_off_binary_dxf" });
   const xclipOffBinaryChunkRef = xclipOffBinaryScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
   const xclipOffBinaryChunk = parseSceneChunk(xclipOffBinaryScene.chunks.get(xclipOffBinaryChunkRef!.chunkId)!);
   assert(hasWorldSegment(xclipOffBinaryChunk.sections.get(SceneTag.XY)!.data as Float32Array, xclipOffBinaryChunk.sections.get(SceneTag.ORIGIN)!.data as Float64Array, [0, 50], [100, 50]), "Binary DXF XCLIP Off restores the full line");
   const decodedAutoCADXclipBinaryDxf = await parseDxfToCanonical(binaryDxfBytes);
-  const binaryDxfXclipInsert = decodedAutoCADXclipBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const binaryDxfXclipInsert = findInsertByBlockName(decodedAutoCADXclipBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(binaryDxfXclipInsert?.clipBoundary && binaryDxfXclipInsert.visible !== false), "Binary DXF INSERT filter dictionary chain resolves into a canonical XCLIP");
   const binaryXclipScene = compileCanonicalToScene(decodedAutoCADXclipBinaryDxf, { sceneId: "scene_f06_autocad_xclip_binary_dxf" });
   const binaryXclipChunkRef = binaryXclipScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -432,7 +440,7 @@ async function runLayoutViewportTests() {
   const invertedXclipDwgPath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-inverted-oracle.dwg");
   assert(fs.existsSync(invertedXclipDwgPath), "AutoCAD LT Invert Clip komutuyla oluşturulan ayrı DWG oracle fixture mevcut");
   const invertedXclipDwg = await parseDwgToCanonical(fs.readFileSync(invertedXclipDwgPath));
-  const invertedDwgInsert = invertedXclipDwg.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const invertedDwgInsert = findInsertByBlockName(invertedXclipDwg, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(invertedDwgInsert?.clipBoundary && invertedDwgInsert.visible !== false && invertedDwgInsert.clipBoundary.boundaryVertices.length === 11), "DWG inverted clip compound boundary kayıpsız çözümlendi; güvenli profilde fail-closed olmadı");
   const invertedDwgScene = compileCanonicalToScene(invertedXclipDwg, { sceneId: "scene_f06_autocad_inverted_xclip_dwg" });
   const invertedDwgChunkRef = invertedDwgScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -445,7 +453,7 @@ async function runLayoutViewportTests() {
   const invertedXclipDxfPath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-inverted-oracle.dxf");
   assert(fs.existsSync(invertedXclipDxfPath), "Aynı AutoCAD inverted DWG'den alınan ASCII DXF oracle fixture mevcut");
   const invertedXclipDxf = await parseDxfToCanonical(fs.readFileSync(invertedXclipDxfPath));
-  const invertedDxfInsert = invertedXclipDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const invertedDxfInsert = findInsertByBlockName(invertedXclipDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(invertedDxfInsert?.clipBoundary && invertedDxfInsert.visible !== false && invertedDxfInsert.clipBoundary.boundaryVertices.length === 11), "AutoCAD DXF inverted clip compound boundary DWG ile aynı vertex profiliyle çözümlendi");
   const invertedDxfScene = compileCanonicalToScene(invertedXclipDxf, { sceneId: "scene_f06_autocad_inverted_xclip_dxf" });
   const invertedDxfChunkRef = invertedDxfScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -465,7 +473,7 @@ async function runLayoutViewportTests() {
     assert(bytes.subarray(0, autoCADBinarySentinel.length).equals(autoCADBinarySentinel), `AutoCAD native binary DXF sentinel is valid: ${path.basename(binaryPath)}`);
   }
   const autoCADNativeBinaryDxf = await parseDxfToCanonical(fs.readFileSync(autoCADNormalBinaryDxfPath));
-  const autoCADNativeBinaryInsert = autoCADNativeBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const autoCADNativeBinaryInsert = findInsertByBlockName(autoCADNativeBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(autoCADNativeBinaryInsert?.clipBoundary && autoCADNativeBinaryInsert.visible !== false), "AutoCAD-produced binary DXF normal XCLIP handle chain resolves");
   const autoCADNativeBinaryScene = compileCanonicalToScene(autoCADNativeBinaryDxf, { sceneId: "scene_f06_autocad_native_binary_xclip" });
   const autoCADNativeBinaryChunkRef = autoCADNativeBinaryScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -475,7 +483,7 @@ async function runLayoutViewportTests() {
   assert(isExactlyOneWorldSegment(autoCADNativeBinaryXY, autoCADNativeBinaryOrigin, [20, 50], [80, 50]), "AutoCAD-produced binary DXF normal XCLIP compiles to exact [20,50]–[80,50]");
 
   const autoCADNativeOffBinaryDxf = await parseDxfToCanonical(fs.readFileSync(autoCADOffBinaryDxfPath));
-  const autoCADNativeOffBinaryInsert = autoCADNativeOffBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const autoCADNativeOffBinaryInsert = findInsertByBlockName(autoCADNativeOffBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(autoCADNativeOffBinaryInsert?.clipBoundary?.isClippingEnabled === false, "AutoCAD-produced binary DXF retains XCLIP Off state");
   const autoCADNativeOffBinaryScene = compileCanonicalToScene(autoCADNativeOffBinaryDxf, { sceneId: "scene_f06_autocad_native_binary_xclip_off" });
   const autoCADNativeOffBinaryChunkRef = autoCADNativeOffBinaryScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -483,7 +491,7 @@ async function runLayoutViewportTests() {
   assert(hasWorldSegment(autoCADNativeOffBinaryChunk.sections.get(SceneTag.XY)!.data as Float32Array, autoCADNativeOffBinaryChunk.sections.get(SceneTag.ORIGIN)!.data as Float64Array, [0, 50], [100, 50]), "AutoCAD-produced binary DXF XCLIP Off restores the full line");
 
   const autoCADNativeInvertedBinaryDxf = await parseDxfToCanonical(fs.readFileSync(autoCADInvertedBinaryDxfPath));
-  const autoCADNativeInvertedBinaryInsert = autoCADNativeInvertedBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN") as any;
+  const autoCADNativeInvertedBinaryInsert = findInsertByBlockName(autoCADNativeInvertedBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(Boolean(autoCADNativeInvertedBinaryInsert?.clipBoundary && autoCADNativeInvertedBinaryInsert.visible !== false && autoCADNativeInvertedBinaryInsert.clipBoundary.boundaryVertices.length === 11), "AutoCAD-produced binary DXF inverted compound boundary resolves");
   const autoCADNativeInvertedBinaryScene = compileCanonicalToScene(autoCADNativeInvertedBinaryDxf, { sceneId: "scene_f06_autocad_native_binary_inverted_xclip" });
   const autoCADNativeInvertedBinaryChunkRef = autoCADNativeInvertedBinaryScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -510,10 +518,10 @@ async function runLayoutViewportTests() {
   }
   assert(mutatedClipMatrix, "Unsupported DXF clip matrix fixture mutation targets the second 4x3 matrix");
   const unsupportedMatrixDxf = await parseDxfToCanonical(Buffer.from(changedClipMatrixLines.join("\n")));
-  const withheldDxfInsert = unsupportedMatrixDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const withheldDxfInsert = findInsertByBlockName(unsupportedMatrixDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(withheldDxfInsert?.visible === false && unsupportedMatrixDxf.diagnostics.some((diagnostic) => diagnostic.code === "UNRESOLVED_XCLIP_TRANSFORM"), "DXF non-identity clip matrix clipsiz çizim yerine fail-closed diagnostic üretir");
   const unsupportedMatrixBinaryDxf = await parseDxfToCanonical(encodeBinaryDxf(Buffer.from(changedClipMatrixLines.join("\n"))));
-  const withheldBinaryDxfInsert = unsupportedMatrixBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const withheldBinaryDxfInsert = findInsertByBlockName(unsupportedMatrixBinaryDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(withheldBinaryDxfInsert?.visible === false && unsupportedMatrixBinaryDxf.diagnostics.some((diagnostic) => diagnostic.code === "UNRESOLVED_XCLIP_TRANSFORM"), "Binary DXF unsupported clip matrix also fails closed");
   const frontClipLines = fs.readFileSync(autoCADXclipDxfFixture, "utf8").split(/\r?\n/);
   const frontClipStart = frontClipLines.lastIndexOf("SPATIAL_FILTER");
@@ -533,7 +541,7 @@ async function runLayoutViewportTests() {
   }
   assert(frontClipFlagSet && frontClipDistanceInserted, "SPATIAL_FILTER front-plane mutation includes its overloaded group-40 distance before both matrices");
   const frontClippedDxf = await parseDxfToCanonical(Buffer.from(frontClipLines.join("\n")));
-  const withheldFrontClipInsert = frontClippedDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const withheldFrontClipInsert = findInsertByBlockName(frontClippedDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(withheldFrontClipInsert?.visible === false && frontClippedDxf.diagnostics.some((diagnostic) => diagnostic.code === "UNRESOLVED_XCLIP_TRANSFORM"), "Front-depth clipping remains explicitly unsupported and withheld after correct group-40 parsing");
   const malformedMatrixLines = fs.readFileSync(autoCADXclipDxfFixture, "utf8").split(/\r?\n/);
   const malformedMatrixStart = malformedMatrixLines.lastIndexOf("SPATIAL_FILTER");
@@ -548,17 +556,17 @@ async function runLayoutViewportTests() {
   }
   assert(removedMatrixValue, "Malformed transform mutation removes one SPATIAL_FILTER matrix value");
   const malformedMatrixDxf = await parseDxfToCanonical(Buffer.from(malformedMatrixLines.join("\n")));
-  const withheldMalformedMatrixInsert = malformedMatrixDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const withheldMalformedMatrixInsert = findInsertByBlockName(malformedMatrixDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(withheldMalformedMatrixInsert?.visible === false && malformedMatrixDxf.diagnostics.some((diagnostic) => diagnostic.code === "UNRESOLVED_XCLIP_TRANSFORM"), "Incomplete SPATIAL_FILTER matrix fails closed instead of applying shifted coordinates");
   const brokenSpatialDictionaryText = fs.readFileSync(autoCADXclipDxfFixture, "utf8").replace(/(\n\s*3\r?\n)SPATIAL(\r?\n\s*360\r?\n)([0-9A-F]+)\b/i, "$1SPATIAL_MISSING$2$3");
   assert(brokenSpatialDictionaryText !== fs.readFileSync(autoCADXclipDxfFixture, "utf8"), "DXF broken SPATIAL fixture mutation found the AutoCAD ACAD_FILTER child");
   const brokenSpatialDxf = await parseDxfToCanonical(Buffer.from(brokenSpatialDictionaryText));
-  const withheldBrokenSpatialInsert = brokenSpatialDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_BLOCK_CLEAN");
+  const withheldBrokenSpatialInsert = findInsertByBlockName(brokenSpatialDxf, "F06_XCLIP_BLOCK_CLEAN");
   assert(withheldBrokenSpatialInsert?.visible === false && brokenSpatialDxf.diagnostics.some((diagnostic) => diagnostic.code === "UNRESOLVED_XCLIP_REFERENCE"), "DXF ACAD_FILTER with missing SPATIAL target fails closed instead of silently dropping XCLIP");
   const transformedXclipDxfFixture = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-transformed-clean.dxf");
   assert(fs.existsSync(transformedXclipDxfFixture), "AutoCAD transformed XCLIP'in gerçek ASCII DXF dışa aktarımı repoda mevcut");
   const decodedTransformedXclipDxf = await parseDxfToCanonical(fs.readFileSync(transformedXclipDxfFixture));
-  const transformedDxfInsert = decodedTransformedXclipDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN") as any;
+  const transformedDxfInsert = findInsertByBlockName(decodedTransformedXclipDxf, "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN");
   assert(Boolean(transformedDxfInsert?.clipBoundary && transformedDxfInsert.visible !== false), "DXF parser inverse INSERT matrix ile identity clip matrix ayrımını koruyor");
   const transformedXclipDxfScene = compileCanonicalToScene(decodedTransformedXclipDxf, { sceneId: "scene_f06_autocad_xclip_transformed_dxf" });
   const transformedXclipDxfChunkRef = transformedXclipDxfScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -569,7 +577,7 @@ async function runLayoutViewportTests() {
   assert(hasTransformedDxfClipPoint(192.320508, 353.30127) && hasTransformedDxfClipPoint(244.282032, 383.30127), "AutoCAD transformed ASCII DXF clip'i WCS'de doğru uygulanıyor");
   assert(isExactlyOneWorldSegment(transformedXclipDxfXY, transformedXclipDxfOrigin, [192.320508, 353.30127], [244.282032, 383.30127]), "AutoCAD transformed ASCII DXF clip'i tek WCS segment bırakır, kopya/taşma bırakmaz");
   const decodedTransformedBinaryDxf = await parseDxfToCanonical(encodeBinaryDxf(fs.readFileSync(transformedXclipDxfFixture)));
-  const transformedBinaryInsert = decodedTransformedBinaryDxf.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN") as any;
+  const transformedBinaryInsert = findInsertByBlockName(decodedTransformedBinaryDxf, "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN");
   assert(Boolean(transformedBinaryInsert?.clipBoundary && transformedBinaryInsert.visible !== false), "Binary DXF reader preserves transformed INSERT XCLIP metadata");
   const transformedBinaryScene = compileCanonicalToScene(decodedTransformedBinaryDxf, { sceneId: "scene_f06_autocad_xclip_transformed_binary_dxf" });
   const transformedBinaryChunkRef = transformedBinaryScene.manifest.chunks.find((chunk) => chunk.layoutId === "Model");
@@ -583,7 +591,7 @@ async function runLayoutViewportTests() {
   const transformedXclipFixture = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/f06-autocad-xclip-transformed.dwg");
   assert(fs.existsSync(transformedXclipFixture), "AutoCAD transformed INSERT + XCLIP fixture repoda mevcut");
   const decodedTransformedXclip = await parseDwgToCanonical(fs.readFileSync(transformedXclipFixture));
-  const transformedInsert = decodedTransformedXclip.modelSpaceEntities.find((entity) => entity.type === "INSERT" && (entity as any).blockName === "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN") as any;
+  const transformedInsert = findInsertByBlockName(decodedTransformedXclip, "F06_XCLIP_TRANSFORMED_BLOCK_CLEAN");
   assert(Boolean(transformedInsert?.clipBoundary && transformedInsert.visible !== false), "Identity clip matrix altında translated/rotated INSERT güvenle korunuyor");
   const transformedBoundary = transformedInsert?.clipBoundary?.boundaryVertices as [number, number][] | undefined;
   assert(Boolean(transformedBoundary && approxEqual(transformedBoundary[0][0], 207.320508) && approxEqual(transformedBoundary[0][1], 327.320508)), "AutoCAD transformed XCLIP world vertices kayıpsız çözümleniyor");
