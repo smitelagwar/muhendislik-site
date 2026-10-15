@@ -1,0 +1,1461 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A9",
+  "captured_at": "2026-10-15T00:39:45.036Z",
+  "status": "TECHNICAL_PASS_MANUAL_AND_EXTERNAL_ACCEPTANCE_PENDING",
+  "a2_reference": {
+    "evidence": "kanit/baseline-20261014-173918-2c0b682-baseline-06.json",
+    "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+    "production_build_id": "jbTgjGuh4aPtcKXnsM1QU",
+    "production_build_dir": ".next-pdf-a2-retry",
+    "five_repeat_runs": 5,
+    "each_repeat_passed": 7,
+    "conditions": {
+      "os": "Windows 10 Pro 10.0.19045",
+      "cpu": "AMD Ryzen 5 7600 6-Core Processor",
+      "physicalCores": 6,
+      "logicalProcessors": 12,
+      "ramTotalKiB": 32380892,
+      "freeRamKiBObservedAfterRun": 18853700,
+      "powerPlan": "Balanced",
+      "node": "v24.15.0",
+      "npm": "11.12.1",
+      "next": "16.3.6",
+      "playwright": "1.62.1",
+      "chromium": "151.0.7922.34 (bundled chromium revision 1234)",
+      "webkit": "bundled WebKit revision 2336",
+      "cpuThrottleRate": 1,
+      "network": "Local production server on 127.0.0.1:3217; no artificial network throttling.",
+      "profiles": {
+        "desktop": "Chromium 1366x800 DPR2",
+        "mobile": "Pixel 7 emulation 390x844 DPR3 (Chromium; not a physical device)",
+        "webkit": "Desktop Safari/WebKit 1280x720 DPR2"
+      }
+    },
+    "run_id": "20261014-173918-2c0b682-baseline-06",
+    "fixture_manifest": "kanit/baseline-20261014-173918-2c0b682-baseline-06.json"
+  },
+  "current_production_build": {
+    "command": "npm run build",
+    "underlying_command": "next build --webpack",
+    "node": "v24.15.0",
+    "heap_limit_mb": 32000,
+    "exit_code": 0,
+    "build_id": "7FEWlZ_L99f2D76ZBuvhp",
+    "compile": "PASS in 18.5 minutes",
+    "typescript": "PASS in 36.4 seconds",
+    "static_pages": "PASS 627/627 in 5.2 seconds",
+    "log": "D:/codex-pdf-a6-tmp-20261014/a9-build-32000mb-20261015.log",
+    "next_config_sha256": "5C922744E6E065857443B15E5C5068FFD2953FDC1D7EEAC57605FCC411B27ACB"
+  },
+  "production_gates": {
+    "pdf_v4_full": {
+      "command": "Playwright PDF V4 gate against configured Webpack production build",
+      "exit_code": 0,
+      "passed": 95,
+      "failed": 0,
+      "skipped": 0,
+      "duration_minutes": 5.8,
+      "projects": {
+        "desktop": 51,
+        "mobile": 34,
+        "compat": 3,
+        "webkit": 7
+      },
+      "synthetic_isolated_store": true,
+      "external_database_blob_environment_names": []
+    },
+    "pdf_v4_mobile_slow": {
+      "command": "Playwright PDF V4 gate, project mobile, CPU throttling rate 4",
+      "exit_code": 0,
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "duration_minutes": 2.6,
+      "synthetic_isolated_store": true,
+      "external_database_blob_environment_names": []
+    },
+    "budget_report_after_project_filter_fix": {
+      "command": "node scripts/pdf-v4-report.mjs",
+      "exit_code": 0,
+      "budget_failures": 0,
+      "current_report": "D:/codex-pdf-a6-tmp-20261014/a9-pdf-v4-production-report-20261015-after-repeats.md",
+      "eslint_exit_code": 0
+    }
+  },
+  "a2_matched_performance_repeats": {
+    "conditions": "Local production build; Windows 10 Pro; Ryzen 5 7600; Chromium 151; same desktop/mobile viewport profiles and deterministic synthetic fixtures; CPU throttle 1; no network throttling; 5 repeats per test group.",
+    "total_test_executions": 35,
+    "groups": 7,
+    "repeats_per_group": 5,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0,
+    "metrics": [
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "canvasBytesMB",
+        "a2": {
+          "raw": [
+            40.5,
+            40.5,
+            40.5,
+            40.5,
+            40.5
+          ],
+          "median": 40.5,
+          "min": 40.5,
+          "max": 40.5
+        },
+        "a9": {
+          "raw": [
+            40.5,
+            40.5,
+            40.5,
+            40.5,
+            40.5
+          ],
+          "median": 40.5,
+          "min": 40.5,
+          "max": 40.5
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "canvasMaxMP",
+        "a2": {
+          "raw": [
+            10,
+            10,
+            10,
+            10,
+            10
+          ],
+          "median": 10,
+          "min": 10,
+          "max": 10
+        },
+        "a9": {
+          "raw": [
+            10,
+            10,
+            10,
+            10,
+            10
+          ],
+          "median": 10,
+          "min": 10,
+          "max": 10
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "domNodes",
+        "a2": {
+          "raw": [
+            1033,
+            1033,
+            1033,
+            1033,
+            1033
+          ],
+          "median": 1033,
+          "min": 1033,
+          "max": 1033
+        },
+        "a9": {
+          "raw": [
+            1029,
+            1029,
+            1029,
+            1029,
+            1029
+          ],
+          "median": 1029,
+          "min": 1029,
+          "max": 1029
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "longTaskMs",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "a9": {
+          "raw": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "scrollTopPx",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "sharpMs",
+        "a2": {
+          "raw": [
+            3,
+            5,
+            13,
+            8,
+            12
+          ],
+          "median": 8,
+          "min": 3,
+          "max": 13
+        },
+        "a9": {
+          "raw": [
+            1,
+            12,
+            15,
+            4,
+            8
+          ],
+          "median": 8,
+          "min": 1,
+          "max": 15
+        }
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "ttfrMs",
+        "a2": {
+          "raw": [
+            1430,
+            1401,
+            1420,
+            1430,
+            1424
+          ],
+          "median": 1424,
+          "min": 1401,
+          "max": 1430
+        },
+        "a9": {
+          "raw": [
+            1425,
+            1435,
+            1415,
+            1434,
+            1427
+          ],
+          "median": 1427,
+          "min": 1415,
+          "max": 1435
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "canvasBytesMB",
+        "a2": {
+          "raw": [
+            21.1,
+            22.1,
+            22.7,
+            22.7,
+            22.1
+          ],
+          "median": 22.1,
+          "min": 21.1,
+          "max": 22.7
+        },
+        "a9": {
+          "raw": [
+            22.1,
+            22.1,
+            21.1,
+            20.4,
+            22.1
+          ],
+          "median": 22.1,
+          "min": 20.4,
+          "max": 22.1
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "canvasMaxMP",
+        "a2": {
+          "raw": [
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3
+          ],
+          "median": 0.3,
+          "min": 0.3,
+          "max": 0.3
+        },
+        "a9": {
+          "raw": [
+            0.3,
+            0.3,
+            0.3,
+            0.3,
+            0.3
+          ],
+          "median": 0.3,
+          "min": 0.3,
+          "max": 0.3
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "domNodes",
+        "a2": {
+          "raw": [
+            1073,
+            1073,
+            1077,
+            1077,
+            1073
+          ],
+          "median": 1073,
+          "min": 1073,
+          "max": 1077
+        },
+        "a9": {
+          "raw": [
+            1071,
+            1071,
+            1069,
+            1067,
+            1071
+          ],
+          "median": 1071,
+          "min": 1067,
+          "max": 1071
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "longTaskMs",
+        "a2": {
+          "raw": [
+            55,
+            52,
+            0,
+            0,
+            56
+          ],
+          "median": 52,
+          "min": 0,
+          "max": 56
+        },
+        "a9": {
+          "raw": [
+            0,
+            55,
+            0,
+            156,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 156
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "a9": {
+          "raw": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "median": 1,
+          "min": 1,
+          "max": 1
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "scrollTopPx",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "sharpMs",
+        "a2": {
+          "raw": [
+            17,
+            24,
+            27,
+            32,
+            19
+          ],
+          "median": 24,
+          "min": 17,
+          "max": 32
+        },
+        "a9": {
+          "raw": [
+            8,
+            5,
+            32,
+            32,
+            6
+          ],
+          "median": 8,
+          "min": 5,
+          "max": 32
+        }
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "ttfrMs",
+        "a2": {
+          "raw": [
+            2662,
+            2648,
+            2628,
+            2608,
+            2678
+          ],
+          "median": 2648,
+          "min": 2608,
+          "max": 2678
+        },
+        "a9": {
+          "raw": [
+            2671,
+            2706,
+            2651,
+            2783,
+            2664
+          ],
+          "median": 2671,
+          "min": 2651,
+          "max": 2783
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "blankFramesDuringScroll",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            4,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 4
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "blankSettleMs",
+        "a2": {
+          "raw": [
+            2,
+            8,
+            16,
+            7,
+            12
+          ],
+          "median": 8,
+          "min": 2,
+          "max": 16
+        },
+        "a9": {
+          "raw": [
+            14,
+            5,
+            15,
+            9,
+            14
+          ],
+          "median": 14,
+          "min": 5,
+          "max": 15
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "domNodes",
+        "a2": {
+          "raw": [
+            251,
+            251,
+            251,
+            251,
+            251
+          ],
+          "median": 251,
+          "min": 251,
+          "max": 251
+        },
+        "a9": {
+          "raw": [
+            247,
+            247,
+            247,
+            247,
+            247
+          ],
+          "median": 247,
+          "min": 247,
+          "max": 247
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "gapMaxMs",
+        "a2": {
+          "raw": [
+            16.8,
+            16.8,
+            16.8,
+            33.4,
+            16.8
+          ],
+          "median": 16.8,
+          "min": 16.8,
+          "max": 33.4
+        },
+        "a9": {
+          "raw": [
+            16.8,
+            33.4,
+            16.8,
+            33.4,
+            16.8
+          ],
+          "median": 16.8,
+          "min": 16.8,
+          "max": 33.4
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "gapP95Ms",
+        "a2": {
+          "raw": [
+            16.7,
+            16.7,
+            16.8,
+            16.7,
+            16.8
+          ],
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8
+        },
+        "a9": {
+          "raw": [
+            16.7,
+            16.8,
+            16.7,
+            16.7,
+            16.7
+          ],
+          "median": 16.7,
+          "min": 16.7,
+          "max": 16.8
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "jank50",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "longTaskMs",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "median": 3,
+          "min": 3,
+          "max": 3
+        },
+        "a9": {
+          "raw": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "median": 3,
+          "min": 3,
+          "max": 3
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "blankFramesDuringScroll",
+        "a2": {
+          "raw": [
+            3,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 3
+        },
+        "a9": {
+          "raw": [
+            0,
+            2,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 2
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "blankSettleMs",
+        "a2": {
+          "raw": [
+            5,
+            11,
+            4,
+            8,
+            15
+          ],
+          "median": 8,
+          "min": 4,
+          "max": 15
+        },
+        "a9": {
+          "raw": [
+            3,
+            6,
+            12,
+            12,
+            12
+          ],
+          "median": 12,
+          "min": 3,
+          "max": 12
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "domNodes",
+        "a2": {
+          "raw": [
+            266,
+            266,
+            266,
+            266,
+            266
+          ],
+          "median": 266,
+          "min": 266,
+          "max": 266
+        },
+        "a9": {
+          "raw": [
+            262,
+            262,
+            262,
+            262,
+            262
+          ],
+          "median": 262,
+          "min": 262,
+          "max": 262
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "gapMaxMs",
+        "a2": {
+          "raw": [
+            33.4,
+            16.8,
+            16.8,
+            16.8,
+            16.8
+          ],
+          "median": 16.8,
+          "min": 16.8,
+          "max": 33.4
+        },
+        "a9": {
+          "raw": [
+            16.8,
+            33.4,
+            16.8,
+            16.8,
+            16.8
+          ],
+          "median": 16.8,
+          "min": 16.8,
+          "max": 33.4
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "gapP95Ms",
+        "a2": {
+          "raw": [
+            16.8,
+            16.7,
+            16.8,
+            16.8,
+            16.7
+          ],
+          "median": 16.8,
+          "min": 16.7,
+          "max": 16.8
+        },
+        "a9": {
+          "raw": [
+            16.8,
+            16.7,
+            16.8,
+            16.8,
+            16.8
+          ],
+          "median": 16.8,
+          "min": 16.7,
+          "max": 16.8
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "jank50",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "longTaskMs",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "median": 8,
+          "min": 8,
+          "max": 8
+        },
+        "a9": {
+          "raw": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "median": 8,
+          "min": 8,
+          "max": 8
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "anchorDriftPx",
+        "a2": {
+          "raw": [
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57
+          ],
+          "median": 0.57,
+          "min": 0.57,
+          "max": 0.57
+        },
+        "a9": {
+          "raw": [
+            0.57,
+            0.57,
+            0.57,
+            0.57,
+            0.57
+          ],
+          "median": 0.57,
+          "min": 0.57,
+          "max": 0.57
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "blankFrames",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "browserZoomDelta",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "gapMaxMs",
+        "a2": {
+          "raw": [
+            33.4,
+            33.4,
+            33.4,
+            33.4,
+            33.4
+          ],
+          "median": 33.4,
+          "min": 33.4,
+          "max": 33.4
+        },
+        "a9": {
+          "raw": [
+            33.4,
+            33.4,
+            33.4,
+            33.5,
+            33.4
+          ],
+          "median": 33.4,
+          "min": 33.4,
+          "max": 33.5
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "longTaskMs",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "scaleRatioError",
+        "a2": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "a9": {
+          "raw": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "sharpMs",
+        "a2": {
+          "raw": [
+            11,
+            20,
+            2,
+            1,
+            20
+          ],
+          "median": 11,
+          "min": 1,
+          "max": 20
+        },
+        "a9": {
+          "raw": [
+            25,
+            1,
+            1,
+            1,
+            1
+          ],
+          "median": 1,
+          "min": 1,
+          "max": 25
+        }
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "canvasBytesMB",
+        "a2": {
+          "raw": [
+            97.6,
+            97.6,
+            97.6,
+            97.6,
+            97.6
+          ],
+          "median": 97.6,
+          "min": 97.6,
+          "max": 97.6
+        },
+        "a9": {
+          "raw": [
+            97.6,
+            97.6,
+            97.6,
+            97.6,
+            97.6
+          ],
+          "median": 97.6,
+          "min": 97.6,
+          "max": 97.6
+        }
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "heapGrowthMB",
+        "a2": {
+          "raw": [
+            1.3,
+            1.3,
+            1.3,
+            1.3,
+            1.3
+          ],
+          "median": 1.3,
+          "min": 1.3,
+          "max": 1.3
+        },
+        "a9": {
+          "raw": [
+            1.2,
+            1.2,
+            1.2,
+            1.3,
+            1.2
+          ],
+          "median": 1.2,
+          "min": 1.2,
+          "max": 1.3
+        }
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "median": 3,
+          "min": 3,
+          "max": 3
+        },
+        "a9": {
+          "raw": [
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "median": 3,
+          "min": 3,
+          "max": 3
+        }
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "canvasBytesMB",
+        "a2": {
+          "raw": [
+            50.7,
+            50.7,
+            54.2,
+            51,
+            45.4
+          ],
+          "median": 50.7,
+          "min": 45.4,
+          "max": 54.2
+        },
+        "a9": {
+          "raw": [
+            51,
+            47.6,
+            54.2,
+            43.9,
+            45
+          ],
+          "median": 47.6,
+          "min": 43.9,
+          "max": 54.2
+        }
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "heapGrowthMB",
+        "a2": {
+          "raw": [
+            4.8,
+            3.1,
+            3.1,
+            3.2,
+            3
+          ],
+          "median": 3.1,
+          "min": 3,
+          "max": 4.8
+        },
+        "a9": {
+          "raw": [
+            3.5,
+            3.7,
+            3.1,
+            3.1,
+            3.3
+          ],
+          "median": 3.3,
+          "min": 3.1,
+          "max": 3.7
+        }
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "mountedPages",
+        "a2": {
+          "raw": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "median": 8,
+          "min": 8,
+          "max": 8
+        },
+        "a9": {
+          "raw": [
+            8,
+            8,
+            8,
+            8,
+            8
+          ],
+          "median": 8,
+          "min": 8,
+          "max": 8
+        }
+      }
+    ],
+    "raw_metric_artifacts": [
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s1-desktop-20261015.jsonl",
+        "sha256": "6c879c380b580fd6ff4e606092457380caafda6776735f0a54c1d546f5c3bd59",
+        "row_count": 5
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s1-mobile-20261015.jsonl",
+        "sha256": "9fc9751db346ae6c3b9fcd261bd914cb7db92950dd6facde6bf3da6ed31d3dee",
+        "row_count": 5
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s4-desktop-mobile-20261015.jsonl",
+        "sha256": "38d961eca3dcbf7df3127d01e918743c4d0776f25c779ef47a26d8a15ea04656",
+        "row_count": 20
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s5-mobile-20261015.jsonl",
+        "sha256": "7a569ee2c9a2c97ba009c1b49f088804d06a26506f6f9895004fd5d85ceb67c0",
+        "row_count": 5
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s8-desktop-20261015.jsonl",
+        "sha256": "036cf4ec90689ba96d2d593a13b86248d680bd58749d814294387a1b3729acf0",
+        "row_count": 5
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s8-mobile-20261015.jsonl",
+        "sha256": "48ccda5da0d4e1f84c7162816c4eb89f884ace26102bad706b020be8368a197e",
+        "row_count": 5
+      }
+    ],
+    "runner_logs": [
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s1-desktop-20261015.log",
+        "sha256": "d5f6ac5de398ef6f7335b5adbc19887d1f5b14063e41039052f5d22c23ab1132"
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s1-mobile-20261015.log",
+        "sha256": "9cafb53fb47fcc87fc17046836aa50b1c831875236f58109173903e4a94bb01e"
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s4-desktop-mobile-20261015.log",
+        "sha256": "5b77c688ce014242a8c35ddd1db150655fdadc67feb04f2323d105aa2743183e"
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s5-mobile-20261015.log",
+        "sha256": "fd55f49c70275a8ae11770a067d6c0ce11ded468d47cad8bad92cf1542b25883"
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s8-desktop-20261015.log",
+        "sha256": "0b4c9f193155be02d40a285aac24a87475457878a174ce57f07bf5350cc0a3a3"
+      },
+      {
+        "path": "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s8-mobile-20261015.log",
+        "sha256": "5bf582098b42c75d84ed244f45f307857634572bbe47087ea0c99bd65f7739ab"
+      }
+    ],
+    "supplemental_s4_karisik60_rows_excluded_from_a2_match": {
+      "rows": 10,
+      "artifacts": [
+        "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s4-desktop-mobile-20261015.jsonl",
+        "D:/codex-pdf-a6-tmp-20261014/a9-repeat-s4-desktop-mobile-20261015.log"
+      ]
+    },
+    "fixture_hashes": [
+      {
+        "name": "a0-vektor.pdf",
+        "bytes": 2041937,
+        "sha256": "a949b4e0e4aabf6f35c61d9259ec02ccaed6873b863e62898aa0aacf8264cdea"
+      },
+      {
+        "name": "metin-1000.pdf",
+        "bytes": 1292529,
+        "sha256": "6d3b9ae2d2f6c787f01cec8e03ae8fe642c62b82a5882c9e5e26bd1c12d14a9f"
+      },
+      {
+        "name": "karisik-60.pdf",
+        "bytes": 3301793,
+        "sha256": "11106cbe0be1e04011728dd8afbb790d28bda3d7ae3fb860f859abc33c0f60e9"
+      }
+    ],
+    "source_identity_caveat": "The D working copy has no .git metadata; current HEAD and source diff hash cannot be confirmed against A2 source SHA 2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9.",
+    "fixture_hash_limitations": {
+      "a2_fixture_manifest": "docs/pdf-viewer-post-v5-audit/kanit/baseline-20261014-173918-2c0b682-baseline-06.json",
+      "fixture_hashes_match_a2": false,
+      "historical_generator_reconstruction": {
+        "source_commit": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+        "generator_git_blob_sha1": "ce8b29e20fb8888559251e3b8e68013935ad38a4",
+        "pdf_lib_version": "1.17.1",
+        "output_directory": "D:/codex-pdf-a6-tmp-20261014/a2-fixture-rebuild-20261015",
+        "log": "D:/codex-pdf-a6-tmp-20261014/a2-fixture-rebuild-20261015.log",
+        "reconstructed_hashes_match_a2": false
+      },
+      "note": "Current D fixture files have SHA/byte values that do not match the A2 baseline manifest. Re-running the historical A2 generator in a temp workspace with the same pdf-lib 1.17.1 also failed to produce A2 manifest hashes. Performance metrics between A2 and A9 are directional only; no byte-for-byte identical fixture or verified source diff claim is made."
+    }
+  },
+  "privacy": {
+    "synthetic_local_data_only": true,
+    "production_database_accessed": false,
+    "blob_provider_accessed": false,
+    "user_pdf_copied_to_evidence": false,
+    "secrets_or_signed_urls_recorded": false
+  }
+}

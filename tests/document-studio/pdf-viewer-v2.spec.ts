@@ -17,18 +17,20 @@ import path from "node:path";
 
 async function login(page: Page) {
   await page.goto("/dokumantasyon");
-  const username = page.locator("input#username").first();
-  const loginVisible = await username
-    .waitFor({ state: "visible", timeout: 3000 })
-    .then(() => true)
-    .catch(() => false);
-
-  if (loginVisible) {
-    await username.fill("admin");
-    await page.locator("input#password").first().fill("admin");
-    await page.getByRole("button", { name: "Giriş Yap" }).first().click();
-    await expect(page.locator("input#username").first()).toBeHidden();
+  const session = await page.request.get("/api/dokumantasyon/auth/session");
+  const state = await session.json().catch(() => null);
+  if (!state?.authenticated) {
+    const response = await page.request.post("/api/dokumantasyon/giris", {
+      data: { username: "admin", password: "admin" },
+    });
+    expect(response.ok(), `PDF v2 test login failed: ${response.status()}`).toBe(true);
   }
+
+  await expect.poll(async () => {
+    const response = await page.request.get("/api/dokumantasyon/auth/session");
+    return (await response.json().catch(() => null))?.authenticated === true;
+  }, { timeout: 10_000 }).toBe(true);
+  await page.reload();
 }
 
 async function uploadFixturePdf(page: Page, fixtureFileName: string): Promise<string> {
@@ -153,7 +155,7 @@ test.describe("PDF Görüntüleyici v2 Test Altyapısı (Faz A1)", () => {
         const FONT_ASCENT_RATIO = 0.865;
         let maxDelta = 0;
 
-        const markDetails = expectedBoxes.map((exp: any, i: number) => {
+        const markDetails = expectedBoxes.map((exp, i) => {
           const fontAscent = exp.height * FONT_ASCENT_RATIO;
           const expTop = (pageHeightPdf - exp.pdfY - fontAscent) * currentScale;
           const expLeft = exp.pdfX * currentScale;

@@ -13,7 +13,7 @@ import rehypeKatex from "rehype-katex";
 import type { Components } from "react-markdown";
 import {
   FileText, Code2, Copy, Check, Loader2, AlertCircle,
-  BookOpen, Edit3, List, ChevronRight, ChevronDown, Minus, Plus, RotateCcw,
+  BookOpen, Edit3, List, ChevronRight, ChevronDown, Minus, Plus, RotateCcw, Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudioCommandButton } from "../studio/studio-command-button";
@@ -31,9 +31,204 @@ const READER_FONT_SCALE_MAX = 1.3;
 const READER_FONT_SCALE_STEP = 0.05;
 const READER_FONT_SCALE_DEFAULT = 1;
 
+type ReaderBackground = "system" | "black" | "white" | "sepia" | "autocad";
+type ReaderAccent = "amber" | "blue" | "green" | "violet" | "cyan" | "pink" | `#${string}`;
+
+const READER_BACKGROUND_OPTIONS: Array<{ id: ReaderBackground; label: string }> = [
+  { id: "system", label: "Sistem" },
+  { id: "black", label: "Siyah" },
+  { id: "white", label: "Beyaz" },
+  { id: "sepia", label: "Sepya" },
+  { id: "autocad", label: "Teknik Lacivert" },
+];
+
+const READER_ACCENT_OPTIONS: Array<{ id: Exclude<ReaderAccent, `#${string}`>; label: string; hex: string }> = [
+  { id: "amber", label: "Turuncu", hex: "#F59E0B" },
+  { id: "blue", label: "Mavi", hex: "#3B82F6" },
+  { id: "green", label: "Yeşil", hex: "#10B981" },
+  { id: "violet", label: "Mor", hex: "#8B5CF6" },
+  { id: "cyan", label: "Turkuaz", hex: "#06B6D4" },
+  { id: "pink", label: "Pembe", hex: "#F43F5E" },
+];
+
+const READER_BACKGROUND_DEFAULT: ReaderBackground = "system";
+const READER_ACCENT_DEFAULT: ReaderAccent = "amber";
+
+function normalizeReaderBackground(value: unknown): ReaderBackground {
+  return READER_BACKGROUND_OPTIONS.some((option) => option.id === value)
+    ? value as ReaderBackground
+    : READER_BACKGROUND_DEFAULT;
+}
+
+function normalizeReaderAccent(value: unknown): ReaderAccent {
+  if (typeof value !== "string") return READER_ACCENT_DEFAULT;
+  if (READER_ACCENT_OPTIONS.some((option) => option.id === value)) return value as ReaderAccent;
+  if (/^#[\da-f]{6}$/i.test(value)) return value.toUpperCase() as ReaderAccent;
+  return READER_ACCENT_DEFAULT;
+}
+
+function resolveReaderAccentHex(accent: ReaderAccent): string {
+  if (accent.startsWith("#")) return accent;
+  return READER_ACCENT_OPTIONS.find((option) => option.id === accent)?.hex ?? "#F59E0B";
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const normalized = hex.replace("#", "");
+  return [0, 2, 4].map((index) => Number.parseInt(normalized.slice(index, index + 2), 16)) as [number, number, number];
+}
+
+function relativeLuminance(hex: string): number {
+  const channels = hexToRgb(hex).map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function mixHex(first: string, second: string, amount: number): string {
+  const firstRgb = hexToRgb(first);
+  const secondRgb = hexToRgb(second);
+  const channels = firstRgb.map((channel, index) =>
+    Math.round(channel * (1 - amount) + secondRgb[index] * amount)
+  );
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function contrastRatio(first: string, second: string): number {
+  const luminance = [relativeLuminance(first), relativeLuminance(second)].sort((a, b) => b - a);
+  return (luminance[0] + 0.05) / (luminance[1] + 0.05);
+}
+
+function getReadableAccent(accentHex: string, backgroundHexes: string[]): string {
+  const hasReadableContrast = (color: string) => backgroundHexes.every((background) => contrastRatio(color, background) >= 4.5);
+  if (hasReadableContrast(accentHex)) return accentHex;
+
+  const target = relativeLuminance(backgroundHexes[0]) > 0.5 ? "#000000" : "#FFFFFF";
+  let low = 0;
+  let high = 1;
+  for (let step = 0; step < 24; step++) {
+    const middle = (low + high) / 2;
+    if (hasReadableContrast(mixHex(accentHex, target, middle))) high = middle;
+    else low = middle;
+  }
+  return mixHex(accentHex, target, high);
+}
+
+function getReadableForeground(backgroundHex: string): string {
+  return contrastRatio("#000000", backgroundHex) >= contrastRatio("#FFFFFF", backgroundHex)
+    ? "#000000"
+    : "#FFFFFF";
+}
+
+function getReaderCanvasHex(background: ReaderBackground, systemDark: boolean): string {
+  switch (background) {
+    case "black": return "#0B0D10";
+    case "white": return "#FFFFFF";
+    case "sepia": return "#F4ECD8";
+    case "autocad": return "#101A2A";
+    default: return systemDark ? "#0A0A0A" : "#F4F2EC";
+  }
+}
+
+function getReaderContrastBackgrounds(background: ReaderBackground, systemDark: boolean, accentHex: string): string[] {
+  const canvas = getReaderCanvasHex(background, systemDark);
+  const surfaces: Record<ReaderBackground, string[]> = {
+    system: systemDark ? ["#111111", "#1A1A1A"] : ["#FFFFFF", "#EBE8E0", "#F0EFEB"],
+    black: ["#11161C", "#171E27", "#10151B"],
+    white: ["#FFFFFF", "#F3F5F7", "#F1F4F7"],
+    sepia: ["#FBF7EC", "#EEE4CE", "#E5D9BE"],
+    autocad: ["#152235", "#1C2C43", "#142137"],
+  };
+  return [canvas, ...surfaces[background], mixHex(canvas, accentHex, 0.12)];
+}
+
 function normalizeReaderFontScale(value: number): number {
   const clamped = Math.min(READER_FONT_SCALE_MAX, Math.max(READER_FONT_SCALE_MIN, value));
   return Math.round(clamped * 100) / 100;
+}
+
+function ReaderAppearanceSettings({
+  background,
+  accent,
+  onBackgroundChange,
+  onAccentChange,
+}: {
+  background: ReaderBackground;
+  accent: ReaderAccent;
+  onBackgroundChange: (value: ReaderBackground) => void;
+  onAccentChange: (value: ReaderAccent) => void;
+}) {
+  return (
+    <div className="mt-3 space-y-4 border-t border-border/60 pt-3">
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-foreground">Arka plan</legend>
+        <div className={styles.backgroundOptions} role="radiogroup" aria-label="Okuma arka planı">
+          {READER_BACKGROUND_OPTIONS.map((option, index) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={background === option.id}
+              tabIndex={background === option.id ? 0 : -1}
+              aria-label={option.label}
+              data-testid={`markdown-background-${option.id}`}
+              onClick={() => onBackgroundChange(option.id)}
+              onKeyDown={(event) => {
+                const lastIndex = READER_BACKGROUND_OPTIONS.length - 1;
+                let nextIndex: number | null = null;
+                if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % READER_BACKGROUND_OPTIONS.length;
+                if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index - 1 + READER_BACKGROUND_OPTIONS.length) % READER_BACKGROUND_OPTIONS.length;
+                if (event.key === "Home") nextIndex = 0;
+                if (event.key === "End") nextIndex = lastIndex;
+                if (nextIndex === null) return;
+                event.preventDefault();
+                onBackgroundChange(READER_BACKGROUND_OPTIONS[nextIndex].id);
+                event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[role='radio']")[nextIndex]?.focus();
+              }}
+              className={`${styles.backgroundOption} ${background === option.id ? styles.backgroundOptionSelected : ""}`}
+            >
+              <span className={`${styles.backgroundSample} ${styles[`backgroundSample_${option.id}`]}`} aria-hidden="true" />
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-foreground">Vurgu rengi</legend>
+        <div className={styles.accentOptions} role="group" aria-label="Hazır vurgu renkleri">
+          {READER_ACCENT_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-label={`Vurgu rengi: ${option.label}`}
+              aria-pressed={accent === option.id}
+              data-testid={`markdown-accent-${option.id}`}
+              onClick={() => onAccentChange(option.id)}
+              className={`${styles.accentOption} ${accent === option.id ? styles.accentOptionSelected : ""}`}
+              style={{
+                "--md-swatch": option.hex,
+                "--md-swatch-foreground": getReadableForeground(option.hex),
+              } as React.CSSProperties}
+            >
+              {accent === option.id && <Check className="h-4 w-4" aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+        <label className={`${styles.customAccent} mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/70 px-3 py-2 text-xs font-medium text-foreground`}>
+          <span>Özel renk</span>
+          <input
+            type="color"
+            aria-label="Özel vurgu rengi"
+            data-testid="markdown-custom-accent"
+            value={resolveReaderAccentHex(accent)}
+            onChange={(event) => onAccentChange(event.currentTarget.value.toUpperCase() as ReaderAccent)}
+            className="h-9 w-12 cursor-pointer rounded-lg border border-border/70 bg-transparent p-1"
+          />
+        </label>
+      </fieldset>
+    </div>
+  );
 }
 
 // ─── Başlıktan anchor ID ──────────────────────────────────────────────────────
@@ -194,14 +389,14 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
     try { await navigator.clipboard.writeText(code.trim()); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* no-op */ }
   };
   return (
-    <div className={`${styles.codeBlock} group relative overflow-hidden rounded-xl border border-border/60 bg-zinc-950/80 shadow-md dark:bg-zinc-900/80`}>
-      <div className="flex items-center justify-between border-b border-border/40 bg-zinc-900/60 px-4 py-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{lang || "kod"}</span>
-        <button type="button" onClick={handleCopy} aria-label="Kod bloğunu kopyala" className={`${styles.codeCopyButton} flex items-center gap-1.5 rounded-lg border border-border/40 bg-zinc-800/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-400 transition-all hover:border-amber-500/40 hover:text-amber-400`}>
+    <div className={`${styles.codeBlock} group relative overflow-hidden rounded-xl shadow-md`} data-testid="markdown-code-block">
+      <div className={`${styles.codeHeader} flex items-center justify-between px-4 py-2`}>
+        <span className={`${styles.codeLanguage} font-mono text-[11px] font-semibold uppercase tracking-widest`}>{lang || "kod"}</span>
+        <button type="button" onClick={handleCopy} aria-label="Kod bloğunu kopyala" className={`${styles.codeCopyButton} flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all`}>
           {copied ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Kopyalandı</span></> : <><Copy className="h-3 w-3" /><span>Kopyala</span></>}
         </button>
       </div>
-      <pre className={`${styles.codePre} overflow-x-auto p-4`}><code className="font-mono text-sm leading-relaxed text-zinc-100">{code}</code></pre>
+      <pre className={`${styles.codePre} overflow-x-auto p-4`}><code className={`${styles.codeText} font-mono text-sm leading-relaxed`}>{code}</code></pre>
     </div>
   );
 }
@@ -241,7 +436,7 @@ function MarkdownContent({
 }
 
 // ─── Özel renderer bileşenleri (body için — başlıklar ayrı render edildiğinden dışarıda) ──
-function buildComponents(): Components {
+function buildComponents(accentColor: string): Components {
   return {
     // Body içindeki başlıklar (iç içe markdown varsa — normalde body'de heading olmaz ama fallback)
     h1: ({ children }) => <h1 className={`${styles.fallbackHeading} ${styles.headingLevel1}`}>{children}</h1>,
@@ -250,14 +445,14 @@ function buildComponents(): Components {
     h4: ({ children }) => <h4 className={`${styles.fallbackHeading} ${styles.headingLevel4}`}>{children}</h4>,
     h5: ({ children }) => <h5 className={`${styles.fallbackHeading} ${styles.headingLevel5}`}>{children}</h5>,
     h6: ({ children }) => <h6 className={`${styles.fallbackHeading} ${styles.headingLevel6}`}>{children}</h6>,
-    p: ({ children }) => <p className={`${styles.paragraph} text-foreground/90`}>{children}</p>,
-    a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="font-medium text-amber-600 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-500 dark:text-amber-400">{children}</a>,
+    p: ({ children }) => <p data-testid="markdown-paragraph" className={`${styles.paragraph} text-foreground/90`}>{children}</p>,
+    a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} style={{ color: accentColor }} className={`${styles.markdownLink} font-medium underline underline-offset-2`}>{children}</a>,
     code: ({ children, className }) => {
       if (className?.startsWith("language-")) return <CodeBlock className={className}>{children}</CodeBlock>;
-      return <code className={`${styles.inlineCode} rounded-md border border-amber-500/20 bg-amber-500/10 font-mono font-medium text-amber-600 dark:text-amber-400`}>{children}</code>;
+      return <code data-testid="markdown-inline-code" style={{ color: accentColor }} className={`${styles.inlineCode} rounded-md font-mono font-medium`}>{children}</code>;
     },
     pre: ({ children }) => <>{children}</>,
-    blockquote: ({ children }) => <blockquote className={`${styles.blockquote} border-l-4 border-amber-500/60 bg-amber-500/5 rounded-r-xl italic text-muted-foreground`}>{children}</blockquote>,
+    blockquote: ({ children }) => <blockquote className={`${styles.blockquote} rounded-r-xl border-l-4 italic text-muted-foreground`}>{children}</blockquote>,
     ul: ({ children }) => <ul className={`${styles.unorderedList} list-none`}>{children}</ul>,
     ol: ({ children }) => <ol className={`${styles.orderedList} list-none`}>{children}</ol>,
     li: ({ children }) => (
@@ -268,13 +463,13 @@ function buildComponents(): Components {
     ),
     input: ({ type, checked }) => {
       if (type !== "checkbox") return null;
-      return <span className={`mr-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border align-middle ${checked ? "border-amber-500 bg-amber-500 text-zinc-950" : "border-border/70 bg-secondary/30"}`}>{checked && <Check className="h-3 w-3" />}</span>;
+      return <span data-checked={checked ? "true" : "false"} className={`${styles.taskCheckbox} mr-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border align-middle`}>{checked && <Check className="h-3 w-3" />}</span>;
     },
-    hr: () => <hr className={`${styles.rule} border-0 border-t border-border/60`} />,
-    table: ({ children }) => <div className={`${styles.tableWrap} overflow-x-auto rounded-xl border border-border/60 shadow-sm`}><table className={`${styles.table} w-full border-collapse`}>{children}</table></div>,
-    thead: ({ children }) => <thead className={`${styles.tableHead} border-b border-border/60 bg-secondary/60 font-bold uppercase text-muted-foreground`}>{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y divide-border/40">{children}</tbody>,
-    tr: ({ children }) => <tr className="transition-colors hover:bg-amber-500/5">{children}</tr>,
+    hr: () => <hr className={`${styles.rule} border-0 border-t`} />,
+    table: ({ children }) => <div className={`${styles.tableWrap} overflow-x-auto rounded-xl shadow-sm`}><table className={`${styles.table} w-full border-collapse`}>{children}</table></div>,
+    thead: ({ children }) => <thead className={`${styles.tableHead} font-bold uppercase text-muted-foreground`}>{children}</thead>,
+    tbody: ({ children }) => <tbody className={styles.tableBody}>{children}</tbody>,
+    tr: ({ children }) => <tr className={styles.tableRow}>{children}</tr>,
     th: ({ children }) => <th className={`${styles.tableHeader} text-left font-bold`}>{children}</th>,
     td: ({ children }) => <td className={`${styles.tableCell} text-foreground/85`}>{children}</td>,
     strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
@@ -353,7 +548,7 @@ function CollapsibleSection({
       >
         {/* Chevron butonu */}
         {hasBody ? (
-          <span className={`${styles.headingChevron} flex shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-colors duration-150 group-hover:bg-secondary/60 group-hover:text-amber-500`}>
+          <span className={`${styles.headingChevron} flex shrink-0 items-center justify-center rounded-md text-muted-foreground/60 transition-colors duration-150`}>
             {isCollapsed
               ? <ChevronRight className="h-4 w-4" />
               : <ChevronDown className="h-4 w-4" />
@@ -390,16 +585,16 @@ function CollapsibleSection({
 function TocPanel({ items }: { items: TocItem[] }) {
   if (!items.length) return null;
   return (
-    <aside className="hidden xl:flex xl:flex-col w-60 shrink-0 border-l border-border/60 bg-card/60 backdrop-blur-md overflow-y-auto">
-      <div className="sticky top-0 border-b border-border/40 bg-card/80 px-4 py-3 backdrop-blur-md">
+    <aside className={`${styles.tocPanel} hidden w-60 shrink-0 overflow-y-auto xl:flex xl:flex-col`}>
+      <div className={`${styles.tocTitle} sticky top-0 px-4 py-3`}>
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">İçindekiler</span>
       </div>
       <nav className="space-y-0.5 p-3">
         {items.map((item, i) => (
           <a key={i} href={`#${item.id}`}
-            className="block truncate rounded-lg py-1 text-xs text-muted-foreground transition-colors hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400"
+            className={`${styles.tocLink} block truncate rounded-lg py-1 text-xs text-muted-foreground transition-colors`}
             style={{ paddingLeft: `${(item.level - 1) * 10 + 8}px` }}>
-            {item.level <= 2 && <span className="mr-1 font-bold text-amber-500/50">#</span>}
+            {item.level <= 2 && <span className={`${styles.tocHash} mr-1 font-bold`}>#</span>}
             {item.text}
           </a>
         ))}
@@ -418,10 +613,18 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
   const [showToc, setShowToc] = useState<boolean>(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [fontScale, setFontScale] = useState<number>(READER_FONT_SCALE_DEFAULT);
-  const [fontPrefsReady, setFontPrefsReady] = useState<boolean>(false);
+  const [readerBackground, setReaderBackground] = useState<ReaderBackground>(READER_BACKGROUND_DEFAULT);
+  const [readerAccent, setReaderAccent] = useState<ReaderAccent>(READER_ACCENT_DEFAULT);
+  const [systemDark, setSystemDark] = useState<boolean>(false);
+  const [readerPrefsReady, setReaderPrefsReady] = useState<boolean>(false);
   const [showReaderSettings, setShowReaderSettings] = useState<boolean>(false);
 
-  const components = useMemo(() => buildComponents(), []);
+  const accentBase = resolveReaderAccentHex(readerAccent);
+  const readerAccentColor = getReadableAccent(
+    accentBase,
+    getReaderContrastBackgrounds(readerBackground, systemDark, accentBase)
+  );
+  const components = useMemo(() => buildComponents(readerAccentColor), [readerAccentColor]);
   const parsedHeadings = useMemo(() => scanMarkdownHeadings(content), [content]);
   const toc = useMemo(() => extractToc(parsedHeadings), [parsedHeadings]);
   const { preamble, sections } = useMemo(
@@ -437,6 +640,13 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
     () => ({ "--md-font-scale": String(fontScale) } as React.CSSProperties),
     [fontScale]
   );
+  const readerSurfaceStyle = useMemo(() => {
+    return {
+      "--md-accent-base": accentBase,
+      "--md-accent": readerAccentColor,
+      "--md-accent-foreground": getReadableForeground(readerAccentColor),
+    } as React.CSSProperties;
+  }, [accentBase, readerAccentColor]);
 
   useEffect(() => {
     let isMounted = true;
@@ -452,29 +662,43 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
     try {
       const raw = window.localStorage.getItem(READER_PREFS_STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { fontScale?: unknown };
+        const parsed = JSON.parse(raw) as { fontScale?: unknown; background?: unknown; accent?: unknown };
         if (typeof parsed.fontScale === "number" && Number.isFinite(parsed.fontScale)) {
           setFontScale(normalizeReaderFontScale(parsed.fontScale));
         }
+        setReaderBackground(normalizeReaderBackground(parsed.background));
+        setReaderAccent(normalizeReaderAccent(parsed.accent));
       }
     } catch {
       // Geçersiz/eski preference okuyucuyu bozmamalı.
     } finally {
-      setFontPrefsReady(true);
+      setReaderPrefsReady(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!fontPrefsReady) return;
+    if (!readerPrefsReady) return;
     try {
       window.localStorage.setItem(
         READER_PREFS_STORAGE_KEY,
-        JSON.stringify({ fontScale: normalizeReaderFontScale(fontScale) })
+        JSON.stringify({
+          fontScale: normalizeReaderFontScale(fontScale),
+          background: readerBackground,
+          accent: readerAccent,
+        })
       );
     } catch {
       // Private mode / storage engeli okuyucuyu bozmamalı.
     }
-  }, [fontPrefsReady, fontScale]);
+  }, [readerPrefsReady, fontScale, readerBackground, readerAccent]);
+
+  useEffect(() => {
+    const updateSystemTheme = () => setSystemDark(document.documentElement.classList.contains("dark"));
+    updateSystemTheme();
+    const observer = new MutationObserver(updateSystemTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (mode !== "preview") setShowReaderSettings(false);
@@ -540,7 +764,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
           )}
         </div>
 
-        <div className="relative flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {!loading && content && (
             <span className="hidden xl:block font-mono text-[11px] text-muted-foreground">
               {wordCount} kelime · {toc.length} başlık
@@ -549,71 +773,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
 
           {mode === "preview" && (
             <>
-              {/* Telefon/tablet: tek Aa düğmesi; panel içinde A− / A+ / reset. */}
-              <button
-                type="button"
-                onClick={() => setShowReaderSettings((value) => !value)}
-                className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-border/80 bg-background/80 px-2 text-[13px] font-bold text-foreground shadow-sm transition-colors hover:bg-secondary lg:hidden"
-                aria-label="Yazı boyutu ayarları"
-                aria-expanded={showReaderSettings}
-                aria-controls="markdown-reader-font-settings"
-              >
-                Aa
-              </button>
-
-              {showReaderSettings && (
-                <div
-                  id="markdown-reader-font-settings"
-                  data-testid="markdown-font-settings"
-                  role="dialog"
-                  aria-label="Markdown yazı boyutu"
-                  className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-border/80 bg-card p-3 shadow-2xl lg:hidden"
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setShowReaderSettings(false);
-                  }}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-foreground">Yazı Boyutu</span>
-                    <span className="font-mono text-[11px] text-muted-foreground" aria-live="polite">
-                      {fontScalePercent}%
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
-                      disabled={!canDecreaseFont}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
-                      aria-label="Yazıyı küçült"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetFontScale}
-                      className="inline-flex h-11 items-center justify-center gap-1 rounded-xl border border-border/80 bg-background px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-                      aria-label="Yazı boyutunu yüzde 100 yap"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" />
-                      100%
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
-                      disabled={!canIncreaseFont}
-                      className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
-                      aria-label="Yazıyı büyüt"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
-                    Tercih bu cihazda hatırlanır.
-                  </p>
-                </div>
-              )}
-
-              {/* Geniş ekran: kontroller toolbar üzerinde doğrudan görünür. */}
+              {/* Geniş ekran: yazı boyutu araç çubuğunda görünür. */}
               <div className="hidden items-center rounded-xl border border-border/80 bg-background/80 p-0.5 shadow-inner lg:flex" aria-label="Yazı boyutu">
                 <button
                   type="button"
@@ -643,6 +803,94 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
                   <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
+
+              <div className="relative">
+                {/* Telefon/tablet: Aa düğmesi mevcut boyut ayarlarıyla birlikte görünüm panelini açar. */}
+                <button
+                  type="button"
+                  onClick={() => setShowReaderSettings((value) => !value)}
+                  className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-border/80 bg-background/80 px-2 text-[13px] font-bold text-foreground shadow-sm transition-colors hover:bg-secondary lg:hidden"
+                  aria-label="Okuma görünümü ayarları"
+                  aria-expanded={showReaderSettings}
+                  aria-controls="markdown-reader-settings"
+                  data-testid="markdown-reader-settings-trigger"
+                >
+                  Aa
+                </button>
+                {/* Masaüstü: palet düğmesi yazı boyutu kontrollerinin yanında durur. */}
+                <button
+                  type="button"
+                  onClick={() => setShowReaderSettings((value) => !value)}
+                  className="hidden h-8 w-9 items-center justify-center rounded-lg border border-border/80 bg-background/80 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:inline-flex"
+                  aria-label="Okuma görünümü ayarları"
+                  aria-expanded={showReaderSettings}
+                  aria-controls="markdown-reader-settings"
+                  data-testid="markdown-reader-settings-trigger"
+                >
+                  <Palette className="h-4 w-4" aria-hidden="true" />
+                </button>
+
+                {showReaderSettings && (
+                  <div
+                    id="markdown-reader-settings"
+                    data-testid="markdown-reader-settings"
+                    role="dialog"
+                    aria-label="Markdown okuma ayarları"
+                    className={`${styles.settingsPopover} absolute right-0 top-11 z-50 rounded-2xl border border-border/80 bg-card p-3 shadow-2xl`}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setShowReaderSettings(false);
+                    }}
+                  >
+                    <div className="mb-2 lg:hidden">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-foreground">Yazı Boyutu</span>
+                        <span className="font-mono text-[11px] text-muted-foreground" aria-live="polite">
+                          {fontScalePercent}%
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => changeFontScale(-READER_FONT_SCALE_STEP)}
+                          disabled={!canDecreaseFont}
+                          className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                          aria-label="Yazıyı küçült"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetFontScale}
+                          className="inline-flex h-11 items-center justify-center gap-1 rounded-xl border border-border/80 bg-background px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                          aria-label="Yazı boyutunu yüzde 100 yap"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          100%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => changeFontScale(READER_FONT_SCALE_STEP)}
+                          disabled={!canIncreaseFont}
+                          className="inline-flex h-11 items-center justify-center rounded-xl border border-border/80 bg-background text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-35"
+                          aria-label="Yazıyı büyüt"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <ReaderAppearanceSettings
+                      background={readerBackground}
+                      accent={readerAccent}
+                      onBackgroundChange={setReaderBackground}
+                      onAccentChange={setReaderAccent}
+                    />
+                    <p className="mt-3 text-[10px] leading-4 text-muted-foreground">
+                      Tercihler bu tarayıcıdaki tüm Markdown dosyalarında hatırlanır.
+                    </p>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -659,7 +907,12 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
       </div>
 
       {/* Gövde */}
-      <div className="flex min-h-0 flex-1">
+      <div
+        className={`${styles.readerSurface} flex min-h-0 flex-1`}
+        data-md-background={mode === "preview" ? readerBackground : undefined}
+        data-testid="markdown-reader-surface"
+        style={readerSurfaceStyle}
+      >
         <div className="relative min-h-0 flex-1 overflow-y-auto select-text">
           {loading && (
             <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
@@ -690,8 +943,8 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
             <div className={styles.readerViewport}>
               <article className={styles.reader} style={readerStyle} data-testid="markdown-reader" data-font-scale={fontScalePercent}>
                 {/* Dosya meta kartı */}
-                <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5`}>
-                  <FileText className="h-5 w-5 shrink-0 text-amber-500" />
+                <div className={`${styles.metaCard} flex items-center gap-3 rounded-xl`}>
+                  <FileText className={`${styles.accentIcon} h-5 w-5 shrink-0`} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-foreground">{displayName}</p>
                     <p className="text-[11px] text-muted-foreground">
@@ -709,7 +962,7 @@ export function DokMarkdownViewer({ accessUrl, displayName, onContentChange }: D
 
                 {/* Collapsible bölümler */}
                 <div className="space-y-0">
-                  {sections.map((section, i) => (
+                  {sections.map((section) => (
                     <CollapsibleSection
                       key={section.id}
                       section={section}

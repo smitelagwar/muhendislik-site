@@ -1,0 +1,792 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A8",
+  "run_id": "20261015-1038-A8-production-repeat-01",
+  "captured_at": "2026-10-15",
+  "status": "LOCAL_PRODUCTION_GATE_PASS_COMPARISON_CAVEATS_REMAIN",
+  "current_source_sha": null,
+  "source_identity_verified": false,
+  "production_build": {
+    "builder": "Next 16.3.6 Webpack",
+    "build_id": "7FEWlZ_L99f2D76ZBuvhp",
+    "build_command": "npm run build",
+    "build_exit_code": 0
+  },
+  "environment": {
+    "server": "local Next production server",
+    "project": "desktop Chromium",
+    "cpu_throttle_rate": 1,
+    "network_throttling": "none",
+    "database_blob_environment_names_scrubbed": true,
+    "synthetic_isolated_store": true,
+    "production_database_or_blob_accessed": false
+  },
+  "repeats": {
+    "expected": 75,
+    "passed": 75,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "core_group_passed": 35,
+    "core_group_duration_minutes": 3.6,
+    "v5_a1_a5_passed": 40,
+    "v5_a1_a5_duration_minutes": 3.3,
+    "total_duration_minutes": 6.9,
+    "previous_interrupted_attempt_not_counted": true,
+    "high_zoom_isolated_followup_passed": 1
+  },
+  "coverage": {
+    "scenarios": [
+      "S4",
+      "S7",
+      "S8",
+      "S13",
+      "S14",
+      "V5 A1",
+      "V5 A5"
+    ],
+    "metric_rows": 35,
+    "scenario_row_counts": {
+      "S4": 10,
+      "S7": 10,
+      "S8": 5,
+      "S13": 5,
+      "S14": 5
+    },
+    "fixture_hashes": [
+      {
+        "name": "a0-vektor.pdf",
+        "bytes": 2041937,
+        "sha256": "a949b4e0e4aabf6f35c61d9259ec02ccaed6873b863e62898aa0aacf8264cdea"
+      },
+      {
+        "name": "karisik-60.pdf",
+        "bytes": 3301793,
+        "sha256": "11106cbe0be1e04011728dd8afbb790d28bda3d7ae3fb860f859abc33c0f60e9"
+      },
+      {
+        "name": "linkli-300.pdf",
+        "bytes": 109176,
+        "sha256": "4049a313e49935f6ee13d81e6488afa522aaaa4e451552d36682e6244208d8fd"
+      },
+      {
+        "name": "metin-1000.pdf",
+        "bytes": 1292529,
+        "sha256": "6d3b9ae2d2f6c787f01cec8e03ae8fe642c62b82a5882c9e5e26bd1c12d14a9f"
+      },
+      {
+        "name": "tarama-a3.pdf",
+        "bytes": 2763179,
+        "sha256": "66f969b2e7fc3cab31b50e10e65268433dcaeb39b17fb6b37df8c8daddcfef8f"
+      }
+    ]
+  },
+  "artifacts": {
+    "core_log": "D:/codex-pdf-a6-tmp-20261014/a8-prod-core-repeat-20261015.log",
+    "v5_log": "D:/codex-pdf-a6-tmp-20261014/a8-prod-v5-repeat-20261015.log",
+    "isolated_high_zoom_log": "D:/codex-pdf-a6-tmp-20261014/a8-a1-highzoom-isolated-20261015.log",
+    "raw_metric_rows": [
+      {
+        "ts": "2026-10-15T10:39:46.832Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 16,
+          "blankFramesDuringScroll": 1,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:39:51.21Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 33.3,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 13,
+          "blankFramesDuringScroll": 2,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:39:53.372Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "a0-vektor",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 10,
+          "blankFrames": 0,
+          "maxZoomPercent": 42,
+          "levels": "[{\"zoom\":42,\"sharpMs\":10,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:39:55.014Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "tarama-a3",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 12,
+          "blankFrames": 0,
+          "maxZoomPercent": 118,
+          "levels": "[{\"zoom\":118,\"sharpMs\":12,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:18.358Z",
+        "scenario": "S8",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "heapGrowthMB": 1.2,
+          "canvasBytesMB": 97.6,
+          "mountedPages": 3
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:21.185Z",
+        "scenario": "S13",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasBytesMBHidden": 1.9
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:25.24Z",
+        "scenario": "S14",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 66.7
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:29.843Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 6,
+          "blankFramesDuringScroll": 0,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:34.243Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 33.4,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 3,
+          "blankFramesDuringScroll": 0,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:36.437Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "a0-vektor",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 10,
+          "blankFrames": 0,
+          "maxZoomPercent": 42,
+          "levels": "[{\"zoom\":42,\"sharpMs\":10,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:40:38.172Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "tarama-a3",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 11,
+          "blankFrames": 0,
+          "maxZoomPercent": 118,
+          "levels": "[{\"zoom\":118,\"sharpMs\":11,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:01.497Z",
+        "scenario": "S8",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "heapGrowthMB": 1.3,
+          "canvasBytesMB": 97.6,
+          "mountedPages": 3
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:04.73Z",
+        "scenario": "S13",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasBytesMBHidden": 1.9
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:08.752Z",
+        "scenario": "S14",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:14.675Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 6,
+          "blankFramesDuringScroll": 0,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:18.973Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 10,
+          "blankFramesDuringScroll": 2,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:21.173Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "a0-vektor",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 9,
+          "blankFrames": 0,
+          "maxZoomPercent": 42,
+          "levels": "[{\"zoom\":42,\"sharpMs\":9,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:22.888Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "tarama-a3",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 11,
+          "blankFrames": 0,
+          "maxZoomPercent": 118,
+          "levels": "[{\"zoom\":118,\"sharpMs\":11,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:46.325Z",
+        "scenario": "S8",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "heapGrowthMB": 1.2,
+          "canvasBytesMB": 97.6,
+          "mountedPages": 3
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:49.157Z",
+        "scenario": "S13",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasBytesMBHidden": 1.9
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:53.108Z",
+        "scenario": "S14",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8
+        }
+      },
+      {
+        "ts": "2026-10-15T10:41:57.757Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 2,
+          "blankFramesDuringScroll": 0,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:02.294Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 50.1,
+          "jank50": 1,
+          "longTaskMs": 0,
+          "blankSettleMs": 16,
+          "blankFramesDuringScroll": 2,
+          "mountedPages": 3,
+          "domNodes": 248
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:04.661Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "a0-vektor",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 9,
+          "blankFrames": 0,
+          "maxZoomPercent": 42,
+          "levels": "[{\"zoom\":42,\"sharpMs\":9,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:06.383Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "tarama-a3",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 10,
+          "blankFrames": 0,
+          "maxZoomPercent": 118,
+          "levels": "[{\"zoom\":118,\"sharpMs\":10,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:29.764Z",
+        "scenario": "S8",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "heapGrowthMB": 1.3,
+          "canvasBytesMB": 97.6,
+          "mountedPages": 3
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:32.527Z",
+        "scenario": "S13",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasBytesMBHidden": 1.9
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:36.46Z",
+        "scenario": "S14",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:40.97Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.8,
+          "gapMaxMs": 33.3,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 6,
+          "blankFramesDuringScroll": 0,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:45.203Z",
+        "scenario": "S4",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8,
+          "jank50": 0,
+          "longTaskMs": 0,
+          "blankSettleMs": 13,
+          "blankFramesDuringScroll": 2,
+          "mountedPages": 3,
+          "domNodes": 247
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:47.407Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "a0-vektor",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 12,
+          "blankFrames": 0,
+          "maxZoomPercent": 42,
+          "levels": "[{\"zoom\":42,\"sharpMs\":12,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:42:49.076Z",
+        "scenario": "S7",
+        "profile": "desktop",
+        "fixture": "tarama-a3",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasMaxMP": 10,
+          "canvasBytesMB": 40.5,
+          "sharpRatio": 1,
+          "sharpMs": 11,
+          "blankFrames": 0,
+          "maxZoomPercent": 118,
+          "levels": "[{\"zoom\":118,\"sharpMs\":11,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+        }
+      },
+      {
+        "ts": "2026-10-15T10:43:12.537Z",
+        "scenario": "S8",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "heapGrowthMB": 1.3,
+          "canvasBytesMB": 97.6,
+          "mountedPages": 3
+        }
+      },
+      {
+        "ts": "2026-10-15T10:43:15.299Z",
+        "scenario": "S13",
+        "profile": "desktop",
+        "fixture": "karisik-60",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "canvasBytesMBHidden": 1.9
+        }
+      },
+      {
+        "ts": "2026-10-15T10:43:19.241Z",
+        "scenario": "S14",
+        "profile": "desktop",
+        "fixture": "metin-1000",
+        "project": "desktop",
+        "mode": "gate",
+        "build": "prod",
+        "cpu": 1,
+        "metrics": {
+          "gapP95Ms": 16.7,
+          "gapMaxMs": 16.8
+        }
+      }
+    ]
+  },
+  "a2_comparison": {
+    "run_id": "20261014-173918-2c0b682-baseline-06",
+    "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+    "same_host_browser_cpu_profile": true,
+    "fixture_sha256_and_byte_sizes_match": false,
+    "comparison_classification": "directional_only",
+    "limitations": [
+      "The historical A2 fixture bytes are unavailable in the working copy.",
+      "The A2 generator was rerun from the recorded commit with the same pdf-lib version; its output hashes still differed from the A2 fixture manifest.",
+      "The current fixture generator differs from the A2 commit version.",
+      "The D working copy has no .git metadata, so current source SHA and source diff against A2 cannot be verified.",
+      "Performance results are directional only; no exact byte-for-byte A2 comparison is claimed."
+    ],
+    "fixture_filenames_match": true,
+    "generator_script_byte_identical": false,
+    "generator_semantics_equivalence": "not proven",
+    "fixture_hashes": [
+      {
+        "name": "a0-vektor.pdf",
+        "a2_bytes": 2041938,
+        "a2_sha256": "4ce70a47af31e0b620db8c8acefc30c073f83225f13bf43c6c1315607d380a21",
+        "current_bytes": 2041937,
+        "current_sha256": "a949b4e0e4aabf6f35c61d9259ec02ccaed6873b863e62898aa0aacf8264cdea",
+        "current_matches_a2": false,
+        "old_generator_reconstruction": {
+          "bytes": 2041938,
+          "sha256": "35eb4bf198dc04cf99fe0a8463b93e2659437415eca9b2a6832a2e0cdeda5ff6",
+          "matches_a2": false
+        }
+      },
+      {
+        "name": "karisik-60.pdf",
+        "a2_bytes": 3301792,
+        "a2_sha256": "a2368426188b500902711b90f45cf66ba66488b3ac590a22f7e61dde0f005c4d",
+        "current_bytes": 3301793,
+        "current_sha256": "11106cbe0be1e04011728dd8afbb790d28bda3d7ae3fb860f859abc33c0f60e9",
+        "current_matches_a2": false,
+        "old_generator_reconstruction": {
+          "bytes": 3301792,
+          "sha256": "a20ebe498252cc218331fcd0e370ad381887a7eda4edf693c981db01ecb53e54",
+          "matches_a2": false
+        }
+      },
+      {
+        "name": "metin-1000.pdf",
+        "a2_bytes": 1292533,
+        "a2_sha256": "1a018f3cee6cc11c73eba9ada2767856da383a9b4d6e5ec1b25d735291976dad",
+        "current_bytes": 1292529,
+        "current_sha256": "6d3b9ae2d2f6c787f01cec8e03ae8fe642c62b82a5882c9e5e26bd1c12d14a9f",
+        "current_matches_a2": false,
+        "old_generator_reconstruction": {
+          "bytes": 1292533,
+          "sha256": "eaf993645acb6499d587685fb822439e9d70b18f4e0968cdabd04883e7c34e3a",
+          "matches_a2": false
+        }
+      },
+      {
+        "name": "tarama-a3.pdf",
+        "a2_bytes": 2763179,
+        "a2_sha256": "098a12843cf20b58b69dbd19f1acde1fec8360d69c4d3ce6e000a601344c6c7a",
+        "current_bytes": 2763179,
+        "current_sha256": "66f969b2e7fc3cab31b50e10e65268433dcaeb39b17fb6b37df8c8daddcfef8f",
+        "current_matches_a2": false,
+        "old_generator_reconstruction": {
+          "bytes": 2763175,
+          "sha256": "9e209c6d452d2b9f6fa8512257a686ea9eac5ccbd641b9bcea6d6df4459fbf02",
+          "matches_a2": false
+        }
+      },
+      {
+        "name": "linkli-300.pdf",
+        "a2_bytes": 109179,
+        "a2_sha256": "1d72dc21b8d5f6c2871b629adfe1f489a80d8f696577617a081d6ea37fbcf409",
+        "current_bytes": 109176,
+        "current_sha256": "4049a313e49935f6ee13d81e6488afa522aaaa4e451552d36682e6244208d8fd",
+        "current_matches_a2": false,
+        "old_generator_reconstruction": {
+          "bytes": 109179,
+          "sha256": "343e51320dab5f2c43db14569cbb7e0c29da9cdd857a5ee5df06da470546068a",
+          "matches_a2": false
+        }
+      }
+    ],
+    "historical_generator_reconstruction": {
+      "source_commit": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "generator_git_blob_sha1": "ce8b29e20fb8888559251e3b8e68013935ad38a4",
+      "pdf_lib_a2": "1.17.1",
+      "pdf_lib_current": "1.17.1",
+      "exit_code": 0,
+      "all_reconstructed_hashes_match_a2": false,
+      "output_directory": "D:/codex-pdf-a6-tmp-20261014/a2-fixture-rebuild-20261015/.test-data/pdf-v4-fixtures"
+    }
+  },
+  "privacy": {
+    "synthetic_local_data_only": true,
+    "production_database_accessed": false,
+    "blob_provider_accessed": false,
+    "user_pdfs_copied_to_evidence": false,
+    "secrets_or_signed_urls_recorded": false
+  }
+}

@@ -7,6 +7,8 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Share2,
   ZoomIn,
   ZoomOut,
@@ -164,6 +166,7 @@ export function DokImageViewer({
   const [flipH, setFlipH] = useState<boolean>(false);
   const [flipV, setFlipV] = useState<boolean>(false);
   const [showCheckerboard, setShowCheckerboard] = useState<boolean>(true);
+  const [isToolbarCollapsed, setIsToolbarCollapsed] = useState(false);
 
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -453,18 +456,30 @@ export function DokImageViewer({
       if (isFitMode) {
         handleFitScreen();
       } else {
-        commitCamera(clampCamera(cameraRef.current));
+        const nextCamera = clampCamera(cameraRef.current);
+        if (zoomAnimFrameRef.current !== null) {
+          // Yeniden gözlenen alan, sürmekte olan yakınlaştırma karelerini iptal etmemeli.
+          scheduleCamera(nextCamera);
+        } else {
+          commitCamera(nextCamera);
+        }
       }
     });
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, [clampCamera, commitCamera, handleFitScreen, isFitMode, naturalSize]);
+  }, [clampCamera, commitCamera, handleFitScreen, isFitMode, naturalSize, scheduleCamera]);
 
   useEffect(() => {
     if (!naturalSize || isFitMode) return;
-    commitCamera(clampCamera(cameraRef.current, rotation));
-  }, [clampCamera, commitCamera, isFitMode, naturalSize, rotation]);
+    const nextCamera = clampCamera(cameraRef.current, rotation);
+    if (zoomAnimFrameRef.current !== null) {
+      // Yakınlaştırma sürerken senkron commit, animasyonun sonraki karesini iptal eder.
+      scheduleCamera(nextCamera);
+    } else {
+      commitCamera(nextCamera);
+    }
+  }, [clampCamera, commitCamera, isFitMode, naturalSize, rotation, scheduleCamera]);
 
   const zoomCameraAroundClientPoint = useCallback(
     (targetScale: number, clientPoint?: GesturePoint, force?: boolean) => {
@@ -902,6 +917,11 @@ export function DokImageViewer({
         )
       : scale;
   const zoomPercent = Math.round((scale / Math.max(fitScale, 0.02)) * 100);
+  const hasImageTransform = rotation !== 0 || flipH || flipV;
+  const desktopToolbarLabelClass = isToolbarCollapsed ? "hidden" : "hidden lg:inline";
+  const desktopToolbarButtonLayout = isToolbarCollapsed
+    ? "lg:w-10 lg:justify-center lg:px-0"
+    : "lg:w-full lg:justify-start lg:px-2";
 
   return (
     <div
@@ -914,98 +934,131 @@ export function DokImageViewer({
       data-scale={String(scale)}
       data-camera-x={camera.offsetX.toFixed(2)}
       data-camera-y={camera.offsetY.toFixed(2)}
-      className="flex h-full w-full flex-col bg-background text-foreground select-none"
+      data-toolbar-collapsed={isToolbarCollapsed ? "true" : "false"}
+      className={[
+        "grid h-full w-full min-h-0 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_minmax(0,1fr)] bg-background text-foreground select-none lg:grid-rows-[4rem_minmax(0,1fr)]",
+        isToolbarCollapsed ? "lg:grid-cols-[4rem_minmax(0,1fr)]" : "lg:grid-cols-[14rem_minmax(0,1fr)]",
+      ].join(" ")}
     >
-      {/* Görsel Araç Çubuğu (Toolbar) — Tekil & Modern Stüdyo Çubuğu */}
+      <div
+        data-testid="image-viewer-header"
+        role="group"
+        aria-label="Dosya bilgileri"
+        className="col-start-1 row-start-1 flex h-14 min-w-0 items-center gap-2 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-2 text-xs shadow-sm backdrop-blur-2xl sm:gap-3 sm:px-4 lg:col-span-2 lg:h-16"
+      >
+        {onBack && (
+          <StudioCommandButton
+            commandId="studio.back"
+            onClick={onBack}
+            size="sm"
+            variant="ghost"
+            showLabel={false}
+            title="Dosya Yöneticisine Dön"
+            aria-label="Dosya Yöneticisine Dön"
+            className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground sm:h-10 sm:w-10"
+            icon={<ArrowLeft className="h-4.5 w-4.5" />}
+          />
+        )}
+
+        {onBack && <div className="hidden h-5 w-px shrink-0 bg-border/60 sm:block" />}
+
+        <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1
+              data-testid="image-viewer-file-name"
+              title={displayName}
+              className="max-w-[130px] truncate text-sm font-semibold tracking-tight text-foreground/90 min-[380px]:max-w-[190px] sm:max-w-[280px] md:max-w-[380px] lg:max-w-[560px]"
+            >
+              {displayName}
+            </h1>
+
+            {versionNo != null && (
+              <span className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
+                v{versionNo}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
+            {sizeBytes != null && extension && <span>•</span>}
+            {extension && (
+              <span className="font-mono text-xs font-bold uppercase text-amber-500/90">
+                {extension.replace(".", "")}
+              </span>
+            )}
+            {(sizeBytes != null || extension) && naturalSize && <span>•</span>}
+            {naturalSize && (
+              <span className="font-mono">{naturalSize.width} × {naturalSize.height} px</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div
         data-testid="image-viewer-toolbar"
         role="group"
         aria-label="Görsel stüdyo araç çubuğu"
-        className="z-30 box-border flex h-14 w-full min-w-0 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-card/85 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] text-xs backdrop-blur-2xl shadow-sm sm:h-16 sm:px-4"
+        className={[
+          "z-30 col-start-2 row-start-1 flex h-14 min-w-0 shrink-0 items-center justify-end gap-1 border-b border-border/70 bg-card/85 pl-1 pr-[max(0.75rem,env(safe-area-inset-right))] text-xs shadow-sm backdrop-blur-2xl sm:gap-2 sm:pl-2 lg:col-start-1 lg:row-start-2 lg:h-full lg:min-h-0 lg:w-full lg:flex-col lg:items-stretch lg:justify-start lg:gap-0 lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:border-b-0 lg:border-r lg:border-border/70 lg:py-3",
+          isToolbarCollapsed ? "lg:px-1" : "lg:px-3",
+        ].join(" ")}
       >
-        {/* Sol Ada: Navigasyon, Dosya Kimliği & Çözünürlük HUD */}
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          {onBack && (
-            <StudioCommandButton
-              commandId="studio.back"
-              onClick={onBack}
-              size="sm"
-              variant="ghost"
-              showLabel={false}
-              title="Dosya Yöneticisine Dön"
-              aria-label="Dosya Yöneticisine Dön"
-              className="h-9 w-9 shrink-0 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200 sm:h-10 sm:w-10"
-              icon={<ArrowLeft className="h-4.5 w-4.5" />}
-            />
-          )}
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2 lg:h-full lg:min-h-0 lg:w-full lg:flex-col lg:items-stretch lg:justify-start lg:gap-2">
+          <button
+            type="button"
+            data-testid="image-viewer-toolbar-collapse"
+            aria-label={isToolbarCollapsed ? "Araç çubuğunu genişlet" : "Araç çubuğunu daralt"}
+            aria-expanded={!isToolbarCollapsed}
+            title={isToolbarCollapsed ? "Araç çubuğunu genişlet" : "Araç çubuğunu daralt"}
+            onClick={() => setIsToolbarCollapsed((value) => !value)}
+            className={"hidden h-10 shrink-0 items-center rounded-xl border border-border/70 bg-secondary/50 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 lg:inline-flex " + desktopToolbarButtonLayout}
+          >
+            {isToolbarCollapsed ? (
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 shrink-0" />
+            )}
+            {!isToolbarCollapsed && <span className="ml-2">Daralt</span>}
+          </button>
 
-          {onBack && <div className="hidden h-5 w-px bg-border/60 sm:block" />}
-
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <h1
-                title={displayName}
-                className="truncate font-semibold text-sm tracking-tight text-foreground/90 max-w-[130px] min-[380px]:max-w-[190px] sm:max-w-[280px] md:max-w-[380px]"
-              >
-                {displayName}
-              </h1>
-
-              {versionNo != null && (
-                <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
-                  v{versionNo}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
-              {sizeBytes != null && extension && <span>•</span>}
-              {extension && (
-                <span className="uppercase font-bold text-amber-500/90 font-mono">
-                  {extension.replace(".", "")}
-                </span>
-              )}
-              {(sizeBytes != null || extension) && naturalSize && <span>•</span>}
-              {naturalSize && (
-                <span className="font-mono">{naturalSize.width} × {naturalSize.height} px</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Sağ Alan: Büyütülmüş Zoom Kapsülü, Aksiyonlar & Dönüşüm Kontrolleri */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {/* Zoom Segmentli Kapsülü */}
-          <div className="flex items-center rounded-xl bg-secondary/50 border border-border/60 p-0.5 shadow-inner">
+          <div
+            role="group"
+            aria-label="Görünüm"
+            className="flex min-w-0 items-center rounded-xl border border-border/60 bg-secondary/50 p-0.5 shadow-inner lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:rounded-xl lg:p-1"
+          >
             <StudioCommandButton
               commandId="image.zoom.out"
               onClick={() => smoothButtonZoom(1 / BUTTON_ZOOM_FACTOR)}
               aria-label="Uzaklaştır"
-              showLabel={false}
               title="Uzaklaştır"
-              className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              label="Uzaklaştır"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-11 w-11 min-h-11 min-w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
               icon={<ZoomOut className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
             />
 
             <StudioCommandButton
               commandId="image.zoom.100"
               onClick={resetView}
-              aria-label={`Görünümü sıfırla, yakınlaştırma yüzde ${zoomPercent}`}
-              title={`Görünümü sıfırla · ${zoomPercent}%`}
-              className="h-11 min-h-11 px-2 lg:h-9 lg:min-h-9 lg:px-2.5 rounded-lg text-xs font-mono font-bold text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
-              label={`${zoomPercent}%`}
+              aria-label={"Görünümü sıfırla, yakınlaştırma yüzde " + zoomPercent}
+              title={"Görünümü sıfırla · " + zoomPercent + "%"}
+              className="h-11 min-h-11 min-w-10 rounded-lg px-2 text-xs font-mono font-bold text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground lg:h-11 lg:w-full lg:px-1"
+              label={zoomPercent + "%"}
             />
 
             <StudioCommandButton
               commandId="image.zoom.in"
               onClick={() => smoothButtonZoom(BUTTON_ZOOM_FACTOR)}
               aria-label="Yakınlaştır"
-              showLabel={false}
               title="Yakınlaştır"
-              className="h-11 w-11 min-h-11 min-w-11 lg:h-9 lg:w-9 lg:min-h-9 lg:min-w-9 rounded-lg p-0 text-muted-foreground hover:bg-background/80 hover:text-foreground transition-colors"
+              label="Yakınlaştır"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-11 w-11 min-h-11 min-w-11 rounded-lg p-0 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
               icon={<ZoomIn className="h-4 w-4 sm:h-4.5 sm:w-4.5" />}
             />
 
-            <div className="h-4 w-px bg-border/60 mx-0.5" />
+            <div className="hidden h-4 w-px bg-border/60 sm:block lg:hidden" />
+            <div className="hidden h-px w-full bg-border/60 lg:block" />
 
             <StudioCommandButton
               commandId="image.zoom.fit"
@@ -1014,266 +1067,314 @@ export function DokImageViewer({
                 handleFitScreen();
               }}
               aria-label="Görseli ekrana sığdır"
-              className="h-11 min-h-11 px-2.5 lg:h-9 lg:min-h-9 lg:px-3 rounded-lg text-xs font-semibold text-foreground/90 hover:bg-background/80 hover:text-foreground transition-colors"
+              title="Görseli ekrana sığdır"
               label="Sığdır"
+              showLabel={!isToolbarCollapsed}
+              className={"h-11 min-h-11 rounded-lg px-2.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-background/80 hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
             />
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="Görsel ek işlemleri" className="inline-flex h-11 w-11 min-h-11 min-w-11 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:hidden">
-                <MoreHorizontal className="h-4.5 w-4.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/60" />
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border/60" />
-              <DropdownMenuItem
-                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
-                disabled={!naturalSize || copyState === "copying"}
-                onClick={handleCopyToClipboard}
-              >
-                <span>Panoya kopyala</span>
-                {copyState === "copied" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
-                {copyState === "copying" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
-                disabled={!naturalSize || downloadState === "downloading"}
-                onClick={handleDownload}
-              >
-                <span>Görseli indir</span>
-                {downloadState === "done" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
-                {downloadState === "downloading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              </DropdownMenuItem>
-              {(onToggleFullscreen || onRename || onDelete) && (
-                <DropdownMenuSeparator className="bg-border/60" />
-              )}
-
-              {onToggleFullscreen && (
-                <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={onToggleFullscreen}>
-                  {isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
-                </DropdownMenuItem>
-              )}
-
-              {onRename && (
-                <DropdownMenuItem className="cursor-pointer text-xs rounded-lg" onClick={onRename}>
-                  Yeniden Adlandır
-                </DropdownMenuItem>
-              )}
-
-              {onDelete && (
-                <>
-                  <DropdownMenuSeparator className="bg-border/60" />
-                  <DropdownMenuItem
-                    className="cursor-pointer text-xs rounded-lg text-red-500 focus:text-red-500 focus:bg-red-500/10"
-                    onClick={onDelete}
-                  >
-                    Çöp Kutusuna At
-                  </DropdownMenuItem>
-                </>
-              )}
-              {onShare && (
-                <>
-                  <DropdownMenuSeparator className="bg-border/60" />
-                  <DropdownMenuItem
-                    className="cursor-pointer text-xs rounded-lg flex items-center justify-between"
-                    onClick={onShare}
-                  >
-                    <span>Paylaşım bağlantısı oluştur</span>
-                    <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
-
-          {/* Panoya Kopyala */}
-          <StudioCommandButton
-            commandId="image.clipboard.copy"
-            onClick={handleCopyToClipboard}
-            disabled={!naturalSize || copyState === "copying"}
-            aria-label={
-              copyState === "copied"
-                ? "Panoya kopyalandı"
-                : copyState === "error"
-                  ? "Kopyalama başarısız"
-                  : "Panoya kopyala"
-            }
-            showLabel={false}
-            title={
-              copyState === "copied"
-                ? "Panoya Kopyalandı!"
-                : copyState === "error"
-                  ? "Kopyalama başarısız"
-                  : "Panoya Kopyala (Ctrl+C)"
-            }
-            className={`hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 transition-all sm:inline-flex ${
-              copyState === "copied"
-                ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
-                : copyState === "error"
-                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            }`}
-            icon={
-              copyState === "copying" ? (
-                <Loader2 className="h-4.5 w-4.5 animate-spin" />
-              ) : copyState === "copied" ? (
-                <Check className="h-4.5 w-4.5 text-emerald-400" />
-              ) : (
-                <Copy className="h-4.5 w-4.5" />
-              )
-            }
-          />
-
-          {/* Görseli İndir */}
-          <StudioCommandButton
-            commandId="image.download"
-            onClick={handleDownload}
-            disabled={!naturalSize || downloadState === "downloading"}
-            aria-label={
-              downloadState === "done"
-                ? "Görsel indirildi"
-                : downloadState === "error"
-                  ? "İndirme başarısız"
-                  : "Görseli indir"
-            }
-            showLabel={false}
-            title={
-              downloadState === "done"
-                ? "Görsel İndirildi!"
-                : downloadState === "error"
-                  ? "İndirme başarısız"
-                  : "Görseli İndir (Ctrl+S)"
-            }
-            className={`hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 transition-all sm:inline-flex ${
-              downloadState === "done"
-                ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
-                : downloadState === "error"
-                  ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-            }`}
-            icon={
-              downloadState === "downloading" ? (
-                <Loader2 className="h-4.5 w-4.5 animate-spin" />
-              ) : downloadState === "done" ? (
-                <Check className="h-4.5 w-4.5 text-emerald-400" />
-              ) : (
-                <Download className="h-4.5 w-4.5" />
-              )
-            }
-          />
-
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
-
-          {/* Döndürme */}
-          <StudioCommandButton
-            commandId="image.rotate.ccw"
-            onClick={() => rotate(-1)}
-            showLabel={false}
-            title="Saat Yönü Tersine Döndür (Shift+R)"
-            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-            icon={<RotateCcw className="h-4.5 w-4.5" />}
-          />
-
-          <StudioCommandButton
-            commandId="image.rotate.cw"
-            onClick={() => rotate(1)}
-            showLabel={false}
-            title="Saat Yönünde Döndür (R)"
-            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-            icon={<RotateCw className="h-4.5 w-4.5" />}
-          />
-
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
-
-          {/* Aynalama */}
-          <StudioCommandButton
-            commandId="image.flip.horizontal"
-            onClick={() => setFlipH((value) => !value)}
-            active={flipH}
-            showLabel={false}
-            title="Yatay Aynala"
-            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-            icon={<FlipHorizontal className="h-4.5 w-4.5" />}
-          />
-
-          <StudioCommandButton
-            commandId="image.flip.vertical"
-            onClick={() => setFlipV((value) => !value)}
-            active={flipV}
-            showLabel={false}
-            title="Dikey Aynala"
-            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-            icon={<FlipVertical className="h-4.5 w-4.5" />}
-          />
-
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
-
-          {/* Şeffaflık Arkaplan Izgarası */}
-          <StudioCommandButton
-            commandId="image.checkerboard.toggle"
-            onClick={() => setShowCheckerboard((value) => !value)}
-            active={showCheckerboard}
-            showLabel={false}
-            title="Şeffaflık Izgarasını Aç/Kapat"
-            className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-            icon={<Grid className="h-4.5 w-4.5" />}
-          />
-
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
-
-          {/* Tam Ekran */}
-          {onToggleFullscreen && (
+          <div
+            role="group"
+            aria-label="Dönüştürme"
+            className="hidden items-center gap-1 sm:flex lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:border-b lg:border-border/60 lg:pb-2"
+          >
             <StudioCommandButton
-              commandId="studio.fullscreen"
-              onClick={onToggleFullscreen}
-              showLabel={false}
-              title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
-              aria-label={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
-              data-testid="image-viewer-fullscreen-toggle"
-              className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-              icon={isFullscreen ? <Minimize2 className="h-4.5 w-4.5" /> : <Maximize2 className="h-4.5 w-4.5" />}
+              commandId="image.rotate.ccw"
+              onClick={() => rotate(-1)}
+              aria-label="Sola döndür"
+              title="Saat yönü tersine döndür (Shift+R)"
+              label="Sola döndür"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+              icon={<RotateCcw className="h-4.5 w-4.5" />}
             />
-          )}
 
-          {/* Masaüstü "Daha Fazla" Menüsü */}
-          {(onRename || onDelete) && (
+            <StudioCommandButton
+              commandId="image.rotate.cw"
+              onClick={() => rotate(1)}
+              aria-label="Sağa döndür"
+              title="Saat yönünde döndür (R)"
+              label="Sağa döndür"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+              icon={<RotateCw className="h-4.5 w-4.5" />}
+            />
+
+            <StudioCommandButton
+              commandId="image.flip.horizontal"
+              onClick={() => setFlipH((value) => !value)}
+              active={flipH}
+              aria-label="Yatay aynala"
+              title="Yatay aynala"
+              label="Yatay aynala"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+              icon={<FlipHorizontal className="h-4.5 w-4.5" />}
+            />
+
+            <StudioCommandButton
+              commandId="image.flip.vertical"
+              onClick={() => setFlipV((value) => !value)}
+              active={flipV}
+              aria-label="Dikey aynala"
+              title="Dikey aynala"
+              label="Dikey aynala"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+              icon={<FlipVertical className="h-4.5 w-4.5" />}
+            />
+          </div>
+
+          <div
+            role="group"
+            aria-label="Çıktı"
+            className="flex items-center gap-1 sm:gap-2 lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:border-b lg:border-border/60 lg:pb-2"
+          >
+            <StudioCommandButton
+              commandId="image.clipboard.copy"
+              onClick={handleCopyToClipboard}
+              disabled={!naturalSize || copyState === "copying"}
+              aria-label={
+                copyState === "copied"
+                  ? "Panoya kopyalandı"
+                  : copyState === "error"
+                    ? "Kopyalama başarısız"
+                    : "Panoya kopyala"
+              }
+              title={
+                copyState === "copied"
+                  ? "Panoya kopyalandı"
+                  : copyState === "error"
+                    ? "Kopyalama başarısız"
+                    : "Panoya kopyala (Ctrl+C)"
+              }
+              label={
+                copyState === "copied"
+                  ? "Kopyalandı"
+                  : copyState === "error"
+                    ? "Kopyalama başarısız"
+                    : "Panoya kopyala"
+              }
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 transition-all lg:h-11 " + desktopToolbarButtonLayout + " " + (
+                copyState === "copied"
+                  ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
+                  : copyState === "error"
+                    ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              )}
+              icon={
+                copyState === "copying" ? (
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                ) : copyState === "copied" ? (
+                  <Check className="h-4.5 w-4.5 text-emerald-400" />
+                ) : (
+                  <Copy className="h-4.5 w-4.5" />
+                )
+              }
+            />
+
+            {hasImageTransform ? (
+              <StudioCommandButton
+                commandId="image.download"
+                data-testid="image-viewer-transformed-download"
+                onClick={handleDownload}
+                disabled={!naturalSize || downloadState === "downloading"}
+                aria-label={
+                  downloadState === "done"
+                    ? "Düzenlenmiş görsel indirildi"
+                    : downloadState === "error"
+                      ? "Düzenlenmiş görsel indirilemedi"
+                      : "Düzenlenmiş görseli indir"
+                }
+                title={
+                  downloadState === "done"
+                    ? "Düzenlenmiş görsel indirildi"
+                    : downloadState === "error"
+                      ? "Düzenlenmiş görsel indirilemedi"
+                      : "Düzenlenmiş görseli indir (PNG)"
+                }
+                label={
+                  downloadState === "done"
+                    ? "Düzenlenmiş görsel indirildi"
+                    : downloadState === "error"
+                      ? "Düzenlenmiş görsel indirilemedi"
+                      : "Düzenlenmiş görseli indir"
+                }
+                labelClassName={desktopToolbarLabelClass + " whitespace-normal text-left"}
+                className={"hidden min-[380px]:inline-flex h-auto min-h-[48px] min-w-[48px] shrink-0 justify-center rounded-xl border border-amber-500/50 bg-amber-500/15 px-2 py-2 text-left text-amber-700 transition-all hover:bg-amber-500/25 dark:text-amber-300 lg:min-h-[52px] lg:min-w-0 " + desktopToolbarButtonLayout + " " + (
+                  downloadState === "done"
+                    ? "ring-2 ring-emerald-500/40"
+                    : downloadState === "error"
+                      ? "border-red-500/50 bg-red-500/15 text-red-600 dark:text-red-300"
+                      : ""
+                )}
+                icon={
+                  downloadState === "downloading" ? (
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  ) : downloadState === "done" ? (
+                    <Check className="h-4.5 w-4.5 text-emerald-500" />
+                  ) : downloadState === "error" ? (
+                    <AlertCircle className="h-4.5 w-4.5" />
+                  ) : (
+                    <Download className="h-4.5 w-4.5" />
+                  )
+                }
+              />
+            ) : (
+              <StudioCommandButton
+                commandId="image.download"
+                onClick={handleDownload}
+                disabled={!naturalSize || downloadState === "downloading"}
+                aria-label={
+                  downloadState === "done"
+                    ? "Görsel indirildi"
+                    : downloadState === "error"
+                      ? "İndirme başarısız"
+                      : "Görseli indir"
+                }
+                title={
+                  downloadState === "done"
+                    ? "Görsel indirildi"
+                    : downloadState === "error"
+                      ? "İndirme başarısız"
+                      : "Görseli indir (Ctrl+S)"
+                }
+                label={
+                  downloadState === "done"
+                    ? "Görsel indirildi"
+                    : downloadState === "error"
+                      ? "İndirme başarısız"
+                      : "Görseli indir"
+                }
+                labelClassName={desktopToolbarLabelClass}
+                className={"hidden h-10 shrink-0 rounded-xl p-0 transition-all sm:inline-flex lg:h-11 " + desktopToolbarButtonLayout + " " + (
+                  downloadState === "done"
+                    ? "bg-emerald-500/15 text-emerald-400 ring-2 ring-emerald-500/40"
+                    : downloadState === "error"
+                      ? "bg-red-500/15 text-red-400 ring-1 ring-red-500/40"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                )}
+                icon={
+                  downloadState === "downloading" ? (
+                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  ) : downloadState === "done" ? (
+                    <Check className="h-4.5 w-4.5 text-emerald-400" />
+                  ) : downloadState === "error" ? (
+                    <AlertCircle className="h-4.5 w-4.5" />
+                  ) : (
+                    <Download className="h-4.5 w-4.5" />
+                  )
+                }
+              />
+            )}
+          </div>
+
+          <div
+            role="group"
+            aria-label="Görünüm seçenekleri"
+            className="hidden items-center gap-1 sm:flex lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:border-b lg:border-border/60 lg:pb-2"
+          >
+            <StudioCommandButton
+              commandId="image.checkerboard.toggle"
+              onClick={() => setShowCheckerboard((value) => !value)}
+              active={showCheckerboard}
+              aria-label="Şeffaflık zeminini değiştir"
+              title="Şeffaflık ızgarasını aç/kapat"
+              label="Şeffaflık zemini"
+              labelClassName={desktopToolbarLabelClass}
+              className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+              icon={<Grid className="h-4.5 w-4.5" />}
+            />
+
+            {onToggleFullscreen && (
+              <StudioCommandButton
+                commandId="studio.fullscreen"
+                onClick={onToggleFullscreen}
+                aria-label={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+                title={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+                label={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+                labelClassName={desktopToolbarLabelClass}
+                data-testid="image-viewer-fullscreen-toggle"
+                className={"h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:h-11 " + desktopToolbarButtonLayout}
+                icon={isFullscreen ? <Minimize2 className="h-4.5 w-4.5" /> : <Maximize2 className="h-4.5 w-4.5" />}
+              />
+            )}
+          </div>
+
+          <div
+            role="group"
+            aria-label="Diğer işlemler"
+            className="flex min-w-0 items-center gap-1 sm:gap-2 lg:w-full lg:flex-col lg:items-stretch lg:gap-1 lg:pb-2"
+          >
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Daha Fazla İşlem"
+                  aria-label="Görsel ek işlemleri"
                   data-testid="image-viewer-more-menu-trigger"
-                  className="hidden h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 sm:inline-flex"
+                  className={"inline-flex h-11 w-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-amber-500 lg:h-11 " + desktopToolbarButtonLayout}
                 >
-                  <MoreVertical className="h-4.5 w-4.5" />
+                  <MoreHorizontal className="h-4.5 w-4.5 sm:hidden lg:hidden" />
+                  <MoreVertical className="hidden h-4.5 w-4.5 sm:block lg:hidden" />
+                  <MoreVertical className="hidden h-4.5 w-4.5 lg:block" />
+                  {!isToolbarCollapsed && <span className="hidden text-left lg:inline">Daha fazla</span>}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md p-1.5">
+              <DropdownMenuContent side="right" align="start" className="w-60 rounded-xl border-border bg-card/95 p-1.5 shadow-2xl backdrop-blur-md">
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={() => rotate(-1)}>Sola döndür</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={() => rotate(1)}>Sağa döndür</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={resetView}>Görünümü sıfırla</DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border/60 sm:hidden" />
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={() => setFlipH((value) => !value)}>Yatay aynala</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={() => setFlipV((value) => !value)}>Dikey aynala</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={() => setShowCheckerboard((value) => !value)}>Şeffaflık zeminini değiştir</DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border/60 sm:hidden" />
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center justify-between rounded-lg text-xs sm:hidden"
+                  disabled={!naturalSize || copyState === "copying"}
+                  onClick={handleCopyToClipboard}
+                >
+                  <span>Panoya kopyala</span>
+                  {copyState === "copied" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                  {copyState === "copying" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center justify-between rounded-lg text-xs sm:hidden"
+                  disabled={!naturalSize || downloadState === "downloading"}
+                  onClick={handleDownload}
+                >
+                  <span>{hasImageTransform ? "Düzenlenmiş görseli indir" : "Görseli indir"}</span>
+                  {downloadState === "done" && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                  {downloadState === "downloading" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                </DropdownMenuItem>
+                {onToggleFullscreen && (
+                  <DropdownMenuItem className="cursor-pointer rounded-lg text-xs sm:hidden" onClick={onToggleFullscreen}>
+                    {isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+                  </DropdownMenuItem>
+                )}
+                {onShare && (
+                  <DropdownMenuItem className="flex cursor-pointer items-center justify-between rounded-lg text-xs sm:hidden" onClick={onShare}>
+                    <span>Paylaşım bağlantısı oluştur</span>
+                    <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </DropdownMenuItem>
+                )}
+                {(onRename || onDelete) && <DropdownMenuSeparator className="bg-border/60" />}
                 {onRename && (
-                  <DropdownMenuItem onClick={onRename} className="flex items-center gap-2.5 cursor-pointer text-xs rounded-lg py-2">
+                  <DropdownMenuItem onClick={onRename} className="flex cursor-pointer items-center gap-2.5 rounded-lg py-2 text-xs">
                     <Edit3 className="h-3.5 w-3.5 text-blue-500" />
                     <span>Yeniden Adlandır</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator className="bg-border/60 my-1" />
-                <div className="px-2 py-1.5 text-[11px] text-muted-foreground flex flex-col gap-0.5 select-text">
-                  <div className="flex items-center gap-1.5 font-medium text-foreground truncate">
-                    <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                <div className="flex select-text flex-col gap-0.5 px-2 py-1.5 text-[11px] text-muted-foreground">
+                  <div className="flex min-w-0 items-center gap-1.5 truncate font-medium text-foreground">
+                    <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="truncate">{displayName}</span>
                   </div>
                   <div className="flex items-center gap-2 text-[10px]">
                     {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
-                    {extension && <span className="uppercase font-bold text-amber-500/90 font-mono">{extension.replace(".", "")}</span>}
+                    {extension && <span className="font-mono font-bold uppercase text-amber-500/90">{extension.replace(".", "")}</span>}
                     {createdAt && <span>{formatDate(createdAt)}</span>}
                   </div>
                 </div>
@@ -1282,7 +1383,7 @@ export function DokImageViewer({
                     <DropdownMenuSeparator className="bg-border/60 my-1" />
                     <DropdownMenuItem
                       onClick={onDelete}
-                      className="flex items-center gap-2.5 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg py-2 font-medium"
+                      className="flex cursor-pointer items-center gap-2.5 rounded-lg py-2 text-xs font-medium text-red-500 focus:bg-red-500/10 focus:text-red-500"
                     >
                       <Trash2 className="h-3.5 w-3.5 text-red-500" />
                       <span>Çöp Kutusuna At</span>
@@ -1291,31 +1392,26 @@ export function DokImageViewer({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
 
-          {/* Paylaşım & Tema Ayırıcı */}
-          <div className="hidden h-5 w-px bg-border/60 sm:block" />
+            {onShare && (
+              <StudioCommandButton
+                commandId="studio.share"
+                onClick={onShare}
+                aria-label="Paylaşım bağlantısı oluştur"
+                title="Paylaşım bağlantısı oluştur (Ctrl+Shift+S)"
+                label="Paylaşım bağlantısı"
+                labelClassName={desktopToolbarLabelClass}
+                className={"hidden h-10 w-10 shrink-0 rounded-xl p-0 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:inline-flex lg:h-11 " + desktopToolbarButtonLayout}
+                icon={<Share2 className="h-4.5 w-4.5" />}
+              />
+            )}
 
-          {/* Paylaşım Bağlantısı Oluştur */}
-          {onShare && (
-            <StudioCommandButton
-              commandId="studio.share"
-              onClick={onShare}
-              showLabel={false}
-              title="Paylaşım Bağlantısı Oluştur (Ctrl+Shift+S)"
-              aria-label="Paylaşım Bağlantısı Oluştur"
-              className="hidden h-9 w-9 sm:h-10 sm:w-10 rounded-xl p-0 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors sm:inline-flex"
-              icon={<Share2 className="h-4.5 w-4.5" />}
-            />
-          )}
-
-          {/* Ay / Güneş Tema Değiştirici (ModeToggle) */}
-          <div className="flex items-center shrink-0 pl-0.5">
-            <ModeToggle />
+            <div className="flex shrink-0 items-center pl-0.5 lg:mt-auto lg:w-full lg:justify-center lg:border-t lg:border-border/60 lg:pt-3">
+              <ModeToggle compact={isToolbarCollapsed} />
+            </div>
           </div>
         </div>
       </div>
-
       {/* Görsel Çalışma Alanı (Viewport) */}
       <div
         ref={containerRef}
@@ -1325,7 +1421,7 @@ export function DokImageViewer({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         onLostPointerCapture={handlePointerEnd}
-        className={`relative flex flex-1 touch-none overscroll-contain items-center justify-center overflow-hidden p-4 sm:p-8 ${
+        className={`relative col-span-2 row-start-2 flex min-h-0 min-w-0 touch-none overscroll-contain items-center justify-center overflow-hidden p-4 sm:p-8 lg:col-span-1 lg:col-start-2 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         } ${
           showCheckerboard

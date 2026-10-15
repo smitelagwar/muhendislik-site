@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A4",
+  "run_id": "20261014-184647-2c0b682-a4-01",
+  "status": "GECTI",
+  "stage_scope": "A4 local render and memory gates",
+  "started_at": "2026-10-14T18:28:08+03:00",
+  "finished_at": "2026-10-14T18:46:47+03:00",
+  "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "production_build": {
+    "exit_code": 0,
+    "build_id": "arUlRg2pXe8U6I4EhNzf2",
+    "dist_dir": ".next-pdf-a4-20261014"
+  },
+  "checks": {
+    "pdf_v4_unit_exit_code": 0,
+    "page_load_priority_cases_passed": 3,
+    "visible_page_first_get_page_proven": true,
+    "runtime_typecheck_exit_code": 0,
+    "production_build_typecheck_exit_code": 0,
+    "targeted_eslint_exit_code": 0,
+    "targeted_eslint_errors": 0,
+    "targeted_eslint_warnings": 3,
+    "git_diff_check_exit_code": 0,
+    "layout_50000_pages_ms": 3.07,
+    "e2e_gate": {
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "projects": ["desktop", "mobile", "webkit"],
+      "files": [
+        "tests/pdf-v4/v5-a1-bellek.spec.ts",
+        "tests/pdf-v4/v5-a2-zoom-yerlesim.spec.ts",
+        "tests/pdf-v4/s04-fast-scroll.spec.ts",
+        "tests/pdf-v4/s07-large-format.spec.ts",
+        "tests/pdf-v4/s08-memory-leak.spec.ts",
+        "tests/pdf-v4/s13-visibility-memory.spec.ts"
+      ]
+    },
+    "desktop_s8_rechecks": {"passed": 2, "failed": 0},
+    "webkit_performance_budgets_applied": false
+  },
+  "memory_measurements": {
+    "s8_js_heap_growth_mb": {"desktop": 1.2, "mobile": 3.9},
+    "s8_canvas_estimate_mb": {"desktop": 97.6, "mobile": 50.7},
+    "s8_mounted_pages": {"desktop": 3, "mobile": 8},
+    "s13_hidden_canvas_estimate_mb": {"desktop": 1.9, "mobile": 10.9},
+    "os_process_working_set_or_rss": {
+      "captured": false,
+      "reason": "Two Windows process samplers did not capture the Playwright browser process; no OS RSS conclusion is claimed."
+    }
+  },
+  "metric_summary": {
+    "raw_rows_archived": 16,
+    "archive_path": "test-results/pdf-v4/results-20261014-A4-combined-01.jsonl",
+    "sanitized_summary_only_in_evidence": true,
+    "webkit_s4_smoke": {
+      "gap_p95_ms": [167, 170],
+      "jank50": 41,
+      "blank_settle_ms": [63, 127],
+      "blank_frames": [12, 22],
+      "interpretation": "Informational only; gate helper/config does not apply WebKit budgets."
+    }
+  },
+  "predecessor": {
+    "stage": "A3",
+    "status": "BLOKE",
+    "private_blob_verified": false,
+    "last_sequential_passed_stage": "A2"
+  },
+  "production_data_accessed": false,
+  "user_pdf_accessed": false,
+  "remote_write_performed": false,
+  "commit_performed": false,
+  "push_performed": false,
+  "deployment_performed": false,
+  "a5_started": false,
+  "sanitization": {
+    "raw_test_logs_in_evidence": false,
+    "user_file_names": false,
+    "user_document_contents": false,
+    "credentials_or_signed_urls": false,
+    "production_data_accessed": false
+  }
+}

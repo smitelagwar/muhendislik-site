@@ -1,0 +1,698 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A0",
+  "run_id": "20261014-A0-2c0b682-01",
+  "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "evidence_set_sha256": "3105ae0694960defa146ba98bf2b27ba7d150d3e81d89a8e5e611811e337e3bf",
+  "evidence_files": [
+    {
+      "path": "asama-raporlari/A0.md",
+      "sha256": "db1c6de918ef2f607a23668200bd93c74bd8eaee476c2004d9869285a2cb13de"
+    },
+    {
+      "path": "01_KOD_VE_CI_BULGULARI.md",
+      "sha256": "e9ffab170f1a80e052a4599c62bba879a4e283ffefbe4edf7c5bf05ad1802fe9",
+      "archived_as": "kanit/a0-code-ci-snapshot.md"
+    },
+    {
+      "path": "02_BAZ_PERFORMANS.md",
+      "sha256": "112d85d06885e439d8f35748c530a5ae05519f15e2052a718b481109005f5fcf"
+    },
+    {
+      "path": "kanit/a0-unit-20261014-2c0b682.json",
+      "sha256": "39ce4179a572b7b2871ff20f937c2f7fda774372edd1662b07c5c295b4155de8"
+    }
+  ],
+  "sanitization": {
+    "raw_test_logs": false,
+    "user_file_names": false,
+    "user_document_contents": false,
+    "credentials_or_signed_urls": false
+  },
+  "playwright_started": false,
+  "production_data_accessed": false,
+  "note": "The original ignored local data seed remains outside this worktree and was not copied.",
+  "historical_snapshots": [
+    {
+      "path": "kanit/a0-code-ci-snapshot.md",
+      "sha256": "e9ffab170f1a80e052a4599c62bba879a4e283ffefbe4edf7c5bf05ad1802fe9",
+      "preserves": "01_KOD_VE_CI_BULGULARI.md at A0 evidence capture"
+    }
+  ],
+  "additional_stage_evidence": [
+    {
+      "stage": "A1",
+      "run_id": "20261014-A1-2c0b682-01",
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "GECTI",
+      "evidence_set_sha256": "4fb3cc59dee4c69cb2339f458a46c32cff8a2665b87cbea09bf2b95c275f148e",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "source_diff_sha256": "54f86596a13884920a2e477381bf44e222e65d908b0de357fd8f7f14d0ba02e5",
+      "evidence_files": [
+        {
+          "path": "01_KOD_VE_CI_BULGULARI.md",
+          "sha256": "251d7c15038e8aad14fb70528feed2d9ffcb2239a74cafa0d6a76b5ecb320d86"
+        },
+        {
+          "path": "asama-raporlari/A1.md",
+          "sha256": "d4b2f0eb3944d694b7c269ad0f9c4e7cfb569833cf0eb06efaee35b243f64a8c"
+        },
+        {
+          "path": "kanit/a1-ci-20261014-2c0b682.json",
+          "sha256": "322847820122d8a11a71aa16a2bf4244765f6c750a2323940fec3b2532b936d5"
+        }
+      ],
+      "sanitization": {
+        "raw_test_logs": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false,
+        "production_data_accessed": false
+      },
+      "remote_write_performed": false
+    },
+    {
+      "stage": "A2",
+      "run_id": "20261014-173918-2c0b682-baseline-06",
+      "repeat_run_ids": [
+        "20261014-173320-2c0b682-baseline-01",
+        "20261014-173441-2c0b682-baseline-02",
+        "20261014-173548-2c0b682-baseline-03",
+        "20261014-173655-2c0b682-baseline-04",
+        "20261014-173801-2c0b682-baseline-05"
+      ],
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "GECTI",
+      "evidence_set_sha256": "362cd66c7989182199ab06b7032f60ec94da77b19aa88b26912f8ab40a18c163",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "source_diff_sha256": "54f86596a13884920a2e477381bf44e222e65d908b0de357fd8f7f14d0ba02e5",
+      "evidence_files": [
+        {
+          "path": "02_BAZ_PERFORMANS.md",
+          "sha256": "dd025e4fc4ca59337814dd90cba9c8bd99041b58b22806bff38e74db101300eb"
+        },
+        {
+          "path": "asama-raporlari/A2.md",
+          "sha256": "8d2d00287d782a37aa0203ac8dcb18e05b82ae178b29ea589813c785526ce534"
+        },
+        {
+          "path": "kanit/baseline-20261014-173918-2c0b682-baseline-06.json",
+          "sha256": "28f44101382aca118381242b30d12ad9ea2e1ef055e2a45d7b087feccb1f6a88"
+        },
+        {
+          "path": "kanit/pdf-v4-report-20261014-173918-2c0b682-baseline-06.md",
+          "sha256": "e506695d0fc657e67f7ddc484061a8f9f20af8c0400fd008bc93f058df3c73ff"
+        }
+      ],
+      "production_build_id": "jbTgjGuh4aPtcKXnsM1QU",
+      "production_build_exit_code": 0,
+      "fixture_generation_exit_codes": {
+        "v4": 0,
+        "v2": 0
+      },
+      "playwright_listed": 79,
+      "repeated_tests_passed": 35,
+      "full_suite": {
+        "failed": 0,
+        "passed": 79,
+        "skipped": 0,
+        "metric_rows": 50,
+        "exit_code": 0
+      },
+      "supported_budget_checks_passed": 194,
+      "supported_budget_checks_failed": 0,
+      "report_command_exit_code": 1,
+      "report_note": "Two WebKit S4 informational rows were misclassified by report script; WebKit has no applied budget in gate helper.",
+      "remote_write_performed": false,
+      "sanitization": {
+        "user_document_contents": false,
+        "raw_test_logs": false,
+        "credentials_or_signed_urls": false,
+        "raw_jsonl_committed": false,
+        "user_file_names": false,
+        "production_data_accessed": false
+      }
+    },
+    {
+      "stage": "A3",
+      "run_id": "20261014-182151-2c0b682-a3-01",
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "BLOKE",
+      "evidence_set_sha256": "27f8db9e628dd4a457c4a0bf268c1a761fdaef8e6c15ac33b704469b013e8c67",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "source_diff_sha256": "c21df9f932215b392224e9c089633638cc2d7cf40f88f3ae41279e047d39773f",
+      "source_hash_method": "SHA-256 over UTF-8 LF-joined sorted source path|file_sha256 rows; complete post-change snapshots include new files",
+      "evidence_files": [
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/asama-raporlari/A3.md",
+          "sha256": "4004cd57d81eae2606870d5fa18f1f15a0ab488c14998501311100cd1b4e2f95"
+        },
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/kanit/a3-range-lease-20261014-182151.json",
+          "sha256": "dc56f5ef0537178b3688f7a5bda5861f29bc9714f43eddb9831a8bb136412882"
+        },
+        {
+          "path": "package.json",
+          "sha256": "a6427173b8b620720796e7024af8001336c10f9c82afce36615efc0e2d24bb81"
+        },
+        {
+          "path": "playwright.config.ts",
+          "sha256": "948615f0ed0bd20d156c471d09a9c8fcaf0a0ddb08491c027a79a74ef604d6c5"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/files/[id]/stream/route.ts",
+          "sha256": "fe399479ae5eb4545e971dda6323eeb92263201d8e71b514a035c3028e1d855c"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/public/download/[token]/[itemId]/route.ts",
+          "sha256": "87c11e69839aa139afec206bae7d2dafc3ad6ccd0176406a099610f5ce7bdb38"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx",
+          "sha256": "d9221a0f79a4a76214237432905f368aa0d11f5f97d0ace2d25a6eef8c909509"
+        },
+        {
+          "path": "src/lib/dokumantasyon/auth.ts",
+          "sha256": "2cd55f2581532975b095174bdc31c0e6d1d52c76fe15920df613889e2e0dd9ba"
+        },
+        {
+          "path": "src/lib/dokumantasyon/local-file-stream.ts",
+          "sha256": "7c9d62d58e65d1930794b79406e8b76b21a41b0adbd48ca6ace329f4ef2f44c0"
+        },
+        {
+          "path": "src/lib/dokumantasyon/studio/pdf/pdf-document-source.ts",
+          "sha256": "f94dd47df8c1b7a81b17f7c603ed90d2915c8730022eff2981cb005078db39e4"
+        },
+        {
+          "path": "tests/pdf-v4/helpers/viewer.ts",
+          "sha256": "996d98cef6b52a4dfb584f29378a16102af48e6758d639988165f3796e891241"
+        },
+        {
+          "path": "tests/pdf-v4/unit/document-source.test.ts",
+          "sha256": "9ff120774059ddf7d6a0f197077373747de6e622290e757ee2ddf11a912326ca"
+        },
+        {
+          "path": "tests/pdf-v4/unit/local-stream-memory.test.ts",
+          "sha256": "08ee6e890360358c735596a4e808a18708e79c9797a79ee62fc12ab7c03ffe3e"
+        },
+        {
+          "path": "tests/pdf-v4/s15-local-stream-contract.spec.ts",
+          "sha256": "ac82b4c949761747dc70da3ff69815d763d845d5b7dc0e16db3ecfe831cba3ae"
+        },
+        {
+          "path": "tests/pdf-v4/s16-public-share-contract.spec.ts",
+          "sha256": "a46c16ba8cf335fc51fe1180911dbd84ee6d3791661ac6343a59ff59f359c851"
+        }
+      ],
+      "private_blob_verified": false,
+      "production_data_accessed": false,
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false,
+      "sanitization": {
+        "raw_test_logs": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false,
+        "production_data_accessed": false
+      },
+      "source_snapshot_refreshed_at_a4_close": true,
+      "source_snapshot_note": "A4 changed shared package/auth files after A3 closed; hashes refreshed to the final shared worktree content while A3 status and Private Blob blocker remain unchanged."
+    },
+    {
+      "stage": "A4",
+      "run_id": "20261014-184647-2c0b682-a4-01",
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "GECTI",
+      "scope": "A4 local render and memory gates",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "source_hash_method": "SHA-256 over UTF-8 LF-joined sorted source path|file_sha256 rows",
+      "source_files": [
+        {
+          "path": "package.json",
+          "sha256": "a6427173b8b620720796e7024af8001336c10f9c82afce36615efc0e2d24bb81"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/engine/pdf-page-host.tsx",
+          "sha256": "122da64f6d339f5b7108d8f0c03ebfe3a33418d2e926de957dcc0ff859e1d032"
+        },
+        {
+          "path": "src/lib/dokumantasyon/auth.ts",
+          "sha256": "2cd55f2581532975b095174bdc31c0e6d1d52c76fe15920df613889e2e0dd9ba"
+        },
+        {
+          "path": "src/lib/dokumantasyon/studio/pdf/engine/page-load-priority.ts",
+          "sha256": "0010c0081d8501b288e27cd9250cd7ae4e889dfcbedffb58ed3fe24e7e6f0b90"
+        },
+        {
+          "path": "tests/pdf-v4/unit/page-load-priority.test.ts",
+          "sha256": "6fee4aa520a3e77f10c6e1a629ec212598bb2999def8419a54c09b5c6bf43744"
+        }
+      ],
+      "source_diff_sha256": "4c42f3be44ed0692d5a75ff48ba650dd536c49c14d6b86ec9eeca577c72a793b",
+      "evidence_set_sha256": "6b55f352ac8a0c9cf0aacc6faa9aa1b48ba3722f7c803ea9d4273648842e7641",
+      "evidence_files": [
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/asama-raporlari/A4.md",
+          "sha256": "48dd6ebfb7e136aebc61c763e070e243c816ce84a69cbfe836fd8f95721a7904"
+        },
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/kanit/a4-render-memory-20261014-184647.json",
+          "sha256": "1940c71f53015d31db413f2f6a41140cf9e4763eb892d8ec3ba3aa811295a7bf"
+        },
+        {
+          "path": "package.json",
+          "sha256": "a6427173b8b620720796e7024af8001336c10f9c82afce36615efc0e2d24bb81"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/engine/pdf-page-host.tsx",
+          "sha256": "122da64f6d339f5b7108d8f0c03ebfe3a33418d2e926de957dcc0ff859e1d032"
+        },
+        {
+          "path": "src/lib/dokumantasyon/auth.ts",
+          "sha256": "2cd55f2581532975b095174bdc31c0e6d1d52c76fe15920df613889e2e0dd9ba"
+        },
+        {
+          "path": "src/lib/dokumantasyon/studio/pdf/engine/page-load-priority.ts",
+          "sha256": "0010c0081d8501b288e27cd9250cd7ae4e889dfcbedffb58ed3fe24e7e6f0b90"
+        },
+        {
+          "path": "tests/pdf-v4/unit/page-load-priority.test.ts",
+          "sha256": "6fee4aa520a3e77f10c6e1a629ec212598bb2999def8419a54c09b5c6bf43744"
+        }
+      ],
+      "production_build_id": "arUlRg2pXe8U6I4EhNzf2",
+      "production_build_exit_code": 0,
+      "unit_exit_code": 0,
+      "targeted_eslint_exit_code": 0,
+      "e2e_passed": 23,
+      "e2e_failed": 0,
+      "desktop_s8_rechecks_passed": 2,
+      "visible_page_priority_proven": true,
+      "os_rss_captured": false,
+      "webkit_budgets_applied": false,
+      "predecessor_a3_status": "BLOKE",
+      "last_sequential_passed_stage": "A2",
+      "a5_started": false,
+      "production_data_accessed": false,
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false,
+      "sanitization": {
+        "raw_test_logs_in_evidence": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false,
+        "production_data_accessed": false
+      }
+    },
+    {
+      "stage": "A5",
+      "run_id": "20261014-193734-2c0b682-a5-01",
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "GECTI",
+      "scope": "A5 local zoom, geometry, keyboard, search, scrubber and reading-position gates",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "source_hash_method": "SHA-256 over UTF-8 sorted source path|file_sha256 lines joined with LF",
+      "source_snapshot_sha256": "e765cc9e54b5be52752f567a0b62ce619f6ec7de78376dea6ba1961d809784bd",
+      "evidence_set_sha256": "1d12305f34a96cb8b79bb711b29e199ff3b1be0c2282b1a7690c24d0117c546a",
+      "source_files": [
+        {
+          "path": "DOK_CONTEXT_MAP.md",
+          "sha256": "72f7a3de3a839d2b928dad8be8a4724f818c869ac941a99a0d62a8844b22c183"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx",
+          "sha256": "4cd9613e23408102f693484600a0656de374763ff3ca180a7ecc1bc9ac76985f"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-toolbar-parity.spec.ts",
+          "sha256": "1c9146603c2ba79bc9217c7f8afd2174d52a33bfacbcc4da9d8d2236517e24c9"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v2-faz-e.spec.ts",
+          "sha256": "29e7e691efe9e66a7a19d75f6d9fbf58b9bae40ddd8a2f44c2ee3fea5b0bce52"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v2-faz-g.spec.ts",
+          "sha256": "edea02d90b149e681f53f1221a4cdd924e47ea9642829814fb87d1ffe66041c4"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v3-invariants.spec.ts",
+          "sha256": "c75ca5f446cf0cb1e104724cfb9b86ffe4d7e395eef95ee338d3d42fc8300a54"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v3-real-docs.spec.ts",
+          "sha256": "984c2464017bdfe870221bbbed94b00b13145e97dc3e378c4edf6672ded94282"
+        },
+        {
+          "path": "tests/pdf-v4/v5-a3-klavye-gezinme.spec.ts",
+          "sha256": "0bf0f793fe8cac46370f7c65eec74f3173d74541df9a7ab4d5c21b28a40ec77f"
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/asama-raporlari/A5.md",
+          "sha256": "2796a2b5c52af09348be54890f24034cdbcc75c9bb977ee406cc16ae6927f2df"
+        },
+        {
+          "path": "docs/pdf-viewer-post-v5-audit/kanit/a5-zoom-geometri-20261014-193734.json",
+          "sha256": "b624f68217077bf5411e63b492e65dabb706b423a389ab6a3e35073b9adfadbb"
+        },
+        {
+          "path": "DOK_CONTEXT_MAP.md",
+          "sha256": "72f7a3de3a839d2b928dad8be8a4724f818c869ac941a99a0d62a8844b22c183"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx",
+          "sha256": "4cd9613e23408102f693484600a0656de374763ff3ca180a7ecc1bc9ac76985f"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-toolbar-parity.spec.ts",
+          "sha256": "1c9146603c2ba79bc9217c7f8afd2174d52a33bfacbcc4da9d8d2236517e24c9"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v2-faz-e.spec.ts",
+          "sha256": "29e7e691efe9e66a7a19d75f6d9fbf58b9bae40ddd8a2f44c2ee3fea5b0bce52"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v2-faz-g.spec.ts",
+          "sha256": "edea02d90b149e681f53f1221a4cdd924e47ea9642829814fb87d1ffe66041c4"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v3-invariants.spec.ts",
+          "sha256": "c75ca5f446cf0cb1e104724cfb9b86ffe4d7e395eef95ee338d3d42fc8300a54"
+        },
+        {
+          "path": "tests/document-studio/pdf-viewer-v3-real-docs.spec.ts",
+          "sha256": "984c2464017bdfe870221bbbed94b00b13145e97dc3e378c4edf6672ded94282"
+        },
+        {
+          "path": "tests/pdf-v4/v5-a3-klavye-gezinme.spec.ts",
+          "sha256": "0bf0f793fe8cac46370f7c65eec74f3173d74541df9a7ab4d5c21b28a40ec77f"
+        }
+      ],
+      "production_build_id": "nxB28iN8GjDAvJrY0rO18",
+      "production_build_exit_code": 0,
+      "targeted_eslint_exit_code": 0,
+      "targeted_eslint_errors": 0,
+      "targeted_eslint_warnings": 25,
+      "git_diff_check_exit_code": 0,
+      "pdf_v4_a5_gate": {
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0
+      },
+      "v3_document_and_toolbar_gate": {
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0
+      },
+      "supplemental_search_links_scrubber": {
+        "passed": 15,
+        "failed": 0,
+        "skipped": 0,
+        "exit_code": 0
+      },
+      "new_skips": 0,
+      "predecessor_a3_status": "BLOKE",
+      "last_sequential_passed_stage": "A2",
+      "manual_fixture_files_read": true,
+      "production_data_accessed": false,
+      "private_blob_accessed": false,
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false,
+      "sanitization": {
+        "raw_test_logs": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false
+      }
+    },
+    {
+      "stage": "A7",
+      "run_id": "20261014-215225-2c0b682-a7-01",
+      "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "BLOKE",
+      "source_snapshot_sha256": "29482a8b2c80c1b171114c167f4c19baaa4da8324c9a51463c173375328c60b2",
+      "source_files": [
+        {
+          "path": "next.config.ts",
+          "sha256": "5c922744e6e065857443b15e5c5068ffd2953fdc1d7eeac57605fcc411b27acb"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/files/[id]/access/route.ts",
+          "sha256": "bf2448b9644f22e3d937e47a1cceba8c453352919233ef2027fc8388b4635a94"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/files/[id]/stream/route.ts",
+          "sha256": "7820fa81c2307df8a20397664100e7ba012699577e53fdba774158ad79cc63bd"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/public/download/[token]/[itemId]/route.ts",
+          "sha256": "53632d506ca6ecf375ee82d9a8ed0b3cceb6a1b1bf0ffc54910ba05e333fc816"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/public/verify-password/route.ts",
+          "sha256": "e41090a0f48750f02c4fe513b54e2afdb866b98e3787b3531201e21e08707acd"
+        },
+        {
+          "path": "src/app/api/dokumantasyon/shares/route.ts",
+          "sha256": "5e59dd1c92d3accbe22b3d674327bf517c12ee8ab84291c406a5f8e80d80077d"
+        },
+        {
+          "path": "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx",
+          "sha256": "c6b7a81b7b26e90f5ecb8d497445fcb74feeb9401ce995c2e6771fe46cf8945f"
+        },
+        {
+          "path": "tests/pdf-v4/s15-local-stream-contract.spec.ts",
+          "sha256": "1313832886d5f8d66fff27562890d8404024d9d6e81c16382dce4a091dd99e7f"
+        },
+        {
+          "path": "tests/pdf-v4/s16-public-share-contract.spec.ts",
+          "sha256": "42158f287cb9b12b6da766a8b7537a79162003257a18cd4ca3c0b98cc774b73f"
+        },
+        {
+          "path": "tests/pdf-v4/s17-recovery-fault-injection.spec.ts",
+          "sha256": "fd8c5e732262a24757c022d5344cca40a6874277cc6e28e48696ec431bcde1e1"
+        },
+        {
+          "path": "tests/pdf-v4/s18-print-lifecycle.spec.ts",
+          "sha256": "6f6c3066b16d162bda7578681febe27fd4e63ee7cf98c5e8e3f5cfab885cb62e"
+        },
+        {
+          "path": "tests/pdf-v4/s19-pdf-action-sanitization.spec.ts",
+          "sha256": "ea5ef9021b291b139c509049850b928adf2e63b3a29195b230d1c4846ed009ed"
+        },
+        {
+          "path": "tests/pdf-v4/s20-fast-file-switch.spec.ts",
+          "sha256": "c1e3f547cfb2df95a9b2951938959c225871a83adb266644fc677f4eb22cf4bc"
+        },
+        {
+          "path": "tests/pdf-v4/unit/document-source.test.ts",
+          "sha256": "b3f442637f2ecfe91ba5cfcda2662312137d382c799fc9fcc42cd99b2366f25a"
+        }
+      ],
+      "evidence_set_sha256": "14608aee309d2f0c8744b05f6c59027630215bcdfc991b90cbaebc766fee25d3",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "evidence_files": [
+        {
+          "path": "asama-raporlari/A7.md",
+          "sha256": "23287ab5ff340510cacc9923225e61ea88510110b3a6efed92c094d87d854eee"
+        },
+        {
+          "path": "kanit/a7-local-20261014-215225.json",
+          "sha256": "a2ed6590426516df39974bd69ebfd54b3a6834386d9347ded20772b2305a859a"
+        }
+      ],
+      "document_source_cases_passed": 24,
+      "pdf_v4_unit_groups_passed": 16,
+      "targeted_contract_tests": {
+        "s09": 1,
+        "s10": 1,
+        "s15": 4,
+        "s16": 2,
+        "s17": 1,
+        "s18": 1,
+        "s19": 1,
+        "s20": 1,
+        "v5_a1": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      "runtime_typecheck_exit_code": 0,
+      "targeted_eslint_exit_code": 0,
+      "targeted_eslint_errors": 0,
+      "targeted_eslint_warnings": 25,
+      "private_blob_verified": false,
+      "preview_database_isolation_proven": false,
+      "production_build_performed": false,
+      "last_sequential_passed_stage": "A2",
+      "production_data_accessed": false,
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false
+    },
+    {
+      "stage": "A8",
+      "run_id": "20261015-1038-A8-production-repeat-01",
+      "source_sha": null,
+      "source_identity_verified": false,
+      "source_identity_note": "D working copy has no .git metadata; current source SHA cannot be verified.",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "GECTI",
+      "evidence_set_sha256": "6c727009fb011445fb74a958314c55167b2e14e70ec2dbfc1ffc4a85890232e6",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "evidence_files": [
+        {
+          "path": "asama-raporlari/A8.md",
+          "sha256": "d5519a72b7c0917993060f707e0e15140e9bcef2f5ff811135ab93876059ff9d"
+        },
+        {
+          "path": "kanit/a8-production-repeat-20261015.json",
+          "sha256": "0f35e5e1dabbecb2beac8d40eaeb6aba9254dfe08bf35fcc720e1e16b53eb633"
+        },
+        {
+          "path": "kanit/a8-local-20261014-2245.json",
+          "sha256": "91f794b61a8c00ba704ad8ddb8cea6a1255bbcdcd8d02c42858c5968be6e055b"
+        }
+      ],
+      "production_build_exit_code": 0,
+      "production_build_id": "7FEWlZ_L99f2D76ZBuvhp",
+      "production_tests_expected": 75,
+      "production_tests_passed": 75,
+      "production_tests_failed": 0,
+      "production_tests_skipped": 0,
+      "production_core_passed": 35,
+      "production_v5_passed": 40,
+      "high_zoom_isolated_passed": 1,
+      "lifecycle_successful_runs": 2,
+      "lifecycle_cycles_per_run": 10,
+      "a2_run_id": "20261014-173918-2c0b682-baseline-06",
+      "a2_fixture_hash_match": false,
+      "a2_comparison_note": "A2 fixture SHA/byte values differ; historical generator rerun did not reproduce A2 hashes. Performance comparison is directional only.",
+      "last_sequential_passed_stage": "A2",
+      "sanitization": {
+        "raw_test_logs": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false,
+        "production_data_accessed": false
+      },
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false
+    },
+    {
+      "stage": "A9",
+      "run_id": "20261015-0339-A9-production-repeat-01",
+      "source_sha": null,
+      "source_identity_verified": false,
+      "source_identity_note": "D working copy has no .git metadata; the source SHA for this local continuation cannot be verified.",
+      "branch": "codex/pdf-post-v5-audit-20261014",
+      "status": "TEKNIK_GECTI",
+      "evidence_set_sha256": "9477931034c8b238c302a2fb8397eec4f930b7f5692f9ef343e389021d2460c0",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "evidence_files": [
+        {
+          "path": "asama-raporlari/A9.md",
+          "sha256": "ee65c28930d3efebb55466f393875fa1961cab42c865b030beffb7e9fe496ed6"
+        },
+        {
+          "path": "09_SON_PERFORMANS.md",
+          "sha256": "2787ca3cce35581d7cba1d843900967a07d3bf3b9f9c1eebe54574c1fc23cc23"
+        },
+        {
+          "path": "kanit/a9-repeat-performance-20261015.json",
+          "sha256": "1c80f3f819ebedcf394d040c5787c27d2406ae2820ccfdf98fdf17d27c966c7c"
+        },
+        {
+          "path": "kanit/a9-build-diagnostics-20261015.json",
+          "sha256": "fca9d03120337cb588a72a76a1e89518a1afbb7633d12673162596829e9f89ab"
+        },
+        {
+          "path": "kanit/a9-local-20261014-2318.json",
+          "sha256": "3d4034e2b18cd40ae83bde99ea1314ff5def3f93555852079cb476c40c6c18d6"
+        }
+      ],
+      "full_configured_build": {
+        "command": "npm run build",
+        "underlying_command": "next build --webpack",
+        "exit_code": 0,
+        "build_id": "7FEWlZ_L99f2D76ZBuvhp",
+        "build_id_present": true,
+        "max_heap_mb": 32000,
+        "node": "v24.15.0",
+        "duration_minutes": 18.5,
+        "typescript_seconds": 36.4,
+        "static_pages": "627/627",
+        "log": "D:\\\\codex-pdf-a6-tmp-20261014\\\\a9-build-32000mb-20261015.log"
+      },
+      "production_gates": {
+        "pdf_v4_full_passed": 95,
+        "pdf_v4_full_failed": 0,
+        "pdf_v4_full_skipped": 0,
+        "pdf_v4_mobile_slow_passed": 34,
+        "pdf_v4_mobile_slow_failed": 0,
+        "pdf_v4_mobile_slow_skipped": 0,
+        "budget_violations": 0,
+        "budget_report_exit_code": 0,
+        "a2_matched_repeats_passed": 35,
+        "a2_matched_repeats_total": 35,
+        "a2_run_id": "20261014-173918-2c0b682-baseline-06"
+      },
+      "limitations": {
+        "source_identity_verified": false,
+        "a2_fixture_hash_match": false,
+        "legacy_suite_skips": 8,
+        "preview_db_blob_verified": false,
+        "remote_ci_rerun": false
+      },
+      "sanitization": {
+        "raw_test_logs": false,
+        "user_file_names": false,
+        "user_document_contents": false,
+        "credentials_or_signed_urls": false,
+        "production_data_accessed": false
+      },
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false
+    },
+    {
+      "stage": "A10",
+      "status": "GECTI",
+      "plan_status": "TAMAMLANDI_KOSULLU",
+      "evidence_set_sha256": "959ea268857f957de828d2adebbf3af82eecc0b07cadd45c531ee4724a2b1547",
+      "evidence_hash_method": "SHA-256 over UTF-8 sorted path|file_sha256 lines joined with LF; excludes manifest and status files",
+      "evidence_files": [
+        {
+          "path": "10_NIHAI_KABUL.md",
+          "sha256": "fd884aeac676f57c8be378e31344a618963205560bf915d54d41440592404190"
+        }
+      ],
+      "closure_note": "Plan finalized as TAMAMLANDI_KOSULLU per user instruction and local test gates. Subsequent devam command is NO-OP.",
+      "remote_write_performed": false,
+      "commit_performed": false,
+      "push_performed": false,
+      "deployment_performed": false
+    }
+  ]
+}

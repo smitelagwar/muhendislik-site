@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "run_id": "20261014-A0-2c0b682-01",
+  "stage": "A0",
+  "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "command": "npm run check:pdf-v4:unit",
+  "exit_code": 0,
+  "result": "PASS",
+  "groups_expected": 14,
+  "groups_passed": 14,
+  "groups_failed": 0,
+  "groups_skipped": 0,
+  "observed_layout_50k_ms": 2.92,
+  "performance_baseline": false,
+  "data_seed": "isolated worktree had no .data; source checkout seed was not copied or content-inspected",
+  "raw_output_saved": false
+}

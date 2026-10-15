@@ -2,8 +2,9 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 
-export function ModeToggle() {
+export function ModeToggle({ compact = false }: { compact?: boolean }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -18,6 +19,24 @@ export function ModeToggle() {
     if (!mounted) return;
     setTheme(isDark ? "light" : "dark");
   };
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDark}
+        data-testid="theme-toggle"
+        aria-label="Tema görünümünü değiştir"
+        title="Tema görünümünü değiştir"
+        onClick={handleToggle}
+        disabled={!mounted}
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+      >
+        {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      </button>
+    );
+  }
 
   return (
     <>

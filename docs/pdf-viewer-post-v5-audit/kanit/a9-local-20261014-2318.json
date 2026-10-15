@@ -1,0 +1,1001 @@
+{
+  "schema": 1,
+  "stage": "A9",
+  "run_id": "20261014-2309-2c0b682-a9-local-final-01",
+  "finished_at": "2026-10-14T23:18:21+03:00",
+  "environment": "local Next dev server; isolated synthetic store; Playwright single worker",
+  "command": "node scripts/pdf-v4-run.mjs baseline --workers=1",
+  "exit_code": 0,
+  "playwright": {
+    "duration": "9.1m",
+    "expected": 95,
+    "projects": [
+      "desktop",
+      "mobile",
+      "compat",
+      "webkit"
+    ],
+    "failed": 0,
+    "skipped": 0,
+    "passed": 95
+  },
+  "metric_rows": 50,
+  "metric_row_groups": [
+    {
+      "scenario": "S1",
+      "project": "desktop",
+      "fixture": "a0-vektor",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "sharpMs": 4,
+        "longTaskMs": 164,
+        "ttfrMs": 1545,
+        "domNodes": 222,
+        "canvasBytesMB": 40.5,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "sharpMs": 9,
+        "longTaskMs": 153,
+        "ttfrMs": 1106,
+        "domNodes": 331,
+        "canvasBytesMB": 39.9,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "desktop",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "sharpMs": 13,
+        "longTaskMs": 148,
+        "ttfrMs": 1539,
+        "domNodes": 337,
+        "canvasBytesMB": 39.9,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "desktop",
+      "fixture": "tarama-a3",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "sharpMs": 13,
+        "longTaskMs": 196,
+        "ttfrMs": 1574,
+        "domNodes": 236,
+        "canvasBytesMB": 40.5,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "desktop",
+      "fixture": "tr-metin",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "sharpMs": 1,
+        "longTaskMs": 148,
+        "ttfrMs": 1080,
+        "domNodes": 272,
+        "canvasBytesMB": 39.9,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "mobile",
+      "fixture": "a0-vektor",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 0.3,
+        "sharpMs": 32,
+        "longTaskMs": 205,
+        "ttfrMs": 3835,
+        "domNodes": 1064,
+        "canvasBytesMB": 22.1,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 1.7,
+        "sharpMs": 5,
+        "longTaskMs": 156,
+        "ttfrMs": 1563,
+        "domNodes": 631,
+        "canvasBytesMB": 30.4,
+        "mountedPages": 4,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "mobile",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 1.7,
+        "sharpMs": 11,
+        "longTaskMs": 220,
+        "ttfrMs": 1593,
+        "domNodes": 661,
+        "canvasBytesMB": 30.4,
+        "mountedPages": 4,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "mobile",
+      "fixture": "tarama-a3",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 1.7,
+        "sharpMs": 3,
+        "longTaskMs": 200,
+        "ttfrMs": 1541,
+        "domNodes": 269,
+        "canvasBytesMB": 30.4,
+        "mountedPages": 4,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "mobile",
+      "fixture": "tr-metin",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 1.7,
+        "sharpMs": 9,
+        "longTaskMs": 166,
+        "ttfrMs": 1104,
+        "domNodes": 292,
+        "canvasBytesMB": 15.2,
+        "mountedPages": 2,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "webkit",
+      "fixture": "a0-vektor",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 8.9,
+        "sharpMs": 74,
+        "longTaskMs": 0,
+        "ttfrMs": 4146,
+        "domNodes": 784,
+        "canvasBytesMB": 36.5,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "webkit",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 8.9,
+        "sharpMs": 111,
+        "longTaskMs": 0,
+        "ttfrMs": 2632,
+        "domNodes": 331,
+        "canvasBytesMB": 36,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "webkit",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 8.9,
+        "sharpMs": 128,
+        "longTaskMs": 0,
+        "ttfrMs": 2669,
+        "domNodes": 337,
+        "canvasBytesMB": 36,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "webkit",
+      "fixture": "tarama-a3",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 8.9,
+        "sharpMs": 138,
+        "longTaskMs": 0,
+        "ttfrMs": 3243,
+        "domNodes": 236,
+        "canvasBytesMB": 36.5,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S1",
+      "project": "webkit",
+      "fixture": "tr-metin",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 8.9,
+        "sharpMs": 76,
+        "longTaskMs": 0,
+        "ttfrMs": 2514,
+        "domNodes": 272,
+        "canvasBytesMB": 36,
+        "mountedPages": 1,
+        "scrollTopPx": 0
+      }
+    },
+    {
+      "scenario": "S10",
+      "project": "compat",
+      "fixture": "tr-metin",
+      "samples": 1,
+      "median_metrics": {
+        "firstPageRendered": 1,
+        "pageErrors": 0,
+        "inkPixels": 55035,
+        "workerPreludeSeen": 1
+      }
+    },
+    {
+      "scenario": "S11",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "fitModePreserved": 1,
+        "topAnchorFyDelta": 0,
+        "customZoomPercentChange": 0
+      }
+    },
+    {
+      "scenario": "S12",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "zoomPercentChanges": 0
+      }
+    },
+    {
+      "scenario": "S12",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "zoomPercentChanges": 0
+      }
+    },
+    {
+      "scenario": "S13",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasBytesMBHidden": 1.9
+      }
+    },
+    {
+      "scenario": "S13",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasBytesMBHidden": 10.9
+      }
+    },
+    {
+      "scenario": "S14",
+      "project": "desktop",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "gapMaxMs": 66.7,
+        "gapP95Ms": 50
+      }
+    },
+    {
+      "scenario": "S2",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "gapP95Ms": 50,
+        "jank50": 4,
+        "anchorDriftPx": 1.93,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "sharpMs": 9,
+        "gapMaxMs": 66.7
+      }
+    },
+    {
+      "scenario": "S2",
+      "project": "desktop",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "gapP95Ms": 33.3,
+        "jank50": 0,
+        "anchorDriftPx": 0.77,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "sharpMs": 10,
+        "gapMaxMs": 50
+      }
+    },
+    {
+      "scenario": "S2",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "gapP95Ms": 33.3,
+        "jank50": 1,
+        "anchorDriftPx": 2.18,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "sharpMs": 12,
+        "gapMaxMs": 50.1
+      }
+    },
+    {
+      "scenario": "S2",
+      "project": "mobile",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "gapP95Ms": 33.3,
+        "jank50": 3,
+        "anchorDriftPx": 1.51,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "sharpMs": 11,
+        "gapMaxMs": 83.4
+      }
+    },
+    {
+      "scenario": "S3",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "notchFactor": 1.1,
+        "gapP95Ms": 33.3,
+        "anchorDriftPx": 0.38,
+        "blankFrames": 0
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 3,
+        "gapP95Ms": 16.8,
+        "jank50": 0,
+        "gapMaxMs": 33.4,
+        "longTaskMs": 0,
+        "domNodes": 241,
+        "blankSettleMs": 14,
+        "blankFramesDuringScroll": 2
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "desktop",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 3,
+        "gapP95Ms": 33.3,
+        "jank50": 0,
+        "gapMaxMs": 33.4,
+        "longTaskMs": 0,
+        "domNodes": 240,
+        "blankSettleMs": 4,
+        "blankFramesDuringScroll": 0
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 6,
+        "gapP95Ms": 16.8,
+        "jank50": 1,
+        "gapMaxMs": 50.1,
+        "longTaskMs": 0,
+        "domNodes": 249,
+        "blankSettleMs": 6,
+        "blankFramesDuringScroll": 32
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "mobile",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 8,
+        "gapP95Ms": 16.8,
+        "jank50": 0,
+        "gapMaxMs": 50,
+        "longTaskMs": 0,
+        "domNodes": 255,
+        "blankSettleMs": 2,
+        "blankFramesDuringScroll": 29
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "webkit",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 3,
+        "gapP95Ms": 186,
+        "jank50": 41,
+        "gapMaxMs": 188,
+        "longTaskMs": 0,
+        "domNodes": 337,
+        "blankSettleMs": 65,
+        "blankFramesDuringScroll": 21
+      }
+    },
+    {
+      "scenario": "S4",
+      "project": "webkit",
+      "fixture": "metin-1000",
+      "samples": 1,
+      "median_metrics": {
+        "mountedPages": 3,
+        "gapP95Ms": 182,
+        "jank50": 41,
+        "gapMaxMs": 184,
+        "longTaskMs": 0,
+        "domNodes": 345,
+        "blankSettleMs": 128,
+        "blankFramesDuringScroll": 11
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "karisik-60:diag-pan",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 52,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.44,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 33.4
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "karisik-60:in",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 2,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.44,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 33.4
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "karisik-60:out",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 39,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.57,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 33.4
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "metin-1000:diag-pan",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 10,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.44,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 16.8
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "metin-1000:in",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 15,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.2,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 50
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "metin-1000:out",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 11,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.55,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 16.8
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "tr-metin:diag-pan",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 14,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.43,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 16.8
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "tr-metin:in",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 3,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 155.4,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 16.8
+      }
+    },
+    {
+      "scenario": "S5",
+      "project": "mobile",
+      "fixture": "tr-metin:out",
+      "samples": 1,
+      "median_metrics": {
+        "sharpMs": 11,
+        "scaleRatioError": 0,
+        "anchorDriftPx": 0.33,
+        "longTaskMs": 0,
+        "blankFrames": 0,
+        "browserZoomDelta": 0,
+        "gapMaxMs": 16.8
+      }
+    },
+    {
+      "scenario": "S6",
+      "project": "mobile",
+      "fixture": "tr-metin",
+      "samples": 1,
+      "median_metrics": {
+        "fitReturnErrorPx": 0,
+        "anchorDriftPx": 0.45,
+        "blankFrames": 0
+      }
+    },
+    {
+      "scenario": "S7",
+      "project": "desktop",
+      "fixture": "a0-vektor",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "maxZoomPercent": 42,
+        "sharpMs": 3,
+        "sharpRatio": 1,
+        "blankFrames": 0,
+        "canvasBytesMB": 40.5
+      }
+    },
+    {
+      "scenario": "S7",
+      "project": "desktop",
+      "fixture": "tarama-a3",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 10,
+        "maxZoomPercent": 118,
+        "sharpMs": 11,
+        "sharpRatio": 1,
+        "blankFrames": 0,
+        "canvasBytesMB": 40.5
+      }
+    },
+    {
+      "scenario": "S7",
+      "project": "mobile",
+      "fixture": "a0-vektor",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 0.3,
+        "maxZoomPercent": 25,
+        "sharpMs": 32,
+        "sharpRatio": 1.5,
+        "blankFrames": 0,
+        "canvasBytesMB": 21.1
+      }
+    },
+    {
+      "scenario": "S7",
+      "project": "mobile",
+      "fixture": "tarama-a3",
+      "samples": 1,
+      "median_metrics": {
+        "canvasMaxMP": 1.7,
+        "maxZoomPercent": 33,
+        "sharpMs": 12,
+        "sharpRatio": 1.5,
+        "blankFrames": 0,
+        "canvasBytesMB": 30.4
+      }
+    },
+    {
+      "scenario": "S8",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasBytesMB": 97.6,
+        "heapGrowthMB": 1.7,
+        "mountedPages": 3
+      }
+    },
+    {
+      "scenario": "S8",
+      "project": "mobile",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "canvasBytesMB": 47.3,
+        "heapGrowthMB": 4.3,
+        "mountedPages": 8
+      }
+    },
+    {
+      "scenario": "S9",
+      "project": "desktop",
+      "fixture": "karisik-60",
+      "samples": 1,
+      "median_metrics": {
+        "scrollDriftPx": 0,
+        "reloads": 2,
+        "blankFrames": 0
+      }
+    }
+  ],
+  "production_build_id": null,
+  "production_gate_status": "BLOCKED: .next/BUILD_ID absent; check:pdf-v4:gate and :mobile-slow exited 2",
+  "same_conditions_comparison_with_a2": false,
+  "private_fixture_skips": 0,
+  "synthetic_only": true,
+  "production_data_accessed": false,
+  "remote_write_performed": false,
+  "status": "TEKNIK_BLOKE",
+  "metric_observed_from": "2026-10-14T20:10:46Z",
+  "metric_observed_until": "2026-10-14T20:18:21Z",
+  "runtime_typecheck_exit_code": 0,
+  "targeted_eslint_exit_code": 0,
+  "targeted_eslint_errors": 0,
+  "targeted_eslint_warnings": 0,
+  "pdf_v2_unit_exit_code": 0,
+  "pdf_v2_missing_fixture_skips": 2,
+  "pdf_v3_unit_exit_code": 0,
+  "pdf_v3_missing_fixture_skips": 1,
+  "pdf_v4_unit_exit_code": 0,
+  "legacy_browser_selection": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 8,
+    "historical_fixme": 3,
+    "missing_private_fixture": 5,
+    "exit_code": 0
+  },
+  "pdf_v4_gate_exit_codes": {
+    "desktop": 2,
+    "mobile_slow": 2,
+    "reason": "Preflight requires absent .next/BUILD_ID"
+  },
+  "a2_comparable_perf_measurement": false,
+  "last_sequential_passed_stage": "A2",
+  "production_approval": "VERILMEDI",
+  "production_build_attempts": [
+    {
+      "heap_limit_gib": 12,
+      "result": "V8 heap OOM",
+      "exit_code": 1
+    },
+    {
+      "heap_limit_gib": 13.5,
+      "result": "V8 heap OOM",
+      "exit_code": 1
+    },
+    {
+      "heap_limit_gib": 15,
+      "result": "manual stop at about 3.2 GiB free RAM; no BUILD_ID",
+      "exit_code": null
+    },
+    {
+      "heap_limit_gib": 15,
+      "result": "V8 heap OOM near 14.98 GiB heap; exit 134",
+      "exit_code": 134
+    },
+    {
+      "heap_limit_gib": 16,
+      "result": "V8 heap OOM near 15.97 GiB heap; exit 134",
+      "exit_code": 134
+    },
+    {
+      "heap_limit_gib": 18,
+      "result": "V8 heap OOM near 17.95 GiB heap; exit 134; process working set 18.63 GiB; free RAM 0.85 GiB",
+      "exit_code": 134
+    },
+    {
+      "heap_limit_gib": 18,
+      "result": "V8 heap OOM with temporary webpack cache disabled, single CPU; exit 134",
+      "exit_code": 134,
+      "max_heap_mb": 17933.9,
+      "peak_working_set_gib": 18.02,
+      "config_restored": true
+    },
+    {
+      "heap_limit_gib": 18,
+      "result": "V8 heap OOM with bundled Node 24.19.0; same Node 24 patch-line/V8 13.6; exit 134",
+      "exit_code": 134,
+      "max_heap_mb": 17949.1,
+      "observed_working_set_gib": 18.06,
+      "observed_free_ram_gib": 4.96,
+      "build_id_present": false,
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-node2419-20261015.log"
+    },
+    {
+      "heap_limit_gib": 20,
+      "max_old_space_size_mb": 20000,
+      "node_version": "v24.19.0",
+      "max_observed_heap_mb": 19944.4,
+      "sampled_working_set_gib": 21.11,
+      "free_ram_near_failure_gib": 1.33,
+      "exit_code": 134,
+      "build_id_present": false,
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-20000mb-20261015.log",
+      "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+    },
+    {
+      "heap_limit_gib": 21,
+      "max_old_space_size_mb": 21000,
+      "node_version": "v24.15.0",
+      "max_observed_heap_mb": 20978.1,
+      "sampled_working_set_gib": 21,
+      "free_ram_near_failure_gib": 1.61,
+      "exit_code": 134,
+      "build_id_present": false,
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-21000mb-20261015.log",
+      "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+    },
+    {
+      "heap_limit_gib": 21.5,
+      "max_old_space_size_mb": 21500,
+      "node_version": "v24.15.0",
+      "max_observed_heap_mb": 21464.4,
+      "sampled_working_set_gib": 21.66,
+      "free_ram_near_failure_gib": 0.84,
+      "exit_code": 134,
+      "build_id_present": false,
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-21500mb-20261015.log",
+      "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+    }
+  ],
+  "maximum_heap_attempted_gib": 21.5,
+  "production_build_completed": false,
+  "production_build_exit_code_latest": 134,
+  "production_build_latest_error": "Full configured npm run build (next build --webpack) still V8 heap OOMs: 20 GB heap on bundled Node 24.19.0 at 19,944.4 MB; 21 GB on installed Node 24.15.0 at 20,978.1 MB; 21.5 GB on installed Node 24.15.0 at 21,464.4 MB, with sampled free RAM falling to 0.84 GiB. No full .next/BUILD_ID exists. Higher heap retry was stopped to avoid exhausting host RAM.",
+  "build_id_present": false,
+  "commit_performed": false,
+  "push_performed": false,
+  "deployment_performed": false,
+  "github_ci_baseline_audit": {
+    "checked_at": "2026-10-14T23:45:38+03:00",
+    "local_rebuild_performed": false,
+    "local_source_sha_verified": false,
+    "base_commit": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+    "runs": [
+      {
+        "name": "vercel-preflight",
+        "run_id": "38169148289",
+        "url": "https://github.com/smitelagwar/muhendislik-site/actions/runs/38169148289",
+        "status": "failure",
+        "trigger": "push",
+        "triggered_at": "2026-10-11T19:42",
+        "commit": "2c0b682",
+        "branch": "main",
+        "duration": "1m 11s",
+        "annotations": {
+          "notices": 2,
+          "warnings": 10,
+          "errors": 12
+        },
+        "pdf_relevant_findings": [
+          "tests/document-studio/pdf-viewer-v2.spec.ts:156 Unexpected any",
+          "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx lines 114,121,151,152,157 Unexpected any",
+          "src/components/dokumantasyon/studio/pdf/engine/pdf-page-host.tsx lines 37,169 Unexpected any"
+        ],
+        "other_findings": [
+          "repository-health reported missing CAD persistence modules and archived PDF V4 annex imports"
+        ]
+      },
+      {
+        "name": "dok-mobile-plan-validation",
+        "run_id": "38169148292",
+        "url": "https://github.com/smitelagwar/muhendislik-site/actions/runs/38169148292",
+        "status": "failure",
+        "trigger": "push",
+        "triggered_at": "2026-10-11T19:42",
+        "commit": "2c0b682",
+        "branch": "main",
+        "duration": "4m 10s",
+        "annotations": {
+          "notices": 6,
+          "warnings": 4,
+          "errors": 5
+        },
+        "failed_jobs": [
+          "browsers (compact-mobile-chromium-320)",
+          "browsers (desktop-chromium)",
+          "browsers (mobile-chromium-390)",
+          "browsers (mobile-webkit-iphone13)",
+          "validate-mobile-documents"
+        ]
+      }
+    ],
+    "classification": "These public Actions runs confirm failures at the recorded baseline commit only. They were not rerun for the local uncommitted D working copy. No remote write occurred. Local source SHA cannot be verified because the D copy has no .git. The PDF lint annotations make the baseline preflight failure release-relevant; browser job failure details were not available in the public page annotations."
+  },
+  "build_memory_mitigation_trial": {
+    "started_at": "2026-10-15T00:07:42+03:00",
+    "command": "npm run build",
+    "heap_limit_gib": 18,
+    "next_version": "16.3.6",
+    "webpack_memory_optimizations": true,
+    "webpack_build_worker": true,
+    "experimental_cpus": 1,
+    "parallel_server_compiles": false,
+    "parallel_server_build_traces": false,
+    "webpack_cache": "disabled in temporary custom webpack hook",
+    "result": "V8 heap OOM during Creating an optimized production build",
+    "exit_code": 134,
+    "max_observed_heap_mb": 17933.9,
+    "peak_working_set_gib": 18.02,
+    "free_ram_gib_near_failure": 3.48,
+    "build_id_present": false,
+    "config_restored_after_failure": true,
+    "production_data_accessed": false,
+    "remote_write_performed": false,
+    "note": "The lower-cache, single-CPU trial still reached the 18 GiB heap limit. The temporary next.config.ts experiment was restored byte-for-byte after failure."
+  },
+  "build_node_runtime_trial": {
+    "started_at": "2026-10-15T00:10:46+03:00",
+    "finished_at": "2026-10-15T00:16:47+03:00",
+    "node_version": "v24.19.0",
+    "installed_node_version": "v24.15.0",
+    "v8_version": "13.6.233.17-node.51",
+    "installed_v8_version": "13.6.233.17-node.48",
+    "command": "npm run build",
+    "heap_limit_gib": 18,
+    "exit_code": 134,
+    "max_observed_heap_mb": 17949.1,
+    "observed_working_set_gib": 18.06,
+    "observed_free_ram_gib": 4.96,
+    "build_id_present": false,
+    "production_data_accessed": false,
+    "remote_write_performed": false,
+    "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-node2419-20261015.log",
+    "note": "Bundled Node patch release did not change the outcome; V8 exhausted the same 18 GiB heap ceiling during optimized Webpack production compilation."
+  },
+  "partial_webpack_diagnostic": {
+    "evidence": "kanit/a9-build-diagnostics-20261015.json",
+    "selected_route_builds_passed": 2,
+    "selected_route_builds_failed": 0,
+    "includes_public_share_page": true,
+    "full_configured_build_passed": false,
+    "temporary_next_module_restored": true,
+    "temporary_next_module_sha256": "F89BF3D74B53E6266EF67FF62911993DE32E56DA300153AB7603D60B74BCFA4E",
+    "targeted_s15_s16_passed": 6,
+    "targeted_s15_s16_failed": 0,
+    "targeted_s15_s16_exit_code": 0,
+    "results_jsonl_restored_sha256": "AF7AE0E77D31187625600446E8509F66CDC1562A62000D22233E22BB9131B2C4",
+    "full_feature_gate_passed": 95,
+    "full_feature_gate_failed": 0,
+    "full_feature_gate_exit_code": 0,
+    "mobile_slow_gate_passed": 34,
+    "mobile_slow_gate_failed": 0,
+    "mobile_slow_gate_exit_code": 0
+  },
+  "worker_disabled_build_trial": {
+    "heap_limit_gib": 18,
+    "exit_code": 134,
+    "max_observed_heap_mb": 17931.9,
+    "build_id_present": false,
+    "temporary_next_config_restored": true,
+    "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-worker-disabled-20261015.log"
+  },
+  "turbopack_production_mode_diagnostic": {
+    "configured_builder": false,
+    "full_gate_passed": 95,
+    "full_gate_failed": 0,
+    "mobile_slow_passed": 34,
+    "mobile_slow_failed": 0,
+    "classification": "diagnostic only; not the configured Webpack release build",
+    "evidence": "kanit/a9-build-diagnostics-20261015.json"
+  },
+  "diagnostic_updated_at": "2026-10-15T01:45:13+03:00",
+  "evidence_manifest": "kanit/manifest.json"
+}

@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A3",
+  "run_id": "20261014-182151-2c0b682-a3-01",
+  "status": "BLOKE",
+  "started_at": "2026-10-14T17:55:17+03:00",
+  "finished_at": "2026-10-14T18:21:51+03:00",
+  "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "production_data_accessed": false,
+  "remote_write_performed": false,
+  "commit_performed": false,
+  "push_performed": false,
+  "deployment_performed": false,
+  "checks": {
+    "pdf_v4_unit_exit_code": 0,
+    "document_source_cases_passed": 23,
+    "local_stream_memory_fixture_mib": 32,
+    "local_stream_external_allocation_delta_mib": 0,
+    "runtime_typecheck_exit_code": 0,
+    "targeted_eslint_exit_code": 0,
+    "targeted_eslint_errors": 0,
+    "pdfjs_studio_existing_warnings": 25,
+    "s15_passed": 4,
+    "s15_failed": 0,
+    "s16_passed": 1,
+    "s16_failed": 0,
+    "s1_s9_passed": 3,
+    "s10_compat_passed": 1,
+    "git_diff_check_exit_code": 0,
+    "full_repository_typecheck": "FAILED_UNRELATED_REPOSITORY_ERRORS"
+  },
+  "private_blob_gate": {
+    "verified": false,
+    "reason": "No sandbox credentials/configuration. Provider-owned private signed URL range, auth, and lease behavior could not be exercised.",
+    "env_file_present": false,
+    "local_data_directory_present": false,
+    "database_url_present": false,
+    "blob_token_present": false,
+    "blob_store_id_present": false,
+    "production_data_accessed": false
+  },
+  "continuation_recheck": {
+    "checked_at": "2026-10-14T18:25:09+03:00",
+    "local_blob_or_database_configuration_present": false,
+    "vercel_project_metadata_inspected_read_only": true,
+    "vercel_project": "muhendislik-site",
+    "preview_blob_store_key_listed": true,
+    "database_keys_scoped_to_preview_and_production": true,
+    "environment_values_read_or_recorded": false,
+    "preview_test_database_isolation_proven": false,
+    "deployed_endpoint_called": false,
+    "vercel_write_performed": false,
+    "reason": "Preview database isolation is unproven; sending a route request could read production data."
+  },
+  "local_paths": {
+    "local_admin_stream_verified": true,
+    "admin_private_blob_signed_url_verified": false,
+    "public_share_proxy_verified": true,
+    "public_share_proxy_range_behavior": "Returns complete proxy response; it does not forward Range semantics as a direct private signed URL does."
+  },
+  "metric_archive": {
+    "path": "test-results/pdf-v4/results-20261014-A3-smoke-01.jsonl",
+    "rows": 8,
+    "raw_jsonl_committed": false
+  },
+  "sanitization": {
+    "raw_test_logs_in_evidence": false,
+    "user_file_names": false,
+    "user_document_contents": false,
+    "credentials_or_signed_urls": false
+  },
+  "decision": "Local A3 scope passed; stage remains blocked pending sandbox proof of Vercel Private Blob access.",
+  "subsequent_user_continuation": {
+    "authorized": true,
+    "next_stage_run": "A4",
+    "a4_status": "GECTI_LOCAL_SCOPE",
+    "a3_status_preserved": "BLOKE",
+    "last_sequential_passed_stage": "A2",
+    "a5_started": false,
+    "note": "The earlier statement that A4 had not started was accurate at A3 closure time; the user later continued the audit. A4 did not provide Private Blob evidence."
+  }
+}

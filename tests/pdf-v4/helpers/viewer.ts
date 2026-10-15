@@ -28,6 +28,15 @@ export function fixturePath(name: Fixture): string {
 
 export async function signIn(page: Page): Promise<void> {
   await page.goto("/dokumantasyon");
+  const session = await page.request.get("/api/dokumantasyon/auth/session");
+  const sessionState = await session.json().catch(() => null);
+  if (!sessionState?.authenticated) {
+    const login = await page.request.post("/api/dokumantasyon/giris", {
+      data: { username: "admin", password: "admin" },
+    });
+    expect(login.ok(), `PDF test admin login failed: ${login.status()}`).toBe(true);
+  }
+
   const username = page.locator("input#username");
   const title = page.locator("h1:has-text('Dokümantasyon Modülü')");
   await expect.poll(async () => ((await username.isVisible()) ? "login" : (await title.isVisible()) ? "ws" : "pending"), { timeout: 20_000 }).not.toBe("pending");
@@ -40,24 +49,26 @@ export async function signIn(page: Page): Promise<void> {
 }
 
 const uploaded = new Map<string, string>();
-export async function uploadPdf(page: Page, name: Fixture): Promise<string> {
-  const cached = uploaded.get(name);
+export async function uploadPdf(page: Page, name: Fixture, displayName?: string): Promise<string> {
+  const cacheKey = displayName ? `${name}:${displayName}` : name;
+  const cached = uploaded.get(cacheKey);
   if (cached) return cached;
   const b64 = fs.readFileSync(fixturePath(name)).toString("base64");
+  const uploadName = displayName ?? `${name}.pdf`;
   const id = await page.evaluate(
     async ({ n, content }) => {
       const bytes = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
       const fd = new FormData();
-      fd.append("file", new File([bytes], `${n}.pdf`, { type: "application/pdf" }));
+      fd.append("file", new File([bytes], n, { type: "application/pdf" }));
       fd.append("pathname", `dok_storage/v4-${n}-${Date.now()}.pdf`);
       const r = await fetch("/api/dokumantasyon/upload/local", { method: "POST", body: fd });
       const j = await r.json();
       if (!r.ok || !j.file?.id) throw new Error(`upload failed: ${JSON.stringify(j)}`);
       return j.file.id as string;
     },
-    { n: name, content: b64 }
+    { n: uploadName, content: b64 }
   );
-  uploaded.set(name, id);
+  uploaded.set(cacheKey, id);
   return id;
 }
 
@@ -121,7 +132,7 @@ export async function anchorDrift(page: Page, a: Anchor, x: number, y: number): 
     if (!p) return null;
     const r = p.getBoundingClientRect();
     return { x: r.left + an.fx * r.width, y: r.top + an.fy * r.height };
-  }, [a, SCROLL] as any);
+  }, [a, SCROLL] as [Anchor, string]);
   if (!s) return Number.POSITIVE_INFINITY; // çıpa sayfası DOM'dan kaybolmuş = kayma sonsuz
   return Math.round(Math.hypot(s.x - x, s.y - y) * 100) / 100;
 }

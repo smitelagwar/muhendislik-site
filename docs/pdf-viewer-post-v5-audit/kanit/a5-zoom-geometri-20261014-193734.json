@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "plan_id": "dok-pdf-post-v5-2026-10-14",
+  "stage": "A5",
+  "run_id": "20261014-193734-2c0b682-a5-01",
+  "status": "GECTI",
+  "stage_scope": "A5 local zoom, geometry, keyboard, search, scrubber and reading-position gates",
+  "started_at": "2026-10-14T18:50:09+03:00",
+  "finished_at": "2026-10-14T19:37:34+03:00",
+  "source_sha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "production_build": {
+    "exit_code": 0,
+    "build_id": "nxB28iN8GjDAvJrY0rO18",
+    "dist_dir": ".next-pdf-a5-final-20261014",
+    "production_typecheck_passed": true
+  },
+  "checks": {
+    "targeted_eslint": {
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 25
+    },
+    "git_diff_check_exit_code": 0,
+    "new_skips": 0,
+    "pdf_v4_a5_gate": {
+      "exit_code": 0,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "projects": [
+        "desktop",
+        "mobile"
+      ],
+      "files": [
+        "tests/pdf-v4/v5-a2-zoom-yerlesim.spec.ts",
+        "tests/pdf-v4/v5-a3-klavye-gezinme.spec.ts",
+        "tests/pdf-v4/s02-keyboard-zoom.spec.ts",
+        "tests/pdf-v4/s03-ctrl-wheel.spec.ts",
+        "tests/pdf-v4/s12-fit-width-scroll.spec.ts"
+      ]
+    },
+    "v3_document_and_toolbar_gate": {
+      "exit_code": 0,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "breakdown": {
+        "invariants": 5,
+        "real_documents": 6,
+        "toolbar_parity": 2
+      },
+      "files": [
+        "tests/document-studio/pdf-viewer-v3-invariants.spec.ts",
+        "tests/document-studio/pdf-viewer-v3-real-docs.spec.ts",
+        "tests/document-studio/pdf-viewer-toolbar-parity.spec.ts"
+      ]
+    },
+    "supplemental_search_links_scrubber": {
+      "exit_code": 0,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "files": [
+        "tests/document-studio/pdf-viewer-v2-faz-e.spec.ts",
+        "tests/document-studio/pdf-viewer-v2-faz-g.spec.ts"
+      ],
+      "routes_explicitly_select_v3": true
+    }
+  },
+  "runtime_change": {
+    "focused_editable_input_guard": true,
+    "focused_slider_global_shortcut_guard": true,
+    "slider_keyboard_controls_preserved": true,
+    "search_and_password_focus_regression_added": true
+  },
+  "local_metric_archive": {
+    "path": "test-results/pdf-v4/results-20261014-A5-v4-core-final.jsonl",
+    "ignored_local_artifact": true,
+    "raw_rows": 14,
+    "included_in_evidence": false
+  },
+  "source_files": [
+    {
+      "path": "DOK_CONTEXT_MAP.md",
+      "sha256": "72f7a3de3a839d2b928dad8be8a4724f818c869ac941a99a0d62a8844b22c183"
+    },
+    {
+      "path": "src/components/dokumantasyon/studio/pdf/pdfjs-studio.tsx",
+      "sha256": "4cd9613e23408102f693484600a0656de374763ff3ca180a7ecc1bc9ac76985f"
+    },
+    {
+      "path": "tests/document-studio/pdf-viewer-toolbar-parity.spec.ts",
+      "sha256": "1c9146603c2ba79bc9217c7f8afd2174d52a33bfacbcc4da9d8d2236517e24c9"
+    },
+    {
+      "path": "tests/document-studio/pdf-viewer-v2-faz-e.spec.ts",
+      "sha256": "29e7e691efe9e66a7a19d75f6d9fbf58b9bae40ddd8a2f44c2ee3fea5b0bce52"
+    },
+    {
+      "path": "tests/document-studio/pdf-viewer-v2-faz-g.spec.ts",
+      "sha256": "edea02d90b149e681f53f1221a4cdd924e47ea9642829814fb87d1ffe66041c4"
+    },
+    {
+      "path": "tests/document-studio/pdf-viewer-v3-invariants.spec.ts",
+      "sha256": "c75ca5f446cf0cb1e104724cfb9b86ffe4d7e395eef95ee338d3d42fc8300a54"
+    },
+    {
+      "path": "tests/document-studio/pdf-viewer-v3-real-docs.spec.ts",
+      "sha256": "984c2464017bdfe870221bbbed94b00b13145e97dc3e378c4edf6672ded94282"
+    },
+    {
+      "path": "tests/pdf-v4/v5-a3-klavye-gezinme.spec.ts",
+      "sha256": "0bf0f793fe8cac46370f7c65eec74f3173d74541df9a7ab4d5c21b28a40ec77f"
+    }
+  ],
+  "predecessor_a3_status": "BLOKE",
+  "last_sequential_passed_stage": "A2",
+  "a6_started": false,
+  "manual_fixture_files_read": true,
+  "production_data_accessed": false,
+  "private_blob_accessed": false,
+  "remote_write_performed": false,
+  "commit_performed": false,
+  "push_performed": false,
+  "deployment_performed": false,
+  "sanitization": {
+    "raw_test_logs_in_evidence": false,
+    "user_file_names": false,
+    "user_document_contents": false,
+    "screenshots_of_user_documents_in_evidence": false,
+    "credentials_or_signed_urls": false
+  }
+}

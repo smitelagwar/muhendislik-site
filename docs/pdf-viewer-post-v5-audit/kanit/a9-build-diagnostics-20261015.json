@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "stage": "A9",
+  "captured_at": "2026-10-15T01:45:13+03:00",
+  "status": "TEKNIK_BLOKE",
+  "configured_build": {
+    "worker_disabled_trial": {
+      "build_id_present": false,
+      "exit_code": 134,
+      "temporary_next_config_restored": true,
+      "result": "V8 heap OOM",
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-worker-disabled-20261015.log",
+      "max_observed_heap_mb": 17931.9
+    },
+    "underlying_command": "next build --webpack",
+    "command": "npm run build",
+    "full_build_completed": true,
+    "latest_full_attempt": {
+      "build_id_present": false,
+      "heap_limit_gib": 21.5,
+      "max_old_space_size_mb": 21500,
+      "node": "v24.15.0",
+      "exit_code": 134,
+      "max_observed_heap_mb": 21464.4,
+      "sampled_working_set_gib": 21.66,
+      "free_ram_near_failure_gib": 0.84,
+      "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-21500mb-20261015.log"
+    },
+    "heap_increase_trials": [
+      {
+        "heap_limit_gib": 20,
+        "max_old_space_size_mb": 20000,
+        "node_version": "v24.19.0",
+        "max_observed_heap_mb": 19944.4,
+        "sampled_working_set_gib": 21.11,
+        "free_ram_near_failure_gib": 1.33,
+        "exit_code": 134,
+        "build_id_present": false,
+        "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-20000mb-20261015.log",
+        "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+      },
+      {
+        "heap_limit_gib": 21,
+        "max_old_space_size_mb": 21000,
+        "node_version": "v24.15.0",
+        "max_observed_heap_mb": 20978.1,
+        "sampled_working_set_gib": 21,
+        "free_ram_near_failure_gib": 1.61,
+        "exit_code": 134,
+        "build_id_present": false,
+        "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-21000mb-20261015.log",
+        "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+      },
+      {
+        "heap_limit_gib": 21.5,
+        "max_old_space_size_mb": 21500,
+        "node_version": "v24.15.0",
+        "max_observed_heap_mb": 21464.4,
+        "sampled_working_set_gib": 21.66,
+        "free_ram_near_failure_gib": 0.84,
+        "exit_code": 134,
+        "build_id_present": false,
+        "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-build-21500mb-20261015.log",
+        "result": "V8 heap OOM during Creating an optimized production build; no BUILD_ID"
+      }
+    ],
+    "latest_successful_build": {
+      "command": "npm run build",
+      "underlying_command": "next build --webpack",
+      "node_version": "v24.15.0",
+      "heap_limit_mb": 32000,
+      "max_old_space_size_mb": 32000,
+      "exit_code": 0,
+      "build_id": "7FEWlZ_L99f2D76ZBuvhp",
+      "build_id_present": true,
+      "duration_minutes": 18.5,
+      "typescript": "PASS in 36.4 seconds",
+      "static_pages": "PASS 627/627 in 5.2 seconds",
+      "log": "D:\\\\codex-pdf-a6-tmp-20261014\\\\a9-build-32000mb-20261015.log",
+      "next_version": "16.3.6"
+    }
+  },
+  "webpack_debug_builds": {
+    "builds": [
+      {
+        "exit_code": 0,
+        "dist_dir": ".next-webpack-pdf-contracts-20261015",
+        "typescript": "PASS",
+        "selected_pdf_routes": "documentation viewer and admin/API contract subset",
+        "compile": "PASS",
+        "build_id_present": true,
+        "static_generation": "PASS",
+        "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-webpack-pdf-contracts-20261015.log"
+      },
+      {
+        "exit_code": 0,
+        "dist_dir": ".next-webpack-pdf-contracts-public-20261015",
+        "typescript": "PASS in 10.1 seconds",
+        "selected_pdf_routes": "documentation viewer, public share page /p/[token], auth, upload, stream, share and public download/verify API subset",
+        "compile": "PASS in 4.1 minutes",
+        "build_id_present": true,
+        "static_generation": "PASS",
+        "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-webpack-pdf-contracts-public-20261015.log"
+      }
+    ],
+    "windows_route_filter_bug": "--debug-build-paths route set used slash separators while discovered app paths used backslashes; a temporary node_modules route filter normalization enabled selection",
+    "route_discovery_sha256": "F89BF3D74B53E6266EF67FF62911993DE32E56DA300153AB7603D60B74BCFA4E",
+    "result": "PASS for selected route diagnostics only",
+    "next_version": "16.3.6",
+    "next_config_sha256": "5C922744E6E065857443B15E5C5068FFD2953FDC1D7EEAC57605FCC411B27ACB",
+    "not_full_release_build": true,
+    "temporary_patch_restored": true
+  },
+  "partial_webpack_contract_tests": {
+    "test_data": "synthetic isolated test store; DOK_TEST_EMPTY_DATA_DIR=1",
+    "environment_secrets_scrubbed": true,
+    "failed": 0,
+    "exit_code": 0,
+    "skipped": 0,
+    "passed": 6,
+    "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-webpack-pdf-contracts-public-tests-20261015.log",
+    "results_jsonl_restored_sha256": "AF7AE0E77D31187625600446E8509F66CDC1562A62000D22233E22BB9131B2C4",
+    "specs": [
+      "tests/pdf-v4/s15-local-stream-contract.spec.ts",
+      "tests/pdf-v4/s16-public-share-contract.spec.ts"
+    ],
+    "runner": "Playwright production server using the selected debug build",
+    "duration_seconds": 8.2
+  },
+  "alternate_builder_diagnostic": {
+    "full_local_gate_passed": 95,
+    "mobile_slow_passed": 34,
+    "builder": "Turbopack",
+    "mobile_slow_failed": 0,
+    "logs": [
+      "D:\\codex-pdf-a6-tmp-20261014\\a9-turbopack-prod-gate-final-20261015.log",
+      "D:\\codex-pdf-a6-tmp-20261014\\a9-turbopack-mobile-slow-gate-20261015.log"
+    ],
+    "classification": "diagnostic only; not configured Webpack release build",
+    "configured_builder": false,
+    "full_local_gate_failed": 0
+  },
+  "harness_fixes": [
+    {
+      "file": "tests/pdf-v4/s15-local-stream-contract.spec.ts",
+      "change": "Selected first matching heading to avoid Playwright strict-mode ambiguity"
+    },
+    {
+      "file": "tests/pdf-v4/s16-public-share-contract.spec.ts",
+      "change": "Verify Secure/HttpOnly/SameSite cookie in browser context and use browser fetch to exercise Secure cookie over loopback HTTP"
+    }
+  ],
+  "status_invariants": {
+    "commit_performed": false,
+    "full_configured_build_id_present": true,
+    "push_performed": false,
+    "last_sequential_passed_stage": "A2",
+    "remote_write_performed": false,
+    "production_data_accessed": false,
+    "deployment_performed": false,
+    "plan_status": "BLOKE",
+    "active_stage": "A9",
+    "a2_equivalent_performance_comparison": false,
+    "full_configured_build_id": "7FEWlZ_L99f2D76ZBuvhp",
+    "full_production_gates_passed": true,
+    "provenance_and_external_blockers_remain": true
+  },
+  "partial_webpack_full_feature_gate": {
+    "projects": [
+      "desktop",
+      "mobile",
+      "compat",
+      "webkit"
+    ],
+    "passed": 95,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "duration_minutes": 5.8,
+    "mode": "gate",
+    "synthetic_isolated_store": true,
+    "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-webpack-pdf-full-feature-gate-20261015.log"
+  },
+  "partial_webpack_mobile_slow_gate": {
+    "project": "mobile",
+    "cpu_throttling_rate": 4,
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0,
+    "duration_minutes": 2.6,
+    "mode": "gate",
+    "synthetic_isolated_store": true,
+    "log": "D:\\codex-pdf-a6-tmp-20261014\\a9-webpack-pdf-mobile-slow-gate-20261015.log"
+  },
+  "updated_at": "2026-10-15T03:39:45+03:00",
+  "full_production_gates": {
+    "pdf_v4_full_feature_gate": {
+      "command": "Playwright PDF V4 gate against configured Webpack production build",
+      "exit_code": 0,
+      "passed": 95,
+      "failed": 0,
+      "skipped": 0,
+      "duration_minutes": 5.8,
+      "projects": {
+        "desktop": 51,
+        "mobile": 34,
+        "compat": 3,
+        "webkit": 7
+      },
+      "synthetic_isolated_store": true
+    },
+    "pdf_v4_mobile_slow_gate": {
+      "command": "Playwright PDF V4 gate, project mobile, CPU throttling rate 4",
+      "exit_code": 0,
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "duration_minutes": 2.6,
+      "synthetic_isolated_store": true
+    },
+    "budget_report": {
+      "command": "node scripts/pdf-v4-report.mjs",
+      "exit_code": 0,
+      "budget_violations": 0,
+      "eslint_exit_code": 0
+    }
+  },
+  "blocker_summary": {
+    "reason": "Tam production build (32 GB heap, BUILD_ID 7FEWlZ_L99f2D76ZBuvhp), PDF V4 gate 95/95, mobile-slow gate 34/34 ve bütçe 0 geçti. Ancak D kopyasında .git olmadığından kaynak SHA ve diff doğrulanamıyor; A2 fixture hashleri eşleşmiyor (tarihsel generator yeniden çalıştırıldığında da eşleşmedi); V2/V3/toolbar seçkisinde 8 skip var; izole Preview DB/Private Blob, fiziksel iOS/Android/print preview ve güncel remote CI henüz sağlanmadı.",
+    "plan_status": "BLOKE",
+    "active_stage": "A9",
+    "last_sequential_passed_stage": "A2"
+  }
+}

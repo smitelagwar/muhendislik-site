@@ -37,19 +37,22 @@ if (args.includes("--write-baseline")) {
 }
 
 const fmt = (v) => (v === undefined || v === null ? "—" : typeof v === "number" ? (v >= 99999 ? "∞ (hiç)" : String(v)) : String(v).slice(0, 18));
-const lines = ["| Senaryo | Fixture | Profil | Metrik | Değer | Taban | Bütçe | Durum |", "|---|---|---|---|---:|---:|---:|---|"];
+const lines = ["| Senaryo | Proje | Fixture | Profil | Metrik | Değer | Taban | Bütçe | Durum |", "|---|---|---|---|---|---:|---:|---:|---|"];
 let fails = 0;
 const keys = [...last.keys()].sort();
 for (const k of keys) {
   const r = last.get(k);
-  const b = budgets[r.scenario]?.[r.profile] ?? {};
+  // The gate helper deliberately excludes WebKit from numerical budgets;
+  // WebKit is a compatibility smoke project with different frame timing.
+  const budgetApplies = r.project !== "webkit";
+  const b = budgetApplies ? budgets[r.scenario]?.[r.profile] ?? {} : {};
   const base = baseline.rows[k]?.metrics ?? {};
   const names = new Set([...Object.keys(b).map((x) => x.slice(0, -3)), ...Object.keys(r.metrics).filter((m) => typeof r.metrics[m] === "number" && m in base)]);
   for (const name of names) {
     const val = r.metrics[name];
     const maxL = b[`${name}Max`];
     const minL = b[`${name}Min`];
-    let status = "·";
+    let status = budgetApplies ? "·" : "ℹ️ smoke";
     if (typeof val === "number" && (maxL !== undefined || minL !== undefined)) {
       const ok = (maxL === undefined || val <= maxL) && (minL === undefined || val >= minL);
       status = ok ? "✅" : "❌";
@@ -59,7 +62,7 @@ for (const k of keys) {
       fails++;
     }
     const budgetTxt = [maxL !== undefined ? `≤${maxL}` : "", minL !== undefined ? `≥${minL}` : ""].filter(Boolean).join(" ");
-    lines.push(`| ${r.scenario} | ${r.fixture} | ${r.profile}${r.cpu > 1 ? `×${r.cpu}` : ""} | ${name} | ${fmt(val)} | ${fmt(base[name])} | ${budgetTxt || "—"} | ${status} |`);
+    lines.push(`| ${r.scenario} | ${r.project} | ${r.fixture} | ${r.profile}${r.cpu > 1 ? `×${r.cpu}` : ""} | ${name} | ${fmt(val)} | ${fmt(base[name])} | ${budgetTxt || "—"} | ${status} |`);
   }
 }
 const header = `# PDF v4 ölçüm raporu\n\nSatır: ${last.size} · Bütçe ihlali: **${fails}** · Üretim derlemesi: ${[...last.values()].every((r) => r.build === "prod") ? "evet" : "HAYIR (dev; mutlak süreler şişkin)"}\n\n`;

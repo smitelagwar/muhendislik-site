@@ -1,0 +1,1620 @@
+{
+  "schema": 1,
+  "stage": "A2",
+  "status": "GECTI",
+  "planId": "dok-pdf-post-v5-2026-10-14",
+  "sourceSha": "2c0b68209ae2e4e691b832e5957fbb4cd2e0e6d9",
+  "branch": "codex/pdf-post-v5-audit-20261014",
+  "startedAt": "2026-10-14T17:26:25+03:00",
+  "finishedAt": "2026-10-14T14:49:54.379Z",
+  "productionBuild": {
+    "firstAttemptExitCode": 1,
+    "firstAttemptSummary": "next/font Google Fonts loader parse error in IBM Plex Sans during webpack compile; no source change made.",
+    "retryExitCode": 0,
+    "buildId": "jbTgjGuh4aPtcKXnsM1QU",
+    "distDir": ".next-pdf-a2-retry",
+    "workerVendorSyncExitCode": 0,
+    "pdfjsVersion": "6.3.289",
+    "pdfjsVendorFileCount": 205,
+    "pdfJsVendorCheckExitCode": 0
+  },
+  "fixtureGeneration": {
+    "v2ExitCode": 0,
+    "v4ExitCode": 0,
+    "v4Fixtures": {
+      "a0-vektor.pdf": {
+        "sha256": "4ce70a47af31e0b620db8c8acefc30c073f83225f13bf43c6c1315607d380a21",
+        "bytes": 2041938
+      },
+      "karisik-60.pdf": {
+        "sha256": "a2368426188b500902711b90f45cf66ba66488b3ac590a22f7e61dde0f005c4d",
+        "bytes": 3301792
+      },
+      "metin-1000.pdf": {
+        "sha256": "1a018f3cee6cc11c73eba9ada2767856da383a9b4d6e5ec1b25d735291976dad",
+        "bytes": 1292533
+      },
+      "tarama-a3.pdf": {
+        "sha256": "098a12843cf20b58b69dbd19f1acde1fec8360d69c4d3ce6e000a601344c6c7a",
+        "bytes": 2763179
+      },
+      "linkli-300.pdf": {
+        "sha256": "1d72dc21b8d5f6c2871b629adfe1f489a80d8f696577617a081d6ea37fbcf409",
+        "bytes": 109179
+      },
+      "tr-metin.pdf": {
+        "sha256": "a51bf4ef270ea0552aef94b2adbfac99f10f415eafad000836c10cb9dfedcb5d",
+        "note": "A2 run sırasında npm run generate:pdf-fixtures ile yeniden üretildi; test sonrası takipli fixture HEAD içeriğine döndürüldü."
+      }
+    },
+    "trackedFixtureOutputsRestored": true
+  },
+  "runnerNote": "scripts/pdf-v4-run.mjs preflight checks literal .next/BUILD_ID, so it exited 2 with alternate isolated NEXT_DIST_DIR. Direct npx playwright test with the same config and PLAYWRIGHT_PRODUCTION_SERVER=1 exercised the verified .next-pdf-a2-retry build.",
+  "environment": {
+    "os": "Windows 10 Pro 10.0.19045",
+    "cpu": "AMD Ryzen 5 7600 6-Core Processor",
+    "physicalCores": 6,
+    "logicalProcessors": 12,
+    "ramTotalKiB": 32380892,
+    "freeRamKiBObservedAfterRun": 18853700,
+    "powerPlan": "Balanced",
+    "node": "v24.15.0",
+    "npm": "11.12.1",
+    "next": "16.3.6",
+    "playwright": "1.62.1",
+    "chromium": "151.0.7922.34 (bundled chromium revision 1234)",
+    "webkit": "bundled WebKit revision 2336",
+    "cpuThrottleRate": 1,
+    "network": "Local production server on 127.0.0.1:3217; no artificial network throttling.",
+    "profiles": {
+      "desktop": "Chromium 1366x800 DPR2",
+      "mobile": "Pixel 7 emulation 390x844 DPR3 (Chromium; not a physical device)",
+      "webkit": "Desktop Safari/WebKit 1280x720 DPR2"
+    }
+  },
+  "measurements": {
+    "repeatRuns": [
+      {
+        "runId": "20261014-173320-2c0b682-baseline-01",
+        "file": "test-results/pdf-v4/results-20261014-173320-2c0b682-baseline-01.jsonl",
+        "fileSha256": "a928f436f8dd58508e3fb49f20e20c60988c245aaef66e74f69960f34144bb42",
+        "rowCount": 7,
+        "playwrightExitCode": 0,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "mode": "baseline",
+        "build": "prod",
+        "cpu": 1
+      },
+      {
+        "runId": "20261014-173441-2c0b682-baseline-02",
+        "file": "test-results/pdf-v4/results-20261014-173441-2c0b682-baseline-02.jsonl",
+        "fileSha256": "55c9bee9e253d0ec22807dbcad28a3dea7f7e000e234228243f1a67a2924cc05",
+        "rowCount": 7,
+        "playwrightExitCode": 0,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "mode": "baseline",
+        "build": "prod",
+        "cpu": 1
+      },
+      {
+        "runId": "20261014-173548-2c0b682-baseline-03",
+        "file": "test-results/pdf-v4/results-20261014-173548-2c0b682-baseline-03.jsonl",
+        "fileSha256": "955543824356f6a91689f2c4dc5dae2318bbba29e1bdb2a487cc369d3dbb534b",
+        "rowCount": 7,
+        "playwrightExitCode": 0,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "mode": "baseline",
+        "build": "prod",
+        "cpu": 1
+      },
+      {
+        "runId": "20261014-173655-2c0b682-baseline-04",
+        "file": "test-results/pdf-v4/results-20261014-173655-2c0b682-baseline-04.jsonl",
+        "fileSha256": "4e1fa86b1282aeef1f31584e016ede900d0e8862b0166fa6f9ec90b505864d5c",
+        "rowCount": 7,
+        "playwrightExitCode": 0,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "mode": "baseline",
+        "build": "prod",
+        "cpu": 1
+      },
+      {
+        "runId": "20261014-173801-2c0b682-baseline-05",
+        "file": "test-results/pdf-v4/results-20261014-173801-2c0b682-baseline-05.jsonl",
+        "fileSha256": "0444a5c1f1c12746e8054a6313169a968c470541b4bc4ed2d51f4f8e77f72d8a",
+        "rowCount": 7,
+        "playwrightExitCode": 0,
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "mode": "baseline",
+        "build": "prod",
+        "cpu": 1
+      }
+    ],
+    "repeatedStatistics": [
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "scrollTopPx",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "ttfrMs",
+        "n": 5,
+        "raw": [
+          1430,
+          1401,
+          1420,
+          1430,
+          1424
+        ],
+        "median": 1424,
+        "min": 1401,
+        "max": 1430
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "sharpMs",
+        "n": 5,
+        "raw": [
+          3,
+          5,
+          13,
+          8,
+          12
+        ],
+        "median": 8,
+        "min": 3,
+        "max": 13
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "longTaskMs",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "canvasMaxMP",
+        "n": 5,
+        "raw": [
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "median": 10,
+        "min": 10,
+        "max": 10
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "canvasBytesMB",
+        "n": 5,
+        "raw": [
+          40.5,
+          40.5,
+          40.5,
+          40.5,
+          40.5
+        ],
+        "median": 40.5,
+        "min": 40.5,
+        "max": 40.5
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "group": "S1|desktop|a0-vektor|desktop",
+        "metric": "domNodes",
+        "n": 5,
+        "raw": [
+          1033,
+          1033,
+          1033,
+          1033,
+          1033
+        ],
+        "median": 1033,
+        "min": 1033,
+        "max": 1033
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "gapP95Ms",
+        "n": 5,
+        "raw": [
+          16.7,
+          16.7,
+          16.8,
+          16.7,
+          16.8
+        ],
+        "median": 16.7,
+        "min": 16.7,
+        "max": 16.8
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "gapMaxMs",
+        "n": 5,
+        "raw": [
+          16.8,
+          16.8,
+          16.8,
+          33.4,
+          16.8
+        ],
+        "median": 16.8,
+        "min": 16.8,
+        "max": 33.4
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "jank50",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "longTaskMs",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "blankSettleMs",
+        "n": 5,
+        "raw": [
+          2,
+          8,
+          16,
+          7,
+          12
+        ],
+        "median": 8,
+        "min": 2,
+        "max": 16
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "blankFramesDuringScroll",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "median": 3,
+        "min": 3,
+        "max": 3
+      },
+      {
+        "group": "S4|desktop|metin-1000|desktop",
+        "metric": "domNodes",
+        "n": 5,
+        "raw": [
+          251,
+          251,
+          251,
+          251,
+          251
+        ],
+        "median": 251,
+        "min": 251,
+        "max": 251
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "heapGrowthMB",
+        "n": 5,
+        "raw": [
+          1.3,
+          1.3,
+          1.3,
+          1.3,
+          1.3
+        ],
+        "median": 1.3,
+        "min": 1.3,
+        "max": 1.3
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "canvasBytesMB",
+        "n": 5,
+        "raw": [
+          97.6,
+          97.6,
+          97.6,
+          97.6,
+          97.6
+        ],
+        "median": 97.6,
+        "min": 97.6,
+        "max": 97.6
+      },
+      {
+        "group": "S8|desktop|karisik-60|desktop",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "median": 3,
+        "min": 3,
+        "max": 3
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "scrollTopPx",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "ttfrMs",
+        "n": 5,
+        "raw": [
+          2662,
+          2648,
+          2628,
+          2608,
+          2678
+        ],
+        "median": 2648,
+        "min": 2608,
+        "max": 2678
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "sharpMs",
+        "n": 5,
+        "raw": [
+          17,
+          24,
+          27,
+          32,
+          19
+        ],
+        "median": 24,
+        "min": 17,
+        "max": 32
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "longTaskMs",
+        "n": 5,
+        "raw": [
+          55,
+          52,
+          0,
+          0,
+          56
+        ],
+        "median": 52,
+        "min": 0,
+        "max": 56
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "canvasMaxMP",
+        "n": 5,
+        "raw": [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ],
+        "median": 0.3,
+        "min": 0.3,
+        "max": 0.3
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "canvasBytesMB",
+        "n": 5,
+        "raw": [
+          21.1,
+          22.1,
+          22.7,
+          22.7,
+          22.1
+        ],
+        "median": 22.1,
+        "min": 21.1,
+        "max": 22.7
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "group": "S1|mobile|a0-vektor|mobile",
+        "metric": "domNodes",
+        "n": 5,
+        "raw": [
+          1073,
+          1073,
+          1077,
+          1077,
+          1073
+        ],
+        "median": 1073,
+        "min": 1073,
+        "max": 1077
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "gapP95Ms",
+        "n": 5,
+        "raw": [
+          16.8,
+          16.7,
+          16.8,
+          16.8,
+          16.7
+        ],
+        "median": 16.8,
+        "min": 16.7,
+        "max": 16.8
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "gapMaxMs",
+        "n": 5,
+        "raw": [
+          33.4,
+          16.8,
+          16.8,
+          16.8,
+          16.8
+        ],
+        "median": 16.8,
+        "min": 16.8,
+        "max": 33.4
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "jank50",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "longTaskMs",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "blankSettleMs",
+        "n": 5,
+        "raw": [
+          5,
+          11,
+          4,
+          8,
+          15
+        ],
+        "median": 8,
+        "min": 4,
+        "max": 15
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "blankFramesDuringScroll",
+        "n": 5,
+        "raw": [
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 3
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      {
+        "group": "S4|mobile|metin-1000|mobile",
+        "metric": "domNodes",
+        "n": 5,
+        "raw": [
+          266,
+          266,
+          266,
+          266,
+          266
+        ],
+        "median": 266,
+        "min": 266,
+        "max": 266
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "blankFrames",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "anchorDriftPx",
+        "n": 5,
+        "raw": [
+          0.57,
+          0.57,
+          0.57,
+          0.57,
+          0.57
+        ],
+        "median": 0.57,
+        "min": 0.57,
+        "max": 0.57
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "browserZoomDelta",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "scaleRatioError",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "longTaskMs",
+        "n": 5,
+        "raw": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "gapMaxMs",
+        "n": 5,
+        "raw": [
+          33.4,
+          33.4,
+          33.4,
+          33.4,
+          33.4
+        ],
+        "median": 33.4,
+        "min": 33.4,
+        "max": 33.4
+      },
+      {
+        "group": "S5|mobile|karisik-60:out|mobile",
+        "metric": "sharpMs",
+        "n": 5,
+        "raw": [
+          11,
+          20,
+          2,
+          1,
+          20
+        ],
+        "median": 11,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "heapGrowthMB",
+        "n": 5,
+        "raw": [
+          4.8,
+          3.1,
+          3.1,
+          3.2,
+          3
+        ],
+        "median": 3.1,
+        "min": 3,
+        "max": 4.8
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "canvasBytesMB",
+        "n": 5,
+        "raw": [
+          50.7,
+          50.7,
+          54.2,
+          51,
+          45.4
+        ],
+        "median": 50.7,
+        "min": 45.4,
+        "max": 54.2
+      },
+      {
+        "group": "S8|mobile|karisik-60|mobile",
+        "metric": "mountedPages",
+        "n": 5,
+        "raw": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "median": 8,
+        "min": 8,
+        "max": 8
+      }
+    ],
+    "repeatedTestPasses": 35,
+    "fullSuite": {
+      "runId": "20261014-173918-2c0b682-baseline-06",
+      "file": "test-results/pdf-v4/results-20261014-173918-2c0b682-baseline-06.jsonl",
+      "fileSha256": "e4c767b1b7ccadae11f2e0c02c14ea5f84481b27b2f278d567cc9d63ead7f7d5",
+      "playwrightExitCode": 0,
+      "listedTests": 79,
+      "projectCounts": {
+        "desktop": 39,
+        "mobile": 30,
+        "compat": 3,
+        "webkit": 7
+      },
+      "passed": 79,
+      "failed": 0,
+      "skipped": 0,
+      "measurementRows": 50,
+      "measurementRowsByScenario": {
+        "S1": 15,
+        "S2": 4,
+        "S3": 1,
+        "S4": 6,
+        "S7": 4,
+        "S8": 2,
+        "S9": 1,
+        "S12": 2,
+        "S13": 2,
+        "S14": 1,
+        "S5": 9,
+        "S6": 1,
+        "S11": 1,
+        "S10": 1
+      },
+      "rows": [
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "tr-metin",
+          "project": "desktop",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 900,
+            "sharpMs": 14,
+            "longTaskMs": 0,
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 39.9,
+            "mountedPages": 1,
+            "domNodes": 283
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 869,
+            "sharpMs": 12,
+            "longTaskMs": 0,
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 39.9,
+            "mountedPages": 1,
+            "domNodes": 342
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "desktop",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 869,
+            "sharpMs": 2,
+            "longTaskMs": 0,
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 39.9,
+            "mountedPages": 1,
+            "domNodes": 348
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "a0-vektor",
+          "project": "desktop",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 1398,
+            "sharpMs": 9,
+            "longTaskMs": 0,
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 40.5,
+            "mountedPages": 1,
+            "domNodes": 1033
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "tarama-a3",
+          "project": "desktop",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 883,
+            "sharpMs": 10,
+            "longTaskMs": 0,
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 40.5,
+            "mountedPages": 1,
+            "domNodes": 247
+          }
+        },
+        {
+          "scenario": "S2",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "blankFrames": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 50.1,
+            "gapP95Ms": 33.3,
+            "jank50": 1,
+            "anchorDriftPx": 0.77,
+            "sharpMs": 10
+          }
+        },
+        {
+          "scenario": "S2",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "desktop",
+          "metrics": {
+            "blankFrames": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 50,
+            "gapP95Ms": 33.3,
+            "jank50": 0,
+            "anchorDriftPx": 0.94,
+            "sharpMs": 7
+          }
+        },
+        {
+          "scenario": "S3",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "blankFrames": 0,
+            "gapP95Ms": 16.8,
+            "anchorDriftPx": 0.38,
+            "notchFactor": 1.1
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "desktop",
+          "metrics": {
+            "gapP95Ms": 16.8,
+            "gapMaxMs": 16.8,
+            "jank50": 0,
+            "longTaskMs": 0,
+            "blankSettleMs": 1,
+            "blankFramesDuringScroll": 0,
+            "mountedPages": 3,
+            "domNodes": 251
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "gapP95Ms": 16.8,
+            "gapMaxMs": 33.3,
+            "jank50": 0,
+            "longTaskMs": 0,
+            "blankSettleMs": 2,
+            "blankFramesDuringScroll": 0,
+            "mountedPages": 3,
+            "domNodes": 251
+          }
+        },
+        {
+          "scenario": "S7",
+          "profile": "desktop",
+          "fixture": "a0-vektor",
+          "project": "desktop",
+          "metrics": {
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 40.5,
+            "sharpRatio": 1,
+            "sharpMs": 10,
+            "blankFrames": 0,
+            "maxZoomPercent": 42,
+            "levels": "[{\"zoom\":42,\"sharpMs\":10,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+          }
+        },
+        {
+          "scenario": "S7",
+          "profile": "desktop",
+          "fixture": "tarama-a3",
+          "project": "desktop",
+          "metrics": {
+            "canvasMaxMP": 10,
+            "canvasBytesMB": 40.5,
+            "sharpRatio": 1,
+            "sharpMs": 10,
+            "blankFrames": 0,
+            "maxZoomPercent": 118,
+            "levels": "[{\"zoom\":118,\"sharpMs\":10,\"ratio\":1,\"mp\":10,\"mb\":40.5}]"
+          }
+        },
+        {
+          "scenario": "S8",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "heapGrowthMB": 1.2,
+            "canvasBytesMB": 97.6,
+            "mountedPages": 3
+          }
+        },
+        {
+          "scenario": "S9",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "reloads": 0,
+            "scrollDriftPx": 0,
+            "blankFrames": 0
+          }
+        },
+        {
+          "scenario": "S12",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "zoomPercentChanges": 0
+          }
+        },
+        {
+          "scenario": "S13",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "desktop",
+          "metrics": {
+            "canvasBytesMBHidden": 1.9
+          }
+        },
+        {
+          "scenario": "S14",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "desktop",
+          "metrics": {
+            "gapP95Ms": 16.8,
+            "gapMaxMs": 16.8
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "mobile",
+          "fixture": "tr-metin",
+          "project": "mobile",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 871,
+            "sharpMs": 7,
+            "longTaskMs": 0,
+            "canvasMaxMP": 1.7,
+            "canvasBytesMB": 15.2,
+            "mountedPages": 2,
+            "domNodes": 303
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 877,
+            "sharpMs": 15,
+            "longTaskMs": 0,
+            "canvasMaxMP": 1.7,
+            "canvasBytesMB": 30.4,
+            "mountedPages": 4,
+            "domNodes": 642
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "mobile",
+          "fixture": "metin-1000",
+          "project": "mobile",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 872,
+            "sharpMs": 2,
+            "longTaskMs": 0,
+            "canvasMaxMP": 1.7,
+            "canvasBytesMB": 30.4,
+            "mountedPages": 4,
+            "domNodes": 672
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "mobile",
+          "fixture": "a0-vektor",
+          "project": "mobile",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 2681,
+            "sharpMs": 17,
+            "longTaskMs": 51,
+            "canvasMaxMP": 0.3,
+            "canvasBytesMB": 22.1,
+            "mountedPages": 1,
+            "domNodes": 1075
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "mobile",
+          "fixture": "tarama-a3",
+          "project": "mobile",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 874,
+            "sharpMs": 9,
+            "longTaskMs": 0,
+            "canvasMaxMP": 1.7,
+            "canvasBytesMB": 30.4,
+            "mountedPages": 4,
+            "domNodes": 280
+          }
+        },
+        {
+          "scenario": "S2",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 33.4,
+            "gapP95Ms": 33.3,
+            "jank50": 0,
+            "anchorDriftPx": 1.32,
+            "sharpMs": 12
+          }
+        },
+        {
+          "scenario": "S2",
+          "profile": "mobile",
+          "fixture": "metin-1000",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 83.2,
+            "gapP95Ms": 16.8,
+            "jank50": 3,
+            "anchorDriftPx": 1,
+            "sharpMs": 13
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "mobile",
+          "fixture": "metin-1000",
+          "project": "mobile",
+          "metrics": {
+            "gapP95Ms": 16.7,
+            "gapMaxMs": 16.8,
+            "jank50": 0,
+            "longTaskMs": 0,
+            "blankSettleMs": 13,
+            "blankFramesDuringScroll": 1,
+            "mountedPages": 8,
+            "domNodes": 266
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "gapP95Ms": 16.8,
+            "gapMaxMs": 33.4,
+            "jank50": 0,
+            "longTaskMs": 0,
+            "blankSettleMs": 12,
+            "blankFramesDuringScroll": 6,
+            "mountedPages": 6,
+            "domNodes": 260
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "tr-metin:out",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.33,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 1
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "tr-metin:in",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 155.4,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 15
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "tr-metin:diag-pan",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.43,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 9
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "karisik-60:out",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.57,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 33.4,
+            "sharpMs": 17
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "karisik-60:in",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.44,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 33.4,
+            "sharpMs": 7
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "karisik-60:diag-pan",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.44,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 33.4,
+            "sharpMs": 44
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "metin-1000:out",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.34,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 9
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "metin-1000:in",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.2,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 24
+          }
+        },
+        {
+          "scenario": "S5",
+          "profile": "mobile",
+          "fixture": "metin-1000:diag-pan",
+          "project": "mobile",
+          "metrics": {
+            "blankFrames": 0,
+            "anchorDriftPx": 0.43,
+            "browserZoomDelta": 0,
+            "scaleRatioError": 0,
+            "longTaskMs": 0,
+            "gapMaxMs": 16.8,
+            "sharpMs": 12
+          }
+        },
+        {
+          "scenario": "S6",
+          "profile": "mobile",
+          "fixture": "tr-metin",
+          "project": "mobile",
+          "metrics": {
+            "anchorDriftPx": 0.45,
+            "blankFrames": 0,
+            "fitReturnErrorPx": 0
+          }
+        },
+        {
+          "scenario": "S7",
+          "profile": "mobile",
+          "fixture": "a0-vektor",
+          "project": "mobile",
+          "metrics": {
+            "canvasMaxMP": 0.3,
+            "canvasBytesMB": 23.7,
+            "sharpRatio": 1.5,
+            "sharpMs": 5,
+            "blankFrames": 0,
+            "maxZoomPercent": 25,
+            "levels": "[{\"zoom\":25,\"sharpMs\":5,\"ratio\":1.5,\"mp\":0.3,\"mb\":23.7}]"
+          }
+        },
+        {
+          "scenario": "S7",
+          "profile": "mobile",
+          "fixture": "tarama-a3",
+          "project": "mobile",
+          "metrics": {
+            "canvasMaxMP": 1.7,
+            "canvasBytesMB": 30.4,
+            "sharpRatio": 1.5,
+            "sharpMs": 12,
+            "blankFrames": 0,
+            "maxZoomPercent": 33,
+            "levels": "[{\"zoom\":33,\"sharpMs\":12,\"ratio\":1.5,\"mp\":1.7,\"mb\":30.4}]"
+          }
+        },
+        {
+          "scenario": "S8",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "heapGrowthMB": 4.5,
+            "canvasBytesMB": 50.7,
+            "mountedPages": 8
+          }
+        },
+        {
+          "scenario": "S11",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "topAnchorFyDelta": 0,
+            "customZoomPercentChange": 0,
+            "fitModePreserved": 1
+          }
+        },
+        {
+          "scenario": "S12",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "zoomPercentChanges": 0
+          }
+        },
+        {
+          "scenario": "S13",
+          "profile": "mobile",
+          "fixture": "karisik-60",
+          "project": "mobile",
+          "metrics": {
+            "canvasBytesMBHidden": 10.9
+          }
+        },
+        {
+          "scenario": "S10",
+          "profile": "desktop",
+          "fixture": "tr-metin",
+          "project": "compat",
+          "metrics": {
+            "firstPageRendered": 1,
+            "inkPixels": 55035,
+            "pageErrors": 0,
+            "workerPreludeSeen": 1,
+            "firstError": null
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "tr-metin",
+          "project": "webkit",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 1400,
+            "sharpMs": 87,
+            "longTaskMs": 0,
+            "canvasMaxMP": 8.9,
+            "canvasBytesMB": 36,
+            "mountedPages": 1,
+            "domNodes": 283
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "webkit",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 1411,
+            "sharpMs": 102,
+            "longTaskMs": 0,
+            "canvasMaxMP": 8.9,
+            "canvasBytesMB": 36,
+            "mountedPages": 1,
+            "domNodes": 342
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "webkit",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 1407,
+            "sharpMs": 147,
+            "longTaskMs": 0,
+            "canvasMaxMP": 8.9,
+            "canvasBytesMB": 36,
+            "mountedPages": 1,
+            "domNodes": 348
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "a0-vektor",
+          "project": "webkit",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 2460,
+            "sharpMs": 77,
+            "longTaskMs": 0,
+            "canvasMaxMP": 8.9,
+            "canvasBytesMB": 36.5,
+            "mountedPages": 1,
+            "domNodes": 534
+          }
+        },
+        {
+          "scenario": "S1",
+          "profile": "desktop",
+          "fixture": "tarama-a3",
+          "project": "webkit",
+          "metrics": {
+            "scrollTopPx": 0,
+            "ttfrMs": 1984,
+            "sharpMs": 42,
+            "longTaskMs": 0,
+            "canvasMaxMP": 8.9,
+            "canvasBytesMB": 36.5,
+            "mountedPages": 1,
+            "domNodes": 247
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "desktop",
+          "fixture": "metin-1000",
+          "project": "webkit",
+          "metrics": {
+            "gapP95Ms": 151,
+            "gapMaxMs": 151,
+            "jank50": 41,
+            "longTaskMs": 0,
+            "blankSettleMs": 95,
+            "blankFramesDuringScroll": 12,
+            "mountedPages": 3,
+            "domNodes": 258
+          }
+        },
+        {
+          "scenario": "S4",
+          "profile": "desktop",
+          "fixture": "karisik-60",
+          "project": "webkit",
+          "metrics": {
+            "gapP95Ms": 145,
+            "gapMaxMs": 154,
+            "jank50": 41,
+            "longTaskMs": 0,
+            "blankSettleMs": 64,
+            "blankFramesDuringScroll": 20,
+            "mountedPages": 3,
+            "domNodes": 348
+          }
+        }
+      ]
+    },
+    "budgetReport": {
+      "reportCommand": "npm run check:pdf-v4:report -- --out docs/pdf-viewer-post-v5-audit/kanit/pdf-v4-report-20261014-173918-2c0b682-baseline-06.md",
+      "reportExitCode": 1,
+      "reportRows": 50,
+      "totalComparedBudgetEntries": 229,
+      "budgetChecksSupportedProjects": 194,
+      "failuresSupportedProjects": 0,
+      "webkitInformationalEntries": 35,
+      "misclassifiedWebkitS4Rows": [
+        {
+          "fixture": "metin-1000",
+          "gapP95Ms": 151,
+          "budgetDisplayedAsMs": 50
+        },
+        {
+          "fixture": "karisik-60",
+          "gapP95Ms": 145,
+          "budgetDisplayedAsMs": 50
+        }
+      ],
+      "classificationNote": "WebKit is a smoke-only informational project; recordAndGate skips budget assertions for WebKit in gate mode. The report script does not filter project=webkit and flags these two informational rows against desktop budgets. No supported-profile budget failures."
+    }
+  },
+  "fixtureManifest": {
+    "sourceFixturesUsed": {
+      "tr-metin.pdf": "a51bf4ef270ea0552aef94b2adbfac99f10f415eafad000836c10cb9dfedcb5d"
+    },
+    "v4FixtureHashes": {
+      "a0-vektor.pdf": "4ce70a47af31e0b620db8c8acefc30c073f83225f13bf43c6c1315607d380a21",
+      "karisik-60.pdf": "a2368426188b500902711b90f45cf66ba66488b3ac590a22f7e61dde0f005c4d",
+      "metin-1000.pdf": "1a018f3cee6cc11c73eba9ada2767856da383a9b4d6e5ec1b25d735291976dad",
+      "tarama-a3.pdf": "098a12843cf20b58b69dbd19f1acde1fec8360d69c4d3ce6e000a601344c6c7a",
+      "linkli-300.pdf": "1d72dc21b8d5f6c2871b629adfe1f489a80d8f696577617a081d6ea37fbcf409"
+    },
+    "budgetsSha256": "07faf4dfc0caf221996aeda66ba015b7bab85a22fc9357274c1fac874637ba1f"
+  },
+  "privacy": {
+    "productionDataAccessed": false,
+    "userFilesCopied": false,
+    "trackedFixtureOutputsRestored": true,
+    "testDataSeedCopied": false,
+    "dotDataExistsAfterRun": false,
+    "activeTestPointerExistsAfterRun": false,
+    "rawJsonlContainsUserContent": false
+  },
+  "resultArchiveBytes": 23449,
+  "testResultsDirectoryBytes": 1351767
+}
