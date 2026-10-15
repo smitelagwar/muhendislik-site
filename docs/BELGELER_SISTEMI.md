@@ -158,6 +158,8 @@ Sisteme 4. veya yeni bir belge şablonu ekleneceği zaman izlenecek adımlar:
 ### Adım 4: Şablon Servis Endpoint'i (`src/app/api/document-template/[id]/route.ts`)
 Yeni belgenin `id` değerini rota eşleştirmesine ekleyin, böylece istemci şablon byte'larını güvenle çekebilir.
 
+Vercel serverless çıktısında bu endpoint dosyaları `fs` ile okuduğundan, dinamik dosya yolunu output tracing kendi başına bulamayabilir. `next.config.ts` içindeki `outputFileTracingIncludes` kuralı `public/belgeler/*.pdf` dosyalarını yalnız bu route'un fonksiyon paketine ekler; bu kural yoksa API `File not found on disk` 404 döndürür. İstemci PDF motorundaki statik PDF fallback'i bu endpoint'ten bağımsız olarak korunur.
+
 ### Adım 5: Stüdyo Bileşeni Oluşturma (`src/components/[belge]-studio.tsx`)
 `beton-dokum-studio.tsx` veya `istifa-studio.tsx` bileşenini referans alarak:
 - Form kontrolleri, canlı Canvas senkronizasyonu, zoom kontrolleri, yerel sıfırlama butonları ve mobil tab yapısını kurun.
