@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     "@mlightcad/libredwg-web",
     "@mlightcad/libredwg-converter",
   ],
+  outputFileTracingIncludes: {
+    "/api/document-template/\\[id\\]": ["./public/belgeler/*.pdf"],
+  },
   typescript: {
     tsconfigPath: "tsconfig.next.json",
   },
