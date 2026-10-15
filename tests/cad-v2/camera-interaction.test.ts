@@ -6,6 +6,13 @@ import * as THREE from "three";
 import { D3CameraAdapter, type CadCameraState } from "../../src/lib/cad-v2/interaction/d3-camera-adapter";
 import type { CadBBox2D } from "../../src/lib/cad-v2/canonical/types";
 
+interface CameraAdapterTestSurface {
+  handleKeyDown(event: Pick<KeyboardEvent, "key" | "code" | "preventDefault">): void;
+  panDelta(dx: number, dy: number): void;
+  isSpaceDown: boolean;
+  boundBlur(): void;
+}
+
 // DOM mock ortamı
 const mockInputElement = {
   clientWidth: 800,
@@ -102,6 +109,12 @@ const callbackAdapter = new D3CameraAdapter({
     panToolChangeReported = active;
   },
 });
+const callbackInternals = callbackAdapter as unknown as CameraAdapterTestSurface;
+const keyEvent = (key: string, code: string): Pick<KeyboardEvent, "key" | "code" | "preventDefault"> => ({
+  key,
+  code,
+  preventDefault: () => {},
+});
 callbackAdapter.setPanToolActive(false);
 if (panToolChangeReported !== false) {
   throw new Error("onPanToolChange callback false bildirmedi!");
@@ -112,17 +125,17 @@ if (panToolChangeReported !== true) {
 }
 
 // Klavye 'H' tuşu ile pan toggle testi
-(callbackAdapter as any).handleKeyDown({ key: "h", preventDefault: () => {} } as any);
+callbackInternals.handleKeyDown(keyEvent("h", "KeyH"));
 if (panToolChangeReported !== false) {
   throw new Error("'h' tuşu pan aracını kapatmadı!");
 }
-(callbackAdapter as any).handleKeyDown({ key: "H", preventDefault: () => {} } as any);
+callbackInternals.handleKeyDown(keyEvent("H", "KeyH"));
 if (panToolChangeReported !== true) {
   throw new Error("'H' tuşu pan aracını açmadı!");
 }
 
 const centerBeforePan = callbackAdapter.getState().center;
-(callbackAdapter as any).panDelta(40, 0);
+callbackInternals.panDelta(40, 0);
 const centerAfterPan = callbackAdapter.getState().center;
 if (centerAfterPan[0] >= centerBeforePan[0]) {
   throw new Error("[panDelta] Pan sonrası dünya merkezi ötelenmedi!");
@@ -145,12 +158,12 @@ if (camAfterInvertedFit.unitsPerCssPixel !== validCamBeforeInvalidFit.unitsPerCs
 console.log("- Geçersiz BBox koruması (NaN / inverted): PASS");
 
 // 8. Space Pan ve Blur Temizlik Testi
-(callbackAdapter as any).handleKeyDown({ code: "Space" } as any);
-if (!(callbackAdapter as any).isSpaceDown) {
+callbackInternals.handleKeyDown(keyEvent(" ", "Space"));
+if (!callbackInternals.isSpaceDown) {
   throw new Error("Space basılı durumu algılanmadı!");
 }
-(callbackAdapter as any).boundBlur();
-if ((callbackAdapter as any).isSpaceDown) {
+callbackInternals.boundBlur();
+if (callbackInternals.isSpaceDown) {
   throw new Error("Window blur sonrası isSpaceDown sıfırlanmadı!");
 }
 console.log("- Space basılı ve blur sıfırlama testi: PASS");

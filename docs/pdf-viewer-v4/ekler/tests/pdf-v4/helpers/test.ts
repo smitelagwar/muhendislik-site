@@ -9,20 +9,20 @@ import type { Profile } from "./budgets";
  *  - `profile` bütçe seçimi içindir.
  */
 export const test = base.extend<{ cdp: CDPSession | null; profile: Profile }>({
-  page: async ({ page }, use) => {
+  page: async ({ page }, provide) => {
     await page.addInitScript(SAMPLER_INIT);
-    await use(page);
+    await provide(page);
   },
-  cdp: async ({ page, browserName }, use) => {
-    if (browserName !== "chromium") return use(null);
+  cdp: async ({ page, browserName }, provide) => {
+    if (browserName !== "chromium") return provide(null);
     const session = await page.context().newCDPSession(page);
     const rate = Number(process.env.PDF_V4_CPU || 1);
     if (rate > 1) await session.send("Emulation.setCPUThrottlingRate", { rate });
-    await use(session);
+    await provide(session);
   },
-  profile: async ({ isMobile }, use) => {
+  profile: async ({ isMobile }, provide) => {
     const throttled = Number(process.env.PDF_V4_CPU || 1) > 1;
-    await use(isMobile ? (throttled ? "mobile-throttled" : "mobile") : "desktop");
+    await provide(isMobile ? (throttled ? "mobile-throttled" : "mobile") : "desktop");
   },
 });
 

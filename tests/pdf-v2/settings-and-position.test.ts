@@ -10,15 +10,19 @@ import {
 
 // Mock localStorage for Node environment
 const mockStorage = new Map<string, string>();
-(global as any).window = {
-  location: { hash: "" },
-};
-(global as any).localStorage = {
+Object.defineProperty(globalThis, "window", {
+  configurable: true,
+  value: { location: { hash: "" } },
+});
+Object.defineProperty(globalThis, "localStorage", {
+  configurable: true,
+  value: {
   getItem: (key: string) => mockStorage.get(key) ?? null,
   setItem: (key: string, val: string) => mockStorage.set(key, val),
   removeItem: (key: string) => mockStorage.delete(key),
   clear: () => mockStorage.clear(),
-};
+  },
+});
 
 async function runTests() {
   console.log("==> PDF Ayarlar ve Okuma Konumu (Faz H) Birim Testleri Başlatılıyor...");

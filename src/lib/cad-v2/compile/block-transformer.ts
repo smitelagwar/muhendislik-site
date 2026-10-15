@@ -13,7 +13,9 @@ import type {
   CadInsertEntity,
   CadEntity,
   CadLayer,
+  CadLinetype,
   CadPoint2D,
+  CadTextStyle,
 } from "../canonical/types";
 import {
   Matrix4x4,
@@ -33,8 +35,8 @@ export type { TransformedSegment };
 export interface BlockExpansionOptions {
   blocks: Record<string, CadBlockDefinition>;
   layers: Record<string, CadLayer>;
-  linetypes?: Record<string, any>;
-  textStyles?: Record<string, any>;
+  linetypes?: Record<string, CadLinetype>;
+  textStyles?: Record<string, CadTextStyle>;
   maxDepth?: number;
   maxTotalEntities?: number;
   maxCurveErrorWorld?: number;

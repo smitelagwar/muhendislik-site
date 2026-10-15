@@ -371,6 +371,12 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
         return;
       }
 
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePalette();
+        return;
+      }
+
       if (event.key === "ArrowDown") {
         event.preventDefault();
         if (paletteEntries.length > 0) {
@@ -404,7 +410,7 @@ export function CommandPalette({ openSignal = 0, toggleSignal = 0 }: CommandPale
         openRoute(activeEntry.href);
       }
     },
-    [activeEntry, activeIndex, openRoute, paletteEntries.length],
+    [activeEntry, activeIndex, closePalette, openRoute, paletteEntries.length],
   );
 
   return (

@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // DWG/DXF MOTOR V2 — DURABLE PREPARATION SERVICE & STORAGE (G11)
 // ============================================================================
@@ -57,6 +58,8 @@ export interface PrepareResponse {
   sourceVersionKey: string;
 }
 
+type CadV2Manifest = CompiledSceneOutput["manifest"];
+
 export class CadV2DurableService {
   private static instance: CadV2DurableService | null = null;
 
@@ -115,7 +118,9 @@ export class CadV2DurableService {
   }
 
   public static getInstance(): CadV2DurableService {
-    const globalObj = globalThis as any;
+    const globalObj = globalThis as typeof globalThis & {
+      __cadV2DurableServiceInstance?: CadV2DurableService;
+    };
     if (globalObj.__cadV2DurableServiceInstance) {
       return globalObj.__cadV2DurableServiceInstance;
     }
@@ -414,10 +419,10 @@ export class CadV2DurableService {
       job.phase = "done";
       job.progress = 100;
       job.updatedAt = Date.now();
-    } catch (err: any) {
+    } catch (err: unknown) {
       try { fs.rmSync(stagingDir, { recursive: true, force: true }); } catch {}
       job.status = "failed";
-      job.error = err?.message || String(err);
+      job.error = getErrorMessage(err) || String(err);
       job.updatedAt = Date.now();
     }
   }
@@ -482,7 +487,7 @@ export class CadV2DurableService {
   /**
    * 5. GET /scenes/[sceneId]/manifest (R17, C01)
    */
-  public getManifest(sceneId: string): any | null {
+  public getManifest(sceneId: string): CadV2Manifest | null {
     const scene = this.readyScenes.get(sceneId);
     if (scene) return scene.manifest;
 
@@ -496,7 +501,7 @@ export class CadV2DurableService {
       const manifestPath = path.join(dir, sceneId, "manifest.json");
       if (fs.existsSync(manifestPath)) {
         try {
-          return JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+          return JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as CadV2Manifest;
         } catch {
           continue;
         }
@@ -505,7 +510,7 @@ export class CadV2DurableService {
     return null;
   }
 
-  public async getManifestAsync(sceneId: string): Promise<any | null> {
+  public async getManifestAsync(sceneId: string): Promise<CadV2Manifest | null> {
     const local = this.getManifest(sceneId);
     if (local) return local;
 
@@ -519,7 +524,7 @@ export class CadV2DurableService {
         });
         if (blobRes?.stream) {
           const text = await new Response(blobRes.stream).text();
-          const parsed = JSON.parse(text);
+          const parsed = JSON.parse(text) as CadV2Manifest;
           try {
             const sceneDir = path.join(this.storageDir, sceneId);
             if (!fs.existsSync(sceneDir)) fs.mkdirSync(sceneDir, { recursive: true });
@@ -594,10 +599,10 @@ export class CadV2DurableService {
   /**
    * 7. GET /scenes/[sceneId]/metadata/[metadataId] (Plan 25, B21)
    */
-  public async getSceneMetadata(sceneId: string, metadataId: string): Promise<any | null> {
+  public async getSceneMetadata(sceneId: string, metadataId: string): Promise<unknown | null> {
     const scene = this.readyScenes.get(sceneId);
     if (scene) {
-      const metaPage = scene.manifest.metadataPages?.find((m: any) => m.metadataId === metadataId);
+      const metaPage = scene.manifest.metadataPages?.find((m) => m.metadataId === metadataId);
       if (metaPage) {
         return {
           metadataId,
@@ -631,10 +636,10 @@ export class CadV2DurableService {
   /**
    * 8. GET /scenes/[sceneId]/indexes/[indexId] (Plan 25, B21)
    */
-  public async getSceneIndex(sceneId: string, indexId: string): Promise<any | null> {
+  public async getSceneIndex(sceneId: string, indexId: string): Promise<unknown | null> {
     const scene = this.readyScenes.get(sceneId);
     if (scene) {
-      const idxPage = scene.manifest.indexPages?.find((i: any) => i.indexId === indexId);
+      const idxPage = scene.manifest.indexPages?.find((i) => i.indexId === indexId);
       if (idxPage) {
         return idxPage;
       }

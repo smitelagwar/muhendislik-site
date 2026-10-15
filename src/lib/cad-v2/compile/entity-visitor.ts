@@ -20,6 +20,7 @@ import type {
   CadAttribEntity,
   CadTextStyle,
   CadClipBoundary,
+  CadLinetype,
 } from "../canonical/types";
 import { LayoutManager } from "../layout/layout-manager";
 import {
@@ -95,7 +96,7 @@ export interface VisitorContext {
 export interface EntityVisitorOptions {
   blocks: Record<string, CadBlockDefinition>;
   layers: Record<string, CadLayer>;
-  linetypes?: Record<string, any>;
+  linetypes?: Record<string, CadLinetype>;
   textStyles?: Record<string, CadTextStyle>;
   maxDepth?: number;
   maxTotalEntities?: number;
@@ -120,7 +121,7 @@ export interface VisitorResult {
 export class EntityVisitor {
   private blocks: Record<string, CadBlockDefinition>;
   private layers: Record<string, CadLayer>;
-  private linetypes: Record<string, any>;
+  private linetypes: Record<string, CadLinetype>;
   private textStyles?: Record<string, CadTextStyle>;
   private maxDepth: number;
   private maxTotalEntities: number;

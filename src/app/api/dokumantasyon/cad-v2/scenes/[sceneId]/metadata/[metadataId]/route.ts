@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // GET /api/dokumantasyon/cad-v2/scenes/[sceneId]/metadata/[metadataId] (G11, B21)
 // ============================================================================
@@ -39,9 +40,9 @@ export async function GET(
     return NextResponse.json(metadata, {
       headers: { "Cache-Control": "private, no-store" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { code: "INTERNAL_ERROR", message: err.message || "Sunucu hatası" },
+      { code: "INTERNAL_ERROR", message: getErrorMessage(err) || "Sunucu hatası" },
       { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }

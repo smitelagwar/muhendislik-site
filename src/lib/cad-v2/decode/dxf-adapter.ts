@@ -2,9 +2,263 @@
 // DWG/DXF MOTOR V2 — DXF DECODE ADAPTER (@mlightcad/data-model 1.14.2)
 // ============================================================================
 
-import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadBlockDefinition, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle } from "../canonical/types";
+import type { AcDbDatabase, AcDbEntity, AcDbLayerTableRecord } from "@mlightcad/data-model";
+import type { CadCanonicalDocument, CadColor, CadEntity, CadLayer, CadBlockDefinition, CadLayout, CadViewport, CadBBox2D, CadDiagnostic, CadLinetype, CadTextStyle, CadHatchLoop } from "../canonical/types";
 import { parseDxfSplines, parseDxfXclips } from "./dxf-xclip-pairs";
 import { normalizeLineweightMm } from "./dwg-adapter";
+
+type DxfPoint = { x: number; y: number; z?: number };
+type DxfVertex = (DxfPoint & { bulge?: number; startWidth?: number; endWidth?: number }) | [number, number, number?];
+type DxfClipVertex = DxfPoint | [number, number];
+
+interface DxfHatchEdge {
+  type?: string | number;
+  startPoint?: DxfPoint;
+  endPoint?: DxfPoint;
+  start?: DxfPoint;
+  end?: DxfPoint;
+  center?: DxfPoint;
+  radius?: number;
+  startAngle?: number;
+  endAngle?: number;
+  isClockwise?: boolean;
+  isCCW?: boolean;
+  ccw?: boolean;
+  majorAxisEndPoint?: DxfPoint;
+  majorAxisVector?: DxfPoint;
+  majorAxis?: DxfPoint;
+  axisRatio?: number;
+  minorToMajorRatio?: number;
+  ratio?: number;
+  startParam?: number;
+  endParam?: number;
+  controlPoints?: DxfPoint[];
+  degree?: number;
+  knots?: number[];
+  weights?: number[];
+  isPeriodic?: boolean;
+  isRational?: boolean;
+}
+
+interface DxfHatchLoop {
+  isPolyline?: boolean;
+  boundaryPathTypeFlag?: number;
+  hasBulge?: boolean;
+  isClosed?: boolean;
+  _closed?: boolean;
+  vertices?: DxfVertex[] | (() => DxfVertex[]);
+  _vertices?: DxfVertex[];
+  edges?: DxfHatchEdge[];
+}
+
+interface DxfCompatColor {
+  red?: number;
+  green?: number;
+  blue?: number;
+  colorIndex?: number;
+}
+
+interface DxfAdapterEntity {
+  dxfTypeName?: string;
+  type?: string;
+  handle?: string | number;
+  objectId?: string;
+  _layer?: string;
+  layer?: string;
+  _visibility?: boolean;
+  visible?: boolean;
+  isClockwise?: boolean;
+  isOff?: boolean;
+  transparency?: number;
+  alpha?: number;
+  color?: DxfCompatColor;
+  _color?: DxfCompatColor;
+  lineWeight?: number;
+  lineweight?: number;
+  _lineWeight?: number;
+  lineType?: string;
+  linetype?: string;
+  _lineType?: string;
+  lineTypeScale?: number;
+  linetypeScale?: number;
+  startPoint?: DxfPoint;
+  start?: DxfPoint;
+  endPoint?: DxfPoint;
+  end?: DxfPoint;
+  _geo?: {
+    _start?: DxfPoint;
+    _end?: DxfPoint;
+    _center?: DxfPoint;
+    _radius?: number;
+    _startAngle?: number;
+    _endAngle?: number;
+    _vertices?: DxfVertex[];
+    vertices?: () => DxfVertex[];
+    _closed?: boolean;
+    _degree?: number;
+    _nurbsCurve?: { _controlPoints?: DxfPoint[]; _knots?: number[]; _weights?: number[] };
+    _loops?: DxfHatchLoop[];
+  };
+  center?: DxfPoint;
+  point?: DxfPoint;
+  radius?: number;
+  startAngle?: number;
+  endAngle?: number;
+  majorAxisVector?: DxfPoint;
+  majorVector?: DxfPoint;
+  axisRatio?: number;
+  minorAxisRatio?: number;
+  startParam?: number;
+  endParam?: number;
+  vertices?: DxfVertex[];
+  isClosed?: boolean;
+  _width?: number;
+  majorAxisEndPoint?: DxfPoint;
+  majorAxis?: DxfPoint;
+  ratio?: number;
+  points?: DxfVertex[];
+  numberOfVertices?: number | (() => number);
+  getPoint2dAt?: (index: number) => DxfPoint;
+  getBulgeAt?: (index: number) => number;
+  getWidthsAt?: (index: number) => { startWidth?: number; endWidth?: number };
+  closed?: boolean | (() => boolean);
+  constantWidth?: number;
+  width?: number;
+  plinegen?: boolean;
+  flags?: number;
+  position?: DxfPoint;
+  _position?: DxfPoint;
+  insertionPoint?: DxfPoint;
+  alignmentPoint?: DxfPoint;
+  secondAlignmentPoint?: DxfPoint;
+  secondPosition?: DxfPoint;
+  _alignmentPoint?: DxfPoint;
+  textString?: string;
+  _textString?: string;
+  text?: string;
+  contents?: string;
+  _contents?: string;
+  height?: number;
+  _height?: number;
+  widthFactor?: number;
+  _widthFactor?: number;
+  oblique?: number;
+  _oblique?: number;
+  rotation?: number;
+  _rotation?: number;
+  styleName?: string;
+  _styleName?: string;
+  halign?: number;
+  horizontalMode?: number;
+  _horizontalJustification?: number;
+  valign?: number;
+  verticalMode?: number;
+  _verticalJustification?: number;
+  generationFlag?: number;
+  _generationFlag?: number;
+  location?: DxfPoint;
+  _location?: DxfPoint;
+  referenceWidth?: number;
+  _referenceWidth?: number;
+  attachmentPoint?: number;
+  _attachmentPoint?: number;
+  drawingDirection?: number;
+  lineSpacingFactor?: number;
+  lineSpacing?: number;
+  backgroundMask?: boolean;
+  boxFlag?: boolean;
+  backgroundFill?: boolean;
+  blockName?: string;
+  _blockName?: string;
+  name?: string;
+  blockTableRecordName?: string;
+  scaleFactors?: DxfPoint;
+  _scaleFactors?: DxfPoint;
+  controlPoints?: DxfPoint[];
+  degree?: number;
+  knots?: number[];
+  weights?: number[];
+  isPeriodic?: boolean;
+  isRational?: boolean;
+  boundaryLoops?: DxfHatchLoop[];
+  boundaryPaths?: DxfHatchLoop[];
+  loops?: DxfHatchLoop[];
+  patternName?: string;
+  solidFill?: boolean;
+  isSolid?: boolean;
+  patternScale?: number;
+  patternAngle?: number;
+  hatchStyle?: number;
+  patternType?: number;
+  dimensionType?: number;
+  dimType?: number;
+  _dimensionType?: number;
+  definitionPoint?: DxfPoint;
+  defPoint?: DxfPoint;
+  _definitionPoint?: DxfPoint;
+  textPoint?: DxfPoint;
+  textMidpoint?: DxfPoint;
+  _textPoint?: DxfPoint;
+  line1Start?: DxfPoint;
+  definitionPoint2?: DxfPoint;
+  _definitionPoint2?: DxfPoint;
+  line1End?: DxfPoint;
+  definitionPoint3?: DxfPoint;
+  _definitionPoint3?: DxfPoint;
+  line2Start?: DxfPoint;
+  definitionPoint4?: DxfPoint;
+  line2End?: DxfPoint;
+  dimStyle?: string;
+  anonymousBlockName?: string;
+  actualMeasurement?: number;
+  measurement?: number;
+  dimScale?: number;
+  arrowSize?: number;
+  arrowheadSize?: number;
+  arrowheadFlag?: number;
+  hasArrowhead?: boolean;
+  tag?: string;
+  _tag?: string;
+  prompt?: string;
+  _prompt?: string;
+  defaultText?: string;
+  value?: string;
+  obliqueAngle?: number;
+  _flags?: number;
+  isInvisible?: boolean;
+  isConstant?: boolean;
+  annotationText?: string;
+  annotationType?: number;
+  annotatedEntityHandle?: string;
+  annotationHandle?: string;
+  number?: number;
+  viewportId?: number;
+  centerPoint?: DxfPoint;
+  viewCenter?: DxfPoint;
+  viewTwistAngle?: number;
+  twistAngleRad?: number;
+  twistAngle?: number;
+  viewTarget?: DxfPoint;
+  target?: DxfPoint;
+  frozenLayers?: string[];
+  frozenLayerNames?: string[];
+  frozenLayerIds?: string[];
+  clippingBoundaryId?: string;
+  clipPolygon?: DxfClipVertex[];
+  viewDirection?: DxfPoint;
+  statusBitFlags?: number;
+  viewHeight?: number;
+  layerOverrides?: Record<string, Partial<CadLayer>>;
+}
+
+function asDxfAdapterEntity(entity: AcDbEntity): DxfAdapterEntity {
+  // AcDbEntity is the SDK boundary; this adapter also reads legacy serialized DXF field names.
+  return entity as unknown as DxfAdapterEntity;
+}
+
+function toDxfPoint(value: DxfVertex | DxfClipVertex): [number, number] {
+  return Array.isArray(value) ? [value[0] ?? 0, value[1] ?? 0] : [value.x ?? 0, value.y ?? 0];
+}
 
 export interface DxfParseOptions {
   sourceVersionKey?: string;
@@ -57,8 +311,8 @@ export async function parseDxfToCanonical(
   const diagnostics: CadDiagnostic[] = [];
   if (db.tables?.layerTable) {
     try {
-      const layerTable = db.tables.layerTable as any;
-      const records = layerTable.newIterator ? layerTable.newIterator().toArray() : (layerTable.records || []);
+      const layerTable = db.tables.layerTable;
+      const records = layerTable.newIterator().toArray();
       for (const rec of records) {
         const name = rec.name || "0";
         layers[name] = {
@@ -75,8 +329,8 @@ export async function parseDxfToCanonical(
             method: "aci",
             aci: typeof rec.color?.colorIndex === "number" ? rec.color.colorIndex : 7,
           },
-          lineweightMm: normalizeLineweightMm(rec.lineWeight ?? rec.lineweight) ?? 0,
-          linetypeName: rec.linetype || rec.lineType || "Continuous",
+          lineweightMm: normalizeLineweightMm(rec.lineWeight) ?? 0,
+          linetypeName: rec.linetype || "Continuous",
         };
       }
     } catch (err) {
@@ -102,17 +356,18 @@ export async function parseDxfToCanonical(
   const linetypes: Record<string, CadLinetype> = {};
   if (db.tables?.linetypeTable) {
     try {
-      const ltypeTable = db.tables.linetypeTable as any;
-      const records = ltypeTable.newIterator ? ltypeTable.newIterator().toArray() : (ltypeTable.records || []);
+      const ltypeTable = db.tables.linetypeTable;
+      const records = ltypeTable.newIterator().toArray();
       for (const rec of records) {
         const name = rec.name || "Continuous";
-        const pat = Array.isArray(rec.pattern) ? rec.pattern : (Array.isArray(rec.dashes) ? rec.dashes : []);
+        const lineStyle = rec.linetype;
+        const pat = lineStyle.pattern?.map((element) => element.elementLength) ?? [];
         linetypes[name] = {
           id: name,
           name,
-          description: rec.description || "",
+          description: lineStyle.description || "",
           pattern: pat,
-          totalLength: typeof rec.patternLength === "number" ? rec.patternLength : 0,
+          totalLength: typeof lineStyle.totalPatternLength === "number" ? lineStyle.totalPatternLength : 0,
         };
       }
     } catch (err) {
@@ -127,15 +382,15 @@ export async function parseDxfToCanonical(
   const textStyles: Record<string, CadTextStyle> = {};
   if (db.tables?.textStyleTable) {
     try {
-      const styleTable = db.tables.textStyleTable as any;
-      const records = styleTable.newIterator ? styleTable.newIterator().toArray() : (styleTable.records || []);
+      const styleTable = db.tables.textStyleTable;
+      const records = styleTable.newIterator().toArray();
       for (const rec of records) {
         const name = rec.name || "STANDARD";
         textStyles[name] = {
           id: name,
           name,
-          fontFileName: rec.fileName || rec.fontFileName || rec.font || "",
-          bigFontFileName: rec.bigFontFileName || rec.bigFont || "",
+          fontFileName: rec.fileName || "",
+          bigFontFileName: rec.bigFontFileName || "",
           height: typeof rec.textSize === "number" ? rec.textSize : 0,
           widthFactor: typeof rec.xScale === "number" && rec.xScale > 0 ? rec.xScale : 1,
           obliqueAngleDeg: typeof rec.obliquingAngle === "number" ? (rec.obliquingAngle * 180 / Math.PI) : 0,
@@ -148,7 +403,7 @@ export async function parseDxfToCanonical(
   }
 
   // 2. DXF Varlık Çevirici Yardımcı Fonksiyon
-  const applyDxfXclip = (rawEntity: any, converted: CadEntity | null) => {
+  const applyDxfXclip = (rawEntity: DxfAdapterEntity, converted: CadEntity | null) => {
     if (!converted || converted.type !== "INSERT") return;
     const rawHandle = String(rawEntity?.handle ?? rawEntity?.objectId ?? "").trim().toUpperCase();
     const xclip = dxfXclips.get(rawHandle);
@@ -169,7 +424,7 @@ export async function parseDxfToCanonical(
       entityHandle: converted.handle,
     });
   };
-  function convertDxfEntity(ent: any, orderVal: bigint): CadEntity | null {
+  function convertDxfEntity(ent: DxfAdapterEntity, orderVal: bigint): CadEntity | null {
     if (!ent) return null;
     const type = (ent.dxfTypeName || "").toUpperCase();
 
@@ -187,7 +442,10 @@ export async function parseDxfToCanonical(
     let color: CadColor | undefined = undefined;
     const col = ent.color || ent._color;
     if (col) {
-      const hasRgb = col.red != null && col.green != null && col.blue != null;
+      const red = col.red;
+      const green = col.green;
+      const blue = col.blue;
+      const hasRgb = typeof red === "number" && typeof green === "number" && typeof blue === "number";
       if (col.colorIndex === 0) {
         color = { method: "byBlock", alpha };
       } else if (col.colorIndex === 256) {
@@ -195,7 +453,7 @@ export async function parseDxfToCanonical(
       } else if (hasRgb) {
         color = {
           method: "rgb",
-          rgb: [col.red, col.green, col.blue],
+          rgb: [red!, green!, blue!],
           aci: typeof col.colorIndex === "number" ? col.colorIndex : undefined,
           alpha,
         };
@@ -287,21 +545,24 @@ export async function parseDxfToCanonical(
       }
 
       case "LWPOLYLINE": {
+        const geometryVertices = ent._geo?.vertices;
         const rawVerts = (Array.isArray(ent.vertices) && ent.vertices.length > 0)
           ? ent.vertices
           : (Array.isArray(ent._geo?._vertices) && ent._geo._vertices.length > 0)
           ? ent._geo._vertices
-          : (typeof ent._geo?.vertices === "function" ? ent._geo.vertices() : undefined) || [];
+          : (typeof geometryVertices === "function" ? geometryVertices() : undefined) || [];
 
         const vertices: Array<{ x: number; y: number; bulge?: number; startWidth?: number; endWidth?: number }> = [];
         if (Array.isArray(rawVerts) && rawVerts.length > 0) {
           for (const v of rawVerts) {
+            const [x, y] = toDxfPoint(v);
+            const vertexData = Array.isArray(v) ? undefined : v;
             vertices.push({
-              x: typeof v.x === "number" ? v.x : (Array.isArray(v) ? v[0] : 0),
-              y: typeof v.y === "number" ? v.y : (Array.isArray(v) ? v[1] : 0),
-              bulge: typeof v.bulge === "number" ? v.bulge : undefined,
-              startWidth: typeof v.startWidth === "number" ? v.startWidth : undefined,
-              endWidth: typeof v.endWidth === "number" ? v.endWidth : undefined,
+              x,
+              y,
+              bulge: typeof vertexData?.bulge === "number" ? vertexData.bulge : undefined,
+              startWidth: typeof vertexData?.startWidth === "number" ? vertexData.startWidth : undefined,
+              endWidth: typeof vertexData?.endWidth === "number" ? vertexData.endWidth : undefined,
             });
           }
         } else if (typeof ent.numberOfVertices === "function" && typeof ent.getPoint2dAt === "function") {
@@ -409,7 +670,7 @@ export async function parseDxfToCanonical(
         const rawControlPoints = source?.controlPoints || ent.controlPoints || ent._geo?._nurbsCurve?._controlPoints || [];
         const cp: Array<[number, number]> = source
           ? source.controlPoints.map(([x, y]) => [x, y])
-          : rawControlPoints.map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
+          : rawControlPoints.map((point) => toDxfPoint(point));
         return {
           ...base,
           handle: splineHandle,
@@ -424,12 +685,15 @@ export async function parseDxfToCanonical(
       }
 
       case "HATCH": {
-        const loops: any[] = [];
+        const loops: CadHatchLoop[] = [];
         const rawLoops = ent.boundaryLoops || ent.boundaryPaths || ent.loops || ent._geo?._loops || [];
         for (const rl of rawLoops) {
-          const rawVerts = rl.vertices || rl._vertices || (typeof rl.vertices === "function" ? rl.vertices() : undefined);
+          const loopVertices = rl.vertices;
+          const rawVerts = Array.isArray(loopVertices)
+            ? loopVertices
+            : typeof loopVertices === "function" ? loopVertices() : rl._vertices;
           const isPoly = rl.isPolyline != null ? !!rl.isPolyline : (Array.isArray(rawVerts) && rawVerts.length > 0);
-          const loop: any = {
+          const loop: CadHatchLoop = {
             isPolyline: isPoly,
             boundaryPathTypeFlag: typeof rl.boundaryPathTypeFlag === "number" ? rl.boundaryPathTypeFlag : undefined,
             hasBulge: rl.hasBulge != null ? Boolean(rl.hasBulge) : undefined,
@@ -440,8 +704,7 @@ export async function parseDxfToCanonical(
             const bulges: number[] = [];
             let hasAnyBulge = false;
             for (const v of rawVerts) {
-              const vx = Array.isArray(v) ? (v[0] || 0) : (v.x || 0);
-              const vy = Array.isArray(v) ? (v[1] || 0) : (v.y || 0);
+              const [vx, vy] = toDxfPoint(v);
               verts.push([vx, vy]);
               const b = (!Array.isArray(v) && typeof v.bulge === "number") ? v.bulge : 0;
               bulges.push(b);
@@ -452,7 +715,7 @@ export async function parseDxfToCanonical(
               loop.bulges = bulges;
             }
           } else if (Array.isArray(rl.edges)) {
-            const edges: any[] = [];
+            const edges: NonNullable<CadHatchLoop["edges"]> = [];
             for (const ed of rl.edges) {
               const edgeType = typeof ed.type === "number" ? ed.type : (ed.type || "").toUpperCase();
               if (edgeType === 1 || edgeType === "LINE" || (ed.startPoint && ed.endPoint)) {
@@ -486,7 +749,7 @@ export async function parseDxfToCanonical(
                   ccw: ed.isCCW != null ? Boolean(ed.isCCW) : ed.ccw !== false,
                 });
               } else if (edgeType === 4 || edgeType === "SPLINE") {
-                const cp = (ed.controlPoints || []).map((p: any) => [p.x || 0, p.y || 0] as [number, number]);
+                const cp = (ed.controlPoints || []).map((point) => toDxfPoint(point));
                 edges.push({
                   type: "SPLINE",
                   degree: ed.degree || 3,
@@ -519,7 +782,7 @@ export async function parseDxfToCanonical(
       }
 
       case "WIPEOUT": {
-        const vertices = (ent.vertices || []).map((v: any) => [v.x || 0, v.y || 0] as [number, number]);
+        const vertices = (ent.vertices || []).map((vertex) => toDxfPoint(vertex));
         return {
           ...base,
           type: "WIPEOUT",
@@ -606,10 +869,7 @@ export async function parseDxfToCanonical(
       }
 
       case "LEADER": {
-        const vertices: [number, number][] = (ent.vertices || ent.points || []).map((p: any) => [
-          p.x || (Array.isArray(p) ? p[0] : 0),
-          p.y || (Array.isArray(p) ? p[1] : 0),
-        ]);
+        const vertices: [number, number][] = (ent.vertices || ent.points || []).map((point) => toDxfPoint(point));
         return {
           ...base,
           type: "LEADER",
@@ -635,10 +895,9 @@ export async function parseDxfToCanonical(
   try {
     const modelSpace = db.tables?.blockTable?.modelSpace;
     if (modelSpace) {
-      const rawEntities: any[] = modelSpace.newIterator ? (modelSpace.newIterator().toArray() as any[]) : [];
+      const rawEntities = modelSpace.newIterator().toArray();
       for (const item of rawEntities) {
-        const ent = typeof item === "string" ? (db.openEntityForRead(item) as any) : item;
-        if (!ent) continue;
+        const ent = asDxfAdapterEntity(item);
         const converted = convertDxfEntity(ent, currentOrder++);
         if (converted) {
           applyDxfXclip(ent, converted);
@@ -666,23 +925,21 @@ export async function parseDxfToCanonical(
   const paperSpaceEntities: Record<string, CadEntity[]> = {};
 
   // LAYOUT kayıtları Object Table'dadır (`db.objects.layout`), symbols/tables altında değil.
-  const layoutTable = (db as any).objects?.layout || (db.tables as unknown as { layoutTable?: any } | undefined)?.layoutTable;
+  const layoutTable = db.objects.layout;
   if (layoutTable) {
     try {
-      const lt = layoutTable;
-      const records = lt.newIterator ? lt.newIterator().toArray() : [];
+      const records = layoutTable.newIterator().toArray();
       for (let lIdx = 0; lIdx < records.length; lIdx++) {
         const rec = records[lIdx];
-        const name = rec.layoutName || rec.name || `Layout${lIdx + 1}`;
-        const blockTable = db.tables?.blockTable as any;
-        const blockRecord = rec.blockTableRecordId && blockTable?.getIdAt ? blockTable.getIdAt(rec.blockTableRecordId) : undefined;
-        const isModel = rec.isModelSpace != null ? Boolean(rec.isModelSpace) : (name === "Model" || blockRecord?.name === "*Model_Space");
+        const name = rec.layoutName || `Layout${lIdx + 1}`;
+        const blockRecord = rec.blockTableRecordId ? db.tables.blockTable.getIdAt(rec.blockTableRecordId) : undefined;
+        const isModel = name === "Model" || blockRecord?.name === "*Model_Space";
         const id = isModel ? "Model" : name;
-        const bName = blockRecord?.name || rec.blockRecordName || (isModel ? "*Model_Space" : (name === "Model" ? "*Model_Space" : `*Paper_Space${lIdx > 1 ? lIdx - 1 : ""}`));
+        const bName = blockRecord?.name || (isModel ? "*Model_Space" : `*Paper_Space${lIdx > 1 ? lIdx - 1 : ""}`);
 
         let bbox: CadBBox2D = [0, 0, 1000, 1000];
-        const min = rec.extents?.min || rec.limmin || rec.limits?.min;
-        const max = rec.extents?.max || rec.limmax || rec.limits?.max;
+        const min = rec.extents?.min || rec.limits?.min;
+        const max = rec.extents?.max || rec.limits?.max;
         if (min && max && [min.x, min.y, max.x, max.y].every(Number.isFinite) && max.x > min.x && max.y > min.y) {
           bbox = [min.x, min.y, max.x, max.y];
         }
@@ -706,8 +963,8 @@ export async function parseDxfToCanonical(
   const blocks: Record<string, CadBlockDefinition> = {};
   if (db.tables?.blockTable) {
     try {
-      const bt = db.tables.blockTable as any;
-      const records = bt.newIterator ? bt.newIterator().toArray() : [];
+      const blockTable = db.tables.blockTable;
+      const records = blockTable.newIterator().toArray();
       for (const rec of records) {
         const name = rec.name;
         if (!name || name.startsWith("*Model_Space")) {
@@ -725,11 +982,10 @@ export async function parseDxfToCanonical(
           }
         }
 
-        const rawEntities: any[] = rec.newIterator ? (rec.newIterator().toArray() as any[]) : [];
+        const rawEntities = rec.newIterator().toArray();
         const bEntities: CadEntity[] = [];
         for (const item of rawEntities) {
-          const ent = typeof item === "string" ? (db.openEntityForRead(item) as any) : item;
-          if (!ent) continue;
+          const ent = asDxfAdapterEntity(item);
 
           const entType = (ent.dxfTypeName || ent.type || "").toUpperCase();
           if (entType === "VIEWPORT") {
@@ -752,7 +1008,7 @@ export async function parseDxfToCanonical(
             const vpId = ent.handle ? String(ent.handle) : `vp_${order}`;
             const frozenLayerIds: string[] = ent.frozenLayers || ent.frozenLayerNames || [];
             const frozenLayerNames = Array.isArray(ent.frozenLayerIds)
-              ? ent.frozenLayerIds.map((layerId: string) => (db as any).openObjectForRead?.(layerId)?.name || layerId)
+              ? ent.frozenLayerIds.map((layerId) => db.openObjectForRead<AcDbLayerTableRecord>(layerId)?.name || layerId)
               : frozenLayerIds;
             const clipBoundaryObjectId = ent.clippingBoundaryId ? String(ent.clippingBoundaryId) : undefined;
             if (clipBoundaryObjectId && !Array.isArray(ent.clipPolygon)) {
@@ -773,7 +1029,7 @@ export async function parseDxfToCanonical(
               viewHeight: typeof ent.viewHeight === "number" && ent.viewHeight > 0 ? ent.viewHeight : 100,
               twistAngleRad,
               frozenLayers: frozenLayerNames,
-              clipPolygon: Array.isArray(ent.clipPolygon) ? ent.clipPolygon.map((p: any) => [p.x ?? p[0] ?? 0, p.y ?? p[1] ?? 0] as [number, number]) : undefined,
+              clipPolygon: Array.isArray(ent.clipPolygon) ? ent.clipPolygon.map((point) => toDxfPoint(point)) : undefined,
               clipBoundaryObjectId,
               layerOverrides: ent.layerOverrides,
             };
@@ -840,11 +1096,10 @@ export async function parseDxfToCanonical(
   };
 
   try {
-    if (typeof (db as any).clear === "function") {
-      (db as any).clear();
-    }
+    const clearableDatabase = db as unknown as { clear?: () => void };
+    clearableDatabase.clear?.();
     if (typeof acdbAssignWorkingDatabase === "function") {
-      acdbAssignWorkingDatabase(null as any);
+      acdbAssignWorkingDatabase(null as unknown as AcDbDatabase);
     }
   } catch {
     // Toleranslı temizleme

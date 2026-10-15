@@ -87,9 +87,9 @@ async function runRealSceneRenderTests() {
   let magicRejected = false;
   try {
     unpackSceneChunk("corrupted_magic", corruptedMagicBytes);
-  } catch (err: any) {
+  } catch (err: unknown) {
     magicRejected = true;
-    console.log(`- Bozuk magic başarıyla reddedildi: ${err.message}`);
+    console.log(`- Bozuk magic başarıyla reddedildi: ${err instanceof Error ? err.message : String(err)}`);
   }
   assert(magicRejected, "Bozuk magic header istisna fırlatarak reddedildi");
 
@@ -98,9 +98,9 @@ async function runRealSceneRenderTests() {
   let truncatedRejected = false;
   try {
     unpackSceneChunk("truncated", truncatedBytes);
-  } catch (err: any) {
+  } catch (err: unknown) {
     truncatedRejected = true;
-    console.log(`- Kırpılmış parça başarıyla reddedildi: ${err.message}`);
+    console.log(`- Kırpılmış parça başarıyla reddedildi: ${err instanceof Error ? err.message : String(err)}`);
   }
   assert(truncatedRejected, "Kırpılmış parça istisna fırlatarak reddedildi");
 
@@ -111,9 +111,9 @@ async function runRealSceneRenderTests() {
   let schemaRejected = false;
   try {
     unpackSceneChunk("bad_schema", badSchemaBytes);
-  } catch (err: any) {
+  } catch (err: unknown) {
     schemaRejected = true;
-    console.log(`- Bilinmeyen şema sürümü başarıyla reddedildi: ${err.message}`);
+    console.log(`- Bilinmeyen şema sürümü başarıyla reddedildi: ${err instanceof Error ? err.message : String(err)}`);
   }
   assert(schemaRejected, "Bilinmeyen şema sürümü reddedildi");
 

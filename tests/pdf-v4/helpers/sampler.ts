@@ -1,5 +1,23 @@
 import type { Page } from "@playwright/test";
 
+interface PdfSamplerRuntime {
+  active: boolean;
+  t0: number;
+  last: number;
+  frames: number;
+  blankFrames: number;
+  blankPages: Record<string, number>;
+  gaps: number[];
+  longTasks: number[];
+  states: { t: number; s: string | null }[];
+}
+
+declare global {
+  interface Window {
+    __pdfSampler?: PdfSamplerRuntime;
+  }
+}
+
 /**
  * Tarayıcı içinde her karede çalışan örnekleyici. `addInitScript` ile sayfaya
  * enjekte edilir, `samplerStart/Stop` ile açılıp kapanır.
@@ -71,7 +89,7 @@ export interface SamplerResult {
 
 export async function samplerStart(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const S = (window as any).__pdfSampler;
+    const S = window.__pdfSampler;
     if (!S) throw new Error("Sampler enjekte edilmemiş: testte `test` fixture'ını helpers/test.ts'den import et.");
     Object.assign(S, { active: true, t0: performance.now(), last: 0, frames: 0, blankFrames: 0, blankPages: {}, gaps: [], longTasks: [], states: [] });
   });
@@ -79,7 +97,8 @@ export async function samplerStart(page: Page): Promise<void> {
 
 export async function samplerStop(page: Page): Promise<SamplerResult> {
   const raw = await page.evaluate(() => {
-    const S = (window as any).__pdfSampler;
+    const S = window.__pdfSampler;
+    if (!S) throw new Error("Sampler başlatılmadan durdurulamaz.");
     S.active = false;
     return { frames: S.frames, blankFrames: S.blankFrames, blankPages: S.blankPages, gaps: S.gaps as number[], longTasks: S.longTasks as number[], states: S.states as { t: number; s: string | null }[] };
   });

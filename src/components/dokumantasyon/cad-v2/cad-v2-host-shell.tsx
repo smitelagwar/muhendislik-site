@@ -43,6 +43,7 @@ import {
   type ValidatedSceneManifest,
 } from "@/lib/cad-v2/protocol/binary-protocol";
 import { formatBytes } from "../ui-helpers";
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 
 export interface CadV2HostShellProps {
   accessUrl?: string;
@@ -394,8 +395,11 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
                 throw new Error(`Parça indirilemedi (${chunkRes.status}): ${ch.chunkId}`);
               }
               chunkBuf = await chunkRes.arrayBuffer();
-            } catch (fetchErr: any) {
-              if (fetchErr.name === "AbortError" || signal.aborted) return;
+            } catch (fetchErr: unknown) {
+              if (
+                (typeof fetchErr === "object" && fetchErr !== null && "name" in fetchErr && fetchErr.name === "AbortError") ||
+                signal.aborted
+              ) return;
               if (attempt >= 3) throw fetchErr;
               await new Promise((r) => setTimeout(r, 250 * attempt));
             }
@@ -493,10 +497,10 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
 
       refinementEnabledRef.current = true;
       if (latestCameraStateRef.current) requestRefinementRef.current(latestCameraStateRef.current);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (signal.aborted || isCancelledRef.current) return;
       setPhase("error");
-      setErrorMessage(err?.message || "Beklenmeyen bir hata oluştu.");
+      setErrorMessage(getErrorMessage(err) || "Beklenmeyen bir hata oluştu.");
     }
   }, [apiBase, authHeaders, fileId, sourceVersionKey, publicToken, scheduleHeartbeat]);
 
@@ -613,14 +617,15 @@ export const CadV2HostShell: React.FC<CadV2HostShellProps> = ({
   const handleRendererReady = useCallback((renderer: CadV2Renderer) => {
     rendererRef.current = renderer;
     if (typeof window !== "undefined") {
-      (window as any).__cadRenderer = renderer;
+      const browserWindow = window as typeof window & { __cadRenderer?: CadV2Renderer };
+      browserWindow.__cadRenderer = renderer;
     }
   }, []);
 
-  const handleCameraChange = useCallback((camState: any) => {
-    if (camState && Number.isFinite(camState.unitsPerCssPixel) && camState.unitsPerCssPixel > 0) {
-      latestCameraStateRef.current = camState as CadCameraState;
-      requestRefinementRef.current(camState as CadCameraState);
+  const handleCameraChange = useCallback((camState: CadCameraState) => {
+    if (Number.isFinite(camState.unitsPerCssPixel) && camState.unitsPerCssPixel > 0) {
+      latestCameraStateRef.current = camState;
+      requestRefinementRef.current(camState);
     }
     if (fitURef.current && fitURef.current > 0 && camState?.unitsPerCssPixel > 0) {
       const pct = (fitURef.current / camState.unitsPerCssPixel) * 100;

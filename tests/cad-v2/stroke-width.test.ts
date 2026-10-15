@@ -371,13 +371,21 @@ async function runF02StrokeWidthTests() {
 
   // Varlık polyline width taşıyorsa, polyline width dünya uzayında çizilir.
   // Centerline'a lineweightMm atanarak çift kalınlaştırma yapılmaz!
-  const docWithBoth: any = {
+  const docWithBoth: import("../../src/lib/cad-v2/canonical/types").CadCanonicalDocument = {
     sourceSha256: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
     sourceVersionKey: "REV_STROKE_DOC",
+    acadVersion: "AC1032",
+    codepage: "ANSI_1252",
+    units: 4,
+    measurement: 1,
     layers: {
       "0": { id: "0", name: "0", visible: true, frozen: false, locked: false, color: { method: "aci", aci: 7 }, lineweightMm: 1.00, linetypeName: "Continuous" },
     },
     blocks: {},
+    linetypes: {},
+    textStyles: {},
+    layouts: {},
+    viewports: {},
     modelSpaceEntities: [
       // 1. Saf ince çizgi (lineweight = 1.00 almalı)
       {
@@ -408,7 +416,8 @@ async function runF02StrokeWidthTests() {
         isClosed: false,
       },
     ],
-    paperSpaceLayouts: [],
+    paperSpaceEntities: {},
+    diagnostics: [],
   };
 
   const sceneResult = compileCanonicalToScene(docWithBoth);
@@ -418,22 +427,24 @@ async function runF02StrokeWidthTests() {
   const parsedChunk = parseSceneChunk(chunkBytes);
 
   const metaRaw = parsedChunk.sections.get(SceneTag.META)!.data as Uint8Array;
-  const meta = JSON.parse(new TextDecoder().decode(metaRaw));
+  const meta = JSON.parse(new TextDecoder().decode(metaRaw)) as {
+    drawCommands?: Array<{ kind: string; lineweightMm?: number }>;
+  };
 
   // drawCommands ve layerRuns içinde lineweight kontrolü
-  const drawCmds = meta.drawCommands;
+  const drawCmds = meta.drawCommands ?? [];
   assert(drawCmds && drawCmds.length >= 2, "En az 2 drawCommand bulunmalı");
 
   // Çizgi 1 (LINE): lineweightMm = 1.0
-  const lineCmd = drawCmds.find((c: any) => c.kind === "line" && Math.abs(c.lineweightMm - 1.0) < 1e-4);
+  const lineCmd = drawCmds.find((command) => command.kind === "line" && Math.abs((command.lineweightMm ?? 0) - 1.0) < 1e-4);
   assert(lineCmd, "LINE komutu 1.00 mm lineweight taşımalı");
 
   // Genişlikli polyline üçgen komutu (triangle)
-  const triCmd = drawCmds.find((c: any) => c.kind === "triangle");
+  const triCmd = drawCmds.find((command) => command.kind === "triangle");
   assert(triCmd, "Genişlikli polyline üçgen komutu üretmeli");
 
   // Genişlikli polyline'ın centerline komutu (lineweightMm = 0)
-  const zeroLwLineCmd = drawCmds.find((c: any) => c.kind === "line" && Math.abs(c.lineweightMm - 0.0) < 1e-4);
+  const zeroLwLineCmd = drawCmds.find((command) => command.kind === "line" && Math.abs((command.lineweightMm ?? 0) - 0.0) < 1e-4);
   assert(zeroLwLineCmd, "Genişlikli polyline centerline komutu çift kalınlaştırmayı önlemek için lineweight 0 taşımalı");
 
   console.log("  ✓ Kapı 11 PASS: Polyline width ve lineweight çakışmama kuralı");

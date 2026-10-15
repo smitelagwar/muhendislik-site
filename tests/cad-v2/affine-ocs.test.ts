@@ -257,7 +257,7 @@ async function runR001ProbeAudit() {
     layers: doc.layers || {},
   });
 
-  const auditRecords: any[] = [];
+  const auditRecords: unknown[] = [];
 
   for (const handle of targetHandles) {
     const ent = doc.modelSpaceEntities.find((e) => e.handle === handle) as CadInsertEntity | undefined;

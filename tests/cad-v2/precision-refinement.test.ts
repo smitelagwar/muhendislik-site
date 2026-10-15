@@ -317,7 +317,7 @@ function testWorldTrianglesStayFloat64UntilOriginSubtraction(): void {
     loops: [{ isPolyline: true, isClosed: true, vertices: [
       [ORIGIN, ORIGIN], [ORIGIN + 0.01, ORIGIN], [ORIGIN + 0.01, ORIGIN + 0.01], [ORIGIN, ORIGIN + 0.01],
     ] }],
-  } as any);
+  });
   assert.ok(hatch.mesh?.vertices instanceof Float64Array, "world-space HATCH triangles remain Float64 before chunk normalization");
   const hatchXs = Array.from(hatch.mesh!.vertices).filter((_, index) => index % 2 === 0);
   near(Math.max(...hatchXs) - Math.min(...hatchXs), 0.01, 2e-7, "HATCH detail is preserved at 1e9 origin");
@@ -348,7 +348,8 @@ function testChunkLocalFloat32RetainsOneHundredthDetailAtBillionOrigin(): void {
   const xy = parsed.sections.get(SceneTag.XY)!.data as Float32Array;
   const origin = parsed.sections.get(SceneTag.ORIGIN)!.data as Float64Array;
   const meta = JSON.parse(new TextDecoder().decode(parsed.sections.get(SceneTag.META)!.data as Uint8Array));
-  const detail = meta.drawCommands.find((command: any) => command.layer === "DETAIL");
+  const drawCommands = meta.drawCommands as Array<{ layer: string; firstVertex: number }>;
+  const detail = drawCommands.find((command) => command.layer === "DETAIL");
   assert.ok(detail, "small LINE remains in the scene");
   const start = detail.firstVertex * 2;
   const actualLength = Math.hypot(xy[start + 2]! - xy[start]!, xy[start + 3]! - xy[start + 1]!);

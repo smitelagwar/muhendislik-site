@@ -24,12 +24,37 @@ export interface CadV2RendererOptions {
 
 function createThreeColor(r: number, g: number, b: number): THREE.Color {
   const c = new THREE.Color();
-  (c as any).setRGB(r, g, b, (THREE as any).SRGBColorSpace);
+  c.setRGB(r, g, b, THREE.SRGBColorSpace);
   return c;
 }
 
 function applyThreeColor(color: THREE.Color, r: number, g: number, b: number): void {
-  (color as any).setRGB(r, g, b, (THREE as any).SRGBColorSpace);
+  color.setRGB(r, g, b, THREE.SRGBColorSpace);
+}
+
+function getObjectMaterials(object: THREE.Object3D): THREE.Material[] {
+  if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.Line)) return [];
+  return Array.isArray(object.material) ? object.material : [object.material];
+}
+
+function getColorMaterialColor(material: THREE.Material): THREE.Color | null {
+  if (material instanceof THREE.MeshBasicMaterial || material instanceof THREE.LineBasicMaterial) {
+    return material.color;
+  }
+  return null;
+}
+
+function getOriginalColor(userData: Record<string, unknown>): [number, number, number] {
+  const color = userData.originalColor;
+  if (
+    Array.isArray(color) &&
+    typeof color[0] === "number" &&
+    typeof color[1] === "number" &&
+    typeof color[2] === "number"
+  ) {
+    return [color[0], color[1], color[2]];
+  }
+  return [0.9, 0.9, 0.9];
 }
 
 export class CadV2Renderer {
@@ -57,7 +82,7 @@ export class CadV2Renderer {
   private resizeObserver: ResizeObserver | null = null;
   private boundContextLost: (e: Event) => void;
   private boundContextRestored: (e: Event) => void;
-  private contextRecoveryTimer: any = null;
+  private contextRecoveryTimer: ReturnType<typeof setTimeout> | null = null;
   private loadedChunks = new Map<
     string,
     {
@@ -94,7 +119,7 @@ export class CadV2Renderer {
     this.renderer.setSize(width, height, false);
     this.renderer.sortObjects = true; // Painter's order korunur (renderOrder sıralaması)
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    (this.renderer as any).toneMapping = (THREE as any).NoToneMapping;
+    this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.setClearColor(this.backgroundColorHex, 1);
 
     // 2. Sahne ve Kamera
@@ -297,7 +322,7 @@ export class CadV2Renderer {
         let r = cmd.color[0] ?? 0.9;
         let g = cmd.color[1] ?? 0.9;
         let b = cmd.color[2] ?? 0.9;
-        const isAci7 = (cmd as any).isAci7 === true;
+        const isAci7 = cmd.isAci7 === true;
 
         if (cmd.kind === "line") {
           const xy = chunk.xyArray;
@@ -347,19 +372,19 @@ export class CadV2Renderer {
                 scale: 1,
               })
             : new THREE.LineBasicMaterial(materialOptions);
-          (mat as any).userData = {
+          mat.userData = {
             originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
             isAci7,
             alpha: cmd.alpha ?? 1,
           };
 
           const lines = new THREE.LineSegments(geom, mat);
-          (lines as any).frustumCulled = false;
+          lines.frustumCulled = false;
           lines.name = cmd.layer;
           lines.renderOrder = cmd.renderOrder;
           const layerVis = this.layerVisibility.get(cmd.layer) ?? true;
           lines.visible = layerVis;
-          (lines as any).userData = {
+          lines.userData = {
             isLineCenterline: true,
             lineweightMm: cmd.lineweightMm,
             layer: cmd.layer,
@@ -392,17 +417,17 @@ export class CadV2Renderer {
                 depthTest: false,
                 depthWrite: false,
               });
-              (thickMat as any).userData = {
+              thickMat.userData = {
                 originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
                 isAci7,
                 alpha: cmd.alpha ?? 1,
               };
               const thickMesh = new THREE.Mesh(thickGeom, thickMat);
-              (thickMesh as any).frustumCulled = false;
+              thickMesh.frustumCulled = false;
               thickMesh.name = cmd.layer;
               thickMesh.renderOrder = cmd.renderOrder;
               thickMesh.visible = this.isLineweight && layerVis;
-              (thickMesh as any).userData = {
+              thickMesh.userData = {
                 isLineweightMesh: true,
                 lineweightMm: cmd.lineweightMm,
                 layer: cmd.layer,
@@ -444,14 +469,14 @@ export class CadV2Renderer {
             depthTest: false,
             depthWrite: false,
           });
-          (mat as any).userData = {
+          mat.userData = {
             originalColor: [cmd.color[0], cmd.color[1], cmd.color[2]],
             isAci7,
             alpha: cmd.alpha ?? 1,
           };
 
           const mesh = new THREE.Mesh(geom, mat);
-          (mesh as any).frustumCulled = false;
+          mesh.frustumCulled = false;
           mesh.name = cmd.layer;
           mesh.renderOrder = cmd.renderOrder;
           mesh.visible = this.layerVisibility.get(cmd.layer) ?? true;
@@ -482,7 +507,7 @@ export class CadV2Renderer {
           mat.userData = { isWipeout: true, originalColor: [1, 1, 1] };
 
           const mesh = new THREE.Mesh(geom, mat);
-          (mesh as any).frustumCulled = false;
+          mesh.frustumCulled = false;
           mesh.userData = { isWipeout: true };
           mesh.name = cmd.layer;
           mesh.renderOrder = cmd.renderOrder;
@@ -497,6 +522,7 @@ export class CadV2Renderer {
         color: [number, number, number];
         firstVertex: number;
         vertexCount: number;
+        isAci7?: boolean;
       }> = chunk.meta?.layerRuns || [];
 
       if (layerRuns.length > 0) {
@@ -505,6 +531,7 @@ export class CadV2Renderer {
           color: [number, number, number];
           totalVertices: number;
           runs: Array<{ firstVertex: number; vertexCount: number }>;
+          isAci7?: boolean;
         }> = [];
 
         for (const run of layerRuns) {
@@ -512,6 +539,7 @@ export class CadV2Renderer {
           if (
             last &&
             last.layer === run.layer &&
+            (last.isAci7 ?? false) === (run.isAci7 ?? false) &&
             Math.abs(last.color[0] - run.color[0]) < 1e-4 &&
             Math.abs(last.color[1] - run.color[1]) < 1e-4 &&
             Math.abs(last.color[2] - run.color[2]) < 1e-4
@@ -524,6 +552,7 @@ export class CadV2Renderer {
               color: run.color,
               totalVertices: run.vertexCount,
               runs: [run],
+              isAci7: run.isAci7,
             });
           }
         }
@@ -548,7 +577,7 @@ export class CadV2Renderer {
           let r = group.color[0] ?? 0.9;
           let g = group.color[1] ?? 0.9;
           let b = group.color[2] ?? 0.9;
-          const isAci7 = (group as any).isAci7 === true;
+          const isAci7 = group.isAci7 === true;
 
           if (isLight && !this.isMonochrome && isAci7) {
             r = 0.08; g = 0.08; b = 0.08;
@@ -570,13 +599,13 @@ export class CadV2Renderer {
             depthTest: false,
             depthWrite: false,
           });
-          (subMat as any).userData = {
+          subMat.userData = {
             originalColor: [group.color[0] ?? 0.9, group.color[1] ?? 0.9, group.color[2] ?? 0.9],
             isAci7,
           };
 
           const subLines = new THREE.LineSegments(subGeom, subMat);
-          (subLines as any).frustumCulled = false;
+          subLines.frustumCulled = false;
           subLines.name = group.layer;
           subLines.renderOrder = baseOrder + rIdx;
           subLines.visible = this.layerVisibility.get(group.layer) ?? true;
@@ -600,10 +629,10 @@ export class CadV2Renderer {
           depthTest: false,
           depthWrite: false,
         });
-        (material as any).userData = { originalColor: [1, 1, 1] };
+        material.userData = { originalColor: [1, 1, 1] };
 
         const lineSegments = new THREE.LineSegments(geometry, material);
-        (lineSegments as any).frustumCulled = false;
+        lineSegments.frustumCulled = false;
         lineSegments.name = "0";
         lineSegments.renderOrder = baseOrder;
         chunkGroup.add(lineSegments);
@@ -650,16 +679,9 @@ export class CadV2Renderer {
 
     this.scene.remove(item.group);
     for (const child of item.group.children) {
-      if ((child as any).geometry) {
-        (child as any).geometry.dispose();
-      }
-      if ((child as any).material) {
-        const mat = (child as any).material;
-        if (Array.isArray(mat)) {
-          mat.forEach((m: any) => m.dispose());
-        } else {
-          mat.dispose();
-        }
+      if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+        child.geometry.dispose();
+        for (const material of getObjectMaterials(child)) material.dispose();
       }
     }
     this.loadedChunks.delete(chunkId);
@@ -695,11 +717,9 @@ export class CadV2Renderer {
   private disposeChunkGroup(group: THREE.Group): void {
     this.scene.remove(group);
     for (const child of group.children) {
-      if ((child as any).geometry) (child as any).geometry.dispose();
-      if ((child as any).material) {
-        const material = (child as any).material;
-        if (Array.isArray(material)) material.forEach((item: THREE.Material) => item.dispose());
-        else material.dispose();
+      if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+        child.geometry.dispose();
+        for (const material of getObjectMaterials(child)) material.dispose();
       }
     }
   }
@@ -801,7 +821,7 @@ export class CadV2Renderer {
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
         if (child.name === layerId) {
-          const u = (child as any).userData;
+          const u = child.userData;
           if (u?.isLineweightMesh) {
             child.visible = visible && this.isLineweight;
           } else {
@@ -831,25 +851,25 @@ export class CadV2Renderer {
 
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
-        if ((child as any).userData?.isWipeout) {
+        if (child.userData.isWipeout === true) {
           // Wipeout maskeleri monokrom mürekkep rengine dönüşmez
           continue;
         }
-        if ((child as any).material && (child as any).material.color) {
+        for (const material of getObjectMaterials(child)) {
+          const color = getColorMaterialColor(material);
+          if (!color) continue;
           if (enabled) {
-            (child as any).material.color.setHex(monoHex);
+            color.setHex(monoHex);
           } else {
-            const orig = (child as any).userData?.originalColor || [0.9, 0.9, 0.9];
-            const isAci7 = (child as any).userData?.isAci7 === true;
-            let [r, g, b] = orig;
-            if (isLight && isAci7) {
+            let [r, g, b] = getOriginalColor(child.userData);
+            if (isLight && child.userData.isAci7 === true) {
               r = 0.08;
               g = 0.08;
               b = 0.08;
             }
-            applyThreeColor((child as any).material.color, r, g, b);
+            applyThreeColor(color, r, g, b);
           }
-          (child as any).material.needsUpdate = true;
+          material.needsUpdate = true;
         }
       }
     }
@@ -863,7 +883,7 @@ export class CadV2Renderer {
     this.isLineweight = enabled;
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
-        const u = (child as any).userData;
+        const u = child.userData;
         if (u?.isLineweightMesh) {
           const layerVis = this.layerVisibility.get(child.name) ?? true;
           child.visible = enabled && layerVis;
@@ -910,29 +930,35 @@ export class CadV2Renderer {
     for (const chunk of Array.from(this.loadedChunks.values())) {
       for (const child of chunk.group.children) {
         // Wipeout maskeleri arka plan rengiyle güncellenir
-        if ((child as any).userData?.isWipeout && (child as any).material) {
-          ((child as any).material as THREE.MeshBasicMaterial).color.setHex(colorHex);
-          ((child as any).material as THREE.MeshBasicMaterial).needsUpdate = true;
+        const materials = getObjectMaterials(child);
+        if (child.userData.isWipeout === true) {
+          for (const material of materials) {
+            if (material instanceof THREE.MeshBasicMaterial) {
+              material.color.setHex(colorHex);
+              material.needsUpdate = true;
+            }
+          }
           continue;
         }
 
         if (wasLight !== isLight || this.isMonochrome) {
           const monoHex = isLight ? 0x111111 : 0xffffff;
-          if ((child as any).material && (child as any).material.color) {
+          for (const material of materials) {
+            const color = getColorMaterialColor(material);
+            if (!color) continue;
             if (this.isMonochrome) {
-              (child as any).material.color.setHex(monoHex);
+              color.setHex(monoHex);
             } else {
-              const orig = (child as any).userData?.originalColor || [0.9, 0.9, 0.9];
-              const isAci7 = (child as any).userData?.isAci7 === true;
-              let [r, g, b] = orig;
+              const isAci7 = child.userData.isAci7 === true;
+              let [r, g, b] = getOriginalColor(child.userData);
               if (isLight && isAci7) {
                 r = 0.08;
                 g = 0.08;
                 b = 0.08;
               }
-              applyThreeColor((child as any).material.color, r, g, b);
+              applyThreeColor(color, r, g, b);
             }
-            (child as any).material.needsUpdate = true;
+            material.needsUpdate = true;
           }
         }
       }

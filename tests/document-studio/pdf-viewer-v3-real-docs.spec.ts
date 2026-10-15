@@ -199,7 +199,7 @@ test.describe("FAZ R5 — Gerçek Belgelerle Doğrulama Matrisi", () => {
       const originalSetData = DataTransfer.prototype.setData;
       DataTransfer.prototype.setData = function (fmt, val) {
         if (fmt === "text/plain") data = val;
-        return originalSetData.apply(this, [fmt, val] as any);
+        return originalSetData.call(this, fmt, val);
       };
       try { document.execCommand("copy"); } catch {}
       DataTransfer.prototype.setData = originalSetData;

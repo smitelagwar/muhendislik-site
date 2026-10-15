@@ -187,7 +187,7 @@ EOF
   console.log("  ✓ Çok baytlı UTF-8 Buffer.byteLength doğrulaması başarılı.");
 
   // Test 4: Fencing İhlalinde veya İptal Edilen İşte Staging Temizliği
-  const fencedJob: any = {
+  const fencedJob: import("../../src/lib/cad-v2/service/cad-v2-durable-service").CadV2Job = {
     jobId: `job_fenced_${Date.now()}`,
     fileId: "fenced_file",
     sourceVersionKey: "v_fenced_1",

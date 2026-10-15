@@ -37,9 +37,15 @@ for (const fx of FIXTURES) {
       await route.fulfill({ json });
     });
 
-    const hasHook = await page.evaluate(() => typeof (window as any).__dokRefreshLease === "function");
+    const hasHook = await page.evaluate(() => {
+      const refreshLease = (window as Window & { __dokRefreshLease?: () => Promise<unknown> }).__dokRefreshLease;
+      return typeof refreshLease === "function";
+    });
     if (hasHook) {
-      await page.evaluate(() => (window as any).__dokRefreshLease());
+      await page.evaluate(async () => {
+        const refreshLease = (window as Window & { __dokRefreshLease?: () => Promise<unknown> }).__dokRefreshLease;
+        await refreshLease?.();
+      });
       await page.waitForTimeout(1000);
     } else {
       reloads = 1; // v3 D2 tespiti: kanca ve koruma yok, yeniden yükleme gerekir

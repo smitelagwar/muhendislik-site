@@ -23,7 +23,7 @@ test("S10 uyumluluk — silinmiş API'lerle PDF açılır", async ({ page, conte
   await expect.poll(() => page.workers().length, { timeout: 10_000 }).toBeGreaterThan(0);
   let preludeSeen = 0;
   for (const w of page.workers()) {
-    if (await w.evaluate(() => (globalThis as any).__COMPAT_PRELUDE_RAN === true).catch(() => false)) preludeSeen = 1;
+    if (await w.evaluate(() => (globalThis as typeof globalThis & { __COMPAT_PRELUDE_RAN?: boolean }).__COMPAT_PRELUDE_RAN === true).catch(() => false)) preludeSeen = 1;
   }
   const fatal = errors.filter((e) => /TypeError|ReferenceError|is not a function|is not defined|Invalid PDF|API version/i.test(e));
   recordAndGate(testInfo, "S10", "desktop", "tr-metin", {

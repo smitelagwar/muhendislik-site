@@ -157,7 +157,8 @@ export class FontLayoutEngine {
 
         // Aile adı ile de kaydet (örn: "arial")
         if (parsed.names?.fontFamily) {
-          const fam = (typeof parsed.names.fontFamily === "string" ? parsed.names.fontFamily : (parsed.names.fontFamily as any)?.en || "").toLowerCase();
+          const familyName = parsed.names.fontFamily;
+          const fam = (typeof familyName === "string" ? familyName : familyName?.en || "").toLowerCase();
           if (fam) {
             if (!this.ttfFonts.has(fam) || isDefault) {
               this.ttfFonts.set(fam, entry);
@@ -548,8 +549,7 @@ export class FontLayoutEngine {
     const scale = fontSize / (font.unitsPerEm || 1000);
     let width = 0;
     try {
-      const fAny = font as any;
-      const glyphs = typeof fAny.stringToGlyphs === "function" ? fAny.stringToGlyphs(text) : [];
+      const glyphs = font.stringToGlyphs(text);
       for (let i = 0; i < glyphs.length; i++) {
         const g = glyphs[i];
         if (g && typeof g.advanceWidth === "number") {
@@ -557,8 +557,8 @@ export class FontLayoutEngine {
         } else {
           width += fontSize * 0.5;
         }
-        if (i < glyphs.length - 1 && typeof fAny.getKerningValue === "function") {
-          const kern = fAny.getKerningValue(g, glyphs[i + 1]);
+        if (i < glyphs.length - 1) {
+          const kern = font.getKerningValue(g, glyphs[i + 1]);
           if (typeof kern === "number") {
             width += kern * scale;
           }
@@ -647,19 +647,15 @@ export class FontLayoutEngine {
     // 1. Temel yazı genişliği ve font metriklerini ölç
     let baseAdvanceWidth = 0;
     let capHeight = height * 0.7;
-    let ascender = height * 0.8;
     let descender = -height * 0.2;
 
     if (resolved.fontType === "ttf" && resolved.ttfFont) {
       const font = resolved.ttfFont;
       const unitsPerEm = font.unitsPerEm || 1000;
       const scale = height / unitsPerEm;
-      const fAny = font as any;
-      if (fAny.tables?.os2?.sCapHeight) {
-        capHeight = fAny.tables.os2.sCapHeight * scale;
-      }
-      if (font.ascender) {
-        ascender = font.ascender * scale;
+      const capHeightUnits = font.tables?.os2?.sCapHeight;
+      if (typeof capHeightUnits === "number" && capHeightUnits > 0) {
+        capHeight = capHeightUnits * scale;
       }
       if (font.descender) {
         descender = font.descender * scale;
@@ -668,7 +664,6 @@ export class FontLayoutEngine {
     } else if (resolved.fontType === "shx" && resolved.shxFont) {
       const shx = resolved.shxFont;
       capHeight = height;
-      ascender = height;
       descender = -height * 0.2;
       for (let i = 0; i < cleanedText.length; i++) {
         const code = cleanedText.charCodeAt(i);
@@ -1110,7 +1105,8 @@ export class FontLayoutEngine {
         }
 
         if (tok.type === TokenType.WORD) {
-          const wText = this.cleanCadText(typeof tok.data === "string" ? tok.data : (tok as any).text || "");
+          const tokenText = "text" in tok && typeof tok.text === "string" ? tok.text : "";
+          const wText = this.cleanCadText(typeof tok.data === "string" ? tok.data : tokenText);
           if (wText) {
             const w = this.measureTextWidth(curFont, wText, curHeight) * curWf * curTracking;
             runs.push({
@@ -1454,7 +1450,7 @@ export class FontLayoutEngine {
             (gx, gy) => {
               // Oblique ve width factor uygula
               let x = gx * run.widthFactor;
-              let y = gy;
+              const y = gy;
               if (tanObl !== 0) {
                 x += y * tanObl;
               }

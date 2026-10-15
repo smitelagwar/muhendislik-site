@@ -4,7 +4,7 @@
 // Sözleşme: motor_v2/25_SABIT_VERI_VE_API_SOZLESMELERI.md, 31_SOZLESME_TAMAMLAMALARI.md
 
 import * as crypto from "node:crypto";
-import type { CadCanonicalDocument, CadEntity, CadBBox2D, CadPoint2D } from "../canonical/types";
+import type { CadCanonicalDocument, CadEntity, CadBBox2D, CadPoint2D, CadLayer } from "../canonical/types";
 import { LayoutManager } from "../layout/layout-manager";
 import {
   buildSceneChunk,
@@ -72,7 +72,7 @@ export interface CompiledSceneOutput {
       bbox: CadBBox2D;
       units: number;
     }>;
-    layers?: Record<string, any>;
+    layers?: Record<string, CadLayer>;
     resources: { metadataIds: string[] };
     indexPages: Array<{
       indexId: string;
@@ -1758,7 +1758,7 @@ export function compileCanonicalToScene(
 
     // Bellek tasarrufu: İşlenen parçanın primitif referanslarını serbest bırak
     for (let pIdx = startIdx; pIdx < endIdx; pIdx++) {
-      (allPrimitives as any)[pIdx] = null;
+    delete allPrimitives[pIdx];
     }
   }
 

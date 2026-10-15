@@ -110,7 +110,7 @@ async function runRenderPipelineTests() {
   {
     pdfRenderQueue.clear();
     let cancelCalled = false;
-    let errorCaught: any = null;
+    let errorCaught: unknown = null;
 
     pdfRenderQueue.enqueue(
       "cancel-test",

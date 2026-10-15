@@ -3,30 +3,20 @@
 import { PDFJS_CMAPS, PDFJS_FONTS } from "@/lib/pdfjs-paths";
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
 import {
-  ArrowLeft,
   Building2,
-  Calendar,
-  Check,
-  CheckCircle2,
-  ExternalLink,
   Eye,
   FileDown,
   FileEdit,
   FileSignature,
-  FileText,
   Loader2,
-  Maximize2,
   Printer,
   RotateCcw,
-  ShieldCheck,
   Trash2,
-  Undo2,
   UserCheck,
   X,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
 import { loadBrowserPdfJs } from "@/lib/pdfjs-client";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
@@ -37,7 +27,10 @@ import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
   BELGE_STUDIO_MOBILE_ACTIONS_CLASS,
+  BELGE_STUDIO_MOBILE_TABLIST_CLASS,
   BELGE_STUDIO_MOBILE_TAB_CLASS,
+  BELGE_STUDIO_PREVIEW_CANVAS_CLASS,
+  BELGE_STUDIO_PREVIEW_PANEL_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import {
@@ -196,17 +189,12 @@ export function TaahhutnameStudio({
       const unscaledViewport = page.getViewport({ scale: 1.0 });
 
       const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-      const availableHeight = Math.max(220, container.clientHeight - (isMobile ? 8 : 12));
-      const availableWidth = Math.max(220, container.clientWidth - (isMobile ? 8 : 12));
+      const availableHeight = Math.max(1, container.clientHeight - (isMobile ? 8 : 12));
+      const availableWidth = Math.max(1, container.clientWidth - (isMobile ? 8 : 12));
 
-      let baseFitScale: number;
-      if (isMobile) {
-        baseFitScale = availableWidth / unscaledViewport.width;
-      } else {
-        const fitScaleByHeight = availableHeight / unscaledViewport.height;
-        const fitScaleByWidth = availableWidth / unscaledViewport.width;
-        baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
-      }
+      const fitScaleByHeight = availableHeight / unscaledViewport.height;
+      const fitScaleByWidth = availableWidth / unscaledViewport.width;
+      const baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
 
       const effectiveScale = baseFitScale * (zoom / 100);
       const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
@@ -478,15 +466,6 @@ export function TaahhutnameStudio({
   };
 
   // Download empty form
-  const handleDownloadBlank = () => {
-    const link = document.createElement("a");
-    link.href = "/belgeler/santiye-sefi-taahhutnamesi.pdf";
-    link.download = "SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Print only the generated PDF; never fall back to printing the HTML page.
   const handlePrint = () => {
     printPdfFromBlobUrl({
@@ -543,7 +522,7 @@ export function TaahhutnameStudio({
       className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
         isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
-          : "rounded-xl sm:rounded-2xl border border-border bg-card/40 shadow-xl backdrop-blur-md"
+          : "rounded-none border-0 bg-transparent shadow-none backdrop-blur-none"
       }`}
     >
       <span role="status" aria-live="polite" className="sr-only">
@@ -597,7 +576,7 @@ export function TaahhutnameStudio({
       <div
         role="tablist"
         aria-label="Belge stüdyosu görünümü"
-        className="flex lg:hidden border-b border-border bg-muted/50 p-1.5 shrink-0 gap-1.5"
+        className={BELGE_STUDIO_MOBILE_TABLIST_CLASS}
       >
         <button
           id={mobileTabIds.formTab}
@@ -614,9 +593,9 @@ export function TaahhutnameStudio({
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <FileEdit className="h-3.5 w-3.5 text-amber-500" />
-          <span>Form Alanları</span>
-          <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
+          <FileEdit className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <span className="min-w-0 truncate">Form Alanları</span>
+          <span className="shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
             {filledFieldCount}/{DOCUMENT_EDITABLE_FIELDS["santiye-sefi-taahhutnamesi"].length}
           </span>
         </button>
@@ -627,6 +606,7 @@ export function TaahhutnameStudio({
           role="tab"
           aria-selected={activeTabMobile === "preview"}
           aria-controls={mobileTabIds.previewPanel}
+          aria-label={syncStatus === "updating" ? "Canlı PDF önizlemesi, hazırlanıyor" : "Canlı PDF önizlemesi, hazır"}
           tabIndex={activeTabMobile === "preview" ? 0 : -1}
           onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
@@ -636,12 +616,12 @@ export function TaahhutnameStudio({
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <Eye className="h-3.5 w-3.5 text-amber-500" />
-          <span>Canlı PDF Önizle</span>
+          <Eye className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <span className="truncate">PDF Önizle</span>
           {syncStatus === "updating" ? (
-            <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+            <Loader2 aria-hidden="true" className="h-3 w-3 shrink-0 animate-spin text-amber-500" />
           ) : (
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
           )}
         </button>
       </div>
@@ -966,82 +946,16 @@ export function TaahhutnameStudio({
           id={mobileTabIds.previewPanel}
           role="tabpanel"
           aria-labelledby={mobileTabIds.previewTab}
-          className={`flex-1 min-h-0 flex flex-col p-2 sm:p-3 overflow-hidden bg-muted/20 ${
+          className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} ${
             activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Canvas Toolbar */}
-          <div
-            role="toolbar"
-            aria-label="PDF önizleme araçları"
-            data-testid="belge-studio-preview-toolbar"
-            className="flex items-center justify-between pb-2 mb-1.5 border-b border-border shrink-0"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-amber-500" />
-                <span>Canlı Belge Önizlemesi</span>
-              </span>
-              <span className="hidden sm:inline-block text-[10px] text-muted-foreground/80 font-mono">
-                (Otomatik Tam Sayfa Sığdırma)
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Reset Zoom / Fit Button */}
-              <button
-                type="button"
-                aria-label="Sığdır"
-                onClick={() => setZoomLevel(100)}
-                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition-all border ${
-                  zoomLevel === 100
-                    ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground"
-                }`}
-                title="Varsayılan tam sayfa sığdırma ölçeğine dön"
-              >
-                Sığdır
-              </button>
-
-              <div className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  aria-label="Uzaklaştır"
-                  onClick={() => setZoomLevel((z) => Math.max(50, z - 25))}
-                  className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Uzaklaştır"
-                >
-                  <ZoomOut className="h-3 w-3" />
-                </button>
-                <span className="text-[10px] font-mono font-semibold px-1 text-muted-foreground min-w-[36px] text-center">
-                  %{zoomLevel}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Yakınlaştır"
-                  onClick={() => setZoomLevel((z) => Math.min(250, z + 25))}
-                  className="rounded-md border border-border bg-background p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="Yakınlaştır"
-                >
-                  <ZoomIn className="h-3 w-3" />
-                </button>
-              </div>
-
-              {blobUrl && (
-                <a
-                  href={blobUrl}
-                  aria-label="PDF'yi yeni sekmede aç"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  title="PDF'yi yeni sekmede aç"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  <span className="hidden sm:inline">Yeni Sekmede Aç</span>
-                </a>
-              )}
-            </div>
-          </div>
+          <BelgeStudioPreviewToolbar
+            zoomLevel={zoomLevel}
+            onZoomChange={setZoomLevel}
+            pdfUrl={blobUrl}
+          />
 
           {/* Canvas Viewport Container: Maximized vertical area, local internal scroll when zoomed */}
           <div
@@ -1050,7 +964,7 @@ export function TaahhutnameStudio({
             role="region"
             tabIndex={0}
             aria-label="PDF önizleme alanı"
-            className={`relative flex-1 min-h-0 w-full overflow-auto bg-zinc-850 dark:bg-zinc-900 rounded-xl p-1.5 shadow-inner ${
+            className={`${BELGE_STUDIO_PREVIEW_CANVAS_CLASS} ${
               zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
             }`}
           >

@@ -23,7 +23,7 @@ export interface HostToWorkerMessage {
   viewSessionId: string;
   generation: number;
   sourceVersionKey: string;
-  kind: "load-chunk" | "refine-curves" | "cancel" | "dispose";
+  kind: "ping" | "load-chunk" | "refine-curves" | "cancel" | "dispose";
   payload?: {
     chunkId: string;
     chunkBuffer?: ArrayBuffer;
@@ -37,13 +37,52 @@ export interface HostToWorkerMessage {
   };
 }
 
-export interface WorkerToHostMessage {
+interface WorkerToHostMessageBase {
   protocolVersion: 1;
   viewSessionId: string;
   generation: number;
   sourceVersionKey: string;
-  kind: "chunk" | "refined-curves" | "progress" | "diagnostics" | "ready" | "error" | "cancelled" | "disposed";
-  payload: any;
+}
+
+export type WorkerToHostMessage = WorkerToHostMessageBase & (
+  | { kind: "chunk"; payload: UnpackedSceneChunk }
+  | { kind: "refined-curves"; payload: { requestId: string; chunkId: string; result: CurveRefinementResult } }
+  | { kind: "error"; payload: { requestId?: string; error: string } }
+  | { kind: "ready"; payload: { pong: true } }
+  | { kind: "cancelled"; payload: { chunkId?: string } }
+  | { kind: "disposed"; payload: Record<string, never> }
+  | { kind: "progress" | "diagnostics"; payload: unknown }
+);
+
+export interface SceneDrawCommand {
+  kind: "line" | "triangle" | "wipeout";
+  layer: string;
+  color: [number, number, number];
+  firstVertex: number;
+  vertexCount: number;
+  order?: number;
+  globalOrderIndex?: number;
+  alpha?: number;
+  isAci7?: boolean;
+  lineweightMm?: number;
+  dashStyle?: { dashSize: number; gapSize: number };
+}
+
+export interface SceneLayerRun {
+  layer: string;
+  color: [number, number, number];
+  firstVertex: number;
+  vertexCount: number;
+  isAci7?: boolean;
+  alpha?: number;
+  lineweightMm?: number;
+}
+
+export interface UnpackedSceneChunkMetadata extends Record<string, unknown> {
+  layoutId?: string;
+  drawCommands?: SceneDrawCommand[];
+  layerRuns?: SceneLayerRun[];
+  curveSourceRefs?: CurveSourceRef[];
 }
 
 export interface UnpackedSceneChunk {
@@ -54,7 +93,7 @@ export interface UnpackedSceneChunk {
   trianglesArray?: Float32Array | null;
   pathDistancesArray?: Float32Array | null;
   curveDataArray?: Float32Array | null;
-  meta: Record<string, any> | null;
+  meta: UnpackedSceneChunkMetadata | null;
   vertexCount: number;
 }
 
@@ -109,12 +148,13 @@ function clearSessionRefinementSources(viewSessionId: string): void {
 /**
  * Manifest v1 şema doğrulaması
  */
-export function validateSceneManifest(manifest: any): boolean {
-  if (!manifest || typeof manifest !== "object") return false;
-  if (manifest.schemaVersion !== 1) return false;
-  if (!manifest.sceneId || typeof manifest.sceneId !== "string") return false;
-  if (!manifest.sourceVersionKey || !manifest.sourceSha256) return false;
-  if (!Array.isArray(manifest.layouts) || manifest.layouts.length === 0) return false;
+export function validateSceneManifest(manifest: unknown): boolean {
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return false;
+  const record = manifest as Record<string, unknown>;
+  if (record.schemaVersion !== 1) return false;
+  if (typeof record.sceneId !== "string" || record.sceneId.length === 0) return false;
+  if (typeof record.sourceVersionKey !== "string" || typeof record.sourceSha256 !== "string") return false;
+  if (!Array.isArray(record.layouts) || record.layouts.length === 0) return false;
   return true;
 }
 
@@ -157,11 +197,14 @@ export function unpackSceneChunk(chunkId: string, buffer: ArrayBuffer | Uint8Arr
 
   // 4. META (Tag 1 - UTF-8 JSON)
   const metaSection = rawChunk.sections.get(SceneTag.META);
-  let meta: Record<string, any> | null = null;
+  let meta: UnpackedSceneChunkMetadata | null = null;
   if (metaSection && metaSection.data instanceof Uint8Array) {
     try {
       const jsonStr = new TextDecoder().decode(metaSection.data);
-      meta = JSON.parse(jsonStr);
+      const parsed: unknown = JSON.parse(jsonStr);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        meta = parsed as UnpackedSceneChunkMetadata;
+      }
     } catch {
       // Bozuk meta durumunda toleranslı ol
       meta = null;
@@ -201,7 +244,10 @@ export function unpackSceneChunk(chunkId: string, buffer: ArrayBuffer | Uint8Arr
   };
 }
 
-export interface RefineChunkCurvesOptions extends Omit<CurveRefinementOptions, "curveData" | "curveSourceRefs" | "fallbackVertexCount"> {}
+export type RefineChunkCurvesOptions = Omit<
+  CurveRefinementOptions,
+  "curveData" | "curveSourceRefs" | "fallbackVertexCount"
+>;
 
 /** Pure fallback also used by the worker message path; no document recompile occurs. */
 export function refineUnpackedChunkCurves(
@@ -223,7 +269,7 @@ export function refineUnpackedChunkCurves(
 // ============================================================================
 // BROWSER WEB WORKER ENTRYPOINT
 // ============================================================================
-if (typeof self !== "undefined" && typeof (self as any).postMessage === "function" && typeof window === "undefined") {
+if (typeof self !== "undefined" && typeof self.postMessage === "function" && typeof window === "undefined") {
   self.onmessage = (event: MessageEvent<HostToWorkerMessage>) => {
     const msg = event.data;
 
@@ -257,7 +303,7 @@ if (typeof self !== "undefined" && typeof (self as any).postMessage === "functio
     activeWorkerSessions.set(msg.viewSessionId, { generation: msg.generation, sourceVersionKey: msg.sourceVersionKey });
 
     switch (msg.kind) {
-      case "ping" as any: {
+      case "ping": {
         const readyResponse: WorkerToHostMessage = {
           protocolVersion: 1,
           viewSessionId: msg.viewSessionId,
@@ -308,15 +354,15 @@ if (typeof self !== "undefined" && typeof (self as any).postMessage === "functio
             transferables.push(unpacked.pathDistancesArray.buffer);
           }
 
-          (self as any).postMessage(response, transferables);
-        } catch (err: any) {
+          self.postMessage(response, transferables);
+        } catch (err: unknown) {
           const errResponse: WorkerToHostMessage = {
             protocolVersion: 1,
             viewSessionId: msg.viewSessionId,
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: { error: err.message || "Bilinmeyen worker ayrıştırma hatası" },
+            payload: { error: err instanceof Error ? err.message : "Bilinmeyen worker ayrıştırma hatası" },
           };
           self.postMessage(errResponse);
         }
@@ -365,15 +411,18 @@ if (typeof self !== "undefined" && typeof (self as any).postMessage === "functio
             payload: { requestId, chunkId, result },
           };
           const transferables = result.intervals.flatMap((interval) => interval.coordinates ? [interval.coordinates.buffer] : []);
-          (self as any).postMessage(response, transferables);
-        } catch (err: any) {
+          self.postMessage(response, transferables);
+        } catch (err: unknown) {
           const errResponse: WorkerToHostMessage = {
             protocolVersion: 1,
             viewSessionId: msg.viewSessionId,
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: { requestId: msg.payload?.requestId, error: err.message || "Curve refinement başarısız" },
+            payload: {
+              requestId: msg.payload?.requestId,
+              error: err instanceof Error ? err.message : "Curve refinement başarısız",
+            },
           };
           self.postMessage(errResponse);
         }

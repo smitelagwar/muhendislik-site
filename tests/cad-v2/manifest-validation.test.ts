@@ -15,7 +15,27 @@
 import * as assert from "node:assert/strict";
 import { validateSceneManifest } from "../../src/lib/cad-v2/protocol/binary-protocol";
 
-function createValidManifestTemplate(): any {
+interface RawManifestChunk extends Record<string, unknown> {
+  chunkId: string;
+  byteLength: number;
+  sha256: string;
+  layoutId: string;
+  bbox?: number[];
+}
+
+interface RawManifestInput extends Record<string, unknown> {
+  schemaVersion: number;
+  sceneId: string;
+  sourceVersionKey: string;
+  sourceSha256: string;
+  qualityStatus: "exact" | "degraded";
+  diagnosticsSummary: Record<string, unknown>;
+  layouts: Array<{ layoutId: string; sourceName: string; kind: string; bbox: number[]; units: number }>;
+  chunks?: RawManifestChunk[];
+  indexPages?: Array<{ indexId: string; chunks: RawManifestChunk[] }>;
+}
+
+function createValidManifestTemplate(): RawManifestInput {
   return {
     schemaVersion: 1,
     sceneId: "scene_test_1234567890abcdef",

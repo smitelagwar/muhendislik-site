@@ -18,6 +18,7 @@ import type {
   CadLayer,
   CadTextStyle,
   CadPoint2D,
+  CadLinetype,
 } from "../canonical/types";
 import {
   type VisitorContext,
@@ -32,7 +33,7 @@ import { resolveCadStyle, resolveEntityColor } from "./cad-color-resolver";
 export interface DimensionCompileOptions {
   blocks?: Record<string, CadBlockDefinition>;
   layers?: Record<string, CadLayer>;
-  linetypes?: Record<string, any>;
+  linetypes?: Record<string, CadLinetype>;
   textStyles?: Record<string, CadTextStyle>;
   visitor?: EntityVisitor;
 }

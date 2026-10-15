@@ -1280,24 +1280,6 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
     min-height: 44px;
   }
 
-  [data-testid="belge-studio-preview-toolbar"] {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  [data-testid="belge-studio-preview-toolbar"] > :first-child {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-
-  [data-testid="belge-studio-preview-toolbar"] > div {
-    flex-wrap: wrap;
-    min-width: 0;
-  }
-
   [data-testid="belge-studio-preview-toolbar"] button,
   [data-testid="belge-studio-preview-toolbar"] a {
     min-width: 44px;
@@ -1305,12 +1287,6 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   }
 }
 
-/* Kısa yatay ekranda belge stüdyosuna dikey alan bırak. */
-@media screen and (max-width: 1023px) and (orientation: landscape) and (max-height: 430px) {
-  body:has([data-testid="belge-studio-mobile-actions"]) [data-site-header] {
-    display: none;
-  }
-}
 /* --- Animated Background Orbs --- */
 @keyframes orb-drift-1 {
   0%, 100% { transform: translate(0, 0) scale(1); }

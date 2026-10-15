@@ -19,10 +19,16 @@ declare module "opentype.js" {
   }
 
   export interface FontNames {
-    fontFamily?: Record<string, string>;
+    fontFamily?: string | Record<string, string>;
     fontSubfamily?: Record<string, string>;
     fullName?: Record<string, string>;
     postScriptName?: Record<string, string>;
+  }
+
+  export interface FontRenderOptions {
+    kerning?: boolean;
+    features?: Record<string, boolean>;
+    hinting?: boolean;
   }
 
   export interface Font {
@@ -30,12 +36,19 @@ declare module "opentype.js" {
     unitsPerEm: number;
     ascender: number;
     descender: number;
-    getPath(text: string, x: number, y: number, fontSize: number, options?: any): Path;
-    getPaths(text: string, x: number, y: number, fontSize: number, options?: any): Path[];
-    draw(ctx: any, text: string, x: number, y: number, fontSize: number, options?: any): void;
+    tables?: { os2?: { sCapHeight?: number } };
+    stringToGlyphs(text: string): Glyph[];
+    getKerningValue(leftGlyph: Glyph, rightGlyph: Glyph): number;
+    getPath(text: string, x: number, y: number, fontSize: number, options?: FontRenderOptions): Path;
+    getPaths(text: string, x: number, y: number, fontSize: number, options?: FontRenderOptions): Path[];
+    draw(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fontSize: number, options?: FontRenderOptions): void;
+  }
+
+  export interface Glyph {
+    advanceWidth?: number;
   }
 
   export function parse(buffer: ArrayBuffer | ArrayLike<number>): Font;
-  export function load(url: string, callback: (err: any, font?: Font) => void): void;
+  export function load(url: string, callback: (err: Error | null, font?: Font) => void): void;
   export function loadSync(url: string): Font;
 }

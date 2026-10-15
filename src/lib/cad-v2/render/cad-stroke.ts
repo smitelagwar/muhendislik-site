@@ -473,7 +473,7 @@ export function resolveEntityLinetype(
     sourceMethod = "byLayer";
     const targetLayerName = ent.layer || "0";
     const effectiveLayer = ctx?.layerOverrides?.[targetLayerName] || layers[targetLayerName];
-    targetName = (effectiveLayer as any)?.linetype || effectiveLayer?.linetypeName || "CONTINUOUS";
+    targetName = effectiveLayer?.linetypeName || "CONTINUOUS";
   } else if (rawLt.toUpperCase() === "BYBLOCK") {
     sourceMethod = "byBlock";
     const parentStack = ctx?.parentInserts || (ctx?.parentInsert ? [ctx.parentInsert] : []);

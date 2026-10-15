@@ -127,7 +127,16 @@ test.describe("PDF Görüntüleyici v2 — FAZ D Metin Katmanı ve Kopyalama", (
         const spans = Array.from(textLayer.querySelectorAll("span"));
         let maxDelta = 0;
         let matchedSamples = 0;
-        const details: any[] = [];
+        const details: Array<{
+          word: string;
+          actualLeft: number;
+          expLeft: number;
+          diffX: number;
+          actualTop: number;
+          expTop: number;
+          diffY: number;
+          drift: number;
+        }> = [];
 
         // Font ascent oranı: Arial/sans-serif için standart 0.905
         const FONT_ASCENT_RATIO = 0.905;

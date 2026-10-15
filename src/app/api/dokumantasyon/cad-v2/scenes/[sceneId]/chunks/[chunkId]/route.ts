@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 // ============================================================================
 // GET /api/dokumantasyon/cad-v2/scenes/[sceneId]/chunks/[chunkId] (G11)
 // ============================================================================
@@ -46,12 +47,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
         "X-Content-Type-Options": "nosniff",
       },
     });
-  } catch (err: any) {
-    if (err?.message === "UNAUTHORIZED") {
+  } catch (err: unknown) {
+    if (getErrorMessage(err) === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
     return NextResponse.json(
-      { code: "INTERNAL_ERROR", message: err?.message || "Sunucu hatası." },
+      { code: "INTERNAL_ERROR", message: getErrorMessage(err) || "Sunucu hatası." },
       { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }
