@@ -3,12 +3,9 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useMemo, useRef, useState } from "react";
 import {
   Building2,
-  Eye,
   FileCheck2,
-  FileEdit,
   FileText,
   Loader2,
-  RotateCcw,
   UserCheck,
   X,
 } from "lucide-react";
@@ -28,6 +25,11 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import {
+  BelgeFormEditIcon,
+  BelgePreviewEyeIcon,
+  BelgeResetIcon,
+} from "@/components/belge-studio-icons";
 import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
@@ -229,7 +231,7 @@ export function SozlesmeStudio({
             className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
             aria-label={`"${label}" alanını varsayılana sıfırla`} title={`"${label}" alanını varsayılana sıfırla`}
           >
-            <RotateCcw className="h-2.5 w-2.5" />
+            <BelgeResetIcon className="h-2.5 w-2.5" />
             <span>Sıfırla</span>
           </button>
         )}
@@ -324,7 +326,7 @@ export function SozlesmeStudio({
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <FileEdit className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <BelgeFormEditIcon className="h-3.5 w-3.5 shrink-0 text-amber-500" />
           <span className="min-w-0 truncate">Form Alanları</span>
           <span className="shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
             {filledFieldCount}/{DOCUMENT_EDITABLE_FIELDS["santiye-sefi-sozlesmesi"].length}
@@ -347,7 +349,7 @@ export function SozlesmeStudio({
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
-          <Eye className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <BelgePreviewEyeIcon className="h-3.5 w-3.5 shrink-0 text-amber-500" />
           <span className="truncate">PDF Önizle</span>
           {syncStatus === "updating" ? (
             <Loader2 aria-hidden="true" className="h-3 w-3 shrink-0 animate-spin text-amber-500" />
@@ -546,7 +548,7 @@ export function SozlesmeStudio({
                       className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
                       title="YİBF alanını varsayılana sıfırla"
                     >
-                      <RotateCcw className="h-2.5 w-2.5" />
+                      <BelgeResetIcon className="h-2.5 w-2.5" />
                       <span>Sıfırla</span>
                     </button>
                   )}

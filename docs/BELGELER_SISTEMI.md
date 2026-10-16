@@ -98,6 +98,9 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 * Stüdyo `h-[calc(100vh-...)]` veya tam ekran düzenine oturmalı; sol form paneli bağımsız olarak kendi içinde (`overflow-y-auto`) kaymalı, sağdaki canlı PDF önizleme paneli ise kullanılabilir alana orantılı biçimde sığmalıdır.
 
 ### 3.3. PDF Üretimi, Canlı Önizleme ve Yakınlaştırma
+* Ortak `BelgeStudioPreviewToolbar`, yakınlaştırma/sığdırma/dış bağlantı grubunu önizleme panelinin gerçek yatay merkezinde tutar. Geniş panelde eşit yan sütunlar; çok sayfalı belgelerde 560 px ve altında, tek sayfalı belgelerde 360 px ve altında iki satır kullanılır. Dar panelde zoom grubu ikinci satırın tamamında ortalanır; kontroller en az 44×44 px kalır.
+* Önizlemedeki `Koyu tema` switch'i ve mobil `Diğer belge işlemleri` menüsündeki tema eylemi ortak `next-themes` durumunu değiştirir; uygulama teması ve `aria-checked` birlikte güncellenir. Mobilde yalnız etkin tema ikonu, 640 px ve üzerinde güneş/ay ikilisi gösterilir. Tema ve zoom PDF'i yeniden üretmez.
+* Belge araçlarının özel SVG seti `src/components/belge-studio-icons.tsx` içinde tutulur; `currentColor` ile her iki temaya uyar, dekoratif SVG'ler `aria-hidden` kullanır. Eylemin Türkçe erişilebilir adı düğme/bağlantı üzerinde kalır.
 * Beş stüdyo da `useBelgeStudioDocument` ortak hook'unu kullanır. Alan değişikliklerinden sonra üretim 150 ms geciktirilir; en yeni istek geçerli kalır, 20 saniyelik zaman aşımı uygulanır ve çıktı PDF imzası açısından doğrulanır. Önizleme, yazdırma ve indirme aynı güncel byte snapshot'ını kullanır. Yeni çıktı oluşana kadar eski PDF'in indirilmesi/yazdırılması engellenir; kullanılmayan blob URL'leri temizlenir.
 * PDF.js belgesini yeniden kullanarak sayfa çizilir. Yakınlaştırma PDF'i yeniden üretmez; zoom değişince yalnızca önizleme sayfası tekrar çizilir. Sayfa numarası ve toplam sayfa sayısı PDF'den okunur, önceki/sonraki sayfa ve sığdırma kontrolleri gerçek sayfayı yönetir.
 * Yakınlaştırma %50–%400 aralığındadır; düğmeler %25 adım, tekerlek ve pinch sürekli ölçek kullanır. Masaüstünde Ctrl/Cmd + tekerlek, önizleme yüzeyine bağlanan yerel `wheel` dinleyicisi ve `{ passive: false }` ile yakalanır. React `onWheel` bu iş için kullanılmaz; pasif olay tarayıcı zoom'unu durduramaz. Normal tekerlek paneli kaydırır. Ctrl/Cmd + artı/eksi/0 kısayolları önizleme odaktayken çalışır.
@@ -114,15 +117,15 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 
 ### 3.6. Standart Aksiyon Butonları
 Her stüdyoda şu 5 ana aksiyon bulunur:
-1. **Sıfırla (`Undo2`):** Formu resmi örnek değerlerle doldurur.
-2. **Temizle (`Trash2`):** Tüm form kutucuklarını boşaltır (bembeyaz boş şablon).
-3. **Boş Form (`FileDown`):** Orijinal boş PDF şablonunu doğrudan indirir.
-4. **Yazdır (`Printer`):** Önizleme blob'unu doğrudan tarayıcı yazdırma penceresine gönderir.
-5. **Doldurulmuş PDF'i İndir (`FileDown` - Vurgulu Amber Buton):** Kullanıcının doldurduğu güncel verilerle PDF dosyasını indirir.
+1. **Sıfırla (`BelgeResetIcon`):** Formu resmi örnek değerlerle doldurur.
+2. **Temizle (`BelgeClearIcon`):** Tüm form kutucuklarını boşaltır (bembeyaz boş şablon).
+3. **Boş Form (`BelgeBlankFormIcon`):** Orijinal boş PDF şablonunu doğrudan indirir.
+4. **Yazdır (`BelgePrintIcon`):** Önizleme blob'unu doğrudan tarayıcı yazdırma penceresine gönderir.
+5. **Doldurulmuş PDF'i İndir (`BelgeDownloadPdfIcon` - Vurgulu Amber Buton):** Kullanıcının doldurduğu güncel verilerle PDF dosyasını indirir.
 
 Bu eylemler beş stüdyoda `BelgeStudioActions` ortak bileşenindedir. Masaüstünde sabit alt çubuğun solunda sıfırlama/temizleme/geri alma, sağında boş form/yazdırma/PDF indirme bulunur; formun sonuna kaydırmak gerekmez. Mobilde aynı alt çubukta diğer işlemler menüsü (`Belgelere dön`, `Yazdır`, `Boş form indir`, `Örnek verilere sıfırla`, `Tüm alanları temizle`, `Son işlemi geri al`), form/önizleme geçişi ve PDF indirme bulunur. Menü klavye, odak geri dönüşü ve kullanılabilir yüksekliğe göre kaydırmayı Radix ile yönetir. Formdaki eski eylem kopyaları kaldırılmıştır.
 
-Form genel olarak sıfırlandığında veya temizlendiğinde tek adımlık **Geri al** eylemi son işlemi geri yükler. İndirme ve yazdırma, formdaki son değişiklik için yeni PDF hazırlanırken devre dışı kalır. PDF araçları tüm ekranlarda en az 44×44 px hedef kullanır; sayfa, zoom ve görünüm kontrolleri gruplanır. Çok sayfalı belgelerde dar panel iki düzenli araç satırı kullanır; tek sayfalı belge bir satırda kalır. Yatay/klavye ile daralan ekranda PDF alanı kalan yüksekliğe sığar.
+Form genel olarak sıfırlandığında veya temizlendiğinde tek adımlık **Geri al** eylemi son işlemi geri yükler. İndirme ve yazdırma, formdaki son değişiklik için yeni PDF hazırlanırken devre dışı kalır. PDF araçları tüm ekranlarda en az 44×44 px hedef kullanır; sayfa, zoom ve görünüm kontrolleri gruplanır. Çok sayfalı belgelerde dar panel ve tek sayfalı belgelerde en dar telefon boyutları iki düzenli araç satırı kullanır. Yatay/klavye ile daralan ekranda PDF alanı kalan yüksekliğe sığar.
 
 ### 3.7. Mobil Uyumluluk (Mobile Segmented Tab Switcher)
 * Mobil ekranlarda (`< lg`) ekran ikiye bölünmez. Üstte iki sekmeli bir geçiş kontrolü bulunur:

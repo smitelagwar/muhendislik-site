@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { BelgeBackIcon } from "@/components/belge-studio-icons";
 
 type BelgeStudioPageShellProps = {
   children: ReactNode;
@@ -22,7 +22,7 @@ export function BelgeStudioPageShell({
           aria-label="Tüm belgelere dön"
           className="hidden lg:inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:text-amber-400"
         >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <BelgeBackIcon className="h-4 w-4 shrink-0" />
           <span className="hidden min-[360px]:inline">Belgelere dön</span>
         </Link>
         <h1

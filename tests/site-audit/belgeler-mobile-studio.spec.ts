@@ -358,6 +358,9 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await expect(page.getByRole("navigation", { name: "Belge stüdyosu gezinme" })).toBeVisible();
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
       if (testInfo.project.name === "chromium-mobile-390") {
+        await expect(
+          studio.getByTestId("belge-studio-mobile-actions").getByRole("button", { name: /PDF İndir/i })
+        ).toBeEnabled({ timeout: 20_000 });
         await studio
           .getByTestId("belge-studio-mobile-actions")
           .getByRole("button", { name: "Diğer belge işlemleri" })
@@ -941,6 +944,121 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         await expectNoHorizontalOverflow(page);
       }
       expect(passiveWarnings).toEqual([]);
+    });
+  }
+
+  for (const route of STUDIO_ROUTES) {
+    test(`[${route.name}] tema switch ve ortalanmış zoom araçları sözleşmesi`, async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "chromium-desktop-1920",
+        "Beş stüdyonun tema ve hizalama matrisi tek projede tüm ekran boyutlarını kapsar."
+      );
+      test.setTimeout(90_000);
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      page.on("console", (message) => {
+        if (message.type() === "error") errors.push(message.text());
+      });
+
+      await page.goto(route.path, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      const studio = getVisibleStudio(page);
+      await expect(studio).toBeVisible();
+      await expectPreviewCanvas(page);
+      const toolbar = studio.getByTestId("belge-studio-preview-toolbar");
+      const zoomGroup = toolbar.locator(".belge-preview-zoom");
+      const themeToggle = toolbar.getByTestId("belge-theme-toggle");
+      const pdfLink = toolbar.getByRole("link", { name: "PDF'yi yeni sekmede aç" });
+      const pdfUrl = await pdfLink.getAttribute("href");
+
+      for (const viewport of [...MOBILE_VIEWPORTS, ...DESKTOP_VIEWPORTS]) {
+        await page.setViewportSize(viewport);
+        await expectPreviewCanvas(page);
+        // ResizeObserver sonrası 140 ms gecikmeli raster tamamlanmalı; eski/boş canvas yeterli kanıt değildir.
+        await expect.poll(() => studio.locator("canvas").first().evaluate((canvasElement) => {
+          const canvas = canvasElement as HTMLCanvasElement;
+          const container = canvas.closest<HTMLElement>('[data-testid="belge-studio-preview-canvas"]');
+          if (!container || container.getAttribute("aria-busy") !== "false") return false;
+          const box = canvas.getBoundingClientRect();
+          if (box.width > container.clientWidth - 12 || box.height > container.clientHeight - 12) return false;
+          const context = canvas.getContext("2d");
+          if (!context) return false;
+          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          let ink = 0;
+          for (let offset = 0; offset < pixels.length; offset += 4) {
+            if (pixels[offset + 3] > 0 && pixels[offset] < 180 && pixels[offset + 1] < 180 && pixels[offset + 2] < 180) ink += 1;
+            if (ink > 20) return true;
+          }
+          return false;
+        }), { timeout: 8_000 }).toBe(true);
+        // Asimetrik yan kontroller yakınlaştırma grubunun merkezini kaydırmamalı.
+        await expect.poll(async () => {
+          const toolbarBox = (await toolbar.boundingBox())!;
+          const zoomBox = (await zoomGroup.boundingBox())!;
+          return Math.abs(toolbarBox.x + toolbarBox.width / 2 - zoomBox.x - zoomBox.width / 2);
+        }, { timeout: 8_000, message: `${route.path}, ${viewport.width}px: zoom grubu ortalanmalı` }).toBeLessThanOrEqual(2);
+        await expectNoHorizontalOverflow(page);
+
+        const geometry = await toolbar.locator('button:visible, a:visible').evaluateAll((elements) =>
+          elements.map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, svg: Boolean(element.querySelector('svg[aria-hidden="true"]')) };
+          })
+        );
+        const toolbarBox = (await toolbar.boundingBox())!;
+        for (const [index, box] of geometry.entries()) {
+          expect(box.svg).toBe(true);
+          expect(box.left).toBeGreaterThanOrEqual(toolbarBox.x - 1);
+          expect(box.right).toBeLessThanOrEqual(toolbarBox.x + toolbarBox.width + 1);
+          for (const other of geometry.slice(index + 1)) {
+            expect(box.right <= other.left || other.right <= box.left || box.bottom <= other.top || other.bottom <= box.top,
+              `${route.path}, ${viewport.width}px: araçlar üst üste binmemeli`).toBe(true);
+          }
+        }
+
+        const initialDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+        await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
+        await expect(themeToggle.locator("span:visible")).toHaveCount(viewport.width < 640 ? 1 : 2);
+        await themeToggle.focus();
+        await expect(themeToggle).toBeFocused();
+        await page.keyboard.press("Space");
+        await expect(themeToggle).toHaveAttribute("aria-checked", String(!initialDark));
+        await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("dark"))).toBe(!initialDark);
+        if (route.name === "İnşaat Ruhsatı Dilekçesi" && [320, 1366].includes(viewport.width)) {
+          await testInfo.attach(`tema-${!initialDark ? "koyu" : "acik"}-${viewport.width}`, {
+            body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
+          });
+        }
+        await themeToggle.click();
+        await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
+        await expect(themeToggle.locator("span:visible")).toHaveCount(viewport.width < 640 ? 1 : 2);
+        if (route.name === "İnşaat Ruhsatı Dilekçesi" && [320, 1366].includes(viewport.width)) {
+          await testInfo.attach(`tema-${initialDark ? "koyu" : "acik"}-${viewport.width}`, {
+            body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
+          });
+        }
+        await zoomGroup.getByRole("button", { name: "Yakınlaştır", exact: true }).click();
+        await expect(toolbar.getByTestId("belge-studio-zoom-level")).toHaveText("%125");
+        await zoomGroup.getByRole("button", { name: "Sığdır", exact: true }).click();
+        await expect(toolbar.getByTestId("belge-studio-zoom-level")).toHaveText("%100");
+        await expect(pdfLink).toHaveAttribute("href", pdfUrl!);
+
+        if (viewport.width < 1024) {
+          const moreButton = studio.getByRole("button", { name: "Diğer belge işlemleri" });
+          await moreButton.click();
+          await page.getByRole("menuitem", { name: initialDark ? "Aydınlık temaya geç" : "Koyu temaya geç", exact: true }).click();
+          // Radix menü kapanışında odağı tetikleyiciye geri verir; sonraki klavye girdisi bunu beklemeli.
+          await expect(moreButton).toBeFocused();
+          await expect(page.getByRole("menu")).toBeHidden();
+          await expect(themeToggle).toHaveAttribute("aria-checked", String(!initialDark));
+          await themeToggle.click();
+          await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
+        }
+      }
+      const finalDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+      await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
+      await expectPreviewCanvas(page);
+      await expect(themeToggle).toHaveAttribute("aria-checked", String(finalDark));
+      expect(errors).toEqual([]);
     });
   }
 
