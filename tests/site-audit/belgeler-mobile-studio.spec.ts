@@ -1016,22 +1016,42 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         }
 
         const initialDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+        const mobile = viewport.width < 1024;
+        const toggleTheme = async (dark: boolean, keyboard = false) => {
+          if (mobile) {
+            const moreButton = studio.getByRole("button", { name: "Diğer belge işlemleri" });
+            await moreButton.click();
+            await page.getByRole("menuitem", { name: dark ? "Aydınlık temaya geç" : "Koyu temaya geç", exact: true }).click();
+            await expect(moreButton).toBeFocused();
+            await expect(page.getByRole("menu")).toBeHidden();
+          } else if (keyboard) {
+            await themeToggle.focus();
+            await expect(themeToggle).toBeFocused();
+            await page.keyboard.press("Space");
+          } else {
+            await themeToggle.click();
+          }
+          await expect(themeToggle).toHaveAttribute("aria-checked", String(!dark));
+          await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("dark"))).toBe(!dark);
+        };
+        if (mobile) {
+          await expect(themeToggle).toBeHidden();
+          if (await toolbar.getAttribute("data-multipage") === "false") {
+            expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(44);
+          }
+        } else {
+          await expect(themeToggle).toBeVisible();
+          await expect(themeToggle.locator("span:visible")).toHaveCount(2);
+        }
         await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
-        await expect(themeToggle.locator("span:visible")).toHaveCount(viewport.width < 640 ? 1 : 2);
-        await themeToggle.focus();
-        await expect(themeToggle).toBeFocused();
-        await page.keyboard.press("Space");
-        await expect(themeToggle).toHaveAttribute("aria-checked", String(!initialDark));
-        await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("dark"))).toBe(!initialDark);
-        if (route.name === "İnşaat Ruhsatı Dilekçesi" && [320, 1366].includes(viewport.width)) {
+        await toggleTheme(initialDark, true);
+        if (["İnşaat Ruhsatı Dilekçesi", "Şantiye Şefi Taahhütnamesi"].includes(route.name) && [320, 360, 1366].includes(viewport.width)) {
           await testInfo.attach(`tema-${!initialDark ? "koyu" : "acik"}-${viewport.width}`, {
             body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
           });
         }
-        await themeToggle.click();
-        await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
-        await expect(themeToggle.locator("span:visible")).toHaveCount(viewport.width < 640 ? 1 : 2);
-        if (route.name === "İnşaat Ruhsatı Dilekçesi" && [320, 1366].includes(viewport.width)) {
+        await toggleTheme(!initialDark);
+        if (["İnşaat Ruhsatı Dilekçesi", "Şantiye Şefi Taahhütnamesi"].includes(route.name) && [320, 360, 1366].includes(viewport.width)) {
           await testInfo.attach(`tema-${initialDark ? "koyu" : "acik"}-${viewport.width}`, {
             body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
           });
@@ -1042,17 +1062,6 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         await expect(toolbar.getByTestId("belge-studio-zoom-level")).toHaveText("%100");
         await expect(pdfLink).toHaveAttribute("href", pdfUrl!);
 
-        if (viewport.width < 1024) {
-          const moreButton = studio.getByRole("button", { name: "Diğer belge işlemleri" });
-          await moreButton.click();
-          await page.getByRole("menuitem", { name: initialDark ? "Aydınlık temaya geç" : "Koyu temaya geç", exact: true }).click();
-          // Radix menü kapanışında odağı tetikleyiciye geri verir; sonraki klavye girdisi bunu beklemeli.
-          await expect(moreButton).toBeFocused();
-          await expect(page.getByRole("menu")).toBeHidden();
-          await expect(themeToggle).toHaveAttribute("aria-checked", String(!initialDark));
-          await themeToggle.click();
-          await expect(themeToggle).toHaveAttribute("aria-checked", String(initialDark));
-        }
       }
       const finalDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
       await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });

@@ -152,7 +152,7 @@ export function BelgeStudioPreviewToolbar({
         </a>
       </div>
 
-      <div className="belge-preview-utilities flex items-center justify-end gap-[4px]" role="group" aria-label="Tema görünümü">
+      <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Tema görünümü">
         <button
           type="button"
           role="switch"

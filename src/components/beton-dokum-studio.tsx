@@ -111,10 +111,7 @@ export function BetonDokumStudio({
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof BetonDokumData) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: BETON_DOKUM_DEFAULT_DATA[key],
-    }));
+    handleFieldChange(key, BETON_DOKUM_DEFAULT_DATA[key] ?? "");
   };
 
   // Global reset to original PDF default values (Sıfırla)

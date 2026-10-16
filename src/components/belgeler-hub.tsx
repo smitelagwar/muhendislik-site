@@ -122,14 +122,14 @@ function DocumentCard({
 
       {/* ─── Title & Description ─── */}
       <div className="relative z-10 mt-5">
-        <h3 className="text-xl font-black leading-snug tracking-[-0.03em] text-foreground transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400 sm:text-2xl">
+        <h2 className="text-xl font-black leading-snug tracking-[-0.03em] text-foreground transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400 sm:text-2xl">
           <Link
             href={document.studioUrl}
             className="focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           >
             {document.title}
           </Link>
-        </h3>
+        </h2>
         <p className="mt-2.5 line-clamp-3 text-sm leading-6 text-muted-foreground">{document.description}</p>
       </div>
 

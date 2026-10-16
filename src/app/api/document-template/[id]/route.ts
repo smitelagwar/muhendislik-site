@@ -22,7 +22,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const relativePath = TEMPLATE_MAP[id];
+    const relativePath = Object.hasOwn(TEMPLATE_MAP, id) ? TEMPLATE_MAP[id] : undefined;
 
     if (!relativePath) {
       return new NextResponse("Template not found", { status: 404 });

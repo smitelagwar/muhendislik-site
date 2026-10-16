@@ -163,10 +163,7 @@ export function InsaatRuhsatiStudio({
 
   // Local per-field reset handler
   const handleLocalFieldReset = (key: keyof InsaatRuhsatiData) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: INSAAT_RUHSATI_DEFAULT_DATA[key],
-    }));
+    handleFieldChange(key, INSAAT_RUHSATI_DEFAULT_DATA[key] ?? "");
   };
 
   // Global reset to original PDF default values (Sıfırla)
@@ -177,6 +174,7 @@ export function InsaatRuhsatiStudio({
 
   // Randomize button handler
   const handleRandomize = () => {
+    setUndoData(null);
     const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
     const sample = RANDOM_SAMPLES[randomIndex];
     setFormData({ ...sample });

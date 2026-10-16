@@ -134,11 +134,8 @@ export function SozlesmeStudio({
 
   // Local per-field reset handler
   const handleLocalFieldReset = useCallback((field: keyof SozlesmeData) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: SOZLESME_DEFAULT_DATA[field] ?? "",
-    }));
-  }, []);
+    handleFieldChange(field, SOZLESME_DEFAULT_DATA[field] ?? "");
+  }, [handleFieldChange]);
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = useCallback(() => {

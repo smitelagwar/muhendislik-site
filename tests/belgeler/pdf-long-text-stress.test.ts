@@ -132,7 +132,7 @@ const cases: StressCase[] = [
       il: "KAHRAMANMARAŞ",
       ilce: "ONİKİŞUBAT",
       adres:
-        "Çok Uzun Örnek Mahallesi Mühendisler Bulvarı No:123/A Blok:8 Kat:12 Daire:34\nOnikişubat / KAHRAMANMARAŞ — " +
+        "Çok Uzun Örnek Mahallesi Mühendisler Bulvarı No:123/A Blok:8 Kat:12 Daire:34 Onikişubat / KAHRAMANMARAŞ — " +
         turkishStress,
       mahalle:
         "ÇOK UZUN ÖRNEK MÜHENDİSLER VE YAPI DENETİM MAHALLESİ",

@@ -115,10 +115,7 @@ export function IstifaStudio({
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof IstifaDilekcesiData) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: ISTIFA_DILEKCESI_DEFAULT_DATA[key],
-    }));
+    handleFieldChange(key, ISTIFA_DILEKCESI_DEFAULT_DATA[key] ?? "");
   };
 
   // Global reset to original PDF default values (Sıfırla)

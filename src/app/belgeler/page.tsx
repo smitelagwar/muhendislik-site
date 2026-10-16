@@ -10,9 +10,5 @@ export const metadata: Metadata = buildSeoMetadata({
 });
 
 export default function BelgelerPage() {
-  return (
-    <main>
-      <BelgelerHub />
-    </main>
-  );
+  return <BelgelerHub />;
 }

@@ -121,10 +121,7 @@ export function TaahhutnameStudio({
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof TaahhutnameData) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: TAAHHUTNAME_DEFAULT_DATA[key],
-    }));
+    handleFieldChange(key, TAAHHUTNAME_DEFAULT_DATA[key] ?? "");
   };
 
   // Global reset to original PDF default values (Sıfırla)
