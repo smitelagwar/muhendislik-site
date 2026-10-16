@@ -1,14 +1,15 @@
 plan_id: INSA-BELGELER-FULLSCREEN-UX-20261016
 plan_revision: 3
 planning_status: PLAN_HAZIR
-execution_status: ENGELLI
-active_stage: ASAMA_05
-next_stage: ASAMA_05
+execution_status: TAMAMLANDI
+active_stage: null
+next_stage: null
 completed_stages:
   - ASAMA_01
   - ASAMA_02
   - ASAMA_03
   - ASAMA_04
+  - ASAMA_05
 evidence:
   - stage: ASAMA_01
     check: "git status --short --branch; git rev-parse HEAD; git branch --show-current; git rev-parse main"
@@ -200,10 +201,19 @@ evidence:
     status: PASS
     head: 6d1c6d02ec66035f782a3788fcec8b1777be562a
     result: "Whitespace/diff kontrolü temiz; secret pattern eşleşmesi yok; package.json ve lockfile değişmedi."
-blockers:
-  - "ASAMA_05 Production release henüz çalıştırılmadı: sağlanan AGENTS.md remote Codex oturumunun main'e push yapmasını yasaklıyor ve yerel IDE'de doğrulanmış tek main release akışını şart koşuyor. Dahili lint/QA checkpoint'i production yerine geçmez; kullanıcı local IDE akışında main push ve Production doğrulamasını yapana kadar aşama ENGELLI kalır."
+  - stage: ASAMA_05
+    check: "main release 592a4a27156ac54e695f63e2af3152d10c7181a1; Vercel Production deployment dpl_HQaSawabZ1uTodAqKCyfSw6sQEU5; production Playwright route smoke"
+    status: PASS
+    head: 592a4a27156ac54e695f63e2af3152d10c7181a1
+    result: "Tek atomic main commit pushlandı; Vercel Production READY oldu: https://muhendislik-site.vercel.app. Beş stüdyo rotasında header=0, studio=1, /belgeler geri bağlantısı=1, yatay taşma yok; /belgeler kataloğunda header=1. Beş şablon PDF doğrudan 200 application/pdf döndü; canlı sözleşme önizlemesi PDF önizlemesi hazır durumuna geldi. Bilinen nonblocking: /api/document-template/* Vercel fonksiyonlarında File not found on disk 404 veriyor, uygulamanın doğrudan public PDF fallback'i çalışıyor."
+  - stage: ASAMA_05
+    check: "Follow-up PDF output tracing fix; main commit bc5b7662450820361958acdb68fd67e85541e1b5; Vercel deployment dpl_8h67dPKRpxGfd9cSAeBfutNYRLTN"
+    status: PASS
+    head: bc5b7662450820361958acdb68fd67e85541e1b5
+    result: "next.config.ts outputFileTracingIncludes dynamic şablon API fonksiyonuna beş PDF'yi ekledi. Build trace ve yerel production endpoint kontrolü geçti; Vercel Production READY oldu. Canlı Playwright smoke: beş API endpoint 200 application/octet-stream; sözleşme önizlemesi PDF önizlemesi hazır; stüdyo navbar=0. Console error yok."
+blockers: []
 pending_decisions: []
-updated_at: "2026-10-16T02:12:17+03:00"
+updated_at: "2026-10-16T02:33:45+03:00"
 
 ## Yerel Durum ve Kapsam Düzeltmesi
 

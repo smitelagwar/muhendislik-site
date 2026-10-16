@@ -584,7 +584,7 @@ export function InsaatRuhsatiStudio({
           id={mobileTabIds.previewPanel}
           role="tabpanel"
           aria-labelledby={mobileTabIds.previewTab}
-          className={`flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "flex" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto lg:flex"}`}
+          className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
         >
           <BelgeStudioPdfPreview
             snapshot={snapshot}

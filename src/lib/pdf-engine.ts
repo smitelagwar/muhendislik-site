@@ -462,7 +462,13 @@ async function populateForm<T extends object>(
       }
 
       const rawValue = (data as Record<string, unknown>)[key];
-      const val = typeof rawValue === "string" ? rawValue : "";
+      const normalizedValue = typeof rawValue === "string"
+        ? rawValue
+            .replace(/\r\n?/g, "\n")
+            .replace(/\t/g, " ")
+            .replace(/[\u200B-\u200D\uFEFF]/g, "")
+        : "";
+      const val = field.isMultiline() ? normalizedValue : normalizedValue.replace(/\n+/g, " ");
       // Arayüz karakter sayısını kilitlemez; AcroForm şablonundaki eski sınırı
       // da kaldır ki uzun metin sessizce reddedilmesin.
       field.acroField.dict.delete(PDFName.of("MaxLen"));

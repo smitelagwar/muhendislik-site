@@ -301,9 +301,10 @@ export function BelgeStudioPdfPreview({
       pointerY: point.y,
     };
     zoomRef.current = clampedZoom;
+    report("rendering");
     applyZoomAnchor();
     setZoomLevel(clampedZoom);
-  }, [applyZoomAnchor]);
+  }, [applyZoomAnchor, report]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -335,6 +336,7 @@ export function BelgeStudioPdfPreview({
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
     pointersRef.current = pointers;
     if (pointers.length === 1) {
+      pendingAnchorRef.current = null;
       panStartRef.current = {
         point,
         left: event.currentTarget.scrollLeft,
