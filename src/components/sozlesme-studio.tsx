@@ -320,7 +320,7 @@ export function SozlesmeStudio({
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "form"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
@@ -343,7 +343,7 @@ export function SozlesmeStudio({
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "preview"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
@@ -369,7 +369,6 @@ export function SozlesmeStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <p role="note" className="mx-2 mt-1 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">Başlangıç alanları örnek veridir. Belgeyi indirmeden önce tüm bilgileri kontrol edin.</p>
           <BelgeFieldLengthWarnings values={formData} baselineValues={SOZLESME_DEFAULT_DATA} limits={{ muteahhit_unvan: { label: "Yapı Müteahhidi Unvanı", maximum: 36 }, santiye_sefi_ad: { label: "Şantiye Şefi Adı Soyadı", maximum: 35 }, il: { label: "İl", maximum: 18 }, ilce: { label: "İlçe", maximum: 22 }, adres: { label: "Açık Adres", maximum: 48 }, yibf: { label: "YİBF No", maximum: 32 }, pafta: { label: "Pafta", maximum: 8 }, mahalle: { label: "Mahalle", maximum: 8 }, ada: { label: "Ada", maximum: 7 }, parsel: { label: "Parsel", maximum: 12 }, ucret: { label: "Aylık Brüt Ücret", maximum: 35 }, sozlesme_tarihi: { label: "Sözleşme Tarihi", maximum: 36 } }} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">

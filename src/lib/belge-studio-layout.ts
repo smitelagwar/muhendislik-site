@@ -11,10 +11,10 @@ export const BELGE_STUDIO_FORM_SCROLL_CLASS =
   "w-full max-w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y scroll-pt-4 scroll-pb-4 p-2.5 sm:p-3.5 space-y-2.5";
 
 export const BELGE_STUDIO_MOBILE_TABLIST_CLASS =
-  "flex h-[53px] lg:hidden shrink-0 items-center gap-1 border-b border-border bg-muted/50 p-1";
+  "flex h-[52px] lg:hidden shrink-0 items-center gap-1.5 border-b border-border bg-muted/60 p-1.5 dark:bg-zinc-900/90";
 
 export const BELGE_STUDIO_MOBILE_TAB_CLASS =
-  "flex h-11 min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-1.5 text-center text-[11px] font-bold leading-none transition-all sm:gap-1.5 sm:px-2 sm:text-xs";
+  "flex h-10 min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 text-center text-[11px] font-bold leading-none transition-all sm:gap-1.5 sm:px-2 sm:text-xs";
 
 export const BELGE_STUDIO_PREVIEW_PANEL_CLASS =
   "belge-preview-panel flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-muted/20 p-1 sm:p-1.5 lg:p-2";

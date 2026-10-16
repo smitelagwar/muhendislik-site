@@ -325,7 +325,11 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         .getAttribute("href");
       expect(pdfUrl).toMatch(/^blob:/);
 
-      await page.getByRole("link", { name: "Tüm belgelere dön" }).click();
+      await studio
+        .getByTestId("belge-studio-mobile-actions")
+        .getByRole("button", { name: "Diğer belge işlemleri" })
+        .click();
+      await page.getByRole("menuitem", { name: "Tüm belgelere dön" }).click();
       await expect(page).toHaveURL(/\/belgeler$/);
       await expect
         .poll(() =>
@@ -353,7 +357,16 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await expect(page.locator("[data-site-header]")).toHaveCount(0);
       await expect(page.getByRole("navigation", { name: "Belge stüdyosu gezinme" })).toBeVisible();
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-      await expect(page.getByRole("link", { name: "Tüm belgelere dön" })).toHaveAttribute("href", "/belgeler");
+      if (testInfo.project.name === "chromium-mobile-390") {
+        await studio
+          .getByTestId("belge-studio-mobile-actions")
+          .getByRole("button", { name: "Diğer belge işlemleri" })
+          .click();
+        await expect(page.getByRole("menuitem", { name: "Tüm belgelere dön" })).toHaveAttribute("href", "/belgeler");
+        await page.keyboard.press("Escape");
+      } else {
+        await expect(page.getByRole("link", { name: "Tüm belgelere dön" })).toHaveAttribute("href", "/belgeler");
+      }
     });
   }
 

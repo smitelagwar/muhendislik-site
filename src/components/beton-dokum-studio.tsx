@@ -294,7 +294,7 @@ export function BetonDokumStudio({
           onKeyDown={(event) => handleMobileTabKeyDown(event, "form")}
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${activeTabMobile === "form"
-            ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+            ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
             : "text-muted-foreground hover:text-foreground hover:bg-background/40"
             }`}
         >
@@ -316,7 +316,7 @@ export function BetonDokumStudio({
           onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${activeTabMobile === "preview"
-            ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+            ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
             : "text-muted-foreground hover:text-foreground hover:bg-background/40"
             }`}
         >
@@ -341,7 +341,6 @@ export function BetonDokumStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
             }`}
         >
-          <p role="note" className="mx-2 mt-1 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">Başlangıç alanları örnek veridir. Belgeyi indirmeden önce tüm bilgileri kontrol edin.</p>
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={BETON_DOKUM_DEFAULT_DATA}
@@ -357,14 +356,10 @@ export function BetonDokumStudio({
             }}
           />
           {/* Top Title & Sync Status (Desktop compact inline) */}
-          <div className={`${isModal ? "hidden lg:flex" : "flex"} items-center justify-between gap-2 pb-1 border-b border-border/60`}>
+          <div className="hidden lg:flex items-center justify-between gap-2 pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
               <FileEdit className="h-3.5 w-3.5 text-amber-500" />
-              {isModal ? (
-                <h2 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h2>
-              ) : (
-                <h2 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h2>
-              )}
+              <h2 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h2>
             </div>
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
@@ -380,95 +375,102 @@ export function BetonDokumStudio({
             )}
           </div>
 
-          {/* 1. Tutanak Alt Başlığı */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
-            <input
-              type="text"
-              id={getFieldId("tutanak_alt_baslik")}
-              value={formData.tutanak_alt_baslik || ""}
-              onChange={(e) => handleFieldChange("tutanak_alt_baslik", e.target.value)}
-              placeholder="Beton Dökümü Sistem Onay Sorunu"
-              className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-            />
-          </div>
-
-          {/* 2. Tarih & 3. YİBF */}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-              {renderFieldHeader("Tarih", "tarih")}
+          {/* 1. Belge & Kayıt (Tutanak Alt Başlığı, Tarih & YİBF) */}
+          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
+              1. Belge & Kayıt
+            </h3>
+            <div>
+              {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
               <input
                 type="text"
-                id={getFieldId("tarih")}
-                value={formData.tarih || ""}
-                onChange={(e) => handleFieldChange("tarih", e.target.value)}
-                placeholder="10.08.2026"
+                id={getFieldId("tutanak_alt_baslik")}
+                value={formData.tutanak_alt_baslik || ""}
+                onChange={(e) => handleFieldChange("tutanak_alt_baslik", e.target.value)}
+                placeholder="Beton Dökümü Sistem Onay Sorunu"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
 
-            <div
-              className={`rounded-lg border p-2 transition-colors ${(formData.yibf || "").trim().length > 7
-                ? "border-red-500/60 bg-red-500/[0.04] dark:bg-red-950/20"
-                : "border-border/80 bg-card/60"
-                }`}
-            >
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                  <label
-                    htmlFor={getFieldId("yibf")}
-                    className="text-[11px] font-bold leading-tight text-foreground"
-                  >
-                    YİBF No
-                  </label>
-                  {(formData.yibf || "").trim().length > 7 ? (
-                    <span
-                      id="beton-dokum-yibf-help"
-                      className="text-[10px] font-semibold text-red-600 dark:text-red-400"
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                {renderFieldHeader("Tarih", "tarih")}
+                <input
+                  type="text"
+                  id={getFieldId("tarih")}
+                  value={formData.tarih || ""}
+                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  placeholder="10.08.2026"
+                  className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+              </div>
+
+              <div
+                className={`rounded-lg transition-colors ${(formData.yibf || "").trim().length > 7
+                  ? "border border-red-500/60 bg-red-500/[0.04] p-1.5 dark:bg-red-950/20"
+                  : ""
+                  }`}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                    <label
+                      htmlFor={getFieldId("yibf")}
+                      className="text-[11px] font-bold leading-tight text-foreground"
                     >
-                      (YİBF No normalde 7 haneli olmalıdır, kontrol ediniz)
-                    </span>
-                  ) : (
-                    <span
-                      id="beton-dokum-yibf-help"
-                      className="text-[9px] font-mono text-muted-foreground/80"
+                      YİBF No
+                    </label>
+                    {(formData.yibf || "").trim().length > 7 ? (
+                      <span
+                        id="beton-dokum-yibf-help"
+                        className="text-[10px] font-semibold text-red-600 dark:text-red-400"
+                      >
+                        (YİBF No normalde 7 haneli olmalıdır, kontrol ediniz)
+                      </span>
+                    ) : (
+                      <span
+                        id="beton-dokum-yibf-help"
+                        className="text-[9px] font-mono text-muted-foreground/80"
+                      >
+                        (7 Hane)
+                      </span>
+                    )}
+                  </div>
+
+                  {formData.yibf !== BETON_DOKUM_DEFAULT_DATA.yibf && (
+                    <button
+                      type="button"
+                      onClick={() => handleLocalFieldReset("yibf")}
+                      className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
+                      title='"YİBF No" alanını varsayılana sıfırla'
                     >
-                      (7 Hane)
-                    </span>
+                      <RotateCcw className="h-2.5 w-2.5" />
+                      <span>Sıfırla</span>
+                    </button>
                   )}
                 </div>
 
-                {formData.yibf !== BETON_DOKUM_DEFAULT_DATA.yibf && (
-                  <button
-                    type="button"
-                    onClick={() => handleLocalFieldReset("yibf")}
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
-                    title='"YİBF No" alanını varsayılana sıfırla'
-                  >
-                    <RotateCcw className="h-2.5 w-2.5" />
-                    <span>Sıfırla</span>
-                  </button>
-                )}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  id={getFieldId("yibf")}
+                  aria-describedby="beton-dokum-yibf-help"
+                  value={formData.yibf || ""}
+                  onChange={(e) => handleFieldChange("yibf", e.target.value)}
+                  placeholder="1234567"
+                  className={`h-8 w-full rounded-md border px-2.5 text-xs font-mono font-semibold transition-colors placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 ${(formData.yibf || "").trim().length > 7
+                    ? "border-red-500 text-red-600 dark:text-red-400 focus:border-red-500 focus:ring-red-500/20"
+                    : "border-border bg-background text-foreground focus:border-amber-500 focus:ring-amber-500/20"
+                    }`}
+                />
               </div>
-
-              <input
-                type="text"
-                inputMode="numeric"
-                id={getFieldId("yibf")}
-                aria-describedby="beton-dokum-yibf-help"
-                value={formData.yibf || ""}
-                onChange={(e) => handleFieldChange("yibf", e.target.value)}
-                placeholder="1234567"
-                className={`h-8 w-full rounded-md border px-2.5 text-xs font-mono font-semibold transition-colors placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 ${(formData.yibf || "").trim().length > 7
-                  ? "border-red-500 text-red-600 dark:text-red-400 focus:border-red-500 focus:ring-red-500/20"
-                  : "border-border bg-background text-foreground focus:border-amber-500 focus:ring-amber-500/20"
-                  }`}
-              />
             </div>
           </div>
 
-          {/* 4. Şantiye Yeri */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+          {/* 2. Şantiye Yeri */}
+          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-1.5">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
+              2. Şantiye Yeri
+            </h3>
             {renderFieldHeader("Şantiye Yeri", "yer", "(İl/İlçe/Mahalle/Ada/Parsel)")}
             <textarea
               rows={2}
@@ -480,36 +482,40 @@ export function BetonDokumStudio({
             />
           </div>
 
-          {/* 5. Olay Açıklaması */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
-            <textarea
-              rows={3}
-              id={getFieldId("olay_aciklamasi")}
-              value={formData.olay_aciklamasi || ""}
-              onChange={(e) => handleFieldChange("olay_aciklamasi", e.target.value)}
-              placeholder="Yukarıda belirtilen şantiye adresinde gerçekleştirilen beton dökümü sırasında..."
-              className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
-            />
+          {/* 3. Olay Açıklaması & Gözlem */}
+          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
+              3. Olay Açıklaması & Gözlem
+            </h3>
+            <div>
+              {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
+              <textarea
+                rows={3}
+                id={getFieldId("olay_aciklamasi")}
+                value={formData.olay_aciklamasi || ""}
+                onChange={(e) => handleFieldChange("olay_aciklamasi", e.target.value)}
+                placeholder="Yukarıda belirtilen şantiye adresinde gerçekleştirilen beton dökümü sırasında..."
+                className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+              />
+            </div>
+
+            <div>
+              {renderFieldHeader("Gözlem ve Notlar", "gozlem_notlar")}
+              <textarea
+                rows={2}
+                id={getFieldId("gozlem_notlar")}
+                value={formData.gozlem_notlar || ""}
+                onChange={(e) => handleFieldChange("gozlem_notlar", e.target.value)}
+                placeholder="Beton dökümü gerçekleştirilmiştir..."
+                className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+              />
+            </div>
           </div>
 
-          {/* 6. Gözlem ve Notlar */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
-            {renderFieldHeader("Gözlem ve Notlar", "gozlem_notlar")}
-            <textarea
-              rows={2}
-              id={getFieldId("gozlem_notlar")}
-              value={formData.gozlem_notlar || ""}
-              onChange={(e) => handleFieldChange("gozlem_notlar", e.target.value)}
-              placeholder="Beton dökümü gerçekleştirilmiştir..."
-              className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
-            />
-          </div>
-
-          {/* 7-10. İmzacı Taraflar (4 Taraf) */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              İmzacı Taraflar
+          {/* 4. İmzacı Taraflar (4 Taraf) */}
+          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
+              4. İmzacı Taraflar
             </h3>
 
             <div className="grid gap-2 sm:grid-cols-2">

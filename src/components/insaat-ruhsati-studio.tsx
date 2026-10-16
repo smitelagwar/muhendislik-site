@@ -353,7 +353,7 @@ export function InsaatRuhsatiStudio({
           onClick={() => setActiveTabMobile("form")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "form"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
@@ -376,7 +376,7 @@ export function InsaatRuhsatiStudio({
           onClick={() => setActiveTabMobile("preview")}
           className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
             activeTabMobile === "preview"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-border"
+              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
               : "text-muted-foreground hover:text-foreground hover:bg-background/40"
           }`}
         >
@@ -402,7 +402,6 @@ export function InsaatRuhsatiStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <p role="note" className="mx-2 mt-1 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">Başlangıç alanları örnek veridir. Belgeyi indirmeden önce tüm bilgileri kontrol edin.</p>
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={INSAAT_RUHSATI_DEFAULT_DATA}
