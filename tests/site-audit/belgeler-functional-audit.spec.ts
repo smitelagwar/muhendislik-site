@@ -104,15 +104,16 @@ test("Belgeler ve beş stüdyoda ciddi erişilebilirlik ihlali olmamalı", async
   };
   for (const path of ["/belgeler", ...documentIds.map((id) => `/belgeler/${id}`)]) {
     await page.goto(path, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    const studio = page.locator('[data-studio-locked="true"]:visible').last();
     if (path !== "/belgeler") {
-      await expect(page.getByTestId("belge-studio-form-scroll")).toBeVisible({ timeout: 8_000 });
+      await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible({ timeout: 8_000 });
     }
     await scan(path);
     if (path !== "/belgeler") {
-      const previewTab = page.getByRole("tab", { name: /Canlı PDF Önizle/i });
+      const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
       if (await previewTab.isVisible()) {
         await previewTab.click();
-        await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8_000 });
+        await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8_000 });
         await scan(`${path} / PDF`);
       }
     }

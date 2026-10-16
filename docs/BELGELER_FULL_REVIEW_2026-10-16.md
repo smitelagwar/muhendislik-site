@@ -39,3 +39,9 @@ Beş uzun metin PDF'inin altı sayfası Poppler ile çizdirilip incelendi. pypdf
 - Değişiklikler belge modülündeki kanıtlanmış sorunlarla sınırlıdır. PDF üretim motoru, PDF.js yükleyicisi, Dokümantasyon/CAD, hesaplama formülleri, navigasyon veya build sözleşmesi değiştirilmedi. Yeni bağımlılık yoktur.
 - Genel repo TypeScript borcu önceki tema denetim raporunda kayıtlıdır; bu çalışma onu yeşil olarak raporlamaz veya tsconfig kapsamını daraltarak gizlemez.
 - Ara remote write ve Preview oluşturulmaz. Yerel doğrulama sonrasında tek release checkpoint'i ve Production deployment kullanılır; canlı adreste aynı kabul senaryoları yeniden çalıştırılır.
+
+### Canlı doğrulama sonucu
+
+`fa22584` Production deployment'ı `READY` oldu ve ana alan adı aynı commit'e geçti. Canlıda 19 işlev/tema/yerleşim testi geçti. Ek mobil erişilebilirlik kontrolü, Next.js geçişinde gizli eski form ile yeni formun birlikte bulunduğu anda kapsamı geniş bir test seçicisine takıldı. Uygulama değişikliği gerekmedi; seçici mevcut test paketindeki gibi görünür stüdyo ile sınırlandırıldı ve mobil erişilebilirlik kontrolü yeniden 1/1 geçti. Toplam 20 canlı senaryo doğrulandı.
+
+Bu son test sağlamlaştırması ve yayın kanıtı, gereksiz ikinci Production build'i oluşturmamak için `[skip ci]` işaretli ayrı bir test checkpoint'inde saklanır. Bu, yalnız canlı doğrulamada görülebilen seçici hatasını kalıcı düzeltmek için standart tek checkpoint akışının kontrollü istisnasıdır; runtime kodu ve doğrulanmış deployment değişmez.
