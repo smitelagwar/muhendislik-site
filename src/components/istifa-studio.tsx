@@ -1,24 +1,17 @@
 "use client";
 
-import { PDFJS_CMAPS, PDFJS_FONTS } from "@/lib/pdfjs-paths";
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState  } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Eye,
-  FileDown,
   FileEdit,
   FilePenLine,
   FileText,
   Loader2,
-  Printer,
   RotateCcw,
-  Trash2,
   UserCheck,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
-import { loadBrowserPdfJs } from "@/lib/pdfjs-client";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   countFilledEditableFields,
@@ -27,13 +20,14 @@ import {
 import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
-  BELGE_STUDIO_MOBILE_ACTIONS_CLASS,
   BELGE_STUDIO_MOBILE_TABLIST_CLASS,
   BELGE_STUDIO_MOBILE_TAB_CLASS,
-  BELGE_STUDIO_PREVIEW_CANVAS_CLASS,
-  BELGE_STUDIO_PREVIEW_PANEL_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
+import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
+import { BelgeStudioActions } from "@/components/belge-studio-actions";
+import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
 import {
   ISTIFA_DILEKCESI_DEFAULT_DATA,
   IstifaDilekcesiData,
@@ -57,7 +51,8 @@ export function IstifaStudio({
     ...initialData,
   }));
 
-  const [isGenerating, setIsGenerating] = useState<boolean>(true);
+  const [undoData, setUndoData] = useState<IstifaDilekcesiData | null>(null);
+
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("form");
   const mobileTabIds = {
@@ -87,33 +82,32 @@ export function IstifaStudio({
         ?.focus();
     });
   };
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
-  const [syncStatus, setSyncStatus] = useState<"synced" | "updating" | "error">("updating");
-  const [hasRenderedOnce, setHasRenderedOnce] = useState<boolean>(false);
-  const [previewStatusMessage, setPreviewStatusMessage] = useState(
-    "PDF önizlemesi hazırlanıyor."
-  );
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-
+  const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const previewContainerRef = useRef<HTMLDivElement | null>(null);
-  const renderTaskRef = useRef<any>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const generationRequestRef = useRef<number>(0);
-  const previewAnnouncementStateRef = useRef<"loading" | "ready" | "error">("loading");
-  const renderRequestRef = useRef<number>(0);
-  const activeBlobUrlRef = useRef<string | null>(null);
-  const latestPdfBytesRef = useRef<Uint8Array | null>(null);
-  const cachedPdfDocRef = useRef<any>(null);
-  const zoomLevelRef = useRef<number>(zoomLevel);
-  zoomLevelRef.current = zoomLevel;
+  const document = useBelgeStudioDocument(formData, generateIstifaDilekcesiPdf);
+  const snapshot = document.snapshot;
+  const blobUrl = snapshot?.blobUrl ?? null;
+  const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
+  const previewError = previewIsCurrent && previewResult.status === "error";
+  const syncStatus: "synced" | "updating" | "error" =
+    document.status === "error" || previewError
+      ? "error"
+      : document.status === "ready" && previewIsCurrent && previewResult.status === "ready"
+        ? "synced"
+        : "updating";
+  const previewStatusMessage =
+    syncStatus === "error"
+      ? "PDF önizlemesi oluşturulamadı."
+      : syncStatus === "synced"
+        ? "PDF önizlemesi hazır."
+        : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
   const handleFieldChange = (key: keyof IstifaDilekcesiData, value: string) => {
+    setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -127,11 +121,13 @@ export function IstifaStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
+    setUndoData({ ...formData });
     setFormData({ ...ISTIFA_DILEKCESI_DEFAULT_DATA });
   };
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
+    setUndoData({ ...formData });
     setFormData({
       hitap_1: "",
       hitap_2: "",
@@ -149,6 +145,12 @@ export function IstifaStudio({
     });
   };
 
+  const handleUndo = () => {
+    if (!undoData) return;
+    setFormData(undoData);
+    setUndoData(null);
+  };
+
   // Count filled fields
   const filledFieldCount = useMemo(
     () =>
@@ -159,311 +161,30 @@ export function IstifaStudio({
     [formData]
   );
 
-  // Render already loaded PDF Page onto Canvas at the requested zoom level (Instant 60fps)
-  const renderPdfPage = useCallback(async (pdf: any, zoom: number) => {
-    const canvas = canvasRef.current;
-    const container = previewContainerRef.current;
-    if (!canvas || !container || !pdf) return;
-
-    const renderRequestId = ++renderRequestRef.current;
-
-    try {
-      if (renderTaskRef.current) {
-        try {
-          renderTaskRef.current.cancel();
-        } catch {
-          // ignore
-        }
-      }
-
-      const page = await pdf.getPage(1);
-      if (renderRequestId !== renderRequestRef.current) return;
-
-      const unscaledViewport = page.getViewport({ scale: 1.0 });
-
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-      const availableHeight = Math.max(1, container.clientHeight - (isMobile ? 8 : 12));
-      const availableWidth = Math.max(1, container.clientWidth - (isMobile ? 8 : 12));
-
-      const fitScaleByHeight = availableHeight / unscaledViewport.height;
-      const fitScaleByWidth = availableWidth / unscaledViewport.width;
-      const baseFitScale = Math.min(fitScaleByHeight, fitScaleByWidth);
-
-      const effectiveScale = baseFitScale * (zoom / 100);
-      const pixelRatio = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-      const viewport = page.getViewport({ scale: effectiveScale });
-
-      canvas.width = Math.floor(viewport.width * pixelRatio);
-      canvas.height = Math.floor(viewport.height * pixelRatio);
-
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport,
-      };
-
-      const renderTask = page.render(renderContext);
-      renderTaskRef.current = renderTask;
-
-      await renderTask.promise;
-      if (renderRequestId !== renderRequestRef.current) return;
-
-      if (renderTaskRef.current === renderTask) {
-        renderTaskRef.current = null;
-      }
-      setHasRenderedOnce(true);
-    } catch (err: any) {
-      if (
-        renderRequestId !== renderRequestRef.current ||
-        err?.name === "RenderingCancelledException"
-      ) return;
-      console.error("Canvas render error:", err);
-    }
-  }, []);
-
-  // Debounced PDF Generation (Triggers ONLY when formData changes)
-  useEffect(() => {
-    const generationRequestId = ++generationRequestRef.current;
-
-    setSyncStatus("updating");
-    setIsGenerating(true);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = setTimeout(async () => {
-      try {
-        const bytes = await generateIstifaDilekcesiPdf(formData);
-        if (generationRequestId !== generationRequestRef.current) return;
-        const storedBytes = new Uint8Array(bytes.byteLength);
-        storedBytes.set(bytes);
-        latestPdfBytesRef.current = storedBytes;
-
-        if (activeBlobUrlRef.current) {
-          URL.revokeObjectURL(activeBlobUrlRef.current);
-        }
-        const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        activeBlobUrlRef.current = url;
-        setBlobUrl(url);
-
-        const pdfjs = await loadBrowserPdfJs();
-        if (generationRequestId !== generationRequestRef.current) return;
-
-        if (pdfjs) {
-          const clonedBytes = new Uint8Array(storedBytes.byteLength);
-          clonedBytes.set(storedBytes);
-
-          const loadingTask = pdfjs.getDocument({
-            data: clonedBytes,
-            cMapUrl: PDFJS_CMAPS,
-            standardFontDataUrl: PDFJS_FONTS,
-            cMapPacked: true,
-          });
-
-          const pdf = await loadingTask.promise;
-          if (generationRequestId !== generationRequestRef.current) {
-            void loadingTask.destroy();
-            return;
-          }
-
-          const previousPdf = cachedPdfDocRef.current;
-          cachedPdfDocRef.current = pdf;
-          await renderPdfPage(pdf, zoomLevelRef.current);
-          if (previousPdf && previousPdf !== pdf) {
-            void previousPdf.loadingTask.destroy();
-          }
-        }
-
-        if (generationRequestId !== generationRequestRef.current) return;
-
-        if (previewAnnouncementStateRef.current !== "ready") {
-          previewAnnouncementStateRef.current = "ready";
-          setPreviewStatusMessage("PDF önizlemesi hazır.");
-        }
-        setSyncStatus("synced");
-        setIsGenerating(false);
-      } catch (error) {
-        if (generationRequestId !== generationRequestRef.current) return;
-
-        console.error("PDF generation failure:", error);
-        if (previewAnnouncementStateRef.current !== "error") {
-          previewAnnouncementStateRef.current = "error";
-          setPreviewStatusMessage("PDF önizlemesi oluşturulamadı.");
-        }
-        setSyncStatus("error");
-        setIsGenerating(false);
-      }
-    }, 150);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [formData, renderPdfPage]);
-
-  // Instant Redraw when zoomLevel changes (NO PDF recompilation, NO sync status change)
-  useEffect(() => {
-    if (cachedPdfDocRef.current) {
-      renderPdfPage(cachedPdfDocRef.current, zoomLevel);
-    }
-  }, [zoomLevel, renderPdfPage]);
-
-  // Window / container resize observer to keep canvas perfectly fitted
-  useEffect(() => {
-    const container = previewContainerRef.current;
-    if (!container) return;
-
-    let resizeTimer: NodeJS.Timeout | null = null;
-    const observer = new ResizeObserver(() => {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (cachedPdfDocRef.current) {
-          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
-        }
-      }, 50);
-    });
-
-    observer.observe(container);
-    return () => {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      observer.disconnect();
-    };
-  }, [renderPdfPage]);
-
-  // Re-render canvas when switching to preview tab on mobile
-  useEffect(() => {
-    if (activeTabMobile === "preview" && cachedPdfDocRef.current) {
-      const timer = window.setTimeout(() => {
-        if (cachedPdfDocRef.current) {
-          renderPdfPage(cachedPdfDocRef.current, zoomLevelRef.current);
-        }
-      }, 50);
-
-      return () => window.clearTimeout(timer);
-    }
-  }, [activeTabMobile, renderPdfPage]);
-
-  // Ctrl/Cmd + Wheel and keyboard PDF zoom — scoped only to the focused preview.
-  const handlePreviewKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (!(event.ctrlKey || event.metaKey)) return;
-
-    const target = event.target;
-    if (
-      target instanceof HTMLElement &&
-      (target.matches("input, textarea, select, [contenteditable='true']") ||
-        target.closest("[contenteditable='true']") !== null)
-    ) {
+    const handleDownload = async () => {
+    if (downloadInFlightRef.current) return;
+    const currentSnapshot = document.snapshot;
+    if (document.status !== "ready" || !currentSnapshot) {
+      window.alert("PDF henüz hazır değil. Önizleme hazır olduğunda tekrar deneyin.");
       return;
     }
-
-    if (event.key === "+" || event.key === "=") {
-      event.preventDefault();
-      event.stopPropagation();
-      setZoomLevel((prev) => Math.min(250, prev + 25));
-    } else if (event.key === "-") {
-      event.preventDefault();
-      event.stopPropagation();
-      setZoomLevel((prev) => Math.max(50, prev - 25));
-    } else if (event.key === "0") {
-      event.preventDefault();
-      event.stopPropagation();
-      setZoomLevel(100);
-    }
-  };
-
-  useEffect(() => {
-    const container = previewContainerRef.current;
-    if (!container) return;
-
-    const isPreviewVisible = () =>
-      container.getClientRects().length > 0 &&
-      window.getComputedStyle(container).visibility !== "hidden";
-
-    const handleWheel = (event: WheelEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || !isPreviewVisible()) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.deltaY < 0) {
-        setZoomLevel((prev) => Math.min(250, prev + 25));
-      } else if (event.deltaY > 0) {
-        setZoomLevel((prev) => Math.max(50, prev - 25));
-      }
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-    };
-  }, []);
-
-  // Bileşen kapanırken geçici PDF kaynaklarını temizle
-  useEffect(() => {
-    return () => {
-      generationRequestRef.current += 1;
-      renderRequestRef.current += 1;
-
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      if (renderTaskRef.current) {
-        try {
-          renderTaskRef.current.cancel();
-        } catch {
-          // Render işlemi zaten tamamlanmış olabilir.
-        }
-        renderTaskRef.current = null;
-      }
-
-      const cachedPdf = cachedPdfDocRef.current;
-      cachedPdfDocRef.current = null;
-      if (cachedPdf?.loadingTask) {
-        void cachedPdf.loadingTask.destroy();
-      }
-
-      if (activeBlobUrlRef.current) {
-        URL.revokeObjectURL(activeBlobUrlRef.current);
-        activeBlobUrlRef.current = null;
-      }
-    };
-  }, []);
-
-  // Handle direct download
-  const handleDownload = async () => {
-    if (downloadInFlightRef.current) return;
     downloadInFlightRef.current = true;
-
     try {
       setIsDownloading(true);
-      await downloadFilledIstifaDilekcesiPdf(formData);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("PDF indirilirken bir sorun oluştu.");
+      await downloadFilledIstifaDilekcesiPdf(formData, undefined, currentSnapshot.bytes);
+    } catch (error) {
+      console.error("PDF indirme hatası:", error);
+      window.alert("PDF indirilirken bir hata oluştu. Lütfen tekrar deneyin.");
     } finally {
       downloadInFlightRef.current = false;
       setIsDownloading(false);
     }
   };
 
-  // Download empty form
-  // Print only the generated PDF; never fall back to printing the HTML page.
   const handlePrint = () => {
     printPdfFromBlobUrl({
       blobUrl,
-      isReady: syncStatus === "synced",
+      isReady: document.status === "ready" && Boolean(snapshot),
     });
   };
 
@@ -497,7 +218,7 @@ export function IstifaStudio({
             type="button"
             onClick={() => handleLocalFieldReset(fieldKey)}
             className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-all shrink-0"
-            title={`"${label}" alanını varsayılana sıfırla`}
+            aria-label={`"${label}" alanını varsayılana sıfırla`} title={`"${label}" alanını varsayılana sıfırla`}
           >
             <RotateCcw className="h-2.5 w-2.5" />
             <span>Sıfırla</span>
@@ -547,7 +268,7 @@ export function IstifaStudio({
             )}
             {syncStatus === "synced" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-emerald-500" />
                 <span>Canlı Önizleme Hazır</span>
               </span>
             )}
@@ -599,7 +320,7 @@ export function IstifaStudio({
           role="tab"
           aria-selected={activeTabMobile === "preview"}
           aria-controls={mobileTabIds.previewPanel}
-          aria-label={syncStatus === "updating" ? "Canlı PDF önizlemesi, hazırlanıyor" : "Canlı PDF önizlemesi, hazır"}
+          aria-label={syncStatus === "error" ? "Canlı PDF önizlemesi, hata oluştu" : syncStatus === "updating" ? "Canlı PDF önizlemesi, hazırlanıyor" : "Canlı PDF önizlemesi, hazır"}
           tabIndex={activeTabMobile === "preview" ? 0 : -1}
           onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
           onClick={() => setActiveTabMobile("preview")}
@@ -614,7 +335,7 @@ export function IstifaStudio({
           {syncStatus === "updating" ? (
             <Loader2 aria-hidden="true" className="h-3 w-3 shrink-0 animate-spin text-amber-500" />
           ) : (
-            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+            <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${syncStatus === "error" ? "bg-rose-500" : "bg-emerald-500"}`} />
           )}
         </button>
       </div>
@@ -631,6 +352,21 @@ export function IstifaStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
+          <p role="note" className="mx-2 mt-1 rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">Başlangıç alanları örnek veridir. Belgeyi indirmeden önce tüm bilgileri kontrol edin.</p>
+          <BelgeFieldLengthWarnings
+            values={formData}
+            baselineValues={ISTIFA_DILEKCESI_DEFAULT_DATA}
+            limits={{
+              hitap_1: { label: "Hitap", maximum: 62 },
+              hitap_2: { label: "İl / ilçe satırı", maximum: 36 },
+              ana_paragraf: { label: "İstifa açıklaması", maximum: 320 },
+              sonuc_cumlesi: { label: "Sonuç cümlesi", maximum: 210 },
+              ad_soyad: { label: "Ad soyad", maximum: 38 },
+              adres_deger: { label: "Adres", maximum: 90 },
+              tc_deger: { label: "T.C. Kimlik Numarası", maximum: 11 },
+              iletisim_deger: { label: "İletişim", maximum: 34 },
+            }}
+          />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -647,7 +383,7 @@ export function IstifaStudio({
             )}
             {syncStatus === "synced" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
                 <span>Canlı Senkron</span>
               </span>
             )}
@@ -781,8 +517,7 @@ export function IstifaStudio({
                 {renderFieldHeader("tc_deger", "T.C. Kimlik Numarası")}
                 <input
                   type="text"
-                  maxLength={11}
-                  id={getFieldId("tc_deger")}
+                                    id={getFieldId("tc_deger")}
                   inputMode="numeric"
                   value={formData.tc_deger || ""}
                   onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
@@ -821,159 +556,38 @@ export function IstifaStudio({
             </div>
           </div>
 
-          {/* Form Actions & Controls */}
-          <div className="pt-1 space-y-2">
-            <div className="grid grid-cols-4 gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleResetToPdfDefaults}
-                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-                title="Tüm alanları orijinal varsayılanlara sıfırla"
-              >
-                <RotateCcw className="h-3 w-3 mr-1 shrink-0" />
-                <span>Sıfırla</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleClearAll}
-                className="h-8 px-1 text-[11px] font-semibold text-muted-foreground hover:text-rose-600 hover:border-rose-500/40"
-                title="Tüm alanları temizle"
-              >
-                <Trash2 className="h-3 w-3 mr-1 shrink-0" />
-                <span>Temizle</span>
-              </Button>
-
-              <a
-                href="/belgeler/santiye-sefi-istifa-dilekcesi.pdf"
-                download="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
-                className="inline-flex items-center justify-center h-8 rounded-md border border-border bg-background px-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                title="Doldurulmamış boş şablonu indir"
-              >
-                <FileDown className="h-3 w-3 mr-1 shrink-0" />
-                <span>Boş Form</span>
-              </a>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePrint}
-                aria-label="Yazdır"
-                className="h-8 px-1 text-[11px] font-semibold"
-                title="Yazdır"
-              >
-                <Printer className="h-3 w-3 mr-1 shrink-0" />
-                <span>Yazdır</span>
-              </Button>
-            </div>
-
-            {/* Primary Action Button */}
-            <Button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="w-full h-10 gap-2 bg-amber-600 text-xs font-bold text-white shadow-md transition-all hover:bg-amber-700 active:scale-[0.98] dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400"
-            >
-              {isDownloading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="h-4 w-4" />
-              )}
-              <span>Doldurulmuş PDF&apos;i İndir</span>
-            </Button>
-          </div>
         </div>
 
-        {/* Right Column: Live PDF Canvas Preview (Fitted 100% inside view, zero window scroll) */}
         <div
           id={mobileTabIds.previewPanel}
           role="tabpanel"
           aria-labelledby={mobileTabIds.previewTab}
-          className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} ${
-            activeTabMobile === "preview" ? "flex" : "hidden lg:flex"
-          }`}
+          className={`flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "flex" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto lg:flex"}`}
         >
-          {/* Canvas Toolbar */}
-          <BelgeStudioPreviewToolbar
-            zoomLevel={zoomLevel}
-            onZoomChange={setZoomLevel}
-            pdfUrl={blobUrl}
+          <BelgeStudioPdfPreview
+            snapshot={snapshot}
+            generationPending={document.status === "generating"}
+            generationError={document.status === "error" ? document.error : null}
+            onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
+            onRetry={document.retry}
           />
-
-          {/* Canvas Viewport Container: Maximized vertical area, local internal scroll when zoomed */}
-          <div
-            ref={previewContainerRef}
-            onKeyDown={handlePreviewKeyDown}
-            role="region"
-            tabIndex={0}
-            aria-label="PDF önizleme alanı"
-            className={`${BELGE_STUDIO_PREVIEW_CANVAS_CLASS} ${
-              zoomLevel > 100 ? "block" : "flex items-center justify-center overflow-hidden"
-            }`}
-          >
-            {isGenerating && !hasRenderedOnce && (
-              <div className="sticky inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-zinc-300 bg-zinc-900/80 backdrop-blur-xs z-10 min-h-[260px]">
-                <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
-                <p className="text-xs font-semibold">Resmi PDF Derleniyor...</p>
-              </div>
-            )}
-
-            {/* Auto-Fitted Full A4 Canvas (centered, scrollable when zoomed in) */}
-            <canvas
-              ref={canvasRef}
-              className={`bg-white rounded-md shadow-2xl transition-all block shrink-0 ${
-                zoomLevel > 100
-                  ? "mx-auto my-2"
-                  : "max-h-full max-w-full mx-auto my-auto"
-              }`}
-            />
-          </div>
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Action Bar (Persistent across Form and Preview tabs) */}
-      <div
-        data-testid="belge-studio-mobile-actions"
-        className={BELGE_STUDIO_MOBILE_ACTIONS_CLASS}
-      >
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setActiveTabMobile(activeTabMobile === "form" ? "preview" : "form")}
-          className="flex-1 min-w-0 min-h-11 h-auto py-2 gap-1.5 text-xs font-semibold whitespace-normal leading-tight"
-        >
-          {activeTabMobile === "form" ? (
-            <>
-              <Eye className="h-3.5 w-3.5 text-amber-500" />
-              <span>Canlı PDF Önizle</span>
-            </>
-          ) : (
-            <>
-              <FileEdit className="h-3.5 w-3.5 text-amber-500" />
-              <span>Formu Düzenle</span>
-            </>
-          )}
-        </Button>
-
-        <Button
-          type="button"
-          onClick={handleDownload}
-          disabled={isDownloading}
-          className="flex-1 min-w-0 min-h-11 h-auto py-2 gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs leading-tight whitespace-normal shadow-md dark:bg-amber-500 dark:text-zinc-950"
-        >
-          {isDownloading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <FileDown className="h-3.5 w-3.5" />
-          )}
-          <span>PDF İndir</span>
-        </Button>
-      </div>
+      <BelgeStudioActions
+        activeTab={activeTabMobile}
+        onToggleTab={() => setActiveTabMobile(activeTabMobile === "form" ? "preview" : "form")}
+        onReset={handleResetToPdfDefaults}
+        onClear={handleClearAll}
+        onUndo={handleUndo}
+        canUndo={Boolean(undoData)}
+        onPrint={handlePrint}
+        onDownload={handleDownload}
+        ready={document.status === "ready"}
+        downloading={isDownloading}
+        templateUrl="/belgeler/santiye-sefi-istifa-dilekcesi.pdf"
+        templateFilename="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
+      />
     </div>
   );
 }

@@ -12,7 +12,7 @@ export function printPdfFromBlobUrl({
     return;
   }
 
-  const printWindow = window.open(blobUrl, "_blank");
+  const printWindow = window.open("", "_blank");
 
   if (!printWindow) {
     window.alert(
@@ -22,10 +22,13 @@ export function printPdfFromBlobUrl({
   }
 
   let printTriggered = false;
+  let loadTimeout = 0;
 
   const triggerPrint = () => {
     if (printTriggered || printWindow.closed) return;
+    if (printWindow.location.href !== blobUrl) return;
     printTriggered = true;
+    window.clearTimeout(loadTimeout);
 
     try {
       printWindow.focus();
@@ -36,13 +39,19 @@ export function printPdfFromBlobUrl({
     }
   };
 
-  printWindow.addEventListener("load", triggerPrint, { once: true });
-
   try {
-    if (printWindow.document.readyState === "complete") {
-      triggerPrint();
-    }
-  } catch {
-    // PDF viewer document state may not be readable; load event remains the source of truth.
+    printWindow.addEventListener("load", triggerPrint);
+    printWindow.location.href = blobUrl;
+    loadTimeout = window.setTimeout(() => {
+      printWindow.removeEventListener("load", triggerPrint);
+      if (!printTriggered && !printWindow.closed) {
+        window.alert("PDF yazdırma penceresinde açıldı. Yazdırma penceresindeki yazdır düğmesini kullanın.");
+      }
+    }, 20_000);
+  } catch (error) {
+    window.clearTimeout(loadTimeout);
+    printWindow.removeEventListener("load", triggerPrint);
+    console.error("PDF yazdırma penceresi açılamadı:", error);
+    window.alert("PDF yazdırma penceresi açılamadı. Lütfen tekrar deneyin.");
   }
 }

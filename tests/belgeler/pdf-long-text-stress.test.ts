@@ -201,6 +201,16 @@ async function main() {
         expectedValue,
         `${testCase.id}/${fieldName}: PDF alan değeri sessiz kesildi veya değişti`
       );
+
+      for (const [widgetIndex, widget] of field.acroField.getWidgets().entries()) {
+        const appearance = widget.getDefaultAppearance() ?? "";
+        const fontSizeMatch = appearance.match(/(?:^|\s)(\d+(?:\.\d+)?)\s+Tf\b/);
+        const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : Number.NaN;
+        assert.ok(
+          Number.isFinite(fontSize) && fontSize > 0,
+          `${testCase.id}/${fieldName}/widget-${widgetIndex}: otomatik punto boyutu PDF görünümüne yazılmadı`
+        );
+      }
     }
 
     writeFileSync(resolve(outputDir, `${testCase.id}-stress.pdf`), pdfBytes);

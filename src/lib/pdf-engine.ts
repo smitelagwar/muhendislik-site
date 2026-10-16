@@ -199,11 +199,41 @@ const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number
 // ==========================================
 
 const cachedPdfBytes: Record<string, Uint8Array> = {};
+const pdfTemplatePromises = new Map<string, Promise<Uint8Array>>();
 let cachedBoldFontBytes: Uint8Array | null = null;
 let cachedRegularFontBytes: Uint8Array | null = null;
+let boldFontPromise: Promise<Uint8Array> | null = null;
+let regularFontPromise: Promise<Uint8Array> | null = null;
+
+const DOCUMENT_RESOURCE_TIMEOUT_MS = 10_000;
+
+function isPdf(bytes: Uint8Array): boolean {
+  return bytes.byteLength >= 5 && new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
+}
+
+async function fetchDocumentResource(url: string): Promise<Uint8Array> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DOCUMENT_RESOURCE_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(`Kaynak yüklenemedi: HTTP ${response.status}`);
+    return new Uint8Array(await response.arrayBuffer());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function getNodeFileModules() {
+  const fs = process.getBuiltinModule("node:fs") as typeof import("node:fs") | undefined;
+  const path = process.getBuiltinModule("node:path") as typeof import("node:path") | undefined;
+  if (!fs || !path) throw new Error("Yerel PDF kaynağı için Node.js dosya sistemi kullanılamıyor.");
+  return { fs, path };
+}
 
 async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati" | "sozlesme"): Promise<Uint8Array> {
   if (cachedPdfBytes[docType]) return cachedPdfBytes[docType].slice(0);
+  const pending = pdfTemplatePromises.get(docType);
+  if (pending) return (await pending).slice(0);
 
   const fileMap = {
     "beton-dokum": { api: "/api/document-template/beton-dokum", direct: "/belgeler/beton-dokum-tutanagi.pdf", disk: "beton-dokum-tutanagi.pdf" },
@@ -218,84 +248,90 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
   };
 
   const config = fileMap[docType];
-
-  if (typeof window !== "undefined") {
-    try {
-      const response = await fetch(config.api, { cache: "no-store" });
-      if (response.ok) {
-        const arrayBuffer = await response.arrayBuffer();
-        cachedPdfBytes[docType] = new Uint8Array(arrayBuffer);
-        return cachedPdfBytes[docType].slice(0);
+  const promise = (async () => {
+    if (typeof window !== "undefined") {
+      try {
+        const apiBytes = await fetchDocumentResource(config.api);
+        if (isPdf(apiBytes)) {
+          cachedPdfBytes[docType] = apiBytes;
+          return apiBytes;
+        }
+      } catch {
+        // API erişilemezse yerel PDF şablonuna geç.
       }
-    } catch {
-      // ignore
+
+      const directBytes = await fetchDocumentResource(config.direct);
+      if (!isPdf(directBytes)) throw new Error("PDF şablonu geçerli bir PDF dosyası değil.");
+      cachedPdfBytes[docType] = directBytes;
+      return directBytes;
     }
 
-    const directResponse = await fetch(config.direct, { cache: "no-store" });
-    if (!directResponse.ok) {
-      throw new Error(`PDF şablonu yüklenemedi: HTTP ${directResponse.status}`);
-    }
-    const arrayBuffer = await directResponse.arrayBuffer();
-    cachedPdfBytes[docType] = new Uint8Array(arrayBuffer);
-    return cachedPdfBytes[docType].slice(0);
-  } else {
-    const fs = await import("fs");
-    const path = await import("path");
+    const { fs, path } = getNodeFileModules();
     const filePath = path.join(process.cwd(), "public", "belgeler", config.disk);
-    cachedPdfBytes[docType] = new Uint8Array(fs.readFileSync(filePath));
-    return cachedPdfBytes[docType].slice(0);
+    const diskBytes = new Uint8Array(fs.readFileSync(filePath));
+    if (!isPdf(diskBytes)) throw new Error("Yerel PDF şablonu geçersiz.");
+    cachedPdfBytes[docType] = diskBytes;
+    return diskBytes;
+  })();
+
+  pdfTemplatePromises.set(docType, promise);
+  try {
+    return (await promise).slice(0);
+  } catch (error) {
+    pdfTemplatePromises.delete(docType);
+    throw error;
   }
 }
 
 /** Load the Bold variant of the embedded font (Arial-Bold or fallback). */
 async function getBoldFontBytes(): Promise<Uint8Array> {
   if (cachedBoldFontBytes) return cachedBoldFontBytes.slice(0);
-
-  if (typeof window !== "undefined") {
-    const r = await fetch("/fonts/Arial-Bold.ttf");
-    if (r.ok) {
-      cachedBoldFontBytes = new Uint8Array(await r.arrayBuffer());
-      return cachedBoldFontBytes.slice(0);
+  if (boldFontPromise) return (await boldFontPromise).slice(0);
+  boldFontPromise = (async () => {
+    if (typeof window !== "undefined") {
+      try {
+        return await fetchDocumentResource("/fonts/Arial-Bold.ttf");
+      } catch {
+        return fetchDocumentResource("/fonts/IBMPlexSerif-Bold.ttf");
+      }
     }
-    const fb = await fetch("/fonts/IBMPlexSerif-Bold.ttf");
-    if (!fb.ok) throw new Error("Bold yazı tipi yüklenemedi.");
-    cachedBoldFontBytes = new Uint8Array(await fb.arrayBuffer());
-    return cachedBoldFontBytes.slice(0);
-  } else {
-    const fs = await import("fs");
-    const path = await import("path");
+    const { fs, path } = getNodeFileModules();
     let fontPath = path.join(process.cwd(), "public", "fonts", "Arial-Bold.ttf");
-    if (!fs.existsSync(fontPath)) {
-      fontPath = path.join(process.cwd(), "public", "fonts", "IBMPlexSerif-Bold.ttf");
-    }
-    cachedBoldFontBytes = new Uint8Array(fs.readFileSync(fontPath));
+    if (!fs.existsSync(fontPath)) fontPath = path.join(process.cwd(), "public", "fonts", "IBMPlexSerif-Bold.ttf");
+    return new Uint8Array(fs.readFileSync(fontPath));
+  })();
+  try {
+    cachedBoldFontBytes = await boldFontPromise;
     return cachedBoldFontBytes.slice(0);
+  } catch (error) {
+    boldFontPromise = null;
+    throw error;
   }
 }
 
 /** Load the Regular (non-bold) variant of the embedded font. */
 async function getRegularFontBytes(): Promise<Uint8Array> {
   if (cachedRegularFontBytes) return cachedRegularFontBytes.slice(0);
-
-  if (typeof window !== "undefined") {
-    const r = await fetch("/fonts/Arial-Regular.ttf");
-    if (r.ok) {
-      cachedRegularFontBytes = new Uint8Array(await r.arrayBuffer());
-      return cachedRegularFontBytes.slice(0);
+  if (regularFontPromise) return (await regularFontPromise).slice(0);
+  regularFontPromise = (async () => {
+    if (typeof window !== "undefined") {
+      try {
+        return await fetchDocumentResource("/fonts/Arial-Regular.ttf");
+      } catch {
+        return fetchDocumentResource("/fonts/IBMPlexSerif-Regular.ttf");
+      }
     }
-    const fb = await fetch("/fonts/IBMPlexSerif-Regular.ttf");
-    if (!fb.ok) throw new Error("Regular yazı tipi yüklenemedi.");
-    cachedRegularFontBytes = new Uint8Array(await fb.arrayBuffer());
-    return cachedRegularFontBytes.slice(0);
-  } else {
-    const fs = await import("fs");
-    const path = await import("path");
+    const { fs, path } = getNodeFileModules();
     let fontPath = path.join(process.cwd(), "public", "fonts", "Arial-Regular.ttf");
-    if (!fs.existsSync(fontPath)) {
-      fontPath = path.join(process.cwd(), "public", "fonts", "IBMPlexSerif-Regular.ttf");
-    }
-    cachedRegularFontBytes = new Uint8Array(fs.readFileSync(fontPath));
+    if (!fs.existsSync(fontPath)) fontPath = path.join(process.cwd(), "public", "fonts", "IBMPlexSerif-Regular.ttf");
+    return new Uint8Array(fs.readFileSync(fontPath));
+  })();
+  try {
+    cachedRegularFontBytes = await regularFontPromise;
     return cachedRegularFontBytes.slice(0);
+  } catch (error) {
+    regularFontPromise = null;
+    throw error;
   }
 }
 
@@ -379,16 +415,18 @@ async function populateForm<T extends object>(
   for (const [key, spec] of Object.entries(specs)) {
     try {
       const field = form.getTextField(key);
-      if (!field) continue;
+      if (!field) {
+        throw new Error(`PDF şablonunda "${key}" alanı bulunamadı.`);
+      }
 
       // Choose the correct font weight for this field
       const useFont = spec.bold === false ? regularFont : boldFont;
 
       // 1. Override the Default Appearance (DA) — sets font & size for viewer rendering
-      field.acroField.dict.set(
-        PDFName.of("DA"),
-        PDFString.of(`/${useFont.name} ${spec.size} Tf 0 0 0 rg`)
-      );
+      // First render pass asks pdf-lib to calculate the largest size that fits
+      // each widget. The second pass caps that result at the template's
+      // preferred size so short values keep the intended typography.
+      field.acroField.dict.set(PDFName.of("DA"), makeDefaultAppearance(useFont.name, 0));
 
       // 2. Set text alignment (Quadding): 0=left, 1=center, 2=right
       if (spec.q !== undefined) {
@@ -417,25 +455,57 @@ async function populateForm<T extends object>(
           appearance.delete(PDFName.of("BG"));
         }
         // Also sync DA and Q to each widget so they render consistently
-        widget.dict.set(
-          PDFName.of("DA"),
-          PDFString.of(`/${useFont.name} ${spec.size} Tf 0 0 0 rg`)
-        );
+        widget.dict.set(PDFName.of("DA"), makeDefaultAppearance(useFont.name, 0));
         if (spec.q !== undefined) {
           widget.dict.set(PDFName.of("Q"), PDFNumber.of(spec.q));
         }
       }
 
-      // 4. Set the field value
       const rawValue = (data as Record<string, unknown>)[key];
       const val = typeof rawValue === "string" ? rawValue : "";
+      // Arayüz karakter sayısını kilitlemez; AcroForm şablonundaki eski sınırı
+      // da kaldır ki uzun metin sessizce reddedilmesin.
+      field.acroField.dict.delete(PDFName.of("MaxLen"));
       field.setText(val);
-      // Her alan kendi tanımlı font ağırlığıyla yeniden üretilir. Form
-      // seviyesinde tek bir fontla güncellemek regular alanları da kalınlaştırıp
-      // metinlerin taşmasına yol açıyordu.
+
+      // Let pdf-lib wrap multiline values and shrink single-line values against
+      // each widget's actual rectangle. The full AcroForm value remains intact.
       field.updateAppearances(useFont);
-    } catch {
-      // Silently skip unknown fields
+
+      let smallestWidgetFontSize = spec.size;
+      for (const widget of widgets) {
+        const fittedSize = readAppearanceFontSize(widget.getDefaultAppearance(), spec.size);
+        const rectangle = widget.getRectangle();
+        const rotation = widget.getAppearanceCharacteristics()?.getRotation() ?? 0;
+        const quarterTurn = rotation === 90 || rotation === 270;
+        const borderWidth = docType === "sozlesme" ? 0 : widget.getBorderStyle()?.getWidth() ?? 0;
+        const availableWidth = Math.max(
+          1,
+          (quarterTurn ? rectangle.height : rectangle.width) - 2 * (borderWidth + 1)
+        );
+        const longestTokenWidth = val
+          .split(/\s+/u)
+          .reduce(
+            (maximum, token) => Math.max(maximum, useFont.widthOfTextAtSize(token, fittedSize)),
+            0
+          );
+        const tokenFitSize = longestTokenWidth > availableWidth
+          ? fittedSize * (availableWidth / longestTokenWidth) * 0.99
+          : fittedSize;
+        const finalSize = Math.max(0.5, Math.min(spec.size, fittedSize, tokenFitSize));
+        smallestWidgetFontSize = Math.min(smallestWidgetFontSize, finalSize);
+        widget.dict.set(PDFName.of("DA"), makeDefaultAppearance(useFont.name, finalSize));
+      }
+
+      // Keep the field-level fallback explicit, then regenerate appearances at
+      // the capped sizes (the automatic first pass may otherwise enlarge text).
+      field.acroField.dict.set(
+        PDFName.of("DA"),
+        makeDefaultAppearance(useFont.name, smallestWidgetFontSize)
+      );
+      field.updateAppearances(useFont);
+    } catch (error) {
+      throw new Error(`PDF alanı "${key}" doldurulamadı.`, { cause: error });
     }
   }
 
@@ -452,6 +522,36 @@ async function populateForm<T extends object>(
 
 
 // ==========================================
+function sanitizePdfFilenamePart(value: string | undefined): string {
+  return (value ?? "")
+    .replace(/[çÇ]/g, (character) => character === "Ç" ? "C" : "c")
+    .replace(/[ğĞ]/g, (character) => character === "Ğ" ? "G" : "g")
+    .replace(/[ıİ]/g, (character) => character === "İ" ? "I" : "i")
+    .replace(/[öÖ]/g, (character) => character === "Ö" ? "O" : "o")
+    .replace(/[şŞ]/g, (character) => character === "Ş" ? "S" : "s")
+    .replace(/[üÜ]/g, (character) => character === "Ü" ? "U" : "u")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^[_ .-]+|[_ .-]+$/g, "")
+    .slice(0, 64);
+}
+
+function buildPdfFilename(prefix: string, ...parts: string[]): string {
+  const suffix = parts.filter(Boolean).join("_");
+  return `${prefix}${suffix ? `_${suffix}` : ""}.pdf`;
+}
+
+function readAppearanceFontSize(appearance: string | undefined, fallback: number): number {
+  const match = appearance?.match(/(?:^|\s)(\d+(?:\.\d+)?)\s+Tf\b/);
+  const parsed = match ? Number(match[1]) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function makeDefaultAppearance(fontName: string, fontSize: number): PDFString {
+  return PDFString.of(`/${fontName} ${fontSize} Tf 0 0 0 rg`);
+}
+
 // EXPORTED GENERATORS & DOWNLOADERS
 // ==========================================
 
@@ -464,18 +564,18 @@ export async function generateBetonDokumPdf(
 
 export async function downloadFilledBetonDokumPdf(
   data: BetonDokumData,
-  fileName?: string
+  fileName?: string,
+  generatedBytes?: Uint8Array
 ): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const pdfBytes = await generateBetonDokumPdf(data, { flatten: false });
+  const pdfBytes = generatedBytes ?? await generateBetonDokumPdf(data, { flatten: false });
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanYibf = (data.yibf || "1234567").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanDate = (data.tarih || "10.08.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
-  const finalFileName =
-    fileName || `BETON_DOKUM_TUTANAGI_${cleanYibf}_${cleanDate}.pdf`;
+  const cleanYibf = sanitizePdfFilenamePart(data.yibf);
+  const cleanDate = sanitizePdfFilenamePart(data.tarih);
+  const finalFileName = fileName || buildPdfFilename("BETON_DOKUM_TUTANAGI", cleanYibf, cleanDate);
 
   const link = document.createElement("a");
   link.href = url;
@@ -496,18 +596,18 @@ export async function generateTaahhutnamePdf(
 
 export async function downloadFilledTaahhutnamePdf(
   data: TaahhutnameData,
-  fileName?: string
+  fileName?: string,
+  generatedBytes?: Uint8Array
 ): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const pdfBytes = await generateTaahhutnamePdf(data, { flatten: false });
+  const pdfBytes = generatedBytes ?? await generateTaahhutnamePdf(data, { flatten: false });
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = (data.santiye_sefi_ad_soyad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanDate = (data.tarih || "16.08.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
-  const finalFileName =
-    fileName || `SANTIYE_SEFI_TAAHHUTNAMESI_${cleanName}_${cleanDate}.pdf`;
+  const cleanName = sanitizePdfFilenamePart(data.santiye_sefi_ad_soyad);
+  const cleanDate = sanitizePdfFilenamePart(data.tarih);
+  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_TAAHHUTNAMESI", cleanName, cleanDate);
 
   const link = document.createElement("a");
   link.href = url;
@@ -528,18 +628,18 @@ export async function generateIstifaDilekcesiPdf(
 
 export async function downloadFilledIstifaDilekcesiPdf(
   data: IstifaDilekcesiData,
-  fileName?: string
+  fileName?: string,
+  generatedBytes?: Uint8Array
 ): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const pdfBytes = await generateIstifaDilekcesiPdf(data, { flatten: false });
+  const pdfBytes = generatedBytes ?? await generateIstifaDilekcesiPdf(data, { flatten: false });
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = (data.ad_soyad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanDate = (data.tarih || "29.12.2025").replace(/[^a-zA-Z0-9_-]/g, ".");
-  const finalFileName =
-    fileName || `SANTIYE_SEFI_ISTIFA_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
+  const cleanName = sanitizePdfFilenamePart(data.ad_soyad);
+  const cleanDate = sanitizePdfFilenamePart(data.tarih);
+  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_ISTIFA_DILEKCESI", cleanName, cleanDate);
 
   const link = document.createElement("a");
   link.href = url;
@@ -560,18 +660,18 @@ export async function generateInsaatRuhsatiPdf(
 
 export async function downloadFilledInsaatRuhsatiPdf(
   data: InsaatRuhsatiData,
-  fileName?: string
+  fileName?: string,
+  generatedBytes?: Uint8Array
 ): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const pdfBytes = await generateInsaatRuhsatiPdf(data, { flatten: false });
+  const pdfBytes = generatedBytes ?? await generateInsaatRuhsatiPdf(data, { flatten: false });
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = (data.ad_soyad || "Basvuru_Sahibi").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanDate = (data.tarih || "08.12.2023").replace(/[^a-zA-Z0-9_-]/g, ".");
-  const finalFileName =
-    fileName || `INSAAT_RUHSATI_DILEKCESI_${cleanName}_${cleanDate}.pdf`;
+  const cleanName = sanitizePdfFilenamePart(data.ad_soyad);
+  const cleanDate = sanitizePdfFilenamePart(data.tarih);
+  const finalFileName = fileName || buildPdfFilename("INSAAT_RUHSATI_DILEKCESI", cleanName, cleanDate);
 
   const link = document.createElement("a");
   link.href = url;
@@ -592,18 +692,18 @@ export async function generateSozlesmePdf(
 
 export async function downloadFilledSozlesmePdf(
   data: SozlesmeData,
-  fileName?: string
+  fileName?: string,
+  generatedBytes?: Uint8Array
 ): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const pdfBytes = await generateSozlesmePdf(data, { flatten: false });
+  const pdfBytes = generatedBytes ?? await generateSozlesmePdf(data, { flatten: false });
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = (data.santiye_sefi_ad || "Santiye_Sefi").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const cleanDate = (data.sozlesme_tarihi || "01.05.2026").replace(/[^a-zA-Z0-9_-]/g, ".");
-  const finalFileName =
-    fileName || `SANTIYE_SEFI_SOZLESMESI_${cleanName}_${cleanDate}.pdf`;
+  const cleanName = sanitizePdfFilenamePart(data.santiye_sefi_ad);
+  const cleanDate = sanitizePdfFilenamePart(data.sozlesme_tarihi);
+  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_SOZLESMESI", cleanName, cleanDate);
 
   const link = document.createElement("a");
   link.href = url;

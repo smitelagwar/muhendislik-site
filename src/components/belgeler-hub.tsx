@@ -1,10 +1,9 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   ChevronRight,
   ClipboardCheck,
   FileCheck2,
@@ -18,6 +17,7 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from "@/lib/documents-data";
+import { normalizeBelgelerSearchText } from "@/lib/belgeler-search";
 
 function DocumentCategoryIcon({ category }: { category: DocumentCategory }) {
   if (category === "santiye-tutanak") return <ClipboardCheck className="h-5 w-5" />;
@@ -142,7 +142,7 @@ function DocumentCard({
           Canlı Stüdyo
         </span>
         <span className="rounded-full border border-black/5 bg-black/[0.03] px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-muted-foreground dark:border-white/10 dark:bg-white/[0.05] dark:text-white/70">
-          Resmi Format
+          Düzenlenebilir PDF
         </span>
       </div>
 
@@ -166,9 +166,14 @@ function DocumentCard({
 export function BelgelerHub() {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputId = useId();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const clearSearch = () => {
+    setSearchQuery("");
+    window.requestAnimationFrame(() => searchInputRef.current?.focus());
+  };
 
   const filteredDocuments = useMemo(() => {
-    const query = searchQuery.trim().toLocaleLowerCase("tr-TR");
+    const query = normalizeBelgelerSearchText(searchQuery.trim());
 
     if (!query) return DOCUMENTS;
 
@@ -184,16 +189,18 @@ export function BelgelerHub() {
         ...document.tags,
         ...document.fields.map((field) => field.label),
       ]
-        .join(" ")
-        .toLocaleLowerCase("tr-TR");
+        .join(" ");
 
-      return searchableText.includes(query);
+      return normalizeBelgelerSearchText(searchableText).includes(query);
     });
   }, [searchQuery]);
 
   return (
     <section aria-label="Belge arama ve listesi">
-      <h1 className="sr-only">Belgeler ve indirilebilir şablonlar</h1>
+      <div className="mx-auto max-w-[1440px] px-5 pt-6 sm:px-8 sm:pt-8 lg:px-12 xl:px-16">
+        <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Doldurulabilir PDF belgelerini arayın ve önizleyin.</p>
+      </div>
       <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
         <div className="relative">
           <label htmlFor={searchInputId} className="sr-only">
@@ -201,17 +208,18 @@ export function BelgelerHub() {
           </label>
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={searchInputRef}
             id={searchInputId}
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Belge adı, tutanak, taahhütname veya anahtar kelime ara..."
-            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-14 text-sm text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-[background-color] focus:border-amber-500 focus:bg-white focus:shadow-md focus:ring-2 focus:ring-amber-500/40 dark:border-white/15 dark:bg-white/[0.06] dark:focus:border-amber-400 dark:focus:bg-white/[0.1] dark:focus:ring-2 dark:focus:ring-amber-400/40"
+            className="h-13 w-full rounded-2xl border border-black/10 bg-white/75 pl-11 pr-14 text-base text-foreground shadow-sm placeholder:text-muted-foreground outline-none backdrop-blur-xl transition-[background-color] focus:border-amber-500 focus:bg-white focus:shadow-md focus:ring-2 focus:ring-amber-500/40 dark:border-white/15 dark:bg-white/[0.06] dark:focus:border-amber-400 dark:focus:bg-white/[0.1] dark:focus:ring-2 dark:focus:ring-amber-400/40 sm:text-sm"
           />
           {searchQuery ? (
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
+              onClick={clearSearch}
               className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-black/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Aramayı temizle"
             >
@@ -219,6 +227,14 @@ export function BelgelerHub() {
             </button>
           ) : null}
         </div>
+
+        {searchQuery.trim() && (
+          <p role="status" aria-live="polite" className="sr-only">
+            {filteredDocuments.length === 1
+              ? "1 belge bulundu."
+              : `${filteredDocuments.length} belge bulundu.`}
+          </p>
+        )}
 
         {filteredDocuments.length > 0 ? (
           <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -232,7 +248,7 @@ export function BelgelerHub() {
             <h2 className="mt-4 text-lg font-black text-foreground">Eşleşen belge bulunamadı</h2>
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
+              onClick={clearSearch}
               className="mt-5 inline-flex min-h-10 items-center rounded-full border border-black/10 bg-black/[0.04] px-5 py-2.5 text-sm font-bold text-foreground transition hover:border-amber-500/40 hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-white/10 dark:bg-white/[0.06] dark:hover:border-amber-400/40 dark:hover:bg-amber-500/20"
             >
               Aramayı temizle

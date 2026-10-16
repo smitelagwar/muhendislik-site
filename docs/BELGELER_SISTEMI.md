@@ -9,7 +9,7 @@ Bu doküman, Mühendis Mimar Portalı bünyesindeki **Belgeler (`/belgeler`)** m
 
 ## 1. Temel Mimari ve Çalışma Prensibi
 
-Sistem, kullanıcıların resmi mühendislik evraklarını tarayıcı üzerinden doldurmasına, **anlık olarak gerçek PDF üzerinde canlı önizlemesine** ve tek tıkla resmi geçerliliği olan A4 PDF çıktısı almasına olanak tanır.
+Sistem, kullanıcıların belge şablonlarını tarayıcıda doldurmasına, **gerçek PDF üzerinde canlı önizlemesine** ve indirilebilir A4 PDF çıktısı almasına olanak tanır. Çıktının hukuki geçerliliği kullanılan şablona ve ilgili kurumun güncel gerekliliklerine bağlıdır.
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -26,7 +26,7 @@ Sistem, kullanıcıların resmi mühendislik evraklarını tarayıcı üzerinden
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        [Belge]Studio Bileşeni                          │
 │  ├─ Sol Panel: Form Girdileri, Yerel/Genel Sıfırlama, Validasyonlar   │
-│  ├─ Sağ Panel: PDF.js Destekli Anlık 60fps Canvas Önizleme + Toolbar  │
+│  ├─ Sağ Panel: PDF.js Canvas Önizleme, Sayfa ve Yakınlaştırma Araçları│
 │  └─ Alt/Üst: İndir, Boş Form İndir, Yazdır, Sıfırla, Temizle Aksiyonları│
 └────────────────────────────────┬───────────────────────────────────────┘
                                  │
@@ -36,7 +36,7 @@ Sistem, kullanıcıların resmi mühendislik evraklarını tarayıcı üzerinden
 │  ├─ pdf-lib + @pdf-lib/fontkit ile AcroForm Alan Doldurma              │
 │  ├─ Çift Font Desteği (Arial-Bold & Arial-Regular)                    │
 │  ├─ Hayalet Yazı / Leke Temizleme (AP & DV Widget Sanitization)       │
-│  └─ Metin Hizalama (Quadding - Q) ve Boyut Optimizasyonu              │
+│  └─ Metin Hizalama (Quadding - Q) ve Alan İçine Sığdırma              │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,14 +95,14 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 
 ### 3.2. Dış Sayfa Kaydırmasız Düzen (Zero Outer Scroll / 100vh Fit)
 * Masaüstü ekranlarda stüdyo açıldığında ana tarayıcı penceresinde **dış kaydırma çubuğu (outer scrollbar) kesinlikle çıkmamalıdır.**
-* Stüdyo `h-[calc(100vh-...)]` veya tam ekran düzenine oturmalı; sol form paneli bağımsız olarak kendi içinde (`overflow-y-auto`) kaymalı, sağdaki canlı PDF önizleme paneli ise dikeyde tam sayfaya otomatik sığmalıdır (`scaleToFit`).
+* Stüdyo `h-[calc(100vh-...)]` veya tam ekran düzenine oturmalı; sol form paneli bağımsız olarak kendi içinde (`overflow-y-auto`) kaymalı, sağdaki canlı PDF önizleme paneli ise kullanılabilir alana orantılı biçimde sığmalıdır.
 
-### 3.3. Yüksek Performanslı Anlık Yakınlaştırma (Instant 60fps Zoom)
-* **Önemli İlke:** Zoom seviyesi değiştirildiğinde (Zoom In/Out butonları, `Ctrl + Mouse Wheel`, `Ctrl + +`, `Ctrl + -`, `Ctrl + 0`) PDF motoru (`pdf-lib`) **kesinlikle yeniden derlenmemelidir** ve durum `"Derleniyor"` moduna düşmemelidir.
-* **Uygulama:**
-  - `formData` değiştiğinde PDF bir kez derlenir, `pdfjs.getDocument()` ile parse edilir ve `cachedPdfDocRef.current` içine kaydedilir.
-  - Zoom değiştiğinde sadece `renderPdfPage(cachedPdfDocRef.current, newZoom)` çağrılarak canvas anında (<5ms) yeniden çizilir.
-  - Zoom > %100 olduğunda PDF önizleme kapsayıcısında iç kaydırma (`overflow: auto`) devreye girmeli, dış sayfa asla oynamamalıdır.
+### 3.3. PDF Üretimi, Canlı Önizleme ve Yakınlaştırma
+* Beş stüdyo da `useBelgeStudioDocument` ortak hook'unu kullanır. Alan değişikliklerinden sonra üretim 150 ms geciktirilir; en yeni istek geçerli kalır, 20 saniyelik zaman aşımı uygulanır ve çıktı PDF imzası açısından doğrulanır. Önizleme, yazdırma ve indirme aynı güncel byte snapshot'ını kullanır. Yeni çıktı oluşana kadar eski PDF'in indirilmesi/yazdırılması engellenir; kullanılmayan blob URL'leri temizlenir.
+* PDF.js belgesini yeniden kullanarak sayfa çizilir. Yakınlaştırma PDF'i yeniden üretmez; zoom değişince yalnızca önizleme sayfası tekrar çizilir. Sayfa numarası ve toplam sayfa sayısı PDF'den okunur, önceki/sonraki sayfa ve sığdırma kontrolleri gerçek sayfayı yönetir.
+* Yakınlaştırma %50–%400 aralığındadır; düğmeler %25 adım, tekerlek ve pinch sürekli ölçek kullanır. Masaüstünde Ctrl/Cmd + tekerlek, önizleme yüzeyine bağlanan yerel `wheel` dinleyicisi ve `{ passive: false }` ile yakalanır. React `onWheel` bu iş için kullanılmaz; pasif olay tarayıcı zoom'unu durduramaz. Normal tekerlek paneli kaydırır. Ctrl/Cmd + artı/eksi/0 kısayolları önizleme odaktayken çalışır.
+* Mobilde iki parmak hareketi yalnızca PDF önizleme yüzeyinde yakalanır; tek parmakla büyütülmüş sayfa kaydırılır. Ardışık zoom hareketleri son raster ölçeğine göre hesaplanır ve imleç/parmak çıpası panelin kaydırma koordinatlarıyla korunur. Canvas raster belleği en çok 8 milyon piksel ve kenar başına 4096 piksel ile sınırlandırılır. Form değişikliği, çok sayfalı belgedeki etkin sayfayı korur.
+* Mobil form ve önizleme sekmeleri arasında geçerken PDF belgesi hazır tutulur; sekme ilk kez açıldığında boş canvas görülmemelidir. Canvas hazırlığı `opacity` ile yönetilir; `visibility: visible` kullanılmaz, çünkü bu değer gizli önizleme panelinin görünürlüğünü geçersiz kılıp canvas'ı formun üzerine çıkarabilir. Başarılı çizim, yüklenme ve hata durumları ayrı ayrı duyurulur; hata durumunda yeniden deneme sağlanır.
 
 ### 3.4. Alan Bazlı Yerel Sıfırlama Butonu (Per-Field Reset)
 * Her form alanının başlığında, o alan varsayılan şablon değerinden farklı bir değere getirildiği anda beliren küçük bir `↺ Sıfırla` butonu yer alır.
@@ -110,18 +110,19 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 
 ### 3.5. Esnek Doğrulama ve Uyarı Mantığı (Validations)
 * **Altın Kural:** Bir alanda format veya hane kısıtı varsa (örneğin Yapı Denetim YİBF No için 7 hane kuralı), **kullanıcının yazması ASLA engellenmemelidir.**
-* Belirlenen kural aşıldığında:
-  1. Input kenarlığı ve metin kırmızıya dönmeli (`border-red-500 text-red-600`),
-  2. Başlığın hemen yanında açık ve anlaşılır bir uyarı metni belirmelidir: `(YİBF No normalde 7 hanelidir, kontrol ediniz)`.
-  3. Kullanıcı isterse fazladan yazmaya devam edebilmeli veya `Sıfırla` butonuyla düzeltebilmelidir.
+* Belirlenen öneri aşıldığında alan engellenmez ve değeri kesilmez. Form üstündeki yumuşak uyarı özeti, alan adını, girilen karakter sayısını ve önerilen uzunluğu gösterir; varsayılan örnek değerler gereksiz uyarı üretmez. Kullanıcı değerini düzenleyebilir veya alanın yerel sıfırlama düğmesini kullanabilir.
 
 ### 3.6. Standart Aksiyon Butonları
-Her stüdyonun sol panelinin altında şu 5 aksiyon butonu standarttır:
+Her stüdyoda şu 5 ana aksiyon bulunur:
 1. **Sıfırla (`Undo2`):** Formu resmi örnek değerlerle doldurur.
 2. **Temizle (`Trash2`):** Tüm form kutucuklarını boşaltır (bembeyaz boş şablon).
 3. **Boş Form (`FileDown`):** Orijinal boş PDF şablonunu doğrudan indirir.
 4. **Yazdır (`Printer`):** Önizleme blob'unu doğrudan tarayıcı yazdırma penceresine gönderir.
 5. **Doldurulmuş PDF'i İndir (`FileDown` - Vurgulu Amber Buton):** Kullanıcının doldurduğu güncel verilerle PDF dosyasını indirir.
+
+Bu eylemler beş stüdyoda `BelgeStudioActions` ortak bileşenindedir. Masaüstünde sabit alt çubuğun solunda sıfırlama/temizleme/geri alma, sağında boş form/yazdırma/PDF indirme bulunur; formun sonuna kaydırmak gerekmez. Mobilde aynı alt çubukta diğer işlemler menüsü, form/önizleme geçişi ve PDF indirme bulunur. Menü klavye, odak geri dönüşü ve kullanılabilir yüksekliğe göre kaydırmayı Radix ile yönetir. Formdaki eski eylem kopyaları kaldırılmıştır.
+
+Form genel olarak sıfırlandığında veya temizlendiğinde tek adımlık **Geri al** eylemi son işlemi geri yükler. İndirme ve yazdırma, formdaki son değişiklik için yeni PDF hazırlanırken devre dışı kalır. PDF araçları tüm ekranlarda en az 44×44 px hedef kullanır; sayfa, zoom ve görünüm kontrolleri gruplanır. Çok sayfalı belgelerde dar panel iki düzenli araç satırı kullanır; tek sayfalı belge bir satırda kalır. Yatay/klavye ile daralan ekranda PDF alanı kalan yüksekliğe sığar.
 
 ### 3.7. Mobil Uyumluluk (Mobile Segmented Tab Switcher)
 * Mobil ekranlarda (`< lg`) ekran ikiye bölünmez. Üstte iki sekmeli bir geçiş kontrolü bulunur:

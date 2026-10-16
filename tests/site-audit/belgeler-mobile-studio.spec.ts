@@ -40,6 +40,9 @@ async function gotoStudio(page: Page, path: string, width = 390, height = 844) {
   const studio = getVisibleStudio(page);
   await expect(studio).toBeVisible();
   await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible();
+  await expect(
+    studio.getByTestId("belge-studio-mobile-actions").getByRole("button", { name: /PDF İndir/i })
+  ).toBeEnabled({ timeout: 20_000 });
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -98,14 +101,16 @@ async function expectEditableFieldContract(page: Page, expectedCount: number) {
 async function expectPreviewCanvas(page: Page) {
   const studio = getVisibleStudio(page);
   const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-  await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
-  await previewTab.click();
-  await expect(previewTab).toHaveAttribute("aria-selected", "true");
+  if (await previewTab.isVisible()) {
+    await previewTab.click();
+    await expect(previewTab).toHaveAttribute("aria-selected", "true");
+  }
+  await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
   const toolbar = studio.getByTestId("belge-studio-preview-toolbar");
   await expect(toolbar).toBeVisible();
   await expect(toolbar).toHaveAttribute("aria-label", "PDF önizleme araçları");
   await expect(toolbar.getByText("Canlı Belge Önizlemesi")).toBeHidden();
-  await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
+  await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
 
   const toolbarBox = await toolbar.boundingBox();
   expect(toolbarBox).not.toBeNull();
@@ -313,7 +318,6 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await expect(page).toHaveURL(new RegExp(`${route.path}$`));
 
       const studio = getVisibleStudio(page);
-      await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
       await expectPreviewCanvas(page);
       const pdfUrl = await studio
         .getByTestId("belge-studio-preview-toolbar")
@@ -363,15 +367,15 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     const studio = getVisibleStudio(page);
     const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
     const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-    await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
-
     for (let index = 0; index < 5; index += 1) {
       await previewTab.click();
       await expect(previewTab).toHaveAttribute("aria-selected", "true");
+      await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
       await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
       await formTab.click();
       await expect(formTab).toHaveAttribute("aria-selected", "true");
       await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible();
+      await expect(studio.locator("canvas").first()).toBeHidden();
     }
 
     await page.evaluate(() => {
@@ -459,7 +463,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
     const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
     await previewTab.click();
-    await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
+    await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
     const canvas = studio.locator("canvas").first();
     const baselineCanvas = await canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL());
     await formTab.click();
@@ -515,6 +519,14 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     await expect.poll(() => canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL()))
       .not.toBe(firstPageImage);
 
+    await studio.getByRole("tab", { name: /Form Alanları/i }).click();
+    await studio.getByTestId("belge-studio-form-scroll").locator("input").first().fill("Sayfa koruma kontrolü");
+    await studio.getByTestId("belge-studio-mobile-actions").getByRole("button", { name: "PDF İndir", exact: true }).waitFor({ state: "visible" });
+    await expect(studio.getByTestId("belge-studio-mobile-actions").getByRole("button", { name: "PDF İndir", exact: true })).toBeEnabled();
+    await studio.getByRole("tab", { name: /Canlı PDF/i }).click();
+    await expect(toolbar.getByText("2 / 2", { exact: true })).toBeVisible();
+    await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
+
     const secondPageImage = await canvas.evaluate((element) => (element as HTMLCanvasElement).toDataURL());
     await previousPage.click();
     await expect(toolbar.getByText("1 / 2", { exact: true })).toBeVisible();
@@ -544,8 +556,12 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await input.fill("ASAMA 04 düzenleme kontrolü");
     await expect(input).toHaveValue("ASAMA 04 düzenleme kontrolü");
-    await form.getByRole("button", { name: "Sıfırla", exact: true }).last().click();
+    await page.getByRole("button", { name: "Diğer belge işlemleri" }).click();
+    await page.getByRole("menuitem", { name: "Örnek verilere sıfırla" }).click();
     await expect(input).toHaveValue(initialValue);
+    await page.getByRole("button", { name: "Diğer belge işlemleri" }).click();
+    await page.getByRole("menuitem", { name: "Son işlemi geri al" }).click();
+    await expect(input).toHaveValue("ASAMA 04 düzenleme kontrolü");
   });
 
   test("Yazdır eylemi hazır PDF blob'unu yeni pencerede yazdırmalı", async ({ page }, testInfo) => {
@@ -556,23 +572,39 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         __printInvocationCount?: number;
       };
       window.open = ((url?: string | URL, target?: string) => {
-        testWindow.__openedPdf = { url: String(url ?? ""), target: target ?? "" };
-        return {
+        const state = { value: String(url ?? "") };
+        const listeners = new Map<string, EventListener>();
+        testWindow.__openedPdf = { url: state.value, target: target ?? "" };
+        const fakeWindow = {
           closed: false,
           document: { readyState: "complete" },
           focus: () => undefined,
           print: () => {
             testWindow.__printInvocationCount = (testWindow.__printInvocationCount ?? 0) + 1;
           },
-          addEventListener: () => undefined,
+          addEventListener: (type: string, listener: EventListener) => listeners.set(type, listener),
+          removeEventListener: (type: string) => listeners.delete(type),
         } as unknown as Window;
+        const fakeLocation = {} as Location;
+        Object.defineProperty(fakeLocation, "href", {
+          get: () => state.value,
+          set: (value: string) => {
+            state.value = String(value);
+            testWindow.__openedPdf = { url: state.value, target: target ?? "" };
+            if (state.value.startsWith("blob:")) {
+              queueMicrotask(() => listeners.get("load")?.(new Event("load")));
+            }
+          },
+        });
+        Object.defineProperty(fakeWindow, "location", { value: fakeLocation });
+        return fakeWindow;
       }) as typeof window.open;
     });
 
     await gotoStudio(page, "/belgeler/beton-dokum-tutanagi");
-    await expect(getVisibleStudio(page).getByRole("status")).toHaveText("PDF önizlemesi hazır.");
-    const printButton = getVisibleStudio(page).getByTestId("belge-studio-form-scroll")
-      .getByRole("button", { name: "Yazdır" });
+    await page.getByRole("button", { name: "Diğer belge işlemleri" }).click();
+    const printButton = page.getByRole("menuitem", { name: "Yazdır" });
+    await expect(printButton).toBeEnabled({ timeout: 20_000 });
     await printButton.click();
 
     const printResult = await page.evaluate(() => {
@@ -588,6 +620,67 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     expect(printResult.openedPdf?.url).toMatch(/^blob:/);
     expect(printResult.openedPdf?.target).toBe("_blank");
     expect(printResult.printInvocationCount).toBe(1);
+  });
+
+  test("İki parmak yalnız PDF'yi büyütür, sayfa ve viewport ölçeği sabit kalır", async ({ page }, testInfo) => {
+    requireMobile390(testInfo);
+    await gotoStudio(page, "/belgeler/santiye-sefi-sozlesmesi");
+    const studio = getVisibleStudio(page);
+    const mobileDownload = studio.getByTestId("belge-studio-mobile-actions")
+      .getByRole("button", { name: /PDF İndir/i });
+    await expect(mobileDownload).toBeEnabled({ timeout: 20_000 });
+    const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
+    await previewTab.click();
+    await expect(previewTab).toHaveAttribute("aria-selected", "true");
+    const preview = studio.getByTestId("belge-studio-preview-canvas");
+    await expect(preview).toBeVisible();
+    await expect(studio.getByTestId("belge-studio-preview-toolbar").getByText("%100", { exact: true })).toBeVisible();
+
+    const before = await studio.evaluate((root) => {
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="belge-studio-preview-canvas"] canvas');
+      return {
+        scale: window.visualViewport?.scale ?? 1,
+        height: root.getBoundingClientRect().height,
+        canvasWidth: canvas?.getBoundingClientRect().width ?? 0,
+      };
+    });
+    expect(before.canvasWidth).toBeGreaterThan(0);
+
+    const box = await preview.boundingBox();
+    expect(box).not.toBeNull();
+    const centerX = box!.x + box!.width / 2;
+    const centerY = box!.y + box!.height / 2;
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: centerX - 32, y: centerY }, { x: centerX + 32, y: centerY }],
+      });
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: centerX - 68, y: centerY }, { x: centerX + 68, y: centerY }],
+      });
+      await expect
+        .poll(() => studio.getByTestId("belge-studio-preview-toolbar").getByText(/%\d+/, { exact: true }).textContent())
+        .not.toBe("%100");
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
+    } finally {
+      await cdp.detach();
+    }
+
+    const after = await studio.evaluate((root) => {
+      const canvas = root.querySelector<HTMLCanvasElement>('[data-testid="belge-studio-preview-canvas"] canvas');
+      return {
+        scale: window.visualViewport?.scale ?? 1,
+        height: root.getBoundingClientRect().height,
+        canvasWidth: canvas?.getBoundingClientRect().width ?? 0,
+      };
+    });
+    expect(after.scale).toBeCloseTo(before.scale, 2);
+    expect(Math.abs(after.height - before.height)).toBeLessThanOrEqual(2);
+    expect(after.canvasWidth).toBeGreaterThan(before.canvasWidth * 1.3);
+    await expect(previewTab).toHaveAttribute("aria-selected", "true");
   });
 
   test("/belgeler arama, clear, no-result, 200% text ve BottomNav overlap sözleşmesi", async ({ page }, testInfo) => {
@@ -615,6 +708,8 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await search.fill("kesinlikle-bulunmayacak-belge-xyz");
       await expect(page.getByText("Eşleşen belge bulunamadı")).toBeVisible();
       await page.getByLabel("Aramayı temizle").click();
+      await expect(search).toBeFocused();
+      await search.evaluate((element) => element.blur());
 
       const unfocusedStyle = await search.evaluate((element) => {
         const style = window.getComputedStyle(element);
@@ -687,7 +782,6 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
       const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
 
-      await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
       await expect(formTab).toHaveAttribute("aria-selected", "true");
       await expect(previewTab).toHaveAttribute("aria-selected", "false");
       await expect(formTab).toHaveAttribute("aria-controls", /mobile-panel-form/);
@@ -697,6 +791,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await page.keyboard.press("ArrowRight");
       await expect(previewTab).toBeFocused();
       await expect(previewTab).toHaveAttribute("aria-selected", "true");
+      await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
 
       await page.keyboard.press("ArrowLeft");
       await expect(formTab).toBeFocused();
@@ -727,6 +822,10 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         "Desktop belge matrisi tek Chromium projesinde üç viewport ile koşar."
       );
       test.setTimeout(45_000);
+      const passiveWarnings: string[] = [];
+      page.on("console", (message) => {
+        if (/passive.*event listener|Unable to preventDefault/i.test(message.text())) passiveWarnings.push(message.text());
+      });
 
       for (const viewport of DESKTOP_VIEWPORTS) {
         await page.setViewportSize(viewport);
@@ -740,12 +839,12 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         const toolbar = studio.getByTestId("belge-studio-preview-toolbar");
         await expect(form).toBeVisible();
         await expect(toolbar).toBeVisible();
-        await expect(studio.getByRole("status")).toHaveText("PDF önizlemesi hazır.");
+        await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
 
         const layout = await studio.evaluate((root) => {
           const formElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-form-scroll"]');
           const toolbarElement = root.querySelector<HTMLElement>('[data-testid="belge-studio-preview-toolbar"]');
-          const preview = root.querySelector<HTMLElement>('[aria-label="PDF önizleme alanı"]');
+          const preview = root.querySelector<HTMLElement>('[aria-label="PDF canlı önizlemesi"]');
           if (!formElement || !toolbarElement || !preview) return null;
 
           const formRect = formElement.getBoundingClientRect();
@@ -774,7 +873,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         expect(layout!.formScrollHeight).toBeGreaterThanOrEqual(layout!.formClientHeight);
         expect(layout!.documentScrollHeight).toBeLessThanOrEqual(layout!.viewportHeight + 2);
 
-        const previewRegion = studio.getByRole("region", { name: "PDF önizleme alanı" });
+        const previewRegion = studio.getByRole("region", { name: /PDF sayfası/ });
         await previewRegion.focus();
         const openPdfLink = toolbar.getByRole("link", { name: "PDF'yi yeni sekmede aç" });
         const originalPdfUrl = await openPdfLink.getAttribute("href");
@@ -789,8 +888,46 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
         await toolbar.getByRole("button", { name: "Sığdır" }).click();
         await expect(toolbar.getByText("%100", { exact: true })).toBeVisible();
+
+        // Gerçek Ctrl+tekerlek girdisi; yalnız sentetik WheelEvent viewport zoom'unu kanıtlamaz.
+        const browserScale = await page.evaluate(() => ({ width: innerWidth, dpr: devicePixelRatio }));
+        await previewRegion.evaluate((element) => {
+          element.addEventListener("wheel", (event) => {
+            element.setAttribute("data-wheel-prevented", String(event.defaultPrevented));
+          }, { passive: true });
+        });
+        const zoom = toolbar.getByTestId("belge-studio-zoom-level");
+        await previewRegion.hover();
+        await page.keyboard.down("Control");
+        try {
+          await page.mouse.wheel(0, -120);
+          await expect(previewRegion).toHaveAttribute("data-wheel-prevented", "true");
+          await expect.poll(async () => Number((await zoom.innerText()).replace("%", ""))).toBeGreaterThan(100);
+          const firstZoom = Number((await zoom.innerText()).replace("%", ""));
+          await page.mouse.wheel(0, -120);
+          await expect.poll(async () => Number((await zoom.innerText()).replace("%", ""))).toBeGreaterThan(firstZoom);
+          await page.mouse.wheel(0, 120);
+          await expect.poll(async () => Number((await zoom.innerText()).replace("%", ""))).toBeLessThan(firstZoom + 2);
+        } finally {
+          await page.keyboard.up("Control");
+        }
+        expect(await page.evaluate(() => ({ width: innerWidth, dpr: devicePixelRatio }))).toEqual(browserScale);
+        const controls = await toolbar.locator("button, a").evaluateAll((elements) => elements.map((element) => {
+          const rect = element.getBoundingClientRect();
+          return { width: rect.width, height: rect.height };
+        }));
+        for (const control of controls) {
+          expect(control.width).toBeGreaterThanOrEqual(44);
+          expect(control.height).toBeGreaterThanOrEqual(44);
+        }
+        const actions = studio.getByTestId("belge-studio-desktop-actions");
+        await expect(actions.getByRole("button", { name: "PDF İndir", exact: true })).toBeVisible();
+        const actionBox = await actions.boundingBox();
+        expect(actionBox!.y + actionBox!.height).toBeLessThanOrEqual(viewport.height);
+        await toolbar.getByRole("button", { name: "Sığdır" }).click();
         await expectNoHorizontalOverflow(page);
       }
+      expect(passiveWarnings).toEqual([]);
     });
   }
 

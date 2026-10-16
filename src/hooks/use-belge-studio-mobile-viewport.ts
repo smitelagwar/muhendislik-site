@@ -64,17 +64,25 @@ export function useBelgeStudioMobileViewport(
     const syncViewport = () => {
       window.cancelAnimationFrame(animationFrame);
       animationFrame = window.requestAnimationFrame(() => {
-        const height = Math.max(
-          1,
-          Math.round(visualViewport?.height ?? window.innerHeight)
-        );
+        const pinchZoomActive = (visualViewport?.scale ?? 1) > 1.01;
+        // Pinch changes the visual viewport, but it does not mean the software
+        // keyboard opened. Keep the studio at the layout viewport height.
+        const visibleHeight = pinchZoomActive
+          ? window.innerHeight
+          : visualViewport?.height ?? window.innerHeight;
+        const height = Math.max(1, Math.min(window.innerHeight, Math.round(visibleHeight)));
         html.style.setProperty(VIEWPORT_CSS_VARIABLE, `${height}px`);
 
-        // Sadece test/teşhis sinyali; layout kararı bu eşikten üretilmez.
+        const activeElement = document.activeElement;
+        const editorFocused =
+          activeElement instanceof HTMLElement &&
+          root.contains(activeElement) &&
+          activeElement.matches(EDITABLE_SELECTOR);
         const keyboardInset = Math.max(0, window.innerHeight - height);
-        root.dataset.mobileKeyboard = keyboardInset > 120 ? "open" : "closed";
+        root.dataset.mobileKeyboard =
+          !pinchZoomActive && editorFocused && keyboardInset > 120 ? "open" : "closed";
 
-        keepFocusedEditorVisible();
+        if (root.dataset.mobileKeyboard === "open") keepFocusedEditorVisible();
       });
     };
 

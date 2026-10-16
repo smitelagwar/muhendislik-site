@@ -44,7 +44,7 @@ export const DOCUMENTS: DocumentItem[] = [
     title: "Beton Döküm Tutanağı",
     subtitle: "Şantiye Beton Döküm & Kalite Kontrol Formu",
     description:
-      "Şantiyede hazır beton dökümü öncesi ve döküm esnasında kalıp, donatı, mikser irsaliyesi, slump deneyi ve numune alma işlemlerini resmi olarak kayıt altına alan düzenlenebilir tutanak formu.",
+      "Beton dökümü sırasında e-Devlet kaynaklı onay sorunu ve şantiye gözlemlerini kayıt altına almak için düzenlenebilir tutanak formu.",
     category: "santiye-tutanak",
     categoryLabel: "Şantiye & Tutanak",
     badge: "Düzenlenebilir PDF Form",
