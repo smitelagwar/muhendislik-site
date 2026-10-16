@@ -1071,12 +1071,14 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     });
   }
 
-  test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({ browserName }, testInfo) => {
+  test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({ browserName, baseURL }, testInfo) => {
     requireMobile390(testInfo);
     expect(browserName).toBe("chromium");
     test.setTimeout(45_000);
 
     const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
+    const resolvedBaseURL = baseURL || process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
+    console.log(`[WebKit Test] Hedef URL: ${resolvedBaseURL}`);
     let browserInstance: Awaited<ReturnType<typeof webkit.launch>> | null = null;
 
     try {
@@ -1086,14 +1088,14 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       });
       const page = await context.newPage();
 
-      await page.goto(`http://127.0.0.1:${port}/belgeler`, {
+      await page.goto(`${resolvedBaseURL}/belgeler`, {
         waitUntil: "domcontentloaded",
         timeout: 30_000,
       });
       await expect(page.getByRole("searchbox", { name: "Belge veya şablon ara" })).toBeVisible();
 
       for (const route of STUDIO_ROUTES) {
-        await page.goto(`http://127.0.0.1:${port}${route.path}`, {
+        await page.goto(`${resolvedBaseURL}${route.path}`, {
           waitUntil: "domcontentloaded",
           timeout: 30_000,
         });

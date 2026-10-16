@@ -186,3 +186,21 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
 - [ ] **Sıfır Dış Kaydırma:** Masaüstünde tarayıcı dış kaydırma çubuğunun çıkmadığı (`100vh fit`) teyit edildi mi?
 - [ ] **Mobil Görünüm:** 375px mobil genişlikte tab geçişinin ve PDF önizlemesinin kusursuz çalıştığı görüldü mü?
 - [ ] **Build Kontrolü:** `npm run build` komutunun 0 hata ile başarıyla tamamlandığı doğrulandı mı?
+
+---
+
+## 6. 16 Ekim 2026 Kapsamlı Denetim & Sağlamlaştırma Notları
+
+2026-10-16 tarihinde yürütülen 15 aşamalı kapsamlı stüdyo ve motor denetiminde sisteme eklenen mimari güvenceler:
+
+1. **Erişilebilirlik ve Kontrast Standardı (WCAG AA):**
+   - Vurgulu eylem butonlarında (`PDF İndir`) ve "Derleniyor" durum rozetlerinde açık tema zemininde kontrast yetersizliği (`amber-600` ~3.2:1) giderilmiş, `border-amber-700 bg-amber-700 text-white` (5.10:1) ile WCAG AA standardı eksiksiz sağlanmıştır.
+   - Toolbar üzerindeki kontroller `role="toolbar"`, tema switch'i `role="switch"`, durum bildirimleri `role="status"` ve `aria-live="polite"` standartlarına bağlanmıştır.
+2. **Sıfır PII Ağ Sızıntısı (Gizlilik ve KVKK/GDPR Uyumu):**
+   - Kullanıcının form alanlarına girdiği hiçbir hassas veri (T.C. Kimlik No, Ad Soyad, Tebligat Adresi, Telefon Numarası, YİBF No) sunucuya, harici bir API'ye veya telemetri servisine iletilmez.
+   - Ağ seviyesinde (Playwright route interception) denetlenmiş olup PDF üretimi %100 yerel tarayıcı belleğinde (`pdf-lib`) gerçekleşmektedir.
+3. **Canvas Raster Bütçesi ve Bellek Tavanı (OOM Koruması):**
+   - Retina ve yüksek DPI ekranlarda (`dpr: 2`, `dpr: 3`) canvas bellek patlamalarını önlemek için `BELGE_PREVIEW_MAX_RASTER_PIXELS = 8_000_000` (8M px) ve `BELGE_PREVIEW_MAX_RASTER_SIDE = 4096` px tavanı zorunludur.
+4. **Çizim İptali ve Blob Temizliği Yaşam Döngüsü:**
+   - Yeni bir form revision üretildiğinde eski Blob URL anında `URL.revokeObjectURL(previousUrl)` ile serbest bırakılır.
+   - Hızlı ardışık çizimlerde (sekme geçişi, zoom, sayfa çevirme) önceki PDF.js `renderTask.cancel()` çağrılarak paralel/çakışan çizimler engellenir; bileşen unmount olduğunda `loadingTask.destroy()` çağrılır.

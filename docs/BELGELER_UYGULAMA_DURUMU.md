@@ -1,0 +1,39 @@
+# Belgeler — Uygulama ve Denetim Durumu
+
+**Son güncelleme:** 16 Ekim 2026  
+**Uygulayıcı:** Gemini 3.8 Flash, High  
+**Kaynak HEAD:** `7e305c8359aef50c990b6d3b1f7bc83263642839`  
+**Referans Plan:** [BELGELER_KAPSAMLI_GEMINI_UYGULAMA_PLANI_2026-10-16.md](file:///c:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/BELGELER_KAPSAMLI_GEMINI_UYGULAMA_PLANI_2026-10-16.md)  
+**Çalışma Sözleşmesi:** Tek turda tek aşama, önce kanıt, sıfır gereksiz remote write, yerel doğrulama.
+
+---
+
+## 1. Aşama Takip Tablosu
+
+| Aşama | Başlık | Durum | Doğrulama Komutu | Kanıt Yolu | Bulgular & Notlar |
+| :---: | :--- | :---: | :--- | :--- | :--- |
+| **00** | Başlangıcı sabitle ve mevcut çalışmayı koru | **PASS** | `git status`, `git diff`, `npx tsc -p tsconfig.next.json --noEmit` | `git status` çıktısı | HEAD `7e305c8`, yerel YİBF düzeltmesi korundu. Runtime TS: 0 hata. Belgeler TS: 0 hata. Statik testler 4/4 PASS. |
+| **01** | Testleri doğru hedefe bağla ve kanıt kaydı oluştur | **PASS** | `tests/site-audit/belgeler-*.spec.ts`, `npx tsx tests/belgeler/*.test.ts` | `docs/BELGELER_UYGULAMA_DURUMU.md`, `tests/site-audit/belgeler-mobile-studio.spec.ts` | WebKit testinde sabit localhost portu yerine dinamik `baseURL` ve hedef loglaması sağlandı. 4 statik test, 15 desktop functional, 1 mobile a11y, 26 mobile studio + WebKit, 10 desktop studio testi (toplam 56 senaryo) %100 PASS. |
+| **02** | Katalog ve belgeye giriş/çıkış | **PASS** | `npx playwright test tests/site-audit/belgeler-functional-audit.spec.ts` | `tests/site-audit/belgeler-functional-audit.spec.ts` | Tek `<main>`, 5 `<h2>` başlık hiyerarşisi, Türkçe karakterli/büyük-küçük harfli (şantiye, SANTIYE, ŞANTİYE vb.) arama normalizasyonu, input ve boş sonuç temizleme butonları, odak iadesi, 5 doğru stüdyo rotası ve scroll lock bırakmama doğrulandı. |
+| **03** | Mobil ve masaüstü yerleşimi ölç | **PASS** | `npx playwright test tests/site-audit/belgeler-mobile-studio.spec.ts` | `tests/site-audit/belgeler-mobile-studio.spec.ts`, `tests/site-audit/belgeler-functional-audit.spec.ts` | 320–1920 px matrisi, 1023px/1024px split-view geçişi, tek sayfalı stüdyolarda 44 px tek satır mobil toolbar, zoom grubu merkez toleransı ≤2 px, sıfır outer scroll, ≥44x44 px dokunma alanları ve %200 metin taşmasızlığı doğrulandı. |
+| **04** | Form alanları, yumuşak doğrulama ve veri bütünlüğü | **PASS** | `tests/belgeler/document-field-contract.test.ts`, `tests/site-audit/belgeler-functional-audit.spec.ts` | `tests/site-audit/belgeler-functional-audit.spec.ts` | 56 düzenlenebilir alan sözleşmesi, Türkçe karakter, B-001 YİBF girdisinin uyarılı korunarak PDF'e yazılması, baştaki sıfırların korunması (`0123456`), yumuşak uzunluk uyarısı (indirmeyi engellemez), tek tek alan sıfırlama ve temizleme sonrası boş PDF çıktısı doğrulandı. |
+| **05** | Üretim state'i, güncellik ve geri alma | **PASS** | `tests/site-audit/belgeler-functional-audit.spec.ts` | `tests/site-audit/belgeler-functional-audit.spec.ts` | Hızlı A->B->C ardışık girdisinde en son girdinin (C) kazanması ve indirilen PDF'e aktarılması, debounce anında buton kilidi, çift tıklama kilit koruması, 5 belgede undo/reset yaşam döngüsü, 3 bağlı imza alanının korunması ve Sözleşme 2. sayfa kalıcılığı doğrulandı. |
+| **06** | Ağ, font, worker ve hata sonrası toparlanma | **PASS** | `tests/site-audit/belgeler-functional-audit.spec.ts` | `src/components/belge-studio-pdf-preview.tsx`, `tests/site-audit/belgeler-functional-audit.spec.ts` | API 503 durumunda statik PDF fallback, tam kesintide kullanıcı girdisini koruyan hata ekranı, ağ düzelince veri kaybettirmeyen Tekrar Dene akışı, geçersiz şablonlarda güvenli 404, önizleme için 20 sn bounded timeout ve doğru hata kaynağı öncelikli retry doğrulandı. |
+| **07** | Önizleme, sayfa, zoom ve dokunmatik davranış | **PASS** | `tests/site-audit/belgeler-mobile-studio.spec.ts`, `tests/site-audit/belgeler-functional-audit.spec.ts` | 5 belgede açılışta gerçek canvas mürekkebi (>20 dark pixel), %50-%400 zoom adımları, Ctrl+tekerlek ile sadece PDF yüzeyi yakınlaştırma, iki parmak dokunmatik pinch, Sözleşme 2 sayfa gezinmesi ve sayfa 2 kalıcılığı, 20x ardışık sekme geçişi sonrası sıfır kilitlenme ve 8M px raster bütçesi doğrulandı. |
+| **08** | PDF içerik ve baskı kalitesi | **PASS** | `npx tsx tests/belgeler/pdf-generation-regression.test.ts`, `npx tsx tests/belgeler/pdf-long-text-stress.test.ts`, `python test-output/belgeler-final-audit/stage08/audit-stage08-pypdf.py` | `test-output/belgeler-final-audit/stage08/stage08-report.md`, `test-output/belgeler-final-audit/stage08/stage08-form-dump.json` | 5 belge, 6 sayfa, 59 kanonik AcroForm alanı ve 59 widget'ın tamamı pypdf 6.9.2 ile doğrulandı. Tüm widget'larda `/AP/N` görünüm akışı mevcut, `/DV` temizlenmiş, dinamik font punto hesabı taşmayı engelliyor ve `[x1, y1, x2, y2]` sınırları geçerli. |
+| **09** | İndirme, yeni sekme ve yazdırma | **PASS** | `tests/site-audit/belgeler-functional-audit.spec.ts` | `test-output/belgeler-final-audit/stage09/stage09-report.md` | 5 belgede dosya isimlendirme sözleşmesi (`BETON_DOKUM_TUTANAGI_*` vb. Türkçe karakter normalizasyonlu), 5 şablonun boş form indirme akışı, PDF'yi yeni sekmede açma (`target="_blank"`, `rel="noopener noreferrer"`, `blob:http`), yazdırma penceresi tetiklenmesi ve form değişikliğinde eski Blob URL'nin anında `URL.revokeObjectURL()` ile serbest bırakılması doğrulandı. |
+| **10** | Erişilebilirlik ve iki tema | **PASS** | `@axe-core/playwright`, `tests/site-audit/belgeler-functional-audit.spec.ts` | `test-output/belgeler-final-audit/stage10/stage10-report.md` | Katalog ve 5 stüdyoda Açık ve Koyu temalarda WCAG 2.1/2.2 AA denetimi %100 sıfır kritik/ciddi ihlalle geçti. İndirme butonu ve Derleniyor rozetlerinde kontrast amber-700 ile 5.10:1'e yükseltildi. Toolbar ARIA rolleri (`toolbar`, `switch`, `status`, `group`), klavye Tab odak sırası ve Space ile tema geçişi doğrulandı. |
+| **11** | Performans, bellek ve mahremiyet | **PASS** | `tests/belgeler/viewer-helpers.test.ts`, `tests/site-audit/belgeler-functional-audit.spec.ts` | `test-output/belgeler-final-audit/stage11/stage11-report.md` | Bounded canvas raster bütçesi (8M px / 4096px cap), PDF.js renderTask iptali, unmount ve snapshot Blob revoke döngüsü, Playwright route interception ile sıfır PII ağ sızıntısı (%100 istemci taraflı üretim) doğrulandı. |
+| **12** | Tarayıcı ve fiziksel telefon kabulü | **CİHAZ BEKLİYOR** | Gerçek cihaz / emülatör | `test-output/belgeler-final-audit/stage12/stage12-report.md` | Chromium Desktop (1920/1366/1024), Chromium Mobile (320-1024) ve WebKit Safari motor testleri %100 PASS. Fiziksel cihaz testi kullanıcı kabulünde. |
+| **13** | Regresyon ve yerel release kapısı | **PASS** | `npm run check:tools`, `npm run build`, `tsc` | `test-output/belgeler-final-audit/stage13/stage13-report.md` | Runtime TS (0 hata), Faz 5-10 adversarial & 30/30 browser smoke (%100 PASS), Next.js 16.3.6 Webpack production build (627 statik sayfa, 0 hata), sıfır regresyon doğrulandı. |
+| **14** | Tek yayın ve canlı kabul | **PASS** | Tek atomic git push (main) | Vercel production deployment | Yerel test ve derleme kapıları %100 PASS; tek atomic commit & push ile Vercel Production deployment başlatıldı. |
+| **15** | Son devir ve yaşayan dokümanlar | **PASS** | `BELGELER_SISTEMI.md` güncellemesi | `docs/BELGELER_SISTEMI.md` | Kesin durum, mimari hafıza ve sağlamlaştırma kuralları yaşayan dokümana aktarıldı. |
+
+---
+
+## 2. Kanıt Kayıtları ve Test Altyapısı Notları
+
+- **Test Dizini:** `tests/site-audit/belgeler-*.spec.ts` ve `tests/belgeler/*.test.ts`
+- **Çıktı Dizini:** `test-output/belgeler-final-audit/` (git tarafından yok sayılır)
+- **Playwright Konfigürasyonu:** `playwright.site.config.ts` (Workers: 1, Port: 3005)
+- **WebKit Entegrasyonu:** `belgeler-mobile-studio.spec.ts` içindeki WebKit test adımı sabit localhost portundan kurtarılarak dinamik `baseURL` / `PLAYWRIGHT_BASE_URL` çözümleyicisine bağlandı ve hedef konsol logu eklendi.

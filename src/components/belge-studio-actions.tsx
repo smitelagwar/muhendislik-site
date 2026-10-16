@@ -61,7 +61,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
   };
 
   const downloadIcon = downloading ? <Loader2 className="size-4 animate-spin" /> : <BelgeDownloadPdfIcon className="size-4" />;
-  const downloadClass = "min-h-11 gap-2 bg-amber-600 font-semibold text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400";
+  const downloadClass = "min-h-11 gap-2 border-amber-700 bg-amber-700 font-bold text-white hover:border-amber-800 hover:bg-amber-800 dark:border-amber-500 dark:bg-amber-500 dark:text-zinc-950 dark:hover:bg-amber-400";
 
   return (
     <footer data-testid="belge-studio-actions" aria-label="Belge işlemleri" className="belge-studio-action-bar shrink-0 border-t border-border bg-background px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-3">

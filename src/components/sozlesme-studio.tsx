@@ -276,7 +276,7 @@ export function SozlesmeStudio({
           </div>
           <div className="flex items-center gap-2">
             {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="hidden sm:inline">Derleniyor...</span>
               </span>
@@ -378,7 +378,7 @@ export function SozlesmeStudio({
               </h2>
             </div>
             {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-2.5 w-2.5 animate-spin" />
                 <span>Derleniyor</span>
               </span>
@@ -556,10 +556,7 @@ export function SozlesmeStudio({
                   inputMode="numeric"
                   aria-describedby="sozlesme-yibf-help"
                   value={formData.yibf || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    handleFieldChange("yibf", value === "-" ? "-" : value.replace(/\D/g, ""));
-                  }}
+                  onChange={(e) => handleFieldChange("yibf", e.target.value)}
                   placeholder="-"
                   className={`h-8 w-full rounded-md border px-2 text-center text-xs font-mono font-semibold transition-colors placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 ${
                     yibfInvalid

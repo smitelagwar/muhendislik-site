@@ -267,7 +267,7 @@ export function TaahhutnameStudio({
           </div>
           <div className="flex items-center gap-2">
             {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span className="hidden sm:inline">Derleniyor...</span>
               </span>
@@ -386,7 +386,7 @@ export function TaahhutnameStudio({
               </h2>
             </div>
             {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-2.5 w-2.5 animate-spin" />
                 <span>Derleniyor</span>
               </span>

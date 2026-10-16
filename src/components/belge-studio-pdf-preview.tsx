@@ -108,45 +108,67 @@ export function BelgeStudioPdfPreview({
     }
 
     let disposed = false;
+    let previewTimeout: ReturnType<typeof setTimeout> | null = null;
     const bytes = snapshot.bytes.slice();
     setPageCount(0);
     setLocalStatus("loading");
     setErrorMessage("");
     statusHandlerRef.current(snapshot.revision, "loading");
 
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      previewTimeout = setTimeout(
+        () => reject(new Error("PDF önizlemesi zaman aşımına uğradı.")),
+        20_000
+      );
+    });
+
     void (async () => {
       try {
-        const pdfjs = await loadBrowserPdfJs();
-        if (!pdfjs) throw new Error("Yerel PDF görüntüleyicisi yüklenemedi.");
-        if (disposed) return;
+        const loadOperation = (async () => {
+          const pdfjs = await loadBrowserPdfJs();
+          if (!pdfjs) throw new Error("Yerel PDF görüntüleyicisi yüklenemedi.");
+          if (disposed) return null;
 
-        const loadingTask = pdfjs.getDocument({
-          data: bytes,
-          cMapUrl: PDFJS_CMAPS,
-          standardFontDataUrl: PDFJS_FONTS,
-          cMapPacked: true,
-        });
-        loadingTaskRef.current = loadingTask;
-        const pdf = await loadingTask.promise;
-        if (disposed) {
-          void loadingTask.destroy();
+          const loadingTask = pdfjs.getDocument({
+            data: bytes,
+            cMapUrl: PDFJS_CMAPS,
+            standardFontDataUrl: PDFJS_FONTS,
+            cMapPacked: true,
+          });
+          loadingTaskRef.current = loadingTask;
+          const pdf = await loadingTask.promise;
+          return { pdf, loadingTask };
+        })();
+
+        const result = await Promise.race([loadOperation, timeoutPromise]);
+        if (!result || disposed) {
+          if (result?.loadingTask) void result.loadingTask.destroy();
           return;
         }
-        documentRef.current = pdf;
-        const nextPage = Math.min(Math.max(1, pageRef.current), pdf.numPages);
+        documentRef.current = result.pdf;
+        const nextPage = Math.min(Math.max(1, pageRef.current), result.pdf.numPages);
         pageRef.current = nextPage;
         setCurrentPage(nextPage);
-        setPageCount(pdf.numPages);
+        setPageCount(result.pdf.numPages);
       } catch (error) {
         if (disposed) return;
         const message = error instanceof Error ? error.message : "PDF açılamadı.";
         report("error", `PDF önizlemesi yüklenemedi. ${message}`);
         console.error("PDF önizlemesi yüklenemedi:", error);
+      } finally {
+        if (previewTimeout) {
+          clearTimeout(previewTimeout);
+          previewTimeout = null;
+        }
       }
     })();
 
     return () => {
       disposed = true;
+      if (previewTimeout) {
+        clearTimeout(previewTimeout);
+        previewTimeout = null;
+      }
       renderRequestRef.current += 1;
       if (renderTaskRef.current) {
         try {
@@ -442,11 +464,13 @@ export function BelgeStudioPdfPreview({
   };
 
   const handlePreviewRetry = () => {
-    if (localStatus === "error" && snapshot) {
-      setLoadAttempt((attempt) => attempt + 1);
+    if (generationError || !snapshot) {
+      onRetry();
       return;
     }
-    onRetry();
+    if (localStatus === "error") {
+      setLoadAttempt((attempt) => attempt + 1);
+    }
   };
 
   const handleFit = () => {
