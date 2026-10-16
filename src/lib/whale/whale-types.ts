@@ -15,6 +15,7 @@ export interface ProjectedPoint {
   z: number;
   scale: number;
   alpha: number;
+  visibility?: number;
 }
 
 export interface WhaleSpineNode {
@@ -31,7 +32,6 @@ export interface WhaleSpineNode {
 export interface WhaleRib {
   s: number;
   points: ProjectedPoint[];
-  normalPoints: Vector3[];
   isThoracic: boolean;
   isHead: boolean;
   isPeduncle: boolean;
@@ -43,6 +43,9 @@ export interface WhaleFlipper {
   trailingEdge: ProjectedPoint[];
   tubercles: ProjectedPoint[];
   internalSpars: ProjectedPoint[][];
+  sections: ProjectedPoint[][];
+  etching: ProjectedPoint[][];
+  depth: number;
 }
 
 export interface WhaleFlukes {
@@ -50,10 +53,35 @@ export interface WhaleFlukes {
   notch: ProjectedPoint;
   tips: [ProjectedPoint, ProjectedPoint];
   ribLines: ProjectedPoint[][];
+  contours: ProjectedPoint[][];
+  depth: number;
 }
 
 export interface WhaleDorsalFin {
   outline: ProjectedPoint[];
+  depth: number;
+}
+
+export interface WhaleSurfacePatch {
+  points: ProjectedPoint[];
+  light: number;
+  depth: number;
+}
+
+export interface WhaleFeatureLine {
+  points: ProjectedPoint[];
+  kind: "jaw" | "ridge" | "scar" | "eye" | "blowhole" | "fold";
+}
+
+export interface WhaleNodule {
+  center: ProjectedPoint;
+  outline: ProjectedPoint[];
+  crown: ProjectedPoint[];
+}
+
+export interface WhaleEtching {
+  points: ProjectedPoint[];
+  opacity: number;
 }
 
 export interface WhaleMarker {
@@ -67,12 +95,21 @@ export interface WhaleMesh {
   ribs: WhaleRib[];
   streamlines: ProjectedPoint[][];
   ventralPleats: ProjectedPoint[][];
+  pleatHighlights: ProjectedPoint[][];
   leftFlipper: WhaleFlipper;
   rightFlipper: WhaleFlipper;
   flukes: WhaleFlukes;
   dorsalFin: WhaleDorsalFin;
   silhouettePolygon: Point2D[];
   technicalMarkers: WhaleMarker[];
+  surface: WhaleSurfacePatch[];
+  featureLines: WhaleFeatureLine[];
+  eyes: ProjectedPoint[];
+  tubercles: ProjectedPoint[];
+  stipples: ProjectedPoint[];
+  nodules: WhaleNodule[];
+  etching: WhaleEtching[];
+  depth: number;
 }
 
 export interface WhaleThemePalette {
@@ -83,6 +120,8 @@ export interface WhaleThemePalette {
   washFill: string;          // Translucent interior volume
   markerColor: string;       // Technical ticks & labels
   flipperWhiteUnderside: string; // Faint luminous fill for Megaptera flipper underside
+  surfaceRgb: string;
+  highlightLine: string;
 }
 
 export interface WhaleConfig {

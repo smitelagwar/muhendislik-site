@@ -134,6 +134,15 @@ Form genel olarak sıfırlandığında veya temizlendiğinde tek adımlık **Ger
 
 ---
 
+### 3.8. Belgeler Kataloğu Balina Ambiyansı
+
+- `AmbientWhaleCanvas` yalnız `/belgeler` kataloğunda, kartların arkasında tek bir kambur balina çizer. Sahne yalnız `(min-width: 768px) and (hover: hover) and (pointer: fine)` koşulunda `next/dynamic` ile yüklenir. Telefon ve dokunmatik tabletlerde, yatay konum dahil, tuval/çizim motoru yüklenmez ve başlık düğmesi gizlidir. Dar ekrana geçiş sahneyi unmount ederek RAF ve gözlemcileri kapatır. Fare etkileşimi yoktur; masaüstü düğmesi ve `muhendis_whale_ambient_enabled` tercihi korunur.
+- `src/lib/whale/whale-math.ts` sürekli Hermite kesitleri, paralel taşınan omurga çatısı, kapalı kuyruk lobları ve kavisli pektoral yüzgeçler üretir. Çene, göz, solunum delikleri, baş tüberkülleri, karın olukları ve sabit yüzey gravürü aynı anatomiye bağlıdır.
+- `ambient-whale-scene.tsx` tuval yaşam döngüsünü yönetir. `whale-renderer.ts` görünür yüzey normallerini, hafif yüzey aydınlatmasını ve ön/arka yüzgeç örtüşmesini kullanır. Açık temada grafit, koyu temada yumuşak mavi çizgiler vardır. Bütün model, kuyruk ve yüzgeçler dahil kadraja sığdırılır.
+- Ayrıntılı masaüstü anatomisi 56 kesit × 40 yüzey hattı, 26 çift kenarlı karın oluğu, kabartılı baş tüberkülleri, çift dudak/çene çizgisi, göz ve omuz kıvrımları, beş pektoral falanks, kuyruk konturları ve yüzeye bağlı gravür/tarama dokusu içerir. Dar masaüstünde kesit ve doku yoğunluğu düşer. Normalize kesit profili önbelleği 16.384 kayıtla sınırlıdır; kare içi omurga interpolasyonu paylaşılır ve her izdüşüm noktası yalnız bir kez kadraja dönüştürülür.
+- DPR tavanı 1.75; çizim tavanı geniş masaüstünde 60, dar masaüstünde 30 FPS'dir. Ortalama çizim maliyeti 12 ms'yi aşınca ayrıntı kaybetmeden 30 FPS'ye iner; 8 ms altına düşünce 60 FPS'ye döner. Gizli sekmede RAF durur. Kapatma 300 ms'de tuvali temizleyip döngüyü sonlandırır. `prefers-reduced-motion` tek statik poz çizer; tema, boyut ve düğme değişiklikleri bu modda da uygulanır.
+- Doğrulama: `npx tsx tests/whale/whale-math.test.ts` tüm anatominin tam tur boyunca kadrajını ve sürekliliğini sınar. `tests/site-audit/whale-ambient.spec.ts` gerçek tuval piksellerinde hareket, kapatma, statik poz ve tema değişimini; mobilde yokluğu ve masaüstü/dar ekran geçişindeki unmount/yeniden yüklemeyi kontrol eder.
+
 ## 4. Yeni Belge Ekleme Adım Adım İş Akışı
 
 Sisteme 4. veya yeni bir belge şablonu ekleneceği zaman izlenecek adımlar:

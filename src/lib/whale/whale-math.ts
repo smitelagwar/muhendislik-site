@@ -1,628 +1,380 @@
 import type {
-  Point2D,
-  ProjectedPoint,
-  Vector3,
-  WhaleConfig,
-  WhaleDorsalFin,
-  WhaleFlipper,
-  WhaleFlukes,
-  WhaleMarker,
-  WhaleMesh,
-  WhaleRib,
-  WhaleSpineNode,
+  ProjectedPoint, Vector3, WhaleConfig, WhaleFeatureLine, WhaleFlipper,
+  WhaleFlukes, WhaleMesh, WhaleRib, WhaleSpineNode, WhaleSurfacePatch, WhaleNodule,
 } from "./whale-types";
 
-// ─── 3D Vector Math Primitives ──────────────────────────────────────────────
-
-export function vec3(x = 0, y = 0, z = 0): Vector3 {
-  return { x, y, z };
-}
-
-export function vAdd(a: Vector3, b: Vector3): Vector3 {
-  return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
-}
-
-export function vSub(a: Vector3, b: Vector3): Vector3 {
-  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
-}
-
-export function vScale(v: Vector3, s: number): Vector3 {
-  return { x: v.x * s, y: v.y * s, z: v.z * s };
-}
-
-export function vDot(a: Vector3, b: Vector3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
+export function vec3(x = 0, y = 0, z = 0): Vector3 { return { x, y, z }; }
+export function vAdd(a: Vector3, b: Vector3): Vector3 { return vec3(a.x + b.x, a.y + b.y, a.z + b.z); }
+export function vSub(a: Vector3, b: Vector3): Vector3 { return vec3(a.x - b.x, a.y - b.y, a.z - b.z); }
+export function vScale(v: Vector3, s: number): Vector3 { return vec3(v.x * s, v.y * s, v.z * s); }
+export function vDot(a: Vector3, b: Vector3): number { return a.x * b.x + a.y * b.y + a.z * b.z; }
 export function vCross(a: Vector3, b: Vector3): Vector3 {
-  return {
-    x: a.y * b.z - a.z * b.y,
-    y: a.z * b.x - a.x * b.z,
-    z: a.x * b.y - a.y * b.x,
-  };
+  return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
-
-export function vLen(v: Vector3): number {
-  return Math.hypot(v.x, v.y, v.z);
-}
-
+export function vLen(v: Vector3): number { return Math.hypot(v.x, v.y, v.z); }
 export function vNormalize(v: Vector3): Vector3 {
-  const l = vLen(v);
-  if (l < 1e-6) return { x: 0, y: 1, z: 0 };
-  return { x: v.x / l, y: v.y / l, z: v.z / l };
+  const length = vLen(v);
+  return length < 1e-8 ? vec3(0, -1, 0) : vScale(v, 1 / length);
 }
-
-export function vLerp(a: Vector3, b: Vector3, t: number): Vector3 {
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t,
-  };
-}
-
-/**
- * Rodrigues' rotation formula: rotate vector v around unit axis by angle radians.
- */
+export function vLerp(a: Vector3, b: Vector3, t: number): Vector3 { return vAdd(a, vScale(vSub(b, a), t)); }
 export function rotateAroundAxis(v: Vector3, axis: Vector3, angle: number): Vector3 {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
   const k = vNormalize(axis);
-  const dot = vDot(k, v);
-  const cross = vCross(k, v);
+  return vAdd(vAdd(vScale(v, Math.cos(angle)), vScale(vCross(k, v), Math.sin(angle))),
+    vScale(k, vDot(k, v) * (1 - Math.cos(angle))));
+}
 
+const TAU = Math.PI * 2;
+const clamp = (n: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, n));
+const smoothStep = (a: number, b: number, n: number) => { const u = clamp((n - a) / (b - a)); return u * u * (3 - 2 * u); };
+const seeded = (n: number) => { const v = Math.sin(n * 127.1 + 31.7) * 43758.5453; return v - Math.floor(v); };
+
+export function projectPoint(p: Vector3, width: number, height: number, focalLength = 850): ProjectedPoint {
+  const scale = focalLength / Math.max(focalLength + p.z, 40);
   return {
-    x: v.x * cos + cross.x * sin + k.x * dot * (1 - cos),
-    y: v.y * cos + cross.y * sin + k.y * dot * (1 - cos),
-    z: v.z * cos + cross.z * sin + k.z * dot * (1 - cos),
+    x: width / 2 + p.x * scale, y: height / 2 + p.y * scale,
+    z: p.z, scale, alpha: clamp(1 - p.z / 1600, 0.3, 1),
   };
 }
 
-// ─── 3D to 2D Perspective Projection ─────────────────────────────────────────
-
-export function projectPoint(
-  p: Vector3,
-  width: number,
-  height: number,
-  focalLength = 850
-): ProjectedPoint {
-  // Center camera at (width / 2, height / 2, -focalLength) looking towards +Z
-  const zCam = p.z + focalLength;
-  const safeZ = Math.max(zCam, 40);
-  const scale = focalLength / safeZ;
-
-  const xScreen = width * 0.5 + p.x * scale;
-  const yScreen = height * 0.5 + p.y * scale;
-
-  // Depth attenuation factor: closer elements are sharper, deeper elements are faint
-  const depthFactor = Math.max(0.25, Math.min(1.0, 1.0 - (p.z / 900) * 0.55));
-
+/** Yumuşak sekiz rotası: başın yönü hızdan, yatış ise dönüş fazından türetilir. */
+export function computeTrajectoryPosition(timeSec: number, width: number, height: number, period = 72) {
+  const u = timeSec / period * TAU;
+  const xSpan = Math.min(width * 0.19, 270);
+  const ySpan = Math.min(height * 0.12, 110);
+  const at = (r: number) => vec3(-Math.sin(r) * xSpan, -Math.sin(2 * r + 0.55) * ySpan, Math.sin(r + 0.6) * 72);
   return {
-    x: xScreen,
-    y: yScreen,
-    z: p.z,
-    scale,
-    alpha: depthFactor,
+    pos: at(u), tangent: vNormalize(vSub(at(u + 0.001), at(u - 0.001))),
+    bankAngle: -0.52 + Math.sin(u + 0.4) * 0.22,
   };
 }
-
-// ─── Global 3D Viewport Oceanic Trajectory ───────────────────────────────────
-
-/**
- * Computes an autonomous, continuous, organic 3D orbit through the viewport space.
- * Follows a smooth 54-second loop entering from bottom-right, gliding behind cards
- * towards top-left, banking, diving into deep Z, and sweeping back around.
- */
-export function computeTrajectoryPosition(
-  timeSec: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  period = 54
-): { pos: Vector3; tangent: Vector3; bankAngle: number } {
-  const phase = ((timeSec % period) + period) % period;
-  const u = (phase / period) * 2 * Math.PI;
-
-  // Dynamically scale trajectory to viewport size so whale remains well-framed on both 320px mobile and 4K desktop
-  const xSpan = Math.min(viewportWidth * 0.36, 540);
-  const ySpan = Math.min(viewportHeight * 0.28, 300);
-  const zSpan = Math.min(Math.max(viewportWidth * 0.12, 100), 170);
-
-  // Position function: smooth Lissajous path with organic harmonics
-  const calcPos = (rad: number): Vector3 => {
-    const x = Math.sin(rad) * xSpan + Math.sin(2 * rad) * (xSpan * 0.22);
-    const y = Math.cos(rad) * (ySpan * 0.72) + Math.sin(2 * rad) * (ySpan * 0.28);
-    // Depth oscillation: dives between near surface and oceanic depth
-    const z = Math.sin(rad + 0.9) * zSpan + Math.cos(2 * rad) * (zSpan * 0.41);
-    return { x, y, z };
-  };
-
-  const pos = calcPos(u);
-
-  // Numerical tangent (velocity direction) with tiny step
-  const dt = 0.015;
-  const posNext = calcPos(u + dt);
-  const posPrev = calcPos(u - dt);
-  const vel = vSub(posNext, posPrev);
-  const tangent = vNormalize(vel);
-
-  // Acceleration / Curvature for banking roll:
-  const velNext = vSub(calcPos(u + dt * 2), pos);
-  const velPrev = vSub(pos, calcPos(u - dt * 2));
-  const acc = vSub(velNext, velPrev);
-  // Roll proportional to horizontal lateral acceleration
-  const bankAngle = Math.max(-0.45, Math.min(0.45, (acc.x * vel.y - acc.y * vel.x) * 0.000008));
-
-  return { pos, tangent, bankAngle };
-}
-
-// ─── Humpback Whale Anatomical Profile (Megaptera novaeangliae) ─────────────
 
 export interface WhaleSectionDimensions {
-  rx: number;
-  ry: number;
-  ventralBias: number;
-  isHead: boolean;
-  isThoracic: boolean;
-  isPeduncle: boolean;
+  rx: number; ry: number; ventralBias: number;
+  isHead: boolean; isThoracic: boolean; isPeduncle: boolean;
 }
 
-/**
- * Computes transverse radius (rx), vertical radius (ry), and ventral throat groove
- * pouch depth for parameter s in [0, 1] (0 = rostrum snout, 1 = fluke notch).
- */
+// Burun, çene, göğüs ve kuyruk bileği aynı sürekli anatomik profili paylaşır.
+const PROFILE = [
+  [0, 0.022, 0.012, 0], [0.025, 0.043, 0.024, 0.002],
+  [0.075, 0.070, 0.038, 0.006], [0.15, 0.092, 0.059, 0.012],
+  [0.23, 0.103, 0.076, 0.020], [0.32, 0.100, 0.082, 0.023],
+  [0.43, 0.084, 0.071, 0.016], [0.56, 0.063, 0.055, 0.006],
+  [0.68, 0.043, 0.039, 0.001], [0.80, 0.026, 0.027, 0],
+  [0.91, 0.014, 0.018, 0], [1, 0.010, 0.011, 0],
+] as const;
+const radiusProfiles = new Map<number, { rx: number; ry: number; ventralBias: number }>();
+
+/** Monoton Hermite: kesit birleşimlerinde basamak veya yapay halka oluşturmaz. */
+function profileAt(s: number, column: 1 | 2 | 3): number {
+  const t = clamp(s);
+  let i = 0;
+  while (i < PROFILE.length - 2 && t > PROFILE[i + 1][0]) i++;
+  const a = PROFILE[i], b = PROFILE[i + 1];
+  const slope = (j: number) => (PROFILE[j + 1][column] - PROFILE[j][column]) / (PROFILE[j + 1][0] - PROFILE[j][0]);
+  const tangent = (j: number) => {
+    if (j === 0) return slope(0);
+    if (j === PROFILE.length - 1) return slope(j - 1);
+    const l = slope(j - 1), r = slope(j);
+    return l * r <= 0 ? 0 : 2 * l * r / (l + r);
+  };
+  const h = b[0] - a[0], u = (t - a[0]) / h;
+  return (2 * u ** 3 - 3 * u ** 2 + 1) * a[column] + (u ** 3 - 2 * u ** 2 + u) * h * tangent(i)
+    + (-2 * u ** 3 + 3 * u ** 2) * b[column] + (u ** 3 - u ** 2) * h * tangent(i + 1);
+}
+
 export function computeRadii(s: number, length: number): WhaleSectionDimensions {
-  const t = Math.max(0, Math.min(1, s));
-  let rx = 0;
-  let ry = 0;
-  let ventralBias = 0;
-  let isHead = false;
-  let isThoracic = false;
-  let isPeduncle = false;
-
-  if (t < 0.20) {
-    // ─── Rostrum (upper and lower jaws, tubercle knobs)
-    isHead = true;
-    const u = t / 0.20;
-    const knob = 1.0 + 0.025 * Math.sin(u * Math.PI * 6);
-    rx = (0.03 + 0.115 * Math.sqrt(u)) * length * knob;
-    ry = (0.022 + 0.080 * Math.sqrt(u)) * length;
-    ventralBias = 0.018 * u * length;
-  } else if (t < 0.44) {
-    // ─── Thorax & Ventral Throat Pleat Pouch (Maximum Girth)
-    isThoracic = true;
-    const u = (t - 0.20) / 0.24;
-    const belly = Math.sin(u * Math.PI);
-    rx = (0.145 + 0.015 * Math.cos(u * Math.PI * 0.5)) * length;
-    ry = (0.102 + 0.022 * Math.cos(u * Math.PI * 0.5)) * length;
-    ventralBias = (0.018 + 0.038 * belly) * length;
-  } else if (t < 0.70) {
-    // ─── Midbody & Dorsal Hump
-    const u = (t - 0.44) / 0.26;
-    // Characteristic humpback dorsal fin elevation around u ~ 0.8
-    const dorsalHump = Math.exp(-Math.pow((u - 0.8) / 0.14, 2)) * 0.035 * length;
-    rx = (0.14 - 0.075 * u) * length;
-    ry = (0.10 - 0.050 * u) * length + dorsalHump;
-    ventralBias = Math.max(0, 0.025 * (1 - u * 2.2)) * length;
-  } else if (t < 0.94) {
-    // ─── Caudal Peduncle (Laterally compressed submarine keel)
-    isPeduncle = true;
-    const u = (t - 0.70) / 0.24;
-    rx = (0.065 - 0.046 * u) * length;
-    ry = (0.050 - 0.028 * u) * length;
-    ventralBias = 0;
-  } else {
-    // ─── Tail Wrist (Pre-Fluke insertion)
-    isPeduncle = true;
-    const u = (t - 0.94) / 0.06;
-    rx = (0.019 - 0.007 * u) * length;
-    ry = (0.022 - 0.009 * u) * length;
-    ventralBias = 0;
+  const key = clamp(s);
+  let profile = radiusProfiles.get(key);
+  if (!profile) {
+    profile = { rx: profileAt(key, 1), ry: profileAt(key, 2), ventralBias: profileAt(key, 3) };
+    // Aynı deri koordinatları her karede kullanılır; farklı çağrılarda bellek sınırlıdır.
+    if (radiusProfiles.size >= 16_384) radiusProfiles.clear();
+    radiusProfiles.set(key, profile);
   }
-
-  return { rx, ry, ventralBias, isHead, isThoracic, isPeduncle };
+  return {
+    rx: profile.rx * length, ry: profile.ry * length,
+    ventralBias: profile.ventralBias * length,
+    isHead: s < 0.2, isThoracic: s >= 0.2 && s < 0.44, isPeduncle: s >= 0.7,
+  };
 }
 
-// ─── Spine Kinematics & Wave Propagation ─────────────────────────────────────
-
-export function computeSpineNodes(
-  timeSec: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  config: WhaleConfig,
-  numNodes = 28
-): WhaleSpineNode[] {
-  const { length, swimSpeed, loopPeriod } = config;
-
-  // Global head trajectory
-  const { pos: headPos, tangent: headTangent, bankAngle } = computeTrajectoryPosition(
-    timeSec,
-    viewportWidth,
-    viewportHeight,
-    loopPeriod
-  );
-
-  // Up vector with banking roll
-  const nominalUp: Vector3 = { x: 0, y: -1, z: 0 };
-  const rolledUp = rotateAroundAxis(nominalUp, headTangent, bankAngle);
-  const rolledRight = vNormalize(vCross(headTangent, rolledUp));
-
+export function computeSpineNodes(timeSec: number, width: number, height: number, config: WhaleConfig, numNodes = 56): WhaleSpineNode[] {
+  const { pos, tangent: forward, bankAngle } = computeTrajectoryPosition(timeSec, width, height, config.loopPeriod);
+  // Ekrana dik referans, dik yüzüşte de kararlı bir çatı sağlar.
+  const up = rotateAroundAxis(vNormalize(vCross(vec3(0, 0, 1), forward)), forward, bankAngle);
+  const right = vNormalize(vCross(forward, up));
+  const center = vec3(pos.x * 0.65, pos.y * 0.8 + height * 0.04, pos.z);
+  const positionAt = (s: number) => {
+    const envelope = Math.max(0, (s - 0.30) / 0.70) ** 2.4;
+    const phase = TAU * (config.swimSpeed * timeSec - s * 0.82);
+    const heave = Math.sin(phase) * envelope * config.length * 0.068;
+    const arch = Math.sin(s * Math.PI) * config.length * 0.018;
+    return vAdd(center, vAdd(vScale(forward, (0.46 - s) * config.length),
+      vAdd(vScale(up, arch + heave), vScale(right, Math.cos(phase) * envelope * config.length * 0.009))));
+  };
   const nodes: WhaleSpineNode[] = [];
-
+  let previousNormal = up;
+  let previousTangent = forward;
   for (let i = 0; i < numNodes; i++) {
     const s = i / (numNodes - 1);
-    const dimensions = computeRadii(s, length);
-
-    // Caudal wave amplitude envelope: rigid skull/chest (s <= 0.32), growing quadratic wave towards tail
-    let waveAmp = 0;
-    if (s > 0.32) {
-      const u = (s - 0.32) / 0.68;
-      waveAmp = Math.pow(u, 2.1) * (0.13 * length);
-    }
-
-    // Dorsoventral swimming undulation (vertical pitch heave)
-    const wavePhase = 2 * Math.PI * (swimSpeed * timeSec - 1.25 * s);
-    const verticalDisplacement = Math.sin(wavePhase) * waveAmp;
-
-    // Subtle lateral sway out of phase during bank turns
-    const lateralDisplacement = Math.cos(wavePhase) * (waveAmp * 0.25);
-
-    // Spine distance back from head along local tangent
-    const distBack = s * length;
-
-    // Position along curved body axis:
-    // Tail curves slightly into trajectory arc
-    const nodePos = vAdd(
-      headPos,
-      vAdd(
-        vScale(headTangent, -distBack),
-        vAdd(
-          vScale(rolledUp, verticalDisplacement),
-          vScale(rolledRight, lateralDisplacement)
-        )
-      )
-    );
-
-    // Local Bishop / Orthonormal Frame
-    // Tangent tilts with derivative of vertical wave
-    const waveSlope = s > 0.32 ? Math.cos(wavePhase) * waveAmp * (2 * Math.PI * 1.25 / length) : 0;
-    const localTangent = vNormalize(vAdd(headTangent, vScale(rolledUp, -waveSlope)));
-    const localRight = vNormalize(vCross(localTangent, rolledUp));
-    const localNormal = vNormalize(vCross(localRight, localTangent));
-
-    nodes.push({
-      s,
-      pos: nodePos,
-      tangent: localTangent,
-      normal: localNormal,
-      binormal: localRight,
-      rx: dimensions.rx,
-      ry: dimensions.ry,
-      ventralBias: dimensions.ventralBias,
-    });
+    const tangent = vNormalize(vSub(positionAt(s - 0.0001), positionAt(s + 0.0001)));
+    // Gerçek paralel taşıma: yüzgeç kökleri ve kuyruk dalga boyunca burkulmaz.
+    const axis = vCross(previousTangent, tangent);
+    const transported = vLen(axis) > 1e-7
+      ? rotateAroundAxis(previousNormal, axis, Math.atan2(vLen(axis), vDot(previousTangent, tangent)))
+      : previousNormal;
+    const binormal = vNormalize(vCross(tangent, transported));
+    const normal = vNormalize(vCross(binormal, tangent));
+    nodes.push({ s, pos: positionAt(s), tangent, normal, binormal, ...computeRadii(s, config.length) });
+    previousNormal = normal;
+    previousTangent = tangent;
   }
-
   return nodes;
 }
 
-// ─── 3D Mesh Generation & Perspective Projection ────────────────────────────
+export function generateWhaleMesh(timeSec: number, width: number, height: number, config: WhaleConfig): WhaleMesh {
+  const small = width < 1024;
+  const nodes = computeSpineNodes(timeSec, width, height, config, small ? 38 : 56);
+  const L = config.length;
+  const camera = vec3(0, 0, -config.cameraFocalLength);
+  const projectedPoints: ProjectedPoint[] = [];
+  const project = (p: Vector3) => {
+    const point = projectPoint(p, width, height, config.cameraFocalLength);
+    projectedPoints.push(point);
+    return point;
+  };
+  const frameNodes = new Map<number, WhaleSpineNode>();
+  const nodeAt = (s: number): WhaleSpineNode => {
+    const cached = frameNodes.get(s);
+    if (cached) return cached;
+    const f = clamp(s) * (nodes.length - 1), i = Math.min(Math.floor(f), nodes.length - 2), u = f - i;
+    const a = nodes[i], b = nodes[i + 1];
+    const node = { s, pos: vLerp(a.pos, b.pos, u), tangent: vNormalize(vLerp(a.tangent, b.tangent, u)),
+      normal: vNormalize(vLerp(a.normal, b.normal, u)), binormal: vNormalize(vLerp(a.binormal, b.binormal, u)),
+      ...computeRadii(s, L) };
+    frameNodes.set(s, node);
+    return node;
+  };
+  const surfacePoint = (s: number, theta: number, lift = 0): ProjectedPoint => {
+    const n = nodeAt(s), c = Math.cos(theta), v = Math.sin(theta);
+    const ry = n.ry + (v < 0 ? n.ventralBias : 0);
+    // Geniş ve basık rostrum ile kabarık alt çene, eliptik gövdeden ayrı biçimlenir.
+    const head = 1 - smoothStep(0.14, 0.29, s);
+    const jawRim = Math.exp(-Math.pow((v + 0.15) / 0.15, 2)) * head * 0.055;
+    const lateral = Math.sign(c) * Math.abs(c) ** (1 - head * 0.13) * (n.rx + lift) * (1 + jawRim);
+    const vertical = v * (ry + lift) * (v > 0 ? 1 - head * 0.12 * v : 1);
+    const p = vAdd(n.pos, vAdd(vScale(n.binormal, lateral), vScale(n.normal, vertical)));
+    const normal = vNormalize(vAdd(vScale(n.binormal, c / Math.max(n.rx, 1)), vScale(n.normal, v / Math.max(ry, 1))));
+    const point = project(p);
+    point.visibility = vDot(normal, vNormalize(vSub(camera, p)));
+    return point;
+  };
 
-export function generateWhaleMesh(
-  timeSec: number,
-  viewportWidth: number,
-  viewportHeight: number,
-  config: WhaleConfig
-): WhaleMesh {
-  const numSpineNodes = 28;
-  const numRibVertices = 20;
-  const spineNodes = computeSpineNodes(timeSec, viewportWidth, viewportHeight, config, numSpineNodes);
-
-  // 1. Projected Spine
-  const projectedSpine: ProjectedPoint[] = spineNodes.map((n) =>
-    projectPoint(n.pos, viewportWidth, viewportHeight, config.cameraFocalLength)
-  );
-
-  // 2. Ribs (Cross-Section Rings)
-  const ribs: WhaleRib[] = [];
-  const rib3DPoints: Vector3[][] = [];
-
-  spineNodes.forEach((node) => {
-    const ring3D: Vector3[] = [];
-    const ringProjected: ProjectedPoint[] = [];
-
-    for (let j = 0; j < numRibVertices; j++) {
-      const theta = (j / numRibVertices) * 2 * Math.PI;
-      const cosT = Math.cos(theta);
-      const sinT = Math.sin(theta);
-
-      // Ventral expansion: if sinT < 0 (underbelly), expand downwards by ventralBias
-      const ventralOffset = sinT < 0 ? -node.ventralBias * (-sinT) : 0;
-      const lateralDist = cosT * node.rx;
-      const verticalDist = sinT * node.ry + ventralOffset;
-
-      const p3D = vAdd(
-        node.pos,
-        vAdd(vScale(node.binormal, lateralDist), vScale(node.normal, verticalDist))
-      );
-
-      ring3D.push(p3D);
-      ringProjected.push(
-        projectPoint(p3D, viewportWidth, viewportHeight, config.cameraFocalLength)
-      );
+  const ringSteps = small ? 28 : 40;
+  const ribs: WhaleRib[] = nodes.map(n => ({
+    s: n.s, ...computeRadii(n.s, L),
+    points: Array.from({ length: ringSteps }, (_, j) => surfacePoint(n.s, j / ringSteps * TAU)),
+  }));
+  const streamlines = Array.from({ length: ringSteps }, (_, j) => ribs.map(r => r.points[j]));
+  const surface: WhaleSurfacePatch[] = [];
+  for (let i = 0; i < ribs.length - 1; i++) {
+    for (let j = 0; j < ringSteps; j++) {
+      const k = (j + 1) % ringSteps;
+      const points = [ribs[i].points[j], ribs[i + 1].points[j], ribs[i + 1].points[k], ribs[i].points[k]];
+      const facing = points.reduce((a, p) => a + (p.visibility ?? 0), 0) / 4;
+      if (facing < -0.08) continue;
+      const light = clamp(0.35 + 0.48 * Math.sin((j + 0.5) / ringSteps * TAU) + 0.25 * facing);
+      surface.push({ points, light, depth: points.reduce((a, p) => a + p.z, 0) / 4 });
     }
+  }
+  surface.sort((a, b) => b.depth - a.depth);
 
-    rib3DPoints.push(ring3D);
-
-    const dims = computeRadii(node.s, config.length);
-    ribs.push({
-      s: node.s,
-      points: ringProjected,
-      normalPoints: ring3D,
-      isThoracic: dims.isThoracic,
-      isHead: dims.isHead,
-      isPeduncle: dims.isPeduncle,
-    });
+  // Ekran teğetlerinden seçilen dış kontur burun ve kuyrukta da kapanır.
+  const edgeA: ProjectedPoint[] = [], edgeB: ProjectedPoint[] = [];
+  const spine = nodes.map(n => project(n.pos));
+  ribs.forEach((r, i) => {
+    const prev = spine[Math.max(0, i - 1)], next = spine[Math.min(spine.length - 1, i + 1)];
+    const dx = next.x - prev.x, dy = next.y - prev.y;
+    const sorted = [...r.points].sort((a, b) => (a.x - b.x) * -dy + (a.y - b.y) * dx);
+    edgeA.push(sorted[0]); edgeB.push(sorted[sorted.length - 1]);
   });
+  const silhouettePolygon = [...edgeA, ...edgeB.reverse()];
+  const pleatCount = small ? 16 : 26;
+  const pleatAt = (j: number, i: number, offset: number) => {
+    const s = 0.018 + i / 39 * (0.51 - Math.abs(j - (pleatCount - 1) / 2) * 0.0055);
+    const spread = Math.sin(clamp(s / 0.18) * Math.PI / 2);
+    return surfacePoint(s, -Math.PI / 2 + (j / (pleatCount - 1) - 0.5) * 2.45 * spread + offset, 0.7);
+  };
+  const ventralPleats = Array.from({ length: pleatCount }, (_, j) => Array.from({ length: 40 }, (_, i) => pleatAt(j, i, 0)));
+  const pleatHighlights = Array.from({ length: pleatCount }, (_, j) => Array.from({ length: 40 }, (_, i) => pleatAt(j, i, 0.014)));
 
-  // 3. Longitudinal Streamlines (Connecting constant angle theta across ribs)
-  const streamlines: ProjectedPoint[][] = [];
-  for (let j = 0; j < numRibVertices; j++) {
-    const line: ProjectedPoint[] = [];
-    for (let i = 0; i < ribs.length; i++) {
-      line.push(ribs[i].points[j]);
-    }
-    streamlines.push(line);
-  }
-
-  // 4. Ventral Pleats (Throat Grooves)
-  // Fine lines sampled along bottom underbelly between s = 0.08 and s = 0.44
-  const ventralPleats: ProjectedPoint[][] = [];
-  const pleatStartIdx = 2; // ~s = 0.07
-  const pleatEndIdx = 12;  // ~s = 0.44
-  const numPleats = 10;
-
-  for (let p = 0; p < numPleats; p++) {
-    const pleatLine: ProjectedPoint[] = [];
-    // theta centered around ventral bottom (theta = -PI / 2, or 3*PI/2)
-    const angleOffset = ((p / (numPleats - 1)) - 0.5) * 1.35; // spanning ~78 degrees
-    const theta = -Math.PI * 0.5 + angleOffset;
-    const cosT = Math.cos(theta);
-    const sinT = Math.sin(theta);
-
-    for (let i = pleatStartIdx; i <= pleatEndIdx; i++) {
-      const node = spineNodes[i];
-      const ventralOffset = -node.ventralBias * (-sinT);
-      const p3D = vAdd(
-        node.pos,
-        vAdd(
-          vScale(node.binormal, cosT * node.rx),
-          vScale(node.normal, sinT * node.ry + ventralOffset)
-        )
-      );
-      pleatLine.push(projectPoint(p3D, viewportWidth, viewportHeight, config.cameraFocalLength));
-    }
-    ventralPleats.push(pleatLine);
-  }
-
-  // 5. Pectoral Flippers (Megaptera Long Wing-like Flippers)
-  // Attached at s ~ 0.28 (around node index 8)
-  const attachIdx = 8;
-  const attachNode = spineNodes[attachIdx];
-  const flipperLength = config.length * 0.33;
-
-  // Dynamic flipper wing-flex with wave phase
-  const flipperFlex = Math.sin(2 * Math.PI * config.swimSpeed * timeSec - 0.7) * 0.12;
-
+  const attach = nodeAt(0.255);
   const buildFlipper = (side: "left" | "right"): WhaleFlipper => {
     const sign = side === "left" ? -1 : 1;
-    // Wing points outward, swept backward 40 degrees, drooped downward 24 degrees
-    const sweepBack = 0.58;
-    const droopDown = -0.38 + flipperFlex;
-    const spanOut = 0.72;
-
-    const basePos = vAdd(
-      attachNode.pos,
-      vAdd(
-        vScale(attachNode.binormal, sign * attachNode.rx * 0.95),
-        vScale(attachNode.normal, -attachNode.ry * 0.25)
-      )
-    );
-
-    const wingDir = vNormalize(
-      vAdd(
-        vScale(attachNode.binormal, sign * spanOut),
-        vAdd(vScale(attachNode.tangent, -sweepBack), vScale(attachNode.normal, droopDown))
-      )
-    );
-
-    const wingChord = vNormalize(vCross(wingDir, attachNode.normal));
-
-    const leadingEdge: ProjectedPoint[] = [];
-    const trailingEdge: ProjectedPoint[] = [];
-    const tubercles: ProjectedPoint[] = [];
-    const internalSpars: ProjectedPoint[][] = [[], [], []];
-
-    const numSpanSteps = 28;
-    for (let k = 0; k <= numSpanSteps; k++) {
-      const u = k / numSpanSteps;
-      const spanPos = vAdd(basePos, vScale(wingDir, u * flipperLength));
-
-      // Humpback tubercles: sinuous bumps along leading edge (Megaptera signature)
-      const bump = u > 0.10 && u < 0.90 ? Math.sin(u * 8 * Math.PI) * 0.035 * flipperLength : 0;
-      const chordWidth = (1.0 - u * 0.75) * (0.075 * config.length);
-
-      // Leading edge point (with tubercles)
-      const lead3D = vAdd(spanPos, vScale(wingChord, chordWidth * 0.5 + bump));
-      const leadProj = projectPoint(lead3D, viewportWidth, viewportHeight, config.cameraFocalLength);
-      leadingEdge.push(leadProj);
-
-      if (bump > 0.015 * flipperLength) {
-        tubercles.push(leadProj);
-      }
-
-      // Trailing edge point
-      const trail3D = vAdd(spanPos, vScale(wingChord, -chordWidth * 0.5));
-      trailingEdge.push(projectPoint(trail3D, viewportWidth, viewportHeight, config.cameraFocalLength));
-
-      // Internal anatomical phalanges / structural spars
-      internalSpars[0].push(
-        projectPoint(vAdd(spanPos, vScale(wingChord, chordWidth * 0.2)), viewportWidth, viewportHeight, config.cameraFocalLength)
-      );
-      internalSpars[1].push(
-        projectPoint(spanPos, viewportWidth, viewportHeight, config.cameraFocalLength)
-      );
-      internalSpars[2].push(
-        projectPoint(vAdd(spanPos, vScale(wingChord, -chordWidth * 0.2)), viewportWidth, viewportHeight, config.cameraFocalLength)
-      );
-    }
-
+    const base = vAdd(attach.pos, vAdd(vScale(attach.binormal, sign * attach.rx * 0.86), vScale(attach.normal, -attach.ry * 0.36)));
+    const flex = Math.sin(timeSec * config.swimSpeed * TAU - sign * 0.6) * 0.07;
+    const pointAt = (u: number, chord: number): ProjectedPoint => {
+      const curve = vAdd(base, vAdd(vScale(attach.binormal, sign * L * (0.33 * u - 0.045 * u * u)),
+        vAdd(vScale(attach.tangent, -L * (0.11 * u + 0.09 * u * u)),
+          vScale(attach.normal, L * (-0.10 * u - 0.025 * Math.sin(u * Math.PI) + flex * u * u)))));
+      // Yedi küçük yuvarlak tüberkül; uçta kiriş sıfıra kapanır.
+      const bumps = Math.sin(u * 7 * Math.PI) ** 8 * Math.sin(u * Math.PI) * L * 0.004;
+      const halfChord = L * (0.027 * (1 - u) ** 0.65 + 0.018 * Math.sin(u * Math.PI));
+      return project(vAdd(curve, vScale(attach.tangent, halfChord * chord + (chord > 0 ? bumps : 0))));
+    };
+    const steps = 42;
+    const leadingEdge = Array.from({ length: steps + 1 }, (_, i) => pointAt(i / steps, 1));
+    const trailingEdge = Array.from({ length: steps + 1 }, (_, i) => pointAt(i / steps, -1));
     return {
-      side,
-      leadingEdge,
-      trailingEdge,
-      tubercles,
-      internalSpars,
+      side, leadingEdge, trailingEdge, depth: pointAt(0.5, 0).z,
+      tubercles: Array.from({ length: 7 }, (_, i) => pointAt((i + 0.5) / 7, 1)),
+      // Beş falanks, ortak bilekten farklı uzunluklarda açılır.
+      internalSpars: Array.from({ length: 5 }, (_, d) => Array.from({ length: 26 }, (_, i) => {
+        const v = i / 25;
+        return pointAt(0.035 + v * (0.69 + Math.sin(d / 4 * Math.PI) * 0.26), (d - 2) * 0.32 * Math.sin(v * Math.PI / 2));
+      })),
+      sections: Array.from({ length: 14 }, (_, i) => [-1, -0.5, 0, 0.5, 1].map(c => pointAt((i + 1) / 16, c))),
+      etching: Array.from({ length: small ? 12 : 54 }, (_, i) => {
+        const u = 0.08 + seeded(i + 400) * 0.80, c = seeded(i + 500) * 1.3 - 0.65;
+        return [pointAt(u, c), pointAt(u + 0.014, c + 0.05), pointAt(u + 0.028, c + 0.075)];
+      }),
     };
   };
 
-  const leftFlipper = buildFlipper("left");
-  const rightFlipper = buildFlipper("right");
-
-  // 6. Flukes (Bifurcated Tail Fin)
-  const tailIdx = numSpineNodes - 1;
-  const tailNode = spineNodes[tailIdx];
-  const flukeSpan = config.length * 0.35;
-  const flukeWidth = config.length * 0.11;
-
-  // Tail fluke center notch (recessed forward)
-  const notch3D = vAdd(tailNode.pos, vScale(tailNode.tangent, -flukeWidth * 0.45));
-  const notchProj = projectPoint(notch3D, viewportWidth, viewportHeight, config.cameraFocalLength);
-
-  // Left & right wingtips
-  const leftTip3D = vAdd(
-    tailNode.pos,
-    vAdd(vScale(tailNode.binormal, -flukeSpan * 0.5), vScale(tailNode.tangent, -flukeWidth * 0.15))
-  );
-  const rightTip3D = vAdd(
-    tailNode.pos,
-    vAdd(vScale(tailNode.binormal, flukeSpan * 0.5), vScale(tailNode.tangent, -flukeWidth * 0.15))
-  );
-
-  const leftTipProj = projectPoint(leftTip3D, viewportWidth, viewportHeight, config.cameraFocalLength);
-  const rightTipProj = projectPoint(rightTip3D, viewportWidth, viewportHeight, config.cameraFocalLength);
-
-  // Fluke curved outline
+  const tail = nodeAt(1);
+  const tailPoint = (lateral: number, axial: number, cup = 0) => project(vAdd(tail.pos,
+    vAdd(vScale(tail.binormal, lateral * L), vAdd(vScale(tail.tangent, axial * L), vScale(tail.normal, cup * L)))));
   const flukeOutline: ProjectedPoint[] = [];
-  const flukeRibLines: ProjectedPoint[][] = [];
-
-  // Generate smooth curved perimeter
-  const flukeSteps = 16;
-  for (let step = 0; step <= flukeSteps; step++) {
-    const u = (step / flukeSteps) * 2 - 1; // -1 to +1
-    const absU = Math.abs(u);
-    const spanOffset = u * (flukeSpan * 0.5);
-    // Trailing edge concave notch curve
-    const chordOffset = -(1 - Math.pow(absU, 1.8)) * flukeWidth * 0.85 - (absU * flukeWidth * 0.35);
-
-    const pt3D = vAdd(
-      tailNode.pos,
-      vAdd(vScale(tailNode.binormal, spanOffset), vScale(tailNode.tangent, chordOffset))
-    );
-    flukeOutline.push(projectPoint(pt3D, viewportWidth, viewportHeight, config.cameraFocalLength));
+  const flukeRibs: ProjectedPoint[][] = [];
+  // Lobların ön ve arka kenarları birleşir; ortadaki V gerçek bir yüzey çentiğidir.
+  for (const sign of [-1, 1]) {
+    for (let i = 0; i <= 24; i++) {
+      const u = i / 24;
+      flukeOutline.push(tailPoint(sign * 0.235 * u, 0.012 + 0.026 * Math.sin(Math.PI * u) - 0.078 * u * u, 0.022 * u ** 2));
+    }
+    for (let i = 23; i >= 0; i--) {
+      const u = i / 24;
+      const scallop = Math.sin(u * Math.PI * 9) * 0.0018 * Math.sin(u * Math.PI);
+      flukeOutline.push(tailPoint(sign * 0.235 * u, -0.024 - 0.080 * Math.sin(u * Math.PI * 0.85) + scallop, 0.022 * u ** 2));
+    }
+    for (let i = 1; i < 10; i++) {
+      const u = i / 10;
+      flukeRibs.push(Array.from({ length: 9 }, (_, j) => {
+        const v = j / 8;
+        return tailPoint(sign * 0.235 * u, (0.012 + 0.026 * Math.sin(Math.PI * u) - 0.078 * u * u) * (1 - v)
+          + (-0.024 - 0.080 * Math.sin(u * Math.PI * 0.85)) * v, 0.022 * u ** 2 + 0.007 * Math.sin(v * Math.PI));
+      }));
+    }
   }
+  const flukeContours = [-1, 1].flatMap(sign => [0.22, 0.46, 0.70, 0.86].map(v =>
+    Array.from({ length: 25 }, (_, i) => {
+      const u = i / 24;
+      const front = 0.012 + 0.026 * Math.sin(Math.PI * u) - 0.078 * u * u;
+      const back = -0.024 - 0.080 * Math.sin(u * Math.PI * 0.85);
+      return tailPoint(sign * 0.235 * u, front * (1 - v) + back * v, 0.022 * u * u + 0.007 * Math.sin(v * Math.PI));
+    })));
+  const flukes: WhaleFlukes = { outline: flukeOutline, notch: tailPoint(0, -0.024), contours: flukeContours,
+    tips: [tailPoint(-0.235, -0.066, 0.022), tailPoint(0.235, -0.066, 0.022)], ribLines: flukeRibs, depth: tail.pos.z };
 
-  // Radiating ray lines from fluke root to trailing edge
-  for (let r = 0; r < 7; r++) {
-    const endPt = flukeOutline[Math.floor((r / 6) * flukeSteps)];
-    flukeRibLines.push([projectedSpine[projectedSpine.length - 2], endPt]);
+  const d = nodeAt(0.665);
+  const dorsalPoint = (axial: number, vertical: number) => project(vAdd(d.pos,
+    vAdd(vScale(d.tangent, axial * L), vScale(d.normal, d.ry + vertical * L))));
+  const dorsalFin = { outline: [dorsalPoint(0.055, -0.006), dorsalPoint(0.025, 0.008),
+    dorsalPoint(-0.005, 0.046), dorsalPoint(-0.020, 0.050), dorsalPoint(-0.016, 0.018), dorsalPoint(-0.058, -0.008)], depth: d.pos.z };
+
+  const featureLines: WhaleFeatureLine[] = [];
+  const tubercles: ProjectedPoint[] = [], eyes: ProjectedPoint[] = [];
+  const nodules: WhaleNodule[] = [];
+  for (const sign of [-1, 1]) {
+    const sideAngle = sign === 1 ? 0 : Math.PI;
+    featureLines.push({ kind: "jaw", points: Array.from({ length: 34 }, (_, i) => {
+      const s = 0.008 + i / 33 * 0.245;
+      return surfacePoint(s, sideAngle - sign * (0.08 + 0.16 * Math.sin(i / 33 * Math.PI)), 0.8);
+    }) });
+    featureLines.push({ kind: "jaw", points: Array.from({ length: 34 }, (_, i) =>
+      surfacePoint(0.008 + i / 33 * 0.248, sideAngle - sign * (0.13 + 0.16 * Math.sin(i / 33 * Math.PI)), 0.9)) });
+    eyes.push(surfacePoint(0.183, sideAngle + sign * 0.12, 1));
+    featureLines.push({ kind: "eye", points: Array.from({ length: 18 }, (_, i) => {
+      const a = i / 17 * TAU;
+      return surfacePoint(0.183 + Math.cos(a) * 0.010, sideAngle + sign * (0.12 + Math.sin(a) * 0.045), 1.1);
+    }) });
+    // Kaş, göz altı kırışığı, ağız köşesi ve omuz kıvrımları.
+    for (let k = 0; k < 3; k++) {
+      featureLines.push({ kind: "fold", points: Array.from({ length: 16 }, (_, i) => {
+        const u = i / 15;
+        return surfacePoint(0.156 + u * 0.075 + k * 0.004, sideAngle + sign * (0.24 + Math.sin(u * Math.PI) * 0.08 + k * 0.045), 0.8);
+      }) });
+      featureLines.push({ kind: "fold", points: Array.from({ length: 20 }, (_, i) => {
+        const a = -0.9 + i / 19 * 2.9;
+        return surfacePoint(0.254 + Math.cos(a) * (0.025 + k * 0.006), sideAngle - sign * (0.39 + Math.sin(a) * (0.23 + k * 0.04)), 0.9);
+      }) });
+    }
+    for (let row = 0; row < 2; row++) for (let i = 0; i < 8; i++) {
+      const s = 0.018 + i * 0.023 + seeded(i + row * 8) * 0.004;
+      const angle = sideAngle + sign * (0.48 + row * 0.60 + seeded(i + 70) * 0.10);
+      const size = 0.0018 + seeded(i + row * 17 + 2) * 0.0017;
+      const center = surfacePoint(s, angle, L * 0.0035);
+      tubercles.push(center);
+      const rim = (a: number, shrink = 1) => {
+        const r = 1 + Math.sin(a * 3 + i) * 0.11;
+        return surfacePoint(s + Math.cos(a) * size * r * shrink, angle + Math.sin(a) * 0.043 * r * shrink, L * 0.0015);
+      };
+      nodules.push({ center, outline: Array.from({ length: 15 }, (_, j) => rim(j / 14 * TAU)),
+        crown: Array.from({ length: 9 }, (_, j) => rim(0.25 + j / 8 * Math.PI, 0.55)) });
+    }
+    featureLines.push({ kind: "blowhole", points: Array.from({ length: 12 }, (_, i) =>
+      surfacePoint(0.175 + i / 11 * 0.035, Math.PI / 2 + sign * (0.065 + Math.sin(i / 11 * Math.PI) * 0.028), 1)) });
   }
-
-  const flukes: WhaleFlukes = {
-    outline: flukeOutline,
-    notch: notchProj,
-    tips: [leftTipProj, rightTipProj],
-    ribLines: flukeRibLines,
-  };
-
-  // 7. Dorsal Fin
-  const dorsalIdx = 18; // ~s = 0.65
-  const dNode = spineNodes[dorsalIdx];
-  const dBaseA = projectPoint(
-    vAdd(dNode.pos, vScale(dNode.normal, dNode.ry)),
-    viewportWidth,
-    viewportHeight,
-    config.cameraFocalLength
-  );
-  const dTip = projectPoint(
-    vAdd(
-      dNode.pos,
-      vAdd(vScale(dNode.normal, dNode.ry + config.length * 0.045), vScale(dNode.tangent, -config.length * 0.025))
-    ),
-    viewportWidth,
-    viewportHeight,
-    config.cameraFocalLength
-  );
-  const dBaseB = projectPoint(
-    vAdd(
-      spineNodes[Math.min(dorsalIdx + 2, numSpineNodes - 1)].pos,
-      vScale(dNode.normal, dNode.ry * 0.85)
-    ),
-    viewportWidth,
-    viewportHeight,
-    config.cameraFocalLength
-  );
-
-  const dorsalFin: WhaleDorsalFin = {
-    outline: [dBaseA, dTip, dBaseB],
-  };
-
-  // 8. Bounding Silhouette Hull (for subtle volumetric wash)
-  // Gather perimeter points from ribs, head, and flippers
-  const silhouettePolygon: Point2D[] = [];
-  ribs.forEach((rib) => {
-    // left-most point
-    silhouettePolygon.push({ x: rib.points[0].x, y: rib.points[0].y });
+  for (const angle of [Math.PI / 2 - 0.43, Math.PI / 2 + 0.43]) {
+    featureLines.push({ kind: "ridge", points: Array.from({ length: 28 }, (_, i) =>
+      surfacePoint(0.012 + i / 27 * 0.165, angle + Math.sin(i / 27 * Math.PI) * 0.15, 1)) });
+  }
+  featureLines.push({ kind: "ridge", points: Array.from({ length: 24 }, (_, i) => surfacePoint(0.008 + i / 23 * 0.18, Math.PI / 2, 1)) });
+  for (let i = 0; i < 11; i++) {
+    featureLines.push({ kind: "scar", points: Array.from({ length: 6 }, (_, j) =>
+      surfacePoint(0.25 + (i * 0.047) % 0.39 + j * 0.0018, 0.4 + i * 1.9 + j * 0.03, 0.5)) });
+  }
+  // Sabit gravür noktaları her karede aynı yüzeyde kalır, titreşmez.
+  const stipples = Array.from({ length: small ? 180 : 780 }, (_, i) =>
+    surfacePoint(0.025 + seeded(i) * 0.82, i * 2.399963, 0.6));
+  // Tarama kılavuzları yüzey koordinatlarına bağlıdır; yüzüşte deriyle birlikte bükülür.
+  const etching = Array.from({ length: small ? 60 : 380 }, (_, i) => {
+    const s = 0.045 + seeded(i + 800) * 0.84;
+    const theta = i * 2.399963;
+    const span = 0.008 + seeded(i + 900) * 0.017;
+    return { opacity: 0.22 + seeded(i + 1000) * 0.46,
+      points: Array.from({ length: 5 }, (_, j) => {
+        const u = j / 4;
+        return surfacePoint(s + u * span, theta + u * 0.08 + Math.sin(u * Math.PI) * 0.025, 0.6);
+      }) };
   });
-  // wrap around tail
-  silhouettePolygon.push({ x: flukes.notch.x, y: flukes.notch.y });
-  // right-most points
-  for (let i = ribs.length - 1; i >= 0; i--) {
-    const opp = ribs[i].points[Math.floor(numRibVertices / 2)];
-    silhouettePolygon.push({ x: opp.x, y: opp.y });
-  }
-
-  // 9. Technical Blueprint Markers (Architectural Crosshairs & Dimensions)
-  const technicalMarkers: WhaleMarker[] = [
-    {
-      pos: projectedSpine[0],
-      label: "STA 0+00 ROSTRUM",
-      type: "cross",
-    },
-    {
-      pos: projectedSpine[attachIdx],
-      label: "STA 3+15 THORAX / MEGAPTERA",
-      type: "node",
-    },
-    {
-      pos: projectedSpine[dorsalIdx],
-      label: "STA 6+50 DORSAL",
-      type: "datum",
-    },
-    {
-      pos: projectedSpine[tailIdx],
-      label: "STA 10+00 CAUDAL NOTCH",
-      type: "cross",
-    },
-  ];
-
-  return {
-    spine: projectedSpine,
-    ribs,
-    streamlines,
-    ventralPleats,
-    leftFlipper,
-    rightFlipper,
-    flukes,
-    dorsalFin,
-    silhouettePolygon,
-    technicalMarkers,
+  const mesh: WhaleMesh = {
+    spine, ribs, streamlines, ventralPleats, pleatHighlights, silhouettePolygon, surface, featureLines, eyes, tubercles, stipples, nodules, etching,
+    leftFlipper: buildFlipper("left"), rightFlipper: buildFlipper("right"), flukes, dorsalFin,
+    depth: nodes[Math.floor(nodes.length / 2)].pos.z,
+    technicalMarkers: [
+      { pos: spine[4], label: "MEGAPTERA NOVAEANGLIAE", type: "cross" },
+      { pos: project(attach.pos), label: "PEKTORAL YÜZGEÇ", type: "node" },
+      { pos: spine[Math.round((nodes.length - 1) * 0.665)], label: "SIRT YÜZGECİ", type: "datum" },
+      { pos: flukes.notch, label: "KUYRUK LOBLARI", type: "cross" },
+    ],
   };
+  // Yakınlaşmada başı değil bütün anatomiyi kadrajda tutar.
+  const all = [...ribs.flatMap(r => r.points), ...mesh.leftFlipper.leadingEdge, ...mesh.leftFlipper.trailingEdge,
+    ...mesh.rightFlipper.leadingEdge, ...mesh.rightFlipper.trailingEdge, ...flukeOutline, ...dorsalFin.outline];
+  const minX = Math.min(...all.map(p => p.x)), maxX = Math.max(...all.map(p => p.x));
+  const minY = Math.min(...all.map(p => p.y)), maxY = Math.max(...all.map(p => p.y));
+  const margin = Math.min(30, width * 0.045);
+  const fit = Math.min(1, (width - 2 * margin) / (maxX - minX), (height - 2 * margin) / (maxY - minY));
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const halfW = (maxX - minX) * fit / 2, halfH = (maxY - minY) * fit / 2;
+  const tx = clamp(cx, margin + halfW, width - margin - halfW);
+  const ty = clamp(cy, margin + halfH, height - margin - halfH);
+  // Paylaşılan ağ noktaları yalnız bir kez dönüştürülür; nesne ağacı her karede taranmaz.
+  for (const point of projectedPoints) {
+    point.x = tx + (point.x - cx) * fit;
+    point.y = ty + (point.y - cy) * fit;
+    point.scale *= fit;
+  }
+  return mesh;
 }

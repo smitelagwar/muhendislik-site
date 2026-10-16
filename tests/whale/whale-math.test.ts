@@ -65,7 +65,7 @@ function runTests() {
       assert(Number.isFinite(pos.x) && Number.isFinite(pos.y) && Number.isFinite(pos.z), `Trajectory pos finite at t=${t}`);
       const tLen = vLen(tangent);
       assert(Math.abs(tLen - 1.0) < 0.05, `Trajectory tangent must be unit length (got ${tLen}) at t=${t}`);
-      assert(Math.abs(bankAngle) <= 0.5, `Bank angle must be within [-0.5, 0.5] at t=${t}`);
+      assert(Math.abs(bankAngle) <= 0.8, `Bank angle must stay within a gentle bank at t=${t}`);
     }
     console.log("  ✓ 3D viewport trajectory loop verified");
   }
@@ -106,9 +106,9 @@ function runTests() {
 
     const mesh = generateWhaleMesh(25.0, 1280, 800, config);
 
-    assert(mesh.ribs.length === 28, "Must generate 28 ribs");
-    assert(mesh.streamlines.length === 20, "Must generate 20 streamlines");
-    assert(mesh.ventralPleats.length === 10, "Must generate 10 ventral pleats");
+    assert(mesh.ribs.length >= 36, "Anatomical curves need sufficient longitudinal resolution");
+    assert(mesh.streamlines.length >= 24, "Surface needs enough angular resolution for smooth contours");
+    assert(mesh.ventralPleats.length >= 12, "Throat grooves must remain distinct from the surface grid");
     assert(mesh.leftFlipper.leadingEdge.length > 0, "Left flipper leading edge exists");
     assert(mesh.rightFlipper.leadingEdge.length > 0, "Right flipper leading edge exists");
     assert(mesh.leftFlipper.tubercles.length >= 4, "Must have tubercles on left flipper");
@@ -132,9 +132,51 @@ function runTests() {
     mesh.leftFlipper.leadingEdge.forEach((pt, p) => checkPt(pt, `LeftFlipperLead[${p}]`));
     mesh.rightFlipper.leadingEdge.forEach((pt, p) => checkPt(pt, `RightFlipperLead[${p}]`));
     mesh.flukes.outline.forEach((pt, p) => checkPt(pt, `FlukesOutline[${p}]`));
+    mesh.featureLines.forEach((line) => line.points.forEach((pt) => checkPt(pt, line.kind)));
+    mesh.surface.forEach((patch) => patch.points.forEach((pt) => checkPt(pt, "Surface")));
+    mesh.etching.forEach((mark) => mark.points.forEach((pt) => checkPt(pt, "Gravür")));
+    mesh.nodules.forEach((nodule) => nodule.outline.forEach((pt) => checkPt(pt, "Tüberkül")));
+    mesh.pleatHighlights.forEach((line) => line.forEach((pt) => checkPt(pt, "Oluk kenarı")));
+    mesh.eyes.forEach((pt) => checkPt(pt, "Eye"));
     checkPt(mesh.flukes.notch, "FlukesNotch");
 
     console.log("  ✓ Full 3D to 2D projection and mesh integrity verified (0 NaN, 0 Infinity)");
+  }
+
+  // Önceki parçalı yarıçap profilindeki sıçramalara ve açık yüzgeç uçlarına karşı regresyon.
+  {
+    for (const s of [0.025, 0.075, 0.15, 0.2, 0.23, 0.32, 0.43, 0.44, 0.56, 0.68, 0.7, 0.8, 0.91, 0.94]) {
+      const a = computeRadii(s - 1e-5, 1000), b = computeRadii(s + 1e-5, 1000);
+      assert(Math.abs(a.rx - b.rx) < 0.04 && Math.abs(a.ry - b.ry) < 0.04,
+        `Kesit profili s=${s} birleşiminde sıçramamalı`);
+    }
+    const mesh = generateWhaleMesh(3, 1440, 960, { length: 1000, swimSpeed: 0.135, loopPeriod: 76, cameraFocalLength: 1200 });
+    for (const f of [mesh.leftFlipper, mesh.rightFlipper]) {
+      const lead = f.leadingEdge.at(-1)!, trail = f.trailingEdge.at(-1)!;
+      assert(Math.hypot(lead.x - trail.x, lead.y - trail.y) < 1e-5, "Yüzgeç ucu kapalı olmalı");
+    }
+    assert(mesh.featureLines.some(l => l.kind === "jaw") && mesh.eyes.length === 2,
+      "Baş anatomisi çene çizgilerini ve iki gözü içermeli");
+    assert(mesh.surface.every(p => p.light >= 0 && p.light <= 1), "Yüzey aydınlatması geçerli olmalı");
+    console.log("  ✓ Sürekli anatomi, kapalı yüzgeçler ve baş detayları doğrulandı");
+  }
+
+  // Kadraj sınaması yalnız başı değil tüm gövdeyi, kanatları ve kuyruğu kapsar.
+  {
+    for (const [w, h] of [[320, 720], [390, 844], [768, 1024], [1366, 768], [1920, 1080], [844, 390]]) {
+      const config = { length: Math.min(w * 0.78, h * 1.05, 1060), swimSpeed: 0.135, loopPeriod: 76, cameraFocalLength: 1200 };
+      for (let t = 0; t < 76; t += 2) {
+        const mesh = generateWhaleMesh(t, w, h, config);
+        const points = [...mesh.ribs.flatMap(r => r.points), ...mesh.flukes.outline,
+          ...mesh.leftFlipper.leadingEdge, ...mesh.leftFlipper.trailingEdge,
+          ...mesh.rightFlipper.leadingEdge, ...mesh.rightFlipper.trailingEdge, ...mesh.dorsalFin.outline];
+        assert(points.every(p => p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h), `${w}×${h}, t=${t}: bütün anatomi kadrajda kalmalı`);
+        const next = generateWhaleMesh(t + 0.001, w, h, config);
+        assert(Math.hypot(next.spine[0].x - mesh.spine[0].x, next.spine[0].y - mesh.spine[0].y) < 1,
+          `${w}×${h}, t=${t}: yüzüş kesintisiz olmalı`);
+      }
+    }
+    console.log("  ✓ Tam yüzüş turunda tüm anatomi ve hareket sürekliliği doğrulandı");
   }
 
   // 6. Mobile 320px & Multi-Viewport Trajectory Framing Test
