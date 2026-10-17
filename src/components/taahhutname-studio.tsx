@@ -24,6 +24,7 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
   BelgePreviewEyeIcon,
@@ -107,6 +108,11 @@ export function TaahhutnameStudio({
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof TaahhutnameData, boolean>>>({});
+  const markFieldTouched = (key: keyof TaahhutnameData) => {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
   const handleFieldChange = (key: keyof TaahhutnameData, value: string) => {
     setUndoData(null);
     setFormData((prev) => {
@@ -361,6 +367,7 @@ export function TaahhutnameStudio({
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={TAAHHUTNAME_DEFAULT_DATA}
+            excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi"]}
             limits={{
               oda_sicil_no: { label: "Oda sicil numarası", maximum: 18 },
               tc_kimlik_no: { label: "T.C. Kimlik Numarası", maximum: 11 },
@@ -456,12 +463,20 @@ export function TaahhutnameStudio({
                 {renderFieldHeader("tc_kimlik_no", "T.C. Kimlik No")}
                 <input
                   type="text"
-                                    id={getFieldId("tc_kimlik_no")}
+                  id={getFieldId("tc_kimlik_no")}
                   inputMode="numeric"
                   value={formData.tc_kimlik_no || ""}
                   onChange={(e) => handleFieldChange("tc_kimlik_no", e.target.value)}
+                  onBlur={() => markFieldTouched("tc_kimlik_no")}
                   placeholder="11111111110"
+                  aria-describedby="taahhut-tc_kimlik_no-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="taahhut-tc_kimlik_no-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "tc_kimlik_no", formData.tc_kimlik_no, {
+                    isTouched: touchedFields.tc_kimlik_no,
+                  })}
                 />
               </div>
 
@@ -474,8 +489,16 @@ export function TaahhutnameStudio({
                   autoComplete="tel"
                   value={formData.telefon || ""}
                   onChange={(e) => handleFieldChange("telefon", e.target.value)}
+                  onBlur={() => markFieldTouched("telefon")}
                   placeholder="0566 666 66 66"
+                  aria-describedby="taahhut-telefon-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="taahhut-telefon-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "telefon", formData.telefon, {
+                    isTouched: touchedFields.telefon,
+                  })}
                 />
               </div>
             </div>
@@ -489,8 +512,16 @@ export function TaahhutnameStudio({
                 autoComplete="street-address"
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
+                onBlur={() => markFieldTouched("adres")}
                 placeholder="Örnek Mah. Mühendisler Cad. No:1/A Çankaya / ANKARA"
+                aria-describedby="taahhut-adres-guidance"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+              <BelgeFieldGuidanceView
+                id="taahhut-adres-guidance"
+                guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "adres", formData.adres, {
+                  isTouched: true,
+                })}
               />
             </div>
           </div>
@@ -552,8 +583,16 @@ export function TaahhutnameStudio({
                 id={getFieldId("yapi_adresi")}
                 value={formData.yapi_adresi || ""}
                 onChange={(e) => handleFieldChange("yapi_adresi", e.target.value)}
+                onBlur={() => markFieldTouched("yapi_adresi")}
                 placeholder="Örnek Mah. Yapı Cad. No:10 Çankaya / ANKARA"
+                aria-describedby="taahhut-yapi_adresi-guidance"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+              <BelgeFieldGuidanceView
+                id="taahhut-yapi_adresi-guidance"
+                guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "yapi_adresi", formData.yapi_adresi, {
+                  isTouched: true,
+                })}
               />
             </div>
 
@@ -578,8 +617,16 @@ export function TaahhutnameStudio({
                   id={getFieldId("yapi_sahibi_adresi")}
                   value={formData.yapi_sahibi_adresi || ""}
                   onChange={(e) => handleFieldChange("yapi_sahibi_adresi", e.target.value)}
+                  onBlur={() => markFieldTouched("yapi_sahibi_adresi")}
                   placeholder="Çankaya / ANKARA"
+                  aria-describedby="taahhut-yapi_sahibi_adresi-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="taahhut-yapi_sahibi_adresi-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "yapi_sahibi_adresi", formData.yapi_sahibi_adresi, {
+                    isTouched: true,
+                  })}
                 />
               </div>
             </div>
@@ -593,8 +640,16 @@ export function TaahhutnameStudio({
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onBlur={() => markFieldTouched("tarih")}
                   placeholder="16.08.2026"
+                  aria-describedby="taahhut-tarih-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="taahhut-tarih-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "tarih", formData.tarih, {
+                    isTouched: touchedFields.tarih,
+                  })}
                 />
               </div>
 

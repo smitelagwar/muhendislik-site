@@ -25,6 +25,7 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
   BelgePreviewEyeIcon,
@@ -108,6 +109,11 @@ export function IstifaStudio({
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof IstifaDilekcesiData, boolean>>>({});
+  const markFieldTouched = (key: keyof IstifaDilekcesiData) => {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
   const handleFieldChange = (key: keyof IstifaDilekcesiData, value: string) => {
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -354,6 +360,7 @@ export function IstifaStudio({
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={ISTIFA_DILEKCESI_DEFAULT_DATA}
+            excludedFields={["tc_deger", "adres_deger"]}
             limits={{
               hitap_1: { label: "Hitap", maximum: 62 },
               hitap_2: { label: "İl / ilçe satırı", maximum: 36 },
@@ -478,8 +485,16 @@ export function IstifaStudio({
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onBlur={() => markFieldTouched("tarih")}
                   placeholder="29.12.2025"
+                  aria-describedby="istifa-tarih-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="istifa-tarih-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "tarih", formData.tarih, {
+                    isTouched: touchedFields.tarih,
+                  })}
                 />
               </div>
 
@@ -515,12 +530,20 @@ export function IstifaStudio({
                 {renderFieldHeader("tc_deger", "T.C. Kimlik Numarası")}
                 <input
                   type="text"
-                                    id={getFieldId("tc_deger")}
+                  id={getFieldId("tc_deger")}
                   inputMode="numeric"
                   value={formData.tc_deger || ""}
                   onChange={(e) => handleFieldChange("tc_deger", e.target.value)}
+                  onBlur={() => markFieldTouched("tc_deger")}
                   placeholder="11111111110"
+                  aria-describedby="istifa-tc_deger-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs font-mono text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="istifa-tc_deger-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "tc_deger", formData.tc_deger, {
+                    isTouched: touchedFields.tc_deger,
+                  })}
                 />
               </div>
 
@@ -533,8 +556,16 @@ export function IstifaStudio({
                   autoComplete="tel"
                   value={formData.iletisim_deger || ""}
                   onChange={(e) => handleFieldChange("iletisim_deger", e.target.value)}
+                  onBlur={() => markFieldTouched("iletisim_deger")}
                   placeholder="0566 666 66 66"
+                  aria-describedby="istifa-iletisim_deger-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="istifa-iletisim_deger-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "iletisim_deger", formData.iletisim_deger, {
+                    isTouched: touchedFields.iletisim_deger,
+                  })}
                 />
               </div>
             </div>
@@ -548,8 +579,16 @@ export function IstifaStudio({
                 autoComplete="street-address"
                 value={formData.adres_deger || ""}
                 onChange={(e) => handleFieldChange("adres_deger", e.target.value)}
+                onBlur={() => markFieldTouched("adres_deger")}
                 placeholder="Örnek Mah. İnşaat Cad. No:12/4 Çankaya / ANKARA"
+                aria-describedby="istifa-adres_deger-guidance"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+              <BelgeFieldGuidanceView
+                id="istifa-adres_deger-guidance"
+                guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "adres_deger", formData.adres_deger, {
+                  isTouched: true,
+                })}
               />
             </div>
           </div>

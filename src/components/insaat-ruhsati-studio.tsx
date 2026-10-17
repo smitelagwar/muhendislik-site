@@ -25,6 +25,7 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
   BelgePreviewEyeIcon,
@@ -156,6 +157,11 @@ export function InsaatRuhsatiStudio({
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof InsaatRuhsatiData, boolean>>>({});
+  const markFieldTouched = (key: keyof InsaatRuhsatiData) => {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
   const handleFieldChange = (key: keyof InsaatRuhsatiData, value: string) => {
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -405,6 +411,7 @@ export function InsaatRuhsatiStudio({
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={INSAAT_RUHSATI_DEFAULT_DATA}
+            excludedFields={["adres", "tel"]}
             limits={{
               belediye_adi: { label: "Belediye adı", maximum: 48 },
               mudurluk_adi: { label: "Müdürlük adı", maximum: 56 },
@@ -463,8 +470,16 @@ export function InsaatRuhsatiStudio({
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onBlur={() => markFieldTouched("tarih")}
                   placeholder="08.12.2023"
+                  aria-describedby="insaat-ruhsati-tarih-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="insaat-ruhsati-tarih-guidance"
+                  guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "tarih", formData.tarih, {
+                    isTouched: touchedFields.tarih,
+                  })}
                 />
               </div>
 
@@ -557,8 +572,16 @@ export function InsaatRuhsatiStudio({
                 autoComplete="street-address"
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
+                onBlur={() => markFieldTouched("adres")}
                 placeholder="Adres: Örnek Mah. Mühendisler Cad. No:24/6 Çankaya / ANKARA"
+                aria-describedby="insaat-ruhsati-adres-guidance"
                 className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+              />
+              <BelgeFieldGuidanceView
+                id="insaat-ruhsati-adres-guidance"
+                guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "adres", formData.adres, {
+                  isTouched: true,
+                })}
               />
             </div>
 
@@ -571,8 +594,16 @@ export function InsaatRuhsatiStudio({
                 autoComplete="tel"
                 value={formData.tel || ""}
                 onChange={(e) => handleFieldChange("tel", e.target.value)}
+                onBlur={() => markFieldTouched("tel")}
                 placeholder="Tel: 0566 666 66 66"
+                aria-describedby="insaat-ruhsati-tel-guidance"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+              <BelgeFieldGuidanceView
+                id="insaat-ruhsati-tel-guidance"
+                guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "tel", formData.tel, {
+                  isTouched: touchedFields.tel,
+                })}
               />
             </div>
           </div>

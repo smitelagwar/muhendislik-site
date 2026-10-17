@@ -21,6 +21,7 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
   BelgePreviewEyeIcon,
@@ -104,6 +105,11 @@ export function BetonDokumStudio({
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof BetonDokumData, boolean>>>({});
+  const markFieldTouched = (key: keyof BetonDokumData) => {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
   const handleFieldChange = (key: keyof BetonDokumData, value: string) => {
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -343,6 +349,7 @@ export function BetonDokumStudio({
           <BelgeFieldLengthWarnings
             values={formData}
             baselineValues={BETON_DOKUM_DEFAULT_DATA}
+            excludedFields={["yer"]}
             limits={{
               tutanak_alt_baslik: { label: "Tutanak alt başlığı", maximum: 58 },
               yer: { label: "Döküm yeri", maximum: 110 },
@@ -399,8 +406,16 @@ export function BetonDokumStudio({
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
                   onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onBlur={() => markFieldTouched("tarih")}
                   placeholder="10.08.2026"
+                  aria-describedby="beton-dokum-tarih-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="beton-dokum-tarih-guidance"
+                  guidance={evaluateFieldGuidance("beton-dokum-tutanagi", "tarih", formData.tarih, {
+                    isTouched: touchedFields.tarih,
+                  })}
                 />
               </div>
 
@@ -476,8 +491,16 @@ export function BetonDokumStudio({
               id={getFieldId("yer")}
               value={formData.yer || ""}
               onChange={(e) => handleFieldChange("yer", e.target.value)}
+              onBlur={() => markFieldTouched("yer")}
               placeholder="ANKARA İli ÇANKAYA İlçesi Örnek Mahallesi 1234 ada 56 parsel"
+              aria-describedby="beton-dokum-yer-guidance"
               className="w-full rounded-md border border-border bg-background p-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
+            />
+            <BelgeFieldGuidanceView
+              id="beton-dokum-yer-guidance"
+              guidance={evaluateFieldGuidance("beton-dokum-tutanagi", "yer", formData.yer, {
+                isTouched: true,
+              })}
             />
           </div>
 

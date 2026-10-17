@@ -2,9 +2,11 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
-import type { InlineFieldDescriptor } from "@/lib/belge-studio-inline-field-map";
+import type { BelgeDocumentId, InlineFieldDescriptor } from "@/lib/belge-studio-inline-field-map";
+import { evaluateFieldGuidance, BelgeFieldGuidanceView } from "@/components/belge-field-guidance";
 
 export interface BelgeStudioInlineEditLayerProps {
+  documentId?: BelgeDocumentId;
   fields: readonly InlineFieldDescriptor[];
   visible?: boolean;
   values?: Record<string, string>;
@@ -16,8 +18,8 @@ export interface BelgeStudioInlineEditLayerProps {
 }
 
 interface BelgeInlineDraftPopoverProps {
+  documentId?: BelgeDocumentId;
   field: InlineFieldDescriptor;
-  initialValue: string;
   currentValue: string;
   onCommit: (value: string) => void;
   onCancel: () => void;
@@ -30,15 +32,24 @@ interface BelgeInlineDraftPopoverProps {
  * without triggering cascading renders or setState inside useEffect.
  */
 function BelgeInlineDraftPopover({
+  documentId,
   field,
-  initialValue,
   currentValue,
   onCommit,
   onCancel,
   style,
 }: BelgeInlineDraftPopoverProps) {
-  const [draft, setDraft] = useState(initialValue);
+  // openingValue is frozen once on mount via useState(currentValue), and updated if user explicitly loads current value
+  const [openingValue, setOpeningValue] = useState(currentValue);
+  const [draft, setDraft] = useState(currentValue);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
+  const isCommittingRef = useRef(false);
+
+  const guidance = documentId
+    ? evaluateFieldGuidance(documentId, field.fieldKey, draft, { isBlurOrSubmitted: true })
+    : null;
+  const guidanceId = `inline-guidance-${field.fieldKey}`;
 
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -67,12 +78,13 @@ function BelgeInlineDraftPopover({
   }, [onCancel]);
 
   const handleApply = () => {
+    if (isCommittingRef.current) return;
+
     // 1. Concurrent modification check: If canonical form changed externally while popover was open
-    if (currentValue !== initialValue) {
-      setConflictError("Bu alan dışarıdan güncellendi. Taslak iptal edildi.");
-      setTimeout(() => {
-        onCancel();
-      }, 1600);
+    if (currentValue !== openingValue) {
+      setConflictError(
+        "Sol formda bu alan güncellendi; yeni değerin üzerine yazılmadı. Taslağınızı kopyalayabilir, güncel değeri yükleyebilir veya vazgeçebilirsiniz."
+      );
       return;
     }
 
@@ -82,8 +94,27 @@ function BelgeInlineDraftPopover({
       return;
     }
 
-    // 3. Atomically commit confirmed draft to canonical form
+    // 3. Atomically commit confirmed draft to canonical form (idempotent single-commit)
+    isCommittingRef.current = true;
     onCommit(draft);
+  };
+
+  const handleLoadCurrentValue = () => {
+    setOpeningValue(currentValue);
+    setDraft(currentValue);
+    setConflictError(null);
+  };
+
+  const handleCopyDraft = async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(draft);
+        setCopiedNotification(true);
+        setTimeout(() => setCopiedNotification(false), 2000);
+      }
+    } catch {
+      // Fallback
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -93,6 +124,7 @@ function BelgeInlineDraftPopover({
 
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       onCancel();
       return;
     }
@@ -101,11 +133,49 @@ function BelgeInlineDraftPopover({
       if (field.multiline) {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
+          e.stopPropagation();
           handleApply();
         }
       } else {
         e.preventDefault();
+        e.stopPropagation();
         handleApply();
+      }
+    }
+  };
+
+  const handlePopoverKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      onCancel();
+      return;
+    }
+
+    if (e.key === "Tab") {
+      const container = popoverRef.current;
+      if (!container) return;
+      const focusableElements = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el.offsetParent !== null || el.getClientRects().length > 0);
+
+      if (focusableElements.length === 0) return;
+
+      const firstEl = focusableElements[0];
+      const lastEl = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstEl || !container.contains(document.activeElement)) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else {
+        if (document.activeElement === lastEl || !container.contains(document.activeElement)) {
+          e.preventDefault();
+          firstEl.focus();
+        }
       }
     }
   };
@@ -113,7 +183,17 @@ function BelgeInlineDraftPopover({
   return (
     <div
       ref={popoverRef}
-      style={style}
+      style={{
+        ...style,
+        touchAction: "manipulation",
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onKeyDown={handlePopoverKeyDown}
       role="dialog"
       aria-label={`${field.label} alanını düzenle`}
       aria-modal="true"
@@ -135,13 +215,34 @@ function BelgeInlineDraftPopover({
         </button>
       </div>
 
-      {/* Conflict Error Message */}
+      {/* Conflict Error Message with user choices */}
       {conflictError && (
         <div
           role="alert"
-          className="rounded bg-destructive/15 border border-destructive/30 px-2 py-1 text-[11px] font-medium text-destructive"
+          data-testid="belge-inline-conflict-alert"
+          className="rounded bg-amber-500/10 border border-amber-500/30 p-2 text-xs flex flex-col gap-1.5"
         >
-          {conflictError}
+          <div className="font-medium text-amber-600 dark:text-amber-400 text-[11px] leading-relaxed">
+            {conflictError}
+          </div>
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <button
+              type="button"
+              onClick={handleLoadCurrentValue}
+              data-testid="belge-inline-conflict-load-current"
+              className="rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold px-2 py-0.5 text-[11px] cursor-pointer"
+            >
+              Güncel Değeri Yükle
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyDraft}
+              data-testid="belge-inline-conflict-copy-draft"
+              className="rounded border border-border bg-background hover:bg-accent text-foreground px-2 py-0.5 text-[11px] cursor-pointer"
+            >
+              {copiedNotification ? "Kopyalandı!" : "Taslağı Kopyala"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -157,6 +258,8 @@ function BelgeInlineDraftPopover({
             placeholder={field.placeholder || `${field.label} girin...`}
             data-testid="belge-inline-edit-textarea"
             aria-label={field.label}
+            aria-describedby={guidance ? guidanceId : undefined}
+            style={{ touchAction: "pan-y" }}
             className="w-full resize-y rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500"
           />
         ) : (
@@ -169,9 +272,12 @@ function BelgeInlineDraftPopover({
             placeholder={field.placeholder || `${field.label} girin...`}
             data-testid="belge-inline-edit-input"
             aria-label={field.label}
+            aria-describedby={guidance ? guidanceId : undefined}
             className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500"
           />
         )}
+
+        <BelgeFieldGuidanceView id={guidanceId} guidance={guidance} />
 
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span>
@@ -179,7 +285,7 @@ function BelgeInlineDraftPopover({
               ? "Ctrl+Enter: Kaydet | Enter: Alt satır"
               : "Enter: Kaydet | Esc: Vazgeç"}
           </span>
-          {draft !== initialValue && (
+          {draft !== openingValue && (
             <span className="text-amber-500 font-medium">Değiştirildi</span>
           )}
         </div>
@@ -222,6 +328,7 @@ function BelgeInlineDraftPopover({
  * - Supports controlled selectedField from parent (e.g. mobile short-tap detector) or internal state.
  */
 export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLayer({
+  documentId,
   fields,
   visible = true,
   values,
@@ -251,7 +358,17 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
     [setSelectedField]
   );
 
-  if (!visible || fields.length === 0) {
+  const restoreFocus = useCallback(() => {
+    if (
+      lastFocusedHotspotRef.current &&
+      typeof document !== "undefined" &&
+      document.contains(lastFocusedHotspotRef.current)
+    ) {
+      lastFocusedHotspotRef.current.focus();
+    }
+  }, []);
+
+  if ((!visible || fields.length === 0) && !selectedField) {
     return null;
   }
 
@@ -260,7 +377,7 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
   if (selectedField) {
     const vr = selectedField.viewportRect;
     const estWidth = Math.min(Math.max(260, vr.width + 24), Math.max(240, frameWidth - 16));
-    const estHeight = selectedField.multiline ? 190 : 130;
+    const estHeight = selectedField.multiline ? 220 : 160;
 
     let top = vr.bottom + 6;
     if (top + estHeight > frameHeight - 12) {
@@ -289,61 +406,62 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
       aria-label="PDF üzerinde düzenlenebilir alanlar katmanı"
       data-testid="belge-inline-edit-layer"
     >
-      {/* 1. Interactive Hotspots */}
-      {fields.map((field) => {
-        const isSelected = selectedField?.fieldKey === field.fieldKey;
-        const { left, top, width, height } = field.viewportRect;
+      {/* 1. Interactive Hotspots - only rendered when visible and fields exist */}
+      {visible &&
+        fields.map((field) => {
+          const isSelected = selectedField?.fieldKey === field.fieldKey;
+          const { left, top, width, height } = field.viewportRect;
 
-        return (
-          <button
-            key={`${field.pageNumber}-${field.fieldKey}`}
-            type="button"
-            data-testid={`belge-inline-hotspot-${field.fieldKey}`}
-            aria-label={`${field.label} alanını düzenle`}
-            tabIndex={0}
-            onClick={() => handleSelectField(field)}
-            style={{
-              position: "absolute",
-              left: `${left}px`,
-              top: `${top}px`,
-              width: `${width}px`,
-              height: `${height}px`,
-            }}
-            className={`pointer-events-auto group rounded-[2px] border transition-all duration-150 text-left
-              ${
-                isSelected
-                  ? "border-amber-500 bg-amber-500/25 ring-2 ring-amber-500/60"
-                  : "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/80 hover:bg-amber-500/15"
-              }
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500 focus-visible:bg-amber-500/20 cursor-pointer`}
-          >
-            {/* Tooltip / Label indicator on hover or focus */}
-            <span
-              className="pointer-events-none absolute -top-6 left-0 hidden group-hover:inline-flex group-focus-visible:inline-flex items-center gap-1 rounded bg-popover/95 px-1.5 py-0.5 text-[10px] font-medium text-popover-foreground shadow-md border border-border whitespace-nowrap z-20 backdrop-blur-sm"
-              aria-hidden="true"
+          return (
+            <button
+              key={`${field.pageNumber}-${field.fieldKey}`}
+              type="button"
+              data-testid={`belge-inline-hotspot-${field.fieldKey}`}
+              aria-label={`${field.label} alanını düzenle`}
+              tabIndex={0}
+              onClick={() => handleSelectField(field)}
+              style={{
+                position: "absolute",
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${width}px`,
+                height: `${height}px`,
+              }}
+              className={`pointer-events-auto group rounded-[2px] border transition-all duration-150 text-left
+                ${
+                  isSelected
+                    ? "border-amber-500 bg-amber-500/25 ring-2 ring-amber-500/60"
+                    : "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/80 hover:bg-amber-500/15"
+                }
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500 focus-visible:bg-amber-500/20 cursor-pointer`}
             >
-              {field.label}
-              {field.multiline && <span className="text-[9px] text-amber-500 font-mono">(Çok satırlı)</span>}
-            </span>
-          </button>
-        );
-      })}
+              {/* Tooltip / Label indicator on hover or focus */}
+              <span
+                className="pointer-events-none absolute -top-6 left-0 hidden group-hover:inline-flex group-focus-visible:inline-flex items-center gap-1 rounded bg-popover/95 px-1.5 py-0.5 text-[10px] font-medium text-popover-foreground shadow-md border border-border whitespace-nowrap z-20 backdrop-blur-sm"
+                aria-hidden="true"
+              >
+                {field.label}
+                {field.multiline && <span className="text-[9px] text-amber-500 font-mono">(Çok satırlı)</span>}
+              </span>
+            </button>
+          );
+        })}
 
       {/* 2. Isolated Draft Edit Popover */}
       {selectedField && (
         <BelgeInlineDraftPopover
           key={`${selectedField.pageNumber}-${selectedField.fieldKey}`}
+          documentId={documentId}
           field={selectedField}
-          initialValue={values?.[selectedField.fieldKey] ?? ""}
           currentValue={values?.[selectedField.fieldKey] ?? ""}
           onCommit={(confirmedValue) => {
             onCommit?.(selectedField.fieldKey, confirmedValue);
             setSelectedField(null);
-            lastFocusedHotspotRef.current?.focus();
+            restoreFocus();
           }}
           onCancel={() => {
             setSelectedField(null);
-            lastFocusedHotspotRef.current?.focus();
+            restoreFocus();
           }}
           style={popoverStyle}
         />

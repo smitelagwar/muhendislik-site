@@ -2,15 +2,18 @@ type BelgeFieldLengthWarningsProps<T extends object> = {
   values: T;
   baselineValues?: Partial<T>;
   limits: Partial<Record<keyof T, { label: string; maximum: number }>>;
+  excludedFields?: Array<keyof T>;
 };
 
 export function BelgeFieldLengthWarnings<T extends object>({
   values,
   baselineValues,
   limits,
+  excludedFields,
 }: BelgeFieldLengthWarningsProps<T>) {
   const warnings = (Object.entries(limits) as Array<[string, { label: string; maximum: number } | undefined]>).flatMap(([key, limit]) => {
     if (!limit) return [];
+    if (excludedFields?.includes(key as keyof T)) return [];
     const rawValue = (values as Record<string, unknown>)[key];
     if (rawValue === (baselineValues as Record<string, unknown> | undefined)?.[key]) return [];
     const length = typeof rawValue === "string" ? rawValue.length : 0;

@@ -629,5 +629,446 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
       await expect(editLayer).toHaveCount(0);
     }
   });
+
+  // 6. ASAMA_02: Mobil Dokunma İzolasyonu ve Yanlış Kısa Tap Engeli
+  test("ASAMA_02: Mobil popover içine gerçek touch/tap yapıldığında katman unmount olmamalı ve taslak korunmalı", async ({ page, browser }) => {
+    const hasTouch = await page.evaluate(() => "ontouchstart" in window || navigator.maxTouchPoints > 0);
+    const testContext = hasTouch
+      ? null
+      : await browser.newContext({
+          viewport: { width: 390, height: 844 },
+          hasTouch: true,
+          isMobile: true,
+        });
+    const testPage = testContext ? await testContext.newPage() : page;
+
+    try {
+      const studio = await openStudio(testPage, "beton-dokum-tutanagi");
+
+      const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+      await toggleBtn.click();
+
+      const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+      await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+      const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+      await hotspot.click();
+
+      const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+      await expect(popover).toBeVisible();
+
+      const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+      await expect(input).toBeVisible();
+
+      // Gerçek dokunmatik ekran tap işlemi
+      const box = await input.boundingBox();
+      expect(box).not.toBeNull();
+      if (box) {
+        await testPage.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      }
+
+      // Dokunma sonrası popover açık kalmalı (unmount olmamalı!)
+      await expect(popover).toBeVisible();
+      await input.fill("MOBİL DOKUNMA TESTİ");
+
+      // Popover üzerindeki Vazgeç butonuna gerçek tap yap
+      const cancelBtn = popover.locator('[data-testid="belge-inline-edit-cancel"]');
+      const cancelBox = await cancelBtn.boundingBox();
+      expect(cancelBox).not.toBeNull();
+      if (cancelBox) {
+        await testPage.touchscreen.tap(cancelBox.x + cancelBox.width / 2, cancelBox.y + cancelBox.height / 2);
+      }
+
+      // Vazgeç ile popover temiz kapanmalı
+      await expect(popover).toHaveCount(0);
+      // Sol form değişmemeli (0 mutasyon)
+      const leftFormInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
+      expect(await leftFormInput.inputValue()).not.toBe("MOBİL DOKUNMA TESTİ");
+    } finally {
+      if (testContext) {
+        await testContext.close();
+      }
+    }
+  });
+
+  test("ASAMA_02: Popover açıkken Escape ve tuş olayları üst viewer'a yayılmadan izole çalışmalı", async ({ page }) => {
+    const studio = await openStudio(page, "insaat-ruhsati-dilekcesi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-belediye_adi"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await input.focus();
+
+    // Escape tuşuna basıldığında üst container'ın pan/zoom handler'larına bulaşmadan popover kapanmalı
+    await page.keyboard.press("Escape");
+    await expect(popover).toHaveCount(0);
+    await expect(editLayer).toBeVisible();
+  });
+
+  // 7. ASAMA_03: Gerçek Veri Çatışması (Concurrent Modification) ve İdempotent Onay
+  test("ASAMA_03: Popover açıkken sol formda aynı alan değiştiğinde Uygula çakışmayı tespit etmeli, taslağı korumalı ve sol formun üzerine yazmamalı", async ({ page }) => {
+    const studio = await openStudio(page, "beton-dokum-tutanagi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await expect(input).toBeVisible();
+
+    // 1. Popover içine taslak yaz
+    await input.fill("TASLAK DEĞERİ (KORUNMALI)");
+
+    // 2. Sol formdaki aynı alanı dışarıdan değiştir (desktop'ta doğrudan fill, mobilde tab panelinde native dispatch)
+    const leftFormInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
+    if (await leftFormInput.isVisible()) {
+      await leftFormInput.fill("SOL FORM DIŞ DEĞİŞİKLİK");
+    } else {
+      await page.evaluate(({ selector, value }) => {
+        const el = document.querySelector(selector) as HTMLInputElement;
+        if (el) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+          setter?.call(el, value);
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }, { selector: "#beton-dokum-tutanak_alt_baslik", value: "SOL FORM DIŞ DEĞİŞİKLİK" });
+    }
+
+    // 3. Popover'da "Uygula" butonuna bas -> Çakışma tespit edilmeli
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    await applyBtn.click();
+
+    // 4. Popover kapanmamalı, çakışma uyarısı görünmeli
+    await expect(popover).toBeVisible();
+    const conflictAlert = popover.locator('[data-testid="belge-inline-conflict-alert"]');
+    await expect(conflictAlert).toBeVisible();
+    await expect(conflictAlert).toContainText("Sol formda bu alan güncellendi; yeni değerin üzerine yazılmadı");
+
+    // 5. Taslak metin kaybolmamalı, sol formun yeni değeri ezilmemeli
+    await expect(input).toHaveValue("TASLAK DEĞERİ (KORUNMALI)");
+    await expect(leftFormInput).toHaveValue("SOL FORM DIŞ DEĞİŞİKLİK");
+
+    // 6. "Güncel Değeri Yükle" tıklandığında sol formdaki değer taslağa yüklenmeli
+    const loadCurrentBtn = popover.locator('[data-testid="belge-inline-conflict-load-current"]');
+    await loadCurrentBtn.click();
+    await expect(input).toHaveValue("SOL FORM DIŞ DEĞİŞİKLİK");
+    await expect(conflictAlert).toHaveCount(0);
+
+    // 7. Artık değer güncel olduğu için Uygula başarıyla tamamlanmalı ve popover kapanmalı
+    await applyBtn.click();
+    await expect(popover).toHaveCount(0);
+    await expect(leftFormInput).toHaveValue("SOL FORM DIŞ DEĞİŞİKLİK");
+  });
+
+  test("ASAMA_03: Popover açıkken sol formda farklı bir alan değiştiğinde taslak korunmalı ve sahte çakışma oluşmamalı", async ({ page }) => {
+    const studio = await openStudio(page, "beton-dokum-tutanagi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await input.fill("ÖZGÜN TASLAK METNİ");
+
+    // Sol formda ALAKASIZ bir alanı değiştir (örneğin yer)
+    const leftYer = studio.locator("#beton-dokum-yer");
+    if (await leftYer.isVisible()) {
+      await leftYer.fill("KADIKÖY ŞANTİYESİ");
+    } else {
+      await page.evaluate(({ selector, value }) => {
+        const el = document.querySelector(selector) as HTMLTextAreaElement;
+        if (el) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+          setter?.call(el, value);
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }, { selector: "#beton-dokum-yer", value: "KADIKÖY ŞANTİYESİ" });
+    }
+
+    // Taslak metin korunmalı
+    await expect(input).toHaveValue("ÖZGÜN TASLAK METNİ");
+
+    // Uygula tıklandığında sahte çakışma olmadan başarıyla kaydedilmeli
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    await applyBtn.click();
+
+    await expect(popover).toHaveCount(0);
+    const leftFormInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
+    await expect(leftFormInput).toHaveValue("ÖZGÜN TASLAK METNİ");
+    await expect(leftYer).toHaveValue("KADIKÖY ŞANTİYESİ");
+  });
+
+  test("ASAMA_03: Uygula butonuna hızlı ardışık çift tık idempotent tek-commit ile sonuçlanmalı", async ({ page }) => {
+    const studio = await openStudio(page, "beton-dokum-tutanagi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await input.fill("İDEMPOTENT ÇİFT TIKLAMA TESTİ");
+
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    // Hızlı çift tıklama
+    await applyBtn.dblclick();
+
+    await expect(popover).toHaveCount(0);
+    const leftFormInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
+    await expect(leftFormInput).toHaveValue("İDEMPOTENT ÇİFT TIKLAMA TESTİ");
+  });
+
+  // ---------------------------------------------------------------------------
+  // ASAMA_04: Revision/page/zoom geçişlerinde bozuk hotspot ve taslak yok
+  // ---------------------------------------------------------------------------
+  test("ASAMA_04: İki sayfalı sözleşmede sayfa geçişlerinde eski sayfanın hotspot'ları hemen temizlenmeli, doğru sayfada doğru sayıda hotspot görünmeli", async ({ page }) => {
+    const studio = await openStudio(page, "santiye-sefi-sozlesmesi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 12_000 });
+
+    // Sayfa 1: 11 alan bulunmalı
+    const page1Hotspots = editLayer.locator('[data-testid^="belge-inline-hotspot-"]');
+    await expect(page1Hotspots).toHaveCount(11);
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-muteahhit_unvan"]')).toBeVisible();
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-sozlesme_tarihi"]')).toHaveCount(0);
+
+    // Sayfa 2'ye geç
+    const nextPageBtn = studio.locator('button[aria-label="Sonraki sayfa"]');
+    await expect(nextPageBtn).toBeEnabled();
+    await nextPageBtn.click();
+
+    // Sayfa göstergesi 2 / 2 olmalı ve Sayfa 2'de tam 3 alan bulunmalı
+    const pageIndicator = studio.locator('[data-testid="belge-studio-preview-toolbar"] [aria-live="polite"]');
+    await expect(pageIndicator).toHaveText("2 / 2");
+
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-sozlesme_tarihi"]')).toBeVisible({ timeout: 10_000 });
+    const page2Hotspots = editLayer.locator('[data-testid^="belge-inline-hotspot-"]');
+    await expect(page2Hotspots).toHaveCount(3);
+    // Sayfa 1 alanları kesinlikle DOM'da bulunmamalı (stale hotspot sıfır toleransı)
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-muteahhit_unvan"]')).toHaveCount(0);
+
+    // Tekrar Sayfa 1'e geri dön
+    const prevPageBtn = studio.locator('button[aria-label="Önceki sayfa"]');
+    await expect(prevPageBtn).toBeEnabled();
+    await prevPageBtn.click();
+
+    await expect(pageIndicator).toHaveText("1 / 2");
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-muteahhit_unvan"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page1Hotspots).toHaveCount(11);
+    await expect(editLayer.locator('[data-testid="belge-inline-hotspot-sozlesme_tarihi"]')).toHaveCount(0);
+  });
+
+  test("ASAMA_04: Popover açık ve taslak yazılıyken arka planda form/revizyon güncellendiğinde taslak unmount olmamalı ve silinmemeli", async ({ page }) => {
+    const studio = await openStudio(page, "beton-dokum-tutanagi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await input.fill("TASLAK DEĞERİ (SİLİNMEMELİ)");
+
+    // Arka planda başka bir alanı güncelle (PDF yenilenmesini ve revizyon artışını tetikle)
+    const leftYer = studio.locator("#beton-dokum-yer");
+    if (await leftYer.isVisible()) {
+      await leftYer.fill("ARKA PLAN FORM REVİZYONU");
+    } else {
+      await page.evaluate(({ selector, value }) => {
+        const el = document.querySelector(selector) as HTMLTextAreaElement;
+        if (el) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+          setter?.call(el, value);
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }, { selector: "#beton-dokum-yer", value: "ARKA PLAN FORM REVİZYONU" });
+    }
+
+    // Kısa bekleme ile render döngüsünün geçmesini sağla
+    await page.waitForTimeout(500);
+
+    // Popover hala görünür ve taslak korunmuş olmalı
+    await expect(popover).toBeVisible();
+    await expect(input).toHaveValue("TASLAK DEĞERİ (SİLİNMEMELİ)");
+
+    // Taslağı onayla
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    await applyBtn.click();
+
+    await expect(popover).toHaveCount(0);
+    const leftFormInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
+    await expect(leftFormInput).toHaveValue("TASLAK DEĞERİ (SİLİNMEMELİ)");
+  });
+
+  test("ASAMA_04: Popover içinde Tab tuşuyla odak hapsi (focus trap) çalışmalı ve Escape ile odak hotspot'a geri dönmeli", async ({ page }) => {
+    const studio = await openStudio(page, "beton-dokum-tutanagi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator('[data-testid="belge-inline-edit-input"]');
+    await expect(input).toBeFocused();
+
+    // Tab ile ileri odak döngüsü: input -> Vazgeç -> Uygula -> Kapat -> input
+    await page.keyboard.press("Tab");
+    const cancelBtn = popover.locator('[data-testid="belge-inline-edit-cancel"]');
+    await expect(cancelBtn).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    await expect(applyBtn).toBeFocused();
+
+    await page.keyboard.press("Tab");
+    const closeBtn = popover.locator('button[aria-label="Kapat"]');
+    await expect(closeBtn).toBeFocused();
+
+    // Kapat'tan sonra tekrar Tab -> döngü başa (input'a) dönmeli (odak hapsi)
+    await page.keyboard.press("Tab");
+    await expect(input).toBeFocused();
+
+    // Shift+Tab ile ters odak döngüsü -> Kapat butonuna dönmeli
+    await page.keyboard.press("Shift+Tab");
+    await expect(closeBtn).toBeFocused();
+
+    // Escape basıldığında popover kapanmalı ve odak açan hotspot'a dönmeli
+    await page.keyboard.press("Escape");
+    await expect(popover).toHaveCount(0);
+    await expect(hotspot).toBeFocused();
+  });
+
+  test("ASAMA_07: Popover içinde uzun adres girildiğinde okunabilirlik rehberliği görünmeli ve Uygula butonu engellenmemeli", async ({ page }) => {
+    const studio = await openStudio(page, "santiye-sefi-istifa-dilekcesi");
+
+    const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+    await toggleBtn.click();
+
+    const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
+    await expect(editLayer).toBeVisible({ timeout: 10_000 });
+
+    const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-adres_deger"]');
+    await hotspot.click();
+
+    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    await expect(popover).toBeVisible();
+
+    const input = popover.locator(
+      '[data-testid="belge-inline-edit-textarea"], [data-testid="belge-inline-edit-input"]'
+    );
+    await expect(input).toBeFocused();
+
+    // 140+ karakterlik uzun adres gir (possible risk eşiği 130 pt)
+    const longAddress = "Çankaya Mahallesi İnşaat Mühendisleri Caddesi No:45/12 Kat:4 Daire:8 Çankaya Ankara Türkiye Cumhuriyeti Başkent Merkez Tebligat ve İletişim Noktası";
+    await input.fill(longAddress);
+
+    // Popover içinde rehberlik mesajı belirmeli
+    const guidance = popover.locator('[data-testid="belge-field-guidance-message"]');
+    await expect(guidance).toBeVisible();
+    await expect(guidance).toHaveAttribute("role", "status");
+    await expect(guidance).toHaveAttribute("aria-live", "polite");
+    await expect(input).toHaveAttribute("aria-describedby", "inline-guidance-adres_deger");
+
+    // Uygula butonu engelli OLMAMALI (uyarı bilgilendiricidir, veri akışını kesmez)
+    const applyBtn = popover.locator('[data-testid="belge-inline-edit-apply"]');
+    await expect(applyBtn).toBeEnabled();
+    await applyBtn.click();
+
+    // Popover kapanmalı ve sol formdaki adres alanı güncellenmeli
+    await expect(popover).toHaveCount(0);
+    const leftFormInput = studio.locator('#istifa-adres_deger');
+    await expect(leftFormInput).toHaveValue(longAddress);
+  });
+
+  test("ASAMA_07: Sol form alanında TCKN ve adres rehberliği doğru çalışmalı, indirme/yazdırma butonları engellenmemeli", async ({ page }) => {
+    const studio = await openStudio(page, "santiye-sefi-istifa-dilekcesi");
+
+    // Mobilde openStudio preview sekmesine geçtiyse sol form sekmesine geri dön
+    const formTab = studio.getByRole("tab", { name: /Form Alanları|Form/i });
+    if (await formTab.isVisible()) {
+      await formTab.click();
+      await expect(formTab).toHaveAttribute("aria-selected", "true");
+    }
+
+    // Sol formdaki TC input'una odaklan
+    const tcInput = studio.locator('#istifa-tc_deger');
+    await expect(tcInput).toBeVisible();
+    await tcInput.click();
+    await tcInput.fill("12345"); // 5 hane
+    await tcInput.blur(); // Blur olunca kontrol devreye girer
+
+    // TC rehberlik mesajı görünmeli
+    const tcGuidance = studio.locator('#istifa-tc_deger-guidance');
+    await expect(tcGuidance).toBeVisible();
+    await expect(tcGuidance).toContainText("11 haneli olmalıdır");
+
+    // PDF İndir ve Yazdır butonları engellenmemeli
+    const downloadBtn = studio
+      .locator('[data-testid="belge-studio-desktop-actions"]:visible, [data-testid="belge-studio-mobile-actions"]:visible')
+      .getByRole("button", { name: "PDF İndir", exact: true });
+    await expect(downloadBtn).toBeEnabled();
+
+    // Desktop'ta Yazdır butonu doğrudan görünür ve etkin olmalı
+    const desktopPrintBtn = studio
+      .locator('[data-testid="belge-studio-desktop-actions"]:visible')
+      .getByRole("button", { name: "Yazdır", exact: true });
+    if (await desktopPrintBtn.isVisible()) {
+      await expect(desktopPrintBtn).toBeEnabled();
+    }
+  });
 });
 

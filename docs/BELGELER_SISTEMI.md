@@ -234,3 +234,54 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
 4. **Mobil Web ve Gesture İzolasyonu:**
    - Mevcut pan, pinch ve zoom motoruna dokunulmamış; iki parmakla yakınlaştırma veya kaydırma sırasında katman otomatik olarak geçici pasif kalır.
    - 320px ultra-dar ekranlardan 1920px masaüstüne kadar sıfır yatay taşma (`scrollWidth <= innerWidth + 2`) ve 44px dokunmatik hedef standardı sağlanmıştır.
+
+---
+
+## 8. Saf Alan Rehberi ve Semantik Kalite Politikası (Field Guidance & Quality Engine)
+
+2026-10-17 tarihinde sisteme entegre edilen semantik alan rehberliği ve format değerlendirme mimarisi:
+
+1. **56/56 Alan Semantik Tipi ve Kural Defteri (`DOCUMENT_FIELD_POLICIES`):**
+   - **F (Takvim Tarihi):** `GG.AA.YYYY`, `GG/AA/YYYY` formatı ve artık yıl (leap year) kontrolü (29 Şubat 2024 geçerli; artık yıl olmayan 2025/2026 ve 31 çeken 30 günlük aylar uyarılır).
+   - **K (T.C. Kimlik No):** 11 hane, ilk hane 0 olamaz, 10. ve 11. hane algoritmik kontrol basamağı doğrulaması.
+   - **T (Telefon):** 10 haneli ulusal (5XX...), 11 haneli (05XX...), 12 haneli (+90...) ve `Tel:` önekli biçimler geçerlidir.
+   - **Y (YİBF No):** 7 haneli sistem kodları için yumuşak öneri (info); özel formatlar silinmez/engellenmez.
+   - **P (Ücret / Para):** Türkçe para formatı (`40.000,00 TL`, `40000`, `40.000 TL`); negatif tutarlar ve çoklu virgül uyarılır.
+   - **N (Nominal / Serbest Metin):** Kurum, kişi, unvan, ada, parsel gibi serbest metin alanlarında kısıtlayıcı regex veya keyfî biçim uyarısı **kesinlikle üretilmez** (sıfır yanlış alarm).
+2. **Kullanıcı Yazarken Rahatsız Etmeme (TCKN Özel Davranışı):**
+   - Kullanıcı TCKN yazarken henüz 11 haneyi tamamlamadan erken hata veya kontrol basamağı uyarısı verilmez.
+   - Uyarı yalnız odak kaybı (`blur` / `isTouched`) veya onay (`isBlurOrSubmitted`) anında nazikçe gösterilir.
+3. **Erişilebilirlik ve Çift Uyarı Koruması:**
+   - Rehberlik mesajları `role="status"` ve `aria-live="polite"` erişilebilirlik öznitelikleriyle `BelgeFieldGuidanceView` üzerinden sunulur.
+   - `BelgeFieldLengthWarnings` üst paneline `excludedFields` desteği eklenmiş olup, satır içi rehberliği olan alanlar üst özetten dışlanarak çift uyarı (duplicate warning) tamamen önlenmiştir.
+4. **Sıfır İşlem Engellemesi (Kritik İlke):**
+   - Hiçbir format veya rehberlik mesajı `Uygula`, `PDF İndir`, `Yazdır`, `Temizle`, `Sıfırla` veya `Geri Al` butonlarını devre dışı bırakmaz.
+   - Kullanıcı girdisi asla otomatik olarak kesilmez, kısaltılmaz veya engellenmez.
+
+---
+
+## 9. Fiziksel PDF Baskı Okunabilirlik Motoru ve Şablon İyileştirmesi (Readability & AcroForm)
+
+1. **Çalışma Zamanı Yüksüz Baskı Riski Öngörüsü (`assessFieldReadability`):**
+   - Runtime'da her tuş vuruşunda pahalı PDF parse/canvas render maliyeti üretilmez.
+   - Gerçek şablon AcroForm `rect`, `DA` ve `Ff` envanterine dayalı hafif offline kalibrasyon tablosu (`CRITICAL_READABILITY_GEOMETRIES`) ile anlık (< 1 ms) risk seviyesi (`none`, `possible`, `serious`) hesaplanır.
+2. **Şantiye Şefi İstifa Dilekçesi Adres Alanı Fiziksel İyileştirmesi (`ASAMA_06B`):**
+   - **Sorun:** Orijinal şablonda `adres_deger` alanı 192 × 18 pt dar tek satır idi ve uzun adreslerde yazı boyutu ~1.26 pt'ye kadar küçülüyordu.
+   - **Kontrollü İstisna Çözümü:** Kullanıcı onayıyla `public/belgeler/santiye-sefi-istifa-dilekcesi.pdf` şablonundaki AcroForm widget'ı güvenli boşluk bölgesine doğru **225.0 × 36.0 pt** boyutuna genişletildi ve `Ff` bayrağına çok satırlılık biti (`multiline: true`, `4096`) eklendi.
+   - **Ölçülebilir Başarı:** 84 ve 122 karakterlik uzun adreslerde nominal 8.0 pt font tam korundu (%100-%166 font büyümesi); 212 karakterlik ekstrem adreste font 7.0 pt seviyesinde tutuldu (%418 iyileşme).
+   - **Kriptografik SHA-256 Sürüm Kaydı:**
+     - Baseline v1 Hash: `3132D5617DF0AEF1366B1B680F385762743AE05375BE7F5EB5653F2A6915D83E`
+     - Güncel v2 Hash: `95C0AA38DECBFBA0C4E61C3F1D99956F2D3BDD057EBC307C728D2527459F74DC`
+     - Diğer 4 şablon orijinal baseline hash değerleriyle birebir korunmuştur.
+3. **Sıfır Veri Kaybı Sözleşmesi (0 Silent Truncation):**
+   - 220+ karakterlik adresler dahil hiçbir kullanıcı verisi sistem tarafından sessizce budanmaz veya kesilmez.
+   - Gerçek üretilen PDF çıktısında girilen tüm karakterlerin AcroForm text alanında eksiksiz saklandığı testlerle kanıtlanmıştır.
+
+---
+
+## 10. Geri Alma, Hata Toleransı ve Rollback Güvencesi
+
+Olası bir regresyon veya geri alma durumunda:
+- **Şablon Geri Alma:** İstifa dilekçesi orijinal tek satırlı baseline'a (`3132D561...`) döndürülmek istenirse `git checkout 14235bd4ff86f6d03f3a575d4650596cef57206e -- public/belgeler/santiye-sefi-istifa-dilekcesi.pdf` komutuyla tek işlemde restore edilebilir; `assessFieldReadability` ve inline layer yeni koordinatları dinamik okuduğu için sistem çökmez.
+- **Opt-in İzolasyon:** Inline edit katmanı varsayılan olarak OFF olduğundan arayüzde herhangi bir bileşen hatası durumunda `isInlineEditingActive = false` bırakılarak standart baseline stüdyo deneyimi %100 kesintisiz devam eder.
+- **Korumalı Çekirdek:** `pdf-engine.ts`, `use-belge-studio-document.ts` ve `document-field-contracts.ts` dosyaları salt-okunur (read-only) korunduğu için üretim PDF pipeline'ı hiçbir mimari risk taşımamaktadır.

@@ -23,6 +23,13 @@ type PdfPage = Awaited<ReturnType<PdfDocument["getPage"]>>;
 type PdfRenderTask = ReturnType<PdfPage["render"]>;
 export type BelgePreviewStatus = "loading" | "rendering" | "ready" | "error";
 
+type RenderedToken = {
+  revision: number;
+  pageNumber: number;
+  zoom: number;
+  requestId: number;
+};
+
 export type BelgeStudioInlineEditingConfig = {
   documentId: BelgeDocumentId;
   values?: Record<string, string>;
@@ -68,6 +75,7 @@ export function BelgeStudioPdfPreview({
   const [isInlineEditingActive, setIsInlineEditingActive] = useState(false);
   const [inlineFields, setInlineFields] = useState<InlineFieldDescriptor[]>([]);
   const [inlineSelectedField, setInlineSelectedField] = useState<InlineFieldDescriptor | null>(null);
+  const [renderedToken, setRenderedToken] = useState<RenderedToken | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +104,7 @@ export function BelgeStudioPdfPreview({
     startHeight: number;
   } | null>(null);
   const pinchingRef = useRef(false);
+  const everMultitouchRef = useRef(false);
   const pendingAnchorRef = useRef<{
     relativeX: number;
     relativeY: number;
@@ -104,6 +113,8 @@ export function BelgeStudioPdfPreview({
   } | null>(null);
   const statusHandlerRef = useRef(onStatusChange);
   statusHandlerRef.current = onStatusChange;
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
@@ -122,6 +133,8 @@ export function BelgeStudioPdfPreview({
   }, []);
 
   useEffect(() => {
+    setRenderedToken(null);
+    setInlineFields([]);
     if (!snapshot) {
       documentRef.current = null;
       setPageCount(0);
@@ -319,6 +332,12 @@ export function BelgeStudioPdfPreview({
       }
       if (requestId !== renderRequestRef.current) return;
       setInlineFields(mappedFields);
+      setRenderedToken({
+        revision: snapshotRef.current?.revision ?? 0,
+        pageNumber: pageRef.current,
+        zoom: zoomRef.current,
+        requestId,
+      });
       report("ready");
     } catch (error) {
       const cancelled =
@@ -367,6 +386,7 @@ export function BelgeStudioPdfPreview({
       pointerY: point.y,
     };
     zoomRef.current = clampedZoom;
+    setRenderedToken(null);
     report("rendering");
     applyZoomAnchor();
     setZoomLevel(clampedZoom);
@@ -396,12 +416,19 @@ export function BelgeStudioPdfPreview({
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch") return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-testid="belge-inline-edit-popover"]')) {
+      return;
+    }
     event.preventDefault();
     setIsInteracting(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
     pointersRef.current = pointers;
+    if (pointers.length >= 2) {
+      everMultitouchRef.current = true;
+    }
     if (pointers.length === 1) {
       pendingAnchorRef.current = null;
       panStartRef.current = {
@@ -483,10 +510,13 @@ export function BelgeStudioPdfPreview({
       const panStart = panStartRef.current;
       panStartRef.current = null;
       setIsInteracting(false);
+      const wasMultitouch = everMultitouchRef.current;
+      everMultitouchRef.current = false;
       if (pinchingRef.current) {
         pinchingRef.current = false;
         setGestureEndVersion((version) => version + 1);
       } else if (
+        !wasMultitouch &&
         panStart &&
         prevPointers.length === 1 &&
         isInlineEditingActiveRef.current &&
@@ -556,6 +586,8 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleFit = () => {
+    setInlineSelectedField(null);
+    setRenderedToken(null);
     pendingAnchorRef.current = null;
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -576,6 +608,7 @@ export function BelgeStudioPdfPreview({
 
   const handleToolbarZoom = (value: number) => {
     setInlineSelectedField(null);
+    setRenderedToken(null);
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {
       setZoomLevel(value);
@@ -589,21 +622,43 @@ export function BelgeStudioPdfPreview({
 
   const handlePageChange = (page: number) => {
     setInlineSelectedField(null);
+    setRenderedToken(null);
+    setInlineFields([]);
     const container = containerRef.current;
     if (container) container.scrollTo({ left: 0, top: 0, behavior: "auto" });
     pendingAnchorRef.current = null;
+    pageRef.current = page;
     setCurrentPage(page);
   };
 
   const showLoading = generationPending || localStatus === "loading" || localStatus === "rendering";
   const visibleError = localStatus === "error" || generationError !== null;
-  const isOverlayVisible = Boolean(
+
+  const isOverlayTokenValid = Boolean(
+    renderedToken &&
+      snapshot &&
+      renderedToken.revision === snapshot.revision &&
+      renderedToken.pageNumber === currentPage &&
+      renderedToken.zoom === zoomLevel
+  );
+
+  const isHotspotsInteractive = Boolean(
     editing &&
       isInlineEditingActive &&
       !visibleError &&
+      !generationPending &&
+      localStatus === "ready" &&
+      isOverlayTokenValid &&
       inlineFields.length > 0 &&
       !isInteracting &&
       (!canvasRef.current?.style.transform || canvasRef.current.style.transform === "none")
+  );
+
+  const shouldRenderOverlayLayer = Boolean(
+    editing &&
+      isInlineEditingActive &&
+      !visibleError &&
+      (isHotspotsInteractive || inlineSelectedField !== null)
   );
 
   return (
@@ -625,6 +680,8 @@ export function BelgeStudioPdfPreview({
                 const next = !prev;
                 if (!next) {
                   setInlineSelectedField(null);
+                  setRenderedToken(null);
+                  setInlineFields([]);
                 }
                 return next;
               })
@@ -668,10 +725,11 @@ export function BelgeStudioPdfPreview({
                 style={{ opacity: 0 }}
                 aria-label={`PDF sayfa ${currentPage}`}
               />
-              {isOverlayVisible && (
+              {shouldRenderOverlayLayer && (
                 <BelgeStudioInlineEditLayer
+                  documentId={editing?.documentId}
                   fields={inlineFields}
-                  visible={isOverlayVisible}
+                  visible={isHotspotsInteractive}
                   values={editing?.values}
                   onCommit={editing?.onCommit}
                   frameWidth={renderedSizeRef.current.width || 600}

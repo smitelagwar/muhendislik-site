@@ -25,6 +25,7 @@ import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
   BelgePreviewEyeIcon,
@@ -108,6 +109,11 @@ export function SozlesmeStudio({
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
 
   // Field change handler
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof SozlesmeData, boolean>>>({});
+  const markFieldTouched = (key: keyof SozlesmeData) => {
+    setTouchedFields((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
+  };
+
   const handleFieldChange = useCallback(
     (field: keyof SozlesmeData, value: string) => {
       setUndoData(null);
@@ -368,7 +374,25 @@ export function SozlesmeStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <BelgeFieldLengthWarnings values={formData} baselineValues={SOZLESME_DEFAULT_DATA} limits={{ muteahhit_unvan: { label: "Yapı Müteahhidi Unvanı", maximum: 36 }, santiye_sefi_ad: { label: "Şantiye Şefi Adı Soyadı", maximum: 35 }, il: { label: "İl", maximum: 18 }, ilce: { label: "İlçe", maximum: 22 }, adres: { label: "Açık Adres", maximum: 48 }, yibf: { label: "YİBF No", maximum: 32 }, pafta: { label: "Pafta", maximum: 8 }, mahalle: { label: "Mahalle", maximum: 8 }, ada: { label: "Ada", maximum: 7 }, parsel: { label: "Parsel", maximum: 12 }, ucret: { label: "Aylık Brüt Ücret", maximum: 35 }, sozlesme_tarihi: { label: "Sözleşme Tarihi", maximum: 36 } }} />
+          <BelgeFieldLengthWarnings
+            values={formData}
+            baselineValues={SOZLESME_DEFAULT_DATA}
+            excludedFields={["adres", "yibf", "ucret", "sozlesme_tarihi"]}
+            limits={{
+              muteahhit_unvan: { label: "Yapı Müteahhidi Unvanı", maximum: 36 },
+              santiye_sefi_ad: { label: "Şantiye Şefi Adı Soyadı", maximum: 35 },
+              il: { label: "İl", maximum: 18 },
+              ilce: { label: "İlçe", maximum: 22 },
+              adres: { label: "Açık Adres", maximum: 48 },
+              yibf: { label: "YİBF No", maximum: 32 },
+              pafta: { label: "Pafta", maximum: 8 },
+              mahalle: { label: "Mahalle", maximum: 8 },
+              ada: { label: "Ada", maximum: 7 },
+              parsel: { label: "Parsel", maximum: 12 },
+              ucret: { label: "Aylık Brüt Ücret", maximum: 35 },
+              sozlesme_tarihi: { label: "Sözleşme Tarihi", maximum: 36 },
+            }}
+          />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -460,11 +484,19 @@ export function SozlesmeStudio({
               {renderFieldHeader("Açık Adres", "adres")}
               <input
                 type="text"
-                                id={getFieldId("adres")}
+                id={getFieldId("adres")}
                 value={formData.adres || ""}
                 onChange={(e) => handleFieldChange("adres", e.target.value)}
+                onBlur={() => markFieldTouched("adres")}
                 placeholder="-"
+                aria-describedby="sozlesme-adres-guidance"
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+              />
+              <BelgeFieldGuidanceView
+                id="sozlesme-adres-guidance"
+                guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "adres", formData.adres, {
+                  isTouched: true,
+                })}
               />
             </div>
 
@@ -595,8 +627,16 @@ export function SozlesmeStudio({
                   id={getFieldId("ucret")}
                   value={formData.ucret || ""}
                   onChange={(e) => handleFieldChange("ucret", e.target.value)}
+                  onBlur={() => markFieldTouched("ucret")}
                   placeholder="40.000,00 TL"
+                  aria-describedby="sozlesme-ucret-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="sozlesme-ucret-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "ucret", formData.ucret, {
+                    isTouched: touchedFields.ucret,
+                  })}
                 />
               </div>
 
@@ -607,8 +647,16 @@ export function SozlesmeStudio({
                   id={getFieldId("sozlesme_tarihi")}
                   value={formData.sozlesme_tarihi || ""}
                   onChange={(e) => handleFieldChange("sozlesme_tarihi", e.target.value)}
+                  onBlur={() => markFieldTouched("sozlesme_tarihi")}
                   placeholder="01.05.2026"
+                  aria-describedby="sozlesme-sozlesme_tarihi-guidance"
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs font-mono text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                />
+                <BelgeFieldGuidanceView
+                  id="sozlesme-sozlesme_tarihi-guidance"
+                  guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "sozlesme_tarihi", formData.sozlesme_tarihi, {
+                    isTouched: touchedFields.sozlesme_tarihi,
+                  })}
                 />
               </div>
             </div>
