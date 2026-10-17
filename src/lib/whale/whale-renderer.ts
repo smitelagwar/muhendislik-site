@@ -1,18 +1,20 @@
 import type { Point2D, ProjectedPoint, WhaleFlipper, WhaleMesh, WhaleThemePalette } from "./whale-types";
 
 export const LIGHT_WHALE_PALETTE: WhaleThemePalette = {
-  primaryLine: "rgba(42, 68, 81, 0.48)", secondaryLine: "rgba(61, 91, 104, 0.17)",
+  primaryLine: "rgba(28, 56, 69, 0.60)", secondaryLine: "rgba(61, 91, 104, 0.15)",
   backfaceLine: "rgba(80, 110, 124, 0.07)", accentLine: "rgba(162, 111, 43, 0.56)",
   washFill: "rgba(74, 116, 132, 0.035)", markerColor: "rgba(98, 111, 117, 0.52)",
-  flipperWhiteUnderside: "rgba(105, 142, 155, 0.055)", surfaceRgb: "55, 108, 128",
+  flipperWhiteUnderside: "rgba(206, 219, 219, 0.92)", surfaceRgb: "153, 181, 190",
   highlightLine: "rgba(37, 76, 92, 0.66)",
+  skinShadow: "#3c5865", skinLight: "#9bb2b7", belly: "#dce4df",
 };
 export const DARK_WHALE_PALETTE: WhaleThemePalette = {
   primaryLine: "rgba(131, 211, 231, 0.55)", secondaryLine: "rgba(92, 182, 209, 0.18)",
   backfaceLine: "rgba(74, 157, 186, 0.075)", accentLine: "rgba(222, 181, 111, 0.64)",
   washFill: "rgba(89, 184, 210, 0.035)", markerColor: "rgba(132, 184, 195, 0.55)",
-  flipperWhiteUnderside: "rgba(172, 222, 226, 0.075)", surfaceRgb: "104, 197, 220",
+  flipperWhiteUnderside: "rgba(148, 186, 195, 0.92)", surfaceRgb: "131, 189, 206",
   highlightLine: "rgba(190, 235, 239, 0.76)",
+  skinShadow: "#18333e", skinLight: "#668d9b", belly: "#abc6ca",
 };
 
 /** Açık ve kapalı eğriler aynı C1 sürekli çizim dilini kullanır. */
@@ -76,10 +78,17 @@ function fin(ctx: CanvasRenderingContext2D, flipper: WhaleFlipper, palette: Whal
   smoothPath(ctx, outline, true);
   ctx.fillStyle = palette.flipperWhiteUnderside;
   ctx.fill();
+  ctx.save();
+  smoothPath(ctx, outline, true); ctx.clip();
+  const root = flipper.leadingEdge[0], tip = flipper.leadingEdge.at(-1)!;
+  const shade = ctx.createLinearGradient(root.x, root.y, tip.x, tip.y);
+  shade.addColorStop(0, palette.skinShadow); shade.addColorStop(0.35, "transparent");
+  shade.addColorStop(0.82, "transparent"); shade.addColorStop(1, palette.skinLight);
+  ctx.fillStyle = shade; ctx.fill();
+  ctx.restore();
   stroke(ctx, outline, palette.primaryLine, near ? 1.15 : 0.8, true);
   stroke(ctx, flipper.leadingEdge, palette.accentLine, near ? 1.25 : 0.8);
-  for (const spar of flipper.internalSpars) stroke(ctx, spar, palette.secondaryLine, 0.6);
-  for (const section of flipper.sections) stroke(ctx, section, palette.secondaryLine, 0.45);
+  for (const spar of flipper.internalSpars) stroke(ctx, spar, palette.secondaryLine, 0.7);
   ctx.save();
   ctx.globalAlpha *= 0.5;
   for (const line of flipper.etching) stroke(ctx, line, palette.primaryLine, 0.45);
@@ -92,16 +101,37 @@ function fin(ctx: CanvasRenderingContext2D, flipper: WhaleFlipper, palette: Whal
 }
 
 function body(ctx: CanvasRenderingContext2D, mesh: WhaleMesh, p: WhaleThemePalette, small: boolean) {
+  const shoulder = mesh.spine[Math.round(mesh.spine.length * 0.28)];
+  const waist = mesh.spine[Math.round(mesh.spine.length * 0.5)];
+  const length = Math.hypot(waist.x - shoulder.x, waist.y - shoulder.y) || 1;
+  const nx = -(waist.y - shoulder.y) / length, ny = (waist.x - shoulder.x) / length;
+  const radius = Math.max(8, ...mesh.ribs[Math.round(mesh.ribs.length * 0.28)].points.map(v => Math.abs((v.x - shoulder.x) * nx + (v.y - shoulder.y) * ny)));
+  const shade = ctx.createLinearGradient(shoulder.x - nx * radius, shoulder.y - ny * radius,
+    shoulder.x + nx * radius, shoulder.y + ny * radius);
+  shade.addColorStop(0, p.skinShadow); shade.addColorStop(0.38, p.skinLight);
+  shade.addColorStop(1, p.skinShadow);
   smoothPath(ctx, mesh.silhouettePolygon, true);
-  ctx.fillStyle = p.washFill;
+  ctx.fillStyle = shade;
   ctx.fill();
-  // Tek dolgu yerine yüzey normallerinden aydınlanan ince hacim katmanları.
+  ctx.save();
+  smoothPath(ctx, mesh.silhouettePolygon, true); ctx.clip();
+  // Normale bağlı hacim, açık karın ve kenar ışığı; ağ çizgisi yerine deri yüzeyi.
   for (const patch of mesh.surface) {
     ctx.beginPath();
     patch.points.forEach((v, i) => i ? ctx.lineTo(v.x, v.y) : ctx.moveTo(v.x, v.y));
     ctx.closePath();
-    ctx.fillStyle = `rgba(${p.surfaceRgb}, ${0.023 + patch.light * 0.080})`;
+    ctx.fillStyle = `rgba(${p.surfaceRgb}, ${patch.light * 0.20})`;
     ctx.fill();
+    if (patch.ventral > 0.05) {
+      ctx.save(); ctx.globalAlpha *= patch.ventral * 0.50;
+      ctx.fillStyle = p.belly; ctx.fill(); ctx.restore();
+    }
+  }
+  for (const mark of mesh.skinMarks) {
+    if ((mark.points[0].visibility ?? 0) < 0.1) continue;
+    ctx.save(); ctx.globalAlpha *= mark.opacity;
+    smoothPath(ctx, mark.points, true);
+    ctx.fillStyle = mark.light ? p.belly : p.skinShadow; ctx.fill(); ctx.restore();
   }
   for (const mark of mesh.etching) {
     ctx.save();
@@ -109,24 +139,13 @@ function body(ctx: CanvasRenderingContext2D, mesh: WhaleMesh, p: WhaleThemePalet
     surfaceLine(ctx, mark.points, p.primaryLine, 0.5);
     ctx.restore();
   }
-  // Seyrek arka istasyonlar, yoğunluğu artırmadan teknik derinlik verir.
-  ctx.save();
-  ctx.setLineDash([2, 5]);
-  for (let i = 4; i < mesh.ribs.length - 2; i += 8) stroke(ctx, mesh.ribs[i].points, p.backfaceLine, 0.5, true);
-  ctx.restore();
-  mesh.streamlines.forEach((line, i) => {
-    if (small && i % 2) return;
-    surfaceLine(ctx, line, i % 5 === 0 ? p.primaryLine : p.secondaryLine, i % 5 === 0 ? 0.65 : 0.4);
-  });
-  mesh.ribs.forEach((rib, i) => {
-    if (i < 2 || (small && i % 2)) return;
-    surfaceLine(ctx, rib.points, i % 7 === 0 ? p.primaryLine : p.secondaryLine, i % 7 === 0 ? 0.65 : 0.4, true);
-  });
+  // Teknik görünüm doğal oluk ve gravürle korunur; derinin üstünde tel kafes çizilmez.
   mesh.ventralPleats.forEach((line, i) => {
     if (small && i % 2) return;
-    surfaceLine(ctx, line, i % 6 === 0 ? p.accentLine : p.primaryLine, i % 6 === 0 ? 0.9 : 0.65);
-    surfaceLine(ctx, mesh.pleatHighlights[i], p.secondaryLine, 0.4);
+    surfaceLine(ctx, line, p.primaryLine, 1.1);
+    surfaceLine(ctx, mesh.pleatHighlights[i], p.belly, 0.6);
   });
+  ctx.restore();
   ctx.save();
   ctx.globalAlpha *= 0.18;
   stroke(ctx, mesh.silhouettePolygon, p.highlightLine, 3.2, true);
@@ -141,7 +160,10 @@ function body(ctx: CanvasRenderingContext2D, mesh: WhaleMesh, p: WhaleThemePalet
   ctx.fillStyle = p.highlightLine;
   for (const eye of mesh.eyes) {
     if ((eye.visibility ?? 0) < 0) continue;
-    ctx.beginPath(); ctx.arc(eye.x, eye.y, Math.max(0.9, 1.55 * eye.scale), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.skinShadow;
+    ctx.beginPath(); ctx.arc(eye.x, eye.y, Math.max(1.2, 2.4 * eye.scale), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = p.belly;
+    ctx.beginPath(); ctx.arc(eye.x - eye.scale * 0.55, eye.y - eye.scale * 0.55, Math.max(0.5, 0.75 * eye.scale), 0, Math.PI * 2); ctx.fill();
     ctx.save();
     ctx.globalAlpha *= 0.6;
     ctx.strokeStyle = p.accentLine; ctx.lineWidth = 0.55;
@@ -179,7 +201,10 @@ export function renderWhaleFrame(ctx: CanvasRenderingContext2D, mesh: WhaleMesh,
   for (const f of fins) if (f.depth > mesh.depth) fin(ctx, f, palette, false);
   const drawTail = () => {
     smoothPath(ctx, mesh.flukes.outline, true);
-    ctx.fillStyle = palette.flipperWhiteUnderside; ctx.fill();
+    const tailShade = ctx.createLinearGradient(mesh.flukes.tips[0].x, mesh.flukes.tips[0].y, mesh.flukes.tips[1].x, mesh.flukes.tips[1].y);
+    tailShade.addColorStop(0, palette.skinShadow); tailShade.addColorStop(0.3, palette.skinLight);
+    tailShade.addColorStop(0.5, palette.skinShadow); tailShade.addColorStop(0.7, palette.skinLight); tailShade.addColorStop(1, palette.skinShadow);
+    ctx.fillStyle = tailShade; ctx.fill();
     stroke(ctx, mesh.flukes.outline, palette.primaryLine, 1.2, true);
     mesh.flukes.ribLines.forEach(line => stroke(ctx, line, palette.secondaryLine, 0.6));
     mesh.flukes.contours.forEach(line => stroke(ctx, line, palette.secondaryLine, 0.45));
@@ -192,26 +217,10 @@ export function renderWhaleFrame(ctx: CanvasRenderingContext2D, mesh: WhaleMesh,
   ctx.restore();
   body(ctx, mesh, palette, small);
   smoothPath(ctx, mesh.dorsalFin.outline, true);
-  ctx.fillStyle = palette.flipperWhiteUnderside; ctx.fill();
+  ctx.fillStyle = palette.skinShadow; ctx.fill();
   stroke(ctx, mesh.dorsalFin.outline, palette.primaryLine, 1, true);
   if (mesh.flukes.depth <= mesh.depth) drawTail();
   for (const f of fins) if (f.depth <= mesh.depth) fin(ctx, f, palette, true);
 
-  // Küçük ekranda anatomiye yer bırakılır; masaüstünde iki hafif gravür notu.
-  if (!small) {
-    ctx.save();
-    ctx.globalAlpha *= 0.65;
-    ctx.font = "8px ui-monospace, monospace";
-    ctx.fillStyle = palette.markerColor;
-    for (const i of [0, 3]) {
-      const m = mesh.technicalMarkers[i];
-      const offset = i === 0 ? -44 : 46;
-      const end = { x: Math.max(18, Math.min(width - 170, m.pos.x + 32)), y: Math.max(24, Math.min(height - 20, m.pos.y + offset)) };
-      stroke(ctx, [m.pos, { x: end.x - 8, y: end.y }, { x: end.x + 20, y: end.y }], palette.markerColor, 0.55);
-      ctx.fillText(m.label, end.x + 24, end.y + 3);
-      ctx.beginPath(); ctx.arc(m.pos.x, m.pos.y, 2.2, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.restore();
-  }
   ctx.restore();
 }

@@ -117,6 +117,8 @@ function DocumentCard({
       id={document.id}
       onMouseMove={handleCardPointerMove}
       onMouseLeave={handleCardPointerLeave}
+      data-whale-card
+      data-whale-protect
       className="group relative flex min-h-full flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white/75 p-6 shadow-md backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl dark:hover:border-white/20 sm:p-7"
       style={{
         boxShadow: "0 20px 50px -15px rgba(0,0,0,0.06), inset 0 1px 1px rgba(255,255,255,0.8)",
@@ -250,7 +252,7 @@ export function BelgelerHub() {
       <AmbientWhaleCanvas enabled={isWhaleEnabled} />
 
       <div className="relative z-10 mx-auto max-w-[1440px] px-5 pt-6 sm:px-8 sm:pt-8 lg:px-12 xl:px-16">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div data-whale-protect className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
             <p className="mt-1 text-sm text-muted-foreground">Doldurulabilir PDF belgelerini arayın ve önizleyin.</p>
@@ -294,7 +296,7 @@ export function BelgelerHub() {
         </div>
       </div>
       <div className="relative z-10 mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
-        <div className="relative">
+        <div data-whale-protect className="relative">
           <label htmlFor={searchInputId} className="sr-only">
             Belge veya şablon ara
           </label>

@@ -14,6 +14,36 @@ async function canvasPixels(page: Page) {
 }
 
 test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", () => {
+  test("İki balina boş yan alanlarda görünürken kartların içi temiz kalmalıdır", async ({ page }) => {
+    test.skip(test.info().project.name !== "chromium-desktop-1920", "Geniş ekranın iki boş koridoru sınanır");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await expect.poll(async () => (await canvasPixels(page)).ink).toBeGreaterThan(1000);
+    const regions = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="ambient-whale"] canvas')!;
+      const bounds = canvas.getBoundingClientRect(), dpr = canvas.width / bounds.width;
+      const ctx = canvas.getContext("2d")!;
+      const cards = [...document.querySelectorAll("[data-whale-card]")].map(el => el.getBoundingClientRect());
+      const sample = (x: number, y: number, w: number, h: number) => {
+        const bytes = ctx.getImageData(Math.round(x * dpr), Math.round(y * dpr), Math.round(w * dpr), Math.round(h * dpr)).data;
+        let ink = 0, max = 0;
+        for (let i = 3; i < bytes.length; i += 4) { if (bytes[i] > 25) ink++; max = Math.max(max, bytes[i]); }
+        return { ink, max };
+      };
+      return {
+        left: sample(0, 100, cards[0].left - 12, bounds.height - 100),
+        right: sample(cards[2].right + 12, 100, bounds.width - cards[2].right - 12, bounds.height - 100),
+        protected: sample(cards[0].left + 30, cards[0].top + 30, cards[0].width - 60, cards[0].height - 60),
+      };
+    });
+    expect(regions.left.ink).toBeGreaterThan(2000);
+    expect(regions.right.ink).toBeGreaterThan(1000);
+    expect(regions.protected.max).toBeLessThanOrEqual(12);
+    await page.getByRole("searchbox", { name: "Belge veya şablon ara" }).fill("Beton Döküm");
+    await expect(page.getByRole("status")).toHaveText("1 belge bulundu.");
+    await expect(page.getByRole("link", { name: /stüdyoda doldur/i })).toHaveCount(1);
+  });
+
   test("Canvas arkaplanda otonom render olmalı ve buton ile açılıp kapatılabilmelidir", async ({ page }) => {
     test.skip(!!test.info().project.use.isMobile || (page.viewportSize()?.width ?? 0) < 768, "Balina yalnız masaüstünde bulunur");
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });

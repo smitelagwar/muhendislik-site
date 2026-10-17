@@ -65,7 +65,31 @@ export interface WhaleDorsalFin {
 export interface WhaleSurfacePatch {
   points: ProjectedPoint[];
   light: number;
+  ventral: number;
   depth: number;
+}
+
+export interface WhaleSkinMark {
+  points: ProjectedPoint[];
+  light: boolean;
+  opacity: number;
+}
+
+export interface WhaleSceneLayout {
+  left: number;
+  right: number;
+  top: number;
+  opening: Point2D;
+}
+
+export interface WhaleMotion {
+  pos: Vector3;
+  tangent: Vector3;
+  bankAngle: number;
+  bend: number;
+  phase: number;
+  tailPitch: number;
+  effort: number;
 }
 
 export interface WhaleFeatureLine {
@@ -109,6 +133,7 @@ export interface WhaleMesh {
   stipples: ProjectedPoint[];
   nodules: WhaleNodule[];
   etching: WhaleEtching[];
+  skinMarks: WhaleSkinMark[];
   depth: number;
 }
 
@@ -122,6 +147,9 @@ export interface WhaleThemePalette {
   flipperWhiteUnderside: string; // Faint luminous fill for Megaptera flipper underside
   surfaceRgb: string;
   highlightLine: string;
+  skinShadow: string;
+  skinLight: string;
+  belly: string;
 }
 
 export interface WhaleConfig {
@@ -129,4 +157,7 @@ export interface WhaleConfig {
   swimSpeed: number;        // Undulation frequency (Hz)
   loopPeriod: number;       // Viewport 3D orbit period in seconds
   cameraFocalLength: number;
+  actor?: 0 | 1;
+  layout?: WhaleSceneLayout;
+  detail?: "full" | "distant";
 }

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { generateWhaleMesh } from "@/lib/whale/whale-math";
+import { defaultWhaleLayout, sampleWhaleMotion } from "@/lib/whale/whale-motion";
 import { DARK_WHALE_PALETTE, LIGHT_WHALE_PALETTE, renderWhaleFrame } from "@/lib/whale/whale-renderer";
-import type { WhaleConfig } from "@/lib/whale/whale-types";
+import type { WhaleConfig, WhaleSceneLayout } from "@/lib/whale/whale-types";
 
 interface AmbientWhaleCanvasProps { enabled?: boolean; className?: string }
 
@@ -19,6 +20,10 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
     if (!canvas || !container) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
+    // Her birey ayrı yüzeyde tamamlanır; anatomik örtüşme diğer balinayı silemez.
+    const layer = document.createElement("canvas");
+    const layerCtx = layer.getContext("2d", { alpha: true });
+    if (!layerCtx) return;
 
     let raf: number | null = null;
     let lastTimestamp = 0;
@@ -26,18 +31,49 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
     let averageDrawCost = 0;
     let frameRate = 60;
     let width = 1, height = 1;
+    let layout: WhaleSceneLayout = defaultWhaleLayout(width, height);
+    let targetLayout = layout;
+    let panels: DOMRect[] = [];
     let isDark = document.documentElement.classList.contains("dark");
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     let reducedMotion = media.matches;
-    const getConfig = (): WhaleConfig => ({
-      length: Math.min(width * 0.78, height * 1.05, 1060),
-      swimSpeed: 0.135, loopPeriod: 76, cameraFocalLength: 1200,
+    const getConfig = (actor: 0 | 1): WhaleConfig => ({
+      length: Math.min(width * 0.80, height * 1.17, 1220) * (actor ? 0.88 : 1),
+      swimSpeed: actor ? 0.145 : 0.17, loopPeriod: 112, cameraFocalLength: 1500,
+      actor, layout,
     });
     const paint = (staticPose = false) => {
       ctx.clearRect(0, 0, width, height);
       if (opacity <= 0) return;
-      const mesh = generateWhaleMesh(staticPose ? 3 : simTimeRef.current, width, height, getConfig());
-      renderWhaleFrame(ctx, mesh, isDark ? DARK_WHALE_PALETTE : LIGHT_WHALE_PALETTE, width, height, opacity);
+      const time = staticPose ? 0 : simTimeRef.current;
+      const actors = ([0, 1] as const).map(actor => {
+        const config = getConfig(actor);
+        return { config, motion: sampleWhaleMotion(time, width, height, config) };
+      }).sort((a, b) => b.motion.pos.z - a.motion.pos.z);
+      for (const { config, motion } of actors) {
+        const distance = Math.max(0, Math.min(1, (motion.pos.z + 180) / 1100));
+        config.detail = distance > 0.62 ? "distant" : "full";
+        const mesh = generateWhaleMesh(time, width, height, config);
+        const bounds = [...mesh.silhouettePolygon, ...mesh.flukes.outline,
+          ...mesh.leftFlipper.leadingEdge, ...mesh.rightFlipper.leadingEdge];
+        if (bounds.every(p => p.x < -8) || bounds.every(p => p.x > width + 8)
+          || bounds.every(p => p.y < -8) || bounds.every(p => p.y > height + 8)) continue;
+        layerCtx.clearRect(0, 0, width, height);
+        renderWhaleFrame(layerCtx, mesh, isDark ? DARK_WHALE_PALETTE : LIGHT_WHALE_PALETTE, width, height);
+        ctx.save();
+        ctx.globalAlpha = opacity * (isDark ? 0.78 - distance * 0.48 : 0.62 - distance * 0.40);
+        if (distance > 0.45) ctx.filter = `blur(${((distance - 0.45) * 1.5).toFixed(2)}px)`;
+        ctx.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, width, height);
+        ctx.restore();
+      }
+      // Yazılar ve düğmelerin altındaki şekil bastırılır; boş koridorlar net kalır.
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.globalAlpha = 0.96;
+      for (const panel of panels) {
+        ctx.beginPath(); ctx.roundRect(panel.x, panel.y, panel.width, panel.height, 24); ctx.fill();
+      }
+      ctx.restore();
     };
     const stop = () => {
       if (raf !== null) cancelAnimationFrame(raf);
@@ -55,6 +91,11 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
         lastTimestamp = timestamp;
         opacity = Math.max(0, Math.min(1, opacity + (enabledRef.current ? 1 : -1) * delta / 0.3));
         simTimeRef.current += delta;
+        const follow = 1 - Math.exp(-delta * 1.8);
+        const approach = (a: number, b: number) => a + (b - a) * follow;
+        layout = { left: approach(layout.left, targetLayout.left), right: approach(layout.right, targetLayout.right),
+          top: approach(layout.top, targetLayout.top), opening: {
+            x: approach(layout.opening.x, targetLayout.opening.x), y: approach(layout.opening.y, targetLayout.opening.y) } };
         const paintStart = performance.now();
         paint();
         averageDrawCost = averageDrawCost * 0.92 + (performance.now() - paintStart) * 0.08;
@@ -75,14 +116,38 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
         raf = requestAnimationFrame(animate);
       }
     };
+    const measure = () => {
+      const fallback = defaultWhaleLayout(width, height);
+      const root = container.closest("section");
+      const cards = Array.from(root?.querySelectorAll("[data-whale-card]") ?? []).map(el => el.getBoundingClientRect());
+      panels = Array.from(root?.querySelectorAll("[data-whale-protect]") ?? []).map(el => el.getBoundingClientRect());
+      if (cards.length) {
+        const left = Math.min(...cards.map(r => r.left));
+        const right = Math.max(...cards.map(r => r.right));
+        const last = cards.at(-1)!;
+        const missingCell = right - last.right > last.width * 0.8;
+        targetLayout = { left: Math.max(35, left * 0.54), right: width - Math.max(35, (width - right) * 0.54),
+          top: fallback.top, opening: missingCell
+            ? { x: (last.right + right) / 2, y: Math.min(height * 0.86, Math.max(height * 0.64, last.y + last.height * 0.55)) }
+            : fallback.opening };
+      } else targetLayout = fallback;
+    };
     const resize = () => {
       width = Math.max(1, container.clientWidth);
       height = Math.max(1, container.clientHeight);
       const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
+      layer.width = canvas.width; layer.height = canvas.height;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      layerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      measure();
+      layout = targetLayout;
       paint(reducedMotion);
+    };
+    const layoutChange = () => {
+      measure();
+      if (reducedMotion && !document.hidden) { layout = targetLayout; paint(true); }
     };
     const motionChange = (event: MediaQueryListEvent) => { reducedMotion = event.matches; sync(); };
     const themeObserver = new MutationObserver(() => {
@@ -90,21 +155,27 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
       if (!document.hidden) paint(reducedMotion);
     });
     const resizeObserver = new ResizeObserver(resize);
+    const contentObserver = new MutationObserver(layoutChange);
     resize();
     resizeObserver.observe(container);
+    const section = container.closest("section");
+    if (section) { contentObserver.observe(section, { childList: true, subtree: true }); resizeObserver.observe(section); }
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     media.addEventListener("change", motionChange);
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("resize", resize);
+    window.addEventListener("scroll", layoutChange, { passive: true });
     syncRef.current = sync;
     sync();
     return () => {
       stop();
       syncRef.current = () => {};
-      resizeObserver.disconnect(); themeObserver.disconnect();
+      resizeObserver.disconnect(); themeObserver.disconnect(); contentObserver.disconnect();
       media.removeEventListener("change", motionChange);
       document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", layoutChange);
+      layer.width = 0; layer.height = 0;
     };
   }, []);
 

@@ -9,6 +9,7 @@ import {
   vec3,
 } from "../../src/lib/whale/whale-math";
 import type { WhaleConfig } from "../../src/lib/whale/whale-types";
+import { sampleWhaleMotion } from "../../src/lib/whale/whale-motion";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -65,7 +66,7 @@ function runTests() {
       assert(Number.isFinite(pos.x) && Number.isFinite(pos.y) && Number.isFinite(pos.z), `Trajectory pos finite at t=${t}`);
       const tLen = vLen(tangent);
       assert(Math.abs(tLen - 1.0) < 0.05, `Trajectory tangent must be unit length (got ${tLen}) at t=${t}`);
-      assert(Math.abs(bankAngle) <= 0.8, `Bank angle must stay within a gentle bank at t=${t}`);
+      assert(Math.abs(bankAngle) <= 1.2, `Bank angle must stay within a controlled turn at t=${t}`);
     }
     console.log("  ✓ 3D viewport trajectory loop verified");
   }
@@ -161,53 +162,65 @@ function runTests() {
     console.log("  ✓ Sürekli anatomi, kapalı yüzgeçler ve baş detayları doğrulandı");
   }
 
-  // Kadraj sınaması yalnız başı değil tüm gövdeyi, kanatları ve kuyruğu kapsar.
+  // İki bağımsız rota boşluklara yayılır, derinlik değiştirir ve kadrajdan çıkar.
   {
-    for (const [w, h] of [[320, 720], [390, 844], [768, 1024], [1366, 768], [1920, 1080], [844, 390]]) {
-      const config = { length: Math.min(w * 0.78, h * 1.05, 1060), swimSpeed: 0.135, loopPeriod: 76, cameraFocalLength: 1200 };
-      for (let t = 0; t < 76; t += 2) {
-        const mesh = generateWhaleMesh(t, w, h, config);
-        const points = [...mesh.ribs.flatMap(r => r.points), ...mesh.flukes.outline,
-          ...mesh.leftFlipper.leadingEdge, ...mesh.leftFlipper.trailingEdge,
-          ...mesh.rightFlipper.leadingEdge, ...mesh.rightFlipper.trailingEdge, ...mesh.dorsalFin.outline];
-        assert(points.every(p => p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h), `${w}×${h}, t=${t}: bütün anatomi kadrajda kalmalı`);
-        const next = generateWhaleMesh(t + 0.001, w, h, config);
-        assert(Math.hypot(next.spine[0].x - mesh.spine[0].x, next.spine[0].y - mesh.spine[0].y) < 1,
-          `${w}×${h}, t=${t}: yüzüş kesintisiz olmalı`);
+    for (const [w, h] of [[768, 1024], [1024, 768], [1366, 768], [1920, 1080], [2560, 1400]]) {
+      for (const actor of [0, 1] as const) {
+        const config: WhaleConfig = { length: Math.min(w * 0.8, h * 1.17, 1220) * (actor ? 0.88 : 1),
+          swimSpeed: actor ? 0.145 : 0.17, loopPeriod: 112, cameraFocalLength: 1500, actor };
+        const period = config.loopPeriod * (actor ? 1.19 : 1);
+        let near = Infinity, far = -Infinity, left = false, right = false, margins = 0;
+        for (let t = 0; t < period; t += 2) {
+          const motion = sampleWhaleMotion(t, w, h, config);
+          near = Math.min(near, motion.pos.z); far = Math.max(far, motion.pos.z);
+          const mesh = generateWhaleMesh(t, w, h, config);
+          const points = [...mesh.ribs.flatMap(r => r.points), ...mesh.flukes.outline,
+            ...mesh.leftFlipper.leadingEdge, ...mesh.leftFlipper.trailingEdge,
+            ...mesh.rightFlipper.leadingEdge, ...mesh.rightFlipper.trailingEdge, ...mesh.dorsalFin.outline];
+          assert(points.every(p => Number.isFinite(p.x) && Number.isFinite(p.y) && p.scale > 0 && p.scale < 4),
+            `${w}×${h}, t=${t}: yakın planda kamera veya geometri patlamamalı`);
+          left ||= points.every(p => p.x < 0);
+          right ||= points.every(p => p.x > w);
+          if (points.some(p => (p.x > 0 && p.x < w * 0.15 || p.x > w * 0.85 && p.x < w) && p.y > h * 0.15 && p.y < h)) margins++;
+          const next = generateWhaleMesh(t + 0.001, w, h, config);
+          assert(Math.hypot(next.spine[0].x - mesh.spine[0].x, next.spine[0].y - mesh.spine[0].y) < 2,
+            `${w}×${h}, t=${t}: görünür yüzüş kesintisiz olmalı`);
+        }
+        assert(left && right, `${actor}: bütün anatomi her iki yandan da kadraj dışına çıkmalı`);
+        assert(margins >= 12, `${actor}: boş yan koridorlarda uzun süre görünmeli`);
+        assert((1500 + far) / (1500 + near) > 1.55, `${actor}: yaklaşma ve uzaklaşma belirgin perspektif farkı üretmeli`);
+        // Koordinat sarılması sadece bütün gövde görünmezken yapılabilir.
+        const wrap = period * (1 - (actor ? 0.28 : 0.23));
+        for (const time of [wrap - 0.001, wrap + 0.001]) {
+          const mesh = generateWhaleMesh(time, w, h, config);
+          const points = [...mesh.silhouettePolygon, ...mesh.flukes.outline, ...mesh.leftFlipper.leadingEdge, ...mesh.rightFlipper.leadingEdge];
+          assert(points.every(p => p.x < -20) || points.every(p => p.x > w + 20), "Yeniden giriş ekranda ışınlanma üretmemeli");
+        }
       }
     }
-    console.log("  ✓ Tam yüzüş turunda tüm anatomi ve hareket sürekliliği doğrulandı");
+    console.log("  ✓ İki rota, boş koridorlar, perspektif ve görünmez kadraj sarılması doğrulandı");
   }
 
-  // 6. Mobile 320px & Multi-Viewport Trajectory Framing Test
+  // Esneme, gövde boyunu değiştirmeden omurganın gerisine yayılmalıdır.
   {
-    const viewports = [
-      { w: 320, h: 568, name: "Mobile 320px" },
-      { w: 390, h: 844, name: "Mobile 390px" },
-      { w: 768, h: 1024, name: "Tablet 768px" },
-      { w: 1440, h: 900, name: "Desktop 1440px" },
-    ];
-
-    for (const vp of viewports) {
-      for (let t = 0; t <= 54; t += 3) {
-        const { pos } = computeTrajectoryPosition(t, vp.w, vp.h, 54);
-        const focal = 850;
-        const scale = focal / (pos.z + focal);
-        const xScreen = vp.w * 0.5 + pos.x * scale;
-        const yScreen = vp.h * 0.5 + pos.y * scale;
-
-        // Ensure trajectory head remains framed within viewport bounds with gentle margin
-        assert(
-          xScreen >= -vp.w * 0.25 && xScreen <= vp.w * 1.25,
-          `${vp.name} trajectory x (${xScreen.toFixed(1)}) must stay within reasonable viewport margin at t=${t}`
-        );
-        assert(
-          yScreen >= -vp.h * 0.25 && yScreen <= vp.h * 1.25,
-          `${vp.name} trajectory y (${yScreen.toFixed(1)}) must stay within reasonable viewport margin at t=${t}`
-        );
+    const config: WhaleConfig = { length: 1100, swimSpeed: 0.17, loopPeriod: 112, cameraFocalLength: 1500 };
+    let minBend = 1, maxBend = -1;
+    for (let time = 0; time < 14; time += 0.25) {
+      const nodes = computeSpineNodes(time, 1920, 1080, config, 64);
+      let length = 0;
+      for (let i = 1; i < nodes.length; i++) {
+        const a = nodes[i].pos, b = nodes[i - 1].pos;
+        length += Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
       }
+      assert(Math.abs(length - config.length) < 0.001, "Yüzüşte omurga uzayıp kısalmamalı");
+      const bend = vDot(nodes.at(-1)!.tangent, nodes[0].normal);
+      minBend = Math.min(minBend, bend); maxBend = Math.max(maxBend, bend);
     }
-    console.log("  ✓ Mobile & multi-viewport trajectory framing bounds verified");
+    assert(maxBend - minBend > 0.5, "Kuyruk baştan bağımsız aşağı-yukarı bükülmeli");
+    const a = sampleWhaleMotion(9, 1920, 1080, config);
+    const b = sampleWhaleMotion(9, 1920, 1080, { ...config, actor: 1 });
+    assert(Math.abs(a.phase - b.phase) > 1, "İki bireyin vuruşları aynı fazda olmamalı");
+    console.log("  ✓ Sabit omurga boyu, bağımsız kuyruk vuruşu ve farklı birey ritimleri doğrulandı");
   }
 
   console.log("🎉 ALL Whale Math & Kinematics Tests PASSED successfully!");

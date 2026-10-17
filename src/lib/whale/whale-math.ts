@@ -2,6 +2,7 @@ import type {
   ProjectedPoint, Vector3, WhaleConfig, WhaleFeatureLine, WhaleFlipper,
   WhaleFlukes, WhaleMesh, WhaleRib, WhaleSpineNode, WhaleSurfacePatch, WhaleNodule,
 } from "./whale-types";
+import { sampleWhaleMotion } from "./whale-motion";
 
 export function vec3(x = 0, y = 0, z = 0): Vector3 { return { x, y, z }; }
 export function vAdd(a: Vector3, b: Vector3): Vector3 { return vec3(a.x + b.x, a.y + b.y, a.z + b.z); }
@@ -36,16 +37,12 @@ export function projectPoint(p: Vector3, width: number, height: number, focalLen
   };
 }
 
-/** Yumuşak sekiz rotası: başın yönü hızdan, yatış ise dönüş fazından türetilir. */
+/** Eski çağıranlar için aynı imza; yeni rota kadraj dışında da devam eder. */
 export function computeTrajectoryPosition(timeSec: number, width: number, height: number, period = 72) {
-  const u = timeSec / period * TAU;
-  const xSpan = Math.min(width * 0.19, 270);
-  const ySpan = Math.min(height * 0.12, 110);
-  const at = (r: number) => vec3(-Math.sin(r) * xSpan, -Math.sin(2 * r + 0.55) * ySpan, Math.sin(r + 0.6) * 72);
-  return {
-    pos: at(u), tangent: vNormalize(vSub(at(u + 0.001), at(u - 0.001))),
-    bankAngle: -0.52 + Math.sin(u + 0.4) * 0.22,
-  };
+  return sampleWhaleMotion(timeSec, width, height, {
+    length: Math.min(width * 0.64, height * 1.17, 1240),
+    swimSpeed: 0.16, loopPeriod: period, cameraFocalLength: 1200,
+  });
 }
 
 export interface WhaleSectionDimensions {
@@ -55,7 +52,7 @@ export interface WhaleSectionDimensions {
 
 // Burun, çene, göğüs ve kuyruk bileği aynı sürekli anatomik profili paylaşır.
 const PROFILE = [
-  [0, 0.022, 0.012, 0], [0.025, 0.043, 0.024, 0.002],
+  [0, 0.001, 0.001, 0], [0.025, 0.043, 0.024, 0.002],
   [0.075, 0.070, 0.038, 0.006], [0.15, 0.092, 0.059, 0.012],
   [0.23, 0.103, 0.076, 0.020], [0.32, 0.100, 0.082, 0.023],
   [0.43, 0.084, 0.071, 0.016], [0.56, 0.063, 0.055, 0.006],
@@ -67,6 +64,15 @@ const radiusProfiles = new Map<number, { rx: number; ry: number; ventralBias: nu
 /** Monoton Hermite: kesit birleşimlerinde basamak veya yapay halka oluşturmaz. */
 function profileAt(s: number, column: 1 | 2 | 3): number {
   const t = clamp(s);
+  // Yuvarlak burun kapağı: sıfıra doğrusal daralan koni yerine eliptik kesit.
+  if (t < 0.025 && column !== 3) {
+    const end = PROFILE[1][column], span = PROFILE[1][0];
+    const before = (end - PROFILE[0][column]) / span;
+    const after = (PROFILE[2][column] - end) / (PROFILE[2][0] - span);
+    const slope = 2 * before * after / (before + after);
+    const u = t / span, correction = 0.5 - slope * span / end;
+    return end * Math.sqrt(u) * (1 + correction * (1 - u));
+  }
   let i = 0;
   while (i < PROFILE.length - 2 && t > PROFILE[i + 1][0]) i++;
   const a = PROFILE[i], b = PROFILE[i + 1];
@@ -99,25 +105,32 @@ export function computeRadii(s: number, length: number): WhaleSectionDimensions 
 }
 
 export function computeSpineNodes(timeSec: number, width: number, height: number, config: WhaleConfig, numNodes = 56): WhaleSpineNode[] {
-  const { pos, tangent: forward, bankAngle } = computeTrajectoryPosition(timeSec, width, height, config.loopPeriod);
-  // Ekrana dik referans, dik yüzüşte de kararlı bir çatı sağlar.
-  const up = rotateAroundAxis(vNormalize(vCross(vec3(0, 0, 1), forward)), forward, bankAngle);
+  const motion = sampleWhaleMotion(timeSec, width, height, config);
+  const { pos, tangent: forward, bankAngle, phase, effort, bend } = motion;
+  // Dünya yukarısı sabittir: sağa dönerken sırt aşağıya devrilmez.
+  const worldUp = vNormalize(vec3(0.03, -1, -0.2));
+  const up = rotateAroundAxis(vNormalize(vSub(worldUp, vScale(forward, vDot(worldUp, forward)))), forward, bankAngle);
   const right = vNormalize(vCross(forward, up));
-  const center = vec3(pos.x * 0.65, pos.y * 0.8 + height * 0.04, pos.z);
-  const positionAt = (s: number) => {
-    const envelope = Math.max(0, (s - 0.30) / 0.70) ** 2.4;
-    const phase = TAU * (config.swimSpeed * timeSec - s * 0.82);
-    const heave = Math.sin(phase) * envelope * config.length * 0.068;
-    const arch = Math.sin(s * Math.PI) * config.length * 0.018;
-    return vAdd(center, vAdd(vScale(forward, (0.46 - s) * config.length),
-      vAdd(vScale(up, arch + heave), vScale(right, Math.cos(phase) * envelope * config.length * 0.009))));
+  // Açısal dalga arkaya gecikerek iletilir. Sabit uzunluklu segmentlerin integrali
+  // gövdenin her vuruşta lastik gibi uzamasını engeller; dönüş kuyruğa yayılır.
+  const directionAt = (s: number) => {
+    const envelope = smoothStep(0.18, 1, s);
+    const pitch = Math.sin(phase - s * 2.7) * (0.035 + envelope * 0.44) * effort;
+    const yaw = bend * (s - 0.18) + Math.sin(phase * 0.5 - s * 2) * envelope * 0.055;
+    return vNormalize(vAdd(forward, vAdd(vScale(up, pitch), vScale(right, yaw))));
   };
+  const positions: Vector3[] = [vec3()];
+  const stations = Array.from({ length: numNodes }, (_, i) => (1 - Math.cos(i / (numNodes - 1) * Math.PI)) / 2);
+  for (let i = 1; i < numNodes; i++) {
+    positions.push(vAdd(positions[i - 1], vScale(directionAt((stations[i] + stations[i - 1]) / 2), -config.length * (stations[i] - stations[i - 1]))));
+  }
+  const anchor = positions[stations.findIndex(s => s >= 0.46)];
   const nodes: WhaleSpineNode[] = [];
   let previousNormal = up;
   let previousTangent = forward;
   for (let i = 0; i < numNodes; i++) {
-    const s = i / (numNodes - 1);
-    const tangent = vNormalize(vSub(positionAt(s - 0.0001), positionAt(s + 0.0001)));
+    const s = stations[i];
+    const tangent = directionAt(s);
     // Gerçek paralel taşıma: yüzgeç kökleri ve kuyruk dalga boyunca burkulmaz.
     const axis = vCross(previousTangent, tangent);
     const transported = vLen(axis) > 1e-7
@@ -125,7 +138,7 @@ export function computeSpineNodes(timeSec: number, width: number, height: number
       : previousNormal;
     const binormal = vNormalize(vCross(tangent, transported));
     const normal = vNormalize(vCross(binormal, tangent));
-    nodes.push({ s, pos: positionAt(s), tangent, normal, binormal, ...computeRadii(s, config.length) });
+    nodes.push({ s, pos: vAdd(pos, vSub(positions[i], anchor)), tangent, normal, binormal, ...computeRadii(s, config.length) });
     previousNormal = normal;
     previousTangent = tangent;
   }
@@ -133,21 +146,26 @@ export function computeSpineNodes(timeSec: number, width: number, height: number
 }
 
 export function generateWhaleMesh(timeSec: number, width: number, height: number, config: WhaleConfig): WhaleMesh {
-  const small = width < 1024;
-  const nodes = computeSpineNodes(timeSec, width, height, config, small ? 38 : 56);
+  const small = width < 1024 || config.detail === "distant";
+  const motion = sampleWhaleMotion(timeSec, width, height, config);
+  const nodes = computeSpineNodes(timeSec, width, height, config, small ? 40 : 64);
   const L = config.length;
   const camera = vec3(0, 0, -config.cameraFocalLength);
-  const projectedPoints: ProjectedPoint[] = [];
   const project = (p: Vector3) => {
     const point = projectPoint(p, width, height, config.cameraFocalLength);
-    projectedPoints.push(point);
     return point;
   };
   const frameNodes = new Map<number, WhaleSpineNode>();
   const nodeAt = (s: number): WhaleSpineNode => {
     const cached = frameNodes.get(s);
     if (cached) return cached;
-    const f = clamp(s) * (nodes.length - 1), i = Math.min(Math.floor(f), nodes.length - 2), u = f - i;
+    const position = clamp(s);
+    let low = 0, high = nodes.length - 1;
+    while (high - low > 1) {
+      const middle = (low + high) >> 1;
+      if (nodes[middle].s <= position) low = middle; else high = middle;
+    }
+    const i = low, u = (position - nodes[i].s) / (nodes[i + 1].s - nodes[i].s);
     const a = nodes[i], b = nodes[i + 1];
     const node = { s, pos: vLerp(a.pos, b.pos, u), tangent: vNormalize(vLerp(a.tangent, b.tangent, u)),
       normal: vNormalize(vLerp(a.normal, b.normal, u)), binormal: vNormalize(vLerp(a.binormal, b.binormal, u)),
@@ -170,7 +188,7 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
     return point;
   };
 
-  const ringSteps = small ? 28 : 40;
+  const ringSteps = small ? 28 : 48;
   const ribs: WhaleRib[] = nodes.map(n => ({
     s: n.s, ...computeRadii(n.s, L),
     points: Array.from({ length: ringSteps }, (_, j) => surfacePoint(n.s, j / ringSteps * TAU)),
@@ -184,7 +202,8 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
       const facing = points.reduce((a, p) => a + (p.visibility ?? 0), 0) / 4;
       if (facing < -0.08) continue;
       const light = clamp(0.35 + 0.48 * Math.sin((j + 0.5) / ringSteps * TAU) + 0.25 * facing);
-      surface.push({ points, light, depth: points.reduce((a, p) => a + p.z, 0) / 4 });
+      surface.push({ points, light, ventral: clamp(-Math.sin((j + 0.5) / ringSteps * TAU) * 1.6 - 0.55)
+        * (1 - smoothStep(0.43, 0.74, ribs[i].s)), depth: points.reduce((a, p) => a + p.z, 0) / 4 });
     }
   }
   surface.sort((a, b) => b.depth - a.depth);
@@ -212,7 +231,8 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
   const buildFlipper = (side: "left" | "right"): WhaleFlipper => {
     const sign = side === "left" ? -1 : 1;
     const base = vAdd(attach.pos, vAdd(vScale(attach.binormal, sign * attach.rx * 0.86), vScale(attach.normal, -attach.ry * 0.36)));
-    const flex = Math.sin(timeSec * config.swimSpeed * TAU - sign * 0.6) * 0.07;
+    const flex = Math.sin(motion.phase - sign * 0.8 - 0.7) * 0.11 * motion.effort + sign * motion.bend * 0.10;
+    const feather = Math.sin(motion.phase - 1.3 - sign * 0.7) * 0.32 + sign * motion.bend * 0.3;
     const pointAt = (u: number, chord: number): ProjectedPoint => {
       const curve = vAdd(base, vAdd(vScale(attach.binormal, sign * L * (0.33 * u - 0.045 * u * u)),
         vAdd(vScale(attach.tangent, -L * (0.11 * u + 0.09 * u * u)),
@@ -220,7 +240,8 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
       // Yedi küçük yuvarlak tüberkül; uçta kiriş sıfıra kapanır.
       const bumps = Math.sin(u * 7 * Math.PI) ** 8 * Math.sin(u * Math.PI) * L * 0.004;
       const halfChord = L * (0.027 * (1 - u) ** 0.65 + 0.018 * Math.sin(u * Math.PI));
-      return project(vAdd(curve, vScale(attach.tangent, halfChord * chord + (chord > 0 ? bumps : 0))));
+      const chordDirection = rotateAroundAxis(attach.tangent, attach.binormal, feather * u);
+      return project(vAdd(curve, vScale(chordDirection, halfChord * chord + (chord > 0 ? bumps : 0))));
     };
     const steps = 42;
     const leadingEdge = Array.from({ length: steps + 1 }, (_, i) => pointAt(i / steps, 1));
@@ -242,8 +263,11 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
   };
 
   const tail = nodeAt(1);
+  const flukeAxis = rotateAroundAxis(tail.tangent, tail.binormal, motion.tailPitch);
+  const flukeNormal = vNormalize(vCross(tail.binormal, flukeAxis));
   const tailPoint = (lateral: number, axial: number, cup = 0) => project(vAdd(tail.pos,
-    vAdd(vScale(tail.binormal, lateral * L), vAdd(vScale(tail.tangent, axial * L), vScale(tail.normal, cup * L)))));
+    vAdd(vScale(tail.binormal, lateral * L), vAdd(vScale(flukeAxis, axial * L),
+      vScale(flukeNormal, (cup + Math.sin(motion.phase - 2.1) * lateral * lateral * 0.19) * L)))));
   const flukeOutline: ProjectedPoint[] = [];
   const flukeRibs: ProjectedPoint[][] = [];
   // Lobların ön ve arka kenarları birleşir; ortadaki V gerçek bir yüzey çentiğidir.
@@ -335,10 +359,10 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
       surfacePoint(0.25 + (i * 0.047) % 0.39 + j * 0.0018, 0.4 + i * 1.9 + j * 0.03, 0.5)) });
   }
   // Sabit gravür noktaları her karede aynı yüzeyde kalır, titreşmez.
-  const stipples = Array.from({ length: small ? 180 : 780 }, (_, i) =>
+  const stipples = Array.from({ length: small ? 200 : 1080 }, (_, i) =>
     surfacePoint(0.025 + seeded(i) * 0.82, i * 2.399963, 0.6));
   // Tarama kılavuzları yüzey koordinatlarına bağlıdır; yüzüşte deriyle birlikte bükülür.
-  const etching = Array.from({ length: small ? 60 : 380 }, (_, i) => {
+  const etching = Array.from({ length: small ? 60 : 420 }, (_, i) => {
     const s = 0.045 + seeded(i + 800) * 0.84;
     const theta = i * 2.399963;
     const span = 0.008 + seeded(i + 900) * 0.017;
@@ -348,8 +372,19 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
         return surfacePoint(s + u * span, theta + u * 0.08 + Math.sin(u * Math.PI) * 0.025, 0.6);
       }) };
   });
+  // Bireye özgü pigment adaları: yüzeyle birlikte hareket eden düzensiz deri lekeleri.
+  const skinMarks = Array.from({ length: small ? 65 : 220 }, (_, i) => {
+    const seed = i + (config.actor ?? 0) * 193;
+    const s = 0.035 + seeded(seed + 1400) * 0.84, theta = seed * 2.399963;
+    const radius = 0.001 + seeded(seed + 1700) * 0.004;
+    return { light: i % 4 !== 0, opacity: 0.05 + seeded(seed + 1800) * 0.16,
+      points: Array.from({ length: 9 }, (_, j) => {
+        const a = j / 8 * TAU, irregular = 0.7 + seeded(seed * 11 + j) * 0.5;
+        return surfacePoint(s + Math.cos(a) * radius * irregular, theta + Math.sin(a) * radius * 7 * irregular, 0.8);
+      }) };
+  });
   const mesh: WhaleMesh = {
-    spine, ribs, streamlines, ventralPleats, pleatHighlights, silhouettePolygon, surface, featureLines, eyes, tubercles, stipples, nodules, etching,
+    spine, ribs, streamlines, ventralPleats, pleatHighlights, silhouettePolygon, surface, featureLines, eyes, tubercles, stipples, nodules, etching, skinMarks,
     leftFlipper: buildFlipper("left"), rightFlipper: buildFlipper("right"), flukes, dorsalFin,
     depth: nodes[Math.floor(nodes.length / 2)].pos.z,
     technicalMarkers: [
@@ -359,22 +394,5 @@ export function generateWhaleMesh(timeSec: number, width: number, height: number
       { pos: flukes.notch, label: "KUYRUK LOBLARI", type: "cross" },
     ],
   };
-  // Yakınlaşmada başı değil bütün anatomiyi kadrajda tutar.
-  const all = [...ribs.flatMap(r => r.points), ...mesh.leftFlipper.leadingEdge, ...mesh.leftFlipper.trailingEdge,
-    ...mesh.rightFlipper.leadingEdge, ...mesh.rightFlipper.trailingEdge, ...flukeOutline, ...dorsalFin.outline];
-  const minX = Math.min(...all.map(p => p.x)), maxX = Math.max(...all.map(p => p.x));
-  const minY = Math.min(...all.map(p => p.y)), maxY = Math.max(...all.map(p => p.y));
-  const margin = Math.min(30, width * 0.045);
-  const fit = Math.min(1, (width - 2 * margin) / (maxX - minX), (height - 2 * margin) / (maxY - minY));
-  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-  const halfW = (maxX - minX) * fit / 2, halfH = (maxY - minY) * fit / 2;
-  const tx = clamp(cx, margin + halfW, width - margin - halfW);
-  const ty = clamp(cy, margin + halfH, height - margin - halfH);
-  // Paylaşılan ağ noktaları yalnız bir kez dönüştürülür; nesne ağacı her karede taranmaz.
-  for (const point of projectedPoints) {
-    point.x = tx + (point.x - cx) * fit;
-    point.y = ty + (point.y - cy) * fit;
-    point.scale *= fit;
-  }
   return mesh;
 }
