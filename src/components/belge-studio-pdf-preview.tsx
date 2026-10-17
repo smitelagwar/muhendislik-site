@@ -2,12 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS } from "@/lib/pdfjs-paths";
 import { loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
 import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
 import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
+import {
+  mapPdfAnnotationsToInlineFields,
+  type BelgeDocumentId,
+  type InlineFieldDescriptor,
+  type RawPdfAnnotation,
+} from "@/lib/belge-studio-inline-field-map";
+import { BelgeStudioInlineEditLayer } from "@/components/belge-studio-inline-edit-layer";
 import type { BelgeDocumentSnapshot } from "@/hooks/use-belge-studio-document";
 
 type LoadingTask = ReturnType<BrowserPdfJs["getDocument"]>;
@@ -16,12 +23,19 @@ type PdfPage = Awaited<ReturnType<PdfDocument["getPage"]>>;
 type PdfRenderTask = ReturnType<PdfPage["render"]>;
 export type BelgePreviewStatus = "loading" | "rendering" | "ready" | "error";
 
+export type BelgeStudioInlineEditingConfig = {
+  documentId: BelgeDocumentId;
+  values?: Record<string, string>;
+  onCommit?: (field: string, value: string) => void;
+};
+
 type BelgeStudioPdfPreviewProps = {
   snapshot: BelgeDocumentSnapshot | null;
   generationPending: boolean;
   generationError?: string | null;
   onStatusChange: (revision: number, status: BelgePreviewStatus, error?: string) => void;
   onRetry: () => void;
+  editing?: BelgeStudioInlineEditingConfig;
 };
 
 type Point = { x: number; y: number };
@@ -41,6 +55,7 @@ export function BelgeStudioPdfPreview({
   generationError = null,
   onStatusChange,
   onRetry,
+  editing,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,6 +65,10 @@ export function BelgeStudioPdfPreview({
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [gestureEndVersion, setGestureEndVersion] = useState(0);
+  const [isInlineEditingActive, setIsInlineEditingActive] = useState(false);
+  const [inlineFields, setInlineFields] = useState<InlineFieldDescriptor[]>([]);
+  const [inlineSelectedField, setInlineSelectedField] = useState<InlineFieldDescriptor | null>(null);
+  const [isInteracting, setIsInteracting] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -61,9 +80,13 @@ export function BelgeStudioPdfPreview({
   const renderRequestRef = useRef(0);
   const zoomRef = useRef(zoomLevel);
   const pageRef = useRef(currentPage);
+  const isInlineEditingActiveRef = useRef(isInlineEditingActive);
+  isInlineEditingActiveRef.current = isInlineEditingActive;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
   const renderedSizeRef = useRef({ width: 0, height: 0, zoom: 100 });
   const pointersRef = useRef<Pointer[]>([]);
-  const panStartRef = useRef<{ point: Point; left: number; top: number } | null>(null);
+  const panStartRef = useRef<{ point: Point; left: number; top: number; startTime: number } | null>(null);
   const pinchStartRef = useRef<{
     distance: number;
     zoom: number;
@@ -275,6 +298,27 @@ export function BelgeStudioPdfPreview({
           pendingAnchorRef.current = null;
         });
       }
+
+      let mappedFields: InlineFieldDescriptor[] = [];
+      const currentEditing = editingRef.current;
+      if (currentEditing && isInlineEditingActiveRef.current) {
+        try {
+          const rawAnns = (await page.getAnnotations({ intent: "display" })) as RawPdfAnnotation[];
+          if (requestId === renderRequestRef.current) {
+            const mapped = mapPdfAnnotationsToInlineFields({
+              documentId: currentEditing.documentId,
+              pageNumber: pageRef.current,
+              annotations: rawAnns,
+              viewport,
+            });
+            mappedFields = mapped.fields;
+          }
+        } catch (annError) {
+          console.warn("PDF alan haritası okunamadı:", annError);
+        }
+      }
+      if (requestId !== renderRequestRef.current) return;
+      setInlineFields(mappedFields);
       report("ready");
     } catch (error) {
       const cancelled =
@@ -291,7 +335,7 @@ export function BelgeStudioPdfPreview({
     if (!documentRef.current || pinchingRef.current) return;
     const timer = window.setTimeout(() => void renderPage(), 140);
     return () => window.clearTimeout(timer);
-  }, [renderPage, zoomLevel, currentPage, pageCount, layoutVersion, gestureEndVersion, snapshot?.revision]);
+  }, [renderPage, zoomLevel, currentPage, pageCount, layoutVersion, gestureEndVersion, snapshot?.revision, isInlineEditingActive]);
 
   const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
     const container = containerRef.current;
@@ -353,6 +397,7 @@ export function BelgeStudioPdfPreview({
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch") return;
     event.preventDefault();
+    setIsInteracting(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
@@ -363,12 +408,14 @@ export function BelgeStudioPdfPreview({
         point,
         left: event.currentTarget.scrollLeft,
         top: event.currentTarget.scrollTop,
+        startTime: Date.now(),
       };
       pinchStartRef.current = null;
       pinchingRef.current = false;
       return;
     }
 
+    setInlineSelectedField(null);
     const [first, second] = pointers;
     const center = midpoint(first.point, second.point);
     const canvasRect = canvasRef.current?.getBoundingClientRect();
@@ -428,13 +475,47 @@ export function BelgeStudioPdfPreview({
 
   const finishPointer = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!pointersRef.current.some((pointer) => pointer.id === event.pointerId)) return;
+    const endingPoint = getContainerPoint(event);
+    const prevPointers = pointersRef.current;
     pointersRef.current = pointersRef.current.filter((pointer) => pointer.id !== event.pointerId);
     if (pointersRef.current.length < 2) pinchStartRef.current = null;
     if (pointersRef.current.length === 0) {
+      const panStart = panStartRef.current;
       panStartRef.current = null;
+      setIsInteracting(false);
       if (pinchingRef.current) {
         pinchingRef.current = false;
         setGestureEndVersion((version) => version + 1);
+      } else if (
+        panStart &&
+        prevPointers.length === 1 &&
+        isInlineEditingActiveRef.current &&
+        inlineFields.length > 0
+      ) {
+        // ASAMA_06: ON modda mobil kısa-tap tespiti:
+        // Yalnız 1 temas, hareket eşiği ≤8 CSS px, pinch değilse ve süre < 500ms ise widget hit-test yap
+        const dx = endingPoint.x - panStart.point.x;
+        const dy = endingPoint.y - panStart.point.y;
+        const dist = Math.hypot(dx, dy);
+        const elapsed = panStart.startTime ? Date.now() - panStart.startTime : 0;
+        if (dist <= 8 && elapsed < 500) {
+          const frame = frameRef.current;
+          if (frame) {
+            const frameRect = frame.getBoundingClientRect();
+            const tapX = endingPoint.x - frameRect.left;
+            const tapY = endingPoint.y - frameRect.top;
+            const tappedField = inlineFields.find(
+              (f) =>
+                tapX >= f.viewportRect.left &&
+                tapX <= f.viewportRect.right &&
+                tapY >= f.viewportRect.top &&
+                tapY <= f.viewportRect.bottom
+            );
+            if (tappedField && !tappedField.readOnly) {
+              setInlineSelectedField(tappedField);
+            }
+          }
+        }
       }
     } else if (pinchingRef.current) {
       // Kalan parmak yeni bir tek parmak kaydırma başlangıcı olur.
@@ -443,6 +524,7 @@ export function BelgeStudioPdfPreview({
         point: remaining.point,
         left: event.currentTarget.scrollLeft,
         top: event.currentTarget.scrollTop,
+        startTime: Date.now(),
       };
       pinchingRef.current = false;
       setGestureEndVersion((version) => version + 1);
@@ -493,6 +575,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleToolbarZoom = (value: number) => {
+    setInlineSelectedField(null);
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {
       setZoomLevel(value);
@@ -505,6 +588,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handlePageChange = (page: number) => {
+    setInlineSelectedField(null);
     const container = containerRef.current;
     if (container) container.scrollTo({ left: 0, top: 0, behavior: "auto" });
     pendingAnchorRef.current = null;
@@ -513,9 +597,17 @@ export function BelgeStudioPdfPreview({
 
   const showLoading = generationPending || localStatus === "loading" || localStatus === "rendering";
   const visibleError = localStatus === "error" || generationError !== null;
+  const isOverlayVisible = Boolean(
+    editing &&
+      isInlineEditingActive &&
+      !visibleError &&
+      inlineFields.length > 0 &&
+      !isInteracting &&
+      (!canvasRef.current?.style.transform || canvasRef.current.style.transform === "none")
+  );
 
   return (
-    <section className={BELGE_STUDIO_PREVIEW_PANEL_CLASS} aria-label="PDF canlı önizlemesi">
+    <section className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} relative`} aria-label="PDF canlı önizlemesi">
       <BelgeStudioPreviewToolbar
         zoomLevel={zoomLevel}
         onZoomChange={handleToolbarZoom}
@@ -524,6 +616,32 @@ export function BelgeStudioPdfPreview({
         page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
         disabled={!snapshot || generationPending || visibleError}
       />
+      {editing && (
+        <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() =>
+              setIsInlineEditingActive((prev) => {
+                const next = !prev;
+                if (!next) {
+                  setInlineSelectedField(null);
+                }
+                return next;
+              })
+            }
+            data-testid="belge-inline-edit-toggle"
+            aria-pressed={isInlineEditingActive}
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
+              isInlineEditingActive
+                ? "border-amber-500 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 ring-1 ring-amber-500/40"
+                : "border-border bg-background/95 text-foreground hover:bg-accent/80"
+            }`}
+          >
+            <Edit3 className="h-4 w-4 text-amber-500" />
+            <span>{isInlineEditingActive ? "PDF Düzenlemeyi Kapat" : "PDF Üzerinde Düzenle"}</span>
+          </button>
+        </div>
+      )}
       <div
         ref={containerRef}
         tabIndex={0}
@@ -543,13 +661,25 @@ export function BelgeStudioPdfPreview({
       >
         {snapshot && (
           <div ref={surfaceRef} className="belge-preview-surface">
-            <div ref={frameRef} className="belge-preview-frame">
+            <div ref={frameRef} className="belge-preview-frame relative">
               <canvas
                 ref={canvasRef}
                 className="block rounded-md bg-white shadow-2xl"
                 style={{ opacity: 0 }}
                 aria-label={`PDF sayfa ${currentPage}`}
               />
+              {isOverlayVisible && (
+                <BelgeStudioInlineEditLayer
+                  fields={inlineFields}
+                  visible={isOverlayVisible}
+                  values={editing?.values}
+                  onCommit={editing?.onCommit}
+                  frameWidth={renderedSizeRef.current.width || 600}
+                  frameHeight={renderedSizeRef.current.height || 842}
+                  selectedField={inlineSelectedField}
+                  onSelectField={setInlineSelectedField}
+                />
+              )}
             </div>
           </div>
         )}

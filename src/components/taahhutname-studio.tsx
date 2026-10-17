@@ -626,6 +626,11 @@ export function TaahhutnameStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            editing={{
+              documentId: "santiye-sefi-taahhutnamesi",
+              values: formData as unknown as Record<string, string>,
+              onCommit: (field, value) => handleFieldChange(field as keyof TaahhutnameData, value),
+            }}
           />
         </div>
       </div>

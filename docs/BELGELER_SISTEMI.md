@@ -1,6 +1,6 @@
 # Belgeler & Canlı PDF Stüdyosu — Mimari & Deneyim Notları
 
-> **ÖNEMLİ (Token Tasarrufu):**  
+> **ÖNEMLİ (Token Tasarrufu):**
 > Bu doküman **SADECE** `/belgeler` sayfası, PDF motoru (`pdf-engine.ts`) veya resmi evrak stüdyoları ile ilgili bir işlem/geliştirme yapılacağı zaman okunmalıdır. Eğer göreviniz belgeler konusuyla ilgili **DEĞİLSE**, bu dokümanı okumanıza gerek yoktur; doğrudan atlayınız.
 
 Bu doküman, Mühendis Mimar Portalı bünyesindeki **Belgeler (`/belgeler`)** modülünün ve interaktif PDF stüdyolarının çalışma prensiplerini, yaşanmış teknik deneyimleri, karşılaşılan problemleri ve önerilen çözüm pratiklerini özetler. Gelecekteki geliştirmelerde yol gösterici bir tecrübe kütüphanesi niteliğindedir.
@@ -214,3 +214,23 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
 4. **Çizim İptali ve Blob Temizliği Yaşam Döngüsü:**
    - Yeni bir form revision üretildiğinde eski Blob URL anında `URL.revokeObjectURL(previousUrl)` ile serbest bırakılır.
    - Hızlı ardışık çizimlerde (sekme geçişi, zoom, sayfa çevirme) önceki PDF.js `renderTask.cancel()` çağrılarak paralel/çakışan çizimler engellenir; bileşen unmount olduğunda `loadingTask.destroy()` çağrılır.
+
+---
+
+## 7. PDF Önizleme Üzerinde Doğrudan Düzenleme Katmanı (Inline Edit Layer)
+
+2026-10-17 tarihinde sisteme kazandırılan opt-in canlı PDF düzenleme katmanının mimari sözleşmesi:
+
+1. **Varsayılan OFF & Sıfır DOM Sızıntısı:**
+   - Özellik varsayılan olarak kapalıdır (`isInlineEditingActive = false`).
+   - Kapalı modda katman unmounted kalır, fazladan hiçbir DOM düğümü, listener veya annotation fetch işlemi üretmez (baseline eşdeğerliği).
+2. **Korumalı Motor & Tek Gerçek Kaynak:**
+   - Sol formdaki `formData` tek gerçek kaynaktır (single source of truth).
+   - `pdf-engine.ts`, şablon PDF binary'leri ve `useBelgeStudioDocument` hook'u değiştirilmeden korunmuştur.
+3. **İzole Taslak (Draft) Popover & Tek Onay:**
+   - Hotspot tıklandığında veya mobilde kısa-tap (≤8px hareket, <500ms) yapıldığında izole popover açılır.
+   - Yazılan her karakter yerel draft state'inde tutulur; "Uygula" denene kadar `formData` mutasyona uğramaz (0 ara derleme).
+   - "Vazgeç", Escape veya dışarı tıklama taslağı sıfır veri kaybı veya yan etkiyle iptal eder.
+4. **Mobil Web ve Gesture İzolasyonu:**
+   - Mevcut pan, pinch ve zoom motoruna dokunulmamış; iki parmakla yakınlaştırma veya kaydırma sırasında katman otomatik olarak geçici pasif kalır.
+   - 320px ultra-dar ekranlardan 1920px masaüstüne kadar sıfır yatay taşma (`scrollWidth <= innerWidth + 2`) ve 44px dokunmatik hedef standardı sağlanmıştır.

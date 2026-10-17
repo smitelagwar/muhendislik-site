@@ -661,6 +661,11 @@ export function SozlesmeStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            editing={{
+              documentId: "santiye-sefi-sozlesmesi",
+              values: formData as unknown as Record<string, string>,
+              onCommit: (field, value) => handleFieldChange(field as keyof SozlesmeData, value),
+            }}
           />
         </div>
       </div>

@@ -568,6 +568,11 @@ export function IstifaStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            editing={{
+              documentId: "santiye-sefi-istifa-dilekcesi",
+              values: formData as unknown as Record<string, string>,
+              onCommit: (field, value) => handleFieldChange(field as keyof IstifaDilekcesiData, value),
+            }}
           />
         </div>
       </div>
