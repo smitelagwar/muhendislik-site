@@ -69,8 +69,16 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
         ) continue;
         layerCtx.clearRect(0, 0, width, height);
         renderWhaleFrame(layerCtx, mesh, isDark ? DARK_WHALE_PALETTE : LIGHT_WHALE_PALETTE, width, height);
+        // Atmosferik su derinliği sislemesi (in-scattering): Balina gövdesinin arkasındaki
+        // okyanus ekosistemini 3B olarak örtmeye devam ederken derinlik yumuşaklığını korur.
+        layerCtx.save();
+        layerCtx.globalCompositeOperation = "source-atop";
+        layerCtx.fillStyle = isDark ? "#08111c" : "#f5f0e6";
+        layerCtx.globalAlpha = isDark ? 0.14 + distance * 0.42 : 0.24 + distance * 0.36;
+        layerCtx.fillRect(0, 0, width, height);
+        layerCtx.restore();
         ctx.save();
-        ctx.globalAlpha = easedOpacity * (isDark ? 0.86 - distance * 0.42 : 0.76 - distance * 0.36);
+        ctx.globalAlpha = easedOpacity * 0.96;
         ctx.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, width, height);
         ctx.restore();
       }

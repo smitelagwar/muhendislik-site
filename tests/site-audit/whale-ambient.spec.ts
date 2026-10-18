@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-async function canvasPixels(page: Page) {
-  return page.getByTestId("ambient-whale").locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
+async function canvasPixels(page: Page, testId = "ambient-whale") {
+  return page.getByTestId(testId).locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
     const data = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
     let ink = 0, hash = 0;
     for (let i = 0; i < data.length; i += 16) {
@@ -13,56 +13,68 @@ async function canvasPixels(page: Page) {
   });
 }
 
-test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", () => {
-  test("İki balina boş yan alanlarda görünürken kartların içi temiz kalmalıdır", async ({ page }) => {
+test.describe("Belgeler Hub — Blueprint Balina ve Okyanus Yaşamı Ambiyans Denetimi", () => {
+  test("İki balina ve okyanus yaşamı boş yan alanlarda görünürken kartların içi temiz kalmalıdır", async ({ page }) => {
     test.skip(test.info().project.name !== "chromium-desktop-1920", "Geniş ekranın iki boş koridoru sınanır");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
-    await expect.poll(async () => (await canvasPixels(page)).ink).toBeGreaterThan(1000);
+    await expect.poll(async () => (await canvasPixels(page, "ambient-whale")).ink).toBeGreaterThan(1000);
+    await expect.poll(async () => (await canvasPixels(page, "ambient-ocean")).ink).toBeGreaterThan(1000);
     const regions = await page.evaluate(() => {
       const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="ambient-whale"] canvas')!;
+      const oceanCanvas = document.querySelector<HTMLCanvasElement>('[data-testid="ambient-ocean"] canvas')!;
       const bounds = canvas.getBoundingClientRect(), dpr = canvas.width / bounds.width;
       const ctx = canvas.getContext("2d")!;
+      const oCtx = oceanCanvas.getContext("2d")!;
       const cards = [...document.querySelectorAll("[data-whale-card]")].map(el => el.getBoundingClientRect());
-      const sample = (x: number, y: number, w: number, h: number) => {
-        const bytes = ctx.getImageData(Math.round(x * dpr), Math.round(y * dpr), Math.round(w * dpr), Math.round(h * dpr)).data;
+      const sample = (targetCtx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => {
+        const bytes = targetCtx.getImageData(Math.round(x * dpr), Math.round(y * dpr), Math.round(w * dpr), Math.round(h * dpr)).data;
         let ink = 0, max = 0;
         for (let i = 3; i < bytes.length; i += 4) { if (bytes[i] > 25) ink++; max = Math.max(max, bytes[i]); }
         return { ink, max };
       };
       return {
-        left: sample(0, 100, cards[0].left - 12, bounds.height - 100),
-        right: sample(cards[2].right + 12, 100, bounds.width - cards[2].right - 12, bounds.height - 100),
-        protected: sample(cards[0].left + 30, cards[0].top + 30, cards[0].width - 60, cards[0].height - 60),
+        left: sample(ctx, 0, 100, cards[0].left - 12, bounds.height - 100),
+        right: sample(ctx, cards[2].right + 12, 100, bounds.width - cards[2].right - 12, bounds.height - 100),
+        protected: sample(ctx, cards[0].left + 30, cards[0].top + 30, cards[0].width - 60, cards[0].height - 60),
+        oceanProtected: sample(oCtx, cards[0].left + 30, cards[0].top + 30, cards[0].width - 60, cards[0].height - 60),
       };
     });
     expect(regions.left.ink).toBeGreaterThan(2000);
     expect(regions.right.ink).toBeGreaterThan(1000);
     expect(regions.protected.max).toBeLessThanOrEqual(12);
+    expect(regions.oceanProtected.max).toBeLessThanOrEqual(12);
     await page.getByRole("searchbox", { name: "Belge veya şablon ara" }).fill("Beton Döküm");
     await expect(page.getByRole("status")).toHaveText("1 belge bulundu.");
     await expect(page.getByRole("link", { name: /stüdyoda doldur/i })).toHaveCount(1);
   });
 
-  test("Canvas arkaplanda otonom render olmalı ve buton ile açılıp kapatılabilmelidir", async ({ page }) => {
+  test("Canvas arkaplanda otonom render olmalı ve her iki buton ile bağımsız açılıp kapatılabilmelidir", async ({ page }) => {
     test.skip(!!test.info().project.use.isMobile || (page.viewportSize()?.width ?? 0) < 768, "Balina yalnız masaüstünde bulunur");
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForTimeout(500);
 
-    // 1. Blueprint Balina Toggle Butonunu bul
+    // 1. Blueprint Balina ve Okyanus Yaşamı Toggle Butonlarını bul
     const whaleButton = page.getByRole("button", { name: /blueprint balina/i });
+    const oceanButton = page.getByTestId("ocean-ambient-toggle");
     await expect(whaleButton).toBeVisible();
     await expect(whaleButton).toHaveAttribute("aria-pressed", "true");
     await expect(whaleButton).toContainText("Açık");
 
-    // 2. Özel SVG Whale Blueprint İkonunun varlığı
+    await expect(oceanButton).toBeVisible();
+    await expect(oceanButton).toHaveAttribute("aria-pressed", "true");
+    await expect(oceanButton).toContainText("Açık");
+
+    // 2. Özel SVG İkonlarının varlığı
     const whaleIcon = whaleButton.locator("svg");
     await expect(whaleIcon).toBeVisible();
     await expect(whaleIcon).toHaveAttribute("aria-hidden", "true");
+    await expect(oceanButton.locator("svg")).toBeVisible();
 
-    // 3. Arkaplan Canvas Elementinin varlığı ve erişilebilirlik nitelikleri
+    // 3. Arkaplan Canvas Elementlerinin varlığı ve erişilebilirlik nitelikleri
     const canvasContainer = page.locator("div[role='presentation'][aria-hidden='true'] canvas");
     await expect(canvasContainer).toBeAttached();
+    await expect(page.getByTestId("ambient-ocean").locator("canvas")).toBeAttached();
 
     // 4. Pointer-events-none kontrolü (kartlara ve arama çubuğuna tıklanabilirliği engellememelidir)
     const pointerEvents = await page.evaluate(() => {
@@ -72,7 +84,21 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     });
     expect(pointerEvents).toBe("none");
 
-    // 5. Butona tıklayarak balina ambiyansını kapatma
+    // 5. Okyanus Yaşamı butonuna bağımsız tıklayarak kapatma ve açma
+    await oceanButton.click();
+    await page.waitForTimeout(350);
+    await expect(oceanButton).toHaveAttribute("aria-pressed", "false");
+    await expect(oceanButton).toContainText("Kapalı");
+    expect(await page.evaluate(() => localStorage.getItem("muhendis_ocean_ambient_enabled"))).toBe("false");
+    // Balina hala açık kalmalıdır
+    await expect(whaleButton).toHaveAttribute("aria-pressed", "true");
+
+    await oceanButton.click();
+    await page.waitForTimeout(350);
+    await expect(oceanButton).toHaveAttribute("aria-pressed", "true");
+    expect(await page.evaluate(() => localStorage.getItem("muhendis_ocean_ambient_enabled"))).toBe("true");
+
+    // 6. Butona tıklayarak balina ambiyansını kapatma
     await whaleButton.click();
     await page.waitForTimeout(350);
 
@@ -85,7 +111,7 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     );
     expect(savedStateDisabled).toBe("false");
 
-    // 6. Butona tekrar tıklayarak ambiyansı açma
+    // 7. Butona tekrar tıklayarak ambiyansı açma
     await whaleButton.click();
     await page.waitForTimeout(350);
 
@@ -97,7 +123,7 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     );
     expect(savedStateEnabled).toBe("true");
 
-    // 7. Sayfa yenilendiğinde tercihin korunması
+    // 8. Sayfa yenilendiğinde tercihin korunması
     await whaleButton.click(); // Kapalıya al
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(400);
@@ -111,7 +137,7 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     await expect(reloadedButton).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("Mobilde balina ve düğmesi bulunmamalı, yatay taşma olmamalıdır", async ({ page }) => {
+  test("Mobilde balina, okyanus yaşamı ve düğmeleri bulunmamalı, yatay taşma olmamalıdır", async ({ page }) => {
     const width = Math.min(page.viewportSize()?.width ?? 320, 767);
     await page.setViewportSize({ width, height: 720 });
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -130,15 +156,21 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     expect(overflowData.hasOverflow).toBe(false);
 
     const whaleButton = page.getByRole("button", { name: /blueprint balina/i });
+    const oceanButton = page.getByTestId("ocean-ambient-toggle");
     await expect(whaleButton).toBeHidden();
+    await expect(oceanButton).toBeHidden();
     await expect(page.getByTestId("ambient-whale")).toHaveCount(0);
+    await expect(page.getByTestId("ambient-ocean")).toHaveCount(0);
     await page.getByRole("searchbox", { name: "Belge veya şablon ara" }).fill("Beton Döküm");
     await expect(page.getByRole("status")).toHaveText("1 belge bulundu.");
     await expect(page.getByTestId("ambient-whale")).toHaveCount(0);
+    await expect(page.getByTestId("ambient-ocean")).toHaveCount(0);
     if (test.info().project.use.isMobile) {
       await page.setViewportSize({ width: 844, height: 390 });
       await expect(whaleButton).toBeHidden();
+      await expect(oceanButton).toBeHidden();
       await expect(page.getByTestId("ambient-whale")).toHaveCount(0);
+      await expect(page.getByTestId("ambient-ocean")).toHaveCount(0);
     }
   });
 
@@ -177,8 +209,11 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     page.on("pageerror", error => errors.push(error.message));
     await page.goto("/belgeler", { waitUntil: "domcontentloaded", timeout: 30_000 });
     await expect.poll(async () => (await canvasPixels(page)).ink).toBeGreaterThan(1000);
+    await expect.poll(async () => (await canvasPixels(page, "ambient-ocean")).ink).toBeGreaterThan(1000);
     const first = await canvasPixels(page);
+    const firstOcean = await canvasPixels(page, "ambient-ocean");
     await expect.poll(async () => (await canvasPixels(page)).hash).not.toBe(first.hash);
+    await expect.poll(async () => (await canvasPixels(page, "ambient-ocean")).hash).not.toBe(firstOcean.hash);
     const button = page.getByRole("button", { name: /blueprint balina/i });
     await button.focus();
     await page.keyboard.press("Enter");
@@ -220,9 +255,13 @@ test.describe("Belgeler Hub — Blueprint Balina Ambiyans ve Buton Denetimi", ()
     await expect.poll(async () => (await canvasPixels(page)).ink).toBeGreaterThan(1000);
     await page.setViewportSize({ width: 767, height: 800 });
     await expect(page.getByTestId("ambient-whale")).toHaveCount(0);
+    await expect(page.getByTestId("ambient-ocean")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /blueprint balina/i })).toBeHidden();
+    await expect(page.getByTestId("ocean-ambient-toggle")).toBeHidden();
     await page.setViewportSize({ width: 1366, height: 768 });
     await expect.poll(async () => (await canvasPixels(page)).ink).toBeGreaterThan(1000);
     await expect(page.getByRole("button", { name: /blueprint balina/i })).toBeVisible();
+    await expect(page.getByTestId("ocean-ambient-toggle")).toBeVisible();
   });
 });
+

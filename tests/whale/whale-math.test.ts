@@ -10,6 +10,7 @@ import {
 } from "../../src/lib/whale/whale-math";
 import type { WhaleConfig } from "../../src/lib/whale/whale-types";
 import { sampleWhaleMotion } from "../../src/lib/whale/whale-motion";
+import { generateOceanSceneState } from "../../src/lib/ocean/ocean-renderer";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -18,7 +19,7 @@ function assert(condition: boolean, message: string) {
 }
 
 function runTests() {
-  console.log("🌊 Starting Whale Geometry & Kinematics Test Suite...");
+  console.log("🌊 Starting Whale & Ocean Ecosystem Geometry Test Suite...");
 
   // 1. Vector Math & Orthonormality Check
   {
@@ -223,7 +224,43 @@ function runTests() {
     console.log("  ✓ Sabit omurga boyu, bağımsız kuyruk vuruşu ve farklı birey ritimleri doğrulandı");
   }
 
-  console.log("🎉 ALL Whale Math & Kinematics Tests PASSED successfully!");
+  // 3B Okyanus Ekosistemi (Deniz Bitkileri, Balık Sürüleri, Farklı Türler ve Deniz Canlıları) Testi
+  {
+    const scene = generateOceanSceneState(6.5, 1920, 1080, 420, 1500);
+    assert(scene.kelpPlants.length >= 10, "Deniz tabanında dev kelp ormanı üretilmeli");
+    assert(scene.coralFans.length >= 6, "Gorgonia yelpaze ve çatal mercan kolonileri üretilmeli");
+    assert(scene.seagrassBlades.length >= 60, "Alt sınır boyunca deniz çayırı şeritleri üretilmeli");
+    assert(scene.spongeClusters.length >= 4, "3B boru süngeri kümeleri üretilmeli");
+    const allFishes = [...scene.schoolFishes, ...scene.soloFishes];
+    assert(allFishes.length >= 65, "Balık sürüleri ve solo türler toplamda en az 65 birey içermeli");
+
+    const speciesSet = new Set(allFishes.map(f => f.species));
+    assert(
+      speciesSet.has("sardine") &&
+      speciesSet.has("fusilier") &&
+      speciesSet.has("scad") &&
+      speciesSet.has("anthias") &&
+      speciesSet.has("moorish-idol") &&
+      speciesSet.has("pelagic-cruiser"),
+      "Altı farklı balık türü (sardine, fusilier, scad, anthias, moorish-idol, pelagic-cruiser) sahnede bulunmalı"
+    );
+
+    assert(scene.mantaRays.length >= 1 && scene.mantaRays[0].wingRibs.length >= 6, "3B Manta vatozu üretilmeli");
+    assert(scene.jellyfishes.length >= 3 && scene.jellyfishes[0].tentacles.length === 8, "3B Denizanası kolonisi üretilmeli");
+    assert(scene.seaTurtles.length >= 1 && scene.seaTurtles[0].scutePolygons.length >= 10, "3B Deniz kaplumbağası üretilmeli");
+    assert(scene.bubbles.length >= 20 && scene.lightShafts.length >= 4, "Hava kabarcıkları ve ışık sütunları üretilmeli");
+
+    for (const fish of allFishes) {
+      assert(
+        fish.bodyOutline.every(p => Number.isFinite(p.x) && Number.isFinite(p.y) && p.scale > 0),
+        `Balık (${fish.species}) projeksiyon koordinatları sonlu olmalı`
+      );
+    }
+    console.log("  ✓ 3B Okyanus Ekosistemi (Flora, 5 Balık Türü, Manta, Denizanası, Kaplumbağa) doğrulandı");
+  }
+
+  console.log("🎉 ALL Whale & Ocean Ecosystem Math & Kinematics Tests PASSED successfully!");
 }
 
 runTests();
+
