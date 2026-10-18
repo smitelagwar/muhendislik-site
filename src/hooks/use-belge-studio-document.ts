@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { BelgePdfResult, PdfFieldLayouts } from "@/lib/belgeler-pdf-layout";
+import { prewarmBrowserPdfJs } from "@/lib/pdfjs-client";
 
 export type BelgeGenerationStatus = "generating" | "ready" | "error";
 
@@ -8,6 +10,7 @@ export interface BelgeDocumentSnapshot {
   bytes: Uint8Array;
   blobUrl: string;
   revision: number;
+  layouts: PdfFieldLayouts;
 }
 
 interface BelgeDocumentState<T> {
@@ -17,13 +20,13 @@ interface BelgeDocumentState<T> {
   sourceData: T | null;
 }
 
-const GENERATION_DEBOUNCE_MS = 150;
-const GENERATION_TIMEOUT_MS = 20_000;
+const GENERATION_DEBOUNCE_MS = 250;
+const GENERATION_TIMEOUT_MS = 45_000;
 
 /** Keeps the newest generated PDF bytes and owns their temporary object URL. */
 export function useBelgeStudioDocument<T>(
   data: T,
-  generate: (data: T) => Promise<Uint8Array>
+  generate: (data: T) => Promise<Uint8Array | BelgePdfResult>
 ) {
   const [retryVersion, setRetryVersion] = useState(0);
   const [state, setState] = useState<BelgeDocumentState<T>>({
@@ -34,6 +37,10 @@ export function useBelgeStudioDocument<T>(
   });
   const requestRef = useRef(0);
   const activeUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    prewarmBrowserPdfJs();
+  }, []);
 
   const retry = useCallback(() => {
     setState((current) => ({ ...current, status: "generating", error: null, sourceData: data }));
@@ -54,8 +61,10 @@ export function useBelgeStudioDocument<T>(
       });
 
       void Promise.race([Promise.resolve().then(() => generate(data)), timeout])
-        .then((sourceBytes) => {
+        .then((result) => {
           if (requestRef.current !== requestId) return;
+          const sourceBytes = result instanceof Uint8Array ? result : result.bytes;
+          const layouts = result instanceof Uint8Array ? {} : result.layouts;
           if (!sourceBytes || sourceBytes.byteLength < 5) {
             throw new Error("Oluşturulan PDF verisi boş veya geçersiz.");
           }
@@ -73,7 +82,7 @@ export function useBelgeStudioDocument<T>(
           setState({
             status: "ready",
             error: null,
-            snapshot: { bytes, blobUrl, revision: requestId },
+            snapshot: { bytes, blobUrl, revision: requestId, layouts },
             sourceData: data,
           });
           if (previousUrl) URL.revokeObjectURL(previousUrl);

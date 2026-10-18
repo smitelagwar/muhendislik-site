@@ -177,6 +177,7 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - Release Kapısı: `npm run check:cad-real-user-release`
 
 ### 6. Belgeler PDF Stüdyoları
+- PDF alan profilleri 56 düzenlenebilir alan ve üç sabit etiketi kapsar. Stüdyo PDF verisiyle aynı revizyonda gerçek punto/glif ölçümleri taşır; boş form aynı motorla üretilir. Yerel kabul kapısı: `npm run check:belgeler-pdf`; ayrıntı: `docs/BELGELER_SISTEMI.md`.
 - `/belgeler` belge önizlemeleri, `pdfjs-dist` 6.x self-hosted ESM core ve worker modüllerini `public/vendor/pdfjs/` altında kullanır; CMap, standart font, image decoder ve WASM varlıkları da aynı yerel ağaçtan yüklenir.
 - Beş belge stüdyosu `src/lib/pdfjs-client.ts` ortak yükleyicisini kullanır. PDF.js loading task'leri yeni önizleme açılırken ve stüdyo kapanırken kapatılır. CDN fallback kullanılmaz.
 - Vendor dağıtımında PDF.js Apache lisansı ve ilgili font/CMap/WASM lisans dosyaları korunur.

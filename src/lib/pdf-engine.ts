@@ -1,5 +1,7 @@
-import { PDFDict, PDFDocument, PDFName, PDFNumber, PDFString } from "pdf-lib";
+import { componentsToColor, defaultTextFieldAppearanceProvider, drawTextField, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString, rgb, setTextMatrix, type PDFFont, type PDFTextField } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import { getDocumentPdfProfiles, getBlankDocumentData, normalizePdfFieldValue, type BelgeDocumentId } from "./belgeler-pdf-profiles";
+import { measurePdfAppearance, type BelgePdfResult, type PdfFieldLayout, type PdfFieldLayouts, type PdfWidgetLayout } from "./belgeler-pdf-layout";
 
 // ==========================================
 // 1. BETON DÖKÜM TUTANAĞI
@@ -33,18 +35,6 @@ export const BETON_DOKUM_DEFAULT_DATA: BetonDokumData = {
   yapi_denetim: "GÜVEN YAPI DENETİM LTD. ŞTİ.",
 };
 
-const BETON_DOKUM_FIELD_SPECS: Record<keyof BetonDokumData, { size: number; bold?: boolean; q?: number }> = {
-  tutanak_alt_baslik: { size: 11.0, bold: true, q: 1 },
-  tarih: { size: 9.5, bold: false, q: 0 },
-  yer: { size: 9.0, bold: false, q: 0 },
-  yibf: { size: 9.5, bold: false, q: 0 },
-  olay_aciklamasi: { size: 10.0, bold: false, q: 0 },
-  gozlem_notlar: { size: 9.5, bold: false, q: 0 },
-  laboratuvar: { size: 8.6, bold: false, q: 0 },
-  muteahhit: { size: 8.6, bold: false, q: 0 },
-  santiye_sefi: { size: 8.6, bold: false, q: 0 },
-  yapi_denetim: { size: 8.6, bold: false, q: 0 },
-};
 
 // ==========================================
 // 2. ŞANTİYE ŞEFİ TAAHHÜTNAMESİ
@@ -84,22 +74,6 @@ export const TAAHHUTNAME_DEFAULT_DATA: TaahhutnameData = {
   unvan_imza: "İNŞAAT MÜHENDİSİ",
 };
 
-const TAAHHUTNAME_FIELD_SPECS: Record<keyof TaahhutnameData, { size: number; bold?: boolean; q?: number }> = {
-  oda_sicil_no: { size: 8.0, bold: false, q: 0 },
-  tc_kimlik_no: { size: 8.0, bold: false, q: 0 },
-  unvan: { size: 7.4, bold: false, q: 0 },
-  adres: { size: 7.0, bold: false, q: 0 },
-  telefon: { size: 8.0, bold: false, q: 0 },
-  il_ilce: { size: 7.5, bold: false, q: 0 },
-  ilgili_idare: { size: 7.2, bold: false, q: 0 },
-  pafta_ada_parsel: { size: 7.2, bold: false, q: 0 },
-  yapi_adresi: { size: 6.8, bold: false, q: 0 },
-  yapi_sahibi: { size: 7.2, bold: false, q: 0 },
-  yapi_sahibi_adresi: { size: 6.8, bold: false, q: 0 },
-  tarih: { size: 7.8, bold: false, q: 0 },
-  santiye_sefi_ad_soyad: { size: 7.2, bold: true, q: 2 },
-  unvan_imza: { size: 7.2, bold: false, q: 2 },
-};
 
 // ==========================================
 // 3. ŞANTİYE ŞEFİ İSTİFA DİLEKÇESİ
@@ -138,23 +112,6 @@ export const ISTIFA_DILEKCESI_DEFAULT_DATA: IstifaDilekcesiData = {
   iletisim_deger: "0566 666 66 66",
 };
 
-const ISTIFA_FIELD_SPECS: Record<keyof IstifaDilekcesiData, { size: number; bold?: boolean; q?: number }> = {
-  hitap_1: { size: 11.8, bold: true, q: 1 },
-  hitap_2: { size: 11.8, bold: true, q: 1 },
-  // Center every line of the body text inside its page-centered field.
-  ana_paragraf: { size: 9.15, bold: false, q: 1 },
-  // sonuc_cumlesi: regular (not bold), left-aligned
-  sonuc_cumlesi: { size: 9.15, bold: false, q: 0 },
-  tarih: { size: 9.1, bold: true, q: 2 },
-  unvan: { size: 9.0, bold: false, q: 1 },
-  ad_soyad: { size: 10.3, bold: true, q: 1 },
-  adres_etiket: { size: 9.0, bold: true, q: 0 },
-  adres_deger: { size: 8.0, bold: false, q: 0 },
-  tc_etiket: { size: 9.0, bold: true, q: 0 },
-  tc_deger: { size: 9.0, bold: false, q: 0 },
-  iletisim_etiket: { size: 9.0, bold: false, q: 0 },
-  iletisim_deger: { size: 9.0, bold: false, q: 0 },
-};
 
 // ==========================================
 // 4. İNŞAAT RUHSATI DİLEKÇESİ
@@ -183,16 +140,6 @@ export const INSAAT_RUHSATI_DEFAULT_DATA: InsaatRuhsatiData = {
   tel: "Tel: 0566 666 66 66",
 };
 
-const INSAAT_RUHSATI_FIELD_SPECS: Record<keyof InsaatRuhsatiData, { size: number; bold?: boolean; q?: number }> = {
-  tarih: { size: 11.0, bold: true, q: 2 },
-  belediye_adi: { size: 12.0, bold: true, q: 1 },
-  mudurluk_adi: { size: 11.0, bold: true, q: 1 },
-  ana_metin: { size: 11.0, bold: false, q: 0 },
-  ad_soyad: { size: 11.0, bold: false, q: 1 },
-  unvan: { size: 10.0, bold: false, q: 1 },
-  adres: { size: 10.5, bold: false, q: 0 },
-  tel: { size: 10.5, bold: false, q: 0 },
-};
 
 // ==========================================
 // SHARED CACHES & UTILS
@@ -202,10 +149,12 @@ const cachedPdfBytes: Record<string, Uint8Array> = {};
 const pdfTemplatePromises = new Map<string, Promise<Uint8Array>>();
 let cachedBoldFontBytes: Uint8Array | null = null;
 let cachedRegularFontBytes: Uint8Array | null = null;
+let cachedBoldMetrics: fontkit.Font | null = null;
+let cachedRegularMetrics: fontkit.Font | null = null;
 let boldFontPromise: Promise<Uint8Array> | null = null;
 let regularFontPromise: Promise<Uint8Array> | null = null;
 
-const DOCUMENT_RESOURCE_TIMEOUT_MS = 10_000;
+const DOCUMENT_RESOURCE_TIMEOUT_MS = 30_000;
 
 function isPdf(bytes: Uint8Array): boolean {
   return bytes.byteLength >= 5 && new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
@@ -215,7 +164,7 @@ async function fetchDocumentResource(url: string): Promise<Uint8Array> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DOCUMENT_RESOURCE_TIMEOUT_MS);
   try {
-    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) throw new Error(`Kaynak yüklenemedi: HTTP ${response.status}`);
     return new Uint8Array(await response.arrayBuffer());
   } finally {
@@ -250,20 +199,22 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
   const config = fileMap[docType];
   const promise = (async () => {
     if (typeof window !== "undefined") {
+      // 1. Doğrudan CDN üzerinden statik dosya birincil yoldur: sıfır cold start, yüksek hız.
       try {
-        const apiBytes = await fetchDocumentResource(config.api);
-        if (isPdf(apiBytes)) {
-          cachedPdfBytes[docType] = apiBytes;
-          return apiBytes;
+        const directBytes = await fetchDocumentResource(config.direct);
+        if (isPdf(directBytes)) {
+          cachedPdfBytes[docType] = directBytes;
+          return directBytes;
         }
-      } catch {
-        // API erişilemezse yerel PDF şablonuna geç.
+      } catch (directError) {
+        console.warn(`Direct PDF template fetch failed for ${docType}, falling back to API:`, directError);
       }
 
-      const directBytes = await fetchDocumentResource(config.direct);
-      if (!isPdf(directBytes)) throw new Error("PDF şablonu geçerli bir PDF dosyası değil.");
-      cachedPdfBytes[docType] = directBytes;
-      return directBytes;
+      // 2. Statik dosya doğrudan gelmediyse API rotasını dene.
+      const apiBytes = await fetchDocumentResource(config.api);
+      if (!isPdf(apiBytes)) throw new Error("PDF şablonu geçerli bir PDF dosyası değil.");
+      cachedPdfBytes[docType] = apiBytes;
+      return apiBytes;
     }
 
     const { fs, path } = getNodeFileModules();
@@ -302,6 +253,11 @@ async function getBoldFontBytes(): Promise<Uint8Array> {
   })();
   try {
     cachedBoldFontBytes = await boldFontPromise;
+    try {
+      cachedBoldMetrics = fontkit.create(cachedBoldFontBytes);
+    } catch {
+      // Fontkit hatası durumunda yerinde oluşturulur.
+    }
     return cachedBoldFontBytes.slice(0);
   } catch (error) {
     boldFontPromise = null;
@@ -328,6 +284,11 @@ async function getRegularFontBytes(): Promise<Uint8Array> {
   })();
   try {
     cachedRegularFontBytes = await regularFontPromise;
+    try {
+      cachedRegularMetrics = fontkit.create(cachedRegularFontBytes);
+    } catch {
+      // Fontkit hatası durumunda yerinde oluşturulur.
+    }
     return cachedRegularFontBytes.slice(0);
   } catch (error) {
     regularFontPromise = null;
@@ -373,30 +334,50 @@ export const SOZLESME_DEFAULT_DATA: SozlesmeData = {
   muteahhit_imza_unvan: "ABC İNŞAAT",
 };
 
-const SOZLESME_FIELD_SPECS: Record<keyof SozlesmeData, { size: number; bold?: boolean; q?: number }> = {
-  muteahhit_unvan: { size: 8.5, bold: true, q: 1 },
-  santiye_sefi_ad: { size: 8.5, bold: true, q: 1 },
-  il: { size: 9.5, bold: true, q: 1 },
-  ilce: { size: 9.5, bold: true, q: 1 },
-  adres: { size: 7.5, bold: false, q: 1 },
-  yibf: { size: 9.5, bold: false, q: 1 },
-  pafta: { size: 9.5, bold: false, q: 1 },
-  mahalle: { size: 7.8, bold: true, q: 1 },
-  ada: { size: 9.5, bold: true, q: 1 },
-  parsel: { size: 9.5, bold: true, q: 1 },
-  ucret: { size: 9.5, bold: true, q: 1 },
-  sozlesme_tarihi: { size: 9.5, bold: true, q: 1 },
-  santiye_sefi_imza_adi: { size: 8.2, bold: false, q: 1 },
-  muteahhit_imza_unvan: { size: 8.2, bold: false, q: 1 },
-};
+
+/** Dar satırlarda paragraf satır aralığı uygulanmaz; değer etiketiyle aynı tabana oturur. */
+function updateInlineFieldAppearance(field: PDFTextField, font: PDFFont, metrics: fontkit.Font, preferredSize: number, baseline: number, onLayout: (layout: PdfWidgetLayout) => void) {
+  let smallestSize = preferredSize;
+  field.updateAppearances(font, (textField, widget) => {
+    const { width, height } = widget.getRectangle();
+    const text = textField.getText() ?? "";
+    const inset = 0.1;
+    const textWidth = font.widthOfTextAtSize(text, 1);
+    const run = metrics.layout(text);
+    const bounds = run.glyphs.reduce((result, glyph, index) => ({
+      top: Math.max(result.top, glyph.bbox.maxY + run.positions[index].yOffset),
+      bottom: Math.max(result.bottom, -glyph.bbox.minY - run.positions[index].yOffset),
+    }), { top: 1, bottom: 1 });
+    const ascent = bounds.top / metrics.unitsPerEm;
+    const descent = bounds.bottom / metrics.unitsPerEm;
+    // Türkçe büyük harfler ve aşağı uzanan glifler kutunun içinde kalır.
+    const size = Math.min(preferredSize, (width - 2) / Math.max(textWidth, 0.001),
+      (height - baseline - inset) / ascent, (baseline - inset) / descent);
+    const lineWidth = font.widthOfTextAtSize(text, size);
+    const alignment = textField.getAlignment();
+    const x = alignment === 1 ? (width - lineWidth) / 2 : alignment === 2 ? width - 1 - lineWidth : 1;
+    smallestSize = Math.min(smallestSize, size);
+    widget.dict.set(PDFName.of("DA"), makeDefaultAppearance(font.name, size));
+    const appearance = widget.getAppearanceCharacteristics();
+    const operations = drawTextField({
+      x: 0, y: 0, width, height, borderWidth: 0, padding: inset,
+      color: componentsToColor(appearance?.getBackgroundColor()),
+      borderColor: undefined, textColor: rgb(0, 0, 0), font: font.name, fontSize: size,
+      textLines: [{ encoded: font.encodeText(text), x, y: baseline }],
+    });
+    onLayout(measurePdfAppearance(operations, metrics, widget.getRectangle(), inset));
+    return operations;
+  });
+  field.acroField.dict.set(PDFName.of("DA"), makeDefaultAppearance(font.name, smallestSize));
+}
 
 // Generic Form Populator
 async function populateForm<T extends object>(
   docType: "beton-dokum" | "taahhutname" | "istifa" | "insaat-ruhsati" | "sozlesme",
   data: T,
-  specs: Record<string, { size: number; bold?: boolean; q?: number }>,
-  options: { flatten?: boolean } = { flatten: false }
-): Promise<Uint8Array> {
+  documentId: BelgeDocumentId,
+  options: { flatten?: boolean; onlyField?: string } = { flatten: false }
+): Promise<BelgePdfResult> {
   const [templateBytes, boldFontBytes, regularFontBytes] = await Promise.all([
     getPdfTemplateBytes(docType),
     getBoldFontBytes(),
@@ -409,10 +390,17 @@ async function populateForm<T extends object>(
   // Embed both font weights so we can pick per-field
   const boldFont = await pdfDoc.embedFont(boldFontBytes);
   const regularFont = await pdfDoc.embedFont(regularFontBytes);
+  const fontMetrics = {
+    bold: cachedBoldMetrics ?? fontkit.create(boldFontBytes),
+    regular: cachedRegularMetrics ?? fontkit.create(regularFontBytes),
+  };
+  const specs = getDocumentPdfProfiles(documentId);
+  const layouts: PdfFieldLayouts = {};
 
   const form = pdfDoc.getForm();
 
   for (const [key, spec] of Object.entries(specs)) {
+    if (options.onlyField && options.onlyField !== key) continue;
     try {
       const field = form.getTextField(key);
       if (!field) {
@@ -442,6 +430,7 @@ async function populateForm<T extends object>(
 
       const widgets = field.acroField.getWidgets();
       for (const widget of widgets) {
+        widget.setRectangle(spec.rect);
         widget.dict.delete(PDFName.of("AP"));
         widget.dict.delete(PDFName.of("DV"));
         // Sözleşme şablonu metin alanlarını belgenin doğal bir parçası gibi
@@ -461,18 +450,31 @@ async function populateForm<T extends object>(
         }
       }
 
-      const rawValue = (data as Record<string, unknown>)[key];
-      const normalizedValue = typeof rawValue === "string"
-        ? rawValue
-            .replace(/\r\n?/g, "\n")
-            .replace(/\t/g, " ")
-            .replace(/[\u200B-\u200D\uFEFF]/g, "")
-        : "";
-      const val = field.isMultiline() ? normalizedValue : normalizedValue.replace(/\n+/g, " ");
+      const rawValue = spec.fixedValue ?? (data as Record<string, unknown>)[key];
+      const val = normalizePdfFieldValue(rawValue, spec.multiline);
+      if (spec.multiline) field.enableMultiline(); else field.disableMultiline();
       // Arayüz karakter sayısını kilitlemez; AcroForm şablonundaki eski sınırı
       // da kaldır ki uzun metin sessizce reddedilmesin.
       field.acroField.dict.delete(PDFName.of("MaxLen"));
       field.setText(val);
+
+      const widgetLayouts: PdfWidgetLayout[] = [];
+      const metrics = spec.bold ? fontMetrics.bold : fontMetrics.regular;
+      const recordLayout = (widgetLayout: PdfWidgetLayout) => widgetLayouts.push(widgetLayout);
+      const saveLayout = () => {
+        layouts[key] = {
+          documentId, fieldKey: key, value: val, nominalFontSize: spec.size,
+          fontSize: Math.min(...widgetLayouts.map((widget) => widget.fontSize)),
+          lineCount: widgetLayouts.reduce((count, widget) => count + widget.lineCount, 0),
+          overflow: widgetLayouts.some((widget) => widget.overflow), widgets: widgetLayouts,
+        };
+        field.acroField.dict.set(PDFName.of("DA"), makeDefaultAppearance(useFont.name, layouts[key].fontSize));
+      };
+      if (spec.renderer === "inline") {
+        updateInlineFieldAppearance(field, useFont, metrics, spec.size, spec.baseline - spec.rect.y, recordLayout);
+        saveLayout();
+        continue;
+      }
 
       // Let pdf-lib wrap multiline values and shrink single-line values against
       // each widget's actual rectangle. The full AcroForm value remains intact.
@@ -489,8 +491,7 @@ async function populateForm<T extends object>(
           1,
           (quarterTurn ? rectangle.height : rectangle.width) - 2 * (borderWidth + 1)
         );
-        const longestTokenWidth = val
-          .split(/\s+/u)
+        const longestTokenWidth = (field.isMultiline() ? val.split(/\s+/u) : [val])
           .reduce(
             (maximum, token) => Math.max(maximum, useFont.widthOfTextAtSize(token, fittedSize)),
             0
@@ -498,7 +499,7 @@ async function populateForm<T extends object>(
         const tokenFitSize = longestTokenWidth > availableWidth
           ? fittedSize * (availableWidth / longestTokenWidth) * 0.99
           : fittedSize;
-        const finalSize = Math.max(0.5, Math.min(spec.size, fittedSize, tokenFitSize));
+        const finalSize = Math.min(spec.size, fittedSize, tokenFitSize);
         smallestWidgetFontSize = Math.min(smallestWidgetFontSize, finalSize);
         widget.dict.set(PDFName.of("DA"), makeDefaultAppearance(useFont.name, finalSize));
       }
@@ -509,7 +510,60 @@ async function populateForm<T extends object>(
         PDFName.of("DA"),
         makeDefaultAppearance(useFont.name, smallestWidgetFontSize)
       );
-      field.updateAppearances(useFont);
+      field.updateAppearances(useFont, (textField, widget, font) => {
+        const rectangle = widget.getRectangle();
+        const inset = (widget.getBorderStyle()?.getWidth() ?? 0) + 1;
+        const render = () => {
+          const appearance = defaultTextFieldAppearanceProvider(textField, widget, font);
+          let operations = Array.isArray(appearance) ? appearance : appearance.normal;
+          if (spec.anchorFirstLine) {
+            const first = operations.find((operation) => operation.toString().endsWith(" Tm"));
+            const initialY = Number(first?.toString().split(" ")[5]);
+            const offset = Number.isFinite(initialY) ? spec.baseline - rectangle.y - initialY : 0;
+            operations = operations.map((operation) => {
+              const command = operation.toString();
+              if (!command.endsWith(" Tm")) return operation;
+              const [a, b, c, d, x, y] = command.split(" ").map(Number);
+              return setTextMatrix(a, b, c, d, x, y + offset);
+            });
+          }
+          return operations;
+        };
+        let operations = render();
+        let measured = measurePdfAppearance(operations, metrics, rectangle, inset);
+        // pdf-lib çok küçük alanlarda 3 pt'de durabilir. Gerçek glif taşması
+        // varsa kesmek yerine sürekli ölçekte sığdır; normal çizim değişmez.
+        for (let attempt = 0; measured.overflow && measured.glyphBounds && attempt < 8; attempt++) {
+          const bounds = measured.glyphBounds;
+          const clipBottom = rectangle.y + inset;
+          const clipTop = rectangle.y + rectangle.height - inset;
+          const availableWidth = rectangle.width - 2 * inset;
+          let ratio = bounds.width > availableWidth ? availableWidth / bounds.width * 0.99 : 1;
+          if (bounds.y < clipBottom - 0.025) {
+            const anchor = spec.anchorFirstLine ? spec.baseline : clipTop;
+            ratio = Math.min(ratio, (anchor - clipBottom) / (anchor - bounds.y) * 0.99);
+          }
+          if (bounds.y + bounds.height > clipTop + 0.025) ratio = Math.min(ratio, 0.9);
+          if (ratio < 1) {
+            widget.dict.set(PDFName.of("DA"), makeDefaultAppearance(font.name, measured.fontSize * ratio));
+            operations = render();
+          } else {
+            // j gibi sola uzanan glifler için bütün metni küçültmek gerekmez.
+            const shiftX = Math.max(0, rectangle.x + inset - bounds.x) -
+              Math.max(0, bounds.x + bounds.width - (rectangle.x + rectangle.width - inset));
+            operations = operations.map((operation) => {
+              const command = operation.toString();
+              if (!command.endsWith(" Tm")) return operation;
+              const [a, b, c, d, x, y] = command.split(" ").map(Number);
+              return setTextMatrix(a, b, c, d, x + shiftX, y);
+            });
+          }
+          measured = measurePdfAppearance(operations, metrics, rectangle, inset);
+        }
+        recordLayout(measured);
+        return operations;
+      });
+      saveLayout();
     } catch (error) {
       throw new Error(`PDF alanı "${key}" doldurulamadı.`, { cause: error });
     }
@@ -523,7 +577,7 @@ async function populateForm<T extends object>(
     }
   }
 
-  return await pdfDoc.save();
+  return { bytes: options.onlyField ? new Uint8Array() : await pdfDoc.save(), layouts };
 }
 
 
@@ -565,7 +619,7 @@ export async function generateBetonDokumPdf(
   data: BetonDokumData,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
-  return populateForm("beton-dokum", data, BETON_DOKUM_FIELD_SPECS, options);
+  return (await populateForm("beton-dokum", data, "beton-dokum-tutanagi", options)).bytes;
 }
 
 export async function downloadFilledBetonDokumPdf(
@@ -597,7 +651,7 @@ export async function generateTaahhutnamePdf(
   data: TaahhutnameData,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
-  return populateForm("taahhutname", data, TAAHHUTNAME_FIELD_SPECS, options);
+  return (await populateForm("taahhutname", data, "santiye-sefi-taahhutnamesi", options)).bytes;
 }
 
 export async function downloadFilledTaahhutnamePdf(
@@ -629,7 +683,7 @@ export async function generateIstifaDilekcesiPdf(
   data: IstifaDilekcesiData,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
-  return populateForm("istifa", data, ISTIFA_FIELD_SPECS, options);
+  return (await populateForm("istifa", data, "santiye-sefi-istifa-dilekcesi", options)).bytes;
 }
 
 export async function downloadFilledIstifaDilekcesiPdf(
@@ -661,7 +715,7 @@ export async function generateInsaatRuhsatiPdf(
   data: InsaatRuhsatiData,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
-  return populateForm("insaat-ruhsati", data, INSAAT_RUHSATI_FIELD_SPECS, options);
+  return (await populateForm("insaat-ruhsati", data, "insaat-ruhsati-dilekcesi", options)).bytes;
 }
 
 export async function downloadFilledInsaatRuhsatiPdf(
@@ -693,7 +747,7 @@ export async function generateSozlesmePdf(
   data: SozlesmeData,
   options: { flatten?: boolean } = { flatten: false }
 ): Promise<Uint8Array> {
-  return populateForm("sozlesme", data, SOZLESME_FIELD_SPECS, options);
+  return (await populateForm("sozlesme", data, "santiye-sefi-sozlesmesi", options)).bytes;
 }
 
 export async function downloadFilledSozlesmePdf(
@@ -719,4 +773,40 @@ export async function downloadFilledSozlesmePdf(
   document.body.removeChild(link);
 
   setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// Stüdyo PDF'si ve ölçüm raporu aynı üretimden gelir; eski byte API'leri korunur.
+const DOCUMENT_TEMPLATE_TYPES = {
+  "beton-dokum-tutanagi": "beton-dokum", "santiye-sefi-taahhutnamesi": "taahhutname",
+  "santiye-sefi-istifa-dilekcesi": "istifa", "insaat-ruhsati-dilekcesi": "insaat-ruhsati",
+  "santiye-sefi-sozlesmesi": "sozlesme",
+} as const;
+export async function generateBelgeDocument(id: BelgeDocumentId, data: object): Promise<BelgePdfResult> {
+  return populateForm(DOCUMENT_TEMPLATE_TYPES[id], data, id);
+}
+export const BELGE_DOCUMENT_GENERATORS = Object.fromEntries(
+  (Object.keys(DOCUMENT_TEMPLATE_TYPES) as BelgeDocumentId[]).map((id) => [id, (data: object) => generateBelgeDocument(id, data)])
+) as Record<BelgeDocumentId, (data: object) => Promise<BelgePdfResult>>;
+
+export async function measureBelgeDraft(id: BelgeDocumentId, fieldKey: string, value: string): Promise<PdfFieldLayout> {
+  if (!getDocumentPdfProfiles(id)[fieldKey]) throw new Error("PDF alanı bulunamadı.");
+  const result = await populateForm(DOCUMENT_TEMPLATE_TYPES[id], { [fieldKey]: value }, id, { onlyField: fieldKey });
+  return result.layouts[fieldKey];
+}
+export async function generateBlankBelgePdf(id: BelgeDocumentId): Promise<Uint8Array> {
+  return (await generateBelgeDocument(id, getBlankDocumentData(id))).bytes;
+}
+
+/** Sayfa açıldığında şablon ve fontları arka planda önceden önbelleğe alır. */
+export function prewarmBelgeDocument(id: BelgeDocumentId): void {
+  if (typeof window === "undefined") return;
+  const docType = DOCUMENT_TEMPLATE_TYPES[id];
+  if (!docType) return;
+  void Promise.all([
+    getPdfTemplateBytes(docType),
+    getBoldFontBytes(),
+    getRegularFontBytes(),
+  ]).catch(() => {
+    // Arka plan ön-ısıtma hatası sessizce yutulur.
+  });
 }

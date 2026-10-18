@@ -8,6 +8,7 @@ import {
   DOCUMENT_PDF_ONLY_FIELDS,
   countFilledEditableFields,
 } from "../../src/lib/document-field-contracts";
+import { getDocumentPdfProfiles } from "../../src/lib/belgeler-pdf-profiles";
 import { DOCUMENTS } from "../../src/lib/documents-data";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -126,7 +127,7 @@ for (const [documentId, contract] of Object.entries(contracts)) {
   );
 
   assertSameMembers(
-    extractAssignedObjectKeys(pdfEngineSource, contract.specConstant),
+    Object.keys(getDocumentPdfProfiles(id)),
     expectedPdfFields,
     `${documentId}: PDF field spec sözleşmesi farklı`
   );

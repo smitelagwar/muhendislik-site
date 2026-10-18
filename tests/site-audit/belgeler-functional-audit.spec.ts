@@ -290,7 +290,7 @@ test("Baştaki sıfırlar korunmalı ve yumuşak uzunluk uyarısı PDF indirmeyi
   const longTextInput = studio.locator("#beton-dokum-tutanak_alt_baslik");
   const veryLongText = "Bu metin şablon alanının önerilen karakter sınırını kasıtlı olarak aşan ve yumuşak uyarı bloğunu tetikleyen çok uzun bir test açıklamasıdır.";
   await longTextInput.fill(veryLongText);
-  await expect(studio.locator('[role="status"]').filter({ hasText: "Bazı alanlar şablon için uzun olabilir" })).toBeVisible();
+  await expect(studio.getByTestId("belge-pdf-layout-warnings").locator('[data-field-key="tutanak_alt_baslik"]')).toContainText("punto", { timeout: 8_000 });
 
   const downloadButton = studio.getByTestId("belge-studio-desktop-actions")
     .getByRole("button", { name: "PDF İndir", exact: true });
@@ -382,9 +382,8 @@ test("Boş form indirme, yeni sekmede açma, yazdırma ve Blob URL yaşam döng�
   const studio = await openStudio(page, "santiye-sefi-sozlesmesi");
 
   // 1. Boş form indir testi (Masaüstü aksiyon barı)
-  const blankFormLink = studio.getByTestId("belge-studio-desktop-actions").getByRole("link", { name: "Boş form indir" });
-  await expect(blankFormLink).toHaveAttribute("href", "/belgeler/santiye-sefi-sozlesmesi.pdf");
-  await expect(blankFormLink).toHaveAttribute("download", "SANTIYE_SEFI_SOZLESMESI_BOS.pdf");
+  const blankFormLink = studio.getByTestId("belge-studio-desktop-actions").getByRole("button", { name: "Boş form indir" });
+  await expect(blankFormLink).toBeEnabled();
 
   const blankDownloadPromise = page.waitForEvent("download");
   await blankFormLink.click();
@@ -394,6 +393,9 @@ test("Boş form indirme, yeni sekmede açma, yazdırma ve Blob URL yaşam döng�
   expect(blankPath).not.toBeNull();
   const blankPdf = await PDFDocument.load(await readFile(blankPath!));
   expect(blankPdf.getPageCount()).toBe(2);
+  for (const key of DOCUMENT_EDITABLE_FIELDS["santiye-sefi-sozlesmesi"]) {
+    expect(blankPdf.getForm().getTextField(key).getText() ?? "").toBe("");
+  }
 
   // 2. Yeni sekmede aç linki testi (Toolbar)
   const newTabLink = studio.getByTestId("belge-studio-preview-toolbar").getByRole("link", { name: "PDF'yi yeni sekmede aç" });

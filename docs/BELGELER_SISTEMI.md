@@ -78,8 +78,22 @@ PDF şablonları AcroForm alanları içerir. Geliştirme sürecinde karşılaş�
   - `Q: 2` → Sağa Yaslı (İmza blokları, sağ tarih alanları)
 * Her alan için `FIELD_SPECS`'te `q` değeri tanımlanmalı ve hem field'a hem widget'larına set edilmelidir.
 
+### Satır içi alanların punto ve taban hizası (18 Ekim 2026)
+* Taahhütname alanları etiketlerle aynı **9 pt**, sözleşme alanları çevredeki gövdeyle aynı **9.5 pt** kullanır. Bu dar tek satırlarda `pdf-lib` otomatik paragraf ölçümü kullanılmaz; aksi halde kısa değerler dahi 5–8 pt'ye düşer.
+* `updateInlineFieldAppearance`, gerçek fontkit glif sınırlarıyla yatay sığmayı ve Türkçe harflerin dikey sınırlarını hesaplar. Yalnız sığmayan girişler küçültülür; tam alan değeri korunur. `pdf-lib` özel font yüksekliğinde descender ölçeği tutarsız olduğu için glif sınırları doğrudan fontkit'ten alınır.
+* Kaynak PDF dosyaları ve sayfa içerikleri değişmez. Üretilen PDF'de taahhütname widget'ları 10.2 pt yüksekliğe ve kaynak etiket tabanlarına kalibre edilir; imza unvanına 2 pt ek satır aralığı verilir. Sözleşmede taban, kaynak kutunun altından 2 pt yukarıda tutulur. Önizleme, indirme, yazdırma ve PDF üzerinde düzenleme aynı üretilen geometriyi kullanır.
+* Regresyon kanıtı: `tests/belgeler/pdf-field-typography.test.ts`; mevcut okunabilirlik envanteri üretilen geometri/puntoyu izler. Diğer üç belgenin tipografisi ve çok satırlı sığdırma davranışı korunur.
+
 ### 2.4. Kullanıcı Dostu Dil (Yazılımsal Terimlerin Gizlenmesi)
 * **Kural:** Arayüzde veya başlıklarda son kullanıcıyı ilgilendirmeyen `(AcroForm)`, `(PDF Form)`, `(Field Array)` gibi yazılımsal veya teknik terimler **kesinlikle yer almamalıdır.** Başlıklar her zaman `"Beton Döküm Tutanağı"`, `"Şantiye Şefi İstifa Dilekçesi"` gibi sade ve kurumsal olmalıdır.
+
+### 2.5. Alan profilleri, gerçek ölçüm ve boş form
+* `belgeler-pdf-profiles.ts`, mevcut alan sözleşmesindeki 56 düzenlenebilir alan ve üç sabit etiketin punto, kalınlık, hizalama, çok satırlılık, sayfa, kutu ve nominal tabanını tanımlar. Kaynak PDF dosyaları yeniden oluşturulmaz; üretilen widget geometrisi profile uygulanır.
+* İstifa adresi 225×36 pt kalır; ilk satır `ADRES` etiketiyle aynı tabana sabitlenir. T.C. ve telefon etiket/değerleri 20 pt aşağı alınır. Diğer bölgeler mevcut tasarımı korur.
+* `generateBelgeDocument` aynı üretimden `{ bytes, layouts }` döndürür. `layouts`, çizilen Tf/Tm/Tj işlemlerinden gerçek puntoyu, satır tabanlarını, glif sınırlarını ve taşmayı ölçer. Eski `generate…Pdf` API'leri byte döndürmeye devam eder. Snapshot PDF ve raporu aynı revizyonda tutar; eski ölçüm yeni girdiye uygulanmaz.
+* Baskı rehberliği tahmini karakter eşiklerini kullanmaz: gerçek punto 7'nin altındaysa uyarı, nominalin %80'inin altındaysa bilgilendirme gösterilir. Boş/nötr değerler sessizdir; indirme engellenmez. Taslak popover aynı motorla tek alanı ölçer; ana form ve önizlemeyi değiştirmez.
+* `Boş form indir`, `generateBlankBelgePdf` ile düzenlenebilir değerleri boşaltır; üç sabit etiket ve sayfa içerikleri korunur. Açık form ve geri alma kaydı değişmez. Ham şablon bağlantıları boş form olarak sunulmaz.
+* Birleşik yerel kapı: `npm run check:belgeler-pdf`. Altı sayfanın kabul PNG'leri `tests/fixtures/belgeler-approved/` içindedir; otomatik güncellenmez. Görsel kapı Poppler `pdftoppm` kullanır ve istifa iletişim bloğu dışında piksel değişikliğini reddeder. Masaüstü/mobil kabulü `tests/site-audit/belgeler-pdf-quality.spec.ts` sağlar.
 
 ---
 
@@ -268,7 +282,7 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
 
 1. **Çalışma Zamanı Yüksüz Baskı Riski Öngörüsü (`assessFieldReadability`):**
    - Runtime'da her tuş vuruşunda pahalı PDF parse/canvas render maliyeti üretilmez.
-   - Gerçek şablon AcroForm `rect`, `DA` ve `Ff` envanterine dayalı hafif offline kalibrasyon tablosu (`CRITICAL_READABILITY_GEOMETRIES`) ile anlık (< 1 ms) risk seviyesi (`none`, `possible`, `serious`) hesaplanır.
+   - Güncel sistemde geometri alan profillerinden türetilir; karakter sayısına dayalı offline tahmin kullanılmaz. Aynı PDF üretimindeki gerçek çizim raporundan `none`, `possible`, `serious` hesaplanır; güncel ölçüm henüz yoksa `unknown` döner. Ayrıntılar: Bölüm 2.5.
 2. **Şantiye Şefi İstifa Dilekçesi Adres Alanı Fiziksel İyileştirmesi (`ASAMA_06B`):**
    - **Sorun:** Orijinal şablonda `adres_deger` alanı 192 × 18 pt dar tek satır idi ve uzun adreslerde yazı boyutu ~1.26 pt'ye kadar küçülüyordu.
    - **Kontrollü İstisna Çözümü:** Kullanıcı onayıyla `public/belgeler/santiye-sefi-istifa-dilekcesi.pdf` şablonundaki AcroForm widget'ı güvenli boşluk bölgesine doğru **225.0 × 36.0 pt** boyutuna genişletildi ve `Ff` bayrağına çok satırlılık biti (`multiline: true`, `4096`) eklendi.
@@ -279,7 +293,7 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
      - Diğer 4 şablon orijinal baseline hash değerleriyle birebir korunmuştur.
 3. **Sıfır Veri Kaybı Sözleşmesi (0 Silent Truncation):**
    - 220+ karakterlik adresler dahil hiçbir kullanıcı verisi sistem tarafından sessizce budanmaz veya kesilmez.
-   - Gerçek üretilen PDF çıktısında girilen tüm karakterlerin AcroForm text alanında eksiksiz saklandığı testlerle kanıtlanmıştır.
+   - Alan değerinin saklanmasına ek olarak güncel kabul testleri gerçek glif sınırlarını ve görünür taşmayı denetler. Çok sayıda satır ve 1.000 karakterlik bölünmeyen metin de sınanır; fiziksel olarak küçük kalan yazıda baskı uyarısı verilir.
 
 ---
 
@@ -288,4 +302,4 @@ Yeni bir belge eklendiğinde veya mevcut belge düzenlendiğinde şu kontroller 
 Olası bir regresyon veya geri alma durumunda:
 - **Şablon Geri Alma:** İstifa dilekçesi orijinal tek satırlı baseline'a (`3132D561...`) döndürülmek istenirse `git checkout 14235bd4ff86f6d03f3a575d4650596cef57206e -- public/belgeler/santiye-sefi-istifa-dilekcesi.pdf` komutuyla tek işlemde restore edilebilir; `assessFieldReadability` ve inline layer yeni koordinatları dinamik okuduğu için sistem çökmez.
 - **Opt-in İzolasyon:** Inline edit katmanı varsayılan olarak OFF olduğundan arayüzde herhangi bir bileşen hatası durumunda `isInlineEditingActive = false` bırakılarak standart baseline stüdyo deneyimi %100 kesintisiz devam eder.
-- **Korumalı Çekirdek:** `pdf-engine.ts`, `use-belge-studio-document.ts` ve `document-field-contracts.ts` dosyaları salt-okunur (read-only) korunduğu için üretim PDF pipeline'ı hiçbir mimari risk taşımamaktadır.
+- **Çekirdek Doğrulaması:** Inline edit çalışmasında çekirdek dosyalar korunmuştur. 18 Ekim 2026 punto/hiza düzeltmesi `pdf-engine.ts` içinde yapılmıştır; alan değerleri, kaynak sayfa içerikleri ve çizilmiş PDF taban hizası regresyon testleriyle doğrulanır. `use-belge-studio-document.ts` ve `document-field-contracts.ts` davranışları korunur.

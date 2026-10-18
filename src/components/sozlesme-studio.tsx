@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   FileCheck2,
@@ -24,7 +24,7 @@ import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-vi
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
-import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
@@ -35,7 +35,8 @@ import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
   downloadFilledSozlesmePdf,
-  generateSozlesmePdf,
+  BELGE_DOCUMENT_GENERATORS,
+  prewarmBelgeDocument,
 } from "@/lib/pdf-engine";
 
 interface SozlesmeStudioProps {
@@ -88,8 +89,9 @@ export function SozlesmeStudio({
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const document = useBelgeStudioDocument(formData, generateSozlesmePdf);
+  const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["santiye-sefi-sozlesmesi"]);
   const snapshot = document.snapshot;
+  const layouts = document.status === "ready" ? snapshot?.layouts : undefined;
   const blobUrl = snapshot?.blobUrl ?? null;
   const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
   const previewError = previewIsCurrent && previewResult.status === "error";
@@ -107,6 +109,10 @@ export function SozlesmeStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+
+  useEffect(() => {
+    prewarmBelgeDocument("santiye-sefi-sozlesmesi");
+  }, []);
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof SozlesmeData, boolean>>>({});
@@ -374,25 +380,7 @@ export function SozlesmeStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <BelgeFieldLengthWarnings
-            values={formData}
-            baselineValues={SOZLESME_DEFAULT_DATA}
-            excludedFields={["adres", "yibf", "ucret", "sozlesme_tarihi"]}
-            limits={{
-              muteahhit_unvan: { label: "Yapı Müteahhidi Unvanı", maximum: 36 },
-              santiye_sefi_ad: { label: "Şantiye Şefi Adı Soyadı", maximum: 35 },
-              il: { label: "İl", maximum: 18 },
-              ilce: { label: "İlçe", maximum: 22 },
-              adres: { label: "Açık Adres", maximum: 48 },
-              yibf: { label: "YİBF No", maximum: 32 },
-              pafta: { label: "Pafta", maximum: 8 },
-              mahalle: { label: "Mahalle", maximum: 8 },
-              ada: { label: "Ada", maximum: 7 },
-              parsel: { label: "Parsel", maximum: 12 },
-              ucret: { label: "Aylık Brüt Ücret", maximum: 35 },
-              sozlesme_tarihi: { label: "Sözleşme Tarihi", maximum: 36 },
-            }}
-          />
+          <BelgePdfLayoutWarnings documentId="santiye-sefi-sozlesmesi" layouts={layouts} excludedFields={["adres", "ucret", "sozlesme_tarihi"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -495,6 +483,7 @@ export function SozlesmeStudio({
               <BelgeFieldGuidanceView
                 id="sozlesme-adres-guidance"
                 guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "adres", formData.adres, {
+                    layout: layouts?.adres,
                   isTouched: true,
                 })}
               />
@@ -635,6 +624,7 @@ export function SozlesmeStudio({
                 <BelgeFieldGuidanceView
                   id="sozlesme-ucret-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "ucret", formData.ucret, {
+                    layout: layouts?.ucret,
                     isTouched: touchedFields.ucret,
                   })}
                 />
@@ -655,6 +645,7 @@ export function SozlesmeStudio({
                 <BelgeFieldGuidanceView
                   id="sozlesme-sozlesme_tarihi-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-sozlesmesi", "sozlesme_tarihi", formData.sozlesme_tarihi, {
+                    layout: layouts?.sozlesme_tarihi,
                     isTouched: touchedFields.sozlesme_tarihi,
                   })}
                 />
@@ -709,6 +700,7 @@ export function SozlesmeStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            activeTabMobile={activeTabMobile}
             editing={{
               documentId: "santiye-sefi-sozlesmesi",
               values: formData as unknown as Record<string, string>,
@@ -729,7 +721,7 @@ export function SozlesmeStudio({
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
-        templateUrl="/belgeler/santiye-sefi-sozlesmesi.pdf"
+        documentId="santiye-sefi-sozlesmesi"
         templateFilename="SANTIYE_SEFI_SOZLESMESI_BOS.pdf"
       />
     </div>

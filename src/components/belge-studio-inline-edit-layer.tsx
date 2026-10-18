@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import type { BelgeDocumentId, InlineFieldDescriptor } from "@/lib/belge-studio-inline-field-map";
 import { evaluateFieldGuidance, BelgeFieldGuidanceView } from "@/components/belge-field-guidance";
+import type { PdfFieldLayout, PdfFieldLayouts } from "@/lib/belgeler-pdf-layout";
 
 export interface BelgeStudioInlineEditLayerProps {
   documentId?: BelgeDocumentId;
@@ -15,6 +16,7 @@ export interface BelgeStudioInlineEditLayerProps {
   frameHeight?: number;
   selectedField?: InlineFieldDescriptor | null;
   onSelectField?: (field: InlineFieldDescriptor | null) => void;
+  layouts?: PdfFieldLayouts;
 }
 
 interface BelgeInlineDraftPopoverProps {
@@ -24,6 +26,7 @@ interface BelgeInlineDraftPopoverProps {
   onCommit: (value: string) => void;
   onCancel: () => void;
   style: React.CSSProperties;
+  layout?: PdfFieldLayout;
 }
 
 /**
@@ -38,6 +41,7 @@ function BelgeInlineDraftPopover({
   onCommit,
   onCancel,
   style,
+  layout,
 }: BelgeInlineDraftPopoverProps) {
   // openingValue is frozen once on mount via useState(currentValue), and updated if user explicitly loads current value
   const [openingValue, setOpeningValue] = useState(currentValue);
@@ -45,9 +49,23 @@ function BelgeInlineDraftPopover({
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
   const isCommittingRef = useRef(false);
+  const [draftLayout, setDraftLayout] = useState<{ draft: string; layout: PdfFieldLayout } | null>(null);
+  const measuredLayout = draft === currentValue ? layout : draftLayout?.draft === draft ? draftLayout.layout : undefined;
+
+  // Taslak kendi başına ölçülür; ana form, önizleme ve geri alma kaydı değişmez.
+  useEffect(() => {
+    if (!documentId || (draft === currentValue && layout)) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void import("@/lib/pdf-engine").then(({ measureBelgeDraft }) => measureBelgeDraft(documentId, field.fieldKey, draft))
+        .then((result) => { if (!cancelled) setDraftLayout({ draft, layout: result }); })
+        .catch(() => { /* Ölçüm yokken eski veya tahmini bir punto gösterilmez. */ });
+    }, 200);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [documentId, field.fieldKey, draft, currentValue, layout]);
 
   const guidance = documentId
-    ? evaluateFieldGuidance(documentId, field.fieldKey, draft, { isBlurOrSubmitted: true })
+    ? evaluateFieldGuidance(documentId, field.fieldKey, draft, { isBlurOrSubmitted: true, layout: measuredLayout })
     : null;
   const guidanceId = `inline-guidance-${field.fieldKey}`;
 
@@ -337,6 +355,7 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
   frameHeight = 842,
   selectedField: controlledSelectedField,
   onSelectField,
+  layouts,
 }: BelgeStudioInlineEditLayerProps) {
   const [internalSelectedField, setInternalSelectedField] = useState<InlineFieldDescriptor | null>(null);
   const selectedField = controlledSelectedField !== undefined ? controlledSelectedField : internalSelectedField;
@@ -454,6 +473,7 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
           documentId={documentId}
           field={selectedField}
           currentValue={values?.[selectedField.fieldKey] ?? ""}
+          layout={layouts?.[selectedField.fieldKey]}
           onCommit={(confirmedValue) => {
             onCommit?.(selectedField.fieldKey, confirmedValue);
             setSelectedField(null);

@@ -11,6 +11,7 @@
     "prestart": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "start": "next start",
     "lint": "eslint",
+    "check:belgeler-pdf": "tsx --test tests/belgeler/*.test.ts && tsx scripts/check-belgeler-pdf-visuals.ts",
     "compile:cad-v2": "tsx scripts/cad-v2/run-v2-compiler-cli.ts",
     "check:bina-visuals": "tsx scripts/check-bina-visuals.ts",
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",

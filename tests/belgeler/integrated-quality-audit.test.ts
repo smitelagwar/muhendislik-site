@@ -30,6 +30,7 @@ import {
   SOZLESME_DEFAULT_DATA,
   TAAHHUTNAME_DEFAULT_DATA,
 } from "../../src/lib/pdf-engine";
+import { measureBelgeDraft } from "../../src/lib/pdf-engine";
 import { evaluateFieldGuidance } from "../../src/components/belge-field-guidance";
 import type { BelgeDocumentId } from "../../src/lib/belge-studio-inline-field-map";
 
@@ -167,7 +168,7 @@ test("ASAMA_08: Entegre Kalite ve Veri Güvenliği Denetimi", async (t) => {
   await t.test("4. Fiziksel Geometri ve Baskı Okunabilirlik Kalibrasyonu", async () => {
     // 220 karakterlik aşırı uzun adres istifa dilekçesinde baskı riski bildirir
     const longAddress = "A".repeat(220);
-    const assessment = evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "adres_deger", longAddress);
+    const assessment = evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "adres_deger", longAddress, { layout: await measureBelgeDraft("santiye-sefi-istifa-dilekcesi", "adres_deger", longAddress) });
     assert.ok(assessment, "220 karakterlik adres için rehberlik üretilmelidir");
     assert.equal(assessment.source, "readability");
     assert.ok(assessment.message.length > 0);

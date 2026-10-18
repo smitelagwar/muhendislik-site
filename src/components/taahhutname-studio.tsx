@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   FileSignature,
@@ -23,7 +23,7 @@ import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-vi
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
-import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
@@ -34,7 +34,8 @@ import {
   TAAHHUTNAME_DEFAULT_DATA,
   TaahhutnameData,
   downloadFilledTaahhutnamePdf,
-  generateTaahhutnamePdf,
+  BELGE_DOCUMENT_GENERATORS,
+  prewarmBelgeDocument,
 } from "@/lib/pdf-engine";
 
 interface TaahhutnameStudioProps {
@@ -87,8 +88,9 @@ export function TaahhutnameStudio({
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const document = useBelgeStudioDocument(formData, generateTaahhutnamePdf);
+  const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["santiye-sefi-taahhutnamesi"]);
   const snapshot = document.snapshot;
+  const layouts = document.status === "ready" ? snapshot?.layouts : undefined;
   const blobUrl = snapshot?.blobUrl ?? null;
   const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
   const previewError = previewIsCurrent && previewResult.status === "error";
@@ -106,6 +108,10 @@ export function TaahhutnameStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+
+  useEffect(() => {
+    prewarmBelgeDocument("santiye-sefi-taahhutnamesi");
+  }, []);
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof TaahhutnameData, boolean>>>({});
@@ -364,26 +370,7 @@ export function TaahhutnameStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <BelgeFieldLengthWarnings
-            values={formData}
-            baselineValues={TAAHHUTNAME_DEFAULT_DATA}
-            excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi"]}
-            limits={{
-              oda_sicil_no: { label: "Oda sicil numarası", maximum: 18 },
-              tc_kimlik_no: { label: "T.C. Kimlik Numarası", maximum: 11 },
-              unvan: { label: "Unvan", maximum: 42 },
-              adres: { label: "Adres", maximum: 60 },
-              telefon: { label: "Telefon", maximum: 24 },
-              il_ilce: { label: "İl / ilçe", maximum: 26 },
-              ilgili_idare: { label: "İlgili idare", maximum: 45 },
-              pafta_ada_parsel: { label: "Pafta / ada / parsel", maximum: 46 },
-              yapi_adresi: { label: "Yapı adresi", maximum: 62 },
-              yapi_sahibi: { label: "Yapı sahibi", maximum: 50 },
-              yapi_sahibi_adresi: { label: "Yapı sahibinin adresi", maximum: 52 },
-              santiye_sefi_ad_soyad: { label: "Şantiye şefi ad soyad", maximum: 38 },
-              unvan_imza: { label: "İmza unvanı", maximum: 38 },
-            }}
-          />
+          <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -475,6 +462,7 @@ export function TaahhutnameStudio({
                 <BelgeFieldGuidanceView
                   id="taahhut-tc_kimlik_no-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "tc_kimlik_no", formData.tc_kimlik_no, {
+                    layout: layouts?.tc_kimlik_no,
                     isTouched: touchedFields.tc_kimlik_no,
                   })}
                 />
@@ -497,6 +485,7 @@ export function TaahhutnameStudio({
                 <BelgeFieldGuidanceView
                   id="taahhut-telefon-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "telefon", formData.telefon, {
+                    layout: layouts?.telefon,
                     isTouched: touchedFields.telefon,
                   })}
                 />
@@ -520,6 +509,7 @@ export function TaahhutnameStudio({
               <BelgeFieldGuidanceView
                 id="taahhut-adres-guidance"
                 guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "adres", formData.adres, {
+                    layout: layouts?.adres,
                   isTouched: true,
                 })}
               />
@@ -591,6 +581,7 @@ export function TaahhutnameStudio({
               <BelgeFieldGuidanceView
                 id="taahhut-yapi_adresi-guidance"
                 guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "yapi_adresi", formData.yapi_adresi, {
+                    layout: layouts?.yapi_adresi,
                   isTouched: true,
                 })}
               />
@@ -625,6 +616,7 @@ export function TaahhutnameStudio({
                 <BelgeFieldGuidanceView
                   id="taahhut-yapi_sahibi_adresi-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "yapi_sahibi_adresi", formData.yapi_sahibi_adresi, {
+                    layout: layouts?.yapi_sahibi_adresi,
                     isTouched: true,
                   })}
                 />
@@ -648,6 +640,7 @@ export function TaahhutnameStudio({
                 <BelgeFieldGuidanceView
                   id="taahhut-tarih-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "tarih", formData.tarih, {
+                    layout: layouts?.tarih,
                     isTouched: touchedFields.tarih,
                   })}
                 />
@@ -681,6 +674,7 @@ export function TaahhutnameStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            activeTabMobile={activeTabMobile}
             editing={{
               documentId: "santiye-sefi-taahhutnamesi",
               values: formData as unknown as Record<string, string>,
@@ -701,7 +695,7 @@ export function TaahhutnameStudio({
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
-        templateUrl="/belgeler/santiye-sefi-taahhutnamesi.pdf"
+        documentId="santiye-sefi-taahhutnamesi"
         templateFilename="SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf"
       />
     </div>

@@ -16,6 +16,7 @@
 
 import { memo } from "react";
 import { getFieldGuidance } from "@/lib/belgeler-field-guidance";
+import type { PdfFieldLayout } from "@/lib/belgeler-pdf-layout";
 import { assessFieldReadability } from "@/lib/belgeler-pdf-readability";
 import type { BelgeDocumentId } from "@/lib/belge-studio-inline-field-map";
 
@@ -27,6 +28,7 @@ export interface FieldGuidanceItem {
 }
 
 export interface EvaluateFieldGuidanceOptions {
+  layout?: PdfFieldLayout;
   /** Alan odak kaybedip blur oldu mu veya onay aşamasında mı? */
   isTouched?: boolean;
   /** Popover onayı veya form gönderimi sırasında tam doğrulama aktif mi? */
@@ -48,6 +50,12 @@ export function evaluateFieldGuidance(
   // 1. Boş veya nötr '-' değerler için hiçbir uyarı üretilmez
   if (!trimmed || trimmed === "-") {
     return null;
+  }
+
+  const readability = assessFieldReadability(documentId, fieldKey, raw, options?.layout);
+  // Ciddi baskı riski, aynı alandaki biçim uyarısının arkasında gizlenmez.
+  if (readability.risk === "serious" && readability.message) {
+    return { code: readability.code, severity: "warning", message: readability.message, source: "readability" };
   }
 
   // 2. Semantik format doğrulaması (K, F, T, Y, P)
@@ -78,16 +86,6 @@ export function evaluateFieldGuidance(
   }
 
   // 3. Gerçek PDF basım okunabilirliği ve widget geometrisi riski
-  const readability = assessFieldReadability(documentId, fieldKey, raw);
-  if (readability.risk === "serious" && readability.message) {
-    return {
-      code: readability.code,
-      severity: "warning",
-      message: readability.message,
-      source: "readability",
-    };
-  }
-
   if (readability.risk === "possible" && readability.message) {
     return {
       code: readability.code,

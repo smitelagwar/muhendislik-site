@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { measureBelgeDraft } from "../../src/lib/pdf-engine";
 import { evaluateFieldGuidance } from "../../src/components/belge-field-guidance";
 import { DOCUMENT_EDITABLE_FIELDS } from "../../src/lib/document-field-contracts";
 import type { BelgeDocumentId } from "../../src/lib/belge-studio-inline-field-map";
@@ -41,62 +42,35 @@ describe("ASAMA_07 — Belge Field Guidance & Evaluator Test Suite", () => {
     }
   });
 
-  it("3. İstifa Dilekçesi adres_deger: ASAMA_06B genişletilmiş eşikleri (130, 220) ile dürüst rehberlik", () => {
-    const docId = "santiye-sefi-istifa-dilekcesi";
-    const fieldKey = "adres_deger";
-
-    // 100 karakter: 225x36 pt çok satırlı şablonda rahatça sığar -> null
-    const text100 = "A".repeat(100);
-    assert.equal(evaluateFieldGuidance(docId, fieldKey, text100), null);
-
-    // 140 karakter: possible eşiği (130) aşar -> info
-    const text140 = "B".repeat(140);
-    const res140 = evaluateFieldGuidance(docId, fieldKey, text140);
-    assert.ok(res140 !== null);
-    assert.equal(res140?.severity, "info");
-    assert.equal(res140?.source, "readability");
-
-    // 230 karakter: serious eşiği (220) aşar -> warning
-    const text230 = "C".repeat(230);
-    const res230 = evaluateFieldGuidance(docId, fieldKey, text230);
-    assert.ok(res230 !== null);
-    assert.equal(res230?.severity, "warning");
-    assert.equal(res230?.source, "readability");
+  it("3. Aynı karakter sayısında farklı glif genişlikleri gerçek puntodan değerlendirilir", async () => {
+    const id = "santiye-sefi-istifa-dilekcesi";
+    const wide = "W".repeat(50);
+    const narrow = "i".repeat(50);
+    const wideLayout = await measureBelgeDraft(id, "adres_deger", wide);
+    const narrowLayout = await measureBelgeDraft(id, "adres_deger", narrow);
+    assert.ok(wideLayout.fontSize < 7);
+    assert.equal(narrowLayout.fontSize, 8);
+    assert.equal(evaluateFieldGuidance(id, "adres_deger", wide, { layout: wideLayout })?.severity, "warning");
+    assert.equal(evaluateFieldGuidance(id, "adres_deger", narrow, { layout: narrowLayout }), null);
   });
 
-  it("4. Taahhütname dar tek satırlı adres alanları: fiziksel punto küçülmesini kullanıcıya açıkça bildirmeli", () => {
-    const docId = "santiye-sefi-taahhutnamesi";
-    const fieldKey = "adres"; // [65, 110]
-
-    // 40 karakter: nominal 5 pt font sığar
-    assert.equal(evaluateFieldGuidance(docId, fieldKey, "A".repeat(40)), null);
-
-    // 75 karakter: possible eşiği -> info
-    const res75 = evaluateFieldGuidance(docId, fieldKey, "A".repeat(75));
-    assert.ok(res75 !== null);
-    assert.equal(res75?.severity, "info");
-    assert.ok(res75?.message.includes("tek satırlı dar alanda"));
-
-    // 120 karakter: serious eşiği -> warning
-    const res120 = evaluateFieldGuidance(docId, fieldKey, "A".repeat(120));
-    assert.ok(res120 !== null);
-    assert.equal(res120?.severity, "warning");
-    assert.ok(res120?.message.includes("okunması zorlaşacaktır"));
+  it("4. Taahhütname küçük puntolu metin için gerçek baskı uyarısı verir", async () => {
+    const value = "W".repeat(120);
+    const layout = await measureBelgeDraft("santiye-sefi-taahhutnamesi", "adres", value);
+    const result = evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "adres", value, { layout });
+    assert.equal(result?.severity, "warning");
+    assert.ok(result?.message.includes(layout.fontSize.toFixed(2)));
   });
 
-  it("5. Sözleşme açık adres (170 x 11.5 pt tablo hücresi): [50, 80] eşikleri", () => {
-    const docId = "santiye-sefi-sozlesmesi";
-    const fieldKey = "adres";
-
-    assert.equal(evaluateFieldGuidance(docId, fieldKey, "Kızılay Mah. No:12"), null);
-
-    const res60 = evaluateFieldGuidance(docId, fieldKey, "A".repeat(60));
-    assert.ok(res60 !== null);
-    assert.equal(res60?.severity, "info");
-
-    const res90 = evaluateFieldGuidance(docId, fieldKey, "A".repeat(90));
-    assert.ok(res90 !== null);
-    assert.equal(res90?.severity, "warning");
+  it("5. Sözleşme şirket unvanının 4 pt'ye düşmesi risk yok sayılamaz; eski ölçüm yeni değere uygulanmaz", async () => {
+    const value = "ÖRNEK İNŞAAT MÜHENDİSLİK MİMARLIK SANAYİ VE TİCARET LİMİTED ŞİRKETİ";
+    const layout = await measureBelgeDraft("santiye-sefi-sozlesmesi", "muteahhit_unvan", value);
+    assert.ok(layout.fontSize < 4.1);
+    assert.equal(evaluateFieldGuidance("santiye-sefi-sozlesmesi", "muteahhit_unvan", value, { layout })?.severity, "warning");
+    assert.equal(evaluateFieldGuidance("santiye-sefi-sozlesmesi", "muteahhit_unvan", "KISA", { layout }), null);
+    const invalidPhone = "0532 ".repeat(40);
+    const phoneLayout = await measureBelgeDraft("santiye-sefi-taahhutnamesi", "telefon", invalidPhone);
+    assert.equal(evaluateFieldGuidance("santiye-sefi-taahhutnamesi", "telefon", invalidPhone, { layout: phoneLayout })?.source, "readability");
   });
 
   it("6. T.C. Kimlik No: yazım esnasında erken gürültü yapmama ve onay/blur sonrası doğru checksum rehberliği", () => {

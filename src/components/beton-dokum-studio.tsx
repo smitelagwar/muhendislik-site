@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   X,
@@ -20,7 +20,7 @@ import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-vi
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
-import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
@@ -31,7 +31,8 @@ import {
   BETON_DOKUM_DEFAULT_DATA,
   BetonDokumData,
   downloadFilledBetonDokumPdf,
-  generateBetonDokumPdf,
+  BELGE_DOCUMENT_GENERATORS,
+  prewarmBelgeDocument,
 } from "@/lib/pdf-engine";
 
 interface BetonDokumStudioProps {
@@ -84,8 +85,9 @@ export function BetonDokumStudio({
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const document = useBelgeStudioDocument(formData, generateBetonDokumPdf);
+  const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["beton-dokum-tutanagi"]);
   const snapshot = document.snapshot;
+  const layouts = document.status === "ready" ? snapshot?.layouts : undefined;
   const blobUrl = snapshot?.blobUrl ?? null;
   const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
   const previewError = previewIsCurrent && previewResult.status === "error";
@@ -103,6 +105,10 @@ export function BetonDokumStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+
+  useEffect(() => {
+    prewarmBelgeDocument("beton-dokum-tutanagi");
+  }, []);
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof BetonDokumData, boolean>>>({});
@@ -346,21 +352,7 @@ export function BetonDokumStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
             }`}
         >
-          <BelgeFieldLengthWarnings
-            values={formData}
-            baselineValues={BETON_DOKUM_DEFAULT_DATA}
-            excludedFields={["yer"]}
-            limits={{
-              tutanak_alt_baslik: { label: "Tutanak alt başlığı", maximum: 58 },
-              yer: { label: "Döküm yeri", maximum: 110 },
-              olay_aciklamasi: { label: "Olay açıklaması", maximum: 380 },
-              gozlem_notlar: { label: "Gözlem ve notlar", maximum: 300 },
-              laboratuvar: { label: "Laboratuvar", maximum: 48 },
-              muteahhit: { label: "Müteahhit", maximum: 48 },
-              santiye_sefi: { label: "Şantiye şefi", maximum: 48 },
-              yapi_denetim: { label: "Yapı denetim kuruluşu", maximum: 48 },
-            }}
-          />
+          <BelgePdfLayoutWarnings documentId="beton-dokum-tutanagi" layouts={layouts} excludedFields={["tarih", "yer"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between gap-2 pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -414,6 +406,7 @@ export function BetonDokumStudio({
                 <BelgeFieldGuidanceView
                   id="beton-dokum-tarih-guidance"
                   guidance={evaluateFieldGuidance("beton-dokum-tutanagi", "tarih", formData.tarih, {
+                    layout: layouts?.tarih,
                     isTouched: touchedFields.tarih,
                   })}
                 />
@@ -499,6 +492,7 @@ export function BetonDokumStudio({
             <BelgeFieldGuidanceView
               id="beton-dokum-yer-guidance"
               guidance={evaluateFieldGuidance("beton-dokum-tutanagi", "yer", formData.yer, {
+                    layout: layouts?.yer,
                 isTouched: true,
               })}
             />
@@ -605,6 +599,7 @@ export function BetonDokumStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            activeTabMobile={activeTabMobile}
             editing={{
               documentId: "beton-dokum-tutanagi",
               values: formData as unknown as Record<string, string>,
@@ -625,7 +620,7 @@ export function BetonDokumStudio({
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
-        templateUrl="/belgeler/beton-dokum-tutanagi.pdf"
+        documentId="beton-dokum-tutanagi"
         templateFilename="BETON_DOKUM_TUTANAGI_BOS_SABLON.pdf"
       />
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Dice5,
@@ -24,7 +24,7 @@ import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-vi
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
-import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
@@ -35,7 +35,8 @@ import {
   INSAAT_RUHSATI_DEFAULT_DATA,
   InsaatRuhsatiData,
   downloadFilledInsaatRuhsatiPdf,
-  generateInsaatRuhsatiPdf,
+  BELGE_DOCUMENT_GENERATORS,
+  prewarmBelgeDocument,
 } from "@/lib/pdf-engine";
 
 interface InsaatRuhsatiStudioProps {
@@ -136,8 +137,9 @@ export function InsaatRuhsatiStudio({
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const document = useBelgeStudioDocument(formData, generateInsaatRuhsatiPdf);
+  const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["insaat-ruhsati-dilekcesi"]);
   const snapshot = document.snapshot;
+  const layouts = document.status === "ready" ? snapshot?.layouts : undefined;
   const blobUrl = snapshot?.blobUrl ?? null;
   const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
   const previewError = previewIsCurrent && previewResult.status === "error";
@@ -155,6 +157,10 @@ export function InsaatRuhsatiStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+
+  useEffect(() => {
+    prewarmBelgeDocument("insaat-ruhsati-dilekcesi");
+  }, []);
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof InsaatRuhsatiData, boolean>>>({});
@@ -408,20 +414,7 @@ export function InsaatRuhsatiStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <BelgeFieldLengthWarnings
-            values={formData}
-            baselineValues={INSAAT_RUHSATI_DEFAULT_DATA}
-            excludedFields={["adres", "tel"]}
-            limits={{
-              belediye_adi: { label: "Belediye adı", maximum: 48 },
-              mudurluk_adi: { label: "Müdürlük adı", maximum: 56 },
-              ana_metin: { label: "Başvuru metni", maximum: 360 },
-              ad_soyad: { label: "Ad soyad", maximum: 38 },
-              unvan: { label: "Unvan", maximum: 30 },
-              adres: { label: "Adres", maximum: 120 },
-              tel: { label: "Telefon", maximum: 36 },
-            }}
-          />
+          <BelgePdfLayoutWarnings documentId="insaat-ruhsati-dilekcesi" layouts={layouts} excludedFields={["tarih", "adres", "tel"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -478,6 +471,7 @@ export function InsaatRuhsatiStudio({
                 <BelgeFieldGuidanceView
                   id="insaat-ruhsati-tarih-guidance"
                   guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "tarih", formData.tarih, {
+                    layout: layouts?.tarih,
                     isTouched: touchedFields.tarih,
                   })}
                 />
@@ -580,6 +574,7 @@ export function InsaatRuhsatiStudio({
               <BelgeFieldGuidanceView
                 id="insaat-ruhsati-adres-guidance"
                 guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "adres", formData.adres, {
+                    layout: layouts?.adres,
                   isTouched: true,
                 })}
               />
@@ -602,6 +597,7 @@ export function InsaatRuhsatiStudio({
               <BelgeFieldGuidanceView
                 id="insaat-ruhsati-tel-guidance"
                 guidance={evaluateFieldGuidance("insaat-ruhsati-dilekcesi", "tel", formData.tel, {
+                    layout: layouts?.tel,
                   isTouched: touchedFields.tel,
                 })}
               />
@@ -622,6 +618,7 @@ export function InsaatRuhsatiStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            activeTabMobile={activeTabMobile}
             editing={{
               documentId: "insaat-ruhsati-dilekcesi",
               values: formData as unknown as Record<string, string>,
@@ -642,7 +639,7 @@ export function InsaatRuhsatiStudio({
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
-        templateUrl="/belgeler/insaat-ruhsati-dilekcesi.pdf"
+        documentId="insaat-ruhsati-dilekcesi"
         templateFilename="INSAAT_RUHSATI_DILEKCESI_BOS.pdf"
       />
     </div>

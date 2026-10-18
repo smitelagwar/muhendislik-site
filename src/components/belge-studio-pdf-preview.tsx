@@ -43,6 +43,7 @@ type BelgeStudioPdfPreviewProps = {
   onStatusChange: (revision: number, status: BelgePreviewStatus, error?: string) => void;
   onRetry: () => void;
   editing?: BelgeStudioInlineEditingConfig;
+  activeTabMobile?: "form" | "preview";
 };
 
 type Point = { x: number; y: number };
@@ -63,6 +64,7 @@ export function BelgeStudioPdfPreview({
   onStatusChange,
   onRetry,
   editing,
+  activeTabMobile,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -133,6 +135,22 @@ export function BelgeStudioPdfPreview({
   }, []);
 
   useEffect(() => {
+    if (activeTabMobile === "preview") {
+      setLayoutVersion((version) => version + 1);
+    }
+  }, [activeTabMobile]);
+
+  useEffect(() => {
+    const handleResize = () => setLayoutVersion((version) => version + 1);
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleResize, { passive: true });
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
     setRenderedToken(null);
     setInlineFields([]);
     if (!snapshot) {
@@ -154,7 +172,7 @@ export function BelgeStudioPdfPreview({
     const timeoutPromise = new Promise<never>((_, reject) => {
       previewTimeout = setTimeout(
         () => reject(new Error("PDF önizlemesi zaman aşımına uğradı.")),
-        20_000
+        40_000
       );
     });
 
@@ -731,6 +749,7 @@ export function BelgeStudioPdfPreview({
                   fields={inlineFields}
                   visible={isHotspotsInteractive}
                   values={editing?.values}
+                  layouts={generationPending ? undefined : snapshot?.layouts}
                   onCommit={editing?.onCommit}
                   frameWidth={renderedSizeRef.current.width || 600}
                   frameHeight={renderedSizeRef.current.height || 842}

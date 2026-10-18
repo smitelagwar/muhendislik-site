@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   FilePenLine,
@@ -24,7 +24,7 @@ import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-vi
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
-import { BelgeFieldLengthWarnings } from "@/components/belge-field-length-warnings";
+import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
@@ -35,7 +35,8 @@ import {
   ISTIFA_DILEKCESI_DEFAULT_DATA,
   IstifaDilekcesiData,
   downloadFilledIstifaDilekcesiPdf,
-  generateIstifaDilekcesiPdf,
+  BELGE_DOCUMENT_GENERATORS,
+  prewarmBelgeDocument,
 } from "@/lib/pdf-engine";
 
 interface IstifaStudioProps {
@@ -88,8 +89,9 @@ export function IstifaStudio({
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
-  const document = useBelgeStudioDocument(formData, generateIstifaDilekcesiPdf);
+  const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["santiye-sefi-istifa-dilekcesi"]);
   const snapshot = document.snapshot;
+  const layouts = document.status === "ready" ? snapshot?.layouts : undefined;
   const blobUrl = snapshot?.blobUrl ?? null;
   const previewIsCurrent = Boolean(snapshot && previewResult.revision === snapshot.revision);
   const previewError = previewIsCurrent && previewResult.status === "error";
@@ -107,6 +109,10 @@ export function IstifaStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+
+  useEffect(() => {
+    prewarmBelgeDocument("santiye-sefi-istifa-dilekcesi");
+  }, []);
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof IstifaDilekcesiData, boolean>>>({});
@@ -357,21 +363,7 @@ export function IstifaStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
-          <BelgeFieldLengthWarnings
-            values={formData}
-            baselineValues={ISTIFA_DILEKCESI_DEFAULT_DATA}
-            excludedFields={["tc_deger", "adres_deger"]}
-            limits={{
-              hitap_1: { label: "Hitap", maximum: 62 },
-              hitap_2: { label: "İl / ilçe satırı", maximum: 36 },
-              ana_paragraf: { label: "İstifa açıklaması", maximum: 320 },
-              sonuc_cumlesi: { label: "Sonuç cümlesi", maximum: 210 },
-              ad_soyad: { label: "Ad soyad", maximum: 38 },
-              adres_deger: { label: "Adres", maximum: 90 },
-              tc_deger: { label: "T.C. Kimlik Numarası", maximum: 11 },
-              iletisim_deger: { label: "İletişim", maximum: 34 },
-            }}
-          />
+          <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
             <div className="flex items-center gap-1.5">
@@ -493,6 +485,7 @@ export function IstifaStudio({
                 <BelgeFieldGuidanceView
                   id="istifa-tarih-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "tarih", formData.tarih, {
+                    layout: layouts?.tarih,
                     isTouched: touchedFields.tarih,
                   })}
                 />
@@ -542,6 +535,7 @@ export function IstifaStudio({
                 <BelgeFieldGuidanceView
                   id="istifa-tc_deger-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "tc_deger", formData.tc_deger, {
+                    layout: layouts?.tc_deger,
                     isTouched: touchedFields.tc_deger,
                   })}
                 />
@@ -564,6 +558,7 @@ export function IstifaStudio({
                 <BelgeFieldGuidanceView
                   id="istifa-iletisim_deger-guidance"
                   guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "iletisim_deger", formData.iletisim_deger, {
+                    layout: layouts?.iletisim_deger,
                     isTouched: touchedFields.iletisim_deger,
                   })}
                 />
@@ -587,6 +582,7 @@ export function IstifaStudio({
               <BelgeFieldGuidanceView
                 id="istifa-adres_deger-guidance"
                 guidance={evaluateFieldGuidance("santiye-sefi-istifa-dilekcesi", "adres_deger", formData.adres_deger, {
+                    layout: layouts?.adres_deger,
                   isTouched: true,
                 })}
               />
@@ -607,6 +603,7 @@ export function IstifaStudio({
             generationError={document.status === "error" ? document.error : null}
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
+            activeTabMobile={activeTabMobile}
             editing={{
               documentId: "santiye-sefi-istifa-dilekcesi",
               values: formData as unknown as Record<string, string>,
@@ -627,7 +624,7 @@ export function IstifaStudio({
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
-        templateUrl="/belgeler/santiye-sefi-istifa-dilekcesi.pdf"
+        documentId="santiye-sefi-istifa-dilekcesi"
         templateFilename="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
       />
     </div>

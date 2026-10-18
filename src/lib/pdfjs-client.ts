@@ -32,3 +32,9 @@ export async function loadBrowserPdfJs(): Promise<BrowserPdfJs | null> {
 
   return pdfJsPromise;
 }
+
+/** Pre-warm the locally hosted PDF.js module in the background so preview is instant. */
+export function prewarmBrowserPdfJs(): void {
+  if (typeof window === "undefined") return;
+  void loadBrowserPdfJs().catch(() => {});
+}

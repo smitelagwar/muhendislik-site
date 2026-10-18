@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { generateBlankBelgePdf } from "@/lib/pdf-engine";
+import type { BelgeDocumentId } from "@/lib/belgeler-pdf-profiles";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -38,7 +40,7 @@ type BelgeStudioActionsProps = {
   onDownload: () => void;
   ready: boolean;
   downloading: boolean;
-  templateUrl: string;
+  documentId: BelgeDocumentId;
   templateFilename: string;
 };
 
@@ -46,6 +48,29 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
   const { ready, downloading } = props;
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [blankDownloading, setBlankDownloading] = useState(false);
+  const blankInFlight = useRef(false);
+  const downloadBlank = async () => {
+    if (blankInFlight.current) return;
+    blankInFlight.current = true;
+    setBlankDownloading(true);
+    try {
+      const bytes = await generateBlankBelgePdf(props.documentId);
+      const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = props.templateFilename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    } catch {
+      window.alert("Boş PDF oluşturulamadı. Lütfen tekrar deneyin.");
+    } finally {
+      blankInFlight.current = false;
+      setBlankDownloading(false);
+    }
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMounted(true), 0);
@@ -86,7 +111,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={!ready} onSelect={props.onPrint}><BelgePrintIcon className="size-4" />Yazdır</DropdownMenuItem>
-            <DropdownMenuItem asChild className="min-h-11 rounded-xl"><a href={props.templateUrl} download={props.templateFilename}><BelgeBlankFormIcon className="size-4" />Boş form indir</a></DropdownMenuItem>
+            <DropdownMenuItem className="min-h-11 rounded-xl" disabled={blankDownloading} onSelect={() => void downloadBlank()}><BelgeBlankFormIcon className="size-4" />Boş form indir</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="min-h-11 rounded-xl" onSelect={props.onReset}><BelgeResetIcon className="size-4" />Örnek verilere sıfırla</DropdownMenuItem>
             <DropdownMenuItem className="min-h-11 rounded-xl text-rose-600 focus:bg-rose-500/10 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400" onSelect={props.onClear}><BelgeClearIcon className="size-4 text-current" />Tüm alanları temizle</DropdownMenuItem>
@@ -108,7 +133,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
           <Button type="button" variant="ghost" onClick={props.onUndo} disabled={!props.canUndo} className="min-h-11 gap-2 text-xs" title="Son sıfırlama veya temizlemeyi geri al"><BelgeUndoIcon className="size-4" />Geri al</Button>
         </div>
         <div className="flex items-center gap-2">
-          <a href={props.templateUrl} download={props.templateFilename} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-xs font-medium text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><BelgeBlankFormIcon className="size-4" />Boş form indir</a>
+          <Button type="button" variant="outline" disabled={blankDownloading} onClick={() => void downloadBlank()} className="min-h-11 gap-2 text-xs"><BelgeBlankFormIcon className="size-4" />Boş form indir</Button>
           <Button type="button" variant="outline" onClick={props.onPrint} disabled={!ready} className="min-h-11 gap-2 text-xs"><BelgePrintIcon className="size-4" />Yazdır</Button>
           <Button type="button" onClick={props.onDownload} disabled={!ready || downloading} className={downloadClass}>{downloadIcon}PDF İndir</Button>
         </div>

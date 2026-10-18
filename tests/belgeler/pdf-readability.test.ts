@@ -1,7 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  generateIstifaDilekcesiPdf,
+  generateBelgeDocument,
+  measureBelgeDraft,
   ISTIFA_DILEKCESI_DEFAULT_DATA,
   generateSozlesmePdf,
   SOZLESME_DEFAULT_DATA,
@@ -51,13 +52,13 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
       {
         name: "212 karakter",
         text: "Atatürk Mahallesi Cumhuriyet Bulvarı No: 1245 Kat: 8 Daire: 34 Blok: B Giriş: 2 Posta Kodu: 34758 Ataşehir / İstanbul Türkiye Cumhuriyeti (Metro İstasyonu Yanı, Belediye Binası Arkası, Sağlık Ocağı Karşısı)",
-        expectedRisk: "possible" as const,
+        expectedRisk: "none" as const,
         expectedMinFont: 6.8, // 7.0 pt (eski şablonda 1.35 pt idi - %418 iyileşme!)
       },
       {
         name: "220 karakter tek kelime",
         text: "A".repeat(220),
-        expectedRisk: "possible" as const,
+        expectedRisk: "serious" as const,
         expectedMinFont: 1.0,
       },
     ];
@@ -65,11 +66,12 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
     for (const tc of addressTestCases) {
       it(`Gerçek PDF üretiminde tam veri korunmalı ve yüksek okunabilirlik doğrulanmalıdır: ${tc.name}`, async () => {
         // Gerçek PDF üretimi
-        const pdfBytes = await generateIstifaDilekcesiPdf({
+        const generated = await generateBelgeDocument("santiye-sefi-istifa-dilekcesi", {
           ...ISTIFA_DILEKCESI_DEFAULT_DATA,
           adres_deger: tc.text,
         });
 
+        const pdfBytes = generated.bytes;
         // Üretilen PDF'in incelenmesi
         const inspection = await inspectPdfFieldAppearance(pdfBytes, "adres_deger");
 
@@ -114,7 +116,7 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
         const assessment = assessFieldReadability(
           "santiye-sefi-istifa-dilekcesi",
           "adres_deger",
-          tc.text
+          tc.text, generated.layouts.adres_deger
         );
         assert.equal(assessment.risk, tc.expectedRisk);
       });
@@ -125,7 +127,7 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
   // 2. Diğer Dört Belgedeki Adres ve Yer Alanlarının Geometrisi
   // ---------------------------------------------------------------------------
   describe("Diğer Dört Belgedeki Adres ve Yer Alanlarının Fiziksel Özellikleri", () => {
-    it("Sözleşme adres alanı (170 x 11.5 pt, 7 pt font) tek satırlıdır", async () => {
+    it("Sözleşme adres alanı (170 x 12 pt, 9.5 pt font) tek satırlıdır", async () => {
       const pdfBytes = await generateSozlesmePdf(SOZLESME_DEFAULT_DATA);
       const inspection = await inspectPdfFieldAppearance(pdfBytes, "adres");
 
@@ -135,19 +137,20 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
         `Sözleşme adres alanı ~170 pt olmalıdır (gerçek: ${inspection.rect.width}).`
       );
 
-      // Kısa adres sözleşmede tam puntoda (7.0 pt) basılır
-      assert.equal(inspection.appearanceFontSizePt, 7.0);
+      // Kısa adres sözleşmenin gövdesiyle aynı puntoda basılır.
+      assert.equal(inspection.appearanceFontSizePt, 9.5);
 
       // Runtime değerlendirmesi
       const shortAssessment = assessFieldReadability(
         "santiye-sefi-sozlesmesi",
         "adres",
-        "Atatürk Cad. No:10"
+        "Atatürk Cad. No:10",
+        await measureBelgeDraft("santiye-sefi-sozlesmesi", "adres", "Atatürk Cad. No:10")
       );
       assert.equal(shortAssessment.risk, "none");
     });
 
-    it("Taahhütname adres alanları (~310-325 pt, 9.6 pt yükseklik, 5 pt font) dar tek satırlıdır", async () => {
+    it("Taahhütname adres alanları (~310-325 pt, 10.2 pt yükseklik, 9 pt font) tek satırlıdır", async () => {
       const pdfBytes = await generateTaahhutnamePdf(TAAHHUTNAME_DEFAULT_DATA);
 
       for (const fieldKey of ["adres", "yapi_adresi", "yapi_sahibi_adresi"]) {
@@ -159,8 +162,8 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
         );
         assert.equal(
           inspection.appearanceFontSizePt,
-          5.0,
-          `${fieldKey} şablonda 5 pt nominal fonta sahiptir.`
+          9.0,
+          `${fieldKey} üretilen PDF'de etiketle aynı 9 pt fonta sahip olmalıdır.`
         );
       }
     });
@@ -200,10 +203,10 @@ describe("ASAMA_06 & ASAMA_06B: Gerçek PDF Basım Okunabilirliği ve Geometri K
       assert.ok(CRITICAL_READABILITY_GEOMETRIES["beton-dokum-tutanagi:yer"]);
     });
 
-    it("İzlenmeyen alanlar için güvenli 'readability-untracked' ve risk 'none' dönmelidir", () => {
+    it("Ölçümü henüz olmayan alan için tahmini güvence verilmemelidir", () => {
       const res = assessFieldReadability("beton-dokum-tutanagi", "tutanak_alt_baslik", "Başlık");
-      assert.equal(res.risk, "none");
-      assert.equal(res.code, "readability-untracked");
+      assert.equal(res.risk, "unknown");
+      assert.equal(res.code, "readability-awaiting-layout");
       assert.equal(res.message, null);
     });
 

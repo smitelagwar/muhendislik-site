@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.next.json",
+  "include": [
+    "next-env.d.ts", "src/**/*.ts", "src/**/*.tsx",
+    "tests/belgeler/pdf-layout-contract.test.ts",
+    "tests/belgeler/pdf-output-acceptance.test.ts",
+    "tests/belgeler/pdf-field-typography.test.ts",
+    "tests/belgeler/pdf-readability.test.ts",
+    "tests/belgeler/document-field-contract.test.ts",
+    "tests/belgeler/field-guidance-ui.test.ts",
+    "tests/belgeler/integrated-quality-audit.test.ts",
+    "tests/site-audit/belgeler-pdf-quality.spec.ts",
+    "scripts/check-belgeler-pdf-visuals.ts"
+  ],
+  "exclude": ["node_modules", "scratch"]
+}
