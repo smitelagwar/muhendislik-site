@@ -45,6 +45,7 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
     const paint = (staticPose = false) => {
       ctx.clearRect(0, 0, width, height);
       if (opacity <= 0) return;
+      const easedOpacity = opacity * opacity * (3 - 2 * opacity);
       const time = staticPose ? 0 : simTimeRef.current;
       const actors = ([0, 1] as const).map(actor => {
         const config = getConfig(actor);
@@ -52,26 +53,47 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
       }).sort((a, b) => b.motion.pos.z - a.motion.pos.z);
       for (const { config, motion } of actors) {
         const distance = Math.max(0, Math.min(1, (motion.pos.z + 180) / 1100));
-        config.detail = distance > 0.62 ? "distant" : "full";
+        config.detail = distance > 0.68 ? "distant" : "full";
         const mesh = generateWhaleMesh(time, width, height, config);
-        const bounds = [...mesh.silhouettePolygon, ...mesh.flukes.outline,
-          ...mesh.leftFlipper.leadingEdge, ...mesh.rightFlipper.leadingEdge];
-        if (bounds.every(p => p.x < -8) || bounds.every(p => p.x > width + 8)
-          || bounds.every(p => p.y < -8) || bounds.every(p => p.y > height + 8)) continue;
+        const bounds = [
+          ...mesh.silhouettePolygon,
+          ...mesh.flukes.outline,
+          ...mesh.leftFlipper.leadingEdge,
+          ...mesh.rightFlipper.leadingEdge,
+        ];
+        if (
+          bounds.every(p => p.x < -8) ||
+          bounds.every(p => p.x > width + 8) ||
+          bounds.every(p => p.y < -8) ||
+          bounds.every(p => p.y > height + 8)
+        ) continue;
         layerCtx.clearRect(0, 0, width, height);
         renderWhaleFrame(layerCtx, mesh, isDark ? DARK_WHALE_PALETTE : LIGHT_WHALE_PALETTE, width, height);
         ctx.save();
-        ctx.globalAlpha = opacity * (isDark ? 0.78 - distance * 0.48 : 0.62 - distance * 0.40);
-        if (distance > 0.45) ctx.filter = `blur(${((distance - 0.45) * 1.5).toFixed(2)}px)`;
+        ctx.globalAlpha = easedOpacity * (isDark ? 0.86 - distance * 0.42 : 0.76 - distance * 0.36);
         ctx.drawImage(layer, 0, 0, layer.width, layer.height, 0, 0, width, height);
         ctx.restore();
       }
-      // Yazılar ve düğmelerin altındaki şekil bastırılır; boş koridorlar net kalır.
+      // Kartların ve başlıkların kenarında keskin giyotin kesik oluşmaması için
+      // 4 kademeli yumuşak optik cam geçişi (feathered glass occlusion) uygulanır; metin içi net kalır.
       ctx.save();
       ctx.globalCompositeOperation = "destination-out";
-      ctx.globalAlpha = 0.96;
+      const featherSteps = [
+        { inset: 2, alpha: 0.22, radius: 24 },
+        { inset: 9, alpha: 0.38, radius: 20 },
+        { inset: 16, alpha: 0.58, radius: 16 },
+        { inset: 24, alpha: 0.96, radius: 14 },
+      ];
       for (const panel of panels) {
-        ctx.beginPath(); ctx.roundRect(panel.x, panel.y, panel.width, panel.height, 24); ctx.fill();
+        for (const step of featherSteps) {
+          const w = panel.width - step.inset * 2;
+          const h = panel.height - step.inset * 2;
+          if (w <= 4 || h <= 4) continue;
+          ctx.globalAlpha = step.alpha;
+          ctx.beginPath();
+          ctx.roundRect(panel.x + step.inset, panel.y + step.inset, w, h, step.radius);
+          ctx.fill();
+        }
       }
       ctx.restore();
     };
@@ -89,19 +111,25 @@ export function AmbientWhaleScene({ enabled = true, className = "" }: AmbientWha
       if (elapsed >= interval - 0.5) {
         const delta = Math.min(elapsed / 1000, 0.08);
         lastTimestamp = timestamp;
-        opacity = Math.max(0, Math.min(1, opacity + (enabledRef.current ? 1 : -1) * delta / 0.3));
+        opacity = Math.max(0, Math.min(1, opacity + (enabledRef.current ? 1 : -1) * delta / 0.28));
         simTimeRef.current += delta;
-        const follow = 1 - Math.exp(-delta * 1.8);
+        const follow = 1 - Math.exp(-delta * 2.2);
         const approach = (a: number, b: number) => a + (b - a) * follow;
-        layout = { left: approach(layout.left, targetLayout.left), right: approach(layout.right, targetLayout.right),
-          top: approach(layout.top, targetLayout.top), opening: {
-            x: approach(layout.opening.x, targetLayout.opening.x), y: approach(layout.opening.y, targetLayout.opening.y) } };
+        layout = {
+          left: approach(layout.left, targetLayout.left),
+          right: approach(layout.right, targetLayout.right),
+          top: approach(layout.top, targetLayout.top),
+          opening: {
+            x: approach(layout.opening.x, targetLayout.opening.x),
+            y: approach(layout.opening.y, targetLayout.opening.y),
+          },
+        };
         const paintStart = performance.now();
         paint();
         averageDrawCost = averageDrawCost * 0.92 + (performance.now() - paintStart) * 0.08;
         // Yoğun cihaz yükünde detayları silmeden kare bütçesini korur; eşikler titreşimi önler.
-        if (averageDrawCost > 12) frameRate = 30;
-        else if (averageDrawCost < 8) frameRate = 60;
+        if (averageDrawCost > 13) frameRate = 30;
+        else if (averageDrawCost < 8.5) frameRate = 60;
       }
       if (enabledRef.current || opacity > 0) raf = requestAnimationFrame(animate);
     };

@@ -45,6 +45,7 @@ export interface WhaleFlipper {
   internalSpars: ProjectedPoint[][];
   sections: ProjectedPoint[][];
   etching: ProjectedPoint[][];
+  surface: WhaleSurfacePatch[];
   depth: number;
 }
 
@@ -54,11 +55,13 @@ export interface WhaleFlukes {
   tips: [ProjectedPoint, ProjectedPoint];
   ribLines: ProjectedPoint[][];
   contours: ProjectedPoint[][];
+  surface: WhaleSurfacePatch[];
   depth: number;
 }
 
 export interface WhaleDorsalFin {
   outline: ProjectedPoint[];
+  surface: WhaleSurfacePatch[];
   depth: number;
 }
 
@@ -67,6 +70,12 @@ export interface WhaleSurfacePatch {
   light: number;
   ventral: number;
   depth: number;
+  specular?: number;
+  rim?: number;
+  caustic?: number;
+  pleatShade?: number;
+  s?: number;
+  theta?: number;
 }
 
 export interface WhaleSkinMark {
@@ -114,6 +123,11 @@ export interface WhaleMarker {
   type: "cross" | "node" | "datum";
 }
 
+export interface WhaleWakeLine {
+  points: ProjectedPoint[];
+  opacity: number;
+}
+
 export interface WhaleMesh {
   spine: ProjectedPoint[];
   ribs: WhaleRib[];
@@ -134,6 +148,7 @@ export interface WhaleMesh {
   nodules: WhaleNodule[];
   etching: WhaleEtching[];
   skinMarks: WhaleSkinMark[];
+  wakeLines: WhaleWakeLine[];
   depth: number;
 }
 
