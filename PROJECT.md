@@ -185,6 +185,7 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - Yüksek yakınlaştırmada (`tiles` modu) `view` olayı ve `viewTick` ile sayfa içi kaydırmada yeni görünür tile'lar dinamik seçilir; `maxScale` hesabı `sizesVersion` ile önbelleklenir ve düşük ölçekte mount edilen sayfa aralığı üst sınırla (`cap = 14 / 30`) tutulur.
 - Sayfa döndürme (`setRotation`) ve mobil üst bar yüksekliği (`refreshPaddingTop`) motoru yeniden yaratmadan yerinde uygulanır; `getFitScale` v4'te etkin sayfanın gerçek boyutunu (`getPageSize`) kullanır ve `PdfPageHost` dinamik DPR değişimini (`useDpr`) izler.
 - Klavye kısayolları (`Ctrl+Shift+-`, `PageUp/PageDown/Space/Home/End/Oklar`, `Space` basılı tutma el aracı, `F4` kenar çubuğu, imleç çıpalı `Ctrl+±` zoom) ve mobil dokunmatik ayrımı (`data-chrome-hidden`, kaydırma vs tek/çift dokunma, pinch lastik bant, jest sırasında 400 ms kalkan ve jest sonrası 250 ms programatik kaydırma koruması) `tests/pdf-v4/v5*` paketiyle doğrulanır.
+- Mobilde (≤1023px) PDF üzerinde düzenleme alt sayfa editörüyle yapılır (dokunma toleransı, alanlar arası gezinme, klavyeye duyarlı konum, dondurulmuş fit ölçüsü); ayrıntı ve kabul komutları: `docs/BELGELER_SISTEMI.md` → "Mobil PDF Üzerinde Düzenleme".
 
 ---
 

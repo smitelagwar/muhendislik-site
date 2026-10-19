@@ -3,7 +3,8 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import type { BelgeDocumentId, InlineFieldDescriptor } from "@/lib/belge-studio-inline-field-map";
-import { evaluateFieldGuidance, BelgeFieldGuidanceView } from "@/components/belge-field-guidance";
+import { BelgeFieldGuidanceView } from "@/components/belge-field-guidance";
+import { useBelgeInlineDraft } from "@/hooks/use-belge-inline-draft";
 import type { PdfFieldLayout, PdfFieldLayouts } from "@/lib/belgeler-pdf-layout";
 
 export interface BelgeStudioInlineEditLayerProps {
@@ -17,6 +18,10 @@ export interface BelgeStudioInlineEditLayerProps {
   selectedField?: InlineFieldDescriptor | null;
   onSelectField?: (field: InlineFieldDescriptor | null) => void;
   layouts?: PdfFieldLayouts;
+  /** "none": seçili alan editörünü bu katman çizmez (mobil alt sayfa dışarıda çizilir). */
+  editorMode?: "popover" | "none";
+  /** Mobil: hotspot'lar daha belirgin, hover etiketi yok. */
+  touchOptimized?: boolean;
 }
 
 interface BelgeInlineDraftPopoverProps {
@@ -43,31 +48,22 @@ function BelgeInlineDraftPopover({
   style,
   layout,
 }: BelgeInlineDraftPopoverProps) {
-  // openingValue is frozen once on mount via useState(currentValue), and updated if user explicitly loads current value
-  const [openingValue, setOpeningValue] = useState(currentValue);
-  const [draft, setDraft] = useState(currentValue);
-  const [conflictError, setConflictError] = useState<string | null>(null);
-  const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
-  const isCommittingRef = useRef(false);
-  const [draftLayout, setDraftLayout] = useState<{ draft: string; layout: PdfFieldLayout } | null>(null);
-  const measuredLayout = draft === currentValue ? layout : draftLayout?.draft === draft ? draftLayout.layout : undefined;
+  const {
+    draft,
+    setDraft,
+    openingValue,
+    conflictError,
+    copiedNotification,
+    guidance,
+    guidanceId,
+    tryCommit,
+    handleLoadCurrentValue,
+    handleCopyDraft,
+  } = useBelgeInlineDraft({ documentId, field, currentValue, layout, onCommit, onCancel });
 
-  // Taslak kendi başına ölçülür; ana form, önizleme ve geri alma kaydı değişmez.
-  useEffect(() => {
-    if (!documentId || (draft === currentValue && layout)) return;
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void import("@/lib/pdf-engine").then(({ measureBelgeDraft }) => measureBelgeDraft(documentId, field.fieldKey, draft))
-        .then((result) => { if (!cancelled) setDraftLayout({ draft, layout: result }); })
-        .catch(() => { /* Ölçüm yokken eski veya tahmini bir punto gösterilmez. */ });
-    }, 200);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [documentId, field.fieldKey, draft, currentValue, layout]);
-
-  const guidance = documentId
-    ? evaluateFieldGuidance(documentId, field.fieldKey, draft, { isBlurOrSubmitted: true, layout: measuredLayout })
-    : null;
-  const guidanceId = `inline-guidance-${field.fieldKey}`;
+  const handleApply = () => {
+    tryCommit();
+  };
 
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -94,46 +90,6 @@ function BelgeInlineDraftPopover({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [onCancel]);
-
-  const handleApply = () => {
-    if (isCommittingRef.current) return;
-
-    // 1. Concurrent modification check: If canonical form changed externally while popover was open
-    if (currentValue !== openingValue) {
-      setConflictError(
-        "Sol formda bu alan güncellendi; yeni değerin üzerine yazılmadı. Taslağınızı kopyalayabilir, güncel değeri yükleyebilir veya vazgeçebilirsiniz."
-      );
-      return;
-    }
-
-    // 2. Read-only guard
-    if (field.readOnly) {
-      onCancel();
-      return;
-    }
-
-    // 3. Atomically commit confirmed draft to canonical form (idempotent single-commit)
-    isCommittingRef.current = true;
-    onCommit(draft);
-  };
-
-  const handleLoadCurrentValue = () => {
-    setOpeningValue(currentValue);
-    setDraft(currentValue);
-    setConflictError(null);
-  };
-
-  const handleCopyDraft = async () => {
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(draft);
-        setCopiedNotification(true);
-        setTimeout(() => setCopiedNotification(false), 2000);
-      }
-    } catch {
-      // Fallback
-    }
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) {
@@ -356,6 +312,8 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
   selectedField: controlledSelectedField,
   onSelectField,
   layouts,
+  editorMode = "popover",
+  touchOptimized = false,
 }: BelgeStudioInlineEditLayerProps) {
   const [internalSelectedField, setInternalSelectedField] = useState<InlineFieldDescriptor | null>(null);
   const selectedField = controlledSelectedField !== undefined ? controlledSelectedField : internalSelectedField;
@@ -387,13 +345,14 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
     }
   }, []);
 
-  if ((!visible || fields.length === 0) && !selectedField) {
+  const showPopover = selectedField !== null && editorMode === "popover";
+  if ((!visible || fields.length === 0) && !showPopover) {
     return null;
   }
 
   // Calculate popover positioning to avoid viewport edge overflow on all viewports (320px - 1920px)
   let popoverStyle: React.CSSProperties = {};
-  if (selectedField) {
+  if (selectedField && showPopover) {
     const vr = selectedField.viewportRect;
     const estWidth = Math.min(Math.max(260, vr.width + 24), Math.max(240, frameWidth - 16));
     const estHeight = selectedField.multiline ? 220 : 160;
@@ -450,24 +409,28 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
                 ${
                   isSelected
                     ? "border-amber-500 bg-amber-500/25 ring-2 ring-amber-500/60"
-                    : "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/80 hover:bg-amber-500/15"
+                    : touchOptimized
+                      ? "border-amber-500/70 bg-amber-500/10"
+                      : "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/80 hover:bg-amber-500/15"
                 }
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500 focus-visible:bg-amber-500/20 cursor-pointer`}
             >
               {/* Tooltip / Label indicator on hover or focus */}
-              <span
-                className="pointer-events-none absolute -top-6 left-0 hidden group-hover:inline-flex group-focus-visible:inline-flex items-center gap-1 rounded bg-popover/95 px-1.5 py-0.5 text-[10px] font-medium text-popover-foreground shadow-md border border-border whitespace-nowrap z-20 backdrop-blur-sm"
-                aria-hidden="true"
-              >
-                {field.label}
-                {field.multiline && <span className="text-[9px] text-amber-500 font-mono">(Çok satırlı)</span>}
-              </span>
+              {!touchOptimized && (
+                <span
+                  className="pointer-events-none absolute -top-6 left-0 hidden group-hover:inline-flex group-focus-visible:inline-flex items-center gap-1 rounded bg-popover/95 px-1.5 py-0.5 text-[10px] font-medium text-popover-foreground shadow-md border border-border whitespace-nowrap z-20 backdrop-blur-sm"
+                  aria-hidden="true"
+                >
+                  {field.label}
+                  {field.multiline && <span className="text-[9px] text-amber-500 font-mono">(Çok satırlı)</span>}
+                </span>
+              )}
             </button>
           );
         })}
 
       {/* 2. Isolated Draft Edit Popover */}
-      {selectedField && (
+      {selectedField && showPopover && (
         <BelgeInlineDraftPopover
           key={`${selectedField.pageNumber}-${selectedField.fieldKey}`}
           documentId={documentId}

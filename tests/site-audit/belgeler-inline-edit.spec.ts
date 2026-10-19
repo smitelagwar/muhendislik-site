@@ -566,7 +566,7 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
     const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
     await hotspot.click();
 
-    const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+    const popover = page.locator('[data-testid="belge-inline-edit-sheet"]');
     await expect(popover).toBeVisible();
 
     const popoverBox = await popover.boundingBox();
@@ -613,7 +613,7 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
       const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-belediye_adi"]');
       await hotspot.click();
 
-      const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+      const popover = page.locator('[data-testid="belge-inline-edit-sheet"]');
       await expect(popover).toBeVisible();
 
       // Sıfır yatay taşma kontrolü
@@ -654,7 +654,7 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
       const hotspot = editLayer.locator('[data-testid="belge-inline-hotspot-tutanak_alt_baslik"]');
       await hotspot.click();
 
-      const popover = editLayer.locator('[data-testid="belge-inline-edit-popover"]');
+      const popover = testPage.locator('[data-testid="belge-inline-edit-sheet"]');
       await expect(popover).toBeVisible();
 
       const input = popover.locator('[data-testid="belge-inline-edit-input"]');
@@ -1012,8 +1012,8 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
     );
     await expect(input).toBeFocused();
 
-    // 140+ karakterlik uzun adres gir (possible risk eşiği 130 pt)
-    const longAddress = "Çankaya Mahallesi İnşaat Mühendisleri Caddesi No:45/12 Kat:4 Daire:8 Çankaya Ankara Türkiye Cumhuriyeti Başkent Merkez Tebligat ve İletişim Noktası";
+    // 200+ karakterlik uzun adres gir (çok satırlı alanda 6 pt küçülme eşiği)
+    const longAddress = "Çankaya Mahallesi İnşaat Mühendisleri Caddesi No:45/12 Kat:4 Daire:8 Çankaya Ankara Türkiye Cumhuriyeti Başkent Merkez Tebligat ve İletişim Noktası Ek Hizmet Binası Genel Sekreterlik Arşiv ve İdari İşler Dairesi";
     await input.fill(longAddress);
 
     // Popover içinde rehberlik mesajı belirmeli

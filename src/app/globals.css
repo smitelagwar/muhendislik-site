@@ -1442,7 +1442,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   min-height: 100%;
   box-sizing: border-box;
   place-items: center;
-  padding: 8px;
+  padding: 8px 8px calc(8px + var(--belge-inline-sheet-overlap, 0px));
 }
 
 .belge-preview-frame {
@@ -1457,6 +1457,28 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
 @media (prefers-reduced-motion: reduce) {
   [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
     transition: none;
+  }
+}
+
+@keyframes belge-inline-sheet-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.belge-inline-sheet-shake {
+  animation: belge-inline-sheet-shake 320ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .belge-inline-sheet-shake {
+    animation: none;
+  }
+
+  [data-testid="belge-inline-edit-sheet"] {
+    transition: none !important;
   }
 }
 

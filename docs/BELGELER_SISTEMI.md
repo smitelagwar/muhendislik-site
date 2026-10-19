@@ -303,3 +303,13 @@ Olası bir regresyon veya geri alma durumunda:
 - **Şablon Geri Alma:** İstifa dilekçesi orijinal tek satırlı baseline'a (`3132D561...`) döndürülmek istenirse `git checkout 14235bd4ff86f6d03f3a575d4650596cef57206e -- public/belgeler/santiye-sefi-istifa-dilekcesi.pdf` komutuyla tek işlemde restore edilebilir; `assessFieldReadability` ve inline layer yeni koordinatları dinamik okuduğu için sistem çökmez.
 - **Opt-in İzolasyon:** Inline edit katmanı varsayılan olarak OFF olduğundan arayüzde herhangi bir bileşen hatası durumunda `isInlineEditingActive = false` bırakılarak standart baseline stüdyo deneyimi %100 kesintisiz devam eder.
 - **Çekirdek Doğrulaması:** Inline edit çalışmasında çekirdek dosyalar korunmuştur. 18 Ekim 2026 punto/hiza düzeltmesi `pdf-engine.ts` içinde yapılmıştır; alan değerleri, kaynak sayfa içerikleri ve çizilmiş PDF taban hizası regresyon testleriyle doğrulanır. `use-belge-studio-document.ts` ve `document-field-contracts.ts` davranışları korunur.
+
+---
+
+## Mobil PDF Üzerinde Düzenleme (alt sayfa editör)
+
+- 1023px ve altı ekranlarda "PDF Üzerinde Düzenle" seçili alanı popover yerine `document.body`'ye portal edilen non-modal alt sayfada (`src/components/belge-inline-edit-sheet.tsx`) düzenler. Masaüstü popover davranışı değişmez.
+- Taslak, çakışma koruması ve tek-commit mantığı `src/hooks/use-belge-inline-draft.ts` içinde ortaktır.
+- Dokunma hit-test'i `findInlineFieldAtPoint` (44px hedefe tamamlayan en fazla 14px tolerans), gezinme sırası `orderInlineFields`, klavye boşluğu `computeKeyboardInset`, otomatik kaydırma `getInlineFieldRevealDelta` (`src/lib/belge-inline-mobile.ts`).
+- Alt sayfa açıkken önizleme fit ölçüsü dondurulur; klavye önizlemeyi yeniden ölçeklemez. Kirli taslak başka alana dokunma, sayfa değiştirme ve aşağı kaydırma ile silinmez.
+- Kabul: `npx tsx --test tests/belgeler/inline-mobile.test.ts` ve `npm run check:belgeler-inline-mobile`.

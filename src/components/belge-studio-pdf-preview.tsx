@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
@@ -16,6 +17,15 @@ import {
 } from "@/lib/belge-studio-inline-field-map";
 import { BelgeStudioInlineEditLayer } from "@/components/belge-studio-inline-edit-layer";
 import type { BelgeDocumentSnapshot } from "@/hooks/use-belge-studio-document";
+import { BelgeInlineEditSheet, type BelgeInlineSheetNavTarget } from "@/components/belge-inline-edit-sheet";
+import { useBelgeInlineMobileMode } from "@/hooks/use-belge-inline-mobile-mode";
+import {
+  BELGE_INLINE_TAP_MAX_MOVE,
+  BELGE_INLINE_TAP_MAX_MS,
+  findInlineFieldAtPoint,
+  getInlineFieldRevealDelta,
+  orderInlineFields,
+} from "@/lib/belge-inline-mobile";
 
 type LoadingTask = ReturnType<BrowserPdfJs["getDocument"]>;
 type PdfDocument = Awaited<LoadingTask["promise"]>;
@@ -79,6 +89,11 @@ export function BelgeStudioPdfPreview({
   const [inlineSelectedField, setInlineSelectedField] = useState<InlineFieldDescriptor | null>(null);
   const [renderedToken, setRenderedToken] = useState<RenderedToken | null>(null);
   const [isInteracting, setIsInteracting] = useState(false);
+  const isMobileMode = useBelgeInlineMobileMode();
+  const [navFields, setNavFields] = useState<InlineFieldDescriptor[]>([]);
+  const [sheetTop, setSheetTop] = useState<number | null>(null);
+  const [sheetAttention, setSheetAttention] = useState(0);
+  const [coach, setCoach] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -122,6 +137,12 @@ export function BelgeStudioPdfPreview({
   const renderedTokenRef = useRef<RenderedToken | null>(null);
   renderedTokenRef.current = renderedToken;
   const lastRenderedContainerSizeRef = useRef({ width: 0, height: 0 });
+  const sheetDirtyRef = useRef(false);
+  // Alt sayfa açıkken fit ölçüsü dondurulur; klavye kabı küçültse de sayfa yeniden ölçeklenmez.
+  const layoutFreezeRef = useRef<{ width: number; height: number } | null>(null);
+  const pendingLayoutRef = useRef(false);
+  const panMovedRef = useRef(false);
+  const hotspotGeometryValidRef = useRef(false);
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
@@ -140,6 +161,10 @@ export function BelgeStudioPdfPreview({
       height: container.clientHeight,
     };
     const observer = new ResizeObserver(() => {
+      if (layoutFreezeRef.current) {
+        pendingLayoutRef.current = true;
+        return;
+      }
       const nextWidth = container.clientWidth;
       const nextHeight = container.clientHeight;
       const prev = lastContainerSizeRef.current;
@@ -154,12 +179,24 @@ export function BelgeStudioPdfPreview({
   }, []);
 
   useEffect(() => {
-    const handleResize = () => setLayoutVersion((version) => version + 1);
+    const handleResize = () => {
+      if (layoutFreezeRef.current) {
+        pendingLayoutRef.current = true;
+        return;
+      }
+      setLayoutVersion((version) => version + 1);
+    };
+    // Yön değişiminde dondurma bırakılır; yeni ekran ölçüsü hemen uygulanır.
+    const handleOrientation = () => {
+      layoutFreezeRef.current = null;
+      pendingLayoutRef.current = false;
+      setLayoutVersion((version) => version + 1);
+    };
     window.addEventListener("resize", handleResize, { passive: true });
-    window.addEventListener("orientationchange", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleOrientation, { passive: true });
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleResize);
+      window.removeEventListener("orientationchange", handleOrientation);
     };
   }, []);
 
@@ -234,8 +271,9 @@ export function BelgeStudioPdfPreview({
         return;
       }
       const unscaled = page.getViewport({ scale: 1 });
-      const containerWidth = container.clientWidth;
-      const containerHeight = container.clientHeight;
+      const frozenSize = layoutFreezeRef.current;
+      const containerWidth = frozenSize ? frozenSize.width : container.clientWidth;
+      const containerHeight = frozenSize ? frozenSize.height : container.clientHeight;
       const availableWidth = Math.max(1, containerWidth - 16);
       const availableHeight = Math.max(1, containerHeight - 16);
       const fitScale = Math.min(availableWidth / unscaled.width, availableHeight / unscaled.height);
@@ -347,6 +385,7 @@ export function BelgeStudioPdfPreview({
         return;
       }
       setInlineFields(mappedFields);
+      if (mappedFields.length > 0) setNavFields(orderInlineFields(mappedFields));
       const nextToken: RenderedToken = {
         revision: snapshotRef.current?.revision ?? 0,
         pageNumber: renderPageNumber,
@@ -504,6 +543,61 @@ export function BelgeStudioPdfPreview({
     return () => window.clearTimeout(timer);
   }, [renderPage, zoomLevel, currentPage, layoutVersion, gestureEndVersion, isInlineEditingActive]);
 
+  const isMobileSheetOpen = Boolean(editing) && isMobileMode && isInlineEditingActive && inlineSelectedField !== null;
+
+  const requestSheetDismiss = useCallback(() => {
+    if (sheetDirtyRef.current) {
+      setSheetAttention((count) => count + 1);
+      return;
+    }
+    sheetDirtyRef.current = false;
+    setInlineSelectedField(null);
+  }, []);
+
+  const handleSheetClose = useCallback(() => {
+    sheetDirtyRef.current = false;
+    setInlineSelectedField(null);
+  }, []);
+
+  const handleSheetDirtyChange = useCallback((dirty: boolean) => {
+    sheetDirtyRef.current = dirty;
+  }, []);
+
+  const handleSheetCommit = useCallback((fieldKey: string, value: string) => {
+    editingRef.current?.onCommit?.(fieldKey, value);
+  }, []);
+
+  // Fit ölçüsünü alt sayfa açılırken (klavye açılmadan önce, senkron) dondur.
+  useLayoutEffect(() => {
+    if (!isMobileSheetOpen) return;
+    const container = containerRef.current;
+    if (container && !layoutFreezeRef.current) {
+      layoutFreezeRef.current = { width: container.clientWidth, height: container.clientHeight };
+    }
+    return () => {
+      layoutFreezeRef.current = null;
+      container?.style.removeProperty("--belge-inline-sheet-overlap");
+      if (pendingLayoutRef.current) {
+        pendingLayoutRef.current = false;
+        window.requestAnimationFrame(() => setLayoutVersion((version) => version + 1));
+      }
+    };
+  }, [isMobileSheetOpen]);
+
+  // Mobil form sekmesine geçişte alt sayfa kapanır.
+  useEffect(() => {
+    if (activeTabMobile !== "form") return;
+    sheetDirtyRef.current = false;
+    setInlineSelectedField(null);
+  }, [activeTabMobile]);
+
+  // İpucu 4 sn sonra kendiliğinden kaybolur.
+  useEffect(() => {
+    if (!coach) return;
+    const timer = window.setTimeout(() => setCoach(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [coach]);
+
   const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -562,14 +656,37 @@ export function BelgeStudioPdfPreview({
     y: event.clientY,
   });
 
+  const handleTouchTap = (point: Point) => {
+    if (!editingRef.current || !isInlineEditingActiveRef.current) return;
+    if (!hotspotGeometryValidRef.current) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    const sheetOpen = isMobileMode && inlineSelectedField !== null;
+    const frameRect = frame.getBoundingClientRect();
+    const hit = findInlineFieldAtPoint(inlineFields, point.x - frameRect.left, point.y - frameRect.top);
+    if (hit) {
+      if (sheetOpen && inlineSelectedField?.fieldKey === hit.fieldKey) return;
+      if (sheetOpen && sheetDirtyRef.current) {
+        setSheetAttention((count) => count + 1);
+        return;
+      }
+      sheetDirtyRef.current = false;
+      setCoach(null);
+      // Senkron commit: editör input'u bu dokunma olayı içinde odaklanır (iOS klavyesi).
+      flushSync(() => setInlineSelectedField(hit));
+      return;
+    }
+    if (sheetOpen) requestSheetDismiss();
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch" || !snapshot || !documentRef.current) return;
+    if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
     const target = event.target as HTMLElement | null;
     if (target?.closest('[data-testid="belge-inline-edit-popover"]')) {
       return;
     }
     event.preventDefault();
-    setIsInteracting(true);
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
@@ -579,6 +696,7 @@ export function BelgeStudioPdfPreview({
     }
     if (pointers.length === 1) {
       pendingAnchorRef.current = null;
+      panMovedRef.current = false;
       panStartRef.current = {
         point,
         left: event.currentTarget.scrollLeft,
@@ -590,7 +708,9 @@ export function BelgeStudioPdfPreview({
       return;
     }
 
-    setInlineSelectedField(null);
+    setIsInteracting(true);
+    // Mobil alt sayfa pinch sırasında açık kalır; masaüstü popover kapanır.
+    if (!isMobileMode) setInlineSelectedField(null);
     renderRequestRef.current += 1;
     if (renderTaskRef.current) {
       try {
@@ -619,6 +739,7 @@ export function BelgeStudioPdfPreview({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch" || !snapshot || !documentRef.current) return;
+    if (!pointersRef.current.some((pointer) => pointer.id === event.pointerId)) return;
     const pointers = pointersRef.current.map((pointer) =>
       pointer.id === event.pointerId ? { ...pointer, point: getContainerPoint(event) } : pointer
     );
@@ -657,11 +778,21 @@ export function BelgeStudioPdfPreview({
       return;
     }
 
-    if (pointers.length === 1 && panStartRef.current && zoomRef.current > 100) {
-      event.preventDefault();
+    if (pointers.length === 1 && panStartRef.current) {
       const start = panStartRef.current;
-      event.currentTarget.scrollLeft = start.left - (event.clientX - start.point.x);
-      event.currentTarget.scrollTop = start.top - (event.clientY - start.point.y);
+      const dx = event.clientX - start.point.x;
+      const dy = event.clientY - start.point.y;
+      if (!panMovedRef.current) {
+        if (Math.hypot(dx, dy) <= BELGE_INLINE_TAP_MAX_MOVE) return;
+        panMovedRef.current = true;
+        setIsInteracting(true);
+      }
+      const element = event.currentTarget;
+      const canPan = element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1;
+      if (!canPan) return;
+      event.preventDefault();
+      element.scrollLeft = start.left - dx;
+      element.scrollTop = start.top - dy;
     }
   };
 
@@ -674,47 +805,29 @@ export function BelgeStudioPdfPreview({
     if (pointersRef.current.length === 0) {
       const panStart = panStartRef.current;
       panStartRef.current = null;
-      setIsInteracting(false);
       const wasMultitouch = everMultitouchRef.current;
       everMultitouchRef.current = false;
+      const moved = panMovedRef.current;
+      panMovedRef.current = false;
+      setIsInteracting(false);
       if (pinchingRef.current) {
         pinchingRef.current = false;
         setGestureEndVersion((version) => version + 1);
         void renderPage();
-      } else if (
-        !wasMultitouch &&
-        panStart &&
-        prevPointers.length === 1 &&
-        isInlineEditingActiveRef.current &&
-        inlineFields.length > 0
-      ) {
-        // ASAMA_06: ON modda mobil kısa-tap tespiti:
-        // Yalnız 1 temas, hareket eşiği ≤8 CSS px, pinch değilse ve süre < 500ms ise widget hit-test yap
-        const dx = endingPoint.x - panStart.point.x;
-        const dy = endingPoint.y - panStart.point.y;
-        const dist = Math.hypot(dx, dy);
-        const elapsed = panStart.startTime ? Date.now() - panStart.startTime : 0;
-        if (dist <= 8 && elapsed < 500) {
-          const frame = frameRef.current;
-          if (frame) {
-            const frameRect = frame.getBoundingClientRect();
-            const tapX = endingPoint.x - frameRect.left;
-            const tapY = endingPoint.y - frameRect.top;
-            const tappedField = inlineFields.find(
-              (f) =>
-                tapX >= f.viewportRect.left &&
-                tapX <= f.viewportRect.right &&
-                tapY >= f.viewportRect.top &&
-                tapY <= f.viewportRect.bottom
-            );
-            if (tappedField && !tappedField.readOnly) {
-              setInlineSelectedField(tappedField);
-            }
-          }
-        }
+        return;
       }
-    } else if (pinchingRef.current) {
-      // Kalan parmak yeni bir tek parmak kaydırma başlangıcı olur.
+      const isTap =
+        event.type === "pointerup" &&
+        !wasMultitouch &&
+        !moved &&
+        panStart !== null &&
+        prevPointers.length === 1 &&
+        Date.now() - panStart.startTime < BELGE_INLINE_TAP_MAX_MS;
+      if (isTap) handleTouchTap(endingPoint);
+      return;
+    }
+    if (pinchingRef.current) {
+      // Kalan parmak yeni bir tek parmak kaydırma başlangıcı olur; dokunuş sayılmaz.
       const remaining = pointersRef.current[0];
       panStartRef.current = {
         point: remaining.point,
@@ -722,6 +835,7 @@ export function BelgeStudioPdfPreview({
         top: event.currentTarget.scrollTop,
         startTime: Date.now(),
       };
+      panMovedRef.current = true;
       pinchingRef.current = false;
       setGestureEndVersion((version) => version + 1);
       void renderPage();
@@ -729,6 +843,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
     if (!(event.ctrlKey || event.metaKey)) return;
     if (event.key === "+" || event.key === "=") {
       event.preventDefault();
@@ -753,7 +868,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleFit = () => {
-    setInlineSelectedField(null);
+    if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
     pendingAnchorRef.current = null;
     const container = containerRef.current;
@@ -774,7 +889,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleToolbarZoom = (value: number) => {
-    setInlineSelectedField(null);
+    if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) {
@@ -788,9 +903,15 @@ export function BelgeStudioPdfPreview({
   };
 
   const handlePageChange = (page: number) => {
+    if (isMobileMode && inlineSelectedField !== null && sheetDirtyRef.current) {
+      setSheetAttention((count) => count + 1);
+      return;
+    }
+    sheetDirtyRef.current = false;
     setInlineSelectedField(null);
     setRenderedToken(null);
     setInlineFields([]);
+    setNavFields([]);
     const container = containerRef.current;
     if (container) container.scrollTo({ left: 0, top: 0, behavior: "auto" });
     pendingAnchorRef.current = null;
@@ -809,7 +930,10 @@ export function BelgeStudioPdfPreview({
       renderedToken.zoom === zoomLevel
   );
 
-  const isHotspotsInteractive = Boolean(
+  const canvasTransformNone =
+    !canvasRef.current?.style.transform || canvasRef.current.style.transform === "none";
+
+  const hotspotGeometryValid = Boolean(
     editing &&
       isInlineEditingActive &&
       !visibleError &&
@@ -817,9 +941,11 @@ export function BelgeStudioPdfPreview({
       localStatus === "ready" &&
       isOverlayTokenValid &&
       inlineFields.length > 0 &&
-      !isInteracting &&
-      (!canvasRef.current?.style.transform || canvasRef.current.style.transform === "none")
+      canvasTransformNone
   );
+  hotspotGeometryValidRef.current = hotspotGeometryValid;
+
+  const isHotspotsInteractive = hotspotGeometryValid && !isInteracting;
 
   const shouldRenderOverlayLayer = Boolean(
     editing &&
@@ -827,6 +953,124 @@ export function BelgeStudioPdfPreview({
       !visibleError &&
       (isHotspotsInteractive || inlineSelectedField !== null)
   );
+
+  const liveSelectedField = inlineSelectedField
+    ? navFields.find(
+        (field) => field.fieldKey === inlineSelectedField.fieldKey && field.pageNumber === inlineSelectedField.pageNumber
+      ) ?? inlineSelectedField
+    : null;
+  const selectedNavIndex = liveSelectedField
+    ? navFields.findIndex((field) => field.fieldKey === liveSelectedField.fieldKey)
+    : -1;
+  const prevNavField = selectedNavIndex > 0 ? navFields[selectedNavIndex - 1] : null;
+  const nextNavField =
+    selectedNavIndex >= 0 && selectedNavIndex < navFields.length - 1 ? navFields[selectedNavIndex + 1] : null;
+  const prevTarget: BelgeInlineSheetNavTarget = prevNavField
+    ? { kind: "field", label: prevNavField.label }
+    : currentPage > 1
+      ? { kind: "page", pageNumber: currentPage - 1 }
+      : null;
+  const nextTarget: BelgeInlineSheetNavTarget = nextNavField
+    ? { kind: "field", label: nextNavField.label }
+    : currentPage < pageCount
+      ? { kind: "page", pageNumber: currentPage + 1 }
+      : null;
+
+  const selectedTop = liveSelectedField?.viewportRect.top ?? null;
+  const selectedBottom = liveSelectedField?.viewportRect.bottom ?? null;
+  const selectedLeft = liveSelectedField?.viewportRect.left ?? null;
+  const selectedRight = liveSelectedField?.viewportRect.right ?? null;
+
+  const showSelectedHighlight = isMobileSheetOpen && liveSelectedField !== null && !isInteracting && canvasTransformNone;
+  const showEmptyFieldsStatus =
+    isMobileMode &&
+    Boolean(editing) &&
+    isInlineEditingActive &&
+    !isMobileSheetOpen &&
+    !coach &&
+    !visibleError &&
+    !generationPending &&
+    localStatus === "ready" &&
+    isOverlayTokenValid &&
+    inlineFields.length === 0;
+
+  const handleSheetNavigate = (direction: -1 | 1) => {
+    const targetField = direction === 1 ? nextNavField : prevNavField;
+    sheetDirtyRef.current = false;
+    if (targetField) {
+      setInlineSelectedField(targetField);
+      return;
+    }
+    const targetPage = currentPage + direction;
+    if (targetPage < 1 || targetPage > pageCount) return;
+    handlePageChange(targetPage);
+    setCoach(`${targetPage}. sayfa: düzenlemek için bir alana dokunun.`);
+  };
+
+  // Fare/klavye ile hotspot seçimi de aynı kirli taslak korumasından geçer.
+  const handleLayerSelectField = (field: InlineFieldDescriptor | null) => {
+    if (
+      field &&
+      isMobileMode &&
+      inlineSelectedField !== null &&
+      inlineSelectedField.fieldKey !== field.fieldKey &&
+      sheetDirtyRef.current
+    ) {
+      setSheetAttention((count) => count + 1);
+      return;
+    }
+    if (field) setCoach(null);
+    if (!field) sheetDirtyRef.current = false;
+    setInlineSelectedField(field);
+  };
+
+  const handleToggleInlineEditing = () => {
+    const next = !isInlineEditingActive;
+    setIsInlineEditingActive(next);
+    if (!next) {
+      sheetDirtyRef.current = false;
+      setInlineSelectedField(null);
+      setRenderedToken(null);
+      setInlineFields([]);
+      setNavFields([]);
+      setCoach(null);
+      return;
+    }
+    if (isMobileMode) setCoach("Turuncu çerçeveli alanlara dokunarak düzenleyin.");
+  };
+
+  useEffect(() => {
+    if (!isMobileSheetOpen || sheetTop === null || selectedTop === null || selectedBottom === null || selectedLeft === null || selectedRight === null) {
+      return;
+    }
+    const container = containerRef.current;
+    const frame = frameRef.current;
+    if (!container || !frame) return;
+    const raf = window.requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const overlap = Math.max(0, Math.round(containerRect.bottom - sheetTop));
+      container.style.setProperty("--belge-inline-sheet-overlap", `${overlap}px`);
+      const frameRect = frame.getBoundingClientRect();
+      const { dx, dy } = getInlineFieldRevealDelta({
+        field: {
+          top: frameRect.top + selectedTop,
+          bottom: frameRect.top + selectedBottom,
+          left: frameRect.left + selectedLeft,
+          right: frameRect.left + selectedRight,
+        },
+        visible: {
+          top: containerRect.top,
+          bottom: Math.min(containerRect.bottom, sheetTop),
+          left: containerRect.left,
+          right: containerRect.right,
+        },
+      });
+      if (dx === 0 && dy === 0) return;
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      container.scrollBy({ left: dx, top: dy, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [isMobileSheetOpen, sheetTop, selectedTop, selectedBottom, selectedLeft, selectedRight, renderedToken]);
 
   return (
     <section className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} relative`} aria-label="PDF canlı önizlemesi">
@@ -838,21 +1082,11 @@ export function BelgeStudioPdfPreview({
         page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
         disabled={!snapshot || generationPending || visibleError}
       />
-      {editing && (
+      {editing && !isMobileSheetOpen && (
         <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
           <button
             type="button"
-            onClick={() =>
-              setIsInlineEditingActive((prev) => {
-                const next = !prev;
-                if (!next) {
-                  setInlineSelectedField(null);
-                  setRenderedToken(null);
-                  setInlineFields([]);
-                }
-                return next;
-              })
-            }
+            onClick={handleToggleInlineEditing}
             data-testid="belge-inline-edit-toggle"
             aria-pressed={isInlineEditingActive}
             className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
@@ -903,7 +1137,22 @@ export function BelgeStudioPdfPreview({
                   frameWidth={renderedSizeRef.current.width || 600}
                   frameHeight={renderedSizeRef.current.height || 842}
                   selectedField={inlineSelectedField}
-                  onSelectField={setInlineSelectedField}
+                  onSelectField={handleLayerSelectField}
+                  editorMode={isMobileMode ? "none" : "popover"}
+                  touchOptimized={isMobileMode}
+                />
+              )}
+              {showSelectedHighlight && liveSelectedField && (
+                <div
+                  aria-hidden="true"
+                  data-testid="belge-inline-selected-highlight"
+                  className="pointer-events-none absolute z-[6] rounded-[3px] bg-amber-400/20 ring-2 ring-amber-500 shadow-[0_0_0_4px_rgba(245,158,11,0.25)]"
+                  style={{
+                    left: `${liveSelectedField.viewportRect.left - 2}px`,
+                    top: `${liveSelectedField.viewportRect.top - 2}px`,
+                    width: `${liveSelectedField.viewportRect.width + 4}px`,
+                    height: `${liveSelectedField.viewportRect.height + 4}px`,
+                  }}
                 />
               )}
             </div>
@@ -931,6 +1180,47 @@ export function BelgeStudioPdfPreview({
           </div>
         )}
       </div>
+      {coach && isMobileMode && isInlineEditingActive && !isMobileSheetOpen && (
+        <div
+          role="status"
+          data-testid="belge-inline-coach"
+          className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] z-20 mx-auto w-fit max-w-[calc(100%-1.5rem)] rounded-full border border-amber-500/40 bg-background/95 px-3 py-1.5 text-center text-xs font-medium text-foreground shadow-md backdrop-blur"
+        >
+          {coach}
+        </div>
+      )}
+      {showEmptyFieldsStatus && (
+        <div
+          role="status"
+          data-testid="belge-inline-empty"
+          className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] z-20 mx-auto w-fit max-w-[calc(100%-1.5rem)] rounded-full border border-border bg-background/95 px-3 py-1.5 text-center text-xs font-medium text-muted-foreground shadow-md backdrop-blur"
+        >
+          Bu sayfada düzenlenebilir alan yok.
+        </div>
+      )}
+      {isMobileSheetOpen && liveSelectedField && editing && (
+        <BelgeInlineEditSheet
+          documentId={editing.documentId}
+          field={liveSelectedField}
+          position={{
+            index: Math.max(0, selectedNavIndex),
+            total: Math.max(1, navFields.length),
+            pageNumber: currentPage,
+            pageCount,
+          }}
+          prevTarget={prevTarget}
+          nextTarget={nextTarget}
+          currentValue={editing.values?.[liveSelectedField.fieldKey] ?? ""}
+          layout={generationPending ? undefined : snapshot?.layouts?.[liveSelectedField.fieldKey]}
+          attentionToken={sheetAttention}
+          onCommit={handleSheetCommit}
+          onNavigate={handleSheetNavigate}
+          onClose={handleSheetClose}
+          onRequestDismiss={requestSheetDismiss}
+          onDirtyChange={handleSheetDirtyChange}
+          onSheetTopChange={setSheetTop}
+        />
+      )}
     </section>
   );
 }

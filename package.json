@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:belgeler-pdf": "tsx --test tests/belgeler/*.test.ts && tsx scripts/check-belgeler-pdf-visuals.ts",
+    "check:belgeler-inline-mobile": "npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-inline-edit-mobile.spec.ts --project=chromium-mobile-390",
     "compile:cad-v2": "tsx scripts/cad-v2/run-v2-compiler-cli.ts",
     "check:bina-visuals": "tsx scripts/check-bina-visuals.ts",
     "check:bina-content": "tsx scripts/validate-bina-content.mjs",
