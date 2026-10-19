@@ -37,6 +37,8 @@ export function useBelgeStudioDocument<T>(
   });
   const requestRef = useRef(0);
   const activeUrlRef = useRef<string | null>(null);
+  const hasGeneratedRef = useRef(false);
+  const lastRetryVersionRef = useRef(0);
 
   useEffect(() => {
     prewarmBrowserPdfJs();
@@ -51,7 +53,12 @@ export function useBelgeStudioDocument<T>(
     const requestId = ++requestRef.current;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let generationTimeout: ReturnType<typeof setTimeout> | null = null;
+    const isInitialOrRetry = !hasGeneratedRef.current || lastRetryVersionRef.current !== retryVersion;
+    lastRetryVersionRef.current = retryVersion;
+    const delayMs = isInitialOrRetry ? 0 : GENERATION_DEBOUNCE_MS;
+
     timer = setTimeout(() => {
+      hasGeneratedRef.current = true;
       setState((current) => ({ ...current, status: "generating", error: null, sourceData: data }));
       const timeout = new Promise<never>((_, reject) => {
         generationTimeout = setTimeout(
@@ -105,7 +112,7 @@ export function useBelgeStudioDocument<T>(
             generationTimeout = null;
           }
         });
-    }, GENERATION_DEBOUNCE_MS);
+    }, delayMs);
 
     return () => {
       requestRef.current += 1;

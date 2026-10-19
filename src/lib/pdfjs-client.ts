@@ -9,6 +9,7 @@ declare global {
 }
 
 let pdfJsPromise: Promise<BrowserPdfJs> | null = null;
+let sharedPdfWorkerPromise: Promise<unknown> | null = null;
 
 /** Load the locally hosted PDF.js module once for generated document previews. */
 export async function loadBrowserPdfJs(): Promise<BrowserPdfJs | null> {
@@ -33,8 +34,44 @@ export async function loadBrowserPdfJs(): Promise<BrowserPdfJs | null> {
   return pdfJsPromise;
 }
 
-/** Pre-warm the locally hosted PDF.js module in the background so preview is instant. */
+/**
+ * Returns a singleton PDFWorker instance shared across document loads so
+ * mobile browsers do not re-spawn and re-parse the worker on every update.
+ */
+export async function getSharedBrowserPdfWorker(pdfjs: BrowserPdfJs): Promise<unknown> {
+  if (typeof window === "undefined") return null;
+
+  if (sharedPdfWorkerPromise) {
+    const existing = await sharedPdfWorkerPromise;
+    if (existing && !(existing as { destroyed?: boolean }).destroyed) {
+      return existing;
+    }
+    sharedPdfWorkerPromise = null;
+  }
+
+  try {
+    const worker = new pdfjs.PDFWorker();
+    sharedPdfWorkerPromise = worker.promise
+      .then(() => worker)
+      .catch((err) => {
+        console.warn("PDF.js singleton worker başlatılamadı, varsayılan worker kullanılacak:", err);
+        sharedPdfWorkerPromise = null;
+        return null;
+      });
+    return sharedPdfWorkerPromise;
+  } catch (err) {
+    console.warn("PDF.js worker örneği alınamadı:", err);
+    return null;
+  }
+}
+
+/** Pre-warm the locally hosted PDF.js module and shared worker in the background so preview is instant. */
 export function prewarmBrowserPdfJs(): void {
   if (typeof window === "undefined") return;
-  void loadBrowserPdfJs().catch(() => {});
+  void loadBrowserPdfJs()
+    .then((pdfjs) => {
+      if (pdfjs) return getSharedBrowserPdfWorker(pdfjs);
+      return null;
+    })
+    .catch(() => {});
 }

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
-import { PDFJS_CMAPS, PDFJS_FONTS } from "@/lib/pdfjs-paths";
-import { loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
+import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
+import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
 import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
 import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
@@ -88,6 +88,8 @@ export function BelgeStudioPdfPreview({
   const documentRef = useRef<PdfDocument | null>(null);
   const renderTaskRef = useRef<PdfRenderTask | null>(null);
   const renderRequestRef = useRef(0);
+  const layoutRetryRafRef = useRef<number | null>(null);
+  const lastContainerSizeRef = useRef({ width: 0, height: 0 });
   const zoomRef = useRef(zoomLevel);
   const pageRef = useRef(currentPage);
   const isInlineEditingActiveRef = useRef(isInlineEditingActive);
@@ -117,28 +119,39 @@ export function BelgeStudioPdfPreview({
   statusHandlerRef.current = onStatusChange;
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
+  const renderedTokenRef = useRef<RenderedToken | null>(null);
+  renderedTokenRef.current = renderedToken;
+  const lastRenderedContainerSizeRef = useRef({ width: 0, height: 0 });
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
   const report = useCallback((status: BelgePreviewStatus, error?: string) => {
     setLocalStatus(status);
     setErrorMessage(error ?? "");
-    if (snapshot) statusHandlerRef.current(snapshot.revision, status, error);
-  }, [snapshot]);
+    const currentSnapshot = snapshotRef.current;
+    if (currentSnapshot) statusHandlerRef.current(currentSnapshot.revision, status, error);
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setLayoutVersion((version) => version + 1));
+    lastContainerSizeRef.current = {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    };
+    const observer = new ResizeObserver(() => {
+      const nextWidth = container.clientWidth;
+      const nextHeight = container.clientHeight;
+      const prev = lastContainerSizeRef.current;
+      if (Math.abs(nextWidth - prev.width) < 1 && Math.abs(nextHeight - prev.height) < 1) {
+        return;
+      }
+      lastContainerSizeRef.current = { width: nextWidth, height: nextHeight };
+      setLayoutVersion((version) => version + 1);
+    });
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (activeTabMobile === "preview") {
-      setLayoutVersion((version) => version + 1);
-    }
-  }, [activeTabMobile]);
 
   useEffect(() => {
     const handleResize = () => setLayoutVersion((version) => version + 1);
@@ -150,7 +163,235 @@ export function BelgeStudioPdfPreview({
     };
   }, []);
 
+  const applyZoomAnchor = useCallback(() => {
+    const anchor = pendingAnchorRef.current;
+    const container = containerRef.current;
+    const frame = frameRef.current;
+    if (!anchor || !container || !frame) return;
+    const containerRect = container.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const viewportLeft = containerRect.left + container.clientLeft;
+    const viewportTop = containerRect.top + container.clientTop;
+    const next = getBelgeZoomAnchorScroll({
+      frameLeft: frameRect.left - viewportLeft + container.scrollLeft,
+      frameTop: frameRect.top - viewportTop + container.scrollTop,
+      nextWidth: frameRect.width,
+      nextHeight: frameRect.height,
+      relativeX: anchor.relativeX,
+      relativeY: anchor.relativeY,
+      pointerX: anchor.pointerX - viewportLeft,
+      pointerY: anchor.pointerY - viewportTop,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+    });
+    container.scrollLeft = next.scrollLeft;
+    container.scrollTop = next.scrollTop;
+  }, []);
+
+  const renderPage = useCallback(async (layoutRetryCount = 0) => {
+    if (layoutRetryRafRef.current !== null) {
+      cancelAnimationFrame(layoutRetryRafRef.current);
+      layoutRetryRafRef.current = null;
+    }
+
+    const pdf = documentRef.current;
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    const frame = frameRef.current;
+    if (!pdf || !canvas || !container || !frame) return;
+    if (container.clientWidth < 1 || container.clientHeight < 1) {
+      if (layoutRetryCount < 60) {
+        layoutRetryRafRef.current = requestAnimationFrame(() => {
+          layoutRetryRafRef.current = null;
+          void renderPage(layoutRetryCount + 1);
+        });
+      }
+      return;
+    }
+
+    const requestId = ++renderRequestRef.current;
+    const renderZoom = zoomRef.current;
+    const renderPageNumber = pageRef.current;
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch {
+        // Önceki çizim kapanmış olabilir.
+      }
+      renderTaskRef.current = null;
+    }
+    report("rendering");
+
+    const bufferCanvas = document.createElement("canvas");
+    try {
+      const page = await pdf.getPage(renderPageNumber);
+      if (
+        requestId !== renderRequestRef.current ||
+        pinchingRef.current ||
+        zoomRef.current !== renderZoom ||
+        pageRef.current !== renderPageNumber
+      ) {
+        return;
+      }
+      const unscaled = page.getViewport({ scale: 1 });
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      const availableWidth = Math.max(1, containerWidth - 16);
+      const availableHeight = Math.max(1, containerHeight - 16);
+      const fitScale = Math.min(availableWidth / unscaled.width, availableHeight / unscaled.height);
+      const effectiveScale = fitScale * (renderZoom / 100);
+      const viewport = page.getViewport({ scale: effectiveScale });
+      const rasterScale = getBelgePreviewRasterScale(
+        viewport.width,
+        viewport.height,
+        window.devicePixelRatio || 1
+      );
+
+      const bitmapWidth = Math.max(1, Math.floor(viewport.width * rasterScale));
+      const bitmapHeight = Math.max(1, Math.floor(viewport.height * rasterScale));
+      const cssWidth = Math.ceil(viewport.width);
+      const cssHeight = Math.ceil(viewport.height);
+
+      if (renderedSizeRef.current.width === 0) {
+        canvas.style.width = `${cssWidth}px`;
+        canvas.style.height = `${cssHeight}px`;
+        frame.style.width = `${cssWidth}px`;
+        frame.style.height = `${cssHeight}px`;
+        renderedSizeRef.current = {
+          width: cssWidth,
+          height: cssHeight,
+          zoom: renderZoom,
+        };
+      }
+
+      bufferCanvas.width = bitmapWidth;
+      bufferCanvas.height = bitmapHeight;
+      const bufferContext = bufferCanvas.getContext("2d");
+      if (!bufferContext) throw new Error("PDF çizim alanı başlatılamadı.");
+
+      const transform =
+        rasterScale !== 1 ? [rasterScale, 0, 0, rasterScale, 0, 0] : undefined;
+
+      const renderTask = page.render({
+        canvas: bufferCanvas,
+        canvasContext: bufferContext,
+        transform,
+        viewport,
+      });
+      renderTaskRef.current = renderTask;
+      await renderTask.promise;
+      if (
+        requestId !== renderRequestRef.current ||
+        pinchingRef.current ||
+        zoomRef.current !== renderZoom ||
+        pageRef.current !== renderPageNumber
+      ) {
+        return;
+      }
+      renderTaskRef.current = null;
+
+      canvas.width = bitmapWidth;
+      canvas.height = bitmapHeight;
+      canvas.style.width = `${cssWidth}px`;
+      canvas.style.height = `${cssHeight}px`;
+      canvas.style.transform = "none";
+      frame.style.width = `${cssWidth}px`;
+      frame.style.height = `${cssHeight}px`;
+      renderedSizeRef.current = {
+        width: cssWidth,
+        height: cssHeight,
+        zoom: renderZoom,
+      };
+      lastRenderedContainerSizeRef.current = {
+        width: containerWidth,
+        height: containerHeight,
+      };
+      const visibleContext = canvas.getContext("2d");
+      if (!visibleContext) throw new Error("PDF çizim alanı başlatılamadı.");
+      visibleContext.drawImage(bufferCanvas, 0, 0);
+      canvas.style.opacity = "1";
+
+      const anchor = pendingAnchorRef.current;
+      if (anchor) {
+        requestAnimationFrame(() => {
+          if (requestId !== renderRequestRef.current) return;
+          applyZoomAnchor();
+          pendingAnchorRef.current = null;
+        });
+      }
+
+      let mappedFields: InlineFieldDescriptor[] = [];
+      const currentEditing = editingRef.current;
+      if (currentEditing && isInlineEditingActiveRef.current) {
+        try {
+          const rawAnns = (await page.getAnnotations({ intent: "display" })) as RawPdfAnnotation[];
+          if (requestId === renderRequestRef.current) {
+            const mapped = mapPdfAnnotationsToInlineFields({
+              documentId: currentEditing.documentId,
+              pageNumber: renderPageNumber,
+              annotations: rawAnns,
+              viewport,
+            });
+            mappedFields = mapped.fields;
+          }
+        } catch (annError) {
+          console.warn("PDF alan haritası okunamadı:", annError);
+        }
+      }
+      if (
+        requestId !== renderRequestRef.current ||
+        pinchingRef.current ||
+        zoomRef.current !== renderZoom ||
+        pageRef.current !== renderPageNumber
+      ) {
+        return;
+      }
+      setInlineFields(mappedFields);
+      const nextToken: RenderedToken = {
+        revision: snapshotRef.current?.revision ?? 0,
+        pageNumber: renderPageNumber,
+        zoom: renderZoom,
+        requestId,
+      };
+      renderedTokenRef.current = nextToken;
+      setRenderedToken(nextToken);
+      report("ready");
+    } catch (error) {
+      const cancelled =
+        error instanceof Error &&
+        (error.name === "RenderingCancelledException" || error.name === "AbortException");
+      if (requestId !== renderRequestRef.current || cancelled) return;
+      const message = error instanceof Error ? error.message : "PDF sayfası çizilemedi.";
+      report("error", `PDF önizlemesi çizilemedi. ${message}`);
+      console.error("PDF canvas çizim hatası:", error);
+    } finally {
+      bufferCanvas.width = 0;
+      bufferCanvas.height = 0;
+    }
+  }, [report, applyZoomAnchor]);
+
   useEffect(() => {
+    if (activeTabMobile !== "preview" || !documentRef.current || pinchingRef.current) return;
+    if (renderTaskRef.current !== null) return;
+    const container = containerRef.current;
+    const token = renderedTokenRef.current;
+    const lastSize = lastRenderedContainerSizeRef.current;
+    const alreadyRendered =
+      token !== null &&
+      token.revision === snapshotRef.current?.revision &&
+      token.pageNumber === pageRef.current &&
+      token.zoom === zoomRef.current &&
+      renderedSizeRef.current.width > 0 &&
+      container !== null &&
+      Math.abs(container.clientWidth - lastSize.width) < 2 &&
+      Math.abs(container.clientHeight - lastSize.height) < 2;
+    if (!alreadyRendered) {
+      void renderPage();
+    }
+  }, [activeTabMobile, renderPage]);
+
+  useEffect(() => {
+    renderedTokenRef.current = null;
     setRenderedToken(null);
     setInlineFields([]);
     if (!snapshot) {
@@ -183,12 +424,23 @@ export function BelgeStudioPdfPreview({
           if (!pdfjs) throw new Error("Yerel PDF görüntüleyicisi yüklenemedi.");
           if (disposed) return null;
 
-          const loadingTask = pdfjs.getDocument({
+          const worker = await getSharedBrowserPdfWorker(pdfjs);
+          if (disposed) return null;
+
+          const docParams: Parameters<BrowserPdfJs["getDocument"]>[0] & { isEvalSupported?: boolean } = {
             data: bytes,
             cMapUrl: PDFJS_CMAPS,
             standardFontDataUrl: PDFJS_FONTS,
+            wasmUrl: PDFJS_WASM,
+            iccUrl: PDFJS_ICCS,
             cMapPacked: true,
-          });
+            isEvalSupported: false,
+          };
+          if (worker) {
+            (docParams as { worker?: unknown }).worker = worker;
+          }
+
+          const loadingTask = pdfjs.getDocument(docParams);
           loadingTaskRef.current = loadingTask;
           const pdf = await loadingTask.promise;
           return { pdf, loadingTask };
@@ -204,6 +456,9 @@ export function BelgeStudioPdfPreview({
         pageRef.current = nextPage;
         setCurrentPage(nextPage);
         setPageCount(result.pdf.numPages);
+        if (!pinchingRef.current) {
+          void renderPage();
+        }
       } catch (error) {
         if (disposed) return;
         const message = error instanceof Error ? error.message : "PDF açılamadı.";
@@ -223,6 +478,10 @@ export function BelgeStudioPdfPreview({
         clearTimeout(previewTimeout);
         previewTimeout = null;
       }
+      if (layoutRetryRafRef.current !== null) {
+        cancelAnimationFrame(layoutRetryRafRef.current);
+        layoutRetryRafRef.current = null;
+      }
       renderRequestRef.current += 1;
       if (renderTaskRef.current) {
         try {
@@ -237,142 +496,13 @@ export function BelgeStudioPdfPreview({
       documentRef.current = null;
       if (loadingTask) void loadingTask.destroy();
     };
-  }, [snapshot, loadAttempt, report]);
-
-  const applyZoomAnchor = useCallback(() => {
-    const anchor = pendingAnchorRef.current;
-    const container = containerRef.current;
-    const frame = frameRef.current;
-    if (!anchor || !container || !frame) return;
-    const containerRect = container.getBoundingClientRect();
-    const frameRect = frame.getBoundingClientRect();
-    const viewportLeft = containerRect.left + container.clientLeft;
-    const viewportTop = containerRect.top + container.clientTop;
-    const next = getBelgeZoomAnchorScroll({
-      frameLeft: frameRect.left - viewportLeft + container.scrollLeft,
-      frameTop: frameRect.top - viewportTop + container.scrollTop,
-      nextWidth: frameRect.width,
-      nextHeight: frameRect.height,
-      relativeX: anchor.relativeX,
-      relativeY: anchor.relativeY,
-      pointerX: anchor.pointerX - viewportLeft,
-      pointerY: anchor.pointerY - viewportTop,
-      scrollLeft: container.scrollLeft,
-      scrollTop: container.scrollTop,
-    });
-    container.scrollLeft = next.scrollLeft;
-    container.scrollTop = next.scrollTop;
-  }, []);
-
-  const renderPage = useCallback(async () => {
-    const pdf = documentRef.current;
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    const frame = frameRef.current;
-    if (!pdf || !canvas || !container || !frame) return;
-    if (container.clientWidth < 1 || container.clientHeight < 1) return;
-
-    const requestId = ++renderRequestRef.current;
-    if (renderTaskRef.current) {
-      try {
-        renderTaskRef.current.cancel();
-      } catch {
-        // Önceki çizim kapanmış olabilir.
-      }
-      renderTaskRef.current = null;
-    }
-    report("rendering");
-
-    try {
-      const page = await pdf.getPage(pageRef.current);
-      if (requestId !== renderRequestRef.current) return;
-      const unscaled = page.getViewport({ scale: 1 });
-      const availableWidth = Math.max(1, container.clientWidth - 16);
-      const availableHeight = Math.max(1, container.clientHeight - 16);
-      const fitScale = Math.min(availableWidth / unscaled.width, availableHeight / unscaled.height);
-      const effectiveScale = fitScale * (zoomRef.current / 100);
-      const viewport = page.getViewport({ scale: effectiveScale });
-      const rasterScale = getBelgePreviewRasterScale(
-        viewport.width,
-        viewport.height,
-        window.devicePixelRatio || 1
-      );
-
-      canvas.width = Math.max(1, Math.floor(viewport.width * rasterScale));
-      canvas.height = Math.max(1, Math.floor(viewport.height * rasterScale));
-      canvas.style.width = `${Math.ceil(viewport.width)}px`;
-      canvas.style.height = `${Math.ceil(viewport.height)}px`;
-      canvas.style.transform = "none";
-      frame.style.width = `${Math.ceil(viewport.width)}px`;
-      frame.style.height = `${Math.ceil(viewport.height)}px`;
-      renderedSizeRef.current = {
-        width: Math.ceil(viewport.width),
-        height: Math.ceil(viewport.height),
-        zoom: zoomRef.current,
-      };
-
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("PDF çizim alanı başlatılamadı.");
-      context.setTransform(rasterScale, 0, 0, rasterScale, 0, 0);
-      const renderTask = page.render({ canvas, canvasContext: context, viewport });
-      renderTaskRef.current = renderTask;
-      await renderTask.promise;
-      if (requestId !== renderRequestRef.current) return;
-      renderTaskRef.current = null;
-      canvas.style.opacity = "1";
-
-      const anchor = pendingAnchorRef.current;
-      if (anchor) {
-        requestAnimationFrame(() => {
-          if (requestId !== renderRequestRef.current) return;
-          applyZoomAnchor();
-          pendingAnchorRef.current = null;
-        });
-      }
-
-      let mappedFields: InlineFieldDescriptor[] = [];
-      const currentEditing = editingRef.current;
-      if (currentEditing && isInlineEditingActiveRef.current) {
-        try {
-          const rawAnns = (await page.getAnnotations({ intent: "display" })) as RawPdfAnnotation[];
-          if (requestId === renderRequestRef.current) {
-            const mapped = mapPdfAnnotationsToInlineFields({
-              documentId: currentEditing.documentId,
-              pageNumber: pageRef.current,
-              annotations: rawAnns,
-              viewport,
-            });
-            mappedFields = mapped.fields;
-          }
-        } catch (annError) {
-          console.warn("PDF alan haritası okunamadı:", annError);
-        }
-      }
-      if (requestId !== renderRequestRef.current) return;
-      setInlineFields(mappedFields);
-      setRenderedToken({
-        revision: snapshotRef.current?.revision ?? 0,
-        pageNumber: pageRef.current,
-        zoom: zoomRef.current,
-        requestId,
-      });
-      report("ready");
-    } catch (error) {
-      const cancelled =
-        error instanceof Error &&
-        (error.name === "RenderingCancelledException" || error.name === "AbortException");
-      if (requestId !== renderRequestRef.current || cancelled) return;
-      const message = error instanceof Error ? error.message : "PDF sayfası çizilemedi.";
-      report("error", `PDF önizlemesi çizilemedi. ${message}`);
-      console.error("PDF canvas çizim hatası:", error);
-    }
-  }, [report, applyZoomAnchor]);
+  }, [snapshot, loadAttempt, report, renderPage]);
 
   useEffect(() => {
     if (!documentRef.current || pinchingRef.current) return;
-    const timer = window.setTimeout(() => void renderPage(), 140);
+    const timer = window.setTimeout(() => void renderPage(), 90);
     return () => window.clearTimeout(timer);
-  }, [renderPage, zoomLevel, currentPage, pageCount, layoutVersion, gestureEndVersion, snapshot?.revision, isInlineEditingActive]);
+  }, [renderPage, zoomLevel, currentPage, layoutVersion, gestureEndVersion, isInlineEditingActive]);
 
   const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
     const container = containerRef.current;
@@ -433,7 +563,7 @@ export function BelgeStudioPdfPreview({
   });
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "touch") return;
+    if (event.pointerType !== "touch" || !snapshot || !documentRef.current) return;
     const target = event.target as HTMLElement | null;
     if (target?.closest('[data-testid="belge-inline-edit-popover"]')) {
       return;
@@ -461,23 +591,34 @@ export function BelgeStudioPdfPreview({
     }
 
     setInlineSelectedField(null);
+    renderRequestRef.current += 1;
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch {
+        // Önceki çizim kapanmış olabilir.
+      }
+      renderTaskRef.current = null;
+    }
     const [first, second] = pointers;
     const center = midpoint(first.point, second.point);
     const canvasRect = canvasRef.current?.getBoundingClientRect();
     const size = renderedSizeRef.current;
+    const startWidth = canvasRect && canvasRect.width > 0 ? canvasRect.width : size.width;
+    const startHeight = canvasRect && canvasRect.height > 0 ? canvasRect.height : size.height;
     pinchStartRef.current = {
       distance: Math.max(1, distance(first.point, second.point)),
       zoom: zoomRef.current,
       relativeX: canvasRect ? Math.max(0, Math.min(1, (center.x - canvasRect.left) / Math.max(1, canvasRect.width))) : 0.5,
       relativeY: canvasRect ? Math.max(0, Math.min(1, (center.y - canvasRect.top) / Math.max(1, canvasRect.height))) : 0.5,
-      startWidth: canvasRect?.width ?? size.width,
-      startHeight: canvasRect?.height ?? size.height,
+      startWidth,
+      startHeight,
     };
     pinchingRef.current = true;
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "touch") return;
+    if (event.pointerType !== "touch" || !snapshot || !documentRef.current) return;
     const pointers = pointersRef.current.map((pointer) =>
       pointer.id === event.pointerId ? { ...pointer, point: getContainerPoint(event) } : pointer
     );
@@ -492,11 +633,12 @@ export function BelgeStudioPdfPreview({
       const ratio = nextZoom / start.zoom;
       const frame = frameRef.current;
       const canvas = canvasRef.current;
+      const baseWidth = renderedSizeRef.current.width > 0 ? renderedSizeRef.current.width : start.startWidth;
       if (frame && canvas) {
         frame.style.width = `${start.startWidth * ratio}px`;
         frame.style.height = `${start.startHeight * ratio}px`;
         canvas.style.transformOrigin = "top left";
-        canvas.style.transform = `scale(${(start.startWidth * ratio) / Math.max(1, renderedSizeRef.current.width)})`;
+        canvas.style.transform = `scale(${(start.startWidth * ratio) / Math.max(1, baseWidth)})`;
         pendingAnchorRef.current = {
           relativeX: start.relativeX,
           relativeY: start.relativeY,
@@ -504,6 +646,11 @@ export function BelgeStudioPdfPreview({
           pointerY: center.y,
         };
         applyZoomAnchor();
+      }
+      if (nextZoom !== zoomRef.current) {
+        renderedTokenRef.current = null;
+        setRenderedToken(null);
+        report("rendering");
       }
       zoomRef.current = nextZoom;
       setZoomLevel(nextZoom);
@@ -533,6 +680,7 @@ export function BelgeStudioPdfPreview({
       if (pinchingRef.current) {
         pinchingRef.current = false;
         setGestureEndVersion((version) => version + 1);
+        void renderPage();
       } else if (
         !wasMultitouch &&
         panStart &&
@@ -576,6 +724,7 @@ export function BelgeStudioPdfPreview({
       };
       pinchingRef.current = false;
       setGestureEndVersion((version) => version + 1);
+      void renderPage();
     }
   };
 

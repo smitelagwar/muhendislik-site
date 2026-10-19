@@ -1,4 +1,4 @@
-import { componentsToColor, defaultTextFieldAppearanceProvider, drawTextField, PDFDict, PDFDocument, PDFName, PDFNumber, PDFString, rgb, setTextMatrix, type PDFFont, type PDFTextField } from "pdf-lib";
+import { componentsToColor, CustomFontEmbedder, defaultTextFieldAppearanceProvider, drawTextField, PDFContext, PDFDict, PDFDocument, PDFFont, PDFName, PDFNumber, PDFRawStream, PDFString, rgb, setTextMatrix, type PDFTextField } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { getDocumentPdfProfiles, getBlankDocumentData, normalizePdfFieldValue, type BelgeDocumentId } from "./belgeler-pdf-profiles";
 import { measurePdfAppearance, type BelgePdfResult, type PdfFieldLayout, type PdfFieldLayouts, type PdfWidgetLayout } from "./belgeler-pdf-layout";
@@ -149,15 +149,30 @@ const cachedPdfBytes: Record<string, Uint8Array> = {};
 const pdfTemplatePromises = new Map<string, Promise<Uint8Array>>();
 let cachedBoldFontBytes: Uint8Array | null = null;
 let cachedRegularFontBytes: Uint8Array | null = null;
-let cachedBoldMetrics: fontkit.Font | null = null;
-let cachedRegularMetrics: fontkit.Font | null = null;
 let boldFontPromise: Promise<Uint8Array> | null = null;
 let regularFontPromise: Promise<Uint8Array> | null = null;
+let cachedBoldEmbedder: CustomFontEmbedder | null = null;
+let cachedRegularEmbedder: CustomFontEmbedder | null = null;
+let boldEmbedderPromise: Promise<CustomFontEmbedder> | null = null;
+let regularEmbedderPromise: Promise<CustomFontEmbedder> | null = null;
 
 const DOCUMENT_RESOURCE_TIMEOUT_MS = 30_000;
 
 function isPdf(bytes: Uint8Array): boolean {
   return bytes.byteLength >= 5 && new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-";
+}
+
+async function compressDeflateBytes(data: Uint8Array): Promise<Uint8Array | null> {
+  if (typeof CompressionStream === "undefined") return null;
+  try {
+    const cs = new CompressionStream("deflate");
+    const writer = cs.writable.getWriter();
+    void writer.write(data as unknown as BufferSource);
+    void writer.close();
+    return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  } catch {
+    return null;
+  }
 }
 
 async function fetchDocumentResource(url: string): Promise<Uint8Array> {
@@ -236,8 +251,8 @@ async function getPdfTemplateBytes(docType: "beton-dokum" | "taahhutname" | "ist
 
 /** Load the Bold variant of the embedded font (Arial-Bold or fallback). */
 async function getBoldFontBytes(): Promise<Uint8Array> {
-  if (cachedBoldFontBytes) return cachedBoldFontBytes.slice(0);
-  if (boldFontPromise) return (await boldFontPromise).slice(0);
+  if (cachedBoldFontBytes) return cachedBoldFontBytes;
+  if (boldFontPromise) return boldFontPromise;
   boldFontPromise = (async () => {
     if (typeof window !== "undefined") {
       try {
@@ -253,12 +268,7 @@ async function getBoldFontBytes(): Promise<Uint8Array> {
   })();
   try {
     cachedBoldFontBytes = await boldFontPromise;
-    try {
-      cachedBoldMetrics = fontkit.create(cachedBoldFontBytes);
-    } catch {
-      // Fontkit hatası durumunda yerinde oluşturulur.
-    }
-    return cachedBoldFontBytes.slice(0);
+    return cachedBoldFontBytes;
   } catch (error) {
     boldFontPromise = null;
     throw error;
@@ -267,8 +277,8 @@ async function getBoldFontBytes(): Promise<Uint8Array> {
 
 /** Load the Regular (non-bold) variant of the embedded font. */
 async function getRegularFontBytes(): Promise<Uint8Array> {
-  if (cachedRegularFontBytes) return cachedRegularFontBytes.slice(0);
-  if (regularFontPromise) return (await regularFontPromise).slice(0);
+  if (cachedRegularFontBytes) return cachedRegularFontBytes;
+  if (regularFontPromise) return regularFontPromise;
   regularFontPromise = (async () => {
     if (typeof window !== "undefined") {
       try {
@@ -284,16 +294,114 @@ async function getRegularFontBytes(): Promise<Uint8Array> {
   })();
   try {
     cachedRegularFontBytes = await regularFontPromise;
-    try {
-      cachedRegularMetrics = fontkit.create(cachedRegularFontBytes);
-    } catch {
-      // Fontkit hatası durumunda yerinde oluşturulur.
-    }
-    return cachedRegularFontBytes.slice(0);
+    return cachedRegularFontBytes;
   } catch (error) {
     regularFontPromise = null;
     throw error;
   }
+}
+
+async function createPrecompressedFontEmbedder(fontBytes: Uint8Array): Promise<CustomFontEmbedder> {
+  const embedder = await CustomFontEmbedder.for(fontkit, fontBytes);
+  const scratchCtx = PDFContext.create();
+  let fontStream: PDFRawStream;
+  const nativeCompressed = await compressDeflateBytes(fontBytes);
+  if (nativeCompressed) {
+    fontStream = PDFRawStream.of(
+      scratchCtx.obj({
+        Filter: PDFName.of("FlateDecode"),
+        Length: PDFNumber.of(nativeCompressed.byteLength),
+        Length1: PDFNumber.of(fontBytes.byteLength),
+      }),
+      nativeCompressed
+    );
+  } else {
+    const streamRef = await (embedder as unknown as { embedFontStream: (ctx: PDFContext) => Promise<ReturnType<PDFContext["nextRef"]>> }).embedFontStream(scratchCtx);
+    fontStream = scratchCtx.lookup(streamRef) as PDFRawStream;
+    fontStream.dict.set(PDFName.of("Length1"), PDFNumber.of(fontBytes.byteLength));
+  }
+  const cmapRef = (embedder as unknown as { embedUnicodeCmap: (ctx: PDFContext) => ReturnType<PDFContext["nextRef"]> }).embedUnicodeCmap(scratchCtx);
+  const cmapStream = scratchCtx.lookup(cmapRef) as PDFRawStream;
+  const widthsObj = scratchCtx.obj((embedder as unknown as { computeWidths: () => unknown[] }).computeWidths() as never);
+  const length1Str = String(fontBytes.byteLength);
+
+  const patchTarget = embedder as unknown as {
+    embedFontStream: (context: PDFContext) => Promise<ReturnType<PDFContext["nextRef"]>>;
+    embedUnicodeCmap: (context: PDFContext) => ReturnType<PDFContext["nextRef"]>;
+    computeWidths: () => unknown;
+  };
+
+  patchTarget.embedFontStream = async (context: PDFContext) => {
+    for (const [ref, obj] of context.enumerateIndirectObjects()) {
+      if (
+        obj instanceof PDFRawStream &&
+        obj.dict.get(PDFName.of("Length1"))?.toString() === length1Str
+      ) {
+        return ref;
+      }
+    }
+    return context.register(fontStream.clone(context));
+  };
+  patchTarget.embedUnicodeCmap = (context: PDFContext) =>
+    context.register(cmapStream.clone(context));
+  patchTarget.computeWidths = () => widthsObj;
+
+  const unitWidthCache = new Map<string, number>();
+  const origWidthOfTextAtSize = embedder.widthOfTextAtSize.bind(embedder);
+  embedder.widthOfTextAtSize = (text: string, size: number) => {
+    let unitWidth = unitWidthCache.get(text);
+    if (unitWidth === undefined) {
+      unitWidth = origWidthOfTextAtSize(text, 1);
+      if (unitWidthCache.size > 4096) unitWidthCache.clear();
+      unitWidthCache.set(text, unitWidth);
+    }
+    return unitWidth * size;
+  };
+
+  return embedder;
+}
+
+async function getCachedFontEmbedder(weight: "bold" | "regular"): Promise<CustomFontEmbedder> {
+  if (weight === "bold") {
+    if (cachedBoldEmbedder) return cachedBoldEmbedder;
+    if (!boldEmbedderPromise) {
+      boldEmbedderPromise = getBoldFontBytes()
+        .then(createPrecompressedFontEmbedder)
+        .then((embedder) => {
+          cachedBoldEmbedder = embedder;
+          return embedder;
+        })
+        .catch((error) => {
+          boldEmbedderPromise = null;
+          throw error;
+        });
+    }
+    return boldEmbedderPromise;
+  }
+
+  if (cachedRegularEmbedder) return cachedRegularEmbedder;
+  if (!regularEmbedderPromise) {
+    regularEmbedderPromise = getRegularFontBytes()
+      .then(createPrecompressedFontEmbedder)
+      .then((embedder) => {
+        cachedRegularEmbedder = embedder;
+        return embedder;
+      })
+      .catch((error) => {
+        regularEmbedderPromise = null;
+        throw error;
+      });
+  }
+  return regularEmbedderPromise;
+}
+
+function attachCachedFont(pdfDoc: PDFDocument, embedder: CustomFontEmbedder, registerForSave: boolean): PDFFont {
+  const ref = pdfDoc.context.nextRef();
+  const pdfFont = PDFFont.of(ref, pdfDoc, embedder);
+  if (registerForSave) {
+    (pdfDoc as unknown as { fonts: PDFFont[] }).fonts.push(pdfFont);
+  }
+  return pdfFont;
 }
 
 // ==========================================
@@ -378,21 +486,25 @@ async function populateForm<T extends object>(
   documentId: BelgeDocumentId,
   options: { flatten?: boolean; onlyField?: string } = { flatten: false }
 ): Promise<BelgePdfResult> {
-  const [templateBytes, boldFontBytes, regularFontBytes] = await Promise.all([
+  const [templateBytes, boldEmbedder, regularEmbedder] = await Promise.all([
     getPdfTemplateBytes(docType),
-    getBoldFontBytes(),
-    getRegularFontBytes(),
+    getCachedFontEmbedder("bold"),
+    getCachedFontEmbedder("regular"),
   ]);
 
-  const pdfDoc = await PDFDocument.load(templateBytes);
+  const pdfDoc = await PDFDocument.load(templateBytes, {
+    parseSpeed: Infinity,
+    updateMetadata: false,
+  });
   pdfDoc.registerFontkit(fontkit);
 
   // Embed both font weights so we can pick per-field
-  const boldFont = await pdfDoc.embedFont(boldFontBytes);
-  const regularFont = await pdfDoc.embedFont(regularFontBytes);
+  const registerForSave = !options.onlyField;
+  const boldFont = attachCachedFont(pdfDoc, boldEmbedder, registerForSave);
+  const regularFont = attachCachedFont(pdfDoc, regularEmbedder, registerForSave);
   const fontMetrics = {
-    bold: cachedBoldMetrics ?? fontkit.create(boldFontBytes),
-    regular: cachedRegularMetrics ?? fontkit.create(regularFontBytes),
+    bold: boldEmbedder.font as unknown as fontkit.Font,
+    regular: regularEmbedder.font as unknown as fontkit.Font,
   };
   const specs = getDocumentPdfProfiles(documentId);
   const layouts: PdfFieldLayouts = {};
@@ -577,7 +689,16 @@ async function populateForm<T extends object>(
     }
   }
 
-  return { bytes: options.onlyField ? new Uint8Array() : await pdfDoc.save(), layouts };
+  return {
+    bytes: options.onlyField
+      ? new Uint8Array()
+      : await pdfDoc.save({
+          updateFieldAppearances: false,
+          useObjectStreams: false,
+          objectsPerTick: Infinity,
+        }),
+    layouts,
+  };
 }
 
 
@@ -804,8 +925,8 @@ export function prewarmBelgeDocument(id: BelgeDocumentId): void {
   if (!docType) return;
   void Promise.all([
     getPdfTemplateBytes(docType),
-    getBoldFontBytes(),
-    getRegularFontBytes(),
+    getCachedFontEmbedder("bold"),
+    getCachedFontEmbedder("regular"),
   ]).catch(() => {
     // Arka plan ön-ısıtma hatası sessizce yutulur.
   });
