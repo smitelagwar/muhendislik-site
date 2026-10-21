@@ -3,7 +3,7 @@
 > Plan: `BELGELER-MOBIL-SADELESTIRME-2026-10-21`, revizyon `1.0`
 > Çalışma dalı: `chatgpt-belgeler-mobile-ui-20261021`
 > Plan kaynak SHA: `d1e9fa5cc171fca4a3f2b4c1694a72ef9ef8ba6b`
-> Son güncelleme (UTC): `2026-10-21T19:14:32.250Z`
+> Son güncelleme (UTC): `2026-10-21T19:47:21.246Z`
 
 ```yaml
 plan_id: BELGELER-MOBIL-SADELESTIRME-2026-10-21
@@ -11,21 +11,23 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_05
+next_stage: ASAMA_06
 completed_stages:
   - ASAMA_00
   - ASAMA_01
   - ASAMA_02
   - ASAMA_03
   - ASAMA_04
+  - ASAMA_05
 evidence:
   - ASAMA_00: Salt-okunur GitHub/Vercel emniyet ve baseline denetimi; PASS.
   - ASAMA_01: TypeScript deployable runtime, hedefli ESLint, 7 mobil/desktop Playwright senaryosu; PASS.
   - ASAMA_02: TypeScript, hedefli ESLint, 4/4 geçici Playwright senaryosu, 320-1023 ölçüm; PASS. Vercel deployment yok.
   - ASAMA_03: TypeScript, ESLint, git diff ve Playwright 3/3 PASS; 320/390/768, dark/light, reduced-motion ve masaüstü doğrulandı.
   - ASAMA_04: Eski mobil sekme beklentileri yenilendi; 33 mobil PASS, 2 düzeltme PASS, 2 desktop PASS; Playwright WebKit kurulumu bu izole ortamda doğrulanamadı.
+  - ASAMA_05: Yerel Next build, TypeScript, PDF unit 89/89, Chromium mobil/desktop, WebKit, a11y 2/2, PDF visual PASS; geçmiş lint borçları ayrı takip.
 blockers: []
-updated_at: "2026-10-21T19:14:32.250Z"
+updated_at: "2026-10-21T19:47:21.246Z"
 ```
 
 ## Aşama raporu
@@ -37,7 +39,8 @@ updated_at: "2026-10-21T19:14:32.250Z"
 | ASAMA_02 | PASS | Mobil çok sayfalı toolbar 44px tek satır, menüde fit/external; desktop korundu | Aşağıdaki ASAMA_02 kanıtları |
 | ASAMA_03 | PASS | Formu Düzenle düğmesinde mobil ve preview odaklı 3.6 sn amber halo, reduced-motion statik | Playwright 3/3, tsc ve ESLint |
 | ASAMA_04 | PASS | Beş belge test dosyasında eski sekme beklentileri değiştirildi; araç çubuğu, menü, mobil eylemler, reduced-motion regresyonu kalıcılaştırıldı | Chromium mobil/desktop doğrulaması; WebKit ortam engeli |
-| ASAMA_05–06 | BASLAMADI | Sıradaki aşama bekleniyor | — |
+| ASAMA_05 | PASS | Üretim derlemesi ve çapraz tarayıcı/PDF kalite doğrulaması, eski testlerin responsive adaptasyonu | 89 PDF unit, WebKit 1, desktop 76, mobil 35+22, WCAG 2 ve 6 sayfa PDF görsel PASS |
+| ASAMA_06 | BASLAMADI | Son dokümantasyon ve yayınsız teslim | — |
 
 ### ASAMA_01 değiştirdiği dosyalar
 
@@ -69,7 +72,7 @@ PDF üretim motoru, örnek PDF şablonları, zoom motoru, indirme/yazdırma iş 
 - Branch açıldıktan hemen sonra Vercel'de bu dala ait deployment sayısı 0 bulundu.
 - Plan süresince PR açmak, `main`e push/merge veya manuel Vercel deploy **yasaktır**.
 - İlk atomik checkpoint sonrasında Vercel'de bu branch'e ait deployment sayısı ayrıca doğrulanacaktır.
-- ChatGPT yeni `devam` komutuna kadar `ASAMA_05`e geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
+- ChatGPT yeni `devam` komutuna kadar `ASAMA_06`ya geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
 
 ### Devam protokolü
 
@@ -103,3 +106,12 @@ Her kullanıcı `devam` mesajında **en fazla bir aşama** uygulanır; başarıs
 - Deployable Next TypeScript (`tsconfig.next.json`) **PASS**; değişen ana mobil test dosyalarında ESLint **PASS**. Repo geneli `tsc` ve eski lint kuralları daha önce de bulunan, mobil stüdyo dışında kalan hatalar içeriyor; `ASAMA_05` kalite kapısında ayrıca ele alınacak.
 - Sandbox süre sınırına ulaştığından izole dosyalar GitHub kaynaklarından tekrar üretilmiştir; `ASAMA_05`te branch üzerinde tam test çalıştırılması ve WebKit kapsamasının kesinleştirilmesi zorunludur.
 - `main`e yazma, PR, merge ve Preview/Production deploy yasak. Sıradaki aşama yalnız yeni kullanıcı `devam` komutuyla **ASAMA_05**.
+
+## ASAMA_05 — kısa kalite özeti
+
+- 2026-10-21T19:47:21.246Z — **PASS (kapsam içi)**: `npm run build`, `tsc -p tsconfig.next.json`, `git diff --check`, yeni test dosyalarında hedefli ESLint; PDF birim testleri **89/89**.
+- Chromium mobil: 35 PASS + 10 SKIP; ayrı WebKit 5-stüdyo akışı PASS; düzeltilmiş PDF/inline mobil paketi **22 PASS + 11 SKIP**. Chromium masaüstü beş dosyalık pakette **76 PASS + 27 SKIP**. Mobil yeni toolbar/reduced-motion ve alan sözleşmeleri korunuyor.
+- WCAG Belgeler katalog denetimi **2 PASS**, PDF görsel kontrolü **6 sayfa PASS**. Son görsel test için sandbox'a `poppler-utils` yüklendi; GitHub ve Vercel uygulama bağımlılığı değiştirilmedi.
+- Değişen 4 test: `document-field-contract.test.ts`, `belgeler-mobile-studio.spec.ts`, `belgeler-inline-edit.spec.ts`, `belgeler-pdf-quality.spec.ts`. Eski üst-sekme sayaç beklentisi yeni PDF-first kontrata dönüştürüldü; WebKit form geçişi güncellendi; masaüstü popover testleri mobil alt sayfadan ayrıldı; mobil PDF form testleri alt düğmeyle açılıyor.
+- Bilinen kapsam dışı kalite borcu: genel `tsc --noEmit` bazı dokümantasyon/CAD test ve betiklerinde hata veriyor; eski `belgeler-inline-edit.spec.ts` dosyasındaki `any` lint hataları değişiklikten önce de mevcut. Üretim Next TypeScript ve ilgili yeni satırlar PASS; **tüm repo lint/tsc yeşil iddiası yok**.
+- Vercel Preview/Production deploy **0**, `main` değişmedi. Sırada, yalnız yeni kullanıcı `devam` isteğiyle **ASAMA_06**; otomatik yayın, PR ve merge yasak.

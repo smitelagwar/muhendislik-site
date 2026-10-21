@@ -25,6 +25,9 @@ async function openStudio(page: Page, id: string) {
 for (const id of ids) {
   test(`${id}: boş PDF, mevcut veriyi ve geri alma kaydını değiştirmemeli`, async ({ page }) => {
     const { studio, download } = await openStudio(page, id);
+    if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+      await studio.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
+    }
     const first = studio.getByTestId("belge-studio-form-scroll").locator("input, textarea").first();
     const custom = "ÖZEL ÇĞİÖŞÜ";
     await first.fill(custom);
@@ -91,6 +94,7 @@ for (const id of ids) {
 }
 
 test("Sözleşme taslağı ve sol form aynı gerçek 4.06 pt uyarısını gösterir; vazgeç veriyi değiştirmez", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1024, "Desktop popover contract; mobile PDF sheet is tested separately.");
   const { studio, download } = await openStudio(page, "santiye-sefi-sozlesmesi");
   const editor = studio.locator("#sozlesme-muteahhit_unvan");
   const original = await editor.inputValue();

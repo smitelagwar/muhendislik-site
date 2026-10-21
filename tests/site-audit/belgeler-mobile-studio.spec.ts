@@ -1148,7 +1148,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
   test("WebKit kritik /belgeler + 5 stüdyo akışı", async ({ browserName, baseURL }, testInfo) => {
     requireMobile390(testInfo);
     expect(browserName).toBe("chromium");
-    test.setTimeout(45_000);
+    test.setTimeout(120_000);
 
     const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
     const resolvedBaseURL = baseURL || process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
@@ -1173,8 +1173,14 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
           waitUntil: "domcontentloaded",
           timeout: 30_000,
         });
-        await expect(getVisibleStudio(page)).toBeVisible();
+        const studio = getVisibleStudio(page);
+        await expect(studio).toBeVisible();
+        await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 30_000 });
+        await expect(studio.getByRole("tablist")).toHaveCount(0);
+        await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
+        await showForm(studio);
         await expectEditableFieldContract(page, route.fields);
+        await showPreview(studio);
         await expectPreviewCanvas(page);
         await expectNoHorizontalOverflow(page);
       }

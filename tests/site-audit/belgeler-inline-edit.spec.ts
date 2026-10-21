@@ -433,6 +433,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
 
   // 4. ASAMA_05: Beş Belgeye Bağlama, Sol Form Senkronizasyonu ve Çift Yönlü Tutarlılık
   test("ASAMA_05: Beton Döküm Tutanağında PDF hotspot üzerinden düzenleme sol formu senkronize etmeli", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -470,6 +474,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_05: Sözleşme stüdyosunda inline düzenleme bağlı imza alanını senkronize etmeli", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "santiye-sefi-sozlesmesi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -499,6 +507,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_05: Taahhütname unvan senkronu ve İstifa sabit etiket koruması doğrulanmalı", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     // 1. Taahhütname unvan senkronu
     const taahhutStudio = await openStudio(page, "santiye-sefi-taahhutnamesi");
 
@@ -683,6 +695,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_02: Popover açıkken Escape ve tuş olayları üst viewer'a yayılmadan izole çalışmalı", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "insaat-ruhsati-dilekcesi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -708,6 +724,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
 
   // 7. ASAMA_03: Gerçek Veri Çatışması (Concurrent Modification) ve İdempotent Onay
   test("ASAMA_03: Popover açıkken sol formda aynı alan değiştiğinde Uygula çakışmayı tespit etmeli, taslağı korumalı ve sol formun üzerine yazmamalı", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -771,6 +791,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_03: Popover açıkken sol formda farklı bir alan değiştiğinde taslak korunmalı ve sahte çakışma oluşmamalı", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -818,6 +842,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_03: Uygula butonuna hızlı ardışık çift tık idempotent tek-commit ile sonuçlanmalı", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -889,6 +917,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_04: Popover açık ve taslak yazılıyken arka planda form/revizyon güncellendiğinde taslak unmount olmamalı ve silinmemeli", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -939,6 +971,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_04: Popover içinde Tab tuşuyla odak hapsi (focus trap) çalışmalı ve Escape ile odak hotspot'a geri dönmeli", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -984,6 +1020,10 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   });
 
   test("ASAMA_07: Popover içinde uzun adres girildiğinde okunabilirlik rehberliği görünmeli ve Uygula butonu engellenmemeli", async ({ page }) => {
+    // Desktop uses an inline popover; mobile uses the bottom sheet,
+    // which has its own dedicated interactive test suite.
+    test.skip((page.viewportSize()?.width ?? 0) < 1024, "Popover is desktop-only; mobile uses belge-inline-edit-sheet.");
+
     const studio = await openStudio(page, "santiye-sefi-istifa-dilekcesi");
 
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
