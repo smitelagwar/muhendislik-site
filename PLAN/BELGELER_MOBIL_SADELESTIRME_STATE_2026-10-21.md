@@ -3,15 +3,15 @@
 > Plan: `BELGELER-MOBIL-SADELESTIRME-2026-10-21`, revizyon `1.0`
 > Çalışma dalı: `chatgpt-belgeler-mobile-ui-20261021`
 > Plan kaynak SHA: `d1e9fa5cc171fca4a3f2b4c1694a72ef9ef8ba6b`
-> Son güncelleme (UTC): `2026-10-21T19:47:21.246Z`
+> Son güncelleme (UTC): `2026-10-21T23:34:04.272Z`
 
 ```yaml
 plan_id: BELGELER-MOBIL-SADELESTIRME-2026-10-21
 plan_revision: 1
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR
+execution_status: TAMAMLANDI
 active_stage: null
-next_stage: ASAMA_06
+next_stage: null
 completed_stages:
   - ASAMA_00
   - ASAMA_01
@@ -19,6 +19,7 @@ completed_stages:
   - ASAMA_03
   - ASAMA_04
   - ASAMA_05
+  - ASAMA_06
 evidence:
   - ASAMA_00: Salt-okunur GitHub/Vercel emniyet ve baseline denetimi; PASS.
   - ASAMA_01: TypeScript deployable runtime, hedefli ESLint, 7 mobil/desktop Playwright senaryosu; PASS.
@@ -26,8 +27,9 @@ evidence:
   - ASAMA_03: TypeScript, ESLint, git diff ve Playwright 3/3 PASS; 320/390/768, dark/light, reduced-motion ve masaüstü doğrulandı.
   - ASAMA_04: Eski mobil sekme beklentileri yenilendi; 33 mobil PASS, 2 düzeltme PASS, 2 desktop PASS; Playwright WebKit kurulumu bu izole ortamda doğrulanamadı.
   - ASAMA_05: Yerel Next build, TypeScript, PDF unit 89/89, Chromium mobil/desktop, WebKit, a11y 2/2, PDF visual PASS; geçmiş lint borçları ayrı takip.
+  - ASAMA_06: Son kaynak/diff/politika incelemesi ve yasayan UX dokumani yenilendi; main, PR ve Vercel deploy sifir; yayin yapilmadi.
 blockers: []
-updated_at: "2026-10-21T19:47:21.246Z"
+updated_at: "2026-10-21T23:34:04.272Z"
 ```
 
 ## Aşama raporu
@@ -40,7 +42,7 @@ updated_at: "2026-10-21T19:47:21.246Z"
 | ASAMA_03 | PASS | Formu Düzenle düğmesinde mobil ve preview odaklı 3.6 sn amber halo, reduced-motion statik | Playwright 3/3, tsc ve ESLint |
 | ASAMA_04 | PASS | Beş belge test dosyasında eski sekme beklentileri değiştirildi; araç çubuğu, menü, mobil eylemler, reduced-motion regresyonu kalıcılaştırıldı | Chromium mobil/desktop doğrulaması; WebKit ortam engeli |
 | ASAMA_05 | PASS | Üretim derlemesi ve çapraz tarayıcı/PDF kalite doğrulaması, eski testlerin responsive adaptasyonu | 89 PDF unit, WebKit 1, desktop 76, mobil 35+22, WCAG 2 ve 6 sayfa PDF görsel PASS |
-| ASAMA_06 | BASLAMADI | Son dokümantasyon ve yayınsız teslim | — |
+| ASAMA_06 | PASS | Son kod incelemesi, yaşayan mobil UX dokümantasyonu ve deploy'suz teslim | Korumalı dalda yalnız docs/durum kaydı, PR yok, Vercel branch deploy 0, main değişmedi |
 
 ### ASAMA_01 değiştirdiği dosyalar
 
@@ -72,7 +74,7 @@ PDF üretim motoru, örnek PDF şablonları, zoom motoru, indirme/yazdırma iş 
 - Branch açıldıktan hemen sonra Vercel'de bu dala ait deployment sayısı 0 bulundu.
 - Plan süresince PR açmak, `main`e push/merge veya manuel Vercel deploy **yasaktır**.
 - İlk atomik checkpoint sonrasında Vercel'de bu branch'e ait deployment sayısı ayrıca doğrulanacaktır.
-- ChatGPT yeni `devam` komutuna kadar `ASAMA_06`ya geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
+- Bu planın bütün aşamaları tamamlandı; tek başına gönderilen sonraki `devam` yeni işlem başlatmaz. Yayın ayrı, açık kullanıcı talebini gerektirir.
 
 ### Devam protokolü
 
@@ -115,3 +117,16 @@ Her kullanıcı `devam` mesajında **en fazla bir aşama** uygulanır; başarıs
 - Değişen 4 test: `document-field-contract.test.ts`, `belgeler-mobile-studio.spec.ts`, `belgeler-inline-edit.spec.ts`, `belgeler-pdf-quality.spec.ts`. Eski üst-sekme sayaç beklentisi yeni PDF-first kontrata dönüştürüldü; WebKit form geçişi güncellendi; masaüstü popover testleri mobil alt sayfadan ayrıldı; mobil PDF form testleri alt düğmeyle açılıyor.
 - Bilinen kapsam dışı kalite borcu: genel `tsc --noEmit` bazı dokümantasyon/CAD test ve betiklerinde hata veriyor; eski `belgeler-inline-edit.spec.ts` dosyasındaki `any` lint hataları değişiklikten önce de mevcut. Üretim Next TypeScript ve ilgili yeni satırlar PASS; **tüm repo lint/tsc yeşil iddiası yok**.
 - Vercel Preview/Production deploy **0**, `main` değişmedi. Sırada, yalnız yeni kullanıcı `devam` isteğiyle **ASAMA_06**; otomatik yayın, PR ve merge yasak.
+
+## ASAMA_06 — Son kontrol ve yayınsız teslim
+
+- Son güncelleme: 2026-10-21T23:34:04.272Z. **Uygulama durumu: TAMAMLANDI; yayın durumu: YAYINLANMADI.**
+- Kod incelemesi: Beş stüdyoda ilk açılış `preview`, üst `tab` DOM'suz ve geçersiz `aria-labelledby` olmayan etiketli `region` panel kullanımı, ortak alt geçiş kontrolü; tek/çok sayfalı toolbar davranışları ve amber halo `prefers-reduced-motion` / focus / pointer-event kuralları gözden geçirildi. Bu son aşamada uygulama bileşeni değiştirilmedi.
+- Yaşayan doküman: `docs/BELGELER_SISTEMI.md` yalnız mobil navigasyon, araç çubuğu, erişilebilirlik, dokunma, görünüm ve ışımaya dair eski açıklamalar güncellendi. PDF motoru, fontlar, şablonlar, temalar ve yapım/dağıtım ayarları değişmedi.
+- Daha önceki gerçek ölçüm: Çok sayfalı 320/360/390/414 px araç çubuğu **91 → 44 px**, kazanım **47 px**. Kaldırılan üst sekme sınıfının `h-[52px]` sabit yüksekliğiyle toplam düzen bütçesi **nominal 99 CSS px**; yalnız PDF canvas'ında aynı viewport için uçtan uca **≥70 px** kazancın ayrıca bağımsız ekran ölçümü yapılmadı. Yeni izole sandbox oluşturma isteği araç güvenlik kontrolünce engellendi; önceki kapsamlı tarayıcı testlerinin kanıtına güvenildi ve yeni kod testi iddia edilmedi.
+- Son test edilen uygulama SHA: `71bfaa5cb05ad87dcef60fd72cde24a6702e581e`; ASAMA_05'te yerel build/tsc, PDF birim 89/89, WebKit beş stüdyo, Chromium mobil 35+22, masaüstü 76, WCAG 2/2 ve PDF görsel altı sayfa PASS. Son commit yalnız dokümantasyon/durum kaydı içerir, yürütülebilir kod aynı SHA'daki sürümdür.
+- Son güvenlik denetimi: `main` HEAD `d1e9fa5cc171fca4a3f2b4c1694a72ef9ef8ba6b`, ayrı `chatgpt-belgeler-mobile-ui-20261021` çalışma dalında PR **0**, Vercel branch deployment **0**. Vercel git deploy deny-glob `chatgpt-*` etkin ve `vercel.json` aynı kaldı; Production eski `main` sürümünde.
+- Bilinen kapsam dışı kalite borcu: Tüm-repo ESLint ve `tsc --noEmit` daha önceden mevcut dokümantasyon/CAD ve eski test tip hataları nedeniyle tamamen yeşil değil; deployable uygulama derlemesi ve hedefli testler başarılı.
+- Kullanıcı bir sonraki adımı açıkça **yayın isteği** şeklinde belirlemedikçe PR, merge, Preview/Production deploy, promote veya başka işlem yapılmaz. Yalnız `devam` yazılması üzerine **hiçbir işlem yapılmaz**.
+
+**Vercel deploy yapılmadı; canlı site henüz değişmedi.**
