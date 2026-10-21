@@ -118,7 +118,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={!props.canUndo} onSelect={props.onUndo}><BelgeUndoIcon className="size-4" />Son işlemi geri al</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button type="button" variant="outline" onClick={props.onToggleTab} className="min-h-[44px] min-w-0 flex-1 gap-[6px] whitespace-normal rounded-xl border-border/80 bg-card/90 px-[8px] py-[8px] text-xs font-bold leading-tight hover:border-amber-500/50 dark:bg-zinc-900" aria-label={props.activeTab === "form" ? "Canlı PDF Önizle" : "Formu Düzenle"}>
+        <Button type="button" variant="outline" onClick={props.onToggleTab} className={`min-h-[44px] min-w-0 flex-1 gap-[6px] whitespace-normal rounded-xl border-border/80 bg-card/90 px-[8px] py-[8px] text-xs font-bold leading-tight hover:border-amber-500/50 dark:bg-zinc-900 ${props.activeTab === "preview" ? "belge-form-edit-glow" : ""}`} aria-label={props.activeTab === "form" ? "Canlı PDF Önizle" : "Formu Düzenle"}>
           {props.activeTab === "form" ? <BelgePreviewEyeIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" /> : <BelgeFormEditIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" />}
           <span className="min-w-0 wrap-anywhere">{props.activeTab === "form" ? "PDF Önizle" : "Formu Düzenle"}</span>
         </Button>
