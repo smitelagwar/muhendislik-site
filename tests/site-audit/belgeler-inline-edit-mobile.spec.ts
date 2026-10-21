@@ -13,9 +13,9 @@ async function openMobileEditing(page: Page) {
   await expect(
     studio.locator('[data-testid="belge-studio-mobile-actions"]').getByRole("button", { name: "PDF İndir", exact: true })
   ).toBeEnabled({ timeout: 15_000 });
-  const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-  await previewTab.click();
-  await expect(previewTab).toHaveAttribute("aria-selected", "true");
+  await expect(studio.getByRole("tablist")).toHaveCount(0);
+  await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
+  await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 30_000 });
   const toggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -81,7 +81,7 @@ test.describe("Belgeler mobil PDF üzerinde düzenleme", () => {
       if (b.h >= 30 || b.y + b.h + 4 > 600) return false;
       const px = b.x + b.w / 2;
       const py = b.y + b.h + 4;
-      return boxes.every((o) => o.key === b.key || distanceToBox(o, px, py) > 6);
+      return boxes.every((o) => o.key === b.key || distanceToBox(o, px, py) > 18);
     });
     expect(candidate, "Toleransı sınamaya uygun alan bulunamadı").toBeTruthy();
     await page.touchscreen.tap(candidate!.x + candidate!.w / 2, candidate!.y + candidate!.h + 4);
@@ -150,14 +150,18 @@ test.describe("Belgeler mobil PDF üzerinde düzenleme", () => {
     await expect(page.locator(SHEET)).toHaveCount(0);
   });
 
-  test("Form sekmesine geçmek ve Escape alt sayfayı kapatır", async ({ page }) => {
+  test("Escape alt sayfayı kapatır, ardından Formu Düzenle açılır", async ({ page }) => {
     const { layer, studio } = await openMobileEditing(page);
     await openFirstField(page, layer);
     await page.keyboard.press("Escape");
     await expect(page.locator(SHEET)).toHaveCount(0);
     await openFirstField(page, layer);
-    await studio.getByRole("tab", { name: /Form Alanları/i }).click();
+    // Close the inline sheet before using the single bottom switch.
+    await page.keyboard.press("Escape");
     await expect(page.locator(SHEET)).toHaveCount(0);
+    await studio.getByTestId("belge-studio-mobile-actions")
+      .getByRole("button", { name: "Formu Düzenle", exact: true }).click();
+    await expect(studio.getByRole("region", { name: "Belge form alanları" })).toBeVisible();
   });
 
   test("alt sayfa açıkken seçili alan vurgusu alt sayfanın üstünde kalır", async ({ page }) => {

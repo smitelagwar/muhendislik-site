@@ -3,7 +3,7 @@
 > Plan: `BELGELER-MOBIL-SADELESTIRME-2026-10-21`, revizyon `1.0`
 > Çalışma dalı: `chatgpt-belgeler-mobile-ui-20261021`
 > Plan kaynak SHA: `d1e9fa5cc171fca4a3f2b4c1694a72ef9ef8ba6b`
-> Son güncelleme (UTC): `2026-10-21T18:35:22.034Z`
+> Son güncelleme (UTC): `2026-10-21T19:14:32.250Z`
 
 ```yaml
 plan_id: BELGELER-MOBIL-SADELESTIRME-2026-10-21
@@ -11,19 +11,21 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_04
+next_stage: ASAMA_05
 completed_stages:
   - ASAMA_00
   - ASAMA_01
   - ASAMA_02
   - ASAMA_03
+  - ASAMA_04
 evidence:
   - ASAMA_00: Salt-okunur GitHub/Vercel emniyet ve baseline denetimi; PASS.
   - ASAMA_01: TypeScript deployable runtime, hedefli ESLint, 7 mobil/desktop Playwright senaryosu; PASS.
   - ASAMA_02: TypeScript, hedefli ESLint, 4/4 geçici Playwright senaryosu, 320-1023 ölçüm; PASS. Vercel deployment yok.
   - ASAMA_03: TypeScript, ESLint, git diff ve Playwright 3/3 PASS; 320/390/768, dark/light, reduced-motion ve masaüstü doğrulandı.
+  - ASAMA_04: Eski mobil sekme beklentileri yenilendi; 33 mobil PASS, 2 düzeltme PASS, 2 desktop PASS; Playwright WebKit kurulumu bu izole ortamda doğrulanamadı.
 blockers: []
-updated_at: "2026-10-21T18:35:22.034Z"
+updated_at: "2026-10-21T19:14:32.250Z"
 ```
 
 ## Aşama raporu
@@ -34,7 +36,8 @@ updated_at: "2026-10-21T18:35:22.034Z"
 | ASAMA_01 | PASS | Beş stüdyoda mobil üst sekmeler kaldırıldı; ilk açılış PDF; alt geçiş tek görünür kontrol; eski `aria-labelledby` bağımlılıkları erişilebilir `role=region` etiketlerine dönüştürüldü | Aşağıdaki testler |
 | ASAMA_02 | PASS | Mobil çok sayfalı toolbar 44px tek satır, menüde fit/external; desktop korundu | Aşağıdaki ASAMA_02 kanıtları |
 | ASAMA_03 | PASS | Formu Düzenle düğmesinde mobil ve preview odaklı 3.6 sn amber halo, reduced-motion statik | Playwright 3/3, tsc ve ESLint |
-| ASAMA_04–06 | BASLAMADI | Sıradaki aşama bekleniyor | — |
+| ASAMA_04 | PASS | Beş belge test dosyasında eski sekme beklentileri değiştirildi; araç çubuğu, menü, mobil eylemler, reduced-motion regresyonu kalıcılaştırıldı | Chromium mobil/desktop doğrulaması; WebKit ortam engeli |
+| ASAMA_05–06 | BASLAMADI | Sıradaki aşama bekleniyor | — |
 
 ### ASAMA_01 değiştirdiği dosyalar
 
@@ -66,7 +69,7 @@ PDF üretim motoru, örnek PDF şablonları, zoom motoru, indirme/yazdırma iş 
 - Branch açıldıktan hemen sonra Vercel'de bu dala ait deployment sayısı 0 bulundu.
 - Plan süresince PR açmak, `main`e push/merge veya manuel Vercel deploy **yasaktır**.
 - İlk atomik checkpoint sonrasında Vercel'de bu branch'e ait deployment sayısı ayrıca doğrulanacaktır.
-- ChatGPT yeni `devam` komutuna kadar `ASAMA_04`e geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
+- ChatGPT yeni `devam` komutuna kadar `ASAMA_05`e geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
 
 ### Devam protokolü
 
@@ -90,3 +93,13 @@ Her kullanıcı `devam` mesajında **en fazla bir aşama** uygulanır; başarıs
 - 2026-10-21: `src/components/belge-studio-actions.tsx` ve `src/app/globals.css` düzenlendi. Hafif, 3.6 sn amber pulse yalnız mobil PDF önizlemesinde; form modunda, masaüstünde ve komşu işlemlerde animasyon yok.
 - 320/390/768 px, dark/light, `prefers-reduced-motion:reduce`, klavye odağı, tıklama, minimum 44px ve yatay taşma test edildi. Playwright **3/3 PASS**; TypeScript/ESLint/diff **PASS**. Dosya SHA'ları sandbox test edilenlerle birebir aynı.
 - Kalıcı test uyarlaması `ASAMA_04` kapsamı. Vercel deployment yok; sonraki **devam** mesajında yalnız `ASAMA_04`.
+
+## ASAMA_04 — Test bakım ve regresyon
+
+- Kod değil, beş kalıcı test dosyası yenilendi: `belgeler-mobile-studio.spec.ts`, `belgeler-inline-edit-mobile.spec.ts`, `belgeler-functional-audit.spec.ts`, `belgeler-inline-edit.spec.ts`, `belgeler-pdf-quality.spec.ts`.
+- Eski mobil `role=tab` beklentileri kaldırıldı. PDF ilk görünüm, alt `Formu Düzenle` ve `Canlı PDF Önizle` geçişi, sayfa/zoom, tek satır 44px toolbar, overflow menü, klavye/Escape, reduced-motion ve responsive kontrolleri test ediliyor.
+- İzole Chromium mobil hedefli test: **10 PASS, 1 SKIP, 1 FAIL** ilk koşu; başarısız modal örtüşme testi düzeltildi ve **2/2 PASS** tekrar koşusu. Geniş mobil koşu: **33 PASS, 10 SKIP, 3 FAIL**; bunlardan blob URL ve dokunma toleransı seçicileri düzeltildi ve **2/2 PASS** yeniden koşuldu; WebKit testi izole sandbox'ta tarayıcı kurulumu tamamlanamadığından ayrıca doğrulanamadı.
+- Desktop hedefli iki test: ilk koşu 1 FAIL (gizli menü düğmesinin 0px dokunma alanının sayılması) ve 1 PASS; seçici düzeltildikten sonra **2/2 PASS**.
+- Deployable Next TypeScript (`tsconfig.next.json`) **PASS**; değişen ana mobil test dosyalarında ESLint **PASS**. Repo geneli `tsc` ve eski lint kuralları daha önce de bulunan, mobil stüdyo dışında kalan hatalar içeriyor; `ASAMA_05` kalite kapısında ayrıca ele alınacak.
+- Sandbox süre sınırına ulaştığından izole dosyalar GitHub kaynaklarından tekrar üretilmiştir; `ASAMA_05`te branch üzerinde tam test çalıştırılması ve WebKit kapsamasının kesinleştirilmesi zorunludur.
+- `main`e yazma, PR, merge ve Preview/Production deploy yasak. Sıradaki aşama yalnız yeni kullanıcı `devam` komutuyla **ASAMA_05**.

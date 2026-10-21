@@ -17,11 +17,10 @@ async function openStudio(page: any, id: string) {
     .getByRole("button", { name: "PDF İndir", exact: true });
   await expect(downloadBtn).toBeEnabled({ timeout: 15_000 });
 
-  // Mobil ekranlarda preview sekmesine geçerek canvas ve toggle butonunu görünür kıl
-  const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-  if (await previewTab.isVisible()) {
-    await previewTab.click();
-    await expect(previewTab).toHaveAttribute("aria-selected", "true");
+  // Mobilde PDF doğrudan ilk ekrandır; eski üst sekmeler kaldırıldı.
+  if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+    await expect(studio.getByRole("tablist")).toHaveCount(0);
+    await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
   }
 
   return studio;
@@ -543,12 +542,8 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
     await page.setViewportSize({ width: 390, height: 844 });
     const studio = await openStudio(page, "beton-dokum-tutanagi");
 
-    // Mobil sekme üzerinden 'Canlı PDF Önizle' sekmesine geç
-    const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-    if (await previewTab.isVisible()) {
-      await previewTab.click();
-      await expect(previewTab).toHaveAttribute("aria-selected", "true");
-    }
+    // Başlangıç PDF önizlemesi üzerinden düzenle.
+    await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
 
     // Toggle butonunun 44px (min-h-11) mobil standardını karşıladığını doğrula
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -596,11 +591,7 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
       await page.setViewportSize({ width: vp.width, height: vp.height });
       const studio = await openStudio(page, "insaat-ruhsati-dilekcesi");
 
-      const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-      if (await previewTab.isVisible()) {
-        await previewTab.click();
-        await expect(previewTab).toHaveAttribute("aria-selected", "true");
-      }
+      await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
 
       const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
       await expect(toggleBtn).toBeVisible({ timeout: 10_000 });
@@ -1037,11 +1028,9 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
   test("ASAMA_07: Sol form alanında TCKN ve adres rehberliği doğru çalışmalı, indirme/yazdırma butonları engellenmemeli", async ({ page }) => {
     const studio = await openStudio(page, "santiye-sefi-istifa-dilekcesi");
 
-    // Mobilde openStudio preview sekmesine geçtiyse sol form sekmesine geri dön
-    const formTab = studio.getByRole("tab", { name: /Form Alanları|Form/i });
-    if (await formTab.isVisible()) {
-      await formTab.click();
-      await expect(formTab).toHaveAttribute("aria-selected", "true");
+    // Mobilde düzenleme formuna alttaki tek geçiş düğmesiyle ulaşılır.
+    if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+      await studio.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
     }
 
     // Sol formdaki TC input'una odaklan

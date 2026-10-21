@@ -94,8 +94,10 @@ test("Sözleşme taslağı ve sol form aynı gerçek 4.06 pt uyarısını göste
   const { studio, download } = await openStudio(page, "santiye-sefi-sozlesmesi");
   const editor = studio.locator("#sozlesme-muteahhit_unvan");
   const original = await editor.inputValue();
-  const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-  if (await previewTab.isVisible()) await previewTab.click();
+  if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+    const openPreview = studio.getByRole("button", { name: "Canlı PDF Önizle", exact: true });
+    if (await openPreview.isVisible()) await openPreview.click();
+  }
   await studio.getByTestId("belge-inline-edit-toggle").click();
   await studio.getByTestId("belge-inline-hotspot-muteahhit_unvan").click({ timeout: 8_000 });
   const popover = studio.getByTestId("belge-inline-edit-popover");
@@ -104,8 +106,9 @@ test("Sözleşme taslağı ve sol form aynı gerçek 4.06 pt uyarısını göste
   await expect(popover.getByTestId("belge-field-guidance-message")).toContainText("4.06", { timeout: 8_000 });
   await popover.getByTestId("belge-inline-edit-cancel").click();
   await expect(editor).toHaveValue(original);
-  const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
-  if (await formTab.isVisible()) await formTab.click();
+  if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+    await studio.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
+  }
   await editor.fill(value);
   await expect(download).toBeEnabled({ timeout: 8_000 });
   const warning = studio.getByTestId("belge-pdf-layout-warnings").locator('[data-field-key="muteahhit_unvan"]');
