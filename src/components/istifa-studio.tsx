@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   FilePenLine,
@@ -11,14 +11,8 @@ import {
 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
-  countFilledEditableFields,
-  DOCUMENT_EDITABLE_FIELDS,
-} from "@/lib/document-field-contracts";
-import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
-  BELGE_STUDIO_MOBILE_TABLIST_CLASS,
-  BELGE_STUDIO_MOBILE_TAB_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
@@ -28,7 +22,6 @@ import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
   BelgeFormEditIcon,
-  BelgePreviewEyeIcon,
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import {
@@ -58,34 +51,7 @@ export function IstifaStudio({
   const [undoData, setUndoData] = useState<IstifaDilekcesiData | null>(null);
 
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
-  const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("form");
-  const mobileTabIds = {
-    formTab: "istifa-mobile-tab-form",
-    previewTab: "istifa-mobile-tab-preview",
-    formPanel: "istifa-mobile-panel-form",
-    previewPanel: "istifa-mobile-panel-preview",
-  } as const;
-
-  const handleMobileTabKeyDown = (
-    event: ReactKeyboardEvent<HTMLButtonElement>,
-    currentTab: "form" | "preview"
-  ) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-
-    event.preventDefault();
-    const nextTab = currentTab === "form" ? "preview" : "form";
-    setActiveTabMobile(nextTab);
-
-    const tabList = event.currentTarget.closest('[role="tablist"]');
-    const nextTabId =
-      nextTab === "form" ? mobileTabIds.formTab : mobileTabIds.previewTab;
-
-    window.requestAnimationFrame(() => {
-      tabList
-        ?.querySelector<HTMLButtonElement>(`#${nextTabId}`)
-        ?.focus();
-    });
-  };
+  const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("preview");
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
@@ -162,15 +128,6 @@ export function IstifaStudio({
     setUndoData(null);
   };
 
-  // Count filled fields
-  const filledFieldCount = useMemo(
-    () =>
-      countFilledEditableFields(
-        formData,
-        DOCUMENT_EDITABLE_FIELDS["santiye-sefi-istifa-dilekcesi"]
-      ),
-    [formData]
-  );
 
     const handleDownload = async () => {
     if (downloadInFlightRef.current) return;
@@ -297,67 +254,13 @@ export function IstifaStudio({
           </div>
         </div>
       )}
-      {/* Mobile Segmented Tab Switcher (Visible only on Mobile/Tablet) */}
-      <div
-        role="tablist"
-        aria-label="Belge stüdyosu görünümü"
-        className={BELGE_STUDIO_MOBILE_TABLIST_CLASS}
-      >
-        <button
-          id={mobileTabIds.formTab}
-          type="button"
-          role="tab"
-          aria-selected={activeTabMobile === "form"}
-          aria-controls={mobileTabIds.formPanel}
-          tabIndex={activeTabMobile === "form" ? 0 : -1}
-          onKeyDown={(event) => handleMobileTabKeyDown(event, "form")}
-          onClick={() => setActiveTabMobile("form")}
-          className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
-            activeTabMobile === "form"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
-              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-          }`}
-        >
-          <BelgeFormEditIcon className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <span className="min-w-0 truncate">Form Alanları</span>
-          <span className="shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-800 dark:text-amber-300">
-            {filledFieldCount}/{DOCUMENT_EDITABLE_FIELDS["santiye-sefi-istifa-dilekcesi"].length}
-          </span>
-        </button>
-
-        <button
-          id={mobileTabIds.previewTab}
-          type="button"
-          role="tab"
-          aria-selected={activeTabMobile === "preview"}
-          aria-controls={mobileTabIds.previewPanel}
-          aria-label={syncStatus === "error" ? "Canlı PDF önizlemesi, hata oluştu" : syncStatus === "updating" ? "Canlı PDF önizlemesi, hazırlanıyor" : "Canlı PDF önizlemesi, hazır"}
-          tabIndex={activeTabMobile === "preview" ? 0 : -1}
-          onKeyDown={(event) => handleMobileTabKeyDown(event, "preview")}
-          onClick={() => setActiveTabMobile("preview")}
-          className={`${BELGE_STUDIO_MOBILE_TAB_CLASS} ${
-            activeTabMobile === "preview"
-              ? "bg-background text-foreground shadow-xs ring-1 ring-amber-500/45 dark:bg-zinc-950 dark:ring-amber-500/50"
-              : "text-muted-foreground hover:text-foreground hover:bg-background/40"
-          }`}
-        >
-          <BelgePreviewEyeIcon className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <span className="truncate">PDF Önizle</span>
-          {syncStatus === "updating" ? (
-            <Loader2 aria-hidden="true" className="h-3 w-3 shrink-0 animate-spin text-amber-500" />
-          ) : (
-            <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${syncStatus === "error" ? "bg-rose-500" : "bg-emerald-500"}`} />
-          )}
-        </button>
-      </div>
-
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
-          id={mobileTabIds.formPanel}
-          role="tabpanel"
-          aria-labelledby={mobileTabIds.formTab}
+          id="istifa-mobile-panel-form"
+          role="region"
+          aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
@@ -592,9 +495,9 @@ export function IstifaStudio({
         </div>
 
         <div
-          id={mobileTabIds.previewPanel}
-          role="tabpanel"
-          aria-labelledby={mobileTabIds.previewTab}
+          id="istifa-mobile-panel-preview"
+          role="region"
+          aria-label="PDF önizleme paneli"
           className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
         >
           <BelgeStudioPdfPreview
