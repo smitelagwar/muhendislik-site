@@ -3,7 +3,7 @@
 > Plan: `BELGELER-MOBIL-SADELESTIRME-2026-10-21`, revizyon `1.0`
 > Çalışma dalı: `chatgpt-belgeler-mobile-ui-20261021`
 > Plan kaynak SHA: `d1e9fa5cc171fca4a3f2b4c1694a72ef9ef8ba6b`
-> Son güncelleme (UTC): `2026-10-21T17:28:34.355Z`
+> Son güncelleme (UTC): `2026-10-21T17:49:30.125Z`
 
 ```yaml
 plan_id: BELGELER-MOBIL-SADELESTIRME-2026-10-21
@@ -11,15 +11,17 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_02
+next_stage: ASAMA_03
 completed_stages:
   - ASAMA_00
   - ASAMA_01
+  - ASAMA_02
 evidence:
   - ASAMA_00: Salt-okunur GitHub/Vercel emniyet ve baseline denetimi; PASS.
   - ASAMA_01: TypeScript deployable runtime, hedefli ESLint, 7 mobil/desktop Playwright senaryosu; PASS.
+  - ASAMA_02: TypeScript, hedefli ESLint, 4/4 geçici Playwright senaryosu, 320-1023 ölçüm; PASS. Vercel deployment yok.
 blockers: []
-updated_at: "2026-10-21T17:28:34.355Z"
+updated_at: "2026-10-21T17:49:30.125Z"
 ```
 
 ## Aşama raporu
@@ -28,7 +30,8 @@ updated_at: "2026-10-21T17:28:34.355Z"
 |---|---|---|---|
 | ASAMA_00 | PASS | `main`/Vercel güvenlik kontrolü, kaynak ve test envanteri | 21.10.2026 sohbet raporu |
 | ASAMA_01 | PASS | Beş stüdyoda mobil üst sekmeler kaldırıldı; ilk açılış PDF; alt geçiş tek görünür kontrol; eski `aria-labelledby` bağımlılıkları erişilebilir `role=region` etiketlerine dönüştürüldü | Aşağıdaki testler |
-| ASAMA_02–06 | BASLAMADI | Sıradaki aşama bekleniyor | — |
+| ASAMA_02 | PASS | Mobil çok sayfalı toolbar 44px tek satır, menüde fit/external; desktop korundu | Aşağıdaki ASAMA_02 kanıtları |
+| ASAMA_03–06 | BASLAMADI | Sıradaki aşama bekleniyor | — |
 
 ### ASAMA_01 değiştirdiği dosyalar
 
@@ -60,8 +63,21 @@ PDF üretim motoru, örnek PDF şablonları, zoom motoru, indirme/yazdırma iş 
 - Branch açıldıktan hemen sonra Vercel'de bu dala ait deployment sayısı 0 bulundu.
 - Plan süresince PR açmak, `main`e push/merge veya manuel Vercel deploy **yasaktır**.
 - İlk atomik checkpoint sonrasında Vercel'de bu branch'e ait deployment sayısı ayrıca doğrulanacaktır.
-- ChatGPT yeni `devam` komutuna kadar `ASAMA_02`ye geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
+- ChatGPT yeni `devam` komutuna kadar `ASAMA_03`e geçmez; plan yalnız açık kullanıcı talebiyle devam eder.
 
 ### Devam protokolü
 
 Her kullanıcı `devam` mesajında **en fazla bir aşama** uygulanır; başarısız aşama PASS sayılamaz. `ASAMA_06` ve tüm gerekli kontroller tamamlandığında durum `TAMAMLANDI` olur. `TAMAMLANDI` sonrasında çıplak `devam` ile hiçbir işlem yapılmaz. Yayın, bu planın kapsamı dışındadır.
+
+## ASAMA_02 — Mobil çok sayfalı PDF toolbar
+
+- Durum: **PASS**, güncelleme 2026-10-21T17:49:30.125Z; başlangıç SHA `378e61a74b4c64746c159fccf267682eba54d2cf`.
+- Değiştirilen kaynaklar: `src/components/belge-studio-preview-toolbar.tsx` ve `src/app/globals.css`.
+- 320 / 360 / 390 / 414 px yükseklik: **91px → 44px**; 768 / 1023 px **44px → 44px**. Ölçülen ekranlarda yatay taşma sıfır; tüm görünür toolbar düğmeleri en az 44×44px.
+- Çok sayfalı mobilde önceki/sonraki sayfa ve zoom +/- tek satır. Zoom yüzdesi dar konteynerde menüde, daha geniş mobil konteynerde görünür. `Sığdır` ve `PDF'yi yeni sekmede aç` erişilebilir Radix DropdownMenu'ye taşındı. Menü satırları 48px. Yeni sekme açma, Escape/focus dönüşü ve sayfa sınırları gerçek Chromium tarayıcısında doğrulandı.
+- 1024 / 1366 / 1920px masaüstünde toolbar 44px, zoom tam merkezde, tema kontrolü ve direkt fit/external düğmeleri korunuyor. Tek sayfa belgelerin doğrudan kontrolleri korunuyor, overflow menüleri oluşturulmuyor.
+- İzole Vercel Sandbox (deployment değildir): `git diff --check`, hedefli ESLint ve `npx tsc -p tsconfig.next.json --noEmit --incremental false` **PASS**, geçici Playwright testleri **4/4 PASS**. Testler sandbox'ta kaldı, repo dosyasına yazılmadı; kalıcı test uyarlaması `ASAMA_04` kapsamında.
+- İlk denemede Next dev server ile eşzamanlı typecheck geçici `.next/dev/types` dosya yarışına uğradı; sırayla tekrar çalıştırıldı ve PASS. Menü 44px hareket animasyonu sırasında 43.98px ölçülünce menü öğesi yüksekliği güvenli 48px yapıldı ve test tekrar PASS.
+- GitHub için üretilen iki kaynak blob SHA'sı, sandbox `git hash-object` sonuçlarıyla birebir eşleşti. Kodun PDF üretimi/şablonları değiştirilmedi.
+- Plan süresince **0 Vercel deployment**, PR, main push veya merge; gönderimden sonra Vercel tekrar doğrulanmalı.
+- Sonraki aşama yalnız yeni kullanıcı `devam` mesajıyla **ASAMA_03**: Formu Düzenle butonunda hafif amber ışıma.

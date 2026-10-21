@@ -1372,29 +1372,68 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   justify-self: end;
 }
 
-@container (max-width: 560px) {
+@media (max-width: 1023px) {
   .belge-preview-controls[data-multipage="true"] {
-    grid-template-columns: minmax(0, 1fr) auto;
-    row-gap: 3px;
-    column-gap: 4px;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
+    min-width: 0;
   }
 
   .belge-preview-controls[data-multipage="true"] .belge-preview-navigation {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-  }
-
-  .belge-preview-controls[data-multipage="true"] .belge-preview-utilities {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
+    flex: 0 0 auto;
   }
 
   .belge-preview-controls[data-multipage="true"] .belge-preview-zoom {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: center;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .belge-preview-controls[data-multipage="true"] .belge-preview-zoom > span[aria-hidden="true"] {
+    display: none;
+  }
+
+  .belge-preview-controls[data-multipage="true"] .belge-preview-direct-action {
+    display: none;
+  }
+
+  .belge-preview-controls[data-multipage="true"] .belge-mobile-multipage-zoom-label {
+    display: none;
+  }
+
+  @container (min-width: 360px) {
+    .belge-preview-controls[data-multipage="true"] .belge-mobile-multipage-zoom-label {
+      display: inline;
+    }
+  }
+}
+
+@media (min-width: 1024px) {
+  @container (max-width: 560px) {
+    .belge-preview-controls[data-multipage="true"] {
+      grid-template-columns: minmax(0, 1fr) auto;
+      row-gap: 3px;
+      column-gap: 4px;
+    }
+
+    .belge-preview-controls[data-multipage="true"] .belge-preview-navigation {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+    }
+
+    .belge-preview-controls[data-multipage="true"] .belge-preview-utilities {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    .belge-preview-controls[data-multipage="true"] .belge-preview-zoom {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      justify-self: center;
+    }
   }
 }
 
