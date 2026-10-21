@@ -145,11 +145,17 @@ for (const [documentId, contract] of Object.entries(contracts)) {
     `${documentId}: stüdyo input alanları editable sözleşmeyle eşleşmiyor`
   );
 
+  // Mobile PDF-first UX has no redundant upper tabs or their filled-field counter.
+  // Keep the actual editable-field counting contract asserted just below.
   assert.ok(
-    componentSource.includes(
-      `{filledFieldCount}/{DOCUMENT_EDITABLE_FIELDS["${documentId}"].length}`
-    ),
-    `${documentId}: sayaç toplamı editable sözleşmeden türetilmiyor`
+    componentSource.includes('useState<"form" | "preview">("preview")'),
+    documentId + ": mobil stüdyo PDF önizlemesiyle başlamalı"
+  );
+  assert.ok(
+    !componentSource.includes("filledFieldCount") &&
+      !componentSource.includes('role="tab"') &&
+      componentSource.includes("<BelgeStudioActions"),
+    documentId + ": kaldırılan üst sekme/sayaç yapısı tekrar eklenmemeli"
   );
 
   const allFilled = Object.fromEntries(

@@ -231,9 +231,9 @@ test("Belgeler ve beş stüdyoda açık ve koyu temada ciddi erişilebilirlik ih
     }
 
     if (path !== "/belgeler") {
-      const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
-      if (await previewTab.isVisible()) {
-        await previewTab.click();
+      if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
+        const showPreview = studio.getByRole("button", { name: "Canlı PDF Önizle", exact: true });
+        if (await showPreview.isVisible()) await showPreview.click();
         await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8_000 });
         await scan(`${path} / PDF [Açık Tema]`);
       }
@@ -264,17 +264,18 @@ test("1023px ve 1024px ekran genişliğinde mobil ve masaüstü yerleşim geçi�
   await page.goto("/belgeler/santiye-sefi-sozlesmesi", { waitUntil: "domcontentloaded", timeout: 30_000 });
   const studio = page.locator('[data-studio-locked="true"]:visible').last();
 
-  // 1023px: Mobil görünüm (sekmeler ve mobil eylem çubuğu görünür, masaüstü eylemleri gizli)
+  // 1023px: Mobil görünüm, tek alt geçiş kontrolü görünür.
   await page.setViewportSize({ width: 1023, height: 768 });
   await expect(studio.getByTestId("belge-studio-mobile-actions")).toBeVisible();
   await expect(studio.getByTestId("belge-studio-desktop-actions")).toBeHidden();
-  await expect(studio.getByRole("tab", { name: /Form Alanları/i })).toBeVisible();
+  await expect(studio.getByRole("tablist")).toHaveCount(0);
+  await expect(studio.getByRole("button", { name: "Formu Düzenle", exact: true })).toBeVisible();
 
   // 1024px: Masaüstü görünüm (çift panel split-view, masaüstü eylemleri görünür, mobil eylemler ve sekmeler gizli)
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(studio.getByTestId("belge-studio-desktop-actions")).toBeVisible();
   await expect(studio.getByTestId("belge-studio-mobile-actions")).toBeHidden();
-  await expect(studio.getByRole("tab", { name: /Form Alanları/i })).toBeHidden();
+  await expect(studio.getByRole("tablist")).toHaveCount(0);
   await expect(studio.getByTestId("belge-studio-form-scroll")).toBeVisible();
   await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
 });
@@ -329,21 +330,21 @@ test("Mobil stüdyoda 20 kez ardışık sekme geçişi sonrasında form ve canva
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/belgeler/santiye-sefi-sozlesmesi", { waitUntil: "domcontentloaded", timeout: 30_000 });
   const studio = page.locator('[data-studio-locked="true"]:visible').last();
-  const formTab = studio.getByRole("tab", { name: /Form Alanları/i });
-  const previewTab = studio.getByRole("tab", { name: /Canlı PDF Önizle/i });
+  const actions = studio.getByTestId("belge-studio-mobile-actions");
   const canvas = studio.locator("canvas").first();
+  await expect(studio.getByRole("tablist")).toHaveCount(0);
+  await expect(actions.getByRole("button", { name: "Formu Düzenle", exact: true })).toBeVisible();
 
   for (let i = 0; i < 20; i++) {
-    await previewTab.click();
-    await formTab.click();
+    await actions.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
+    await actions.getByRole("button", { name: "Canlı PDF Önizle", exact: true }).click();
   }
 
-  await previewTab.click();
   await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
   await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
   await expect(canvas).toBeVisible();
 
-  await formTab.click();
+  await actions.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
   const firstInput = studio.getByTestId("belge-studio-form-scroll").locator("input").first();
   await expect(firstInput).toBeVisible();
   await firstInput.fill("20 Sekme Geçişi Sonrası Form Girişi");
@@ -435,6 +436,7 @@ test("Klavye odak sırası, screen reader etiketleri ve tema switch Space erişi
   const themeToggle = toolbar.getByTestId("belge-theme-toggle");
   await expect(themeToggle).toHaveAttribute("role", "switch");
   const initialChecked = await themeToggle.getAttribute("aria-checked");
+  expect(initialChecked).not.toBeNull();
 
   // 2. Klavye ile tema toggle (Focus + Space)
   await themeToggle.focus();
@@ -442,7 +444,7 @@ test("Klavye odak sırası, screen reader etiketleri ve tema switch Space erişi
   await page.keyboard.press("Space");
   await expect(themeToggle).toHaveAttribute("aria-checked", initialChecked === "true" ? "false" : "true");
   await page.keyboard.press("Space");
-  await expect(themeToggle).toHaveAttribute("aria-checked", initialChecked);
+  await expect(themeToggle).toHaveAttribute("aria-checked", initialChecked!);
 
   // 3. Form inputlarında sırayla Tab gezinmesi
   const firstInput = studio.getByTestId("belge-studio-form-scroll").locator("input").first();

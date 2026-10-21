@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { BELGE_ZOOM_STEP, MAX_BELGE_ZOOM, MIN_BELGE_ZOOM, clampBelgeZoom } from "@/lib/belge-studio-zoom";
 import { BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS } from "@/lib/belge-studio-layout";
 import {
   BelgeFitPageIcon,
   BelgeMoonIcon,
+  BelgeMoreIcon,
   BelgeNextPageIcon,
   BelgeOpenExternalIcon,
   BelgePrevPageIcon,
@@ -111,7 +120,7 @@ export function BelgeStudioPreviewToolbar({
           aria-live="off"
           aria-label={`Yakınlaştırma yüzde ${displayedZoom}`}
           data-testid="belge-studio-zoom-level"
-          className="min-w-[44px] text-center font-mono text-[12px] font-semibold tabular-nums text-foreground"
+          className={`min-w-[44px] text-center font-mono text-[12px] font-semibold tabular-nums text-foreground ${hasPageNavigation ? "belge-mobile-multipage-zoom-label" : ""}`}
         >
           %{displayedZoom}
         </span>
@@ -132,7 +141,7 @@ export function BelgeStudioPreviewToolbar({
           onClick={onFit}
           disabled={disabled}
           title="Tüm sayfayı sığdır (Ctrl / Cmd ve 0)"
-          className="preview-tool-button"
+          className={`preview-tool-button ${hasPageNavigation ? "belge-preview-direct-action" : ""}`}
         >
           <BelgeFitPageIcon className="h-[17px] w-[17px]" />
           <span className="hidden sm:inline">Sığdır</span>
@@ -144,13 +153,65 @@ export function BelgeStudioPreviewToolbar({
           target="_blank"
           rel="noopener noreferrer"
           title="PDF'yi yeni sekmede aç"
-          className={`preview-tool-button ${disabled || !pdfUrl ? "pointer-events-none opacity-45" : ""}`}
+          className={`preview-tool-button ${hasPageNavigation ? "belge-preview-direct-action" : ""} ${disabled || !pdfUrl ? "pointer-events-none opacity-45" : ""}`}
           aria-disabled={disabled || !pdfUrl}
           tabIndex={disabled || !pdfUrl ? -1 : undefined}
         >
           <BelgeOpenExternalIcon className="h-[17px] w-[17px]" />
         </a>
       </div>
+
+      {hasPageNavigation && (
+        <div className="belge-preview-more flex shrink-0 lg:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="preview-tool-button"
+                data-testid="belge-studio-more-view-options"
+                aria-label="Diğer PDF görünüm seçenekleri"
+                title="PDF görünüm seçenekleri"
+                disabled={disabled}
+              >
+                <BelgeMoreIcon className="h-[17px] w-[17px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="bottom"
+              align="end"
+              sideOffset={8}
+              className="min-w-52 rounded-xl border-border bg-popover p-1.5 shadow-xl"
+              data-testid="belge-studio-more-view-menu"
+            >
+              <DropdownMenuLabel className="px-2 py-1.5 text-xs text-muted-foreground">
+                Yakınlaştırma %{displayedZoom}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={onFit}
+                disabled={disabled}
+                className="min-h-12 gap-2 rounded-lg"
+              >
+                <BelgeFitPageIcon className="h-4 w-4" />
+                Sığdır
+              </DropdownMenuItem>
+              {disabled || !pdfUrl ? (
+                <DropdownMenuItem disabled className="min-h-12 gap-2 rounded-lg">
+                  <BelgeOpenExternalIcon className="h-4 w-4" />
+                  PDF&apos;yi yeni sekmede aç
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem asChild className="min-h-12 gap-2 rounded-lg">
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                    <BelgeOpenExternalIcon className="h-4 w-4" />
+                    PDF&apos;yi yeni sekmede aç
+                  </a>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Tema görünümü">
         <button
